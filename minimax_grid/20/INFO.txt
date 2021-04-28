@@ -1,0 +1,24 @@
+Freq_grid_num:  20       Range_x:  0.9998244000000001 5000.0           err:  2.1225812824265944e-05
+time_grid_num:  20       Range_x:  0.9998244000000001 5000.0           err:  3.333051042248014e-07
+Time_to_freq_transform      Range_x:  0.9998244000000001 5000.0
+Freq_point:  0.3218658058731708          transform_err:  8.173371053854517e-07
+Freq_point:  1.1152512989850798          transform_err:  2.0384324656563813e-06
+Freq_point:  2.4505710073319125          transform_err:  3.772188412853872e-06
+Freq_point:  5.06337875905895          transform_err:  3.299389109653883e-05
+Freq_point:  10.547129661472598          transform_err:  9.224768128987537e-05
+Freq_point:  22.60286874504544          transform_err:  6.152827601006022e-05
+Freq_point:  50.304572300081716          transform_err:  2.8062750035473538e-05
+Freq_point:  117.19975146817906          transform_err:  4.320010503646929e-06
+Freq_point:  288.6701740763828          transform_err:  7.598813488585675e-06
+Freq_point:  763.5337433994051          transform_err:  9.57325635928246e-06
+Freq_point:  2272.659118936966          transform_err:  9.727775794186606e-06
+Freq_point:  19531.63527271644          transform_err:  2.112518444448182e-06
+Freq_point:  310304.0750085409          transform_err:  1.3451376763557526e-08
+Freq_point:  312910.70211882965          transform_err:  1.322844527560986e-08
+Freq_point:  412561.9755761362          transform_err:  7.611266687798132e-09
+Freq_point:  458663.3400186362          transform_err:  6.158560408769373e-09
+Freq_point:  467049.9349005419          transform_err:  5.939444391563923e-09
+Freq_point:  1020418.9155613729          transform_err:  1.2445810273096138e-09
+Freq_point:  1098345.9663361744          transform_err:  1.0741273715937528e-09
+Freq_point:  1816553.4462965466          transform_err:  3.9273300425873553e-10
+Finish!

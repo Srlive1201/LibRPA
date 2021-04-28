@@ -1,0 +1,10 @@
+Freq_grid_num:  6       Range_x:  0.9998244000000001 90.0           err:  0.00026897903868083883
+time_grid_num:  6       Range_x:  0.9998244000000001 90.0           err:  7.219042742934167e-05
+Time_to_freq_transform      Range_x:  0.9998244000000001 90.0
+Freq_point:  0.39321509017466844          transform_err:  0.0004885095264075545
+Freq_point:  1.4591009834545725          transform_err:  0.00067575980751583
+Freq_point:  3.647023002055347          transform_err:  0.0004057640141136576
+Freq_point:  9.014859470442737          transform_err:  0.00016509369782923
+Freq_point:  23.709857049180425          transform_err:  5.3656749661790126e-05
+Freq_point:  73.34195158828626          transform_err:  4.226488027058578e-05
+Finish!
