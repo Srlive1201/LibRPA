@@ -1563,13 +1563,22 @@ void Cal_Periodic_Chi0::FT_R_to_K_chi0()
                     //(*Vps[I][J][R]).c
                     //cout<<"2"<<endl;
                    // const size_t nu_num=exx_lcao.index_abfs[ucell.iat2it[J]].count_size;
-                    for(int ik=0;ik!=n_kpoints;ik++)
+                    for(auto &q_pair:Vq[I][J])
                     {
                         //cout<<"3"<<endl;
-                        Vector3_Order<double> ik_vec=kvec_c[ik];
-                        chi0_k[freq][ik_vec][I][J].create(atom_mu[I],atom_mu[J]);
+                        Vector3_Order<double> ik_vec=q_pair.first;
+                        auto &vq_mat=*q_pair.second;
+                        chi0_k[freq][ik_vec][I][J].create(vq_mat.nr,vq_mat.nc);
                         //cout<<freq<<"    "<<I<<"   "<<J<<"    ik:"<<ik<<"   ik_vec "<<ik_vec<<endl;
                     }
+                    
+                    // for(int ik=0;ik!=n_kpoints;ik++)
+                    // {
+                    //     //cout<<"3"<<endl;
+                    //     Vector3_Order<double> ik_vec=kvec_c[ik];
+                    //     chi0_k[freq][ik_vec][I][J].create(atom_mu[I],atom_mu[J]);
+                    //     //cout<<freq<<"    "<<I<<"   "<<J<<"    ik:"<<ik<<"   ik_vec "<<ik_vec<<endl;
+                    // }
                 }
             }
             break;

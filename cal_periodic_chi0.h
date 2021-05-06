@@ -68,7 +68,7 @@ class Cal_Periodic_Chi0
     //std::map<size_t,map<size_t,ComplexMatrix>> adj_atom_pair; 
     //void adj_atom_search();
 */ 
-    const string minimax_grid_path="/home/shirong/LibRPA/minimax_grid/20";
+    const string minimax_grid_path="/home/shirong/LibRPA/minimax_grid";
     void cal_MP2_energy_pi_k( map<double,double> &freq_grid ); 
     void RPA_correlation_energy( map<double,double> &freq_grid );
     vector<double> read_cosine_trans_grid(const string &file_path);
