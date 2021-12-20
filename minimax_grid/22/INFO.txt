@@ -1,0 +1,26 @@
+Freq_grid_num:  22       Range_x:  0.9998244000000001 6000.000000000001           err:  0.014248318601051718
+time_grid_num:  22       Range_x:  0.9998244000000001 6000.000000000001           err:  3.2551796980140324e-07
+Time_to_freq_transform      Range_x:  0.9998244000000001 6000.000000000001
+Freq_point:  5.4217728178929624e-11          transform_err:  6.545994488682538e-07
+Freq_point:  0.8024632322274705          transform_err:  1.0072690991014266e-06
+Freq_point:  3.9385299347768825          transform_err:  9.293635505697173e-06
+Freq_point:  10.0230446896755          transform_err:  7.538711330522252e-05
+Freq_point:  23.532537322972956          transform_err:  7.560722924560698e-05
+Freq_point:  53.59815073700451          transform_err:  3.8257502949317485e-05
+Freq_point:  120.5104148887178          transform_err:  1.8462263570559814e-05
+Freq_point:  269.4264029490224          transform_err:  1.1519796220208454e-05
+Freq_point:  600.8450359444075          transform_err:  9.899781539142493e-06
+Freq_point:  1338.4307637707975          transform_err:  8.654088107806941e-06
+Freq_point:  2979.9579868690716          transform_err:  9.24327098098405e-06
+Freq_point:  6633.244006241773          transform_err:  2.9980716329826274e-06
+Freq_point:  14763.781565573026          transform_err:  3.699465058556599e-06
+Freq_point:  32858.62567444299          transform_err:  1.0384980017567767e-06
+Freq_point:  73129.44183341555          transform_err:  2.288945584651617e-07
+Freq_point:  162753.79141900392          transform_err:  4.9895976087069486e-08
+Freq_point:  362216.44961124816          transform_err:  1.2589762450721576e-08
+Freq_point:  806128.7591239914          transform_err:  2.5414268580296976e-09
+Freq_point:  1794073.772606215          transform_err:  8.380104293049751e-10
+Freq_point:  3992785.8352109515          transform_err:  6.409477559871575e-10
+Freq_point:  8886109.520507872          transform_err:  8.931792774359597e-10
+Freq_point:  19776401.658497788          transform_err:  1.933377973764486e-09
+Finish!

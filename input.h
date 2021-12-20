@@ -33,7 +33,7 @@ extern Vector3<double> *kvec_c;
 extern map<int,int> atom_nw;
 extern map<int,int> atom_mu;
 
-extern map<Vector3_Order<double>,double>  irk_wight;
+extern map<Vector3_Order<double>,double>  irk_weight;
 //extern vector<ComplexMatrix> wfc_k;	
 extern map<size_t,map<size_t,map<Vector3_Order<int>,std::shared_ptr<matrix>>>> Cs;
 extern map<size_t,map<size_t,map<Vector3_Order<double>,std::shared_ptr<ComplexMatrix>>>> Vq;
@@ -44,7 +44,9 @@ void READ_AIMS_STRU(const std::string &file_path);
 void READ_AIMS_EIGENVECTOR(const std::string &file_path,vector<ComplexMatrix> &wfc_k);
 void READ_AIMS_Cs(const std::string &file_path);
 void READ_AIMS_Vq(const std::string &file_path);
-void READ_AIMS_Vq_real(const std::string &file_path);
+void handle_Cs_file(const std::string &file_path);
+void handle_Vq_file(const std::string &file_path, map<Vector3_Order<double>,ComplexMatrix> &Vq_full);
+void handle_KS_file(const std::string &file_path,vector<ComplexMatrix> &wfc_k);
 #endif
 
 

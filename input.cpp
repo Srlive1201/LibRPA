@@ -1,9 +1,8 @@
 #include "input.h"
 #include <fstream>
 #include<iostream>
-
-
-
+#include<dirent.h>
+#include "cal_periodic_chi0.h"
 using namespace std;
 const double PI=3.141592654;
 const double TWO_PI=6.283185307;
@@ -14,7 +13,7 @@ int natom=0;
 int ncell=0;
 matrix wg;
 double **ekb;
-double efermi;
+double efermi=0;
 int n_kpoints=0;
 int n_irk_points=0;
 int kv_nmp[3]={1,1,1};
@@ -24,14 +23,14 @@ Matrix3 G;
 //vector<ComplexMatrix> wfc_k;	
 map<size_t,map<size_t,map<Vector3_Order<int>,std::shared_ptr<matrix>>>> Cs;
 map<size_t,map<size_t,map<Vector3_Order<double>,std::shared_ptr<ComplexMatrix>>>> Vq;
-map<Vector3_Order<double>,double> irk_wight;
+map<Vector3_Order<double>,double> irk_weight;
 map<int,int> atom_nw;
 map<int,int> atom_mu;
 
 
 void READ_AIMS_BAND(const std::string &file_path)
 {
-    //cout<<"Begin to read aims-band_out"<<endl;
+    cout<<"Begin to read aims-band_out"<<endl;
     ifstream infile;
     infile.open(file_path);
     string ik,is,a,b,c,d;
@@ -41,14 +40,13 @@ void READ_AIMS_BAND(const std::string &file_path)
     infile>>NLOCAL;
     infile>>efermi;
     efermi*=2;
-    efermi=0.2;
-    //cout<<n_kpoints<<NSPIN<<NLOCAL<<endl;
+    //efermi=0.2;
+    cout<<n_kpoints<<NSPIN<<NLOCAL<<endl;
     wg.create(n_kpoints,NLOCAL);
-
     ekb=new double*[n_kpoints];
     for(int ik=0;ik!=n_kpoints;ik++)
     {
-        ekb[ik]=new double[NLOCAL];
+        ekb[ik]=new double[NBANDS];
     }
 
     for(int ks=0;ks!=n_kpoints;ks++)
@@ -57,7 +55,7 @@ void READ_AIMS_BAND(const std::string &file_path)
         //cout<<ik<<is<<endl;
         int k_index=stoi(ik)-1;
         int s_index=stoi(is)-1;
-        for(int i=0;i!=NLOCAL;i++)
+        for(int i=0;i!=NBANDS;i++)
         {
             infile>>a>>b>>c>>d;
             //cout<<a<<b<<c<<d<<endl;
@@ -114,44 +112,70 @@ void READ_AIMS_STRU(const std::string &file_path)
 
 void READ_AIMS_EIGENVECTOR(const std::string &file_path, vector<ComplexMatrix> &wfc_k)
 {
-    cout<<"Begin to read aims eigenvecor"<<endl;
-    ifstream infile;
-    infile.open(file_path);
-    string rvalue, ivalue;
+    //cout<<"Begin to read aims eigenvecor"<<endl;
     assert(NSPIN==1);
-    cout<<" n_kpoints:" <<n_kpoints<<endl;
+    //cout<<" n_kpoints:" <<n_kpoints<<endl;
     wfc_k.resize(n_kpoints);
-    cout<<"wfc_k size: "<<wfc_k.size()<<endl;
+    //cout<<"wfc_k size: "<<wfc_k.size()<<endl;
     for(int ik=0;ik!=n_kpoints;ik++)
         wfc_k[ik].create(NBANDS,NLOCAL);
-    cout<<"  create wfc_k"<<endl;
-    for(int iw=0;iw!=NLOCAL;iw++)
-        for(int ib=0;ib!=NBANDS;ib++)
-            for(int is=0;is!=NSPIN;is++)
-                for(int ik=0;ik!=n_kpoints;ik++)
+    //cout<<"  create wfc_k"<<endl;
+
+    struct dirent *ptr;
+    DIR *dir;
+    dir=opendir(file_path.c_str());
+    vector<string> files;
+    while((ptr=readdir(dir))!=NULL)
+    {
+        string fm(ptr->d_name);
+        if(fm.find("KS_eigenvector")==0)
+        {
+            handle_KS_file(fm,wfc_k);
+        }
+    }
+    closedir(dir);
+    dir=NULL;
+}
+
+void handle_KS_file(const std::string &file_path,vector<ComplexMatrix> &wfc_k)
+{
+   // cout<<file_path<<endl;
+    ifstream infile;
+    infile.open(file_path);
+    string rvalue, ivalue ,ik;
+    while(infile.peek()!=EOF)
+    {
+        infile>>ik;
+        //cout<<"     ik: "<<ik<<endl;
+        if(infile.peek()==EOF) break;
+        for(int iw=0;iw!=NLOCAL;iw++)
+            for(int ib=0;ib!=NBANDS;ib++)
+                for(int is=0;is!=NSPIN;is++)
                 {
                     //cout<<iw<<ib<<is<<ik;
                     infile>>rvalue>>ivalue;
                     //cout<<rvalue<<ivalue<<endl;
-                    wfc_k[ik](ib,iw)=complex<double>(stod(rvalue),stod(ivalue));
+                    wfc_k.at(stoi(ik)-1)(ib,iw)=complex<double>(stod(rvalue),stod(ivalue));
                 }
-    //cout<<" EOF?  "<<infile.eof()<<endl;
+    }
 }
-
-void READ_AIMS_Cs(const std::string &file_path)
+void handle_Cs_file(const std::string &file_path)
 {
     //map<size_t,map<size_t,map<Vector3_Order<int>,std::shared_ptr<matrix>>>> Cs_m;
     //cout<<"Begin to read aims Cs"<<endl;
+
     string natom_s,ncell_s,ia1_s,ia2_s,ic_1,ic_2,ic_3,i_s,j_s,mu_s,Cs_ele;
     ifstream infile;
     infile.open(file_path);
     infile>>natom_s>>ncell_s;
     natom=stoi(natom_s);
     ncell=stoi(ncell_s);
-    cout<<"  Natom  Ncell  "<<natom<<ncell<<endl;
-    for(int loop=0;loop!=natom*natom*ncell;loop++)
+    //cout<<"  Natom  Ncell  "<<natom<<"  "<<ncell<<endl;
+    //for(int loop=0;loop!=natom*natom*ncell;loop++)
+    while(infile.peek()!=EOF)
     {
         infile>>ia1_s>>ia2_s>>ic_1>>ic_2>>ic_3>>i_s;
+        if(infile.peek()==EOF) break;
         infile>>j_s>>mu_s;
         //cout<<ic_1<<mu_s<<endl;
         int ia1=stoi(ia1_s)-1;
@@ -181,91 +205,120 @@ void READ_AIMS_Cs(const std::string &file_path)
                     (*cs_ptr)(i*n_j+j,mu)=stod(Cs_ele);
                     //(*cs_ptr)(j*n_i+i,mu)=stod(Cs_ele);
                 }
-        //if(abs(stoi(ic_3))>=10) continue;
+       
+        //if( box.norm2()>8 || box.norm2()<0) continue;
+        
         Cs[ia1][ia2][box]=cs_ptr;
+        
+        //cout<<" READ Cs, INDEX:  "<<ia1<<"   "<<ia2<<"   "<<box<<"   "<<(*Cs.at(ia1).at(ia2).at(box))(n_i*n_j-1,n_mu-1)<<endl;
     }
-    cout<<" atom_mu.size= "<<atom_mu.size()<<endl;
-    cout<<"  Cs_dim   "<<Cs.size()<<"    "<<Cs[0].size()<<"   "<<Cs[0][0].size()<<endl;
-    cout<<"FINISH to read aims Cs"<<endl;
+    // cout<<" atom_mu.size= "<<atom_mu.size()<<endl;
+    // cout<<"  Cs_dim   "<<Cs.size()<<"    "<<Cs[0].size()<<"   "<<Cs[0][0].size()<<endl;
+    // cout<<"FINISH read aims "+file_path<<endl;
+}
+void handle_Vq_file(const std::string &file_path, map<Vector3_Order<double>,ComplexMatrix> &Vq_full)
+{
+    //cout<<"Begin to read aims vq_real"<<endl;
+    ifstream infile;
+    infile.open(file_path);
+    string nbasbas,begin_row,end_row,begin_col,end_col, q1,q2,q3, vq_r,vq_i,q_num,q_weight;
+    // int nline=0;
+    // while(!infile.eof())
+    // {
+    //     nline++;
+    // }
+    // cout<<"  nline:  "<<nline<<endl;
+    infile >> n_irk_points;
+    
+    while(infile.peek()!=EOF)
+    {
+        infile>> nbasbas>>begin_row>>end_row>>begin_col>>end_col;
+        if(infile.peek()==EOF) break;
+        infile>> q_num >>q_weight;
+        int mu=stoi(nbasbas);
+        int nu=stoi(nbasbas);
+        int brow=stoi(begin_row)-1;
+        int erow=stoi(end_row)-1;
+        int bcol=stoi(begin_col)-1;
+        int ecol=stoi(end_col)-1;
+        Vector3_Order<double> qvec(kvec_c[stoi(q_num)-1]);
+        irk_weight.insert(pair<Vector3_Order<double>,double>(qvec,stod(q_weight)));
+        if(!Vq_full.count(qvec))
+        {
+            Vq_full[qvec].create(mu,nu);
+        }
+        for(int i_mu=brow;i_mu<=erow;i_mu++)
+            for(int i_nu=bcol;i_nu<=ecol;i_nu++)
+            {
+                infile>>vq_r>>vq_i;
+                Vq_full[qvec](i_nu,i_mu)=complex<double>(stod(vq_r),stod(vq_i));
+                //Vq_full[qvec](i_mu,i_nu)=complex<double>(stod(vq_r),stod(vq_i));
+            }
+    }
 }
 
 void READ_AIMS_Vq(const std::string &file_path)
 {
-    cout<<"Begin to read aims vq"<<endl;
-    ifstream infile;
-    infile.open(file_path);
-    string iat_1, iat_2, mu_s, nu_s, q1,q2,q3, vq_r,vq_i;
-    for(int i=0;i!=natom*natom;i++)
+    struct dirent *ptr;
+    DIR *dir;
+    dir=opendir(file_path.c_str());
+    vector<string> files;
+    map<Vector3_Order<double>,ComplexMatrix> Vq_full;
+    while((ptr=readdir(dir))!=NULL)
     {
-        infile>> iat_1>>iat_2>>mu_s>>nu_s;
-        infile>> q1>>q2>>q3;
-        int ia1=stoi(iat_1)-1;
-        int ia2=stoi(iat_2)-1;
-        int mu=stoi(mu_s);
-        int nu=stoi(nu_s);
-        double qx=stod(q1);
-        double qy=stod(q2);
-        double qz=stod(q3);
-        Vector3_Order<double> qvec(qx,qy,qz);
-        shared_ptr<ComplexMatrix>  vq_ptr=make_shared<ComplexMatrix>();
-        vq_ptr->create(mu,nu);
-        for(int i_nu=0;i_nu!=nu;i_nu++)
-            for(int i_mu=0;i_mu!=mu;i_mu++)
-            {
-                infile>>vq_r>>vq_i;
-                (*vq_ptr)(i_mu,i_nu)=complex<double>(stod(vq_r),stod(vq_i));
-            }
-        Vq[ia1][ia2][qvec]=vq_ptr;
+        string fm(ptr->d_name);
+        if(fm.find("coulomb_mat")==0)
+        {
+            handle_Vq_file(fm,Vq_full);
+        }
     }
-    cout<<"  Vq_dim   "<<Vq.size()<<"    "<<Vq[0].size()<<"   "<<Vq[0][0].size()<<endl;
-    cout<<"Finish read aims vq"<<endl;
-}
 
-void READ_AIMS_Vq_real(const std::string &file_path)
-{
-    cout<<"Begin to read aims vq_real"<<endl;
-    ifstream infile;
-    infile.open(file_path);
-    string c_size,iat_1, iat_2, mu_s, nu_s, q1,q2,q3, vq_r,vq_i,q_num,q_weight;
-    infile >> n_irk_points;
-    for(int ik=0;ik!=n_irk_points;ik++)
+    for(auto &vf_p:Vq_full)
     {
-        infile>> c_size>>mu_s>>nu_s;
-        infile>> q_num >>q_weight;
-        int mu=stoi(mu_s);
-        int nu=stoi(nu_s);
-        
-        irk_wight.insert(pair<Vector3_Order<double>,double>(kvec_c[stoi(q_num)-1],stod(q_weight)));
-        shared_ptr<ComplexMatrix>  vq_full_ptr=make_shared<ComplexMatrix>();
-        vq_full_ptr->create(mu,nu);
-        for(int i_nu=0;i_nu!=nu;i_nu++)
-            for(int i_mu=0;i_mu!=mu;i_mu++)
-            {
-                infile>>vq_r>>vq_i;
-                (*vq_full_ptr)(i_mu,i_nu)=complex<double>(stod(vq_r),stod(vq_i));
-            }
-        //Vq[0][0][Vector3_Order<double>{0.0,0.0,0.0}]=vq_ptr;
-        ComplexMatrix vq_full=*vq_full_ptr;
+        auto qvec=vf_p.first;
         for(int I=0;I!=atom_mu.size();I++)
             for(int J=0;J!=atom_mu.size();J++)
             {
+                if(I>J) continue;
                 shared_ptr<ComplexMatrix>  vq_ptr=make_shared<ComplexMatrix>();
                 vq_ptr->create(atom_mu[I],atom_mu[J]);
+                //vq_ptr_tran->create(atom_mu[J],atom_mu[I]);
                 for(int i_mu=0;i_mu!=atom_mu[I];i_mu++)
                     for(int i_nu=0;i_nu!=atom_mu[J];i_nu++)
                     {
-                        (*vq_ptr)(i_mu,i_nu)=vq_full(atom_mu_loc2glo(I,i_mu),atom_mu_loc2glo(J,i_nu));
+                        (*vq_ptr)(i_mu,i_nu)=vf_p.second(atom_mu_loc2glo(J,i_nu),atom_mu_loc2glo(I,i_mu));
                     }
-                Vector3_Order<double> qvec(kvec_c[stoi(q_num)-1]);
-                cout<<q_num<<qvec<<endl;
-                Vq[J][I][qvec]=vq_ptr;
+                Vq[I][J][qvec]=vq_ptr;
             }
     }
+    closedir(dir);
+    dir=NULL;
     cout<<"  Vq_dim   "<<Vq.size()<<"    "<<Vq[0].size()<<"   "<<Vq[0][0].size()<<endl;
-    for(auto &irk:irk_wight)
+    for(auto &irk:irk_weight)
+    {
         cout<<" irk_vec and weight: "<<irk.first<<"  "<<irk.second<<endl;
+       // Cal_Periodic_Chi0::print_complex_matrix("full_Vq",Vq_full.at(irk.first));
+    }
     cout<<"Finish read aims vq"<<endl;
 }
+
+
+void READ_AIMS_Cs(const std::string &file_path)
+{
+    struct dirent *ptr;
+    DIR *dir;
+    dir=opendir(file_path.c_str());
+    vector<string> files;
+    while((ptr=readdir(dir))!=NULL)
+    {
+        string fm(ptr->d_name);
+        if(fm.find("Cs_data")==0)
+            handle_Cs_file(fm);
+    }
+    closedir(dir);
+    dir=NULL;
+}
+
 int atom_iw_loc2glo(const int &atom_index,const int & iw_lcoal)
 {
     int nb=0;

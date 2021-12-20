@@ -1,128 +1,86 @@
 #include "aperiodic_chi0.h"
-
 #include "Gauss_Quadrature.h"
 #include "lapack_connector.h"
+#include "global_class.h"
 //#include "src_global/matrix.h"
 #include "input.h"
-#include <vector>
 #include<fstream>
 #include<sstream>
 #include<iomanip>
 #include<cmath>
 #include<cstring>
+#include<omp.h>
+//#include<iostream>
 using namespace std;
-
 
 void Aperiodic_Chi0::main()
 {
-    for(auto &Ip:Cs)
-        for(auto &Jp:Ip.second)
-            for(auto &Rp:Jp.second)
-            {
-                cout<<"  I  J   box  :   "<<Ip.first<<"   "<<Jp.first<<"    "<<Rp.first<<endl;
-                auto &cs_mat=*Rp.second;
-                print_matrix("aims Cs_mat",cs_mat);
-            }
-    
-    for(auto &Ip:Vq)
-        for(auto &Jp:Ip.second)
-            for(auto &Rp:Jp.second)
-            {
-                cout<<"  I  J   box  :   "<<Ip.first<<"   "<<Jp.first<<"    "<<Rp.first<<endl;
-                auto &vq_mat=*Rp.second;
-                print_complex_matrix("aims Vq_mat",vq_mat);
-            }
-
-    
-    //print_complex_matrix("aims Vq",*Vq[0][0][{0,0,0}]);
     init();
-    map<size_t,map<size_t,map<size_t,map<size_t,ComplexMatrix>>>> aims_Cc_temp=aims_Cc();
-    map<size_t,map<size_t,map<size_t,map<size_t,ComplexMatrix>>>> C_tilde_map=aims_C_tilde(aims_Cc_temp);
+    double cc_tb=omp_get_wtime();
+    double cc_te=omp_get_wtime();
+    aims_C_tilde();
+    double ct_te=omp_get_wtime();
     //map<size_t,map<size_t,ComplexMatrix>> C_tilde_map=C_band_aux(); //C_tilde[is][iat](mn,mu)
     vector<int> part_range=construct_part_range();
-    // for(const auto &is_pair:C_tilde_map)
-    // {
-    //     const auto is=is_pair.first;
-    //     cout<<"i_spin: "<<is<<endl;
-    //     for(const auto &I_pair:is_pair.second)
-    //     {
-    //         const auto I=I_pair.first;
-    //         const auto &c_t_mat=I_pair.second;
-    //         cout<<" C_tilde_I: "<<I<<endl;
-    //         print_complex_real_matrix( "C_tilde_I ", c_t_mat);  
-    //     }
-    // }
-   // ph_cRPA(C_tilde_map);
+    //ph_cRPA(C_tilde_map[0]);
     //map<double,double> freq_grid(read_file_grid("/home/shirong/python_test/freq_grid.txt",'F')); 
-    map<double,double> freq_grid(construct_gauss_grid(20)); 
+    //map<double,double> freq_grid(construct_gauss_grid(20)); 
+    map<double,double> freq_grid=cal_chi0.read_local_grid( "local_"+to_string(cal_chi0.grid_N)+"_freq_points.dat",'F');
+    first_freq=freq_grid.begin()->first;
+    vector<pair<size_t,size_t>> tot_pair(get_atom_pair(Vq));
     complex<double> tot_cRPA(0.0,0.0);
     cout<<"chi0_freq:"<<endl;
+    double chi0_tb=omp_get_wtime();
+    tmp_count=1;
     for(const auto &freq_pair:freq_grid)
     {
         double freq=freq_pair.first;
         double weight=freq_pair.second;
-        map<size_t,map<size_t,map<size_t,ComplexMatrix>>> chi_omega_mat=cal_chi0_mat(freq, C_tilde_map);
-        cout<<"i_freq: "<<freq<<endl;
-        if(freq==freq_grid.begin()->first)
+        map<size_t,map<size_t,map<size_t,ComplexMatrix>>> chi_omega_mat;
+        for(size_t atom_pair=0;atom_pair!=tot_pair.size();atom_pair++)
         {
-            for(auto &Ip:chi_omega_mat)
-                for(auto &Jp:Ip.second)
-                {
-                    auto I=Ip.first;
-                    auto J=Jp.first;
-                    cout<<" I J:  "<<I<<"   "<<J<<endl;
-                    print_complex_real_matrix("chi0_mat",chi_omega_mat[0][I][J]);
-                }
+            auto I=tot_pair[atom_pair].first;
+            auto J=tot_pair[atom_pair].second;
+            map<size_t,ComplexMatrix> chi_omega_mat_tmp(cal_ap_chi0_mat(freq,I,J));
+            chi_omega_mat[0][I][J]=std::move(chi_omega_mat_tmp[0]);
         }
         //cout<<"i_freq: "<<freq<<"     "<<chi_omega_mat[0][0](0,0)<<"     "<<chi_omega_mat[0][0](0,1)<<"    "<<chi_omega_mat[0][0](1,1)<<"    "<<chi_omega_mat[0][0](2,2)<<endl;
-        //map<size_t,map<size_t,ComplexMatrix>> pi_mat=cal_pi_mat(chi_omega_mat,freq);
-        //complex<double> part_cRPA=cal_cRPA_omega(pi_mat,freq,part_range);
-        //tot_cRPA+=part_cRPA*weight/TWO_PI;
+
+        map<size_t,map<size_t,ComplexMatrix>> pi_mat=cal_pi_mat(chi_omega_mat[0],freq);
+        tmp_count++;
+        complex<double> part_cRPA=cal_cRPA_omega(pi_mat,freq,part_range);
+        tot_cRPA+=part_cRPA*weight/TWO_PI;
     }
-    //cout<<"tot_cRPA:  "<<setprecision(8)<<tot_cRPA<<endl;
+    double chi0_te=omp_get_wtime();
+    cout<<"Cc_TIME_USED: "<<cc_te-cc_tb<<endl;
+    cout<<"Ct_TIME_USED: "<<ct_te-cc_te<<endl;
+    cout<<"Chi0_TIME_USED: "<<chi0_te-chi0_tb<<endl;
+    cout<<"ap_cRPA:  "<<setprecision(8)<<tot_cRPA<<endl;
     //cout<<"E_hf+cRPA:"<<tot_cRPA.real()+en.etot<<endl;
 }
 
 void Aperiodic_Chi0::init()
 {
-    matrix test_A(3,5); 
-    for(int i=0;i!=test_A.nr*test_A.nc;++i)
-    {
-        test_A.c[i]=i;
-        cout<<test_A.c[i]<<"    "; 
-    }    
-    print_matrix("test_A: ", test_A);
+
+    cal_chi0.grid_N=6;
+    cal_chi0.init();
+    cout<<"grid_N: "<<cal_chi0.grid_N<<endl;
     for(size_t i=0;i!=n_kpoints;i++)
     {
         cout<<"i_k:"<<i<<endl;
-        print_complex_matrix( "wfc_k", wfc_k[i]);
+        //print_complex_matrix( "wfc_k", wfc_k[i]);
         //print_complex_matrix("dm_2D: ", LOC.wfc_dm_2d.dm_k[is]);
     }
     range_all=0;
-    for(int Mu=0;Mu!=atom_mu.size();Mu++)
+    cout<<"  atom_mu.size:  "<<atom_mu.size()<<endl;
+    for(size_t i_at=0;i_at<atom_mu.size();i_at++)
 	{
-		range_all+=atom_mu[Mu];
-	    cout<<"index_abfs["<<Mu<<"].count_size="<<atom_mu[Mu]<<endl;
+		range_all+=atom_mu[i_at];
+	    cout<<"index_abfs["<<i_at<<"].count_size="<<atom_mu[i_at]<<endl;
 	}
     Tot_band_num=NBANDS;
     cout<<"Tot_band_num: "<<Tot_band_num<<endl;
-    
     cout<<" NSPIN= "<<NSPIN<<endl;
-    
-    //cout<<"  occ_num.size()  "<<occ_num.size()<<"   max_size() "<<occ_num.max_size()<<endl;
-    // occ_num.resize(NSPIN,0);
-    // cout<<"  After resize : occ_num.size()  "<<occ_num.size()<<"   max_size() "<<occ_num.max_size()<<"   capacity() "<<occ_num.capacity()<<endl;
-    
-    //cout<<"  unocc_num.size()  "<<unocc_num.size()<<"   max_size() "<<unocc_num.max_size()<<endl;
-    // unocc_num.resize(NSPIN,0);
-    // cout<<"  After resize : unocc_num.size()  "<<unocc_num.size()<<"   max_size() "<<unocc_num.max_size()<<"   capacity() "<<unocc_num.capacity()<<endl;
-    // cout<<"  tot_ia.size() "<<tot_ia.size();
-    // tot_ia.resize(NSPIN,0);
-    // cout<<"  tot_ia.size() "<<tot_ia.size();
-    // cout<<unocc_num.size()<<"   "<<tot_ia.size()<<endl;
-    // occ_num.clear();
-    // unocc_num.clear();
-    // tot_ia.clear();
     for(int is=0;is!=NSPIN;is++)
     {
         cout<<"tag_0"<<endl;
@@ -132,6 +90,7 @@ void Aperiodic_Chi0::init()
         {
             cout<<"2"<<endl;
             if(wg(is,i_band)>=1e-6)    //kv.nks == NSPIN ?
+            //if(wg(is,i_band)>=1) 
             {    
                 temp_occ++;
             }
@@ -197,10 +156,10 @@ complex<double> Aperiodic_Chi0::cal_cRPA_omega(map<size_t,map<size_t,ComplexMatr
             }
         }
     }
-    if(abs(freq-0.000440961)<1e-6)
-    {
-        print_complex_matrix( "pi_2D", pi_2D );    
-    }
+    // if(abs(freq-0.000440961)<1e-6)
+    // {
+    //     print_complex_matrix( "pi_2D", pi_2D );    
+    // }
     
     
     complex<double> rpa_for_omega(0.0,0.0);
@@ -232,6 +191,46 @@ complex<double> Aperiodic_Chi0::cal_cRPA_omega(map<size_t,map<size_t,ComplexMatr
 	return rpa_for_omega;
     
 }
+map<size_t,ComplexMatrix> Aperiodic_Chi0::cal_ap_chi0_mat(const double &omega ,const size_t &I, const size_t &J)
+{
+    //cout<<"cal_chi0_mat"<<endl;
+    const size_t I_aux_num=atom_mu[I];
+    const size_t J_aux_num=atom_mu[J];
+
+    map<size_t,ComplexMatrix> chi0_k_mat; 
+    for(int ik=0;ik!=n_kpoints/NSPIN;ik++)
+        chi0_k_mat[ik].create(I_aux_num,J_aux_num);               
+    
+    assert(n_kpoints==1);
+    for(size_t is=0;is!=NSPIN;is++)
+    {   
+        if (tot_ia[is]==0) continue;
+        //cout<<" i_spin: "<<is<<endl;
+        for(int ik=0;ik!=n_kpoints/NSPIN;ik++)
+        {
+            for(int iq=0;iq!=n_kpoints/NSPIN;iq++)
+            {
+                ComplexMatrix cx_omega_band_mat(construct_omega_band_mat(is,ik,iq,omega));
+                if(omega== first_freq)
+                {
+                    print_complex_real_matrix("cx_omega_band_mat",cx_omega_band_mat);
+                }
+                
+                if(ik==iq)
+                {
+                    ComplexMatrix C_omega=(transpose(C_tilde_map.at(is).at(ik).at(iq).at(I),false)) * cx_omega_band_mat;
+                    chi0_k_mat.at(ik)+=conj(C_omega)*C_tilde_map.at(is).at(iq).at(ik).at(J);
+                    //chi0_mat[I][J]+=C_omega*reshape_complexmat(occ_num[is],unocc_num[is],atom_mu[J],C_tilde_map.at(is).at(J));//
+                   // cout<<"  Cs_step: I J: "<<I<<J<<endl;
+                    //chi0_mat[I][J]=C_omega*reshape_complexmat(unocc_num,occ_num,C_tilde_map.at(J).nc,C_tilde_map.at(J));  //careabout second C_tilde_map (mn,mu)  band_index !!!
+                          
+                }
+            }
+        }
+    }
+    return chi0_k_mat;
+}
+
 map<size_t,map<size_t,ComplexMatrix>> Aperiodic_Chi0::cal_pi_mat(map<size_t,map<size_t,ComplexMatrix>> &chi0_omega_mat, const double &freq)
 {
     //cout<<"cal_pi_mat"<<endl;
@@ -247,94 +246,87 @@ map<size_t,map<size_t,ComplexMatrix>> Aperiodic_Chi0::cal_pi_mat(map<size_t,map<
             const auto J=J_pair.first;
             const size_t J_aux_num=atom_mu[J];
             pi_mat[I][J].create(I_aux_num,J_aux_num);
+            if(I!=J)
+                pi_mat[J][I].create(J_aux_num,I_aux_num);
         }
     }
-    //cout<<" cap_pi_1"<<endl;
-    for(const auto &Q_pair:chi0_omega_mat)
+
+    for(auto &I_p:Vq)
     {
-        const auto Q=Q_pair.first;
-        //const auto adj_Q=Abfs::get_adjs(Q);
-        for(const auto &I_pair:Q_pair.second)
+        const auto I=I_p.first;
+        for(auto &Q_p:Vq)
         {
-            const auto I=I_pair.first;
-            ComplexMatrix &chi0_mat=chi0_omega_mat.at(I).at(Q);
-            for(const auto &J_pair:Q_pair.second)
+            const auto Q=Q_p.first;
+            for(auto &J_p:I_p.second)
             {
-                const auto J=J_pair.first;
-                //cout<<"  cal_pi  IJQ"<<I<<J<<Q<<endl;
-                ComplexMatrix temp_Vps(*Vq.at(Q).at(J).at({0,0,0}));
-                pi_mat[I][J]+=chi0_mat*temp_Vps;
-              /*
-                if(abs(freq-0.000440961)<1e-6)
+                const auto J=J_p.first;
+                for(auto &kvec_p:J_p.second)
                 {
-                    cout<<" cal_pi_mat_step: I J Q: "<<I<<J<<Q<<endl;
-                    print_complex_matrix("chi0_mat:",chi0_mat);
-                    //print_complex_matrix("Vps_mat:",complex_Vps);
-                    print_complex_matrix("pi_tot",pi_mat[I][J]);
-                }  
-                */
-            }
-        }
-    }
-    return pi_mat;
-}
-map<size_t,map<size_t,map<size_t,ComplexMatrix>>> Aperiodic_Chi0::cal_chi0_mat(const double &omega ,map<size_t,map<size_t,map<size_t,map<size_t,ComplexMatrix>>>> &C_tilde_map)
-{
-    //cout<<"cal_chi0_mat"<<endl;
-    
-    map<size_t,map<size_t,map<size_t,ComplexMatrix>>> chi0_k_mat;
-    for(const auto &I_pair:Cs)
-    {
-        const auto I=I_pair.first;
-        const size_t I_aux_num=atom_mu[I];
-        for(const auto &J_pair:I_pair.second)
-        {
-            const auto J=J_pair.first;
-            const size_t J_aux_num=atom_mu[J];
-            for(int ik=0;ik!=n_kpoints/NSPIN;ik++)
-                chi0_k_mat[ik][I][J].create(I_aux_num,J_aux_num);
-        }
-    }                   
-                
-    for(size_t is=0;is!=NSPIN;is++)
-    {   
-        if (tot_ia[is]==0) continue;
-        //cout<<" i_spin: "<<is<<endl;
-        for(int ik=0;ik!=n_kpoints/NSPIN;ik++)
-        {
-            for(int iq=0;iq!=n_kpoints/NSPIN;iq++)
-            {
-                ComplexMatrix cx_omega_band_mat(construct_omega_band_mat(is,ik,iq,omega));
-                //print_complex_real_matrix("cx_omega_band_mat",cx_omega_band_mat);
-                for(const auto &I_pair:Cs)
-                {
-                    const auto I=I_pair.first;
-                    for(const auto &J_pair:I_pair.second)
+                    Vector3_Order<double> ik_vec=kvec_p.first;
+                    auto Vq_mat=*kvec_p.second;
+                    if(J<=Q)
                     {
-                        const auto J=J_pair.first;
-                        //cout<<"   cx_omega_band_mat_nr_nc: "<<cx_omega_band_mat.nr<<"    "<<cx_omega_band_mat.nc<<endl;
-                        //cout<<"   C_tilde_map_nr_nc "<<C_tilde_map.at(I).nr<<"   "<<C_tilde_map.at(I).nc<<endl;
-                        if(ik==iq)
+                        //cout<<"   1";
+                        pi_mat.at(I).at(Q)+=Vq_mat*chi0_omega_mat.at(J).at(Q);
+                        if(freq==first_freq)
                         {
-                            ComplexMatrix C_omega=(transpose(C_tilde_map.at(is).at(ik).at(iq).at(I),false)) * cx_omega_band_mat;
-                            chi0_k_mat[0][I][J]+=conj(C_omega)*C_tilde_map.at(is).at(iq).at(ik).at(J);
-                            //chi0_mat[I][J]+=C_omega*reshape_complexmat(occ_num[is],unocc_num[is],atom_mu[J],C_tilde_map.at(is).at(J));//
-                            cout<<"  Cs_step: I J: "<<I<<J<<endl;
-                            //chi0_mat[I][J]=C_omega*reshape_complexmat(unocc_num,occ_num,C_tilde_map.at(J).nc,C_tilde_map.at(J));  //careabout second C_tilde_map (mn,mu)  band_index !!!
-                      /*    
-                            if(abs(omega-0.000440961)<1e-6)
-                            {
-                                cout<<"  I J: "<<I<<J<<endl;
-                                print_complex_matrix( "chi0_IJ ", chi0_mat[I][J] );    
-                            }
-                            */
+                            cout<<" IJQ: "<<I<<" "<<J<<" "<<Q<<endl;
+                            print_complex_real_matrix("vq:",Vq_mat);
+                            print_complex_real_matrix("chi0:",chi0_omega_mat.at(J).at(Q));
+                            print_complex_real_matrix("pi_mat:",pi_mat.at(I).at(Q));
                         }
                     }
+                    else
+                    {
+                        //cout<<"   2";
+                        pi_mat.at(I).at(Q)+=Vq_mat*transpose(chi0_omega_mat.at(Q).at(J),1);
+                    }
+                    
+                    if(I!=J)
+                    {
+                        if(I<=Q)
+                        {
+                           // cout<<"   3"<<"  pi: "<<pi_k[freq][ik_vec][J][Q].nr<<pi_k[freq][ik_vec][J][Q].nc<<"  vq nr nc: "<<(transpose(Vq_mat,1)).nr<<"  "<<(transpose(Vq_mat,1)).nc<<"   chi0:"<<chi0_k[freq][ik_vec][I][Q].nr<<"  "<<chi0_k[freq][ik_vec][I][Q].nc<<endl;
+                            pi_mat.at(J).at(Q)+=transpose(Vq_mat,1)*chi0_omega_mat.at(I).at(Q);
+                        }
+                        else
+                        {
+                            //cout<<"   4";
+                            pi_mat.at(J).at(Q)+=transpose(Vq_mat,1)*transpose(chi0_omega_mat.at(Q).at(I),1);
+                        }
+                    }   
                 }
             }
         }
     }
-    return chi0_k_mat;
+    // cout<<" cap_pi_1"<<endl;
+    // for(const auto &Q_pair:chi0_omega_mat)
+    // {
+    //     const auto Q=Q_pair.first;
+    //     //const auto adj_Q=Abfs::get_adjs(Q);
+    //     for(const auto &I_pair:Q_pair.second)
+    //     {
+    //         const auto I=I_pair.first;
+    //         ComplexMatrix &chi0_mat=chi0_omega_mat.at(I).at(Q);
+    //         for(const auto &J_pair:Q_pair.second)
+    //         {
+    //             const auto J=J_pair.first;
+    //             cout<<"  cal_pi  IJQ:  "<<I<<J<<Q<<endl;
+    //             ComplexMatrix temp_Vps(*Vq.at(Q).at(J).at({0,0,0}));
+    //             pi_mat[I][J]+=chi0_mat*temp_Vps;
+              
+    //             // if(tmp_count==1)
+    //             // {
+    //             //     cout<<" cal_pi_mat_step: I J Q: "<<I<<J<<Q<<endl;
+    //             //     print_complex_real_matrix("chi0_mat:",chi0_mat);
+    //             //     print_complex_real_matrix("Vps_mat:",temp_Vps);
+    //             //     print_complex_real_matrix("pi_tot",pi_mat[I][J]);
+    //             // }  
+                
+    //         }
+    //     }
+    // }
+    return pi_mat;
 }
 
 map<size_t,map<size_t,ComplexMatrix>> Aperiodic_Chi0::C_band_aux()
@@ -419,10 +411,10 @@ map<size_t,map<size_t,map<size_t,map<size_t,ComplexMatrix>>>> Aperiodic_Chi0::ai
     return Cc_map;
 }
 
-map<size_t,map<size_t,map<size_t,map<size_t,ComplexMatrix>>>> Aperiodic_Chi0::aims_C_tilde(map<size_t,map<size_t,map<size_t,map<size_t,ComplexMatrix>>>> &aims_Cc)
+void Aperiodic_Chi0::aims_C_tilde()
 {
+    map<size_t,map<size_t,map<size_t,map<size_t,ComplexMatrix>>>> aims_Cc_tmp=aims_Cc();
     cout<<" Begin aims_C_tilde"<<endl;
-    map<size_t,map<size_t,map<size_t,map<size_t,ComplexMatrix>>>> aims_Ct;
     int iter_nks=0;
     for(int is=0;is!=NSPIN;is++)
     {
@@ -432,8 +424,8 @@ map<size_t,map<size_t,map<size_t,map<size_t,ComplexMatrix>>>> Aperiodic_Chi0::ai
             {
                 for(int I=0;I!=natom;I++)
                 {
-                    aims_Ct[is][ik][iq][I].create((occ_num[is])*unocc_num[is],atom_mu[I]);   
-                    cout<<"   ik iq I  "<<ik<<"    "<<iq<<"   "<<I<<endl;
+                    C_tilde_map[is][ik][iq][I].create((occ_num[is])*unocc_num[is],atom_mu[I]);   
+                   // cout<<"   ik iq I  "<<ik<<"    "<<iq<<"   "<<I<<"    dim: "<<C_tilde_map.at(is).at(ik).at(iq).at(I).nr<<"  "<<aims_Ct.at(is).at(ik).at(iq).at(I).nc<<endl;
                     int i_num=atom_nw[I];
                     for(int i_occ=0;i_occ!=occ_num[is];i_occ++)
                     {
@@ -444,20 +436,27 @@ map<size_t,map<size_t,map<size_t,map<size_t,ComplexMatrix>>>> Aperiodic_Chi0::ai
                                 const size_t iwt1=atom_iw_loc2glo(I,i_orb);
                                 for(int mu=0;mu!=atom_mu[I];mu++)
                                 {
-                                    aims_Ct[is][ik][iq][I](i_occ*unocc_num[is]+i_unocc-occ_num[is],mu)+=wfc_k[iter_nks+iq](i_unocc,iwt1)*aims_Cc[is][ik][I][i_occ](iwt1,mu) \
-                                                                                    + aims_Cc[is][iq][I][i_unocc](iwt1,mu)*wfc_k[iter_nks+ik](i_occ,iwt1);
+                                    //cout<<"        "<<i_occ*unocc_num[is]+i_unocc-occ_num[is]<<"  "<<mu<<endl;
+                                    
+                                    C_tilde_map.at(is).at(ik).at(iq).at(I)(i_occ*unocc_num[is]+i_unocc-occ_num[is],mu)+=wfc_k[iter_nks+iq](i_unocc,iwt1)*aims_Cc_tmp.at(is).at(ik).at(I).at(i_occ)(i_orb,mu) \
+                                                                                    + aims_Cc_tmp.at(is).at(iq).at(I).at(i_unocc)(i_orb,mu)*wfc_k[iter_nks+ik](i_occ,iwt1);
+                                    // if(i_occ==0 && i_unocc==occ_num[is] && mu==3)
+                                    // {
+                                    //     cout<<"  C_tilde_map sum rounting: "<<i_occ<<"   "<<i_unocc<<endl;
+                                    //     cout<<iwt1<<"   "<<fixed<<setprecision(8)<<wfc_k[iter_nks+iq](i_unocc,iwt1).real()<<"   "<<aims_Cc_tmp.at(is).at(ik).at(I).at(i_occ)(i_orb,mu).real() <<"   "<<aims_Cc_tmp.at(is).at(iq).at(I).at(i_unocc)(iwt1,mu).real()<<"  "<<wfc_k[iter_nks+ik](i_occ,iwt1).real()<<endl;
+                                    //     cout<<C_tilde_map.at(is).at(ik).at(iq).at(I)(i_occ*unocc_num[is]+i_unocc-occ_num[is],mu)<<endl;
+                                    // }
                                 }
                             }
                         }
                     }
                     
-                    print_complex_real_matrix("aims_C_tilde",aims_Ct[is][ik][iq][I]);
+                    print_complex_real_matrix("aims_C_tilde",C_tilde_map.at(is).at(ik).at(iq).at(I));
                 }
             }
         }
         iter_nks+=n_kpoints/NSPIN;  
     }
-    return aims_Ct;
 }
 
 ComplexMatrix Aperiodic_Chi0::construct_cc_plus_cc(const size_t &is, const size_t &I, const size_t &J)
@@ -491,7 +490,7 @@ ComplexMatrix Aperiodic_Chi0::construct_cc_plus_cc(const size_t &is, const size_
         }
     }
     return cc_plus_cc;
-}
+}     
 
 matrix Aperiodic_Chi0::construct_omega_band_mat(const size_t &is, const size_t ik, const size_t iq, const double &omega)
 {
@@ -921,7 +920,7 @@ void Aperiodic_Chi0::print_matrix( char* desc, const matrix &mat )
     printf( "\n %s\n", desc );
     for( int i = 0; i < nr; i++ ) 
     {
-        for( int j = 0; j < nc; j++ ) printf( " %8.4f", mat.c[i*nc+j] );
+        for( int j = 0; j < nc; j++ ) printf( " %12.8f", mat.c[i*nc+j] );
             printf( "\n" );
     }
 } 
@@ -944,10 +943,20 @@ void Aperiodic_Chi0::print_complex_real_matrix( char* desc, const ComplexMatrix 
     printf( "\n %s\n", desc );
     for( int i = 0; i < nr; i++ ) 
     {
-        for( int j = 0; j < nc; j++ ) printf( " %8.4f", mat.c[i*nc+j].real());
+        for( int j = 0; j < nc; j++ ) printf( " %12.8f", mat.c[i*nc+j].real());
             printf( "\n" );
     }
 } 
+
+vector<pair<size_t,size_t>> Aperiodic_Chi0::get_atom_pair(const map<size_t,map<size_t,map<Vector3_Order<double>,std::shared_ptr<ComplexMatrix>>>> &m)
+{
+    vector<pair<size_t,size_t>> atom_pairs;
+    for(const auto &mA : m)
+		for(const auto &mB : mA.second)
+			atom_pairs.push_back({mA.first,mB.first});
+	printf("  tot atom_pairs tasks: %d\n",atom_pairs.size());
+    return atom_pairs;
+}
 
 extern "C"
 {

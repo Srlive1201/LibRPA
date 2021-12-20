@@ -242,6 +242,8 @@ ComplexMatrix& ComplexMatrix::operator*=(const complex<double> &s)
 // Accumulate to a ComplexMatrix in place
 ComplexMatrix& ComplexMatrix::operator+=(const ComplexMatrix &m)
 {
+	assert(this->nr == m.nr);
+	assert(this->nc == m.nc);
 	for(int i=0; i<size; i++) this->c[i] += m.c[i];
 	return *this;
 }

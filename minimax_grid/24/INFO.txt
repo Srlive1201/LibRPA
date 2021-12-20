@@ -1,0 +1,28 @@
+Freq_grid_num:  24       Range_x:  0.9998244000000001 7000.000000000002           err:  0.012535193154690538
+time_grid_num:  24       Range_x:  0.9998244000000001 7000.000000000002           err:  3.688331162710057e-07
+Time_to_freq_transform      Range_x:  0.9998244000000001 7000.000000000002
+Freq_point:  1.4113643340232e-10          transform_err:  5.284438997499308e-07
+Freq_point:  1.2248562427778125          transform_err:  8.83141213875449e-06
+Freq_point:  5.2448585682854825          transform_err:  3.792921039388886e-05
+Freq_point:  10.12380354689363          transform_err:  3.947441716480732e-05
+Freq_point:  23.542377167397294          transform_err:  8.10550834114375e-05
+Freq_point:  53.59855839064925          transform_err:  5.861216738966765e-05
+Freq_point:  120.51042886562324          transform_err:  3.5939236532988965e-05
+Freq_point:  269.42637470283034          transform_err:  2.1687852749129608e-05
+Freq_point:  600.8450359531621          transform_err:  1.4338759435287575e-05
+Freq_point:  1338.430763771639          transform_err:  9.366646935618863e-06
+Freq_point:  2979.9579868676137          transform_err:  6.621047739732038e-06
+Freq_point:  6633.244006238838          transform_err:  4.182404536085438e-07
+Freq_point:  14763.781565572144          transform_err:  3.5228755312908025e-06
+Freq_point:  32858.6256744429          transform_err:  1.1188163069944428e-06
+Freq_point:  73129.44183341555          transform_err:  2.5085560916378167e-07
+Freq_point:  162753.79141900392          transform_err:  5.470988186650352e-08
+Freq_point:  362216.44961124816          transform_err:  1.4048092435200166e-08
+Freq_point:  806128.7591239914          transform_err:  2.8383100203818807e-09
+Freq_point:  1794073.772606215          transform_err:  5.731292305967543e-10
+Freq_point:  3992785.8352109515          transform_err:  1.1571359420426352e-10
+Freq_point:  8886109.520507872          transform_err:  2.3360757736995e-11
+Freq_point:  19776401.658497788          transform_err:  4.716460063939959e-12
+Freq_point:  44013192.53483411          transform_err:  9.522190394028523e-13
+Freq_point:  97953162.60543343          transform_err:  1.2843325961087258e-12
+Finish!

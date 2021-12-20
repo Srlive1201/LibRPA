@@ -1,0 +1,12 @@
+Time_to_freq_transform      Range_x:  0.9998244000000001 90.0
+Freq_point:  0.2482536529          transform_err:  1.2610685078406902e-06
+Freq_point:  0.8139632275          transform_err:  2.1123439567505287e-05
+Freq_point:  1.6141313956          transform_err:  6.93591355245271e-05
+Freq_point:  2.9047396053          transform_err:  0.00010257392460477632
+Freq_point:  5.1362429079          transform_err:  0.00010266001945694048
+Freq_point:  9.155412323          transform_err:  8.226640463013593e-05
+Freq_point:  16.6387607041          transform_err:  5.513083838842598e-05
+Freq_point:  31.1686645431          transform_err:  4.5875139884986316e-05
+Freq_point:  61.9768886998          transform_err:  0.0001373272138299464
+Freq_point:  149.9615921038          transform_err:  0.00025620154940247074
+Finish!

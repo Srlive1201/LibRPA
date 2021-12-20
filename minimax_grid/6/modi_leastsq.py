@@ -90,13 +90,13 @@ def main_freq(Npoint=4,R=90):
             
     with open("INFO.txt","wt") as f1:
         print("Freq_grid_num: ",Npoint,"      Range_x: ",np.min(x),np.max(x),"          err: ",np.max(abs(para_mim.fun)),file=f1)
-'''
+
     plt.figure
     plt.plot(x,abs(error(para.x,x,y)),'r', label = 'leastsq error')
     plt.plot(x,abs(error(para_mim.x,x,y)),'-b', label ='minimax error')
     plt.legend()
     plt.show()
-'''  
+  
  
 if __name__=='__main__':
    main_freq()

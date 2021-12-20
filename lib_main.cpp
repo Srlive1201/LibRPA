@@ -1,18 +1,19 @@
 #include "lib_main.h"
+#include "global_class.h"
 int main(int argc, char **argv)
 {
+    para_mpi.mpi_init(argc,argv);
+    cout<<"  MPI process_num: "<<para_mpi.get_myid()<<endl;
     READ_AIMS_BAND("band_out");
     READ_AIMS_STRU("stru_out");
-    READ_AIMS_Cs("Cs_data.txt");
-    //READ_AIMS_Vq("Coulomb_q_mat");
-    READ_AIMS_Vq_real("real_coulomb.txt"); 
-    READ_AIMS_EIGENVECTOR("KS_eigenvector",cal_chi0.wfc_k); 
-    READ_AIMS_EIGENVECTOR("KS_eigenvector",ap_chi0.wfc_k);
-    cout<<" argv:"<<argv[1]<<endl;
-    if(argv[1][0]=='1')
+    READ_AIMS_EIGENVECTOR("./",cal_chi0.wfc_k); 
+    READ_AIMS_EIGENVECTOR("./",ap_chi0.wfc_k);
+    READ_AIMS_Cs("./");
+    READ_AIMS_Vq("./"); 
+    if(argv[1][0]=='0')
         ap_chi0.main();
-    if(argv[1][0]=='2')
-        cal_chi0.chi0_main(); 
+    else
+        cal_chi0.chi0_main(argv[1]); 
     
     return 0;
 }
