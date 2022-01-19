@@ -15,7 +15,7 @@ At this stage, LibRPA have interfaced with FHI-aims by writing and reading files
 
 The modified FHI-aims code files can be checked in 'FHI-aims-outifile-code/'. \
 Consider the different versions of FHI-aims, you had better modify the FHI-aims files manual instead of recovering them.\
-Care of the new variable declarations in the beginning and the places of writing files.\
+Care of the new variable declarations in the beginning and the places of writing files.
 
 Once you successfully finished FHI-aims calculation, the out-files will be ready for LibRPA. \
 Then run LibRPA in the same working directory.
