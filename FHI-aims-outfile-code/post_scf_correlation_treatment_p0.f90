@@ -102,9 +102,11 @@
           func='post_scf_correlation_treatment_p0'
       ! for parallel threads
       integer :: omp_get_max_threads, omp_get_thread_num, nrThreads, myThreadId, i_thread ,mode
-      integer :: ks_i,ks_j,ks_k,ks_l
+      integer :: ks_i,ks_j,ks_k,ks_l,i_k
       real*8, allocatable :: lvl_tricoeff_bravais(:,:,:,:)
       real*8 :: k_vec(3)
+      character(len=100) eFile
+      real*8 :: nt_d_nk
       nrThreads   = 1
       myThreadId = 1
 !$    nrThreads = omp_get_max_threads()
@@ -247,7 +249,7 @@ end if
           do i_spin = 1, n_spin, 1
             write(1,*)i_k_point,i_spin
             do i_state = 1, n_states, 1
-                write(1,'(2X,I5,6X,F8.5,5X,F14.6,4X,F15.5)') &
+                write(1,'(2X,I5,6X,F8.5,5X,F17.9,4X,F15.5)') &
                      i_state, occ_numbers(i_state, i_spin, i_k_point), &
                      (KS_eigenvalue(i_state, i_spin, i_k_point)), &
                      (KS_eigenvalue(i_state, i_spin, i_k_point)*hartree)
@@ -261,31 +263,63 @@ end if
         ! print *, ' KS_eigenvector  dim2 ',size(KS_eigenvector,dim=2)
         ! print *, ' KS_eigenvector  dim3 ',size(KS_eigenvector,dim=3)
         ! print *, ' KS_eigenvector  dim4 ',size(KS_eigenvector,dim=4)
-        open(2,file='KS_eigenvector')
+        i_k=0
+        
+        write(eFile,*)myid
+        eFile='KS_eigenvector_'//trim(adjustl(eFile))//'.txt'
+        
        ! write(2,*)'KS_eigenvector dim',real_eigenvectors,n_basis,n_states, n_spin,n_k_points_task
-        if(real_eigenvectors) then
-          do ks_i=1, n_basis,1
-            do ks_j=1, n_states,1
-              do ks_k=1,n_spin,1
-                do ks_l=1,n_k_points_task,1
-                  write(2,'(2F20.15)')KS_eigenvector(ks_i,ks_j,ks_k,ks_l),0.d0
+        nt_d_nk=n_tasks*1.d0/n_k_points
+        open(2,file=eFile)
+        if(use_scalapack) then
+        do i_k_point=1,n_k_points
+          if(myid == CEILING((i_k_point-1)*nt_d_nk)) then
+            write(2,*)i_k_point
+            if(real_eigenvectors) then
+              do ks_i=1, n_basis,1
+                do ks_j=1, n_states,1
+                  do ks_k=1,n_spin,1
+                    write(2,'(2F24.15)')KS_eigenvector(ks_i,ks_j,ks_k,1),0.d0
+                  end do
                 end do
               end do
-            end do
-          end do
-        else
-          do ks_i=1, n_basis,1
-            do ks_j=1, n_states,1
-              do ks_k=1,n_spin,1
-                do ks_l=1,n_k_points_task,1
-                  write(2,'(2F20.15)')KS_eigenvector_complex(ks_i,ks_j,ks_k,ks_l)
+            else
+              do ks_i=1, n_basis,1
+                do ks_j=1, n_states,1
+                  do ks_k=1,n_spin,1
+                    write(2,'(2F24.15)')KS_eigenvector_complex(ks_i,ks_j,ks_k,1)
+                  end do
                 end do
               end do
-            end do
-          end do
-        end if
-        close(2)
-
+            end if
+          end if
+        end do
+      else
+        do i_k_point = 1, n_k_points
+          if(myid == MOD(i_k_point, n_tasks)  .and. myid <= n_k_points) then
+            i_k=i_k+1
+            write(2,*)i_k_point
+            if(real_eigenvectors) then
+              do ks_i=1, n_basis,1
+                do ks_j=1, n_states,1
+                  do ks_k=1,n_spin,1
+                    write(2,'(2F24.15)')KS_eigenvector(ks_i,ks_j,ks_k,i_k),0.d0
+                  end do
+                end do
+              end do
+            else
+              do ks_i=1, n_basis,1
+                do ks_j=1, n_states,1
+                  do ks_k=1,n_spin,1
+                    write(2,'(2F24.15)')KS_eigenvector_complex(ks_i,ks_j,ks_k,i_k)
+                  end do
+                end do
+              end do
+            end if
+          end if
+        end do 
+      end if
+      close(2)
 
         ! open(3,file='eigenvalue')
         ! write(3,*)'KS_eigenvalue dim', n_states,n_spin,n_k_points,real_eigenvectors
@@ -320,15 +354,15 @@ end if
           n_cells_task = n_cells/n_tasks+1
         endif 
        ! print *, 'post_scf  n_cell_tasks   ', n_cells_task
-        if(.not. allocated(lvl_tricoeff_bravais)) then 
-          allocate(lvl_tricoeff_bravais(n_basis,n_basis,n_basbas,n_cells_task),stat=info)
-          call check_allocation(info,'lvl_tricoeff_bravais',func)
-        endif
-        call get_lvl_tricoeff_bravais(n_cells_task,lvl_tricoeff_bravais)
+        ! if(.not. allocated(lvl_tricoeff_bravais)) then 
+        !   allocate(lvl_tricoeff_bravais(n_basis,n_basis,n_basbas,n_cells_task),stat=info)
+        !   call check_allocation(info,'lvl_tricoeff_bravais',func)
+        ! endif
+        call get_lvl_tricoeff_bravais(n_cells_task)
 
-        if(allocated(lvl_tricoeff_bravais)) then 
-          deallocate(lvl_tricoeff_bravais)
-        endif
+        ! if(allocated(lvl_tricoeff_bravais)) then 
+        !   deallocate(lvl_tricoeff_bravais)
+        ! endif
 !        if(n_k_points.gt.1) then
            !ACHTUNG: this section can be removed by removing lvl_tricoef_recip* from evaluate_exchange_matr_kspace_p0!!
 !           allocate(lvl_tricoeff_recip1(max_n_basbas_sp,n_basis,n_basis,n_k_points_min),stat=info) 

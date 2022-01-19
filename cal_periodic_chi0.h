@@ -16,9 +16,12 @@ class Cal_Periodic_Chi0
 {
     //double e_const=2.718281828;
     const double Hartree=27.2113845;
+    double Green_threshold=1e-9;
+    size_t green_discard=0;
+    size_t green_save=0;
     //std::vector<ComplexMatrix> green_k;		// green_k[ik](iw1,iw2);
     //std::map<size_t,map<double,map<Vector3_Order<int>,ComplexMatrix>>> Green_function;  //Green_fuction[is][time_tau][R](iw1,iw2);
-    std::map<size_t,map<size_t,map<size_t,map<double,map<Vector3_Order<int>,matrix>>>>> Green_atom; //Green_atom[is][I][J][time_tau][R](iwt1,iwt2);
+    std::map<size_t,map<size_t,map<size_t,map<Vector3_Order<int>,map<double,matrix>>>>> Green_atom; //Green_atom[is][I][J][R][time_tau](iwt1,iwt2);
     std::map<double,map<Vector3_Order<int>,map<size_t,map<size_t,matrix>>>> chi0;
     std::map<double,map<Vector3_Order<int>,map<size_t,map<size_t,matrix>>>> chi0_freq;
     std::map<double,map<Vector3_Order<double>,map<size_t,map<size_t,ComplexMatrix>>>> chi0_k;
@@ -99,7 +102,7 @@ class Cal_Periodic_Chi0
     vector<pair<size_t,size_t>> process_task_ap_local();
 public:
     vector<ComplexMatrix> wfc_k;
-    void chi0_main(const char* Input_ngrid);
+    void chi0_main(const char* Input_ngrid, const char* Input_green_threshold);
     void print_matrix( char* desc, const matrix &mat );
     static void print_complex_matrix( char* desc, const ComplexMatrix &mat );
     void print_complex_real_matrix( char* desc, const ComplexMatrix &mat );

@@ -16,9 +16,10 @@
 
 using namespace std;
 
-void Cal_Periodic_Chi0::chi0_main(const char* Input_ngrid) 
+void Cal_Periodic_Chi0::chi0_main(const char* Input_ngrid, const char* Input_green_threshold) 
 {
     grid_N=stoi(Input_ngrid);
+    Green_threshold=stod(Input_green_threshold);
     init();
     cout<<"grid_N: "<<grid_N<<endl;
     double t_begin=omp_get_wtime();
@@ -70,7 +71,9 @@ void Cal_Periodic_Chi0::chi0_main(const char* Input_ngrid)
     //     }
             
     cout<<" FINISH GREEN FUN"<<endl;
-    
+    cout<<" Green threshold: "<<Green_threshold<<endl;
+    cout<<" Green save num: "<<green_save<<endl;
+    cout<<" Green discard num: "<<green_discard<<endl;
     
     vector<pair<size_t,size_t>> tot_pair_all(get_atom_pair(Vq));
     int ntask_ap=tot_pair_all.size();
@@ -361,6 +364,7 @@ double Cal_Periodic_Chi0::get_E_min_max(double &Emin, double &Emax)
 }
 void Cal_Periodic_Chi0::init()
 {
+    cout<<"Green threshold:  "<<Green_threshold<<endl;
     //para_mpi.mpi_init(argc,argv);
     temp_Cs_count=0;
     cout<<"  Tot  Cs_dim   "<<Cs.size()<<"    "<<Cs[0].size()<<"   "<<Cs[0][0].size()<<endl;
@@ -385,6 +389,7 @@ void Cal_Periodic_Chi0::init()
     tmps="python "+GX_path+" "+to_string(grid_N)+" "+to_string(Erange);
     cout<<tmps.c_str()<<endl;
     system(tmps.c_str());
+    
     //cout<<" knpoints_num= "<<n_kpoints<<endl;
     //green_k.resize(n_kpoints);
 /*
@@ -527,15 +532,27 @@ void Cal_Periodic_Chi0::cal_Green_func_R_tau( const double &time_tau, const Vect
             for(int J=0;J!=natom;J++)
             {
                 const size_t J_num=atom_nw[J];
-                Green_atom[is][I][J][time_tau][R].create(I_num,J_num);
+                //Green_atom[is][I][J][time_tau][R].create(I_num,J_num);
+                matrix tmp_green(I_num,J_num);
                 for(size_t i=0;i!=I_num;i++)
                 {
                     size_t i_glo=atom_iw_loc2glo(I,i);
                     for(size_t j=0;j!=J_num;j++)
                     {
                         size_t j_glo=atom_iw_loc2glo(J,j);
-                        Green_atom[is][I][J][time_tau][R](i,j)=Green_glo_tmp(i_glo,j_glo).real();
+                        //Green_atom[is][I][J][time_tau][R](i,j)=Green_glo_tmp(i_glo,j_glo).real();
+                        tmp_green(i,j)=Green_glo_tmp(i_glo,j_glo).real();
                     }
+                }
+                if(tmp_green.absmax()>Green_threshold)
+                {
+                    //cout<<" max_green_ele:  "<<tmp_green.absmax()<<endl;
+                    Green_atom[is][I][J][R][time_tau]=std::move(tmp_green);
+                    green_save++;
+                }
+                else
+                {
+                    green_discard++;
                 }
             }
         }
@@ -636,6 +653,18 @@ matrix Cal_Periodic_Chi0:: cal_chi0_element(const double &time_tau, const Vector
     //printf("     begin chi0  thread: %d,  I: %d, J: %d\n",omp_get_thread_num(),I_index,J_index);
     //for(const auto &K_pair:Cs[I_index])
     //Vector3_Order<int> R_0(0,0,0);
+    int flag_G_IJRt=0;
+    int flag_G_IJRNt=0;
+    
+    if(Green_atom.at(0).at(I_index).count(J_index))
+        if(Green_atom.at(0).at(I_index).at(J_index).count(R))
+        {
+            if(Green_atom.at(0).at(I_index).at(J_index).at(R).count(time_tau))
+                flag_G_IJRt=1;
+            
+            if(Green_atom.at(0).at(I_index).at(J_index).at(R).count(-time_tau))
+                flag_G_IJRNt=1;
+        }
     
     const size_t i_num=atom_nw[I_index];
     const size_t mu_num=atom_mu[I_index];
@@ -644,6 +673,52 @@ matrix Cal_Periodic_Chi0:: cal_chi0_element(const double &time_tau, const Vector
     const size_t nu_num=atom_mu[J_index];
 
     //chi0[time_tau][R][I_index][J_index].create(mu_num,nu_num);
+    matrix X_R2(i_num,j_num*nu_num);
+    matrix X_conj_R2(i_num,j_num*nu_num);
+    for(const auto &L_pair:Cs[J_index])
+    {
+        const auto L_index=L_pair.first;
+        const size_t l_num=atom_nw[L_index];
+        for(int is=0;is!=NSPIN;is++)
+        {
+            if(Green_atom.at(is).at(I_index).count(L_index))
+            {
+                for(const auto &R2_index:L_pair.second)
+                {
+                    const auto R2=R2_index.first; 
+                    const auto &Cs_mat2=R2_index.second;
+
+                    Vector3_Order<int> R_temp_2(Vector3_Order<int>(R2+R)%R_periodic); 
+                    
+                    if(Green_atom.at(is).at(I_index).at(L_index).count(R_temp_2))
+                    {
+                        assert(j_num*l_num==(*Cs_mat2).nr); 
+                    //printf("          thread: %d, IJKL:   %d,%d,%d,%d  R:(  %d,%d,%d  )  tau:%f\n",omp_get_thread_num(),I_index,J_index,K_index,L_index,R.x,R.y,R.z,time_tau);
+                        matrix Cs2_reshape(reshape_Cs(j_num,l_num,nu_num,Cs_mat2));
+            
+                    
+                        if(Green_atom.at(is).at(I_index).at(L_index).at(R_temp_2).count(time_tau))
+                        {
+                            //cout<<"C";
+                            X_R2+=Green_atom.at(is).at(I_index).at(L_index).at(R_temp_2).at(time_tau)*Cs2_reshape;
+                        }
+
+                   
+                        if(Green_atom.at(is).at(I_index).at(L_index).at(R_temp_2).count(-time_tau))
+                        {
+                           // cout<<"D";
+                            X_conj_R2+=Green_atom.at(is).at(I_index).at(L_index).at(R_temp_2).at(-time_tau)*Cs2_reshape;
+                        }
+                    }
+                }
+
+            }
+        }
+    }
+    matrix X_R2_rs(reshape_mat(i_num,j_num,nu_num,X_R2));
+    matrix X_conj_R2_rs(reshape_mat(i_num,j_num,nu_num,X_conj_R2));
+
+
     matrix O_sum(mu_num,nu_num);
     for(const auto &K_pair:Cs[I_index])
     {
@@ -657,54 +732,100 @@ matrix Cal_Periodic_Chi0:: cal_chi0_element(const double &time_tau, const Vector
            // cout<<"R1:  begin  "<<R1<<endl;
             for(int is=0;is!=NSPIN;is++)
             {
-                matrix N_R2(k_num,j_num*nu_num);
-                matrix N_conj_R2(k_num,j_num*nu_num);
-            
-                matrix X_R2(i_num,j_num*nu_num);
-                matrix X_conj_R2(i_num,j_num*nu_num);
-            
-                for(const auto &L_pair:Cs[J_index])
-                {
-                    const auto L_index=L_pair.first;
-                    const size_t l_num=atom_nw[L_index];
-                    
-                    for(const auto &R2_index:L_pair.second)
-                    {
-                        const auto R2=R2_index.first; 
-                        const auto &Cs_mat2=R2_index.second;
-                
-                        Vector3_Order<int> R_temp_1(R+R2-R1);
-                        Vector3_Order<int> R_temp_2(R2+R); 
-                    
-                        assert(j_num*l_num==(*Cs_mat2).nr); 
-                        //printf("          thread: %d, IJKL:   %d,%d,%d,%d  R:(  %d,%d,%d  )  tau:%f\n",omp_get_thread_num(),I_index,J_index,K_index,L_index,R.x,R.y,R.z,time_tau);
-                        matrix Cs2_reshape(reshape_Cs(j_num,l_num,nu_num,Cs_mat2));
-                        //printf("          thread: %d, Green_K %d,%d,   Cs  %d,%d\n",omp_get_thread_num(),Green_atom[is][K_index][L_index][time_tau][R_temp_1%R_periodic].nr,Green_atom[is][K_index][L_index][time_tau][R_temp_1%R_periodic].nc,Cs2_reshape.nr,Cs2_reshape.nc);
-                        N_R2+=Green_atom.at(is).at(K_index).at(L_index).at(time_tau).at(R_temp_1%R_periodic)*Cs2_reshape;
-                        //printf("          thread: %d, 1.2\n",omp_get_thread_num());
-                        N_conj_R2+=Green_atom.at(is).at(K_index).at(L_index).at(-time_tau).at(R_temp_1%R_periodic)*Cs2_reshape;
-                        //printf("          thread: %d, 1.3\n",omp_get_thread_num());
-                        X_R2+=Green_atom.at(is).at(I_index).at(L_index).at(time_tau).at(R_temp_2%R_periodic)*Cs2_reshape;
-                        //printf("          thread: %d, 1.4\n",omp_get_thread_num());
-                        X_conj_R2+=Green_atom.at(is).at(I_index).at(L_index).at(-time_tau).at(R_temp_2%R_periodic)*Cs2_reshape;
-                       
-                    }
-                }
-                //printf("          thread: %d, 2\n",omp_get_thread_num());
-                matrix N_R2_rs(reshape_mat(k_num,j_num,nu_num,N_R2));
-                matrix N_conj_R2_rs(reshape_mat(k_num,j_num,nu_num,N_conj_R2));
-                matrix X_R2_rs(reshape_mat(i_num,j_num,nu_num,X_R2));
-                matrix X_conj_R2_rs(reshape_mat(i_num,j_num,nu_num,X_conj_R2));
-    
-                Vector3_Order<int> R_temp_3(R-R1);
-                //cal and sum O
+                // matrix X_R2(i_num,j_num*nu_num);
+                // matrix X_conj_R2(i_num,j_num*nu_num);
                 matrix O(i_num,k_num*nu_num);
                 matrix Z(k_num,i_num*nu_num);
+                
+                if(flag_G_IJRt || flag_G_IJRNt)
+                {
+                    matrix N_R2(k_num,j_num*nu_num);
+                    matrix N_conj_R2(k_num,j_num*nu_num);
+                    for(const auto &L_pair:Cs[J_index])
+                    {
+                        const auto L_index=L_pair.first;
+                        const size_t l_num=atom_nw[L_index];
+                        if(Green_atom.at(is).at(K_index).count(L_index))
+                        {
+                            for(const auto &R2_index:L_pair.second)
+                            {
+                                const auto R2=R2_index.first; 
+                                const auto &Cs_mat2=R2_index.second;
+                                Vector3_Order<int> R_temp_1(Vector3_Order<int>(R+R2-R1)%R_periodic);
+                               // Vector3_Order<int> R_temp_2(R2+R); 
+                                if(Green_atom.at(is).at(K_index).at(L_index).count(R_temp_1))
+                                {
+                                    assert(j_num*l_num==(*Cs_mat2).nr); 
+                                //printf("          thread: %d, IJKL:   %d,%d,%d,%d  R:(  %d,%d,%d  )  tau:%f\n",omp_get_thread_num(),I_index,J_index,K_index,L_index,R.x,R.y,R.z,time_tau);
+                                    matrix Cs2_reshape(reshape_Cs(j_num,l_num,nu_num,Cs_mat2));
+                                    if(flag_G_IJRNt && Green_atom.at(is).at(K_index).at(L_index).at(R_temp_1).count(time_tau) )
+                                    {
+                                        //cout<<"A";
+                                        N_R2+=Green_atom.at(is).at(K_index).at(L_index).at(R_temp_1).at(time_tau)*Cs2_reshape;
+                                    }
+                                    if(flag_G_IJRt && Green_atom.at(is).at(K_index).at(L_index).at(R_temp_1).count(-time_tau))
+                                    {
+                                        //cout<<"B";
+                                        N_conj_R2+=Green_atom.at(is).at(K_index).at(L_index).at(R_temp_1).at(-time_tau)*Cs2_reshape;
+                                    }       
+                                }
+                            }
+                        }
+                    }
+                    if(flag_G_IJRt)
+                    {
+                        matrix N_conj_R2_rs(reshape_mat(k_num,j_num,nu_num,N_conj_R2));
+                        O+=Green_atom.at(is).at(I_index).at(J_index).at(R).at(time_tau)*N_conj_R2_rs;
+                    }
+                    if(flag_G_IJRNt)
+                    {
+                        matrix N_R2_rs(reshape_mat(k_num,j_num,nu_num,N_R2));
+                        O+=Green_atom.at(is).at(I_index).at(J_index).at(R).at(-time_tau)*N_R2_rs;
+                    }
+                }
+               // printf("          thread: %d, 2\n",omp_get_thread_num());
+                
+                // matrix X_R2_rs(reshape_mat(i_num,j_num,nu_num,X_R2));
+                // matrix X_conj_R2_rs(reshape_mat(i_num,j_num,nu_num,X_conj_R2));
+    
+                
+                //cal and sum O
+                
                 //printf("          thread: %d, 3\n",omp_get_thread_num());
-                O+=Green_atom.at(is).at(I_index).at(J_index).at(-time_tau).at(R)*N_R2_rs;
-                O+=Green_atom.at(is).at(I_index).at(J_index).at(time_tau).at(R)*N_conj_R2_rs;
-                Z+=Green_atom.at(is).at(K_index).at(J_index).at(-time_tau).at(R_temp_3%R_periodic)*X_R2_rs;
-                Z+=Green_atom.at(is).at(K_index).at(J_index).at(time_tau).at(R_temp_3%R_periodic)*X_conj_R2_rs;
+                // if(Green_atom.at(is).at(I_index).count(J_index))
+                // {
+                //     if(Green_atom.at(is).at(I_index).at(J_index).count(-time_tau))
+                //     {
+                //         if(Green_atom.at(is).at(I_index).at(J_index).at(-time_tau).count(R))
+                //         {
+                //             O+=Green_atom.at(is).at(I_index).at(J_index).at(-time_tau).at(R)*N_R2_rs;
+                //         }
+                //     }
+                //     if(Green_atom.at(is).at(I_index).at(J_index).count(time_tau))
+                //     {
+                //         if(Green_atom.at(is).at(I_index).at(J_index).at(time_tau).count(R))
+                //         {
+                //             O+=Green_atom.at(is).at(I_index).at(J_index).at(time_tau).at(R)*N_conj_R2_rs;
+                //         }
+                //     }
+                // }
+                Vector3_Order<int> R_temp_3(Vector3_Order<int>(R-R1)%R_periodic);
+                if(Green_atom.at(is).at(K_index).count(J_index))
+                {
+                    if(Green_atom.at(is).at(K_index).at(J_index).count(R_temp_3))
+                    {
+                        if(Green_atom.at(is).at(K_index).at(J_index).at(R_temp_3).count(-time_tau))
+                        {
+                            Z+=Green_atom.at(is).at(K_index).at(J_index).at(R_temp_3).at(-time_tau)*X_R2_rs;
+                        }
+                    
+                        if(Green_atom.at(is).at(K_index).at(J_index).at(R_temp_3).count(time_tau))
+                        {
+                            Z+=Green_atom.at(is).at(K_index).at(J_index).at(R_temp_3).at(time_tau)*X_conj_R2_rs;
+                        }
+                    }
+                }
+                
              
                 matrix Z_rs(reshape_mat(k_num,i_num,nu_num,Z));
                 
@@ -712,7 +833,7 @@ matrix Cal_Periodic_Chi0:: cal_chi0_element(const double &time_tau, const Vector
                 matrix OZ(reshape_mat_21(i_num,k_num,nu_num,O));
                 matrix Cs1_tran(transpose(*Cs_mat1));
                 O_sum+=Cs1_tran*OZ;
-             //   cout<<"   K, R1:   "<<K_index<<"   "<<R1;
+                //cout<<"   K, R1:   "<<K_index<<"   "<<R1;
                 //rt_m_max(O_sum);
             }
         }

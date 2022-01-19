@@ -259,6 +259,9 @@ void handle_Vq_file(const std::string &file_path, map<Vector3_Order<double>,Comp
 
 void READ_AIMS_Vq(const std::string &file_path)
 {
+    const double vq_threshold=1e-4;
+    int vq_save=0;
+    int vq_discard=0; 
     struct dirent *ptr;
     DIR *dir;
     dir=opendir(file_path.c_str());
@@ -288,11 +291,22 @@ void READ_AIMS_Vq(const std::string &file_path)
                     {
                         (*vq_ptr)(i_mu,i_nu)=vf_p.second(atom_mu_loc2glo(J,i_nu),atom_mu_loc2glo(I,i_mu));
                     }
-                Vq[I][J][qvec]=vq_ptr;
+                if((*vq_ptr).real().absmax()>=vq_threshold)
+                {
+                    Vq[I][J][qvec]=vq_ptr;
+                    vq_save++;
+                }
+                else
+                {
+                    vq_discard++;
+                }
             }
     }
     closedir(dir);
     dir=NULL;
+    cout<<"vq threshold: "<<vq_threshold<<endl;
+    cout<<"vq_save:    "<<vq_save<<endl;
+    cout<<"vq_dicard:  "<<vq_discard<<endl; 
     cout<<"  Vq_dim   "<<Vq.size()<<"    "<<Vq[0].size()<<"   "<<Vq[0][0].size()<<endl;
     for(auto &irk:irk_weight)
     {

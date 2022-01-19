@@ -1,7 +1,7 @@
 !****s* FHI-aims/evaluate_crpa_energy_kspace
 !  NAME
 !   evaluate_crpa_energy_kspace
-!  SYNOPSIS
+!  SYNOPSIS 
 
       subroutine evaluate_crpa_energy_kspace &
            (n_low_state, occ_numbers, n_full_freq, &
@@ -141,7 +141,7 @@
       real*8 :: k_vec(3)
 
       integer :: mpierr
-
+      character(len=100) vFile
 !     begin work
 
       call perfon('ev_rpa')
@@ -238,7 +238,17 @@
          allocate(polar_kspace_complex(1,1,1),stat=i_index)
       end if
       call check_allocation(i_index, 'polar_kspace_complex                    ')
-      open(11,file="real_coulomb.txt")
+
+      ! print*,"freq_grid"
+      ! do i_freq=1,size(omega_full)
+      !    print*,i_freq,"   ",omega_full(i_freq),"    ",womega_full(i_freq)
+      ! end do
+
+
+      write(vFile,*)myid
+      vFile='coulomb_mat_'//trim(adjustl(vFile))//'.txt'
+      open(11,file=vFile)
+      !open(11,file="coulomb_mat.txt")
       write(11,*)max_irk_points_task
       do i_irk_point_local = 1, max_irk_points_task
          i_irk_point=n_tasks_irkq*(i_irk_point_local-1) + myid_irkq + 1
@@ -264,24 +274,27 @@
          !this seems to hold, but i don't know why and use real_eigenvectors instead
 !         i_k_point=inv_irk_point_mapping(i_irk_point)
 !         if (i_k_point.eq.kq_point_list(1,i_k_point)) then
-            write(11,*)size(coulomb_matr_blacs(:,:,i_irk_point_local)),size(coulomb_matr_blacs(:,:,i_irk_point_local),dim=1),size(coulomb_matr_blacs(:,:,i_irk_point_local),dim=2)
-            write(11,*)inv_irk_point_mapping(i_irk_point_local),irk_weight(i_irk_point)
+            write(11,*)n_basbas,lbb_row,ubb_row,lbb_col,ubb_col
+            write(11,*)inv_irk_point_mapping(i_irk_point),irk_weight(i_irk_point)
                !print*, i_irk_point_local
-            do i_rc=1,size(coulomb_matr_blacs(:,:,i_irk_point_local),dim=1)
-               do j_rc = 1,size(coulomb_matr_blacs(:,:,i_irk_point_local),dim=2)
+            do i_rc=lbb_row,ubb_row
+               do j_rc = lbb_col,ubb_col
                   write(11,'(2F20.15)')coulomb_matr_blacs(i_rc,j_rc,i_irk_point_local)
                   !print*, coulomb_matr_blacs_real(i_rc,j_rc)
                end do
             end do
+            !print*, "   in cRPA  0" 
+            ! open(12,file='pi_mat.txt',position='append')
+            ! write(12,*)i_irk_point_local,irk_weight(i_irk_point)
             if(real_eigenvectors) then 
                !print*,"   go real_eigenvectors"
                allocate(coulomb_matr_blacs_real(lbb_row:ubb_row, lbb_col:ubb_col),stat=i_index)
                allocate(rv_times_polar(lbb_row:ubb_row, lbb_col:ubb_col),stat=i_index)
                allocate(rv_times_polar_t(lbb_row:ubb_row, lbb_col:ubb_col),stat=i_index)
-
+               !print*, "   in cRPA  0.1" 
                call check_allocation(i_index, 'v_times_polar                   ')
                coulomb_matr_blacs_real=real(coulomb_matr_blacs(:,:,i_irk_point_local))
-
+              !print*, "   in cRPA  0.2" 
                
                
                
@@ -298,17 +311,26 @@
                        coulomb_matr_blacs_real(lbb_row,lbb_col), 1, 1, bb2desc, &
                        polar_kspace_real(lbb_row,lbb_col,i_freq-lbf+1), 1, 1, bb2desc, 0.d0, &
                        rv_times_polar(lbb_row, lbb_col), 1, 1, bb2desc)
-                  
+                       !print*, "   in cRPA  2"
                   !            call perfoff
                   trace_v_times_polar=pdlatra(n_basbas,rv_times_polar,1,1,bb2desc)
                   
+                  ! if(i_freq==1) then
+                  !    write(12,*)"coulomb_mat"
+                  !    write(12,100) (((coulomb_matr_blacs_real(mu,nu)),nu=1,n_basbas),mu=1,n_basbas)
+                  !    write(12,*)"chi0_mat"
+                  !    write(12,100)(((polar_kspace_real(mu,nu,i_freq-lbf+1)),nu=1,n_basbas),mu=1,n_basbas)
+                  !    write(12,*)"pi_mat"
+                  !    write(12,100)(((rv_times_polar(mu,nu)),nu=1,n_basbas),mu=1,n_basbas)
+                  ! end if
+                  ! 100 FORMAT (1X, 24F13.8) 
                   do i_prodbas_1 = lbb_row, ubb_row
                      if((i_prodbas_1.ge.lbb_col).and.(i_prodbas_1.le.ubb_col)) then
                         rv_times_polar(i_prodbas_1, i_prodbas_1) = rv_times_polar(i_prodbas_1, i_prodbas_1) - 1.
                      end if
                   enddo
                   rv_times_polar(:,:) = - rv_times_polar(:,:)
-                  
+
                   !symmetrize for Cholesky factorization
                   call pdtran( n_basbas, n_basbas, &
                        1.d0, rv_times_polar, 1, 1, bb2desc, &
@@ -317,7 +339,7 @@
                        rv_times_polar, 1, 1, bb2desc, &
                        rv_times_polar_t, 1, 1, bb2desc, 0.d0, &
                        polar_kspace_real(lbb_row,lbb_col,i_freq-lbf+1), 1, 1, bb2desc)
-                  
+
                   !factorize
                   call  pdpotrf ('L',n_basbas,polar_kspace_real(lbb_row,lbb_col,i_freq-lbf+1),1,1,bb2desc,info)
                   
@@ -343,10 +365,10 @@
                   rpa_c_kgrid(i_irk_point) = rpa_c_kgrid(i_irk_point) + &
                        rpa_c_integrand * womega_full(i_freq) 
                   ! end of loop over i_freq
-                  
+                  print*, i_freq,"  ",rpa_c_integrand,"  ",log (abs(real(det_v_times_polar))),real(trace_v_times_polar)
                enddo
-               !temp_crpa_grid=rpa_c_kgrid(i_irk_point)*irk_weight(i_irk_point)/2.d0/pi
-               !print*,"cRPA_kgrid",i_irk_point,rpa_c_kgrid(i_irk_point),temp_crpa_grid,irk_weight(i_irk_point)
+               ! temp_crpa_grid=rpa_c_kgrid(i_irk_point)*irk_weight(i_irk_point)/2.d0/pi
+               ! print*,"cRPA_kgrid",i_irk_point,rpa_c_kgrid(i_irk_point),temp_crpa_grid,irk_weight(i_irk_point)
                deallocate(coulomb_matr_blacs_real,rv_times_polar,rv_times_polar_t)
             else
                !print*,"   go complex_eigenvectors"
@@ -355,8 +377,7 @@
                allocate(v_times_polar_2(lbb_row:ubb_row, lbb_col:ubb_col),stat=i_index)
                call check_allocation(i_index, 'v_times_polar                   ')
 
-              ! open(12,file='pi_mat.txt',position='append')
-              ! write(12,*)i_irk_point_local,irk_weight(i_irk_point)
+               
                do i_freq = lbf, ubf
                   if(i_freq == 1) then
                      trace_polar(i_irk_point)=pzlatra(n_basbas,polar_kspace_complex,1,1,bb2desc)
@@ -370,7 +391,7 @@
                        polar_kspace_complex(lbb_row,lbb_col,i_freq-lbf+1), 1, 1, bb2desc, (0.d0, 0.d0), &
                        v_times_polar(lbb_row, lbb_col), 1, 1, bb2desc)
                   
-                  ! if(i_freq==6) then
+                  ! if(i_freq==1) then
                   !    write(12,*)"coulomb_mat"
                   !    write(12,200) (((coulomb_matr_blacs(mu,nu,i_irk_point_local)),nu=1,n_basbas),mu=1,n_basbas)
                   !    write(12,*)"chi0_mat"
@@ -378,7 +399,7 @@
                   !    write(12,*)"pi_mat"
                   !    write(12,200)(((v_times_polar(mu,nu)),nu=1,n_basbas),mu=1,n_basbas)
                   ! end if
-                  !200 FORMAT (1X, 52F10.6)
+                  ! 200 FORMAT (1X, 356F13.8) 
                      trace_v_times_polar=pzlatra(n_basbas,v_times_polar,1,1,bb2desc)
                   
                   do i_prodbas_1 = lbb_row, ubb_row
@@ -425,9 +446,9 @@
                        rpa_c_integrand * womega_full(i_freq) 
                   ! end of loop over i_freq
                enddo
-               !close(12)
-               !temp_crpa_grid=rpa_c_kgrid(i_irk_point)*irk_weight(i_irk_point)/2.d0/pi
-               !print*,"cRPA_kgrid",i_irk_point,rpa_c_kgrid(i_irk_point),temp_crpa_grid,irk_weight(i_irk_point)
+               ! close(12)
+               ! temp_crpa_grid=rpa_c_kgrid(i_irk_point)*irk_weight(i_irk_point)/2.d0/pi
+               ! print*,"cRPA_kgrid",i_irk_point,rpa_c_kgrid(i_irk_point),temp_crpa_grid,irk_weight(i_irk_point)
                deallocate (v_times_polar,v_times_polar_t,v_times_polar_2)
             end if
             

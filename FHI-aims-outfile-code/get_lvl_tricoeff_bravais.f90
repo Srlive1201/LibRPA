@@ -5,7 +5,7 @@
   !    get_lvl_tricoeff_bravais
   !  SYNOPSIS
 
-  subroutine get_lvl_tricoeff_bravais(n_cells_task,lvl_tricoeff_bravais)
+  subroutine get_lvl_tricoeff_bravais(n_cells_task)
 
     !  PURPOSE
     !
@@ -29,7 +29,7 @@
     !  ARGUMENTS
 
     integer, intent(IN) :: n_cells_task
-    real*8, intent(OUT) :: lvl_tricoeff_bravais(n_basis,n_basis,n_basbas,n_cells_task)
+   ! real*8, intent(OUT) :: lvl_tricoeff_bravais(n_basis,n_basis,n_basbas,n_cells_task)
      ! n_cells_task: the number of unit cells (in the Born-von Karmen supercell) per task
 
     !  INPUTS
@@ -59,6 +59,8 @@
     character(*), parameter :: func = 'get_lvl_tricoeff_bravais'
 
     integer :: i_c,j_c,k_c
+    real*8 :: dR
+    character(len=100) cFile
 
     write(info_str,'(2X,A)') "Computing the triple LVL expansion coefficents in real space ..."
     call localorb_info(info_str)
@@ -67,9 +69,11 @@
       call check_allocation(info, 'coeff_3fn', func)
     endif
     
-    lvl_tricoeff_bravais(:,:,:,:) = 0.d0
+    !lvl_tricoeff_bravais(:,:,:,:) = 0.d0
     !print *, 'LVL  n_cell_tasks  ', n_cells_task
-    open(1,file='Cs_data.txt')
+    write(cFile,*)myid
+    cFile='Cs_data_'//trim(adjustl(cFile))//'.txt'
+    open(1,file=cFile)
     write(1,*) n_atoms,n_cells
     do i_atom_1 = 1, n_atoms, 1
        i_species_1 = species(i_atom_1)
@@ -102,7 +106,7 @@
              Rvecs(:, i_cell_local) = Dvec + Cvec
           end do
           n_cell_local = i_cell_local   ! Last value
-        
+          
           if(n_cell_local.gt.0) then
             call get_pairwise_coeff_3fn(i_species_1, i_species_2, n_cell_local, Rvecs, coeff_3fn, dummy, .false.)
           endif
@@ -115,29 +119,12 @@
              i_cell_2 = cell_index(i_cell, 2)
              i_cell_3 = cell_index(i_cell, 3)
              !print *, 'LVL  ', i_atom_1,'   ',i_atom_2,'   ',i_cell,'   ',i_cell_local
+             dR=sqrt(Rvecs(1,i_cell_local)**2+Rvecs(2,i_cell_local)**2+Rvecs(3,i_cell_local)**2)
+             if(dR .gt. 16.d0) cycle
+           ! write(1,*)i_atom_1,i_atom_2,i_cell_1,i_cell_2,i_cell_3, n_sp_basis_1,n_sp_basis_2,n_spbb_1,Rvecs(1,i_cell_local),Rvecs(2,i_cell_local),Rvecs(3,i_cell_local),dR
+            write(1,*)i_atom_1,i_atom_2,i_cell_1,i_cell_2,i_cell_3, n_sp_basis_1,n_sp_basis_2,n_spbb_1
             if(myid.eq.mod(1,n_tasks)) then
               if((i_cell == 1) .and. (i_atom_1 .eq. i_atom_2))  then
-                write(1,*)i_atom_1,i_atom_2,i_cell_1,i_cell_2,i_cell_3, n_sp_basis_1,n_sp_basis_2,n_spbb_1
-                do i_c=1, n_sp_basis_1,1
-                  do j_c=1, n_sp_basis_2,1
-                    do k_c=1,n_spbb_1,1
-                      write(1,*)coeff_3fn(i_c,j_c,k_c,1,i_cell_local)/2.0
-                    end do
-                  end do
-                end do
-              else
-                write(1,*)i_atom_1,i_atom_2,i_cell_1,i_cell_2,i_cell_3, n_sp_basis_1,n_sp_basis_2,n_spbb_1
-                do i_c=1, n_sp_basis_1,1
-                  do j_c=1, n_sp_basis_2,1
-                    do k_c=1,n_spbb_1,1
-                      write(1,*) coeff_3fn(i_c,j_c,k_c,1,i_cell_local)
-                    end do
-                  end do
-                end do
-              end if
-            else
-              if((i_cell == 1) .and. (i_atom_1 .eq. i_atom_2)) then
-                write(1,*)i_atom_1,i_atom_2,i_cell_1,i_cell_2,i_cell_3, n_sp_basis_1,n_sp_basis_2,n_spbb_1
                 do i_c=1, n_sp_basis_1,1
                   do j_c=1, n_sp_basis_2,1
                     do k_c=1,n_spbb_1,1
@@ -146,7 +133,24 @@
                   end do
                 end do
               else
-                write(1,*)i_atom_1,i_atom_2,i_cell_1,i_cell_2,i_cell_3, n_sp_basis_1,n_sp_basis_2,n_spbb_1
+                do i_c=1, n_sp_basis_1,1
+                  do j_c=1, n_sp_basis_2,1
+                    do k_c=1,n_spbb_1,1
+                      write(1,'(F20.15)') coeff_3fn(i_c,j_c,k_c,1,i_cell_local)
+                    end do
+                  end do
+                end do
+              end if
+            else
+              if((i_cell == 1) .and. (i_atom_1 .eq. i_atom_2)) then
+                do i_c=1, n_sp_basis_1,1
+                  do j_c=1, n_sp_basis_2,1
+                    do k_c=1,n_spbb_1,1
+                      write(1,'(F20.15)')coeff_3fn(i_c,j_c,k_c,1,i_cell_local)/2.0
+                    end do
+                  end do
+                end do
+              else
                 do i_c=1, n_sp_basis_1,1
                   do j_c=1, n_sp_basis_2,1
                     do k_c=1,n_spbb_1,1
@@ -157,15 +161,15 @@
               end if
             end if
               
-             lvl_tricoeff_bravais(basis_off_1+1:basis_off_1+n_sp_basis_1, &
-             & basis_off_2+1:basis_off_2+n_sp_basis_2, bboff_1+1:bboff_1+n_spbb_1, i_cell_local) &
-             & = coeff_3fn(1:n_sp_basis_1,1:n_sp_basis_2,1:n_spbb_1, 1, i_cell_local)
+            !  lvl_tricoeff_bravais(basis_off_1+1:basis_off_1+n_sp_basis_1, &
+            !  & basis_off_2+1:basis_off_2+n_sp_basis_2, bboff_1+1:bboff_1+n_spbb_1, i_cell_local) &
+            !  & = coeff_3fn(1:n_sp_basis_1,1:n_sp_basis_2,1:n_spbb_1, 1, i_cell_local)
            
-            if((i_cell == 1) .and. (i_atom_2 .ne. i_atom_1)) then
-             lvl_tricoeff_bravais(basis_off_1+1:basis_off_1+n_sp_basis_1, &
-             & basis_off_2+1:basis_off_2+n_sp_basis_2, bboff_2+1:bboff_2+n_spbb_2, i_cell_local) &
-             & = coeff_3fn(1:n_sp_basis_1,1:n_sp_basis_2,1:n_spbb_2, 2, i_cell_local)
-            endif
+            ! if((i_cell == 1) .and. (i_atom_2 .ne. i_atom_1)) then
+            !  lvl_tricoeff_bravais(basis_off_1+1:basis_off_1+n_sp_basis_1, &
+            !  & basis_off_2+1:basis_off_2+n_sp_basis_2, bboff_2+1:bboff_2+n_spbb_2, i_cell_local) &
+            !  & = coeff_3fn(1:n_sp_basis_1,1:n_sp_basis_2,1:n_spbb_2, 2, i_cell_local)
+            ! endif
 ! end loop over i_cell
           enddo
 
@@ -189,9 +193,9 @@
 !        enddo
 !    enddo
     !print *, 'myid:  ',myid,'   mod:  ', mod(1,n_tasks)
-    if(myid.eq.mod(1,n_tasks)) then
-     lvl_tricoeff_bravais(:,:,:,1)=lvl_tricoeff_bravais(:,:,:,1)/2.d0
-    endif
+    ! if(myid.eq.mod(1,n_tasks)) then
+    !  lvl_tricoeff_bravais(:,:,:,1)=lvl_tricoeff_bravais(:,:,:,1)/2.d0
+    ! endif
     ! open(2,file="Cs_full.txt")
     ! write(2,*)size(lvl_tricoeff_bravais),size(lvl_tricoeff_bravais,dim=1),size(lvl_tricoeff_bravais,dim=2),size(lvl_tricoeff_bravais,dim=3),size(lvl_tricoeff_bravais,dim=4)
     

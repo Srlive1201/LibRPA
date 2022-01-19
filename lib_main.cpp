@@ -13,7 +13,7 @@ int main(int argc, char **argv)
     if(argv[1][0]=='0')
         ap_chi0.main();
     else
-        cal_chi0.chi0_main(argv[1]); 
+        cal_chi0.chi0_main(argv[1],argv[2]); 
     
     return 0;
 }
