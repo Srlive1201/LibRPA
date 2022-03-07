@@ -1,3 +1,4 @@
+import os
 from scipy.optimize import minimize,Bounds,least_squares
 import numpy as np
 import matplotlib.pyplot as plt
@@ -36,11 +37,11 @@ def cosine_time2freq_grid(R):
             sum+=p[i]*np.exp(-1*x*abs(tau[i]))
             i=i+1
         return sum
-    
+
     def omega_fun(x,freq):
         return (2*x)/(x**2+freq**2)
     def error (p,x,y,tau):                    # 拟合残差
-        return tau_fun(p,x,tau)-y 
+        return tau_fun(p,x,tau)-y
     num_points_per_magnitude=200
     num_x_node=(int(math.log10(R))+1)*num_points_per_magnitude
     num_x_node=max(num_x_node,len(tau)/2)
@@ -48,7 +49,7 @@ def cosine_time2freq_grid(R):
     multipicator=(R)**(1.0/(num_x_node-1.0))
     xvalue=[multipicator**(i) for i in range(0,num_x_node)]
     x=np.array(xvalue)
-    
+
     p0=[]
     i=0
     while i<len(tau)/2:
@@ -78,7 +79,7 @@ if __name__=='__main__':
     print("R: ",R)
     omega=[]
     tau=[]
-    path='/home/rongshi/LibRPA/minimax_grid/GreenX/'
+    path=os.path.dirname(__file__) + "/"
     freq_grid=[]
     read_grid(N,'f')
     read_grid(N,'t')
