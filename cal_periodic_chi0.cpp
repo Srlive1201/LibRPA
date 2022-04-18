@@ -55,9 +55,9 @@ void Cal_Periodic_Chi0::chi0_main(const char *Input_ngrid, const char *Input_gre
         freq_vec[itf] = fp.first;
         itf++;
     }
-    cout << " out_wfc_k" << endl;
-    for (int ik = 0; ik != n_kpoints; ik++)
-        print_complex_matrix("wfc_k", wfc_k[ik]);
+    // cout << " out_wfc_k" << endl;
+    //  for (int ik = 0; ik != n_kpoints; ik++)
+    //      print_complex_matrix("wfc_k", wfc_k[ik]);
 
     for (const auto &time_tau : time_grid)
     {
@@ -68,38 +68,38 @@ void Cal_Periodic_Chi0::chi0_main(const char *Input_ngrid, const char *Input_gre
         }
     }
 
-    for (auto &R : R_grid)
-    {
-        for (int I = 0; I != natom; I++)
-            for (int J = 0; J != natom; J++)
-            {
-                cout << "Green_atom  IJ R:  " << I << "  " << J << "    " << R << endl;
-                print_matrix("Green-atom", Green_atom[0][I][J][R][first_tau]);
-            }
-    }
+    // for (auto &R : R_grid)
+    // {
+    //     for (int I = 0; I != natom; I++)
+    //         for (int J = 0; J != natom; J++)
+    //         {
+    //             cout << "Green_atom  IJ R:  " << I << "  " << J << "    " << R << endl;
+    //             print_matrix("Green-atom", Green_atom[0][I][J][R][first_tau]);
+    //         }
+    // }
 
     cout << " FINISH GREEN FUN" << endl;
     cout << " Green threshold: " << Green_threshold << endl;
     cout << " Green save num: " << green_save << endl;
     cout << " Green discard num: " << green_discard << endl;
 
-    for (auto &tau_p : time_grid)
-    {
-        for (auto &R : R_grid)
-        {
-            for (auto &I_p : Vq)
-            {
-                const size_t I = I_p.first;
-                const size_t mu_num = atom_mu[I];
-                for (auto &J_p : Vq)
-                {
-                    const size_t J = J_p.first;
-                    const size_t nu_num = atom_mu[J];
-                    chi0[tau_p.first][R][I][J].create(mu_num, nu_num);
-                }
-            }
-        }
-    }
+    // for (auto &tau_p : time_grid)
+    // {
+    //     for (auto &R : R_grid)
+    //     {
+    //         for (auto &I_p : Vq)
+    //         {
+    //             const size_t I = I_p.first;
+    //             const size_t mu_num = atom_mu[I];
+    //             for (auto &J_p : Vq)
+    //             {
+    //                 const size_t J = J_p.first;
+    //                 const size_t nu_num = atom_mu[J];
+    //                 chi0[tau_p.first][R][I][J].create(mu_num, nu_num);
+    //             }
+    //         }
+    //     }
+    // }
 
     vector<pair<size_t, size_t>> tot_pair_all(get_atom_pair(Vq));
     int ntask_ap = tot_pair_all.size();
@@ -162,7 +162,7 @@ void Cal_Periodic_Chi0::R_tau_routing()
                 const size_t J = J_p.first;
                 double chi0_ele_begin = omp_get_wtime();
                 ComplexMatrix tmp_chi0_tau(ComplexMatrix(cal_chi0_element(tau_loc, R, I, J)));
-                chi0[tau_loc][R][I][J] = tmp_chi0_tau.real();
+                // chi0[tau_loc][R][I][J] = tmp_chi0_tau.real();
                 double chi0_ele_t = omp_get_wtime() - chi0_ele_begin;
 
                 // printf("      thread: %d, tau: %f,   I: %d  J: %d   , TIME_part: %f \n",omp_get_thread_num(),tau_loc, I,J,chi0_ele_t);
@@ -251,8 +251,8 @@ void Cal_Periodic_Chi0::atom_pair_routing()
                 for (auto it = 0; it != tau_vec.size(); it++)
                 {
                     ComplexMatrix tmp_chi0_tau(ComplexMatrix(cal_chi0_element(tau_vec[it], R, I, J)));
-                    chi0[tau_vec[it]][R][I][J] = tmp_chi0_tau.real();
-                    // chi0_tau_tmp[it]=std::move(tmp_chi0);
+                    // chi0[tau_vec[it]][R][I][J] = tmp_chi0_tau.real();
+                    //  chi0_tau_tmp[it]=std::move(tmp_chi0);
                     for (auto &k_pair : irk_weight)
                     {
                         auto ik_vec = k_pair.first;
@@ -910,21 +910,21 @@ matrix Cal_Periodic_Chi0::reshape_mat_21(const size_t n1, const size_t n2, const
 
 std::map<double, map<Vector3_Order<double>, map<size_t, map<size_t, ComplexMatrix>>>> Cal_Periodic_Chi0::cal_pi_k_use_aims_vq()
 {
-    cout << "out_chi0_R" << endl;
-    for (auto &Rp : chi0.at(first_tau))
-    {
-        auto R = Rp.first;
-        for (auto &Ip : Rp.second)
-        {
-            auto I = Ip.first;
-            for (auto &Jp : Ip.second)
-            {
-                auto J = Jp.first;
-                cout << "  I J R:  " << I << "  " << J << "   " << R << endl;
-                print_matrix("chi0_R", Jp.second);
-            }
-        }
-    }
+    // cout << "out_chi0_R" << endl;
+    // for (auto &Rp : chi0.at(first_tau))
+    // {
+    //     auto R = Rp.first;
+    //     for (auto &Ip : Rp.second)
+    //     {
+    //         auto I = Ip.first;
+    //         for (auto &Jp : Ip.second)
+    //         {
+    //             auto J = Jp.first;
+    //             cout << "  I J R:  " << I << "  " << J << "   " << R << endl;
+    //             print_matrix("chi0_R", Jp.second);
+    //         }
+    //     }
+    // }
     printf("Begin cal_pi_k , pid:  %d\n", para_mpi.get_myid());
     for (auto &freq_p : chi0_k)
     {
@@ -1313,13 +1313,13 @@ void Cal_Periodic_Chi0::RPA_correlation_energy(map<double, double> &freq_grid)
                     const auto J = J_pair.first;
                     const auto mat = J_pair.second;
                     const size_t nu_num = atom_mu[J];
-                    if (freq == first_freq)
-                    {
-                        complex<double> trace_pi;
-                        trace_pi = trace(mat);
-                        // cout << "final pi   IJ:  " << I << "   " << J << "    kvec: " << kvec_c << "   trace: " << trace_pi << endl;
-                        // print_complex_real_matrix(" final pi ", mat);
-                    }
+                    // if (freq == first_freq)
+                    // {
+                    //     complex<double> trace_pi;
+                    //     trace_pi = trace(mat);
+                    //     // cout << "final pi   IJ:  " << I << "   " << J << "    kvec: " << kvec_c << "   trace: " << trace_pi << endl;
+                    //     // print_complex_real_matrix(" final pi ", mat);
+                    // }
 
                     for (size_t mu = 0; mu != mu_num; ++mu)
                     {
