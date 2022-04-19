@@ -75,7 +75,7 @@ class Cal_Periodic_Chi0
     //void adj_atom_search();
 */  int grid_N;
     const string minimax_grid_path="/home/rongshi/LibRPA/minimax_grid";
-    const string GX_path="/home/rongshi/LibRPA/minimax_grid/GreenX/generate_local_grid.py";
+    const string GX_path=minimax_grid_path+"/GreenX/generate_local_grid.py";
     set<Vector3_Order<int>> R_grid;
     map<double,double> time_grid;
     map<double,double> freq_grid;

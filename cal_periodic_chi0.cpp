@@ -32,7 +32,7 @@ void Cal_Periodic_Chi0::chi0_main(const char *Input_ngrid, const char *Input_gre
     // cout<< minimax_grid_path+"/time_grid.txt"<<endl;
     time_grid = read_local_grid("local_" + to_string(grid_N) + "_time_points.dat", 'T');
     freq_grid = read_local_grid("local_" + to_string(grid_N) + "_freq_points.dat", 'F');
-    tran_gamma = read_cosine_trans_grid(to_string(grid_N) + "_time2freq_grid.txt");
+    tran_gamma = read_cosine_trans_grid(to_string(grid_N) + "_time2freq_grid_cos.txt");
     // time_grid=read_file_grid( minimax_grid_path+"/time_grid.txt",'T');
     // freq_grid=read_file_grid( minimax_grid_path+"/freq_grid.txt",'F');
     // tran_gamma=read_cosine_trans_grid(minimax_grid_path+"/time2freq_transform_grid.txt");
