@@ -3,6 +3,7 @@
 #include <omp.h>
 #include <iomanip>
 #include "global_class.h"
+#include "profiler.h"
 #include <iostream>
 /*
 #include "scalapack_connector.h"
@@ -18,6 +19,7 @@ using namespace std;
 
 void Cal_Periodic_Chi0::chi0_main(const char *Input_ngrid, const char *Input_green_threshold)
 {
+    prof.start("chi0_main");
     grid_N = stoi(Input_ngrid);
     Green_threshold = stod(Input_green_threshold);
     init();
@@ -114,13 +116,14 @@ void Cal_Periodic_Chi0::chi0_main(const char *Input_ngrid, const char *Input_gre
         atom_pair_routing();
     // atom_pair_routing();
 
-    double t_chi0_begin = omp_get_wtime();
     double t_end = omp_get_wtime();
     cout << "TOTAL TIME USED :  " << t_end - t_begin << endl;
+    prof.stop("chi0_main");
 }
 
 void Cal_Periodic_Chi0::R_tau_routing()
 {
+    prof.start("R_tau_routing");
     cout << "Go R_tau_routing!!!    tau_vec: " << tau_vec[0] << endl;
     vector<vector<pair<int, Vector3_Order<int>>>> p_task(process_task_tau_R(time_grid, R_grid));
     map<double, map<Vector3_Order<double>, map<size_t, map<size_t, ComplexMatrix>>>> tmp_chi0_freq_k;
@@ -216,12 +219,14 @@ void Cal_Periodic_Chi0::R_tau_routing()
 
     cal_pi_k_use_aims_vq();
     RPA_correlation_energy(freq_grid);
+    prof.stop("R_tau_routing");
     cout << "ONLY CHI0 TIME USED:  " << t_chi0_end - t_chi0_begin << endl;
     cout << "  Average per_task time:" << t_chi0_tot / (p_task[p_id_local].size());
 }
 
 void Cal_Periodic_Chi0::atom_pair_routing()
 {
+    prof.start("atom_pair_routing");
     cout << "Go atom_pair_routing!!!" << endl;
     vector<pair<size_t, size_t>> tot_pair(process_task_ap_local());
     cout << "  tot_pair.size :  " << tot_pair.size() << endl;
@@ -295,6 +300,7 @@ void Cal_Periodic_Chi0::atom_pair_routing()
     double t_end = omp_get_wtime();
     cout << "ONLY CHI0 TIME USED:  " << t_chi0_end - t_chi0_begin << endl;
     cout << "  Average per_task time:" << time_task_tot / (tot_pair.size());
+    prof.stop("atom_pair_routing");
 }
 
 vector<vector<pair<int, Vector3_Order<int>>>> Cal_Periodic_Chi0::process_task_tau_R(const map<double, double> &time_grid, const set<Vector3_Order<int>> &R_grid)
@@ -501,6 +507,7 @@ std::vector<ComplexMatrix> Cal_Periodic_Chi0::cal_Green_func_element_k(const mat
 
 void Cal_Periodic_Chi0::cal_Green_func_R_tau(const double &time_tau, const Vector3_Order<int> &R, const Vector3<double> *kvec_c)
 {
+    prof.start("cal_Green_func_R_tau");
     Vector3_Order<double> R_2(R.x, R.y, R.z);
 
     Vector3_Order<int> R_0(0, 0, 0);
@@ -580,6 +587,7 @@ void Cal_Periodic_Chi0::cal_Green_func_R_tau(const double &time_tau, const Vecto
             }
         }
     }
+    prof.stop("cal_Green_func_R_tau");
 }
 
 void Cal_Periodic_Chi0::Cosine_to_chi0_freq(map<double, double> &time_grid, map<double, double> &freq_grid)
@@ -670,6 +678,7 @@ void Cal_Periodic_Chi0::Cosine_to_chi0_freq(map<double, double> &time_grid, map<
 
 matrix Cal_Periodic_Chi0::cal_chi0_element(const double &time_tau, const Vector3_Order<int> &R, const size_t &I_index, const size_t &J_index)
 {
+    prof.start("cal_chi0_element");
     // printf("     begin chi0  thread: %d,  I: %d, J: %d\n",omp_get_thread_num(),I_index,J_index);
     // for(const auto &K_pair:Cs[I_index])
     // Vector3_Order<int> R_0(0,0,0);
@@ -695,6 +704,7 @@ matrix Cal_Periodic_Chi0::cal_chi0_element(const double &time_tau, const Vector3
     // chi0[time_tau][R][I_index][J_index].create(mu_num,nu_num);
     matrix X_R2(i_num, j_num * nu_num);
     matrix X_conj_R2(i_num, j_num * nu_num);
+    prof.start("X");
     for (const auto &L_pair : Cs[J_index])
     {
         const auto L_index = L_pair.first;
@@ -734,6 +744,7 @@ matrix Cal_Periodic_Chi0::cal_chi0_element(const double &time_tau, const Vector3
     }
     matrix X_R2_rs(reshape_mat(i_num, j_num, nu_num, X_R2));
     matrix X_conj_R2_rs(reshape_mat(i_num, j_num, nu_num, X_conj_R2));
+    prof.stop("X");
 
     matrix O_sum(mu_num, nu_num);
     for (const auto &K_pair : Cs[I_index])
@@ -771,6 +782,7 @@ matrix Cal_Periodic_Chi0::cal_chi0_element(const double &time_tau, const Vector3
                                 // Vector3_Order<int> R_temp_2(R2+R);
                                 if (Green_atom.at(is).at(K_index).at(L_index).count(R_temp_1))
                                 {
+                                    prof.start("N");
                                     assert(j_num * l_num == (*Cs_mat2).nr);
                                     // printf("          thread: %d, IJKL:   %d,%d,%d,%d  R:(  %d,%d,%d  )  tau:%f\n",omp_get_thread_num(),I_index,J_index,K_index,L_index,R.x,R.y,R.z,time_tau);
                                     matrix Cs2_reshape(reshape_Cs(j_num, l_num, nu_num, Cs_mat2));
@@ -784,19 +796,24 @@ matrix Cal_Periodic_Chi0::cal_chi0_element(const double &time_tau, const Vector3
                                         // cout<<"B";
                                         N_conj_R2 += Green_atom.at(is).at(K_index).at(L_index).at(R_temp_1).at(-time_tau) * Cs2_reshape;
                                     }
+                                    prof.stop("N");
                                 }
                             }
                         }
                     }
                     if (flag_G_IJRt)
                     {
+                        prof.start("O");
                         matrix N_conj_R2_rs(reshape_mat(k_num, j_num, nu_num, N_conj_R2));
                         O += Green_atom.at(is).at(I_index).at(J_index).at(R).at(time_tau) * N_conj_R2_rs;
+                        prof.stop("O");
                     }
                     if (flag_G_IJRNt)
                     {
+                        prof.start("O");
                         matrix N_R2_rs(reshape_mat(k_num, j_num, nu_num, N_R2));
                         O += Green_atom.at(is).at(I_index).at(J_index).at(R).at(-time_tau) * N_R2_rs;
+                        prof.stop("O");
                     }
                 }
                 // printf("          thread: %d, 2\n",omp_get_thread_num());
@@ -831,12 +848,16 @@ matrix Cal_Periodic_Chi0::cal_chi0_element(const double &time_tau, const Vector3
                     {
                         if (Green_atom.at(is).at(K_index).at(J_index).at(R_temp_3).count(-time_tau))
                         {
+                            prof.start("Z");
                             Z += Green_atom.at(is).at(K_index).at(J_index).at(R_temp_3).at(-time_tau) * X_R2_rs;
+                            prof.stop("Z");
                         }
 
                         if (Green_atom.at(is).at(K_index).at(J_index).at(R_temp_3).count(time_tau))
                         {
+                            prof.start("Z");
                             Z += Green_atom.at(is).at(K_index).at(J_index).at(R_temp_3).at(time_tau) * X_conj_R2_rs;
+                            prof.stop("Z");
                         }
                     }
                 }
@@ -846,12 +867,15 @@ matrix Cal_Periodic_Chi0::cal_chi0_element(const double &time_tau, const Vector3
                 O += Z_rs;
                 matrix OZ(reshape_mat_21(i_num, k_num, nu_num, O));
                 matrix Cs1_tran(transpose(*Cs_mat1));
+                prof.start("O");
                 O_sum += Cs1_tran * OZ;
+                prof.stop("O");
                 // cout<<"   K, R1:   "<<K_index<<"   "<<R1;
                 // rt_m_max(O_sum);
             }
         }
     }
+    prof.stop("cal_chi0_element");
     // chi0[time_tau][R][I_index][J_index]=O_sum;
     // printf("     finish chi0  thread: %d,  I: %d, J: %d",omp_get_thread_num(),I_index,J_index);
     return O_sum;
@@ -859,6 +883,7 @@ matrix Cal_Periodic_Chi0::cal_chi0_element(const double &time_tau, const Vector3
 
 matrix Cal_Periodic_Chi0::reshape_Cs(const size_t n1, const size_t n2, const size_t n3, const shared_ptr<matrix> &Cs) //(n1*n2,n3) -> (n2,n1*n3)
 {
+    prof.start("reshape_Cs");
     const auto length = sizeof(double) * n3;
     const auto n13 = n1 * n3;
     const double *m_ptr = (*Cs).c;
@@ -869,6 +894,7 @@ matrix Cal_Periodic_Chi0::reshape_Cs(const size_t n1, const size_t n2, const siz
         for (size_t i2 = 0; i2 != n2; ++i2, m_ptr += n3, m_new_ptr += n13)
             memcpy(m_new_ptr, m_ptr, length);
     }
+    prof.stop("reshape_Cs");
     return m_new;
 }
 
@@ -885,6 +911,7 @@ matrix Cal_Periodic_Chi0::reshape_dim_Cs(const size_t n1, const size_t n2, const
 
 matrix Cal_Periodic_Chi0::reshape_mat(const size_t n1, const size_t n2, const size_t n3, const matrix &mat) //(n1,n2*n3) -> (n2,n1*n3)
 {
+    prof.start("reshape_mat");
     const auto length = sizeof(double) * n3;
     const auto n13 = n1 * n3;
     const double *m_ptr = mat.c;
@@ -895,6 +922,7 @@ matrix Cal_Periodic_Chi0::reshape_mat(const size_t n1, const size_t n2, const si
         for (size_t i2 = 0; i2 != n2; ++i2, m_ptr += n3, m_new_ptr += n13)
             memcpy(m_new_ptr, m_ptr, length);
     }
+    prof.stop("reshape_mat");
     return m_new;
 }
 matrix Cal_Periodic_Chi0::reshape_mat_21(const size_t n1, const size_t n2, const size_t n3, const matrix &mat) //(n1,n2*n3) -> (n1*n2,n3)
