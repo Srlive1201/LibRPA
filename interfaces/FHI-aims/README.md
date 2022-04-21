@@ -8,18 +8,17 @@ At the root of FHI-aims directory, i.e. the path where `src` and `doc` live, run
 patch -p1 < fhiaims.hash.patch
 ```
 
-and
-
-```bash
-patch -R -p1 < fhiaims.hash.patch
-```
-
-to reverse the change.
 You can also use git command to apply the modification,
 if the source codes are under git control
 
 ```bash
 git apply fhiaims.hash.patch
+```
+
+To revert the change, run
+
+```bash
+patch -R -p1 < fhiaims.hash.patch
 ```
 
 ### Notes on patch files
