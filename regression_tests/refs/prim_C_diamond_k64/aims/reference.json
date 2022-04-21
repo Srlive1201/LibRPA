@@ -1,0 +1,12 @@
+{
+  "aims": {
+    "version": "220225-fbbdcd540",
+    "nprocs": 4
+  },
+  "lib": {
+    "version": "2aa89bf59",
+    "n_tf_grids": 16,
+    "green_threshold": 1e-4,
+    "cs_threshold": 1e-6
+  }
+}

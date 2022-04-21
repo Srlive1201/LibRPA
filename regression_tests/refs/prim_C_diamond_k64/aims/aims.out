@@ -1,0 +1,2644 @@
+------------------------------------------------------------
+          Invoking FHI-aims ...
+
+          When using FHI-aims, please cite the following reference:
+
+            Volker Blum, Ralf Gehrke, Felix Hanke, Paula Havu,
+            Ville Havu, Xinguo Ren, Karsten Reuter, and Matthias Scheffler,
+            'Ab Initio Molecular Simulations with Numeric Atom-Centered Orbitals',
+            Computer Physics Communications 180, 2175-2196 (2009)
+
+          In addition, many other developments in FHI-aims are likely important for
+          your particular application. A partial list of references is given at the end of
+          this file. Thank you for giving credit to the authors of these developments.
+
+          For any questions about FHI-aims, please visit our slack channel at
+
+            https://fhi-aims.slack.com
+
+          and our main development and support site at
+
+            https://aims-git.rz-berlin.mpg.de .
+
+          The latter site, in particular, has a wiki to collect information, as well
+          as an issue tracker to log discussions, suggest improvements, and report issues
+          or bugs. https://aims-git.rz-berlin.mpg.de is also the main development site
+          of the project and all new and updated code versions can be obtained there.
+          Please send an email to aims-coordinators@fhi-berlin.mpg.de and we will add
+          you to these sites. They are for you and everyone is welcome there.
+
+------------------------------------------------------------
+
+
+
+  Date     :  20220420, Time     :  213436.996
+  Time zero on CPU 1             :   0.186350000000000E-01  s.
+  Internal wall clock time zero  :           419722476.996  s.
+
+  FHI-aims created a unique identifier for this run for later identification
+  aims_uuid : 89BA0E72-22BC-4125-AC5A-A1CC19C7185A
+
+  Build configuration of the current instance of FHI-aims
+  -------------------------------------------------------
+  FHI-aims version      : 220225
+  Commit number         : fbbdcd540
+  CMake host system     : Linux-5.11.12-300.fc34.x86_64
+  CMake version         : 3.19.7
+  Fortran compiler      : /opt/intel/2020.4/compilers_and_libraries_2020.4.304/linux/mpi/intel64/bin/mpiifort (Intel) version 19.1.3.20200925
+  Fortran compiler flags: -O3 -ip -fp-model precise
+  C compiler            : /opt/intel/2020.4/compilers_and_libraries_2020.4.304/linux/bin/intel64/icc (Intel) version 19.1.3.20200925
+  C compiler flags      : -O3 -ip -fp-model precise -std=gnu99
+  ELPA2 kernel          : AVX512
+  Using MPI
+  Using ScaLAPACK
+  Using LibXC
+  Using i-PI
+  Using RLSY
+  Linking against: /opt/intel/2020.4/compilers_and_libraries_2020.4.304/linux/mkl/lib/intel64/libmkl_intel_lp64.so
+                   /opt/intel/2020.4/compilers_and_libraries_2020.4.304/linux/mkl/lib/intel64/libmkl_sequential.so
+                   /opt/intel/2020.4/compilers_and_libraries_2020.4.304/linux/mkl/lib/intel64/libmkl_core.so
+                   /opt/intel/2020.4/compilers_and_libraries_2020.4.304/linux/mkl/lib/intel64/libmkl_blacs_intelmpi_lp64.so
+                   /opt/intel/2020.4/compilers_and_libraries_2020.4.304/linux/mkl/lib/intel64/libmkl_scalapack_lp64.so
+
+  Using        4 parallel tasks.
+  Task        0 on host iopcas-fedora reporting.
+  Task        1 on host iopcas-fedora reporting.
+  Task        2 on host iopcas-fedora reporting.
+  Task        3 on host iopcas-fedora reporting.
+
+  Performing system and environment tests:
+  | Environment variable OMP_NUM_THREADS correctly set to 1.
+  | Checking for ScaLAPACK...
+  | Testing pdtran()...
+  | All pdtran() tests passed.
+
+  Obtaining array dimensions for all initial allocations:
+  
+  -----------------------------------------------------------------------
+  Parsing control.in (first pass over file, find array dimensions only).
+  The contents of control.in will be repeated verbatim below
+  unless switched off by setting 'verbatim_writeout .false.' .
+  in the first line of control.in .
+  -----------------------------------------------------------------------
+  
+    #  Volker Blum, FHI 2004 : Input file for LocalOrb code project
+    #
+    #  Input file control.in : All computational details for structure geometry.in
+    #
+    #  * First, general computational parameters:
+    #
+    #  Physics choices (model):
+    #
+      xc               pbe
+    # qpe_calc         gw_expt
+    # anacon_type      0
+    # freq_grid_type   GL
+    #  qpe_calc         gw
+      total_energy_method         rpa
+  	frozen_core_postscf 2
+    #  spin             collinear
+      relativistic     atomic_zora scalar
+      occupation_type  gaussian 0.0001
+      RI_method        LVL
+    #  packed_matrix_format   none
+    #  use_full_symmetry .true.
+    #  state_lower_limit 3
+    #
+    #  SCF cycle:
+    #
+      KS_method        parallel
+      mixer            pulay
+        n_max_pulay    5
+        charge_mix_param  0.1
+      override_illconditioning .true.
+    #  preconditioner kerker 2.0
+      sc_accuracy_rho  1E-6
+      sc_accuracy_eev  1E-4
+      sc_accuracy_etot 1E-6
+      sc_iter_limit    100
+    # frequency_points  40
+    #
+    #  accuracy / efficiency for normal scf
+    #
+      basis_threshold  1.e-5
+    #  distributed_spline_storage .true.
+    #
+    #  For MP2
+    #
+    #  hf_version 0
+    #  empty_states     1000
+    #  prodbas_threshold      1.e-3
+    #  auxil_basis     full
+    #  partition_acc 1e-20
+    #  use_density_matrix_hf   .true.
+    #  prodbas_threshold 1.E-3
+    #
+    #  For periodic
+    #
+      k_grid  4 4 4
+    #  use_density_matrix
+    #  packed_matrix_format index
+    #  output k_eigenvalue 1
+    #  restart  cu.slab.CO.top.pbe.relax
+    #  restart_save_iterations 3
+    #
+    # For relaxation:
+    #
+    #  relax_geometry bfgs 1e-2
+    #  sc_accuracy_forces 1e-4
+    # ri-dens-grad
+    #  * Next, specify output options:
+    #    - basis
+    #    - matrices
+    #    - grids
+    #    - v_eff
+    #    - v_hartree (partitioned Hartree potentials)
+    #
+    #  output       basis
+    #  output       matrices
+    #  output       grids
+    #  output       v_eff
+    #  output       v_hartree
+    #  output band  0.25  0.50  0.75  0.5   0.5   0.5   10 W      L
+    #  output band  0.5   0.5   0.5   0.25  0.25  0.25  10 L      Lambda
+    #  output band  0.25  0.25  0.25  0     0     0     10        Lambda Gamma
+    #  output band  0     0       0   0.00  0.25  0.25  10        Gamma  Delta
+    #  output band  0.00  0.25  0.25  0     0.5   0.5   10 Delta  X
+    #  output band  0     0.5   0.5   0.125 0.5   0.625 10 X      Z
+    #  output band  0.125 0.5   0.625 0.25  0.50  0.75  10 Z      W
+    #  output band  0.25  0.50  0.75  0.375 0.375 0.75  10 W      K
+    #  output self_energy
+    #  output k_eigenvalue 1
+    #  output gw_regular_kgrid
+    #
+  ################################################################################
+  #
+  #  FHI-aims code project
+  #  VB, Fritz-Haber Institut, 2009
+  #
+  #  Suggested "light" defaults for C atom (to be pasted into control.in file)
+  #  Be sure to double-check any results obtained with these settings for post-processing,
+  #  e.g., with the "tight" defaults and larger basis sets.
+  #
+  ################################################################################
+    species        C
+  #     global species definitions
+      nucleus             6
+      mass                12.0107
+  #
+      l_hartree           4
+  #
+      cut_pot             3.5  1.5  1.0
+      basis_dep_cutoff    1e-4
+  #
+      radial_base         34 5.0
+      radial_multiplier   1
+      angular_grids specified
+        division   0.3326   50
+        division   0.5710  110
+        division   0.7727  194
+        division   0.8772  302
+  #      division   0.9334  434
+  #      division   0.9625  590
+  #      division   0.9924  770
+  #      division   1.0230  974
+  #      division   1.4589 1202
+  #     outer_grid  974
+       outer_grid 302
+  ################################################################################
+  #
+  #  Definition of "minimal" basis
+  #
+  ################################################################################
+  #     valence basis states
+      valence      2  s   2.
+      valence      2  p   2.
+  #     ion occupancy
+      ion_occ      2  s   1.
+      ion_occ      2  p   1.
+  ################################################################################
+  #
+  #  Suggested additional basis functions. For production calculations,
+  #  uncomment them one after another (the most important basis functions are
+  #  listed first).
+  #
+  #  Constructed for dimers: 1.0 A, 1.25 A, 1.5 A, 2.0 A, 3.0 A
+  #
+  ################################################################################
+  #  "First tier" - improvements: -1214.57 meV to -155.61 meV
+       hydro 2 p 1.7
+       hydro 3 d 6
+       hydro 2 s 4.9
+  #  "Second tier" - improvements: -67.75 meV to -5.23 meV
+  #     hydro 4 f 9.8
+  #     hydro 3 p 5.2
+  #     hydro 3 s 4.3
+  #     hydro 5 g 14.4
+  #     hydro 3 d 6.2
+  #  "Third tier" - improvements: -2.43 meV to -0.60 meV
+  #     hydro 2 p 5.6
+  #     hydro 2 s 1.4
+  #     hydro 3 d 4.9
+  #     hydro 4 f 11.2
+  #  "Fourth tier" - improvements: -0.39 meV to -0.18 meV
+  #     hydro 2 p 2.1
+  #     hydro 5 g 16.4
+  #     hydro 4 d 13.2
+  #     hydro 3 s 13.6
+  #     hydro 4 f 17.6
+  #  Further basis functions - improvements: -0.08 meV and below
+  #     hydro 3 s 2
+  #     hydro 3 p 6
+  #     hydro 4 d 20
+  
+  -----------------------------------------------------------------------
+  Completed first pass over input file control.in .
+  -----------------------------------------------------------------------
+  
+  
+  -----------------------------------------------------------------------
+  Parsing geometry.in (first pass over file, find array dimensions only).
+  The contents of geometry.in will be repeated verbatim below
+  unless switched off by setting 'verbatim_writeout .false.' .
+  in the first line of geometry.in .
+  -----------------------------------------------------------------------
+  
+  #
+  # C1, NA, Diamond#C(cF8)#α−Sn type
+  # reference: Acta Crystallographica, Section B: Structural Science vol 52, pp 232
+  #
+  atom_frac     0.250000000     0.250000000     0.250000000 C
+  atom_frac     0.000000000     0.000000000     0.000000000 C
+  lattice_vector     0.000000000     1.783560000     1.783560000
+  lattice_vector     1.783560000     0.000000000     1.783560000
+  lattice_vector     1.783560000     1.783560000     0.000000000
+  
+  -----------------------------------------------------------------------
+  Completed first pass over input file geometry.in .
+  -----------------------------------------------------------------------
+  
+
+  Basic array size parameters:
+  | Number of species                 :        1
+  | Number of atoms                   :        2
+  | Number of lattice vectors         :        3
+  | Max. basis fn. angular momentum   :        2
+  | Max. atomic/ionic basis occupied n:        2
+  | Max. number of basis fn. types    :        2
+  | Max. radial fns per species/type  :        3
+  | Max. logarithmic grid size        :     1277
+  | Max. radial integration grid size :       34
+  | Max. angular integration grid size:      302
+  | Max. angular grid division number :        8
+  | Radial grid for Hartree potential :     1277
+  | Number of spin channels           :        1
+
+------------------------------------------------------------
+          Reading file control.in.
+------------------------------------------------------------
+  XC: Using PBE gradient-corrected functionals.
+  RPA correlation energy calculation will be started after the DFT/HF calculation.
+  Core electrons are frozen in the post-SCF calculation :     2
+  Scalar relativistic treatment of kinetic energy: on-site free-atom approximation to ZORA.
+  Occupation type: Gaussian broadening, width =   0.100000E-03 eV.
+  The 'LVL' version of RI (resolution of identity) technique is used.
+  ** This is a localized expansion of all basis function products.
+     Its intended use are Hartree-Fock and hybrid functionals.
+     For RPA, MP2, GW, etc., LVL is not yet as accurate. In those cases, check carefully.
+  Kohn-Sham electronic structure solved by the ELSI library.
+  Using pulay charge density mixing.
+  Pulay mixing - number of memorized iterations:    5
+  Charge density mixing - mixing parameter:     0.1000
+  override_illconditioning: Explicitly overriding any built-in checks for an ill-conditioned overlap matrix.
+  *** WARNING: If you use this flag, you should really know what you are doing.
+  *** DO NOT keep this flag set by default in all your control.in files.
+  Convergence accuracy of self-consistent charge density:  0.1000E-05
+  Convergence accuracy of sum of eigenvalues:  0.1000E-03
+  Convergence accuracy of total energy:  0.1000E-05
+  Maximum number of s.-c. iterations  :   100
+  Threshold for basis singularities:  0.1000E-04
+  Found k-point grid:         4         4         4
+ 
+  Reading configuration options for species C                   .
+  | Found nuclear charge :   6.0000
+  | Found atomic mass :    12.0107000000000      amu
+  | Found l_max for Hartree potential  :   4
+  | Found cutoff potl. onset [A], width [A], scale factor :    3.50000    1.50000    1.00000
+  | Threshold for basis-dependent cutoff potential is   0.100000E-03
+  | Found data for basic radial integration grid :    34 points, outermost radius =    5.000 A
+  | Found multiplier for basic radial grid :   1
+  | Found angular grid specification: user-specified.
+  | Specified grid contains     5 separate shells.
+  | Check grid settings after all constraints further below.
+  | Found free-atom valence shell :  2 s   2.000
+  | Found free-atom valence shell :  2 p   2.000
+  | No ionic wave fns used. Skipping ion_occ.
+  | No ionic wave fns used. Skipping ion_occ.
+  | Found hydrogenic basis function :  2 p   1.700
+  | Found hydrogenic basis function :  3 d   6.000
+  | Found hydrogenic basis function :  2 s   4.900
+  Species C                   : Missing cutoff potential type.
+  Defaulting to exp(1/x)/(1-x)^2 type cutoff potential.
+  Species C : No 'logarithmic' tag. Using default grid for free atom:
+  | Default logarithmic grid data [bohr] : 0.1000E-03 0.1000E+03 0.1012E+01
+  Species C : On-site basis accuracy parameter (for Gram-Schmidt orthonormalisation) not specified.
+  Using default value basis_acc =  0.1000000E-03.
+  Species C                   : Using default innermost maximum threshold i_radial=  2 for radial functions.
+  Species C                   : Default cutoff onset for free atom density etc. : 0.35000000E+01 AA.
+  Species C                   : Basic radial grid will be enhanced according to radial_multiplier =   1, to contain    34 grid points.
+ 
+  Finished reading input file 'control.in'.
+ 
+------------------------------------------------------------
+
+
+------------------------------------------------------------
+          Reading geometry description geometry.in.
+------------------------------------------------------------
+  | The smallest distance between any two atoms is         1.54460827 AA.
+  | The first atom of this pair is atom number                      1 .
+  | The second atom of this pair is atom number                     2 .
+  | Wigner-Seitz cell of the first atom image           0     0     0 .
+  | (The Wigner-Seitz cell of the second atom is 0 0 0  by definition.)
+
+  Symmetry information by spglib:
+  | Precision set to  0.1E-04
+  | Number of Operations  : 48
+  | Space group           : 227
+  | International         : Fd-3m
+  | Schoenflies           : Oh^7
+  Input structure read successfully.
+  The structure contains        2 atoms,  and a total of         12.000 electrons.
+
+  Input geometry:
+  | Unit cell:
+  |        0.00000000        1.78356000        1.78356000
+  |        1.78356000        0.00000000        1.78356000
+  |        1.78356000        1.78356000        0.00000000
+  | Atomic structure:
+  |       Atom                x [A]            y [A]            z [A]
+  |    1: Species C             0.89178000        0.89178000        0.89178000
+  |    2: Species C             0.00000000        0.00000000        0.00000000
+
+  Lattice parameters for 3D lattice (in Angstroms) :     2.522335    2.522335    2.522335
+  Angle(s) between unit vectors (in degrees)       :    60.000000   60.000000   60.000000
+
+
+  Quantities derived from the lattice vectors:
+  | Reciprocal lattice vector 1: -1.761417  1.761417  1.761417
+  | Reciprocal lattice vector 2:  1.761417 -1.761417  1.761417
+  | Reciprocal lattice vector 3:  1.761417  1.761417 -1.761417
+  | Unit cell volume                               :   0.113473E+02  A^3
+
+  Fractional coordinates:
+                         L1                L2                L3
+       atom_frac         0.25000000        0.25000000        0.25000000  C
+       atom_frac         0.00000000        0.00000000        0.00000000  C
+
+ 
+  Finished reading input file 'control.in'.
+ 
+
+------------------------------------------------------------
+          Reading geometry description geometry.in.
+------------------------------------------------------------
+ 
+  Consistency checks for stacksize environment parameter are next.
+ 
+  | Maximum stacksize for task 0: unlimited
+  | Maximum stacksize for task 1: unlimited
+  | Maximum stacksize for task 2: unlimited
+  | Maximum stacksize for task 3: unlimited
+  | Current stacksize for task 0: unlimited
+  | Current stacksize for task 1: unlimited
+  | Current stacksize for task 2: unlimited
+  | Current stacksize for task 3: unlimited
+ 
+  Consistency checks for the contents of control.in are next.
+ 
+  MPI_IN_PLACE appears to work with this MPI implementation.
+  | Keeping use_mpi_in_place .true. (see manual).
+  Species C: Using default value for prodbas_acc =   1.000000E-04.
+  Species C: Using default value max_l_prodbas =    20.
+  Target number of points in a grid batch is not set. Defaulting to  100
+  Method for grid partitioning is not set. Defaulting to parallel hash+maxmin partitioning.
+  Batch size limit is not set. Defaulting to    200
+  By default, will store active basis functions for each batch.
+  If in need of memory, prune_basis_once .false. can be used to disable this option.
+  communication_type for Hartree potential was not specified.
+  Defaulting to calc_hartree .
+  Pulay mixer: Number of initial linear mixing iterations not set.
+  Defaulting to    0 iterations.
+  Work space size for distributed Hartree potential not set.
+  Defaulting to   0.200000E+03 MB.
+  Algorithm-dependent basis array size parameters:
+  | n_max_pulay                         :        5
+  Presetting      1001 iterations before the initial mixing cycle
+  is restarted anyway using the sc_init_iter criterion / keyword.
+  Presetting a factor      1.000 between actual scf density residual
+  and density convergence criterion sc_accuracy_rho below which sc_init_iter
+  takes no effect.
+  Calculation of forces was not defined in control.in. No forces will be calculated.
+  Geometry relaxation not requested: no relaxation will be performed.
+  No accuracy limit for integral partition fn. given. Defaulting to  0.1000E-14.
+  No threshold value for u(r) in integrations given. Defaulting to  0.1000E-05.
+  No accuracy for occupation numbers given. Defaulting to  0.1000E-12.
+  No threshold value for occupation numbers given. Defaulting to  0.0000E+00.
+  No accuracy for fermi level given. Defaulting to  0.1000E-19.
+  Maximum # of iterations to find E_F not set. Defaulting to  200.
+ * You have    64 k-points in your system, but only     4 MPI-tasks available.
+ * In this case using ScaLAPACK is not necessary / supported.
+ * Switching to LAPACK (via ELSI) instead.
+  Will not use alltoall communication since running on < 1024 CPUs.
+  partition_type (choice of integration weights) for integrals was not specified.
+  | Using a version of the partition function of Stratmann and coworkers ('stratmann_sparse').
+  | At each grid point, the set of atoms used to build the partition table is smoothly restricted to
+  | only those atoms whose free-atom density would be non-zero at that grid point.
+  Partitioning for Hartree potential was not defined. Using partition_type for integrals.
+  | Adjusted default value of keyword multip_moments_threshold to:       0.10000000E-11
+  | This value may affect high angular momentum components of the Hartree potential in periodic systems.
+  Spin handling was not defined in control.in. Defaulting to unpolarized case.
+  Angular momentum expansion for Kerker preconditioner not set explicitly.
+  | Using default value of   0
+  No explicit requirement for turning off preconditioner.
+  | By default, it will be turned off when the charge convergence reaches
+  | sc_accuracy_rho  =   0.100000E-05
+  | sc_accuracy_eev  =   0.100000E-03
+  | sc_accuracy_etot =   0.100000E-05
+  No special mixing parameter while Kerker preconditioner is on.
+  Using default: charge_mix_param =     0.1000.
+  Threshold for auxiliary basis singularities not set.
+  Default threshold for auxiliary basis singularities:  0.1000E-04
+  No q(lm)/r^(l+1) cutoff set for long-range Hartree potential.
+  | Using default value of  0.100000E-09 .
+  | Verify using the multipole_threshold keyword.
+  Defaulting to new monopole extrapolation.
+  Density update method: automatic selection selected.
+  Using density matrix based charge density update.
+  Using density matrix based charge density update.
+  Using packed matrix style: index .
+ * WARNING: This is an experimental version of the periodic RPA implemenation.
+ * We are still actively working on it to improve the efficiency and reliability. 
+ * Do not rely on any results you obtained from periodic RPA calculation.
+  Defaulting to use full k-point grid (no symmetry reduction).
+  Charge integration errors on the 3D integration grid will be compensated
+  by explicit normalization and distribution of residual charges.
+  Use the "compensate_multipole_errors" flag to change this behaviour.
+  Default to 1D ("use_logsbt") integrations for auxiliary 2-center integrals.
+  Default onset of logarithmic r-grid for SBT is -38.000000000000
+  Default onset of logarithmic k-grid for SBT is -25.000000000000
+  Default range of logarithmic r- and k-grid for SBT is  45.000000000000
+  Default number of logarithmic r- and k-grid for SBT is   4096
+  Set 'collect_eigenvectors' to be '.true.' for all serial calculations. This is mandatory.
+  Set 'collect_eigenvectors' to be '.true.' for GW/RPA/MP2, SCREX/COHSEX cluster calculations
+  Set 'collect_eigenvectors' to be '.true.' for qpe_calc (quasiparticle energy).
+  Set 'collect_eigenvectors' to be '.true.' for KS_method lapack_fast and serial.
+ 
+  Consistency checks for the contents of geometry.in are next.
+ 
+
+  Range separation radius for Ewald summation (hartree_convergence_parameter):      2.50000000 bohr.
+  Number of empty states per atom not set in control.in .
+  | Since you are using a method that relies on the unoccupied spectrum
+  | (MP2,GW,RPA et al.), will use the full Hamiltonian size (see below)
+  | as the max. possible number of states (occupied plus empty).
+
+  First valence state in the frozen-core algorithm :           1
+  |                             Main-group    Transition-metal
+  | Atom number     ::                   2                   0
+  | n_frozen_shell  ::                   2                   2
+  Structure-dependent array size parameters: 
+  | Maximum number of distinct radial functions  :        6
+  | Maximum number of basis functions            :       28
+  | Number of Kohn-Sham states (occupied + empty):       28
+  | Number of core electrons for post-SCF        :        0
+------------------------------------------------------------
+  Setting Coulomb cut-width to  1.091868692359 * rcut.
+  Setting Coulomb cutting radius rcut to  5.044669482612 A.
+
+------------------------------------------------------------
+          Preparing all fixed parts of the calculation.
+------------------------------------------------------------
+  Determining machine precision:
+    2.225073858507201E-308
+  Setting up grids for atomic and cluster calculations.
+
+  Creating wave function, potential, and density for free atoms.
+  Runtime choices for atomic solver:
+  | atomic solver xc        : PBE
+  | compute density gradient: 1
+  | compute kinetic density : F
+
+  Species: C
+
+  List of occupied orbitals and eigenvalues:
+    n    l              occ      energy [Ha]    energy [eV]
+    1    0           2.0000       -10.046810      -273.3876
+    2    0           2.0000        -0.503128       -13.6908
+    2    1           2.0000        -0.191849        -5.2205
+
+
+  Adding cutoff potential to free-atom effective potential.
+  Creating fixed part of basis set: Ionic, confined, hydrogenic.
+ 
+  C                    hydrogenic:
+ 
+  List of hydrogenic basis orbitals: 
+    n    l      effective z      eigenvalue [eV]  inner max. [A]     outer max. [A]     outer radius [A]   
+    2    1         1.700000        -9.7616           1.230570           1.230570           4.607917
+    3    2         6.000000       -54.4224           0.792453           0.792453           3.883070
+    2    0         4.900000       -81.6679           0.082559           0.562749           3.078220
+ 
+  Creating atomic-like basis functions for current effective potential.
+
+  Species C                   :
+
+  List of atomic basis orbitals and eigenvalues:
+    n    l      energy [Ha]    energy [eV]    outer radius [A]
+    1    0       -10.046810      -273.3876       1.934409
+    2    0        -0.503128       -13.6908       4.496620
+    2    1        -0.191849        -5.2205       4.551928
+
+  Assembling full basis from fixed parts.
+  | Species C :   atomic orbital   1 s accepted.
+  | Species C :    hydro orbital   2 s accepted.
+  | Species C :   atomic orbital   2 s accepted.
+  | Species C :   atomic orbital   2 p accepted.
+  | Species C :    hydro orbital   2 p accepted.
+  | Species C :    hydro orbital   3 d accepted.
+ 
+  Basis size parameters after reduction:
+  | Total number of radial functions:        6
+  | Total number of basis functions :       28
+ 
+  Per-task memory consumption for arrays in subroutine allocate_ext:
+  |           1.962452MB.
+  Testing on-site integration grid accuracy.
+  |  Species  Function  <phi|h_atom|phi> (log., in eV)  <phi|h_atom|phi> (rad., in eV)
+           1        1               -273.3876219248               -273.3875919908
+           1        2                -10.7204647119                -10.7200987605
+           1        3                 17.5782951162                 17.5752355731
+           1        4                 -5.2222267983                 -5.2237454471
+           1        5                  8.6866956284                  8.6634852736
+           1        6                 27.4984676161                 27.4985577266
+
+  Preparing densities etc. for the partition functions (integrals / Hartree potential).
+
+  Preparations completed.
+  max(cpu_time)          :      0.040 s.
+  Wall clock time (cpu1) :      0.040 s.
+------------------------------------------------------------
+
+------------------------------------------------------------
+          Begin self-consistency loop: Initialization.
+
+          Date     :  20220420, Time     :  213437.056
+------------------------------------------------------------
+
+  Initializing index lists of integration centers etc. from given atomic structure:
+  Mapping all atomic coordinates to central unit cell.
+
+  Initializing the k-points
+  | Number of k-points                             :        64
+  | Consuming         64 KiB for k_phase_exx.
+  The eigenvectors in the calculations are COMPLEX.
+  | K-points in task   0:        16
+  | K-points in task   1:        16
+  | K-points in task   2:        16
+  | K-points in task   3:        16
+  | Number of basis functions in the Hamiltonian integrals :      2424
+  | Number of basis functions in a single unit cell        :        28
+  | Number of centers in hartree potential         :      1490
+  | Number of centers in hartree multipole         :      1046
+  | Number of centers in electron density summation:       708
+  | Number of centers in basis integrals           :       780
+  | Number of centers in integrals                 :       222
+  | Number of centers in hamiltonian               :       708
+  | Consuming        388 KiB for k_phase.
+  | Number of super-cells (origin) [n_cells]                     :        3375
+  | Number of super-cells (after PM_index) [n_cells]             :         388
+  | Number of super-cells in hamiltonian [n_cells_in_hamiltonian]:         388
+  | Size of matrix packed + index [n_hamiltonian_matrix_size] :       92135
+  | Estimated reciprocal-space cutoff momentum G_max:         3.81257049 bohr^-1 .
+  | Reciprocal lattice points for long-range Hartree potential:      64
+  Partitioning the integration grid into batches with parallel hashing+maxmin method.
+  | Number of batches:      160
+  | Maximal batch size:     100
+  | Minimal batch size:      54
+  | Average batch size:      71.950
+  | Standard deviation of batch sizes:      15.260
+
+  Integration load balanced across     4 MPI tasks.
+  Work distribution over tasks is as follows:
+  Task     0 has       2916 integration points.
+  Task     1 has       2878 integration points.
+  Task     2 has       2879 integration points.
+  Task     3 has       2839 integration points.
+  Initializing partition tables, free-atom densities, potentials, etc. across the integration grid (initialize_grid_storage).
+  | initialize_grid_storage: Actual outermost partition radius vs. multipole_radius_free
+  | (-- VB: in principle, multipole_radius_free should be larger, hence this output)
+  | Species        1: Confinement radius =              4.999999999999999 AA, multipole_radius_free =              5.019602836301480 AA.
+  | Species        1: outer_partition_radius set to              5.019602836301480 AA .
+  | The sparse table of interatomic distances needs       3264.84 kbyte instead of      4867.20 kbyte of memory.
+  | Net number of integration points:    11512
+  | of which are non-zero points    :     8652
+  | Numerical average free-atom electrostatic potential    :    -21.52699147 eV
+  Renormalizing the initial density to the exact electron count on the 3D integration grid.
+  | Initial density: Formal number of electrons (from input files) :      12.0000000000
+  | Integrated number of electrons on 3D grid     :      12.0091221457
+  | Charge integration error                      :       0.0091221457
+  | Normalization factor for density and gradient :       0.9992403986
+  Renormalizing the free-atom superposition density to the exact electron count on the 3D integration grid.
+  | Formal number of electrons (from input files) :      12.0000000000
+  | Integrated number of electrons on 3D grid     :      12.0091221457
+  | Charge integration error                      :       0.0091221457
+  | Normalization factor for density and gradient :       0.9992403986
+  Obtaining max. number of non-zero basis functions in each batch (get_n_compute_maxes).
+  | Maximal number of non-zero basis functions:     1090 in task     0
+  | Maximal number of non-zero basis functions:     1036 in task     1
+  | Maximal number of non-zero basis functions:     1064 in task     2
+  | Maximal number of non-zero basis functions:     1106 in task     3
+  Allocating        0.191 MB for KS_eigenvector_complex
+  Integrating Hamiltonian matrix: batch-based integration.
+  Time summed over all CPUs for integration: real work        1.196 s, elapsed        1.216 s
+  Integrating overlap matrix.
+  Time summed over all CPUs for integration: real work        0.862 s, elapsed        0.875 s
+  Decreasing sparse matrix size:
+  | Tolerance:  0.1000E-12
+  Hamiltonian matrix
+  | Array has    81044 nonzero elements out of    92135 elements
+  | Sparsity factor is 0.120
+  Overlap matrix
+  | Array has    73376 nonzero elements out of    92135 elements
+  | Sparsity factor is 0.204
+  New size of hamiltonian matrix:       81203
+
+  Updating Kohn-Sham eigenvalues and eigenvectors using ELSI and the (modified) LAPACK eigensolver.
+  Singularity check in k-point 4, task 0 (analysis for other k-points/tasks may follow below):
+  Overlap matrix is not singular
+  | Lowest and highest eigenvalues :  0.2082E-02,  0.1504E+02
+  Finished singularity check of overlap matrix
+  | Time :     0.000 s
+  Starting LAPACK eigensolver
+  Finished Cholesky decomposition
+  | Time :     0.000 s
+  Finished transformation to standard eigenproblem
+  | Time :     0.000 s
+  Finished solving standard eigenproblem
+  | Time :     0.000 s
+  Finished back-transformation of eigenvectors
+  | Time :     0.000 s
+
+  Obtaining occupation numbers and chemical potential using ELSI.
+  | Chemical potential (Fermi level):    -7.37232525 eV
+  Writing Kohn-Sham eigenvalues.
+  K-point:       1 at    0.000000    0.000000    0.000000 (in units of recip. lattice)
+
+  State    Occupation    Eigenvalue [Ha]    Eigenvalue [eV]
+      1       2.00000         -10.145223         -276.06555
+      2       2.00000         -10.144796         -276.05395
+      3       2.00000          -1.108018          -30.15069
+      4       2.00000          -0.341595           -9.29528
+      5       2.00000          -0.341595           -9.29528
+      6       2.00000          -0.341595           -9.29528
+      7       0.00000          -0.121874           -3.31636
+      8       0.00000          -0.121874           -3.31636
+      9       0.00000          -0.121874           -3.31636
+     10       0.00000           0.158302            4.30763
+     11       0.00000           0.719217           19.57089
+     12       0.00000           0.740995           20.16350
+     13       0.00000           0.740995           20.16350
+     14       0.00000           1.201041           32.68199
+     15       0.00000           1.201041           32.68199
+     16       0.00000           1.201041           32.68199
+     17       0.00000           1.542637           41.97729
+     18       0.00000           1.542637           41.97729
+     19       0.00000           1.542637           41.97729
+     20       0.00000           2.644096           71.94951
+     21       0.00000           2.644096           71.94951
+     22       0.00000           2.945653           80.15530
+     23       0.00000           2.945653           80.15530
+     24       0.00000           2.945653           80.15530
+     25       0.00000           3.961080          107.78646
+     26       0.00000           3.961080          107.78646
+     27       0.00000           3.961080          107.78646
+     28       0.00000           6.720221          182.86652
+
+  What follows are estimated values for band gap, HOMO, LUMO, etc.
+  | They are estimated on a discrete k-point grid and not necessarily exact.
+  | For converged numbers, create a DOS and/or band structure plot on a denser k-grid.
+
+  Highest occupied state (VBM) at     -9.29527704 eV (relative to internal zero)
+  | Occupation number:      2.00000000
+  | K-point:       1 at    0.000000    0.000000    0.000000 (in units of recip. lattice)
+
+  Lowest unoccupied state (CBM) at    -4.25037303 eV (relative to internal zero)
+  | Occupation number:      0.00000000
+  | K-point:      18 at    0.250000    0.000000    0.250000 (in units of recip. lattice)
+
+  ESTIMATED overall HOMO-LUMO gap:      5.04490400 eV between HOMO at k-point 1 and LUMO at k-point 18
+  | This appears to be an indirect band gap.
+  | Smallest direct gap :      5.97891749 eV for k_point 1 at    0.000000    0.000000    0.000000 (in units of recip. lattice)
+  The gap value is above 0.2 eV. Unless you are using a very sparse k-point grid,
+  this system is most likely an insulator or a semiconductor.
+  Calculating total energy contributions from superposition of free atom densities.
+
+  Total energy components:
+  | Sum of eigenvalues            :         -45.84468830 Ha       -1247.49744074 eV
+  | XC energy correction          :         -10.77845386 Ha        -293.29665225 eV
+  | XC potential correction       :          13.85719635 Ha         377.07349810 eV
+  | Free-atom electrostatic energy:         -33.46285186 Ha        -910.57052833 eV
+  | Hartree energy correction     :           0.00000000 Ha           0.00000000 eV
+  | Entropy correction            :           0.00000000 Ha           0.00000000 eV
+  | ---------------------------
+  | Total energy                  :         -76.22879766 Ha       -2074.29112322 eV
+  | Total energy, T -> 0          :         -76.22879766 Ha       -2074.29112322 eV  <-- do not rely on this value for anything but (periodic) metals
+  | Electronic free energy        :         -76.22879766 Ha       -2074.29112322 eV
+
+  Derived energy quantities:
+  | Kinetic energy                :          76.14889536 Ha        2072.11687100 eV
+  | Electrostatic energy          :        -141.59923917 Ha       -3853.11134196 eV
+  | Energy correction for multipole
+  | error in Hartree potential    :           0.00000000 Ha           0.00000000 eV
+  | Sum of eigenvalues per atom                           :        -623.74872037 eV
+  | Total energy (T->0) per atom                          :       -1037.14556161 eV  <-- do not rely on this value for anything but (periodic) metals
+  | Electronic free energy per atom                       :       -1037.14556161 eV
+  Initialize hartree_potential_storage
+  Max. number of atoms included in rho_multipole:            2
+
+  End scf initialization - timings             :  max(cpu_time)    wall_clock(cpu1)
+  | Time for scf. initialization                :        0.894 s           0.896 s
+  | Boundary condition initialization           :        0.044 s           0.045 s
+  | Integration                                 :        0.547 s           0.549 s
+  | Solution of K.-S. eqns.                     :        0.009 s           0.009 s
+  | Grid partitioning                           :        0.014 s           0.014 s
+  | Preloading free-atom quantities on grid     :        0.257 s           0.256 s
+  | Free-atom superposition energy              :        0.022 s           0.022 s
+  | Total energy evaluation                     :        0.000 s           0.000 s
+
+  Partial memory accounting:
+  | Current value for overall tracked memory usage:
+  |   Minimum:        1.740 MB (on task 0)
+  |   Maximum:        1.740 MB (on task 0)
+  |   Average:        1.740 MB
+  | Peak value for overall tracked memory usage:
+  |   Minimum:       12.532 MB (on task 1 after allocating wave)
+  |   Maximum:       13.838 MB (on task 3 after allocating wave)
+  |   Average:       13.237 MB
+  | Largest tracked array allocation so far:
+  |   Minimum:        8.189 MB (hamiltonian_shell on task 1)
+  |   Maximum:        9.333 MB (hamiltonian_shell on task 3)
+  |   Average:        8.806 MB
+  Note:  These values currently only include a subset of arrays which are explicitly tracked.
+  The "true" memory usage will be greater.
+------------------------------------------------------------
+  Evaluating new KS density using the density matrix
+  Evaluating density matrix
+  Time summed over all CPUs for getting density from density matrix: real work        2.305 s, elapsed        2.348 s
+  Integration grid: deviation in total charge (<rho> - N_e) =   1.421085E-14
+
+  Time for density update prior                :  max(cpu_time)    wall_clock(cpu1)
+  | self-consistency iterative process          :        0.612 s           0.614 s
+
+------------------------------------------------------------
+          Begin self-consistency iteration #    1
+
+  Date     :  20220420, Time     :  213438.566
+------------------------------------------------------------
+  Pulay mixing of updated and previous charge densities.
+  Renormalizing the density to the exact electron count on the 3D integration grid.
+  | Formal number of electrons (from input files) :      12.0000000000
+  | Integrated number of electrons on 3D grid     :      11.9998862973
+  | Charge integration error                      :      -0.0001137027
+  | Normalization factor for density and gradient :       1.0000094753
+
+  Evaluating partitioned Hartree potential by multipole expansion.
+  | Original multipole sum: apparent total charge =   0.198168E-13
+  | Sum of charges compensated after spline to logarithmic grids =   0.272994E-05
+  | Analytical far-field extrapolation by fixed multipoles:
+  | Hartree multipole sum: apparent total charge =   0.000000E+00
+  Summing up the Hartree potential.
+  Time summed over all CPUs for potential: real work        0.388 s, elapsed        0.397 s
+  | RMS charge density error from multipole expansion :   0.237623E-02
+  | Average real-space part of the electrostatic potential :      0.11631938 eV
+
+  Integrating Hamiltonian matrix: batch-based integration.
+  Time summed over all CPUs for integration: real work        1.223 s, elapsed        1.242 s
+
+  Updating Kohn-Sham eigenvalues and eigenvectors using ELSI and the (modified) LAPACK eigensolver.
+  Starting LAPACK eigensolver
+  Finished Cholesky decomposition
+  | Time :     0.000 s
+  Finished transformation to standard eigenproblem
+  | Time :     0.000 s
+  Finished solving standard eigenproblem
+  | Time :     0.000 s
+  Finished back-transformation of eigenvectors
+  | Time :     0.000 s
+
+  Obtaining occupation numbers and chemical potential using ELSI.
+  | Chemical potential (Fermi level):    -7.14275622 eV
+  Writing Kohn-Sham eigenvalues.
+  K-point:       1 at    0.000000    0.000000    0.000000 (in units of recip. lattice)
+
+  State    Occupation    Eigenvalue [Ha]    Eigenvalue [eV]
+      1       2.00000         -10.133901         -275.75747
+      2       2.00000         -10.133473         -275.74584
+      3       2.00000          -1.105021          -30.06916
+      4       2.00000          -0.336023           -9.14366
+      5       2.00000          -0.336023           -9.14366
+      6       2.00000          -0.336023           -9.14366
+      7       0.00000          -0.117652           -3.20148
+      8       0.00000          -0.117652           -3.20148
+      9       0.00000          -0.117652           -3.20148
+     10       0.00000           0.164279            4.47027
+     11       0.00000           0.720934           19.61762
+     12       0.00000           0.743205           20.22364
+     13       0.00000           0.743205           20.22364
+     14       0.00000           1.204682           32.78107
+     15       0.00000           1.204682           32.78107
+     16       0.00000           1.204682           32.78107
+     17       0.00000           1.547983           42.12276
+     18       0.00000           1.547983           42.12276
+     19       0.00000           1.547983           42.12276
+     20       0.00000           2.649043           72.08412
+     21       0.00000           2.649043           72.08412
+     22       0.00000           2.950621           80.29047
+     23       0.00000           2.950621           80.29047
+     24       0.00000           2.950621           80.29047
+     25       0.00000           3.967132          107.95116
+     26       0.00000           3.967132          107.95116
+     27       0.00000           3.967132          107.95116
+     28       0.00000           6.721186          182.89278
+
+  What follows are estimated values for band gap, HOMO, LUMO, etc.
+  | They are estimated on a discrete k-point grid and not necessarily exact.
+  | For converged numbers, create a DOS and/or band structure plot on a denser k-grid.
+
+  Highest occupied state (VBM) at     -9.14365566 eV (relative to internal zero)
+  | Occupation number:      2.00000000
+  | K-point:       1 at    0.000000    0.000000    0.000000 (in units of recip. lattice)
+
+  Lowest unoccupied state (CBM) at    -4.16056743 eV (relative to internal zero)
+  | Occupation number:      0.00000000
+  | K-point:      16 at    0.000000    0.750000    0.750000 (in units of recip. lattice)
+
+  ESTIMATED overall HOMO-LUMO gap:      4.98308823 eV between HOMO at k-point 1 and LUMO at k-point 16
+  | This appears to be an indirect band gap.
+  | Smallest direct gap :      5.94217239 eV for k_point 1 at    0.000000    0.000000    0.000000 (in units of recip. lattice)
+  The gap value is above 0.2 eV. Unless you are using a very sparse k-point grid,
+  this system is most likely an insulator or a semiconductor.
+
+  Total energy components:
+  | Sum of eigenvalues            :         -45.76612190 Ha       -1245.35954012 eV
+  | XC energy correction          :         -10.78594586 Ha        -293.50051992 eV
+  | XC potential correction       :          13.86679984 Ha         377.33482211 eV
+  | Free-atom electrostatic energy:         -33.46285186 Ha        -910.57052833 eV
+  | Hartree energy correction     :          -0.07606324 Ha          -2.06978596 eV
+  | Entropy correction            :           0.00000000 Ha           0.00000000 eV
+  | ---------------------------
+  | Total energy                  :         -76.22418301 Ha       -2074.16555222 eV
+  | Total energy, T -> 0          :         -76.22418301 Ha       -2074.16555222 eV  <-- do not rely on this value for anything but (periodic) metals
+  | Electronic free energy        :         -76.22418301 Ha       -2074.16555222 eV
+
+  Derived energy quantities:
+  | Kinetic energy                :          76.16000256 Ha        2072.41911328 eV
+  | Electrostatic energy          :        -141.59823972 Ha       -3853.08414558 eV
+  | Energy correction for multipole
+  | error in Hartree potential    :           0.00246108 Ha           0.06696929 eV
+  | Sum of eigenvalues per atom                           :        -622.67977006 eV
+  | Total energy (T->0) per atom                          :       -1037.08277611 eV  <-- do not rely on this value for anything but (periodic) metals
+  | Electronic free energy per atom                       :       -1037.08277611 eV
+  Evaluating new KS density using the density matrix
+  Evaluating density matrix
+  Time summed over all CPUs for getting density from density matrix: real work        2.301 s, elapsed        2.343 s
+  Integration grid: deviation in total charge (<rho> - N_e) =   3.552714E-15
+
+  Self-consistency convergence accuracy:
+  | Change of charge density      :  0.1987E+00
+  | Change of sum of eigenvalues  :  0.2138E+01 eV
+  | Change of total energy        :  0.1256E+00 eV
+
+
+------------------------------------------------------------
+  End self-consistency iteration #     1       :  max(cpu_time)    wall_clock(cpu1)
+  | Time for this iteration                     :        1.122 s           1.125 s
+  | Charge density update                       :        0.611 s           0.613 s
+  | Density mixing & preconditioning            :        0.074 s           0.075 s
+  | Hartree multipole update                    :        0.000 s           0.000 s
+  | Hartree multipole summation                 :        0.104 s           0.104 s
+  | Integration                                 :        0.324 s           0.325 s
+  | Solution of K.-S. eqns.                     :        0.008 s           0.008 s
+  | Total energy evaluation                     :        0.000 s           0.000 s
+
+  Partial memory accounting:
+  | Current value for overall tracked memory usage:
+  |   Minimum:        1.740 MB (on task 0)
+  |   Maximum:        1.740 MB (on task 0)
+  |   Average:        1.740 MB
+  | Peak value for overall tracked memory usage:
+  |   Minimum:       14.671 MB (on task 1 after allocating gradient_basis_wave)
+  |   Maximum:       16.136 MB (on task 3 after allocating gradient_basis_wave)
+  |   Average:       15.463 MB
+  | Largest tracked array allocation so far:
+  |   Minimum:        8.189 MB (hamiltonian_shell on task 1)
+  |   Maximum:        9.333 MB (hamiltonian_shell on task 3)
+  |   Average:        8.806 MB
+  Note:  These values currently only include a subset of arrays which are explicitly tracked.
+  The "true" memory usage will be greater.
+------------------------------------------------------------
+
+------------------------------------------------------------
+          Begin self-consistency iteration #    2
+
+  Date     :  20220420, Time     :  213439.691
+------------------------------------------------------------
+  Pulay mixing of updated and previous charge densities.
+  Renormalizing the density to the exact electron count on the 3D integration grid.
+  | Formal number of electrons (from input files) :      12.0000000000
+  | Integrated number of electrons on 3D grid     :      11.9989661814
+  | Charge integration error                      :      -0.0010338186
+  | Normalization factor for density and gradient :       1.0000861590
+
+  Evaluating partitioned Hartree potential by multipole expansion.
+  | Original multipole sum: apparent total charge =  -0.174446E-13
+  | Sum of charges compensated after spline to logarithmic grids =   0.262614E-04
+  | Analytical far-field extrapolation by fixed multipoles:
+  | Hartree multipole sum: apparent total charge =   0.000000E+00
+  Summing up the Hartree potential.
+  Time summed over all CPUs for potential: real work        0.424 s, elapsed        0.435 s
+  | RMS charge density error from multipole expansion :   0.228730E-01
+  | Average real-space part of the electrostatic potential :      1.11071528 eV
+
+  Integrating Hamiltonian matrix: batch-based integration.
+  Time summed over all CPUs for integration: real work        1.220 s, elapsed        1.240 s
+
+  Updating Kohn-Sham eigenvalues and eigenvectors using ELSI and the (modified) LAPACK eigensolver.
+  Starting LAPACK eigensolver
+  Finished Cholesky decomposition
+  | Time :     0.001 s
+  Finished transformation to standard eigenproblem
+  | Time :     0.000 s
+  Finished solving standard eigenproblem
+  | Time :     0.000 s
+  Finished back-transformation of eigenvectors
+  | Time :     0.000 s
+
+  Obtaining occupation numbers and chemical potential using ELSI.
+  | Chemical potential (Fermi level):    -5.17579553 eV
+  What follows are estimated values for band gap, HOMO, LUMO, etc.
+  | They are estimated on a discrete k-point grid and not necessarily exact.
+  | For converged numbers, create a DOS and/or band structure plot on a denser k-grid.
+
+  Highest occupied state (VBM) at     -7.83408883 eV (relative to internal zero)
+  | Occupation number:      2.00000000
+  | K-point:       1 at    0.000000    0.000000    0.000000 (in units of recip. lattice)
+
+  Lowest unoccupied state (CBM) at    -3.34983915 eV (relative to internal zero)
+  | Occupation number:      0.00000000
+  | K-point:      16 at    0.000000    0.750000    0.750000 (in units of recip. lattice)
+
+  ESTIMATED overall HOMO-LUMO gap:      4.48424968 eV between HOMO at k-point 1 and LUMO at k-point 16
+  | This appears to be an indirect band gap.
+  | Smallest direct gap :      5.61960766 eV for k_point 1 at    0.000000    0.000000    0.000000 (in units of recip. lattice)
+  The gap value is above 0.2 eV. Unless you are using a very sparse k-point grid,
+  this system is most likely an insulator or a semiconductor.
+
+  Checking to see if s.c.f. parameters should be adjusted.
+
+  Total energy components:
+  | Sum of eigenvalues            :         -45.09254888 Ha       -1227.03068556 eV
+  | XC energy correction          :         -10.86641033 Ha        -295.69006969 eV
+  | XC potential correction       :          13.96844831 Ha         380.10081786 eV
+  | Free-atom electrostatic energy:         -33.46285186 Ha        -910.57052833 eV
+  | Hartree energy correction     :          -0.75448154 Ha         -20.53048738 eV
+  | Entropy correction            :           0.00000000 Ha           0.00000000 eV
+  | ---------------------------
+  | Total energy                  :         -76.20784430 Ha       -2073.72095310 eV
+  | Total energy, T -> 0          :         -76.20784430 Ha       -2073.72095310 eV  <-- do not rely on this value for anything but (periodic) metals
+  | Electronic free energy        :         -76.20784430 Ha       -2073.72095310 eV
+
+  Derived energy quantities:
+  | Kinetic energy                :          76.19812127 Ha        2073.45637607 eV
+  | Electrostatic energy          :        -141.53955524 Ha       -3851.48725948 eV
+  | Energy correction for multipole
+  | error in Hartree potential    :           0.02333104 Ha           0.63486983 eV
+  | Sum of eigenvalues per atom                           :        -613.51534278 eV
+  | Total energy (T->0) per atom                          :       -1036.86047655 eV  <-- do not rely on this value for anything but (periodic) metals
+  | Electronic free energy per atom                       :       -1036.86047655 eV
+  Evaluating new KS density using the density matrix
+  Evaluating density matrix
+  Time summed over all CPUs for getting density from density matrix: real work        2.300 s, elapsed        2.342 s
+  Integration grid: deviation in total charge (<rho> - N_e) =  -1.065814E-14
+
+  Self-consistency convergence accuracy:
+  | Change of charge density      :  0.1781E+00
+  | Change of sum of eigenvalues  :  0.1833E+02 eV
+  | Change of total energy        :  0.4446E+00 eV
+
+
+------------------------------------------------------------
+  End self-consistency iteration #     2       :  max(cpu_time)    wall_clock(cpu1)
+  | Time for this iteration                     :        1.130 s           1.133 s
+  | Charge density update                       :        0.611 s           0.613 s
+  | Density mixing & preconditioning            :        0.073 s           0.073 s
+  | Hartree multipole update                    :        0.000 s           0.001 s
+  | Hartree multipole summation                 :        0.114 s           0.114 s
+  | Integration                                 :        0.324 s           0.324 s
+  | Solution of K.-S. eqns.                     :        0.008 s           0.008 s
+  | Total energy evaluation                     :        0.000 s           0.000 s
+
+  Partial memory accounting:
+  | Current value for overall tracked memory usage:
+  |   Minimum:        1.741 MB (on task 0)
+  |   Maximum:        1.741 MB (on task 0)
+  |   Average:        1.741 MB
+  | Peak value for overall tracked memory usage:
+  |   Minimum:       14.672 MB (on task 1 after allocating gradient_basis_wave)
+  |   Maximum:       16.136 MB (on task 3 after allocating gradient_basis_wave)
+  |   Average:       15.463 MB
+  | Largest tracked array allocation so far:
+  |   Minimum:        8.189 MB (hamiltonian_shell on task 1)
+  |   Maximum:        9.333 MB (hamiltonian_shell on task 3)
+  |   Average:        8.806 MB
+  Note:  These values currently only include a subset of arrays which are explicitly tracked.
+  The "true" memory usage will be greater.
+------------------------------------------------------------
+
+------------------------------------------------------------
+          Begin self-consistency iteration #    3
+
+  Date     :  20220420, Time     :  213440.824
+------------------------------------------------------------
+  Pulay mixing of updated and previous charge densities.
+  Renormalizing the density to the exact electron count on the 3D integration grid.
+  | Formal number of electrons (from input files) :      12.0000000000
+  | Integrated number of electrons on 3D grid     :      11.9995791488
+  | Charge integration error                      :      -0.0004208512
+  | Normalization factor for density and gradient :       1.0000350722
+
+  Evaluating partitioned Hartree potential by multipole expansion.
+  | Original multipole sum: apparent total charge =  -0.140306E-13
+  | Sum of charges compensated after spline to logarithmic grids =   0.281293E-04
+  | Analytical far-field extrapolation by fixed multipoles:
+  | Hartree multipole sum: apparent total charge =   0.000000E+00
+  Summing up the Hartree potential.
+  Time summed over all CPUs for potential: real work        0.425 s, elapsed        0.436 s
+  | RMS charge density error from multipole expansion :   0.245778E-01
+  | Average real-space part of the electrostatic potential :      1.14753038 eV
+
+  Integrating Hamiltonian matrix: batch-based integration.
+  Time summed over all CPUs for integration: real work        1.223 s, elapsed        1.241 s
+
+  Updating Kohn-Sham eigenvalues and eigenvectors using ELSI and the (modified) LAPACK eigensolver.
+  Starting LAPACK eigensolver
+  Finished Cholesky decomposition
+  | Time :     0.000 s
+  Finished transformation to standard eigenproblem
+  | Time :     0.000 s
+  Finished solving standard eigenproblem
+  | Time :     0.000 s
+  Finished back-transformation of eigenvectors
+  | Time :     0.000 s
+
+  Obtaining occupation numbers and chemical potential using ELSI.
+  | Chemical potential (Fermi level):    -5.21687324 eV
+  What follows are estimated values for band gap, HOMO, LUMO, etc.
+  | They are estimated on a discrete k-point grid and not necessarily exact.
+  | For converged numbers, create a DOS and/or band structure plot on a denser k-grid.
+
+  Highest occupied state (VBM) at     -7.80020883 eV (relative to internal zero)
+  | Occupation number:      2.00000000
+  | K-point:       1 at    0.000000    0.000000    0.000000 (in units of recip. lattice)
+
+  Lowest unoccupied state (CBM) at    -3.32722268 eV (relative to internal zero)
+  | Occupation number:      0.00000000
+  | K-point:       6 at    0.000000    0.250000    0.250000 (in units of recip. lattice)
+
+  ESTIMATED overall HOMO-LUMO gap:      4.47298615 eV between HOMO at k-point 1 and LUMO at k-point 6
+  | This appears to be an indirect band gap.
+  | Smallest direct gap :      5.60235290 eV for k_point 1 at    0.000000    0.000000    0.000000 (in units of recip. lattice)
+  The gap value is above 0.2 eV. Unless you are using a very sparse k-point grid,
+  this system is most likely an insulator or a semiconductor.
+
+  Total energy components:
+  | Sum of eigenvalues            :         -45.09532776 Ha       -1227.10630275 eV
+  | XC energy correction          :         -10.86362335 Ha        -295.61423214 eV
+  | XC potential correction       :          13.96528528 Ha         380.01474741 eV
+  | Free-atom electrostatic energy:         -33.46285186 Ha        -910.57052833 eV
+  | Hartree energy correction     :          -0.75134805 Ha         -20.44522067 eV
+  | Entropy correction            :           0.00000000 Ha           0.00000000 eV
+  | ---------------------------
+  | Total energy                  :         -76.20786574 Ha       -2073.72153648 eV
+  | Total energy, T -> 0          :         -76.20786574 Ha       -2073.72153648 eV  <-- do not rely on this value for anything but (periodic) metals
+  | Electronic free energy        :         -76.20786574 Ha       -2073.72153648 eV
+
+  Derived energy quantities:
+  | Kinetic energy                :          76.10631489 Ha        2070.95819740 eV
+  | Electrostatic energy          :        -141.45055727 Ha       -3849.06550174 eV
+  | Energy correction for multipole
+  | error in Hartree potential    :           0.02513116 Ha           0.68385353 eV
+  | Sum of eigenvalues per atom                           :        -613.55315138 eV
+  | Total energy (T->0) per atom                          :       -1036.86076824 eV  <-- do not rely on this value for anything but (periodic) metals
+  | Electronic free energy per atom                       :       -1036.86076824 eV
+  Evaluating new KS density using the density matrix
+  Evaluating density matrix
+  Time summed over all CPUs for getting density from density matrix: real work        2.295 s, elapsed        2.338 s
+  Integration grid: deviation in total charge (<rho> - N_e) =   1.065814E-14
+
+  Self-consistency convergence accuracy:
+  | Change of charge density      :  0.1551E-01
+  | Change of sum of eigenvalues  : -0.7562E-01 eV
+  | Change of total energy        : -0.5834E-03 eV
+
+
+------------------------------------------------------------
+  End self-consistency iteration #     3       :  max(cpu_time)    wall_clock(cpu1)
+  | Time for this iteration                     :        1.129 s           1.132 s
+  | Charge density update                       :        0.609 s           0.612 s
+  | Density mixing & preconditioning            :        0.073 s           0.073 s
+  | Hartree multipole update                    :        0.000 s           0.001 s
+  | Hartree multipole summation                 :        0.114 s           0.114 s
+  | Integration                                 :        0.324 s           0.325 s
+  | Solution of K.-S. eqns.                     :        0.008 s           0.007 s
+  | Total energy evaluation                     :        0.000 s           0.000 s
+
+  Partial memory accounting:
+  | Current value for overall tracked memory usage:
+  |   Minimum:        1.741 MB (on task 0)
+  |   Maximum:        1.741 MB (on task 0)
+  |   Average:        1.741 MB
+  | Peak value for overall tracked memory usage:
+  |   Minimum:       14.672 MB (on task 1 after allocating gradient_basis_wave)
+  |   Maximum:       16.136 MB (on task 3 after allocating gradient_basis_wave)
+  |   Average:       15.463 MB
+  | Largest tracked array allocation so far:
+  |   Minimum:        8.189 MB (hamiltonian_shell on task 1)
+  |   Maximum:        9.333 MB (hamiltonian_shell on task 3)
+  |   Average:        8.806 MB
+  Note:  These values currently only include a subset of arrays which are explicitly tracked.
+  The "true" memory usage will be greater.
+------------------------------------------------------------
+
+------------------------------------------------------------
+          Begin self-consistency iteration #    4
+
+  Date     :  20220420, Time     :  213441.956
+------------------------------------------------------------
+  Pulay mixing of updated and previous charge densities.
+  Renormalizing the density to the exact electron count on the 3D integration grid.
+  | Formal number of electrons (from input files) :      12.0000000000
+  | Integrated number of electrons on 3D grid     :      11.9997104721
+  | Charge integration error                      :      -0.0002895279
+  | Normalization factor for density and gradient :       1.0000241279
+
+  Evaluating partitioned Hartree potential by multipole expansion.
+  | Original multipole sum: apparent total charge =  -0.982827E-14
+  | Sum of charges compensated after spline to logarithmic grids =   0.282454E-04
+  | Analytical far-field extrapolation by fixed multipoles:
+  | Hartree multipole sum: apparent total charge =   0.000000E+00
+  Summing up the Hartree potential.
+  Time summed over all CPUs for potential: real work        0.424 s, elapsed        0.434 s
+  | RMS charge density error from multipole expansion :   0.247439E-01
+  | Average real-space part of the electrostatic potential :      1.12035170 eV
+
+  Integrating Hamiltonian matrix: batch-based integration.
+  Time summed over all CPUs for integration: real work        1.226 s, elapsed        1.247 s
+
+  Updating Kohn-Sham eigenvalues and eigenvectors using ELSI and the (modified) LAPACK eigensolver.
+  Starting LAPACK eigensolver
+  Finished Cholesky decomposition
+  | Time :     0.000 s
+  Finished transformation to standard eigenproblem
+  | Time :     0.000 s
+  Finished solving standard eigenproblem
+  | Time :     0.000 s
+  Finished back-transformation of eigenvectors
+  | Time :     0.000 s
+
+  Obtaining occupation numbers and chemical potential using ELSI.
+  | Chemical potential (Fermi level):    -5.35901747 eV
+  What follows are estimated values for band gap, HOMO, LUMO, etc.
+  | They are estimated on a discrete k-point grid and not necessarily exact.
+  | For converged numbers, create a DOS and/or band structure plot on a denser k-grid.
+
+  Highest occupied state (VBM) at     -7.84777565 eV (relative to internal zero)
+  | Occupation number:      2.00000000
+  | K-point:       1 at    0.000000    0.000000    0.000000 (in units of recip. lattice)
+
+  Lowest unoccupied state (CBM) at    -3.35847649 eV (relative to internal zero)
+  | Occupation number:      0.00000000
+  | K-point:       6 at    0.000000    0.250000    0.250000 (in units of recip. lattice)
+
+  ESTIMATED overall HOMO-LUMO gap:      4.48929916 eV between HOMO at k-point 1 and LUMO at k-point 6
+  | This appears to be an indirect band gap.
+  | Smallest direct gap :      5.60751141 eV for k_point 1 at    0.000000    0.000000    0.000000 (in units of recip. lattice)
+  The gap value is above 0.2 eV. Unless you are using a very sparse k-point grid,
+  this system is most likely an insulator or a semiconductor.
+
+  Total energy components:
+  | Sum of eigenvalues            :         -45.13524385 Ha       -1228.19247498 eV
+  | XC energy correction          :         -10.85620485 Ha        -295.41236449 eV
+  | XC potential correction       :          13.95621614 Ha         379.76796359 eV
+  | Free-atom electrostatic energy:         -33.46285186 Ha        -910.57052833 eV
+  | Hartree energy correction     :          -0.70961902 Ha         -19.30971601 eV
+  | Entropy correction            :           0.00000000 Ha           0.00000000 eV
+  | ---------------------------
+  | Total energy                  :         -76.20770344 Ha       -2073.71712022 eV
+  | Total energy, T -> 0          :         -76.20770344 Ha       -2073.71712022 eV  <-- do not rely on this value for anything but (periodic) metals
+  | Electronic free energy        :         -76.20770344 Ha       -2073.71712022 eV
+
+  Derived energy quantities:
+  | Kinetic energy                :          76.03675991 Ha        2069.06551002 eV
+  | Electrostatic energy          :        -141.38825850 Ha       -3847.37026576 eV
+  | Energy correction for multipole
+  | error in Hartree potential    :           0.02536798 Ha           0.69029787 eV
+  | Sum of eigenvalues per atom                           :        -614.09623749 eV
+  | Total energy (T->0) per atom                          :       -1036.85856011 eV  <-- do not rely on this value for anything but (periodic) metals
+  | Electronic free energy per atom                       :       -1036.85856011 eV
+  Evaluating new KS density using the density matrix
+  Evaluating density matrix
+  Time summed over all CPUs for getting density from density matrix: real work        2.300 s, elapsed        2.342 s
+  Integration grid: deviation in total charge (<rho> - N_e) =   1.243450E-14
+
+  Self-consistency convergence accuracy:
+  | Change of charge density      :  0.8631E-02
+  | Change of sum of eigenvalues  : -0.1086E+01 eV
+  | Change of total energy        :  0.4416E-02 eV
+
+
+------------------------------------------------------------
+  End self-consistency iteration #     4       :  max(cpu_time)    wall_clock(cpu1)
+  | Time for this iteration                     :        1.129 s           1.132 s
+  | Charge density update                       :        0.610 s           0.612 s
+  | Density mixing & preconditioning            :        0.071 s           0.071 s
+  | Hartree multipole update                    :        0.000 s           0.001 s
+  | Hartree multipole summation                 :        0.114 s           0.113 s
+  | Integration                                 :        0.325 s           0.327 s
+  | Solution of K.-S. eqns.                     :        0.008 s           0.008 s
+  | Total energy evaluation                     :        0.000 s           0.000 s
+
+  Partial memory accounting:
+  | Current value for overall tracked memory usage:
+  |   Minimum:        1.741 MB (on task 0)
+  |   Maximum:        1.741 MB (on task 0)
+  |   Average:        1.741 MB
+  | Peak value for overall tracked memory usage:
+  |   Minimum:       14.672 MB (on task 1 after allocating gradient_basis_wave)
+  |   Maximum:       16.136 MB (on task 3 after allocating gradient_basis_wave)
+  |   Average:       15.463 MB
+  | Largest tracked array allocation so far:
+  |   Minimum:        8.189 MB (hamiltonian_shell on task 1)
+  |   Maximum:        9.333 MB (hamiltonian_shell on task 3)
+  |   Average:        8.806 MB
+  Note:  These values currently only include a subset of arrays which are explicitly tracked.
+  The "true" memory usage will be greater.
+------------------------------------------------------------
+
+------------------------------------------------------------
+          Begin self-consistency iteration #    5
+
+  Date     :  20220420, Time     :  213443.088
+------------------------------------------------------------
+  Pulay mixing of updated and previous charge densities.
+  Renormalizing the density to the exact electron count on the 3D integration grid.
+  | Formal number of electrons (from input files) :      12.0000000000
+  | Integrated number of electrons on 3D grid     :      11.9998129607
+  | Charge integration error                      :      -0.0001870393
+  | Normalization factor for density and gradient :       1.0000155869
+
+  Evaluating partitioned Hartree potential by multipole expansion.
+  | Original multipole sum: apparent total charge =  -0.620030E-14
+  | Sum of charges compensated after spline to logarithmic grids =   0.282772E-04
+  | Analytical far-field extrapolation by fixed multipoles:
+  | Hartree multipole sum: apparent total charge =   0.000000E+00
+  Summing up the Hartree potential.
+  Time summed over all CPUs for potential: real work        0.425 s, elapsed        0.436 s
+  | RMS charge density error from multipole expansion :   0.248017E-01
+  | Average real-space part of the electrostatic potential :      1.12010180 eV
+
+  Integrating Hamiltonian matrix: batch-based integration.
+  Time summed over all CPUs for integration: real work        1.222 s, elapsed        1.241 s
+
+  Updating Kohn-Sham eigenvalues and eigenvectors using ELSI and the (modified) LAPACK eigensolver.
+  Starting LAPACK eigensolver
+  Finished Cholesky decomposition
+  | Time :     0.000 s
+  Finished transformation to standard eigenproblem
+  | Time :     0.000 s
+  Finished solving standard eigenproblem
+  | Time :     0.000 s
+  Finished back-transformation of eigenvectors
+  | Time :     0.000 s
+
+  Obtaining occupation numbers and chemical potential using ELSI.
+  | Chemical potential (Fermi level):    -5.36357892 eV
+  What follows are estimated values for band gap, HOMO, LUMO, etc.
+  | They are estimated on a discrete k-point grid and not necessarily exact.
+  | For converged numbers, create a DOS and/or band structure plot on a denser k-grid.
+
+  Highest occupied state (VBM) at     -7.84855631 eV (relative to internal zero)
+  | Occupation number:      2.00000000
+  | K-point:       1 at    0.000000    0.000000    0.000000 (in units of recip. lattice)
+
+  Lowest unoccupied state (CBM) at    -3.35850448 eV (relative to internal zero)
+  | Occupation number:      0.00000000
+  | K-point:      16 at    0.000000    0.750000    0.750000 (in units of recip. lattice)
+
+  ESTIMATED overall HOMO-LUMO gap:      4.49005184 eV between HOMO at k-point 1 and LUMO at k-point 16
+  | This appears to be an indirect band gap.
+  | Smallest direct gap :      5.60787109 eV for k_point 1 at    0.000000    0.000000    0.000000 (in units of recip. lattice)
+  The gap value is above 0.2 eV. Unless you are using a very sparse k-point grid,
+  this system is most likely an insulator or a semiconductor.
+
+  Total energy components:
+  | Sum of eigenvalues            :         -45.13630579 Ha       -1228.22137172 eV
+  | XC energy correction          :         -10.85642996 Ha        -295.41848989 eV
+  | XC potential correction       :          13.95639484 Ha         379.77282628 eV
+  | Free-atom electrostatic energy:         -33.46285186 Ha        -910.57052833 eV
+  | Hartree energy correction     :          -0.70850339 Ha         -19.27935825 eV
+  | Entropy correction            :           0.00000000 Ha           0.00000000 eV
+  | ---------------------------
+  | Total energy                  :         -76.20769615 Ha       -2073.71692191 eV
+  | Total energy, T -> 0          :         -76.20769615 Ha       -2073.71692191 eV  <-- do not rely on this value for anything but (periodic) metals
+  | Electronic free energy        :         -76.20769615 Ha       -2073.71692191 eV
+
+  Derived energy quantities:
+  | Kinetic energy                :          76.03748835 Ha        2069.08533179 eV
+  | Electrostatic energy          :        -141.38875454 Ha       -3847.38376380 eV
+  | Energy correction for multipole
+  | error in Hartree potential    :           0.02542862 Ha           0.69194797 eV
+  | Sum of eigenvalues per atom                           :        -614.11068586 eV
+  | Total energy (T->0) per atom                          :       -1036.85846096 eV  <-- do not rely on this value for anything but (periodic) metals
+  | Electronic free energy per atom                       :       -1036.85846096 eV
+  Evaluating new KS density using the density matrix
+  Evaluating density matrix
+  Time summed over all CPUs for getting density from density matrix: real work        2.297 s, elapsed        2.336 s
+  Integration grid: deviation in total charge (<rho> - N_e) =   3.552714E-15
+
+  Self-consistency convergence accuracy:
+  | Change of charge density      :  0.9596E-03
+  | Change of sum of eigenvalues  : -0.2890E-01 eV
+  | Change of total energy        :  0.1983E-03 eV
+
+
+------------------------------------------------------------
+  End self-consistency iteration #     5       :  max(cpu_time)    wall_clock(cpu1)
+  | Time for this iteration                     :        1.126 s           1.129 s
+  | Charge density update                       :        0.609 s           0.611 s
+  | Density mixing & preconditioning            :        0.071 s           0.071 s
+  | Hartree multipole update                    :        0.000 s           0.001 s
+  | Hartree multipole summation                 :        0.114 s           0.114 s
+  | Integration                                 :        0.324 s           0.324 s
+  | Solution of K.-S. eqns.                     :        0.008 s           0.008 s
+  | Total energy evaluation                     :        0.000 s           0.000 s
+
+  Partial memory accounting:
+  | Current value for overall tracked memory usage:
+  |   Minimum:        1.741 MB (on task 0)
+  |   Maximum:        1.741 MB (on task 0)
+  |   Average:        1.741 MB
+  | Peak value for overall tracked memory usage:
+  |   Minimum:       14.672 MB (on task 1 after allocating gradient_basis_wave)
+  |   Maximum:       16.136 MB (on task 3 after allocating gradient_basis_wave)
+  |   Average:       15.463 MB
+  | Largest tracked array allocation so far:
+  |   Minimum:        8.189 MB (hamiltonian_shell on task 1)
+  |   Maximum:        9.333 MB (hamiltonian_shell on task 3)
+  |   Average:        8.806 MB
+  Note:  These values currently only include a subset of arrays which are explicitly tracked.
+  The "true" memory usage will be greater.
+------------------------------------------------------------
+
+------------------------------------------------------------
+          Begin self-consistency iteration #    6
+
+  Date     :  20220420, Time     :  213444.217
+------------------------------------------------------------
+  Pulay mixing of updated and previous charge densities.
+  Renormalizing the density to the exact electron count on the 3D integration grid.
+  | Formal number of electrons (from input files) :      12.0000000000
+  | Integrated number of electrons on 3D grid     :      11.9999661293
+  | Charge integration error                      :      -0.0000338707
+  | Normalization factor for density and gradient :       1.0000028226
+
+  Evaluating partitioned Hartree potential by multipole expansion.
+  | Original multipole sum: apparent total charge =  -0.699250E-14
+  | Sum of charges compensated after spline to logarithmic grids =   0.282937E-04
+  | Analytical far-field extrapolation by fixed multipoles:
+  | Hartree multipole sum: apparent total charge =   0.000000E+00
+  Summing up the Hartree potential.
+  Time summed over all CPUs for potential: real work        0.424 s, elapsed        0.435 s
+  | RMS charge density error from multipole expansion :   0.248214E-01
+  | Average real-space part of the electrostatic potential :      1.12018645 eV
+
+  Integrating Hamiltonian matrix: batch-based integration.
+  Time summed over all CPUs for integration: real work        1.221 s, elapsed        1.241 s
+
+  Updating Kohn-Sham eigenvalues and eigenvectors using ELSI and the (modified) LAPACK eigensolver.
+  Starting LAPACK eigensolver
+  Finished Cholesky decomposition
+  | Time :     0.001 s
+  Finished transformation to standard eigenproblem
+  | Time :     0.000 s
+  Finished solving standard eigenproblem
+  | Time :     0.000 s
+  Finished back-transformation of eigenvectors
+  | Time :     0.000 s
+
+  Obtaining occupation numbers and chemical potential using ELSI.
+  | Chemical potential (Fermi level):    -5.36507942 eV
+  What follows are estimated values for band gap, HOMO, LUMO, etc.
+  | They are estimated on a discrete k-point grid and not necessarily exact.
+  | For converged numbers, create a DOS and/or band structure plot on a denser k-grid.
+
+  Highest occupied state (VBM) at     -7.84863520 eV (relative to internal zero)
+  | Occupation number:      2.00000000
+  | K-point:       1 at    0.000000    0.000000    0.000000 (in units of recip. lattice)
+
+  Lowest unoccupied state (CBM) at    -3.35846503 eV (relative to internal zero)
+  | Occupation number:      0.00000000
+  | K-point:       6 at    0.000000    0.250000    0.250000 (in units of recip. lattice)
+
+  ESTIMATED overall HOMO-LUMO gap:      4.49017017 eV between HOMO at k-point 1 and LUMO at k-point 6
+  | This appears to be an indirect band gap.
+  | Smallest direct gap :      5.60785599 eV for k_point 1 at    0.000000    0.000000    0.000000 (in units of recip. lattice)
+  The gap value is above 0.2 eV. Unless you are using a very sparse k-point grid,
+  this system is most likely an insulator or a semiconductor.
+
+  Total energy components:
+  | Sum of eigenvalues            :         -45.13663399 Ha       -1228.23030241 eV
+  | XC energy correction          :         -10.85642696 Ha        -295.41840818 eV
+  | XC potential correction       :          13.95637463 Ha         379.77227637 eV
+  | Free-atom electrostatic energy:         -33.46285186 Ha        -910.57052833 eV
+  | Hartree energy correction     :          -0.70815578 Ha         -19.26989920 eV
+  | Entropy correction            :           0.00000000 Ha           0.00000000 eV
+  | ---------------------------
+  | Total energy                  :         -76.20769394 Ha       -2073.71686175 eV
+  | Total energy, T -> 0          :         -76.20769394 Ha       -2073.71686175 eV  <-- do not rely on this value for anything but (periodic) metals
+  | Electronic free energy        :         -76.20769394 Ha       -2073.71686175 eV
+
+  Derived energy quantities:
+  | Kinetic energy                :          76.03678406 Ha        2069.06616730 eV
+  | Electrostatic energy          :        -141.38805105 Ha       -3847.36462088 eV
+  | Energy correction for multipole
+  | error in Hartree potential    :           0.02544971 Ha           0.69252196 eV
+  | Sum of eigenvalues per atom                           :        -614.11515121 eV
+  | Total energy (T->0) per atom                          :       -1036.85843088 eV  <-- do not rely on this value for anything but (periodic) metals
+  | Electronic free energy per atom                       :       -1036.85843088 eV
+  Evaluating new KS density using the density matrix
+  Evaluating density matrix
+  Time summed over all CPUs for getting density from density matrix: real work        2.298 s, elapsed        2.339 s
+  Integration grid: deviation in total charge (<rho> - N_e) =   0.000000E+00
+
+  Self-consistency convergence accuracy:
+  | Change of charge density      :  0.2805E-03
+  | Change of sum of eigenvalues  : -0.8931E-02 eV
+  | Change of total energy        :  0.6016E-04 eV
+
+
+------------------------------------------------------------
+  End self-consistency iteration #     6       :  max(cpu_time)    wall_clock(cpu1)
+  | Time for this iteration                     :        1.127 s           1.130 s
+  | Charge density update                       :        0.610 s           0.612 s
+  | Density mixing & preconditioning            :        0.071 s           0.071 s
+  | Hartree multipole update                    :        0.000 s           0.001 s
+  | Hartree multipole summation                 :        0.114 s           0.113 s
+  | Integration                                 :        0.324 s           0.325 s
+  | Solution of K.-S. eqns.                     :        0.008 s           0.008 s
+  | Total energy evaluation                     :        0.000 s           0.000 s
+
+  Partial memory accounting:
+  | Current value for overall tracked memory usage:
+  |   Minimum:        1.741 MB (on task 0)
+  |   Maximum:        1.741 MB (on task 0)
+  |   Average:        1.741 MB
+  | Peak value for overall tracked memory usage:
+  |   Minimum:       14.672 MB (on task 1 after allocating gradient_basis_wave)
+  |   Maximum:       16.136 MB (on task 3 after allocating gradient_basis_wave)
+  |   Average:       15.463 MB
+  | Largest tracked array allocation so far:
+  |   Minimum:        8.189 MB (hamiltonian_shell on task 1)
+  |   Maximum:        9.333 MB (hamiltonian_shell on task 3)
+  |   Average:        8.806 MB
+  Note:  These values currently only include a subset of arrays which are explicitly tracked.
+  The "true" memory usage will be greater.
+------------------------------------------------------------
+
+------------------------------------------------------------
+          Begin self-consistency iteration #    7
+
+  Date     :  20220420, Time     :  213445.347
+------------------------------------------------------------
+  Pulay mixing of updated and previous charge densities.
+  Renormalizing the density to the exact electron count on the 3D integration grid.
+  | Formal number of electrons (from input files) :      12.0000000000
+  | Integrated number of electrons on 3D grid     :      11.9999914832
+  | Charge integration error                      :      -0.0000085168
+  | Normalization factor for density and gradient :       1.0000007097
+
+  Evaluating partitioned Hartree potential by multipole expansion.
+  | Original multipole sum: apparent total charge =  -0.224617E-13
+  | Sum of charges compensated after spline to logarithmic grids =   0.282880E-04
+  | Analytical far-field extrapolation by fixed multipoles:
+  | Hartree multipole sum: apparent total charge =   0.000000E+00
+  Summing up the Hartree potential.
+  Time summed over all CPUs for potential: real work        0.425 s, elapsed        0.437 s
+  | RMS charge density error from multipole expansion :   0.248157E-01
+  | Average real-space part of the electrostatic potential :      1.11959243 eV
+
+  Integrating Hamiltonian matrix: batch-based integration.
+  Time summed over all CPUs for integration: real work        1.219 s, elapsed        1.240 s
+
+  Updating Kohn-Sham eigenvalues and eigenvectors using ELSI and the (modified) LAPACK eigensolver.
+  Starting LAPACK eigensolver
+  Finished Cholesky decomposition
+  | Time :     0.000 s
+  Finished transformation to standard eigenproblem
+  | Time :     0.000 s
+  Finished solving standard eigenproblem
+  | Time :     0.001 s
+  Finished back-transformation of eigenvectors
+  | Time :     0.000 s
+
+  Obtaining occupation numbers and chemical potential using ELSI.
+  | Chemical potential (Fermi level):    -5.36785709 eV
+  What follows are estimated values for band gap, HOMO, LUMO, etc.
+  | They are estimated on a discrete k-point grid and not necessarily exact.
+  | For converged numbers, create a DOS and/or band structure plot on a denser k-grid.
+
+  Highest occupied state (VBM) at     -7.84948130 eV (relative to internal zero)
+  | Occupation number:      2.00000000
+  | K-point:       1 at    0.000000    0.000000    0.000000 (in units of recip. lattice)
+
+  Lowest unoccupied state (CBM) at    -3.35894706 eV (relative to internal zero)
+  | Occupation number:      0.00000000
+  | K-point:       6 at    0.000000    0.250000    0.250000 (in units of recip. lattice)
+
+  ESTIMATED overall HOMO-LUMO gap:      4.49053424 eV between HOMO at k-point 1 and LUMO at k-point 6
+  | This appears to be an indirect band gap.
+  | Smallest direct gap :      5.60813922 eV for k_point 1 at    0.000000    0.000000    0.000000 (in units of recip. lattice)
+  The gap value is above 0.2 eV. Unless you are using a very sparse k-point grid,
+  this system is most likely an insulator or a semiconductor.
+
+  Total energy components:
+  | Sum of eigenvalues            :         -45.13737587 Ha       -1228.25049013 eV
+  | XC energy correction          :         -10.85633222 Ha        -295.41583040 eV
+  | XC potential correction       :          13.95623012 Ha         379.76834398 eV
+  | Free-atom electrostatic energy:         -33.46285186 Ha        -910.57052833 eV
+  | Hartree energy correction     :          -0.70736207 Ha         -19.24830117 eV
+  | Entropy correction            :           0.00000000 Ha           0.00000000 eV
+  | ---------------------------
+  | Total energy                  :         -76.20769190 Ha       -2073.71680605 eV
+  | Total energy, T -> 0          :         -76.20769190 Ha       -2073.71680605 eV  <-- do not rely on this value for anything but (periodic) metals
+  | Electronic free energy        :         -76.20769190 Ha       -2073.71680605 eV
+
+  Derived energy quantities:
+  | Kinetic energy                :          76.03542494 Ha        2069.02918371 eV
+  | Electrostatic energy          :        -141.38678461 Ha       -3847.33015936 eV
+  | Energy correction for multipole
+  | error in Hartree potential    :           0.02544526 Ha           0.69240066 eV
+  | Sum of eigenvalues per atom                           :        -614.12524506 eV
+  | Total energy (T->0) per atom                          :       -1036.85840303 eV  <-- do not rely on this value for anything but (periodic) metals
+  | Electronic free energy per atom                       :       -1036.85840303 eV
+  Evaluating new KS density using the density matrix
+  Evaluating density matrix
+  Time summed over all CPUs for getting density from density matrix: real work        2.293 s, elapsed        2.338 s
+  Integration grid: deviation in total charge (<rho> - N_e) =  -5.329071E-15
+
+  Self-consistency convergence accuracy:
+  | Change of charge density      :  0.1463E-03
+  | Change of sum of eigenvalues  : -0.2019E-01 eV
+  | Change of total energy        :  0.5570E-04 eV
+
+
+------------------------------------------------------------
+  End self-consistency iteration #     7       :  max(cpu_time)    wall_clock(cpu1)
+  | Time for this iteration                     :        1.127 s           1.129 s
+  | Charge density update                       :        0.609 s           0.611 s
+  | Density mixing & preconditioning            :        0.071 s           0.071 s
+  | Hartree multipole update                    :        0.000 s           0.000 s
+  | Hartree multipole summation                 :        0.114 s           0.115 s
+  | Integration                                 :        0.324 s           0.324 s
+  | Solution of K.-S. eqns.                     :        0.008 s           0.008 s
+  | Total energy evaluation                     :        0.000 s           0.000 s
+
+  Partial memory accounting:
+  | Current value for overall tracked memory usage:
+  |   Minimum:        1.741 MB (on task 0)
+  |   Maximum:        1.741 MB (on task 0)
+  |   Average:        1.741 MB
+  | Peak value for overall tracked memory usage:
+  |   Minimum:       14.672 MB (on task 1 after allocating gradient_basis_wave)
+  |   Maximum:       16.136 MB (on task 3 after allocating gradient_basis_wave)
+  |   Average:       15.463 MB
+  | Largest tracked array allocation so far:
+  |   Minimum:        8.189 MB (hamiltonian_shell on task 1)
+  |   Maximum:        9.333 MB (hamiltonian_shell on task 3)
+  |   Average:        8.806 MB
+  Note:  These values currently only include a subset of arrays which are explicitly tracked.
+  The "true" memory usage will be greater.
+------------------------------------------------------------
+
+------------------------------------------------------------
+          Begin self-consistency iteration #    8
+
+  Date     :  20220420, Time     :  213446.476
+------------------------------------------------------------
+  Pulay mixing of updated and previous charge densities.
+  Renormalizing the density to the exact electron count on the 3D integration grid.
+  | Formal number of electrons (from input files) :      12.0000000000
+  | Integrated number of electrons on 3D grid     :      11.9999998579
+  | Charge integration error                      :      -0.0000001421
+  | Normalization factor for density and gradient :       1.0000000118
+
+  Evaluating partitioned Hartree potential by multipole expansion.
+  | Original multipole sum: apparent total charge =  -0.188851E-13
+  | Sum of charges compensated after spline to logarithmic grids =   0.282881E-04
+  | Analytical far-field extrapolation by fixed multipoles:
+  | Hartree multipole sum: apparent total charge =   0.000000E+00
+  Summing up the Hartree potential.
+  Time summed over all CPUs for potential: real work        0.422 s, elapsed        0.433 s
+  | RMS charge density error from multipole expansion :   0.248158E-01
+  | Average real-space part of the electrostatic potential :      1.11960540 eV
+
+  Integrating Hamiltonian matrix: batch-based integration.
+  Time summed over all CPUs for integration: real work        1.216 s, elapsed        1.236 s
+
+  Updating Kohn-Sham eigenvalues and eigenvectors using ELSI and the (modified) LAPACK eigensolver.
+  Starting LAPACK eigensolver
+  Finished Cholesky decomposition
+  | Time :     0.000 s
+  Finished transformation to standard eigenproblem
+  | Time :     0.000 s
+  Finished solving standard eigenproblem
+  | Time :     0.000 s
+  Finished back-transformation of eigenvectors
+  | Time :     0.000 s
+
+  Obtaining occupation numbers and chemical potential using ELSI.
+  | Chemical potential (Fermi level):    -5.36781513 eV
+  What follows are estimated values for band gap, HOMO, LUMO, etc.
+  | They are estimated on a discrete k-point grid and not necessarily exact.
+  | For converged numbers, create a DOS and/or band structure plot on a denser k-grid.
+
+  Highest occupied state (VBM) at     -7.84946530 eV (relative to internal zero)
+  | Occupation number:      2.00000000
+  | K-point:       1 at    0.000000    0.000000    0.000000 (in units of recip. lattice)
+
+  Lowest unoccupied state (CBM) at    -3.35893866 eV (relative to internal zero)
+  | Occupation number:      0.00000000
+  | K-point:       6 at    0.000000    0.250000    0.250000 (in units of recip. lattice)
+
+  ESTIMATED overall HOMO-LUMO gap:      4.49052663 eV between HOMO at k-point 1 and LUMO at k-point 6
+  | This appears to be an indirect band gap.
+  | Smallest direct gap :      5.60813331 eV for k_point 1 at    0.000000    0.000000    0.000000 (in units of recip. lattice)
+  The gap value is above 0.2 eV. Unless you are using a very sparse k-point grid,
+  this system is most likely an insulator or a semiconductor.
+
+  Total energy components:
+  | Sum of eigenvalues            :         -45.13736402 Ha       -1228.25016765 eV
+  | XC energy correction          :         -10.85633395 Ha        -295.41587737 eV
+  | XC potential correction       :          13.95623265 Ha         379.76841291 eV
+  | Free-atom electrostatic energy:         -33.46285186 Ha        -910.57052833 eV
+  | Hartree energy correction     :          -0.70737475 Ha         -19.24864642 eV
+  | Entropy correction            :           0.00000000 Ha           0.00000000 eV
+  | ---------------------------
+  | Total energy                  :         -76.20769193 Ha       -2073.71680686 eV
+  | Total energy, T -> 0          :         -76.20769193 Ha       -2073.71680686 eV  <-- do not rely on this value for anything but (periodic) metals
+  | Electronic free energy        :         -76.20769193 Ha       -2073.71680686 eV
+
+  Derived energy quantities:
+  | Kinetic energy                :          76.03544822 Ha        2069.02981725 eV
+  | Electrostatic energy          :        -141.38680620 Ha       -3847.33074674 eV
+  | Energy correction for multipole
+  | error in Hartree potential    :           0.02544542 Ha           0.69240515 eV
+  | Sum of eigenvalues per atom                           :        -614.12508382 eV
+  | Total energy (T->0) per atom                          :       -1036.85840343 eV  <-- do not rely on this value for anything but (periodic) metals
+  | Electronic free energy per atom                       :       -1036.85840343 eV
+  Evaluating new KS density using the density matrix
+  Evaluating density matrix
+  Time summed over all CPUs for getting density from density matrix: real work        2.291 s, elapsed        2.334 s
+  Integration grid: deviation in total charge (<rho> - N_e) =   1.776357E-15
+
+  Self-consistency convergence accuracy:
+  | Change of charge density      :  0.7701E-05
+  | Change of sum of eigenvalues  :  0.3225E-03 eV
+  | Change of total energy        : -0.8034E-06 eV
+
+
+------------------------------------------------------------
+  End self-consistency iteration #     8       :  max(cpu_time)    wall_clock(cpu1)
+  | Time for this iteration                     :        1.123 s           1.126 s
+  | Charge density update                       :        0.608 s           0.611 s
+  | Density mixing & preconditioning            :        0.070 s           0.070 s
+  | Hartree multipole update                    :        0.000 s           0.001 s
+  | Hartree multipole summation                 :        0.113 s           0.113 s
+  | Integration                                 :        0.323 s           0.324 s
+  | Solution of K.-S. eqns.                     :        0.008 s           0.007 s
+  | Total energy evaluation                     :        0.000 s           0.000 s
+
+  Partial memory accounting:
+  | Current value for overall tracked memory usage:
+  |   Minimum:        1.741 MB (on task 0)
+  |   Maximum:        1.741 MB (on task 0)
+  |   Average:        1.741 MB
+  | Peak value for overall tracked memory usage:
+  |   Minimum:       14.672 MB (on task 1 after allocating gradient_basis_wave)
+  |   Maximum:       16.136 MB (on task 3 after allocating gradient_basis_wave)
+  |   Average:       15.463 MB
+  | Largest tracked array allocation so far:
+  |   Minimum:        8.189 MB (hamiltonian_shell on task 1)
+  |   Maximum:        9.333 MB (hamiltonian_shell on task 3)
+  |   Average:        8.806 MB
+  Note:  These values currently only include a subset of arrays which are explicitly tracked.
+  The "true" memory usage will be greater.
+------------------------------------------------------------
+
+------------------------------------------------------------
+          Begin self-consistency iteration #    9
+
+  Date     :  20220420, Time     :  213447.602
+------------------------------------------------------------
+  Pulay mixing of updated and previous charge densities.
+  Renormalizing the density to the exact electron count on the 3D integration grid.
+  | Formal number of electrons (from input files) :      12.0000000000
+  | Integrated number of electrons on 3D grid     :      11.9999996216
+  | Charge integration error                      :      -0.0000003784
+  | Normalization factor for density and gradient :       1.0000000315
+
+  Evaluating partitioned Hartree potential by multipole expansion.
+  | Original multipole sum: apparent total charge =  -0.113957E-13
+  | Sum of charges compensated after spline to logarithmic grids =   0.282884E-04
+  | Analytical far-field extrapolation by fixed multipoles:
+  | Hartree multipole sum: apparent total charge =   0.000000E+00
+  Summing up the Hartree potential.
+  Time summed over all CPUs for potential: real work        0.422 s, elapsed        0.433 s
+  | RMS charge density error from multipole expansion :   0.248161E-01
+  | Average real-space part of the electrostatic potential :      1.11964157 eV
+
+  Integrating Hamiltonian matrix: batch-based integration.
+  Time summed over all CPUs for integration: real work        1.217 s, elapsed        1.236 s
+
+  Updating Kohn-Sham eigenvalues and eigenvectors using ELSI and the (modified) LAPACK eigensolver.
+  Starting LAPACK eigensolver
+  Finished Cholesky decomposition
+  | Time :     0.000 s
+  Finished transformation to standard eigenproblem
+  | Time :     0.000 s
+  Finished solving standard eigenproblem
+  | Time :     0.000 s
+  Finished back-transformation of eigenvectors
+  | Time :     0.000 s
+
+  Obtaining occupation numbers and chemical potential using ELSI.
+  | Chemical potential (Fermi level):    -5.36771632 eV
+  What follows are estimated values for band gap, HOMO, LUMO, etc.
+  | They are estimated on a discrete k-point grid and not necessarily exact.
+  | For converged numbers, create a DOS and/or band structure plot on a denser k-grid.
+
+  Highest occupied state (VBM) at     -7.84941855 eV (relative to internal zero)
+  | Occupation number:      2.00000000
+  | K-point:       1 at    0.000000    0.000000    0.000000 (in units of recip. lattice)
+
+  Lowest unoccupied state (CBM) at    -3.35891154 eV (relative to internal zero)
+  | Occupation number:      0.00000000
+  | K-point:       6 at    0.000000    0.250000    0.250000 (in units of recip. lattice)
+
+  ESTIMATED overall HOMO-LUMO gap:      4.49050702 eV between HOMO at k-point 1 and LUMO at k-point 6
+  | This appears to be an indirect band gap.
+  | Smallest direct gap :      5.60812004 eV for k_point 1 at    0.000000    0.000000    0.000000 (in units of recip. lattice)
+  The gap value is above 0.2 eV. Unless you are using a very sparse k-point grid,
+  this system is most likely an insulator or a semiconductor.
+
+  Total energy components:
+  | Sum of eigenvalues            :         -45.13733400 Ha       -1228.24935077 eV
+  | XC energy correction          :         -10.85633876 Ha        -295.41600835 eV
+  | XC potential correction       :          13.95623902 Ha         379.76858609 eV
+  | Free-atom electrostatic energy:         -33.46285186 Ha        -910.57052833 eV
+  | Hartree energy correction     :          -0.70740641 Ha         -19.24950770 eV
+  | Entropy correction            :           0.00000000 Ha           0.00000000 eV
+  | ---------------------------
+  | Total energy                  :         -76.20769201 Ha       -2073.71680905 eV
+  | Total energy, T -> 0          :         -76.20769201 Ha       -2073.71680905 eV  <-- do not rely on this value for anything but (periodic) metals
+  | Electronic free energy        :         -76.20769201 Ha       -2073.71680905 eV
+
+  Derived energy quantities:
+  | Kinetic energy                :          76.03549059 Ha        2069.03097001 eV
+  | Electrostatic energy          :        -141.38684383 Ha       -3847.33177071 eV
+  | Energy correction for multipole
+  | error in Hartree potential    :           0.02544588 Ha           0.69241752 eV
+  | Sum of eigenvalues per atom                           :        -614.12467538 eV
+  | Total energy (T->0) per atom                          :       -1036.85840453 eV  <-- do not rely on this value for anything but (periodic) metals
+  | Electronic free energy per atom                       :       -1036.85840453 eV
+  Evaluating new KS density using the density matrix
+  Evaluating density matrix
+  Time summed over all CPUs for getting density from density matrix: real work        2.292 s, elapsed        2.332 s
+  Integration grid: deviation in total charge (<rho> - N_e) =   0.000000E+00
+
+  Self-consistency convergence accuracy:
+  | Change of charge density      :  0.5550E-05
+  | Change of sum of eigenvalues  :  0.8169E-03 eV
+  | Change of total energy        : -0.2195E-05 eV
+
+
+------------------------------------------------------------
+  End self-consistency iteration #     9       :  max(cpu_time)    wall_clock(cpu1)
+  | Time for this iteration                     :        1.122 s           1.125 s
+  | Charge density update                       :        0.608 s           0.610 s
+  | Density mixing & preconditioning            :        0.070 s           0.070 s
+  | Hartree multipole update                    :        0.000 s           0.000 s
+  | Hartree multipole summation                 :        0.113 s           0.114 s
+  | Integration                                 :        0.323 s           0.323 s
+  | Solution of K.-S. eqns.                     :        0.008 s           0.008 s
+  | Total energy evaluation                     :        0.000 s           0.000 s
+
+  Partial memory accounting:
+  | Current value for overall tracked memory usage:
+  |   Minimum:        1.741 MB (on task 0)
+  |   Maximum:        1.741 MB (on task 0)
+  |   Average:        1.741 MB
+  | Peak value for overall tracked memory usage:
+  |   Minimum:       14.672 MB (on task 1 after allocating gradient_basis_wave)
+  |   Maximum:       16.136 MB (on task 3 after allocating gradient_basis_wave)
+  |   Average:       15.463 MB
+  | Largest tracked array allocation so far:
+  |   Minimum:        8.189 MB (hamiltonian_shell on task 1)
+  |   Maximum:        9.333 MB (hamiltonian_shell on task 3)
+  |   Average:        8.806 MB
+  Note:  These values currently only include a subset of arrays which are explicitly tracked.
+  The "true" memory usage will be greater.
+------------------------------------------------------------
+
+------------------------------------------------------------
+          Begin self-consistency iteration #   10
+
+  Date     :  20220420, Time     :  213448.727
+------------------------------------------------------------
+  Pulay mixing of updated and previous charge densities.
+  Renormalizing the density to the exact electron count on the 3D integration grid.
+  | Formal number of electrons (from input files) :      12.0000000000
+  | Integrated number of electrons on 3D grid     :      11.9999999999
+  | Charge integration error                      :      -0.0000000001
+  | Normalization factor for density and gradient :       1.0000000000
+
+  Evaluating partitioned Hartree potential by multipole expansion.
+  | Original multipole sum: apparent total charge =  -0.174180E-13
+  | Sum of charges compensated after spline to logarithmic grids =   0.282884E-04
+  | Analytical far-field extrapolation by fixed multipoles:
+  | Hartree multipole sum: apparent total charge =   0.000000E+00
+  Summing up the Hartree potential.
+  Time summed over all CPUs for potential: real work        0.423 s, elapsed        0.433 s
+  | RMS charge density error from multipole expansion :   0.248161E-01
+  | Average real-space part of the electrostatic potential :      1.11964155 eV
+
+  Integrating Hamiltonian matrix: batch-based integration.
+  Time summed over all CPUs for integration: real work        1.217 s, elapsed        1.237 s
+
+  Updating Kohn-Sham eigenvalues and eigenvectors using ELSI and the (modified) LAPACK eigensolver.
+  Starting LAPACK eigensolver
+  Finished Cholesky decomposition
+  | Time :     0.000 s
+  Finished transformation to standard eigenproblem
+  | Time :     0.000 s
+  Finished solving standard eigenproblem
+  | Time :     0.000 s
+  Finished back-transformation of eigenvectors
+  | Time :     0.000 s
+
+  Obtaining occupation numbers and chemical potential using ELSI.
+  | Chemical potential (Fermi level):    -5.36771637 eV
+  What follows are estimated values for band gap, HOMO, LUMO, etc.
+  | They are estimated on a discrete k-point grid and not necessarily exact.
+  | For converged numbers, create a DOS and/or band structure plot on a denser k-grid.
+
+  Highest occupied state (VBM) at     -7.84941857 eV (relative to internal zero)
+  | Occupation number:      2.00000000
+  | K-point:       1 at    0.000000    0.000000    0.000000 (in units of recip. lattice)
+
+  Lowest unoccupied state (CBM) at    -3.35891154 eV (relative to internal zero)
+  | Occupation number:      0.00000000
+  | K-point:      16 at    0.000000    0.750000    0.750000 (in units of recip. lattice)
+
+  ESTIMATED overall HOMO-LUMO gap:      4.49050703 eV between HOMO at k-point 1 and LUMO at k-point 16
+  | This appears to be an indirect band gap.
+  | Smallest direct gap :      5.60812005 eV for k_point 1 at    0.000000    0.000000    0.000000 (in units of recip. lattice)
+  The gap value is above 0.2 eV. Unless you are using a very sparse k-point grid,
+  this system is most likely an insulator or a semiconductor.
+
+  Total energy components:
+  | Sum of eigenvalues            :         -45.13733401 Ha       -1228.24935113 eV
+  | XC energy correction          :         -10.85633876 Ha        -295.41600828 eV
+  | XC potential correction       :          13.95623901 Ha         379.76858600 eV
+  | Free-atom electrostatic energy:         -33.46285186 Ha        -910.57052833 eV
+  | Hartree energy correction     :          -0.70740639 Ha         -19.24950731 eV
+  | Entropy correction            :           0.00000000 Ha           0.00000000 eV
+  | ---------------------------
+  | Total energy                  :         -76.20769201 Ha       -2073.71680905 eV
+  | Total energy, T -> 0          :         -76.20769201 Ha       -2073.71680905 eV  <-- do not rely on this value for anything but (periodic) metals
+  | Electronic free energy        :         -76.20769201 Ha       -2073.71680905 eV
+
+  Derived energy quantities:
+  | Kinetic energy                :          76.03549057 Ha        2069.03096947 eV
+  | Electrostatic energy          :        -141.38684381 Ha       -3847.33177023 eV
+  | Energy correction for multipole
+  | error in Hartree potential    :           0.02544588 Ha           0.69241753 eV
+  | Sum of eigenvalues per atom                           :        -614.12467557 eV
+  | Total energy (T->0) per atom                          :       -1036.85840452 eV  <-- do not rely on this value for anything but (periodic) metals
+  | Electronic free energy per atom                       :       -1036.85840452 eV
+  Preliminary charge convergence reached. Turning off preconditioner.
+
+
+  Self-consistency convergence accuracy:
+  | Change of charge density      :  0.4712E-07
+  | Change of sum of eigenvalues  : -0.3657E-06 eV
+  | Change of total energy        :  0.1016E-08 eV
+
+  Writing Kohn-Sham eigenvalues.
+  K-point:       1 at    0.000000    0.000000    0.000000 (in units of recip. lattice)
+
+  State    Occupation    Eigenvalue [Ha]    Eigenvalue [eV]
+      1       2.00000         -10.048368         -273.42999
+      2       2.00000         -10.047936         -273.41825
+      3       2.00000          -1.078072          -29.33584
+      4       2.00000          -0.288461           -7.84942
+      5       2.00000          -0.288461           -7.84942
+      6       2.00000          -0.288461           -7.84942
+      7       0.00000          -0.082366           -2.24130
+      8       0.00000          -0.082366           -2.24130
+      9       0.00000          -0.082366           -2.24130
+     10       0.00000           0.215249            5.85722
+     11       0.00000           0.744782           20.26656
+     12       0.00000           0.762151           20.73918
+     13       0.00000           0.762151           20.73918
+     14       0.00000           1.237137           33.66422
+     15       0.00000           1.237137           33.66422
+     16       0.00000           1.237137           33.66422
+     17       0.00000           1.593832           43.37036
+     18       0.00000           1.593832           43.37036
+     19       0.00000           1.593832           43.37036
+     20       0.00000           2.691074           73.22784
+     21       0.00000           2.691074           73.22784
+     22       0.00000           2.991802           81.41108
+     23       0.00000           2.991802           81.41108
+     24       0.00000           2.991802           81.41108
+     25       0.00000           4.019225          109.36868
+     26       0.00000           4.019225          109.36868
+     27       0.00000           4.019225          109.36868
+     28       0.00000           6.739538          183.39216
+
+  What follows are estimated values for band gap, HOMO, LUMO, etc.
+  | They are estimated on a discrete k-point grid and not necessarily exact.
+  | For converged numbers, create a DOS and/or band structure plot on a denser k-grid.
+
+  Highest occupied state (VBM) at     -7.84941857 eV (relative to internal zero)
+  | Occupation number:      2.00000000
+  | K-point:       1 at    0.000000    0.000000    0.000000 (in units of recip. lattice)
+
+  Lowest unoccupied state (CBM) at    -3.35891154 eV (relative to internal zero)
+  | Occupation number:      0.00000000
+  | K-point:      16 at    0.000000    0.750000    0.750000 (in units of recip. lattice)
+
+  ESTIMATED overall HOMO-LUMO gap:      4.49050703 eV between HOMO at k-point 1 and LUMO at k-point 16
+  | This appears to be an indirect band gap.
+  | Smallest direct gap :      5.60812005 eV for k_point 1 at    0.000000    0.000000    0.000000 (in units of recip. lattice)
+  The gap value is above 0.2 eV. Unless you are using a very sparse k-point grid,
+  this system is most likely an insulator or a semiconductor.
+  | Chemical Potential                          :    -5.36771637 eV
+
+  Self-consistency cycle converged.
+
+
+------------------------------------------------------------
+  End self-consistency iteration #    10       :  max(cpu_time)    wall_clock(cpu1)
+  | Time for this iteration                     :        0.514 s           0.516 s
+  | Charge density update                       :        0.000 s           0.000 s
+  | Density mixing                              :        0.070 s           0.070 s
+  | Hartree multipole update                    :        0.000 s           0.001 s
+  | Hartree multipole summation                 :        0.113 s           0.113 s
+  | Integration                                 :        0.323 s           0.324 s
+  | Solution of K.-S. eqns.                     :        0.008 s           0.007 s
+  | Total energy evaluation                     :        0.000 s           0.000 s
+
+  Partial memory accounting:
+  | Current value for overall tracked memory usage:
+  |   Minimum:        1.741 MB (on task 0)
+  |   Maximum:        1.741 MB (on task 0)
+  |   Average:        1.741 MB
+  | Peak value for overall tracked memory usage:
+  |   Minimum:       14.672 MB (on task 1 after allocating gradient_basis_wave)
+  |   Maximum:       16.136 MB (on task 3 after allocating gradient_basis_wave)
+  |   Average:       15.463 MB
+  | Largest tracked array allocation so far:
+  |   Minimum:        8.189 MB (hamiltonian_shell on task 1)
+  |   Maximum:        9.333 MB (hamiltonian_shell on task 3)
+  |   Average:        8.806 MB
+  Note:  These values currently only include a subset of arrays which are explicitly tracked.
+  The "true" memory usage will be greater.
+------------------------------------------------------------
+
+  Energy and forces in a compact form:
+  | Total energy uncorrected      :         -0.207371680904971E+04 eV
+  | Total energy corrected        :         -0.207371680904971E+04 eV  <-- do not rely on this value for anything but (periodic) metals
+  | Electronic free energy        :         -0.207371680904971E+04 eV
+
+  ------------------------------------ 
+  Start decomposition of the XC Energy 
+  ------------------------------------ 
+  X and C from original XC functional choice 
+  Hartree-Fock Energy :          0.000000000 Ha              0.000000000 eV
+  X Energy            :        -10.411249714 Ha           -283.304519082 eV
+  C Energy            :         -0.445089047 Ha            -12.111489200 eV
+  XC Energy w/o HF    :        -10.856338761 Ha           -295.416008282 eV
+  Total XC Energy     :        -10.856338761 Ha           -295.416008282 eV
+  ------------------------------------ 
+  LDA X and C from self-consistent density 
+  X Energy LDA        :         -9.479216881 Ha           -257.942615295 eV
+  C Energy LDA        :         -0.801752375 Ha            -21.816792147 eV
+  ------------------------------------ 
+  End decomposition of the XC Energy 
+  ------------------------------------ 
+
+------------------------------------------------------------
+          Checking for symmetries
+  Found symmetry 1.00 0.00 0.00  0.00 1.00 0.00  0.00 0.00 1.00  around 0.00 0.00 0.00
+  Found symmetry 1.00 0.00 0.00  0.00-1.00 0.00  0.00 0.00-1.00  around 0.00 0.00 0.00
+  Found symmetry-1.00 0.00 0.00  0.00 1.00 0.00  0.00 0.00-1.00  around 0.00 0.00 0.00
+  Found symmetry-1.00 0.00 0.00  0.00-1.00 0.00  0.00 0.00 1.00  around 0.00 0.00 0.00
+  Found symmetry-1.00 0.00 0.00  0.00-1.00 0.00  0.00 0.00-1.00  around 0.84 0.84 0.84
+  Found symmetry 0.00 0.00 1.00  1.00 0.00 0.00  0.00 1.00 0.00  around 0.00 0.00 0.00
+  Found symmetry 0.00 0.00-1.00  1.00 0.00 0.00  0.00-1.00 0.00  around 0.00 0.00 0.00
+  Found symmetry 0.00 0.00-1.00 -1.00 0.00 0.00  0.00 1.00 0.00  around 0.00 0.00 0.00
+  Found symmetry 0.00 0.00 1.00 -1.00 0.00 0.00  0.00-1.00 0.00  around 0.00 0.00 0.00
+  Found symmetry 0.00 0.00-1.00 -1.00 0.00 0.00  0.00-1.00 0.00  around 0.84 0.84 0.84
+  Found symmetry 0.00 1.00 0.00  0.00 0.00 1.00  1.00 0.00 0.00  around 0.00 0.00 0.00
+  Found symmetry 0.00-1.00 0.00  0.00 0.00-1.00  1.00 0.00 0.00  around 0.00 0.00 0.00
+  Found symmetry 0.00 1.00 0.00  0.00 0.00-1.00 -1.00 0.00 0.00  around 0.00 0.00 0.00
+  Found symmetry 0.00-1.00 0.00  0.00 0.00 1.00 -1.00 0.00 0.00  around 0.00 0.00 0.00
+  Found symmetry 0.00-1.00 0.00  0.00 0.00-1.00 -1.00 0.00 0.00  around 0.84 0.84 0.84
+  Found symmetry 0.00 1.00 0.00  1.00 0.00 0.00  0.00 0.00 1.00  around 0.00 0.00 0.00
+  Found symmetry 0.00-1.00 0.00  1.00 0.00 0.00  0.00 0.00-1.00  around 0.00 0.00 0.00
+  Found symmetry 0.00 1.00 0.00 -1.00 0.00 0.00  0.00 0.00-1.00  around 0.00 0.00 0.00
+  Found symmetry 0.00-1.00 0.00 -1.00 0.00 0.00  0.00 0.00 1.00  around 0.00 0.00 0.00
+  Found symmetry 0.00-1.00 0.00 -1.00 0.00 0.00  0.00 0.00-1.00  around 0.84 0.84 0.84
+  Found symmetry 1.00 0.00 0.00  0.00 0.00 1.00  0.00 1.00 0.00  around 0.00 0.00 0.00
+  Found symmetry 1.00 0.00 0.00  0.00 0.00-1.00  0.00-1.00 0.00  around 0.00 0.00 0.00
+  Found symmetry-1.00 0.00 0.00  0.00 0.00-1.00  0.00 1.00 0.00  around 0.00 0.00 0.00
+  Found symmetry-1.00 0.00 0.00  0.00 0.00 1.00  0.00-1.00 0.00  around 0.00 0.00 0.00
+  Found symmetry-1.00 0.00 0.00  0.00 0.00-1.00  0.00-1.00 0.00  around 0.84 0.84 0.84
+  Found symmetry 0.00 0.00 1.00  0.00 1.00 0.00  1.00 0.00 0.00  around 0.00 0.00 0.00
+  Found symmetry 0.00 0.00-1.00  0.00-1.00 0.00  1.00 0.00 0.00  around 0.00 0.00 0.00
+  Found symmetry 0.00 0.00-1.00  0.00 1.00 0.00 -1.00 0.00 0.00  around 0.00 0.00 0.00
+  Found symmetry 0.00 0.00 1.00  0.00-1.00 0.00 -1.00 0.00 0.00  around 0.00 0.00 0.00
+  Found symmetry 0.00 0.00-1.00  0.00-1.00 0.00 -1.00 0.00 0.00  around 0.84 0.84 0.84
+  Found 30 symmetry operations for current configuration
+  Irreducible k points #           36
+ 
+ --------------------------------------------
+  Constructing auxiliary basis (full product) ...
+ 
+  Product basis:
+  | charge radius: extent of product basis function
+  | field radius: extent of its Coulomb potential
+  | Species   l  charge radius    field radius  multipol momen
+  |    C      0     2.562483 A      2.562483 A       -1.583929E-16 a.u.
+  |    C      0     3.003870 A      3.003870 A       -3.256899E-17 a.u.
+  |    C      0     3.003870 A      3.003870 A       -6.386108E-17 a.u.
+  |    C      1     3.272245 A      3.272245 A       -2.948012E-18 a.u.
+  |    C      0     3.312494 A      3.312494 A        2.293552E-17 a.u.
+  |    C      3     4.077671 A      4.077671 A        2.287354E-16 a.u.
+  |    C      3     4.077671 A      4.077671 A        3.174465E-15 a.u.
+  |    C      1     4.496620 A      4.496620 A        3.752913E-17 a.u.
+  |    C      0     4.496620 A      4.551928 A       -1.956803E-16 a.u.
+  |    C      2     4.551928 A      4.551928 A       -1.060711E-15 a.u.
+  |    C      2     4.551928 A      4.551928 A       -1.074847E-15 a.u.
+  |    C      2     4.551928 A      4.551928 A        1.086695E-15 a.u.
+  |    C      2     4.551928 A      4.551928 A       -1.541331E-15 a.u.
+  |    C      0     4.551928 A      4.607917 A       -4.370174E-17 a.u.
+  |    C      1     4.551928 A      4.607917 A       -3.454649E-16 a.u.
+  |    C      1     4.551928 A      4.607917 A       -1.208922E-16 a.u.
+  |    C      1     4.607917 A      4.607917 A        1.608496E-16 a.u.
+  |    C      2     4.607917 A      4.607917 A        1.461836E-15 a.u.
+  |    C      0     4.607917 A      4.664595 A       -7.810810E-17 a.u.
+  |    C      4     3.835889 A  2.962973E+02 A            4.379483 a.u.
+  |    C      3     4.127827 A  1.728650E+03 A            9.061794 a.u.
+  |    C      2     4.607917 A  2.473843E+04 A            8.130235 a.u.
+  |    C      1     4.607917 A  2.510990E+06 A            1.791752 a.u.
+  |    C      0     4.607917 A  4.248117E+12 A            0.638830 a.u.
+
+  | Shrink_full_auxil_basis : there are       24  radial auxiliary wave functions
+                            accepted and      11 rejected.
+  | Shrink_full_auxil_basis : there are totally                 172 partial auxiliary wave functions.
+ 
+  | Number of product basis functions per thread :    43
+  | Minimal requirement for computer memory :           0.001 Gbs
+ 
+  Basis pair condensation :       406  -->        406
+  Basis pair condensation for basis  derivative:       406  -->        196
+          Checking for symmetries
+  Found symmetry 1.00 0.00 0.00  0.00 1.00 0.00  0.00 0.00 1.00  around 0.00 0.00 0.00
+  Found symmetry 1.00 0.00 0.00  0.00-1.00 0.00  0.00 0.00-1.00  around 0.00 0.00 0.00
+  Found symmetry-1.00 0.00 0.00  0.00 1.00 0.00  0.00 0.00-1.00  around 0.00 0.00 0.00
+  Found symmetry-1.00 0.00 0.00  0.00-1.00 0.00  0.00 0.00 1.00  around 0.00 0.00 0.00
+  Found symmetry-1.00 0.00 0.00  0.00-1.00 0.00  0.00 0.00-1.00  around 0.84 0.84 0.84
+  Found symmetry 0.00 0.00 1.00  1.00 0.00 0.00  0.00 1.00 0.00  around 0.00 0.00 0.00
+  Found symmetry 0.00 0.00-1.00  1.00 0.00 0.00  0.00-1.00 0.00  around 0.00 0.00 0.00
+  Found symmetry 0.00 0.00-1.00 -1.00 0.00 0.00  0.00 1.00 0.00  around 0.00 0.00 0.00
+  Found symmetry 0.00 0.00 1.00 -1.00 0.00 0.00  0.00-1.00 0.00  around 0.00 0.00 0.00
+  Found symmetry 0.00 0.00-1.00 -1.00 0.00 0.00  0.00-1.00 0.00  around 0.84 0.84 0.84
+  Found symmetry 0.00 1.00 0.00  0.00 0.00 1.00  1.00 0.00 0.00  around 0.00 0.00 0.00
+  Found symmetry 0.00-1.00 0.00  0.00 0.00-1.00  1.00 0.00 0.00  around 0.00 0.00 0.00
+  Found symmetry 0.00 1.00 0.00  0.00 0.00-1.00 -1.00 0.00 0.00  around 0.00 0.00 0.00
+  Found symmetry 0.00-1.00 0.00  0.00 0.00 1.00 -1.00 0.00 0.00  around 0.00 0.00 0.00
+  Found symmetry 0.00-1.00 0.00  0.00 0.00-1.00 -1.00 0.00 0.00  around 0.84 0.84 0.84
+  Found symmetry 0.00 1.00 0.00  1.00 0.00 0.00  0.00 0.00 1.00  around 0.00 0.00 0.00
+  Found symmetry 0.00-1.00 0.00  1.00 0.00 0.00  0.00 0.00-1.00  around 0.00 0.00 0.00
+  Found symmetry 0.00 1.00 0.00 -1.00 0.00 0.00  0.00 0.00-1.00  around 0.00 0.00 0.00
+  Found symmetry 0.00-1.00 0.00 -1.00 0.00 0.00  0.00 0.00 1.00  around 0.00 0.00 0.00
+  Found symmetry 0.00-1.00 0.00 -1.00 0.00 0.00  0.00 0.00-1.00  around 0.84 0.84 0.84
+  Found symmetry 1.00 0.00 0.00  0.00 0.00 1.00  0.00 1.00 0.00  around 0.00 0.00 0.00
+  Found symmetry 1.00 0.00 0.00  0.00 0.00-1.00  0.00-1.00 0.00  around 0.00 0.00 0.00
+  Found symmetry-1.00 0.00 0.00  0.00 0.00-1.00  0.00 1.00 0.00  around 0.00 0.00 0.00
+  Found symmetry-1.00 0.00 0.00  0.00 0.00 1.00  0.00-1.00 0.00  around 0.00 0.00 0.00
+  Found symmetry-1.00 0.00 0.00  0.00 0.00-1.00  0.00-1.00 0.00  around 0.84 0.84 0.84
+  Found symmetry 0.00 0.00 1.00  0.00 1.00 0.00  1.00 0.00 0.00  around 0.00 0.00 0.00
+  Found symmetry 0.00 0.00-1.00  0.00-1.00 0.00  1.00 0.00 0.00  around 0.00 0.00 0.00
+  Found symmetry 0.00 0.00-1.00  0.00 1.00 0.00 -1.00 0.00 0.00  around 0.00 0.00 0.00
+  Found symmetry 0.00 0.00 1.00  0.00-1.00 0.00 -1.00 0.00 0.00  around 0.00 0.00 0.00
+  Found symmetry 0.00 0.00-1.00  0.00-1.00 0.00 -1.00 0.00 0.00  around 0.84 0.84 0.84
+  Found 30 symmetry operations for current configuration
+  Irreducible k points #           36
+  -----------------------------------------
+  --- Initializing Fock matrix calculations
+  -----------------------------------------
+  screening_threshold (crit_val) =  0.000000100000
+  coul_mat_threshold =  0.000000000100
+  Trying to make the workload more even by internally splitting atoms into fractions
+  Atom:            1  Basis/atom:    14.0000000000000
+  Atom:            2  Basis/atom:    14.0000000000000
+  -----------------------------------------------------
+  Dividing atoms among tasks for exact exchange energy:
+  Atom:     1 Weight:   86.000
+  Atom:     2 Weight:   86.000
+
+  Average weight per task:   43.000
+
+  Number of "big" (above average) atoms  :     2
+  Number of "small" (below average) atoms:     0
+  All atoms have above average work per task
+  Atoms will be divided among tasks to get best load distribution
+
+  Atom division among tasks:
+  Atom     1: (initial) task:     0, # of tasks:     2
+  Atom     2: (initial) task:     2, # of tasks:     2
+
+  -----------------------------------------------------
+ No atoms are split internally
+  Number of super-cells in X Y Z:       7       7       7
+  Number of atoms pairs total:         1266
+ sparsity of pfbvk:   1.000000
+  Number of atoms pairs in BvK cells:          256
+  Initializing work distribution for fock matrix calculation
+  Task     0 : Coulomb matrix distribution changed.
+  Task     1 : Coulomb matrix distribution changed.
+  Task     2 : Coulomb matrix distribution changed.
+  Task     3 : Coulomb matrix distribution changed.
+  Overall Coulomb matrix distribution changed.
+  Coulomb matrix subdivision:
+  Task     0 atom     1 has         32 Coulomb matrix cells
+  Task      0: my_n_atoms2:      1 my_atom_list:      1
+  Task      1: my_n_atoms2:      1 my_atom_list:      1
+  Task      2: my_n_atoms2:      1 my_atom_list:      2
+  Task      3: my_n_atoms2:      1 my_atom_list:      2
+  Task      0: my_n_atom_pairs:     64
+  Task      1: my_n_atom_pairs:     64
+  Task      2: my_n_atom_pairs:     64
+  Task      3: my_n_atom_pairs:     64
+  --- Initializing LVL triples, type COULOMB
+  | Storage requirements for basis-basbas products (processor-local):
+  |   Species C: n_prodsfn:   202; storage:        6.31 MiB.
+
+  --- Initializing Coulomb matrix calculations, type CUT
+  Preparing TB like auxiliary 2-center cutCoul matrix
+  SBT integration errors (all should be 'small'):
+  large logFT aliasing -> increase N/lnrange
+  large SBT aliasing -> decrease lnk0 & increase lnk0+lnrange
+  large SBT ringing -> decrease lnr0 & increase lnr0+lnrange
+  |            El't  L: logFT-al.   small-k   large-k   small-r   large-r
+  Initializing cut Coulomb operator.
+  | Cut [erfc(-/+1)/2] from    4.6202 A to    5.5081 A within   15 sbt_grid points.
+
+  | Need to store   502 splines of   226 points taking        896 KiB.
+  | Spline reduction from  4096 to   226 points by (cutting and)     1 x coarsening gives error:  0.00E+00
+  | Maximum value outside interaction range:  6.18E-16
+  Finished with initialize_tb_auxmat/lvl_triples, time:        0.051
+  Upper limit for memory consumption per node [GB] for Coulomb matrices if no compression occurs:       0.030
+  Upper limit for temporary arrays in Coulomb matrix initalization [GB]:      1.20
+  --- Calculating Coulomb matrices
+  --- Calculating Coulomb matrices
+  Max. memory consumption per node for Coulomb matrix [GB]:      0.02
+  Time to calculate Coulomb Matrices   :        0.665
+   Number of Coulomb matrix elements:
+  | Task     0 total:         473344, > threshold:         371970, stored:         473344
+  | Task     1 total:         473344, > threshold:         365418, stored:         473344
+  | Task     2 total:         473344, > threshold:         365286, stored:         473344
+  | Task     3 total:         473344, > threshold:         372102, stored:         473344
+  --- Done init_fock_matrix_calculations
+  Atomic logSBT for 2-center cutCoul matrix    :  max(cpu_time)    wall_clock(cpu1)
+  | TB initialization                           :        0.030 s           0.030 s
+  | TB usage                                    :        0.594 s           0.595 s
+
+  --- Initializing Coulomb matrix calculations, type COULOMB
+  Preparing TB like auxiliary 2-center Coulomb matrix
+  SBT integration errors (all should be 'small'):
+  large logFT aliasing -> increase N/lnrange
+  large SBT aliasing -> decrease lnk0 & increase lnk0+lnrange
+  large SBT ringing -> decrease lnr0 & increase lnr0+lnrange
+  |            El't  L: logFT-al.   small-k   large-k   small-r   large-r
+  | Need to store   502 splines of   166 points taking        664 KiB.
+  | Spline reduction from  4096 to   166 points by (cutting and)     1 x coarsening gives error:  0.00E+00
+  Finished with initialize_tb_auxmat/lvl_triples, time:        0.028
+  Max. memory per node for ovlp3fn matrices:        0.035 GB
+  Total memory for ovlp3fn matrices:        0.035 GB
+  Size of ovlp3fn for atom   12544       1      86
+  --- Calculating OVLP3FN
+  --- Done calculating OVLP3FN, time:        5.095
+  Compare n_pairs with n_super     152    3375
+  --- Done getting norm of OVLP3FN, time:        0.000
+  Atomic logSBT for 2-center Coulomb matrix    :  max(cpu_time)    wall_clock(cpu1)
+  | TB initialization                           :        0.029 s           0.029 s
+  | TB usage                                    :        0.032 s           0.024 s
+
+  Atomic logSBT for LVL-triples                :  max(cpu_time)    wall_clock(cpu1)
+  | Multiplication with kernel                  :        0.080 s           0.081 s
+  | Main matrix multiplication                  :        3.355 s           3.310 s
+  | Analytic angular integration                :        0.069 s           0.074 s
+  | Kernel construction                         :        0.171 s           0.170 s
+  | Overall 2-center overlap time               :        3.861 s           3.791 s
+  | 3-center preparation multiplications        :        0.027 s           0.026 s
+  | 3-center preparation SBTs                   :        0.923 s           0.902 s
+  | 3-center combinations                       :        4.098 s           4.019 s
+  | Overal 3-center time                        :        5.031 s           4.947 s
+  | LVL initialization                          :        0.023 s           0.023 s
+  | Whole LVL-triples                           :        0.023 s           0.023 s
+
+  Max. memory consumption per node for Hartree Fock matrix + Pulay mixing [GB]:      0.00
+  Blocksize for Fock matrix computation:     4
+  Max. memory consumption per node for dm_cols [GB]:      0.00
+  Max. memory consumption per node for fock_matrix [GB]:      0.00
+  Calculating non-local Hartree-Fock exchange by two-center RI (RI-LVL).
+  screening_threshold (crit_val) =  0.000000100000
+  Max. allocated memory per node for ovlp3fn_rcv [GB]:      0.01
+  Max. allocated memory per node for fock_matrix_row [GB]:      0.00
+  Max. memory consumption per node for m_ovlp_fact11 [GB]:      0.00
+  Max. memory consumption per node for d_aux_mem [GB]:      0.00
+  Max. memory consumption per node for dm_x_o3fn_aux [GB]:      0.00
+  Max. allocated memory per node for tmp1/tmp2 [GB]:      0.02
+   final impselect vector           2           2          -1           1
+   Time for autotuning:   0.612575426144758
+  Exact exchange progress report - outermost block loop i_block: 1 ..       7
+  |        1         2         3         4         5         6         7  
+   total ovlp3fn transfer [GB]  9.373173955827951E-002
+  atomtime:          1        14        86      3.45
+  atomtime:          2        14        86      3.64
+  Full exact exchange energy:     284.073216554552 eV.
+  Detailed communication and barrier times:
+  | Comm    0:        0.000       0.000       0.000       0.004       0.000       0.000       0.000       0.000       0.000       0.005
+  | Comm    1:        0.000       0.000       0.000       0.004       0.000       0.000       0.000       0.000       0.000       0.005
+  | Comm    2:        0.000       0.000       0.000       0.004       0.000       0.000       0.000       0.000       0.000       0.005
+  | Comm    3:        0.000       0.000       0.000       0.004       0.000       0.000       0.000       0.000       0.000       0.005
+  | Imbalance    0:        0.000       0.000       0.000       0.000       0.070       0.000       0.000       0.000       0.000       0.000
+  | Imbalance    1:        0.000       0.000       0.000       0.001       0.070       0.000       0.000       0.000       0.000       0.006
+  | Imbalance    2:        0.000       0.000       0.000       0.003       0.000       0.000       0.001       0.000       0.000       0.003
+  | Imbalance    3:        0.000       0.000       0.000       0.000       0.000       0.000       0.001       0.000       0.000       0.000
+  Times            DM_x_o3fn   CM_prod_1   CM_prod_2   tmp2_prod        Sync   Imbalance       Other  Total calc
+  | Times    0:        0.160       0.822       0.107       0.094       0.010       0.070       0.012       1.276
+  | Times    1:        0.159       0.816       0.107       0.094       0.010       0.077       0.012       1.276
+  | Times    2:        0.158       0.890       0.106       0.092       0.010       0.008       0.011       1.276
+  | Times    3:        0.162       0.891       0.109       0.091       0.010       0.001       0.011       1.276
+  | Times  sum:        0.639       3.420       0.430       0.371       0.041       0.157       0.047       5.104
+
+  Decomposition of Other based on code block (only on MPI task 0):
+  Times             Block #1    Block #2    Block #3    Block #4    Block #5    Block #6    Block #7    Block #8
+  | Times    0:        0.001       0.000       0.000       0.000       0.000       0.000       0.007       0.000
+
+  Times             Block #9   Block #10   Block #11   Block #12   Block #13   Block #14   Block #15   Block #16
+  | Times    0:        0.001       0.000       0.001       0.001       0.002       0.000       0.000       0.000
+
+  Times            Block Sum    Expected
+  | Times    0:        0.012       0.012
+ 
+  ------------------------------------------------------------------
+ 
+  Post-SCF correlation calculation starts ...
+ 
+ communicator split irkq, row, col:            4           1           1
+ reso: n_basbas,n_basis,n_states         172          28          28
+ reso: max_n_basis_sp,n_cells,n_full_freq          14         388         100
+  | Storage requirements for basis-basbas products (processor-local):
+  |   Species C: n_prodsfn:   202; storage:        6.31 MiB.
+
+ 
+  Finished with initialization of triples (Coulomb norm) ...
+  Preparing TB like auxiliary 2-center Coulomb matrix
+  SBT integration errors (all should be 'small'):
+  large logFT aliasing -> increase N/lnrange
+  large SBT aliasing -> decrease lnk0 & increase lnk0+lnrange
+  large SBT ringing -> decrease lnr0 & increase lnr0+lnrange
+  |            El't  L: logFT-al.   small-k   large-k   small-r   large-r
+  | Need to store   502 splines of   166 points taking        664 KiB.
+  | Spline reduction from  4096 to   166 points by (cutting and)     1 x coarsening gives error:  0.00E+00
+ 
+  Finished with initialization of Coulomb interaction matrix ...
+ 
+  Computing the triple LVL expansion coefficents in real space ...
+ 
+  Finished with initialization of the periodic LVL triple coefficients ...
+ 
+  Atomic logSBT for LVL-triples                :  max(cpu_time)    wall_clock(cpu1)
+  | Multiplication with kernel                  :        0.328 s           0.315 s
+  | Main matrix multiplication                  :       17.063 s          16.951 s
+  | Analytic angular integration                :        0.429 s           0.461 s
+  | Kernel construction                         :        0.862 s           0.859 s
+  | Overall 2-center overlap time               :       19.783 s          19.670 s
+  | 3-center preparation multiplications        :        1.731 s           1.693 s
+  | 3-center preparation SBTs                   :       70.652 s          69.889 s
+  | 3-center combinations                       :       21.330 s          21.159 s
+  | Overal 3-center time                        :       93.803 s          92.811 s
+  | LVL initialization                          :        0.011 s           0.011 s
+  | Whole LVL-triples                           :        0.011 s           0.011 s
+
+ 
+  Finishing computation of the periodic LVL triple coefficients ...
+ 
+  Atomic logSBT for 2-center Coulomb matrix    :  max(cpu_time)    wall_clock(cpu1)
+  | TB initialization                           :        0.029 s           0.028 s
+  | TB usage                                    :        0.250 s           0.251 s
+
+  Preparing TB like auxiliary 2-center cutCoul matrix
+  SBT integration errors (all should be 'small'):
+  large logFT aliasing -> increase N/lnrange
+  large SBT aliasing -> decrease lnk0 & increase lnk0+lnrange
+  large SBT ringing -> decrease lnr0 & increase lnr0+lnrange
+  |            El't  L: logFT-al.   small-k   large-k   small-r   large-r
+  Initializing cut Coulomb operator.
+  | Cut [erfc(-/+1)/2] from    4.6202 A to    5.5081 A within   15 sbt_grid points.
+
+  | Need to store   502 splines of   226 points taking        896 KiB.
+  | Spline reduction from  4096 to   226 points by (cutting and)     1 x coarsening gives error:  0.00E+00
+  | Maximum value outside interaction range:  6.18E-16
+  Calculating the Coulomb matrix in reciprocal space ...
+  Atomic logSBT for 2-center cutCoul matrix    :  max(cpu_time)    wall_clock(cpu1)
+  | TB initialization                           :        0.030 s           0.030 s
+  | TB usage                                    :        0.283 s           0.289 s
+
+  Atomic logSBT for 2-center cutCoul matrix    :  max(cpu_time)    wall_clock(cpu1)
+  | TB initialization                           :        0.030 s           0.030 s
+  | TB usage                                    :        0.283 s           0.289 s
+
+  Preparing TB like auxiliary 2-center Coulomb matrix
+  SBT integration errors (all should be 'small'):
+  large logFT aliasing -> increase N/lnrange
+  large SBT aliasing -> decrease lnk0 & increase lnk0+lnrange
+  large SBT ringing -> decrease lnr0 & increase lnr0+lnrange
+  |            El't  L: logFT-al.   small-k   large-k   small-r   large-r
+  | Need to store   502 splines of   166 points taking        664 KiB.
+  | Spline reduction from  4096 to   166 points by (cutting and)     1 x coarsening gives error:  0.00E+00
+  | Gaussian spline reduction from  4096 to   166 points by (cutting and)     1 x coarsening gives error:  0.00E+00
+  | Maximum value outside interaction range:  3.69E-09
+  Calculating singularity lifting chi
+  | Gamma:  1.00E+00; chi:     65.3146645713964062
+  | Gamma:  5.00E-01; chi:     65.8146645713963778; extra:     66.3146645713963494
+  | Gamma:  2.50E-01; chi:     66.0646645713964062; extra:     66.3146645713964347
+  | Using chi:     66.3146645713964347; last diff:  8.53E-14
+  Calculating the Coulomb matrix in reciprocal space ...
+  Atomic logSBT for 2-center Coulomb matrix    :  max(cpu_time)    wall_clock(cpu1)
+  | TB initialization                           :        0.035 s           0.035 s
+  | TB usage                                    :        0.067 s           0.068 s
+
+
+  Initialising transformed Gauss-Legendre time and frequency grids
+  Number of frequency points for self energy.....:100
+  Number of frequency points....................:100
+
+  Starting to calculate the single excitation correction ...
+  Integrating Hamiltonian matrix: batch-based integration.
+  Time summed over all CPUs for integration: real work        1.200 s, elapsed        1.222 s
+  Solving standard eigenvalue problem for transformed Hamiltonian.
+* Further output regarding ill-conditioning on task        0 will be suppressed.
+* Further output regarding ill-conditioning on task        1 will be suppressed.
+* Further output regarding ill-conditioning on task        2 will be suppressed.
+* Further output regarding ill-conditioning on task        3 will be suppressed.
+ 
+  | Single excitation contribution to the correlation energy:  -0.48802272 eV
+  | Renormalized single excitation contribution (diag) to the correlation energy:  -0.36709094  eV
+ 
+--------------------------------------------
+  Periodic RPA total energy calculation starts ...
+ 
+ -----------------------------------------------------------------------
+  Start to calculate the periodic RPA correlation energy  ... 
+  First valence state in the frozen-core algorithm :           1
+  |                             Main-group    Transition-metal
+  | Atom number     ::                   2                   0
+  | n_frozen_shell  ::                   2                   2
+  The first valence state in the frozen-core algorithm :           1
+ using n_freqs_block=         100 , n_blocks=           1
+     1     1        0.00000000        0.00000000        0.00000000       -1.32875908
+     2     2        0.00000000        0.00000000        0.25000000       -1.41745626
+     3     3        0.00000000        0.00000000        0.50000000       -1.29079863
+     5     4        0.00000000        0.25000000        0.00000000       -1.41745626
+     6     5        0.00000000        0.25000000        0.25000000       -1.40525602
+     7     6        0.00000000        0.25000000        0.50000000       -1.28989186
+     8     7        0.00000000        0.25000000        0.75000000       -1.31676163
+     9     8        0.00000000        0.50000000        0.00000000       -1.29079863
+    10     9        0.00000000        0.50000000        0.25000000       -1.28989186
+    11    10        0.00000000        0.50000000        0.50000000       -1.26612732
+    17    11        0.25000000        0.00000000        0.00000000       -1.41745626
+    18    12        0.25000000        0.00000000        0.25000000       -1.40525602
+    19    13        0.25000000        0.00000000        0.50000000       -1.28989186
+    20    14        0.25000000        0.00000000        0.75000000       -1.31676163
+    21    15        0.25000000        0.25000000        0.00000000       -1.40525602
+    22    16        0.25000000        0.25000000        0.25000000       -1.41745626
+    23    17        0.25000000        0.25000000        0.50000000       -1.31676163
+    24    18        0.25000000        0.25000000        0.75000000       -1.28989186
+    25    19        0.25000000        0.50000000        0.00000000       -1.28989186
+    26    20        0.25000000        0.50000000        0.25000000       -1.31676163
+    27    21        0.25000000        0.50000000        0.50000000       -1.28989186
+    28    22        0.25000000        0.50000000        0.75000000       -1.27147135
+    29    23        0.25000000        0.75000000        0.00000000       -1.31676163
+    30    24        0.25000000        0.75000000        0.25000000       -1.28989186
+    31    25        0.25000000        0.75000000        0.50000000       -1.27147135
+    32    26        0.25000000        0.75000000        0.75000000       -1.28989186
+    33    27        0.50000000        0.00000000        0.00000000       -1.29079863
+    34    28        0.50000000        0.00000000        0.25000000       -1.28989186
+    35    29        0.50000000        0.00000000        0.50000000       -1.26612732
+    37    30        0.50000000        0.25000000        0.00000000       -1.28989186
+    38    31        0.50000000        0.25000000        0.25000000       -1.31676163
+    39    32        0.50000000        0.25000000        0.50000000       -1.28989186
+    40    33        0.50000000        0.25000000        0.75000000       -1.27147135
+    41    34        0.50000000        0.50000000        0.00000000       -1.26612732
+    42    35        0.50000000        0.50000000        0.25000000       -1.28989186
+    43    36        0.50000000        0.50000000        0.50000000       -1.29079863
+ 
+ -----------------------------------------------------------------------------
+   RPA correlation energy :          -0.42001434  Ha,       -11.42917173  eV
+ 
+total_energy=    -2073.71680905
+en_xc=     -295.41600828
+eex_energy=     -284.07321655
+rpa_tot_en=    -2073.80318905
+ --------------------------------------------------------------------
+    Exact exchange energy        :          -10.43949883 Ha,        -284.07321655 eV
+    DFT/HF total energy          :          -76.20769201 Ha,       -2073.71680905 eV
+    Exchange-only total energy   :          -75.79085207 Ha,       -2062.37401732 eV
+    RPA total energy             :          -76.21086641 Ha,       -2073.80318905 eV
+ 
+    RPA+SE total energy          :          -76.22880092 Ha,       -2074.29121177 eV
+    RPA+rSE total energy         :          -76.22435676 Ha,       -2074.17027999 eV
+ 
+
+------------------------------------------------------------------------------
+  Final output of selected total energy values:
+
+  The following output summarizes some interesting total energy values
+  at the end of a run (AFTER all relaxation, molecular dynamics, etc.).
+
+  | Total energy of the DFT / Hartree-Fock s.c.f. calculation      :          -2073.716809050 eV
+  | Final zero-broadening corrected energy (caution - metals only) :          -2073.716809050 eV
+  | For reference only, the value of 1 Hartree used in FHI-aims is :             27.211384500 eV
+  | For reference only, the overall average (free atom contribution
+  | + realspace contribution) of the electrostatic potential after
+  | s.c.f. convergence is                                          :            -20.407349918 eV
+
+  Before relying on these values, please be sure to understand exactly which
+  total energy value is referred to by a given number. Different objects may
+  all carry the same name 'total energy'. Definitions:
+
+  Total energy of the DFT / Hartree-Fock s.c.f. calculation:
+  | Note that this energy does not include ANY quantities calculated after the
+  | s.c.f. cycle, in particular not ANY RPA, MP2, etc. many-body perturbation terms.
+
+  Final zero-broadening corrected energy:
+  | For metallic systems only, a broadening of the occupation numbers at the Fermi
+  | level can be extrapolated back to zero broadening by an electron-gas inspired
+  | formula. For all systems that are not real metals, this value can be
+  | meaningless and should be avoided.
+
+------------------------------------------------------------------------------
+  Methods described in the following list of references were used in this FHI-aims run.
+  If you publish the results, please make sure to cite these reference if they apply.
+  FHI-aims is an academic code, and for our developers (often, Ph.D. students
+  and postdocs), scientific credit in the community is essential.
+  Thank you for helping us!
+
+  For any use of FHI-aims, please cite:
+
+    Volker Blum, Ralf Gehrke, Felix Hanke, Paula Havu, Ville Havu,
+    Xinguo Ren, Karsten Reuter, and Matthias Scheffler
+    'Ab initio molecular simulations with numeric atom-centered orbitals'
+    Computer Physics Communications 180, 2175-2196 (2009)
+    http://doi.org/10.1016/j.cpc.2009.06.022
+
+
+  For Hartree-Fock, hybrid functionals, or many-body perturbation theory used in your run, please cite:
+
+    Xinguo Ren, Patrick Rinke, Volker Blum, Juergen Wieferink, Alex Tkatchenko,
+    Andrea Sanfilippo, Karsten Reuter, and Matthias Scheffler,
+    'Resolution-of-identity approach to Hartree-Fock, hybrid density functionals,
+    RPA, MP2, and GW with numeric atom-centered orbital basis functions'
+    New Journal of Physics 14, 053020 (2012).
+    http://doi.org/10.1088/1367-2630/14/5/053020
+
+
+  The provided symmetry information was generated with SPGlib:
+
+    Atsushi Togo, Yusuke Seto, Dimitar Pashov
+    SPGlib 1.7.3 obtained from http://spglib.sourceforge.net
+    Copyright (C) 2008 Atsushi Togo
+
+
+  The ELSI infrastructure was used in your run to solve the Kohn-Sham electronic structure.
+  Please check out http://elsi-interchange.org to learn more.
+  If scalability is important for your project, please acknowledge ELSI by citing:
+
+    V. W-z. Yu, F. Corsetti, A. Garcia, W. P. Huhn, M. Jacquelin, W. Jia,
+    B. Lange, L. Lin, J. Lu, W. Mi, A. Seifitokaldani, A. Vazquez-Mayagoitia,
+    C. Yang, H. Yang, and V. Blum
+    'ELSI: A unified software interface for Kohn-Sham electronic structure solvers'
+    Computer Physics Communications 222, 267-285 (2018).
+    http://doi.org/10.1016/j.cpc.2017.09.007
+
+
+  For the real-space grid partitioning and parallelization used in this calculation, please cite:
+
+    Ville Havu, Volker Blum, Paula Havu, and Matthias Scheffler,
+    'Efficient O(N) integration for all-electron electronic structure calculation'
+    'using numerically tabulated basis functions'
+    Journal of Computational Physics 228, 8367-8379 (2009).
+    http://doi.org/10.1016/j.jcp.2009.08.008
+
+
+  The high-level electronic structure method used in your calculation
+  employed our efficient localized resolution of identity for the Coulomb operator.
+  Some calculations, especially large-scale hybrid density functional theory,
+  are only possible thanks to this development. For this feature, please cite:
+
+    Arvid Ihrig, Juergen Wieferink, Igor Ying Zhang, Matti Ropo, Xinguo Ren,
+    Patrick Rinke, Matthias Scheffler, and Volker Blum,
+    'Accurate localized resolution of identity approach for linear-scaling
+    hybrid density functionals and for many-body perturbation theory'
+    New Journal of Physics 117, 093020 (2015).
+    http://doi.org/10.1088/1367-2630/17/9/093020
+
+  Of course, there are many other important community references, e.g., those cited in the
+  above references. Our list is limited to references that describe implementations in the
+  FHI-aims code. The reason is purely practical (length of this list) - please credit others as well.
+
+------------------------------------------------------------
+          Leaving FHI-aims.
+          Date     :  20220420, Time     :  213822.489
+
+          Computational steps:
+          | Number of self-consistency cycles          :           10
+          | Number of SCF (re)initializations          :            1
+
+          Detailed time accounting                     :  max(cpu_time)    wall_clock(cpu1)
+          | Total time                                  :      225.028 s         225.493 s
+          | Preparation time                            :        0.040 s           0.040 s
+          | Boundary condition initalization            :        0.044 s           0.045 s
+          | Grid partitioning                           :        0.014 s           0.014 s
+          | Preloading free-atom quantities on grid     :        0.257 s           0.256 s
+          | Free-atom superposition energy              :        0.022 s           0.022 s
+          | Total time for integrations                 :        3.783 s           3.794 s
+          | Product basis setup: Total time             :        0.000 s           0.000 s
+          | Product basis: | 2-center integrations     :(       0.000 s)  (       0.000 s)
+          | Product basis: | LVL 3-center & coefficient:(       0.000 s)  (       0.000 s)
+          | Initialization for periodic correlated calc :      126.881 s         127.138 s
+          | Transforming LVL triples to recip. space    :        0.460 s           0.461 s
+          | Total time for evaluating polarisability    :       82.514 s          82.677 s
+          | Total time for RPA corr. energy             :        1.928 s           1.929 s
+          | Total time for rSE corr. energy             :        0.332 s           0.332 s
+          | Total time for solution of K.-S. equations  :        0.087 s           0.086 s
+          | Total time for density update               :        6.098 s           6.119 s
+          | Total time for mixing & preconditioning     :        0.715 s           0.715 s
+          | Total time for Hartree multipole update     :        0.005 s           0.007 s
+          | Total time for Hartree multipole sum        :        1.128 s           1.127 s
+          | Total time for total energy evaluation      :        0.001 s           0.000 s
+          | Total time for scaled ZORA corrections      :        0.000 s           0.000 s
+
+          Partial memory accounting:
+          | Residual value for overall tracked memory usage across tasks:     0.000000 MB (should be 0.000000 MB)
+          | Peak values for overall tracked memory usage:
+          |   Minimum:       14.672 MB (on task 1 after allocating gradient_basis_wave)
+          |   Maximum:       16.136 MB (on task 3 after allocating gradient_basis_wave)
+          |   Average:       15.463 MB
+          | Largest tracked array allocation:
+          |   Minimum:        8.230 MB (ovlp3fn for atom on task 1)
+          |   Maximum:        9.333 MB (hamiltonian_shell on task 3)
+          |   Average:        8.816 MB
+          Note:  These values currently only include a subset of arrays which are explicitly tracked.
+          The "true" memory usage will be greater.
+
+          Have a nice day.
+------------------------------------------------------------
