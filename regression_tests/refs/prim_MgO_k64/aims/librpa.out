@@ -1,0 +1,3355 @@
+Parallel_MPI Object is being created !
+cpu02 
+  MPI process_num: 0
+Begin to read aims-band_out
+64129
+efermi :-0.522996
+Success read aims-band_out
+Begin to read aims stru
+3.00979              0              0
+1.50489        2.60655              0
+1.50489       0.868851        2.45748
+0.332249      -0.191824       -0.13564
+1.66519e-17       0.383648       -0.13564
+3.58973e-18   -3.01764e-17       0.406921
+ lat * G
+1       -0.57735      -0.408248
+0.5       0.711325      -0.557678
+0.5      0.0446582       0.678025
+(         0,         0,         0)
+(8.97433e-19,-7.54409e-18,   0.10173)
+(1.79487e-18,-1.50882e-17,   0.20346)
+(2.6923e-18,-2.26323e-17,   0.30519)
+(4.16297e-18, 0.0959121,  -0.03391)
+(5.0604e-18, 0.0959121, 0.0678201)
+(5.95783e-18, 0.0959121,   0.16955)
+(6.85527e-18, 0.0959121,   0.27128)
+(8.32593e-18,  0.191824,-0.0678201)
+(9.22337e-18,  0.191824,   0.03391)
+(1.01208e-17,  0.191824,   0.13564)
+(1.10182e-17,  0.191824,   0.23737)
+(1.24889e-17,  0.287736,  -0.10173)
+(1.33863e-17,  0.287736,-3.90289e-12)
+(1.42838e-17,  0.287736,   0.10173)
+(1.51812e-17,  0.287736,   0.20346)
+( 0.0830623, -0.047956,  -0.03391)
+( 0.0830623, -0.047956, 0.0678201)
+( 0.0830623, -0.047956,   0.16955)
+( 0.0830623, -0.047956,   0.27128)
+( 0.0830623,  0.047956,-0.0678201)
+( 0.0830623,  0.047956,   0.03391)
+( 0.0830623,  0.047956,   0.13564)
+( 0.0830623,  0.047956,   0.23737)
+( 0.0830623,  0.143868,  -0.10173)
+( 0.0830623,  0.143868,-1.95145e-12)
+( 0.0830623,  0.143868,   0.10173)
+( 0.0830623,  0.143868,   0.20346)
+( 0.0830623,   0.23978,  -0.13564)
+( 0.0830623,   0.23978,  -0.03391)
+( 0.0830623,   0.23978, 0.0678201)
+( 0.0830623,   0.23978,   0.16955)
+(  0.166125,-0.0959121,-0.0678201)
+(  0.166125,-0.0959121,   0.03391)
+(  0.166125,-0.0959121,   0.13564)
+(  0.166125,-0.0959121,   0.23737)
+(  0.166125,1.66955e-17,  -0.10173)
+(  0.166125,9.1514e-18,-1.66955e-17)
+(  0.166125,1.60731e-18,   0.10173)
+(  0.166125,-5.93679e-18,   0.20346)
+(  0.166125, 0.0959121,  -0.13564)
+(  0.166125, 0.0959121,  -0.03391)
+(  0.166125, 0.0959121, 0.0678201)
+(  0.166125, 0.0959121,   0.16955)
+(  0.166125,  0.191824,  -0.16955)
+(  0.166125,  0.191824,-0.0678201)
+(  0.166125,  0.191824,   0.03391)
+(  0.166125,  0.191824,   0.13564)
+(  0.249187, -0.143868,  -0.10173)
+(  0.249187, -0.143868,1.95144e-12)
+(  0.249187, -0.143868,   0.10173)
+(  0.249187, -0.143868,   0.20346)
+(  0.249187, -0.047956,  -0.13564)
+(  0.249187, -0.047956,  -0.03391)
+(  0.249187, -0.047956, 0.0678201)
+(  0.249187, -0.047956,   0.16955)
+(  0.249187,  0.047956,  -0.16955)
+(  0.249187,  0.047956,-0.0678201)
+(  0.249187,  0.047956,   0.03391)
+(  0.249187,  0.047956,   0.13564)
+(  0.249187,  0.143868,  -0.20346)
+(  0.249187,  0.143868,  -0.10173)
+(  0.249187,  0.143868,-1.95144e-12)
+(  0.249187,  0.143868,   0.10173)
+Finish read KS_eignvector! 
+Finish read KS_eignvector! 
+Begin to read Cs
+cs_threshold:  1e-06
+Finish read Cs
+Begin to read aims vq_real
+Begin to read aims vq_real
+Begin to read aims vq_real
+Begin to read aims vq_real
+Begin to read aims vq_real
+Begin to read aims vq_real
+Begin to read aims vq_real
+Begin to read aims vq_real
+Begin to read aims vq_real
+Begin to read aims vq_real
+Begin to read aims vq_real
+Begin to read aims vq_real
+Begin to read aims vq_real
+Begin to read aims vq_real
+Begin to read aims vq_real
+Begin to read aims vq_real
+Begin to read aims vq_real
+Begin to read aims vq_real
+Begin to read aims vq_real
+Begin to read aims vq_real
+Begin to read aims vq_real
+Begin to read aims vq_real
+Begin to read aims vq_real
+Begin to read aims vq_real
+Begin to read aims vq_real
+Begin to read aims vq_real
+Begin to read aims vq_real
+Begin to read aims vq_real
+Begin to read aims vq_real
+Begin to read aims vq_real
+Begin to read aims vq_real
+Begin to read aims vq_real
+Begin to read aims vq_real
+Begin to read aims vq_real
+Begin to read aims vq_real
+Begin to read aims vq_real
+Begin to read aims vq_real
+Begin to read aims vq_real
+Begin to read aims vq_real
+Begin to read aims vq_real
+Begin to read aims vq_real
+Begin to read aims vq_real
+Begin to read aims vq_real
+Begin to read aims vq_real
+Begin to read aims vq_real
+Begin to read aims vq_real
+Begin to read aims vq_real
+Begin to read aims vq_real
+FINISH coulomb files reading!
+vq threshold: 1e-06
+vq_save:    108
+vq_dicard:  0
+  Vq_dim   2    2   36
+ irk_vec and weight: (         0,         0,         0)  0.015625
+ irk_vec and weight: (8.97433e-19,-7.54409e-18,   0.10173)  0.03125
+ irk_vec and weight: (1.79487e-18,-1.50882e-17,   0.20346)  0.015625
+ irk_vec and weight: (4.16297e-18, 0.0959121,  -0.03391)  0.03125
+ irk_vec and weight: (5.0604e-18, 0.0959121, 0.0678201)  0.03125
+ irk_vec and weight: (5.95783e-18, 0.0959121,   0.16955)  0.03125
+ irk_vec and weight: (6.85527e-18, 0.0959121,   0.27128)  0.03125
+ irk_vec and weight: (8.32593e-18,  0.191824,-0.0678201)  0.015625
+ irk_vec and weight: (9.22337e-18,  0.191824,   0.03391)  0.03125
+ irk_vec and weight: (1.01208e-17,  0.191824,   0.13564)  0.015625
+ irk_vec and weight: ( 0.0830623, -0.047956,  -0.03391)  0.03125
+ irk_vec and weight: ( 0.0830623, -0.047956, 0.0678201)  0.03125
+ irk_vec and weight: ( 0.0830623, -0.047956,   0.16955)  0.03125
+ irk_vec and weight: ( 0.0830623, -0.047956,   0.27128)  0.03125
+ irk_vec and weight: ( 0.0830623,  0.047956,-0.0678201)  0.03125
+ irk_vec and weight: ( 0.0830623,  0.047956,   0.03391)  0.03125
+ irk_vec and weight: ( 0.0830623,  0.047956,   0.13564)  0.03125
+ irk_vec and weight: ( 0.0830623,  0.047956,   0.23737)  0.03125
+ irk_vec and weight: ( 0.0830623,  0.143868,  -0.10173)  0.03125
+ irk_vec and weight: ( 0.0830623,  0.143868,-1.95145e-12)  0.03125
+ irk_vec and weight: ( 0.0830623,  0.143868,   0.10173)  0.03125
+ irk_vec and weight: ( 0.0830623,  0.143868,   0.20346)  0.03125
+ irk_vec and weight: ( 0.0830623,   0.23978,  -0.13564)  0.03125
+ irk_vec and weight: ( 0.0830623,   0.23978,  -0.03391)  0.03125
+ irk_vec and weight: ( 0.0830623,   0.23978, 0.0678201)  0.03125
+ irk_vec and weight: ( 0.0830623,   0.23978,   0.16955)  0.03125
+ irk_vec and weight: (  0.166125,-0.0959121,-0.0678201)  0.015625
+ irk_vec and weight: (  0.166125,-0.0959121,   0.03391)  0.03125
+ irk_vec and weight: (  0.166125,-0.0959121,   0.13564)  0.015625
+ irk_vec and weight: (  0.166125,1.66955e-17,  -0.10173)  0.03125
+ irk_vec and weight: (  0.166125,9.1514e-18,-1.66955e-17)  0.03125
+ irk_vec and weight: (  0.166125,1.60731e-18,   0.10173)  0.03125
+ irk_vec and weight: (  0.166125,-5.93679e-18,   0.20346)  0.03125
+ irk_vec and weight: (  0.166125, 0.0959121,  -0.13564)  0.015625
+ irk_vec and weight: (  0.166125, 0.0959121,  -0.03391)  0.03125
+ irk_vec and weight: (  0.166125, 0.0959121, 0.0678201)  0.015625
+Finish read aims vq
+Green threshold:  0.0001
+  Tot  Cs_dim   2    2   321
+  Tot  Vq_dim   2    2   36
+  I J  Cs_R.num 0  0   321
+  I J  Cs_R.num 0  1   236
+  I J  Cs_R.num 1  0   236
+  I J  Cs_R.num 1  1   177
+Cs[0][0] R :
+(        -4,         0,         1)
+(        -4,         0,         2)
+(        -4,         0,         3)
+(        -4,         1,         0)
+(        -4,         1,         1)
+(        -4,         1,         2)
+(        -4,         1,         3)
+(        -4,         2,         0)
+(        -4,         2,         1)
+(        -4,         2,         2)
+(        -4,         3,         0)
+(        -4,         3,         1)
+(        -3,        -2,         2)
+(        -3,        -2,         3)
+(        -3,        -1,         0)
+(        -3,        -1,         1)
+(        -3,        -1,         2)
+(        -3,        -1,         3)
+(        -3,        -1,         4)
+(        -3,         0,        -1)
+(        -3,         0,         0)
+(        -3,         0,         1)
+(        -3,         0,         2)
+(        -3,         0,         3)
+(        -3,         0,         4)
+(        -3,         1,        -1)
+(        -3,         1,         0)
+(        -3,         1,         1)
+(        -3,         1,         2)
+(        -3,         1,         3)
+(        -3,         2,        -2)
+(        -3,         2,        -1)
+(        -3,         2,         0)
+(        -3,         2,         1)
+(        -3,         2,         2)
+(        -3,         2,         3)
+(        -3,         3,        -2)
+(        -3,         3,        -1)
+(        -3,         3,         0)
+(        -3,         3,         1)
+(        -3,         3,         2)
+(        -3,         4,        -1)
+(        -3,         4,         0)
+(        -2,        -3,         2)
+(        -2,        -3,         3)
+(        -2,        -2,         0)
+(        -2,        -2,         1)
+(        -2,        -2,         2)
+(        -2,        -2,         3)
+(        -2,        -2,         4)
+(        -2,        -1,        -1)
+(        -2,        -1,         0)
+(        -2,        -1,         1)
+(        -2,        -1,         2)
+(        -2,        -1,         3)
+(        -2,        -1,         4)
+(        -2,         0,        -2)
+(        -2,         0,        -1)
+(        -2,         0,         0)
+(        -2,         0,         1)
+(        -2,         0,         2)
+(        -2,         0,         3)
+(        -2,         0,         4)
+(        -2,         1,        -2)
+(        -2,         1,        -1)
+(        -2,         1,         0)
+(        -2,         1,         1)
+(        -2,         1,         2)
+(        -2,         1,         3)
+(        -2,         2,        -3)
+(        -2,         2,        -2)
+(        -2,         2,        -1)
+(        -2,         2,         0)
+(        -2,         2,         1)
+(        -2,         2,         2)
+(        -2,         2,         3)
+(        -2,         3,        -3)
+(        -2,         3,        -2)
+(        -2,         3,        -1)
+(        -2,         3,         0)
+(        -2,         3,         1)
+(        -2,         3,         2)
+(        -2,         4,        -2)
+(        -2,         4,        -1)
+(        -2,         4,         0)
+(        -1,        -3,         0)
+(        -1,        -3,         1)
+(        -1,        -3,         2)
+(        -1,        -3,         3)
+(        -1,        -3,         4)
+(        -1,        -2,        -1)
+(        -1,        -2,         0)
+(        -1,        -2,         1)
+(        -1,        -2,         2)
+(        -1,        -2,         3)
+(        -1,        -2,         4)
+(        -1,        -1,        -2)
+(        -1,        -1,        -1)
+(        -1,        -1,         0)
+(        -1,        -1,         1)
+(        -1,        -1,         2)
+(        -1,        -1,         3)
+(        -1,        -1,         4)
+(        -1,         0,        -3)
+(        -1,         0,        -2)
+(        -1,         0,        -1)
+(        -1,         0,         0)
+(        -1,         0,         1)
+(        -1,         0,         2)
+(        -1,         0,         3)
+(        -1,         0,         4)
+(        -1,         1,        -3)
+(        -1,         1,        -2)
+(        -1,         1,        -1)
+(        -1,         1,         0)
+(        -1,         1,         1)
+(        -1,         1,         2)
+(        -1,         1,         3)
+(        -1,         2,        -3)
+(        -1,         2,        -2)
+(        -1,         2,        -1)
+(        -1,         2,         0)
+(        -1,         2,         1)
+(        -1,         2,         2)
+(        -1,         3,        -3)
+(        -1,         3,        -2)
+(        -1,         3,        -1)
+(        -1,         3,         0)
+(        -1,         3,         1)
+(        -1,         4,        -3)
+(        -1,         4,        -2)
+(        -1,         4,        -1)
+(        -1,         4,         0)
+(         0,        -4,         1)
+(         0,        -4,         2)
+(         0,        -4,         3)
+(         0,        -3,        -1)
+(         0,        -3,         0)
+(         0,        -3,         1)
+(         0,        -3,         2)
+(         0,        -3,         3)
+(         0,        -3,         4)
+(         0,        -2,        -2)
+(         0,        -2,        -1)
+(         0,        -2,         0)
+(         0,        -2,         1)
+(         0,        -2,         2)
+(         0,        -2,         3)
+(         0,        -2,         4)
+(         0,        -1,        -3)
+(         0,        -1,        -2)
+(         0,        -1,        -1)
+(         0,        -1,         0)
+(         0,        -1,         1)
+(         0,        -1,         2)
+(         0,        -1,         3)
+(         0,        -1,         4)
+(         0,         0,        -3)
+(         0,         0,        -2)
+(         0,         0,        -1)
+(         0,         0,         0)
+(         0,         0,         1)
+(         0,         0,         2)
+(         0,         0,         3)
+(         0,         1,        -4)
+(         0,         1,        -3)
+(         0,         1,        -2)
+(         0,         1,        -1)
+(         0,         1,         0)
+(         0,         1,         1)
+(         0,         1,         2)
+(         0,         1,         3)
+(         0,         2,        -4)
+(         0,         2,        -3)
+(         0,         2,        -2)
+(         0,         2,        -1)
+(         0,         2,         0)
+(         0,         2,         1)
+(         0,         2,         2)
+(         0,         3,        -4)
+(         0,         3,        -3)
+(         0,         3,        -2)
+(         0,         3,        -1)
+(         0,         3,         0)
+(         0,         3,         1)
+(         0,         4,        -3)
+(         0,         4,        -2)
+(         0,         4,        -1)
+(         1,        -4,         0)
+(         1,        -4,         1)
+(         1,        -4,         2)
+(         1,        -4,         3)
+(         1,        -3,        -1)
+(         1,        -3,         0)
+(         1,        -3,         1)
+(         1,        -3,         2)
+(         1,        -3,         3)
+(         1,        -2,        -2)
+(         1,        -2,        -1)
+(         1,        -2,         0)
+(         1,        -2,         1)
+(         1,        -2,         2)
+(         1,        -2,         3)
+(         1,        -1,        -3)
+(         1,        -1,        -2)
+(         1,        -1,        -1)
+(         1,        -1,         0)
+(         1,        -1,         1)
+(         1,        -1,         2)
+(         1,        -1,         3)
+(         1,         0,        -4)
+(         1,         0,        -3)
+(         1,         0,        -2)
+(         1,         0,        -1)
+(         1,         0,         0)
+(         1,         0,         1)
+(         1,         0,         2)
+(         1,         0,         3)
+(         1,         1,        -4)
+(         1,         1,        -3)
+(         1,         1,        -2)
+(         1,         1,        -1)
+(         1,         1,         0)
+(         1,         1,         1)
+(         1,         1,         2)
+(         1,         2,        -4)
+(         1,         2,        -3)
+(         1,         2,        -2)
+(         1,         2,        -1)
+(         1,         2,         0)
+(         1,         2,         1)
+(         1,         3,        -4)
+(         1,         3,        -3)
+(         1,         3,        -2)
+(         1,         3,        -1)
+(         1,         3,         0)
+(         2,        -4,         0)
+(         2,        -4,         1)
+(         2,        -4,         2)
+(         2,        -3,        -2)
+(         2,        -3,        -1)
+(         2,        -3,         0)
+(         2,        -3,         1)
+(         2,        -3,         2)
+(         2,        -3,         3)
+(         2,        -2,        -3)
+(         2,        -2,        -2)
+(         2,        -2,        -1)
+(         2,        -2,         0)
+(         2,        -2,         1)
+(         2,        -2,         2)
+(         2,        -2,         3)
+(         2,        -1,        -3)
+(         2,        -1,        -2)
+(         2,        -1,        -1)
+(         2,        -1,         0)
+(         2,        -1,         1)
+(         2,        -1,         2)
+(         2,         0,        -4)
+(         2,         0,        -3)
+(         2,         0,        -2)
+(         2,         0,        -1)
+(         2,         0,         0)
+(         2,         0,         1)
+(         2,         0,         2)
+(         2,         1,        -4)
+(         2,         1,        -3)
+(         2,         1,        -2)
+(         2,         1,        -1)
+(         2,         1,         0)
+(         2,         1,         1)
+(         2,         2,        -4)
+(         2,         2,        -3)
+(         2,         2,        -2)
+(         2,         2,        -1)
+(         2,         2,         0)
+(         2,         3,        -3)
+(         2,         3,        -2)
+(         3,        -4,         0)
+(         3,        -4,         1)
+(         3,        -3,        -2)
+(         3,        -3,        -1)
+(         3,        -3,         0)
+(         3,        -3,         1)
+(         3,        -3,         2)
+(         3,        -2,        -3)
+(         3,        -2,        -2)
+(         3,        -2,        -1)
+(         3,        -2,         0)
+(         3,        -2,         1)
+(         3,        -2,         2)
+(         3,        -1,        -3)
+(         3,        -1,        -2)
+(         3,        -1,        -1)
+(         3,        -1,         0)
+(         3,        -1,         1)
+(         3,         0,        -4)
+(         3,         0,        -3)
+(         3,         0,        -2)
+(         3,         0,        -1)
+(         3,         0,         0)
+(         3,         0,         1)
+(         3,         1,        -4)
+(         3,         1,        -3)
+(         3,         1,        -2)
+(         3,         1,        -1)
+(         3,         1,         0)
+(         3,         2,        -3)
+(         3,         2,        -2)
+(         4,        -3,        -1)
+(         4,        -3,         0)
+(         4,        -2,        -2)
+(         4,        -2,        -1)
+(         4,        -2,         0)
+(         4,        -1,        -3)
+(         4,        -1,        -2)
+(         4,        -1,        -1)
+(         4,        -1,         0)
+(         4,         0,        -3)
+(         4,         0,        -2)
+(         4,         0,        -1)
+midpoint:  0.015625
+ik  0    hommo_level:9
+ik  1    hommo_level:9
+ik  2    hommo_level:9
+ik  3    hommo_level:9
+ik  4    hommo_level:9
+ik  5    hommo_level:9
+ik  6    hommo_level:9
+ik  7    hommo_level:9
+ik  8    hommo_level:9
+ik  9    hommo_level:9
+ik  10    hommo_level:9
+ik  11    hommo_level:9
+ik  12    hommo_level:9
+ik  13    hommo_level:9
+ik  14    hommo_level:9
+ik  15    hommo_level:9
+ik  16    hommo_level:9
+ik  17    hommo_level:9
+ik  18    hommo_level:9
+ik  19    hommo_level:9
+ik  20    hommo_level:9
+ik  21    hommo_level:9
+ik  22    hommo_level:9
+ik  23    hommo_level:9
+ik  24    hommo_level:9
+ik  25    hommo_level:9
+ik  26    hommo_level:9
+ik  27    hommo_level:9
+ik  28    hommo_level:9
+ik  29    hommo_level:9
+ik  30    hommo_level:9
+ik  31    hommo_level:9
+ik  32    hommo_level:9
+ik  33    hommo_level:9
+ik  34    hommo_level:9
+ik  35    hommo_level:9
+ik  36    hommo_level:9
+ik  37    hommo_level:9
+ik  38    hommo_level:9
+ik  39    hommo_level:9
+ik  40    hommo_level:9
+ik  41    hommo_level:9
+ik  42    hommo_level:9
+ik  43    hommo_level:9
+ik  44    hommo_level:9
+ik  45    hommo_level:9
+ik  46    hommo_level:9
+ik  47    hommo_level:9
+ik  48    hommo_level:9
+ik  49    hommo_level:9
+ik  50    hommo_level:9
+ik  51    hommo_level:9
+ik  52    hommo_level:9
+ik  53    hommo_level:9
+ik  54    hommo_level:9
+ik  55    hommo_level:9
+ik  56    hommo_level:9
+ik  57    hommo_level:9
+ik  58    hommo_level:9
+ik  59    hommo_level:9
+ik  60    hommo_level:9
+ik  61    hommo_level:9
+ik  62    hommo_level:9
+ik  63    hommo_level:9
+E_max: 51.207
+E_min: 0.160455
+E_homo(ev):-9.87     E_lumo(ev):-5.50381     gap(ev): 4.36619
+python /home/rongshi/git_LibRPA/LibRPA/minimax_grid/GreenX/generate_local_grid.py 14 319.136916
+N:  14
+R:  319.136916
+grid_N: 14
+finish init
+(        -2,        -2,        -2)
+(        -2,        -2,        -1)
+(        -2,        -2,         0)
+(        -2,        -2,         1)
+(        -2,        -1,        -2)
+(        -2,        -1,        -1)
+(        -2,        -1,         0)
+(        -2,        -1,         1)
+(        -2,         0,        -2)
+(        -2,         0,        -1)
+(        -2,         0,         0)
+(        -2,         0,         1)
+(        -2,         1,        -2)
+(        -2,         1,        -1)
+(        -2,         1,         0)
+(        -2,         1,         1)
+(        -1,        -2,        -2)
+(        -1,        -2,        -1)
+(        -1,        -2,         0)
+(        -1,        -2,         1)
+(        -1,        -1,        -2)
+(        -1,        -1,        -1)
+(        -1,        -1,         0)
+(        -1,        -1,         1)
+(        -1,         0,        -2)
+(        -1,         0,        -1)
+(        -1,         0,         0)
+(        -1,         0,         1)
+(        -1,         1,        -2)
+(        -1,         1,        -1)
+(        -1,         1,         0)
+(        -1,         1,         1)
+(         0,        -2,        -2)
+(         0,        -2,        -1)
+(         0,        -2,         0)
+(         0,        -2,         1)
+(         0,        -1,        -2)
+(         0,        -1,        -1)
+(         0,        -1,         0)
+(         0,        -1,         1)
+(         0,         0,        -2)
+(         0,         0,        -1)
+(         0,         0,         0)
+(         0,         0,         1)
+(         0,         1,        -2)
+(         0,         1,        -1)
+(         0,         1,         0)
+(         0,         1,         1)
+(         1,        -2,        -2)
+(         1,        -2,        -1)
+(         1,        -2,         0)
+(         1,        -2,         1)
+(         1,        -1,        -2)
+(         1,        -1,        -1)
+(         1,        -1,         0)
+(         1,        -1,         1)
+(         1,         0,        -2)
+(         1,         0,        -1)
+(         1,         0,         0)
+(         1,         0,         1)
+(         1,         1,        -2)
+(         1,         1,        -1)
+(         1,         1,         0)
+(         1,         1,         1)
+ R_periodic: (         4,         4,         4)
+R_grid_num= 64
+midpoint:  0.015625
+ik  0    hommo_level:9
+ik  1    hommo_level:9
+ik  2    hommo_level:9
+ik  3    hommo_level:9
+ik  4    hommo_level:9
+ik  5    hommo_level:9
+ik  6    hommo_level:9
+ik  7    hommo_level:9
+ik  8    hommo_level:9
+ik  9    hommo_level:9
+ik  10    hommo_level:9
+ik  11    hommo_level:9
+ik  12    hommo_level:9
+ik  13    hommo_level:9
+ik  14    hommo_level:9
+ik  15    hommo_level:9
+ik  16    hommo_level:9
+ik  17    hommo_level:9
+ik  18    hommo_level:9
+ik  19    hommo_level:9
+ik  20    hommo_level:9
+ik  21    hommo_level:9
+ik  22    hommo_level:9
+ik  23    hommo_level:9
+ik  24    hommo_level:9
+ik  25    hommo_level:9
+ik  26    hommo_level:9
+ik  27    hommo_level:9
+ik  28    hommo_level:9
+ik  29    hommo_level:9
+ik  30    hommo_level:9
+ik  31    hommo_level:9
+ik  32    hommo_level:9
+ik  33    hommo_level:9
+ik  34    hommo_level:9
+ik  35    hommo_level:9
+ik  36    hommo_level:9
+ik  37    hommo_level:9
+ik  38    hommo_level:9
+ik  39    hommo_level:9
+ik  40    hommo_level:9
+ik  41    hommo_level:9
+ik  42    hommo_level:9
+ik  43    hommo_level:9
+ik  44    hommo_level:9
+ik  45    hommo_level:9
+ik  46    hommo_level:9
+ik  47    hommo_level:9
+ik  48    hommo_level:9
+ik  49    hommo_level:9
+ik  50    hommo_level:9
+ik  51    hommo_level:9
+ik  52    hommo_level:9
+ik  53    hommo_level:9
+ik  54    hommo_level:9
+ik  55    hommo_level:9
+ik  56    hommo_level:9
+ik  57    hommo_level:9
+ik  58    hommo_level:9
+ik  59    hommo_level:9
+ik  60    hommo_level:9
+ik  61    hommo_level:9
+ik  62    hommo_level:9
+ik  63    hommo_level:9
+E_max: 51.207
+E_min: 0.160455
+E_homo(ev):-9.87     E_lumo(ev):-5.50381     gap(ev): 4.36619
+ MINIMAX_GRID_Tau 
+0.00824065      0.0213362
+0.0451476      0.0537206
+0.119629      0.0981509
+0.249874      0.168137
+0.471606      0.285584
+0.847665      0.48345
+1.48167      0.811715
+2.53992      1.34787
+4.28626      2.21281
+7.13723      3.59657
+11.7528      5.80778
+19.206      9.39709
+31.393      15.5946
+52.5974      28.9595
+midpoint:  0.015625
+ik  0    hommo_level:9
+ik  1    hommo_level:9
+ik  2    hommo_level:9
+ik  3    hommo_level:9
+ik  4    hommo_level:9
+ik  5    hommo_level:9
+ik  6    hommo_level:9
+ik  7    hommo_level:9
+ik  8    hommo_level:9
+ik  9    hommo_level:9
+ik  10    hommo_level:9
+ik  11    hommo_level:9
+ik  12    hommo_level:9
+ik  13    hommo_level:9
+ik  14    hommo_level:9
+ik  15    hommo_level:9
+ik  16    hommo_level:9
+ik  17    hommo_level:9
+ik  18    hommo_level:9
+ik  19    hommo_level:9
+ik  20    hommo_level:9
+ik  21    hommo_level:9
+ik  22    hommo_level:9
+ik  23    hommo_level:9
+ik  24    hommo_level:9
+ik  25    hommo_level:9
+ik  26    hommo_level:9
+ik  27    hommo_level:9
+ik  28    hommo_level:9
+ik  29    hommo_level:9
+ik  30    hommo_level:9
+ik  31    hommo_level:9
+ik  32    hommo_level:9
+ik  33    hommo_level:9
+ik  34    hommo_level:9
+ik  35    hommo_level:9
+ik  36    hommo_level:9
+ik  37    hommo_level:9
+ik  38    hommo_level:9
+ik  39    hommo_level:9
+ik  40    hommo_level:9
+ik  41    hommo_level:9
+ik  42    hommo_level:9
+ik  43    hommo_level:9
+ik  44    hommo_level:9
+ik  45    hommo_level:9
+ik  46    hommo_level:9
+ik  47    hommo_level:9
+ik  48    hommo_level:9
+ik  49    hommo_level:9
+ik  50    hommo_level:9
+ik  51    hommo_level:9
+ik  52    hommo_level:9
+ik  53    hommo_level:9
+ik  54    hommo_level:9
+ik  55    hommo_level:9
+ik  56    hommo_level:9
+ik  57    hommo_level:9
+ik  58    hommo_level:9
+ik  59    hommo_level:9
+ik  60    hommo_level:9
+ik  61    hommo_level:9
+ik  62    hommo_level:9
+ik  63    hommo_level:9
+E_max: 51.207
+E_min: 0.160455
+E_homo(ev):-9.87     E_lumo(ev):-5.50381     gap(ev): 4.36619
+ MINIMAX_GRID_Freq 
+0.0347257      0.0706212
+0.111391      0.085376
+0.211707      0.118983
+0.358648      0.18072
+0.588149      0.287907
+0.959752      0.471763
+1.57551      0.788602
+2.61466      1.34137
+4.39913      2.3224
+7.52242      4.1044
+13.1236      7.46467
+23.5824      14.3342
+45.0796      31.8245
+105.871      117.664
+midpoint:  0.015625
+ik  0    hommo_level:9
+ik  1    hommo_level:9
+ik  2    hommo_level:9
+ik  3    hommo_level:9
+ik  4    hommo_level:9
+ik  5    hommo_level:9
+ik  6    hommo_level:9
+ik  7    hommo_level:9
+ik  8    hommo_level:9
+ik  9    hommo_level:9
+ik  10    hommo_level:9
+ik  11    hommo_level:9
+ik  12    hommo_level:9
+ik  13    hommo_level:9
+ik  14    hommo_level:9
+ik  15    hommo_level:9
+ik  16    hommo_level:9
+ik  17    hommo_level:9
+ik  18    hommo_level:9
+ik  19    hommo_level:9
+ik  20    hommo_level:9
+ik  21    hommo_level:9
+ik  22    hommo_level:9
+ik  23    hommo_level:9
+ik  24    hommo_level:9
+ik  25    hommo_level:9
+ik  26    hommo_level:9
+ik  27    hommo_level:9
+ik  28    hommo_level:9
+ik  29    hommo_level:9
+ik  30    hommo_level:9
+ik  31    hommo_level:9
+ik  32    hommo_level:9
+ik  33    hommo_level:9
+ik  34    hommo_level:9
+ik  35    hommo_level:9
+ik  36    hommo_level:9
+ik  37    hommo_level:9
+ik  38    hommo_level:9
+ik  39    hommo_level:9
+ik  40    hommo_level:9
+ik  41    hommo_level:9
+ik  42    hommo_level:9
+ik  43    hommo_level:9
+ik  44    hommo_level:9
+ik  45    hommo_level:9
+ik  46    hommo_level:9
+ik  47    hommo_level:9
+ik  48    hommo_level:9
+ik  49    hommo_level:9
+ik  50    hommo_level:9
+ik  51    hommo_level:9
+ik  52    hommo_level:9
+ik  53    hommo_level:9
+ik  54    hommo_level:9
+ik  55    hommo_level:9
+ik  56    hommo_level:9
+ik  57    hommo_level:9
+ik  58    hommo_level:9
+ik  59    hommo_level:9
+ik  60    hommo_level:9
+ik  61    hommo_level:9
+ik  62    hommo_level:9
+ik  63    hommo_level:9
+E_max: 51.207
+E_min: 0.160455
+E_homo(ev):-9.87     E_lumo(ev):-5.50381     gap(ev): 4.36619
+Cosine_tran_grid
+   itt: 0   tau_vec: 0.00824065
+   itt: 1   tau_vec: 0.0451476
+   itt: 2   tau_vec: 0.119629
+   itt: 3   tau_vec: 0.249874
+   itt: 4   tau_vec: 0.471606
+   itt: 5   tau_vec: 0.847665
+   itt: 6   tau_vec: 1.48167
+   itt: 7   tau_vec: 2.53992
+   itt: 8   tau_vec: 4.28626
+   itt: 9   tau_vec: 7.13723
+   itt: 10   tau_vec: 11.7528
+   itt: 11   tau_vec: 19.206
+   itt: 12   tau_vec: 31.393
+   itt: 13   tau_vec: 52.5974
+ FINISH GREEN FUN
+ Green threshold: 0.0001
+ Green save num: 6906
+ Green discard num: 262
+  ntask_ap: 3    ntask_R_tau: 896
+Go R_tau_routing!!!    tau_vec: 0.00824065
+CHI0 p_id: 0,   thread: 37,     R:  ( -2,  -2,  -1 ),    tau: 52.597381 ,   TIME_USED: 13.395948 
+ CHI0 p_id: 0,   thread: 41,     R:  ( -2,  -2,  -2 ),    tau: 52.597381 ,   TIME_USED: 13.409788 
+ CHI0 p_id: 0,   thread: 8,     R:  ( -2,  -2,  0 ),    tau: 52.597381 ,   TIME_USED: 17.589539 
+ CHI0 p_id: 0,   thread: 23,     R:  ( -2,  -2,  -1 ),    tau: 31.392956 ,   TIME_USED: 29.083564 
+ CHI0 p_id: 0,   thread: 34,     R:  ( -2,  -2,  -2 ),    tau: 31.392956 ,   TIME_USED: 32.893284 
+ CHI0 p_id: 0,   thread: 36,     R:  ( -2,  -2,  -1 ),    tau: 0.471606 ,   TIME_USED: 39.510246 
+ CHI0 p_id: 0,   thread: 24,     R:  ( -2,  -2,  0 ),    tau: 1.481673 ,   TIME_USED: 39.522753 
+ CHI0 p_id: 0,   thread: 35,     R:  ( -2,  -2,  -2 ),    tau: 19.206034 ,   TIME_USED: 39.541100 
+ CHI0 p_id: 0,   thread: 30,     R:  ( -2,  -2,  0 ),    tau: 0.045148 ,   TIME_USED: 39.553422 
+ CHI0 p_id: 0,   thread: 26,     R:  ( -2,  -2,  0 ),    tau: 19.206034 ,   TIME_USED: 39.565886 
+ CHI0 p_id: 0,   thread: 31,     R:  ( -2,  -2,  0 ),    tau: 0.008241 ,   TIME_USED: 39.582590 
+ CHI0 p_id: 0,   thread: 39,     R:  ( -2,  -2,  -2 ),    tau: 11.752803 ,   TIME_USED: 39.595225 
+ CHI0 p_id: 0,   thread: 42,     R:  ( -2,  -2,  -1 ),    tau: 0.119629 ,   TIME_USED: 39.608087 
+ CHI0 p_id: 0,   thread: 15,     R:  ( -2,  -2,  1 ),    tau: 0.119629 ,   TIME_USED: 39.624707 
+ CHI0 p_id: 0,   thread: 38,     R:  ( -2,  -2,  -1 ),    tau: 19.206034 ,   TIME_USED: 39.637466 
+ CHI0 p_id: 0,   thread: 22,     R:  ( -2,  -2,  0 ),    tau: 0.249874 ,   TIME_USED: 39.650370 
+ CHI0 p_id: 0,   thread: 28,     R:  ( -2,  -2,  -1 ),    tau: 0.045148 ,   TIME_USED: 39.667096 
+ CHI0 p_id: 0,   thread: 44,     R:  ( -2,  -2,  -1 ),    tau: 0.008241 ,   TIME_USED: 39.679690 
+ CHI0 p_id: 0,   thread: 27,     R:  ( -2,  -2,  0 ),    tau: 7.137231 ,   TIME_USED: 39.691989 
+ CHI0 p_id: 0,   thread: 32,     R:  ( -2,  -2,  1 ),    tau: 0.045148 ,   TIME_USED: 39.709016 
+ CHI0 p_id: 0,   thread: 9,     R:  ( -2,  -2,  -2 ),    tau: 4.286264 ,   TIME_USED: 39.721710 
+ CHI0 p_id: 0,   thread: 12,     R:  ( -2,  -2,  -2 ),    tau: 0.008241 ,   TIME_USED: 39.734073 
+ CHI0 p_id: 0,   thread: 21,     R:  ( -2,  -2,  0 ),    tau: 11.752803 ,   TIME_USED: 39.746252 
+ CHI0 p_id: 0,   thread: 14,     R:  ( -2,  -2,  -2 ),    tau: 0.471606 ,   TIME_USED: 39.793805 
+ CHI0 p_id: 0,   thread: 0,     R:  ( -2,  -2,  0 ),    tau: 31.392956 ,   TIME_USED: 40.177783 
+ CHI0 p_id: 0,   thread: 6,     R:  ( -2,  -2,  0 ),    tau: 0.471606 ,   TIME_USED: 41.025847 
+ CHI0 p_id: 0,   thread: 5,     R:  ( -2,  -2,  0 ),    tau: 0.847665 ,   TIME_USED: 41.050449 
+ CHI0 p_id: 0,   thread: 1,     R:  ( -2,  -2,  -1 ),    tau: 0.847665 ,   TIME_USED: 41.074957 
+ CHI0 p_id: 0,   thread: 4,     R:  ( -2,  -2,  -2 ),    tau: 2.539921 ,   TIME_USED: 41.099916 
+ CHI0 p_id: 0,   thread: 43,     R:  ( -2,  -2,  -1 ),    tau: 7.137231 ,   TIME_USED: 41.124334 
+ CHI0 p_id: 0,   thread: 47,     R:  ( -2,  -2,  1 ),    tau: 0.008241 ,   TIME_USED: 41.148345 
+ CHI0 p_id: 0,   thread: 18,     R:  ( -2,  -2,  -1 ),    tau: 1.481673 ,   TIME_USED: 41.172749 
+ CHI0 p_id: 0,   thread: 10,     R:  ( -2,  -2,  -2 ),    tau: 1.481673 ,   TIME_USED: 41.189485 
+ CHI0 p_id: 0,   thread: 13,     R:  ( -2,  -2,  -2 ),    tau: 0.847665 ,   TIME_USED: 41.222185 
+ CHI0 p_id: 0,   thread: 7,     R:  ( -2,  -2,  -2 ),    tau: 7.137231 ,   TIME_USED: 41.248007 
+ CHI0 p_id: 0,   thread: 45,     R:  ( -2,  -2,  1 ),    tau: 0.249874 ,   TIME_USED: 41.271022 
+ CHI0 p_id: 0,   thread: 2,     R:  ( -2,  -2,  -2 ),    tau: 0.119629 ,   TIME_USED: 41.295387 
+ CHI0 p_id: 0,   thread: 46,     R:  ( -2,  -2,  1 ),    tau: 0.471606 ,   TIME_USED: 41.311688 
+ CHI0 p_id: 0,   thread: 17,     R:  ( -2,  -2,  0 ),    tau: 4.286264 ,   TIME_USED: 41.328371 
+ CHI0 p_id: 0,   thread: 40,     R:  ( -2,  -2,  1 ),    tau: 0.847665 ,   TIME_USED: 41.344581 
+ CHI0 p_id: 0,   thread: 25,     R:  ( -2,  -2,  0 ),    tau: 2.539921 ,   TIME_USED: 41.369052 
+ CHI0 p_id: 0,   thread: 11,     R:  ( -2,  -2,  -2 ),    tau: 0.045148 ,   TIME_USED: 41.393922 
+ CHI0 p_id: 0,   thread: 33,     R:  ( -2,  -2,  -1 ),    tau: 4.286264 ,   TIME_USED: 41.410331 
+ CHI0 p_id: 0,   thread: 29,     R:  ( -2,  -2,  -1 ),    tau: 2.539921 ,   TIME_USED: 41.427654 
+ CHI0 p_id: 0,   thread: 19,     R:  ( -2,  -2,  -1 ),    tau: 11.752803 ,   TIME_USED: 41.444805 
+ CHI0 p_id: 0,   thread: 20,     R:  ( -2,  -2,  0 ),    tau: 0.119629 ,   TIME_USED: 41.468277 
+ CHI0 p_id: 0,   thread: 16,     R:  ( -2,  -2,  -1 ),    tau: 0.249874 ,   TIME_USED: 41.491531 
+ CHI0 p_id: 0,   thread: 3,     R:  ( -2,  -2,  -2 ),    tau: 0.249874 ,   TIME_USED: 41.507761 
+ CHI0 p_id: 0,   thread: 35,     R:  ( -2,  -2,  1 ),    tau: 52.597381 ,   TIME_USED: 12.893515 
+ CHI0 p_id: 0,   thread: 12,     R:  ( -2,  -1,  -2 ),    tau: 52.597381 ,   TIME_USED: 12.912199 
+ CHI0 p_id: 0,   thread: 37,     R:  ( -2,  -2,  1 ),    tau: 1.481673 ,   TIME_USED: 39.326789 
+ CHI0 p_id: 0,   thread: 41,     R:  ( -2,  -2,  1 ),    tau: 2.539921 ,   TIME_USED: 39.326054 
+ CHI0 p_id: 0,   thread: 8,     R:  ( -2,  -2,  1 ),    tau: 4.286264 ,   TIME_USED: 38.931196 
+ CHI0 p_id: 0,   thread: 45,     R:  ( -2,  -1,  -1 ),    tau: 52.597381 ,   TIME_USED: 20.398368 
+ CHI0 p_id: 0,   thread: 24,     R:  ( -2,  -2,  1 ),    tau: 31.392956 ,   TIME_USED: 23.641323 
+ CHI0 p_id: 0,   thread: 23,     R:  ( -2,  -2,  1 ),    tau: 7.137231 ,   TIME_USED: 37.997093 
+ CHI0 p_id: 0,   thread: 9,     R:  ( -2,  -1,  -2 ),    tau: 31.392956 ,   TIME_USED: 27.645964 
+ CHI0 p_id: 0,   thread: 12,     R:  ( -2,  -1,  0 ),    tau: 52.597381 ,   TIME_USED: 17.017129 
+ CHI0 p_id: 0,   thread: 34,     R:  ( -2,  -2,  1 ),    tau: 11.752803 ,   TIME_USED: 38.068363 
+ CHI0 p_id: 0,   thread: 7,     R:  ( -2,  -1,  -1 ),    tau: 31.392956 ,   TIME_USED: 31.384549 
+ CHI0 p_id: 0,   thread: 36,     R:  ( -2,  -2,  1 ),    tau: 19.206034 ,   TIME_USED: 37.870694 
+ CHI0 p_id: 0,   thread: 30,     R:  ( -2,  -1,  -2 ),    tau: 0.008241 ,   TIME_USED: 37.912444 
+ CHI0 p_id: 0,   thread: 42,     R:  ( -2,  -1,  -2 ),    tau: 0.471606 ,   TIME_USED: 37.878797 
+ CHI0 p_id: 0,   thread: 26,     R:  ( -2,  -1,  -2 ),    tau: 0.045148 ,   TIME_USED: 37.933711 
+ CHI0 p_id: 0,   thread: 38,     R:  ( -2,  -1,  -2 ),    tau: 1.481673 ,   TIME_USED: 37.892552 
+ CHI0 p_id: 0,   thread: 39,     R:  ( -2,  -1,  -2 ),    tau: 0.249874 ,   TIME_USED: 37.955945 
+ CHI0 p_id: 0,   thread: 31,     R:  ( -2,  -1,  -2 ),    tau: 0.119629 ,   TIME_USED: 37.981448 
+ CHI0 p_id: 0,   thread: 15,     R:  ( -2,  -1,  -2 ),    tau: 0.847665 ,   TIME_USED: 37.951586 
+ CHI0 p_id: 0,   thread: 22,     R:  ( -2,  -1,  -2 ),    tau: 2.539921 ,   TIME_USED: 37.942684 
+ CHI0 p_id: 0,   thread: 28,     R:  ( -2,  -1,  -2 ),    tau: 4.286264 ,   TIME_USED: 37.938447 
+ CHI0 p_id: 0,   thread: 32,     R:  ( -2,  -1,  -2 ),    tau: 19.206034 ,   TIME_USED: 37.908791 
+ CHI0 p_id: 0,   thread: 27,     R:  ( -2,  -1,  -2 ),    tau: 11.752803 ,   TIME_USED: 37.943123 
+ CHI0 p_id: 0,   thread: 44,     R:  ( -2,  -1,  -2 ),    tau: 7.137231 ,   TIME_USED: 37.968184 
+ CHI0 p_id: 0,   thread: 21,     R:  ( -2,  -1,  -1 ),    tau: 0.008241 ,   TIME_USED: 37.913835 
+ CHI0 p_id: 0,   thread: 14,     R:  ( -2,  -1,  -1 ),    tau: 0.045148 ,   TIME_USED: 39.970378 
+ CHI0 p_id: 0,   thread: 35,     R:  ( -2,  -1,  0 ),    tau: 31.392956 ,   TIME_USED: 28.317765 
+ CHI0 p_id: 0,   thread: 11,     R:  ( -2,  -1,  0 ),    tau: 0.847665 ,   TIME_USED: 40.728455 
+ CHI0 p_id: 0,   thread: 0,     R:  ( -2,  -1,  -1 ),    tau: 0.119629 ,   TIME_USED: 42.063701 
+ CHI0 p_id: 0,   thread: 10,     R:  ( -2,  -1,  -1 ),    tau: 11.752803 ,   TIME_USED: 41.563666 
+ CHI0 p_id: 0,   thread: 6,     R:  ( -2,  -1,  -1 ),    tau: 0.249874 ,   TIME_USED: 41.972109 
+ CHI0 p_id: 0,   thread: 4,     R:  ( -2,  -1,  -1 ),    tau: 1.481673 ,   TIME_USED: 41.922589 
+ CHI0 p_id: 0,   thread: 5,     R:  ( -2,  -1,  -1 ),    tau: 0.471606 ,   TIME_USED: 41.996156 
+ CHI0 p_id: 0,   thread: 1,     R:  ( -2,  -1,  -1 ),    tau: 0.847665 ,   TIME_USED: 41.996475 
+ CHI0 p_id: 0,   thread: 43,     R:  ( -2,  -1,  -1 ),    tau: 2.539921 ,   TIME_USED: 41.997268 
+ CHI0 p_id: 0,   thread: 18,     R:  ( -2,  -1,  -1 ),    tau: 7.137231 ,   TIME_USED: 41.973511 
+ CHI0 p_id: 0,   thread: 47,     R:  ( -2,  -1,  -1 ),    tau: 4.286264 ,   TIME_USED: 42.022267 
+ CHI0 p_id: 0,   thread: 13,     R:  ( -2,  -1,  -1 ),    tau: 19.206034 ,   TIME_USED: 42.021153 
+ CHI0 p_id: 0,   thread: 46,     R:  ( -2,  -1,  0 ),    tau: 0.045148 ,   TIME_USED: 41.980050 
+ CHI0 p_id: 0,   thread: 2,     R:  ( -2,  -1,  0 ),    tau: 0.008241 ,   TIME_USED: 42.022436 
+ CHI0 p_id: 0,   thread: 17,     R:  ( -2,  -1,  0 ),    tau: 0.119629 ,   TIME_USED: 42.012292 
+ CHI0 p_id: 0,   thread: 40,     R:  ( -2,  -1,  0 ),    tau: 0.249874 ,   TIME_USED: 42.019685 
+ CHI0 p_id: 0,   thread: 25,     R:  ( -2,  -1,  0 ),    tau: 0.471606 ,   TIME_USED: 42.019199 
+ CHI0 p_id: 0,   thread: 33,     R:  ( -2,  -1,  0 ),    tau: 1.481673 ,   TIME_USED: 42.002385 
+ CHI0 p_id: 0,   thread: 19,     R:  ( -2,  -1,  0 ),    tau: 4.286264 ,   TIME_USED: 41.993108 
+ CHI0 p_id: 0,   thread: 29,     R:  ( -2,  -1,  0 ),    tau: 2.539921 ,   TIME_USED: 42.033950 
+ CHI0 p_id: 0,   thread: 16,     R:  ( -2,  -1,  0 ),    tau: 11.752803 ,   TIME_USED: 41.994203 
+ CHI0 p_id: 0,   thread: 20,     R:  ( -2,  -1,  0 ),    tau: 7.137231 ,   TIME_USED: 42.033418 
+ CHI0 p_id: 0,   thread: 3,     R:  ( -2,  -1,  0 ),    tau: 19.206034 ,   TIME_USED: 42.009955 
+ CHI0 p_id: 0,   thread: 37,     R:  ( -2,  -1,  1 ),    tau: 0.008241 ,   TIME_USED: 38.510398 
+ CHI0 p_id: 0,   thread: 41,     R:  ( -2,  -1,  1 ),    tau: 0.045148 ,   TIME_USED: 38.517275 
+ CHI0 p_id: 0,   thread: 26,     R:  ( -2,  -1,  1 ),    tau: 52.597381 ,   TIME_USED: 14.347530 
+ CHI0 p_id: 0,   thread: 8,     R:  ( -2,  -1,  1 ),    tau: 0.119629 ,   TIME_USED: 38.630489 
+ CHI0 p_id: 0,   thread: 0,     R:  ( -2,  0,  -2 ),    tau: 52.597381 ,   TIME_USED: 18.997939 
+ CHI0 p_id: 0,   thread: 24,     R:  ( -2,  -1,  1 ),    tau: 0.471606 ,   TIME_USED: 38.395553 
+ CHI0 p_id: 0,   thread: 25,     R:  ( -2,  0,  -1 ),    tau: 52.597381 ,   TIME_USED: 18.936910 
+ CHI0 p_id: 0,   thread: 45,     R:  ( -2,  -1,  1 ),    tau: 0.249874 ,   TIME_USED: 42.226823 
+ CHI0 p_id: 0,   thread: 23,     R:  ( -2,  -1,  1 ),    tau: 0.847665 ,   TIME_USED: 38.146328 
+ CHI0 p_id: 0,   thread: 9,     R:  ( -2,  -1,  1 ),    tau: 1.481673 ,   TIME_USED: 38.150384 
+ CHI0 p_id: 0,   thread: 42,     R:  ( -2,  -1,  1 ),    tau: 31.392956 ,   TIME_USED: 28.964595 
+ CHI0 p_id: 0,   thread: 12,     R:  ( -2,  -1,  1 ),    tau: 2.539921 ,   TIME_USED: 38.137125 
+ CHI0 p_id: 0,   thread: 34,     R:  ( -2,  -1,  1 ),    tau: 4.286264 ,   TIME_USED: 38.240463 
+ CHI0 p_id: 0,   thread: 7,     R:  ( -2,  -1,  1 ),    tau: 7.137231 ,   TIME_USED: 39.602827 
+ CHI0 p_id: 0,   thread: 40,     R:  ( -2,  0,  -1 ),    tau: 31.392956 ,   TIME_USED: 29.857641 
+ CHI0 p_id: 0,   thread: 36,     R:  ( -2,  -1,  1 ),    tau: 11.752803 ,   TIME_USED: 38.938179 
+ CHI0 p_id: 0,   thread: 30,     R:  ( -2,  -1,  1 ),    tau: 19.206034 ,   TIME_USED: 38.961792 
+ CHI0 p_id: 0,   thread: 38,     R:  ( -2,  0,  -2 ),    tau: 0.008241 ,   TIME_USED: 38.985744 
+ CHI0 p_id: 0,   thread: 22,     R:  ( -2,  0,  -2 ),    tau: 0.471606 ,   TIME_USED: 38.966513 
+ CHI0 p_id: 0,   thread: 39,     R:  ( -2,  0,  -2 ),    tau: 0.045148 ,   TIME_USED: 39.030426 
+ CHI0 p_id: 0,   thread: 15,     R:  ( -2,  0,  -2 ),    tau: 0.249874 ,   TIME_USED: 39.026871 
+ CHI0 p_id: 0,   thread: 27,     R:  ( -2,  0,  -2 ),    tau: 2.539921 ,   TIME_USED: 38.980876 
+ CHI0 p_id: 0,   thread: 32,     R:  ( -2,  0,  -2 ),    tau: 1.481673 ,   TIME_USED: 39.011863 
+ CHI0 p_id: 0,   thread: 31,     R:  ( -2,  0,  -2 ),    tau: 0.119629 ,   TIME_USED: 39.082769 
+ CHI0 p_id: 0,   thread: 44,     R:  ( -2,  0,  -2 ),    tau: 4.286264 ,   TIME_USED: 39.011473 
+ CHI0 p_id: 0,   thread: 28,     R:  ( -2,  0,  -2 ),    tau: 0.847665 ,   TIME_USED: 39.066509 
+ CHI0 p_id: 0,   thread: 21,     R:  ( -2,  0,  -2 ),    tau: 7.137231 ,   TIME_USED: 39.031209 
+ CHI0 p_id: 0,   thread: 14,     R:  ( -2,  0,  -2 ),    tau: 11.752803 ,   TIME_USED: 38.963326 
+ CHI0 p_id: 0,   thread: 11,     R:  ( -2,  0,  -2 ),    tau: 31.392956 ,   TIME_USED: 36.866767 
+ CHI0 p_id: 0,   thread: 35,     R:  ( -2,  0,  -2 ),    tau: 19.206034 ,   TIME_USED: 39.172151 
+ CHI0 p_id: 0,   thread: 10,     R:  ( -2,  0,  -1 ),    tau: 0.008241 ,   TIME_USED: 39.412001 
+ CHI0 p_id: 0,   thread: 6,     R:  ( -2,  0,  -1 ),    tau: 0.045148 ,   TIME_USED: 39.347052 
+ CHI0 p_id: 0,   thread: 1,     R:  ( -2,  0,  -1 ),    tau: 0.471606 ,   TIME_USED: 39.361930 
+ CHI0 p_id: 0,   thread: 5,     R:  ( -2,  0,  -1 ),    tau: 0.249874 ,   TIME_USED: 39.409299 
+ CHI0 p_id: 0,   thread: 43,     R:  ( -2,  0,  -1 ),    tau: 0.847665 ,   TIME_USED: 39.380490 
+ CHI0 p_id: 0,   thread: 18,     R:  ( -2,  0,  -1 ),    tau: 1.481673 ,   TIME_USED: 39.399132 
+ CHI0 p_id: 0,   thread: 47,     R:  ( -2,  0,  -1 ),    tau: 2.539921 ,   TIME_USED: 39.390332 
+ CHI0 p_id: 0,   thread: 46,     R:  ( -2,  0,  -1 ),    tau: 7.137231 ,   TIME_USED: 39.300937 
+ CHI0 p_id: 0,   thread: 13,     R:  ( -2,  0,  -1 ),    tau: 4.286264 ,   TIME_USED: 39.372716 
+ CHI0 p_id: 0,   thread: 4,     R:  ( -2,  0,  -1 ),    tau: 0.119629 ,   TIME_USED: 39.616684 
+ CHI0 p_id: 0,   thread: 2,     R:  ( -2,  0,  -1 ),    tau: 11.752803 ,   TIME_USED: 39.368082 
+ CHI0 p_id: 0,   thread: 17,     R:  ( -2,  0,  -1 ),    tau: 19.206034 ,   TIME_USED: 39.368899 
+ CHI0 p_id: 0,   thread: 33,     R:  ( -2,  0,  0 ),    tau: 0.008241 ,   TIME_USED: 39.387906 
+ CHI0 p_id: 0,   thread: 19,     R:  ( -2,  0,  0 ),    tau: 0.045148 ,   TIME_USED: 39.384894 
+ CHI0 p_id: 0,   thread: 29,     R:  ( -2,  0,  0 ),    tau: 0.119629 ,   TIME_USED: 39.408132 
+ CHI0 p_id: 0,   thread: 20,     R:  ( -2,  0,  0 ),    tau: 0.471606 ,   TIME_USED: 39.413706 
+ CHI0 p_id: 0,   thread: 3,     R:  ( -2,  0,  0 ),    tau: 0.847665 ,   TIME_USED: 39.420948 
+ CHI0 p_id: 0,   thread: 45,     R:  ( -2,  0,  0 ),    tau: 52.597381 ,   TIME_USED: 19.367844 
+ CHI0 p_id: 0,   thread: 16,     R:  ( -2,  0,  0 ),    tau: 0.249874 ,   TIME_USED: 39.985369 
+ CHI0 p_id: 0,   thread: 37,     R:  ( -2,  0,  0 ),    tau: 1.481673 ,   TIME_USED: 39.242640 
+ CHI0 p_id: 0,   thread: 41,     R:  ( -2,  0,  0 ),    tau: 2.539921 ,   TIME_USED: 39.243685 
+ CHI0 p_id: 0,   thread: 26,     R:  ( -2,  0,  0 ),    tau: 4.286264 ,   TIME_USED: 39.206385 
+ CHI0 p_id: 0,   thread: 8,     R:  ( -2,  0,  0 ),    tau: 7.137231 ,   TIME_USED: 38.805015 
+ CHI0 p_id: 0,   thread: 27,     R:  ( -2,  0,  1 ),    tau: 52.597381 ,   TIME_USED: 17.780891 
+ CHI0 p_id: 0,   thread: 18,     R:  ( -2,  1,  -2 ),    tau: 52.597381 ,   TIME_USED: 15.975877 
+ CHI0 p_id: 0,   thread: 25,     R:  ( -2,  0,  0 ),    tau: 31.392956 ,   TIME_USED: 37.384146 
+ CHI0 p_id: 0,   thread: 24,     R:  ( -2,  0,  0 ),    tau: 19.206034 ,   TIME_USED: 38.534794 
+ CHI0 p_id: 0,   thread: 0,     R:  ( -2,  0,  0 ),    tau: 11.752803 ,   TIME_USED: 41.417992 
+ CHI0 p_id: 0,   thread: 23,     R:  ( -2,  0,  1 ),    tau: 0.008241 ,   TIME_USED: 38.348922 
+ CHI0 p_id: 0,   thread: 9,     R:  ( -2,  0,  1 ),    tau: 0.045148 ,   TIME_USED: 38.349226 
+ CHI0 p_id: 0,   thread: 42,     R:  ( -2,  0,  1 ),    tau: 0.119629 ,   TIME_USED: 38.308537 
+ CHI0 p_id: 0,   thread: 37,     R:  ( -2,  1,  -1 ),    tau: 52.597381 ,   TIME_USED: 14.383580 
+ CHI0 p_id: 0,   thread: 15,     R:  ( -2,  0,  1 ),    tau: 31.392956 ,   TIME_USED: 28.713909 
+ CHI0 p_id: 0,   thread: 12,     R:  ( -2,  0,  1 ),    tau: 0.249874 ,   TIME_USED: 38.297207 
+ CHI0 p_id: 0,   thread: 34,     R:  ( -2,  0,  1 ),    tau: 0.471606 ,   TIME_USED: 38.580883 
+ CHI0 p_id: 0,   thread: 43,     R:  ( -2,  1,  -2 ),    tau: 31.392956 ,   TIME_USED: 25.325453 
+ CHI0 p_id: 0,   thread: 7,     R:  ( -2,  0,  1 ),    tau: 0.847665 ,   TIME_USED: 39.511992 
+ CHI0 p_id: 0,   thread: 40,     R:  ( -2,  0,  1 ),    tau: 1.481673 ,   TIME_USED: 39.685312 
+ CHI0 p_id: 0,   thread: 16,     R:  ( -2,  1,  -1 ),    tau: 31.392956 ,   TIME_USED: 29.946321 
+ CHI0 p_id: 0,   thread: 36,     R:  ( -2,  0,  1 ),    tau: 2.539921 ,   TIME_USED: 38.866992 
+ CHI0 p_id: 0,   thread: 30,     R:  ( -2,  0,  1 ),    tau: 4.286264 ,   TIME_USED: 38.843617 
+ CHI0 p_id: 0,   thread: 38,     R:  ( -2,  0,  1 ),    tau: 7.137231 ,   TIME_USED: 38.861400 
+ CHI0 p_id: 0,   thread: 22,     R:  ( -2,  0,  1 ),    tau: 11.752803 ,   TIME_USED: 38.838856 
+ CHI0 p_id: 0,   thread: 39,     R:  ( -2,  0,  1 ),    tau: 19.206034 ,   TIME_USED: 38.859287 
+ CHI0 p_id: 0,   thread: 31,     R:  ( -2,  1,  -2 ),    tau: 0.045148 ,   TIME_USED: 38.856334 
+ CHI0 p_id: 0,   thread: 28,     R:  ( -2,  1,  -2 ),    tau: 0.249874 ,   TIME_USED: 38.850362 
+ CHI0 p_id: 0,   thread: 32,     R:  ( -2,  1,  -2 ),    tau: 0.008241 ,   TIME_USED: 38.904761 
+ CHI0 p_id: 0,   thread: 44,     R:  ( -2,  1,  -2 ),    tau: 0.119629 ,   TIME_USED: 38.887758 
+ CHI0 p_id: 0,   thread: 21,     R:  ( -2,  1,  -2 ),    tau: 0.471606 ,   TIME_USED: 38.868171 
+ CHI0 p_id: 0,   thread: 14,     R:  ( -2,  1,  -2 ),    tau: 0.847665 ,   TIME_USED: 38.789536 
+ CHI0 p_id: 0,   thread: 35,     R:  ( -2,  1,  -2 ),    tau: 2.539921 ,   TIME_USED: 38.731235 
+ CHI0 p_id: 0,   thread: 11,     R:  ( -2,  1,  -2 ),    tau: 1.481673 ,   TIME_USED: 39.970192 
+ CHI0 p_id: 0,   thread: 4,     R:  ( -2,  1,  -1 ),    tau: 0.249874 ,   TIME_USED: 39.517689 
+ CHI0 p_id: 0,   thread: 10,     R:  ( -2,  1,  -2 ),    tau: 4.286264 ,   TIME_USED: 40.078639 
+ CHI0 p_id: 0,   thread: 6,     R:  ( -2,  1,  -2 ),    tau: 7.137231 ,   TIME_USED: 40.096821 
+ CHI0 p_id: 0,   thread: 1,     R:  ( -2,  1,  -2 ),    tau: 11.752803 ,   TIME_USED: 40.119508 
+ CHI0 p_id: 0,   thread: 5,     R:  ( -2,  1,  -2 ),    tau: 19.206034 ,   TIME_USED: 40.141133 
+ CHI0 p_id: 0,   thread: 47,     R:  ( -2,  1,  -1 ),    tau: 0.008241 ,   TIME_USED: 40.147028 
+ CHI0 p_id: 0,   thread: 46,     R:  ( -2,  1,  -1 ),    tau: 0.045148 ,   TIME_USED: 40.159814 
+ CHI0 p_id: 0,   thread: 13,     R:  ( -2,  1,  -1 ),    tau: 0.119629 ,   TIME_USED: 40.151543 
+ CHI0 p_id: 0,   thread: 2,     R:  ( -2,  1,  -1 ),    tau: 0.471606 ,   TIME_USED: 40.134908 
+ CHI0 p_id: 0,   thread: 17,     R:  ( -2,  1,  -1 ),    tau: 0.847665 ,   TIME_USED: 40.156885 
+ CHI0 p_id: 0,   thread: 33,     R:  ( -2,  1,  -1 ),    tau: 1.481673 ,   TIME_USED: 40.134064 
+ CHI0 p_id: 0,   thread: 19,     R:  ( -2,  1,  -1 ),    tau: 2.539921 ,   TIME_USED: 40.156684 
+ CHI0 p_id: 0,   thread: 29,     R:  ( -2,  1,  -1 ),    tau: 4.286264 ,   TIME_USED: 40.155963 
+ CHI0 p_id: 0,   thread: 3,     R:  ( -2,  1,  -1 ),    tau: 11.752803 ,   TIME_USED: 40.155210 
+ CHI0 p_id: 0,   thread: 20,     R:  ( -2,  1,  -1 ),    tau: 7.137231 ,   TIME_USED: 40.201901 
+ CHI0 p_id: 0,   thread: 45,     R:  ( -2,  1,  -1 ),    tau: 19.206034 ,   TIME_USED: 40.237573 
+ CHI0 p_id: 0,   thread: 12,     R:  ( -2,  1,  0 ),    tau: 52.597381 ,   TIME_USED: 18.356625 
+ CHI0 p_id: 0,   thread: 41,     R:  ( -2,  1,  0 ),    tau: 0.008241 ,   TIME_USED: 38.523915 
+ CHI0 p_id: 0,   thread: 26,     R:  ( -2,  1,  0 ),    tau: 0.045148 ,   TIME_USED: 38.521235 
+ CHI0 p_id: 0,   thread: 8,     R:  ( -2,  1,  0 ),    tau: 0.119629 ,   TIME_USED: 38.221587 
+ CHI0 p_id: 0,   thread: 27,     R:  ( -2,  1,  0 ),    tau: 0.249874 ,   TIME_USED: 38.238602 
+ CHI0 p_id: 0,   thread: 44,     R:  ( -2,  1,  1 ),    tau: 52.597381 ,   TIME_USED: 17.447607 
+ CHI0 p_id: 0,   thread: 15,     R:  ( -2,  1,  0 ),    tau: 31.392956 ,   TIME_USED: 28.932205 
+ CHI0 p_id: 0,   thread: 24,     R:  ( -2,  1,  0 ),    tau: 1.481673 ,   TIME_USED: 38.057059 
+ CHI0 p_id: 0,   thread: 17,     R:  ( -1,  -2,  -2 ),    tau: 52.597381 ,   TIME_USED: 16.228689 
+ CHI0 p_id: 0,   thread: 18,     R:  ( -2,  1,  0 ),    tau: 0.471606 ,   TIME_USED: 41.100822 
+ CHI0 p_id: 0,   thread: 32,     R:  ( -2,  1,  1 ),    tau: 31.392956 ,   TIME_USED: 25.015773 
+ CHI0 p_id: 0,   thread: 25,     R:  ( -2,  1,  0 ),    tau: 0.847665 ,   TIME_USED: 41.014151 
+ CHI0 p_id: 0,   thread: 23,     R:  ( -2,  1,  0 ),    tau: 4.286264 ,   TIME_USED: 38.588761 
+ CHI0 p_id: 0,   thread: 9,     R:  ( -2,  1,  0 ),    tau: 7.137231 ,   TIME_USED: 38.591306 
+ CHI0 p_id: 0,   thread: 42,     R:  ( -2,  1,  0 ),    tau: 11.752803 ,   TIME_USED: 38.602117 
+ CHI0 p_id: 0,   thread: 37,     R:  ( -2,  1,  0 ),    tau: 19.206034 ,   TIME_USED: 38.639594 
+ CHI0 p_id: 0,   thread: 0,     R:  ( -2,  1,  0 ),    tau: 2.539921 ,   TIME_USED: 41.275715 
+ CHI0 p_id: 0,   thread: 34,     R:  ( -2,  1,  1 ),    tau: 0.008241 ,   TIME_USED: 38.781594 
+ CHI0 p_id: 0,   thread: 43,     R:  ( -2,  1,  1 ),    tau: 0.045148 ,   TIME_USED: 40.297011 
+ CHI0 p_id: 0,   thread: 7,     R:  ( -2,  1,  1 ),    tau: 0.119629 ,   TIME_USED: 39.716968 
+ CHI0 p_id: 0,   thread: 40,     R:  ( -2,  1,  1 ),    tau: 0.249874 ,   TIME_USED: 39.658113 
+ CHI0 p_id: 0,   thread: 16,     R:  ( -2,  1,  1 ),    tau: 0.471606 ,   TIME_USED: 39.709926 
+ CHI0 p_id: 0,   thread: 2,     R:  ( -1,  -2,  -2 ),    tau: 31.392956 ,   TIME_USED: 30.856052 
+ CHI0 p_id: 0,   thread: 36,     R:  ( -2,  1,  1 ),    tau: 0.847665 ,   TIME_USED: 39.089063 
+ CHI0 p_id: 0,   thread: 30,     R:  ( -2,  1,  1 ),    tau: 1.481673 ,   TIME_USED: 39.099426 
+ CHI0 p_id: 0,   thread: 22,     R:  ( -2,  1,  1 ),    tau: 4.286264 ,   TIME_USED: 39.058928 
+ CHI0 p_id: 0,   thread: 38,     R:  ( -2,  1,  1 ),    tau: 2.539921 ,   TIME_USED: 39.102220 
+ CHI0 p_id: 0,   thread: 39,     R:  ( -2,  1,  1 ),    tau: 7.137231 ,   TIME_USED: 39.101743 
+ CHI0 p_id: 0,   thread: 28,     R:  ( -2,  1,  1 ),    tau: 19.206034 ,   TIME_USED: 39.086700 
+ CHI0 p_id: 0,   thread: 31,     R:  ( -2,  1,  1 ),    tau: 11.752803 ,   TIME_USED: 39.147877 
+ CHI0 p_id: 0,   thread: 21,     R:  ( -1,  -2,  -2 ),    tau: 0.008241 ,   TIME_USED: 39.114391 
+ CHI0 p_id: 0,   thread: 14,     R:  ( -1,  -2,  -2 ),    tau: 0.045148 ,   TIME_USED: 39.428684 
+ CHI0 p_id: 0,   thread: 24,     R:  ( -1,  -2,  -1 ),    tau: 52.597381 ,   TIME_USED: 19.121596 
+ CHI0 p_id: 0,   thread: 35,     R:  ( -1,  -2,  -2 ),    tau: 0.119629 ,   TIME_USED: 39.463009 
+ CHI0 p_id: 0,   thread: 11,     R:  ( -1,  -2,  -2 ),    tau: 0.249874 ,   TIME_USED: 39.669121 
+ CHI0 p_id: 0,   thread: 4,     R:  ( -1,  -2,  -2 ),    tau: 0.471606 ,   TIME_USED: 39.170029 
+ CHI0 p_id: 0,   thread: 10,     R:  ( -1,  -2,  -2 ),    tau: 0.847665 ,   TIME_USED: 39.769170 
+ CHI0 p_id: 0,   thread: 6,     R:  ( -1,  -2,  -2 ),    tau: 1.481673 ,   TIME_USED: 39.719190 
+ CHI0 p_id: 0,   thread: 1,     R:  ( -1,  -2,  -2 ),    tau: 2.539921 ,   TIME_USED: 39.736367 
+ CHI0 p_id: 0,   thread: 5,     R:  ( -1,  -2,  -2 ),    tau: 4.286264 ,   TIME_USED: 39.735348 
+ CHI0 p_id: 0,   thread: 47,     R:  ( -1,  -2,  -2 ),    tau: 7.137231 ,   TIME_USED: 39.710271 
+ CHI0 p_id: 0,   thread: 46,     R:  ( -1,  -2,  -2 ),    tau: 11.752803 ,   TIME_USED: 39.708665 
+ CHI0 p_id: 0,   thread: 13,     R:  ( -1,  -2,  -2 ),    tau: 19.206034 ,   TIME_USED: 39.715300 
+ CHI0 p_id: 0,   thread: 33,     R:  ( -1,  -2,  -1 ),    tau: 0.008241 ,   TIME_USED: 39.741612 
+ CHI0 p_id: 0,   thread: 19,     R:  ( -1,  -2,  -1 ),    tau: 0.045148 ,   TIME_USED: 39.718216 
+ CHI0 p_id: 0,   thread: 29,     R:  ( -1,  -2,  -1 ),    tau: 0.119629 ,   TIME_USED: 39.736167 
+ CHI0 p_id: 0,   thread: 3,     R:  ( -1,  -2,  -1 ),    tau: 0.249874 ,   TIME_USED: 39.732208 
+ CHI0 p_id: 0,   thread: 20,     R:  ( -1,  -2,  -1 ),    tau: 0.471606 ,   TIME_USED: 39.730124 
+ CHI0 p_id: 0,   thread: 45,     R:  ( -1,  -2,  -1 ),    tau: 0.847665 ,   TIME_USED: 39.753888 
+ CHI0 p_id: 0,   thread: 12,     R:  ( -1,  -2,  -1 ),    tau: 1.481673 ,   TIME_USED: 39.807657 
+ CHI0 p_id: 0,   thread: 15,     R:  ( -1,  -2,  -1 ),    tau: 31.392956 ,   TIME_USED: 30.583930 
+ CHI0 p_id: 0,   thread: 41,     R:  ( -1,  -2,  -1 ),    tau: 2.539921 ,   TIME_USED: 39.435814 
+ CHI0 p_id: 0,   thread: 26,     R:  ( -1,  -2,  -1 ),    tau: 4.286264 ,   TIME_USED: 39.508061 
+ CHI0 p_id: 0,   thread: 16,     R:  ( -1,  -2,  0 ),    tau: 52.597381 ,   TIME_USED: 18.410326 
+ CHI0 p_id: 0,   thread: 8,     R:  ( -1,  -2,  -1 ),    tau: 7.137231 ,   TIME_USED: 39.690279 
+ CHI0 p_id: 0,   thread: 27,     R:  ( -1,  -2,  -1 ),    tau: 11.752803 ,   TIME_USED: 39.713702 
+ CHI0 p_id: 0,   thread: 44,     R:  ( -1,  -2,  -1 ),    tau: 19.206034 ,   TIME_USED: 39.727685 
+ CHI0 p_id: 0,   thread: 4,     R:  ( -1,  -2,  1 ),    tau: 52.597381 ,   TIME_USED: 16.027175 
+ CHI0 p_id: 0,   thread: 17,     R:  ( -1,  -2,  0 ),    tau: 0.008241 ,   TIME_USED: 39.530601 
+ CHI0 p_id: 0,   thread: 18,     R:  ( -1,  -2,  0 ),    tau: 0.045148 ,   TIME_USED: 39.494617 
+ CHI0 p_id: 0,   thread: 25,     R:  ( -1,  -2,  0 ),    tau: 0.249874 ,   TIME_USED: 39.390337 
+ CHI0 p_id: 0,   thread: 32,     R:  ( -1,  -2,  0 ),    tau: 0.119629 ,   TIME_USED: 40.151034 
+ CHI0 p_id: 0,   thread: 40,     R:  ( -1,  -2,  0 ),    tau: 31.392956 ,   TIME_USED: 29.269987 
+ CHI0 p_id: 0,   thread: 23,     R:  ( -1,  -2,  0 ),    tau: 0.471606 ,   TIME_USED: 40.352025 
+ CHI0 p_id: 0,   thread: 12,     R:  ( -1,  -1,  -2 ),    tau: 52.597381 ,   TIME_USED: 18.502380 
+ CHI0 p_id: 0,   thread: 9,     R:  ( -1,  -2,  0 ),    tau: 0.847665 ,   TIME_USED: 40.402508 
+ CHI0 p_id: 0,   thread: 0,     R:  ( -1,  -2,  0 ),    tau: 4.286264 ,   TIME_USED: 39.238517 
+ CHI0 p_id: 0,   thread: 42,     R:  ( -1,  -2,  0 ),    tau: 1.481673 ,   TIME_USED: 40.433815 
+ CHI0 p_id: 0,   thread: 37,     R:  ( -1,  -2,  0 ),    tau: 2.539921 ,   TIME_USED: 40.433495 
+ CHI0 p_id: 0,   thread: 43,     R:  ( -1,  -2,  0 ),    tau: 11.752803 ,   TIME_USED: 38.535977 
+ CHI0 p_id: 0,   thread: 34,     R:  ( -1,  -2,  0 ),    tau: 7.137231 ,   TIME_USED: 40.468832 
+ CHI0 p_id: 0,   thread: 11,     R:  ( -1,  -2,  1 ),    tau: 31.392956 ,   TIME_USED: 28.689801 
+ CHI0 p_id: 0,   thread: 7,     R:  ( -1,  -2,  0 ),    tau: 19.206034 ,   TIME_USED: 38.331913 
+ CHI0 p_id: 0,   thread: 2,     R:  ( -1,  -2,  1 ),    tau: 0.008241 ,   TIME_USED: 38.367051 
+ CHI0 p_id: 0,   thread: 45,     R:  ( -1,  -1,  -2 ),    tau: 31.392956 ,   TIME_USED: 29.482551 
+ CHI0 p_id: 0,   thread: 36,     R:  ( -1,  -2,  1 ),    tau: 0.045148 ,   TIME_USED: 40.590862 
+ CHI0 p_id: 0,   thread: 30,     R:  ( -1,  -2,  1 ),    tau: 0.119629 ,   TIME_USED: 40.606874 
+ CHI0 p_id: 0,   thread: 38,     R:  ( -1,  -2,  1 ),    tau: 0.471606 ,   TIME_USED: 40.586915 
+ CHI0 p_id: 0,   thread: 22,     R:  ( -1,  -2,  1 ),    tau: 0.249874 ,   TIME_USED: 40.630644 
+ CHI0 p_id: 0,   thread: 39,     R:  ( -1,  -2,  1 ),    tau: 0.847665 ,   TIME_USED: 40.591627 
+ CHI0 p_id: 0,   thread: 28,     R:  ( -1,  -2,  1 ),    tau: 1.481673 ,   TIME_USED: 40.615830 
+ CHI0 p_id: 0,   thread: 31,     R:  ( -1,  -2,  1 ),    tau: 2.539921 ,   TIME_USED: 40.642343 
+ CHI0 p_id: 0,   thread: 21,     R:  ( -1,  -2,  1 ),    tau: 4.286264 ,   TIME_USED: 40.641428 
+ CHI0 p_id: 0,   thread: 14,     R:  ( -1,  -2,  1 ),    tau: 7.137231 ,   TIME_USED: 40.616125 
+ CHI0 p_id: 0,   thread: 24,     R:  ( -1,  -2,  1 ),    tau: 11.752803 ,   TIME_USED: 40.618815 
+ CHI0 p_id: 0,   thread: 35,     R:  ( -1,  -2,  1 ),    tau: 19.206034 ,   TIME_USED: 40.613392 
+ CHI0 p_id: 0,   thread: 10,     R:  ( -1,  -1,  -2 ),    tau: 0.008241 ,   TIME_USED: 38.985635 
+ CHI0 p_id: 0,   thread: 6,     R:  ( -1,  -1,  -2 ),    tau: 0.045148 ,   TIME_USED: 38.986609 
+ CHI0 p_id: 0,   thread: 1,     R:  ( -1,  -1,  -2 ),    tau: 0.119629 ,   TIME_USED: 38.991025 
+ CHI0 p_id: 0,   thread: 5,     R:  ( -1,  -1,  -2 ),    tau: 0.249874 ,   TIME_USED: 38.966642 
+ CHI0 p_id: 0,   thread: 47,     R:  ( -1,  -1,  -2 ),    tau: 0.471606 ,   TIME_USED: 38.999881 
+ CHI0 p_id: 0,   thread: 13,     R:  ( -1,  -1,  -2 ),    tau: 1.481673 ,   TIME_USED: 38.999996 
+ CHI0 p_id: 0,   thread: 46,     R:  ( -1,  -1,  -2 ),    tau: 0.847665 ,   TIME_USED: 39.105449 
+ CHI0 p_id: 0,   thread: 33,     R:  ( -1,  -1,  -2 ),    tau: 2.539921 ,   TIME_USED: 38.992105 
+ CHI0 p_id: 0,   thread: 19,     R:  ( -1,  -1,  -2 ),    tau: 4.286264 ,   TIME_USED: 39.036455 
+ CHI0 p_id: 0,   thread: 3,     R:  ( -1,  -1,  -2 ),    tau: 11.752803 ,   TIME_USED: 38.992644 
+ CHI0 p_id: 0,   thread: 20,     R:  ( -1,  -1,  -2 ),    tau: 19.206034 ,   TIME_USED: 39.014860 
+ CHI0 p_id: 0,   thread: 29,     R:  ( -1,  -1,  -2 ),    tau: 7.137231 ,   TIME_USED: 39.144157 
+ CHI0 p_id: 0,   thread: 23,     R:  ( -1,  -1,  -1 ),    tau: 52.597381 ,   TIME_USED: 19.514919 
+ CHI0 p_id: 0,   thread: 15,     R:  ( -1,  -1,  -1 ),    tau: 0.008241 ,   TIME_USED: 40.505378 
+ CHI0 p_id: 0,   thread: 41,     R:  ( -1,  -1,  -1 ),    tau: 0.045148 ,   TIME_USED: 40.247367 
+ CHI0 p_id: 0,   thread: 26,     R:  ( -1,  -1,  -1 ),    tau: 0.119629 ,   TIME_USED: 40.220323 
+ CHI0 p_id: 0,   thread: 16,     R:  ( -1,  -1,  -1 ),    tau: 0.249874 ,   TIME_USED: 39.610442 
+ CHI0 p_id: 0,   thread: 8,     R:  ( -1,  -1,  -1 ),    tau: 0.471606 ,   TIME_USED: 39.931988 
+ CHI0 p_id: 0,   thread: 27,     R:  ( -1,  -1,  -1 ),    tau: 0.847665 ,   TIME_USED: 39.898739 
+ CHI0 p_id: 0,   thread: 44,     R:  ( -1,  -1,  -1 ),    tau: 1.481673 ,   TIME_USED: 39.868587 
+ CHI0 p_id: 0,   thread: 38,     R:  ( -1,  -1,  0 ),    tau: 52.597381 ,   TIME_USED: 18.850601 
+ CHI0 p_id: 0,   thread: 4,     R:  ( -1,  -1,  -1 ),    tau: 2.539921 ,   TIME_USED: 39.715943 
+ CHI0 p_id: 0,   thread: 17,     R:  ( -1,  -1,  -1 ),    tau: 4.286264 ,   TIME_USED: 39.262408 
+ CHI0 p_id: 0,   thread: 18,     R:  ( -1,  -1,  -1 ),    tau: 7.137231 ,   TIME_USED: 39.192458 
+ CHI0 p_id: 0,   thread: 40,     R:  ( -1,  -1,  -1 ),    tau: 31.392956 ,   TIME_USED: 36.790544 
+ CHI0 p_id: 0,   thread: 25,     R:  ( -1,  -1,  -1 ),    tau: 11.752803 ,   TIME_USED: 39.138718 
+ CHI0 p_id: 0,   thread: 13,     R:  ( -1,  -1,  1 ),    tau: 52.597381 ,   TIME_USED: 18.424922 
+ CHI0 p_id: 0,   thread: 32,     R:  ( -1,  -1,  -1 ),    tau: 19.206034 ,   TIME_USED: 39.260493 
+ CHI0 p_id: 0,   thread: 9,     R:  ( -1,  -1,  0 ),    tau: 0.045148 ,   TIME_USED: 39.125734 
+ CHI0 p_id: 0,   thread: 12,     R:  ( -1,  -1,  0 ),    tau: 0.008241 ,   TIME_USED: 39.249016 
+ CHI0 p_id: 0,   thread: 0,     R:  ( -1,  -1,  0 ),    tau: 0.119629 ,   TIME_USED: 39.316001 
+ CHI0 p_id: 0,   thread: 42,     R:  ( -1,  -1,  0 ),    tau: 0.249874 ,   TIME_USED: 39.053782 
+ CHI0 p_id: 0,   thread: 37,     R:  ( -1,  -1,  0 ),    tau: 0.471606 ,   TIME_USED: 39.049878 
+ CHI0 p_id: 0,   thread: 30,     R:  ( -1,  -1,  0 ),    tau: 31.392956 ,   TIME_USED: 29.659821 
+ CHI0 p_id: 0,   thread: 43,     R:  ( -1,  -1,  0 ),    tau: 0.847665 ,   TIME_USED: 39.071432 
+ CHI0 p_id: 0,   thread: 34,     R:  ( -1,  -1,  0 ),    tau: 1.481673 ,   TIME_USED: 38.831195 
+ CHI0 p_id: 0,   thread: 11,     R:  ( -1,  -1,  0 ),    tau: 2.539921 ,   TIME_USED: 39.081163 
+ CHI0 p_id: 0,   thread: 7,     R:  ( -1,  -1,  0 ),    tau: 4.286264 ,   TIME_USED: 39.112605 
+ CHI0 p_id: 0,   thread: 2,     R:  ( -1,  -1,  0 ),    tau: 7.137231 ,   TIME_USED: 39.141779 
+ CHI0 p_id: 0,   thread: 44,     R:  ( -1,  0,  -2 ),    tau: 52.597381 ,   TIME_USED: 18.879466 
+ CHI0 p_id: 0,   thread: 45,     R:  ( -1,  -1,  0 ),    tau: 11.752803 ,   TIME_USED: 39.103946 
+ CHI0 p_id: 0,   thread: 36,     R:  ( -1,  -1,  0 ),    tau: 19.206034 ,   TIME_USED: 38.893100 
+ CHI0 p_id: 0,   thread: 22,     R:  ( -1,  -1,  1 ),    tau: 0.008241 ,   TIME_USED: 38.887815 
+ CHI0 p_id: 0,   thread: 39,     R:  ( -1,  -1,  1 ),    tau: 0.045148 ,   TIME_USED: 38.886360 
+ CHI0 p_id: 0,   thread: 28,     R:  ( -1,  -1,  1 ),    tau: 0.119629 ,   TIME_USED: 38.881789 
+ CHI0 p_id: 0,   thread: 31,     R:  ( -1,  -1,  1 ),    tau: 0.249874 ,   TIME_USED: 38.880235 
+ CHI0 p_id: 0,   thread: 21,     R:  ( -1,  -1,  1 ),    tau: 0.471606 ,   TIME_USED: 38.899110 
+ CHI0 p_id: 0,   thread: 14,     R:  ( -1,  -1,  1 ),    tau: 0.847665 ,   TIME_USED: 38.838469 
+ CHI0 p_id: 0,   thread: 24,     R:  ( -1,  -1,  1 ),    tau: 1.481673 ,   TIME_USED: 38.831632 
+ CHI0 p_id: 0,   thread: 35,     R:  ( -1,  -1,  1 ),    tau: 2.539921 ,   TIME_USED: 38.830608 
+ CHI0 p_id: 0,   thread: 47,     R:  ( -1,  -1,  1 ),    tau: 31.392956 ,   TIME_USED: 37.262089 
+ CHI0 p_id: 0,   thread: 10,     R:  ( -1,  -1,  1 ),    tau: 4.286264 ,   TIME_USED: 39.684069 
+ CHI0 p_id: 0,   thread: 6,     R:  ( -1,  -1,  1 ),    tau: 7.137231 ,   TIME_USED: 39.690144 
+ CHI0 p_id: 0,   thread: 1,     R:  ( -1,  -1,  1 ),    tau: 11.752803 ,   TIME_USED: 39.711228 
+ CHI0 p_id: 0,   thread: 5,     R:  ( -1,  -1,  1 ),    tau: 19.206034 ,   TIME_USED: 39.736131 
+ CHI0 p_id: 0,   thread: 23,     R:  ( -1,  0,  -2 ),    tau: 1.481673 ,   TIME_USED: 39.053207 
+ CHI0 p_id: 0,   thread: 46,     R:  ( -1,  0,  -2 ),    tau: 0.008241 ,   TIME_USED: 39.770305 
+ CHI0 p_id: 0,   thread: 33,     R:  ( -1,  0,  -2 ),    tau: 0.045148 ,   TIME_USED: 39.733785 
+ CHI0 p_id: 0,   thread: 19,     R:  ( -1,  0,  -2 ),    tau: 0.119629 ,   TIME_USED: 39.754088 
+ CHI0 p_id: 0,   thread: 3,     R:  ( -1,  0,  -2 ),    tau: 0.249874 ,   TIME_USED: 39.733763 
+ CHI0 p_id: 0,   thread: 20,     R:  ( -1,  0,  -2 ),    tau: 0.471606 ,   TIME_USED: 39.754645 
+ CHI0 p_id: 0,   thread: 29,     R:  ( -1,  0,  -2 ),    tau: 0.847665 ,   TIME_USED: 39.754079 
+ CHI0 p_id: 0,   thread: 27,     R:  ( -1,  0,  -2 ),    tau: 31.392956 ,   TIME_USED: 29.665433 
+ CHI0 p_id: 0,   thread: 30,     R:  ( -1,  0,  -1 ),    tau: 52.597381 ,   TIME_USED: 19.089913 
+ CHI0 p_id: 0,   thread: 15,     R:  ( -1,  0,  -2 ),    tau: 2.539921 ,   TIME_USED: 39.182497 
+ CHI0 p_id: 0,   thread: 41,     R:  ( -1,  0,  -2 ),    tau: 4.286264 ,   TIME_USED: 39.127191 
+ CHI0 p_id: 0,   thread: 26,     R:  ( -1,  0,  -2 ),    tau: 7.137231 ,   TIME_USED: 39.108966 
+ CHI0 p_id: 0,   thread: 8,     R:  ( -1,  0,  -2 ),    tau: 19.206034 ,   TIME_USED: 38.962068 
+ CHI0 p_id: 0,   thread: 16,     R:  ( -1,  0,  -2 ),    tau: 11.752803 ,   TIME_USED: 40.288340 
+ CHI0 p_id: 0,   thread: 37,     R:  ( -1,  0,  -1 ),    tau: 31.392956 ,   TIME_USED: 29.619239 
+ CHI0 p_id: 0,   thread: 38,     R:  ( -1,  0,  -1 ),    tau: 0.008241 ,   TIME_USED: 38.873669 
+ CHI0 p_id: 0,   thread: 4,     R:  ( -1,  0,  -1 ),    tau: 0.045148 ,   TIME_USED: 38.916432 
+ CHI0 p_id: 0,   thread: 17,     R:  ( -1,  0,  -1 ),    tau: 0.119629 ,   TIME_USED: 40.084850 
+ CHI0 p_id: 0,   thread: 18,     R:  ( -1,  0,  -1 ),    tau: 0.249874 ,   TIME_USED: 40.095420 
+ CHI0 p_id: 0,   thread: 40,     R:  ( -1,  0,  -1 ),    tau: 0.471606 ,   TIME_USED: 40.102514 
+ CHI0 p_id: 0,   thread: 32,     R:  ( -1,  0,  -1 ),    tau: 2.539921 ,   TIME_USED: 38.962919 
+ CHI0 p_id: 0,   thread: 25,     R:  ( -1,  0,  -1 ),    tau: 0.847665 ,   TIME_USED: 40.078120 
+ CHI0 p_id: 0,   thread: 14,     R:  ( -1,  0,  0 ),    tau: 52.597381 ,   TIME_USED: 23.134930 
+ CHI0 p_id: 0,   thread: 13,     R:  ( -1,  0,  -1 ),    tau: 1.481673 ,   TIME_USED: 40.036909 
+ CHI0 p_id: 0,   thread: 29,     R:  ( -1,  0,  1 ),    tau: 52.597381 ,   TIME_USED: 18.367549 
+ CHI0 p_id: 0,   thread: 9,     R:  ( -1,  0,  -1 ),    tau: 4.286264 ,   TIME_USED: 38.963847 
+ CHI0 p_id: 0,   thread: 42,     R:  ( -1,  0,  -1 ),    tau: 19.206034 ,   TIME_USED: 38.982425 
+ CHI0 p_id: 0,   thread: 12,     R:  ( -1,  0,  -1 ),    tau: 7.137231 ,   TIME_USED: 39.958789 
+ CHI0 p_id: 0,   thread: 0,     R:  ( -1,  0,  -1 ),    tau: 11.752803 ,   TIME_USED: 40.022177 
+ CHI0 p_id: 0,   thread: 21,     R:  ( -1,  0,  0 ),    tau: 31.392956 ,   TIME_USED: 29.520059 
+ CHI0 p_id: 0,   thread: 34,     R:  ( -1,  0,  0 ),    tau: 0.045148 ,   TIME_USED: 39.128261 
+ CHI0 p_id: 0,   thread: 43,     R:  ( -1,  0,  0 ),    tau: 0.008241 ,   TIME_USED: 39.549617 
+ CHI0 p_id: 0,   thread: 11,     R:  ( -1,  0,  0 ),    tau: 0.119629 ,   TIME_USED: 39.450791 
+ CHI0 p_id: 0,   thread: 7,     R:  ( -1,  0,  0 ),    tau: 0.249874 ,   TIME_USED: 39.089260 
+ CHI0 p_id: 0,   thread: 2,     R:  ( -1,  0,  0 ),    tau: 0.471606 ,   TIME_USED: 39.014034 
+ CHI0 p_id: 0,   thread: 45,     R:  ( -1,  0,  0 ),    tau: 1.481673 ,   TIME_USED: 38.907237 
+ CHI0 p_id: 0,   thread: 44,     R:  ( -1,  0,  0 ),    tau: 0.847665 ,   TIME_USED: 39.551673 
+ CHI0 p_id: 0,   thread: 20,     R:  ( -1,  0,  1 ),    tau: 31.392956 ,   TIME_USED: 29.529977 
+ CHI0 p_id: 0,   thread: 36,     R:  ( -1,  0,  0 ),    tau: 2.539921 ,   TIME_USED: 39.704233 
+ CHI0 p_id: 0,   thread: 22,     R:  ( -1,  0,  0 ),    tau: 4.286264 ,   TIME_USED: 39.712196 
+ CHI0 p_id: 0,   thread: 39,     R:  ( -1,  0,  0 ),    tau: 7.137231 ,   TIME_USED: 39.733958 
+ CHI0 p_id: 0,   thread: 28,     R:  ( -1,  0,  0 ),    tau: 11.752803 ,   TIME_USED: 39.714686 
+ CHI0 p_id: 0,   thread: 31,     R:  ( -1,  0,  0 ),    tau: 19.206034 ,   TIME_USED: 39.737040 
+ CHI0 p_id: 0,   thread: 32,     R:  ( -1,  1,  -2 ),    tau: 52.597381 ,   TIME_USED: 15.877120 
+ CHI0 p_id: 0,   thread: 24,     R:  ( -1,  0,  1 ),    tau: 0.008241 ,   TIME_USED: 39.860149 
+ CHI0 p_id: 0,   thread: 47,     R:  ( -1,  0,  1 ),    tau: 0.119629 ,   TIME_USED: 38.687732 
+ CHI0 p_id: 0,   thread: 35,     R:  ( -1,  0,  1 ),    tau: 0.045148 ,   TIME_USED: 39.917218 
+ CHI0 p_id: 0,   thread: 10,     R:  ( -1,  0,  1 ),    tau: 0.249874 ,   TIME_USED: 38.636677 
+ CHI0 p_id: 0,   thread: 6,     R:  ( -1,  0,  1 ),    tau: 0.471606 ,   TIME_USED: 38.627574 
+ CHI0 p_id: 0,   thread: 1,     R:  ( -1,  0,  1 ),    tau: 0.847665 ,   TIME_USED: 38.641426 
+ CHI0 p_id: 0,   thread: 5,     R:  ( -1,  0,  1 ),    tau: 1.481673 ,   TIME_USED: 38.640633 
+ CHI0 p_id: 0,   thread: 46,     R:  ( -1,  0,  1 ),    tau: 4.286264 ,   TIME_USED: 38.634009 
+ CHI0 p_id: 0,   thread: 33,     R:  ( -1,  0,  1 ),    tau: 7.137231 ,   TIME_USED: 38.632073 
+ CHI0 p_id: 0,   thread: 19,     R:  ( -1,  0,  1 ),    tau: 11.752803 ,   TIME_USED: 38.693186 
+ CHI0 p_id: 0,   thread: 3,     R:  ( -1,  0,  1 ),    tau: 19.206034 ,   TIME_USED: 38.649808 
+ CHI0 p_id: 0,   thread: 23,     R:  ( -1,  0,  1 ),    tau: 2.539921 ,   TIME_USED: 40.202356 
+ CHI0 p_id: 0,   thread: 27,     R:  ( -1,  1,  -2 ),    tau: 0.008241 ,   TIME_USED: 40.262471 
+ CHI0 p_id: 0,   thread: 30,     R:  ( -1,  1,  -2 ),    tau: 0.045148 ,   TIME_USED: 40.272267 
+ CHI0 p_id: 0,   thread: 15,     R:  ( -1,  1,  -2 ),    tau: 0.119629 ,   TIME_USED: 40.298777 
+ CHI0 p_id: 0,   thread: 41,     R:  ( -1,  1,  -2 ),    tau: 0.249874 ,   TIME_USED: 40.305963 
+ CHI0 p_id: 0,   thread: 2,     R:  ( -1,  1,  -1 ),    tau: 52.597381 ,   TIME_USED: 18.405070 
+ CHI0 p_id: 0,   thread: 26,     R:  ( -1,  1,  -2 ),    tau: 0.471606 ,   TIME_USED: 40.366106 
+ CHI0 p_id: 0,   thread: 40,     R:  ( -1,  1,  -2 ),    tau: 31.392956 ,   TIME_USED: 30.362133 
+ CHI0 p_id: 0,   thread: 16,     R:  ( -1,  1,  -2 ),    tau: 1.481673 ,   TIME_USED: 39.390552 
+ CHI0 p_id: 0,   thread: 8,     R:  ( -1,  1,  -2 ),    tau: 0.847665 ,   TIME_USED: 40.398978 
+ CHI0 p_id: 0,   thread: 37,     R:  ( -1,  1,  -2 ),    tau: 2.539921 ,   TIME_USED: 40.391780 
+ CHI0 p_id: 0,   thread: 38,     R:  ( -1,  1,  -2 ),    tau: 4.286264 ,   TIME_USED: 40.402036 
+ CHI0 p_id: 0,   thread: 4,     R:  ( -1,  1,  -2 ),    tau: 7.137231 ,   TIME_USED: 40.467565 
+ CHI0 p_id: 0,   thread: 17,     R:  ( -1,  1,  -2 ),    tau: 11.752803 ,   TIME_USED: 39.160781 
+ CHI0 p_id: 0,   thread: 18,     R:  ( -1,  1,  -2 ),    tau: 19.206034 ,   TIME_USED: 39.137282 
+ CHI0 p_id: 0,   thread: 6,     R:  ( -1,  1,  0 ),    tau: 52.597381 ,   TIME_USED: 18.133970 
+ CHI0 p_id: 0,   thread: 25,     R:  ( -1,  1,  -1 ),    tau: 0.008241 ,   TIME_USED: 39.122439 
+ CHI0 p_id: 0,   thread: 13,     R:  ( -1,  1,  -1 ),    tau: 0.119629 ,   TIME_USED: 39.101755 
+ CHI0 p_id: 0,   thread: 29,     R:  ( -1,  1,  -1 ),    tau: 0.249874 ,   TIME_USED: 39.081074 
+ CHI0 p_id: 0,   thread: 14,     R:  ( -1,  1,  -1 ),    tau: 0.045148 ,   TIME_USED: 40.494035 
+ CHI0 p_id: 0,   thread: 12,     R:  ( -1,  1,  -1 ),    tau: 1.481673 ,   TIME_USED: 38.959292 
+ CHI0 p_id: 0,   thread: 9,     R:  ( -1,  1,  -1 ),    tau: 0.471606 ,   TIME_USED: 40.516594 
+ CHI0 p_id: 0,   thread: 0,     R:  ( -1,  1,  -1 ),    tau: 2.539921 ,   TIME_USED: 38.970029 
+ CHI0 p_id: 0,   thread: 42,     R:  ( -1,  1,  -1 ),    tau: 0.847665 ,   TIME_USED: 40.545845 
+ CHI0 p_id: 0,   thread: 7,     R:  ( -1,  1,  -1 ),    tau: 31.392956 ,   TIME_USED: 35.291431 
+ CHI0 p_id: 0,   thread: 43,     R:  ( -1,  1,  -1 ),    tau: 11.752803 ,   TIME_USED: 38.623969 
+ CHI0 p_id: 0,   thread: 21,     R:  ( -1,  1,  -1 ),    tau: 4.286264 ,   TIME_USED: 40.596787 
+ CHI0 p_id: 0,   thread: 11,     R:  ( -1,  1,  -1 ),    tau: 19.206034 ,   TIME_USED: 38.595754 
+ CHI0 p_id: 0,   thread: 34,     R:  ( -1,  1,  -1 ),    tau: 7.137231 ,   TIME_USED: 40.684862 
+ CHI0 p_id: 0,   thread: 40,     R:  ( -1,  1,  1 ),    tau: 52.597381 ,   TIME_USED: 18.196319 
+ CHI0 p_id: 0,   thread: 10,     R:  ( -1,  1,  0 ),    tau: 31.392956 ,   TIME_USED: 29.194605 
+ CHI0 p_id: 0,   thread: 45,     R:  ( -1,  1,  0 ),    tau: 0.008241 ,   TIME_USED: 38.548440 
+ CHI0 p_id: 0,   thread: 20,     R:  ( -1,  1,  0 ),    tau: 0.119629 ,   TIME_USED: 38.562358 
+ CHI0 p_id: 0,   thread: 44,     R:  ( -1,  1,  0 ),    tau: 0.045148 ,   TIME_USED: 40.210941 
+ CHI0 p_id: 0,   thread: 36,     R:  ( -1,  1,  0 ),    tau: 0.249874 ,   TIME_USED: 39.839094 
+ CHI0 p_id: 0,   thread: 22,     R:  ( -1,  1,  0 ),    tau: 0.471606 ,   TIME_USED: 39.787147 
+ CHI0 p_id: 0,   thread: 39,     R:  ( -1,  1,  0 ),    tau: 0.847665 ,   TIME_USED: 39.787720 
+ CHI0 p_id: 0,   thread: 28,     R:  ( -1,  1,  0 ),    tau: 1.481673 ,   TIME_USED: 39.763974 
+ CHI0 p_id: 0,   thread: 31,     R:  ( -1,  1,  0 ),    tau: 2.539921 ,   TIME_USED: 39.763737 
+ CHI0 p_id: 0,   thread: 32,     R:  ( -1,  1,  0 ),    tau: 4.286264 ,   TIME_USED: 39.661079 
+ CHI0 p_id: 0,   thread: 24,     R:  ( -1,  1,  0 ),    tau: 7.137231 ,   TIME_USED: 39.409446 
+ CHI0 p_id: 0,   thread: 47,     R:  ( -1,  1,  0 ),    tau: 11.752803 ,   TIME_USED: 39.165274 
+ CHI0 p_id: 0,   thread: 35,     R:  ( -1,  1,  0 ),    tau: 19.206034 ,   TIME_USED: 39.298596 
+ CHI0 p_id: 0,   thread: 1,     R:  ( -1,  1,  1 ),    tau: 0.008241 ,   TIME_USED: 39.266450 
+ CHI0 p_id: 0,   thread: 5,     R:  ( -1,  1,  1 ),    tau: 0.045148 ,   TIME_USED: 39.261996 
+ CHI0 p_id: 0,   thread: 46,     R:  ( -1,  1,  1 ),    tau: 0.119629 ,   TIME_USED: 39.251910 
+ CHI0 p_id: 0,   thread: 33,     R:  ( -1,  1,  1 ),    tau: 0.249874 ,   TIME_USED: 39.246577 
+ CHI0 p_id: 0,   thread: 3,     R:  ( -1,  1,  1 ),    tau: 0.847665 ,   TIME_USED: 39.242641 
+ CHI0 p_id: 0,   thread: 19,     R:  ( -1,  1,  1 ),    tau: 0.471606 ,   TIME_USED: 39.285359 
+ CHI0 p_id: 0,   thread: 23,     R:  ( -1,  1,  1 ),    tau: 1.481673 ,   TIME_USED: 38.837335 
+ CHI0 p_id: 0,   thread: 9,     R:  ( 0,  -2,  -2 ),    tau: 52.597381 ,   TIME_USED: 18.967144 
+ CHI0 p_id: 0,   thread: 27,     R:  ( -1,  1,  1 ),    tau: 2.539921 ,   TIME_USED: 38.733641 
+ CHI0 p_id: 0,   thread: 30,     R:  ( -1,  1,  1 ),    tau: 4.286264 ,   TIME_USED: 38.603412 
+ CHI0 p_id: 0,   thread: 15,     R:  ( -1,  1,  1 ),    tau: 7.137231 ,   TIME_USED: 38.529400 
+ CHI0 p_id: 0,   thread: 26,     R:  ( -1,  1,  1 ),    tau: 31.392956 ,   TIME_USED: 36.786965 
+ CHI0 p_id: 0,   thread: 41,     R:  ( -1,  1,  1 ),    tau: 11.752803 ,   TIME_USED: 38.025474 
+ CHI0 p_id: 0,   thread: 2,     R:  ( -1,  1,  1 ),    tau: 19.206034 ,   TIME_USED: 39.584049 
+ CHI0 p_id: 0,   thread: 8,     R:  ( 0,  -2,  -2 ),    tau: 0.045148 ,   TIME_USED: 38.331566 
+ CHI0 p_id: 0,   thread: 16,     R:  ( 0,  -2,  -2 ),    tau: 0.008241 ,   TIME_USED: 39.520301 
+ CHI0 p_id: 0,   thread: 37,     R:  ( 0,  -2,  -2 ),    tau: 0.119629 ,   TIME_USED: 38.535327 
+ CHI0 p_id: 0,   thread: 38,     R:  ( 0,  -2,  -2 ),    tau: 0.249874 ,   TIME_USED: 38.567109 
+ CHI0 p_id: 0,   thread: 22,     R:  ( 0,  -2,  -1 ),    tau: 52.597381 ,   TIME_USED: 18.632701 
+ CHI0 p_id: 0,   thread: 4,     R:  ( 0,  -2,  -2 ),    tau: 0.471606 ,   TIME_USED: 38.879492 
+ CHI0 p_id: 0,   thread: 17,     R:  ( 0,  -2,  -2 ),    tau: 0.847665 ,   TIME_USED: 39.022203 
+ CHI0 p_id: 0,   thread: 18,     R:  ( 0,  -2,  -2 ),    tau: 1.481673 ,   TIME_USED: 39.021991 
+ CHI0 p_id: 0,   thread: 6,     R:  ( 0,  -2,  -2 ),    tau: 2.539921 ,   TIME_USED: 38.985905 
+ CHI0 p_id: 0,   thread: 25,     R:  ( 0,  -2,  -2 ),    tau: 4.286264 ,   TIME_USED: 38.971164 
+ CHI0 p_id: 0,   thread: 13,     R:  ( 0,  -2,  -2 ),    tau: 7.137231 ,   TIME_USED: 38.904819 
+ CHI0 p_id: 0,   thread: 29,     R:  ( 0,  -2,  -2 ),    tau: 11.752803 ,   TIME_USED: 38.892681 
+ CHI0 p_id: 0,   thread: 12,     R:  ( 0,  -2,  -2 ),    tau: 31.392956 ,   TIME_USED: 37.256676 
+ CHI0 p_id: 0,   thread: 14,     R:  ( 0,  -2,  -2 ),    tau: 19.206034 ,   TIME_USED: 39.037087 
+ CHI0 p_id: 0,   thread: 23,     R:  ( 0,  -2,  0 ),    tau: 52.597381 ,   TIME_USED: 19.028311 
+ CHI0 p_id: 0,   thread: 0,     R:  ( 0,  -2,  -1 ),    tau: 0.008241 ,   TIME_USED: 38.907999 
+ CHI0 p_id: 0,   thread: 42,     R:  ( 0,  -2,  -1 ),    tau: 0.045148 ,   TIME_USED: 39.041079 
+ CHI0 p_id: 0,   thread: 7,     R:  ( 0,  -2,  -1 ),    tau: 0.119629 ,   TIME_USED: 38.550138 
+ CHI0 p_id: 0,   thread: 43,     R:  ( 0,  -2,  -1 ),    tau: 0.249874 ,   TIME_USED: 38.444141 
+ CHI0 p_id: 0,   thread: 36,     R:  ( 0,  -2,  -1 ),    tau: 31.392956 ,   TIME_USED: 29.362611 
+ CHI0 p_id: 0,   thread: 11,     R:  ( 0,  -2,  -1 ),    tau: 0.847665 ,   TIME_USED: 38.320068 
+ CHI0 p_id: 0,   thread: 21,     R:  ( 0,  -2,  -1 ),    tau: 0.471606 ,   TIME_USED: 39.110120 
+ CHI0 p_id: 0,   thread: 34,     R:  ( 0,  -2,  -1 ),    tau: 1.481673 ,   TIME_USED: 39.241706 
+ CHI0 p_id: 0,   thread: 40,     R:  ( 0,  -2,  -1 ),    tau: 2.539921 ,   TIME_USED: 38.282198 
+ CHI0 p_id: 0,   thread: 10,     R:  ( 0,  -2,  -1 ),    tau: 4.286264 ,   TIME_USED: 38.236898 
+ CHI0 p_id: 0,   thread: 45,     R:  ( 0,  -2,  -1 ),    tau: 7.137231 ,   TIME_USED: 38.201290 
+ CHI0 p_id: 0,   thread: 20,     R:  ( 0,  -2,  -1 ),    tau: 11.752803 ,   TIME_USED: 38.192892 
+ CHI0 p_id: 0,   thread: 44,     R:  ( 0,  -2,  -1 ),    tau: 19.206034 ,   TIME_USED: 39.075013 
+ CHI0 p_id: 0,   thread: 39,     R:  ( 0,  -2,  0 ),    tau: 0.008241 ,   TIME_USED: 38.985922 
+ CHI0 p_id: 0,   thread: 28,     R:  ( 0,  -2,  0 ),    tau: 0.045148 ,   TIME_USED: 38.986970 
+ CHI0 p_id: 0,   thread: 31,     R:  ( 0,  -2,  0 ),    tau: 0.119629 ,   TIME_USED: 39.007424 
+ CHI0 p_id: 0,   thread: 32,     R:  ( 0,  -2,  0 ),    tau: 0.249874 ,   TIME_USED: 39.054412 
+ CHI0 p_id: 0,   thread: 17,     R:  ( 0,  -2,  1 ),    tau: 52.597381 ,   TIME_USED: 18.395970 
+ CHI0 p_id: 0,   thread: 24,     R:  ( 0,  -2,  0 ),    tau: 0.471606 ,   TIME_USED: 39.020794 
+ CHI0 p_id: 0,   thread: 47,     R:  ( 0,  -2,  0 ),    tau: 0.847665 ,   TIME_USED: 38.497460 
+ CHI0 p_id: 0,   thread: 35,     R:  ( 0,  -2,  0 ),    tau: 1.481673 ,   TIME_USED: 38.998964 
+ CHI0 p_id: 0,   thread: 19,     R:  ( 0,  -2,  0 ),    tau: 31.392956 ,   TIME_USED: 36.829479 
+ CHI0 p_id: 0,   thread: 1,     R:  ( 0,  -2,  0 ),    tau: 2.539921 ,   TIME_USED: 38.509717 
+ CHI0 p_id: 0,   thread: 5,     R:  ( 0,  -2,  0 ),    tau: 4.286264 ,   TIME_USED: 38.525640 
+ CHI0 p_id: 0,   thread: 46,     R:  ( 0,  -2,  0 ),    tau: 7.137231 ,   TIME_USED: 38.552975 
+ CHI0 p_id: 0,   thread: 33,     R:  ( 0,  -2,  0 ),    tau: 11.752803 ,   TIME_USED: 38.538471 
+ CHI0 p_id: 0,   thread: 3,     R:  ( 0,  -2,  0 ),    tau: 19.206034 ,   TIME_USED: 38.547436 
+ CHI0 p_id: 0,   thread: 9,     R:  ( 0,  -2,  1 ),    tau: 0.008241 ,   TIME_USED: 38.745629 
+ CHI0 p_id: 0,   thread: 27,     R:  ( 0,  -2,  1 ),    tau: 0.045148 ,   TIME_USED: 38.679223 
+ CHI0 p_id: 0,   thread: 30,     R:  ( 0,  -2,  1 ),    tau: 0.119629 ,   TIME_USED: 38.530697 
+ CHI0 p_id: 0,   thread: 11,     R:  ( 0,  -1,  -2 ),    tau: 52.597381 ,   TIME_USED: 18.543912 
+ CHI0 p_id: 0,   thread: 15,     R:  ( 0,  -2,  1 ),    tau: 0.249874 ,   TIME_USED: 38.455898 
+ CHI0 p_id: 0,   thread: 26,     R:  ( 0,  -2,  1 ),    tau: 0.471606 ,   TIME_USED: 38.390100 
+ CHI0 p_id: 0,   thread: 41,     R:  ( 0,  -2,  1 ),    tau: 0.847665 ,   TIME_USED: 38.340274 
+ CHI0 p_id: 0,   thread: 4,     R:  ( 0,  -2,  1 ),    tau: 31.392956 ,   TIME_USED: 30.044159 
+ CHI0 p_id: 0,   thread: 2,     R:  ( 0,  -2,  1 ),    tau: 1.481673 ,   TIME_USED: 39.461344 
+ CHI0 p_id: 0,   thread: 8,     R:  ( 0,  -2,  1 ),    tau: 2.539921 ,   TIME_USED: 38.170932 
+ CHI0 p_id: 0,   thread: 37,     R:  ( 0,  -2,  1 ),    tau: 7.137231 ,   TIME_USED: 38.083912 
+ CHI0 p_id: 0,   thread: 38,     R:  ( 0,  -2,  1 ),    tau: 11.752803 ,   TIME_USED: 38.087426 
+ CHI0 p_id: 0,   thread: 16,     R:  ( 0,  -2,  1 ),    tau: 4.286264 ,   TIME_USED: 39.519016 
+ CHI0 p_id: 0,   thread: 22,     R:  ( 0,  -2,  1 ),    tau: 19.206034 ,   TIME_USED: 38.051931 
+ CHI0 p_id: 0,   thread: 36,     R:  ( 0,  -1,  -2 ),    tau: 31.392956 ,   TIME_USED: 29.987899 
+ CHI0 p_id: 0,   thread: 18,     R:  ( 0,  -1,  -2 ),    tau: 0.008241 ,   TIME_USED: 39.557496 
+ CHI0 p_id: 0,   thread: 6,     R:  ( 0,  -1,  -2 ),    tau: 0.045148 ,   TIME_USED: 39.556269 
+ CHI0 p_id: 0,   thread: 25,     R:  ( 0,  -1,  -2 ),    tau: 0.119629 ,   TIME_USED: 39.557536 
+ CHI0 p_id: 0,   thread: 14,     R:  ( 0,  -1,  -2 ),    tau: 1.481673 ,   TIME_USED: 37.932594 
+ CHI0 p_id: 0,   thread: 23,     R:  ( 0,  -1,  -2 ),    tau: 2.539921 ,   TIME_USED: 37.954335 
+ CHI0 p_id: 0,   thread: 13,     R:  ( 0,  -1,  -2 ),    tau: 0.249874 ,   TIME_USED: 39.559513 
+ CHI0 p_id: 0,   thread: 29,     R:  ( 0,  -1,  -2 ),    tau: 0.471606 ,   TIME_USED: 39.572354 
+ CHI0 p_id: 0,   thread: 12,     R:  ( 0,  -1,  -2 ),    tau: 0.847665 ,   TIME_USED: 39.557183 
+ CHI0 p_id: 0,   thread: 47,     R:  ( 0,  -1,  -1 ),    tau: 52.597381 ,   TIME_USED: 22.763241 
+ CHI0 p_id: 0,   thread: 42,     R:  ( 0,  -1,  -2 ),    tau: 7.137231 ,   TIME_USED: 38.155876 
+ CHI0 p_id: 0,   thread: 0,     R:  ( 0,  -1,  -2 ),    tau: 4.286264 ,   TIME_USED: 39.607295 
+ CHI0 p_id: 0,   thread: 7,     R:  ( 0,  -1,  -2 ),    tau: 11.752803 ,   TIME_USED: 39.613620 
+ CHI0 p_id: 0,   thread: 21,     R:  ( 0,  -1,  -1 ),    tau: 0.008241 ,   TIME_USED: 38.335912 
+ CHI0 p_id: 0,   thread: 43,     R:  ( 0,  -1,  -2 ),    tau: 19.206034 ,   TIME_USED: 39.601117 
+ CHI0 p_id: 0,   thread: 41,     R:  ( 0,  -1,  0 ),    tau: 52.597381 ,   TIME_USED: 18.735201 
+ CHI0 p_id: 0,   thread: 34,     R:  ( 0,  -1,  -1 ),    tau: 0.045148 ,   TIME_USED: 38.332984 
+ CHI0 p_id: 0,   thread: 24,     R:  ( 0,  -1,  -1 ),    tau: 31.392956 ,   TIME_USED: 29.833915 
+ CHI0 p_id: 0,   thread: 40,     R:  ( 0,  -1,  -1 ),    tau: 0.119629 ,   TIME_USED: 39.607901 
+ CHI0 p_id: 0,   thread: 10,     R:  ( 0,  -1,  -1 ),    tau: 0.249874 ,   TIME_USED: 39.667349 
+ CHI0 p_id: 0,   thread: 45,     R:  ( 0,  -1,  -1 ),    tau: 0.471606 ,   TIME_USED: 39.665725 
+ CHI0 p_id: 0,   thread: 20,     R:  ( 0,  -1,  -1 ),    tau: 0.847665 ,   TIME_USED: 39.667967 
+ CHI0 p_id: 0,   thread: 44,     R:  ( 0,  -1,  -1 ),    tau: 1.481673 ,   TIME_USED: 38.374586 
+ CHI0 p_id: 0,   thread: 39,     R:  ( 0,  -1,  -1 ),    tau: 2.539921 ,   TIME_USED: 38.472794 
+ CHI0 p_id: 0,   thread: 28,     R:  ( 0,  -1,  -1 ),    tau: 4.286264 ,   TIME_USED: 38.447989 
+ CHI0 p_id: 0,   thread: 31,     R:  ( 0,  -1,  -1 ),    tau: 7.137231 ,   TIME_USED: 38.608564 
+ CHI0 p_id: 0,   thread: 32,     R:  ( 0,  -1,  -1 ),    tau: 11.752803 ,   TIME_USED: 38.438834 
+ CHI0 p_id: 0,   thread: 26,     R:  ( 0,  -1,  0 ),    tau: 31.392956 ,   TIME_USED: 29.418393 
+ CHI0 p_id: 0,   thread: 35,     R:  ( 0,  -1,  0 ),    tau: 0.008241 ,   TIME_USED: 38.253210 
+ CHI0 p_id: 0,   thread: 17,     R:  ( 0,  -1,  -1 ),    tau: 19.206034 ,   TIME_USED: 39.746700 
+ CHI0 p_id: 0,   thread: 19,     R:  ( 0,  -1,  0 ),    tau: 0.045148 ,   TIME_USED: 39.707107 
+ CHI0 p_id: 0,   thread: 13,     R:  ( 0,  -1,  1 ),    tau: 52.597381 ,   TIME_USED: 18.572222 
+ CHI0 p_id: 0,   thread: 1,     R:  ( 0,  -1,  0 ),    tau: 0.119629 ,   TIME_USED: 39.704590 
+ CHI0 p_id: 0,   thread: 5,     R:  ( 0,  -1,  0 ),    tau: 0.249874 ,   TIME_USED: 39.671923 
+ CHI0 p_id: 0,   thread: 46,     R:  ( 0,  -1,  0 ),    tau: 0.471606 ,   TIME_USED: 39.696805 
+ CHI0 p_id: 0,   thread: 33,     R:  ( 0,  -1,  0 ),    tau: 0.847665 ,   TIME_USED: 39.674806 
+ CHI0 p_id: 0,   thread: 3,     R:  ( 0,  -1,  0 ),    tau: 1.481673 ,   TIME_USED: 39.674988 
+ CHI0 p_id: 0,   thread: 9,     R:  ( 0,  -1,  0 ),    tau: 2.539921 ,   TIME_USED: 38.723009 
+ CHI0 p_id: 0,   thread: 27,     R:  ( 0,  -1,  0 ),    tau: 4.286264 ,   TIME_USED: 38.712150 
+ CHI0 p_id: 0,   thread: 30,     R:  ( 0,  -1,  0 ),    tau: 7.137231 ,   TIME_USED: 38.799221 
+ CHI0 p_id: 0,   thread: 15,     R:  ( 0,  -1,  0 ),    tau: 19.206034 ,   TIME_USED: 38.743220 
+ CHI0 p_id: 0,   thread: 11,     R:  ( 0,  -1,  0 ),    tau: 11.752803 ,   TIME_USED: 39.682011 
+ CHI0 p_id: 0,   thread: 4,     R:  ( 0,  -1,  1 ),    tau: 0.008241 ,   TIME_USED: 38.476873 
+ CHI0 p_id: 0,   thread: 45,     R:  ( 0,  0,  -2 ),    tau: 52.597381 ,   TIME_USED: 18.467155 
+ CHI0 p_id: 0,   thread: 8,     R:  ( 0,  -1,  1 ),    tau: 0.119629 ,   TIME_USED: 38.638479 
+ CHI0 p_id: 0,   thread: 2,     R:  ( 0,  -1,  1 ),    tau: 0.045148 ,   TIME_USED: 39.588609 
+ CHI0 p_id: 0,   thread: 23,     R:  ( 0,  -1,  1 ),    tau: 31.392956 ,   TIME_USED: 31.069211 
+ CHI0 p_id: 0,   thread: 37,     R:  ( 0,  -1,  1 ),    tau: 0.249874 ,   TIME_USED: 38.921346 
+ CHI0 p_id: 0,   thread: 38,     R:  ( 0,  -1,  1 ),    tau: 0.471606 ,   TIME_USED: 38.908820 
+ CHI0 p_id: 0,   thread: 22,     R:  ( 0,  -1,  1 ),    tau: 1.481673 ,   TIME_USED: 38.930671 
+ CHI0 p_id: 0,   thread: 16,     R:  ( 0,  -1,  1 ),    tau: 0.847665 ,   TIME_USED: 39.442873 
+ CHI0 p_id: 0,   thread: 36,     R:  ( 0,  -1,  1 ),    tau: 2.539921 ,   TIME_USED: 39.209266 
+ CHI0 p_id: 0,   thread: 18,     R:  ( 0,  -1,  1 ),    tau: 4.286264 ,   TIME_USED: 38.977789 
+ CHI0 p_id: 0,   thread: 6,     R:  ( 0,  -1,  1 ),    tau: 7.137231 ,   TIME_USED: 38.999717 
+ CHI0 p_id: 0,   thread: 46,     R:  ( 0,  0,  -1 ),    tau: 52.597381 ,   TIME_USED: 18.061279 
+ CHI0 p_id: 0,   thread: 25,     R:  ( 0,  -1,  1 ),    tau: 11.752803 ,   TIME_USED: 38.940899 
+ CHI0 p_id: 0,   thread: 29,     R:  ( 0,  0,  -2 ),    tau: 0.008241 ,   TIME_USED: 38.910060 
+ CHI0 p_id: 0,   thread: 12,     R:  ( 0,  0,  -2 ),    tau: 0.045148 ,   TIME_USED: 38.901965 
+ CHI0 p_id: 0,   thread: 14,     R:  ( 0,  -1,  1 ),    tau: 19.206034 ,   TIME_USED: 39.672715 
+ CHI0 p_id: 0,   thread: 47,     R:  ( 0,  0,  -2 ),    tau: 0.119629 ,   TIME_USED: 38.914188 
+ CHI0 p_id: 0,   thread: 0,     R:  ( 0,  0,  -2 ),    tau: 0.471606 ,   TIME_USED: 38.812264 
+ CHI0 p_id: 0,   thread: 42,     R:  ( 0,  0,  -2 ),    tau: 0.249874 ,   TIME_USED: 39.594189 
+ CHI0 p_id: 0,   thread: 7,     R:  ( 0,  0,  -2 ),    tau: 0.847665 ,   TIME_USED: 38.579503 
+ CHI0 p_id: 0,   thread: 43,     R:  ( 0,  0,  -2 ),    tau: 2.539921 ,   TIME_USED: 38.542762 
+ CHI0 p_id: 0,   thread: 21,     R:  ( 0,  0,  -2 ),    tau: 1.481673 ,   TIME_USED: 39.730756 
+ CHI0 p_id: 0,   thread: 10,     R:  ( 0,  0,  -2 ),    tau: 31.392956 ,   TIME_USED: 35.597539 
+ CHI0 p_id: 0,   thread: 41,     R:  ( 0,  0,  -2 ),    tau: 4.286264 ,   TIME_USED: 39.937635 
+ CHI0 p_id: 0,   thread: 34,     R:  ( 0,  0,  -2 ),    tau: 7.137231 ,   TIME_USED: 39.968108 
+ CHI0 p_id: 0,   thread: 40,     R:  ( 0,  0,  -2 ),    tau: 19.206034 ,   TIME_USED: 38.253992 
+ CHI0 p_id: 0,   thread: 24,     R:  ( 0,  0,  -2 ),    tau: 11.752803 ,   TIME_USED: 40.198311 
+ CHI0 p_id: 0,   thread: 20,     R:  ( 0,  0,  -1 ),    tau: 0.008241 ,   TIME_USED: 38.126518 
+ CHI0 p_id: 0,   thread: 5,     R:  ( 0,  0,  -1 ),    tau: 31.392956 ,   TIME_USED: 29.267683 
+ CHI0 p_id: 0,   thread: 38,     R:  ( 0,  0,  0 ),    tau: 52.597381 ,   TIME_USED: 19.011951 
+ CHI0 p_id: 0,   thread: 44,     R:  ( 0,  0,  -1 ),    tau: 0.045148 ,   TIME_USED: 40.147233 
+ CHI0 p_id: 0,   thread: 28,     R:  ( 0,  0,  -1 ),    tau: 0.249874 ,   TIME_USED: 39.883835 
+ CHI0 p_id: 0,   thread: 39,     R:  ( 0,  0,  -1 ),    tau: 0.119629 ,   TIME_USED: 39.925579 
+ CHI0 p_id: 0,   thread: 31,     R:  ( 0,  0,  -1 ),    tau: 0.471606 ,   TIME_USED: 39.891498 
+ CHI0 p_id: 0,   thread: 32,     R:  ( 0,  0,  -1 ),    tau: 0.847665 ,   TIME_USED: 39.838272 
+ CHI0 p_id: 0,   thread: 26,     R:  ( 0,  0,  -1 ),    tau: 1.481673 ,   TIME_USED: 39.620890 
+ CHI0 p_id: 0,   thread: 17,     R:  ( 0,  0,  -1 ),    tau: 4.286264 ,   TIME_USED: 38.842045 
+ CHI0 p_id: 0,   thread: 35,     R:  ( 0,  0,  -1 ),    tau: 2.539921 ,   TIME_USED: 39.525282 
+ CHI0 p_id: 0,   thread: 19,     R:  ( 0,  0,  -1 ),    tau: 7.137231 ,   TIME_USED: 38.826353 
+ CHI0 p_id: 0,   thread: 13,     R:  ( 0,  0,  -1 ),    tau: 11.752803 ,   TIME_USED: 38.789457 
+ CHI0 p_id: 0,   thread: 1,     R:  ( 0,  0,  -1 ),    tau: 19.206034 ,   TIME_USED: 38.783774 
+ CHI0 p_id: 0,   thread: 33,     R:  ( 0,  0,  0 ),    tau: 0.008241 ,   TIME_USED: 38.814941 
+ CHI0 p_id: 0,   thread: 3,     R:  ( 0,  0,  0 ),    tau: 0.045148 ,   TIME_USED: 38.810758 
+ CHI0 p_id: 0,   thread: 9,     R:  ( 0,  0,  0 ),    tau: 0.119629 ,   TIME_USED: 38.877068 
+ CHI0 p_id: 0,   thread: 27,     R:  ( 0,  0,  0 ),    tau: 0.249874 ,   TIME_USED: 38.831407 
+ CHI0 p_id: 0,   thread: 30,     R:  ( 0,  0,  0 ),    tau: 0.471606 ,   TIME_USED: 38.629981 
+ CHI0 p_id: 0,   thread: 7,     R:  ( 0,  0,  1 ),    tau: 52.597381 ,   TIME_USED: 18.726003 
+ CHI0 p_id: 0,   thread: 15,     R:  ( 0,  0,  0 ),    tau: 0.847665 ,   TIME_USED: 38.587911 
+ CHI0 p_id: 0,   thread: 11,     R:  ( 0,  0,  0 ),    tau: 1.481673 ,   TIME_USED: 39.359341 
+ CHI0 p_id: 0,   thread: 4,     R:  ( 0,  0,  0 ),    tau: 2.539921 ,   TIME_USED: 38.203032 
+ CHI0 p_id: 0,   thread: 8,     R:  ( 0,  0,  0 ),    tau: 7.137231 ,   TIME_USED: 37.891326 
+ CHI0 p_id: 0,   thread: 37,     R:  ( 0,  0,  0 ),    tau: 31.392956 ,   TIME_USED: 35.841232 
+ CHI0 p_id: 0,   thread: 45,     R:  ( 0,  0,  0 ),    tau: 4.286264 ,   TIME_USED: 39.784795 
+ CHI0 p_id: 0,   thread: 23,     R:  ( 0,  0,  0 ),    tau: 19.206034 ,   TIME_USED: 37.805678 
+ CHI0 p_id: 0,   thread: 22,     R:  ( 0,  0,  1 ),    tau: 0.008241 ,   TIME_USED: 37.691483 
+ CHI0 p_id: 0,   thread: 2,     R:  ( 0,  0,  0 ),    tau: 11.752803 ,   TIME_USED: 39.793847 
+ CHI0 p_id: 0,   thread: 42,     R:  ( 0,  0,  1 ),    tau: 31.392956 ,   TIME_USED: 29.648754 
+ CHI0 p_id: 0,   thread: 16,     R:  ( 0,  0,  1 ),    tau: 0.045148 ,   TIME_USED: 39.846807 
+ CHI0 p_id: 0,   thread: 36,     R:  ( 0,  0,  1 ),    tau: 0.119629 ,   TIME_USED: 37.860023 
+ CHI0 p_id: 0,   thread: 31,     R:  ( 0,  1,  -2 ),    tau: 52.597381 ,   TIME_USED: 18.693514 
+ CHI0 p_id: 0,   thread: 14,     R:  ( 0,  0,  1 ),    tau: 7.137231 ,   TIME_USED: 38.036666 
+ CHI0 p_id: 0,   thread: 18,     R:  ( 0,  0,  1 ),    tau: 0.249874 ,   TIME_USED: 39.898251 
+ CHI0 p_id: 0,   thread: 6,     R:  ( 0,  0,  1 ),    tau: 0.471606 ,   TIME_USED: 39.875862 
+ CHI0 p_id: 0,   thread: 46,     R:  ( 0,  0,  1 ),    tau: 0.847665 ,   TIME_USED: 39.900569 
+ CHI0 p_id: 0,   thread: 25,     R:  ( 0,  0,  1 ),    tau: 1.481673 ,   TIME_USED: 39.895289 
+ CHI0 p_id: 0,   thread: 29,     R:  ( 0,  0,  1 ),    tau: 2.539921 ,   TIME_USED: 39.908720 
+ CHI0 p_id: 0,   thread: 12,     R:  ( 0,  0,  1 ),    tau: 4.286264 ,   TIME_USED: 39.893354 
+ CHI0 p_id: 0,   thread: 47,     R:  ( 0,  0,  1 ),    tau: 11.752803 ,   TIME_USED: 39.896119 
+ CHI0 p_id: 0,   thread: 15,     R:  ( 0,  1,  -1 ),    tau: 52.597381 ,   TIME_USED: 18.721350 
+ CHI0 p_id: 0,   thread: 0,     R:  ( 0,  0,  1 ),    tau: 19.206034 ,   TIME_USED: 40.026425 
+ CHI0 p_id: 0,   thread: 21,     R:  ( 0,  1,  -2 ),    tau: 0.045148 ,   TIME_USED: 38.612718 
+ CHI0 p_id: 0,   thread: 39,     R:  ( 0,  1,  -2 ),    tau: 31.392956 ,   TIME_USED: 29.351851 
+ CHI0 p_id: 0,   thread: 43,     R:  ( 0,  1,  -2 ),    tau: 0.008241 ,   TIME_USED: 39.858822 
+ CHI0 p_id: 0,   thread: 10,     R:  ( 0,  1,  -2 ),    tau: 0.119629 ,   TIME_USED: 39.739294 
+ CHI0 p_id: 0,   thread: 41,     R:  ( 0,  1,  -2 ),    tau: 0.249874 ,   TIME_USED: 38.805309 
+ CHI0 p_id: 0,   thread: 34,     R:  ( 0,  1,  -2 ),    tau: 0.471606 ,   TIME_USED: 38.851826 
+ CHI0 p_id: 0,   thread: 40,     R:  ( 0,  1,  -2 ),    tau: 0.847665 ,   TIME_USED: 39.649346 
+ CHI0 p_id: 0,   thread: 24,     R:  ( 0,  1,  -2 ),    tau: 1.481673 ,   TIME_USED: 39.064866 
+ CHI0 p_id: 0,   thread: 20,     R:  ( 0,  1,  -2 ),    tau: 2.539921 ,   TIME_USED: 39.544985 
+ CHI0 p_id: 0,   thread: 5,     R:  ( 0,  1,  -2 ),    tau: 4.286264 ,   TIME_USED: 39.546923 
+ CHI0 p_id: 0,   thread: 38,     R:  ( 0,  1,  -2 ),    tau: 7.137231 ,   TIME_USED: 39.109779 
+ CHI0 p_id: 0,   thread: 44,     R:  ( 0,  1,  -2 ),    tau: 11.752803 ,   TIME_USED: 39.109327 
+ CHI0 p_id: 0,   thread: 7,     R:  ( 0,  1,  -1 ),    tau: 31.392956 ,   TIME_USED: 30.545160 
+ CHI0 p_id: 0,   thread: 28,     R:  ( 0,  1,  -2 ),    tau: 19.206034 ,   TIME_USED: 39.107372 
+ CHI0 p_id: 0,   thread: 32,     R:  ( 0,  1,  -1 ),    tau: 0.008241 ,   TIME_USED: 39.122897 
+ CHI0 p_id: 0,   thread: 26,     R:  ( 0,  1,  -1 ),    tau: 0.045148 ,   TIME_USED: 39.172943 
+ CHI0 p_id: 0,   thread: 17,     R:  ( 0,  1,  -1 ),    tau: 0.119629 ,   TIME_USED: 39.346814 
+ CHI0 p_id: 0,   thread: 35,     R:  ( 0,  1,  -1 ),    tau: 0.249874 ,   TIME_USED: 39.147309 
+ CHI0 p_id: 0,   thread: 18,     R:  ( 0,  1,  0 ),    tau: 52.597381 ,   TIME_USED: 18.699620 
+ CHI0 p_id: 0,   thread: 19,     R:  ( 0,  1,  -1 ),    tau: 0.471606 ,   TIME_USED: 39.323226 
+ CHI0 p_id: 0,   thread: 13,     R:  ( 0,  1,  -1 ),    tau: 0.847665 ,   TIME_USED: 39.346230 
+ CHI0 p_id: 0,   thread: 1,     R:  ( 0,  1,  -1 ),    tau: 1.481673 ,   TIME_USED: 39.369479 
+ CHI0 p_id: 0,   thread: 33,     R:  ( 0,  1,  -1 ),    tau: 2.539921 ,   TIME_USED: 39.418252 
+ CHI0 p_id: 0,   thread: 9,     R:  ( 0,  1,  -1 ),    tau: 7.137231 ,   TIME_USED: 39.100949 
+ CHI0 p_id: 0,   thread: 3,     R:  ( 0,  1,  -1 ),    tau: 4.286264 ,   TIME_USED: 39.419772 
+ CHI0 p_id: 0,   thread: 27,     R:  ( 0,  1,  -1 ),    tau: 11.752803 ,   TIME_USED: 39.057536 
+ CHI0 p_id: 0,   thread: 30,     R:  ( 0,  1,  -1 ),    tau: 19.206034 ,   TIME_USED: 39.010825 
+ CHI0 p_id: 0,   thread: 11,     R:  ( 0,  1,  0 ),    tau: 0.008241 ,   TIME_USED: 39.352863 
+ CHI0 p_id: 0,   thread: 34,     R:  ( 0,  1,  1 ),    tau: 52.597381 ,   TIME_USED: 18.723185 
+ CHI0 p_id: 0,   thread: 4,     R:  ( 0,  1,  0 ),    tau: 0.045148 ,   TIME_USED: 38.829930 
+ CHI0 p_id: 0,   thread: 8,     R:  ( 0,  1,  0 ),    tau: 0.119629 ,   TIME_USED: 38.716715 
+ CHI0 p_id: 0,   thread: 37,     R:  ( 0,  1,  0 ),    tau: 0.249874 ,   TIME_USED: 38.730412 
+ CHI0 p_id: 0,   thread: 14,     R:  ( 0,  1,  0 ),    tau: 31.392956 ,   TIME_USED: 29.645733 
+ CHI0 p_id: 0,   thread: 23,     R:  ( 0,  1,  0 ),    tau: 0.847665 ,   TIME_USED: 38.488984 
+ CHI0 p_id: 0,   thread: 45,     R:  ( 0,  1,  0 ),    tau: 0.471606 ,   TIME_USED: 39.560044 
+ CHI0 p_id: 0,   thread: 22,     R:  ( 0,  1,  0 ),    tau: 1.481673 ,   TIME_USED: 38.359386 
+ CHI0 p_id: 0,   thread: 2,     R:  ( 0,  1,  0 ),    tau: 2.539921 ,   TIME_USED: 39.588076 
+ CHI0 p_id: 0,   thread: 42,     R:  ( 0,  1,  0 ),    tau: 4.286264 ,   TIME_USED: 38.232806 
+ CHI0 p_id: 0,   thread: 36,     R:  ( 0,  1,  0 ),    tau: 11.752803 ,   TIME_USED: 38.200465 
+ CHI0 p_id: 0,   thread: 31,     R:  ( 0,  1,  0 ),    tau: 19.206034 ,   TIME_USED: 38.291916 
+ CHI0 p_id: 0,   thread: 16,     R:  ( 0,  1,  0 ),    tau: 7.137231 ,   TIME_USED: 39.627527 
+ CHI0 p_id: 0,   thread: 19,     R:  ( 1,  -2,  -2 ),    tau: 52.597381 ,   TIME_USED: 15.024481 
+ CHI0 p_id: 0,   thread: 41,     R:  ( 0,  1,  1 ),    tau: 31.392956 ,   TIME_USED: 29.859312 
+ CHI0 p_id: 0,   thread: 6,     R:  ( 0,  1,  1 ),    tau: 0.008241 ,   TIME_USED: 39.445620 
+ CHI0 p_id: 0,   thread: 46,     R:  ( 0,  1,  1 ),    tau: 0.045148 ,   TIME_USED: 39.425666 
+ CHI0 p_id: 0,   thread: 25,     R:  ( 0,  1,  1 ),    tau: 0.119629 ,   TIME_USED: 39.362897 
+ CHI0 p_id: 0,   thread: 29,     R:  ( 0,  1,  1 ),    tau: 0.249874 ,   TIME_USED: 39.357271 
+ CHI0 p_id: 0,   thread: 12,     R:  ( 0,  1,  1 ),    tau: 0.471606 ,   TIME_USED: 39.354346 
+ CHI0 p_id: 0,   thread: 47,     R:  ( 0,  1,  1 ),    tau: 0.847665 ,   TIME_USED: 39.341693 
+ CHI0 p_id: 0,   thread: 15,     R:  ( 0,  1,  1 ),    tau: 1.481673 ,   TIME_USED: 38.864225 
+ CHI0 p_id: 0,   thread: 0,     R:  ( 0,  1,  1 ),    tau: 2.539921 ,   TIME_USED: 39.686767 
+ CHI0 p_id: 0,   thread: 21,     R:  ( 0,  1,  1 ),    tau: 4.286264 ,   TIME_USED: 38.851697 
+ CHI0 p_id: 0,   thread: 18,     R:  ( 1,  -2,  -2 ),    tau: 31.392956 ,   TIME_USED: 25.318243 
+ CHI0 p_id: 0,   thread: 39,     R:  ( 0,  1,  1 ),    tau: 7.137231 ,   TIME_USED: 38.865109 
+ CHI0 p_id: 0,   thread: 43,     R:  ( 0,  1,  1 ),    tau: 11.752803 ,   TIME_USED: 39.355371 
+ CHI0 p_id: 0,   thread: 23,     R:  ( 1,  -2,  -1 ),    tau: 52.597381 ,   TIME_USED: 15.596086 
+ CHI0 p_id: 0,   thread: 10,     R:  ( 0,  1,  1 ),    tau: 19.206034 ,   TIME_USED: 39.313286 
+ CHI0 p_id: 0,   thread: 40,     R:  ( 1,  -2,  -2 ),    tau: 0.008241 ,   TIME_USED: 39.278271 
+ CHI0 p_id: 0,   thread: 24,     R:  ( 1,  -2,  -2 ),    tau: 0.045148 ,   TIME_USED: 38.902999 
+ CHI0 p_id: 0,   thread: 20,     R:  ( 1,  -2,  -2 ),    tau: 0.119629 ,   TIME_USED: 39.286562 
+ CHI0 p_id: 0,   thread: 5,     R:  ( 1,  -2,  -2 ),    tau: 0.249874 ,   TIME_USED: 39.167753 
+ CHI0 p_id: 0,   thread: 38,     R:  ( 1,  -2,  -2 ),    tau: 0.471606 ,   TIME_USED: 39.146885 
+ CHI0 p_id: 0,   thread: 44,     R:  ( 1,  -2,  -2 ),    tau: 0.847665 ,   TIME_USED: 39.140669 
+ CHI0 p_id: 0,   thread: 7,     R:  ( 1,  -2,  -2 ),    tau: 1.481673 ,   TIME_USED: 39.065877 
+ CHI0 p_id: 0,   thread: 28,     R:  ( 1,  -2,  -2 ),    tau: 2.539921 ,   TIME_USED: 39.007516 
+ CHI0 p_id: 0,   thread: 32,     R:  ( 1,  -2,  -2 ),    tau: 4.286264 ,   TIME_USED: 38.907570 
+ CHI0 p_id: 0,   thread: 26,     R:  ( 1,  -2,  -2 ),    tau: 7.137231 ,   TIME_USED: 38.817792 
+ CHI0 p_id: 0,   thread: 17,     R:  ( 1,  -2,  -2 ),    tau: 11.752803 ,   TIME_USED: 38.995127 
+ CHI0 p_id: 0,   thread: 35,     R:  ( 1,  -2,  -2 ),    tau: 19.206034 ,   TIME_USED: 38.794163 
+ CHI0 p_id: 0,   thread: 13,     R:  ( 1,  -2,  -1 ),    tau: 0.008241 ,   TIME_USED: 39.171054 
+ CHI0 p_id: 0,   thread: 14,     R:  ( 1,  -2,  -1 ),    tau: 31.392956 ,   TIME_USED: 29.983890 
+ CHI0 p_id: 0,   thread: 12,     R:  ( 1,  -2,  0 ),    tau: 52.597381 ,   TIME_USED: 18.488396 
+ CHI0 p_id: 0,   thread: 1,     R:  ( 1,  -2,  -1 ),    tau: 0.045148 ,   TIME_USED: 39.204530 
+ CHI0 p_id: 0,   thread: 9,     R:  ( 1,  -2,  -1 ),    tau: 0.249874 ,   TIME_USED: 38.746719 
+ CHI0 p_id: 0,   thread: 27,     R:  ( 1,  -2,  -1 ),    tau: 0.847665 ,   TIME_USED: 38.707907 
+ CHI0 p_id: 0,   thread: 33,     R:  ( 1,  -2,  -1 ),    tau: 0.119629 ,   TIME_USED: 39.236786 
+ CHI0 p_id: 0,   thread: 3,     R:  ( 1,  -2,  -1 ),    tau: 0.471606 ,   TIME_USED: 39.262290 
+ CHI0 p_id: 0,   thread: 30,     R:  ( 1,  -2,  -1 ),    tau: 1.481673 ,   TIME_USED: 38.842906 
+ CHI0 p_id: 0,   thread: 11,     R:  ( 1,  -2,  -1 ),    tau: 2.539921 ,   TIME_USED: 39.308544 
+ CHI0 p_id: 0,   thread: 34,     R:  ( 1,  -2,  -1 ),    tau: 4.286264 ,   TIME_USED: 39.109671 
+ CHI0 p_id: 0,   thread: 4,     R:  ( 1,  -2,  -1 ),    tau: 7.137231 ,   TIME_USED: 39.127954 
+ CHI0 p_id: 0,   thread: 8,     R:  ( 1,  -2,  -1 ),    tau: 11.752803 ,   TIME_USED: 39.252280 
+ CHI0 p_id: 0,   thread: 37,     R:  ( 1,  -2,  -1 ),    tau: 19.206034 ,   TIME_USED: 39.237114 
+ CHI0 p_id: 0,   thread: 45,     R:  ( 1,  -2,  0 ),    tau: 0.008241 ,   TIME_USED: 39.062267 
+ CHI0 p_id: 0,   thread: 22,     R:  ( 1,  -2,  0 ),    tau: 0.045148 ,   TIME_USED: 39.284826 
+ CHI0 p_id: 0,   thread: 38,     R:  ( 1,  -2,  1 ),    tau: 52.597381 ,   TIME_USED: 19.050745 
+ CHI0 p_id: 0,   thread: 29,     R:  ( 1,  -2,  0 ),    tau: 31.392956 ,   TIME_USED: 29.462289 
+ CHI0 p_id: 0,   thread: 2,     R:  ( 1,  -2,  0 ),    tau: 0.119629 ,   TIME_USED: 38.987035 
+ CHI0 p_id: 0,   thread: 42,     R:  ( 1,  -2,  0 ),    tau: 0.249874 ,   TIME_USED: 39.281267 
+ CHI0 p_id: 0,   thread: 36,     R:  ( 1,  -2,  0 ),    tau: 0.471606 ,   TIME_USED: 39.276388 
+ CHI0 p_id: 0,   thread: 31,     R:  ( 1,  -2,  0 ),    tau: 0.847665 ,   TIME_USED: 39.270156 
+ CHI0 p_id: 0,   thread: 16,     R:  ( 1,  -2,  0 ),    tau: 1.481673 ,   TIME_USED: 39.061914 
+ CHI0 p_id: 0,   thread: 19,     R:  ( 1,  -2,  0 ),    tau: 2.539921 ,   TIME_USED: 39.067758 
+ CHI0 p_id: 0,   thread: 33,     R:  ( 1,  -1,  -2 ),    tau: 52.597381 ,   TIME_USED: 15.151516 
+ CHI0 p_id: 0,   thread: 41,     R:  ( 1,  -2,  0 ),    tau: 4.286264 ,   TIME_USED: 39.307314 
+ CHI0 p_id: 0,   thread: 5,     R:  ( 1,  -2,  1 ),    tau: 31.392956 ,   TIME_USED: 26.189483 
+ CHI0 p_id: 0,   thread: 6,     R:  ( 1,  -2,  0 ),    tau: 7.137231 ,   TIME_USED: 39.188941 
+ CHI0 p_id: 0,   thread: 46,     R:  ( 1,  -2,  0 ),    tau: 11.752803 ,   TIME_USED: 39.208757 
+ CHI0 p_id: 0,   thread: 25,     R:  ( 1,  -2,  0 ),    tau: 19.206034 ,   TIME_USED: 39.187987 
+ CHI0 p_id: 0,   thread: 47,     R:  ( 1,  -2,  1 ),    tau: 0.008241 ,   TIME_USED: 39.228963 
+ CHI0 p_id: 0,   thread: 15,     R:  ( 1,  -2,  1 ),    tau: 0.045148 ,   TIME_USED: 39.241402 
+ CHI0 p_id: 0,   thread: 0,     R:  ( 1,  -2,  1 ),    tau: 0.119629 ,   TIME_USED: 39.315827 
+ CHI0 p_id: 0,   thread: 21,     R:  ( 1,  -2,  1 ),    tau: 0.249874 ,   TIME_USED: 39.095613 
+ CHI0 p_id: 0,   thread: 39,     R:  ( 1,  -2,  1 ),    tau: 0.847665 ,   TIME_USED: 39.100758 
+ CHI0 p_id: 0,   thread: 18,     R:  ( 1,  -2,  1 ),    tau: 0.471606 ,   TIME_USED: 39.370795 
+ CHI0 p_id: 0,   thread: 23,     R:  ( 1,  -2,  1 ),    tau: 2.539921 ,   TIME_USED: 39.076221 
+ CHI0 p_id: 0,   thread: 43,     R:  ( 1,  -2,  1 ),    tau: 1.481673 ,   TIME_USED: 39.501599 
+ CHI0 p_id: 0,   thread: 10,     R:  ( 1,  -2,  1 ),    tau: 4.286264 ,   TIME_USED: 39.534649 
+ CHI0 p_id: 0,   thread: 24,     R:  ( 1,  -2,  1 ),    tau: 11.752803 ,   TIME_USED: 38.987105 
+ CHI0 p_id: 0,   thread: 40,     R:  ( 1,  -2,  1 ),    tau: 7.137231 ,   TIME_USED: 39.655790 
+ CHI0 p_id: 0,   thread: 20,     R:  ( 1,  -2,  1 ),    tau: 19.206034 ,   TIME_USED: 39.761014 
+ CHI0 p_id: 0,   thread: 27,     R:  ( 1,  -1,  -2 ),    tau: 31.392956 ,   TIME_USED: 30.875577 
+ CHI0 p_id: 0,   thread: 36,     R:  ( 1,  -1,  -1 ),    tau: 52.597381 ,   TIME_USED: 18.778550 
+ CHI0 p_id: 0,   thread: 44,     R:  ( 1,  -1,  -2 ),    tau: 0.008241 ,   TIME_USED: 38.971841 
+ CHI0 p_id: 0,   thread: 28,     R:  ( 1,  -1,  -2 ),    tau: 0.119629 ,   TIME_USED: 39.112889 
+ CHI0 p_id: 0,   thread: 7,     R:  ( 1,  -1,  -2 ),    tau: 0.045148 ,   TIME_USED: 40.018450 
+ CHI0 p_id: 0,   thread: 32,     R:  ( 1,  -1,  -2 ),    tau: 0.249874 ,   TIME_USED: 39.134541 
+ CHI0 p_id: 0,   thread: 26,     R:  ( 1,  -1,  -2 ),    tau: 0.471606 ,   TIME_USED: 39.077204 
+ CHI0 p_id: 0,   thread: 35,     R:  ( 1,  -1,  -2 ),    tau: 1.481673 ,   TIME_USED: 39.107833 
+ CHI0 p_id: 0,   thread: 17,     R:  ( 1,  -1,  -2 ),    tau: 0.847665 ,   TIME_USED: 40.176527 
+ CHI0 p_id: 0,   thread: 14,     R:  ( 1,  -1,  -2 ),    tau: 4.286264 ,   TIME_USED: 39.060001 
+ CHI0 p_id: 0,   thread: 13,     R:  ( 1,  -1,  -2 ),    tau: 2.539921 ,   TIME_USED: 40.255978 
+ CHI0 p_id: 0,   thread: 9,     R:  ( 1,  -1,  -2 ),    tau: 19.206034 ,   TIME_USED: 39.061849 
+ CHI0 p_id: 0,   thread: 12,     R:  ( 1,  -1,  -2 ),    tau: 7.137231 ,   TIME_USED: 40.300555 
+ CHI0 p_id: 0,   thread: 1,     R:  ( 1,  -1,  -2 ),    tau: 11.752803 ,   TIME_USED: 40.276967 
+ CHI0 p_id: 0,   thread: 30,     R:  ( 1,  -1,  -1 ),    tau: 0.045148 ,   TIME_USED: 38.911826 
+ CHI0 p_id: 0,   thread: 3,     R:  ( 1,  -1,  -1 ),    tau: 0.008241 ,   TIME_USED: 40.295413 
+ CHI0 p_id: 0,   thread: 39,     R:  ( 1,  -1,  0 ),    tau: 52.597381 ,   TIME_USED: 18.872759 
+ CHI0 p_id: 0,   thread: 34,     R:  ( 1,  -1,  -1 ),    tau: 0.249874 ,   TIME_USED: 38.734378 
+ CHI0 p_id: 0,   thread: 4,     R:  ( 1,  -1,  -1 ),    tau: 0.471606 ,   TIME_USED: 38.729829 
+ CHI0 p_id: 0,   thread: 11,     R:  ( 1,  -1,  -1 ),    tau: 0.119629 ,   TIME_USED: 40.462028 
+ CHI0 p_id: 0,   thread: 8,     R:  ( 1,  -1,  -1 ),    tau: 0.847665 ,   TIME_USED: 38.491101 
+ CHI0 p_id: 0,   thread: 37,     R:  ( 1,  -1,  -1 ),    tau: 1.481673 ,   TIME_USED: 38.445339 
+ CHI0 p_id: 0,   thread: 42,     R:  ( 1,  -1,  -1 ),    tau: 31.392956 ,   TIME_USED: 35.443881 
+ CHI0 p_id: 0,   thread: 22,     R:  ( 1,  -1,  -1 ),    tau: 4.286264 ,   TIME_USED: 38.272416 
+ CHI0 p_id: 0,   thread: 38,     R:  ( 1,  -1,  -1 ),    tau: 7.137231 ,   TIME_USED: 38.223677 
+ CHI0 p_id: 0,   thread: 45,     R:  ( 1,  -1,  -1 ),    tau: 2.539921 ,   TIME_USED: 40.578659 
+ CHI0 p_id: 0,   thread: 31,     R:  ( 1,  -1,  0 ),    tau: 0.008241 ,   TIME_USED: 38.234062 
+ CHI0 p_id: 0,   thread: 29,     R:  ( 1,  -1,  -1 ),    tau: 11.752803 ,   TIME_USED: 40.582327 
+ CHI0 p_id: 0,   thread: 2,     R:  ( 1,  -1,  -1 ),    tau: 19.206034 ,   TIME_USED: 40.550480 
+ CHI0 p_id: 0,   thread: 21,     R:  ( 1,  -1,  0 ),    tau: 31.392956 ,   TIME_USED: 29.749494 
+ CHI0 p_id: 0,   thread: 16,     R:  ( 1,  -1,  0 ),    tau: 0.045148 ,   TIME_USED: 40.568484 
+ CHI0 p_id: 0,   thread: 26,     R:  ( 1,  -1,  1 ),    tau: 52.597381 ,   TIME_USED: 18.661815 
+ CHI0 p_id: 0,   thread: 19,     R:  ( 1,  -1,  0 ),    tau: 0.119629 ,   TIME_USED: 40.588973 
+ CHI0 p_id: 0,   thread: 41,     R:  ( 1,  -1,  0 ),    tau: 0.471606 ,   TIME_USED: 38.397054 
+ CHI0 p_id: 0,   thread: 33,     R:  ( 1,  -1,  0 ),    tau: 0.249874 ,   TIME_USED: 40.654408 
+ CHI0 p_id: 0,   thread: 5,     R:  ( 1,  -1,  0 ),    tau: 0.847665 ,   TIME_USED: 40.541823 
+ CHI0 p_id: 0,   thread: 6,     R:  ( 1,  -1,  0 ),    tau: 1.481673 ,   TIME_USED: 40.318672 
+ CHI0 p_id: 0,   thread: 46,     R:  ( 1,  -1,  0 ),    tau: 2.539921 ,   TIME_USED: 40.301960 
+ CHI0 p_id: 0,   thread: 25,     R:  ( 1,  -1,  0 ),    tau: 4.286264 ,   TIME_USED: 40.290106 
+ CHI0 p_id: 0,   thread: 15,     R:  ( 1,  -1,  0 ),    tau: 11.752803 ,   TIME_USED: 38.738891 
+ CHI0 p_id: 0,   thread: 47,     R:  ( 1,  -1,  0 ),    tau: 7.137231 ,   TIME_USED: 40.171438 
+ CHI0 p_id: 0,   thread: 0,     R:  ( 1,  -1,  0 ),    tau: 19.206034 ,   TIME_USED: 40.086909 
+ CHI0 p_id: 0,   thread: 23,     R:  ( 1,  -1,  1 ),    tau: 0.045148 ,   TIME_USED: 38.869172 
+ CHI0 p_id: 0,   thread: 18,     R:  ( 1,  -1,  1 ),    tau: 0.008241 ,   TIME_USED: 39.923626 
+ CHI0 p_id: 0,   thread: 43,     R:  ( 1,  -1,  1 ),    tau: 0.119629 ,   TIME_USED: 39.906080 
+ CHI0 p_id: 0,   thread: 8,     R:  ( 1,  0,  -2 ),    tau: 52.597381 ,   TIME_USED: 18.726559 
+ CHI0 p_id: 0,   thread: 10,     R:  ( 1,  -1,  1 ),    tau: 0.249874 ,   TIME_USED: 39.824972 
+ CHI0 p_id: 0,   thread: 24,     R:  ( 1,  -1,  1 ),    tau: 0.471606 ,   TIME_USED: 38.903447 
+ CHI0 p_id: 0,   thread: 40,     R:  ( 1,  -1,  1 ),    tau: 0.847665 ,   TIME_USED: 39.724800 
+ CHI0 p_id: 0,   thread: 20,     R:  ( 1,  -1,  1 ),    tau: 1.481673 ,   TIME_USED: 39.564747 
+ CHI0 p_id: 0,   thread: 32,     R:  ( 1,  -1,  1 ),    tau: 31.392956 ,   TIME_USED: 35.385898 
+ CHI0 p_id: 0,   thread: 27,     R:  ( 1,  -1,  1 ),    tau: 2.539921 ,   TIME_USED: 38.592038 
+ CHI0 p_id: 0,   thread: 36,     R:  ( 1,  -1,  1 ),    tau: 4.286264 ,   TIME_USED: 38.562889 
+ CHI0 p_id: 0,   thread: 44,     R:  ( 1,  -1,  1 ),    tau: 7.137231 ,   TIME_USED: 38.547668 
+ CHI0 p_id: 0,   thread: 28,     R:  ( 1,  -1,  1 ),    tau: 11.752803 ,   TIME_USED: 38.284146 
+ CHI0 p_id: 0,   thread: 7,     R:  ( 1,  -1,  1 ),    tau: 19.206034 ,   TIME_USED: 39.255438 
+ CHI0 p_id: 0,   thread: 35,     R:  ( 1,  0,  -2 ),    tau: 0.008241 ,   TIME_USED: 38.344040 
+ CHI0 p_id: 0,   thread: 33,     R:  ( 1,  0,  -1 ),    tau: 52.597381 ,   TIME_USED: 18.584199 
+ CHI0 p_id: 0,   thread: 11,     R:  ( 1,  0,  -2 ),    tau: 31.392956 ,   TIME_USED: 30.638642 
+ CHI0 p_id: 0,   thread: 17,     R:  ( 1,  0,  -2 ),    tau: 0.045148 ,   TIME_USED: 39.079114 
+ CHI0 p_id: 0,   thread: 14,     R:  ( 1,  0,  -2 ),    tau: 0.119629 ,   TIME_USED: 38.437624 
+ CHI0 p_id: 0,   thread: 9,     R:  ( 1,  0,  -2 ),    tau: 0.471606 ,   TIME_USED: 38.424608 
+ CHI0 p_id: 0,   thread: 13,     R:  ( 1,  0,  -2 ),    tau: 0.249874 ,   TIME_USED: 39.147842 
+ CHI0 p_id: 0,   thread: 30,     R:  ( 1,  0,  -2 ),    tau: 2.539921 ,   TIME_USED: 38.434253 
+ CHI0 p_id: 0,   thread: 12,     R:  ( 1,  0,  -2 ),    tau: 0.847665 ,   TIME_USED: 39.218690 
+ CHI0 p_id: 0,   thread: 1,     R:  ( 1,  0,  -2 ),    tau: 1.481673 ,   TIME_USED: 39.218258 
+ CHI0 p_id: 0,   thread: 3,     R:  ( 1,  0,  -2 ),    tau: 4.286264 ,   TIME_USED: 39.327290 
+ CHI0 p_id: 0,   thread: 39,     R:  ( 1,  0,  -2 ),    tau: 7.137231 ,   TIME_USED: 38.266626 
+ CHI0 p_id: 0,   thread: 34,     R:  ( 1,  0,  -2 ),    tau: 11.752803 ,   TIME_USED: 38.153184 
+ CHI0 p_id: 0,   thread: 4,     R:  ( 1,  0,  -2 ),    tau: 19.206034 ,   TIME_USED: 38.125905 
+ CHI0 p_id: 0,   thread: 37,     R:  ( 1,  0,  -1 ),    tau: 0.008241 ,   TIME_USED: 38.103206 
+ CHI0 p_id: 0,   thread: 42,     R:  ( 1,  0,  -1 ),    tau: 0.045148 ,   TIME_USED: 38.183143 
+ CHI0 p_id: 0,   thread: 41,     R:  ( 1,  0,  -1 ),    tau: 31.392956 ,   TIME_USED: 30.436713 
+ CHI0 p_id: 0,   thread: 40,     R:  ( 1,  0,  0 ),    tau: 52.597381 ,   TIME_USED: 18.721318 
+ CHI0 p_id: 0,   thread: 22,     R:  ( 1,  0,  -1 ),    tau: 0.119629 ,   TIME_USED: 38.305376 
+ CHI0 p_id: 0,   thread: 38,     R:  ( 1,  0,  -1 ),    tau: 0.249874 ,   TIME_USED: 38.392256 
+ CHI0 p_id: 0,   thread: 45,     R:  ( 1,  0,  -1 ),    tau: 0.471606 ,   TIME_USED: 39.431627 
+ CHI0 p_id: 0,   thread: 31,     R:  ( 1,  0,  -1 ),    tau: 0.847665 ,   TIME_USED: 38.717771 
+ CHI0 p_id: 0,   thread: 29,     R:  ( 1,  0,  -1 ),    tau: 1.481673 ,   TIME_USED: 39.522185 
+ CHI0 p_id: 0,   thread: 2,     R:  ( 1,  0,  -1 ),    tau: 2.539921 ,   TIME_USED: 39.544312 
+ CHI0 p_id: 0,   thread: 21,     R:  ( 1,  0,  -1 ),    tau: 4.286264 ,   TIME_USED: 38.824065 
+ CHI0 p_id: 0,   thread: 26,     R:  ( 1,  0,  -1 ),    tau: 11.752803 ,   TIME_USED: 38.820866 
+ CHI0 p_id: 0,   thread: 16,     R:  ( 1,  0,  -1 ),    tau: 7.137231 ,   TIME_USED: 39.582350 
+ CHI0 p_id: 0,   thread: 19,     R:  ( 1,  0,  -1 ),    tau: 19.206034 ,   TIME_USED: 39.567934 
+ CHI0 p_id: 0,   thread: 24,     R:  ( 1,  0,  0 ),    tau: 31.392956 ,   TIME_USED: 30.138508 
+ CHI0 p_id: 0,   thread: 13,     R:  ( 1,  0,  1 ),    tau: 52.597381 ,   TIME_USED: 18.587989 
+ CHI0 p_id: 0,   thread: 5,     R:  ( 1,  0,  0 ),    tau: 0.008241 ,   TIME_USED: 39.569423 
+ CHI0 p_id: 0,   thread: 15,     R:  ( 1,  0,  0 ),    tau: 0.471606 ,   TIME_USED: 38.620168 
+ CHI0 p_id: 0,   thread: 6,     R:  ( 1,  0,  0 ),    tau: 0.045148 ,   TIME_USED: 39.617719 
+ CHI0 p_id: 0,   thread: 46,     R:  ( 1,  0,  0 ),    tau: 0.119629 ,   TIME_USED: 39.603496 
+ CHI0 p_id: 0,   thread: 25,     R:  ( 1,  0,  0 ),    tau: 0.249874 ,   TIME_USED: 39.590019 
+ CHI0 p_id: 0,   thread: 47,     R:  ( 1,  0,  0 ),    tau: 0.847665 ,   TIME_USED: 39.566696 
+ CHI0 p_id: 0,   thread: 23,     R:  ( 1,  0,  0 ),    tau: 2.539921 ,   TIME_USED: 38.791008 
+ CHI0 p_id: 0,   thread: 0,     R:  ( 1,  0,  0 ),    tau: 1.481673 ,   TIME_USED: 39.612737 
+ CHI0 p_id: 0,   thread: 18,     R:  ( 1,  0,  0 ),    tau: 4.286264 ,   TIME_USED: 39.591654 
+ CHI0 p_id: 0,   thread: 8,     R:  ( 1,  0,  0 ),    tau: 11.752803 ,   TIME_USED: 38.839564 
+ CHI0 p_id: 0,   thread: 43,     R:  ( 1,  0,  0 ),    tau: 7.137231 ,   TIME_USED: 39.576718 
+ CHI0 p_id: 0,   thread: 10,     R:  ( 1,  0,  0 ),    tau: 19.206034 ,   TIME_USED: 39.553731 
+ CHI0 p_id: 0,   thread: 9,     R:  ( 1,  0,  1 ),    tau: 31.392956 ,   TIME_USED: 29.991582 
+ CHI0 p_id: 0,   thread: 45,     R:  ( 1,  1,  -2 ),    tau: 52.597381 ,   TIME_USED: 18.526016 
+ CHI0 p_id: 0,   thread: 32,     R:  ( 1,  0,  1 ),    tau: 0.045148 ,   TIME_USED: 38.446597 
+ CHI0 p_id: 0,   thread: 27,     R:  ( 1,  0,  1 ),    tau: 0.119629 ,   TIME_USED: 38.465454 
+ CHI0 p_id: 0,   thread: 36,     R:  ( 1,  0,  1 ),    tau: 0.249874 ,   TIME_USED: 38.427965 
+ CHI0 p_id: 0,   thread: 44,     R:  ( 1,  0,  1 ),    tau: 0.471606 ,   TIME_USED: 38.428976 
+ CHI0 p_id: 0,   thread: 20,     R:  ( 1,  0,  1 ),    tau: 0.008241 ,   TIME_USED: 39.493116 
+ CHI0 p_id: 0,   thread: 28,     R:  ( 1,  0,  1 ),    tau: 0.847665 ,   TIME_USED: 38.392275 
+ CHI0 p_id: 0,   thread: 7,     R:  ( 1,  0,  1 ),    tau: 1.481673 ,   TIME_USED: 39.479185 
+ CHI0 p_id: 0,   thread: 35,     R:  ( 1,  0,  1 ),    tau: 2.539921 ,   TIME_USED: 38.442636 
+ CHI0 p_id: 0,   thread: 38,     R:  ( 1,  1,  -2 ),    tau: 31.392956 ,   TIME_USED: 26.370823 
+ CHI0 p_id: 0,   thread: 33,     R:  ( 1,  0,  1 ),    tau: 4.286264 ,   TIME_USED: 39.516449 
+ CHI0 p_id: 0,   thread: 11,     R:  ( 1,  0,  1 ),    tau: 7.137231 ,   TIME_USED: 39.511139 
+ CHI0 p_id: 0,   thread: 17,     R:  ( 1,  0,  1 ),    tau: 11.752803 ,   TIME_USED: 39.492032 
+ CHI0 p_id: 0,   thread: 14,     R:  ( 1,  0,  1 ),    tau: 19.206034 ,   TIME_USED: 38.688582 
+ CHI0 p_id: 0,   thread: 30,     R:  ( 1,  1,  -2 ),    tau: 0.008241 ,   TIME_USED: 38.716556 
+ CHI0 p_id: 0,   thread: 12,     R:  ( 1,  1,  -2 ),    tau: 0.045148 ,   TIME_USED: 39.378770 
+ CHI0 p_id: 0,   thread: 25,     R:  ( 1,  1,  -1 ),    tau: 52.597381 ,   TIME_USED: 19.046811 
+ CHI0 p_id: 0,   thread: 1,     R:  ( 1,  1,  -2 ),    tau: 0.119629 ,   TIME_USED: 39.379252 
+ CHI0 p_id: 0,   thread: 39,     R:  ( 1,  1,  -2 ),    tau: 0.471606 ,   TIME_USED: 38.792605 
+ CHI0 p_id: 0,   thread: 3,     R:  ( 1,  1,  -2 ),    tau: 0.249874 ,   TIME_USED: 39.433337 
+ CHI0 p_id: 0,   thread: 34,     R:  ( 1,  1,  -2 ),    tau: 0.847665 ,   TIME_USED: 38.700120 
+ CHI0 p_id: 0,   thread: 4,     R:  ( 1,  1,  -2 ),    tau: 1.481673 ,   TIME_USED: 38.680015 
+ CHI0 p_id: 0,   thread: 37,     R:  ( 1,  1,  -2 ),    tau: 2.539921 ,   TIME_USED: 38.540780 
+ CHI0 p_id: 0,   thread: 42,     R:  ( 1,  1,  -2 ),    tau: 4.286264 ,   TIME_USED: 38.499154 
+ CHI0 p_id: 0,   thread: 41,     R:  ( 1,  1,  -2 ),    tau: 7.137231 ,   TIME_USED: 38.651731 
+ CHI0 p_id: 0,   thread: 22,     R:  ( 1,  1,  -2 ),    tau: 19.206034 ,   TIME_USED: 38.421452 
+ CHI0 p_id: 0,   thread: 40,     R:  ( 1,  1,  -2 ),    tau: 11.752803 ,   TIME_USED: 39.274823 
+ CHI0 p_id: 0,   thread: 20,     R:  ( 1,  1,  0 ),    tau: 52.597381 ,   TIME_USED: 18.455286 
+ CHI0 p_id: 0,   thread: 31,     R:  ( 1,  1,  -1 ),    tau: 0.008241 ,   TIME_USED: 38.819550 
+ CHI0 p_id: 0,   thread: 29,     R:  ( 1,  1,  -1 ),    tau: 0.045148 ,   TIME_USED: 39.219176 
+ CHI0 p_id: 0,   thread: 2,     R:  ( 1,  1,  -1 ),    tau: 0.119629 ,   TIME_USED: 39.196517 
+ CHI0 p_id: 0,   thread: 21,     R:  ( 1,  1,  -1 ),    tau: 0.249874 ,   TIME_USED: 38.942321 
+ CHI0 p_id: 0,   thread: 26,     R:  ( 1,  1,  -1 ),    tau: 0.471606 ,   TIME_USED: 38.826415 
+ CHI0 p_id: 0,   thread: 16,     R:  ( 1,  1,  -1 ),    tau: 0.847665 ,   TIME_USED: 39.130867 
+ CHI0 p_id: 0,   thread: 19,     R:  ( 1,  1,  -1 ),    tau: 1.481673 ,   TIME_USED: 38.878950 
+ CHI0 p_id: 0,   thread: 24,     R:  ( 1,  1,  -1 ),    tau: 2.539921 ,   TIME_USED: 38.313274 
+ CHI0 p_id: 0,   thread: 13,     R:  ( 1,  1,  -1 ),    tau: 4.286264 ,   TIME_USED: 38.548389 
+ CHI0 p_id: 0,   thread: 46,     R:  ( 1,  1,  -1 ),    tau: 31.392956 ,   TIME_USED: 35.973680 
+ CHI0 p_id: 0,   thread: 5,     R:  ( 1,  1,  -1 ),    tau: 7.137231 ,   TIME_USED: 38.547201 
+ CHI0 p_id: 0,   thread: 15,     R:  ( 1,  1,  -1 ),    tau: 11.752803 ,   TIME_USED: 38.145749 
+ CHI0 p_id: 0,   thread: 3,     R:  ( 1,  1,  1 ),    tau: 52.597381 ,   TIME_USED: 17.471478 
+ CHI0 p_id: 0,   thread: 6,     R:  ( 1,  1,  -1 ),    tau: 19.206034 ,   TIME_USED: 38.262173 
+ CHI0 p_id: 0,   thread: 47,     R:  ( 1,  1,  0 ),    tau: 0.008241 ,   TIME_USED: 38.003022 
+ CHI0 p_id: 0,   thread: 44,     R:  ( 1,  1,  0 ),    tau: 31.392956 ,   TIME_USED: 30.206970 
+ CHI0 p_id: 0,   thread: 23,     R:  ( 1,  1,  0 ),    tau: 0.045148 ,   TIME_USED: 37.823982 
+ CHI0 p_id: 0,   thread: 0,     R:  ( 1,  1,  0 ),    tau: 0.119629 ,   TIME_USED: 37.462712 
+ CHI0 p_id: 0,   thread: 18,     R:  ( 1,  1,  0 ),    tau: 0.249874 ,   TIME_USED: 37.411195 
+ CHI0 p_id: 0,   thread: 8,     R:  ( 1,  1,  0 ),    tau: 0.471606 ,   TIME_USED: 37.666183 
+ CHI0 p_id: 0,   thread: 43,     R:  ( 1,  1,  0 ),    tau: 0.847665 ,   TIME_USED: 37.230904 
+ CHI0 p_id: 0,   thread: 10,     R:  ( 1,  1,  0 ),    tau: 1.481673 ,   TIME_USED: 37.029930 
+ CHI0 p_id: 0,   thread: 9,     R:  ( 1,  1,  0 ),    tau: 2.539921 ,   TIME_USED: 36.960585 
+ CHI0 p_id: 0,   thread: 36,     R:  ( 1,  1,  0 ),    tau: 19.206034 ,   TIME_USED: 36.485602 
+ CHI0 p_id: 0,   thread: 32,     R:  ( 1,  1,  0 ),    tau: 7.137231 ,   TIME_USED: 36.802039 
+ CHI0 p_id: 0,   thread: 27,     R:  ( 1,  1,  0 ),    tau: 11.752803 ,   TIME_USED: 36.798963 
+ CHI0 p_id: 0,   thread: 45,     R:  ( 1,  1,  0 ),    tau: 4.286264 ,   TIME_USED: 37.353854 
+ CHI0 p_id: 0,   thread: 28,     R:  ( 1,  1,  1 ),    tau: 0.008241 ,   TIME_USED: 36.165330 
+ CHI0 p_id: 0,   thread: 35,     R:  ( 1,  1,  1 ),    tau: 0.119629 ,   TIME_USED: 35.237161 
+ CHI0 p_id: 0,   thread: 7,     R:  ( 1,  1,  1 ),    tau: 0.045148 ,   TIME_USED: 35.657010 
+ CHI0 p_id: 0,   thread: 38,     R:  ( 1,  1,  1 ),    tau: 0.249874 ,   TIME_USED: 35.029997 
+ CHI0 p_id: 0,   thread: 11,     R:  ( 1,  1,  1 ),    tau: 0.847665 ,   TIME_USED: 34.295274 
+ CHI0 p_id: 0,   thread: 33,     R:  ( 1,  1,  1 ),    tau: 0.471606 ,   TIME_USED: 35.374505 
+ CHI0 p_id: 0,   thread: 14,     R:  ( 1,  1,  1 ),    tau: 2.539921 ,   TIME_USED: 34.594796 
+ CHI0 p_id: 0,   thread: 17,     R:  ( 1,  1,  1 ),    tau: 1.481673 ,   TIME_USED: 35.172822 
+ CHI0 p_id: 0,   thread: 30,     R:  ( 1,  1,  1 ),    tau: 4.286264 ,   TIME_USED: 34.318221 
+ CHI0 p_id: 0,   thread: 39,     R:  ( 1,  1,  1 ),    tau: 31.392956 ,   TIME_USED: 32.634187 
+ CHI0 p_id: 0,   thread: 25,     R:  ( 1,  1,  1 ),    tau: 11.752803 ,   TIME_USED: 34.168102 
+ CHI0 p_id: 0,   thread: 1,     R:  ( 1,  1,  1 ),    tau: 19.206034 ,   TIME_USED: 34.477662 
+ CHI0 p_id: 0,   thread: 12,     R:  ( 1,  1,  1 ),    tau: 7.137231 ,   TIME_USED: 34.624965 
+ Begin cal_pi_k , pid:  0
+finish cal_pi_k , pid:  0
+Begin cal cRPA , pid:  0
+part_range:
+0
+93
+part_range over
+PI trace vector:
+
+ freq:0.0347257      rpa_for_omega_k: (-2.65063,0)      lnt_det: (8.62786,0)    trace_pi (-11.2785,0)
+PI trace vector:
+
+ freq:0.0347257      rpa_for_omega_k: (-3.03111,4.06243e-15)      lnt_det: (9.12857,-4.13217e-15)    trace_pi (-12.1597,8.19461e-15)
+PI trace vector:
+
+ freq:0.0347257      rpa_for_omega_k: (-2.92344,6.59181e-16)      lnt_det: (9.06858,-2.08542e-16)    trace_pi (-11.992,8.67722e-16)
+PI trace vector:
+
+ freq:0.0347257      rpa_for_omega_k: (-3.03116,4.58966e-15)      lnt_det: (9.1286,-3.72323e-15)    trace_pi (-12.1598,8.31289e-15)
+PI trace vector:
+
+ freq:0.0347257      rpa_for_omega_k: (-3.02826,3.05488e-16)      lnt_det: (9.15397,-4.85747e-16)    trace_pi (-12.1822,7.91235e-16)
+PI trace vector:
+
+ freq:0.0347257      rpa_for_omega_k: (-2.97058,4.5767e-16)      lnt_det: (9.13263,-6.76438e-16)    trace_pi (-12.1032,1.13411e-15)
+PI trace vector:
+
+ freq:0.0347257      rpa_for_omega_k: (-2.97714,2.07275e-15)      lnt_det: (9.13613,9.25851e-16)    trace_pi (-12.1133,1.1469e-15)
+PI trace vector:
+
+ freq:0.0347257      rpa_for_omega_k: (-2.92348,-1.62074e-15)      lnt_det: (9.06862,1.39804e-15)    trace_pi (-11.9921,-3.01878e-15)
+PI trace vector:
+
+ freq:0.0347257      rpa_for_omega_k: (-2.97059,-1.87454e-15)      lnt_det: (9.13264,9.65118e-17)    trace_pi (-12.1032,-1.97105e-15)
+PI trace vector:
+
+ freq:0.0347257      rpa_for_omega_k: (-2.98073,2.70734e-16)      lnt_det: (9.12966,-2.696e-16)    trace_pi (-12.1104,5.40334e-16)
+PI trace vector:
+
+ freq:0.0347257      rpa_for_omega_k: (-3.03112,-5.4979e-16)      lnt_det: (9.12858,3.23976e-16)    trace_pi (-12.1597,-8.73766e-16)
+PI trace vector:
+
+ freq:0.0347257      rpa_for_omega_k: (-3.0283,-2.4463e-15)      lnt_det: (9.15399,1.91964e-15)    trace_pi (-12.1823,-4.36594e-15)
+PI trace vector:
+
+ freq:0.0347257      rpa_for_omega_k: (-2.97059,5.77466e-16)      lnt_det: (9.13263,1.95822e-15)    trace_pi (-12.1032,-1.38076e-15)
+PI trace vector:
+
+ freq:0.0347257      rpa_for_omega_k: (-2.97712,-1.45035e-15)      lnt_det: (9.13612,2.24161e-16)    trace_pi (-12.1132,-1.67452e-15)
+PI trace vector:
+
+ freq:0.0347257      rpa_for_omega_k: (-3.0283,5.3467e-16)      lnt_det: (9.15399,1.15811e-15)    trace_pi (-12.1823,-6.23437e-16)
+PI trace vector:
+
+ freq:0.0347257      rpa_for_omega_k: (-3.03112,5.82713e-15)      lnt_det: (9.12858,-7.30177e-15)    trace_pi (-12.1597,1.31289e-14)
+PI trace vector:
+
+ freq:0.0347257      rpa_for_omega_k: (-2.97712,-2.11159e-15)      lnt_det: (9.13612,3.57354e-15)    trace_pi (-12.1132,-5.68513e-15)
+PI trace vector:
+
+ freq:0.0347257      rpa_for_omega_k: (-2.97059,-2.57354e-16)      lnt_det: (9.13263,-1.39784e-15)    trace_pi (-12.1032,1.14049e-15)
+PI trace vector:
+
+ freq:0.0347257      rpa_for_omega_k: (-2.97061,-2.21655e-17)      lnt_det: (9.13265,-2.64671e-15)    trace_pi (-12.1033,2.62454e-15)
+PI trace vector:
+
+ freq:0.0347257      rpa_for_omega_k: (-2.97714,-2.93516e-15)      lnt_det: (9.13614,1.46852e-16)    trace_pi (-12.1133,-3.08201e-15)
+PI trace vector:
+
+ freq:0.0347257      rpa_for_omega_k: (-2.97058,-1.15309e-15)      lnt_det: (9.13263,2.35097e-16)    trace_pi (-12.1032,-1.38819e-15)
+PI trace vector:
+
+ freq:0.0347257      rpa_for_omega_k: (-2.98334,6.12826e-17)      lnt_det: (9.14919,-1.15593e-15)    trace_pi (-12.1325,1.21721e-15)
+PI trace vector:
+
+ freq:0.0347257      rpa_for_omega_k: (-2.97714,-2.65627e-15)      lnt_det: (9.13614,4.26473e-15)    trace_pi (-12.1133,-6.92099e-15)
+PI trace vector:
+
+ freq:0.0347257      rpa_for_omega_k: (-2.97061,-6.55751e-16)      lnt_det: (9.13265,2.0768e-15)    trace_pi (-12.1033,-2.73255e-15)
+PI trace vector:
+
+ freq:0.0347257      rpa_for_omega_k: (-2.98334,-7.95673e-16)      lnt_det: (9.14919,1.73298e-15)    trace_pi (-12.1325,-2.52866e-15)
+PI trace vector:
+
+ freq:0.0347257      rpa_for_omega_k: (-2.97058,1.41077e-15)      lnt_det: (9.13263,2.72129e-16)    trace_pi (-12.1032,1.13864e-15)
+PI trace vector:
+
+ freq:0.0347257      rpa_for_omega_k: (-2.92345,-1.71979e-15)      lnt_det: (9.06859,9.46512e-16)    trace_pi (-11.992,-2.6663e-15)
+PI trace vector:
+
+ freq:0.0347257      rpa_for_omega_k: (-2.97059,-6.83572e-16)      lnt_det: (9.13263,-4.22455e-16)    trace_pi (-12.1032,-2.61116e-16)
+PI trace vector:
+
+ freq:0.0347257      rpa_for_omega_k: (-2.98075,3.81513e-16)      lnt_det: (9.12967,-3.44717e-16)    trace_pi (-12.1104,7.2623e-16)
+PI trace vector:
+
+ freq:0.0347257      rpa_for_omega_k: (-2.9706,5.03864e-17)      lnt_det: (9.13264,7.30045e-16)    trace_pi (-12.1032,-6.79658e-16)
+PI trace vector:
+
+ freq:0.0347257      rpa_for_omega_k: (-2.97713,-2.17171e-15)      lnt_det: (9.13612,1.54737e-15)    trace_pi (-12.1132,-3.71908e-15)
+PI trace vector:
+
+ freq:0.0347257      rpa_for_omega_k: (-2.9706,-1.10524e-15)      lnt_det: (9.13264,-5.60359e-16)    trace_pi (-12.1032,-5.44876e-16)
+PI trace vector:
+
+ freq:0.0347257      rpa_for_omega_k: (-2.98335,3.45776e-16)      lnt_det: (9.14919,-3.343e-15)    trace_pi (-12.1325,3.68877e-15)
+PI trace vector:
+
+ freq:0.0347257      rpa_for_omega_k: (-2.98075,9.14389e-16)      lnt_det: (9.12967,-7.66527e-16)    trace_pi (-12.1104,1.68092e-15)
+PI trace vector:
+
+ freq:0.0347257      rpa_for_omega_k: (-2.97059,4.0962e-16)      lnt_det: (9.13263,-1.00281e-15)    trace_pi (-12.1032,1.41243e-15)
+PI trace vector:
+
+ freq:0.0347257      rpa_for_omega_k: (-2.92345,-3.00218e-15)      lnt_det: (9.06859,2.39238e-15)    trace_pi (-11.992,-5.39456e-15)
+PI trace vector:
+
+ freq:0.111391      rpa_for_omega_k: (-2.56115,0)      lnt_det: (8.50734,0)    trace_pi (-11.0685,0)
+PI trace vector:
+
+ freq:0.111391      rpa_for_omega_k: (-2.88429,2.30967e-15)      lnt_det: (8.97935,-6.4414e-15)    trace_pi (-11.8636,8.75107e-15)
+PI trace vector:
+
+ freq:0.111391      rpa_for_omega_k: (-2.79685,6.57704e-16)      lnt_det: (8.92921,-2.16399e-16)    trace_pi (-11.7261,8.74103e-16)
+PI trace vector:
+
+ freq:0.111391      rpa_for_omega_k: (-2.88434,9.30127e-15)      lnt_det: (8.97938,2.38878e-15)    trace_pi (-11.8637,6.91249e-15)
+PI trace vector:
+
+ freq:0.111391      rpa_for_omega_k: (-2.88031,1.56139e-15)      lnt_det: (9.00368,-1.57329e-15)    trace_pi (-11.884,3.13468e-15)
+PI trace vector:
+
+ freq:0.111391      rpa_for_omega_k: (-2.83541,2.31444e-16)      lnt_det: (8.98874,-3.98446e-17)    trace_pi (-11.8241,2.71289e-16)
+PI trace vector:
+
+ freq:0.111391      rpa_for_omega_k: (-2.83941,1.82138e-15)      lnt_det: (8.99036,1.30208e-15)    trace_pi (-11.8298,5.19298e-16)
+PI trace vector:
+
+ freq:0.111391      rpa_for_omega_k: (-2.79689,-1.61133e-15)      lnt_det: (8.92924,1.43016e-15)    trace_pi (-11.7261,-3.04149e-15)
+PI trace vector:
+
+ freq:0.111391      rpa_for_omega_k: (-2.83542,-3.52945e-15)      lnt_det: (8.98875,-2.57713e-15)    trace_pi (-11.8242,-9.52327e-16)
+PI trace vector:
+
+ freq:0.111391      rpa_for_omega_k: (-2.84813,2.59309e-16)      lnt_det: (8.98903,-2.70423e-16)    trace_pi (-11.8372,5.29732e-16)
+PI trace vector:
+
+ freq:0.111391      rpa_for_omega_k: (-2.88431,3.97164e-15)      lnt_det: (8.97936,-7.51009e-15)    trace_pi (-11.8637,1.14817e-14)
+PI trace vector:
+
+ freq:0.111391      rpa_for_omega_k: (-2.88035,-1.56977e-15)      lnt_det: (9.0037,2.64511e-15)    trace_pi (-11.8841,-4.21488e-15)
+PI trace vector:
+
+ freq:0.111391      rpa_for_omega_k: (-2.83542,-1.13443e-15)      lnt_det: (8.98874,1.69658e-15)    trace_pi (-11.8242,-2.83102e-15)
+PI trace vector:
+
+ freq:0.111391      rpa_for_omega_k: (-2.83939,-1.38296e-15)      lnt_det: (8.99035,1.65006e-15)    trace_pi (-11.8297,-3.03303e-15)
+PI trace vector:
+
+ freq:0.111391      rpa_for_omega_k: (-2.88035,3.86221e-15)      lnt_det: (9.0037,-2.84058e-15)    trace_pi (-11.8841,6.70279e-15)
+PI trace vector:
+
+ freq:0.111391      rpa_for_omega_k: (-2.88431,-1.77586e-15)      lnt_det: (8.97936,-1.02927e-14)    trace_pi (-11.8637,8.5168e-15)
+PI trace vector:
+
+ freq:0.111391      rpa_for_omega_k: (-2.83939,-2.46081e-15)      lnt_det: (8.99035,3.83882e-15)    trace_pi (-11.8297,-6.29963e-15)
+PI trace vector:
+
+ freq:0.111391      rpa_for_omega_k: (-2.83542,5.17134e-16)      lnt_det: (8.98874,2.14503e-15)    trace_pi (-11.8242,-1.62789e-15)
+PI trace vector:
+
+ freq:0.111391      rpa_for_omega_k: (-2.83544,1.78809e-16)      lnt_det: (8.98876,-6.7032e-16)    trace_pi (-11.8242,8.49129e-16)
+PI trace vector:
+
+ freq:0.111391      rpa_for_omega_k: (-2.83941,-2.87975e-15)      lnt_det: (8.99036,-4.74768e-16)    trace_pi (-11.8298,-2.40498e-15)
+PI trace vector:
+
+ freq:0.111391      rpa_for_omega_k: (-2.83541,-2.65415e-16)      lnt_det: (8.98874,1.12366e-15)    trace_pi (-11.8241,-1.38908e-15)
+PI trace vector:
+
+ freq:0.111391      rpa_for_omega_k: (-2.8465,6.95613e-17)      lnt_det: (9.00483,-7.23532e-16)    trace_pi (-11.8513,7.93094e-16)
+PI trace vector:
+
+ freq:0.111391      rpa_for_omega_k: (-2.83941,-2.56505e-15)      lnt_det: (8.99036,3.04067e-15)    trace_pi (-11.8298,-5.60572e-15)
+PI trace vector:
+
+ freq:0.111391      rpa_for_omega_k: (-2.83544,-7.63416e-16)      lnt_det: (8.98876,3.71593e-15)    trace_pi (-11.8242,-4.47935e-15)
+PI trace vector:
+
+ freq:0.111391      rpa_for_omega_k: (-2.8465,-6.758e-16)      lnt_det: (9.00483,2.03018e-15)    trace_pi (-11.8513,-2.70598e-15)
+PI trace vector:
+
+ freq:0.111391      rpa_for_omega_k: (-2.83541,1.41512e-16)      lnt_det: (8.98874,-6.47255e-16)    trace_pi (-11.8241,7.88768e-16)
+PI trace vector:
+
+ freq:0.111391      rpa_for_omega_k: (-2.79686,-1.71332e-15)      lnt_det: (8.92921,9.73427e-16)    trace_pi (-11.7261,-2.68674e-15)
+PI trace vector:
+
+ freq:0.111391      rpa_for_omega_k: (-2.83542,-3.57657e-16)      lnt_det: (8.98874,-5.04971e-18)    trace_pi (-11.8242,-3.52607e-16)
+PI trace vector:
+
+ freq:0.111391      rpa_for_omega_k: (-2.84815,3.64564e-16)      lnt_det: (8.98905,-3.45877e-16)    trace_pi (-11.8372,7.1044e-16)
+PI trace vector:
+
+ freq:0.111391      rpa_for_omega_k: (-2.83543,-5.96079e-16)      lnt_det: (8.98875,9.58203e-16)    trace_pi (-11.8242,-1.55428e-15)
+PI trace vector:
+
+ freq:0.111391      rpa_for_omega_k: (-2.8394,-2.79131e-15)      lnt_det: (8.99035,2.50685e-15)    trace_pi (-11.8298,-5.29816e-15)
+PI trace vector:
+
+ freq:0.111391      rpa_for_omega_k: (-2.83543,9.59333e-16)      lnt_det: (8.98875,1.46136e-15)    trace_pi (-11.8242,-5.02031e-16)
+PI trace vector:
+
+ freq:0.111391      rpa_for_omega_k: (-2.84651,6.19469e-16)      lnt_det: (9.00484,-4.05833e-15)    trace_pi (-11.8513,4.67779e-15)
+PI trace vector:
+
+ freq:0.111391      rpa_for_omega_k: (-2.84815,8.70834e-16)      lnt_det: (8.98905,-7.69037e-16)    trace_pi (-11.8372,1.63987e-15)
+PI trace vector:
+
+ freq:0.111391      rpa_for_omega_k: (-2.83542,3.6294e-17)      lnt_det: (8.98874,-1.47372e-15)    trace_pi (-11.8242,1.51002e-15)
+PI trace vector:
+
+ freq:0.111391      rpa_for_omega_k: (-2.79686,-2.98895e-15)      lnt_det: (8.92921,2.45123e-15)    trace_pi (-11.7261,-5.44018e-15)
+PI trace vector:
+
+ freq:0.211707      rpa_for_omega_k: (-2.34929,0)      lnt_det: (8.21908,0)    trace_pi (-10.5684,0)
+PI trace vector:
+
+ freq:0.211707      rpa_for_omega_k: (-2.55574,6.40674e-15)      lnt_det: (8.62243,3.66423e-16)    trace_pi (-11.1782,6.04032e-15)
+PI trace vector:
+
+ freq:0.211707      rpa_for_omega_k: (-2.5021,6.47029e-16)      lnt_det: (8.5893,-2.39926e-16)    trace_pi (-11.0914,8.86955e-16)
+PI trace vector:
+
+ freq:0.211707      rpa_for_omega_k: (-2.55577,8.38283e-15)      lnt_det: (8.62246,-6.12205e-15)    trace_pi (-11.1782,1.45049e-14)
+PI trace vector:
+
+ freq:0.211707      rpa_for_omega_k: (-2.54933,1.82775e-15)      lnt_det: (8.64309,-1.52594e-15)    trace_pi (-11.1924,3.35369e-15)
+PI trace vector:
+
+ freq:0.211707      rpa_for_omega_k: (-2.5245,-1.58266e-15)      lnt_det: (8.63808,-1.47017e-15)    trace_pi (-11.1626,-1.1249e-16)
+PI trace vector:
+
+ freq:0.211707      rpa_for_omega_k: (-2.5249,1.31826e-15)      lnt_det: (8.63675,1.29145e-15)    trace_pi (-11.1617,2.68073e-17)
+PI trace vector:
+
+ freq:0.211707      rpa_for_omega_k: (-2.50213,-1.57365e-15)      lnt_det: (8.58933,1.50886e-15)    trace_pi (-11.0915,-3.08251e-15)
+PI trace vector:
+
+ freq:0.211707      rpa_for_omega_k: (-2.52452,6.68943e-16)      lnt_det: (8.63809,2.03866e-15)    trace_pi (-11.1626,-1.36972e-15)
+PI trace vector:
+
+ freq:0.211707      rpa_for_omega_k: (-2.5403,2.36262e-16)      lnt_det: (8.64444,-2.73325e-16)    trace_pi (-11.1847,5.09587e-16)
+PI trace vector:
+
+ freq:0.211707      rpa_for_omega_k: (-2.55575,-3.76257e-15)      lnt_det: (8.62244,-4.35097e-16)    trace_pi (-11.1782,-3.32747e-15)
+PI trace vector:
+
+ freq:0.211707      rpa_for_omega_k: (-2.54936,-3.39046e-15)      lnt_det: (8.64311,3.93547e-15)    trace_pi (-11.1925,-7.32594e-15)
+PI trace vector:
+
+ freq:0.211707      rpa_for_omega_k: (-2.52451,1.73603e-15)      lnt_det: (8.63808,1.19555e-15)    trace_pi (-11.1626,5.40478e-16)
+PI trace vector:
+
+ freq:0.211707      rpa_for_omega_k: (-2.52488,-4.30546e-16)      lnt_det: (8.63674,3.83129e-17)    trace_pi (-11.1616,-4.68859e-16)
+PI trace vector:
+
+ freq:0.211707      rpa_for_omega_k: (-2.54936,3.55398e-16)      lnt_det: (8.64311,7.81037e-16)    trace_pi (-11.1925,-4.25639e-16)
+PI trace vector:
+
+ freq:0.211707      rpa_for_omega_k: (-2.55575,1.69555e-15)      lnt_det: (8.62244,-6.26297e-15)    trace_pi (-11.1782,7.95853e-15)
+PI trace vector:
+
+ freq:0.211707      rpa_for_omega_k: (-2.52488,-1.97984e-15)      lnt_det: (8.63674,3.86893e-15)    trace_pi (-11.1616,-5.84877e-15)
+PI trace vector:
+
+ freq:0.211707      rpa_for_omega_k: (-2.52451,-1.34677e-16)      lnt_det: (8.63808,1.58441e-15)    trace_pi (-11.1626,-1.71909e-15)
+PI trace vector:
+
+ freq:0.211707      rpa_for_omega_k: (-2.52453,-5.12266e-16)      lnt_det: (8.6381,-3.48074e-15)    trace_pi (-11.1626,2.96848e-15)
+PI trace vector:
+
+ freq:0.211707      rpa_for_omega_k: (-2.5249,-3.35027e-15)      lnt_det: (8.63676,7.24206e-16)    trace_pi (-11.1617,-4.07448e-15)
+PI trace vector:
+
+ freq:0.211707      rpa_for_omega_k: (-2.52451,-1.60453e-15)      lnt_det: (8.63808,-6.89835e-16)    trace_pi (-11.1626,-9.14696e-16)
+PI trace vector:
+
+ freq:0.211707      rpa_for_omega_k: (-2.53171,7.58058e-17)      lnt_det: (8.65216,-1.28058e-15)    trace_pi (-11.1839,1.35639e-15)
+PI trace vector:
+
+ freq:0.211707      rpa_for_omega_k: (-2.5249,-2.23211e-15)      lnt_det: (8.63676,3.42961e-15)    trace_pi (-11.1617,-5.66172e-15)
+PI trace vector:
+
+ freq:0.211707      rpa_for_omega_k: (-2.52453,-9.12461e-16)      lnt_det: (8.6381,4.28108e-16)    trace_pi (-11.1626,-1.34057e-15)
+PI trace vector:
+
+ freq:0.211707      rpa_for_omega_k: (-2.53171,-2.55502e-16)      lnt_det: (8.65216,1.01876e-15)    trace_pi (-11.1839,-1.27426e-15)
+PI trace vector:
+
+ freq:0.211707      rpa_for_omega_k: (-2.52451,3.82379e-16)      lnt_det: (8.63808,-4.2967e-16)    trace_pi (-11.1626,8.12049e-16)
+PI trace vector:
+
+ freq:0.211707      rpa_for_omega_k: (-2.50211,-1.6803e-15)      lnt_det: (8.5893,1.04529e-15)    trace_pi (-11.0914,-2.72559e-15)
+PI trace vector:
+
+ freq:0.211707      rpa_for_omega_k: (-2.52452,5.67705e-16)      lnt_det: (8.63809,1.51232e-15)    trace_pi (-11.1626,-9.44613e-16)
+PI trace vector:
+
+ freq:0.211707      rpa_for_omega_k: (-2.54032,3.30769e-16)      lnt_det: (8.64445,-3.49549e-16)    trace_pi (-11.1848,6.80318e-16)
+PI trace vector:
+
+ freq:0.211707      rpa_for_omega_k: (-2.52452,-4.31349e-16)      lnt_det: (8.63809,-1.42634e-15)    trace_pi (-11.1626,9.9499e-16)
+PI trace vector:
+
+ freq:0.211707      rpa_for_omega_k: (-2.52489,-1.34829e-15)      lnt_det: (8.63675,3.06111e-16)    trace_pi (-11.1616,-1.6544e-15)
+PI trace vector:
+
+ freq:0.211707      rpa_for_omega_k: (-2.52452,2.20683e-16)      lnt_det: (8.63809,1.38862e-15)    trace_pi (-11.1626,-1.16794e-15)
+PI trace vector:
+
+ freq:0.211707      rpa_for_omega_k: (-2.53171,3.63606e-16)      lnt_det: (8.65216,-3.44567e-15)    trace_pi (-11.1839,3.80927e-15)
+PI trace vector:
+
+ freq:0.211707      rpa_for_omega_k: (-2.54032,7.8503e-16)      lnt_det: (8.64445,-7.76596e-16)    trace_pi (-11.1848,1.56163e-15)
+PI trace vector:
+
+ freq:0.211707      rpa_for_omega_k: (-2.52452,3.03345e-16)      lnt_det: (8.63809,-1.56186e-15)    trace_pi (-11.1626,1.8652e-15)
+PI trace vector:
+
+ freq:0.211707      rpa_for_omega_k: (-2.50211,-2.92681e-15)      lnt_det: (8.5893,2.59701e-15)    trace_pi (-11.0914,-5.52382e-15)
+PI trace vector:
+
+ freq:0.358648      rpa_for_omega_k: (-1.97221,0)      lnt_det: (7.67983,0)    trace_pi (-9.65204,0)
+PI trace vector:
+
+ freq:0.358648      rpa_for_omega_k: (-2.03317,-8.57561e-16)      lnt_det: (7.96922,-2.19182e-15)    trace_pi (-10.0024,1.33426e-15)
+PI trace vector:
+
+ freq:0.358648      rpa_for_omega_k: (-2.01069,6.04131e-16)      lnt_det: (7.95393,-2.85256e-16)    trace_pi (-9.96462,8.89387e-16)
+PI trace vector:
+
+ freq:0.358648      rpa_for_omega_k: (-2.03318,6.17203e-15)      lnt_det: (7.96924,-4.28487e-15)    trace_pi (-10.0024,1.04569e-14)
+PI trace vector:
+
+ freq:0.358648      rpa_for_omega_k: (-2.02491,3.83861e-16)      lnt_det: (7.98332,1.88956e-16)    trace_pi (-10.0082,1.94904e-16)
+PI trace vector:
+
+ freq:0.358648      rpa_for_omega_k: (-2.01669,-1.6944e-16)      lnt_det: (7.98717,7.44431e-16)    trace_pi (-10.0039,-9.13871e-16)
+PI trace vector:
+
+ freq:0.358648      rpa_for_omega_k: (-2.01497,1.14187e-15)      lnt_det: (7.98328,1.51615e-15)    trace_pi (-9.99825,-3.7428e-16)
+PI trace vector:
+
+ freq:0.358648      rpa_for_omega_k: (-2.01071,-1.46598e-15)      lnt_det: (7.95395,1.6567e-15)    trace_pi (-9.96467,-3.12268e-15)
+PI trace vector:
+
+ freq:0.358648      rpa_for_omega_k: (-2.01669,-5.35784e-16)      lnt_det: (7.98718,4.0544e-16)    trace_pi (-10.0039,-9.41224e-16)
+PI trace vector:
+
+ freq:0.358648      rpa_for_omega_k: (-2.03248,2.04668e-16)      lnt_det: (8.0003,-2.83344e-16)    trace_pi (-10.0328,4.88011e-16)
+PI trace vector:
+
+ freq:0.358648      rpa_for_omega_k: (-2.03317,-1.16868e-15)      lnt_det: (7.96922,2.41272e-15)    trace_pi (-10.0024,-3.58139e-15)
+PI trace vector:
+
+ freq:0.358648      rpa_for_omega_k: (-2.02493,-1.69379e-15)      lnt_det: (7.98334,2.74612e-15)    trace_pi (-10.0083,-4.43991e-15)
+PI trace vector:
+
+ freq:0.358648      rpa_for_omega_k: (-2.01669,-2.19177e-16)      lnt_det: (7.98717,1.23598e-15)    trace_pi (-10.0039,-1.45515e-15)
+PI trace vector:
+
+ freq:0.358648      rpa_for_omega_k: (-2.01496,-8.33391e-16)      lnt_det: (7.98327,1.10957e-15)    trace_pi (-9.99823,-1.94296e-15)
+PI trace vector:
+
+ freq:0.358648      rpa_for_omega_k: (-2.02493,5.65269e-16)      lnt_det: (7.98334,-8.02689e-16)    trace_pi (-10.0083,1.36796e-15)
+PI trace vector:
+
+ freq:0.358648      rpa_for_omega_k: (-2.03317,4.67954e-15)      lnt_det: (7.96922,5.24205e-16)    trace_pi (-10.0024,4.15533e-15)
+PI trace vector:
+
+ freq:0.358648      rpa_for_omega_k: (-2.01496,-1.74026e-15)      lnt_det: (7.98327,3.28364e-15)    trace_pi (-9.99823,-5.02391e-15)
+PI trace vector:
+
+ freq:0.358648      rpa_for_omega_k: (-2.01669,7.78353e-16)      lnt_det: (7.98717,7.86768e-16)    trace_pi (-10.0039,-8.41531e-18)
+PI trace vector:
+
+ freq:0.358648      rpa_for_omega_k: (-2.0167,4.54361e-16)      lnt_det: (7.98719,-1.49575e-15)    trace_pi (-10.0039,1.95011e-15)
+PI trace vector:
+
+ freq:0.358648      rpa_for_omega_k: (-2.01497,-3.33461e-15)      lnt_det: (7.98328,1.74344e-15)    trace_pi (-9.99825,-5.07805e-15)
+PI trace vector:
+
+ freq:0.358648      rpa_for_omega_k: (-2.01669,-4.07039e-16)      lnt_det: (7.98717,-1.02152e-15)    trace_pi (-10.0039,6.14483e-16)
+PI trace vector:
+
+ freq:0.358648      rpa_for_omega_k: (-2.01899,-1.22086e-16)      lnt_det: (7.99744,-5.8853e-16)    trace_pi (-10.0164,4.66445e-16)
+PI trace vector:
+
+ freq:0.358648      rpa_for_omega_k: (-2.01497,-1.85438e-15)      lnt_det: (7.98328,2.87349e-15)    trace_pi (-9.99825,-4.72787e-15)
+PI trace vector:
+
+ freq:0.358648      rpa_for_omega_k: (-2.0167,-2.84813e-16)      lnt_det: (7.98719,2.16379e-15)    trace_pi (-10.0039,-2.4486e-15)
+PI trace vector:
+
+ freq:0.358648      rpa_for_omega_k: (-2.01899,-2.23978e-16)      lnt_det: (7.99744,9.90041e-16)    trace_pi (-10.0164,-1.21402e-15)
+PI trace vector:
+
+ freq:0.358648      rpa_for_omega_k: (-2.01669,1.40351e-15)      lnt_det: (7.98717,1.67045e-15)    trace_pi (-10.0039,-2.66939e-16)
+PI trace vector:
+
+ freq:0.358648      rpa_for_omega_k: (-2.0107,-1.56791e-15)      lnt_det: (7.95393,1.18176e-15)    trace_pi (-9.96463,-2.74967e-15)
+PI trace vector:
+
+ freq:0.358648      rpa_for_omega_k: (-2.01669,-2.59442e-16)      lnt_det: (7.98717,8.65814e-17)    trace_pi (-10.0039,-3.46023e-16)
+PI trace vector:
+
+ freq:0.358648      rpa_for_omega_k: (-2.0325,2.85775e-16)      lnt_det: (8.00031,-3.6298e-16)    trace_pi (-10.0328,6.48756e-16)
+PI trace vector:
+
+ freq:0.358648      rpa_for_omega_k: (-2.0167,-3.12071e-16)      lnt_det: (7.98718,-1.12561e-15)    trace_pi (-10.0039,8.13541e-16)
+PI trace vector:
+
+ freq:0.358648      rpa_for_omega_k: (-2.01496,-1.31919e-15)      lnt_det: (7.98327,4.8479e-16)    trace_pi (-9.99824,-1.80398e-15)
+PI trace vector:
+
+ freq:0.358648      rpa_for_omega_k: (-2.0167,-1.98034e-16)      lnt_det: (7.98718,2.6106e-15)    trace_pi (-10.0039,-2.80864e-15)
+PI trace vector:
+
+ freq:0.358648      rpa_for_omega_k: (-2.01899,4.22732e-16)      lnt_det: (7.99745,-3.81686e-15)    trace_pi (-10.0164,4.23959e-15)
+PI trace vector:
+
+ freq:0.358648      rpa_for_omega_k: (-2.0325,6.74296e-16)      lnt_det: (8.00031,-8.07124e-16)    trace_pi (-10.0328,1.48142e-15)
+PI trace vector:
+
+ freq:0.358648      rpa_for_omega_k: (-2.01669,6.12866e-16)      lnt_det: (7.98717,-1.18471e-15)    trace_pi (-10.0039,1.79758e-15)
+PI trace vector:
+
+ freq:0.358648      rpa_for_omega_k: (-2.0107,-2.73332e-15)      lnt_det: (7.95393,2.87048e-15)    trace_pi (-9.96463,-5.60381e-15)
+PI trace vector:
+
+ freq:0.588149      rpa_for_omega_k: (-1.45016,0)      lnt_det: (6.82213,0)    trace_pi (-8.27228,0)
+PI trace vector:
+
+ freq:0.588149      rpa_for_omega_k: (-1.40788,4.11119e-15)      lnt_det: (6.97573,-3.99623e-15)    trace_pi (-8.38361,8.10742e-15)
+PI trace vector:
+
+ freq:0.588149      rpa_for_omega_k: (-1.40209,5.08683e-16)      lnt_det: (6.97317,-3.53907e-16)    trace_pi (-8.37526,8.6259e-16)
+PI trace vector:
+
+ freq:0.588149      rpa_for_omega_k: (-1.40789,5.02641e-15)      lnt_det: (6.97574,-7.14339e-15)    trace_pi (-8.38363,1.21698e-14)
+PI trace vector:
+
+ freq:0.588149      rpa_for_omega_k: (-1.40159,9.97112e-16)      lnt_det: (6.98341,-1.39373e-15)    trace_pi (-8.385,2.39085e-15)
+PI trace vector:
+
+ freq:0.588149      rpa_for_omega_k: (-1.40122,7.2289e-16)      lnt_det: (6.99295,3.21209e-17)    trace_pi (-8.39417,6.9077e-16)
+PI trace vector:
+
+ freq:0.588149      rpa_for_omega_k: (-1.3991,1.26218e-15)      lnt_det: (6.98759,8.82135e-16)    trace_pi (-8.38669,3.80049e-16)
+PI trace vector:
+
+ freq:0.588149      rpa_for_omega_k: (-1.40209,-1.24947e-15)      lnt_det: (6.97319,1.89031e-15)    trace_pi (-8.37528,-3.13978e-15)
+PI trace vector:
+
+ freq:0.588149      rpa_for_omega_k: (-1.40122,-1.25905e-15)      lnt_det: (6.99296,-1.14064e-15)    trace_pi (-8.39418,-1.18409e-16)
+PI trace vector:
+
+ freq:0.588149      rpa_for_omega_k: (-1.41396,1.66761e-16)      lnt_det: (7.01118,-3.02121e-16)    trace_pi (-8.42514,4.68881e-16)
+PI trace vector:
+
+ freq:0.588149      rpa_for_omega_k: (-1.40788,-2.35074e-15)      lnt_det: (6.97573,3.38634e-15)    trace_pi (-8.38362,-5.73708e-15)
+PI trace vector:
+
+ freq:0.588149      rpa_for_omega_k: (-1.4016,-2.16658e-15)      lnt_det: (6.98341,4.32945e-15)    trace_pi (-8.38501,-6.49602e-15)
+PI trace vector:
+
+ freq:0.588149      rpa_for_omega_k: (-1.40122,1.22869e-16)      lnt_det: (6.99295,7.6347e-16)    trace_pi (-8.39418,-6.40601e-16)
+PI trace vector:
+
+ freq:0.588149      rpa_for_omega_k: (-1.39909,-4.7877e-16)      lnt_det: (6.98759,6.54291e-16)    trace_pi (-8.38668,-1.13306e-15)
+PI trace vector:
+
+ freq:0.588149      rpa_for_omega_k: (-1.4016,-8.73662e-17)      lnt_det: (6.98341,9.4005e-16)    trace_pi (-8.38501,-1.02742e-15)
+PI trace vector:
+
+ freq:0.588149      rpa_for_omega_k: (-1.40788,3.83631e-16)      lnt_det: (6.97573,-9.94341e-15)    trace_pi (-8.38362,1.0327e-14)
+PI trace vector:
+
+ freq:0.588149      rpa_for_omega_k: (-1.39909,-1.46666e-15)      lnt_det: (6.98759,4.63999e-15)    trace_pi (-8.38668,-6.10666e-15)
+PI trace vector:
+
+ freq:0.588149      rpa_for_omega_k: (-1.40122,8.78614e-16)      lnt_det: (6.99295,7.87202e-17)    trace_pi (-8.39418,7.99894e-16)
+PI trace vector:
+
+ freq:0.588149      rpa_for_omega_k: (-1.40123,-3.52076e-16)      lnt_det: (6.99296,-1.00641e-15)    trace_pi (-8.39419,6.54338e-16)
+PI trace vector:
+
+ freq:0.588149      rpa_for_omega_k: (-1.39909,-2.14241e-15)      lnt_det: (6.98759,8.14369e-16)    trace_pi (-8.38669,-2.95678e-15)
+PI trace vector:
+
+ freq:0.588149      rpa_for_omega_k: (-1.40122,1.93999e-16)      lnt_det: (6.99295,7.81617e-16)    trace_pi (-8.39417,-5.87618e-16)
+PI trace vector:
+
+ freq:0.588149      rpa_for_omega_k: (-1.4011,1.27836e-16)      lnt_det: (6.99996,-7.62846e-16)    trace_pi (-8.40106,8.90682e-16)
+PI trace vector:
+
+ freq:0.588149      rpa_for_omega_k: (-1.39909,-1.59671e-15)      lnt_det: (6.98759,3.43806e-15)    trace_pi (-8.38669,-5.03477e-15)
+PI trace vector:
+
+ freq:0.588149      rpa_for_omega_k: (-1.40123,-6.09766e-16)      lnt_det: (6.99296,3.20373e-15)    trace_pi (-8.39419,-3.81349e-15)
+PI trace vector:
+
+ freq:0.588149      rpa_for_omega_k: (-1.4011,-3.34585e-16)      lnt_det: (6.99996,1.16918e-15)    trace_pi (-8.40106,-1.50376e-15)
+PI trace vector:
+
+ freq:0.588149      rpa_for_omega_k: (-1.40122,1.43838e-15)      lnt_det: (6.99295,-8.63161e-16)    trace_pi (-8.39417,2.30155e-15)
+PI trace vector:
+
+ freq:0.588149      rpa_for_omega_k: (-1.40209,-1.32849e-15)      lnt_det: (6.97318,1.39362e-15)    trace_pi (-8.37527,-2.72211e-15)
+PI trace vector:
+
+ freq:0.588149      rpa_for_omega_k: (-1.40122,-6.79338e-16)      lnt_det: (6.99295,-1.93318e-15)    trace_pi (-8.39418,1.25384e-15)
+PI trace vector:
+
+ freq:0.588149      rpa_for_omega_k: (-1.41397,2.33432e-16)      lnt_det: (7.01119,-3.88606e-16)    trace_pi (-8.42516,6.22038e-16)
+PI trace vector:
+
+ freq:0.588149      rpa_for_omega_k: (-1.40123,1.16597e-16)      lnt_det: (6.99296,3.31346e-16)    trace_pi (-8.39418,-2.14748e-16)
+PI trace vector:
+
+ freq:0.588149      rpa_for_omega_k: (-1.39909,-1.20341e-15)      lnt_det: (6.98759,1.49004e-15)    trace_pi (-8.38668,-2.69345e-15)
+PI trace vector:
+
+ freq:0.588149      rpa_for_omega_k: (-1.40123,2.34291e-16)      lnt_det: (6.99296,3.25948e-16)    trace_pi (-8.39418,-9.1657e-17)
+PI trace vector:
+
+ freq:0.588149      rpa_for_omega_k: (-1.40111,3.67145e-16)      lnt_det: (6.99996,-3.18637e-15)    trace_pi (-8.40106,3.55352e-15)
+PI trace vector:
+
+ freq:0.588149      rpa_for_omega_k: (-1.41397,5.50636e-16)      lnt_det: (7.01119,-8.67363e-16)    trace_pi (-8.42516,1.418e-15)
+PI trace vector:
+
+ freq:0.588149      rpa_for_omega_k: (-1.40122,7.00588e-17)      lnt_det: (6.99295,-2.04607e-15)    trace_pi (-8.39418,2.11613e-15)
+PI trace vector:
+
+ freq:0.588149      rpa_for_omega_k: (-1.40209,-2.33219e-15)      lnt_det: (6.97318,3.30168e-15)    trace_pi (-8.37527,-5.63387e-15)
+PI trace vector:
+
+ freq:0.959752      rpa_for_omega_k: (-0.90632,0)      lnt_det: (5.65718,0)    trace_pi (-6.5635,0)
+PI trace vector:
+
+ freq:0.959752      rpa_for_omega_k: (-0.842538,-8.49992e-17)      lnt_det: (5.69901,-7.80913e-16)    trace_pi (-6.54155,6.95913e-16)
+PI trace vector:
+
+ freq:0.959752      rpa_for_omega_k: (-0.842286,3.71406e-16)      lnt_det: (5.70305,-4.33406e-16)    trace_pi (-6.54533,8.04812e-16)
+PI trace vector:
+
+ freq:0.959752      rpa_for_omega_k: (-0.842537,3.17064e-15)      lnt_det: (5.69901,-7.76583e-15)    trace_pi (-6.54155,1.09365e-14)
+PI trace vector:
+
+ freq:0.959752      rpa_for_omega_k: (-0.840623,4.58196e-16)      lnt_det: (5.70388,-1.42044e-15)    trace_pi (-6.54451,1.87864e-15)
+PI trace vector:
+
+ freq:0.959752      rpa_for_omega_k: (-0.84272,-4.95764e-16)      lnt_det: (5.71653,-8.0168e-16)    trace_pi (-6.55925,3.05916e-16)
+PI trace vector:
+
+ freq:0.959752      rpa_for_omega_k: (-0.84043,7.14122e-16)      lnt_det: (5.71032,8.93531e-16)    trace_pi (-6.55075,-1.79408e-16)
+PI trace vector:
+
+ freq:0.959752      rpa_for_omega_k: (-0.842286,-9.3785e-16)      lnt_det: (5.70306,2.17889e-15)    trace_pi (-6.54534,-3.11674e-15)
+PI trace vector:
+
+ freq:0.959752      rpa_for_omega_k: (-0.842719,-1.02188e-15)      lnt_det: (5.71653,-6.78389e-17)    trace_pi (-6.55925,-9.54037e-16)
+PI trace vector:
+
+ freq:0.959752      rpa_for_omega_k: (-0.852431,1.22112e-16)      lnt_det: (5.73792,-3.13994e-16)    trace_pi (-6.59035,4.36105e-16)
+PI trace vector:
+
+ freq:0.959752      rpa_for_omega_k: (-0.842538,2.93687e-15)      lnt_det: (5.69901,1.37429e-15)    trace_pi (-6.54155,1.56257e-15)
+PI trace vector:
+
+ freq:0.959752      rpa_for_omega_k: (-0.840626,-1.15464e-15)      lnt_det: (5.70389,3.79435e-15)    trace_pi (-6.54451,-4.94898e-15)
+PI trace vector:
+
+ freq:0.959752      rpa_for_omega_k: (-0.84272,-2.95485e-16)      lnt_det: (5.71653,1.35433e-15)    trace_pi (-6.55925,-1.64982e-15)
+PI trace vector:
+
+ freq:0.959752      rpa_for_omega_k: (-0.84043,-3.41179e-16)      lnt_det: (5.71032,1.13061e-15)    trace_pi (-6.55075,-1.47179e-15)
+PI trace vector:
+
+ freq:0.959752      rpa_for_omega_k: (-0.840626,8.53194e-16)      lnt_det: (5.70389,-2.14521e-15)    trace_pi (-6.54451,2.9984e-15)
+PI trace vector:
+
+ freq:0.959752      rpa_for_omega_k: (-0.842538,-1.75769e-16)      lnt_det: (5.69901,-3.56593e-15)    trace_pi (-6.54155,3.39016e-15)
+PI trace vector:
+
+ freq:0.959752      rpa_for_omega_k: (-0.84043,-1.05624e-15)      lnt_det: (5.71032,4.99315e-15)    trace_pi (-6.55075,-6.04939e-15)
+PI trace vector:
+
+ freq:0.959752      rpa_for_omega_k: (-0.84272,5.58743e-16)      lnt_det: (5.71653,1.85506e-15)    trace_pi (-6.55925,-1.29631e-15)
+PI trace vector:
+
+ freq:0.959752      rpa_for_omega_k: (-0.842721,1.08293e-16)      lnt_det: (5.71654,-2.70398e-15)    trace_pi (-6.55926,2.81227e-15)
+PI trace vector:
+
+ freq:0.959752      rpa_for_omega_k: (-0.84043,-1.66504e-15)      lnt_det: (5.71032,1.8737e-15)    trace_pi (-6.55075,-3.53875e-15)
+PI trace vector:
+
+ freq:0.959752      rpa_for_omega_k: (-0.842719,-1.40567e-16)      lnt_det: (5.71653,-4.49028e-16)    trace_pi (-6.55925,3.08461e-16)
+PI trace vector:
+
+ freq:0.959752      rpa_for_omega_k: (-0.843055,1.80387e-16)      lnt_det: (5.72256,-1.06303e-15)    trace_pi (-6.56562,1.24342e-15)
+PI trace vector:
+
+ freq:0.959752      rpa_for_omega_k: (-0.84043,-7.99179e-16)      lnt_det: (5.71032,2.59482e-15)    trace_pi (-6.55075,-3.394e-15)
+PI trace vector:
+
+ freq:0.959752      rpa_for_omega_k: (-0.842721,-3.4654e-16)      lnt_det: (5.71654,2.66707e-15)    trace_pi (-6.55926,-3.01361e-15)
+PI trace vector:
+
+ freq:0.959752      rpa_for_omega_k: (-0.843055,-2.90275e-16)      lnt_det: (5.72256,1.50124e-15)    trace_pi (-6.56562,-1.79151e-15)
+PI trace vector:
+
+ freq:0.959752      rpa_for_omega_k: (-0.842719,7.76571e-16)      lnt_det: (5.71653,-8.64232e-16)    trace_pi (-6.55925,1.6408e-15)
+PI trace vector:
+
+ freq:0.959752      rpa_for_omega_k: (-0.842286,-9.83708e-16)      lnt_det: (5.70305,1.64973e-15)    trace_pi (-6.54534,-2.63343e-15)
+PI trace vector:
+
+ freq:0.959752      rpa_for_omega_k: (-0.84272,5.42961e-17)      lnt_det: (5.71653,-1.05293e-15)    trace_pi (-6.55925,1.10722e-15)
+PI trace vector:
+
+ freq:0.959752      rpa_for_omega_k: (-0.852432,1.72428e-16)      lnt_det: (5.73792,-4.04407e-16)    trace_pi (-6.59035,5.76835e-16)
+PI trace vector:
+
+ freq:0.959752      rpa_for_omega_k: (-0.84272,-2.72235e-16)      lnt_det: (5.71653,-2.27482e-15)    trace_pi (-6.55925,2.00259e-15)
+PI trace vector:
+
+ freq:0.959752      rpa_for_omega_k: (-0.84043,-1.13638e-15)      lnt_det: (5.71032,1.7647e-15)    trace_pi (-6.55075,-2.90108e-15)
+PI trace vector:
+
+ freq:0.959752      rpa_for_omega_k: (-0.84272,-1.50346e-16)      lnt_det: (5.71653,1.28642e-15)    trace_pi (-6.55925,-1.43676e-15)
+PI trace vector:
+
+ freq:0.959752      rpa_for_omega_k: (-0.843054,2.33648e-16)      lnt_det: (5.72256,-3.09938e-15)    trace_pi (-6.56562,3.33303e-15)
+PI trace vector:
+
+ freq:0.959752      rpa_for_omega_k: (-0.852432,4.08347e-16)      lnt_det: (5.73792,-9.02517e-16)    trace_pi (-6.59035,1.31086e-15)
+PI trace vector:
+
+ freq:0.959752      rpa_for_omega_k: (-0.84272,5.81467e-16)      lnt_det: (5.71653,-2.17697e-15)    trace_pi (-6.55925,2.75843e-15)
+PI trace vector:
+
+ freq:0.959752      rpa_for_omega_k: (-0.842286,-1.75054e-15)      lnt_det: (5.70305,3.83637e-15)    trace_pi (-6.54534,-5.58691e-15)
+PI trace vector:
+
+ freq:1.57551      rpa_for_omega_k: (-0.468476,0)      lnt_det: (4.26759,0)    trace_pi (-4.73607,0)
+PI trace vector:
+
+ freq:1.57551      rpa_for_omega_k: (-0.428915,7.28186e-16)      lnt_det: (4.25167,-5.21926e-15)    trace_pi (-4.68059,5.94744e-15)
+PI trace vector:
+
+ freq:1.57551      rpa_for_omega_k: (-0.429868,2.27391e-16)      lnt_det: (4.25784,-4.7906e-16)    trace_pi (-4.6877,7.06451e-16)
+PI trace vector:
+
+ freq:1.57551      rpa_for_omega_k: (-0.428913,2.07366e-15)      lnt_det: (4.25167,-1.50072e-14)    trace_pi (-4.68059,1.70809e-14)
+PI trace vector:
+
+ freq:1.57551      rpa_for_omega_k: (-0.429443,3.99333e-16)      lnt_det: (4.25646,-2.12891e-15)    trace_pi (-4.68591,2.52824e-15)
+PI trace vector:
+
+ freq:1.57551      rpa_for_omega_k: (-0.431615,-2.70596e-17)      lnt_det: (4.26911,2.33884e-16)    trace_pi (-4.70073,-2.60943e-16)
+PI trace vector:
+
+ freq:1.57551      rpa_for_omega_k: (-0.429623,5.11868e-16)      lnt_det: (4.26282,-2.03681e-16)    trace_pi (-4.69244,7.15549e-16)
+PI trace vector:
+
+ freq:1.57551      rpa_for_omega_k: (-0.429867,-5.94903e-16)      lnt_det: (4.25784,2.36581e-15)    trace_pi (-4.6877,-2.96071e-15)
+PI trace vector:
+
+ freq:1.57551      rpa_for_omega_k: (-0.431615,-4.40889e-16)      lnt_det: (4.26912,1.24253e-15)    trace_pi (-4.70073,-1.68342e-15)
+PI trace vector:
+
+ freq:1.57551      rpa_for_omega_k: (-0.438397,7.60785e-17)      lnt_det: (4.29177,-2.9366e-16)    trace_pi (-4.73016,3.69738e-16)
+PI trace vector:
+
+ freq:1.57551      rpa_for_omega_k: (-0.428915,1.69234e-15)      lnt_det: (4.25167,-7.85626e-15)    trace_pi (-4.68059,9.5486e-15)
+PI trace vector:
+
+ freq:1.57551      rpa_for_omega_k: (-0.429443,-1.1335e-15)      lnt_det: (4.25646,6.11753e-15)    trace_pi (-4.68591,-7.25104e-15)
+PI trace vector:
+
+ freq:1.57551      rpa_for_omega_k: (-0.431615,8.74244e-16)      lnt_det: (4.26911,5.05726e-16)    trace_pi (-4.70073,3.68518e-16)
+PI trace vector:
+
+ freq:1.57551      rpa_for_omega_k: (-0.429623,-5.31482e-16)      lnt_det: (4.26281,2.62287e-15)    trace_pi (-4.69244,-3.15435e-15)
+PI trace vector:
+
+ freq:1.57551      rpa_for_omega_k: (-0.429443,1.68086e-16)      lnt_det: (4.25646,1.53848e-17)    trace_pi (-4.68591,1.52701e-16)
+PI trace vector:
+
+ freq:1.57551      rpa_for_omega_k: (-0.428915,2.91191e-16)      lnt_det: (4.25167,-3.29832e-15)    trace_pi (-4.68059,3.58952e-15)
+PI trace vector:
+
+ freq:1.57551      rpa_for_omega_k: (-0.429623,-6.07347e-16)      lnt_det: (4.26281,4.65502e-15)    trace_pi (-4.69244,-5.26236e-15)
+PI trace vector:
+
+ freq:1.57551      rpa_for_omega_k: (-0.431615,4.64679e-16)      lnt_det: (4.26911,2.03056e-15)    trace_pi (-4.70073,-1.56588e-15)
+PI trace vector:
+
+ freq:1.57551      rpa_for_omega_k: (-0.431615,-1.09574e-16)      lnt_det: (4.26912,-2.2281e-15)    trace_pi (-4.70073,2.11853e-15)
+PI trace vector:
+
+ freq:1.57551      rpa_for_omega_k: (-0.429622,-1.25032e-15)      lnt_det: (4.26281,3.44449e-15)    trace_pi (-4.69244,-4.69481e-15)
+PI trace vector:
+
+ freq:1.57551      rpa_for_omega_k: (-0.431615,-3.04527e-16)      lnt_det: (4.26911,7.02427e-17)    trace_pi (-4.70073,-3.74769e-16)
+PI trace vector:
+
+ freq:1.57551      rpa_for_omega_k: (-0.432419,9.68594e-17)      lnt_det: (4.27491,-9.53179e-16)    trace_pi (-4.70733,1.05004e-15)
+PI trace vector:
+
+ freq:1.57551      rpa_for_omega_k: (-0.429622,-6.34229e-16)      lnt_det: (4.26281,3.98852e-15)    trace_pi (-4.69244,-4.62275e-15)
+PI trace vector:
+
+ freq:1.57551      rpa_for_omega_k: (-0.431615,5.79901e-17)      lnt_det: (4.26912,3.94082e-15)    trace_pi (-4.70073,-3.88283e-15)
+PI trace vector:
+
+ freq:1.57551      rpa_for_omega_k: (-0.432419,-1.79705e-16)      lnt_det: (4.27491,1.41954e-15)    trace_pi (-4.70733,-1.59925e-15)
+PI trace vector:
+
+ freq:1.57551      rpa_for_omega_k: (-0.431615,4.22804e-16)      lnt_det: (4.26911,-1.86776e-16)    trace_pi (-4.70073,6.0958e-16)
+PI trace vector:
+
+ freq:1.57551      rpa_for_omega_k: (-0.429867,-6.1362e-16)      lnt_det: (4.25783,1.8119e-15)    trace_pi (-4.6877,-2.42552e-15)
+PI trace vector:
+
+ freq:1.57551      rpa_for_omega_k: (-0.431615,-8.97744e-17)      lnt_det: (4.26911,-8.4655e-17)    trace_pi (-4.70073,-5.11943e-18)
+PI trace vector:
+
+ freq:1.57551      rpa_for_omega_k: (-0.438396,1.0909e-16)      lnt_det: (4.29177,-3.76631e-16)    trace_pi (-4.73016,4.85721e-16)
+PI trace vector:
+
+ freq:1.57551      rpa_for_omega_k: (-0.431615,1.59983e-16)      lnt_det: (4.26911,-2.5772e-15)    trace_pi (-4.70073,2.73719e-15)
+PI trace vector:
+
+ freq:1.57551      rpa_for_omega_k: (-0.429623,-5.07529e-16)      lnt_det: (4.26281,1.28057e-15)    trace_pi (-4.69244,-1.7881e-15)
+PI trace vector:
+
+ freq:1.57551      rpa_for_omega_k: (-0.431615,1.06373e-16)      lnt_det: (4.26911,6.66061e-16)    trace_pi (-4.70073,-5.59689e-16)
+PI trace vector:
+
+ freq:1.57551      rpa_for_omega_k: (-0.432419,1.69254e-16)      lnt_det: (4.27491,-2.71979e-15)    trace_pi (-4.70733,2.88904e-15)
+PI trace vector:
+
+ freq:1.57551      rpa_for_omega_k: (-0.438396,2.5915e-16)      lnt_det: (4.29177,-8.30016e-16)    trace_pi (-4.73016,1.08917e-15)
+PI trace vector:
+
+ freq:1.57551      rpa_for_omega_k: (-0.431615,2.51582e-16)      lnt_det: (4.26911,-2.00849e-15)    trace_pi (-4.70073,2.26007e-15)
+PI trace vector:
+
+ freq:1.57551      rpa_for_omega_k: (-0.429867,-1.11036e-15)      lnt_det: (4.25783,4.19166e-15)    trace_pi (-4.6877,-5.30203e-15)
+PI trace vector:
+
+ freq:2.61466      rpa_for_omega_k: (-0.185532,0)      lnt_det: (2.80025,0)    trace_pi (-2.98578,0)
+PI trace vector:
+
+ freq:2.61466      rpa_for_omega_k: (-0.170166,6.20971e-16)      lnt_det: (2.77157,-6.16823e-15)    trace_pi (-2.94174,6.7892e-15)
+PI trace vector:
+
+ freq:2.61466      rpa_for_omega_k: (-0.170906,1.07434e-16)      lnt_det: (2.7771,-4.19e-16)    trace_pi (-2.94801,5.26434e-16)
+PI trace vector:
+
+ freq:2.61466      rpa_for_omega_k: (-0.170166,7.28915e-16)      lnt_det: (2.77157,-1.1619e-14)    trace_pi (-2.94174,1.23479e-14)
+PI trace vector:
+
+ freq:2.61466      rpa_for_omega_k: (-0.170837,2.20753e-16)      lnt_det: (2.77601,-2.83552e-15)    trace_pi (-2.94685,3.05627e-15)
+PI trace vector:
+
+ freq:2.61466      rpa_for_omega_k: (-0.172116,-1.24075e-16)      lnt_det: (2.78585,-1.52311e-16)    trace_pi (-2.95796,2.82356e-17)
+PI trace vector:
+
+ freq:2.61466      rpa_for_omega_k: (-0.171005,2.27975e-16)      lnt_det: (2.78076,-6.76579e-18)    trace_pi (-2.95176,2.34741e-16)
+PI trace vector:
+
+ freq:2.61466      rpa_for_omega_k: (-0.170905,-2.95562e-16)      lnt_det: (2.7771,2.20311e-15)    trace_pi (-2.94801,-2.49867e-15)
+PI trace vector:
+
+ freq:2.61466      rpa_for_omega_k: (-0.172116,-1.05096e-16)      lnt_det: (2.78585,6.25731e-16)    trace_pi (-2.95796,-7.30827e-16)
+PI trace vector:
+
+ freq:2.61466      rpa_for_omega_k: (-0.175644,3.71386e-17)      lnt_det: (2.80643,-2.26805e-16)    trace_pi (-2.98208,2.63943e-16)
+PI trace vector:
+
+ freq:2.61466      rpa_for_omega_k: (-0.170166,-8.71249e-16)      lnt_det: (2.77157,-8.7093e-16)    trace_pi (-2.94174,-3.19794e-19)
+PI trace vector:
+
+ freq:2.61466      rpa_for_omega_k: (-0.170837,-4.46163e-16)      lnt_det: (2.77601,4.97874e-15)    trace_pi (-2.94685,-5.42491e-15)
+PI trace vector:
+
+ freq:2.61466      rpa_for_omega_k: (-0.172116,-1.60854e-17)      lnt_det: (2.78584,8.06587e-16)    trace_pi (-2.95796,-8.22672e-16)
+PI trace vector:
+
+ freq:2.61466      rpa_for_omega_k: (-0.171006,-1.10592e-16)      lnt_det: (2.78076,1.48981e-15)    trace_pi (-2.95176,-1.6004e-15)
+PI trace vector:
+
+ freq:2.61466      rpa_for_omega_k: (-0.170837,3.89539e-16)      lnt_det: (2.77601,-3.26478e-15)    trace_pi (-2.94685,3.65432e-15)
+PI trace vector:
+
+ freq:2.61466      rpa_for_omega_k: (-0.170166,4.12385e-16)      lnt_det: (2.77157,-3.90531e-15)    trace_pi (-2.94174,4.31769e-15)
+PI trace vector:
+
+ freq:2.61466      rpa_for_omega_k: (-0.171006,-3.61489e-16)      lnt_det: (2.78076,4.6502e-15)    trace_pi (-2.95176,-5.01169e-15)
+PI trace vector:
+
+ freq:2.61466      rpa_for_omega_k: (-0.172116,7.63009e-17)      lnt_det: (2.78584,1.95099e-15)    trace_pi (-2.95796,-1.87469e-15)
+PI trace vector:
+
+ freq:2.61466      rpa_for_omega_k: (-0.172116,-1.8304e-16)      lnt_det: (2.78585,-1.25791e-15)    trace_pi (-2.95796,1.07487e-15)
+PI trace vector:
+
+ freq:2.61466      rpa_for_omega_k: (-0.171005,-4.26357e-16)      lnt_det: (2.78076,1.93295e-15)    trace_pi (-2.95176,-2.35931e-15)
+PI trace vector:
+
+ freq:2.61466      rpa_for_omega_k: (-0.172116,-6.12444e-18)      lnt_det: (2.78585,-7.29956e-17)    trace_pi (-2.95796,6.68712e-17)
+PI trace vector:
+
+ freq:2.61466      rpa_for_omega_k: (-0.172682,5.71244e-17)      lnt_det: (2.79079,-4.39045e-16)    trace_pi (-2.96347,4.9617e-16)
+PI trace vector:
+
+ freq:2.61466      rpa_for_omega_k: (-0.171005,-4.16899e-16)      lnt_det: (2.78076,4.99352e-15)    trace_pi (-2.95176,-5.41042e-15)
+PI trace vector:
+
+ freq:2.61466      rpa_for_omega_k: (-0.172116,-9.29326e-17)      lnt_det: (2.78585,1.68812e-15)    trace_pi (-2.95796,-1.78106e-15)
+PI trace vector:
+
+ freq:2.61466      rpa_for_omega_k: (-0.172682,-1.14635e-16)      lnt_det: (2.79079,1.69361e-15)    trace_pi (-2.96347,-1.80825e-15)
+PI trace vector:
+
+ freq:2.61466      rpa_for_omega_k: (-0.172116,6.03746e-17)      lnt_det: (2.78585,-8.10224e-16)    trace_pi (-2.95796,8.70598e-16)
+PI trace vector:
+
+ freq:2.61466      rpa_for_omega_k: (-0.170906,-2.97826e-16)      lnt_det: (2.7771,1.65701e-15)    trace_pi (-2.94801,-1.95483e-15)
+PI trace vector:
+
+ freq:2.61466      rpa_for_omega_k: (-0.172116,2.12703e-17)      lnt_det: (2.78584,2.78069e-16)    trace_pi (-2.95796,-2.56799e-16)
+PI trace vector:
+
+ freq:2.61466      rpa_for_omega_k: (-0.175643,5.4424e-17)      lnt_det: (2.80643,-2.89293e-16)    trace_pi (-2.98207,3.43717e-16)
+PI trace vector:
+
+ freq:2.61466      rpa_for_omega_k: (-0.172116,1.85398e-16)      lnt_det: (2.78584,-1.05405e-15)    trace_pi (-2.95796,1.23945e-15)
+PI trace vector:
+
+ freq:2.61466      rpa_for_omega_k: (-0.171006,-6.90658e-17)      lnt_det: (2.78076,9.45067e-17)    trace_pi (-2.95176,-1.63573e-16)
+PI trace vector:
+
+ freq:2.61466      rpa_for_omega_k: (-0.172116,-1.27232e-16)      lnt_det: (2.78584,1.01116e-15)    trace_pi (-2.95796,-1.1384e-15)
+PI trace vector:
+
+ freq:2.61466      rpa_for_omega_k: (-0.172682,1.25428e-17)      lnt_det: (2.79079,-1.75075e-15)    trace_pi (-2.96347,1.76329e-15)
+PI trace vector:
+
+ freq:2.61466      rpa_for_omega_k: (-0.175643,1.29041e-16)      lnt_det: (2.80643,-6.17231e-16)    trace_pi (-2.98207,7.46273e-16)
+PI trace vector:
+
+ freq:2.61466      rpa_for_omega_k: (-0.172116,3.51012e-16)      lnt_det: (2.78584,-1.51353e-15)    trace_pi (-2.95796,1.86454e-15)
+PI trace vector:
+
+ freq:2.61466      rpa_for_omega_k: (-0.170906,-5.5154e-16)      lnt_det: (2.7771,3.91449e-15)    trace_pi (-2.94801,-4.46603e-15)
+PI trace vector:
+
+ freq:4.39913      rpa_for_omega_k: (-0.0517983,0)      lnt_det: (1.53638,0)    trace_pi (-1.58817,0)
+PI trace vector:
+
+ freq:4.39913      rpa_for_omega_k: (-0.0478443,2.79987e-16)      lnt_det: (1.51571,-6.21085e-15)    trace_pi (-1.56355,6.49084e-15)
+PI trace vector:
+
+ freq:4.39913      rpa_for_omega_k: (-0.0481255,3.31696e-17)      lnt_det: (1.51942,-2.36794e-16)    trace_pi (-1.56754,2.69964e-16)
+PI trace vector:
+
+ freq:4.39913      rpa_for_omega_k: (-0.0478441,2.25186e-16)      lnt_det: (1.51571,-1.17253e-14)    trace_pi (-1.56355,1.19505e-14)
+PI trace vector:
+
+ freq:4.39913      rpa_for_omega_k: (-0.0481045,4.13401e-17)      lnt_det: (1.51883,-7.58496e-16)    trace_pi (-1.56693,7.99836e-16)
+PI trace vector:
+
+ freq:4.39913      rpa_for_omega_k: (-0.0485501,4.67635e-17)      lnt_det: (1.52472,4.01522e-16)    trace_pi (-1.57327,-3.54758e-16)
+PI trace vector:
+
+ freq:4.39913      rpa_for_omega_k: (-0.0481835,6.11107e-17)      lnt_det: (1.5217,4.25631e-16)    trace_pi (-1.56988,-3.6452e-16)
+PI trace vector:
+
+ freq:4.39913      rpa_for_omega_k: (-0.0481253,-1.0106e-16)      lnt_det: (1.51942,1.5903e-15)    trace_pi (-1.56754,-1.69136e-15)
+PI trace vector:
+
+ freq:4.39913      rpa_for_omega_k: (-0.0485501,-1.45735e-16)      lnt_det: (1.52472,1.28225e-15)    trace_pi (-1.57327,-1.42799e-15)
+PI trace vector:
+
+ freq:4.39913      rpa_for_omega_k: (-0.0497452,1.24056e-17)      lnt_det: (1.53953,-1.29765e-16)    trace_pi (-1.58928,1.42171e-16)
+PI trace vector:
+
+ freq:4.39913      rpa_for_omega_k: (-0.0478443,-3.43121e-16)      lnt_det: (1.51571,-2.63658e-15)    trace_pi (-1.56355,2.29346e-15)
+PI trace vector:
+
+ freq:4.39913      rpa_for_omega_k: (-0.0481045,-1.03895e-16)      lnt_det: (1.51883,2.42329e-15)    trace_pi (-1.56693,-2.52719e-15)
+PI trace vector:
+
+ freq:4.39913      rpa_for_omega_k: (-0.04855,-3.19824e-17)      lnt_det: (1.52472,-1.06751e-16)    trace_pi (-1.57327,7.47688e-17)
+PI trace vector:
+
+ freq:4.39913      rpa_for_omega_k: (-0.0481835,-8.76743e-19)      lnt_det: (1.5217,6.21987e-16)    trace_pi (-1.56988,-6.22864e-16)
+PI trace vector:
+
+ freq:4.39913      rpa_for_omega_k: (-0.0481045,5.70349e-17)      lnt_det: (1.51883,-5.88861e-16)    trace_pi (-1.56693,6.45895e-16)
+PI trace vector:
+
+ freq:4.39913      rpa_for_omega_k: (-0.0478443,2.84357e-16)      lnt_det: (1.51571,-5.53641e-15)    trace_pi (-1.56355,5.82077e-15)
+PI trace vector:
+
+ freq:4.39913      rpa_for_omega_k: (-0.0481835,-7.9302e-17)      lnt_det: (1.5217,2.45299e-15)    trace_pi (-1.56988,-2.53229e-15)
+PI trace vector:
+
+ freq:4.39913      rpa_for_omega_k: (-0.04855,1.63333e-16)      lnt_det: (1.52472,1.03209e-15)    trace_pi (-1.57327,-8.6876e-16)
+PI trace vector:
+
+ freq:4.39913      rpa_for_omega_k: (-0.0485501,1.13007e-17)      lnt_det: (1.52472,-8.75694e-16)    trace_pi (-1.57327,8.86995e-16)
+PI trace vector:
+
+ freq:4.39913      rpa_for_omega_k: (-0.0481835,-1.95788e-16)      lnt_det: (1.5217,2.6804e-15)    trace_pi (-1.56988,-2.87619e-15)
+PI trace vector:
+
+ freq:4.39913      rpa_for_omega_k: (-0.0485501,-2.3231e-17)      lnt_det: (1.52472,1.79704e-15)    trace_pi (-1.57327,-1.82027e-15)
+PI trace vector:
+
+ freq:4.39913      rpa_for_omega_k: (-0.0487698,-1.55963e-17)      lnt_det: (1.5283,3.19086e-16)    trace_pi (-1.57707,-3.34682e-16)
+PI trace vector:
+
+ freq:4.39913      rpa_for_omega_k: (-0.0481835,-1.70703e-16)      lnt_det: (1.5217,4.07591e-15)    trace_pi (-1.56988,-4.24661e-15)
+PI trace vector:
+
+ freq:4.39913      rpa_for_omega_k: (-0.0485501,-2.15125e-17)      lnt_det: (1.52472,2.13957e-15)    trace_pi (-1.57327,-2.16108e-15)
+PI trace vector:
+
+ freq:4.39913      rpa_for_omega_k: (-0.0487698,-3.11216e-17)      lnt_det: (1.5283,7.56884e-16)    trace_pi (-1.57707,-7.88006e-16)
+PI trace vector:
+
+ freq:4.39913      rpa_for_omega_k: (-0.0485501,1.05901e-16)      lnt_det: (1.52472,-3.12776e-16)    trace_pi (-1.57327,4.18677e-16)
+PI trace vector:
+
+ freq:4.39913      rpa_for_omega_k: (-0.0481254,-9.70927e-17)      lnt_det: (1.51942,1.10861e-15)    trace_pi (-1.56754,-1.20571e-15)
+PI trace vector:
+
+ freq:4.39913      rpa_for_omega_k: (-0.04855,6.93471e-17)      lnt_det: (1.52472,-1.30886e-16)    trace_pi (-1.57327,2.00233e-16)
+PI trace vector:
+
+ freq:4.39913      rpa_for_omega_k: (-0.049745,1.86951e-17)      lnt_det: (1.53953,-1.65329e-16)    trace_pi (-1.58928,1.84024e-16)
+PI trace vector:
+
+ freq:4.39913      rpa_for_omega_k: (-0.04855,5.6885e-17)      lnt_det: (1.52472,-3.54314e-16)    trace_pi (-1.57327,4.11199e-16)
+PI trace vector:
+
+ freq:4.39913      rpa_for_omega_k: (-0.0481835,8.07936e-18)      lnt_det: (1.5217,-6.72301e-16)    trace_pi (-1.56988,6.8038e-16)
+PI trace vector:
+
+ freq:4.39913      rpa_for_omega_k: (-0.04855,-2.86864e-17)      lnt_det: (1.52472,-1.28404e-15)    trace_pi (-1.57327,1.25535e-15)
+PI trace vector:
+
+ freq:4.39913      rpa_for_omega_k: (-0.0487696,-5.60304e-19)      lnt_det: (1.5283,-1.33799e-15)    trace_pi (-1.57707,1.33743e-15)
+PI trace vector:
+
+ freq:4.39913      rpa_for_omega_k: (-0.049745,4.39677e-17)      lnt_det: (1.53953,-3.30737e-16)    trace_pi (-1.58928,3.74705e-16)
+PI trace vector:
+
+ freq:4.39913      rpa_for_omega_k: (-0.04855,5.53255e-17)      lnt_det: (1.52472,-1.84577e-15)    trace_pi (-1.57327,1.9011e-15)
+PI trace vector:
+
+ freq:4.39913      rpa_for_omega_k: (-0.0481254,-1.88119e-16)      lnt_det: (1.51942,2.81799e-15)    trace_pi (-1.56754,-3.00611e-15)
+PI trace vector:
+
+ freq:7.52242      rpa_for_omega_k: (-0.0106646,0)      lnt_det: (0.719762,0)    trace_pi (-0.730426,0)
+PI trace vector:
+
+ freq:7.52242      rpa_for_omega_k: (-0.00996949,5.62483e-17)      lnt_det: (0.709626,-4.6849e-15)    trace_pi (-0.719596,4.74115e-15)
+PI trace vector:
+
+ freq:7.52242      rpa_for_omega_k: (-0.0100331,6.06639e-18)      lnt_det: (0.711555,-6.65324e-17)    trace_pi (-0.721588,7.25988e-17)
+PI trace vector:
+
+ freq:7.52242      rpa_for_omega_k: (-0.00996947,3.52428e-17)      lnt_det: (0.709627,-5.30066e-15)    trace_pi (-0.719597,5.3359e-15)
+PI trace vector:
+
+ freq:7.52242      rpa_for_omega_k: (-0.0100264,-4.62028e-19)      lnt_det: (0.71126,2.27254e-16)    trace_pi (-0.721287,-2.27716e-16)
+PI trace vector:
+
+ freq:7.52242      rpa_for_omega_k: (-0.0101213,-5.19577e-18)      lnt_det: (0.713999,7.73668e-17)    trace_pi (-0.724121,-8.25626e-17)
+PI trace vector:
+
+ freq:7.52242      rpa_for_omega_k: (-0.0100473,1.04546e-17)      lnt_det: (0.712683,2.95085e-16)    trace_pi (-0.72273,-2.8463e-16)
+PI trace vector:
+
+ freq:7.52242      rpa_for_omega_k: (-0.0100331,-2.19888e-17)      lnt_det: (0.711556,8.40575e-16)    trace_pi (-0.721589,-8.62564e-16)
+PI trace vector:
+
+ freq:7.52242      rpa_for_omega_k: (-0.0101213,3.88646e-18)      lnt_det: (0.714,3.72546e-16)    trace_pi (-0.724122,-3.6866e-16)
+PI trace vector:
+
+ freq:7.52242      rpa_for_omega_k: (-0.010379,2.63641e-18)      lnt_det: (0.721981,-5.25685e-17)    trace_pi (-0.73236,5.5205e-17)
+PI trace vector:
+
+ freq:7.52242      rpa_for_omega_k: (-0.00996949,5.11283e-17)      lnt_det: (0.709627,-3.18451e-15)    trace_pi (-0.719597,3.23564e-15)
+PI trace vector:
+
+ freq:7.52242      rpa_for_omega_k: (-0.0100264,-3.92202e-17)      lnt_det: (0.711261,2.97275e-15)    trace_pi (-0.721287,-3.01197e-15)
+PI trace vector:
+
+ freq:7.52242      rpa_for_omega_k: (-0.0101213,-7.4537e-18)      lnt_det: (0.713998,1.38955e-15)    trace_pi (-0.72412,-1.397e-15)
+PI trace vector:
+
+ freq:7.52242      rpa_for_omega_k: (-0.0100473,-3.25272e-18)      lnt_det: (0.712683,4.86428e-16)    trace_pi (-0.72273,-4.89681e-16)
+PI trace vector:
+
+ freq:7.52242      rpa_for_omega_k: (-0.0100264,7.39304e-17)      lnt_det: (0.711261,-3.36296e-15)    trace_pi (-0.721287,3.43689e-15)
+PI trace vector:
+
+ freq:7.52242      rpa_for_omega_k: (-0.00996949,3.22446e-17)      lnt_det: (0.709627,-4.14871e-15)    trace_pi (-0.719597,4.18096e-15)
+PI trace vector:
+
+ freq:7.52242      rpa_for_omega_k: (-0.0100473,-2.92465e-17)      lnt_det: (0.712683,1.79362e-15)    trace_pi (-0.72273,-1.82287e-15)
+PI trace vector:
+
+ freq:7.52242      rpa_for_omega_k: (-0.0101213,-3.84863e-18)      lnt_det: (0.713998,4.22239e-16)    trace_pi (-0.72412,-4.26088e-16)
+PI trace vector:
+
+ freq:7.52242      rpa_for_omega_k: (-0.0101213,-1.98697e-17)      lnt_det: (0.714,-3.39448e-16)    trace_pi (-0.724121,3.19578e-16)
+PI trace vector:
+
+ freq:7.52242      rpa_for_omega_k: (-0.0100473,-3.56578e-17)      lnt_det: (0.712683,1.37503e-15)    trace_pi (-0.72273,-1.41069e-15)
+PI trace vector:
+
+ freq:7.52242      rpa_for_omega_k: (-0.0101213,-2.84604e-17)      lnt_det: (0.713999,5.12794e-16)    trace_pi (-0.724121,-5.41254e-16)
+PI trace vector:
+
+ freq:7.52242      rpa_for_omega_k: (-0.010173,-1.09882e-17)      lnt_det: (0.716036,2.90427e-16)    trace_pi (-0.726209,-3.01416e-16)
+PI trace vector:
+
+ freq:7.52242      rpa_for_omega_k: (-0.0100473,-3.09607e-17)      lnt_det: (0.712683,1.72872e-15)    trace_pi (-0.72273,-1.75968e-15)
+PI trace vector:
+
+ freq:7.52242      rpa_for_omega_k: (-0.0101213,-1.23576e-17)      lnt_det: (0.714,8.94009e-16)    trace_pi (-0.724121,-9.06367e-16)
+PI trace vector:
+
+ freq:7.52242      rpa_for_omega_k: (-0.010173,-7.04857e-18)      lnt_det: (0.716036,2.81438e-16)    trace_pi (-0.726209,-2.88486e-16)
+PI trace vector:
+
+ freq:7.52242      rpa_for_omega_k: (-0.0101213,1.76084e-17)      lnt_det: (0.713999,-3.99649e-16)    trace_pi (-0.724121,4.17257e-16)
+PI trace vector:
+
+ freq:7.52242      rpa_for_omega_k: (-0.0100331,-1.95496e-17)      lnt_det: (0.711555,5.05005e-16)    trace_pi (-0.721588,-5.24554e-16)
+PI trace vector:
+
+ freq:7.52242      rpa_for_omega_k: (-0.0101213,2.18167e-17)      lnt_det: (0.713998,-4.90494e-16)    trace_pi (-0.72412,5.12311e-16)
+PI trace vector:
+
+ freq:7.52242      rpa_for_omega_k: (-0.0103789,4.10434e-18)      lnt_det: (0.721979,-6.7681e-17)    trace_pi (-0.732358,7.17853e-17)
+PI trace vector:
+
+ freq:7.52242      rpa_for_omega_k: (-0.0101213,3.12646e-17)      lnt_det: (0.713999,-7.36159e-16)    trace_pi (-0.72412,7.67424e-16)
+PI trace vector:
+
+ freq:7.52242      rpa_for_omega_k: (-0.0100473,3.69589e-17)      lnt_det: (0.712682,-1.32667e-15)    trace_pi (-0.72273,1.36363e-15)
+PI trace vector:
+
+ freq:7.52242      rpa_for_omega_k: (-0.0101213,1.02281e-18)      lnt_det: (0.713999,5.39004e-16)    trace_pi (-0.72412,-5.37981e-16)
+PI trace vector:
+
+ freq:7.52242      rpa_for_omega_k: (-0.0101729,-1.91677e-19)      lnt_det: (0.716034,-9.63438e-16)    trace_pi (-0.726207,9.63247e-16)
+PI trace vector:
+
+ freq:7.52242      rpa_for_omega_k: (-0.0103789,9.56075e-18)      lnt_det: (0.721979,-1.21749e-16)    trace_pi (-0.732358,1.3131e-16)
+PI trace vector:
+
+ freq:7.52242      rpa_for_omega_k: (-0.0101213,6.0883e-17)      lnt_det: (0.713998,-1.93901e-15)    trace_pi (-0.72412,1.9999e-15)
+PI trace vector:
+
+ freq:7.52242      rpa_for_omega_k: (-0.0100331,-4.07102e-17)      lnt_det: (0.711555,1.47682e-15)    trace_pi (-0.721588,-1.51753e-15)
+PI trace vector:
+
+ freq:13.1236      rpa_for_omega_k: (-0.00196978,0)      lnt_det: (0.309701,0)    trace_pi (-0.31167,0)
+PI trace vector:
+
+ freq:13.1236      rpa_for_omega_k: (-0.00187915,2.50878e-18)      lnt_det: (0.305834,-8.37422e-17)    trace_pi (-0.307713,8.6251e-17)
+PI trace vector:
+
+ freq:13.1236      rpa_for_omega_k: (-0.001889,7.45986e-19)      lnt_det: (0.306621,-4.65168e-18)    trace_pi (-0.30851,5.39767e-18)
+PI trace vector:
+
+ freq:13.1236      rpa_for_omega_k: (-0.00187914,2.18317e-17)      lnt_det: (0.305835,-3.55315e-15)    trace_pi (-0.307714,3.57499e-15)
+PI trace vector:
+
+ freq:13.1236      rpa_for_omega_k: (-0.00188742,-1.15824e-17)      lnt_det: (0.306497,1.70663e-15)    trace_pi (-0.308384,-1.71821e-15)
+PI trace vector:
+
+ freq:13.1236      rpa_for_omega_k: (-0.00190112,-5.89118e-18)      lnt_det: (0.307529,7.73817e-16)    trace_pi (-0.30943,-7.79708e-16)
+PI trace vector:
+
+ freq:13.1236      rpa_for_omega_k: (-0.00189085,9.9181e-19)      lnt_det: (0.307064,8.6666e-17)    trace_pi (-0.308955,-8.56742e-17)
+PI trace vector:
+
+ freq:13.1236      rpa_for_omega_k: (-0.001889,-3.23549e-18)      lnt_det: (0.306621,3.40876e-16)    trace_pi (-0.30851,-3.44111e-16)
+PI trace vector:
+
+ freq:13.1236      rpa_for_omega_k: (-0.00190112,2.37311e-19)      lnt_det: (0.307529,2.24098e-16)    trace_pi (-0.30943,-2.23861e-16)
+PI trace vector:
+
+ freq:13.1236      rpa_for_omega_k: (-0.00193864,3.854e-19)      lnt_det: (0.310811,-1.75374e-17)    trace_pi (-0.312749,1.79228e-17)
+PI trace vector:
+
+ freq:13.1236      rpa_for_omega_k: (-0.00187915,1.22952e-17)      lnt_det: (0.305835,-2.10508e-15)    trace_pi (-0.307714,2.11737e-15)
+PI trace vector:
+
+ freq:13.1236      rpa_for_omega_k: (-0.00188742,-2.22575e-17)      lnt_det: (0.306496,3.54985e-15)    trace_pi (-0.308384,-3.57211e-15)
+PI trace vector:
+
+ freq:13.1236      rpa_for_omega_k: (-0.00190112,-1.14751e-17)      lnt_det: (0.307528,1.49142e-15)    trace_pi (-0.309429,-1.5029e-15)
+PI trace vector:
+
+ freq:13.1236      rpa_for_omega_k: (-0.00189085,1.02794e-18)      lnt_det: (0.307063,-3.6523e-16)    trace_pi (-0.308954,3.66258e-16)
+PI trace vector:
+
+ freq:13.1236      rpa_for_omega_k: (-0.00188742,1.37807e-17)      lnt_det: (0.306496,-1.65665e-15)    trace_pi (-0.308384,1.67043e-15)
+PI trace vector:
+
+ freq:13.1236      rpa_for_omega_k: (-0.00187915,-9.27507e-19)      lnt_det: (0.305835,8.58528e-16)    trace_pi (-0.307714,-8.59456e-16)
+PI trace vector:
+
+ freq:13.1236      rpa_for_omega_k: (-0.00189085,-1.29022e-17)      lnt_det: (0.307063,1.81259e-15)    trace_pi (-0.308954,-1.82549e-15)
+PI trace vector:
+
+ freq:13.1236      rpa_for_omega_k: (-0.00190112,-3.82352e-18)      lnt_det: (0.307528,6.30311e-16)    trace_pi (-0.309429,-6.34134e-16)
+PI trace vector:
+
+ freq:13.1236      rpa_for_omega_k: (-0.00190112,3.64429e-18)      lnt_det: (0.307529,-4.2258e-17)    trace_pi (-0.30943,4.59023e-17)
+PI trace vector:
+
+ freq:13.1236      rpa_for_omega_k: (-0.00189085,-4.92018e-18)      lnt_det: (0.307063,6.26788e-16)    trace_pi (-0.308954,-6.31708e-16)
+PI trace vector:
+
+ freq:13.1236      rpa_for_omega_k: (-0.00190112,-9.14879e-18)      lnt_det: (0.307529,1.00802e-15)    trace_pi (-0.30943,-1.01717e-15)
+PI trace vector:
+
+ freq:13.1236      rpa_for_omega_k: (-0.00190887,-5.9529e-18)      lnt_det: (0.308398,4.44404e-16)    trace_pi (-0.310307,-4.50357e-16)
+PI trace vector:
+
+ freq:13.1236      rpa_for_omega_k: (-0.00189085,3.01259e-18)      lnt_det: (0.307063,-1.7216e-16)    trace_pi (-0.308954,1.75172e-16)
+PI trace vector:
+
+ freq:13.1236      rpa_for_omega_k: (-0.00190112,2.51185e-18)      lnt_det: (0.307529,7.54479e-17)    trace_pi (-0.30943,-7.29361e-17)
+PI trace vector:
+
+ freq:13.1236      rpa_for_omega_k: (-0.00190887,-2.01617e-18)      lnt_det: (0.308398,2.29069e-16)    trace_pi (-0.310307,-2.31085e-16)
+PI trace vector:
+
+ freq:13.1236      rpa_for_omega_k: (-0.00190112,-1.58866e-18)      lnt_det: (0.307529,-4.55196e-16)    trace_pi (-0.30943,4.53607e-16)
+PI trace vector:
+
+ freq:13.1236      rpa_for_omega_k: (-0.001889,-2.67272e-18)      lnt_det: (0.306621,1.73496e-16)    trace_pi (-0.30851,-1.76169e-16)
+PI trace vector:
+
+ freq:13.1236      rpa_for_omega_k: (-0.00190112,1.36427e-17)      lnt_det: (0.307528,-1.36474e-15)    trace_pi (-0.30943,1.37838e-15)
+PI trace vector:
+
+ freq:13.1236      rpa_for_omega_k: (-0.00193864,6.15889e-19)      lnt_det: (0.31081,-2.31968e-17)    trace_pi (-0.312749,2.38127e-17)
+PI trace vector:
+
+ freq:13.1236      rpa_for_omega_k: (-0.00190112,5.09723e-18)      lnt_det: (0.307528,-6.91934e-16)    trace_pi (-0.30943,6.97031e-16)
+PI trace vector:
+
+ freq:13.1236      rpa_for_omega_k: (-0.00189085,1.32314e-17)      lnt_det: (0.307063,-1.1552e-15)    trace_pi (-0.308954,1.16843e-15)
+PI trace vector:
+
+ freq:13.1236      rpa_for_omega_k: (-0.00190112,-2.56781e-18)      lnt_det: (0.307528,6.47461e-16)    trace_pi (-0.30943,-6.50029e-16)
+PI trace vector:
+
+ freq:13.1236      rpa_for_omega_k: (-0.00190886,-3.64699e-18)      lnt_det: (0.308398,-8.64929e-17)    trace_pi (-0.310307,8.28459e-17)
+PI trace vector:
+
+ freq:13.1236      rpa_for_omega_k: (-0.00193864,1.43047e-18)      lnt_det: (0.31081,-3.80381e-17)    trace_pi (-0.312749,3.94686e-17)
+PI trace vector:
+
+ freq:13.1236      rpa_for_omega_k: (-0.00190112,1.02832e-17)      lnt_det: (0.307528,-1.16898e-15)    trace_pi (-0.30943,1.17926e-15)
+PI trace vector:
+
+ freq:13.1236      rpa_for_omega_k: (-0.001889,-5.95912e-18)      lnt_det: (0.306621,5.93309e-16)    trace_pi (-0.30851,-5.99268e-16)
+PI trace vector:
+
+ freq:23.5824      rpa_for_omega_k: (-0.000409958,0)      lnt_det: (0.128404,0)    trace_pi (-0.128814,0)
+PI trace vector:
+
+ freq:23.5824      rpa_for_omega_k: (-0.000400668,-1.78557e-18)      lnt_det: (0.127149,8.92533e-16)    trace_pi (-0.12755,-8.94318e-16)
+PI trace vector:
+
+ freq:23.5824      rpa_for_omega_k: (-0.000401858,7.40996e-20)      lnt_det: (0.127418,2.9526e-18)    trace_pi (-0.12782,-2.8785e-18)
+PI trace vector:
+
+ freq:23.5824      rpa_for_omega_k: (-0.000400668,8.21508e-19)      lnt_det: (0.127149,-5.54643e-16)    trace_pi (-0.12755,5.55465e-16)
+PI trace vector:
+
+ freq:23.5824      rpa_for_omega_k: (-0.00040155,-5.54538e-18)      lnt_det: (0.127371,2.44283e-15)    trace_pi (-0.127772,-2.44837e-15)
+PI trace vector:
+
+ freq:23.5824      rpa_for_omega_k: (-0.000403061,-1.63723e-18)      lnt_det: (0.127709,6.72553e-16)    trace_pi (-0.128112,-6.7419e-16)
+PI trace vector:
+
+ freq:23.5824      rpa_for_omega_k: (-0.000401985,3.03215e-19)      lnt_det: (0.127564,1.0413e-16)    trace_pi (-0.127966,-1.03827e-16)
+PI trace vector:
+
+ freq:23.5824      rpa_for_omega_k: (-0.000401858,-3.56891e-19)      lnt_det: (0.127418,1.14828e-16)    trace_pi (-0.12782,-1.15185e-16)
+PI trace vector:
+
+ freq:23.5824      rpa_for_omega_k: (-0.000403061,-2.60256e-18)      lnt_det: (0.127709,1.04102e-15)    trace_pi (-0.128112,-1.04363e-15)
+PI trace vector:
+
+ freq:23.5824      rpa_for_omega_k: (-0.000407101,4.2574e-20)      lnt_det: (0.128819,-5.33824e-18)    trace_pi (-0.129226,5.38082e-18)
+PI trace vector:
+
+ freq:23.5824      rpa_for_omega_k: (-0.000400668,-4.84385e-18)      lnt_det: (0.127149,8.84411e-16)    trace_pi (-0.12755,-8.89255e-16)
+PI trace vector:
+
+ freq:23.5824      rpa_for_omega_k: (-0.000401551,-5.87139e-18)      lnt_det: (0.127371,2.38881e-15)    trace_pi (-0.127772,-2.39468e-15)
+PI trace vector:
+
+ freq:23.5824      rpa_for_omega_k: (-0.000403061,7.65334e-20)      lnt_det: (0.127709,2.83893e-16)    trace_pi (-0.128112,-2.83817e-16)
+PI trace vector:
+
+ freq:23.5824      rpa_for_omega_k: (-0.000401985,1.90421e-18)      lnt_det: (0.127564,-6.26317e-16)    trace_pi (-0.127966,6.28221e-16)
+PI trace vector:
+
+ freq:23.5824      rpa_for_omega_k: (-0.000401551,-5.56413e-18)      lnt_det: (0.127371,2.2166e-15)    trace_pi (-0.127772,-2.22217e-15)
+PI trace vector:
+
+ freq:23.5824      rpa_for_omega_k: (-0.000400668,-1.16722e-17)      lnt_det: (0.127149,4.89248e-15)    trace_pi (-0.12755,-4.90416e-15)
+PI trace vector:
+
+ freq:23.5824      rpa_for_omega_k: (-0.000401985,-2.78207e-18)      lnt_det: (0.127564,1.36948e-15)    trace_pi (-0.127966,-1.37226e-15)
+PI trace vector:
+
+ freq:23.5824      rpa_for_omega_k: (-0.000403061,8.5198e-19)      lnt_det: (0.127709,-1.97625e-16)    trace_pi (-0.128112,1.98477e-16)
+PI trace vector:
+
+ freq:23.5824      rpa_for_omega_k: (-0.000403061,1.5366e-18)      lnt_det: (0.127709,-5.36396e-16)    trace_pi (-0.128112,5.37933e-16)
+PI trace vector:
+
+ freq:23.5824      rpa_for_omega_k: (-0.000401985,-2.98912e-18)      lnt_det: (0.127564,1.2535e-15)    trace_pi (-0.127966,-1.25649e-15)
+PI trace vector:
+
+ freq:23.5824      rpa_for_omega_k: (-0.000403061,-3.1855e-18)      lnt_det: (0.127709,1.14468e-15)    trace_pi (-0.128112,-1.14787e-15)
+PI trace vector:
+
+ freq:23.5824      rpa_for_omega_k: (-0.000403882,4.36674e-19)      lnt_det: (0.128008,-4.19574e-16)    trace_pi (-0.128412,4.2001e-16)
+PI trace vector:
+
+ freq:23.5824      rpa_for_omega_k: (-0.000401985,2.31296e-18)      lnt_det: (0.127564,-1.34474e-15)    trace_pi (-0.127966,1.34705e-15)
+PI trace vector:
+
+ freq:23.5824      rpa_for_omega_k: (-0.000403061,5.0066e-19)      lnt_det: (0.127709,-1.36756e-16)    trace_pi (-0.128112,1.37256e-16)
+PI trace vector:
+
+ freq:23.5824      rpa_for_omega_k: (-0.000403882,-3.29618e-19)      lnt_det: (0.128008,1.883e-16)    trace_pi (-0.128412,-1.8863e-16)
+PI trace vector:
+
+ freq:23.5824      rpa_for_omega_k: (-0.000403061,1.25327e-18)      lnt_det: (0.127709,-8.90212e-16)    trace_pi (-0.128112,8.91466e-16)
+PI trace vector:
+
+ freq:23.5824      rpa_for_omega_k: (-0.000401858,-2.83445e-19)      lnt_det: (0.127418,5.20802e-17)    trace_pi (-0.12782,-5.23636e-17)
+PI trace vector:
+
+ freq:23.5824      rpa_for_omega_k: (-0.000403061,1.50881e-18)      lnt_det: (0.127709,-9.49578e-16)    trace_pi (-0.128112,9.51086e-16)
+PI trace vector:
+
+ freq:23.5824      rpa_for_omega_k: (-0.0004071,6.90352e-20)      lnt_det: (0.128819,-7.23239e-18)    trace_pi (-0.129226,7.30142e-18)
+PI trace vector:
+
+ freq:23.5824      rpa_for_omega_k: (-0.000403061,-1.61747e-20)      lnt_det: (0.127709,1.41877e-16)    trace_pi (-0.128112,-1.41893e-16)
+PI trace vector:
+
+ freq:23.5824      rpa_for_omega_k: (-0.000401985,9.51407e-19)      lnt_det: (0.127564,-4.9655e-16)    trace_pi (-0.127966,4.97501e-16)
+PI trace vector:
+
+ freq:23.5824      rpa_for_omega_k: (-0.000403061,1.22748e-18)      lnt_det: (0.127709,-2.56164e-16)    trace_pi (-0.128112,2.57392e-16)
+PI trace vector:
+
+ freq:23.5824      rpa_for_omega_k: (-0.000403882,-3.90218e-19)      lnt_det: (0.128008,2.37875e-16)    trace_pi (-0.128412,-2.38266e-16)
+PI trace vector:
+
+ freq:23.5824      rpa_for_omega_k: (-0.0004071,1.60551e-19)      lnt_det: (0.128819,-1.12986e-17)    trace_pi (-0.129226,1.14592e-17)
+PI trace vector:
+
+ freq:23.5824      rpa_for_omega_k: (-0.000403061,3.74673e-19)      lnt_det: (0.127709,-2.23572e-17)    trace_pi (-0.128112,2.27319e-17)
+PI trace vector:
+
+ freq:23.5824      rpa_for_omega_k: (-0.000401858,-6.55775e-19)      lnt_det: (0.127418,1.98669e-16)    trace_pi (-0.12782,-1.99325e-16)
+PI trace vector:
+
+ freq:45.0796      rpa_for_omega_k: (-8.40786e-05,0)      lnt_det: (0.0475315,0)    trace_pi (-0.0476156,0)
+PI trace vector:
+
+ freq:45.0796      rpa_for_omega_k: (-8.3381e-05,-1.68676e-19)      lnt_det: (0.0471847,1.83818e-16)    trace_pi (-0.0472681,-1.83987e-16)
+PI trace vector:
+
+ freq:45.0796      rpa_for_omega_k: (-8.34857e-05,5.60411e-21)      lnt_det: (0.0472616,1.52178e-18)    trace_pi (-0.0473451,-1.51618e-18)
+PI trace vector:
+
+ freq:45.0796      rpa_for_omega_k: (-8.3381e-05,-3.287e-19)      lnt_det: (0.0471848,5.52712e-16)    trace_pi (-0.0472681,-5.5304e-16)
+PI trace vector:
+
+ freq:45.0796      rpa_for_omega_k: (-8.34484e-05,-3.69638e-21)      lnt_det: (0.0472465,2.34828e-17)    trace_pi (-0.0473299,-2.34865e-17)
+PI trace vector:
+
+ freq:45.0796      rpa_for_omega_k: (-8.35704e-05,3.60154e-20)      lnt_det: (0.0473413,-1.54666e-17)    trace_pi (-0.0474248,1.55027e-17)
+PI trace vector:
+
+ freq:45.0796      rpa_for_omega_k: (-8.34886e-05,-1.92075e-19)      lnt_det: (0.0473021,3.40679e-16)    trace_pi (-0.0473856,-3.40871e-16)
+PI trace vector:
+
+ freq:45.0796      rpa_for_omega_k: (-8.34857e-05,-2.84267e-20)      lnt_det: (0.0472616,3.23293e-17)    trace_pi (-0.0473451,-3.23577e-17)
+PI trace vector:
+
+ freq:45.0796      rpa_for_omega_k: (-8.35704e-05,-1.09944e-19)      lnt_det: (0.0473413,1.77714e-16)    trace_pi (-0.0474249,-1.77824e-16)
+PI trace vector:
+
+ freq:45.0796      rpa_for_omega_k: (-8.38829e-05,3.40313e-21)      lnt_det: (0.0476545,-1.42509e-18)    trace_pi (-0.0477384,1.42849e-18)
+PI trace vector:
+
+ freq:45.0796      rpa_for_omega_k: (-8.3381e-05,-1.70861e-18)      lnt_det: (0.0471847,2.79585e-15)    trace_pi (-0.0472681,-2.79756e-15)
+PI trace vector:
+
+ freq:45.0796      rpa_for_omega_k: (-8.34485e-05,-7.94787e-19)      lnt_det: (0.0472467,1.26608e-15)    trace_pi (-0.0473301,-1.26688e-15)
+PI trace vector:
+
+ freq:45.0796      rpa_for_omega_k: (-8.35703e-05,1.6912e-19)      lnt_det: (0.0473412,-7.08621e-17)    trace_pi (-0.0474248,7.10313e-17)
+PI trace vector:
+
+ freq:45.0796      rpa_for_omega_k: (-8.34886e-05,-1.07042e-19)      lnt_det: (0.0473022,3.04622e-16)    trace_pi (-0.0473856,-3.04729e-16)
+PI trace vector:
+
+ freq:45.0796      rpa_for_omega_k: (-8.34485e-05,-1.28715e-18)      lnt_det: (0.0472467,2.34438e-15)    trace_pi (-0.0473301,-2.34567e-15)
+PI trace vector:
+
+ freq:45.0796      rpa_for_omega_k: (-8.3381e-05,-1.90424e-18)      lnt_det: (0.0471847,3.2801e-15)    trace_pi (-0.0472681,-3.28201e-15)
+PI trace vector:
+
+ freq:45.0796      rpa_for_omega_k: (-8.34886e-05,9.56909e-21)      lnt_det: (0.0473022,1.63477e-16)    trace_pi (-0.0473856,-1.63467e-16)
+PI trace vector:
+
+ freq:45.0796      rpa_for_omega_k: (-8.35703e-05,1.38872e-20)      lnt_det: (0.0473412,6.42406e-17)    trace_pi (-0.0474248,-6.42267e-17)
+PI trace vector:
+
+ freq:45.0796      rpa_for_omega_k: (-8.35703e-05,-2.24168e-19)      lnt_det: (0.0473413,3.22132e-16)    trace_pi (-0.0474248,-3.22356e-16)
+PI trace vector:
+
+ freq:45.0796      rpa_for_omega_k: (-8.34886e-05,-5.00043e-19)      lnt_det: (0.0473022,7.64248e-16)    trace_pi (-0.0473856,-7.64748e-16)
+PI trace vector:
+
+ freq:45.0796      rpa_for_omega_k: (-8.35704e-05,-5.86927e-20)      lnt_det: (0.0473413,1.44938e-17)    trace_pi (-0.0474248,-1.45525e-17)
+PI trace vector:
+
+ freq:45.0796      rpa_for_omega_k: (-8.36321e-05,1.8166e-19)      lnt_det: (0.0474266,-4.25121e-16)    trace_pi (-0.0475102,4.25302e-16)
+PI trace vector:
+
+ freq:45.0796      rpa_for_omega_k: (-8.34886e-05,-2.84289e-19)      lnt_det: (0.0473022,3.32696e-16)    trace_pi (-0.0473856,-3.3298e-16)
+PI trace vector:
+
+ freq:45.0796      rpa_for_omega_k: (-8.35703e-05,3.80293e-20)      lnt_det: (0.0473413,2.4459e-17)    trace_pi (-0.0474248,-2.4421e-17)
+PI trace vector:
+
+ freq:45.0796      rpa_for_omega_k: (-8.36321e-05,-1.81332e-21)      lnt_det: (0.0474266,-4.71773e-17)    trace_pi (-0.0475102,4.71755e-17)
+PI trace vector:
+
+ freq:45.0796      rpa_for_omega_k: (-8.35704e-05,1.43581e-20)      lnt_det: (0.0473413,-1.03515e-16)    trace_pi (-0.0474248,1.03529e-16)
+PI trace vector:
+
+ freq:45.0796      rpa_for_omega_k: (-8.34857e-05,-2.21663e-20)      lnt_det: (0.0472616,1.36912e-17)    trace_pi (-0.0473451,-1.37134e-17)
+PI trace vector:
+
+ freq:45.0796      rpa_for_omega_k: (-8.35703e-05,-3.65214e-19)      lnt_det: (0.0473412,4.34185e-16)    trace_pi (-0.0474248,-4.3455e-16)
+PI trace vector:
+
+ freq:45.0796      rpa_for_omega_k: (-8.38827e-05,5.55995e-21)      lnt_det: (0.0476543,-1.95887e-18)    trace_pi (-0.0477382,1.96443e-18)
+PI trace vector:
+
+ freq:45.0796      rpa_for_omega_k: (-8.35703e-05,-1.82567e-19)      lnt_det: (0.0473412,4.74286e-16)    trace_pi (-0.0474248,-4.74469e-16)
+PI trace vector:
+
+ freq:45.0796      rpa_for_omega_k: (-8.34886e-05,-6.41573e-19)      lnt_det: (0.047302,1.01945e-15)    trace_pi (-0.0473855,-1.02009e-15)
+PI trace vector:
+
+ freq:45.0796      rpa_for_omega_k: (-8.35703e-05,4.38509e-20)      lnt_det: (0.0473412,3.47599e-17)    trace_pi (-0.0474248,-3.47161e-17)
+PI trace vector:
+
+ freq:45.0796      rpa_for_omega_k: (-8.3632e-05,1.28607e-19)      lnt_det: (0.0474265,-8.42369e-17)    trace_pi (-0.0475102,8.43655e-17)
+PI trace vector:
+
+ freq:45.0796      rpa_for_omega_k: (-8.38827e-05,1.29553e-20)      lnt_det: (0.0476543,-2.98104e-18)    trace_pi (-0.0477382,2.994e-18)
+PI trace vector:
+
+ freq:45.0796      rpa_for_omega_k: (-8.35703e-05,-4.29149e-19)      lnt_det: (0.0473412,6.33158e-16)    trace_pi (-0.0474248,-6.33587e-16)
+PI trace vector:
+
+ freq:45.0796      rpa_for_omega_k: (-8.34857e-05,-5.21859e-20)      lnt_det: (0.0472616,5.57456e-17)    trace_pi (-0.0473451,-5.57978e-17)
+PI trace vector:
+
+ freq:105.871      rpa_for_omega_k: (-6.34552e-06,0)      lnt_det: (0.0107494,0)    trace_pi (-0.0107558,0)
+PI trace vector:
+
+ freq:105.871      rpa_for_omega_k: (-6.32342e-06,6.78067e-21)      lnt_det: (0.0106897,-4.77703e-17)    trace_pi (-0.010696,4.77771e-17)
+PI trace vector:
+
+ freq:105.871      rpa_for_omega_k: (-6.32679e-06,1.93026e-22)      lnt_det: (0.0107028,1.84506e-19)    trace_pi (-0.0107092,-1.84313e-19)
+PI trace vector:
+
+ freq:105.871      rpa_for_omega_k: (-6.32342e-06,-2.95287e-20)      lnt_det: (0.0106897,2.93427e-16)    trace_pi (-0.010696,-2.93456e-16)
+PI trace vector:
+
+ freq:105.871      rpa_for_omega_k: (-6.32553e-06,6.70877e-20)      lnt_det: (0.0107012,-5.3644e-16)    trace_pi (-0.0107075,5.36507e-16)
+PI trace vector:
+
+ freq:105.871      rpa_for_omega_k: (-6.32931e-06,1.30981e-20)      lnt_det: (0.0107173,-9.4651e-17)    trace_pi (-0.0107236,9.46641e-17)
+PI trace vector:
+
+ freq:105.871      rpa_for_omega_k: (-6.32673e-06,-2.56931e-20)      lnt_det: (0.0107099,1.68986e-16)    trace_pi (-0.0107163,-1.69012e-16)
+PI trace vector:
+
+ freq:105.871      rpa_for_omega_k: (-6.32679e-06,-9.53739e-22)      lnt_det: (0.0107028,6.06579e-18)    trace_pi (-0.0107092,-6.06675e-18)
+PI trace vector:
+
+ freq:105.871      rpa_for_omega_k: (-6.32931e-06,3.40016e-20)      lnt_det: (0.0107173,-2.43674e-16)    trace_pi (-0.0107236,2.43708e-16)
+PI trace vector:
+
+ freq:105.871      rpa_for_omega_k: (-6.33927e-06,1.18094e-22)      lnt_det: (0.0107737,-3.1873e-19)    trace_pi (-0.01078,3.18848e-19)
+PI trace vector:
+
+ freq:105.871      rpa_for_omega_k: (-6.32342e-06,-1.27504e-19)      lnt_det: (0.0106897,1.44507e-15)    trace_pi (-0.010696,-1.44519e-15)
+PI trace vector:
+
+ freq:105.871      rpa_for_omega_k: (-6.32552e-06,-5.21595e-20)      lnt_det: (0.0107009,5.54429e-16)    trace_pi (-0.0107073,-5.54481e-16)
+PI trace vector:
+
+ freq:105.871      rpa_for_omega_k: (-6.32932e-06,-5.37647e-21)      lnt_det: (0.0107173,4.88461e-17)    trace_pi (-0.0107236,-4.88515e-17)
+PI trace vector:
+
+ freq:105.871      rpa_for_omega_k: (-6.32672e-06,-3.85836e-20)      lnt_det: (0.0107098,3.23428e-16)    trace_pi (-0.0107161,-3.23467e-16)
+PI trace vector:
+
+ freq:105.871      rpa_for_omega_k: (-6.32552e-06,-5.01519e-20)      lnt_det: (0.0107009,7.07717e-16)    trace_pi (-0.0107073,-7.07767e-16)
+PI trace vector:
+
+ freq:105.871      rpa_for_omega_k: (-6.32342e-06,-3.09844e-20)      lnt_det: (0.0106897,6.12568e-16)    trace_pi (-0.010696,-6.12599e-16)
+PI trace vector:
+
+ freq:105.871      rpa_for_omega_k: (-6.32672e-06,7.82902e-21)      lnt_det: (0.0107098,-3.90183e-17)    trace_pi (-0.0107161,3.90261e-17)
+PI trace vector:
+
+ freq:105.871      rpa_for_omega_k: (-6.32932e-06,-2.22298e-20)      lnt_det: (0.0107173,1.6998e-16)    trace_pi (-0.0107236,-1.70002e-16)
+PI trace vector:
+
+ freq:105.871      rpa_for_omega_k: (-6.32932e-06,-5.12586e-20)      lnt_det: (0.0107173,3.68926e-16)    trace_pi (-0.0107236,-3.68977e-16)
+PI trace vector:
+
+ freq:105.871      rpa_for_omega_k: (-6.32672e-06,-1.00031e-20)      lnt_det: (0.0107098,1.24454e-16)    trace_pi (-0.0107161,-1.24464e-16)
+PI trace vector:
+
+ freq:105.871      rpa_for_omega_k: (-6.32931e-06,3.19703e-20)      lnt_det: (0.0107173,-2.56038e-16)    trace_pi (-0.0107236,2.5607e-16)
+PI trace vector:
+
+ freq:105.871      rpa_for_omega_k: (-6.33112e-06,-3.57158e-21)      lnt_det: (0.0107319,-4.44843e-17)    trace_pi (-0.0107382,4.44807e-17)
+PI trace vector:
+
+ freq:105.871      rpa_for_omega_k: (-6.32672e-06,-5.94412e-20)      lnt_det: (0.0107098,5.5641e-16)    trace_pi (-0.0107161,-5.56469e-16)
+PI trace vector:
+
+ freq:105.871      rpa_for_omega_k: (-6.32932e-06,-9.85685e-22)      lnt_det: (0.0107173,4.53979e-17)    trace_pi (-0.0107236,-4.53988e-17)
+PI trace vector:
+
+ freq:105.871      rpa_for_omega_k: (-6.33112e-06,2.37789e-21)      lnt_det: (0.0107319,-6.18024e-17)    trace_pi (-0.0107382,6.18047e-17)
+PI trace vector:
+
+ freq:105.871      rpa_for_omega_k: (-6.32931e-06,-2.74345e-20)      lnt_det: (0.0107173,1.7507e-16)    trace_pi (-0.0107236,-1.75098e-16)
+PI trace vector:
+
+ freq:105.871      rpa_for_omega_k: (-6.32679e-06,-7.49563e-22)      lnt_det: (0.0107028,2.70666e-18)    trace_pi (-0.0107092,-2.70741e-18)
+PI trace vector:
+
+ freq:105.871      rpa_for_omega_k: (-6.32932e-06,-4.95741e-20)      lnt_det: (0.0107173,4.46663e-16)    trace_pi (-0.0107236,-4.46712e-16)
+PI trace vector:
+
+ freq:105.871      rpa_for_omega_k: (-6.33929e-06,1.91444e-22)      lnt_det: (0.0107739,-4.4105e-19)    trace_pi (-0.0107802,4.41242e-19)
+PI trace vector:
+
+ freq:105.871      rpa_for_omega_k: (-6.32932e-06,-2.02134e-20)      lnt_det: (0.0107173,2.1742e-16)    trace_pi (-0.0107236,-2.1744e-16)
+PI trace vector:
+
+ freq:105.871      rpa_for_omega_k: (-6.32673e-06,-6.80391e-20)      lnt_det: (0.0107099,6.9204e-16)    trace_pi (-0.0107163,-6.92108e-16)
+PI trace vector:
+
+ freq:105.871      rpa_for_omega_k: (-6.32932e-06,-2.52626e-20)      lnt_det: (0.0107173,2.10431e-16)    trace_pi (-0.0107236,-2.10457e-16)
+PI trace vector:
+
+ freq:105.871      rpa_for_omega_k: (-6.33111e-06,1.21755e-20)      lnt_det: (0.0107318,-1.1458e-16)    trace_pi (-0.0107381,1.14593e-16)
+PI trace vector:
+
+ freq:105.871      rpa_for_omega_k: (-6.33929e-06,4.49614e-22)      lnt_det: (0.0107739,-7.69423e-19)    trace_pi (-0.0107802,7.69873e-19)
+PI trace vector:
+
+ freq:105.871      rpa_for_omega_k: (-6.32932e-06,-3.28768e-20)      lnt_det: (0.0107173,3.26848e-16)    trace_pi (-0.0107236,-3.26881e-16)
+PI trace vector:
+
+ freq:105.871      rpa_for_omega_k: (-6.32679e-06,-1.75012e-21)      lnt_det: (0.0107028,1.0482e-17)    trace_pi (-0.0107092,-1.04837e-17)
+(         0,         0,         0)(-0.00669757,0)
+(8.97433e-19,-7.54409e-18,   0.10173)(-0.0133111,2.24399e-17)
+(1.79487e-18,-1.50882e-17,   0.20346)(-0.00659449,2.59306e-18)
+(4.16297e-18, 0.0959121,  -0.03391)(-0.0133111,4.78233e-17)
+(5.0604e-18, 0.0959121, 0.0678201)(-0.0132948,7.42022e-18)
+(5.95783e-18, 0.0959121,   0.16955)(-0.0132625,-1.77983e-18)
+(6.85527e-18, 0.0959121,   0.27128)(-0.0132353,1.12517e-17)
+(8.32593e-18,  0.191824,-0.0678201)(-0.00659452,-6.78201e-18)
+(9.22337e-18,  0.191824,   0.03391)(-0.0132625,-1.0652e-17)
+(1.01208e-17,  0.191824,   0.13564)(-0.00670349,9.07754e-19)
+( 0.0830623, -0.047956,  -0.03391)(-0.0133111,-5.87108e-19)
+( 0.0830623, -0.047956, 0.0678201)(-0.0132948,-2.16905e-17)
+( 0.0830623, -0.047956,   0.16955)(-0.0132625,2.43719e-18)
+( 0.0830623, -0.047956,   0.27128)(-0.0132353,-6.35112e-18)
+( 0.0830623,  0.047956,-0.0678201)(-0.0132948,9.73085e-18)
+( 0.0830623,  0.047956,   0.03391)(-0.0133111,1.3289e-17)
+( 0.0830623,  0.047956,   0.13564)(-0.0132353,-1.60789e-17)
+( 0.0830623,  0.047956,   0.23737)(-0.0132625,7.36584e-18)
+( 0.0830623,  0.143868,  -0.10173)(-0.0132626,-1.82328e-18)
+( 0.0830623,  0.143868,-1.95145e-12)(-0.0132353,-2.54267e-17)
+( 0.0830623,  0.143868,   0.10173)(-0.0132625,-4.52704e-18)
+( 0.0830623,  0.143868,   0.20346)(-0.0132895,7.85821e-19)
+( 0.0830623,   0.23978,  -0.13564)(-0.0132353,-1.6847e-17)
+( 0.0830623,   0.23978,  -0.03391)(-0.0132626,-3.79561e-18)
+( 0.0830623,   0.23978, 0.0678201)(-0.0132895,-4.14937e-18)
+( 0.0830623,   0.23978,   0.16955)(-0.0132625,9.58555e-18)
+(  0.166125,-0.0959121,-0.0678201)(-0.0065945,-6.99162e-18)
+(  0.166125,-0.0959121,   0.03391)(-0.0132625,4.28829e-19)
+(  0.166125,-0.0959121,   0.13564)(-0.00670352,1.29985e-18)
+(  0.166125,1.66955e-17,  -0.10173)(-0.0132625,2.06402e-18)
+(  0.166125,9.1514e-18,-1.66955e-17)(-0.0132353,-9.50712e-18)
+(  0.166125,1.60731e-18,   0.10173)(-0.0132625,-8.03262e-19)
+(  0.166125,-5.93679e-18,   0.20346)(-0.0132895,2.65498e-18)
+(  0.166125, 0.0959121,  -0.13564)(-0.00670352,3.0777e-18)
+(  0.166125, 0.0959121,  -0.03391)(-0.0132625,7.88601e-18)
+(  0.166125, 0.0959121, 0.0678201)(-0.0065945,-1.26376e-17)
+gx_num_14  tot_RPA_energy:  (-0.42474598,2.6114274e-18)
+ONLY CHI0 TIME USED:  707.91552
+  Average per_task time:37.145415TOTAL TIME USED :  711.34573
+Parallel_MPI Object is being deleted !
