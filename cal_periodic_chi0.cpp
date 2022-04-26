@@ -704,7 +704,7 @@ matrix Cal_Periodic_Chi0::cal_chi0_element(const double &time_tau, const Vector3
     // chi0[time_tau][R][I_index][J_index].create(mu_num,nu_num);
     matrix X_R2(i_num, j_num * nu_num);
     matrix X_conj_R2(i_num, j_num * nu_num);
-    prof.start("X");
+    
     for (const auto &L_pair : Cs[J_index])
     {
         const auto L_index = L_pair.first;
@@ -725,18 +725,23 @@ matrix Cal_Periodic_Chi0::cal_chi0_element(const double &time_tau, const Vector3
                         assert(j_num * l_num == (*Cs_mat2).nr);
                         // printf("          thread: %d, IJKL:   %d,%d,%d,%d  R:(  %d,%d,%d  )  tau:%f\n",omp_get_thread_num(),I_index,J_index,K_index,L_index,R.x,R.y,R.z,time_tau);
                         matrix Cs2_reshape(reshape_Cs(j_num, l_num, nu_num, Cs_mat2));
-
+                        
                         if (Green_atom.at(is).at(I_index).at(L_index).at(R_temp_2).count(time_tau))
                         {
                             // cout<<"C";
+                            prof.start("X");
                             X_R2 += Green_atom.at(is).at(I_index).at(L_index).at(R_temp_2).at(time_tau) * Cs2_reshape;
+                            prof.stop("X");
                         }
 
                         if (Green_atom.at(is).at(I_index).at(L_index).at(R_temp_2).count(-time_tau))
                         {
                             // cout<<"D";
+                            prof.start("X");
                             X_conj_R2 += Green_atom.at(is).at(I_index).at(L_index).at(R_temp_2).at(-time_tau) * Cs2_reshape;
+                            prof.stop("X");
                         }
+                        
                     }
                 }
             }
@@ -744,7 +749,7 @@ matrix Cal_Periodic_Chi0::cal_chi0_element(const double &time_tau, const Vector3
     }
     matrix X_R2_rs(reshape_mat(i_num, j_num, nu_num, X_R2));
     matrix X_conj_R2_rs(reshape_mat(i_num, j_num, nu_num, X_conj_R2));
-    prof.stop("X");
+    
 
     matrix O_sum(mu_num, nu_num);
     for (const auto &K_pair : Cs[I_index])
@@ -782,21 +787,25 @@ matrix Cal_Periodic_Chi0::cal_chi0_element(const double &time_tau, const Vector3
                                 // Vector3_Order<int> R_temp_2(R2+R);
                                 if (Green_atom.at(is).at(K_index).at(L_index).count(R_temp_1))
                                 {
-                                    prof.start("N");
+                                    
                                     assert(j_num * l_num == (*Cs_mat2).nr);
                                     // printf("          thread: %d, IJKL:   %d,%d,%d,%d  R:(  %d,%d,%d  )  tau:%f\n",omp_get_thread_num(),I_index,J_index,K_index,L_index,R.x,R.y,R.z,time_tau);
                                     matrix Cs2_reshape(reshape_Cs(j_num, l_num, nu_num, Cs_mat2));
                                     if (flag_G_IJRNt && Green_atom.at(is).at(K_index).at(L_index).at(R_temp_1).count(time_tau))
                                     {
                                         // cout<<"A";
+                                        prof.start("N");
                                         N_R2 += Green_atom.at(is).at(K_index).at(L_index).at(R_temp_1).at(time_tau) * Cs2_reshape;
+                                        prof.stop("N");
                                     }
                                     if (flag_G_IJRt && Green_atom.at(is).at(K_index).at(L_index).at(R_temp_1).count(-time_tau))
                                     {
                                         // cout<<"B";
+                                        prof.start("N");
                                         N_conj_R2 += Green_atom.at(is).at(K_index).at(L_index).at(R_temp_1).at(-time_tau) * Cs2_reshape;
+                                        prof.stop("N");
                                     }
-                                    prof.stop("N");
+                                    
                                 }
                             }
                         }
