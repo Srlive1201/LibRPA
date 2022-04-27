@@ -15,12 +15,14 @@ class Aperiodic_Chi0
     //friend class Exx_Lcao;
 //private:
     //const int ik=0;
+    int grid_N;
+    double Green_threshold;
     int range_all;
     double first_freq;
     //map<size_t,ComplexMatrix> C_tilde_map;  
     public:
-    void main();
-    void init();
+    void chi0_main(const char*, const char*);
+    void init(double erange);
     complex<double> cal_cRPA_omega(map<size_t,map<size_t,ComplexMatrix>> &pi_mat, const double &freq,vector<int> &part_range);
     map<size_t,map<size_t,ComplexMatrix>> cal_pi_mat(map<size_t,map<size_t,ComplexMatrix>> &chi0_omega_mat, const double &freq);
     map<size_t,ComplexMatrix> cal_ap_chi0_mat(const double &omega ,const size_t &I, const size_t &J);
@@ -70,4 +72,6 @@ static inline T * VECTOR_TO_PTR( std::vector<T> & v )
 {
     return &(v[0]);
 }
+
+extern Aperiodic_Chi0 ap_chi0;
 #endif

@@ -9,13 +9,13 @@
 #include <memory>
 #include "vector3.h"
 #include "vector3_order.h"
+#include "constants.h"
 #include "input.h"
 #include <cstring>
 
 class Cal_Periodic_Chi0
 {
     //double e_const=2.718281828;
-    const double Hartree=27.2113845;
     double Green_threshold=1e-9;
     size_t green_discard=0;
     size_t green_save=0;
@@ -40,14 +40,14 @@ class Cal_Periodic_Chi0
     //map<size_t,map<size_t,map<Vector3_Order<int>,std::shared_ptr<matrix>>>> Cs_m;
     
     Vector3_Order<int> R_periodic;
-    void init();
+    void init(double erange);
     std::vector<ComplexMatrix> cal_Green_func_element_k( const matrix &wg, const double time_tau);
-	void cal_Green_func_R_tau(const double &time_tau, const Vector3_Order<int> &R, const Vector3<double>* kvec_c);
+    void cal_Green_func_R_tau(const double &time_tau, const Vector3_Order<int> &R, const Vector3<double>* kvec_c);
     set<Vector3_Order<int>> construct_R_grid();
     map<double,double> construct_gauss_grid(const int Npoints);
-    double get_E_min_max(double &Emin, double &Emax);
+    /* double get_E_min_max(double &Emin, double &Emax); */
     map<double,double> read_file_grid(const string &file_path, const char type);
-    map<double,double> read_local_grid(const string &file_path, const char type);
+    /* map<double,double> read_local_grid(const string &file_path, const char type); */
     matrix cal_chi0_element(const double &time_tau, const Vector3_Order<int> &R,const size_t &I_index, const size_t &J_index); 
     void cal_chi0_element_origin(const double &time_tau, const Vector3_Order<int> &R);
     //void cal_local_Cs();
@@ -74,8 +74,6 @@ class Cal_Periodic_Chi0
     //std::map<size_t,map<size_t,ComplexMatrix>> adj_atom_pair; 
     //void adj_atom_search();
 */  int grid_N;
-    const string minimax_grid_path="/home/rongshi/LibRPA/minimax_grid";
-    const string GX_path=minimax_grid_path+"/GreenX/generate_local_grid.py";
     set<Vector3_Order<int>> R_grid;
     map<double,double> time_grid;
     map<double,double> freq_grid;
@@ -90,7 +88,6 @@ class Cal_Periodic_Chi0
     void RPA_correlation_energy( map<double,double> &freq_grid );
     vector<double> read_cosine_trans_grid(const string &file_path);
     void dgeev(matrix &mat, vector<complex<double>> &egValue, matrix &vr, int info);
-    int temp_Cs_count;  
     int temp_pi_count;
     int temp_chi0_k_count;
     double first_tau;
@@ -113,4 +110,5 @@ public:
     friend class Aperiodic_Chi0;
 };
 
+extern Cal_Periodic_Chi0 cal_chi0;
 #endif 

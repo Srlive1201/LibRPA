@@ -67,6 +67,7 @@ matrix::matrix( matrix && m_in )
 // Peize Lin change 2018-07-02
 matrix& matrix::operator=( const matrix & m_in )
 {
+    if(this == &m_in) return *this;
 	this->create( m_in.nr, m_in.nc, false );
 	memcpy( c, m_in.c, nr*nc*sizeof(double) );
 	return *this;
@@ -75,6 +76,7 @@ matrix& matrix::operator=( const matrix & m_in )
 // Peize Lin add 2016-08-05
 matrix& matrix::operator=( matrix && m_in )
 {
+    if(this == &m_in) return *this;
 	nr = m_in.nr;		nc = m_in.nc;
 	if(c)	delete[] c;
 	c = m_in.c;
@@ -153,8 +155,8 @@ void matrix::create( const int nrow, const int ncol, const bool flag_zero )
 /* Adding matrices, as a friend */
 matrix operator+(const matrix &m1, const matrix &m2)
 {
-	assert(m1.nr == m2.nr);
-	assert(m2.nc == m2.nc);
+	// assert(m1.nr == m2.nr);
+	// assert(m2.nc == m2.nc);
 
 	matrix tm(m1);
 	const int size = m1.nr*m1.nc;
@@ -166,8 +168,8 @@ matrix operator+(const matrix &m1, const matrix &m2)
 /* Subtracting matrices, as a friend */
 matrix operator-(const matrix &m1, const matrix &m2)
 {
-	assert(m1.nr == m2.nr);
-	assert(m2.nc == m2.nc);
+	// assert(m1.nr == m2.nr);
+	// assert(m2.nc == m2.nc);
 
 	matrix tm(m1);
 	const int size = m1.nr*m1.nc;
@@ -236,8 +238,8 @@ void matrix::operator*=(const double &s)
 /* Accumulate to a matrix in place */
 void matrix::operator+=(const matrix & m)
 {
-	assert( nr==m.nr );
-	assert( nc==m.nc );
+	// assert( nr==m.nr );
+	// assert( nc==m.nc );
 	const int size=nc*nr;
 	const double * const c_in = m.c;
 	for( int i = 0; i < size; ++i ) 

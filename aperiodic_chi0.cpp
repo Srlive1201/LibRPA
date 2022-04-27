@@ -1,7 +1,9 @@
 #include "aperiodic_chi0.h"
+#include "timefreq.h"
 #include "Gauss_Quadrature.h"
 #include "lapack_connector.h"
-#include "global_class.h"
+#include "parallel_mpi.h"
+#include "constants.h"
 //#include "src_global/matrix.h"
 #include "input.h"
 #include<fstream>
@@ -13,9 +15,13 @@
 //#include<iostream>
 using namespace std;
 
-void Aperiodic_Chi0::main()
+void Aperiodic_Chi0::chi0_main(const char *Input_ngrid, const char *Input_green_threshold)
 {
-    init();
+    grid_N = stoi(Input_ngrid);
+    Green_threshold = stod(Input_green_threshold);
+    double emin, emax;
+    get_E_min_max(emin, emax);
+    init(emax/emin);
     double cc_tb=omp_get_wtime();
     double cc_te=omp_get_wtime();
     aims_C_tilde();
@@ -24,8 +30,8 @@ void Aperiodic_Chi0::main()
     vector<int> part_range=construct_part_range();
     //ph_cRPA(C_tilde_map[0]);
     //map<double,double> freq_grid(read_file_grid("/home/shirong/python_test/freq_grid.txt",'F')); 
-    //map<double,double> freq_grid(construct_gauss_grid(20)); 
-    map<double,double> freq_grid=cal_chi0.read_local_grid( "local_"+to_string(cal_chi0.grid_N)+"_freq_points.dat",'F');
+    //map<double,double> freq_grid(construct_gauss_grid(20));
+    map<double,double> freq_grid=read_local_grid(grid_N, "local_"+to_string(grid_N)+"_freq_points.dat", 'F', get_band_gap());
     first_freq=freq_grid.begin()->first;
     vector<pair<size_t,size_t>> tot_pair(get_atom_pair(Vq));
     complex<double> tot_cRPA(0.0,0.0);
@@ -59,12 +65,32 @@ void Aperiodic_Chi0::main()
     //cout<<"E_hf+cRPA:"<<tot_cRPA.real()+en.etot<<endl;
 }
 
-void Aperiodic_Chi0::init()
+void Aperiodic_Chi0::init(double erange)
 {
-
-    cal_chi0.grid_N=6;
-    cal_chi0.init();
-    cout<<"grid_N: "<<cal_chi0.grid_N<<endl;
+    // use a fixed number of time grids
+    grid_N=6;
+    cout << "Green threshold:  " << Green_threshold << endl;
+    int temp_Cs_count = 0;
+    cout << "  Tot  Cs_dim   " << Cs.size() << "    " << Cs[0].size() << "   " << Cs[0][0].size() << endl;
+    cout << "  Tot  Vq_dim   " << Vq.size() << "    " << Vq[0].size() << "   " << Vq[0][0].size() << endl;
+    for (auto &Ip : Cs)
+    {
+        size_t I = Ip.first;
+        for (auto &Jp : Ip.second)
+        {
+            size_t J = Jp.first;
+            cout << "  I J  Cs_R.num " << I << "  " << J << "   " << Cs[I][J].size() << endl;
+        }
+    }
+    cout << "Cs[0][0] R :" << endl;
+    for (auto &R : Cs[0][0])
+        cout << R.first << endl;
+    // char shell_commond[50];
+    string tmps;
+    tmps = "python " + GX_path + " " + to_string(grid_N) + " " + to_string(erange);
+    cout << tmps.c_str() << endl;
+    system(tmps.c_str());
+    cout<<"grid_N: "<<grid_N<<endl;
     for(size_t i=0;i!=n_kpoints;i++)
     {
         cout<<"i_k:"<<i<<endl;
@@ -979,3 +1005,5 @@ void Aperiodic_Chi0::dgeev(matrix &mat, vector<complex<double>> &egValue, matrix
         egValue.push_back(complex<double>(eg_r[i],eg_i[i]));
     vr=transpose(vr);
 }
+
+Aperiodic_Chi0 ap_chi0;

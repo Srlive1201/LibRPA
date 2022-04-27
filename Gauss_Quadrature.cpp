@@ -1,6 +1,7 @@
  #include "Gauss_Quadrature.h"
  //#include "../src_global/constants.h"
  #include "input.h"
+ #include "constants.h"
  #include <cmath>
  #include <iostream>
  #include <iomanip>

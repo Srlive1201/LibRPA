@@ -24,4 +24,6 @@ class Parallel_MPI
     vector<double> pack_mat(const map<size_t,map<size_t,map<Vector3_Order<int>,shared_ptr<matrix>>>> &Cs_m);
     map<size_t,map<size_t,map<Vector3_Order<int>,shared_ptr<matrix>>>> unpack_mat(vector<double> &pack);
 };
+
+extern Parallel_MPI para_mpi;
 #endif

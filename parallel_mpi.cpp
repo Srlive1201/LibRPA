@@ -101,3 +101,5 @@ map<size_t,map<size_t,map<Vector3_Order<int>,shared_ptr<matrix>>>>  Parallel_MPI
     }
     return Cs;
 }
+
+Parallel_MPI para_mpi;

@@ -1,6 +1,4 @@
 #include "lib_main.h"
-#include "global_class.h"
-#include "profiler.h"
 
 int main(int argc, char **argv)
 {
@@ -28,7 +26,7 @@ int main(int argc, char **argv)
     READ_AIMS_Cs("./");
     READ_AIMS_Vq("./"); 
     if(argv[1][0]=='0')
-        ap_chi0.main();
+        ap_chi0.chi0_main(argv[1],argv[2]); 
     else
         cal_chi0.chi0_main(argv[1],argv[2]); 
    

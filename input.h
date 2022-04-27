@@ -10,9 +10,7 @@
 #include "vector3_order.h"
 #include <map>
 #include <memory>
-extern const double PI;
-extern const double TWO_PI;
-extern const double cs_threshold;
+extern double cs_threshold;
 
 extern int NBANDS;
 extern int NLOCAL;
@@ -37,6 +35,7 @@ extern map<Vector3_Order<double>, double> irk_weight;
 // extern vector<ComplexMatrix> wfc_k;
 extern map<size_t, map<size_t, map<Vector3_Order<int>, std::shared_ptr<matrix>>>> Cs;
 extern map<size_t, map<size_t, map<Vector3_Order<double>, std::shared_ptr<ComplexMatrix>>>> Vq;
+double get_E_min_max(double &Emin, double &Emax);
 int atom_iw_loc2glo(const int &atom_index, const int &iw_lcoal);
 int atom_mu_loc2glo(const int &atom_index, const int &mu_lcoal);
 void READ_AIMS_BAND(const std::string &file_path);

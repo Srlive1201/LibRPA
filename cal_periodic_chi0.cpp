@@ -2,8 +2,11 @@
 #include "lapack_connector.h"
 #include <omp.h>
 #include <iomanip>
-#include "global_class.h"
+#include "parallel_mpi.h"
 #include "profiler.h"
+#include "timefreq.h"
+#include "constants.h"
+#include "input.h"
 #include <iostream>
 /*
 #include "scalapack_connector.h"
@@ -22,7 +25,10 @@ void Cal_Periodic_Chi0::chi0_main(const char *Input_ngrid, const char *Input_gre
     prof.start("chi0_main");
     grid_N = stoi(Input_ngrid);
     Green_threshold = stod(Input_green_threshold);
-    init();
+    double emax, emin;
+    double gap = get_E_min_max(emin, emax);
+    // TODO zero division check?
+    init(emax/emin);
     cout << "grid_N: " << grid_N << endl;
     double t_begin = omp_get_wtime();
 
@@ -32,8 +38,8 @@ void Cal_Periodic_Chi0::chi0_main(const char *Input_ngrid, const char *Input_gre
     R_grid = construct_R_grid();
     cout << "R_grid_num= " << R_grid.size() << endl;
     // cout<< minimax_grid_path+"/time_grid.txt"<<endl;
-    time_grid = read_local_grid("local_" + to_string(grid_N) + "_time_points.dat", 'T');
-    freq_grid = read_local_grid("local_" + to_string(grid_N) + "_freq_points.dat", 'F');
+    time_grid = read_local_grid(grid_N, "local_" + to_string(grid_N) + "_time_points.dat", 'T', gap);
+    freq_grid = read_local_grid(grid_N, "local_" + to_string(grid_N) + "_freq_points.dat", 'F', gap);
     tran_gamma = read_cosine_trans_grid(to_string(grid_N) + "_time2freq_grid_cos.txt");
     // time_grid=read_file_grid( minimax_grid_path+"/time_grid.txt",'T');
     // freq_grid=read_file_grid( minimax_grid_path+"/freq_grid.txt",'F');
@@ -356,49 +362,11 @@ vector<pair<size_t, size_t>> Cal_Periodic_Chi0::get_atom_pair(const map<size_t, 
     return atom_pairs;
 }
 
-double Cal_Periodic_Chi0::get_E_min_max(double &Emin, double &Emax)
-{
-    double E_homo = -1e7;
-    double E_lumo = 1e7;
-    double midpoint = 1.0 / (NSPIN * n_kpoints);
-    double max_lb = ekb[0][0];
-    double max_ub = ekb[0][NBANDS - 1];
-    cout << "midpoint:  " << midpoint << endl;
-    for (int ik = 0; ik != n_kpoints; ik++)
-    {
-        max_lb = (max_lb > ekb[ik][0]) ? ekb[ik][0] : max_lb;
-        max_ub = (max_ub < ekb[ik][NBANDS - 1]) ? ekb[ik][NBANDS - 1] : max_ub;
-        int homo_level = 0;
-        for (int n = 0; n != NBANDS; n++)
-        {
-            if (wg(ik, n) >= midpoint)
-            {
-                homo_level = n;
-            }
-        }
-        cout << "ik  " << ik << "    hommo_level:" << homo_level << endl;
-        if (E_homo < ekb[ik][homo_level])
-            E_homo = ekb[ik][homo_level];
-
-        if (E_lumo > ekb[ik][homo_level + 1])
-            E_lumo = ekb[ik][homo_level + 1];
-        // cout<<"    ik:"<<ik<<"     LUMO_level:"<<LUMO_level<<"     E_homo:<<"E_homo<<"      E_lumo:"<<E_lumo<<endl;
-    }
-    double gap;
-    // gap=0.5*(wf.ekb[0][LUMO_level]-wf.ekb[0][LUMO_level-1]);
-    Emax = 0.5 * (max_ub - max_lb);
-    Emin = 0.5 * (E_lumo - E_homo);
-    gap = Emin;
-    cout << "E_max: " << Emax << endl;
-    cout << "E_min: " << Emin << endl;
-    std::cout << "E_homo(ev):" << E_homo * 0.5 * Hartree << "     E_lumo(ev):" << E_lumo * 0.5 * Hartree << "     gap(ev): " << gap * Hartree << endl;
-    return gap;
-}
-void Cal_Periodic_Chi0::init()
+void Cal_Periodic_Chi0::init(double erange)
 {
     cout << "Green threshold:  " << Green_threshold << endl;
     // para_mpi.mpi_init(argc,argv);
-    temp_Cs_count = 0;
+    int temp_Cs_count = 0;
     cout << "  Tot  Cs_dim   " << Cs.size() << "    " << Cs[0].size() << "   " << Cs[0][0].size() << endl;
     cout << "  Tot  Vq_dim   " << Vq.size() << "    " << Vq[0].size() << "   " << Vq[0][0].size() << endl;
     for (auto &Ip : Cs)
@@ -413,12 +381,9 @@ void Cal_Periodic_Chi0::init()
     cout << "Cs[0][0] R :" << endl;
     for (auto &R : Cs[0][0])
         cout << R.first << endl;
-    double Emin, Emax, Erange;
-    get_E_min_max(Emin, Emax);
-    Erange = Emax / Emin;
     // char shell_commond[50];
     string tmps;
-    tmps = "python " + GX_path + " " + to_string(grid_N) + " " + to_string(Erange);
+    tmps = "python " + GX_path + " " + to_string(grid_N) + " " + to_string(erange);
     cout << tmps.c_str() << endl;
     system(tmps.c_str());
 
@@ -1616,70 +1581,6 @@ map<double, double> Cal_Periodic_Chi0::read_file_grid(const string &file_path, c
     return minimax_grid;
 }
 
-map<double, double> Cal_Periodic_Chi0::read_local_grid(const string &file_path, const char type)
-{
-    map<double, double> grid;
-    ifstream infile;
-    infile.open(file_path);
-
-    vector<double> tran(grid_N * 2);
-    string ss;
-    int itran = 0;
-    while (infile.peek() != EOF)
-    {
-        if (infile.peek() == EOF)
-            break;
-        infile >> ss;
-        tran[itran] = stod(ss);
-        itran++;
-    }
-    for (int i = 0; i != grid_N; i++)
-    {
-        grid.insert(pair<double, double>(tran[i], tran[i + grid_N]));
-    }
-
-    infile.close();
-
-    double gap;
-    double Emin, Emax;
-    gap = get_E_min_max(Emin, Emax);
-    map<double, double> minimax_grid;
-    minimax_grid.clear();
-    switch (type)
-    {
-    case 'F':
-    {
-        if (grid_N <= 20)
-        {
-            for (auto &i_pair : grid)
-                minimax_grid.insert({i_pair.first * gap, i_pair.second * gap * 0.25});
-        }
-        else
-        {
-            for (auto &i_pair : grid)
-                minimax_grid.insert({i_pair.first * gap, i_pair.second * gap});
-        }
-
-        cout << " MINIMAX_GRID_Freq " << endl;
-        for (const auto &m : minimax_grid)
-            cout << m.first << "      " << m.second << endl;
-        break;
-    }
-
-    case 'T':
-    {
-        for (auto i_pair : grid)
-            minimax_grid.insert({i_pair.first / (gap), i_pair.second / (gap)});
-
-        cout << " MINIMAX_GRID_Tau " << endl;
-        for (const auto &m : minimax_grid)
-            cout << m.first << "      " << m.second << endl;
-        break;
-    }
-    }
-
-    return minimax_grid;
-}
 void Cal_Periodic_Chi0::print_matrix(char *desc, const matrix &mat)
 {
     int nr = mat.nr;
@@ -1785,3 +1686,5 @@ void Cal_Periodic_Chi0::rt_m_max(matrix &m)
     int ic = pos % m.nc;
     cout << "  max_value: " << rv << "    position:  ( " << ir << "  , " << ic << " )" << endl;
 }
+
+Cal_Periodic_Chi0 cal_chi0;

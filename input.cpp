@@ -3,10 +3,9 @@
 #include <iostream>
 #include <dirent.h>
 #include "cal_periodic_chi0.h"
+#include "constants.h"
 using namespace std;
-const double PI = 3.141592654;
-const double TWO_PI = 6.283185307;
-const double cs_threshold = 1E-6;
+double cs_threshold = 1E-6;
 int NBANDS = 0;
 int NLOCAL = 0;
 int NSPIN = 0;
@@ -85,7 +84,7 @@ void READ_AIMS_STRU(const std::string &file_path)
     latvec.e31 = stod(x);
     latvec.e32 = stod(y);
     latvec.e33 = stod(z);
-    latvec /= 1.889726127;
+    latvec /= ANG2BOHR;
     latvec.print();
 
     infile >> x >> y >> z;
@@ -102,7 +101,7 @@ void READ_AIMS_STRU(const std::string &file_path)
     G.e33 = stod(z);
 
     G /= TWO_PI;
-    G *= 1.889726127;
+    G *= ANG2BOHR;
     G.print();
     Matrix3 latG = latvec * G;
     cout << " lat * G" << endl;
@@ -116,7 +115,7 @@ void READ_AIMS_STRU(const std::string &file_path)
     {
         infile >> x >> y >> z;
         kvec_c[i] = {stod(x), stod(y), stod(z)};
-        kvec_c[i] *= (1.889726127 / TWO_PI);
+        kvec_c[i] *= (ANG2BOHR / TWO_PI);
         cout << kvec_c[i] << endl;
     }
 }
@@ -387,3 +386,43 @@ int atom_mu_loc2glo(const int &atom_index, const int &mu_lcoal)
         nb += atom_mu[ia];
     return mu_lcoal + nb;
 }
+
+double get_E_min_max(double &Emin, double &Emax)
+{
+    double E_homo = -1e7;
+    double E_lumo = 1e7;
+    double midpoint = 1.0 / (NSPIN * n_kpoints);
+    double max_lb = ekb[0][0];
+    double max_ub = ekb[0][NBANDS - 1];
+    cout << "midpoint:  " << midpoint << endl;
+    for (int ik = 0; ik != n_kpoints; ik++)
+    {
+        max_lb = (max_lb > ekb[ik][0]) ? ekb[ik][0] : max_lb;
+        max_ub = (max_ub < ekb[ik][NBANDS - 1]) ? ekb[ik][NBANDS - 1] : max_ub;
+        int homo_level = 0;
+        for (int n = 0; n != NBANDS; n++)
+        {
+            if (wg(ik, n) >= midpoint)
+            {
+                homo_level = n;
+            }
+        }
+        cout << "ik  " << ik << "    hommo_level:" << homo_level << endl;
+        if (E_homo < ekb[ik][homo_level])
+            E_homo = ekb[ik][homo_level];
+
+        if (E_lumo > ekb[ik][homo_level + 1])
+            E_lumo = ekb[ik][homo_level + 1];
+        // cout<<"    ik:"<<ik<<"     LUMO_level:"<<LUMO_level<<"     E_homo:<<"E_homo<<"      E_lumo:"<<E_lumo<<endl;
+    }
+    double gap;
+    // gap=0.5*(wf.ekb[0][LUMO_level]-wf.ekb[0][LUMO_level-1]);
+    Emax = 0.5 * (max_ub - max_lb);
+    Emin = 0.5 * (E_lumo - E_homo);
+    gap = Emin;
+    cout << "E_max: " << Emax << endl;
+    cout << "E_min: " << Emin << endl;
+    std::cout << "E_homo(ev):" << E_homo * 0.5 * HA2EV << "     E_lumo(ev):" << E_lumo * 0.5 * HA2EV << "     gap(ev): " << gap * HA2EV << endl;
+    return gap;
+}
+
