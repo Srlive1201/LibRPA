@@ -107,7 +107,6 @@ public:
     vector<pair<size_t,size_t>> get_atom_pair(const map<size_t,map<size_t,map<Vector3_Order<double>,std::shared_ptr<ComplexMatrix>>>> &m);
     void rt_cm_max(ComplexMatrix &m);
     void rt_m_max(matrix &m);
-    friend class Aperiodic_Chi0;
 };
 
 extern Cal_Periodic_Chi0 cal_chi0;

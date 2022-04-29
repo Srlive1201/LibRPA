@@ -1254,7 +1254,7 @@ void Cal_Periodic_Chi0::cal_MP2_energy_pi_k(map<double, double> &freq_grid)
                 trace_pi += trace(pi_omega_k_I[I]);
             }
         }
-        tot_trace_pi += trace_pi * freq_grid[freq] * NSPIN / n_kpoints / TWO_PI / 2 * (-1);
+        tot_trace_pi += trace_pi * freq_grid[freq] * (double(NSPIN) / n_kpoints / TWO_PI / 2 * (-1));
         cout << " pi_k   freq:" << freq << "   trace:" << trace_pi << endl;
     }
     cout << " tot_MP2_energy_pi_k: " << tot_trace_pi;
@@ -1465,8 +1465,8 @@ void Cal_Periodic_Chi0::RPA_correlation_energy(map<double, double> &freq_grid)
                 cout << endl;
                 rpa_for_omega_k = ln_det + trace_pi;
                 cout << " freq:" << freq << "      rpa_for_omega_k: " << rpa_for_omega_k << "      lnt_det: " << ln_det << "    trace_pi " << trace_pi << endl;
-                cRPA_k[kvec_c] += rpa_for_omega_k * weight * irk_weight[kvec_c] * NSPIN / TWO_PI;
-                tot_RPA_energy += rpa_for_omega_k * weight * irk_weight[kvec_c] * NSPIN / TWO_PI;
+                cRPA_k[kvec_c] += rpa_for_omega_k * weight * irk_weight[kvec_c] * double(NSPIN) / TWO_PI;
+                tot_RPA_energy += rpa_for_omega_k * weight * irk_weight[kvec_c] * double(NSPIN) / TWO_PI;
             }
         }
 
