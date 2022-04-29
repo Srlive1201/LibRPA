@@ -1,4 +1,5 @@
 #include "input.h"
+/* #include "atoms.h" */
 #include <fstream>
 #include <iostream>
 #include <dirent.h>
@@ -6,6 +7,8 @@
 #include "constants.h"
 using namespace std;
 double cs_threshold = 1E-6;
+double vq_threshold = 1e-6;
+
 int NBANDS = 0;
 int NLOCAL = 0;
 int NSPIN = 0;
@@ -23,6 +26,7 @@ Matrix3 G;
 // vector<ComplexMatrix> wfc_k;
 map<size_t, map<size_t, map<Vector3_Order<int>, std::shared_ptr<matrix>>>> Cs;
 map<size_t, map<size_t, map<Vector3_Order<double>, std::shared_ptr<ComplexMatrix>>>> Vq;
+
 map<Vector3_Order<double>, double> irk_weight;
 map<int, int> atom_nw;
 map<int, int> atom_mu;
@@ -283,7 +287,6 @@ void handle_Vq_file(const std::string &file_path, map<Vector3_Order<double>, Com
 
 void READ_AIMS_Vq(const std::string &file_path)
 {
-    const double vq_threshold = 1e-6;
     int vq_save = 0;
     int vq_discard = 0;
     struct dirent *ptr;

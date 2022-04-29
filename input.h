@@ -2,6 +2,7 @@
 #define INPUT_H
 
 #include "matrix.h"
+/* #include "atoms.h" */
 #include <string>
 #include "vector3.h"
 #include "matrix3.h"
@@ -11,6 +12,7 @@
 #include <map>
 #include <memory>
 extern double cs_threshold;
+extern double vq_threshold;
 
 extern int NBANDS;
 extern int NLOCAL;
@@ -35,6 +37,7 @@ extern map<Vector3_Order<double>, double> irk_weight;
 // extern vector<ComplexMatrix> wfc_k;
 extern map<size_t, map<size_t, map<Vector3_Order<int>, std::shared_ptr<matrix>>>> Cs;
 extern map<size_t, map<size_t, map<Vector3_Order<double>, std::shared_ptr<ComplexMatrix>>>> Vq;
+
 double get_E_min_max(double &Emin, double &Emax);
 int atom_iw_loc2glo(const int &atom_index, const int &iw_lcoal);
 int atom_mu_loc2glo(const int &atom_index, const int &mu_lcoal);
