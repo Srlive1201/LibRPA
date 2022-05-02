@@ -3,6 +3,7 @@
 #include "Gauss_Quadrature.h"
 #include "lapack_connector.h"
 #include "parallel_mpi.h"
+#include "meanfield.h"
 #include "constants.h"
 //#include "src_global/matrix.h"
 #include "input.h"
@@ -20,7 +21,7 @@ void Aperiodic_Chi0::chi0_main(const char *Input_ngrid, const char *Input_green_
     grid_N = stoi(Input_ngrid);
     Green_threshold = stod(Input_green_threshold);
     double emin, emax;
-    get_E_min_max(emin, emax);
+    meanfield.get_E_min_max(emin, emax);
     init(emax/emin);
     double cc_tb=omp_get_wtime();
     double cc_te=omp_get_wtime();
@@ -31,7 +32,7 @@ void Aperiodic_Chi0::chi0_main(const char *Input_ngrid, const char *Input_green_
     //ph_cRPA(C_tilde_map[0]);
     //map<double,double> freq_grid(read_file_grid("/home/shirong/python_test/freq_grid.txt",'F')); 
     //map<double,double> freq_grid(construct_gauss_grid(20));
-    map<double,double> freq_grid=read_local_grid(grid_N, "local_"+to_string(grid_N)+"_freq_points.dat", 'F', get_band_gap());
+    map<double,double> freq_grid=read_local_grid(grid_N, "local_"+to_string(grid_N)+"_freq_points.dat", 'F', meanfield.get_band_gap());
     first_freq=freq_grid.begin()->first;
     vector<pair<size_t,size_t>> tot_pair(get_atom_pair(Vq));
     complex<double> tot_cRPA(0.0,0.0);
@@ -67,6 +68,8 @@ void Aperiodic_Chi0::chi0_main(const char *Input_ngrid, const char *Input_green_
 
 void Aperiodic_Chi0::init(double erange)
 {
+    if (meanfield.get_n_kpoints()!=1)
+        throw invalid_argument("n_kpoints != 1 for aperiodic case");
     // use a fixed number of time grids
     grid_N=6;
     cout << "Green threshold:  " << Green_threshold << endl;
@@ -91,7 +94,7 @@ void Aperiodic_Chi0::init(double erange)
     cout << tmps.c_str() << endl;
     system(tmps.c_str());
     cout<<"grid_N: "<<grid_N<<endl;
-    for(size_t i=0;i!=n_kpoints;i++)
+    for(size_t i=0;i!=meanfield.get_n_kpoints();i++)
     {
         cout<<"i_k:"<<i<<endl;
         //print_complex_matrix( "wfc_k", wfc_k[i]);
@@ -104,10 +107,10 @@ void Aperiodic_Chi0::init(double erange)
 		range_all+=atom_mu[i_at];
 	    cout<<"index_abfs["<<i_at<<"].count_size="<<atom_mu[i_at]<<endl;
 	}
-    Tot_band_num=NBANDS;
+    Tot_band_num=meanfield.get_n_bands();
     cout<<"Tot_band_num: "<<Tot_band_num<<endl;
-    cout<<" NSPIN= "<<NSPIN<<endl;
-    for(int is=0;is!=NSPIN;is++)
+    cout<<" NSPIN= "<< meanfield.get_n_spins() <<endl;
+    for(int is=0;is!=meanfield.get_n_spins();is++)
     {
         cout<<"tag_0"<<endl;
         int temp_occ=0;
@@ -115,7 +118,7 @@ void Aperiodic_Chi0::init(double erange)
         for(int i_band=0;i_band!=Tot_band_num;i_band++)
         {
             cout<<"2"<<endl;
-            if(wg(is,i_band)>=1e-6)    //kv.nks == NSPIN ?
+            if(meanfield.get_weight()[is](0, i_band)>=1e-6)    //kv.nks == NSPIN ?
             //if(wg(is,i_band)>=1) 
             {    
                 temp_occ++;
@@ -224,17 +227,16 @@ map<size_t,ComplexMatrix> Aperiodic_Chi0::cal_ap_chi0_mat(const double &omega ,c
     const size_t J_aux_num=atom_mu[J];
 
     map<size_t,ComplexMatrix> chi0_k_mat; 
-    for(int ik=0;ik!=n_kpoints/NSPIN;ik++)
-        chi0_k_mat[ik].create(I_aux_num,J_aux_num);               
+    for(int is=0;is!= meanfield.get_n_kpoints();is++)
+        chi0_k_mat[is].create(I_aux_num,J_aux_num);               
     
-    assert(n_kpoints==1);
-    for(size_t is=0;is!=NSPIN;is++)
+    for(size_t is=0;is!=meanfield.get_n_spins();is++)
     {   
         if (tot_ia[is]==0) continue;
         //cout<<" i_spin: "<<is<<endl;
-        for(int ik=0;ik!=n_kpoints/NSPIN;ik++)
+        for(int ik=0;ik!=meanfield.get_n_kpoints();ik++)
         {
-            for(int iq=0;iq!=n_kpoints/NSPIN;iq++)
+            for(int iq=0;iq!=meanfield.get_n_kpoints();iq++)
             {
                 ComplexMatrix cx_omega_band_mat(construct_omega_band_mat(is,ik,iq,omega));
                 if(omega== first_freq)
@@ -359,7 +361,7 @@ map<size_t,map<size_t,ComplexMatrix>> Aperiodic_Chi0::C_band_aux()
 {
     cout<<"C_band_aux"<<endl;
     map<size_t,map<size_t,ComplexMatrix>> C_tilde_map;
-    for(int is=0;is!=NSPIN;is++)
+    for(int is=0;is!=meanfield.get_n_spins();is++)
     {
         for(const auto &I_pair:Cs)
         {
@@ -392,16 +394,16 @@ map<size_t,map<size_t,map<size_t,map<size_t,ComplexMatrix>>>> Aperiodic_Chi0::ai
 {
     cout<<"aims_Cc"<<endl;
     map<size_t,map<size_t,map<size_t,map<size_t,ComplexMatrix>>>> Cc_map;
-        
-    int iter_nks=0;
-    for(int is=0;is!=NSPIN;is++)
+
+    /* int iter_nks=0; */
+    for(int is=0;is!=meanfield.get_n_spins();is++)
     {
-        for(int ik=0; ik!=n_kpoints/NSPIN; ++ik)
+        for(int ik=0; ik!= meanfield.get_n_kpoints(); ++ik)
         {
             for(const auto &I_pair:Cs)
             {
                 const auto I=I_pair.first;
-                for(int i_state=0;i_state!=NBANDS;i_state++)
+                for(int i_state=0;i_state!=meanfield.get_n_bands();i_state++)
                 {
                     Cc_map[is][ik][I][i_state].create(atom_nw[I],atom_mu[I]);
                     cout<<"ik   I  i_state: "<<ik<<"    "<<I<<"    "<<i_state<<endl;
@@ -423,7 +425,8 @@ map<size_t,map<size_t,map<size_t,map<size_t,ComplexMatrix>>>> Aperiodic_Chi0::ai
                                         //     cout<<"in aims_Cc :"<<i<<j<<mu<<"   "<<wfc_k[iter_nks+ik](i_state,atom_iw_loc2glo(J,j))<<Cs_mat(i*atom_nw[J]+j,mu)<<endl;
                                         //     cout<<Cc_map[is][ik][I][i_state](i,mu)<<endl;
                                         // }
-                                        Cc_map[is][ik][I][i_state](i,mu)+=wfc_k[iter_nks+ik](i_state,atom_iw_loc2glo(J,j))*Cs_mat(i*atom_nw[J]+j,mu)*kphase;
+                                        auto & wfc_sk = meanfield.get_eigenvectors()[is][ik];
+                                        Cc_map[is][ik][I][i_state](i,mu)+=wfc_sk(i_state,atom_iw_loc2glo(J,j))*Cs_mat(i*atom_nw[J]+j,mu)*kphase;
                                     }
                         }
                     }
@@ -432,7 +435,7 @@ map<size_t,map<size_t,map<size_t,map<size_t,ComplexMatrix>>>> Aperiodic_Chi0::ai
                 }
             } 
         }
-        iter_nks+=n_kpoints/NSPIN;   
+        /* iter_nks+=meanfield.get_n_kpoints();    */
     }
     return Cc_map;
 }
@@ -442,11 +445,11 @@ void Aperiodic_Chi0::aims_C_tilde()
     map<size_t,map<size_t,map<size_t,map<size_t,ComplexMatrix>>>> aims_Cc_tmp=aims_Cc();
     cout<<" Begin aims_C_tilde"<<endl;
     int iter_nks=0;
-    for(int is=0;is!=NSPIN;is++)
+    for(int is=0;is!=meanfield.get_n_spins();is++)
     {
-        for(int ik=0;ik!=n_kpoints/NSPIN; ++ik)
+        for(int ik=0;ik!=meanfield.get_n_kpoints(); ++ik)
         {
-            for(int iq=0;iq!=n_kpoints/NSPIN; ++iq)
+            for(int iq=0;iq!=meanfield.get_n_kpoints(); ++iq)
             {
                 for(int I=0;I!=natom;I++)
                 {
@@ -463,9 +466,12 @@ void Aperiodic_Chi0::aims_C_tilde()
                                 for(int mu=0;mu!=atom_mu[I];mu++)
                                 {
                                     //cout<<"        "<<i_occ*unocc_num[is]+i_unocc-occ_num[is]<<"  "<<mu<<endl;
+                                    auto & wfc_sq = meanfield.get_eigenvectors()[is][iter_nks+iq];
+                                    auto & wfc_sk = meanfield.get_eigenvectors()[is][iter_nks+ik];
                                     
-                                    C_tilde_map.at(is).at(ik).at(iq).at(I)(i_occ*unocc_num[is]+i_unocc-occ_num[is],mu)+=wfc_k[iter_nks+iq](i_unocc,iwt1)*aims_Cc_tmp.at(is).at(ik).at(I).at(i_occ)(i_orb,mu) \
-                                                                                    + aims_Cc_tmp.at(is).at(iq).at(I).at(i_unocc)(i_orb,mu)*wfc_k[iter_nks+ik](i_occ,iwt1);
+                                    C_tilde_map.at(is).at(ik).at(iq).at(I)(i_occ*unocc_num[is]+i_unocc-occ_num[is],mu) += 
+                                        wfc_sq(i_unocc,iwt1)*aims_Cc_tmp.at(is).at(ik).at(I).at(i_occ)(i_orb,mu) \
+                                       + aims_Cc_tmp.at(is).at(iq).at(I).at(i_unocc)(i_orb,mu)*wfc_sk(i_occ,iwt1);
                                     // if(i_occ==0 && i_unocc==occ_num[is] && mu==3)
                                     // {
                                     //     cout<<"  C_tilde_map sum rounting: "<<i_occ<<"   "<<i_unocc<<endl;
@@ -481,7 +487,7 @@ void Aperiodic_Chi0::aims_C_tilde()
                 }
             }
         }
-        iter_nks+=n_kpoints/NSPIN;  
+        iter_nks+= meanfield.get_n_kpoints();  
     }
 }
 
@@ -498,6 +504,7 @@ ComplexMatrix Aperiodic_Chi0::construct_cc_plus_cc(const size_t &is, const size_
     int i_num=atom_nw[I];
     int j_num=atom_nw[J];
     ComplexMatrix cc_plus_cc(tot_ia[is], i_num*j_num);
+    auto & wfcs0 = meanfield.get_eigenvectors()[is][0];
     for(int i_occ=0;i_occ!=occ_num[is];i_occ++)
     {
         for(int i_unocc=occ_num[is];i_unocc!=Tot_band_num;i_unocc++)
@@ -508,8 +515,8 @@ ComplexMatrix Aperiodic_Chi0::construct_cc_plus_cc(const size_t &is, const size_
                 for(int j_orb=0;j_orb!=j_num;j_orb++)
                 {
                     const size_t iwt2=atom_iw_loc2glo(J,j_orb);
-                    cc_plus_cc(i_occ*unocc_num[is]+i_unocc-occ_num[is],i_orb*j_num+j_orb)=conj(wfc_k[is](i_occ,iwt1))*wfc_k[is](i_unocc,iwt2) \
-                                                                                    +conj(wfc_k[is](i_occ,iwt2))*wfc_k[is](i_unocc,iwt1);
+                    cc_plus_cc(i_occ*unocc_num[is]+i_unocc-occ_num[is],i_orb*j_num+j_orb)=conj(wfcs0(i_occ,iwt1))*wfcs0(i_unocc,iwt2) \
+                                                                                    +conj(wfcs0(i_occ,iwt2))*wfcs0(i_unocc,iwt1);
                 }
             }
             
@@ -523,15 +530,17 @@ matrix Aperiodic_Chi0::construct_omega_band_mat(const size_t &is, const size_t i
     //cout<<"construct_omega_band_mat"<<endl;
     matrix omega_band_mat(tot_ia[is],tot_ia[is]);
     //complex<double> i_omega=complex<double>(0.0,omega);
+    auto & wg = meanfield.get_weight()[is];
+    auto & ekb = meanfield.get_eigenvals()[is];
     for(int i_occ=0;i_occ!=occ_num[is];i_occ++)
     {
         for(int i_unocc=occ_num[is];i_unocc!=Tot_band_num;i_unocc++)
         {
-            double tran_energy=0.5*(ekb[ik][i_occ]-ekb[iq][i_unocc]);
+            double tran_energy=0.5*(ekb(ik, i_occ)-ekb(iq, i_unocc));
             //omega_band_mat(unocc_num[is]*i_occ+i_unocc-occ_num[is],unocc_num[is]*i_occ+i_unocc-occ_num[is])= \
                             (2*(wg(is,i_occ)-wg(is,i_unocc))/(tran_energy-i_omega)).real(); 
             omega_band_mat(unocc_num[is]*i_occ+i_unocc-occ_num[is],unocc_num[is]*i_occ+i_unocc-occ_num[is])= \
-                            2*(wg(ik,i_occ)-wg(iq,i_unocc))*tran_energy/(tran_energy*tran_energy+omega*omega);   //!!! consider the spin!
+                            2*(wg(ik,i_occ)-wg(iq,i_unocc))*tran_energy/(tran_energy*tran_energy+omega*omega);   //!!! WARN: consider the spin!
         }
     }
     return omega_band_mat;
@@ -553,8 +562,8 @@ ComplexMatrix Aperiodic_Chi0::reshape_complexmat(const size_t n1, const size_t n
 }
 void Aperiodic_Chi0::ph_cRPA(const map<size_t,map<size_t,ComplexMatrix>> &C_tilde_map)
 {
-    vector<ComplexMatrix> ph_CVC(NSPIN);
-    for(size_t is=0;is!=NSPIN;is++)
+    vector<ComplexMatrix> ph_CVC(meanfield.get_n_spins());
+    for(size_t is=0;is!=meanfield.get_n_spins();is++)
     {
         if (tot_ia[is]==0) continue;
         ph_CVC[is].create(tot_ia[is],tot_ia[is]);
@@ -576,8 +585,8 @@ void Aperiodic_Chi0::ph_cRPA(const map<size_t,map<size_t,ComplexMatrix>> &C_tild
         print_complex_matrix("ph_CVC",ph_CVC[is]);
     }
     
-    vector<ComplexMatrix> ph_CVC_plus_band(NSPIN);
-    for(size_t is=0;is!=NSPIN;is++)
+    vector<ComplexMatrix> ph_CVC_plus_band(meanfield.get_n_spins());
+    for(size_t is=0;is!=meanfield.get_n_spins();is++)
     {
         if (tot_ia[is]==0) continue;
         ph_CVC_plus_band[is].create(tot_ia[is],tot_ia[is]);
@@ -589,7 +598,7 @@ void Aperiodic_Chi0::ph_cRPA(const map<size_t,map<size_t,ComplexMatrix>> &C_tild
     int max_occ_num=0;
     int min_occ_num=occ_num[0];
     int max_unocc_num=0;
-    for(size_t is=0;is!=NSPIN;is++)
+    for(size_t is=0;is!=meanfield.get_n_spins();is++)
     {
         if(occ_num[is]>max_occ_num)
             max_occ_num=occ_num[is];
@@ -603,7 +612,7 @@ void Aperiodic_Chi0::ph_cRPA(const map<size_t,map<size_t,ComplexMatrix>> &C_tild
     
     ComplexMatrix SP_B(max_ia,max_ia);
     ComplexMatrix SP_A(max_ia,max_ia);
-    for(size_t is=0;is!=NSPIN;is++)
+    for(size_t is=0;is!=meanfield.get_n_spins();is++)
     {
         if (tot_ia[is]==0) continue;
         for(int i_occ=0;i_occ!=occ_num[is];i_occ++)
@@ -671,12 +680,13 @@ matrix Aperiodic_Chi0::construct_band_mat(const size_t &is)
 {
     //cout<<"construct_omega_band_mat"<<endl;
     matrix band_mat(tot_ia[is],tot_ia[is]);
+    auto & ekb = meanfield.get_eigenvals()[is];
     
     for(int i_occ=0;i_occ!=occ_num[is];i_occ++)
     {
         for(int i_unocc=occ_num[is];i_unocc!=Tot_band_num;i_unocc++)
         {
-            double tran_energy=0.5*(ekb[is][i_unocc]-ekb[is][i_occ]);
+            double tran_energy=0.5*(ekb(is,i_unocc)-ekb(is,i_occ));
             band_mat(unocc_num[is]*i_occ+i_unocc-occ_num[is],unocc_num[is]*i_occ+i_unocc-occ_num[is])= tran_energy;
         }
     }
@@ -686,12 +696,13 @@ matrix Aperiodic_Chi0::construct_delta_occ_mat(const size_t &is)
 {
     matrix delta_occ_mat(tot_ia[is],tot_ia[is]);
     
+    auto wg = meanfield.get_weight()[is];
     for(int i_occ=0;i_occ!=occ_num[is];i_occ++)
     {
         for(int i_unocc=occ_num[is];i_unocc!=Tot_band_num;i_unocc++)
         {
-            double delta_occ=wg(is,i_occ)-wg(is,i_unocc);
-            delta_occ_mat(unocc_num[is]*i_occ+i_unocc-occ_num[is],unocc_num[is]*i_occ+i_unocc-occ_num[is])= 0.5*NSPIN*delta_occ;
+            double delta_occ=wg(0, i_occ)-wg(0, i_unocc);
+            delta_occ_mat(unocc_num[is]*i_occ+i_unocc-occ_num[is],unocc_num[is]*i_occ+i_unocc-occ_num[is])= 0.5*meanfield.get_n_spins()*delta_occ;
         }
     }
     return delta_occ_mat;
@@ -845,7 +856,7 @@ map<double, double> Aperiodic_Chi0::get_minimax_grid(const size_t &npoints)
       */  
     }
     double gap;
-    gap=get_band_gap();
+    gap=meanfield.get_band_gap();
     map<double,double> minimax_grid;
     minimax_grid.clear();
     for(size_t i=0;i!=omega.size();++i)
@@ -890,7 +901,7 @@ map<double,double> Aperiodic_Chi0::read_file_grid(const string &file_path, const
     infile.close();
     
     double gap;
-    gap=get_band_gap();
+    gap=meanfield.get_band_gap();
     map<double,double> minimax_grid;
     minimax_grid.clear();
     switch(type)
@@ -920,26 +931,8 @@ map<double,double> Aperiodic_Chi0::read_file_grid(const string &file_path, const
     
     return minimax_grid;
 }
-double Aperiodic_Chi0::get_band_gap()
-{
-    int HOMO_level;
-	HOMO_level=0;
-	for(int n=0;n!=NLOCAL;n++)
-	{
-		if(wg(0,n)>=1e-6)
-		{
-			HOMO_level+=1;
-		}
-		
-	}
-    double gap;
-    gap=0.5*(ekb[0][HOMO_level]-ekb[0][HOMO_level-1]);
-    
-	cout<<"HOMO_level="<<HOMO_level<<"     gap:"<<gap<<endl;
-    return gap;
-}
 
-void Aperiodic_Chi0::print_matrix( char* desc, const matrix &mat )
+void Aperiodic_Chi0::print_matrix(const char* desc, const matrix &mat )
 {
     int nr=mat.nr;
     int nc=mat.nc;
@@ -950,7 +943,7 @@ void Aperiodic_Chi0::print_matrix( char* desc, const matrix &mat )
             printf( "\n" );
     }
 } 
-void Aperiodic_Chi0::print_complex_matrix( char* desc, const ComplexMatrix &mat )
+void Aperiodic_Chi0::print_complex_matrix(const char* desc, const ComplexMatrix &mat )
 {
     int nr=mat.nr;
     int nc=mat.nc;
@@ -962,7 +955,7 @@ void Aperiodic_Chi0::print_complex_matrix( char* desc, const ComplexMatrix &mat 
     }
 } 
 
-void Aperiodic_Chi0::print_complex_real_matrix( char* desc, const ComplexMatrix &mat )
+void Aperiodic_Chi0::print_complex_real_matrix(const char* desc, const ComplexMatrix &mat )
 {
     int nr=mat.nr;
     int nc=mat.nc;

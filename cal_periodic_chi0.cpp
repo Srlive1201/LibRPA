@@ -4,6 +4,7 @@
 #include <iomanip>
 #include "parallel_mpi.h"
 #include "profiler.h"
+#include "meanfield.h"
 #include "timefreq.h"
 #include "constants.h"
 #include "input.h"
@@ -22,15 +23,24 @@ using namespace std;
 
 void Cal_Periodic_Chi0::chi0_main(const char *Input_ngrid, const char *Input_green_threshold)
 {
+    if (meanfield.get_n_spins() != 1)
+        throw invalid_argument("Unsupported nspins");
+    /* print_matrix("wg", meanfield.get_weight()[0]); */
+    /* return; */
     prof.start("chi0_main");
     grid_N = stoi(Input_ngrid);
     Green_threshold = stod(Input_green_threshold);
     double emax, emin;
-    double gap = get_E_min_max(emin, emax);
-    // TODO zero division check?
+    double gap = meanfield.get_E_min_max(emin, emax);
+    /* cout << emin << " " << " " << emax << " " << gap << endl; */
+    // TODO: zero division check?
     init(emax/emin);
     cout << "grid_N: " << grid_N << endl;
     double t_begin = omp_get_wtime();
+    // check eigenvectors
+    // for (int is = 0; is != meanfield.get_n_spins(); is++)
+    //     for (int ik = 0; ik != meanfield.get_n_kpoints(); ik++)
+    //         print_complex_matrix("wfc:", meanfield.get_eigenvectors()[is][ik]);
 
     p_id_local = para_mpi.get_myid();
     // LOC.wfc_dm_2d.cal_dm();
@@ -75,6 +85,7 @@ void Cal_Periodic_Chi0::chi0_main(const char *Input_ngrid, const char *Input_gre
             cal_Green_func_R_tau(-1 * time_tau.first, R, kvec_c);
         }
     }
+    cout << "Size of Green_atom map: " << Green_atom.size() << endl;
 
     // for (auto &R : R_grid)
     // {
@@ -150,6 +161,7 @@ void Cal_Periodic_Chi0::R_tau_routing()
             }
         }
     }
+    /* cout << "tmp_chi0_freq_k built" << endl; */
 
     omp_lock_t chi0_lock;
     omp_init_lock(&chi0_lock);
@@ -161,7 +173,7 @@ void Cal_Periodic_Chi0::R_tau_routing()
         auto itt = p_task[p_id_local][tau_R_index].first;
         const double tau_loc = tau_vec[itt];
         auto R = p_task[p_id_local][tau_R_index].second;
-        // printf("   itt:  %d,  tau_loc:  %f , R: ( %d, %d , %d  )\n",itt,tau_loc,R.x,R.y,R.z);
+        printf("   itt:  %d,  tau_loc:  %f , R: ( %d, %d , %d  )\n",itt,tau_loc,R.x,R.y,R.z);
         double t_Rtau_begin = omp_get_wtime();
         for (auto &I_p : Vq)
         {
@@ -174,7 +186,7 @@ void Cal_Periodic_Chi0::R_tau_routing()
                 // chi0[tau_loc][R][I][J] = tmp_chi0_tau.real();
                 double chi0_ele_t = omp_get_wtime() - chi0_ele_begin;
 
-                // printf("      thread: %d, tau: %f,   I: %d  J: %d   , TIME_part: %f \n",omp_get_thread_num(),tau_loc, I,J,chi0_ele_t);
+                /* printf("      thread: %d, tau: %f,   I: %d  J: %d   , TIME_part: %f \n",omp_get_thread_num(),tau_loc, I,J,chi0_ele_t); */
                 omp_set_lock(&chi0_lock);
                 for (auto &k_pair : irk_weight)
                 {
@@ -291,7 +303,7 @@ void Cal_Periodic_Chi0::atom_pair_routing()
             }
             double add_end = omp_get_wtime();
             double add_time = add_end - task_end;
-            printf("CHI0 p_id: %d,   thread: %d,     I: %d,   J: %d,   add time: %f  TIME_USED: %f \n ", p_id_local, omp_get_thread_num(), I, J, add_time, time_used);
+            printf("CHI0 p_id: %d,   thread: %d,     I: %zu,   J: %zu,   add time: %f  TIME_USED: %f \n ", p_id_local, omp_get_thread_num(), I, J, add_time, time_used);
             omp_unset_lock(&chi0_lock);
         }
     }
@@ -429,50 +441,68 @@ set<Vector3_Order<int>> Cal_Periodic_Chi0::construct_R_grid()
     return R_grid;
 }
 
-std::vector<ComplexMatrix> Cal_Periodic_Chi0::cal_Green_func_element_k(const matrix &wg, const double time_tau)
+vector<vector<ComplexMatrix>> Cal_Periodic_Chi0::cal_Green_func_element_k(const vector<matrix> &wg, const double time_tau)
 {
     // cout<<wg.nr<<"   "<<wg.nc<<"  "<<time_tau<<endl;
     //  dm = wfc.T * wg * wfc.conj()
     //  dm[ik](iw1,iw2) = \sum_{ib} wfc[ik](ib,iw1).T * wg(ik,ib) * wfc[ik](ib,iw2).conj()
     // assert(wg.nc<=NLOCAL);
     // assert(wg.nr==n_kpoints);
-    std::vector<ComplexMatrix> green_k(n_kpoints);
-    for (int ik = 0; ik != n_kpoints; ++ik)
+    vector<vector<ComplexMatrix>> green_sk(meanfield.get_n_spins());
+    for (int is = 0; is != meanfield.get_n_spins(); is++)
+        green_sk[is].resize(meanfield.get_n_kpoints());
+
+    auto efermi = meanfield.get_efermi();
+    
+    for (int is = 0; is != meanfield.get_n_spins(); is++)
     {
-        // cout<<" ik= "<<ik<<endl;
-        std::vector<double> wg_local(wg.nc, 0.0);
-        for (int ib_global = 0; ib_global != wg.nc; ++ib_global)
+        auto const & wfc_s = meanfield.get_eigenvectors()[is];
+        auto const & ekb = meanfield.get_eigenvals()[is];
+
+        for (int ik = 0; ik != meanfield.get_n_kpoints(); ++ik)
         {
-            // const int ib_local = ParaO.trace_loc_col[ib_global];
-            double temp_e_up = -1 * 0.5 * (ekb[ik][ib_global] - efermi) * time_tau;
-            double ephase;
-            if (temp_e_up >= 0)
+            // cout<<" ik= "<<ik<<endl;
+            std::vector<double> wg_local(wg[is].nc, 0.0);
+            for (int ib_global = 0; ib_global != wg[is].nc; ++ib_global)
             {
-                ephase = 1.0;
+                // const int ib_local = ParaO.trace_loc_col[ib_global];
+                double temp_e_up = -1 * 0.5 * (ekb(ik, ib_global) - efermi) * time_tau;
+                double ephase;
+                if (temp_e_up >= 0)
+                {
+                    ephase = 1.0;
+                }
+                else
+                {
+                    ephase = std::exp(temp_e_up);
+                }
+                wg_local[ib_global] = wg[is](ik, ib_global) * ephase;
             }
-            else
-            {
-                ephase = std::exp(temp_e_up);
-            }
-            wg_local[ib_global] = wg(ik, ib_global) * ephase;
+            // wg_wfc(ib,iw) = wg[ib] * wfc(ib,iw).conj();
+            // cout<<wfc_k.size()<<endl;
+            // cout<<"wfc_k  dim "<<wfc_k[ik].nr<<wfc_k[ik].nc<<endl;
+            ComplexMatrix wg_wfc = conj(wfc_s[ik]);
+            // cout<<" wg_wfc "<<wg_wfc.nr<<"  "<<wg_wfc.nc<<endl;
+            for (int ir = 0; ir != wg_wfc.nr; ++ir)
+                LapackConnector::scal(wg_wfc.nc, wg_local[ir], wg_wfc.c + ir * wg_wfc.nc, 1);
+            // C++: dm(iw1,iw2) = wfc(ib,iw1).T * wg_wfc(ib,iw2)
+            green_sk[is][ik].create(wfc_s[ik].nr, wfc_s[ik].nc);
+            green_sk[is][ik] = transpose(wfc_s[ik], 0) * wg_wfc;
+            /* printf("green_sk is=%d, ik=%d, tau=%f\n", is, ik, time_tau); */
+            /* print_complex_matrix("green_sk:", green_sk[is][ik]); */
         }
-        // wg_wfc(ib,iw) = wg[ib] * wfc(ib,iw).conj();
-        // cout<<wfc_k.size()<<endl;
-        // cout<<"wfc_k  dim "<<wfc_k[ik].nr<<wfc_k[ik].nc<<endl;
-        ComplexMatrix wg_wfc = conj(wfc_k[ik]);
-        // cout<<" wg_wfc "<<wg_wfc.nr<<"  "<<wg_wfc.nc<<endl;
-        for (int ir = 0; ir != wg_wfc.nr; ++ir)
-            LapackConnector::scal(wg_wfc.nc, wg_local[ir], wg_wfc.c + ir * wg_wfc.nc, 1);
-        // C++: dm(iw1,iw2) = wfc(ib,iw1).T * wg_wfc(ib,iw2)
-        green_k[ik].create(wfc_k[ik].nr, wfc_k[ik].nc);
-        green_k[ik] = transpose(wfc_k[ik], 0) * wg_wfc;
     }
-    return green_k;
+    return green_sk;
 }
 
 void Cal_Periodic_Chi0::cal_Green_func_R_tau(const double &time_tau, const Vector3_Order<int> &R, const Vector3<double> *kvec_c)
 {
     prof.start("cal_Green_func_R_tau");
+    auto nspins = meanfield.get_n_spins();
+    auto nkpts = meanfield.get_n_kpoints();
+    auto nbands = meanfield.get_n_bands();
+    auto const & wg = meanfield.get_weight();
+
     Vector3_Order<double> R_2(R.x, R.y, R.z);
 
     Vector3_Order<int> R_0(0, 0, 0);
@@ -481,46 +511,55 @@ void Cal_Periodic_Chi0::cal_Green_func_R_tau(const double &time_tau, const Vecto
 
     // cout<<"   zero_out";
     // cout<<"Green_function_zero_out"<<endl;
-    std::vector<ComplexMatrix> green_k;
+    vector<vector<ComplexMatrix>> green_sk;
     if (time_tau > 0)
     {
-        matrix i_mat(wg.nr, wg.nc);
-        for (int i = 0; i != i_mat.nr * i_mat.nc; ++i)
-            i_mat.c[i] = 1.0 / n_kpoints * NSPIN;
-        // cal_Green_func_element_k(i_mat-wf.wg, time_tau);
-        matrix wg_unocc = i_mat - wg;
-        for (int i = 0; i != wg_unocc.nr * wg_unocc.nc; ++i)
+        vector<matrix> wg_unocc(nspins);
+        for (int is = 0; is != nspins; is++)
         {
-            if (wg_unocc.c[i] < 0)
-                wg_unocc.c[i] = 0;
+            wg_unocc[is].create(nkpts, nbands);
+            for (int i = 0; i != wg_unocc[is].nr * wg_unocc[is].nc; ++i)
+            {
+                // FIXME: check if imat should be 2.0 / nkpts / nspins
+                wg_unocc[is].c[i] = 1.0 / nkpts * nspins - wg[is].c[i];
+                if (wg_unocc[is].c[i] < 0) wg_unocc[is].c[i] = 0;
+            }
         }
+
         // print_matrix("wg_occ_mat:",wg);
-        // print_matrix("wg_unocc_mat:",wg_unocc);
+        /* print_matrix("wg_unocc_mat:",wg_unocc[0]); */
         // cout<<"cal green ele"<<endl;
-        green_k = cal_Green_func_element_k(wg_unocc, time_tau);
+        green_sk = cal_Green_func_element_k(wg_unocc, time_tau);
     }
     else
     {
-        green_k = cal_Green_func_element_k(wg, time_tau);
+        green_sk = cal_Green_func_element_k(wg, time_tau);
     }
+    /* if ( R == Vector3_Order<int>{-1, -1, -1} && time_tau < 0.012 ) */
+    /* { */
+    /*     cout << R << " " << time_tau << endl; */
+    /*     print_complex_matrix("green_sk[0][0]:", green_sk[0][0]); */
+    /* } */
+    /* return; */
 
-    int iter_nks = 0;
-    for (int is = 0; is != NSPIN; is++)
+    for (int is = 0; is != meanfield.get_n_spins(); is++)
     {
-        ComplexMatrix Green_glo_tmp(green_k[0].nr, green_k[0].nc);
+        ComplexMatrix Green_glo_tmp(green_sk[is][0].nr, green_sk[is][0].nc);
         Green_glo_tmp.zero_out();
-        for (int ik = 0; ik != n_kpoints / NSPIN; ++ik)
+        for (int ik = 0; ik != meanfield.get_n_kpoints(); ++ik)
         {
-            const double arg = -1 * (kvec_c[ik + iter_nks] * (R_2 * latvec)) * TWO_PI; // latvec
+            cout << "ik: " << ik << endl;
+            const double arg = -1 * (kvec_c[ik] * (R_2 * latvec)) * TWO_PI; // latvec
             const complex<double> kphase = complex<double>(cos(arg), sin(arg));
-            Green_glo_tmp += green_k[ik + iter_nks] * kphase;
+            Green_glo_tmp += green_sk[is][ik] * kphase;
         }
+        /* if (time_tau == first_tau) */
+        /*     print_complex_matrix("Green_glo_tmp:", Green_glo_tmp); */
 
         if (time_tau <= 0)
         {
             Green_glo_tmp *= -1;
         }
-        iter_nks += n_kpoints / NSPIN;
         for (int I = 0; I != natom; I++)
         {
             const size_t I_num = atom_nw[I];
@@ -552,6 +591,7 @@ void Cal_Periodic_Chi0::cal_Green_func_R_tau(const double &time_tau, const Vecto
             }
         }
     }
+    /* cout << "Done Green R" << endl; */
     prof.stop("cal_Green_func_R_tau");
 }
 
@@ -644,12 +684,15 @@ void Cal_Periodic_Chi0::Cosine_to_chi0_freq(map<double, double> &time_grid, map<
 matrix Cal_Periodic_Chi0::cal_chi0_element(const double &time_tau, const Vector3_Order<int> &R, const size_t &I_index, const size_t &J_index)
 {
     prof.start("cal_chi0_element");
-    // printf("     begin chi0  thread: %d,  I: %d, J: %d\n",omp_get_thread_num(),I_index,J_index);
+    /* printf("     begin chi0  thread: %d,  I: %zu, J: %zu\n",omp_get_thread_num(),I_index,J_index); */
     // for(const auto &K_pair:Cs[I_index])
     // Vector3_Order<int> R_0(0,0,0);
     int flag_G_IJRt = 0;
     int flag_G_IJRNt = 0;
 
+    /* printf("     check if already calculated\n"); */
+    /* printf("     size of Green_atom: %zu\n", Green_atom.size()); */
+    Green_atom.at(0);
     if (Green_atom.at(0).at(I_index).count(J_index))
         if (Green_atom.at(0).at(I_index).at(J_index).count(R))
         {
@@ -659,6 +702,7 @@ matrix Cal_Periodic_Chi0::cal_chi0_element(const double &time_tau, const Vector3
             if (Green_atom.at(0).at(I_index).at(J_index).at(R).count(-time_tau))
                 flag_G_IJRNt = 1;
         }
+    /* printf("     checked\n"); */
 
     const size_t i_num = atom_nw[I_index];
     const size_t mu_num = atom_mu[I_index];
@@ -670,11 +714,13 @@ matrix Cal_Periodic_Chi0::cal_chi0_element(const double &time_tau, const Vector3
     matrix X_R2(i_num, j_num * nu_num);
     matrix X_conj_R2(i_num, j_num * nu_num);
     
+    /* printf("     begin L_pair loop\n"); */
     for (const auto &L_pair : Cs[J_index])
     {
         const auto L_index = L_pair.first;
         const size_t l_num = atom_nw[L_index];
-        for (int is = 0; is != NSPIN; is++)
+        /* printf("     begin is loop\n"); */
+        for (int is = 0; is != meanfield.get_n_spins(); is++)
         {
             if (Green_atom.at(is).at(I_index).count(L_index))
             {
@@ -688,7 +734,7 @@ matrix Cal_Periodic_Chi0::cal_chi0_element(const double &time_tau, const Vector3
                     if (Green_atom.at(is).at(I_index).at(L_index).count(R_temp_2))
                     {
                         assert(j_num * l_num == (*Cs_mat2).nr);
-                        // printf("          thread: %d, IJKL:   %d,%d,%d,%d  R:(  %d,%d,%d  )  tau:%f\n",omp_get_thread_num(),I_index,J_index,K_index,L_index,R.x,R.y,R.z,time_tau);
+                        /* printf("          thread: %d, X_R2 IJL:   %zu,%zu,%zu  R:(  %d,%d,%d  )  tau:%f\n",omp_get_thread_num(),I_index,J_index,L_index,R.x,R.y,R.z,time_tau); */
                         matrix Cs2_reshape(reshape_Cs(j_num, l_num, nu_num, Cs_mat2));
                         
                         if (Green_atom.at(is).at(I_index).at(L_index).at(R_temp_2).count(time_tau))
@@ -727,7 +773,7 @@ matrix Cal_Periodic_Chi0::cal_chi0_element(const double &time_tau, const Vector3
             const auto R1 = R1_index.first;
             const auto &Cs_mat1 = R1_index.second;
             // cout<<"R1:  begin  "<<R1<<endl;
-            for (int is = 0; is != NSPIN; is++)
+            for (int is = 0; is != meanfield.get_n_spins(); is++)
             {
                 // matrix X_R2(i_num,j_num*nu_num);
                 // matrix X_conj_R2(i_num,j_num*nu_num);
@@ -1254,7 +1300,7 @@ void Cal_Periodic_Chi0::cal_MP2_energy_pi_k(map<double, double> &freq_grid)
                 trace_pi += trace(pi_omega_k_I[I]);
             }
         }
-        tot_trace_pi += trace_pi * freq_grid[freq] * (double(NSPIN) / n_kpoints / TWO_PI / 2 * (-1));
+        tot_trace_pi += trace_pi * freq_grid[freq] * (double(meanfield.get_n_spins()) / meanfield.get_n_kpoints() / TWO_PI / 2 * (-1));
         cout << " pi_k   freq:" << freq << "   trace:" << trace_pi << endl;
     }
     cout << " tot_MP2_energy_pi_k: " << tot_trace_pi;
@@ -1465,8 +1511,8 @@ void Cal_Periodic_Chi0::RPA_correlation_energy(map<double, double> &freq_grid)
                 cout << endl;
                 rpa_for_omega_k = ln_det + trace_pi;
                 cout << " freq:" << freq << "      rpa_for_omega_k: " << rpa_for_omega_k << "      lnt_det: " << ln_det << "    trace_pi " << trace_pi << endl;
-                cRPA_k[kvec_c] += rpa_for_omega_k * weight * irk_weight[kvec_c] * double(NSPIN) / TWO_PI;
-                tot_RPA_energy += rpa_for_omega_k * weight * irk_weight[kvec_c] * double(NSPIN) / TWO_PI;
+                cRPA_k[kvec_c] += rpa_for_omega_k * weight * irk_weight[kvec_c] * double(meanfield.get_n_spins()) / TWO_PI;
+                tot_RPA_energy += rpa_for_omega_k * weight * irk_weight[kvec_c] * double(meanfield.get_n_spins()) / TWO_PI;
             }
         }
 
@@ -1506,7 +1552,7 @@ vector<double> Cal_Periodic_Chi0::read_cosine_trans_grid(const string &file_path
 
     double gap;
     double Emin, Emax;
-    gap = get_E_min_max(Emin, Emax);
+    gap = meanfield.get_E_min_max(Emin, Emax);
     cout << "Cosine_tran_grid" << endl;
     for (int i = 0; i != tran.size(); i++)
     {
@@ -1550,7 +1596,7 @@ map<double, double> Cal_Periodic_Chi0::read_file_grid(const string &file_path, c
 
     double gap;
     double Emin, Emax;
-    gap = get_E_min_max(Emin, Emax);
+    gap = meanfield.get_E_min_max(Emin, Emax);
     map<double, double> minimax_grid;
     minimax_grid.clear();
     switch (type)
@@ -1581,7 +1627,7 @@ map<double, double> Cal_Periodic_Chi0::read_file_grid(const string &file_path, c
     return minimax_grid;
 }
 
-void Cal_Periodic_Chi0::print_matrix(char *desc, const matrix &mat)
+void Cal_Periodic_Chi0::print_matrix(const char *desc, const matrix &mat)
 {
     int nr = mat.nr;
     int nc = mat.nc;
@@ -1593,7 +1639,7 @@ void Cal_Periodic_Chi0::print_matrix(char *desc, const matrix &mat)
         printf("\n");
     }
 }
-void Cal_Periodic_Chi0::print_complex_matrix(char *desc, const ComplexMatrix &mat)
+void Cal_Periodic_Chi0::print_complex_matrix(const char *desc, const ComplexMatrix &mat)
 {
     int nr = mat.nr;
     int nc = mat.nc;
@@ -1605,7 +1651,7 @@ void Cal_Periodic_Chi0::print_complex_matrix(char *desc, const ComplexMatrix &ma
         printf("\n");
     }
 }
-void Cal_Periodic_Chi0::print_complex_real_matrix(char *desc, const ComplexMatrix &mat)
+void Cal_Periodic_Chi0::print_complex_real_matrix(const char *desc, const ComplexMatrix &mat)
 {
     int nr = mat.nr;
     int nc = mat.nc;
@@ -1618,7 +1664,7 @@ void Cal_Periodic_Chi0::print_complex_real_matrix(char *desc, const ComplexMatri
     }
 }
 
-void Cal_Periodic_Chi0::print_complex_matrix_file(char *desc, const ComplexMatrix &mat, ofstream &fs)
+void Cal_Periodic_Chi0::print_complex_matrix_file(const char *desc, const ComplexMatrix &mat, ofstream &fs)
 {
     int nr = mat.nr;
     int nc = mat.nc;

@@ -30,6 +30,8 @@ add_executable(chi0_main.exe
         parallel_mpi.cpp
         profiler.cpp
         constants.cpp
+        meanfield.cpp
+        read_aims.cpp
         timefreq.cpp)
 
 target_link_libraries(chi0_main.exe PRIVATE ${LAPACK_LIBRARIES})

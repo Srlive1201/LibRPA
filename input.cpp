@@ -4,20 +4,21 @@
 #include <iostream>
 #include <dirent.h>
 #include "cal_periodic_chi0.h"
+#include "meanfield.h"
 #include "constants.h"
 using namespace std;
 double cs_threshold = 1E-6;
 double vq_threshold = 1e-6;
 
-int NBANDS = 0;
-int NLOCAL = 0;
-int NSPIN = 0;
+/* int NBANDS = 0; */
+/* int NLOCAL = 0; */
+/* int NSPIN = 0; */
 int natom = 0;
 int ncell = 0;
-matrix wg;
-double **ekb;
+/* matrix wg; */
+/* double **ekb; */
 double efermi = 0;
-int n_kpoints = 0;
+/* int n_kpoints = 0; */
 int n_irk_points = 0;
 int kv_nmp[3] = {1, 1, 1};
 Vector3<double> *kvec_c;
@@ -31,47 +32,48 @@ map<Vector3_Order<double>, double> irk_weight;
 map<int, int> atom_nw;
 map<int, int> atom_mu;
 
-void READ_AIMS_BAND(const std::string &file_path)
-{
-    cout << "Begin to read aims-band_out" << endl;
-    ifstream infile;
-    infile.open(file_path);
-    string ik, is, a, b, c, d;
-    infile >> n_kpoints;
-    infile >> NSPIN;
-    infile >> NBANDS;
-    infile >> NLOCAL;
-    infile >> efermi;
-    efermi *= 2;
-    // efermi=0.2;
-    cout << n_kpoints << NSPIN << NLOCAL << endl;
-    wg.create(n_kpoints, NLOCAL);
-    ekb = new double *[n_kpoints];
-    for (int ik = 0; ik != n_kpoints; ik++)
-    {
-        ekb[ik] = new double[NBANDS];
-    }
-
-    for (int ks = 0; ks != n_kpoints; ks++)
-    {
-        infile >> ik >> is;
-        // cout<<ik<<is<<endl;
-        int k_index = stoi(ik) - 1;
-        int s_index = stoi(is) - 1;
-        for (int i = 0; i != NBANDS; i++)
-        {
-            infile >> a >> b >> c >> d;
-            // cout<<a<<b<<c<<d<<endl;
-            wg(k_index, i) = stod(b) / n_kpoints; // different with abacus!
-            ekb[k_index][i] = stod(c) * 2;
-        }
-    }
-    cout << "efermi :" << efermi << endl;
-    cout << "Success read aims-band_out" << endl;
-}
+/* void READ_AIMS_BAND(const std::string &file_path) */
+/* { */
+/*     cout << "Begin to read aims-band_out" << endl; */
+/*     ifstream infile; */
+/*     infile.open(file_path); */
+/*     string ik, is, a, b, c, d; */
+/*     infile >> n_kpoints; */
+/*     infile >> NSPIN; */
+/*     infile >> NBANDS; */
+/*     infile >> NLOCAL; */
+/*     infile >> efermi; */
+/*     efermi *= 2; */
+/*     // efermi=0.2; */
+/*     cout << n_kpoints << NSPIN << NLOCAL << endl; */
+/*     wg.create(n_kpoints, NLOCAL); */
+/*     ekb = new double *[n_kpoints]; */
+/*     for (int ik = 0; ik != n_kpoints; ik++) */
+/*     { */
+/*         ekb[ik] = new double[NBANDS]; */
+/*     } */
+/*  */
+/*     for (int ks = 0; ks != n_kpoints; ks++) */
+/*     { */
+/*         infile >> ik >> is; */
+/*         // cout<<ik<<is<<endl; */
+/*         int k_index = stoi(ik) - 1; */
+/*         int s_index = stoi(is) - 1; */
+/*         for (int i = 0; i != NBANDS; i++) */
+/*         { */
+/*             infile >> a >> b >> c >> d; */
+/*             // cout<<a<<b<<c<<d<<endl; */
+/*             wg(k_index, i) = stod(b) / n_kpoints; // different with abacus! */
+/*             ekb[k_index][i] = stod(c) * 2; */
+/*         } */
+/*     } */
+/*     cout << "efermi :" << efermi << endl; */
+/*     cout << "Success read aims-band_out" << endl; */
+/* } */
 
 void READ_AIMS_STRU(const std::string &file_path)
 {
+    int n_kpoints = meanfield.get_n_kpoints();
     cout << "Begin to read aims stru" << endl;
     ifstream infile;
     string x, y, z;
@@ -120,72 +122,73 @@ void READ_AIMS_STRU(const std::string &file_path)
         infile >> x >> y >> z;
         kvec_c[i] = {stod(x), stod(y), stod(z)};
         kvec_c[i] *= (ANG2BOHR / TWO_PI);
-        cout << kvec_c[i] << endl;
+        cout << "kvec [" << i << "]: " << kvec_c[i] << endl;
     }
 }
 
-void READ_AIMS_EIGENVECTOR(const std::string &file_path, vector<ComplexMatrix> &wfc_k)
-{
-    // cout<<"Begin to read aims eigenvecor"<<endl;
-    assert(NSPIN == 1);
-    // cout<<" n_kpoints:" <<n_kpoints<<endl;
-    wfc_k.resize(n_kpoints);
-    // cout<<"wfc_k size: "<<wfc_k.size()<<endl;
-    for (int ik = 0; ik != n_kpoints; ik++)
-        wfc_k[ik].create(NBANDS, NLOCAL);
-    // cout<<"  create wfc_k"<<endl;
+/* void READ_AIMS_EIGENVECTOR(const std::string &file_path, vector<ComplexMatrix> &wfc_k) */
+/* { */
+/*     // cout<<"Begin to read aims eigenvecor"<<endl; */
+/*     assert(NSPIN == 1); */
+/*     // cout<<" n_kpoints:" <<n_kpoints<<endl; */
+/*     wfc_k.resize(n_kpoints); */
+/*     // cout<<"wfc_k size: "<<wfc_k.size()<<endl; */
+/*     for (int ik = 0; ik != n_kpoints; ik++) */
+/*         wfc_k[ik].create(NBANDS, NLOCAL); */
+/*     // cout<<"  create wfc_k"<<endl; */
+/*  */
+/*     struct dirent *ptr; */
+/*     DIR *dir; */
+/*     dir = opendir(file_path.c_str()); */
+/*     vector<string> files; */
+/*     while ((ptr = readdir(dir)) != NULL) */
+/*     { */
+/*         string fm(ptr->d_name); */
+/*         if (fm.find("KS_eigenvector") == 0) */
+/*         { */
+/*             handle_KS_file(fm, wfc_k); */
+/*         } */
+/*     } */
+/*     closedir(dir); */
+/*     dir = NULL; */
+/*     cout << "Finish read KS_eignvector! " << endl; */
+/* } */
 
-    struct dirent *ptr;
-    DIR *dir;
-    dir = opendir(file_path.c_str());
-    vector<string> files;
-    while ((ptr = readdir(dir)) != NULL)
-    {
-        string fm(ptr->d_name);
-        if (fm.find("KS_eigenvector") == 0)
-        {
-            handle_KS_file(fm, wfc_k);
-        }
-    }
-    closedir(dir);
-    dir = NULL;
-    cout << "Finish read KS_eignvector! " << endl;
-}
+/* void handle_KS_file(const std::string &file_path, vector<ComplexMatrix> &wfc_k) */
+/* { */
+/*     // cout<<file_path<<endl; */
+/*     ifstream infile; */
+/*     infile.open(file_path); */
+/*     string rvalue, ivalue, ik; */
+/*     while (infile.peek() != EOF) */
+/*     { */
+/*         infile >> ik; */
+/*         // cout<<"     ik: "<<ik<<endl; */
+/*         if (infile.peek() == EOF) */
+/*             break; */
+/*         // for aims !!! */
+/*         for (int iw = 0; iw != NLOCAL; iw++) */
+/*             for (int ib = 0; ib != NBANDS; ib++) */
+/*                 for (int is = 0; is != NSPIN; is++) */
+/*                 { */
+/*                     // cout<<iw<<ib<<is<<ik; */
+/*                     infile >> rvalue >> ivalue; */
+/*                     // cout<<rvalue<<ivalue<<endl; */
+/*                     wfc_k.at(stoi(ik) - 1)(ib, iw) = complex<double>(stod(rvalue), stod(ivalue)); */
+/*                 } */
+/*         // for abacus */
+/*         // for (int ib = 0; ib != NBANDS; ib++) */
+/*         //     for (int iw = 0; iw != NLOCAL; iw++) */
+/*         //         for (int is = 0; is != NSPIN; is++) */
+/*         //         { */
+/*         //             // cout<<iw<<ib<<is<<ik; */
+/*         //             infile >> rvalue >> ivalue; */
+/*         //             // cout<<rvalue<<ivalue<<endl; */
+/*         //             wfc_k.at(stoi(ik) - 1)(ib, iw) = complex<double>(stod(rvalue), stod(ivalue)); */
+/*         //         } */
+/*     } */
+/* } */
 
-void handle_KS_file(const std::string &file_path, vector<ComplexMatrix> &wfc_k)
-{
-    // cout<<file_path<<endl;
-    ifstream infile;
-    infile.open(file_path);
-    string rvalue, ivalue, ik;
-    while (infile.peek() != EOF)
-    {
-        infile >> ik;
-        // cout<<"     ik: "<<ik<<endl;
-        if (infile.peek() == EOF)
-            break;
-        // for aims !!!
-        for (int iw = 0; iw != NLOCAL; iw++)
-            for (int ib = 0; ib != NBANDS; ib++)
-                for (int is = 0; is != NSPIN; is++)
-                {
-                    // cout<<iw<<ib<<is<<ik;
-                    infile >> rvalue >> ivalue;
-                    // cout<<rvalue<<ivalue<<endl;
-                    wfc_k.at(stoi(ik) - 1)(ib, iw) = complex<double>(stod(rvalue), stod(ivalue));
-                }
-        // for abacus
-        // for (int ib = 0; ib != NBANDS; ib++)
-        //     for (int iw = 0; iw != NLOCAL; iw++)
-        //         for (int is = 0; is != NSPIN; is++)
-        //         {
-        //             // cout<<iw<<ib<<is<<ik;
-        //             infile >> rvalue >> ivalue;
-        //             // cout<<rvalue<<ivalue<<endl;
-        //             wfc_k.at(stoi(ik) - 1)(ib, iw) = complex<double>(stod(rvalue), stod(ivalue));
-        //         }
-    }
-}
 void handle_Cs_file(const std::string &file_path)
 {
     // map<size_t,map<size_t,map<Vector3_Order<int>,std::shared_ptr<matrix>>>> Cs_m;
@@ -195,7 +198,7 @@ void handle_Cs_file(const std::string &file_path)
     infile >> natom_s >> ncell_s;
     natom = stoi(natom_s);
     ncell = stoi(ncell_s);
-    // cout<<"  Natom  Ncell  "<<natom<<"  "<<ncell<<endl;
+    /* cout<<"  Natom  Ncell  "<<natom<<"  "<<ncell<<endl; */
     // for(int loop=0;loop!=natom*natom*ncell;loop++)
     while (infile.peek() != EOF)
     {
@@ -244,7 +247,7 @@ void handle_Cs_file(const std::string &file_path)
 }
 void handle_Vq_file(const std::string &file_path, map<Vector3_Order<double>, ComplexMatrix> &Vq_full)
 {
-    cout << "Begin to read aims vq_real" << endl;
+    cout << "Begin to read aims vq_real from " << file_path << endl;
     ifstream infile;
     infile.open(file_path);
     string nbasbas, begin_row, end_row, begin_col, end_col, q1, q2, q3, vq_r, vq_i, q_num, q_weight;
@@ -306,6 +309,7 @@ void READ_AIMS_Vq(const std::string &file_path)
     for (auto &vf_p : Vq_full)
     {
         auto qvec = vf_p.first;
+        cout << "Qvec:" << qvec << endl;
         for (int I = 0; I != atom_mu.size(); I++)
             for (int J = 0; J != atom_mu.size(); J++)
             {
@@ -314,7 +318,7 @@ void READ_AIMS_Vq(const std::string &file_path)
                 shared_ptr<ComplexMatrix> vq_ptr = make_shared<ComplexMatrix>();
                 vq_ptr->create(atom_mu[I], atom_mu[J]);
                 // vq_ptr_tran->create(atom_mu[J],atom_mu[I]);
-                // cout << "I J: " << I << "  " << J << "   mu,nu: " << atom_mu[I] << "  " << atom_mu[J] << endl;
+                cout << "I J: " << I << "  " << J << "   mu,nu: " << atom_mu[I] << "  " << atom_mu[J] << endl;
                 for (int i_mu = 0; i_mu != atom_mu[I]; i_mu++)
                 {
 
@@ -390,42 +394,42 @@ int atom_mu_loc2glo(const int &atom_index, const int &mu_lcoal)
     return mu_lcoal + nb;
 }
 
-double get_E_min_max(double &Emin, double &Emax)
-{
-    double E_homo = -1e7;
-    double E_lumo = 1e7;
-    double midpoint = 1.0 / (NSPIN * n_kpoints);
-    double max_lb = ekb[0][0];
-    double max_ub = ekb[0][NBANDS - 1];
-    cout << "midpoint:  " << midpoint << endl;
-    for (int ik = 0; ik != n_kpoints; ik++)
-    {
-        max_lb = (max_lb > ekb[ik][0]) ? ekb[ik][0] : max_lb;
-        max_ub = (max_ub < ekb[ik][NBANDS - 1]) ? ekb[ik][NBANDS - 1] : max_ub;
-        int homo_level = 0;
-        for (int n = 0; n != NBANDS; n++)
-        {
-            if (wg(ik, n) >= midpoint)
-            {
-                homo_level = n;
-            }
-        }
-        cout << "ik  " << ik << "    hommo_level:" << homo_level << endl;
-        if (E_homo < ekb[ik][homo_level])
-            E_homo = ekb[ik][homo_level];
-
-        if (E_lumo > ekb[ik][homo_level + 1])
-            E_lumo = ekb[ik][homo_level + 1];
-        // cout<<"    ik:"<<ik<<"     LUMO_level:"<<LUMO_level<<"     E_homo:<<"E_homo<<"      E_lumo:"<<E_lumo<<endl;
-    }
-    double gap;
-    // gap=0.5*(wf.ekb[0][LUMO_level]-wf.ekb[0][LUMO_level-1]);
-    Emax = 0.5 * (max_ub - max_lb);
-    Emin = 0.5 * (E_lumo - E_homo);
-    gap = Emin;
-    cout << "E_max: " << Emax << endl;
-    cout << "E_min: " << Emin << endl;
-    std::cout << "E_homo(ev):" << E_homo * 0.5 * HA2EV << "     E_lumo(ev):" << E_lumo * 0.5 * HA2EV << "     gap(ev): " << gap * HA2EV << endl;
-    return gap;
-}
+/* double get_E_min_max(double &Emin, double &Emax) */
+/* { */
+/*     double E_homo = -1e7; */
+/*     double E_lumo = 1e7; */
+/*     double midpoint = 1.0 / (NSPIN * n_kpoints); */
+/*     double max_lb = ekb[0][0]; */
+/*     double max_ub = ekb[0][NBANDS - 1]; */
+/*     cout << "midpoint:  " << midpoint << endl; */
+/*     for (int ik = 0; ik != n_kpoints; ik++) */
+/*     { */
+/*         max_lb = (max_lb > ekb[ik][0]) ? ekb[ik][0] : max_lb; */
+/*         max_ub = (max_ub < ekb[ik][NBANDS - 1]) ? ekb[ik][NBANDS - 1] : max_ub; */
+/*         int homo_level = 0; */
+/*         for (int n = 0; n != NBANDS; n++) */
+/*         { */
+/*             if (wg(ik, n) >= midpoint) */
+/*             { */
+/*                 homo_level = n; */
+/*             } */
+/*         } */
+/*         cout << "ik  " << ik << "    hommo_level:" << homo_level << endl; */
+/*         if (E_homo < ekb[ik][homo_level]) */
+/*             E_homo = ekb[ik][homo_level]; */
+/*  */
+/*         if (E_lumo > ekb[ik][homo_level + 1]) */
+/*             E_lumo = ekb[ik][homo_level + 1]; */
+/*         // cout<<"    ik:"<<ik<<"     LUMO_level:"<<LUMO_level<<"     E_homo:<<"E_homo<<"      E_lumo:"<<E_lumo<<endl; */
+/*     } */
+/*     double gap; */
+/*     // gap=0.5*(wf.ekb[0][LUMO_level]-wf.ekb[0][LUMO_level-1]); */
+/*     Emax = 0.5 * (max_ub - max_lb); */
+/*     Emin = 0.5 * (E_lumo - E_homo); */
+/*     gap = Emin; */
+/*     cout << "E_max: " << Emax << endl; */
+/*     cout << "E_min: " << Emin << endl; */
+/*     std::cout << "E_homo(ev):" << E_homo * 0.5 * HA2EV << "     E_lumo(ev):" << E_lumo * 0.5 * HA2EV << "     gap(ev): " << gap * HA2EV << endl; */
+/*     return gap; */
+/* } */
 

@@ -11,7 +11,7 @@ OPTS = -g -O2 -std=c++11 -qopenmp
 #OPTS = -g -O2 -std=c++11 -qopenmp -ffast-math -march=native
 #OPTS_MPI= -cxx=$(CPP)
 
-global = cal_periodic_chi0.o aperiodic_chi0.o Gauss_Quadrature.o vector3_order.o matrix.o complexmatrix.o matrix3.o input.o parallel_mpi.o profiler.o constants.o timefreq.o
+global = cal_periodic_chi0.o aperiodic_chi0.o Gauss_Quadrature.o vector3_order.o matrix.o complexmatrix.o matrix3.o input.o parallel_mpi.o profiler.o constants.o timefreq.o meanfield.o read_aims.o ri.o
 object = lib_main.o $(global)
 
 $(EXENAME): $(object)

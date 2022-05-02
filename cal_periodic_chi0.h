@@ -13,6 +13,8 @@
 #include "input.h"
 #include <cstring>
 
+using std::vector;
+
 class Cal_Periodic_Chi0
 {
     //double e_const=2.718281828;
@@ -23,7 +25,7 @@ class Cal_Periodic_Chi0
     //std::map<size_t,map<double,map<Vector3_Order<int>,ComplexMatrix>>> Green_function;  //Green_fuction[is][time_tau][R](iw1,iw2);
     std::map<size_t,map<size_t,map<size_t,map<Vector3_Order<int>,map<double,matrix>>>>> Green_atom; //Green_atom[is][I][J][R][time_tau](iwt1,iwt2);
     std::map<double,map<Vector3_Order<int>,map<size_t,map<size_t,matrix>>>> chi0;
-    std::map<double,map<Vector3_Order<int>,map<size_t,map<size_t,matrix>>>> chi0_freq;
+   std::map<double,map<Vector3_Order<int>,map<size_t,map<size_t,matrix>>>> chi0_freq;
     std::map<double,map<Vector3_Order<double>,map<size_t,map<size_t,ComplexMatrix>>>> chi0_k;
     std::map<double,map<Vector3_Order<double>,map<size_t,map<size_t,ComplexMatrix>>>> pi_k; 
     //std::map<double,map<Abfs::Vector3_Order<double>,map<size_t,map<size_t,ComplexMatrix>>>> pi_k;
@@ -41,7 +43,7 @@ class Cal_Periodic_Chi0
     
     Vector3_Order<int> R_periodic;
     void init(double erange);
-    std::vector<ComplexMatrix> cal_Green_func_element_k( const matrix &wg, const double time_tau);
+    vector<vector<ComplexMatrix>> cal_Green_func_element_k( const vector<matrix> &wg, const double time_tau);
     void cal_Green_func_R_tau(const double &time_tau, const Vector3_Order<int> &R, const Vector3<double>* kvec_c);
     set<Vector3_Order<int>> construct_R_grid();
     map<double,double> construct_gauss_grid(const int Npoints);
@@ -100,10 +102,10 @@ class Cal_Periodic_Chi0
 public:
     vector<ComplexMatrix> wfc_k;
     void chi0_main(const char* Input_ngrid, const char* Input_green_threshold);
-    void print_matrix( char* desc, const matrix &mat );
-    static void print_complex_matrix( char* desc, const ComplexMatrix &mat );
-    void print_complex_real_matrix( char* desc, const ComplexMatrix &mat );
-    void print_complex_matrix_file(char* desc, const ComplexMatrix &mat ,ofstream &fs);
+    void print_matrix(const char* desc, const matrix &mat );
+    static void print_complex_matrix(const char* desc, const ComplexMatrix &mat );
+    void print_complex_real_matrix(const char* desc, const ComplexMatrix &mat );
+    void print_complex_matrix_file(const char* desc, const ComplexMatrix &mat ,ofstream &fs);
     vector<pair<size_t,size_t>> get_atom_pair(const map<size_t,map<size_t,map<Vector3_Order<double>,std::shared_ptr<ComplexMatrix>>>> &m);
     void rt_cm_max(ComplexMatrix &m);
     void rt_m_max(matrix &m);

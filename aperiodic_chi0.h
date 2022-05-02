@@ -35,9 +35,9 @@ class Aperiodic_Chi0
     
     ComplexMatrix reshape_complexmat(const size_t n1, const size_t n2, const size_t n3, const ComplexMatrix &mat);
     map<double,double> construct_gauss_grid(const int Npoints);
-    void print_matrix( char* desc, const matrix &mat );
-    void print_complex_matrix( char* desc, const ComplexMatrix &mat );
-    void print_complex_real_matrix( char* desc, const ComplexMatrix &mat );
+    void print_matrix(const char* desc, const matrix &mat );
+    void print_complex_matrix(const char* desc, const ComplexMatrix &mat );
+    void print_complex_real_matrix(const char* desc, const ComplexMatrix &mat );
     vector<int> construct_part_range();
     
     void ph_cRPA(const map<size_t,map<size_t,ComplexMatrix>> &C_tilde_map);
@@ -64,7 +64,7 @@ class Aperiodic_Chi0
     //std::map<size_t,size_t> unocc_num;
     //std::map<size_t,size_t> tot_ia; //occ_num*unocc_num
     //std::vector<int> test_a;
-    vector<ComplexMatrix> wfc_k;
+    /* vector<ComplexMatrix> wfc_k; */
     
 };
 template<class T>
