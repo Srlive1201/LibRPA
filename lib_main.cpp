@@ -26,8 +26,8 @@ int main(int argc, char **argv)
     /* READ_AIMS_EIGENVECTOR("./",cal_chi0.wfc_k);  */
     /* READ_AIMS_EIGENVECTOR("./",ap_chi0.wfc_k); */
 
-    READ_AIMS_Cs("./");
-    READ_AIMS_Vq("./"); 
+    READ_AIMS_Cs("./", cs_threshold);
+    READ_AIMS_Vq("./", vq_threshold); 
     /* if(argv[1][0]=='0') */
     /*     ap_chi0.chi0_main(argv[1],argv[2]);  */
     /* else */

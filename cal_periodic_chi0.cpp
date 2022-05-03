@@ -7,6 +7,7 @@
 #include "meanfield.h"
 #include "timefreq.h"
 #include "constants.h"
+#include "ri.h"
 #include "input.h"
 #include <iostream>
 /*

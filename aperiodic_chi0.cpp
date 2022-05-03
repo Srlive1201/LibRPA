@@ -5,6 +5,7 @@
 #include "parallel_mpi.h"
 #include "meanfield.h"
 #include "constants.h"
+#include "ri.h"
 //#include "src_global/matrix.h"
 #include "input.h"
 #include<fstream>
