@@ -1,5 +1,8 @@
 #include "constants.h"
+#include <cmath>
 
+const double PINF = INFINITY;
+const double NINF = - INFINITY;
 const double PI = 3.141592654;
 const double TWO_PI = 6.283185307;
 const double HA2EV = 27.2113845;

@@ -1,4 +1,5 @@
 #include "ri.h"
+#include "atoms.h"
 
 int n_irk_points;
 int natom;
