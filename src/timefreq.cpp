@@ -1,4 +1,5 @@
 #include "timefreq.h"
+#include "envs.h"
 #include <iostream>
 #include <fstream>
 #include <vector>
@@ -12,8 +13,7 @@ using std::ifstream;
 using std::endl;
 using std::cout;
 
-// TODO can minimax_grid_path be a dynamic variable determined at runtime?
-const string minimax_grid_path = "/home/minyez/projects/LibRPA/minimax_grid";
+const string minimax_grid_path = string(source_dir) + "/minimax_grid";
 const string GX_path = minimax_grid_path + "/GreenX/generate_local_grid.py";
 
 map<double, double> read_local_grid(int grid_N, const string &file_path, const char type, double scale)

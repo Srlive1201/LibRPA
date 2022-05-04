@@ -5,9 +5,8 @@ LibRPA is a standalone software aiming to calculate independent response functio
 ## How to compile?
 
 1. git clone or download the code package
-2. modify 'Makefile' according your environment
-3. adjust `minimax_grid_path` variable in `cal_periodic_chi0.h` for your case
-4. make
+2. modify 'make.inc' according your environment
+3. make
 
 ## Interfaced with FHI-aims
 

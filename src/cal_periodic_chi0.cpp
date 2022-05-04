@@ -549,7 +549,7 @@ void Cal_Periodic_Chi0::cal_Green_func_R_tau(const double &time_tau, const Vecto
         Green_glo_tmp.zero_out();
         for (int ik = 0; ik != meanfield.get_n_kpoints(); ++ik)
         {
-            cout << "ik: " << ik << endl;
+            /* cout << "ik: " << ik << endl; */
             const double arg = -1 * (kvec_c[ik] * (R_2 * latvec)) * TWO_PI; // latvec
             const complex<double> kphase = complex<double>(cos(arg), sin(arg));
             Green_glo_tmp += green_sk[is][ik] * kphase;
