@@ -8,6 +8,7 @@ default:
 clean:
 	rm -f *.a *.exe
 	cd src/; $(MAKE) clean
+	cd docs/; $(MAKE) clean
 
 docs:
 	cd docs; $(MAKE)

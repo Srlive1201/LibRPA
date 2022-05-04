@@ -1,3 +1,7 @@
+/*!
+ @file: timefreq.h
+ @brief Utilities related to quadrature on time/frequency domain
+ */
 #ifndef TIMEFREQ_H
 #define TIMEFREQ_H
 

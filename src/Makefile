@@ -7,7 +7,7 @@ EXENAME = chi0_main.exe
 # TODO: test the library
 LIBNAME = librpa.a
 
-LIBS = $(LAPACK_DIR) $(LAPACK_LIB)
+LIBS = $(LAPACK_LIBRARIES)
 
 object_main = lib_main.o
 objects = \
@@ -42,14 +42,14 @@ clean:
 	rm -rf *.o *.gch *.exe *.a
 
 $(EXENAME): $(object_main) $(objects)
-	$(MPICXX) -o $@ $(CXXFLAGS) $^ $(LIBS)
+	$(CXX) -o $@ $(CXXFLAGS) $^ $(LIBS)
 
 $(LIBNAME): $(objects)
-	$(AR) $(ARFLAGS) $(LIBNAME) $(objects) 
-	$(AR) s $(LIBNAME)
+	$(AR) $(ARFLAGS) $@ $^
+	$(AR) s $@
 
 .cpp.o:
-	$(MPICXX) $(CXXFLAGS) -c $< -o $@
+	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 envs.o: envs.cpp
-	$(MPICXX) $(CXXFLAGS) -c $(PWD)/$< -o $@
+	$(CXX) $(CXXFLAGS) -c $(PWD)/$< -o $@

@@ -57,8 +57,14 @@ _deps
 *.pyc
 __pycache__
 
-build
+# cmake build directories
+build*
+
+# Doxygen build and generated config file
 docs/_build
+docs/Doxyfile
+
+# Necessary makefiles
 !src/Makefile
 !docs/Makefile
 !tests/Makefile
