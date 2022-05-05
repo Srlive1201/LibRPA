@@ -5,8 +5,8 @@ int n_irk_points;
 int natom;
 int ncell;
 map<Vector3_Order<double>, double> irk_weight;
-map<int, int> atom_nw;
-map<int, int> atom_mu;
+map<atom_t, size_t> atom_nw;
+map<atom_t, size_t> atom_mu;
 
 map<atom_t, map<atom_t, map<Vector3_Order<int>, std::shared_ptr<matrix>>>> Cs;
 map<atom_t, map<atom_t, map<Vector3_Order<double>, std::shared_ptr<ComplexMatrix>>>> Vq;

@@ -107,8 +107,6 @@ public:
     void print_complex_real_matrix(const char* desc, const ComplexMatrix &mat );
     void print_complex_matrix_file(const char* desc, const ComplexMatrix &mat ,ofstream &fs);
     vector<pair<size_t,size_t>> get_atom_pair(const map<size_t,map<size_t,map<Vector3_Order<double>,std::shared_ptr<ComplexMatrix>>>> &m);
-    void rt_cm_max(ComplexMatrix &m);
-    void rt_m_max(matrix &m);
 };
 
 extern Cal_Periodic_Chi0 cal_chi0;

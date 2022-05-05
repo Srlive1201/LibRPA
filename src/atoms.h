@@ -1,3 +1,8 @@
+/*!
+ @file atoms.h
+ @brief Utilies to handle atomic model and related data
+ @date 2022-05-05 minyez created
+ */
 #ifndef ATOMS_H
 #define ATOMS_H
 
@@ -15,18 +20,23 @@ using std::size_t;
 //! type of atom indices
 typedef size_t atom_t;
 
-//! a general mapping from atom pairs to any type
+//! mapping from atom entries to data
 template <typename T>
-struct atompair_map
+struct atom_mapping
 {
-    typedef map<pair<atom_t, atom_t>, T> type;
+    //! mapping between single atom and data
+    typedef map<atom_t, T> single_t;
+    //! mapping between atom pair and data
+    typedef map<pair<atom_t, atom_t>, T> pair_t;
+    //! mapping between tri-atom group and data
+    typedef map<pair<atom_t, pair<atom_t, atom_t>>, T> tri_t;
 };
 
 //! Object to handle the atomic structure
 /*!
   It should also handle the non-PBC case.
-  For now atom positions are not necessary, as one decides the sparsity from matrix element,
-  instead of distances.
+  @note For now, atom positions are not necessary, as one decides the sparsity from matrix element,
+  instead of distances between atoms
  */
 class Atoms
 {

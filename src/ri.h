@@ -3,17 +3,19 @@
 
 #include <map>
 #include <memory>
+#include <utility>
 #include "vector3_order.h"
 #include "atoms.h"
 #include "complexmatrix.h"
 using std::map;
+// using std::pair; // TODO: use pair as first map
 
 extern int n_irk_points;
 extern int natom;
 extern int ncell;
 extern map<Vector3_Order<double>, double> irk_weight;
-extern map<int, int> atom_nw;
-extern map<int, int> atom_mu;
+extern map<atom_t, size_t> atom_nw;
+extern map<atom_t, size_t> atom_mu;
 
 extern map<atom_t, map<atom_t, map<Vector3_Order<int>, std::shared_ptr<matrix>>>> Cs;
 extern map<atom_t, map<atom_t, map<Vector3_Order<double>, std::shared_ptr<ComplexMatrix>>>> Vq;

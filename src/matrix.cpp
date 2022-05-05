@@ -35,6 +35,7 @@ matrix::matrix( const int nrows, const int ncols, const bool flag_zero )
 	{
 		auto handler_old = set_new_handler(matrixAlloc);
 		c = new double[nr*nc];
+        size = nr * nc;
 		set_new_handler(handler_old);
 		if(flag_zero)	this->zero_out();
 	}
@@ -51,16 +52,18 @@ matrix::matrix( const matrix &m_in )
 		c = new double[nr*nc];
 		set_new_handler(handler_old);
 		memcpy( c, m_in.c, nr*nc*sizeof(double) );
+        size = m_in.size;
 	}
 }
 
 // Peize Lin add 2016-08-05
 matrix::matrix( matrix && m_in )
 	:nr(m_in.nr),
-	 nc(m_in.nc)
+	 nc(m_in.nc),
+	 size(m_in.size)
 {
 	c = m_in.c;
-	m_in.nr = m_in.nc = 0;
+	m_in.nr = m_in.nc = m_in.size = 0;
 	m_in.c = nullptr;
 }
 
@@ -78,9 +81,10 @@ matrix& matrix::operator=( matrix && m_in )
 {
     if(this == &m_in) return *this;
 	nr = m_in.nr;		nc = m_in.nc;
+    size = m_in.size;
 	if(c)	delete[] c;
 	c = m_in.c;
-	m_in.nr = m_in.nc = 0;
+	m_in.nr = m_in.nc = m_in.size = 0;
 	m_in.c = nullptr;
 	return *this;
 }
@@ -117,14 +121,15 @@ matrix::~matrix()
 // reallocate memory for matrix
 //******************************
 // Peize Lin change 2018-07-29
+// minyez change 2022-05-05
 void matrix::create( const int nrow, const int ncol, const bool flag_zero )
 {
-	if( nrow && ncol )
+    size = nrow * ncol;
+	if( size )
 	{
 		if(c)
 		{
-			const int size=nrow*ncol;
-			if( size!=nr*nc )
+			if( size != nr*nc )
 			{
 				delete[] c;
 				auto handler_old = set_new_handler(matrixAlloc);			
@@ -135,7 +140,7 @@ void matrix::create( const int nrow, const int ncol, const bool flag_zero )
 		else
 		{
 			auto handler_old = set_new_handler(matrixAlloc);
-			c = new double[nrow * ncol];
+			c = new double[size];
 			set_new_handler(handler_old);
 		}			
 			
@@ -159,8 +164,7 @@ matrix operator+(const matrix &m1, const matrix &m2)
 	// assert(m2.nc == m2.nc);
 
 	matrix tm(m1);
-	const int size = m1.nr*m1.nc;
-	for (int i = 0; i < size; i++) 
+	for (int i = 0; i < m1.size; i++) 
 		tm.c[i] += m2.c[i];
 	return tm;
 }
@@ -172,8 +176,7 @@ matrix operator-(const matrix &m1, const matrix &m2)
 	// assert(m2.nc == m2.nc);
 
 	matrix tm(m1);
-	const int size = m1.nr*m1.nc;
-	for(int i = 0; i < size; i++) 
+	for(int i = 0; i < m1.size; i++) 
 		tm.c[i] -= m2.c[i];
 	return tm;
 }
@@ -191,11 +194,11 @@ matrix operator*(const matrix &m1, const matrix &m2)
     // allocate the result and zero it out
     matrix mprod( m1.nr, m2.nc, false );
 
+    // TODO: direct multiply may be faster in small size matrix?
     // do the multiply and return
    // for (int i = 0;i < m1.nr;i++)
-       // for (int j = 0;j < m2.nc;j++)
-           // for (int k = 0;k < m1.nc;k++)
-               //mprod(i, j) += m2(i, k) * m1(k, j);
+       // for (int k = 0;k < m1.nc;k++)
+           // for (int j = 0;j < m2.nc;j++)
                // mprod(i, j) += m1(i, k) * m2(k, j);
 	
 	//Peize Lin accelerate 2017-10-27
@@ -211,8 +214,7 @@ matrix operator*(const matrix &m1, const matrix &m2)
 matrix operator*(const double &s, const matrix &m)
 {
 	matrix sm(m);
-	const int size=m.nr*m.nc;
-	for (int i = 0; i < size; i++) 
+	for (int i = 0; i < m.size; i++) 
 		sm.c[i] *= s;
 	return sm;
 }
@@ -221,8 +223,7 @@ matrix operator*(const double &s, const matrix &m)
 matrix operator*(const matrix &m,const double &s)
 {
 	matrix sm(m);
-	const int size=m.nr*m.nc;
-	for (int i = 0; i < size; i++)
+	for (int i = 0; i < m.size; i++)
 		sm.c[i] *= s;
 	return sm;
 }
@@ -230,7 +231,6 @@ matrix operator*(const matrix &m,const double &s)
 /* Scale a matrix in place */
 void matrix::operator*=(const double &s)
 {
-	const int size=nc*nr;
 	for (int i = 0; i < size; i++) 
 		c[i] *= s;
 }
@@ -240,7 +240,6 @@ void matrix::operator+=(const matrix & m)
 {
 	// assert( nr==m.nr );
 	// assert( nc==m.nc );
-	const int size=nc*nr;
 	const double * const c_in = m.c;
 	for( int i = 0; i < size; ++i ) 
 		c[i] += c_in[i];
@@ -252,7 +251,6 @@ void matrix::operator-=(const matrix & m)
 {
 	assert( nr==m.nr );
 	assert( nc==m.nc );
-	const int size=nc*nr;
 	const double * const c_in = m.c;
 	for( int i = 0; i < size; ++i ) 
 		c[i] -= c_in[i];
@@ -261,7 +259,6 @@ void matrix::operator-=(const matrix & m)
 /* zero out the matrix */
 void matrix::zero_out(void)
 {
-	const int size = nr*nc;
 	for(int i = 0; i < size; i++)
 		c[i] = 0.0;
 }
@@ -280,7 +277,6 @@ double matrix::trace_on(void) const
 {
     assert(nr == nc);
     int inch = nc + 1;
-    int size = nr * nc;
     double tr = 0.0;
     for (int i = 0; i < size; i += inch)
     {
@@ -338,10 +334,9 @@ double mdot(const matrix &A, const matrix &B)
 {
     assert (A.nr == B.nr);
     assert (A.nc == B.nc);
-    const int size = A.nr * A.nc;
 
     double sum = 0.0;
-    for (int i = 0; i < size; ++i)
+    for (int i = 0; i < A.size; ++i)
         sum += A.c[i] * B.c[i];
     return sum;
 }
@@ -362,17 +357,31 @@ std::ostream & operator<<( std::ostream & os, const matrix & m )
 double matrix::max() const
 {
 	double value = std::numeric_limits<double>::min();
-	const int size = nr * nc;
 	for( int i=0; i<size; ++i )
 		value = std::max( value, c[i] );
 	return value;
+}
+
+// minyez add 2022-05-05
+double matrix::max(int &ir, int &ic) const
+{
+    double value = std::numeric_limits<double>::min();
+    int pos = 0;
+    for( int i=0; i<size; ++i )
+        if (value > c[i])
+        {
+            value = c[i];
+            pos = i;
+        }
+    ir = pos / nc;
+    ic = pos % nc;
+    return value;
 }
 
 // Peize Lin add 2016-09-08
 double matrix::min() const
 {
 	double value = std::numeric_limits<double>::max();
-	const int size = nr * nc;
 	for( int i=0; i<size; ++i )
 		value = std::min( value, c[i] );
 	return value;
@@ -382,10 +391,26 @@ double matrix::min() const
 double matrix::absmax() const
 {
 	double value = 0;
-	const int size = nr * nc;
 	for( int i=0; i<size; ++i )
 		value = std::max( value, std::abs(c[i]) );
 	return value;
+}
+
+// minyez add 2022-05-05
+unsigned matrix::count_absle(double thres) const
+{
+    unsigned count = 0;
+    for( int i=0; i<size; ++i )
+        if (std::abs(c[i]) <= thres) count++;
+    return count;
+}
+
+unsigned matrix::count_absge(double thres) const
+{
+    unsigned count = 0;
+    for( int i=0; i<size; ++i )
+        if (std::abs(c[i]) >= thres) count++;
+    return count;
 }
 
 // double matrix::norm() const

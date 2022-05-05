@@ -11,6 +11,7 @@
 // 					2008-09-03 mohan : Add zgesv
 // 					2009-03-08 mohan : add ilaenv
 //					2010-01-22 spshu : add dgesvd
+//					2022-05-05 minyez: add dgeev_ interface
 // =============================================================================
 
 #ifndef LAPACKCONNECTOR_HPP
@@ -49,6 +50,9 @@ extern "C"
 				double *work,int* iwork,int* ifail,int* info);
 	void dsyev_(const char* jobz,const char* uplo,const int* n,double *a,
                 const int* lda,double* w,double* work,const int* lwork, int* info);
+    void dgeev_(const char* jobvl, const char* jobvr, const int *n, double *a,
+                const int *lda, double *wr, double *wi, double* vl, const int* ldvl,
+                double* vr, const int* ldvr, double* work, const int* lwork, int* info);
     void zheev_(const char* jobz,const char* uplo,const int* n,complex<double> *a,
                 const int* lda,double* w,complex<double >* work,const int* lwork,
                 double* rwork,int* info);

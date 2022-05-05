@@ -1678,13 +1678,6 @@ void Cal_Periodic_Chi0::print_complex_matrix_file(const char *desc, const Comple
     }
 }
 
-extern "C"
-{
-    void dgeev_(const char *jobvl, const char *jobvr, const int *n, double *a,
-                const int *lda, double *wr, double *wi, double *vl, const int *ldvl,
-                double *vr, const int *ldvr, double *work, const int *lwork, int *info);
-}
-
 void Cal_Periodic_Chi0::dgeev(matrix &mat, vector<complex<double>> &egValue, matrix &vr, int info)
 {
     assert(mat.nr == mat.nc);
@@ -1698,40 +1691,6 @@ void Cal_Periodic_Chi0::dgeev(matrix &mat, vector<complex<double>> &egValue, mat
     for (int i = 0; i != mat.nr; i++)
         egValue.push_back(complex<double>(eg_r[i], eg_i[i]));
     vr = transpose(vr);
-}
-
-void Cal_Periodic_Chi0::rt_cm_max(ComplexMatrix &m)
-{
-    double rv = m.c[0].real();
-    int pos = 0;
-    for (int i = 1; i != m.size; i++)
-    {
-        if (m.c[i].real() > rv)
-        {
-            rv = m.c[i].real();
-            pos = i;
-        }
-    }
-    int ir = pos / m.nc;
-    int ic = pos % m.nc;
-    cout << "  max_value: " << rv << "    position:  ( " << ir << "  , " << ic << " )" << endl;
-}
-
-void Cal_Periodic_Chi0::rt_m_max(matrix &m)
-{
-    double rv = m.c[0];
-    int pos = 0;
-    for (int i = 1; i != m.nr * m.nc; i++)
-    {
-        if (m.c[i] > rv)
-        {
-            rv = m.c[i];
-            pos = i;
-        }
-    }
-    int ir = pos / m.nc;
-    int ic = pos % m.nc;
-    cout << "  max_value: " << rv << "    position:  ( " << ir << "  , " << ic << " )" << endl;
 }
 
 Cal_Periodic_Chi0 cal_chi0;

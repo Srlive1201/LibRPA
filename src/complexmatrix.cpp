@@ -136,6 +136,31 @@ void ComplexMatrix::set_as_identity_matrix()
 	return;
 }
 
+double ComplexMatrix::get_max_real() const
+{
+    double rv = c[0].real();
+    for (int i = 1; i != size; i++)
+        if (c[i].real() > rv)
+            rv = c[i].real();
+    return rv;
+}
+double ComplexMatrix::get_max_real(int &ir, int &ic) const
+{
+    double rv = c[0].real();
+    int pos = 0;
+    for (int i = 1; i != size; i++)
+    {
+        if (c[i].real() > rv)
+        {
+            rv = c[i].real();
+            pos = i;
+        }
+    }
+    ir = pos / nc;
+    ic = pos % nc;
+    return rv;
+}
+
 // Adding matrices, as a friend
 ComplexMatrix operator+(const ComplexMatrix &m1, const ComplexMatrix &m2)
 {

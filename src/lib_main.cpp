@@ -20,11 +20,8 @@ int main(int argc, char **argv)
     para_mpi.mpi_init(argc,argv);
     cout<<"  MPI process_num: "<<para_mpi.get_myid()<<endl;
     READ_AIMS_BAND("band_out", meanfield);
-    /* READ_AIMS_BAND("band_out"); */
     READ_AIMS_STRU("stru_out");
-    READ_AIMS_EIGENVECTOR("./", meanfield); 
-    /* READ_AIMS_EIGENVECTOR("./",cal_chi0.wfc_k);  */
-    /* READ_AIMS_EIGENVECTOR("./",ap_chi0.wfc_k); */
+    READ_AIMS_EIGENVECTOR("./", meanfield);
 
     READ_AIMS_Cs("./", cs_threshold);
     READ_AIMS_Vq("./", vq_threshold); 

@@ -1,3 +1,9 @@
+/*!
+ @file matrix.h
+ @brief utilies to handle square matrix and related operations
+ @note mostly from Peize Lin's code, with some modification by minyez.
+ @date 2022-05-05 update by minyez
+ */
 #ifndef MATRIX_H
 #define MATRIX_H
 
@@ -18,10 +24,11 @@ class matrix
 public:
 	int nr=0;
 	int nc=0;   /* Number of rows and columns */
+    int size=0;
 	double *c=nullptr;    /* Holds the data */
 
 	/* Constructors and destructor */
-	matrix(): nr(0), nc(0), c(nullptr){}
+	matrix(): nr(0), nc(0), size(0), c(nullptr){}
 	matrix( const int nrows, const int ncols, const bool flag_zero=true );		// Peize Lin add flag_zero 2018-07-02
 	matrix( const matrix &m1 ); /* copy constructor */
 	matrix( matrix && m1 );			// Peize Lin add 2016-08-05
@@ -66,9 +73,13 @@ public:
 	void reshape( const double nr_new, const double nc_new );		// Peize Lin add 2017-05-27
 
 	double max() const;					// Peize Lin add 2016-09-08
+	double max(int &ir, int &ic) const; // minyez add 2022-05-05
 	double min() const;					// Peize Lin add 2016-09-08
 	double absmax() const;				// Peize Lin add 2018-07-02
-
+    //! count the matrix element whose abs value is less equal than threshold
+    unsigned count_absle(double thres) const; // minyez add 2022-05-05
+    //! count the matrix element whose abs value is greater equal than threshold
+    unsigned count_absge(double thres) const; // minyez add 2022-05-05
 	//double norm() const;				// Peize Lin add 2018-08-12
 };
 

@@ -60,6 +60,9 @@ public:
 	//==================
 	void zero_out(void);
 	void set_as_identity_matrix(void);
+    //! Get the max real value of matrix element
+    double get_max_real() const; // minyez add 2022-05-05
+    double get_max_real(int &ir, int &ic) const; // minyez add 2022-05-05
 };
 
 ComplexMatrix operator+(const ComplexMatrix &m1,  const ComplexMatrix &m2);

@@ -2,7 +2,6 @@
 /* #include "atoms.h" */
 #include <fstream>
 #include <iostream>
-#include <dirent.h>
 #include "cal_periodic_chi0.h"
 #include "meanfield.h"
 #include "constants.h"
