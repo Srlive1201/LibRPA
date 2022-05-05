@@ -39,7 +39,8 @@ lib: $(LIBNAME)
 	cp -a $(LIBNAME) ../
 
 clean:
-	rm -rf *.o *.gch *.exe *.a
+	rm -f *.o *.gch $(EXENAME) $(LIBNAME)
+	rm -f ../$(EXENAME) ../$(LIBNAME)
 
 $(EXENAME): $(object_main) $(objects)
 	$(CXX) -o $@ $(CXXFLAGS) $^ $(LIBS)

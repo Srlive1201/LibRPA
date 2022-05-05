@@ -1,3 +1,7 @@
+/*!
+ @file profiler.h
+ @brief Utilities to profile the program
+ */
 #ifndef PROFILER_H
 #define PROFILER_H
 #include <vector>
@@ -10,7 +14,7 @@ class Profiler
     private:
         //! Private class to track timing of a particular part of code
         /*!
-          \note The overhead of each start/stop call is about 1e-7 s.
+          @note The overhead of each start/stop call is about 1e-7 s.
          */
         class Timer
         {
@@ -46,26 +50,28 @@ class Profiler
                 double get_cpu_time() { return cpu_time; };
                 double get_wall_time() { return wall_time; };
         };
+        //! Container of Timer objects
         std::vector<Timer> timers;
-        //! level of each timer to account for hierachy
+        //! Level of each timer to account for hierachy
         std::vector<int> timer_levels;
-        //! explanatory note of the timer
+        //! Explanatory note of the timer
         std::vector<std::string> timer_notes;
-        //! search the timer with requested timer name
+        //! Search the timer with requested timer name
         Timer * find_timer(const char *tname);
     public:
         Profiler(): timers(), timer_notes(), timer_levels() {};
-        //! add a timer
+        //! Add a timer
         void add(int level, const char *tname, const char *tnote = "");
-        //! start a timer
+        //! Start a timer
         void start(const char *tname);
-        //! stop a timer and record the timing
+        //! Stop a timer and record the timing
         void stop(const char *tname);
-        //! display the profiling result
+        //! Display the current profiling result
         void display();
+        //! Get the number of created timers
         int get_num_timers() { return timers.size(); };
 };
 
-//! a global profiler object
+//! A global profiler object for convenience
 extern Profiler prof;
 #endif

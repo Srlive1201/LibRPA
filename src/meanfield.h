@@ -1,3 +1,7 @@
+/*!
+ @file meanfield.h
+ @brief Utilities to handle the mean-field starting point for many-body calculation
+ */
 #ifndef MEANFIELD_H
 #define MEANFIELD_H
 
@@ -55,7 +59,7 @@ class MeanField
         double get_band_gap();
 };
 
-//! Global MeanField object
+//! A global MeanField object
 extern MeanField meanfield;
 
 #endif // ! MEANFIELD_H
