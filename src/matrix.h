@@ -2,7 +2,8 @@
  @file matrix.h
  @brief utilies to handle square matrix and related operations
  @note mostly from Peize Lin's code, with some modification by minyez.
- @date 2022-05-05 update by minyez
+ @date 2018-07-29 update by Peize Lin
+ @date 2022-05-06 update by minyez
  */
 #ifndef MATRIX_H
 #define MATRIX_H
@@ -22,6 +23,8 @@ class matrix
 {
 	/* data */
 public:
+    //! Threshold to treat the matrix as equal, added by minyez 2022-05-06
+    static const double EQUAL_THRES;
 	int nr=0;
 	int nc=0;   /* Number of rows and columns */
     int size=0;
@@ -54,8 +57,14 @@ public:
 //	    { return c[nc*i+j]; }
 
 	void operator*=(const double &s);
+	void operator+=(const double &s);
 	void operator+=(const matrix &m);
+	void operator-=(const double &s);
 	void operator-=(const matrix &m);
+	bool operator==(const matrix &m);
+
+    matrix operator+(double s);
+    matrix operator-(double s);
 
 	/* member function: */
 	matrix Inverse(void);
@@ -96,4 +105,6 @@ double mdot(const matrix &A, const matrix &B);			// mohan add 2011-01-13
 
 std::ostream & operator<<( std::ostream & os, const matrix & m );		// Peize Lin add 2016-09-08
 
+// minyez copied from Shi Rong's cal_periodic_chi0.cpp, for test use
+void print_matrix(const char *desc, const matrix &mat);
 #endif // MATRIX_H

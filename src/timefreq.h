@@ -33,6 +33,7 @@ vector<double> read_time2freq_trans(const string &file_path, double inverse_scal
 /*!
  Not necessay have a time grids, unless the space-time minimax grid is used.
  @note Only pure imaginary grid method is implemented.
+ @note The time grids are always generated when available, since they are cheap
  */
 class TFGrids
 {
@@ -48,8 +49,8 @@ class TFGrids
         //! Internal storage of grid type
         GRID_TYPES grid_type;
         //! whether to use time grids, i.e. space-time method
-        bool _use_time_grids;
-        size_t n_grids;
+        bool _has_time_grids;
+        unsigned n_grids;
         vector<double> freq_nodes;
         vector<double> freq_weights;
         vector<double> time_nodes;
@@ -63,30 +64,30 @@ class TFGrids
         matrix sintrans_t2f;
         //! General Fourier transformation matrix.
         ComplexMatrix fourier_t2f; // FIXME: this is not implemented, please do not use
-        //! Parse grid type and the number of grids, do the internal check
-        template <typename T>
-        void parse_grid_type_n(GRID_TYPES gt, const T &N, bool use_tg);
-        //! set the interval of time-freq integration
-        /* void set_freq_int_interval(double llim = 0, double ulim = PINF); */
         //! allocate the pointers of array, e.g. nodes and weights
-        void set();
+        void set_freq();
+        void set_time();
         //! delete the pointers
         void unset();
-        void generate_minimax(double erange);
     public:
-        TFGrids(GRID_TYPES gt, int N, bool use_tg);
+        TFGrids::GRID_TYPES get_grid_type() { return grid_type; }
+        TFGrids(unsigned N);
         // disable copy at present
         TFGrids(const TFGrids &tfg) {};
-        void reset(GRID_TYPES gt, int N, bool use_tg);
+        void reset(unsigned N);
+        //! get the number of grid points
         size_t get_n_grids() { return n_grids; }
-        vector<double> get_freq_nodes() { return freq_nodes; }
-        vector<double> get_freq_weights() { return freq_weights; }
-        vector<double> get_time_nodes() { return time_nodes; }
-        vector<double> get_time_weights() { return time_weights; }
-        //! generate the grid nodes and weights, and transformation matrices if applicable
-        void generate();
-        void generate(double param1);
-        bool use_time_grids() { return _use_time_grids; }
+        //! alias to get_n_grids
+        size_t size() { return n_grids; }
+        const vector<double> get_freq_nodes() const { return freq_nodes; }
+        const vector<double> get_freq_weights() const { return freq_weights; }
+        const vector<double> get_time_nodes() const { return time_nodes; }
+        const vector<double> get_time_weights() const { return time_weights; }
+        // NOTE: use reference for return matrix?
+        const matrix get_costrans_t2f() const { return costrans_t2f; }
+        const matrix get_sintrans_t2f() const { return sintrans_t2f; }
+        void generate_minimax(double emin, double emax);
+        bool has_time_grids() { return time_nodes.size() > 0; }
         ~TFGrids();
 };
 

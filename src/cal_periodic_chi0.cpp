@@ -88,15 +88,16 @@ void Cal_Periodic_Chi0::chi0_main(const char *Input_ngrid, const char *Input_gre
     }
     cout << "Size of Green_atom map: " << Green_atom.size() << endl;
 
-    // for (auto &R : R_grid)
-    // {
-    //     for (int I = 0; I != natom; I++)
-    //         for (int J = 0; J != natom; J++)
-    //         {
-    //             cout << "Green_atom  IJ R:  " << I << "  " << J << "    " << R << endl;
-    //             print_matrix("Green-atom", Green_atom[0][I][J][R][first_tau]);
-    //         }
-    // }
+    printf("spin 0, first tau GF: %f\n", first_tau);
+    for (auto &R : R_grid)
+    {
+        for (int I = 0; I != natom; I++)
+            for (int J = 0; J != natom; J++)
+            {
+                cout << "Green_atom  IJ R:  " << I << "  " << J << "    " << R << endl;
+                print_matrix("Green-atom", Green_atom[0][I][J][R][first_tau]);
+            }
+    }
 
     cout << " FINISH GREEN FUN" << endl;
     cout << " Green threshold: " << Green_threshold << endl;
@@ -121,7 +122,7 @@ void Cal_Periodic_Chi0::chi0_main(const char *Input_ngrid, const char *Input_gre
     //     }
     // }
 
-    vector<pair<size_t, size_t>> tot_pair_all(get_atom_pair(Vq));
+    vector<pair<atom_t, atom_t>> tot_pair_all(get_atom_pair(Vq));
     int ntask_ap = tot_pair_all.size();
     int ntask_R_tau = R_grid.size() * time_grid.size();
     cout << "  ntask_ap: " << ntask_ap << "    ntask_R_tau: " << ntask_R_tau << endl;

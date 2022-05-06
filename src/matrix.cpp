@@ -20,6 +20,7 @@ using namespace std;
 // ********************************************************
 
 //int matrix::mCount = 0;
+const double matrix::EQUAL_THRES = 1e-9;
 
 void matrixAlloc()
 {
@@ -235,6 +236,20 @@ void matrix::operator*=(const double &s)
 		c[i] *= s;
 }
 
+// minyez added 2022-05-06, shift all elements up by s
+void matrix::operator+=(const double &s)
+{
+    for( int i = 0; i < size; ++i )
+        c[i] += s;
+}
+
+// minyez added 2022-05-06, shift all elements down by s
+void matrix::operator-=(const double &s)
+{
+    for( int i = 0; i < size; ++i )
+        c[i] -= s;
+}
+
 /* Accumulate to a matrix in place */
 void matrix::operator+=(const matrix & m)
 {
@@ -245,6 +260,21 @@ void matrix::operator+=(const matrix & m)
 		c[i] += c_in[i];
 }
 
+// minyez added 2022-05-06
+matrix matrix::operator+(double s)
+{
+	matrix newm = *this;
+    newm += s;
+    return newm;
+}
+
+// minyez added 2022-05-06
+matrix matrix::operator-(double s)
+{
+	matrix newm = *this;
+    newm -= s;
+    return newm;
+}
 
 /* decumulate to a matrix in place */
 void matrix::operator-=(const matrix & m)
@@ -254,6 +284,15 @@ void matrix::operator-=(const matrix & m)
 	const double * const c_in = m.c;
 	for( int i = 0; i < size; ++i ) 
 		c[i] -= c_in[i];
+}
+
+// minyez added 2022-05-06
+bool matrix::operator==(const matrix & m)
+{
+    if ( size != m.size) return false;
+    for ( int i = 0; i != size; i++)
+        if ( std::abs( c[i] - m.c[i] ) > matrix::EQUAL_THRES ) return false;
+    return true;
 }
 
 /* zero out the matrix */
@@ -413,6 +452,19 @@ unsigned matrix::count_absge(double thres) const
     return count;
 }
 
+// minyez copied from Shi Rong's cal_periodic_chi0.cpp
+void print_matrix(const char *desc, const matrix &mat)
+{
+    int nr = mat.nr;
+    int nc = mat.nc;
+    printf("\n %s\n", desc);
+    for (int i = 0; i < nr; i++)
+    {
+        for (int j = 0; j < nc; j++)
+            printf(" %9.5f", mat.c[i * nc + j]);
+        printf("\n");
+    }
+}
 // double matrix::norm() const
 // {
 	// return LapackConnector::nrm2(nr*nc,c,1);

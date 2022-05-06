@@ -11,6 +11,7 @@ double vq_threshold = 1e-6;
 
 int kv_nmp[3] = {1, 1, 1};
 Vector3<double> *kvec_c;
+std::vector<Vector3_Order<double>> klist;
 Matrix3 latvec;
 Matrix3 G;
 
@@ -66,5 +67,6 @@ void READ_AIMS_STRU(const std::string &file_path)
         kvec_c[i] = {stod(x), stod(y), stod(z)};
         kvec_c[i] *= (ANG2BOHR / TWO_PI);
         cout << "kvec [" << i << "]: " << kvec_c[i] << endl;
+        klist.push_back(kvec_c[i]);
     }
 }

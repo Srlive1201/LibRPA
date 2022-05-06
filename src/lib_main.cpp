@@ -29,6 +29,12 @@ int main(int argc, char **argv)
     /*     ap_chi0.chi0_main(argv[1],argv[2]);  */
     /* else */
         cal_chi0.chi0_main(argv[1],argv[2]); 
+    // try the new version
+    /* Chi0 chi0(meanfield, klist, 16); */
+    /* chi0.gf_R_threshold = stod(argv[2]); */
+    /* Vector3_Order<int> period {kv_nmp[0], kv_nmp[1], kv_nmp[2]}; */
+    /* auto Rlist = construct_R_grid(period); */
+    /* chi0.compute(Cs, Rlist, period, TFGrids::GRID_TYPES::Minimax, true); */
    
     prof.stop("total");
     prof.display();

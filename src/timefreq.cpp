@@ -126,39 +126,19 @@ const string TFGrids::GRID_TYPES_NOTES[TFGrids::N_GRID_TYPES] =
 const bool TFGrids::SUPPORT_TIME_GRIDS[TFGrids::N_GRID_TYPES] = 
     { false, false, false, true };
 
-template <typename T>
-void TFGrids::parse_grid_type_n(TFGrids::GRID_TYPES gt, const T &N, bool use_tg)
-{
-    if ( use_tg && (!TFGrids::SUPPORT_TIME_GRIDS[gt]))
-    {
-        printf("Warning: time grids is not supported for current grid type, disable time grids.\n");
-        use_tg = false;
-    }
-    grid_type = gt;
-    _use_time_grids = use_tg;
-    if ( N < 1.0)
-        throw invalid_argument("number of grids must be positive");
-    n_grids = N;
-}
-
-void TFGrids::set()
+void TFGrids::set_freq()
 {
     freq_nodes.resize(n_grids);
     freq_weights.resize(n_grids);
-    if(use_time_grids())
-    {
-        time_nodes.resize(n_grids);
-        time_weights.resize(n_grids);
-        if (grid_type == GRID_TYPES::Minimax)
-        {
-            costrans_t2f.create(n_grids, n_grids);
-            sintrans_t2f.create(n_grids, n_grids);
-        }
-        else
-        {
-            fourier_t2f.create(n_grids, n_grids);
-        }
-    }
+}
+
+void TFGrids::set_time()
+{
+    time_nodes.resize(n_grids);
+    time_weights.resize(n_grids);
+    costrans_t2f.create(n_grids, n_grids);
+    sintrans_t2f.create(n_grids, n_grids);
+    fourier_t2f.create(n_grids, n_grids);
 }
 
 void TFGrids::unset()
@@ -167,22 +147,22 @@ void TFGrids::unset()
     freq_weights.clear();
     time_nodes.clear();
     time_weights.clear();
-    costrans_t2f.zero_out();
-    sintrans_t2f.zero_out();
-    fourier_t2f.zero_out();
+    costrans_t2f.create(0, 0);
+    sintrans_t2f.create(0, 0);
+    fourier_t2f.create(0, 0);
 }
 
-TFGrids::TFGrids(TFGrids::GRID_TYPES gt, int N, bool use_tg)
+TFGrids::TFGrids(unsigned N)
 {
-    parse_grid_type_n(gt, N, use_tg);
-    set();
+    n_grids = N;
+    set_freq();
 }
 
-void TFGrids::reset(TFGrids::GRID_TYPES gt, int N, bool use_tg)
+void TFGrids::reset(unsigned N)
 {
     unset();
-    parse_grid_type_n(gt, N, use_tg);
-    set();
+    n_grids = N;
+    set_freq();
 }
 
 TFGrids::~TFGrids()
@@ -190,9 +170,17 @@ TFGrids::~TFGrids()
     /* unset(); */
 }
 
-void TFGrids::generate_minimax(double erange)
+void TFGrids::generate_minimax(double emin, double emax)
 {
-    map<double, double> freq_grid = read_local_grid(n_grids, "local_" + to_string(n_grids) + "_freq_points.dat", 'F', erange);
+    grid_type = TFGrids::GRID_TYPES::Minimax;
+    set_time();
+    string tmps;
+    // WARN: handle zero division
+    double erange = emax / emin;
+    tmps = "python " + GX_path + " " + to_string(n_grids) + " " + to_string(erange);
+    system(tmps.c_str());
+
+    map<double, double> freq_grid = read_local_grid(n_grids, "local_" + to_string(n_grids) + "_freq_points.dat", 'F', emin);
     int ig = 0;
     for (auto nw: freq_grid)
     {
@@ -200,48 +188,22 @@ void TFGrids::generate_minimax(double erange)
         freq_weights[ig] = nw.second;
         ig++;
     }
-    if(use_time_grids())
+    map<double, double> time_grid = read_local_grid(n_grids, "local_" + to_string(n_grids) + "_time_points.dat", 'T', emin);
+    ig = 0;
+    for (auto nw: time_grid)
     {
-        map<double, double> time_grid = read_local_grid(n_grids, "local_" + to_string(n_grids) + "_time_points.dat", 'T', erange);
-        ig = 0;
-        for (auto nw: time_grid)
-        {
-            time_nodes[ig] = nw.first;
-            time_weights[ig] = nw.second;
-            ig++;
-        }
-        vector<double> trans;
-        // cosine transform
-        trans = read_time2freq_trans(to_string(n_grids) + "_time2freq_grid_cos.txt", erange);
-        for (int k = 0; k != n_grids; k++)
-            for (int j = 0; j != n_grids; j++)
-                costrans_t2f(k, j) = trans[ k * n_grids + j];
-        trans = read_time2freq_trans(to_string(n_grids) + "_time2freq_grid_sin.txt", erange);
-        for (int k = 0; k != n_grids; k++)
-            for (int j = 0; j != n_grids; j++)
-                sintrans_t2f(k, j) = trans[ k * n_grids + j];
+        time_nodes[ig] = nw.first;
+        time_weights[ig] = nw.second;
+        ig++;
     }
-}
-
-void TFGrids::generate()
-{
-    switch (grid_type)
-    {
-        case GRID_TYPES::Minimax:
-            throw invalid_argument("1 energy range parameter is required to generate the minimax grid");
-        default:
-            throw invalid_argument("grid not implemented");
-    }
-}
-
-void TFGrids::generate(double param1)
-{
-    switch (grid_type)
-    {
-        case GRID_TYPES::Minimax:
-            generate_minimax(param1);
-            break;
-        default:
-            throw invalid_argument("grid not implemented");
-    }
+    vector<double> trans;
+    // cosine transform
+    trans = read_time2freq_trans(to_string(n_grids) + "_time2freq_grid_cos.txt", erange);
+    for (int k = 0; k != n_grids; k++)
+        for (int j = 0; j != n_grids; j++)
+            costrans_t2f(k, j) = trans[ k * n_grids + j];
+    trans = read_time2freq_trans(to_string(n_grids) + "_time2freq_grid_sin.txt", erange);
+    for (int k = 0; k != n_grids; k++)
+        for (int j = 0; j != n_grids; j++)
+            sintrans_t2f(k, j) = trans[ k * n_grids + j];
 }

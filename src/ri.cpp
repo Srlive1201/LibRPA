@@ -1,5 +1,4 @@
 #include "ri.h"
-#include "atoms.h"
 
 int n_irk_points;
 int natom;
@@ -8,8 +7,8 @@ map<Vector3_Order<double>, double> irk_weight;
 map<atom_t, size_t> atom_nw;
 map<atom_t, size_t> atom_mu;
 
-map<atom_t, map<atom_t, map<Vector3_Order<int>, std::shared_ptr<matrix>>>> Cs;
-map<atom_t, map<atom_t, map<Vector3_Order<double>, std::shared_ptr<ComplexMatrix>>>> Vq;
+apair_R_mat_t Cs;
+apair_k_cplx_mat_t Vq;
 
 int atom_iw_loc2glo(const int &atom_index, const int &iw_lcoal)
 {

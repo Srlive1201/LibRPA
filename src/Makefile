@@ -13,6 +13,7 @@ object_main = lib_main.o
 objects = \
 		  aperiodic_chi0.o \
 		  cal_periodic_chi0.o \
+		  chi0.o \
 		  complexmatrix.o \
 		  constants.o \
 		  envs.o \
@@ -22,6 +23,7 @@ objects = \
 		  matrix3.o \
 		  meanfield.o \
 		  parallel_mpi.o \
+		  pbc.o \
 		  profiler.o \
 		  read_aims.o \
 		  ri.o \
