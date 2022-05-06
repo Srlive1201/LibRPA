@@ -8,6 +8,7 @@ default:
 clean:
 	cd src/; $(MAKE) clean
 	cd docs/; $(MAKE) clean
+	cd tests/; $(MAKE) clean
 
 docs:
 	cd docs; $(MAKE)
