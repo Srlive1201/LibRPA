@@ -6,12 +6,16 @@
 #include "input.h"
 #include "constants.h"
 
-void Chi0::compute(const apair_R_mat_t &LRI_Cs,
+void Chi0::compute(const atpair_R_mat_t &LRI_Cs,
                    const vector<Vector3_Order<int>> &Rlist,
                    const Vector3_Order<int> &R_period,
+                   const vector<atpair_t> &atpair_ABF,
+                   const vector<Vector3_Order<double>> &qlist,
                    TFGrids::GRID_TYPES gt, bool use_space_time)
 {
-    gf_save = gf_discard = 0; 
+    gf_save = gf_discard = 0;
+    // reset chi0_q in case the method was called before
+    chi0_q.clear();
     // prepare the time-freq grids
     switch (gt)
     {
@@ -24,7 +28,7 @@ void Chi0::compute(const apair_R_mat_t &LRI_Cs,
         }
         case ( TFGrids::GRID_TYPES::EvenSpaced_TF ):
         {
-            // WARN: only used to quick test, adjust emin and interval manually
+            // WARN: only used to debug, adjust emin and interval manually
             tfg.generate_evenspaced_tf(0.0304601, 0.0, 0.0116073, 0.0);
             break;
         }
@@ -44,31 +48,17 @@ void Chi0::compute(const apair_R_mat_t &LRI_Cs,
                 build_gf_Rt(iR, Rlist[iR], itau, 'O');
                 build_gf_Rt(iR, Rlist[iR], itau, 'V');
             }
-        // For debug use
-        /* printf("spin 0, first tau GF: %f\n", tfg.get_time_nodes()[0]); */
-        /* for (int iR = 0; iR != Rlist.size(); iR++) */
-        /* { */
-        /*     for (int I = 0; I != natom; I++) */
-        /*         for (int J = 0; J != natom; J++) */
-        /*         { */
-        /*             cout << "Green_atom  IJ R:  " << I << "  " << J << "    " << Rlist[iR] << endl; */
-        /*             print_matrix("unocc Green-atom", gf_unocc_Rt[0][I][J][iR][0]); */
-        /*             print_matrix("occ Green-atom", gf_occ_Rt[0][I][J][iR][0]); */
-        /*         } */
-        /* } */
-        /* printf("spin 0 GF: I %d J %d iR %d tau %f R %d %d %d\n", 0, 0, 0, tfg.get_time_nodes()[0], Rlist[0].x, Rlist[0].y, Rlist[0].z); */
-        /* print_matrix("unocc Green-atom", gf_unocc_Rt[0][0][0][0][0]); */
-        /* print_matrix("occ Green-atom", gf_occ_Rt[0][0][0][0][0]); */
         cout << " FINISH GREEN FUN" << endl;
         cout << " Green threshold: " << gf_R_threshold << endl;
         cout << " Green save num: " << gf_save << endl;
         cout << " Green discard num: " << gf_discard << endl;
+        build_chi0_q_space_time(LRI_Cs, Rlist, R_period, atpair_ABF, qlist);
     }
     else
     {
         // conventional method does not need to build Green's function explicitly
+        build_chi0_q_conventional(LRI_Cs, Rlist, R_period, atpair_ABF, qlist);
     }
-    return;
 }
 
 void Chi0::build_gf_Rt(size_t iR, Vector3_Order<int> R, size_t itau, char ov)
@@ -129,7 +119,6 @@ void Chi0::build_gf_Rt(size_t iR, Vector3_Order<int> R, size_t itau, char ov)
             for (int J = 0; J != natom; J++)
             {
                 const size_t J_num = atom_nw[J];
-                // Green_atom[is][I][J][time_tau][R].create(I_num,J_num);
                 matrix tmp_green(I_num, J_num);
                 for (size_t i = 0; i != I_num; i++)
                 {
@@ -153,4 +142,22 @@ void Chi0::build_gf_Rt(size_t iR, Vector3_Order<int> R, size_t itau, char ov)
             }
         }
     }
+}
+
+void Chi0::build_chi0_q_space_time(const atpair_R_mat_t &LRI_Cs,
+                                   const vector<Vector3_Order<int>> &Rlist,
+                                   const Vector3_Order<int> &R_period,
+                                   const vector<atpair_t> &atpair_ABF,
+                                   const vector<Vector3_Order<double>> &qlist)
+{
+
+}
+
+void Chi0::build_chi0_q_conventional(const atpair_R_mat_t &LRI_Cs,
+                                     const vector<Vector3_Order<int>> &Rlist,
+                                     const Vector3_Order<int> &R_period,
+                                     const vector<atpair_t> &atpair_ABF,
+                                     const vector<Vector3_Order<double>> &qlist)
+{
+    throw logic_error("Not implemented");
 }

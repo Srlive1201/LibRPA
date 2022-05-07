@@ -34,7 +34,14 @@ int main(int argc, char **argv)
     chi0.gf_R_threshold = stod(argv[2]);
     Vector3_Order<int> period {kv_nmp[0], kv_nmp[1], kv_nmp[2]};
     auto Rlist = construct_R_grid(period);
-    chi0.compute(Cs, Rlist, period, TFGrids::GRID_TYPES::Minimax, true);
+
+    // build ABF IJ and qlist from Vq
+    vector<atpair_t> atpair_ABF = get_atom_pair(Vq);
+    vector<Vector3_Order<double>> qlist;
+    for (auto & k_cplx_mat: Vq[0][0])
+        qlist.push_back(k_cplx_mat.first);
+
+    chi0.compute(Cs, Rlist, period, atpair_ABF, qlist, TFGrids::GRID_TYPES::Minimax, true);
    
     prof.stop("total");
     prof.display();
