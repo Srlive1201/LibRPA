@@ -38,13 +38,15 @@ vector<double> read_time2freq_trans(const string &file_path, double inverse_scal
 class TFGrids
 {
     public:
-        static const int N_GRID_TYPES = 4;
-        enum GRID_TYPES { GaussLegendre = 0,
-                          GaussChebyshevI = 1,
-                          GaussChebyshevII = 2,
-                          Minimax = 3, };
-        static const string GRID_TYPES_NOTES[N_GRID_TYPES];
-        static const bool SUPPORT_TIME_GRIDS[N_GRID_TYPES];
+        enum GRID_TYPES { GaussLegendre,
+                          GaussChebyshevI,
+                          GaussChebyshevII,
+                          Minimax,
+                          EvenSpaced, EvenSpaced_TF,
+                          COUNT, // NOTE: always the last
+        };
+        static const string GRID_TYPES_NOTES[GRID_TYPES::COUNT];
+        static const bool SUPPORT_TIME_GRIDS[GRID_TYPES::COUNT];
     private:
         //! Internal storage of grid type
         GRID_TYPES grid_type;
@@ -86,6 +88,11 @@ class TFGrids
         // NOTE: use reference for return matrix?
         const matrix get_costrans_t2f() const { return costrans_t2f; }
         const matrix get_sintrans_t2f() const { return sintrans_t2f; }
+        //! Generate the even-spaced frequency grid
+        void generate_evenspaced(double emin, double interval);
+        //! Generate the even-spaced time-frequency grid. @note Currently only for debug use
+        void generate_evenspaced_tf(double emin, double eintv, double tmin, double tintv);
+        //! Generate the minimax time-frequency grid
         void generate_minimax(double emin, double emax);
         bool has_time_grids() { return time_nodes.size() > 0; }
         ~TFGrids();

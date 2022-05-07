@@ -115,16 +115,18 @@ vector<double> read_time2freq_trans(const string &file_path, double inverse_scal
     return tran;
 }
 
-const string TFGrids::GRID_TYPES_NOTES[TFGrids::N_GRID_TYPES] =
+const string TFGrids::GRID_TYPES_NOTES[TFGrids::GRID_TYPES::COUNT] =
     {
         "Gauss-Legendre grids",
         "Gauss-Chebyshev grids of the first kind",
         "Gauss-Chebyshev grids of the second kind",
-        "Minimax grids",
+        "Minimax time-frequency grids",
+        "Even-spaced frequency grids",
+        "Even-spaced time-frequency grids (debug use)",
     };
 
-const bool TFGrids::SUPPORT_TIME_GRIDS[TFGrids::N_GRID_TYPES] = 
-    { false, false, false, true };
+const bool TFGrids::SUPPORT_TIME_GRIDS[TFGrids::GRID_TYPES::COUNT] = 
+    { false, false, false, true, false, true };
 
 void TFGrids::set_freq()
 {
@@ -170,12 +172,48 @@ TFGrids::~TFGrids()
     /* unset(); */
 }
 
+void TFGrids::generate_evenspaced(double emin, double interval)
+{
+    if ( emin <= 0 )
+        throw invalid_argument("emin must be positive");
+    if ( interval < 0 )
+        throw invalid_argument("emin must be non-negative");
+    double weight = 1.0 / n_grids;
+    for ( int i = 0; i != n_grids; i++)
+    {
+        freq_nodes[i] = emin + interval * i;
+        freq_weights[i] = weight;
+    }
+}
+
+void TFGrids::generate_evenspaced_tf(double emin, double eintv, double tmin, double tintv)
+{
+    generate_evenspaced(emin, eintv);
+    set_time();
+    if ( tmin <= 0 )
+        throw invalid_argument("tmin must be positive");
+    if ( tintv < 0 )
+        throw invalid_argument("tintv must be non-negative");
+    double weight = 1.0 / n_grids;
+    for ( int i = 0; i != n_grids; i++)
+    {
+        time_nodes[i] = tmin + tintv * i;
+        time_weights[i] = weight;
+        // WARN: fake transform matrices
+        costrans_t2f(i, i) = weight;
+        sintrans_t2f(i, i) = weight;
+    }
+}
+
 void TFGrids::generate_minimax(double emin, double emax)
 {
     grid_type = TFGrids::GRID_TYPES::Minimax;
     set_time();
     string tmps;
-    // WARN: handle zero division
+    if ( emin <= 0)
+        throw invalid_argument("emin must be positive");
+    if ( emax < emin)
+        throw invalid_argument("emax must be larger than emin");
     double erange = emax / emin;
     tmps = "python " + GX_path + " " + to_string(n_grids) + " " + to_string(erange);
     system(tmps.c_str());
