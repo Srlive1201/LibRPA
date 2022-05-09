@@ -13,21 +13,25 @@
 
 using std::vector;
 
+//! Object to handle calculation of independent repsonse function (\f$\chi_0\f$)
 class Chi0
 {
     private:
         unsigned gf_save;
         unsigned gf_discard;
-        char gf_R_timefreq;
-        char gf_k_timefreq;
-        char chi_R_timefreq;
-        char chi_k_timefreq;
+        // char gf_R_timefreq;
+        // char gf_k_timefreq;
+        // char chi_R_timefreq;
+        // char chi_k_timefreq;
         // [is][I][J][iR][itime](iwt1, iwt2)
+        //! space-time Green's function in occupied space, [ispin][I][J][iR][itau/iomega]
+        //! @note: should use complex matrix in general?
         map<size_t, atom_mapping<map<size_t, map<size_t, matrix>>>::pair_t_old> gf_occ_Rt;
+        //! space-time Green's function in unoccupied (i.e. virtual) space
         map<size_t, atom_mapping<map<size_t, map<size_t, matrix>>>::pair_t_old> gf_unocc_Rt;
-        //! chi0 data in real-space [itau/iomega][iR]
-        map<int, map<int, atom_mapping<matrix>::pair_t_old>> chi0_R;
-        //! chi0 data in reci-space [itau/iomega][ik]
+        /* //! chi0 data in real-space, [itau/iomega][iR] */
+        /* map<int, map<int, atom_mapping<matrix>::pair_t_old>> chi0_R; */
+        //! chi0 data in reci-space, [itau/iomega][ik]
         map<int, map<int, atom_mapping<ComplexMatrix>::pair_t_old>> chi0_q;
         void build_gf_Rt(size_t iR, Vector3_Order<int> R, size_t itau, char ov);
         //! Internal procedure to compute chi0_q by space-time method

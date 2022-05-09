@@ -150,7 +150,7 @@ void Chi0::build_chi0_q_space_time(const atpair_R_mat_t &LRI_Cs,
                                    const vector<atpair_t> &atpair_ABF,
                                    const vector<Vector3_Order<double>> &qlist)
 {
-
+    throw logic_error("Not implemented");
 }
 
 void Chi0::build_chi0_q_conventional(const atpair_R_mat_t &LRI_Cs,

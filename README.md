@@ -18,7 +18,7 @@ At this stage, LibRPA have interfaced with FHI-aims by writing and reading files
 - Cs_data_#.txt
 - coulomb_mat_#.txt
 
-The modified FHI-aims code files can be checked in 'FHI-aims-outifile-code/'. \
+The modified FHI-aims code files can be checked in `FHI-aims-outifile-code/`. \
 Consider the different versions of FHI-aims, you had better modify the FHI-aims files manual instead of recovering them.\
 Take care the new variable declarations in the beginning and the places of writing files.
 For convenience, we provide patch files in `interfaces/FHI-aims`. You may find the one appropriate \
