@@ -33,6 +33,7 @@ list(APPEND sources
         ${CMAKE_CURRENT_BINARY_DIR}/envs.cpp
         Gauss_Quadrature.cpp
         input.cpp
+        mathtools.cpp
         matrix.cpp
         matrix3.cpp
         meanfield.cpp

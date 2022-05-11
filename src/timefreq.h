@@ -94,6 +94,11 @@ class TFGrids
         void generate_evenspaced_tf(double emin, double eintv, double tmin, double tintv);
         //! Generate the minimax time-frequency grid
         void generate_minimax(double emin, double emax);
+        //! Generate Gauss-Chebyshev quadrature of first kind on [0, infty)
+        void generate_GaussChebyshevI();
+        //! Generate Gauss-Chebyshev quadrature of second kind on [0, infty)
+        void generate_GaussChebyshevII();
+        void generate_GaussLegendre();
         bool has_time_grids() { return time_nodes.size() > 0; }
         ~TFGrids();
 };

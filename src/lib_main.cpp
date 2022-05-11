@@ -28,7 +28,8 @@ int main(int argc, char **argv)
     /* if(argv[1][0]=='0') */
     /*     ap_chi0.chi0_main(argv[1],argv[2]);  */
     /* else */
-        /* cal_chi0.chi0_main(argv[1],argv[2]);  */
+        cal_chi0.chi0_main(argv[1],argv[2]); 
+    return 0;
     // try the new version
     Chi0 chi0(meanfield, klist, stoi(argv[1]));
     chi0.gf_R_threshold = stod(argv[2]);

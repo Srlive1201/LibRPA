@@ -5,9 +5,16 @@
 #include "complexmatrix.h"
 #include "vector3_order.h"
 #include <mpi.h>
+#include <cassert>
 #include <vector>
+#include <utility>
 #include <map>
 #include <memory>
+
+using std::vector;
+using std::map;
+using std::pair;
+
 class Parallel_MPI
 {
     int myid, size;
@@ -24,6 +31,11 @@ class Parallel_MPI
     vector<double> pack_mat(const map<size_t,map<size_t,map<Vector3_Order<int>,shared_ptr<matrix>>>> &Cs_m);
     map<size_t,map<size_t,map<Vector3_Order<int>,shared_ptr<matrix>>>> unpack_mat(vector<double> &pack);
 };
+
+//! task dispatchers, implemented single index and double indices versions. Ending indices are excluded
+vector<int> dispatcher(int ist, int ied, unsigned myid, unsigned size, bool sequential = false);
+vector<pair<int, int>> dispatcher(int i1st, int i1ed, int i2st, int i2ed,
+                                  unsigned myid, unsigned size, bool sequential = false, bool favor_1st = true);
 
 extern Parallel_MPI para_mpi;
 #endif

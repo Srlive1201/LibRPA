@@ -19,6 +19,7 @@ objects = \
 		  envs.o \
 		  Gauss_Quadrature.o \
 		  input.o \
+		  mathtools.o \
 		  matrix.o \
 		  matrix3.o \
 		  meanfield.o \

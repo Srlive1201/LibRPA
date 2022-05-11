@@ -33,5 +33,8 @@ extern atpair_k_cplx_mat_t Vq;
 int atom_iw_loc2glo(const int &atom_index, const int &iw_lcoal);
 int atom_mu_loc2glo(const int &atom_index, const int &mu_lcoal);
 
+//! Reshape Cs matrix from (n1*n2,n3) to (n2,n1*n3)
+matrix reshape_Cs(size_t n1, size_t n2, size_t n3, const shared_ptr<matrix> &Csmat);
+
 #endif // !RI_H
 

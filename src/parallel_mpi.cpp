@@ -102,4 +102,67 @@ map<size_t,map<size_t,map<Vector3_Order<int>,shared_ptr<matrix>>>>  Parallel_MPI
     return Cs;
 }
 
+
+vector<int> dispatcher(int ist, int ied, unsigned myid, unsigned size, bool sequential)
+{
+    vector<int> ilist;
+    if (ist >= ied) return ilist;
+    assert(size > 0);
+    unsigned dist = ied - ist;
+    int n = dist / size;
+    int extra = dist % size;
+    bool has_extra = myid < extra;
+    /* printf("%u %d\n", myid, size); */
+    unsigned id;
+    for ( int i = 0; i != n + has_extra; i++)
+    {
+        if (sequential)
+            // sequential mode: ist, ist+1, ist+2, ...
+            id = i + n * myid + min(extra, int(myid));
+        else
+            // even mode: ist, ist+size, ist+2*size, ...
+            id = size * i + myid;
+        ilist.push_back(ist + id);
+    }
+    return ilist;
+}
+
+vector<pair<int, int>> dispatcher(int i1st, int i1ed, int i2st, int i2ed,
+                                  unsigned myid, unsigned size, bool sequential, bool favor_1st)
+{
+    vector<pair<int, int>> ilist;
+    assert(size > 0);
+    if ( (i1st >= i1ed) || (i2st >= i2ed) ) return ilist;
+    unsigned dist1 = i1ed - i1st;
+    unsigned dist2 = i2ed - i2st;
+    int n = dist1 * dist2 / size;
+    int extra = (dist1 * dist2) % size;
+    bool has_extra = myid < extra;
+    /* printf("%u %d\n", myid, size); */
+    unsigned id, id1, id2;
+    for ( int i = 0; i != n + has_extra; i++)
+    {
+        if (sequential)
+            // sequential mode: ist, ist+1, ist+2, ...
+            id = i + n * myid + min(extra, int(myid));
+        else
+            // even mode: ist, ist+size, ist+2*size, ...
+            id = size * i + myid;
+        if ( favor_1st )
+        {
+            // id1 goes faster
+            id1 = id % dist1;
+            id2 = id / dist1;
+        }
+        else
+        {
+            // id2 goes faster
+            id2 = id % dist2;
+            id1 = id / dist2;
+        }
+        ilist.push_back({i1st+id1, i2st+id2});
+    }
+    return ilist;
+}
+
 Parallel_MPI para_mpi;

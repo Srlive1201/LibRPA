@@ -1,4 +1,5 @@
 #include "timefreq.h"
+#include "mathtools.h"
 #include "envs.h"
 #include <iostream>
 #include <fstream>
@@ -245,3 +246,46 @@ void TFGrids::generate_minimax(double emin, double emax)
         for (int j = 0; j != n_grids; j++)
             sintrans_t2f(k, j) = trans[ k * n_grids + j];
 }
+
+void TFGrids::generate_GaussChebyshevI()
+{
+    grid_type = TFGrids::GRID_TYPES::GaussChebyshevI;
+    double nodes[n_grids], weights[n_grids];
+    GaussChebyshevI_unit(n_grids, nodes, weights);
+    // transform from [-1,1] to [0, infinity]
+    transform_GaussQuad_unit2x0inf(0.0, n_grids, nodes, weights);
+    for ( int i = 0; i != n_grids; i++ )
+    {
+        freq_nodes[i] = nodes[i];
+        freq_weights[i] = weights[i];
+    }
+}
+
+void TFGrids::generate_GaussChebyshevII()
+{
+    grid_type = TFGrids::GRID_TYPES::GaussChebyshevII;
+    double nodes[n_grids], weights[n_grids];
+    GaussChebyshevII_unit(n_grids, nodes, weights);
+    // transform from [-1,1] to [0, infinity]
+    transform_GaussQuad_unit2x0inf(0.0, n_grids, nodes, weights);
+    for ( int i = 0; i != n_grids; i++ )
+    {
+        freq_nodes[i] = nodes[i];
+        freq_weights[i] = weights[i];
+    }
+}
+
+void TFGrids::generate_GaussLegendre()
+{
+    grid_type = TFGrids::GRID_TYPES::GaussLegendre;
+    double nodes[n_grids], weights[n_grids];
+    GaussLegendre_unit(n_grids, nodes, weights);
+    // transform from [-1,1] to [0, infinity]
+    transform_GaussQuad_unit2x0inf(0.0, n_grids, nodes, weights);
+    for ( int i = 0; i != n_grids; i++ )
+    {
+        freq_nodes[i] = nodes[i];
+        freq_weights[i] = weights[i];
+    }
+}
+

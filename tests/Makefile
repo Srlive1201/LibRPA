@@ -2,9 +2,10 @@ include ../make.inc
 
 .PHONY: default clean
 
-objects = test_atoms.exe test_matrix.exe test_timefreq.exe
+objects = test_atoms.exe test_matrix.exe test_timefreq.exe test_parallel_mpi.exe
 
-test_matrix_deps = timefreq,envs,matrix,complexmatrix
+test_matrix_deps = timefreq,envs,matrix,complexmatrix,mathtools,constants
+test_parallel_mpi_deps = parallel_mpi,matrix,complexmatrix,vector3_order
 
 default: $(objects)
 
@@ -15,6 +16,9 @@ test_timefreq.exe: test_timefreq.o $(shell echo ../src/{$(test_matrix_deps)}.o)
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LAPACK_LIBRARIES)
 
 test_matrix.exe: test_matrix.o ../src/matrix.o
+	$(CXX) $(CXXFLAGS) -o $@ $^ $(LAPACK_LIBRARIES)
+
+test_parallel_mpi.exe: test_parallel_mpi.o $(shell echo ../src/{$(test_parallel_mpi_deps)}.o)
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LAPACK_LIBRARIES)
 
 .cpp.o:
