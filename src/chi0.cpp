@@ -1,5 +1,7 @@
 #include <iostream>
+#include "parallel_mpi.h"
 #include "chi0.h"
+#include <omp.h>
 #include "matrix.h"
 #include "complexmatrix.h"
 #include "lapack_connector.h"
@@ -9,13 +11,22 @@
 void Chi0::compute(const atpair_R_mat_t &LRI_Cs,
                    const vector<Vector3_Order<int>> &Rlist,
                    const Vector3_Order<int> &R_period,
-                   const vector<atpair_t> &atpair_ABF,
+                   const vector<atpair_t> &atpairs_ABF,
                    const vector<Vector3_Order<double>> &qlist,
                    TFGrids::GRID_TYPES gt, bool use_space_time)
 {
     gf_save = gf_discard = 0;
     // reset chi0_q in case the method was called before
     chi0_q.clear();
+    for ( int itau = 0; itau < tfg.size(); itau++ )
+        for ( int iq = 0; iq < qlist.size(); iq++ )
+            for ( auto atpair: atpairs_ABF)
+            {
+                auto I = atpair.first;
+                auto J = atpair.second;
+                chi0_q[itau][iq][I][J].create(atom_mu[I], atom_mu[J]);
+            }
+
     // prepare the time-freq grids
     switch (gt)
     {
@@ -52,12 +63,12 @@ void Chi0::compute(const atpair_R_mat_t &LRI_Cs,
         cout << " Green threshold: " << gf_R_threshold << endl;
         cout << " Green save num: " << gf_save << endl;
         cout << " Green discard num: " << gf_discard << endl;
-        build_chi0_q_space_time(LRI_Cs, Rlist, R_period, atpair_ABF, qlist);
+        build_chi0_q_space_time(LRI_Cs, Rlist, R_period, atpairs_ABF, qlist);
     }
     else
     {
         // conventional method does not need to build Green's function explicitly
-        build_chi0_q_conventional(LRI_Cs, Rlist, R_period, atpair_ABF, qlist);
+        build_chi0_q_conventional(LRI_Cs, Rlist, R_period, atpairs_ABF, qlist);
     }
 }
 
@@ -132,7 +143,7 @@ void Chi0::build_gf_Rt(size_t iR, Vector3_Order<int> R, size_t itau, char ov)
                 if (tmp_green.absmax() > gf_R_threshold)
                 {
                     // cout<<" max_green_ele:  "<<tmp_green.absmax()<<endl;
-                    gf_Rt[is][I][J][iR][itau] = std::move(tmp_green);
+                    gf_Rt[is][itau][iR][I][J] = std::move(tmp_green);
                     gf_save++;
                 }
                 else
@@ -147,9 +158,66 @@ void Chi0::build_gf_Rt(size_t iR, Vector3_Order<int> R, size_t itau, char ov)
 void Chi0::build_chi0_q_space_time(const atpair_R_mat_t &LRI_Cs,
                                    const vector<Vector3_Order<int>> &Rlist,
                                    const Vector3_Order<int> &R_period,
-                                   const vector<atpair_t> &atpair_ABF,
+                                   const vector<atpair_t> &atpairs_ABF,
                                    const vector<Vector3_Order<double>> &qlist)
 {
+    auto idpairs_R_tau = dispatcher(0, Rlist.size(), 0, tfg.size(),
+                                    para_mpi.get_myid(), para_mpi.get_size(), false, false);
+    omp_lock_t chi0_lock;
+    omp_init_lock(&chi0_lock);
+    if ( atpairs_ABF.size() > idpairs_R_tau.size() )
+    {
+        // R tau routing
+        // TODO: add OpenMP paralleling
+        for ( auto iR_itau: idpairs_R_tau)
+        {
+            int iR = iR_itau.first;
+            int itau = iR_itau.second;
+            double tau = tfg.get_freq_nodes()[itau];
+            for ( auto atpair: atpairs_ABF)
+            {
+                atom_t mu = atpair.first;
+                atom_t nu = atpair.second;
+                // TODO: real work here
+                for ( int is = 0; is != mf.get_n_spins(); is++ )
+                {
+                    ComplexMatrix chi0_Rtau;
+                    chi0_Rtau = ComplexMatrix(compute_chi0_munu_iR_tau(gf_occ_Rt[0][itau],
+                                                                       gf_unocc_Rt[0][itau],
+                                                                       LRI_Cs, LRI_Cs,
+                                                                       Rlist, R_period,
+                                                                       mu, nu, iR, tau
+                                                                       ));
+                    omp_set_lock(&chi0_lock);
+                    for ( int ifreq = 0; ifreq != tfg.size(); ifreq++ )
+                    {
+                        double trans = tfg.get_costrans_t2f()(ifreq, iR_itau.second);
+                        for ( int iq = 0; iq != qlist.size(); iq++ )
+                        {
+                            double arg = qlist[iq] * (Rlist[iR] * latvec) * TWO_PI;
+                            chi0_q[ifreq][iq][mu][nu] += chi0_Rtau *
+                                (trans * std::exp(complex<double>(cos(arg), sin(arg))));
+                        }
+                    }
+                    omp_unset_lock(&chi0_lock);
+                }
+            }
+        }
+    }
+    else
+    {
+        throw logic_error("Not implemented");
+        // atom-pair
+        for ( auto atpair: atpairs_ABF)
+        {
+            for ( auto iR_itau: idpairs_R_tau)
+            {
+
+            }
+        }
+    }
+    omp_destroy_lock(&chi0_lock);
+    // Reduce to MPI
 }
 
 void Chi0::build_chi0_q_conventional(const atpair_R_mat_t &LRI_Cs,
@@ -160,4 +228,15 @@ void Chi0::build_chi0_q_conventional(const atpair_R_mat_t &LRI_Cs,
 {
     // TODO: low implementation priority
     throw logic_error("Not implemented");
+}
+
+matrix compute_chi0_munu_iR_tau(const map<size_t, atom_mapping<matrix>::pair_t_old> &gf_occ_ab_Rt,
+                                const map<size_t, atom_mapping<matrix>::pair_t_old> &gf_unocc_ab_Rt,
+                                const atpair_R_mat_t &Cs_mu, const atpair_R_mat_t &Cs_nu,
+                                const vector<Vector3_Order<int>> &Rlist, const Vector3_Order<int> &R_period,
+                                atom_t mu, atom_t nu, int iR, double tau)
+{
+    matrix chi0_Rtau(atom_mu[mu], atom_mu[nu]);
+    // TODO: real work here
+    return chi0_Rtau;
 }
