@@ -33,9 +33,9 @@ class Parallel_MPI
 };
 
 //! task dispatchers, implemented single index and double indices versions. Ending indices are excluded
-vector<int> dispatcher(int ist, int ied, unsigned myid, unsigned size, bool sequential = false);
+vector<int> dispatcher(int ist, int ied, unsigned myid, unsigned size, bool sequential);
 vector<pair<int, int>> dispatcher(int i1st, int i1ed, int i2st, int i2ed,
-                                  unsigned myid, unsigned size, bool sequential = false, bool favor_1st = true);
+                                  unsigned myid, unsigned size, bool sequential, bool favor_1st);
 
 extern Parallel_MPI para_mpi;
 #endif

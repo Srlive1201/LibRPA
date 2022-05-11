@@ -1,4 +1,5 @@
 #include "pbc.h"
+#include <algorithm>
 
 vector<Vector3_Order<int>> construct_R_grid(const Vector3_Order<int> & period)
 {
@@ -12,4 +13,17 @@ vector<Vector3_Order<int>> construct_R_grid(const Vector3_Order<int> & period)
                 R_grid.push_back({x, y, z});
 
     return R_grid;
+}
+
+int get_R_index(vector<Vector3_Order<int>> Rlist, const Vector3_Order<int> &R)
+{
+    // v1: manual search
+    // for ( int iR = 0; iR != Rlist.size(); iR++ )
+    // {
+    //     if (Rlist[iR] == R) return iR;
+    // }
+    // v2: use algorithm
+    vector<Vector3_Order<int>>::iterator itr = std::find(Rlist.begin(), Rlist.end(), R);
+    if ( itr != Rlist.end()) return distance(Rlist.begin(), itr);
+    return -1;
 }

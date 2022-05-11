@@ -1,6 +1,7 @@
 add_executable(test_atoms test_atoms.cpp)
 add_executable(test_timefreq test_timefreq.cpp)
 add_executable(test_matrix test_matrix.cpp)
+add_executable(test_pbc test_pbc.cpp)
 add_executable(test_parallel_mpi test_parallel_mpi.cpp)
 
 include_directories(PUBLIC ${CMAKE_CURRENT_LIST_DIR})
@@ -22,6 +23,10 @@ else()
     ../src/matrix.cpp
     ../src/complexmatrix.cpp
     ${CMAKE_CURRENT_BINARY_DIR}/../src/envs.cpp
+    )
+  target_sources(test_pbc PRIVATE
+    ../src/pbc.cpp
+    ../src/vector3_order.cpp
     )
   target_sources(test_parallel_mpi PRIVATE
     ../src/parallel_mpi.cpp
@@ -52,5 +57,10 @@ add_test(
 add_test(
   NAME test_parallel_mpi
   COMMAND mpirun -np 4 $<TARGET_FILE:test_parallel_mpi>
+  )
+
+add_test(
+  NAME test_pbc
+  COMMAND $<TARGET_FILE:test_pbc>
   )
 

@@ -161,61 +161,49 @@ void Chi0::build_chi0_q_space_time(const atpair_R_mat_t &LRI_Cs,
                                    const vector<atpair_t> &atpairs_ABF,
                                    const vector<Vector3_Order<double>> &qlist)
 {
-    auto idpairs_R_tau = dispatcher(0, Rlist.size(), 0, tfg.size(),
-                                    para_mpi.get_myid(), para_mpi.get_size(), false, false);
+    vector<int> itaus_local = dispatcher(0, tfg.size(), para_mpi.get_myid(), para_mpi.get_size(), false);
     omp_lock_t chi0_lock;
     omp_init_lock(&chi0_lock);
-    if ( atpairs_ABF.size() > idpairs_R_tau.size() )
+    /* if ( atpairs_ABF.size() > itaus_local.size() ) */
     {
-        // R tau routing
+        // tau routing
         // TODO: add OpenMP paralleling
-        for ( auto iR_itau: idpairs_R_tau)
+        for ( auto itau: itaus_local)
         {
-            int iR = iR_itau.first;
-            int itau = iR_itau.second;
             double tau = tfg.get_freq_nodes()[itau];
             for ( auto atpair: atpairs_ABF)
             {
                 atom_t mu = atpair.first;
                 atom_t nu = atpair.second;
-                // TODO: real work here
                 for ( int is = 0; is != mf.get_n_spins(); is++ )
                 {
-                    ComplexMatrix chi0_Rtau;
-                    chi0_Rtau = ComplexMatrix(compute_chi0_munu_iR_tau(gf_occ_Rt[0][itau],
-                                                                       gf_unocc_Rt[0][itau],
-                                                                       LRI_Cs, LRI_Cs,
-                                                                       Rlist, R_period,
-                                                                       mu, nu, iR, tau
-                                                                       ));
+                    // all Rs is computed at the same time, to avoid repeated calculation of N
+                    vector<matrix> chi0_tau;
+                    chi0_tau = compute_chi0_munu_tau_LRI(gf_occ_Rt[is][itau], gf_unocc_Rt[is][itau],
+                                                         LRI_Cs,
+                                                         Rlist, R_period,
+                                                         mu, nu, tau);
                     omp_set_lock(&chi0_lock);
-                    for ( int ifreq = 0; ifreq != tfg.size(); ifreq++ )
-                    {
-                        double trans = tfg.get_costrans_t2f()(ifreq, iR_itau.second);
-                        for ( int iq = 0; iq != qlist.size(); iq++ )
+                    for ( int iR = 0; iR != Rlist.size(); iR++ )
+                        for ( int ifreq = 0; ifreq != tfg.size(); ifreq++ )
                         {
-                            double arg = qlist[iq] * (Rlist[iR] * latvec) * TWO_PI;
-                            chi0_q[ifreq][iq][mu][nu] += chi0_Rtau *
-                                (trans * std::exp(complex<double>(cos(arg), sin(arg))));
+                            double trans = tfg.get_costrans_t2f()(ifreq, itau);
+                            for ( int iq = 0; iq != qlist.size(); iq++ )
+                            {
+                                double arg = qlist[iq] * (Rlist[iR] * latvec) * TWO_PI;
+                                chi0_q[ifreq][iq][mu][nu] += ComplexMatrix(chi0_tau[iR]) *
+                                    (trans * std::exp(complex<double>(cos(arg), sin(arg))));
+                            }
                         }
-                    }
                     omp_unset_lock(&chi0_lock);
                 }
             }
         }
     }
-    else
-    {
-        throw logic_error("Not implemented");
-        // atom-pair
-        for ( auto atpair: atpairs_ABF)
-        {
-            for ( auto iR_itau: idpairs_R_tau)
-            {
-
-            }
-        }
-    }
+    /* else */
+    /* { */
+    /*     throw logic_error("Not implemented"); */
+    /* } */
     omp_destroy_lock(&chi0_lock);
     // Reduce to MPI
 }
@@ -230,13 +218,31 @@ void Chi0::build_chi0_q_conventional(const atpair_R_mat_t &LRI_Cs,
     throw logic_error("Not implemented");
 }
 
-matrix compute_chi0_munu_iR_tau(const map<size_t, atom_mapping<matrix>::pair_t_old> &gf_occ_ab_Rt,
-                                const map<size_t, atom_mapping<matrix>::pair_t_old> &gf_unocc_ab_Rt,
-                                const atpair_R_mat_t &Cs_mu, const atpair_R_mat_t &Cs_nu,
-                                const vector<Vector3_Order<int>> &Rlist, const Vector3_Order<int> &R_period,
-                                atom_t mu, atom_t nu, int iR, double tau)
+vector<matrix> compute_chi0_munu_tau_LRI(const map<size_t, atom_mapping<matrix>::pair_t_old> &gf_occ_ab_t,
+                                         const map<size_t, atom_mapping<matrix>::pair_t_old> &gf_unocc_ab_t,
+                                         const atpair_R_mat_t &LRI_Cs,
+                                         const vector<Vector3_Order<int>> &Rlist, const Vector3_Order<int> &R_period,
+                                         atom_t Mu, atom_t Nu, double tau)
 {
-    matrix chi0_Rtau(atom_mu[mu], atom_mu[nu]);
+    vector<matrix> chi0_tau(Rlist.size());
+    for (auto &chi0_tauR: chi0_tau)
+        chi0_tauR.create(atom_mu[Mu], atom_mu[Nu]);
+
+    // N(-tau) at atom K
+    map<atom_t, vector<matrix>> N;
+    // N*(-tau) at atom K
+    map<atom_t, vector<matrix>> N_cn;
+
+    const size_t n_i = atom_nw[Mu];
+    const size_t n_mu = atom_mu[Mu];
+    const size_t n_j = atom_nw[Nu];
+    const size_t n_nu = atom_mu[Nu];
+
+    // pre-compute N. X can be calculated for each R.
+    for ( auto &kR1Cs: LRI_Cs.at(Mu))
+    {
+    }
+
     // TODO: real work here
-    return chi0_Rtau;
+    return chi0_tau;
 }
