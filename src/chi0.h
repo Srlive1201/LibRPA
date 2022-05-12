@@ -77,10 +77,10 @@ class Chi0
  @param[in] Rlist: the integer list of unit cell coordinates
  @param[in] R_period: the periodicity of super cell
  @param[in] mu, nu: indices of atoms with ABF
- @param[in] tau: time (imaginary) of chi0 to compute
+ @retval mapping from unit cell index to matrix
  */
-vector<matrix> compute_chi0_munu_tau_LRI(const map<size_t, atom_mapping<matrix>::pair_t_old> &gf_occ_ab_t,
-                                         const map<size_t, atom_mapping<matrix>::pair_t_old> &gf_unocc_ab_t,
-                                         const atpair_R_mat_t &LRI_Cs,
-                                         const vector<Vector3_Order<int>> &Rlist, const Vector3_Order<int> &R_period, 
-                                         atom_t mu, atom_t nu, double tau);
+map<size_t, matrix> compute_chi0_munu_tau_LRI(const map<size_t, atom_mapping<matrix>::pair_t_old> &gf_occ_ab_t,
+                                              const map<size_t, atom_mapping<matrix>::pair_t_old> &gf_unocc_ab_t,
+                                              const atpair_R_mat_t &LRI_Cs,
+                                              const vector<Vector3_Order<int>> &Rlist, const Vector3_Order<int> &R_period, 
+                                              atom_t mu, atom_t nu);

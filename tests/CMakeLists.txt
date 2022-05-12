@@ -3,6 +3,7 @@ add_executable(test_timefreq test_timefreq.cpp)
 add_executable(test_matrix test_matrix.cpp)
 add_executable(test_pbc test_pbc.cpp)
 add_executable(test_parallel_mpi test_parallel_mpi.cpp)
+add_executable(test_blas_lapack test_blas_lapack.cpp)
 
 include_directories(PUBLIC ${CMAKE_CURRENT_LIST_DIR})
 # target_include_directories(test_atoms
@@ -37,6 +38,7 @@ else()
   target_link_libraries(test_timefreq PRIVATE ${LAPACK_LIBRARIES})
   target_link_libraries(test_matrix PRIVATE ${LAPACK_LIBRARIES})
   target_link_libraries(test_parallel_mpi PRIVATE ${LAPACK_LIBRARIES})
+  target_link_libraries(test_blas_lapack PRIVATE ${LAPACK_LIBRARIES})
 endif()
 
 add_test(
@@ -62,5 +64,10 @@ add_test(
 add_test(
   NAME test_pbc
   COMMAND $<TARGET_FILE:test_pbc>
+  )
+
+add_test(
+  NAME test_blas_lapack
+  COMMAND $<TARGET_FILE:test_blas_lapack>
   )
 

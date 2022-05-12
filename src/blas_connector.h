@@ -31,6 +31,10 @@ extern "C"
 	double ddot_(const int *N, const double *X, const int *incX, const double *Y, const int *incY);
 
 	// level 2: matrix-vector operations
+    // single-prec version added by minyez 2022-05-12
+	void sgemv_(const char *transa, const int *m, const int *n, const float *alpha,  const float *a,  
+		const int *lda, const float *x, const int *incx, const float *beta, float *y, const int *incy);
+		
 	void dgemv_(const char *transa, const int *m, const int *n, const double *alpha,  const double *a,  
 		const int *lda, const double *x, const int *incx, const double *beta, double *y, const int *incy);
 		

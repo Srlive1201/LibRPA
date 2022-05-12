@@ -1,6 +1,7 @@
 #include <iostream>
 #include "parallel_mpi.h"
 #include "chi0.h"
+#include "pbc.h"
 #include <omp.h>
 #include "matrix.h"
 #include "complexmatrix.h"
@@ -178,23 +179,26 @@ void Chi0::build_chi0_q_space_time(const atpair_R_mat_t &LRI_Cs,
                 for ( int is = 0; is != mf.get_n_spins(); is++ )
                 {
                     // all Rs is computed at the same time, to avoid repeated calculation of N
-                    vector<matrix> chi0_tau;
+                    map<size_t, matrix> chi0_tau;
                     chi0_tau = compute_chi0_munu_tau_LRI(gf_occ_Rt[is][itau], gf_unocc_Rt[is][itau],
                                                          LRI_Cs,
                                                          Rlist, R_period,
-                                                         mu, nu, tau);
+                                                         mu, nu);
                     omp_set_lock(&chi0_lock);
                     for ( int iR = 0; iR != Rlist.size(); iR++ )
-                        for ( int ifreq = 0; ifreq != tfg.size(); ifreq++ )
-                        {
-                            double trans = tfg.get_costrans_t2f()(ifreq, itau);
-                            for ( int iq = 0; iq != qlist.size(); iq++ )
-                            {
-                                double arg = qlist[iq] * (Rlist[iR] * latvec) * TWO_PI;
-                                chi0_q[ifreq][iq][mu][nu] += ComplexMatrix(chi0_tau[iR]) *
-                                    (trans * std::exp(complex<double>(cos(arg), sin(arg))));
-                            }
-                        }
+                    {
+                       if ( chi0_tau.count(iR) )
+                           for ( int ifreq = 0; ifreq != tfg.size(); ifreq++ )
+                           {
+                               double trans = tfg.get_costrans_t2f()(ifreq, itau);
+                               for ( int iq = 0; iq != qlist.size(); iq++ )
+                               {
+                                   double arg = qlist[iq] * (Rlist[iR] * latvec) * TWO_PI;
+                                   chi0_q[ifreq][iq][mu][nu] += ComplexMatrix(chi0_tau[iR]) *
+                                       (trans * std::exp(complex<double>(cos(arg), sin(arg))));
+                               }
+                           }
+                    }
                     omp_unset_lock(&chi0_lock);
                 }
             }
@@ -218,31 +222,119 @@ void Chi0::build_chi0_q_conventional(const atpair_R_mat_t &LRI_Cs,
     throw logic_error("Not implemented");
 }
 
-vector<matrix> compute_chi0_munu_tau_LRI(const map<size_t, atom_mapping<matrix>::pair_t_old> &gf_occ_ab_t,
-                                         const map<size_t, atom_mapping<matrix>::pair_t_old> &gf_unocc_ab_t,
-                                         const atpair_R_mat_t &LRI_Cs,
-                                         const vector<Vector3_Order<int>> &Rlist, const Vector3_Order<int> &R_period,
-                                         atom_t Mu, atom_t Nu, double tau)
+map<size_t, matrix> compute_chi0_munu_tau_LRI(const map<size_t, atom_mapping<matrix>::pair_t_old> &gf_occ_ab_t,
+                                              const map<size_t, atom_mapping<matrix>::pair_t_old> &gf_unocc_ab_t,
+                                              const atpair_R_mat_t &LRI_Cs,
+                                              const vector<Vector3_Order<int>> &Rlist, const Vector3_Order<int> &R_period,
+                                              atom_t Mu, atom_t Nu)
 {
-    vector<matrix> chi0_tau(Rlist.size());
-    for (auto &chi0_tauR: chi0_tau)
-        chi0_tauR.create(atom_mu[Mu], atom_mu[Nu]);
+    map<size_t, matrix> chi0_tau;
 
-    // N(-tau) at atom K
-    map<atom_t, vector<matrix>> N;
-    // N*(-tau) at atom K
-    map<atom_t, vector<matrix>> N_cn;
+    // N(tau) at R and atom K, at(iR, iK)
+    map<pair<size_t, atom_t>, matrix> N;
+    // N*(-tau) at R and atom K, at(iR, iK)
+    map<pair<size_t, atom_t>, matrix> Ncnt; // c -> conjugate, nt -> negative time
 
     const size_t n_i = atom_nw[Mu];
     const size_t n_mu = atom_mu[Mu];
     const size_t n_j = atom_nw[Nu];
     const size_t n_nu = atom_mu[Nu];
 
-    // pre-compute N. X can be calculated for each R.
-    for ( auto &kR1Cs: LRI_Cs.at(Mu))
+    // pre-compute N and N*
+    // only need to calculate N on R-R1, with R in Green's function and R1 from Cs
+    // TODO: may be one can reuse the N code to compute N*
+    /* cout << "Mu: " << Mu << ", Nu: " << Nu << endl; */
+    for ( int iR = 0; iR != Rlist.size(); iR++ )
     {
+        /* cout << "iR: " << iR << endl; */
+        for ( auto const & iK_R1_Cs: LRI_Cs.at(Mu) )
+        {
+            auto iK = iK_R1_Cs.first;
+            /* cout << "iK: " << iK << endl; */
+            const size_t n_k = atom_nw[iK];
+            for ( auto const & R1_Cs: iK_R1_Cs.second )
+            {
+                auto const & R1 = R1_Cs.first;
+                auto const & RmR1 = Vector3_Order<int>(Rlist[iR] - R1) % R_period;
+                int iRmR1 = get_R_index(Rlist, RmR1);
+                /* cout << "iRmR1: " << iRmR1 << endl; */
+                // N part
+                if ( !N.count({iRmR1, iK}) && gf_occ_ab_t.count(iR) )
+                {
+                    N[{iRmR1, iK}].create(n_nu, n_j*n_k);
+                    /* cout << "Creating N(iRmR1, iK)" << endl; */
+                    matrix & N_iRiK = N.at({iRmR1, iK});
+                    for (auto const & iL_R2_Cs: LRI_Cs.at(Nu))
+                    {
+                        auto const & iL = iL_R2_Cs.first;
+                        const size_t n_l = atom_nw[iL];
+                        /* cout << "iL: " << iL << ", n_l: " << n_l << endl; */
+                        for ( auto const & R2_Cs: iL_R2_Cs.second )
+                        {
+                            auto const & R2 = R2_Cs.first;
+                            auto mRpR1mR2 = Vector3_Order<int>(-RmR1-R2) % R_period;
+                            int imRpR1mR2 = get_R_index(Rlist, mRpR1mR2);
+                            if ( gf_unocc_ab_t.count(imRpR1mR2) )
+                            {
+                                /* cout << "Handle gf_unocc at -R+R1-R2, index: " << imRpR1mR2 << endl; */
+                                auto const & Cs_nu_jlR2 = R2_Cs.second;
+                                assert( Cs_nu_jlR2->nr == n_j * n_l && Cs_nu_jlR2->nc == n_nu );
+                                matrix tran_Cs_nu_jlR2 = transpose(*Cs_nu_jlR2);
+                                const matrix & gf_unocc = gf_unocc_ab_t.at(imRpR1mR2).at(iL).at(iK);
+                                assert( gf_unocc.nr == n_l && gf_unocc.nc == n_k );
+                                /* cout << "Before gemm" << endl; */
+                                // TODO: not sure why using nc should work. Need check result
+                                for ( int i_nu = 0; i_nu != n_nu; i_nu++ )
+                                    LapackConnector::gemm('N', 'N', n_j, n_k, n_l, 1.0,
+                                                          tran_Cs_nu_jlR2.c+i_nu*n_j*n_l, n_l,
+                                                          gf_unocc.c, gf_unocc.nc,
+                                                          1.0, N_iRiK.c + i_nu*n_j*n_k, n_k);
+                            }
+                        }
+                    }
+                }
+                // N* part
+                if ( !Ncnt.count({iRmR1, iK}) && gf_unocc_ab_t.count(iR) )
+                {
+                    Ncnt[{iRmR1, iK}].create(n_nu, n_j*n_k);
+                    matrix & Ncnt_iRiK = Ncnt.at({iRmR1, iK});
+                    for (auto const & iL_R2_Cs: LRI_Cs.at(Nu))
+                    {
+                        auto const & iL = iL_R2_Cs.first;
+                        const size_t n_l = atom_nw[iL];
+                        for ( auto const & R2_Cs: iL_R2_Cs.second )
+                        {
+                            auto const & R2 = R2_Cs.first;
+                            auto mRpR1mR2 = Vector3_Order<int>(-RmR1-R2) % R_period;
+                            int imRpR1mR2 = get_R_index(Rlist, mRpR1mR2);
+                            if ( gf_occ_ab_t.count(imRpR1mR2) )
+                            {
+                                /* cout << "Handle gf_occ at -R+R1-R2, index: " << imRpR1mR2 << endl; */
+                                auto const & Cs_nu_jlR2 = R2_Cs.second;
+                                assert( Cs_nu_jlR2->nr == n_j * n_l && Cs_nu_jlR2->nc == n_nu );
+                                matrix tran_Cs_nu_jlR2 = transpose(*Cs_nu_jlR2);
+                                const matrix & gf_occ = gf_occ_ab_t.at(imRpR1mR2).at(iL).at(iK);
+                                assert( gf_occ.nr == n_l && gf_occ.nc == n_k );
+                                for ( int i_nu = 0; i_nu != n_nu; i_nu++ )
+                                    LapackConnector::gemm('N', 'N', n_j, n_k, n_l, 1.0,
+                                                          tran_Cs_nu_jlR2.c+i_nu*n_j*n_l, n_l,
+                                                          gf_occ.c, n_k,
+                                                          1.0, Ncnt_iRiK.c + i_nu*n_j*n_k, n_k);
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
+    
+    // initialize the chi0 matrix for required GFs
+    for ( int iR = 0; iR != Rlist.size(); iR++ )
+    {
+        if ( gf_occ_ab_t.count(iR) || gf_unocc_ab_t.count(iR))
+            chi0_tau[iR].create(n_mu, n_nu);
+    }
+    /* printf("Done space-time chi0\n"); */
 
-    // TODO: real work here
     return chi0_tau;
 }

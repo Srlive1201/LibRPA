@@ -563,6 +563,25 @@ public:
 	{
 		return ddot_(&n, X, &incX, Y, &incY);
 	}
+
+    // minyez add 2022-05-12
+    // matrix-vector product
+    // single-prec version
+    static inline
+    void gemv(const char transa, const int m, const int n, const float alpha, const float *a,
+              const int lda, const float *x, const int incx, const float beta, float *y, const int incy)
+    {
+        char transa_f = change_trans_NT(transa);
+        sgemv_(&transa_f, &n, &m, &alpha, a, &lda, x, &incx, &beta, y, &incy);
+    }
+    // double-prec version
+    static inline
+    void gemv(const char transa, const int m, const int n, const double alpha, const double *a,
+              const int lda, const double *x, const int incx, const double beta, double *y, const int incy)
+    {
+        char transa_f = change_trans_NT(transa);
+        dgemv_(&transa_f, &n, &m, &alpha, a, &lda, x, &incx, &beta, y, &incy);
+    }
 	
 	// Peize Lin add 2017-10-27, fix bug trans 2019-01-17
 	// C = a * A.? * B.? + b * C 
