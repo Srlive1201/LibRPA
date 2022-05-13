@@ -69,5 +69,7 @@ docs/Doxyfile
 !docs/Makefile
 !tests/Makefile
 
+.cache
+
 # environment config
 .envrc

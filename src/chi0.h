@@ -76,6 +76,7 @@ class Chi0
  @param[in] LRI_Cs: LRI coefficients
  @param[in] Rlist: the integer list of unit cell coordinates
  @param[in] R_period: the periodicity of super cell
+ @param[in] iRs: indices of R to compute
  @param[in] mu, nu: indices of atoms with ABF
  @retval mapping from unit cell index to matrix
  */
@@ -83,4 +84,5 @@ map<size_t, matrix> compute_chi0_munu_tau_LRI(const map<size_t, atom_mapping<mat
                                               const map<size_t, atom_mapping<matrix>::pair_t_old> &gf_unocc_ab_t,
                                               const atpair_R_mat_t &LRI_Cs,
                                               const vector<Vector3_Order<int>> &Rlist, const Vector3_Order<int> &R_period, 
+                                              const vector<int> iRs,
                                               atom_t mu, atom_t nu);
