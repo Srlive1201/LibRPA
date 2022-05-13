@@ -21,14 +21,6 @@ void Chi0::compute(const atpair_R_mat_t &LRI_Cs,
     gf_save = gf_discard = 0;
     // reset chi0_q in case the method was called before
     chi0_q.clear();
-    for ( int itau = 0; itau < tfg.size(); itau++ )
-        for ( int iq = 0; iq < qlist.size(); iq++ )
-            for ( auto atpair: atpairs_ABF)
-            {
-                auto I = atpair.first;
-                auto J = atpair.second;
-                chi0_q[itau][iq][I][J].create(atom_mu[I], atom_mu[J]);
-            }
 
     // prepare the time-freq grids
     switch (gt)
@@ -171,6 +163,16 @@ void Chi0::build_chi0_q_space_time(const atpair_R_mat_t &LRI_Cs,
     for ( auto itauiR: itauiRs_local )
         itau2iRs_local[itauiR.first].push_back(itauiR.second);
 
+    map<int, map<int, atom_mapping<ComplexMatrix>::pair_t_old>> chi0_q_tmp;
+    for ( int ifreq = 0; ifreq < tfg.size(); ifreq++ )
+        for ( int iq = 0; iq < qlist.size(); iq++ )
+            for ( auto atpair: atpairs_ABF)
+            {
+                auto Mu = atpair.first;
+                auto Nu = atpair.second;
+                chi0_q_tmp[ifreq][iq][Mu][Nu].create(atom_mu[Mu], atom_mu[Nu]);
+            }
+
     omp_lock_t chi0_lock;
     omp_init_lock(&chi0_lock);
     /* if ( atpairs_ABF.size() > itaus_local.size() ) */
@@ -203,7 +205,7 @@ void Chi0::build_chi0_q_space_time(const atpair_R_mat_t &LRI_Cs,
                                for ( int iq = 0; iq != qlist.size(); iq++ )
                                {
                                    double arg = qlist[iq] * (Rlist[iR] * latvec) * TWO_PI;
-                                   chi0_q[ifreq][iq][mu][nu] += ComplexMatrix(chi0_tau[iR]) *
+                                   chi0_q_tmp[ifreq][iq][mu][nu] += ComplexMatrix(chi0_tau[iR]) *
                                        (trans * std::exp(complex<double>(cos(arg), sin(arg))));
                                }
                            }
@@ -217,8 +219,19 @@ void Chi0::build_chi0_q_space_time(const atpair_R_mat_t &LRI_Cs,
     /* { */
     /*     throw logic_error("Not implemented"); */
     /* } */
+
     omp_destroy_lock(&chi0_lock);
     // Reduce to MPI
+    for ( int ifreq = 0; ifreq < tfg.size(); ifreq++ )
+        for ( int iq = 0; iq < qlist.size(); iq++ )
+            for ( auto atpair: atpairs_ABF)
+            {
+                auto Mu = atpair.first;
+                auto Nu = atpair.second;
+                chi0_q[ifreq][iq][Mu][Nu].create(atom_mu[Mu], atom_mu[Nu]);
+                para_mpi.reduce_ComplexMatrix(chi0_q_tmp[ifreq][iq][Mu][Nu], chi0_q[ifreq][iq][Mu][Nu]);
+                chi0_q_tmp[ifreq][iq][Mu].erase(Nu);
+            }
 }
 
 void Chi0::build_chi0_q_conventional(const atpair_R_mat_t &LRI_Cs,
@@ -349,7 +362,7 @@ map<size_t, matrix> compute_chi0_munu_tau_LRI(const map<size_t, atom_mapping<mat
             }
         }
     }
-    cout << "Precalcualted N, size (iR1 x iK): " << N.size() << endl;
+    /* cout << "Precalcualted N, size (iR1 x iK): " << N.size() << endl; */
 
     for ( auto iR: iRs )
     {

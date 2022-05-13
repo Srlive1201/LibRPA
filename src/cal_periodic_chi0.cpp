@@ -234,7 +234,7 @@ void Cal_Periodic_Chi0::R_tau_routing()
                     chi0_k[freq_p.first][k_p.first][I][J].create(mu_num, nu_num);
                     // ComplexMatrix tmp_chi0=std::move(tmp_chi0_freq_k[freq_vec[ifreq]][ik_vec][I][J]);
                     para_mpi.reduce_ComplexMatrix(tmp_chi0_freq_k[freq_p.first][k_p.first][I][J], chi0_k[freq_p.first][k_p.first][I][J]);
-                    tmp_chi0_freq_k[freq_p.first][k_p.first][I].erase(I);
+                    tmp_chi0_freq_k[freq_p.first][k_p.first][I].erase(I); // should be erase(J)?
                 }
             }
         }
