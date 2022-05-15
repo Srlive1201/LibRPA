@@ -29,6 +29,8 @@ void Parallel_MPI::allreduce_ComplexMatrix(ComplexMatrix &cmat_loc, ComplexMatri
 
 void Parallel_MPI::reduce_ComplexMatrix(ComplexMatrix &cmat_loc, ComplexMatrix & cmat_glo)
 {
+    /* cout << "cmat_loc nr/nc: " << cmat_loc.nr << ", " << cmat_loc.nc << endl; */
+    /* cout << "cmat_glo nr/nc: " << cmat_glo.nr << ", " << cmat_glo.nc << endl; */
     assert(cmat_loc.nr==cmat_glo.nr);
     assert(cmat_loc.nc==cmat_glo.nc);
     MPI_Reduce(cmat_loc.c,cmat_glo.c,cmat_glo.size,MPI_DOUBLE_COMPLEX,MPI_SUM,0,MPI_COMM_WORLD);

@@ -108,4 +108,6 @@ void scaled_sum(
 		const complex<double> &s2,
 		ComplexMatrix **m2, 
 		ComplexMatrix **mout);
+
+void print_complex_matrix(const char *desc, const ComplexMatrix &mat);
 #endif

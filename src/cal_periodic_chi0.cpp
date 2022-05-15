@@ -190,6 +190,7 @@ void Cal_Periodic_Chi0::R_tau_routing()
                 const size_t J = J_p.first;
                 double chi0_ele_begin = omp_get_wtime();
                 ComplexMatrix tmp_chi0_tau(ComplexMatrix(cal_chi0_element(tau_loc, R, I, J)));
+                /* if ( freq_vec[tau_loc] != first_tau) continue; // debug use */
                 // chi0[tau_loc][R][I][J] = tmp_chi0_tau.real();
                 double chi0_ele_t = omp_get_wtime() - chi0_ele_begin;
 
@@ -215,6 +216,7 @@ void Cal_Periodic_Chi0::R_tau_routing()
         t_chi0_tot += time_used;
         printf("CHI0 p_id: %d,   thread: %d,     R:  ( %d,  %d,  %d ),    tau: %f ,   TIME_USED: %f \n ", p_id_local, omp_get_thread_num(), R.x, R.y, R.z, tau_loc, time_used);
     }
+
     omp_destroy_lock(&chi0_lock);
     double t_chi0_end = omp_get_wtime();
 #pragma omp barrier
@@ -232,8 +234,15 @@ void Cal_Periodic_Chi0::R_tau_routing()
                     const size_t J = J_p.first;
                     const size_t nu_num = atom_mu[J];
                     chi0_k[freq_p.first][k_p.first][I][J].create(mu_num, nu_num);
+                    /* cout << "nr/nc chi0_k_tmp: " << tmp_chi0_freq_k[freq_p.first][k_p.first][I][J].nr << ", "<< tmp_chi0_freq_k[freq_p.first][k_p.first][I][J].nc << endl; */
+                    /* cout << "nr/nc chi0_k: " << chi0_k[freq_p.first][k_p.first][I][J].nr << ", "<< chi0_k[freq_p.first][k_p.first][I][J].nc << endl; */
                     // ComplexMatrix tmp_chi0=std::move(tmp_chi0_freq_k[freq_vec[ifreq]][ik_vec][I][J]);
                     para_mpi.reduce_ComplexMatrix(tmp_chi0_freq_k[freq_p.first][k_p.first][I][J], chi0_k[freq_p.first][k_p.first][I][J]);
+                    if (para_mpi.get_myid()==0 && I == 0 && J == 0 && freq_p.first == first_freq )
+                    {
+                        cout << k_p.first << endl;
+                        print_complex_matrix("chi0_k ap 0 0, first freq", chi0_k[freq_p.first][k_p.first][I][J]);
+                    }
                     tmp_chi0_freq_k[freq_p.first][k_p.first][I].erase(I); // should be erase(J)?
                 }
             }
@@ -691,7 +700,7 @@ void Cal_Periodic_Chi0::Cosine_to_chi0_freq(map<double, double> &time_grid, map<
 matrix Cal_Periodic_Chi0::cal_chi0_element(const double &time_tau, const Vector3_Order<int> &R, const size_t &I_index, const size_t &J_index)
 {
     prof.start("cal_chi0_element");
-    /* printf("     begin chi0  thread: %d,  I: %zu, J: %zu\n",omp_get_thread_num(),I_index,J_index); */
+    printf("     begin chi0  thread: %d,  I: %zu, J: %zu\n",omp_get_thread_num(),I_index,J_index);
     // for(const auto &K_pair:Cs[I_index])
     // Vector3_Order<int> R_0(0,0,0);
     int flag_G_IJRt = 0;
@@ -902,6 +911,19 @@ matrix Cal_Periodic_Chi0::cal_chi0_element(const double &time_tau, const Vector3
             }
         }
     }
+    /* if (para_mpi.get_myid()==0 && I_index == 0 && J_index == 0 & time_tau == first_tau) */
+    if (para_mpi.get_myid()==0 )
+    {
+        /* if ( R == Vector3_Order<int>{0, 0, 0}) */
+        /* if ( I_index == 0 && J_index == 1 ) */
+        /* if ( R == Vector3_Order<int>{0, 0, 0} && I_index == 0 && J_index == 1 ) */
+        /* if ( I_index == 0 && J_index == 1 ) */
+        /* { */
+        /*     cout << R << " Mu=" << I_index << " Nu=" << J_index; */
+        /*     print_matrix("chi tauR at first tau and R", O_sum); */
+        /* } */
+    }
+
     prof.stop("cal_chi0_element");
     // chi0[time_tau][R][I_index][J_index]=O_sum;
     // printf("     finish chi0  thread: %d,  I: %d, J: %d",omp_get_thread_num(),I_index,J_index);

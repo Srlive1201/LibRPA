@@ -10,5 +10,6 @@
 #include "read_aims.h"
 #include "chi0.h"
 #include "pbc.h"
+#include "epsilon.h"
 
 #endif

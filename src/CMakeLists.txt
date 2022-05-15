@@ -31,6 +31,7 @@ list(APPEND sources
         complexmatrix.cpp
         constants.cpp
         ${CMAKE_CURRENT_BINARY_DIR}/envs.cpp
+        epsilon.cpp
         Gauss_Quadrature.cpp
         input.cpp
         mathtools.cpp

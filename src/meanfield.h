@@ -43,10 +43,10 @@ class MeanField
         ~MeanField() {};
         void set(int ns, int nk, int nb, int nao);
         MeanField(const MeanField &);
-        int get_n_bands() { return n_bands; }
-        int get_n_spins() { return n_spins; }
-        int get_n_kpoints() { return n_kpoints; }
-        int get_n_aos() { return n_aos; }
+        int get_n_bands() const { return n_bands; }
+        int get_n_spins() const { return n_spins; }
+        int get_n_kpoints() const { return n_kpoints; }
+        int get_n_aos() const { return n_aos; }
         double & get_efermi() { return efermi; }
         const double & get_efermi() const { return efermi; }
         vector<matrix> & get_eigenvals() { return eskb; }

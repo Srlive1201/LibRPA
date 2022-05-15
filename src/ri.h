@@ -17,6 +17,8 @@ extern int n_irk_points;
 extern int natom;
 extern int ncell;
 extern map<Vector3_Order<double>, double> irk_weight;
+extern map<int, Vector3_Order<double>> iq_vec;
+extern map<int, double> iq_weights;
 extern map<atom_t, size_t> atom_nw;
 extern map<atom_t, size_t> atom_mu;
 

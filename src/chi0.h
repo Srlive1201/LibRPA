@@ -31,7 +31,7 @@ class Chi0
         map<size_t, map<size_t, map<size_t, atom_mapping<matrix>::pair_t_old>>> gf_unocc_Rt;
         /* //! chi0 data in real-space, [itau/iomega][iR] */
         /* map<int, map<int, atom_mapping<matrix>::pair_t_old>> chi0_R; */
-        //! chi0 data in reci-space, [itau/iomega][ik]
+        //! chi0 data in reci-space, [itau/iomega][iq]
         map<int, map<int, atom_mapping<ComplexMatrix>::pair_t_old>> chi0_q;
         void build_gf_Rt(size_t iR, Vector3_Order<int> R, size_t itau, char ov);
         //! Internal procedure to compute chi0_q by space-time method
@@ -42,14 +42,14 @@ class Chi0
                                      const vector<Vector3_Order<int>> &Rlist,
                                      const Vector3_Order<int> &R_period,
                                      const vector<atpair_t> &atpair_ABF,
-                                     const vector<Vector3_Order<double>> &qlist);
+                                     const map<int, Vector3_Order<double>> &qlist);
         //! Internal procedure to compute chi0_q in the conventional method, i.e. in frequency domain and reciprocal space
         // TODO: implement the conventional method
         void build_chi0_q_conventional(const atpair_R_mat_t &LRI_Cs,
                                        const vector<Vector3_Order<int>> &Rlist,
                                        const Vector3_Order<int> &R_period,
                                        const vector<atpair_t> &atpair_ABF,
-                                       const vector<Vector3_Order<double>> &qlist);
+                                       const map<int, Vector3_Order<double>> &qlist);
     public:
         double gf_R_threshold;
         MeanField mf;
@@ -65,7 +65,7 @@ class Chi0
                      const vector<Vector3_Order<int>> &Rlist,
                      const Vector3_Order<int> &R_period,
                      const vector<atpair_t> &atpair_ABF,
-                     const vector<Vector3_Order<double>> &qlist,
+                     const map<int, Vector3_Order<double>> &qlist,
                      TFGrids::GRID_TYPES gt, bool use_space_time);
 };
 

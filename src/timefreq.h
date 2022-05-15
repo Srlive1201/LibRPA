@@ -72,15 +72,15 @@ class TFGrids
         //! delete the pointers
         void unset();
     public:
-        TFGrids::GRID_TYPES get_grid_type() { return grid_type; }
+        TFGrids::GRID_TYPES get_grid_type() const { return grid_type; }
         TFGrids(unsigned N);
         // disable copy at present
         TFGrids(const TFGrids &tfg) {};
         void reset(unsigned N);
         //! get the number of grid points
-        size_t get_n_grids() { return n_grids; }
+        size_t get_n_grids() const { return n_grids; }
         //! alias to get_n_grids
-        size_t size() { return n_grids; }
+        size_t size() const { return n_grids; }
         const vector<double> get_freq_nodes() const { return freq_nodes; }
         const vector<double> get_freq_weights() const { return freq_weights; }
         const vector<double> get_time_nodes() const { return time_nodes; }
@@ -99,7 +99,7 @@ class TFGrids
         //! Generate Gauss-Chebyshev quadrature of second kind on [0, infty)
         void generate_GaussChebyshevII();
         void generate_GaussLegendre();
-        bool has_time_grids() { return time_nodes.size() > 0; }
+        bool has_time_grids() const { return time_nodes.size() > 0; }
         ~TFGrids();
 };
 

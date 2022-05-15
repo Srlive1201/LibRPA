@@ -5,6 +5,8 @@ int n_irk_points;
 int natom;
 int ncell;
 map<Vector3_Order<double>, double> irk_weight;
+map<int, double> iq_weights;
+map<int, Vector3_Order<double>> iq_vec;
 map<atom_t, size_t> atom_nw;
 map<atom_t, size_t> atom_mu;
 

@@ -431,3 +431,16 @@ ComplexMatrix conj(const ComplexMatrix &m)
 		cm.c[i] = conj(m.c[i]);
 	return cm;
 }
+
+void print_complex_matrix(const char *desc, const ComplexMatrix &mat)
+{
+    int nr = mat.nr;
+    int nc = mat.nc;
+    printf("\n %s\n", desc);
+    for (int i = 0; i < nr; i++)
+    {
+        for (int j = 0; j < nc; j++)
+            printf("%10.6f,%8.6f ", mat.c[i * nc + j].real(), mat.c[i * nc + j].imag());
+        printf("\n");
+    }
+}

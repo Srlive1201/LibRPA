@@ -17,6 +17,7 @@ objects = \
 		  complexmatrix.o \
 		  constants.o \
 		  envs.o \
+		  epsilon.o \
 		  Gauss_Quadrature.o \
 		  input.o \
 		  mathtools.o \
