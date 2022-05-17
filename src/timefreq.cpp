@@ -144,6 +144,32 @@ void TFGrids::set_time()
     fourier_t2f.create(n_grids, n_grids);
 }
 
+void TFGrids::show()
+{
+    cout << "Grid type: " << TFGrids::GRID_TYPES_NOTES[grid_type] << endl;
+    cout << "Grid size: " << n_grids << endl;
+    cout << "Frequency node & weight: " << endl;
+    for ( int i = 0; i != n_grids; i++ )
+        printf("%2d %10.6f %10.6f\n", i, freq_nodes[i], freq_weights[i]);
+    if (has_time_grids())
+    {
+        cout << "Time node & weight: " << endl;
+        for ( int i = 0; i != n_grids; i++ )
+            printf("%2d %10.6f %10.6f\n", i, time_nodes[i], time_weights[i]);
+        cout << "t->f transform: " << endl;
+        if (costrans_t2f.size)
+        {
+            cout << "Cosine transform matrix" << endl;
+            print_matrix("", costrans_t2f);
+        }
+        if (sintrans_t2f.size)
+        {
+            cout << "Sine transform matrix" << endl;
+            print_matrix("", sintrans_t2f);
+        }
+    }
+}
+
 void TFGrids::unset()
 {
     freq_nodes.clear();
@@ -237,11 +263,11 @@ void TFGrids::generate_minimax(double emin, double emax)
     }
     vector<double> trans;
     // cosine transform
-    trans = read_time2freq_trans(to_string(n_grids) + "_time2freq_grid_cos.txt", erange);
+    trans = read_time2freq_trans(to_string(n_grids) + "_time2freq_grid_cos.txt", emin);
     for (int k = 0; k != n_grids; k++)
         for (int j = 0; j != n_grids; j++)
             costrans_t2f(k, j) = trans[ k * n_grids + j];
-    trans = read_time2freq_trans(to_string(n_grids) + "_time2freq_grid_sin.txt", erange);
+    trans = read_time2freq_trans(to_string(n_grids) + "_time2freq_grid_sin.txt", emin);
     for (int k = 0; k != n_grids; k++)
         for (int j = 0; j != n_grids; j++)
             sintrans_t2f(k, j) = trans[ k * n_grids + j];

@@ -19,37 +19,46 @@ class Chi0
     private:
         unsigned gf_save;
         unsigned gf_discard;
-        // char gf_R_timefreq;
-        // char gf_k_timefreq;
-        // char chi_R_timefreq;
-        // char chi_k_timefreq;
-        // [is][I][J][iR][itime](iwt1, iwt2)
-        //! space-time Green's function in occupied space, [ispin][itau/iomega][iR][I][J]
-        //! @note: should use complex matrix in general?
-        map<size_t, map<size_t, map<size_t, atom_mapping<matrix>::pair_t_old>>> gf_occ_Rt;
-        //! space-time Green's function in unoccupied (i.e. virtual) space
-        map<size_t, map<size_t, map<size_t, atom_mapping<matrix>::pair_t_old>>> gf_unocc_Rt;
-        /* //! chi0 data in real-space, [itau/iomega][iR] */
-        /* map<int, map<int, atom_mapping<matrix>::pair_t_old>> chi0_R; */
-        //! chi0 data in reci-space, [itau/iomega][iq]
-        map<int, map<int, atom_mapping<ComplexMatrix>::pair_t_old>> chi0_q;
-        void build_gf_Rt(size_t iR, Vector3_Order<int> R, size_t itau, char ov);
+        //! space-time Green's function in occupied space, [ispin][I][J][R][itau]
+        /*!
+         * @note: itau (index) less than zero correspond to occupied GF,
+         *        and larger than zero correspond to unoccpued GF.
+         *        Absolute value starting from 1 to the size of tfg.
+         * @note: May need to use ComplexMatrix for GF.
+         */
+        map<int, atom_mapping<map<Vector3_Order<int>, map<int, matrix>>>::pair_t_old> gf_is_itau_R;
+        //! R on which the space-time GF are created.
+        vector<Vector3_Order<int>> Rlist_gf;
+        //! chi0 data in reci-space, [itau/iomega][q]
+        map<int, map<Vector3_Order<double>, atom_mapping<ComplexMatrix>::pair_t_old>> chi0_q;
+        void build_gf_Rt(Vector3_Order<int> R, int itau);
         //! Internal procedure to compute chi0_q by space-time method
         /*
          @todo add threshold parameter. Maybe in the class level?
          */
         void build_chi0_q_space_time(const atpair_R_mat_t &LRI_Cs,
-                                     const vector<Vector3_Order<int>> &Rlist,
                                      const Vector3_Order<int> &R_period,
                                      const vector<atpair_t> &atpair_ABF,
-                                     const map<int, Vector3_Order<double>> &qlist);
+                                     const vector<Vector3_Order<double>> &qlist);
         //! Internal procedure to compute chi0_q in the conventional method, i.e. in frequency domain and reciprocal space
         // TODO: implement the conventional method
         void build_chi0_q_conventional(const atpair_R_mat_t &LRI_Cs,
-                                       const vector<Vector3_Order<int>> &Rlist,
                                        const Vector3_Order<int> &R_period,
                                        const vector<atpair_t> &atpair_ABF,
-                                       const map<int, Vector3_Order<double>> &qlist);
+                                       const vector<Vector3_Order<double>> &qlist);
+        /*!
+         * s_alpha and s_beta are the spin component of unoccupied Green's function, G_{alpha, beta}(tau)
+         * correspondingly, occupied GF G_{beta, alpha}(-tau) will be used. itau must be positive.
+         */
+        matrix compute_chi0_s_munu_itau_R(const atpair_R_mat_t &LRI_Cs,
+                                          const Vector3_Order<int> &R_period, 
+                                          int spin_channel,
+                                          atom_t mu, atom_t nu, int itau, Vector3_Order<int> R);
+        // copy some reshape method inside chi0, test performance
+        /* matrix reshape_Cs(const size_t n1, const size_t n2, const size_t n3, const std::shared_ptr<matrix> &Cs); */
+        /* matrix reshape_dim_Cs(const size_t n1, const size_t n2, const size_t n3, const std::shared_ptr<matrix> &Cs);//(n1*n2,n3) -> (n1,n2*n3) */
+        /* matrix reshape_mat(const size_t n1, const size_t n2, const size_t n3, const matrix &mat); */
+        /* matrix reshape_mat_21(const size_t n1, const size_t n2, const size_t n3, const matrix &mat); //(n1,n2*n3) -> (n1*n2,n3) */
     public:
         double gf_R_threshold;
         MeanField mf;
@@ -60,13 +69,13 @@ class Chi0
              unsigned n_tf_grids):
             mf(mf_in), klist(klist_in), tfg(n_tf_grids) { gf_R_threshold = 1e-9; }
         ~Chi0() {};
-        //! Compute the independent response function in q-omega domain for ABFs on the atom pairs atpair_ABF and q-vectors in qlist
-        void compute(const atpair_R_mat_t &LRI_Cs,
-                     const vector<Vector3_Order<int>> &Rlist,
-                     const Vector3_Order<int> &R_period,
-                     const vector<atpair_t> &atpair_ABF,
-                     const map<int, Vector3_Order<double>> &qlist,
-                     TFGrids::GRID_TYPES gt, bool use_space_time);
+        //! Build the independent response function in q-omega domain for ABFs on the atom pairs atpair_ABF and q-vectors in qlist
+        void build(const atpair_R_mat_t &LRI_Cs,
+                   const vector<Vector3_Order<int>> &Rlist,
+                   const Vector3_Order<int> &R_period,
+                   const vector<atpair_t> &atpair_ABF,
+                   const vector<Vector3_Order<double>> &qlist,
+                   TFGrids::GRID_TYPES gt, bool use_space_time);
 };
 
 //! Compute the real-space independent reponse function in space-time method on a particular time
@@ -80,9 +89,10 @@ class Chi0
  @param[in] mu, nu: indices of atoms with ABF
  @retval mapping from unit cell index to matrix
  */
-map<size_t, matrix> compute_chi0_munu_tau_LRI(const map<size_t, atom_mapping<matrix>::pair_t_old> &gf_occ_ab_t,
-                                              const map<size_t, atom_mapping<matrix>::pair_t_old> &gf_unocc_ab_t,
-                                              const atpair_R_mat_t &LRI_Cs,
-                                              const vector<Vector3_Order<int>> &Rlist, const Vector3_Order<int> &R_period, 
-                                              const vector<int> iRs,
-                                              atom_t mu, atom_t nu);
+map<size_t, matrix> compute_chi0_munu_tau_LRI_saveN_noreshape(const map<size_t, atom_mapping<matrix>::pair_t_old> &gf_occ_ab_t,
+                                                              const map<size_t, atom_mapping<matrix>::pair_t_old> &gf_unocc_ab_t,
+                                                              const atpair_R_mat_t &LRI_Cs,
+                                                              const vector<Vector3_Order<int>> &Rlist, const Vector3_Order<int> &R_period, 
+                                                              const vector<int> iRs,
+                                                              atom_t mu, atom_t nu);
+

@@ -4,7 +4,7 @@
  */
 #ifndef RI_H
 #define RI_H
-
+#include <cstring>
 #include <map>
 #include <memory>
 #include <utility>
@@ -17,8 +17,6 @@ extern int n_irk_points;
 extern int natom;
 extern int ncell;
 extern map<Vector3_Order<double>, double> irk_weight;
-extern map<int, Vector3_Order<double>> iq_vec;
-extern map<int, double> iq_weights;
 extern map<atom_t, size_t> atom_nw;
 extern map<atom_t, size_t> atom_mu;
 
@@ -37,6 +35,10 @@ int atom_mu_loc2glo(const int &atom_index, const int &mu_lcoal);
 
 //! Reshape Cs matrix from (n1*n2,n3) to (n2,n1*n3)
 matrix reshape_Cs(size_t n1, size_t n2, size_t n3, const shared_ptr<matrix> &Csmat);
-
-#endif // !RI_H
-
+//! Reshape Cs matrix from (n1,n2*n3) to (n2,n1*n3)
+matrix reshape_mat(size_t n1, size_t n2, size_t n3, const matrix &Csmat);
+//! Reshape Cs matrix from n1,n2*n3) to (n1*n2,n3)
+matrix reshape_mat_21(const size_t n1, const size_t n2, const size_t n3, const matrix &Csmat);
+//! Reshape Cs matrix from n1,n2*n3) to (n1*n2,n3)
+matrix reshape_mat_21(const size_t n1, const size_t n2, const size_t n3, const matrix &Csmat);
+#endif

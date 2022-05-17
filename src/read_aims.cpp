@@ -301,8 +301,6 @@ void handle_Vq_file(const string &file_path, double threshold, map<Vector3_Order
         int iq = stoi(q_num) - 1;
         Vector3_Order<double> qvec(kvec_c[iq]);
         irk_weight.insert(pair<Vector3_Order<double>, double>(qvec, stod(q_weight)));
-        iq_vec[iq] = qvec;
-        iq_weights[iq] = stod(q_weight);
         if (!Vq_full.count(qvec))
         {
             Vq_full[qvec].create(mu, nu);

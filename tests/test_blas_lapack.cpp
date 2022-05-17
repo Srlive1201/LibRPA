@@ -22,7 +22,7 @@ bool is_mat_A_equal_B(const int m, const int n, const T *A, const T* B, bool tra
             {
                 printf("%d %d: %s = %f, %s = %f\n", im, in, stra, a, strb, b);
             }
-            if ( fabs(a-b) > 1e-15 )
+            if ( fabs(a-b) > 1e-14 )
             {
                 ndiff++;
                 if (!print) return false;

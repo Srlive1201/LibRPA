@@ -204,6 +204,7 @@ void Cal_Periodic_Chi0::R_tau_routing()
                     for (auto ifreq = 0; ifreq != freq_grid.size(); ifreq++)
                     {
                         const complex<double> cos_weight_kpashe = kphase * tran_gamma[ifreq * n_tau + itt];
+                        cout << kphase << " * " << tran_gamma[ifreq * n_tau + itt] << " = " << cos_weight_kpashe << endl;
                         //  cout<<"  tmp_chi0  nr nc:  "<<tmp_chi0_freq_k[ifreq][ik_vec].nr<<"  "<<tmp_chi0_freq_k[ifreq][ik_vec].nc<<"    chi0_tau: "<<tmp_chi0_tau.nr<<"  "<<tmp_chi0_tau.nr<<endl;
                         tmp_chi0_freq_k[freq_vec[ifreq]][ik_vec][I][J] += tmp_chi0_tau * cos_weight_kpashe;
                     }
@@ -598,6 +599,8 @@ void Cal_Periodic_Chi0::cal_Green_func_R_tau(const double &time_tau, const Vecto
                 {
                     // cout<<" max_green_ele:  "<<tmp_green.absmax()<<endl;
                     Green_atom[is][I][J][R][time_tau] = std::move(tmp_green);
+                    /* cout << is << " " << I << " " << J << " " << R << " " << time_tau << endl; */
+                    /* print_matrix("gf_is_itau_R[is][I][J][R][time_tau]", Green_atom[is][I][J][R][time_tau]); */
                     green_save++;
                 }
                 else
@@ -751,7 +754,7 @@ matrix Cal_Periodic_Chi0::cal_chi0_element(const double &time_tau, const Vector3
                     {
                         assert(j_num * l_num == (*Cs_mat2).nr);
                         /* printf("          thread: %d, X_R2 IJL:   %zu,%zu,%zu  R:(  %d,%d,%d  )  tau:%f\n",omp_get_thread_num(),I_index,J_index,L_index,R.x,R.y,R.z,time_tau); */
-                        matrix Cs2_reshape(reshape_Cs(j_num, l_num, nu_num, Cs_mat2));
+                        matrix Cs2_reshape(Cal_Periodic_Chi0::reshape_Cs(j_num, l_num, nu_num, Cs_mat2));
                         
                         if (Green_atom.at(is).at(I_index).at(L_index).at(R_temp_2).count(time_tau))
                         {
@@ -774,8 +777,8 @@ matrix Cal_Periodic_Chi0::cal_chi0_element(const double &time_tau, const Vector3
             }
         }
     }
-    matrix X_R2_rs(reshape_mat(i_num, j_num, nu_num, X_R2));
-    matrix X_conj_R2_rs(reshape_mat(i_num, j_num, nu_num, X_conj_R2));
+    matrix X_R2_rs(Cal_Periodic_Chi0::reshape_mat(i_num, j_num, nu_num, X_R2));
+    matrix X_conj_R2_rs(Cal_Periodic_Chi0::reshape_mat(i_num, j_num, nu_num, X_conj_R2));
     
 
     matrix O_sum(mu_num, nu_num);
@@ -817,7 +820,7 @@ matrix Cal_Periodic_Chi0::cal_chi0_element(const double &time_tau, const Vector3
                                     
                                     assert(j_num * l_num == (*Cs_mat2).nr);
                                     // printf("          thread: %d, IJKL:   %d,%d,%d,%d  R:(  %d,%d,%d  )  tau:%f\n",omp_get_thread_num(),I_index,J_index,K_index,L_index,R.x,R.y,R.z,time_tau);
-                                    matrix Cs2_reshape(reshape_Cs(j_num, l_num, nu_num, Cs_mat2));
+                                    matrix Cs2_reshape(Cal_Periodic_Chi0::reshape_Cs(j_num, l_num, nu_num, Cs_mat2));
                                     if (flag_G_IJRNt && Green_atom.at(is).at(K_index).at(L_index).at(R_temp_1).count(time_tau))
                                     {
                                         // cout<<"A";
@@ -840,14 +843,14 @@ matrix Cal_Periodic_Chi0::cal_chi0_element(const double &time_tau, const Vector3
                     if (flag_G_IJRt)
                     {
                         prof.start("O");
-                        matrix N_conj_R2_rs(reshape_mat(k_num, j_num, nu_num, N_conj_R2));
+                        matrix N_conj_R2_rs(Cal_Periodic_Chi0::reshape_mat(k_num, j_num, nu_num, N_conj_R2));
                         O += Green_atom.at(is).at(I_index).at(J_index).at(R).at(time_tau) * N_conj_R2_rs;
                         prof.stop("O");
                     }
                     if (flag_G_IJRNt)
                     {
                         prof.start("O");
-                        matrix N_R2_rs(reshape_mat(k_num, j_num, nu_num, N_R2));
+                        matrix N_R2_rs(Cal_Periodic_Chi0::reshape_mat(k_num, j_num, nu_num, N_R2));
                         O += Green_atom.at(is).at(I_index).at(J_index).at(R).at(-time_tau) * N_R2_rs;
                         prof.stop("O");
                     }
@@ -898,10 +901,10 @@ matrix Cal_Periodic_Chi0::cal_chi0_element(const double &time_tau, const Vector3
                     }
                 }
 
-                matrix Z_rs(reshape_mat(k_num, i_num, nu_num, Z));
+                matrix Z_rs(Cal_Periodic_Chi0::reshape_mat(k_num, i_num, nu_num, Z));
 
                 O += Z_rs;
-                matrix OZ(reshape_mat_21(i_num, k_num, nu_num, O));
+                matrix OZ(Cal_Periodic_Chi0::reshape_mat_21(i_num, k_num, nu_num, O));
                 matrix Cs1_tran(transpose(*Cs_mat1));
                 prof.start("O");
                 O_sum += Cs1_tran * OZ;
@@ -917,11 +920,11 @@ matrix Cal_Periodic_Chi0::cal_chi0_element(const double &time_tau, const Vector3
         /* if ( R == Vector3_Order<int>{0, 0, 0}) */
         /* if ( I_index == 0 && J_index == 1 ) */
         /* if ( R == Vector3_Order<int>{0, 0, 0} && I_index == 0 && J_index == 1 ) */
-        /* if ( I_index == 0 && J_index == 1 ) */
-        /* { */
-        /*     cout << R << " Mu=" << I_index << " Nu=" << J_index; */
-        /*     print_matrix("chi tauR at first tau and R", O_sum); */
-        /* } */
+        if ( I_index == 0 && J_index == 0 && time_tau == first_tau )
+        {
+            cout << R << " Mu=" << I_index << " Nu=" << J_index << " tau:" << time_tau << endl;
+            print_matrix("space-time chi0", O_sum);
+        }
     }
 
     prof.stop("cal_chi0_element");
