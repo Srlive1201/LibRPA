@@ -89,6 +89,10 @@ class TFGrids
         // NOTE: use reference for return matrix?
         const matrix get_costrans_t2f() const { return costrans_t2f; }
         const matrix get_sintrans_t2f() const { return sintrans_t2f; }
+        //! obtain the integral weight from the frequency value
+        // NOTE:(ZMY) attempt to use a map<double, double> to store,
+        //      but will lead to a segfault in chi0tauR calculation, not knowing why
+        double find_freq_weight(const double &freq);
         //! Generate the even-spaced frequency grid
         void generate_evenspaced(double emin, double interval);
         //! Generate the even-spaced time-frequency grid. @note Currently only for debug use

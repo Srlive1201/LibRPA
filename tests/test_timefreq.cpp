@@ -20,10 +20,13 @@ void check_minimax_ng6_HF_123()
     double emin = 0.657768, emax = 30.1366;
     tfg.generate_minimax(emin, emax);
     assert ( tfg.size() == 6 );
+    printf("%20.15f, %20.15f\n", tfg.get_freq_nodes()[0], tfg.get_freq_weights()[0]);
     vector<double> freq_node = {0.233556, 0.844872, 2.029850, 4.815547, 12.239097, 36.979336};
     vector<double> freq_weight = {0.489089, 0.798829, 1.724256, 4.282121, 12.092283, 48.530744};
     vector<double> time_node = {0.021614, 0.129568, 0.408121, 1.072294, 2.593619, 6.074920};
     vector<double> time_weight = {0.057049, 0.171324, 0.419863, 0.982601, 2.222569, 5.258784};
+    cout << tfg.find_freq_weight(tfg.get_freq_nodes()[0]) << endl;
+    assert( tfg.find_freq_weight(tfg.get_freq_nodes()[0]) == tfg.get_freq_weights()[0]);
     for ( int i = 0; i != tfg.size(); i++ )
     {
         assert( fabs(freq_node[i] - tfg.get_freq_nodes()[i]) < 1e-5);
