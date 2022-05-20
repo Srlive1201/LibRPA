@@ -55,12 +55,12 @@ void Chi0::build(const atpair_R_mat_t &LRI_Cs,
         // use space-time method
         for ( auto R: Rlist )
             Rlist_gf.push_back(R);
-        for (int itau = 0; itau < tfg.size(); itau++)
+        for ( auto tau: tfg.get_time_nodes() )
         {
             for ( auto R: Rlist_gf)
             {
-                build_gf_Rt(R, itau+1);
-                build_gf_Rt(R, -itau-1);
+                build_gf_Rt(R, tau);
+                build_gf_Rt(R, -tau);
             }
         }
         cout << " FINISH GREEN FUN" << endl;
@@ -76,19 +76,13 @@ void Chi0::build(const atpair_R_mat_t &LRI_Cs,
     }
 }
 
-void Chi0::build_gf_Rt(Vector3_Order<int> R, int itau)
+void Chi0::build_gf_Rt(Vector3_Order<int> R, double tau)
 {
-    double tau;
     auto nkpts = mf.get_n_kpoints();
     auto nspins = mf.get_n_spins();
     auto nbands = mf.get_n_bands();
     auto naos = mf.get_n_aos();
-    assert (itau != 0);
-
-    if ( itau < 0) // occupied Green's function for negative imaginary time
-        tau = - tfg.get_time_nodes()[-itau-1];
-    else // unoccupied Green's function for positive imaginary time
-        tau = tfg.get_time_nodes()[itau-1];
+    assert (tau != 0);
 
     // temporary Green's function
     matrix gf_Rt_is_global(naos, naos);
@@ -144,7 +138,7 @@ void Chi0::build_gf_Rt(Vector3_Order<int> R, int itau)
                 if (tmp_green.absmax() > gf_R_threshold)
                 {
                     // cout<<" max_green_ele:  "<<tmp_green.absmax()<<endl;
-                    gf_is_itau_R[is][I][J][R][itau] = std::move(tmp_green);
+                    gf_is_itau_R[is][I][J][R][tau] = std::move(tmp_green);
                     /* cout << is << " " << I << " " << J << " " << R << " " << itau << " " << tau << endl; */
                     /* print_matrix("gf_is_itau_R[is][I][J][R][itau]", gf_is_itau_R[is][I][J][R][itau]); */
                     gf_save++;
@@ -168,15 +162,15 @@ void Chi0::build_chi0_q_space_time(const atpair_R_mat_t &LRI_Cs,
     vector<pair<int, int>> itauiRs_local = dispatcher(0, tfg.size(), 0, Rlist_gf.size(),
                                                       para_mpi.get_myid(), para_mpi.get_size(), true, false);
 
-    map<int, map<Vector3_Order<double>, atom_mapping<ComplexMatrix>::pair_t_old>> chi0_q_tmp;
-    for ( int ifreq = 0; ifreq < tfg.size(); ifreq++ )
+    map<double, map<Vector3_Order<double>, atom_mapping<ComplexMatrix>::pair_t_old>> chi0_q_tmp;
+    for ( auto freq: tfg.get_freq_nodes() )
         for ( auto q: qlist)
         {
             for ( auto atpair: atpairs_ABF)
             {
                 auto Mu = atpair.first;
                 auto Nu = atpair.second;
-                chi0_q_tmp[ifreq][q][Mu][Nu].create(atom_mu[Mu], atom_mu[Nu]);
+                chi0_q_tmp[freq][q][Mu][Nu].create(atom_mu[Mu], atom_mu[Nu]);
             }
         }
 
@@ -189,6 +183,7 @@ void Chi0::build_chi0_q_space_time(const atpair_R_mat_t &LRI_Cs,
         for ( auto itau_iR: itauiRs_local)
         {
             auto itau = itau_iR.first;
+            auto tau = tfg.get_time_nodes()[itau];
             auto iR = itau_iR.second;
             auto R = Rlist_gf[iR];
             for ( auto atpair: atpairs_ABF)
@@ -200,7 +195,7 @@ void Chi0::build_chi0_q_space_time(const atpair_R_mat_t &LRI_Cs,
                     // all Rs is computed at the same time, to avoid repeated calculation of N
                     matrix chi0_tau;
                     /* if (itau == 0) // debug first itau */
-                        chi0_tau = compute_chi0_s_munu_itau_R(LRI_Cs, R_period, is, Mu, Nu, itau+1, R);
+                        chi0_tau = compute_chi0_s_munu_tau_R(LRI_Cs, R_period, is, Mu, Nu, tau, R);
                     /* else continue; // debug first itau */
                     omp_set_lock(&chi0_lock);
                     for ( auto q: qlist )
@@ -208,11 +203,12 @@ void Chi0::build_chi0_q_space_time(const atpair_R_mat_t &LRI_Cs,
                         double arg = q * (R * latvec) * TWO_PI;
                         for ( int ifreq = 0; ifreq != tfg.size(); ifreq++ )
                         {
+                            double freq = tfg.get_freq_nodes()[ifreq];
                             double trans = tfg.get_costrans_t2f()(ifreq, itau);
                             const complex<double> weight = trans * complex<double>(cos(arg), sin(arg));
                             /* cout << weight << endl; */
                             /* cout << complex<double>(cos(arg), sin(arg)) << " * " << trans << " = " << weight << endl; */
-                            chi0_q_tmp[ifreq][q][Mu][Nu] += ComplexMatrix(chi0_tau) * weight;
+                            chi0_q_tmp[freq][q][Mu][Nu] += ComplexMatrix(chi0_tau) * weight;
                         }
                     }
                     omp_unset_lock(&chi0_lock);
@@ -230,30 +226,34 @@ void Chi0::build_chi0_q_space_time(const atpair_R_mat_t &LRI_Cs,
     omp_destroy_lock(&chi0_lock);
     // Reduce to MPI
     for ( int ifreq = 0; ifreq < tfg.size(); ifreq++ )
+    {
+        double freq = tfg.get_freq_nodes()[ifreq];
         for ( auto q: qlist )
             for ( auto atpair: atpairs_ABF)
             {
                 auto Mu = atpair.first;
                 auto Nu = atpair.second;
-                chi0_q[ifreq][q][Mu][Nu].create(atom_mu[Mu], atom_mu[Nu]);
+                chi0_q[freq][q][Mu][Nu].create(atom_mu[Mu], atom_mu[Nu]);
                 /* cout << "nr/nc chi0_q_tmp: " << chi0_q_tmp[ifreq][iq][Mu][Nu].nr << ", "<< chi0_q_tmp[ifreq][iq][Mu][Nu].nc << endl; */
                 /* cout << "nr/nc chi0_q: " << chi0_q[ifreq][iq][Mu][Nu].nr << ", "<< chi0_q[ifreq][iq][Mu][Nu].nc << endl; */
-                para_mpi.reduce_ComplexMatrix(chi0_q_tmp[ifreq][q][Mu][Nu], chi0_q[ifreq][q][Mu][Nu]);
+                para_mpi.reduce_ComplexMatrix(chi0_q_tmp[freq][q][Mu][Nu], chi0_q[freq][q][Mu][Nu]);
                 if (para_mpi.get_myid()==0 && Mu == 0 && Nu == 0 && ifreq == 0 && q == Vector3_Order<double>{0, 0, 0})
-                    print_complex_matrix("chi0_q ap 0 0, first freq first q", chi0_q[ifreq][q][Mu][Nu]);
-                chi0_q_tmp[ifreq][q][Mu].erase(Nu);
+                    print_complex_matrix("chi0_q ap 0 0, first freq first q", chi0_q[freq][q][Mu][Nu]);
+                chi0_q_tmp[freq][q][Mu].erase(Nu);
             }
+    }
 }
 
 
-matrix Chi0::compute_chi0_s_munu_itau_R(const atpair_R_mat_t &LRI_Cs,
-                                        const Vector3_Order<int> &R_period, 
-                                        int spin_channel,
-                                        atom_t Mu, atom_t Nu, int itau, Vector3_Order<int> R)
+matrix Chi0::compute_chi0_s_munu_tau_R(const atpair_R_mat_t &LRI_Cs,
+                                       const Vector3_Order<int> &R_period, 
+                                       int spin_channel,
+                                       atom_t Mu, atom_t Nu, double tau, Vector3_Order<int> R)
 {
     prof.start("cal_chi0_element");
     /* printf("     begin chi0  thread: %d,  I: %zu, J: %zu\n",omp_get_thread_num(), Mu, Nu); */
 
+    assert ( tau > 0 );
     // Local RI requires
     const atom_t iI = Mu;
     const atom_t iJ = Nu;
@@ -268,14 +268,14 @@ matrix Chi0::compute_chi0_s_munu_itau_R(const atpair_R_mat_t &LRI_Cs,
 
     /* printf("     check if already calculated\n"); */
     /* printf("     size of Green_atom: %zu\n", Green_atom.size()); */
-    const auto & gf_R_itau = gf_is_itau_R.at(spin_channel);
-    if (gf_R_itau.at(iI).count(iJ))
-        if (gf_R_itau.at(iI).at(iJ).count(R))
+    const auto & gf_R_tau = gf_is_itau_R.at(spin_channel);
+    if (gf_R_tau.at(iI).count(iJ))
+        if (gf_R_tau.at(iI).at(iJ).count(R))
         {
-            if (gf_R_itau.at(iI).at(iJ).at(R).count(itau))
+            if (gf_R_tau.at(iI).at(iJ).at(R).count(tau))
                 flag_G_IJRt = 1;
 
-            if (gf_R_itau.at(iI).at(iJ).at(R).count(-itau))
+            if (gf_R_tau.at(iI).at(iJ).at(R).count(-tau))
                 flag_G_IJRNt = 1;
         }
 
@@ -287,7 +287,7 @@ matrix Chi0::compute_chi0_s_munu_itau_R(const atpair_R_mat_t &LRI_Cs,
         const auto iL = L_pair.first;
         const size_t n_l = atom_nw[iL];
         /* printf("     begin is loop\n"); */
-        if (gf_R_itau.at(iI).count(iL))
+        if (gf_R_tau.at(iI).count(iL))
         {
             for (const auto &R2_index : L_pair.second)
             {
@@ -296,25 +296,25 @@ matrix Chi0::compute_chi0_s_munu_itau_R(const atpair_R_mat_t &LRI_Cs,
 
                 Vector3_Order<int> R_temp_2(Vector3_Order<int>(R2 + R) % R_period);
 
-                if (gf_R_itau.at(iI).at(iL).count(R_temp_2))
+                if (gf_R_tau.at(iI).at(iL).count(R_temp_2))
                 {
                     assert(n_j * n_l == (*Cs_mat2).nr);
                     /* printf("          thread: %d, X_R2 IJL:   %zu,%zu,%zu  R:(  %d,%d,%d  )  tau:%f\n",omp_get_thread_num(),iI,iJ,iL,R.x,R.y,R.z,time_tau); */
                     matrix Cs2_reshape(reshape_Cs(n_j, n_l, n_nu, Cs_mat2));
                     
-                    if (gf_R_itau.at(iI).at(iL).at(R_temp_2).count(itau))
+                    if (gf_R_tau.at(iI).at(iL).at(R_temp_2).count(tau))
                     {
                         // cout<<"C";
                         prof.start("X");
-                        X_R2 += gf_R_itau.at(iI).at(iL).at(R_temp_2).at(itau) * Cs2_reshape;
+                        X_R2 += gf_R_tau.at(iI).at(iL).at(R_temp_2).at(tau) * Cs2_reshape;
                         prof.stop("X");
                     }
 
-                    if (gf_R_itau.at(iI).at(iL).at(R_temp_2).count(-itau))
+                    if (gf_R_tau.at(iI).at(iL).at(R_temp_2).count(-tau))
                     {
                         // cout<<"D";
                         prof.start("X");
-                        X_conj_R2 += gf_R_itau.at(iI).at(iL).at(R_temp_2).at(-itau) * Cs2_reshape;
+                        X_conj_R2 += gf_R_tau.at(iI).at(iL).at(R_temp_2).at(-tau) * Cs2_reshape;
                         prof.stop("X");
                     }
                     
@@ -349,7 +349,7 @@ matrix Chi0::compute_chi0_s_munu_itau_R(const atpair_R_mat_t &LRI_Cs,
                 {
                     const auto iL = L_pair.first;
                     const size_t n_l = atom_nw[iL];
-                    if (gf_R_itau.at(iK).count(iL))
+                    if (gf_R_tau.at(iK).count(iL))
                     {
                         for (const auto &R2_index : L_pair.second)
                         {
@@ -357,24 +357,24 @@ matrix Chi0::compute_chi0_s_munu_itau_R(const atpair_R_mat_t &LRI_Cs,
                             const auto &Cs_mat2 = R2_index.second;
                             Vector3_Order<int> R_temp_1(Vector3_Order<int>(R + R2 - R1) % R_period);
                             // Vector3_Order<int> R_temp_2(R2+R);
-                            if (gf_R_itau.at(iK).at(iL).count(R_temp_1))
+                            if (gf_R_tau.at(iK).at(iL).count(R_temp_1))
                             {
                                 
                                 assert(n_j * n_l == (*Cs_mat2).nr);
                                 // printf("          thread: %d, IJKL:   %d,%d,%d,%d  R:(  %d,%d,%d  )  tau:%f\n",omp_get_thread_num(),I_index,iJ,iK,iL,R.x,R.y,R.z,itau);
                                 matrix Cs2_reshape(reshape_Cs(n_j, n_l, n_nu, Cs_mat2));
-                                if (flag_G_IJRNt && gf_R_itau.at(iK).at(iL).at(R_temp_1).count(itau))
+                                if (flag_G_IJRNt && gf_R_tau.at(iK).at(iL).at(R_temp_1).count(tau))
                                 {
                                     // cout<<"A";
                                     prof.start("N");
-                                    N_R2 += gf_R_itau.at(iK).at(iL).at(R_temp_1).at(itau) * Cs2_reshape;
+                                    N_R2 += gf_R_tau.at(iK).at(iL).at(R_temp_1).at(tau) * Cs2_reshape;
                                     prof.stop("N");
                                 }
-                                if (flag_G_IJRt && gf_R_itau.at(iK).at(iL).at(R_temp_1).count(-itau))
+                                if (flag_G_IJRt && gf_R_tau.at(iK).at(iL).at(R_temp_1).count(-tau))
                                 {
                                     // cout<<"B";
                                     prof.start("N");
-                                    N_conj_R2 += gf_R_itau.at(iK).at(iL).at(R_temp_1).at(-itau) * Cs2_reshape;
+                                    N_conj_R2 += gf_R_tau.at(iK).at(iL).at(R_temp_1).at(-tau) * Cs2_reshape;
                                     prof.stop("N");
                                 }
                             }
@@ -385,33 +385,33 @@ matrix Chi0::compute_chi0_s_munu_itau_R(const atpair_R_mat_t &LRI_Cs,
                 {
                     prof.start("O");
                     matrix N_conj_R2_rs(reshape_mat(n_k, n_j, n_nu, N_conj_R2));
-                    O += gf_R_itau.at(iI).at(iJ).at(R).at(itau) * N_conj_R2_rs;
+                    O += gf_R_tau.at(iI).at(iJ).at(R).at(tau) * N_conj_R2_rs;
                     prof.stop("O");
                 }
                 if (flag_G_IJRNt)
                 {
                     prof.start("O");
                     matrix N_R2_rs(reshape_mat(n_k, n_j, n_nu, N_R2));
-                    O += gf_R_itau.at(iI).at(iJ).at(R).at(-itau) * N_R2_rs;
+                    O += gf_R_tau.at(iI).at(iJ).at(R).at(-tau) * N_R2_rs;
                     prof.stop("O");
                 }
             }
             Vector3_Order<int> R_temp_3(Vector3_Order<int>(R - R1) % R_period);
-            if (gf_R_itau.at(iK).count(iJ))
+            if (gf_R_tau.at(iK).count(iJ))
             {
-                if (gf_R_itau.at(iK).at(iJ).count(R_temp_3))
+                if (gf_R_tau.at(iK).at(iJ).count(R_temp_3))
                 {
-                    if (gf_R_itau.at(iK).at(iJ).at(R_temp_3).count(-itau))
+                    if (gf_R_tau.at(iK).at(iJ).at(R_temp_3).count(-tau))
                     {
                         prof.start("Z");
-                        Z += gf_R_itau.at(iK).at(iJ).at(R_temp_3).at(-itau) * X_R2_rs;
+                        Z += gf_R_tau.at(iK).at(iJ).at(R_temp_3).at(-tau) * X_R2_rs;
                         prof.stop("Z");
                     }
 
-                    if (gf_R_itau.at(iK).at(iJ).at(R_temp_3).count(itau))
+                    if (gf_R_tau.at(iK).at(iJ).at(R_temp_3).count(tau))
                     {
                         prof.start("Z");
-                        Z += gf_R_itau.at(iK).at(iJ).at(R_temp_3).at(itau) * X_conj_R2_rs;
+                        Z += gf_R_tau.at(iK).at(iJ).at(R_temp_3).at(tau) * X_conj_R2_rs;
                         prof.stop("Z");
                     }
                 }
@@ -429,9 +429,9 @@ matrix Chi0::compute_chi0_s_munu_itau_R(const atpair_R_mat_t &LRI_Cs,
             // rt_m_max(O_sum);
         }
     }
-    if ( Mu == 0 && Nu == 0 && itau == 1)
+    if ( Mu == 0 && Nu == 0 && tau == tfg.get_time_nodes()[0])
     {
-        cout << R << " Mu=" << Mu << " Nu=" << Nu << " itau:" << itau << " " << tfg.get_time_nodes()[abs(itau)-1] << endl;
+        cout << R << " Mu=" << Mu << " Nu=" << Nu << " tau:" << tau << endl;
         print_matrix("space-time chi0", O_sum);
     }
     return O_sum;

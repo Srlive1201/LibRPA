@@ -6,7 +6,6 @@ CorrEnergy compute_RPA_correlation(const Chi0 &chi0, const atpair_k_cplx_mat_t &
 {
     CorrEnergy corr;
     printf("Begin cal cRPA , pid:  %d\n", para_mpi.get_myid());
-    const auto & tfg = chi0.tfg;
     const auto & mf = chi0.mf;
     
     // freq, q
@@ -35,17 +34,17 @@ CorrEnergy compute_RPA_correlation(const Chi0 &chi0, const atpair_k_cplx_mat_t &
     }
     cout << "part_range over" << endl;
     // pi_freq_q contains all atoms
-    map<int, map<Vector3_Order<double>, ComplexMatrix>> pi_freq_q;
+    map<double, map<Vector3_Order<double>, ComplexMatrix>> pi_freq_q;
     
-    for (const auto &ifreq_q_MuNupi : pi_freq_q_Mu_Nu)
+    for (const auto &freq_q_MuNupi : pi_freq_q_Mu_Nu)
     {
-        const auto ifreq = ifreq_q_MuNupi.first;
+        const auto freq = freq_q_MuNupi.first;
     
-        for (const auto &q_MuNupi : ifreq_q_MuNupi.second)
+        for (const auto &q_MuNupi : freq_q_MuNupi.second)
         {
             const auto q = q_MuNupi.first;
             const auto MuNupi = q_MuNupi.second;
-            pi_freq_q[ifreq][q].create(range_all, range_all);
+            pi_freq_q[freq][q].create(range_all, range_all);
     
             ComplexMatrix pi_munu_tmp(range_all, range_all);
             pi_munu_tmp.zero_out();
@@ -76,7 +75,7 @@ CorrEnergy compute_RPA_correlation(const Chi0 &chi0, const atpair_k_cplx_mat_t &
             /* } */
             /* else */
             {
-                pi_freq_q.at(ifreq).at(q) = std::move(pi_munu_tmp);
+                pi_freq_q.at(freq).at(q) = std::move(pi_munu_tmp);
             }
         }
     }
@@ -84,11 +83,11 @@ CorrEnergy compute_RPA_correlation(const Chi0 &chi0, const atpair_k_cplx_mat_t &
     {
         complex<double> tot_RPA_energy(0.0, 0.0);
         map<Vector3_Order<double>, complex<double>> cRPA_q;
-        for (const auto &ifreq_qpi : pi_freq_q)
+        for (const auto &freq_qpi : pi_freq_q)
         {
-            const auto ifreq = ifreq_qpi.first;
-            const double freq_weight = tfg.get_freq_weights()[ifreq];
-            for (const auto &q_pi : ifreq_qpi.second)
+            const auto freq = freq_qpi.first;
+            const double freq_weight = chi0.tfg.find_freq_weight(freq);
+            for (const auto &q_pi : freq_qpi.second)
             {
                 const auto q = q_pi.first;
                 const auto pimat = q_pi.second;
@@ -98,7 +97,7 @@ CorrEnergy compute_RPA_correlation(const Chi0 &chi0, const atpair_k_cplx_mat_t &
     
                 identity.set_as_identity_matrix();
     
-                identity_minus_pi = identity - pi_freq_q[ifreq][q];
+                identity_minus_pi = identity - pi_freq_q[freq][q];
                 complex<double> det_for_rpa(1.0, 0.0);
                 int info_LU = 0;
                 int *ipiv = new int[range_all];
@@ -115,11 +114,11 @@ CorrEnergy compute_RPA_correlation(const Chi0 &chi0, const atpair_k_cplx_mat_t &
                 complex<double> trace_pi;
                 complex<double> ln_det;
                 ln_det = std::log(det_for_rpa);
-                trace_pi = trace(pi_freq_q.at(ifreq).at(q));
+                trace_pi = trace(pi_freq_q.at(freq).at(q));
                 cout << "PI trace vector:" << endl;
                 cout << endl;
                 rpa_for_omega_q = ln_det + trace_pi;
-                cout << " ifreq:" << ifreq << "      rpa_for_omega_k: " << rpa_for_omega_q << "      lnt_det: " << ln_det << "    trace_pi " << trace_pi << endl;
+                cout << " ifreq:" << freq << "      rpa_for_omega_k: " << rpa_for_omega_q << "      lnt_det: " << ln_det << "    trace_pi " << trace_pi << endl;
                 cRPA_q[q] += rpa_for_omega_q * freq_weight * irk_weight[q] * double(mf.get_n_spins()) / TWO_PI;
                 tot_RPA_energy += rpa_for_omega_q * freq_weight * irk_weight[q] * double(mf.get_n_spins()) / TWO_PI;
             }
@@ -130,7 +129,7 @@ CorrEnergy compute_RPA_correlation(const Chi0 &chi0, const atpair_k_cplx_mat_t &
             corr.qcontrib[q_crpa.first] = q_crpa.second;
             cout << q_crpa.first << q_crpa.second << endl;
         }
-        cout << "gx_num_" << tfg.size() << "  tot_RPA_energy:  " << setprecision(8) << tot_RPA_energy << endl;
+        cout << "gx_num_" << chi0.tfg.size() << "  tot_RPA_energy:  " << setprecision(8) << tot_RPA_energy << endl;
         corr.value = tot_RPA_energy;
     }
     corr.etype = CorrEnergy::type::RPA;
@@ -144,9 +143,9 @@ CorrEnergy compute_MP2_correlation(const Chi0 &chi0, const atpair_k_cplx_mat_t &
     return corr;
 }
 
-map<int, map<Vector3_Order<double>, atom_mapping<ComplexMatrix>::pair_t_old>> compute_Pi_q(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat)
+map<double, map<Vector3_Order<double>, atom_mapping<ComplexMatrix>::pair_t_old>> compute_Pi_q(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat)
 {
-    map<int, map<Vector3_Order<double>, atom_mapping<ComplexMatrix>::pair_t_old>> pi;
+    map<double, map<Vector3_Order<double>, atom_mapping<ComplexMatrix>::pair_t_old>> pi;
     printf("Begin cal_pi_k , pid:  %d\n", para_mpi.get_myid());
 
     return pi;

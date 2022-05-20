@@ -19,19 +19,19 @@ class Chi0
     private:
         unsigned gf_save;
         unsigned gf_discard;
-        //! space-time Green's function in occupied space, [ispin][I][J][R][itau]
+        //! space-time Green's function in occupied space, [ispin][I][J][R][tau]
         /*!
          * @note: itau (index) less than zero correspond to occupied GF,
          *        and larger than zero correspond to unoccpued GF.
          *        Absolute value starting from 1 to the size of tfg.
          * @note: May need to use ComplexMatrix for GF.
          */
-        map<int, atom_mapping<map<Vector3_Order<int>, map<int, matrix>>>::pair_t_old> gf_is_itau_R;
+        map<int, atom_mapping<map<Vector3_Order<int>, map<double, matrix>>>::pair_t_old> gf_is_itau_R;
         //! R on which the space-time GF are created.
         vector<Vector3_Order<int>> Rlist_gf;
-        //! chi0 data in reci-space, [itau/iomega][q]
-        map<int, map<Vector3_Order<double>, atom_mapping<ComplexMatrix>::pair_t_old>> chi0_q;
-        void build_gf_Rt(Vector3_Order<int> R, int itau);
+        //! chi0 data in frequency domain and reciprocal space, [omega][q]
+        map<double, map<Vector3_Order<double>, atom_mapping<ComplexMatrix>::pair_t_old>> chi0_q;
+        void build_gf_Rt(Vector3_Order<int> R, double tau);
         //! Internal procedure to compute chi0_q by space-time method
         /*
          @todo add threshold parameter. Maybe in the class level?
@@ -50,10 +50,10 @@ class Chi0
          * s_alpha and s_beta are the spin component of unoccupied Green's function, G_{alpha, beta}(tau)
          * correspondingly, occupied GF G_{beta, alpha}(-tau) will be used. itau must be positive.
          */
-        matrix compute_chi0_s_munu_itau_R(const atpair_R_mat_t &LRI_Cs,
+        matrix compute_chi0_s_munu_tau_R(const atpair_R_mat_t &LRI_Cs,
                                           const Vector3_Order<int> &R_period, 
                                           int spin_channel,
-                                          atom_t mu, atom_t nu, int itau, Vector3_Order<int> R);
+                                          atom_t mu, atom_t nu, double tau, Vector3_Order<int> R);
         // copy some reshape method inside chi0, test performance
         /* matrix reshape_Cs(const size_t n1, const size_t n2, const size_t n3, const std::shared_ptr<matrix> &Cs); */
         /* matrix reshape_dim_Cs(const size_t n1, const size_t n2, const size_t n3, const std::shared_ptr<matrix> &Cs);//(n1*n2,n3) -> (n1,n2*n3) */

@@ -92,7 +92,7 @@ class TFGrids
         //! obtain the integral weight from the frequency value
         // NOTE:(ZMY) attempt to use a map<double, double> to store,
         //      but will lead to a segfault in chi0tauR calculation, not knowing why
-        double find_freq_weight(const double &freq);
+        double find_freq_weight(const double &freq) const;
         //! Generate the even-spaced frequency grid
         void generate_evenspaced(double emin, double interval);
         //! Generate the even-spaced time-frequency grid. @note Currently only for debug use

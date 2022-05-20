@@ -316,9 +316,9 @@ void TFGrids::generate_GaussLegendre()
     }
 }
 
-double TFGrids::find_freq_weight(const double & freq)
+double TFGrids::find_freq_weight(const double & freq) const
 {
-    vector<double>::iterator itr = std::find(freq_nodes.begin(), freq_nodes.end(), freq);
+    auto itr = std::find(freq_nodes.begin(), freq_nodes.end(), freq);
     if ( itr == freq_nodes.end() )
         throw invalid_argument("frequency not found");
     int i = std::distance(freq_nodes.begin(), itr);
