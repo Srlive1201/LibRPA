@@ -3,6 +3,7 @@
 Parallel_MPI::Parallel_MPI(void)
 {
     cout<<"Parallel_MPI Object is being created !"<<endl;
+    pi_parallel_type = Parallel_MPI::parallel_type::ATOM_PAIR;
 }
 
 Parallel_MPI::~Parallel_MPI(void)
@@ -103,7 +104,6 @@ map<size_t,map<size_t,map<Vector3_Order<int>,shared_ptr<matrix>>>>  Parallel_MPI
     }
     return Cs;
 }
-
 
 vector<int> dispatcher(int ist, int ied, unsigned myid, unsigned size, bool sequential)
 {

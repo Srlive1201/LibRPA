@@ -180,7 +180,7 @@ void Cal_Periodic_Chi0::R_tau_routing()
         auto itt = p_task[p_id_local][tau_R_index].first;
         const double tau_loc = tau_vec[itt];
         auto R = p_task[p_id_local][tau_R_index].second;
-        printf("   itt:  %d,  tau_loc:  %f , R: ( %d, %d , %d  )\n",itt,tau_loc,R.x,R.y,R.z);
+        /* printf("   itt:  %d,  tau_loc:  %f , R: ( %d, %d , %d  )\n",itt,tau_loc,R.x,R.y,R.z); */
         double t_Rtau_begin = omp_get_wtime();
         for (auto &I_p : Vq)
         {
@@ -204,7 +204,7 @@ void Cal_Periodic_Chi0::R_tau_routing()
                     for (auto ifreq = 0; ifreq != freq_grid.size(); ifreq++)
                     {
                         const complex<double> cos_weight_kpashe = kphase * tran_gamma[ifreq * n_tau + itt];
-                        cout << kphase << " * " << tran_gamma[ifreq * n_tau + itt] << " = " << cos_weight_kpashe << endl;
+                        /* cout << kphase << " * " << tran_gamma[ifreq * n_tau + itt] << " = " << cos_weight_kpashe << endl; */
                         //  cout<<"  tmp_chi0  nr nc:  "<<tmp_chi0_freq_k[ifreq][ik_vec].nr<<"  "<<tmp_chi0_freq_k[ifreq][ik_vec].nc<<"    chi0_tau: "<<tmp_chi0_tau.nr<<"  "<<tmp_chi0_tau.nr<<endl;
                         tmp_chi0_freq_k[freq_vec[ifreq]][ik_vec][I][J] += tmp_chi0_tau * cos_weight_kpashe;
                     }
@@ -239,11 +239,11 @@ void Cal_Periodic_Chi0::R_tau_routing()
                     /* cout << "nr/nc chi0_k: " << chi0_k[freq_p.first][k_p.first][I][J].nr << ", "<< chi0_k[freq_p.first][k_p.first][I][J].nc << endl; */
                     // ComplexMatrix tmp_chi0=std::move(tmp_chi0_freq_k[freq_vec[ifreq]][ik_vec][I][J]);
                     para_mpi.reduce_ComplexMatrix(tmp_chi0_freq_k[freq_p.first][k_p.first][I][J], chi0_k[freq_p.first][k_p.first][I][J]);
-                    if (para_mpi.get_myid()==0 && I == 0 && J == 0 && freq_p.first == first_freq )
-                    {
-                        cout << k_p.first << endl;
-                        print_complex_matrix("chi0_k ap 0 0, first freq", chi0_k[freq_p.first][k_p.first][I][J]);
-                    }
+                    /* if (para_mpi.get_myid()==0 && I == 0 && J == 0 && freq_p.first == first_freq ) */
+                    /* { */
+                    /*     cout << k_p.first << endl; */
+                    /*     print_complex_matrix("chi0_k ap 0 0, first freq", chi0_k[freq_p.first][k_p.first][I][J]); */
+                    /* } */
                     tmp_chi0_freq_k[freq_p.first][k_p.first][I].erase(I); // should be erase(J)?
                 }
             }
@@ -703,7 +703,7 @@ void Cal_Periodic_Chi0::Cosine_to_chi0_freq(map<double, double> &time_grid, map<
 matrix Cal_Periodic_Chi0::cal_chi0_element(const double &time_tau, const Vector3_Order<int> &R, const size_t &I_index, const size_t &J_index)
 {
     prof.start("cal_chi0_element");
-    printf("     begin chi0  thread: %d,  I: %zu, J: %zu\n",omp_get_thread_num(),I_index,J_index);
+    /* printf("     begin chi0  thread: %d,  I: %zu, J: %zu\n",omp_get_thread_num(),I_index,J_index); */
     // for(const auto &K_pair:Cs[I_index])
     // Vector3_Order<int> R_0(0,0,0);
     int flag_G_IJRt = 0;
@@ -915,17 +915,17 @@ matrix Cal_Periodic_Chi0::cal_chi0_element(const double &time_tau, const Vector3
         }
     }
     /* if (para_mpi.get_myid()==0 && I_index == 0 && J_index == 0 & time_tau == first_tau) */
-    if (para_mpi.get_myid()==0 )
-    {
+    /* if (para_mpi.get_myid()==0 ) */
+    /* { */
         /* if ( R == Vector3_Order<int>{0, 0, 0}) */
         /* if ( I_index == 0 && J_index == 1 ) */
         /* if ( R == Vector3_Order<int>{0, 0, 0} && I_index == 0 && J_index == 1 ) */
-        if ( I_index == 0 && J_index == 0 && time_tau == first_tau )
-        {
-            cout << R << " Mu=" << I_index << " Nu=" << J_index << " tau:" << time_tau << endl;
-            print_matrix("space-time chi0", O_sum);
-        }
-    }
+    /*     if ( I_index == 0 && J_index == 0 && time_tau == first_tau ) */
+    /*     { */
+    /*         cout << R << " Mu=" << I_index << " Nu=" << J_index << " tau:" << time_tau << endl; */
+    /*         print_matrix("space-time chi0", O_sum); */
+    /*     } */
+    /* } */
 
     prof.stop("cal_chi0_element");
     // chi0[time_tau][R][I_index][J_index]=O_sum;

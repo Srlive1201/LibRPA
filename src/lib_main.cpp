@@ -5,6 +5,7 @@ int main(int argc, char **argv)
     prof.add(0, "total", "Total");
     prof.add(1, "chi0_main", "Chi0 object");
     prof.add(2, "cal_Green_func_R_tau", "space-time Green's function");
+    prof.add(2, "cal_Green_func",       "space-time Green's function");
     prof.add(2, "R_tau_routing", "Loop over R-tau");
     prof.add(2, "atom_pair_rouing", "Loop over atom pairs");
     prof.add(3, "cal_chi0_element", "chi(tau,R,I,J)");
@@ -28,7 +29,7 @@ int main(int argc, char **argv)
     /* if(argv[1][0]=='0') */
     /*     ap_chi0.chi0_main(argv[1],argv[2]);  */
     /* else */
-    /*     cal_chi0.chi0_main(argv[1],argv[2]);  */
+        /* cal_chi0.chi0_main(argv[1],argv[2]);  */
     /* return 0; */
     // try the new version
     Chi0 chi0(meanfield, klist, stoi(argv[1]));
@@ -36,14 +37,15 @@ int main(int argc, char **argv)
     Vector3_Order<int> period {kv_nmp[0], kv_nmp[1], kv_nmp[2]};
     auto Rlist = construct_R_grid(period);
     // build ABF IJ and qlist from Vq
-    vector<atpair_t> atpair_ABF = get_atom_pair(Vq);
+    vector<atpair_t> atpairs_ABF = get_atom_pair(Vq);
     vector<Vector3_Order<double>> qlist;
     for ( auto q_weight: irk_weight)
     {
         qlist.push_back(q_weight.first);
     }
-    chi0.build(Cs, Rlist, period, atpair_ABF, qlist, TFGrids::GRID_TYPES::Minimax, true);
-    /* compute_RPA_correlation(chi0, Vq); */
+    chi0.build(Cs, Rlist, period, atpairs_ABF, qlist, TFGrids::GRID_TYPES::Minimax, true);
+    // RPA total energy
+    compute_RPA_correlation(chi0, Vq);
 
     prof.stop("total");
     prof.display();

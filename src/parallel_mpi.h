@@ -5,6 +5,7 @@
 #include "complexmatrix.h"
 #include "vector3_order.h"
 #include <mpi.h>
+#include <string>
 #include <cassert>
 #include <vector>
 #include <utility>
@@ -19,6 +20,8 @@ class Parallel_MPI
 {
     int myid, size;
     public:
+    enum parallel_type { ATOM_PAIR, R_TAU };
+    parallel_type pi_parallel_type;
     Parallel_MPI();
     ~Parallel_MPI();
     
@@ -36,6 +39,16 @@ class Parallel_MPI
 vector<int> dispatcher(int ist, int ied, unsigned myid, unsigned size, bool sequential);
 vector<pair<int, int>> dispatcher(int i1st, int i1ed, int i2st, int i2ed,
                                   unsigned myid, unsigned size, bool sequential, bool favor_1st);
+
+template <typename T>
+vector<T> dispatch_vector(vector<T> world_vec, unsigned myid, unsigned size, bool sequential)
+{
+    vector<int> ids = dispatcher(0, world_vec.size(), myid, size, sequential);
+    vector<T> local_vec;
+    for ( auto id: ids )
+        local_vec.push_back(world_vec[id]);
+    return local_vec;
+}
 
 extern Parallel_MPI para_mpi;
 #endif

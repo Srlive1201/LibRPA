@@ -78,6 +78,7 @@ void Chi0::build(const atpair_R_mat_t &LRI_Cs,
 
 void Chi0::build_gf_Rt(Vector3_Order<int> R, double tau)
 {
+    prof.start("cal_Green_func");
     auto nkpts = mf.get_n_kpoints();
     auto nspins = mf.get_n_spins();
     auto nbands = mf.get_n_bands();
@@ -138,9 +139,9 @@ void Chi0::build_gf_Rt(Vector3_Order<int> R, double tau)
                 if (tmp_green.absmax() > gf_R_threshold)
                 {
                     // cout<<" max_green_ele:  "<<tmp_green.absmax()<<endl;
-                    gf_is_itau_R[is][I][J][R][tau] = std::move(tmp_green);
-                    /* cout << is << " " << I << " " << J << " " << R << " " << itau << " " << tau << endl; */
-                    /* print_matrix("gf_is_itau_R[is][I][J][R][itau]", gf_is_itau_R[is][I][J][R][itau]); */
+                    gf_is_R_tau[is][I][J][R][tau] = std::move(tmp_green);
+                    /* cout << is << " " << I << " " << J << " " << R << " " << tau << endl; */
+                    /* print_matrix("gf_is_itau_R[is][I][J][R][itau]", gf_is_itau_R[is][I][J][R][tau]); */
                     gf_save++;
                 }
                 else
@@ -150,6 +151,7 @@ void Chi0::build_gf_Rt(Vector3_Order<int> R, double tau)
             }
         }
     }
+    prof.stop("cal_Green_func");
 }
 
 void Chi0::build_chi0_q_space_time(const atpair_R_mat_t &LRI_Cs,
@@ -157,6 +159,28 @@ void Chi0::build_chi0_q_space_time(const atpair_R_mat_t &LRI_Cs,
                                    const vector<atpair_t> &atpairs_ABF,
                                    const vector<Vector3_Order<double>> &qlist)
 {
+    int R_tau_size = Rlist_gf.size() * tfg.size(); 
+    if ( atpairs_ABF.size() < R_tau_size )
+    {
+        cout << "R_tau_routing" << endl;
+        para_mpi.pi_parallel_type = Parallel_MPI::parallel_type::R_TAU;
+        build_chi0_q_space_time_R_tau_routing(LRI_Cs, R_period, atpairs_ABF, qlist);
+    }
+    else
+    {
+        cout << "atom_pair_routing" << endl;
+        para_mpi.pi_parallel_type = Parallel_MPI::parallel_type::ATOM_PAIR;
+        build_chi0_q_space_time_atom_pair_routing(LRI_Cs, R_period, atpairs_ABF, qlist);
+    }
+
+}
+
+void Chi0::build_chi0_q_space_time_R_tau_routing(const atpair_R_mat_t &LRI_Cs,
+                                                 const Vector3_Order<int> &R_period,
+                                                 const vector<atpair_t> &atpairs_ABF,
+                                                 const vector<Vector3_Order<double>> &qlist)
+{
+    prof.start("R_tau_routing");
     // taus and Rs to compute on MPI task
     // tend to calculate more Rs on one process
     vector<pair<int, int>> itauiRs_local = dispatcher(0, tfg.size(), 0, Rlist_gf.size(),
@@ -176,55 +200,56 @@ void Chi0::build_chi0_q_space_time(const atpair_R_mat_t &LRI_Cs,
 
     omp_lock_t chi0_lock;
     omp_init_lock(&chi0_lock);
-    /* if ( atpairs_ABF.size() > itaus_local.size() ) */
+    double t_chi0_begin = omp_get_wtime();
+    double t_chi0_tot = 0;
+#pragma omp parallel for schedule(dynamic)
+    for ( auto itau_iR: itauiRs_local)
     {
-        // TODO: add OpenMP paralleling
-        /* for ( auto itau_iR: itauiRs_local) */
-        for ( auto itau_iR: itauiRs_local)
+        auto itau = itau_iR.first;
+        auto tau = tfg.get_time_nodes()[itau];
+        auto iR = itau_iR.second;
+        auto R = Rlist_gf[iR];
+        double t_Rtau_begin = omp_get_wtime();
+        for ( auto atpair: atpairs_ABF)
         {
-            auto itau = itau_iR.first;
-            auto tau = tfg.get_time_nodes()[itau];
-            auto iR = itau_iR.second;
-            auto R = Rlist_gf[iR];
-            for ( auto atpair: atpairs_ABF)
+            atom_t Mu = atpair.first;
+            atom_t Nu = atpair.second;
+            for ( int is = 0; is != mf.get_n_spins(); is++ )
             {
-                atom_t Mu = atpair.first;
-                atom_t Nu = atpair.second;
-                for ( int is = 0; is != mf.get_n_spins(); is++ )
+                double chi0_ele_begin = omp_get_wtime();
+                matrix chi0_tau;
+                /* if (itau == 0) // debug first itau */
+                    chi0_tau = compute_chi0_s_munu_tau_R(LRI_Cs, R_period, is, Mu, Nu, tau, R);
+                /* else continue; // debug first itau */
+                double chi0_ele_t = omp_get_wtime() - chi0_ele_begin;
+                omp_set_lock(&chi0_lock);
+                for ( auto q: qlist )
                 {
-                    // all Rs is computed at the same time, to avoid repeated calculation of N
-                    matrix chi0_tau;
-                    /* if (itau == 0) // debug first itau */
-                        chi0_tau = compute_chi0_s_munu_tau_R(LRI_Cs, R_period, is, Mu, Nu, tau, R);
-                    /* else continue; // debug first itau */
-                    omp_set_lock(&chi0_lock);
-                    for ( auto q: qlist )
+                    double arg = q * (R * latvec) * TWO_PI;
+                    const complex<double> kphase = complex<double>(cos(arg), sin(arg));
+                    for ( int ifreq = 0; ifreq != tfg.size(); ifreq++ )
                     {
-                        double arg = q * (R * latvec) * TWO_PI;
-                        for ( int ifreq = 0; ifreq != tfg.size(); ifreq++ )
-                        {
-                            double freq = tfg.get_freq_nodes()[ifreq];
-                            double trans = tfg.get_costrans_t2f()(ifreq, itau);
-                            const complex<double> weight = trans * complex<double>(cos(arg), sin(arg));
-                            /* cout << weight << endl; */
-                            /* cout << complex<double>(cos(arg), sin(arg)) << " * " << trans << " = " << weight << endl; */
-                            chi0_q_tmp[freq][q][Mu][Nu] += ComplexMatrix(chi0_tau) * weight;
-                        }
+                        double freq = tfg.get_freq_nodes()[ifreq];
+                        double trans = tfg.get_costrans_t2f()(ifreq, itau);
+                        const complex<double> weight = trans * kphase;
+                        /* cout << weight << endl; */
+                        /* cout << complex<double>(cos(arg), sin(arg)) << " * " << trans << " = " << weight << endl; */
+                        chi0_q_tmp[freq][q][Mu][Nu] += ComplexMatrix(chi0_tau) * weight;
                     }
-                    omp_unset_lock(&chi0_lock);
                 }
+                omp_unset_lock(&chi0_lock);
             }
-        /* printf("CHI0 p_id: %d,   thread: %d,     R:  ( %d,  %d,  %d ),    tau: %f\n", para_mpi.get_myid(), omp_get_thread_num(), */
-        /*         Rlist[iRs].x, Rlist[iRs].y, Rlist[iRs].z, tau); */
         }
+        double t_Rtau_end = omp_get_wtime();
+        double time_used = t_Rtau_end - t_Rtau_begin;
+        t_chi0_tot += time_used;
+        printf("CHI0 p_id: %d,   thread: %d,     R:  ( %d,  %d,  %d ),    tau: %f ,   TIME_USED: %f \n ",
+                para_mpi.get_myid(), omp_get_thread_num(), R.x, R.y, R.z, tau, time_used);
     }
-    /* else */
-    /* { */
-    /*     throw logic_error("Not implemented"); */
-    /* } */
 
     omp_destroy_lock(&chi0_lock);
     // Reduce to MPI
+#pragma omp barrier
     for ( int ifreq = 0; ifreq < tfg.size(); ifreq++ )
     {
         double freq = tfg.get_freq_nodes()[ifreq];
@@ -237,13 +262,88 @@ void Chi0::build_chi0_q_space_time(const atpair_R_mat_t &LRI_Cs,
                 /* cout << "nr/nc chi0_q_tmp: " << chi0_q_tmp[ifreq][iq][Mu][Nu].nr << ", "<< chi0_q_tmp[ifreq][iq][Mu][Nu].nc << endl; */
                 /* cout << "nr/nc chi0_q: " << chi0_q[ifreq][iq][Mu][Nu].nr << ", "<< chi0_q[ifreq][iq][Mu][Nu].nc << endl; */
                 para_mpi.reduce_ComplexMatrix(chi0_q_tmp[freq][q][Mu][Nu], chi0_q[freq][q][Mu][Nu]);
-                if (para_mpi.get_myid()==0 && Mu == 0 && Nu == 0 && ifreq == 0 && q == Vector3_Order<double>{0, 0, 0})
-                    print_complex_matrix("chi0_q ap 0 0, first freq first q", chi0_q[freq][q][Mu][Nu]);
+                /* if (para_mpi.get_myid()==0 && Mu == 0 && Nu == 0 && ifreq == 0 && q == Vector3_Order<double>{0, 0, 0}) */
+                /* if (para_mpi.get_myid()==0 && Mu == 0 && Nu == 0 && ifreq == 0 ) */
+                /* if (para_mpi.get_myid()==0 && ifreq == 0 && q == Vector3_Order<double>{0, 0, 0}) */
+                /* { */
+                /*     printf("Mu %zu Nu %zu\n", Mu, Nu); */
+                /*     print_complex_matrix("chi0_q ap, first freq first q", chi0_q[freq][q][Mu][Nu]); */
+                /* } */
                 chi0_q_tmp[freq][q][Mu].erase(Nu);
             }
     }
+    prof.stop("R_tau_routing");
 }
 
+void Chi0::build_chi0_q_space_time_atom_pair_routing(const atpair_R_mat_t &LRI_Cs,
+                                                 const Vector3_Order<int> &R_period,
+                                                 const vector<atpair_t> &atpairs_ABF,
+                                                 const vector<Vector3_Order<double>> &qlist)
+{
+    prof.start("atom_pair_routing");
+    auto tot_pair = dispatch_vector(atpairs_ABF, para_mpi.get_myid(), para_mpi.get_size(), false);
+    cout << "  tot_pair.size :  " << tot_pair.size() << endl;
+    omp_lock_t chi0_lock;
+    omp_init_lock(&chi0_lock);
+    double t_chi0_begin = omp_get_wtime();
+#pragma omp parallel
+    {
+#pragma omp for schedule(dynamic)
+        for (size_t atom_pair = 0; atom_pair != tot_pair.size(); atom_pair++)
+        {
+            auto Mu = tot_pair[atom_pair].first;
+            auto Nu = tot_pair[atom_pair].second;
+            const size_t mu_num = atom_mu[Mu];
+            const size_t nu_num = atom_mu[Nu];
+            double task_begin = omp_get_wtime();
+            map<double, map<Vector3_Order<double>, ComplexMatrix>> tmp_chi0_freq_k;
+            for ( auto freq: tfg.get_freq_nodes() )
+                for ( auto q: qlist)
+                {
+                    tmp_chi0_freq_k[freq][q].create(atom_mu[Mu], atom_mu[Nu]);
+                }
+
+            for ( int is = 0; is != mf.get_n_spins(); is++ )
+                for (auto &R : Rlist_gf)
+                {
+                    for (auto it = 0; it != tfg.size(); it++)
+                    {
+                        double tau = tfg.get_time_nodes()[it];
+                        ComplexMatrix tmp_chi0_tau(ComplexMatrix(compute_chi0_s_munu_tau_R(LRI_Cs, R_period, is, Mu, Nu, tau, R)));
+                        for (auto &q : qlist)
+                        {
+                            const double arg = (q * (R * latvec)) * TWO_PI;
+                            const complex<double> kphase = complex<double>(cos(arg), sin(arg));
+                            for (auto ifreq = 0; ifreq != tfg.size(); ifreq++)
+                            {
+                                double freq = tfg.get_freq_nodes()[ifreq];
+                                double trans = tfg.get_costrans_t2f()(ifreq, it);
+                                const complex<double> weight = trans * kphase;
+                                /* const complex<double> cos_weight_kpashe = kphase * tfg.get_costrans_t2f()[ifreq, it]; */
+                                //  cout<<"  tmp_chi0  nr nc:  "<<tmp_chi0_freq_k[ifreq][ik_vec].nr<<"  "<<tmp_chi0_freq_k[ifreq][ik_vec].nc<<"    chi0_tau: "<<tmp_chi0_tau.nr<<"  "<<tmp_chi0_tau.nr<<endl;
+                                tmp_chi0_freq_k[freq][q] += tmp_chi0_tau * weight;
+                            }
+                        }
+                    }
+                    // vector<matrix> chi0_freq_tmp(tmp_cosine_tran(freq_grid.size(),chi0_tau_tmp));
+                }
+
+            double task_end = omp_get_wtime();
+            double time_used = task_end - task_begin;
+            /* time_task_tot += time_used; */
+            omp_set_lock(&chi0_lock);
+            for (auto &freq : tfg.get_freq_nodes() )
+            {
+                for (auto &q : qlist)
+                    chi0_q[freq][q][Mu][Nu] = std::move(tmp_chi0_freq_k[freq][q]);
+            }
+            double add_end = omp_get_wtime();
+            double add_time = add_end - task_end;
+            printf("CHI0 p_id: %d,   thread: %d,     I: %zu,   J: %zu,   add time: %f  TIME_USED: %f \n ", para_mpi.get_myid(), omp_get_thread_num(), Mu, Nu, add_time, time_used);
+            omp_unset_lock(&chi0_lock);
+        }
+    }
+}
 
 matrix Chi0::compute_chi0_s_munu_tau_R(const atpair_R_mat_t &LRI_Cs,
                                        const Vector3_Order<int> &R_period, 
@@ -255,39 +355,40 @@ matrix Chi0::compute_chi0_s_munu_tau_R(const atpair_R_mat_t &LRI_Cs,
 
     assert ( tau > 0 );
     // Local RI requires
-    const atom_t iI = Mu;
-    const atom_t iJ = Nu;
+    const atom_t I_index = Mu;
+    const atom_t J_index = Nu;
 
-    const size_t n_i = atom_nw[iI];
-    const size_t n_mu = atom_mu[Mu];
-    const size_t n_j = atom_nw[iJ];
-    const size_t n_nu = atom_mu[Nu];
+    const size_t i_num = atom_nw[Mu];
+    const size_t mu_num = atom_mu[Mu];
+
+    const size_t j_num = atom_nw[Nu];
+    const size_t nu_num = atom_mu[Nu];
 
     int flag_G_IJRt = 0;
     int flag_G_IJRNt = 0;
 
     /* printf("     check if already calculated\n"); */
     /* printf("     size of Green_atom: %zu\n", Green_atom.size()); */
-    const auto & gf_R_tau = gf_is_itau_R.at(spin_channel);
-    if (gf_R_tau.at(iI).count(iJ))
-        if (gf_R_tau.at(iI).at(iJ).count(R))
+    const auto & gf_R_tau = gf_is_R_tau.at(spin_channel);
+    if (gf_R_tau.at(I_index).count(J_index))
+        if (gf_R_tau.at(I_index).at(J_index).count(R))
         {
-            if (gf_R_tau.at(iI).at(iJ).at(R).count(tau))
+            if (gf_R_tau.at(I_index).at(J_index).at(R).count(tau))
                 flag_G_IJRt = 1;
 
-            if (gf_R_tau.at(iI).at(iJ).at(R).count(-tau))
+            if (gf_R_tau.at(I_index).at(J_index).at(R).count(-tau))
                 flag_G_IJRNt = 1;
         }
 
-    matrix X_R2(n_i, n_j * n_nu);
-    matrix X_conj_R2(n_i, n_j* n_nu);
+    matrix X_R2(i_num, j_num * nu_num);
+    matrix X_conj_R2(i_num, j_num * nu_num);
 
-    for (const auto &L_pair : LRI_Cs.at(iJ))
+    for (const auto &L_pair : Cs[J_index])
     {
-        const auto iL = L_pair.first;
-        const size_t n_l = atom_nw[iL];
+        const auto L_index = L_pair.first;
+        const size_t l_num = atom_nw[L_index];
         /* printf("     begin is loop\n"); */
-        if (gf_R_tau.at(iI).count(iL))
+        if (gf_R_tau.at(I_index).count(L_index))
         {
             for (const auto &R2_index : L_pair.second)
             {
@@ -296,25 +397,25 @@ matrix Chi0::compute_chi0_s_munu_tau_R(const atpair_R_mat_t &LRI_Cs,
 
                 Vector3_Order<int> R_temp_2(Vector3_Order<int>(R2 + R) % R_period);
 
-                if (gf_R_tau.at(iI).at(iL).count(R_temp_2))
+                if (gf_R_tau.at(I_index).at(L_index).count(R_temp_2))
                 {
-                    assert(n_j * n_l == (*Cs_mat2).nr);
-                    /* printf("          thread: %d, X_R2 IJL:   %zu,%zu,%zu  R:(  %d,%d,%d  )  tau:%f\n",omp_get_thread_num(),iI,iJ,iL,R.x,R.y,R.z,time_tau); */
-                    matrix Cs2_reshape(reshape_Cs(n_j, n_l, n_nu, Cs_mat2));
+                    assert(j_num * l_num == (*Cs_mat2).nr);
+                    /* printf("          thread: %d, X_R2 IJL:   %zu,%zu,%zu  R:(  %d,%d,%d  )  tau:%f\n",omp_get_thread_num(),I_index,J_index,L_index,R.x,R.y,R.z,time_tau); */
+                    matrix Cs2_reshape(reshape_Cs(j_num, l_num, nu_num, Cs_mat2));
                     
-                    if (gf_R_tau.at(iI).at(iL).at(R_temp_2).count(tau))
+                    if (gf_R_tau.at(I_index).at(L_index).at(R_temp_2).count(tau))
                     {
                         // cout<<"C";
                         prof.start("X");
-                        X_R2 += gf_R_tau.at(iI).at(iL).at(R_temp_2).at(tau) * Cs2_reshape;
+                        X_R2 += gf_R_tau.at(I_index).at(L_index).at(R_temp_2).at(tau) * Cs2_reshape;
                         prof.stop("X");
                     }
 
-                    if (gf_R_tau.at(iI).at(iL).at(R_temp_2).count(-tau))
+                    if (gf_R_tau.at(I_index).at(L_index).at(R_temp_2).count(-tau))
                     {
                         // cout<<"D";
                         prof.start("X");
-                        X_conj_R2 += gf_R_tau.at(iI).at(iL).at(R_temp_2).at(-tau) * Cs2_reshape;
+                        X_conj_R2 += gf_R_tau.at(I_index).at(L_index).at(R_temp_2).at(-tau) * Cs2_reshape;
                         prof.stop("X");
                     }
                     
@@ -322,118 +423,120 @@ matrix Chi0::compute_chi0_s_munu_tau_R(const atpair_R_mat_t &LRI_Cs,
             }
         }
     }
-    matrix X_R2_rs(reshape_mat(n_i, n_j, n_nu, X_R2));
-    matrix X_conj_R2_rs(reshape_mat(n_i, n_j, n_nu, X_conj_R2));
-
-    matrix O_sum(n_mu, n_nu);
-    for (const auto &K_pair : LRI_Cs.at(iI))
+    matrix X_R2_rs(reshape_mat(i_num, j_num, nu_num, X_R2));
+    matrix X_conj_R2_rs(reshape_mat(i_num, j_num, nu_num, X_conj_R2));
+    
+    matrix O_sum(mu_num, nu_num);
+    for (const auto &K_pair : Cs[I_index])
     {
-        const auto iK = K_pair.first;
-        const size_t n_k = atom_nw[iK];
+        const auto K_index = K_pair.first;
+        const size_t k_num = atom_nw[K_index];
 
         for (const auto &R1_index : K_pair.second)
         {
             const auto R1 = R1_index.first;
             const auto &Cs_mat1 = R1_index.second;
             // cout<<"R1:  begin  "<<R1<<endl;
-            // matrix X_R2(i_num,j_num*nu_num);
-            // matrix X_conj_R2(i_num,j_num*nu_num);
-            matrix O(n_k, n_k * n_nu);
-            matrix Z(n_k, n_k * n_nu);
+                // matrix X_R2(i_num,j_num*nu_num);
+                // matrix X_conj_R2(i_num,j_num*nu_num);
+                matrix O(i_num, k_num * nu_num);
+                matrix Z(k_num, i_num * nu_num);
 
-            if (flag_G_IJRt || flag_G_IJRNt)
-            {
-                matrix N_R2(n_k, n_j * n_nu);
-                matrix N_conj_R2(n_k, n_j * n_nu);
-                for (const auto &L_pair : LRI_Cs.at(iJ))
+                if (flag_G_IJRt || flag_G_IJRNt)
                 {
-                    const auto iL = L_pair.first;
-                    const size_t n_l = atom_nw[iL];
-                    if (gf_R_tau.at(iK).count(iL))
+                    matrix N_R2(k_num, j_num * nu_num);
+                    matrix N_conj_R2(k_num, j_num * nu_num);
+                    for (const auto &L_pair : Cs[J_index])
                     {
-                        for (const auto &R2_index : L_pair.second)
+                        const auto L_index = L_pair.first;
+                        const size_t l_num = atom_nw[L_index];
+                        if (gf_R_tau.at(K_index).count(L_index))
                         {
-                            const auto R2 = R2_index.first;
-                            const auto &Cs_mat2 = R2_index.second;
-                            Vector3_Order<int> R_temp_1(Vector3_Order<int>(R + R2 - R1) % R_period);
-                            // Vector3_Order<int> R_temp_2(R2+R);
-                            if (gf_R_tau.at(iK).at(iL).count(R_temp_1))
+                            for (const auto &R2_index : L_pair.second)
                             {
-                                
-                                assert(n_j * n_l == (*Cs_mat2).nr);
-                                // printf("          thread: %d, IJKL:   %d,%d,%d,%d  R:(  %d,%d,%d  )  tau:%f\n",omp_get_thread_num(),I_index,iJ,iK,iL,R.x,R.y,R.z,itau);
-                                matrix Cs2_reshape(reshape_Cs(n_j, n_l, n_nu, Cs_mat2));
-                                if (flag_G_IJRNt && gf_R_tau.at(iK).at(iL).at(R_temp_1).count(tau))
+                                const auto R2 = R2_index.first;
+                                const auto &Cs_mat2 = R2_index.second;
+                                Vector3_Order<int> R_temp_1(Vector3_Order<int>(R + R2 - R1) % R_period);
+                                // Vector3_Order<int> R_temp_2(R2+R);
+                                if (gf_R_tau.at(K_index).at(L_index).count(R_temp_1))
                                 {
-                                    // cout<<"A";
-                                    prof.start("N");
-                                    N_R2 += gf_R_tau.at(iK).at(iL).at(R_temp_1).at(tau) * Cs2_reshape;
-                                    prof.stop("N");
-                                }
-                                if (flag_G_IJRt && gf_R_tau.at(iK).at(iL).at(R_temp_1).count(-tau))
-                                {
-                                    // cout<<"B";
-                                    prof.start("N");
-                                    N_conj_R2 += gf_R_tau.at(iK).at(iL).at(R_temp_1).at(-tau) * Cs2_reshape;
-                                    prof.stop("N");
+                                    
+                                    assert(j_num * l_num == (*Cs_mat2).nr);
+                                    // printf("          thread: %d, IJKL:   %d,%d,%d,%d  R:(  %d,%d,%d  )  tau:%f\n",omp_get_thread_num(),I_index,J_index,K_index,L_index,R.x,R.y,R.z,time_tau);
+                                    matrix Cs2_reshape(reshape_Cs(j_num, l_num, nu_num, Cs_mat2));
+                                    if (flag_G_IJRNt && gf_R_tau.at(K_index).at(L_index).at(R_temp_1).count(tau))
+                                    {
+                                        // cout<<"A";
+                                        prof.start("N");
+                                        N_R2 += gf_R_tau.at(K_index).at(L_index).at(R_temp_1).at(tau) * Cs2_reshape;
+                                        prof.stop("N");
+                                    }
+                                    if (flag_G_IJRt && gf_R_tau.at(K_index).at(L_index).at(R_temp_1).count(-tau))
+                                    {
+                                        // cout<<"B";
+                                        prof.start("N");
+                                        N_conj_R2 += gf_R_tau.at(K_index).at(L_index).at(R_temp_1).at(-tau) * Cs2_reshape;
+                                        prof.stop("N");
+                                    }
+                                    
                                 }
                             }
                         }
                     }
-                }
-                if (flag_G_IJRt)
-                {
-                    prof.start("O");
-                    matrix N_conj_R2_rs(reshape_mat(n_k, n_j, n_nu, N_conj_R2));
-                    O += gf_R_tau.at(iI).at(iJ).at(R).at(tau) * N_conj_R2_rs;
-                    prof.stop("O");
-                }
-                if (flag_G_IJRNt)
-                {
-                    prof.start("O");
-                    matrix N_R2_rs(reshape_mat(n_k, n_j, n_nu, N_R2));
-                    O += gf_R_tau.at(iI).at(iJ).at(R).at(-tau) * N_R2_rs;
-                    prof.stop("O");
-                }
-            }
-            Vector3_Order<int> R_temp_3(Vector3_Order<int>(R - R1) % R_period);
-            if (gf_R_tau.at(iK).count(iJ))
-            {
-                if (gf_R_tau.at(iK).at(iJ).count(R_temp_3))
-                {
-                    if (gf_R_tau.at(iK).at(iJ).at(R_temp_3).count(-tau))
+                    if (flag_G_IJRt)
                     {
-                        prof.start("Z");
-                        Z += gf_R_tau.at(iK).at(iJ).at(R_temp_3).at(-tau) * X_R2_rs;
-                        prof.stop("Z");
+                        prof.start("O");
+                        matrix N_conj_R2_rs(reshape_mat(k_num, j_num, nu_num, N_conj_R2));
+                        O += gf_R_tau.at(I_index).at(J_index).at(R).at(tau) * N_conj_R2_rs;
+                        prof.stop("O");
                     }
-
-                    if (gf_R_tau.at(iK).at(iJ).at(R_temp_3).count(tau))
+                    if (flag_G_IJRNt)
                     {
-                        prof.start("Z");
-                        Z += gf_R_tau.at(iK).at(iJ).at(R_temp_3).at(tau) * X_conj_R2_rs;
-                        prof.stop("Z");
+                        prof.start("O");
+                        matrix N_R2_rs(reshape_mat(k_num, j_num, nu_num, N_R2));
+                        O += gf_R_tau.at(I_index).at(J_index).at(R).at(-tau) * N_R2_rs;
+                        prof.stop("O");
                     }
                 }
-            }
+                Vector3_Order<int> R_temp_3(Vector3_Order<int>(R - R1) % R_period);
+                if (gf_R_tau.at(K_index).count(J_index))
+                {
+                    if (gf_R_tau.at(K_index).at(J_index).count(R_temp_3))
+                    {
+                        if (gf_R_tau.at(K_index).at(J_index).at(R_temp_3).count(-tau))
+                        {
+                            prof.start("Z");
+                            Z += gf_R_tau.at(K_index).at(J_index).at(R_temp_3).at(-tau) * X_R2_rs;
+                            prof.stop("Z");
+                        }
 
-            matrix Z_rs(reshape_mat(n_k, n_i, n_nu, Z));
+                        if (gf_R_tau.at(K_index).at(J_index).at(R_temp_3).count(tau))
+                        {
+                            prof.start("Z");
+                            Z += gf_R_tau.at(K_index).at(J_index).at(R_temp_3).at(tau) * X_conj_R2_rs;
+                            prof.stop("Z");
+                        }
+                    }
+                }
 
-            O += Z_rs;
-            matrix OZ(reshape_mat_21(n_i, n_k, n_nu, O));
-            matrix Cs1_tran(transpose(*Cs_mat1));
-            prof.start("O");
-            O_sum += Cs1_tran * OZ;
-            prof.stop("O");
-            // cout<<"   K, R1:   "<<iK<<"   "<<R1;
-            // rt_m_max(O_sum);
+                matrix Z_rs(reshape_mat(k_num, i_num, nu_num, Z));
+
+                O += Z_rs;
+                matrix OZ(reshape_mat_21(i_num, k_num, nu_num, O));
+                matrix Cs1_tran(transpose(*Cs_mat1));
+                prof.start("O");
+                O_sum += Cs1_tran * OZ;
+                prof.stop("O");
+                // cout<<"   K, R1:   "<<K_index<<"   "<<R1;
+                // rt_m_max(O_sum);
         }
     }
-    if ( Mu == 0 && Nu == 0 && tau == tfg.get_time_nodes()[0])
-    {
-        cout << R << " Mu=" << Mu << " Nu=" << Nu << " tau:" << tau << endl;
-        print_matrix("space-time chi0", O_sum);
-    }
+    
+    /* if ( para_mpi.get_myid()==0 && Mu == 1 && Nu == 1 && tau == tfg.get_time_nodes()[0]) */
+    /* { */
+    /*     cout << R << " Mu=" << Mu << " Nu=" << Nu << " tau:" << tau << endl; */
+    /*     print_matrix("space-time chi0", O_sum); */
+    /* } */
     return O_sum;
 }
 

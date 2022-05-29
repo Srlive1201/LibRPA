@@ -26,7 +26,7 @@ class Chi0
          *        Absolute value starting from 1 to the size of tfg.
          * @note: May need to use ComplexMatrix for GF.
          */
-        map<int, atom_mapping<map<Vector3_Order<int>, map<double, matrix>>>::pair_t_old> gf_is_itau_R;
+        map<int, atom_mapping<map<Vector3_Order<int>, map<double, matrix>>>::pair_t_old> gf_is_R_tau;
         //! R on which the space-time GF are created.
         vector<Vector3_Order<int>> Rlist_gf;
         //! chi0 data in frequency domain and reciprocal space, [omega][q]
@@ -38,13 +38,21 @@ class Chi0
          */
         void build_chi0_q_space_time(const atpair_R_mat_t &LRI_Cs,
                                      const Vector3_Order<int> &R_period,
-                                     const vector<atpair_t> &atpair_ABF,
+                                     const vector<atpair_t> &atpairs_ABF,
                                      const vector<Vector3_Order<double>> &qlist);
+        void build_chi0_q_space_time_atom_pair_routing(const atpair_R_mat_t &LRI_Cs,
+                                                       const Vector3_Order<int> &R_period,
+                                                       const vector<atpair_t> &atpairs_ABF,
+                                                       const vector<Vector3_Order<double>> &qlist);
+        void build_chi0_q_space_time_R_tau_routing(const atpair_R_mat_t &LRI_Cs,
+                                                   const Vector3_Order<int> &R_period,
+                                                   const vector<atpair_t> &atpairs_ABF,
+                                                   const vector<Vector3_Order<double>> &qlist);
         //! Internal procedure to compute chi0_q in the conventional method, i.e. in frequency domain and reciprocal space
         // TODO: implement the conventional method
         void build_chi0_q_conventional(const atpair_R_mat_t &LRI_Cs,
                                        const Vector3_Order<int> &R_period,
-                                       const vector<atpair_t> &atpair_ABF,
+                                       const vector<atpair_t> &atpairs_ABF,
                                        const vector<Vector3_Order<double>> &qlist);
         /*!
          * s_alpha and s_beta are the spin component of unoccupied Green's function, G_{alpha, beta}(tau)
@@ -76,6 +84,8 @@ class Chi0
                    const vector<atpair_t> &atpair_ABF,
                    const vector<Vector3_Order<double>> &qlist,
                    TFGrids::GRID_TYPES gt, bool use_space_time);
+        const map<double, map<Vector3_Order<double>, atom_mapping<ComplexMatrix>::pair_t_old>> & get_chi0_q() const { return chi0_q; }
+        
 };
 
 //! Compute the real-space independent reponse function in space-time method on a particular time
