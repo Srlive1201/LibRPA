@@ -69,7 +69,7 @@ CorrEnergy compute_RPA_correlation(const Chi0 &chi0, const atpair_k_cplx_mat_t &
                     }
                 }
             }
-            if (para_mpi.pi_parallel_type == Parallel_MPI::parallel_type::ATOM_PAIR)
+            if (para_mpi.chi_parallel_type == Parallel_MPI::parallel_type::ATOM_PAIR)
             {
                 para_mpi.reduce_ComplexMatrix(pi_munu_tmp, pi_freq_q.at(freq).at(q));
             }

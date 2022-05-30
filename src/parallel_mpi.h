@@ -21,7 +21,7 @@ class Parallel_MPI
     int myid, size;
     public:
     enum parallel_type { ATOM_PAIR, R_TAU };
-    parallel_type pi_parallel_type;
+    parallel_type chi_parallel_type;
     Parallel_MPI();
     ~Parallel_MPI();
     

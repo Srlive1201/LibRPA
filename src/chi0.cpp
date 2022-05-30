@@ -163,13 +163,13 @@ void Chi0::build_chi0_q_space_time(const atpair_R_mat_t &LRI_Cs,
     if ( atpairs_ABF.size() < R_tau_size )
     {
         cout << "R_tau_routing" << endl;
-        para_mpi.pi_parallel_type = Parallel_MPI::parallel_type::R_TAU;
+        para_mpi.chi_parallel_type = Parallel_MPI::parallel_type::R_TAU;
         build_chi0_q_space_time_R_tau_routing(LRI_Cs, R_period, atpairs_ABF, qlist);
     }
     else
     {
         cout << "atom_pair_routing" << endl;
-        para_mpi.pi_parallel_type = Parallel_MPI::parallel_type::ATOM_PAIR;
+        para_mpi.chi_parallel_type = Parallel_MPI::parallel_type::ATOM_PAIR;
         build_chi0_q_space_time_atom_pair_routing(LRI_Cs, R_period, atpairs_ABF, qlist);
     }
 

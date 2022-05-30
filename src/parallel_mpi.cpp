@@ -3,7 +3,7 @@
 Parallel_MPI::Parallel_MPI(void)
 {
     cout<<"Parallel_MPI Object is being created !"<<endl;
-    pi_parallel_type = Parallel_MPI::parallel_type::ATOM_PAIR;
+    chi_parallel_type = Parallel_MPI::parallel_type::ATOM_PAIR;
 }
 
 Parallel_MPI::~Parallel_MPI(void)
