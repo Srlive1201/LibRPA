@@ -2,6 +2,7 @@
 /* #include "atoms.h" */
 #include <fstream>
 #include <iostream>
+#include <regex>
 #include "cal_periodic_chi0.h"
 #include "meanfield.h"
 #include "constants.h"
@@ -70,3 +71,111 @@ void READ_AIMS_STRU(const std::string &file_path)
         klist.push_back(kvec_c[i]);
     }
 }
+
+const std::string SPACE_SEP = "[ \r\f\t]*";
+const std::string InputParser::KV_SEP = "=";
+const std::string InputParser::COMMENTS_IDEN = "[#!]";
+
+string task;
+
+std::string get_last_matched(const std::string &s,
+                             const std::string &key,
+                             const std::string &vregex,
+                             int igroup)
+{
+    std::string sout = "";
+    // a leading group to get rid of keys in comments
+    std::regex r(key + SPACE_SEP + InputParser::KV_SEP + SPACE_SEP + vregex,
+                 std::regex_constants::ECMAScript |
+                 std::regex_constants::icase);
+    std::sregex_iterator si(s.begin(), s.end(), r);
+    auto ei = std::sregex_iterator();
+    for (auto i = si; i != ei; i++)
+    {
+        std::smatch match = *i;
+        // std::cout << "whole matched string: " << match.str(0) << std::endl;
+        sout = match.str(igroup);
+    }
+    return sout;
+}
+
+void InputParser::parse_double(const std::string &vname, double &var, double de, int &flag)
+{
+    flag = 0;
+    std::string s = get_last_matched(params, vname,
+                                     "(-?[\\d]+\\.?([\\d]+)?([ed]-?[\\d]+)?)",
+                                     1);
+    if (s != "")
+    {
+        try
+        {
+            var = std::stod(s);
+        }
+        catch (std::invalid_argument)
+        {
+            flag = 2;
+        }
+    }
+    else
+        flag = 1;
+    if (flag) var = de;
+}
+
+void InputParser::parse_int(const std::string &vname, int &var, int de, int &flag)
+{
+    flag = 0;
+    std::string s = get_last_matched(params, vname, "(-?[\\d]+)", 1);
+    if (s != "")
+    {
+        try
+        {
+            var = std::stoi(s);
+        }
+        catch (std::invalid_argument)
+        {
+            flag = 2;
+        }
+    }
+    else
+        flag = 1;
+    if (flag) var = de;
+}
+
+void InputParser::parse_string(const std::string &vname, std::string &var, const std::string &de, int &flag)
+{
+    flag = 0;
+    std::string s = get_last_matched(params, vname, "([\\w ,;.]+)", 1);
+    if (s != "")
+        var = s;
+    else
+        flag = 1;
+    if (flag) var = de;
+}
+
+InputParser InputFile::load(const std::string &fn, bool error_if_fail_open)
+{
+    std::ifstream t(fn);
+    std::string params;
+    if(t.is_open())
+    {
+        filename = fn;
+        std::stringstream buffer;
+        buffer << t.rdbuf();
+        orig_content = buffer.str();
+        // trim comment
+        std::regex r(InputParser::COMMENTS_IDEN + "(.*?)\n");
+        // extra \n to ensure comment in the last line is trimed
+        params = std::regex_replace(orig_content + "\n", r, "\n");
+    }
+    else
+    {
+        const string errmsg = "Error! fail to open file " + fn;
+        std::cout << errmsg << std::endl;
+        if (error_if_fail_open) throw runtime_error(errmsg);
+        std::cout << "Default parameters will be used" << std::endl;
+    }
+    return InputParser(params);
+}
+
+InputFile inputf;
+const string input_filename = "librpa.in";
