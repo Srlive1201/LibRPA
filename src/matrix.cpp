@@ -452,6 +452,38 @@ unsigned matrix::count_absge(double thres) const
     return count;
 }
 
+// minyez add 2022-05-05
+matrix power_symat(matrix &mat, double power, double threshold)
+{
+    assert (mat.nr == mat.nc);
+    matrix pmat = matrix(mat.nr, mat.nc);
+    const char jobz = 'V';
+    const char uplo = 'U';
+
+    int nb = LapackConnector::ilaenv(1, "dsyev", "VU", mat.nc, 1, 1, 1);
+    int lwork = mat.nc * (nb+2);
+    int info = 0;
+    double w[mat.nc];
+    double work[lwork];
+    LapackConnector::dsyev(jobz, uplo, mat.nc, mat.c, mat.nc,
+                           w, work, lwork, info);
+    bool is_int_power = fabs(power - int(power)) < 1e-8;
+    for ( int i = 0; i != mat.nc; i++ )
+    {
+        if (w[i] < threshold)
+            w[i] = 0;
+        else
+            w[i] = pow(w[i], power);
+    }
+    matrix evtrans = transpose(mat);
+    for ( int i = 0; i != mat.nr; i++ )
+        for ( int j = 0; j != mat.nc; j++ )
+            evtrans.c[i*mat.nc+j] *= w[i];
+
+    return mat * evtrans;
+
+}
+
 // minyez copied from Shi Rong's cal_periodic_chi0.cpp
 void print_matrix(const char *desc, const matrix &mat)
 {

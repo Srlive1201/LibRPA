@@ -432,6 +432,37 @@ ComplexMatrix conj(const ComplexMatrix &m)
 	return cm;
 }
 
+ComplexMatrix power_hemat(ComplexMatrix &cmat, double power, double threshold)
+{
+    assert (cmat.nr == cmat.nc);
+    ComplexMatrix pmat = ComplexMatrix(cmat.nr, cmat.nc);
+    const char jobz = 'V';
+    const char uplo = 'U';
+
+    int nb = LapackConnector::ilaenv(1, "zheev", "VU", cmat.nc, 1, 1, 1);
+    int lwork = cmat.nc * (nb+1);
+    int info = 0;
+    double w[cmat.nc];
+    double rwork[3*cmat.nc-2];
+    complex<double> work[lwork];
+    LapackConnector::zheev(jobz, uplo, cmat.nc, cmat, cmat.nc,
+                           w, work, lwork, rwork, &info);
+    /* bool is_int_power = fabs(power - int(power)) < 1e-8; */
+    for ( int i = 0; i != cmat.nc; i++ )
+    {
+        if (w[i] < threshold)
+            w[i] = 0;
+        else
+            w[i] = pow(w[i], power);
+    }
+    ComplexMatrix evconj = conj(cmat);
+    for ( int i = 0; i != cmat.nr; i++ )
+        for ( int j = 0; j != cmat.nc; j++ )
+            evconj.c[i*cmat.nc+j] *= w[i];
+
+    return cmat * evconj;
+}
+
 void print_complex_matrix(const char *desc, const ComplexMatrix &mat)
 {
     int nr = mat.nr;

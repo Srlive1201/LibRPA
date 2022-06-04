@@ -109,5 +109,9 @@ void scaled_sum(
 		ComplexMatrix **m2, 
 		ComplexMatrix **mout);
 
+//! compute the power of Hermitian matrix. Hermicity not checked itself
+ComplexMatrix power_hemat(ComplexMatrix &cmat, double power,
+                          double threshold = -1e16); // Minye Zhang add 2022-06-04
+
 void print_complex_matrix(const char *desc, const ComplexMatrix &mat);
 #endif
