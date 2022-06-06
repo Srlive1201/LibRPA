@@ -172,6 +172,13 @@ ComplexMatrix operator+(const ComplexMatrix &m1, const ComplexMatrix &m2)
 	return tm;
 }
 
+ComplexMatrix operator-(const ComplexMatrix &m,   const complex<double> &s) // minyez add 2022-06-06
+{
+	ComplexMatrix tm(m);
+	tm+=s;
+    return tm;
+}
+                                                                             
 // Subtracting matrices, as a friend
 ComplexMatrix operator-(const ComplexMatrix &m1, const ComplexMatrix &m2)
 {
@@ -180,6 +187,14 @@ ComplexMatrix operator-(const ComplexMatrix &m1, const ComplexMatrix &m2)
 	
 	ComplexMatrix tm(m1);
 	tm-=m2;
+	return tm;
+}
+
+ComplexMatrix operator-(const complex<double> &s, const ComplexMatrix &m)
+{
+	ComplexMatrix tm(m);
+	tm*=-1;
+    tm+=s;
 	return tm;
 }
 
@@ -270,6 +285,12 @@ ComplexMatrix& ComplexMatrix::operator+=(const ComplexMatrix &m)
 	assert(this->nr == m.nr);
 	assert(this->nc == m.nc);
 	for(int i=0; i<size; i++) this->c[i] += m.c[i];
+	return *this;
+}
+
+ComplexMatrix& ComplexMatrix::operator+=(const complex<double> &s)
+{
+	for(int i=0; i<size; i++) this->c[i] += s;
 	return *this;
 }
 
@@ -439,7 +460,7 @@ ComplexMatrix power_hemat(ComplexMatrix &cmat, double power, double threshold)
     const char jobz = 'V';
     const char uplo = 'U';
 
-    int nb = LapackConnector::ilaenv(1, "zheev", "VU", cmat.nc, 1, 1, 1);
+    int nb = LapackConnector::ilaenv(1, "zheev", "VU", cmat.nc, -1, -1, -1);
     int lwork = cmat.nc * (nb+1);
     int info = 0;
     double w[cmat.nc];
@@ -447,15 +468,19 @@ ComplexMatrix power_hemat(ComplexMatrix &cmat, double power, double threshold)
     complex<double> work[lwork];
     LapackConnector::zheev(jobz, uplo, cmat.nc, cmat, cmat.nc,
                            w, work, lwork, rwork, &info);
-    /* bool is_int_power = fabs(power - int(power)) < 1e-8; */
+    bool is_int_power = fabs(power - int(power)) < 1e-8;
     for ( int i = 0; i != cmat.nc; i++ )
     {
+        if (w[i] < 0 && !is_int_power)
+            printf("Warning! negative eigenvalue with non-integer power: # %d ev = %f , pow = %f", i, w[i], power);
+        if (fabs(w[i]) < 1e-10 && power < 0)
+            printf("Warning! nearly-zero eigenvalue with negative power: # %d ev = %f , pow = %f", i, w[i], power);
         if (w[i] < threshold)
             w[i] = 0;
         else
             w[i] = pow(w[i], power);
     }
-    ComplexMatrix evconj = conj(cmat);
+    ComplexMatrix evconj = transpose(cmat, true);
     for ( int i = 0; i != cmat.nr; i++ )
         for ( int j = 0; j != cmat.nc; j++ )
             evconj.c[i*cmat.nc+j] *= w[i];
@@ -468,10 +493,11 @@ void print_complex_matrix(const char *desc, const ComplexMatrix &mat)
     int nr = mat.nr;
     int nc = mat.nc;
     printf("\n %s\n", desc);
+    printf("nr = %d, nc = %d\n", nr, nc);
     for (int i = 0; i < nr; i++)
     {
         for (int j = 0; j < nc; j++)
-            printf("%10.6f,%8.6f ", mat.c[i * nc + j].real(), mat.c[i * nc + j].imag());
+            printf("%10.6f,%9.6f ", mat.c[i * nc + j].real(), mat.c[i * nc + j].imag());
         printf("\n");
     }
 }

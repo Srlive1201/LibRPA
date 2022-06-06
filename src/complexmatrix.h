@@ -52,6 +52,7 @@ public:
 	
 	ComplexMatrix& operator*=(const complex<double> &s);
 	ComplexMatrix& operator+=(const ComplexMatrix &m);
+	ComplexMatrix& operator+=(const complex<double> &s); // minez add 2022-06-06
 	ComplexMatrix& operator-=(const ComplexMatrix &m);
 	matrix real() const;						// Peize Lin add 2017-03-29
 	
@@ -67,6 +68,8 @@ public:
 
 ComplexMatrix operator+(const ComplexMatrix &m1,  const ComplexMatrix &m2);
 ComplexMatrix operator-(const ComplexMatrix &m1,  const ComplexMatrix &m2);
+ComplexMatrix operator-(const complex<double> &s, const ComplexMatrix &m); // minyez add 2022-06-06
+ComplexMatrix operator-(const ComplexMatrix &m,   const complex<double> &s); // minyez add 2022-06-06
 ComplexMatrix operator*(const ComplexMatrix &m1,  const ComplexMatrix &m2);
 ComplexMatrix operator*(const complex<double> &s, const ComplexMatrix &m);
 ComplexMatrix operator*(const ComplexMatrix &m,   const complex<double> &s);

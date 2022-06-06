@@ -242,3 +242,74 @@ map<double, map<Vector3_Order<double>, atom_mapping<ComplexMatrix>::pair_t_old>>
     /* print_complex_matrix("  last_pi_mat:",pi.at(chi0.tfg.get_freq_nodes()[0]).at({0,0,0}).at(natom-1).at(natom-1)); */
     return pi;
 }
+
+
+map<double, map<Vector3_Order<double>, atom_mapping<ComplexMatrix>::pair_t_old>> compute_symmetric_eps(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat)
+{
+    map<double, map<Vector3_Order<double>, atom_mapping<ComplexMatrix>::pair_t_old>> symeps;
+    int range_all = 0;
+
+    for (auto &iat : atom_mu)
+    {
+        range_all += iat.second;
+    }
+    auto part_range = get_part_range();
+
+    for ( auto &freq_qMuNuchi: chi0.get_chi0_q() )
+    {
+        auto freq = freq_qMuNuchi.first;
+        for ( auto & q_MuNuchi: freq_qMuNuchi.second )
+        {
+            auto q = q_MuNuchi.first;
+            ComplexMatrix chi0fq_all(range_all, range_all);
+            // synthesize the whole chi0 matrix at freq and q
+            // FIXME: MPI not considered yet
+            for ( auto &Mu_Nuchi: q_MuNuchi.second )
+            {
+                auto Mu = Mu_Nuchi.first;
+                auto n_mu = atom_mu[Mu];
+                for ( auto &Nu_chi: Mu_Nuchi.second )
+                {
+                    auto Nu = Nu_chi.first;
+                    auto n_nu = atom_mu[Nu];
+                    for ( int i_mu = 0; i_mu != n_mu; i_mu++ )
+                        for ( int i_nu = 0; i_nu != n_nu; i_nu++ )
+                            chi0fq_all(part_range[Mu] + i_mu, part_range[Nu] + i_nu) = Nu_chi.second(i_mu, i_nu);
+                }
+            }
+            ComplexMatrix Vq_all(range_all, range_all);
+            // synthesize the whole Coulomb matrix
+            for ( auto &Mu_NuqVq: coulmat )
+            {
+                auto Mu = Mu_NuqVq.first;
+                auto n_mu = atom_mu[Mu];
+                for ( auto &Nu_qVq: Mu_NuqVq.second )
+                {
+                    auto Nu = Nu_qVq.first;
+                    if ( 0 == Nu_qVq.second.count(q) ) continue;
+                    auto n_nu = atom_mu[Nu];
+                    for ( int i_mu = 0; i_mu != n_mu; i_mu++ )
+                        for ( int i_nu = 0; i_nu != n_nu; i_nu++ )
+                            Vq_all(part_range[Mu] + i_mu, part_range[Nu] + i_nu) = (*Nu_qVq.second.at(q))(i_mu, i_nu);
+                }
+            }
+            /* print_complex_matrix("Vq_all", Vq_all); */
+            auto sqrtVq_all = power_hemat(Vq_all, 0.5);
+            /* print_complex_matrix("sqrtVq_all", sqrtVq_all); */
+
+            ComplexMatrix identity(range_all, range_all);
+            identity.set_as_identity_matrix();
+            auto eps_fq = identity - sqrtVq_all * chi0fq_all * sqrtVq_all;
+            /* print_complex_matrix("eps_fq", eps_fq); */
+            auto inveps = power_hemat(eps_fq, -1);
+            auto wc = sqrtVq_all * (inveps - identity) * sqrtVq_all;
+            if ( chi0.tfg.get_freq_nodes()[0] == freq && q == Vector3_Order<double>(0, 0, 0))
+            {
+                cout <<  "freq: " << freq << ", q: " << q << endl;
+                print_complex_matrix("wc", wc);
+            }
+        }
+    }
+    // collect V and compute square root of V
+    return symeps;
+}

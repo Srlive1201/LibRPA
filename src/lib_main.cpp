@@ -58,7 +58,7 @@ int main(int argc, char **argv)
         compute_RPA_correlation(chi0, Vq);
     else if ( task == "g0w0" )
     {
-        
+        compute_symmetric_eps(chi0, Vq);
     }
 
     prof.stop("total");
