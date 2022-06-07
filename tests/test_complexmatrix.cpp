@@ -19,13 +19,16 @@ void test_power_hemat()
     a(0, 1) = cmplx(0, -2);
     a(1, 0) = cmplx(0, 2);
     print_complex_matrix("a", a);
+    auto origa = a;
     b = power_hemat(a, 0.5);
     print_complex_matrix("sqrt_a", b);
-    assert( fequal(b(0, 0), cmplx(1, 0)) &&
-            fequal(b(1, 1), cmplx(1, 0)) &&
-            fequal(b(0, 1), cmplx(0, -1)) &&
-            fequal(b(1, 0), cmplx(0, 1))
-            );
+    // phase is undetermined, use square of sqrt to check
+    /* assert( fequal(b(0, 0), cmplx(1, 0)) && */
+    /*         fequal(b(1, 1), cmplx(1, 0)) && */
+    /*         fequal(b(0, 1), cmplx(0, -1)) && */
+    /*         fequal(b(1, 0), cmplx(0, 1)) */
+    /*         ); */
+    assert(is_matmul_AB_equal_C(2, 2, 2, b.c, b.c, origa.c, false, true));
 }
 
 int main (int argc, char *argv[])
