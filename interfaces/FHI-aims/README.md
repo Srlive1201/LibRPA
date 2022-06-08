@@ -27,3 +27,5 @@ The hash number indicates the git version of FHI-aims on which the patch file is
 
 `fhiaims.fbbdcd540c.patch`: Base on [a commit](https://aims-git.rz-berlin.mpg.de/aims/FHIaims/-/tree/fbbdcd540c775f6feb7e37dba9f73eba67591bdb) on 2022-03-02. Tested, work on carbon diamond. Also applicable on `210716_2` release.
 
+`fhiaims.62c7cfa45f.patch`: Base on [commit 62c7cfa45f](https://aims-git.rz-berlin.mpg.de/aims/FHIaims/-/tree/62c7cfa45f7161f9ac04f5d97a0aaa272af94f34) on 2022-06-03. Used for GW development.
+
