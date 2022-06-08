@@ -229,7 +229,7 @@ index f699a7ac7..79b2600e4 100644
 +            end if
 +          end if
 +        end do
-+      else
++        else
 +        do i_k_point = 1, n_k_points
 +          if(myid == MOD(i_k_point, n_tasks)  .and. myid <= n_k_points) then
 +            i_k=i_k+1
@@ -253,8 +253,8 @@ index f699a7ac7..79b2600e4 100644
 +            end if
 +          end if
 +        end do 
-+      end if
-+      close(2)
++        end if
++        close(2)
 +
 +        open(4,file='stru_out')
 +        write(4,*)lattice_vector(:,1)
