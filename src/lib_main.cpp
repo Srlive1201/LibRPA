@@ -26,13 +26,14 @@ int main(int argc, char **argv)
     parser.parse_string("task", task, "rpa", flag);
     parser.parse_double("cs_threshold", cs_threshold, 1e-6, flag);
     parser.parse_double("vq_threshold", vq_threshold, 1e-6, flag);
+    parser.parse_double("sqrt_coulomb_threshold", sqrt_coulomb_threshold, 1e-4, flag);
 
     READ_AIMS_BAND("band_out", meanfield);
     READ_AIMS_STRU("stru_out");
     READ_AIMS_EIGENVECTOR("./", meanfield);
 
     READ_AIMS_Cs("./", cs_threshold);
-    READ_AIMS_Vq("./", vq_threshold); 
+    READ_AIMS_Vq("./", "coulomb_mat", vq_threshold, Vq); 
     /* if(argv[1][0]=='0') */
     /*     ap_chi0.chi0_main(argv[1],argv[2]);  */
     /* else */
@@ -58,7 +59,8 @@ int main(int argc, char **argv)
         compute_RPA_correlation(chi0, Vq);
     else if ( task == "g0w0" )
     {
-        compute_symmetric_eps(chi0, Vq);
+        READ_AIMS_Vq("./", "coulomb_cut", vq_threshold, Vq_cut); 
+        compute_symmetric_eps(chi0, Vq, Vq_cut);
     }
 
     prof.stop("total");

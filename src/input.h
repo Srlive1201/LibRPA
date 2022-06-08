@@ -12,6 +12,7 @@
 #include "matrix3.h"
 extern double cs_threshold;
 extern double vq_threshold;
+extern double sqrt_coulomb_threshold;
 
 extern int kv_nmp[3];
 extern Matrix3 latvec;

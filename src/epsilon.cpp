@@ -1,4 +1,6 @@
+#include <algorithm>
 #include "epsilon.h"
+#include "input.h"
 #include "parallel_mpi.h"
 #include "lapack_connector.h"
 
@@ -244,7 +246,8 @@ map<double, map<Vector3_Order<double>, atom_mapping<ComplexMatrix>::pair_t_old>>
 }
 
 
-map<double, map<Vector3_Order<double>, atom_mapping<ComplexMatrix>::pair_t_old>> compute_symmetric_eps(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat)
+map<double, map<Vector3_Order<double>, atom_mapping<ComplexMatrix>::pair_t_old>>
+compute_symmetric_eps(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat, const atpair_k_cplx_mat_t &coulmat_cut)
 {
     map<double, map<Vector3_Order<double>, atom_mapping<ComplexMatrix>::pair_t_old>> symeps;
     int range_all = 0;
@@ -263,7 +266,7 @@ map<double, map<Vector3_Order<double>, atom_mapping<ComplexMatrix>::pair_t_old>>
             auto q = q_MuNuchi.first;
             ComplexMatrix chi0fq_all(range_all, range_all);
             // synthesize the whole chi0 matrix at freq and q
-            // FIXME: MPI not considered yet
+            // FIXME: MPI not considered yet, memory consumption can be large for big system
             for ( auto &Mu_Nuchi: q_MuNuchi.second )
             {
                 auto Mu = Mu_Nuchi.first;
@@ -274,10 +277,14 @@ map<double, map<Vector3_Order<double>, atom_mapping<ComplexMatrix>::pair_t_old>>
                     auto n_nu = atom_mu[Nu];
                     for ( int i_mu = 0; i_mu != n_mu; i_mu++ )
                         for ( int i_nu = 0; i_nu != n_nu; i_nu++ )
+                        {
                             chi0fq_all(part_range[Mu] + i_mu, part_range[Nu] + i_nu) = Nu_chi.second(i_mu, i_nu);
+                            chi0fq_all(part_range[Nu] + i_nu, part_range[Mu] + i_mu) = conj(Nu_chi.second(i_mu, i_nu));
+                        }
                 }
             }
             ComplexMatrix Vq_all(range_all, range_all);
+            ComplexMatrix Vqcut_all(range_all, range_all);
             // synthesize the whole Coulomb matrix
             for ( auto &Mu_NuqVq: coulmat )
             {
@@ -290,23 +297,62 @@ map<double, map<Vector3_Order<double>, atom_mapping<ComplexMatrix>::pair_t_old>>
                     auto n_nu = atom_mu[Nu];
                     for ( int i_mu = 0; i_mu != n_mu; i_mu++ )
                         for ( int i_nu = 0; i_nu != n_nu; i_nu++ )
+                        {
                             Vq_all(part_range[Mu] + i_mu, part_range[Nu] + i_nu) = (*Nu_qVq.second.at(q))(i_mu, i_nu);
+                            Vq_all(part_range[Nu] + i_nu, part_range[Mu] + i_mu) = conj((*Nu_qVq.second.at(q))(i_mu, i_nu));
+                        }
                 }
             }
-            /* print_complex_matrix("Vq_all", Vq_all); */
-            auto sqrtVq_all = power_hemat(Vq_all, 0.5);
-            /* print_complex_matrix("sqrtVq_all", sqrtVq_all); */
+            for ( auto &Mu_NuqVq: coulmat_cut )
+            {
+                auto Mu = Mu_NuqVq.first;
+                auto n_mu = atom_mu[Mu];
+                for ( auto &Nu_qVq: Mu_NuqVq.second )
+                {
+                    auto Nu = Nu_qVq.first;
+                    if ( 0 == Nu_qVq.second.count(q) ) continue;
+                    auto n_nu = atom_mu[Nu];
+                    for ( int i_mu = 0; i_mu != n_mu; i_mu++ )
+                        for ( int i_nu = 0; i_nu != n_nu; i_nu++ )
+                        {
+                            Vqcut_all(part_range[Mu] + i_mu, part_range[Nu] + i_nu) = (*Nu_qVq.second.at(q))(i_mu, i_nu);
+                            Vqcut_all(part_range[Nu] + i_nu, part_range[Mu] + i_mu) = conj((*Nu_qVq.second.at(q))(i_mu, i_nu));
+                        }
+                }
+            }
+            int iq = std::distance(klist.begin(), std::find(klist.begin(), klist.end(), q));
+            char fn[80];
+            if ( chi0.tfg.get_freq_nodes()[0] == freq )
+            {
+                cout <<  "freq: " << freq << ", q: " << q << endl;
+                sprintf(fn, "Vq_all_q_%d_freq_%d.mtx", iq, 0);
+                /* cout << "Vq_all(112,15) = " << Vq_all(112, 15) << endl; */
+                print_complex_matrix_mm(Vq_all, fn);
+            }
+            auto sqrtVq_all = power_hemat(Vq_all, 0.5, sqrt_coulomb_threshold);
 
             ComplexMatrix identity(range_all, range_all);
             identity.set_as_identity_matrix();
             auto eps_fq = identity - sqrtVq_all * chi0fq_all * sqrtVq_all;
-            /* print_complex_matrix("eps_fq", eps_fq); */
-            auto inveps = power_hemat(eps_fq, -1);
-            auto wc = sqrtVq_all * (inveps - identity) * sqrtVq_all;
-            if ( chi0.tfg.get_freq_nodes()[0] == freq && q == Vector3_Order<double>(0, 0, 0))
+            if ( chi0.tfg.get_freq_nodes()[0] == freq )
             {
-                cout <<  "freq: " << freq << ", q: " << q << endl;
-                print_complex_matrix("wc", wc);
+                sprintf(fn, "sqrtVq_all_q_%d_freq_%d.mtx", iq, 0);
+                print_complex_matrix_mm(sqrtVq_all, fn, 1e-15);
+                sprintf(fn, "chi0fq_all_q_%d_freq_%d.mtx", iq, 0);
+                print_complex_matrix_mm(chi0fq_all, fn, 1e-15);
+                sprintf(fn, "eps_q_%d_freq_%d.mtx", iq, 0);
+                print_complex_matrix_mm(eps_fq, fn, 1e-15);
+            }
+            auto inveps = power_hemat(eps_fq, -1);
+            auto sqrtVqcut_all = power_hemat(Vqcut_all, 0.5, sqrt_coulomb_threshold);
+            auto wc = sqrtVqcut_all * (inveps - identity) * sqrtVqcut_all;
+            /* if ( chi0.tfg.get_freq_nodes()[0] == freq && q == Vector3_Order<double>(0, 0, 0)) */
+            if ( chi0.tfg.get_freq_nodes()[0] == freq )
+            {
+                sprintf(fn, "inveps_q_%d_freq_%d.mtx", iq, 0);
+                print_complex_matrix_mm(inveps, fn, 1e-15);
+                sprintf(fn, "wc_q_%d_freq_%d.mtx", iq, 0);
+                print_complex_matrix_mm(wc, fn, 1e-15);
             }
         }
     }

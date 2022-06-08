@@ -8,6 +8,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
+#include <iomanip>
 #include "complexmatrix.h"
 #include "lapack_connector.h"
 
@@ -471,10 +472,10 @@ ComplexMatrix power_hemat(ComplexMatrix &cmat, double power, double threshold)
     bool is_int_power = fabs(power - int(power)) < 1e-8;
     for ( int i = 0; i != cmat.nc; i++ )
     {
-        if (w[i] < 0 && !is_int_power)
-            printf("Warning! negative eigenvalue with non-integer power: # %d ev = %f , pow = %f", i, w[i], power);
+        if (w[i] < 0 && w[i] > threshold && !is_int_power)
+            printf("Warning! kept negative eigenvalue with non-integer power: # %d ev = %f , pow = %f\n", i, w[i], power);
         if (fabs(w[i]) < 1e-10 && power < 0)
-            printf("Warning! nearly-zero eigenvalue with negative power: # %d ev = %f , pow = %f", i, w[i], power);
+            printf("Warning! nearly-zero eigenvalue with negative power: # %d ev = %f , pow = %f\n", i, w[i], power);
         if (w[i] < threshold)
             w[i] = 0;
         else
@@ -500,4 +501,85 @@ void print_complex_matrix(const char *desc, const ComplexMatrix &mat)
             printf("%10.6f,%9.6f ", mat.c[i * nc + j].real(), mat.c[i * nc + j].imag());
         printf("\n");
     }
+}
+
+void print_complex_matrix_file(const char *desc, const ComplexMatrix &mat, ofstream &fs, bool use_scientific)
+{
+    int nr = mat.nr;
+    int nc = mat.nc;
+    int w = 22;
+    int prec = 15;
+    auto format = fixed;
+    if (use_scientific)
+        format = scientific;
+    fs << "#" << desc << endl;
+    // c for complex
+    fs << "# c " << nr << " " << nc << endl;
+    for (int i = 0; i < nr; i++)
+    {
+        for (int j = 0; j < nc - 1; j++)
+            fs << setw(w) << showpoint << format << setprecision(prec) << mat.c[i * nc + j].real() << " " << setw(w) << showpoint << format << setprecision(prec) << mat.c[i * nc + j].imag() << " ";
+        fs << setw(w) << showpoint << format << setprecision(prec) << mat.c[i * nc + nc - 1].real() << " " << setw(w) << showpoint << format << setprecision(prec) << mat.c[i * nc + nc - 1].imag() << "\n";
+    }
+}
+
+void print_complex_matrix_mm(const ComplexMatrix &mat, ofstream &fs, double threshold, bool row_first)
+{
+    int nr = mat.nr;
+    int nc = mat.nc;
+    int prec = 15;
+    size_t nnz = 0;
+    auto format = scientific;
+    fs << "%%MatrixMarket matrix coordinate complex general" << endl;
+    fs << "%" << endl;
+    // count non-zero values first
+    for (int i = 0; i < mat.size; i++)
+    {
+        auto v = mat.c[i];
+        if ( fabs(v.real()) > threshold || fabs(v.imag()) > threshold )
+            nnz++;
+    }
+
+    fs << nr << " " << nc << " " << nnz << endl;
+
+    if (row_first)
+    {
+        for (int j = 0; j < nc; j++)
+        {
+            for (int i = 0; i < nr; i++)
+            {
+                auto v = mat.c[i*nc+j];
+                if ( fabs(v.real()) > threshold || fabs(v.imag()) > threshold )
+                    fs << i + 1 << " " << j + 1 << " " << showpoint << format << setprecision(prec) << v.real() << " " << showpoint << format << setprecision(prec) << v.imag() << "\n";
+            }
+        }
+    }
+    else
+    {
+        for (int i = 0; i < nr; i++)
+        {
+            for (int j = 0; j < nc; j++)
+            {
+                auto v = mat.c[i*nc+j];
+                if ( fabs(v.real()) > threshold || fabs(v.imag()) > threshold )
+                    fs << i + 1 << " " << j + 1 << " " << showpoint << format << setprecision(prec) << v.real() << " " << showpoint << format << setprecision(prec) << v.imag() << "\n";
+            }
+        }
+    }
+}
+
+void print_complex_matrix_file(const char *desc, const ComplexMatrix &mat, const string &fn, bool use_scientific)
+{
+    ofstream fs;
+    fs.open(fn);
+    print_complex_matrix_file(desc, mat, fs, use_scientific);
+    fs.close();
+}
+
+void print_complex_matrix_mm(const ComplexMatrix &mat, const string &fn, double threshold, bool row_first)
+{
+    ofstream fs;
+    fs.open(fn);
+    print_complex_matrix_mm(mat, fs, threshold, row_first);
+    fs.close();
 }

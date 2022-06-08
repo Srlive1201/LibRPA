@@ -117,4 +117,8 @@ ComplexMatrix power_hemat(ComplexMatrix &cmat, double power,
                           double threshold = -1e16); // Minye Zhang add 2022-06-04
 
 void print_complex_matrix(const char *desc, const ComplexMatrix &mat);
+void print_complex_matrix_file(const char *desc, const ComplexMatrix &mat, ofstream &fs, bool use_scientific);
+void print_complex_matrix_mm(const ComplexMatrix &mat, ofstream &fs, double threshold = 1e-15, bool row_first = true);
+void print_complex_matrix_file(const char *desc, const ComplexMatrix &mat, const string &fn, bool use_scientific);
+void print_complex_matrix_mm(const ComplexMatrix &mat, const string &fn, double threshold = 1e-15, bool row_first = true);
 #endif

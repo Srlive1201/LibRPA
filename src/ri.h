@@ -29,6 +29,8 @@ typedef atom_mapping< map<Vector3_Order<double>, std::shared_ptr<ComplexMatrix>>
 extern atpair_R_mat_t Cs;
 //! Coulomb matrix in ABF, represented in the reciprocal space.
 extern atpair_k_cplx_mat_t Vq;
+//! Truncated Coulomb matrix in ABF, represented in the reciprocal space.
+extern atpair_k_cplx_mat_t Vq_cut;
 
 int atom_iw_loc2glo(const int &atom_index, const int &iw_lcoal);
 int atom_mu_loc2glo(const int &atom_index, const int &mu_lcoal);

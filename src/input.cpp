@@ -9,6 +9,7 @@
 using namespace std;
 double cs_threshold = 1E-6;
 double vq_threshold = 1e-6;
+double sqrt_coulomb_threshold = 1e-4;
 
 int kv_nmp[3] = {1, 1, 1};
 Vector3<double> *kvec_c;

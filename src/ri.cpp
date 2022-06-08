@@ -10,6 +10,7 @@ map<atom_t, size_t> atom_mu;
 
 atpair_R_mat_t Cs;
 atpair_k_cplx_mat_t Vq;
+atpair_k_cplx_mat_t Vq_cut;
 
 int atom_iw_loc2glo(const int &atom_index, const int &iw_lcoal)
 {
