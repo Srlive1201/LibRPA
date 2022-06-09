@@ -1,4 +1,5 @@
-#include "timefreq.h"
+#include "testutils.h"
+#include "../src/timefreq.h"
 #include <iostream>
 #include <stdexcept>
 
@@ -12,6 +13,7 @@ void check_minimax_ng16_diamond_k222()
     tfg.generate_minimax(emin, emax);
     /* if (tfg.get_grid_type() != TFGrids::GRID_TYPES::Minimax) */
     /*     throw logic_error("internal type should be minimax grid"); */
+    print_matrix("cos: t2f * f2t, should be close to identity", tfg.get_costrans_t2f() * tfg.get_costrans_f2t() );
 }
 
 void check_minimax_ng6_HF_123()
@@ -20,12 +22,12 @@ void check_minimax_ng6_HF_123()
     double emin = 0.657768, emax = 30.1366;
     tfg.generate_minimax(emin, emax);
     assert ( tfg.size() == 6 );
-    printf("%20.15f, %20.15f\n", tfg.get_freq_nodes()[0], tfg.get_freq_weights()[0]);
+    /* printf("%20.15f, %20.15f\n", tfg.get_freq_nodes()[0], tfg.get_freq_weights()[0]); */
     vector<double> freq_node = {0.233556, 0.844872, 2.029850, 4.815547, 12.239097, 36.979336};
     vector<double> freq_weight = {0.489089, 0.798829, 1.724256, 4.282121, 12.092283, 48.530744};
     vector<double> time_node = {0.021614, 0.129568, 0.408121, 1.072294, 2.593619, 6.074920};
     vector<double> time_weight = {0.057049, 0.171324, 0.419863, 0.982601, 2.222569, 5.258784};
-    cout << tfg.find_freq_weight(tfg.get_freq_nodes()[0]) << endl;
+    /* cout << tfg.find_freq_weight(tfg.get_freq_nodes()[0]) << endl; */
     assert( tfg.find_freq_weight(tfg.get_freq_nodes()[0]) == tfg.get_freq_weights()[0]);
     for ( int i = 0; i != tfg.size(); i++ )
     {
@@ -71,13 +73,8 @@ void check_minimax_ng6_HF_123()
     costrans_t2f(5, 3) =-0.10941;
     costrans_t2f(5, 4) = 0.19074;
     costrans_t2f(5, 5) =-0.67673;
-    print_matrix("", costrans_t2f);
-    print_matrix("", tfg.get_costrans_t2f());
-    for ( int i = 0; i != costrans_t2f.size; i++ )
-    {
-        cout << costrans_t2f.c[i] << " " << tfg.get_costrans_t2f().c[i] << endl;
-        assert ( fabs( costrans_t2f.c[i] - tfg.get_costrans_t2f().c[i]) < 2e-5);
-    }
+    assert ( is_mat_A_equal_B(6, 6, costrans_t2f.c, tfg.get_costrans_t2f().c, false, true, 1e-5) );
+    print_matrix("cos: t2f * f2t, should be close to identity", tfg.get_costrans_t2f() * tfg.get_costrans_f2t() );
 
 /* Sine transform matrix */
 /*  */

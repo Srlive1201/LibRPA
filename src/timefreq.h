@@ -27,7 +27,7 @@ extern const string GX_path;
  */
 map<double, double> read_local_grid(int grid_N, const string &file_path, const char type, double scale);
 //! read the file containing transformation matrix from time to frequency domain
-vector<double> read_time2freq_trans(const string &file_path, double inverse_scale);
+vector<double> read_trans_matrix(const string &file_path, double inverse_scale);
 
 //! Object to handle time/frequency grids for quadrature
 /*!
@@ -62,10 +62,17 @@ class TFGrids
          Each row corresponds to a certain frequency k index.
          */
         matrix costrans_t2f;
+        /*! Inverse Cosine transform matrix.
+         */
+        matrix costrans_f2t;
         //! Sine transformation matrix from (imaginary) time to frequency, i.e. lambda in Eq.7 of LiuP16
         matrix sintrans_t2f;
+        /*! Inverse Cosine transform matrix.
+         */
+        matrix sintrans_f2t;
         //! General Fourier transformation matrix.
         ComplexMatrix fourier_t2f; // FIXME: this is not implemented, please do not use
+        ComplexMatrix fourier_f2t; // FIXME: this is not implemented, please do not use
         //! allocate the pointers of array, e.g. nodes and weights
         void set_freq();
         void set_time();
@@ -89,6 +96,8 @@ class TFGrids
         // NOTE: use reference for return matrix?
         const matrix get_costrans_t2f() const { return costrans_t2f; }
         const matrix get_sintrans_t2f() const { return sintrans_t2f; }
+        const matrix get_costrans_f2t() const { return costrans_f2t; }
+        const matrix get_sintrans_f2t() const { return sintrans_f2t; }
         //! obtain the integral weight from the frequency value
         // NOTE:(ZMY) attempt to use a map<double, double> to store,
         //      but will lead to a segfault in chi0tauR calculation, not knowing why

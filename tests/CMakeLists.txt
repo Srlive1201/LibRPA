@@ -34,6 +34,10 @@ else()
     ../src/pbc.cpp
     ../src/vector3_order.cpp
     )
+  target_sources(test_blas_lapack PRIVATE
+    ../src/complexmatrix.cpp
+    ../src/matrix.cpp
+    )
   target_sources(test_parallel_mpi PRIVATE
     ../src/parallel_mpi.cpp
     ../src/matrix.cpp
