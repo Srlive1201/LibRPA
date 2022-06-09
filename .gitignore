@@ -56,6 +56,9 @@ _deps
 
 *.pyc
 __pycache__
+local_*_points.dat
+*_time2freq_grid_*.txt
+*_freq2time_grid_*.txt
 
 # cmake build directories
 build*

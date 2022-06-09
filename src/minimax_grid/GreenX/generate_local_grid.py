@@ -1,5 +1,6 @@
 """write the minimax grids and cosine/sine transformation matrix"""
 from __future__ import print_function
+from argparse import ArgumentParser
 import math
 import sys
 import os
@@ -139,50 +140,79 @@ def generate_trans_mat(omegas, taus, erange, trans, kind):
             }
     tfunc = dict_target[(kind, trans)]
 
-    mat = np.zeros((ngrids, ngrids))
     with open("INFO.txt", "at") as f1:
         print(kind_str + "_transform   N = ", ngrids,
               "   Range_x: ", np.min(x), np.max(x),
               "n(x) = ", num_x_node, file=f1)
         print(trans_str + " transform:", file=f1)
     fn = str(ngrids) + "_" + kind_str + "_grid_" + trans + ".txt"
+    mat = np.zeros((ngrids, ngrids))
     with open(fn, "wt") as f0:
         if kind == "t2f":
-            for i_tau in omega_g:
-                print("Freq: ", i_tau, file=f0)
-                para_i = least_squares(tfunc, p0, args=(x, i_tau, tau_g))
-                for gamma in para_i.x:
-                    print(gamma, file=f0)
-                with open("INFO.txt", "at") as f1:
-                    print("Freq_point: ", i_tau, "         transform_err: ",
-                          np.max(abs(para_i.fun)), file=f1)
+            prefix = "Freq"
+            outer = omega_g
+            inner = tau_g
         else:
-            for i_tau in tau_g:
-                print("Tau: ", i_tau, file=f0)
-                para_i = least_squares(tfunc, p0, args=(x, i_tau, omega_g))
-                for gamma in para_i.x:
-                    print(gamma, file=f0)
-                with open("INFO.txt", "at") as f1:
-                    print("Tau_point: ", i_tau, "         transform_err: ",
-                          np.max(abs(para_i.fun)), file=f1)
+            prefix = "Tau"
+            outer = tau_g
+            inner = omega_g
+        for i, grid in enumerate(outer):
+            print(prefix + ": ", grid, file=f0)
+            para_i = least_squares(tfunc, p0, args=(x, grid, inner))
+            for gamma in para_i.x:
+                print(gamma, file=f0)
+            with open("INFO.txt", "at") as f1:
+                print(prefix+"_point: ", grid, "         transform_err: ",
+                      np.max(abs(para_i.fun)), file=f1)
+            mat[i, :] = para_i.x
 
     with open("INFO.txt", "at") as f1:
         print("Finish " + kind_str + " " + trans_str + " transformation!", file=f1)
     return mat
 
 
+def parser():
+    """the parser"""
+    p = ArgumentParser()
+    p.add_argument("ngrids", type=int, help="Number of grid points",
+                   choices=[6, 8, 10, 12, 14, 16, 18, 20, 26, 28, 30, 32, 34])
+    p.add_argument("erange", type=float, help="energy range")
+    p.add_argument("--check-delta", action="store_true",
+                   help="check the Delta matrix of cosine and sine transform")
+    p.add_argument("--dpi", type=int, default=300, help="DPI")
+    return p
+
 def main():
     """main stream"""
-    ngrids = int(sys.argv[1])
-    erange = float(sys.argv[2])
+    args = parser().parse_args()
+    ngrids = int(args.ngrids)
+    erange = float(args.erange)
     print("N: ", ngrids)
     print("R: ", erange)
     omegas, taus = read_grid(ngrids, erange)
-    # TODO: internal check for Delta matrix?
-    generate_trans_mat(omegas, taus, erange, "cos", "t2f")
-    generate_trans_mat(omegas, taus, erange, "sin", "t2f")
-    generate_trans_mat(omegas, taus, erange, "cos", "f2t")
-    generate_trans_mat(omegas, taus, erange, "sin", "f2t")
+    cos_t2f = generate_trans_mat(omegas, taus, erange, "cos", "t2f")
+    sin_t2f = generate_trans_mat(omegas, taus, erange, "sin", "t2f")
+    cos_f2t = generate_trans_mat(omegas, taus, erange, "cos", "f2t")
+    sin_f2t = generate_trans_mat(omegas, taus, erange, "sin", "f2t")
+
+    # internal check for Delta matrix
+    if args.check_delta:
+        np.set_printoptions(precision=3, linewidth=200)
+        import matplotlib.pyplot as plt
+        fig, axs = plt.subplots(1, 2, figsize=(12, 6))
+        fig.suptitle(f"t2f.f2t, ngrid = {ngrids}, erange = {erange}")
+        for title, ax, mat in zip(["Cos", "Sin"],
+                                  axs, [np.matmul(cos_t2f, cos_f2t),
+                                  np.matmul(sin_t2f, sin_f2t)]):
+            delta = np.absolute(np.identity(ngrids) - mat)
+            print(delta)
+            norm = np.linalg.norm(delta)
+            vmax = np.max(delta)
+            ax.set_title(title + f" Delta, 2-norm: {norm:.4f}")
+            c = ax.matshow(delta, cmap="Blues", vmin=0, vmax=vmax)
+            fig.colorbar(c, ax=ax, fraction=0.046, pad=0.04)
+        plt.savefig(f"Delta_n{ngrids}_e{erange:.5f}.png", dpi=args.dpi)
+        plt.show()
 
 
 if __name__ == '__main__':

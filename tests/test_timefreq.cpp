@@ -13,7 +13,8 @@ void check_minimax_ng16_diamond_k222()
     tfg.generate_minimax(emin, emax);
     /* if (tfg.get_grid_type() != TFGrids::GRID_TYPES::Minimax) */
     /*     throw logic_error("internal type should be minimax grid"); */
-    print_matrix("cos: t2f * f2t, should be close to identity", tfg.get_costrans_t2f() * tfg.get_costrans_f2t() );
+    print_matrix("cos: t2f * f2t, ideally close to identity", tfg.get_costrans_t2f() * tfg.get_costrans_f2t() );
+    print_matrix("sin: t2f * f2t, ideally close to identity", tfg.get_sintrans_t2f() * tfg.get_sintrans_f2t() );
 }
 
 void check_minimax_ng6_HF_123()
@@ -74,7 +75,8 @@ void check_minimax_ng6_HF_123()
     costrans_t2f(5, 4) = 0.19074;
     costrans_t2f(5, 5) =-0.67673;
     assert ( is_mat_A_equal_B(6, 6, costrans_t2f.c, tfg.get_costrans_t2f().c, false, true, 1e-5) );
-    print_matrix("cos: t2f * f2t, should be close to identity", tfg.get_costrans_t2f() * tfg.get_costrans_f2t() );
+    print_matrix("cos: t2f * f2t, ideally close to identity", tfg.get_costrans_t2f() * tfg.get_costrans_f2t() );
+    print_matrix("sin: t2f * f2t, ideally close to identity", tfg.get_sintrans_t2f() * tfg.get_sintrans_f2t() );
 
 /* Sine transform matrix */
 /*  */
