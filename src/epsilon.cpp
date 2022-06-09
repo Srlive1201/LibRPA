@@ -247,16 +247,15 @@ map<double, map<Vector3_Order<double>, atom_mapping<ComplexMatrix>::pair_t_old>>
 
 
 map<double, map<Vector3_Order<double>, atom_mapping<ComplexMatrix>::pair_t_old>>
-compute_symmetric_eps(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat, const atpair_k_cplx_mat_t &coulmat_cut)
+compute_Wc_freq_q(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, const atpair_k_cplx_mat_t &coulmat_wc)
 {
-    map<double, map<Vector3_Order<double>, atom_mapping<ComplexMatrix>::pair_t_old>> symeps;
+    map<double, map<Vector3_Order<double>, atom_mapping<ComplexMatrix>::pair_t_old>> Wc_freq_q;
     int range_all = 0;
-
     for (auto &iat : atom_mu)
     {
         range_all += iat.second;
     }
-    auto part_range = get_part_range();
+    const auto part_range = get_part_range();
 
     for ( auto &freq_qMuNuchi: chi0.get_chi0_q() )
     {
@@ -286,7 +285,7 @@ compute_symmetric_eps(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat, cons
             ComplexMatrix Vq_all(range_all, range_all);
             ComplexMatrix Vqcut_all(range_all, range_all);
             // synthesize the whole Coulomb matrix
-            for ( auto &Mu_NuqVq: coulmat )
+            for ( auto &Mu_NuqVq: coulmat_eps )
             {
                 auto Mu = Mu_NuqVq.first;
                 auto n_mu = atom_mu[Mu];
@@ -303,7 +302,8 @@ compute_symmetric_eps(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat, cons
                         }
                 }
             }
-            for ( auto &Mu_NuqVq: coulmat_cut )
+            // truncated Coulomb
+            for ( auto &Mu_NuqVq: coulmat_wc )
             {
                 auto Mu = Mu_NuqVq.first;
                 auto n_mu = atom_mu[Mu];
@@ -322,40 +322,70 @@ compute_symmetric_eps(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat, cons
             }
             int iq = std::distance(klist.begin(), std::find(klist.begin(), klist.end(), q));
             char fn[80];
-            if ( chi0.tfg.get_freq_nodes()[0] == freq )
-            {
-                cout <<  "freq: " << freq << ", q: " << q << endl;
-                sprintf(fn, "Vq_all_q_%d_freq_%d.mtx", iq, 0);
-                /* cout << "Vq_all(112,15) = " << Vq_all(112, 15) << endl; */
-                print_complex_matrix_mm(Vq_all, fn);
-            }
+            // if ( chi0.tfg.get_freq_nodes()[0] == freq )
+            // {
+            //     cout <<  "freq: " << freq << ", q: " << q << endl;
+            //     sprintf(fn, "Vq_all_q_%d_freq_%d.mtx", iq, 0);
+            //     /* cout << "Vq_all(112,15) = " << Vq_all(112, 15) << endl; */
+            //     print_complex_matrix_mm(Vq_all, fn);
+            // }
             auto sqrtVq_all = power_hemat(Vq_all, 0.5, sqrt_coulomb_threshold);
 
             ComplexMatrix identity(range_all, range_all);
             identity.set_as_identity_matrix();
             auto eps_fq = identity - sqrtVq_all * chi0fq_all * sqrtVq_all;
-            if ( chi0.tfg.get_freq_nodes()[0] == freq )
-            {
-                sprintf(fn, "sqrtVq_all_q_%d_freq_%d.mtx", iq, 0);
-                print_complex_matrix_mm(sqrtVq_all, fn, 1e-15);
-                sprintf(fn, "chi0fq_all_q_%d_freq_%d.mtx", iq, 0);
-                print_complex_matrix_mm(chi0fq_all, fn, 1e-15);
-                sprintf(fn, "eps_q_%d_freq_%d.mtx", iq, 0);
-                print_complex_matrix_mm(eps_fq, fn, 1e-15);
-            }
+            // if ( chi0.tfg.get_freq_nodes()[0] == freq )
+            // {
+            //     sprintf(fn, "sqrtVq_all_q_%d_freq_%d.mtx", iq, 0);
+            //     print_complex_matrix_mm(sqrtVq_all, fn, 1e-15);
+            //     sprintf(fn, "chi0fq_all_q_%d_freq_%d.mtx", iq, 0);
+            //     print_complex_matrix_mm(chi0fq_all, fn, 1e-15);
+            //     sprintf(fn, "eps_q_%d_freq_%d.mtx", iq, 0);
+            //     print_complex_matrix_mm(eps_fq, fn, 1e-15);
+            // }
             auto inveps = power_hemat(eps_fq, -1);
             auto sqrtVqcut_all = power_hemat(Vqcut_all, 0.5, sqrt_coulomb_threshold);
-            auto wc = sqrtVqcut_all * (inveps - identity) * sqrtVqcut_all;
+            auto wc_all = sqrtVqcut_all * (inveps - identity) * sqrtVqcut_all;
             /* if ( chi0.tfg.get_freq_nodes()[0] == freq && q == Vector3_Order<double>(0, 0, 0)) */
-            if ( chi0.tfg.get_freq_nodes()[0] == freq )
+            // if ( chi0.tfg.get_freq_nodes()[0] == freq )
+            // {
+            //     sprintf(fn, "inveps_q_%d_freq_%d.mtx", iq, 0);
+            //     print_complex_matrix_mm(inveps, fn, 1e-15);
+            //     sprintf(fn, "wc_q_%d_freq_%d.mtx", iq, 0);
+            //     print_complex_matrix_mm(wc, fn, 1e-15);
+            // }
+            
+            // save result to the atom mapping object
+            for ( auto &Mu_Nuchi: q_MuNuchi.second )
             {
-                sprintf(fn, "inveps_q_%d_freq_%d.mtx", iq, 0);
-                print_complex_matrix_mm(inveps, fn, 1e-15);
-                sprintf(fn, "wc_q_%d_freq_%d.mtx", iq, 0);
-                print_complex_matrix_mm(wc, fn, 1e-15);
+                auto Mu = Mu_Nuchi.first;
+                auto n_mu = atom_mu[Mu];
+                for ( auto &Nu_chi: Mu_Nuchi.second )
+                {
+                    auto Nu = Nu_chi.first;
+                    auto n_nu = atom_mu[Nu];
+                    Wc_freq_q[freq][q][Mu][Nu].create(n_mu, n_nu);
+                    auto & wc_mat = Wc_freq_q[freq][q][Mu][Nu];
+                    for ( int i_mu = 0; i_mu != n_mu; i_mu++ )
+                        for ( int i_nu = 0; i_nu != n_nu; i_nu++ )
+                        {
+                            wc_mat(i_mu, i_nu) = wc_all(part_range[Mu] + i_mu, part_range[Nu] + i_nu);
+                            wc_mat(i_mu, i_nu) = wc_all(part_range[Nu] + i_nu, part_range[Mu] + i_mu);
+                        }
+                }
             }
         }
     }
     // collect V and compute square root of V
-    return symeps;
+    return Wc_freq_q;
+}
+
+map<double, map<Vector3_Order<int>, atom_mapping<ComplexMatrix>::pair_t_old>>
+Wc_tau_R_by_ct_ft(const map<double, map<Vector3_Order<int>, atom_mapping<ComplexMatrix>::pair_t_old>> &Wc_freq_q,
+                  TFGrids tfg, vector<Vector3_Order<int>> Rlist)
+{
+    map<double, map<Vector3_Order<int>, atom_mapping<ComplexMatrix>::pair_t_old>> Wc_tau_R;
+    if (!tfg.has_time_grids())
+        throw logic_error("TFGrids object does not have time grids");
+    return Wc_tau_R;
 }

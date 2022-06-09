@@ -60,7 +60,7 @@ int main(int argc, char **argv)
     else if ( task == "g0w0" )
     {
         READ_AIMS_Vq("./", "coulomb_cut", vq_threshold, Vq_cut); 
-        compute_symmetric_eps(chi0, Vq, Vq_cut);
+        const auto Wc_freq_q = compute_Wc_freq_q(chi0, Vq, Vq_cut);
     }
 
     prof.stop("total");
