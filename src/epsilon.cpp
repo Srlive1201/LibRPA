@@ -247,6 +247,7 @@ map<double, map<Vector3_Order<double>, atom_mapping<ComplexMatrix>::pair_t_old>>
 }
 
 
+// TODO: should side effect be implemented? i.e. coulmat_wc change with small evs filtered out
 map<double, atpair_k_cplx_mat_t>
 compute_Wc_freq_q(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, const atpair_k_cplx_mat_t &coulmat_wc)
 {
@@ -349,12 +350,13 @@ compute_Wc_freq_q(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, cons
             auto wc_all = sqrtVqcut_all * (inveps - identity) * sqrtVqcut_all;
             /* if ( chi0.tfg.get_freq_nodes()[0] == freq && q == Vector3_Order<double>(0, 0, 0)) */
             // if ( chi0.tfg.get_freq_nodes()[0] == freq )
-            // {
+            {
             //     sprintf(fn, "inveps_q_%d_freq_%d.mtx", iq, 0);
             //     print_complex_matrix_mm(inveps, fn, 1e-15);
-            //     sprintf(fn, "wc_q_%d_freq_%d.mtx", iq, 0);
-            //     print_complex_matrix_mm(wc, fn, 1e-15);
-            // }
+                auto ifreq = chi0.tfg.get_freq_index(freq);
+                sprintf(fn, "wc_q_%d_freq_%d.mtx", iq, ifreq);
+                print_complex_matrix_mm(wc_all, fn, 1e-15);
+            }
             
             // save result to the atom mapping object
             for ( auto &Mu_Nuchi: q_MuNuchi.second )
@@ -386,6 +388,7 @@ atpair_R_cplx_mat_t
 FT_Vq(const atpair_k_cplx_mat_t &coulmat, vector<Vector3_Order<int>> Rlist)
 {
     atpair_R_cplx_mat_t VR;
+    char fn[80];
     for (auto R: Rlist)
     {
         for (const auto &Mu_NuqV: coulmat)
@@ -411,12 +414,21 @@ FT_Vq(const atpair_k_cplx_mat_t &coulmat, vector<Vector3_Order<int>> Rlist)
                     complex<double> kphase = complex<double>(cos(ang), sin(ang));
                     complex<double> weight = kphase * irk_weight[q];
                     *pV_MuNuR += (*q_V.second) * weight;
+                    // minyez debug: check hermicity of Vq
+                    auto iteR = std::find(Rlist.cbegin(), Rlist.cend(), R);
+                    auto iR = std::distance(Rlist.cbegin(), iteR);
+                    if ( iR == 0)
+                    {
+                        int iq = std::distance(klist.begin(), std::find(klist.begin(), klist.end(), q));
+                        sprintf(fn, "Vq_Mu_%zu_Nu_%zu_iq_%d.mtx", Mu, Nu, iq);
+                        print_complex_matrix_mm(*q_V.second, fn);
+                    }
+                    // end minyez debug
                 }
             }
         }
     }
     // myz debug: check the imaginary part of the coulomb matrix
-    char fn[80];
     for (const auto & Mu_NuRV: VR)
     {
         auto Mu = Mu_NuRV.first;
