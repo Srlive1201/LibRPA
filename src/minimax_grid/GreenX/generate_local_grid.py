@@ -1,17 +1,26 @@
 """write the minimax grids and cosine/sine transformation matrix"""
 from __future__ import print_function
 from argparse import ArgumentParser
+import subprocess as sp
 import math
 import sys
 import os
 import numpy as np
 from scipy.optimize import least_squares
+import matplotlib.pyplot as plt
 # from scipy.optimize import minimize,Bounds,least_squares
 # import matplotlib.pyplot as plt
 
 fnerror = IOError
 if sys.version_info.major >= 3:
     fnerror = FileNotFoundError
+
+
+cols = 120
+if sys.platform.lower() in ["linux", "darwin"]:
+    _, cols = sp.check_output(['stty', 'size']).split()
+    cols = int(cols)
+np.set_printoptions(precision=2, linewidth=cols)
 
 
 def phi_nu_x(nu, x):
@@ -122,6 +131,7 @@ def generate_trans_mat(omegas, taus, erange, trans, kind):
     ngrids = len(taus) // 2
     x = generate_x(ngrids, erange)
     num_x_node = len(x)
+    print(x)
     omega_g = omegas[:ngrids]
     tau_g = taus[:ngrids]
     p0 = np.ones(ngrids)
@@ -179,10 +189,13 @@ def parser():
     p.add_argument("erange", type=float, help="energy range")
     p.add_argument("--check-delta", action="store_true",
                    help="check the Delta matrix of cosine and sine transform")
-    p.add_argument("--show", action="store_true")
+    p.add_argument("--check-mat", action="store_true",
+                   help="check the transform matrices")
+    p.add_argument("--no-show", action="store_true")
     p.add_argument("--plot", action="store_true")
     p.add_argument("--dpi", type=int, default=300, help="DPI")
     return p
+
 
 def main():
     """main stream"""
@@ -197,10 +210,23 @@ def main():
     cos_f2t = generate_trans_mat(omegas, taus, erange, "cos", "f2t")
     sin_f2t = generate_trans_mat(omegas, taus, erange, "sin", "f2t")
 
+    if args.check_mat:
+        fig, axs = plt.subplots(2, 2, figsize=(12, 12))
+        axs = axs.flatten()
+        data = (cos_t2f, cos_f2t, sin_t2f, sin_f2t)
+        axt = ["Cos t2f", "Cos f2t", "Sin t2f", "Sin f2t"]
+        for m, ax, t in zip(data, axs, axt):
+            ax.set_title(t)
+            vmax = np.max(m)
+            c = ax.matshow(m, cmap="RdBu", vmin=-vmax, vmax=vmax)
+            fig.colorbar(c, ax=ax, fraction=0.046, pad=0.04)
+        # fig.tight_layout()
+        if not args.no_show:
+            plt.show()
+        plt.cla()
+
     # internal check for Delta matrix
     if args.check_delta:
-        np.set_printoptions(precision=3, linewidth=200)
-        import matplotlib.pyplot as plt
         fig, axs = plt.subplots(1, 2, figsize=(12, 6))
         fig.suptitle("t2f.f2t, ngrid = %d, erange = %f" % (ngrids, erange))
         for title, ax, mat in zip(["Cos", "Sin"],
@@ -214,9 +240,10 @@ def main():
             ax.set_title(title + " Delta, 2-norm: %.4f" % norm)
             c = ax.matshow(delta, cmap="Blues", vmin=0, vmax=vmax)
             fig.colorbar(c, ax=ax, fraction=0.046, pad=0.04)
+        fig.tight_layout()
         if args.plot:
             plt.savefig("Delta_n%d_e%.5f.png" % (ngrids, erange), dpi=args.dpi)
-        if args.show:
+        if not args.no_show:
             plt.show()
 
 
