@@ -268,7 +268,6 @@ index f699a7ac7..b6b7f5e40 100644
 +         write(vFile,*)myid
 +         vFile='coulomb_cut_'//trim(adjustl(vFile))//'.txt'
 +         open(11,file=vFile)
-+         close(11)
 +         write(11,*)max_irk_points_task
 +         do i_irk_point_local = 1, max_irk_points_task
 +           i_irk_point=n_tasks_irkq*(i_irk_point_local-1) + myid_irkq + 1
@@ -280,6 +279,7 @@ index f699a7ac7..b6b7f5e40 100644
 +              end do
 +           end do
 +         end do
++         close(11)
 +       endif
 +       ! end librpa interface by minye zhang
         call perfoff
