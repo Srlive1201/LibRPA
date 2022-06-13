@@ -3,6 +3,7 @@
 #include "input.h"
 #include "parallel_mpi.h"
 #include "lapack_connector.h"
+#include "ri.h"
 
 CorrEnergy compute_RPA_correlation(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat)
 {
@@ -246,10 +247,10 @@ map<double, map<Vector3_Order<double>, atom_mapping<ComplexMatrix>::pair_t_old>>
 }
 
 
-map<double, map<Vector3_Order<double>, atom_mapping<ComplexMatrix>::pair_t_old>>
+map<double, atpair_k_cplx_mat_t>
 compute_Wc_freq_q(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, const atpair_k_cplx_mat_t &coulmat_wc)
 {
-    map<double, map<Vector3_Order<double>, atom_mapping<ComplexMatrix>::pair_t_old>> Wc_freq_q;
+    map<double, atpair_k_cplx_mat_t> Wc_freq_q;
     int range_all = 0;
     for (auto &iat : atom_mu)
     {
@@ -364,14 +365,15 @@ compute_Wc_freq_q(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, cons
                 {
                     auto Nu = Nu_chi.first;
                     auto n_nu = atom_mu[Nu];
-                    Wc_freq_q[freq][q][Mu][Nu].create(n_mu, n_nu);
-                    auto & wc_mat = Wc_freq_q[freq][q][Mu][Nu];
+                    shared_ptr<ComplexMatrix> wc_ptr = make_shared<ComplexMatrix>();
+                    wc_ptr->create(n_mu, n_nu);
                     for ( int i_mu = 0; i_mu != n_mu; i_mu++ )
                         for ( int i_nu = 0; i_nu != n_nu; i_nu++ )
                         {
-                            wc_mat(i_mu, i_nu) = wc_all(part_range[Mu] + i_mu, part_range[Nu] + i_nu);
-                            wc_mat(i_mu, i_nu) = wc_all(part_range[Nu] + i_nu, part_range[Mu] + i_mu);
+                            (*wc_ptr)(i_mu, i_nu) = wc_all(part_range[Mu] + i_mu, part_range[Nu] + i_nu);
+                            (*wc_ptr)(i_mu, i_nu) = wc_all(part_range[Nu] + i_nu, part_range[Mu] + i_mu);
                         }
+                    Wc_freq_q[freq][Mu][Nu][q] = wc_ptr;
                 }
             }
         }
@@ -380,12 +382,140 @@ compute_Wc_freq_q(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, cons
     return Wc_freq_q;
 }
 
-map<double, map<Vector3_Order<int>, atom_mapping<ComplexMatrix>::pair_t_old>>
-Wc_tau_R_by_ct_ft(const map<double, map<Vector3_Order<int>, atom_mapping<ComplexMatrix>::pair_t_old>> &Wc_freq_q,
-                  TFGrids tfg, vector<Vector3_Order<int>> Rlist)
+atpair_R_cplx_mat_t
+FT_Vq(const atpair_k_cplx_mat_t &coulmat, vector<Vector3_Order<int>> Rlist)
 {
-    map<double, map<Vector3_Order<int>, atom_mapping<ComplexMatrix>::pair_t_old>> Wc_tau_R;
+    atpair_R_cplx_mat_t VR;
+    for (auto R: Rlist)
+    {
+        for (const auto &Mu_NuqV: coulmat)
+        {
+            const auto Mu = Mu_NuqV.first;
+            const int n_mu = atom_mu[Mu];
+            for (const auto &Nu_qV: Mu_NuqV.second)
+            {
+                const auto Nu = Nu_qV.first;
+                const int n_nu = atom_mu[Nu];
+                if(!(VR.count(Mu) &&
+                     VR.at(Mu).count(Nu) &&
+                     VR.at(Mu).at(Nu).count(R)))
+                {
+                    VR[Mu][Nu][R] = make_shared<ComplexMatrix>();
+                    VR[Mu][Nu][R]->create(n_mu, n_nu);
+                }
+                auto & pV_MuNuR = VR[Mu][Nu][R];
+                for (const auto &q_V: Nu_qV.second)
+                {
+                    auto q = q_V.first;
+                    double ang = - q * (R * latvec) * TWO_PI;
+                    complex<double> kphase = complex<double>(cos(ang), sin(ang));
+                    complex<double> weight = kphase * irk_weight[q];
+                    *pV_MuNuR += (*q_V.second) * weight;
+                }
+            }
+        }
+    }
+    // myz debug: check the imaginary part of the coulomb matrix
+    char fn[80];
+    for (const auto & Mu_NuRV: VR)
+    {
+        auto Mu = Mu_NuRV.first;
+        const int n_mu = atom_mu[Mu];
+        for (const auto & Nu_RV: Mu_NuRV.second)
+        {
+            auto Nu = Nu_RV.first;
+            const int n_nu = atom_mu[Nu];
+            for (const auto & R_V: Nu_RV.second)
+            {
+                auto R = R_V.first;
+                auto &V = R_V.second;
+                auto iteR = std::find(Rlist.cbegin(), Rlist.cend(), R);
+                auto iR = std::distance(Rlist.cbegin(), iteR);
+                sprintf(fn, "VR_Mu_%zu_Nu_%zu_iR_%zu.mtx", Mu, Nu, iR);
+                print_complex_matrix_mm(*V, fn);
+            }
+        }
+    }
+    return VR;
+}
+
+map<double, atpair_R_cplx_mat_t>
+CT_FT_Wc_freq_q(const map<double, atpair_k_cplx_mat_t> &Wc_freq_q,
+                const TFGrids &tfg, vector<Vector3_Order<int>> Rlist)
+{
+    map<double, atpair_R_cplx_mat_t> Wc_tau_R;
     if (!tfg.has_time_grids())
         throw logic_error("TFGrids object does not have time grids");
+    const int ngrids = tfg.get_n_grids();
+    for (auto R: Rlist)
+    {
+        for (int itau = 0; itau != ngrids; itau++)
+        {
+            auto tau = tfg.get_time_nodes()[itau];
+            for (int ifreq = 0; ifreq != ngrids; ifreq++)
+            {
+                auto freq = tfg.get_freq_nodes()[ifreq];
+                auto f2t = tfg.get_costrans_f2t()(itau, ifreq);
+                if (Wc_freq_q.count(freq))
+                {
+                    for (const auto &Mu_NuqWc: Wc_freq_q.at(freq))
+                    {
+                        const auto Mu = Mu_NuqWc.first;
+                        const int n_mu = atom_mu[Mu];
+                        for (const auto &Nu_qWc: Mu_NuqWc.second)
+                        {
+                            const auto Nu = Nu_qWc.first;
+                            const int n_nu = atom_mu[Nu];
+                            if(!(Wc_tau_R.count(tau) &&
+                                 Wc_tau_R.at(tau).count(Mu) &&
+                                 Wc_tau_R.at(tau).at(Mu).count(Nu) &&
+                                 Wc_tau_R.at(tau).at(Mu).at(Nu).count(R)))
+                            {
+                                Wc_tau_R[tau][Mu][Nu][R] = make_shared<ComplexMatrix>();
+                                Wc_tau_R[tau][Mu][Nu][R]->create(n_mu, n_nu);
+                            }
+                            auto & WtR = Wc_tau_R[tau][Mu][Nu][R];
+                            for (const auto &q_Wc: Nu_qWc.second)
+                            {
+                                auto q = q_Wc.first;
+                                double ang = - q * (R * latvec) * TWO_PI;
+                                complex<double> kphase = complex<double>(cos(ang), sin(ang));
+                                complex<double> weight = kphase * f2t * irk_weight[q];
+                                *WtR += (*q_Wc.second) * weight;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    // myz debug: check the imaginary part of the matrix
+    // NOTE: if G(R) is real, is W(R) real as well?
+    for (const auto & tau_MuNuRWc: Wc_tau_R)
+    {
+        char fn[80];
+        auto tau = tau_MuNuRWc.first;
+        auto itau = tfg.get_time_index(tau);
+        for (const auto & Mu_NuRWc: tau_MuNuRWc.second)
+        {
+            auto Mu = Mu_NuRWc.first;
+            const int n_mu = atom_mu[Mu];
+            for (const auto & Nu_RWc: Mu_NuRWc.second)
+            {
+                auto Nu = Nu_RWc.first;
+                const int n_nu = atom_mu[Nu];
+                for (const auto & R_Wc: Nu_RWc.second)
+                {
+                    auto R = R_Wc.first;
+                    auto Wc = R_Wc.second;
+                    auto iteR = std::find(Rlist.cbegin(), Rlist.cend(), R);
+                    auto iR = std::distance(Rlist.cbegin(), iteR);
+                    sprintf(fn, "Wc_Mu_%zu_Nu_%zu_iR_%zu_itau_%d.mtx", Mu, Nu, iR, itau);
+                    print_complex_matrix_mm(*Wc, fn);
+                }
+            }
+        }
+    }
+    // end myz debug
     return Wc_tau_R;
 }

@@ -179,6 +179,8 @@ def parser():
     p.add_argument("erange", type=float, help="energy range")
     p.add_argument("--check-delta", action="store_true",
                    help="check the Delta matrix of cosine and sine transform")
+    p.add_argument("--show", action="store_true")
+    p.add_argument("--plot", action="store_true")
     p.add_argument("--dpi", type=int, default=300, help="DPI")
     return p
 
@@ -200,19 +202,22 @@ def main():
         np.set_printoptions(precision=3, linewidth=200)
         import matplotlib.pyplot as plt
         fig, axs = plt.subplots(1, 2, figsize=(12, 6))
-        fig.suptitle(f"t2f.f2t, ngrid = {ngrids}, erange = {erange}")
+        fig.suptitle("t2f.f2t, ngrid = %d, erange = %f" % (ngrids, erange))
         for title, ax, mat in zip(["Cos", "Sin"],
                                   axs, [np.matmul(cos_t2f, cos_f2t),
                                   np.matmul(sin_t2f, sin_f2t)]):
             delta = np.absolute(np.identity(ngrids) - mat)
-            print(delta)
+            # print(delta)
             norm = np.linalg.norm(delta)
             vmax = np.max(delta)
-            ax.set_title(title + f" Delta, 2-norm: {norm:.4f}")
+            print("max diff element: %f, 2-norm of %s trans: %f" % (vmax, title, norm))
+            ax.set_title(title + " Delta, 2-norm: %.4f" % norm)
             c = ax.matshow(delta, cmap="Blues", vmin=0, vmax=vmax)
             fig.colorbar(c, ax=ax, fraction=0.046, pad=0.04)
-        plt.savefig(f"Delta_n{ngrids}_e{erange:.5f}.png", dpi=args.dpi)
-        plt.show()
+        if args.plot:
+            plt.savefig("Delta_n%d_e%.5f.png" % (ngrids, erange), dpi=args.dpi)
+        if args.show:
+            plt.show()
 
 
 if __name__ == '__main__':

@@ -98,6 +98,9 @@ class TFGrids
         const matrix get_sintrans_t2f() const { return sintrans_t2f; }
         const matrix get_costrans_f2t() const { return costrans_f2t; }
         const matrix get_sintrans_f2t() const { return sintrans_f2t; }
+        int get_time_index(const double &time) const;
+        int get_freq_index(const double &freq) const;
+        const pair<int, int> get_tf_index(const pair<double, double> &tf) const;
         //! obtain the integral weight from the frequency value
         // NOTE:(ZMY) attempt to use a map<double, double> to store,
         //      but will lead to a segfault in chi0tauR calculation, not knowing why

@@ -13,8 +13,8 @@ void check_minimax_ng16_diamond_k222()
     tfg.generate_minimax(emin, emax);
     /* if (tfg.get_grid_type() != TFGrids::GRID_TYPES::Minimax) */
     /*     throw logic_error("internal type should be minimax grid"); */
-    print_matrix("cos: t2f * f2t, ideally close to identity", tfg.get_costrans_t2f() * tfg.get_costrans_f2t() );
-    print_matrix("sin: t2f * f2t, ideally close to identity", tfg.get_sintrans_t2f() * tfg.get_sintrans_f2t() );
+    /* print_matrix("cos: t2f * f2t, ideally close to identity", tfg.get_costrans_t2f() * tfg.get_costrans_f2t() ); */
+    /* print_matrix("sin: t2f * f2t, ideally close to identity", tfg.get_sintrans_t2f() * tfg.get_sintrans_f2t() ); */
 }
 
 void check_minimax_ng6_HF_123()
@@ -29,7 +29,12 @@ void check_minimax_ng6_HF_123()
     vector<double> time_node = {0.021614, 0.129568, 0.408121, 1.072294, 2.593619, 6.074920};
     vector<double> time_weight = {0.057049, 0.171324, 0.419863, 0.982601, 2.222569, 5.258784};
     /* cout << tfg.find_freq_weight(tfg.get_freq_nodes()[0]) << endl; */
+    assert( 1 == tfg.get_freq_index(tfg.get_freq_nodes()[1]));
     assert( tfg.find_freq_weight(tfg.get_freq_nodes()[0]) == tfg.get_freq_weights()[0]);
+    assert( 2 == tfg.get_time_index(tfg.get_time_nodes()[2]));
+    auto i_tf = tfg.get_tf_index({tfg.get_time_nodes()[2], tfg.get_freq_nodes()[1]});
+    assert(i_tf.first  == tfg.get_time_index(tfg.get_time_nodes()[2]));
+    assert(i_tf.second  == tfg.get_time_index(tfg.get_time_nodes()[1]));
     for ( int i = 0; i != tfg.size(); i++ )
     {
         assert( fabs(freq_node[i] - tfg.get_freq_nodes()[i]) < 1e-5);
@@ -74,9 +79,9 @@ void check_minimax_ng6_HF_123()
     costrans_t2f(5, 3) =-0.10941;
     costrans_t2f(5, 4) = 0.19074;
     costrans_t2f(5, 5) =-0.67673;
-    assert ( is_mat_A_equal_B(6, 6, costrans_t2f.c, tfg.get_costrans_t2f().c, false, true, 1e-5) );
-    print_matrix("cos: t2f * f2t, ideally close to identity", tfg.get_costrans_t2f() * tfg.get_costrans_f2t() );
-    print_matrix("sin: t2f * f2t, ideally close to identity", tfg.get_sintrans_t2f() * tfg.get_sintrans_f2t() );
+    assert ( is_mat_A_equal_B(6, 6, costrans_t2f.c, tfg.get_costrans_t2f().c, false, false, 1e-5) );
+    /* print_matrix("cos: t2f * f2t, ideally close to identity", tfg.get_costrans_t2f() * tfg.get_costrans_f2t() ); */
+    /* print_matrix("sin: t2f * f2t, ideally close to identity", tfg.get_sintrans_t2f() * tfg.get_sintrans_f2t() ); */
 
 /* Sine transform matrix */
 /*  */

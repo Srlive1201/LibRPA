@@ -33,7 +33,7 @@ int main(int argc, char **argv)
     READ_AIMS_EIGENVECTOR("./", meanfield);
 
     READ_AIMS_Cs("./", cs_threshold);
-    READ_AIMS_Vq("./", "coulomb_mat", vq_threshold, Vq); 
+    READ_AIMS_Vq("./", "coulomb_mat_", vq_threshold, Vq); 
     /* if(argv[1][0]=='0') */
     /*     ap_chi0.chi0_main(argv[1],argv[2]);  */
     /* else */
@@ -59,8 +59,10 @@ int main(int argc, char **argv)
         compute_RPA_correlation(chi0, Vq);
     else if ( task == "g0w0" )
     {
-        READ_AIMS_Vq("./", "coulomb_cut", vq_threshold, Vq_cut); 
+        READ_AIMS_Vq("./", "coulomb_cut_", vq_threshold, Vq_cut); 
         const auto Wc_freq_q = compute_Wc_freq_q(chi0, Vq, Vq_cut);
+        const auto Wc_tau_R = CT_FT_Wc_freq_q(Wc_freq_q, chi0.tfg, Rlist);
+        const auto VR = FT_Vq(Vq_cut, Rlist);
     }
 
     prof.stop("total");

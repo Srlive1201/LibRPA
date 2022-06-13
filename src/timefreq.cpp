@@ -330,11 +330,34 @@ void TFGrids::generate_GaussLegendre()
     }
 }
 
+int TFGrids::get_time_index(const double &time) const
+{
+    if (!has_time_grids())
+        throw logic_error("time grids not available");
+    auto itr = std::find(time_nodes.cbegin(), time_nodes.cend(), time);
+    if ( itr == time_nodes.cend() )
+        throw invalid_argument("time not found");
+    int i = std::distance(time_nodes.cbegin(), itr);
+    return i;
+}
+
+int TFGrids::get_freq_index(const double &freq) const
+{
+    auto itr = std::find(freq_nodes.cbegin(), freq_nodes.cend(), freq);
+    if ( itr == freq_nodes.cend() )
+        throw invalid_argument("frequency not found");
+    int i = std::distance(freq_nodes.cbegin(), itr);
+    return i;
+}
+
+const pair<int, int> TFGrids::get_tf_index(const pair<double, double> &tf) const
+{
+    auto itime = get_time_index(tf.first);
+    auto ifreq = get_freq_index(tf.second);
+    return pair<int, int>{itime, ifreq};
+}
+
 double TFGrids::find_freq_weight(const double & freq) const
 {
-    auto itr = std::find(freq_nodes.begin(), freq_nodes.end(), freq);
-    if ( itr == freq_nodes.end() )
-        throw invalid_argument("frequency not found");
-    int i = std::distance(freq_nodes.begin(), itr);
-    return freq_weights[i];
+    return freq_weights[get_freq_index(freq)];
 }
