@@ -7,6 +7,7 @@
 /* #include "atoms.h" */
 #include <string>
 #include <vector>
+#include <map>
 #include "vector3.h"
 #include "vector3_order.h"
 #include "matrix3.h"
@@ -18,6 +19,8 @@ extern int kv_nmp[3];
 extern Matrix3 latvec;
 extern Matrix3 G;
 extern std::vector<Vector3_Order<double>> klist;
+extern std::vector<int> irk_point_id_mapping;
+extern map<Vector3_Order<double>, vector<Vector3_Order<double>>> map_irk_ks;
 extern Vector3<double> *kvec_c;
 
 void READ_AIMS_STRU(const std::string &file_path);

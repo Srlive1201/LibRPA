@@ -410,10 +410,14 @@ FT_Vq(const atpair_k_cplx_mat_t &coulmat, vector<Vector3_Order<int>> Rlist)
                 for (const auto &q_V: Nu_qV.second)
                 {
                     auto q = q_V.first;
-                    double ang = - q * (R * latvec) * TWO_PI;
-                    complex<double> kphase = complex<double>(cos(ang), sin(ang));
-                    complex<double> weight = kphase * irk_weight[q];
-                    *pV_MuNuR += (*q_V.second) * weight;
+                    complex<double> kphase;
+                    for (auto q_bz: map_irk_ks[q])
+                    {
+                        double ang = - q_bz * (R * latvec) * TWO_PI;
+                        kphase += complex<double>(cos(ang), sin(ang));
+
+                    }
+                    *pV_MuNuR += (*q_V.second) * kphase;
                     // minyez debug: check hermicity of Vq
                     auto iteR = std::find(Rlist.cbegin(), Rlist.cend(), R);
                     auto iR = std::distance(Rlist.cbegin(), iteR);
@@ -490,8 +494,13 @@ CT_FT_Wc_freq_q(const map<double, atpair_k_cplx_mat_t> &Wc_freq_q,
                             for (const auto &q_Wc: Nu_qWc.second)
                             {
                                 auto q = q_Wc.first;
-                                double ang = - q * (R * latvec) * TWO_PI;
-                                complex<double> kphase = complex<double>(cos(ang), sin(ang));
+                                complex<double> kphase;
+                                for (auto q_bz: map_irk_ks[q])
+                                {
+                                    double ang = - q_bz * (R * latvec) * TWO_PI;
+                                    kphase += complex<double>(cos(ang), sin(ang));
+
+                                }
                                 complex<double> weight = kphase * f2t * irk_weight[q];
                                 *WtR += (*q_Wc.second) * weight;
                             }

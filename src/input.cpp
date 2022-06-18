@@ -14,6 +14,8 @@ double sqrt_coulomb_threshold = 1e-4;
 int kv_nmp[3] = {1, 1, 1};
 Vector3<double> *kvec_c;
 std::vector<Vector3_Order<double>> klist;
+std::vector<int> irk_point_id_mapping;
+map<Vector3_Order<double>, vector<Vector3_Order<double>>> map_irk_ks;
 Matrix3 latvec;
 Matrix3 G;
 
@@ -70,6 +72,13 @@ void READ_AIMS_STRU(const std::string &file_path)
         kvec_c[i] *= (ANG2BOHR / TWO_PI);
         cout << "kvec [" << i << "]: " << kvec_c[i] << endl;
         klist.push_back(kvec_c[i]);
+    }
+    for (int i = 0; i != n_kpoints; i++)
+    {
+        infile >> x;
+        int id_irk = stoi(x) - 1;
+        irk_point_id_mapping.push_back(id_irk);
+        map_irk_ks[klist[id_irk]].push_back(klist[i]);
     }
 }
 

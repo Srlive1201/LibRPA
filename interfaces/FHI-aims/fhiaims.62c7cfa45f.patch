@@ -90,14 +90,14 @@ index f8ce02cde..2c7b2ed6c 100644
  !    do i_cell = 1, n_cells, 1
  !        if(myid .ne. mod(i_cell, n_tasks)) cycle
 diff --git a/src/post_scf_correlation_treatment_p0.f90 b/src/post_scf_correlation_treatment_p0.f90
-index f699a7ac7..b6b7f5e40 100644
+index f699a7ac7..107c78e5b 100644
 --- a/src/post_scf_correlation_treatment_p0.f90
 +++ b/src/post_scf_correlation_treatment_p0.f90
 @@ -32,6 +32,7 @@
        use lvl_tricoeff
        use KS_optical_properties, only : KS_dielectric_calculation_imagfreq
        use pbc_lists, only: k_phase, n_cells, inv_irk_point_mapping
-+      use pbc_lists, only : irk_weight
++      use pbc_lists, only : irk_weight, irk_point_mapping
        use scalapack_wrapper,     only : mxld, mxcol, eigenvec, eigenvec_complex
        ! use CC4S_interface, only:output_CC4S_vertex_Gamma
        use xc_library, only: xc__hf
@@ -116,7 +116,7 @@ index f699a7ac7..b6b7f5e40 100644
        nrThreads   = 1
        myThreadId = 1
  !$    nrThreads = omp_get_max_threads()
-@@ -246,7 +253,120 @@ end if
+@@ -246,7 +253,123 @@ end if
             write(use_unit,'(2X,A)') "Finished with initialization of Coulomb interaction matrix ..."
             write(use_unit,*)
          endif
@@ -215,6 +215,9 @@ index f699a7ac7..b6b7f5e40 100644
 +          k_vec = matmul(recip_lattice_vector,k_point_list(i_k_point,:))
 +          write(4,*)k_vec
 +        end do
++        do i_k_point = 1, n_k_points, 1
++          write(4,*) irk_point_mapping(i_k_point)
++        end do
 +
  
 +        
@@ -237,7 +240,7 @@ index f699a7ac7..b6b7f5e40 100644
  !        if(n_k_points.gt.1) then
             !ACHTUNG: this section can be removed by removing lvl_tricoef_recip* from evaluate_exchange_matr_kspace_p0!!
  !           allocate(lvl_tricoeff_recip1(max_n_basbas_sp,n_basis,n_basis,n_k_points_min),stat=info) 
-@@ -387,6 +507,47 @@ end if
+@@ -387,6 +510,47 @@ end if
  
  ! end of if(.not. gamma_cut_coulomb) 
         endif
