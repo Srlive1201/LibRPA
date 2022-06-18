@@ -501,7 +501,7 @@ CT_FT_Wc_freq_q(const map<double, atpair_k_cplx_mat_t> &Wc_freq_q,
                                     kphase += complex<double>(cos(ang), sin(ang));
 
                                 }
-                                complex<double> weight = kphase * f2t * irk_weight[q];
+                                complex<double> weight = kphase * f2t;
                                 *WtR += (*q_Wc.second) * weight;
                             }
                         }
