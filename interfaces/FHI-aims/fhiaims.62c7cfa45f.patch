@@ -216,7 +216,7 @@ index f699a7ac7..107c78e5b 100644
 +          write(4,*)k_vec
 +        end do
 +        do i_k_point = 1, n_k_points, 1
-+          write(4,*) irk_point_mapping(i_k_point)
++          write(4,*) inv_irk_point_mapping(irk_point_mapping(i_k_point))
 +        end do
 +
  

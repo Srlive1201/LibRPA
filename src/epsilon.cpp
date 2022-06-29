@@ -410,23 +410,26 @@ FT_Vq(const atpair_k_cplx_mat_t &coulmat, vector<Vector3_Order<int>> Rlist)
                 for (const auto &q_V: Nu_qV.second)
                 {
                     auto q = q_V.first;
-                    complex<double> kphase;
                     for (auto q_bz: map_irk_ks[q])
                     {
                         double ang = - q_bz * (R * latvec) * TWO_PI;
-                        kphase += complex<double>(cos(ang), sin(ang));
-
+                        /* cout << q_bz << ", " << q << endl; */
+                        complex<double> kphase = complex<double>(cos(ang), sin(ang));
+                        // FIXME: currently support inverse symmetry only
+                        if (q_bz == q)
+                            *pV_MuNuR += (*q_V.second) * kphase;
+                        else
+                            *pV_MuNuR += conj(*q_V.second) * kphase;
                     }
-                    *pV_MuNuR += (*q_V.second) * kphase;
                     // minyez debug: check hermicity of Vq
-                    auto iteR = std::find(Rlist.cbegin(), Rlist.cend(), R);
-                    auto iR = std::distance(Rlist.cbegin(), iteR);
-                    if ( iR == 0)
-                    {
-                        int iq = std::distance(klist.begin(), std::find(klist.begin(), klist.end(), q));
-                        sprintf(fn, "Vq_Mu_%zu_Nu_%zu_iq_%d.mtx", Mu, Nu, iq);
-                        print_complex_matrix_mm(*q_V.second, fn);
-                    }
+                    // auto iteR = std::find(Rlist.cbegin(), Rlist.cend(), R);
+                    // auto iR = std::distance(Rlist.cbegin(), iteR);
+                    // if ( iR == 0)
+                    // {
+                    //     int iq = std::distance(klist.begin(), std::find(klist.begin(), klist.end(), q));
+                    //     sprintf(fn, "Vq_Mu_%zu_Nu_%zu_iq_%d.mtx", Mu, Nu, iq);
+                    //     print_complex_matrix_mm(*q_V.second, fn);
+                    // }
                     // end minyez debug
                 }
             }
@@ -494,15 +497,16 @@ CT_FT_Wc_freq_q(const map<double, atpair_k_cplx_mat_t> &Wc_freq_q,
                             for (const auto &q_Wc: Nu_qWc.second)
                             {
                                 auto q = q_Wc.first;
-                                complex<double> kphase;
                                 for (auto q_bz: map_irk_ks[q])
                                 {
                                     double ang = - q_bz * (R * latvec) * TWO_PI;
-                                    kphase += complex<double>(cos(ang), sin(ang));
-
+                                    complex<double> kphase = complex<double>(cos(ang), sin(ang));
+                                    complex<double> weight = kphase * f2t;
+                                    if (q == q_bz)
+                                        *WtR += (*q_Wc.second) * weight;
+                                    else
+                                        *WtR += conj(*q_Wc.second) * weight;
                                 }
-                                complex<double> weight = kphase * f2t;
-                                *WtR += (*q_Wc.second) * weight;
                             }
                         }
                     }
