@@ -444,3 +444,15 @@ void print_complex_matrix(const char *desc, const ComplexMatrix &mat)
         printf("\n");
     }
 }
+void print_complex_real_matrix(const char *desc, const ComplexMatrix &mat)
+{
+    int nr = mat.nr;
+    int nc = mat.nc;
+    printf("\n %s\n", desc);
+    for (int i = 0; i < nr; i++)
+    {
+        for (int j = 0; j < nc; j++)
+            printf(" %10.6f", mat.c[i * nc + j].real());
+        printf("\n");
+    }
+}

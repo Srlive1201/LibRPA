@@ -110,4 +110,5 @@ void scaled_sum(
 		ComplexMatrix **mout);
 
 void print_complex_matrix(const char *desc, const ComplexMatrix &mat);
+void print_complex_real_matrix(const char* desc, const ComplexMatrix &mat );
 #endif

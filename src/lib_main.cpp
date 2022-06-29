@@ -1,5 +1,5 @@
 #include "lib_main.h"
-
+#include "scalapack_connector.h"
 int main(int argc, char **argv)
 {
     prof.add(0, "total", "Total");
@@ -20,6 +20,8 @@ int main(int argc, char **argv)
 
     para_mpi.mpi_init(argc,argv);
     cout<<"  MPI process_num: "<<para_mpi.get_myid()<<endl;
+    para_mpi.set_blacs_parameters();
+    
     READ_AIMS_BAND("band_out", meanfield);
     READ_AIMS_STRU("stru_out");
     READ_AIMS_EIGENVECTOR("./", meanfield);
@@ -45,10 +47,12 @@ int main(int argc, char **argv)
     }
     chi0.build(Cs, Rlist, period, atpairs_ABF, qlist, TFGrids::GRID_TYPES::Minimax, true);
     // RPA total energy
-    compute_RPA_correlation(chi0, Vq);
-
+    //compute_RPA_correlation(chi0, Vq);
+    compute_RPA_correlation_blacs(chi0, Vq);
+    para_mpi.mpi_barrier();
     prof.stop("total");
-    prof.display();
+    if(para_mpi.get_myid()==0)
+        prof.display();
 
     return 0;
 }

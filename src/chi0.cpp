@@ -13,7 +13,7 @@
 #include "lapack_connector.h"
 #include "input.h"
 #include "constants.h"
-
+#include "scalapack_connector.h"
 void Chi0::build(const atpair_R_mat_t &LRI_Cs,
                    const vector<Vector3_Order<int>> &Rlist,
                    const Vector3_Order<int> &R_period,
@@ -21,6 +21,80 @@ void Chi0::build(const atpair_R_mat_t &LRI_Cs,
                    const vector<Vector3_Order<double>> &qlist,
                    TFGrids::GRID_TYPES gt, bool use_space_time)
 {
+    int mat_dim=5;
+	matrix A(mat_dim,mat_dim);
+	matrix B(mat_dim,mat_dim);
+	
+	//ComplexMatrix C(mat_dim,mat_dim);
+	
+	int mat_size=A.nc*A.nr;
+	A.c[0]=1;
+	A.c[1]=3;
+	A.c[2]=2;
+	for(int i=3;i!=mat_size;i++)
+	{
+		A.c[i]=A.c[i-3]-A.c[i-1]+i;
+		// C.c[i]=complex<double>((i+2)*(i+1),0.0);
+		B.c[i]=i+10;
+
+	}
+	ComplexMatrix C(A);
+	if(para_mpi.get_myid()==0)
+	{
+		print_matrix("A",A);
+		//print_matrix("B",B);
+		print_complex_matrix("C",C);
+	}	
+    int descA[9];
+    int locA_row,locA_col;
+    para_mpi.set_blacs_mat(descA,locA_row,locA_col,A.nr,A.nc);
+    
+
+    matrix A_sub(locA_row,locA_col);
+    int dim_A_sub=locA_row*locA_col;
+	cout<<"dim_A_sub: "<<dim_A_sub<<endl;
+	
+	for(int i = 0; i < dim_A_sub; i++)
+	{
+		int sub_row = i%locA_row;
+		int sub_col = i/locA_row;
+		int globalindex_row = para_mpi.globalIndex(sub_row,1,para_mpi.nprow,para_mpi.myprow);
+		int globalindex_col = para_mpi.globalIndex(sub_col,1,para_mpi.npcol,para_mpi.mypcol);
+		//A_sub.c[i] = A.c[ parameters_A[0]*globalindex_col+globalindex_row ];
+		A_sub(sub_row,sub_col)=A(globalindex_row,globalindex_col);
+	}
+	string ss;
+	ss="A_sub-id: "+to_string(para_mpi.get_myid());
+	//print_matrix(ss.c_str(),A_sub);
+
+	
+	int *ipiv = new int [A_sub.nr];
+	
+	double detA=1.0;
+	double detA_all=1.0;
+    int one=1;
+    int info;
+	int DESCA_T[9];
+    ScalapackConnector::transpose_desc(DESCA_T,descA);
+	matrix aux=transpose(A_sub);
+	pdgetrf_(&A.nc,&A.nr,aux.c,&one,&one,DESCA_T,ipiv,&info);
+	print_matrix(ss.c_str(),aux);
+	for(int ig=0;ig!=A.nr;ig++)
+	{
+		int locr=para_mpi.localIndex(ig,1,para_mpi.nprow,para_mpi.myprow);
+		int locc=para_mpi.localIndex(ig,1,para_mpi.npcol,para_mpi.mypcol);
+		if(locr >=0 && locc>=0)
+		{
+			if(ipiv[locr]!=(ig+1))
+				detA=-1*detA*aux(locc,locr);
+			else
+				detA=detA*aux(locc,locr);
+		}
+	}
+    MPI_Allreduce(&detA,&detA_all,1,MPI_DOUBLE,MPI_PROD,MPI_COMM_WORLD);
+	if(para_mpi.get_myid()==0)
+        cout<<"detA_all: "<<detA_all<<endl;
+    
     gf_save = gf_discard = 0;
     // reset chi0_q in case the method was called before
     chi0_q.clear();
@@ -160,18 +234,21 @@ void Chi0::build_chi0_q_space_time(const atpair_R_mat_t &LRI_Cs,
                                    const vector<Vector3_Order<double>> &qlist)
 {
     int R_tau_size = Rlist_gf.size() * tfg.size(); 
-    if ( atpairs_ABF.size() < R_tau_size )
-    {
-        cout << "R_tau_routing" << endl;
-        para_mpi.chi_parallel_type = Parallel_MPI::parallel_type::R_TAU;
-        build_chi0_q_space_time_R_tau_routing(LRI_Cs, R_period, atpairs_ABF, qlist);
-    }
-    else
-    {
-        cout << "atom_pair_routing" << endl;
-        para_mpi.chi_parallel_type = Parallel_MPI::parallel_type::ATOM_PAIR;
-        build_chi0_q_space_time_atom_pair_routing(LRI_Cs, R_period, atpairs_ABF, qlist);
-    }
+    // if ( atpairs_ABF.size() < R_tau_size )
+    // {
+    //     cout << "R_tau_routing" << endl;
+    //     para_mpi.chi_parallel_type = Parallel_MPI::parallel_type::R_TAU;
+    //     build_chi0_q_space_time_R_tau_routing(LRI_Cs, R_period, atpairs_ABF, qlist);
+    // }
+    // else
+    // {
+    //     cout << "atom_pair_routing" << endl;
+    //     para_mpi.chi_parallel_type = Parallel_MPI::parallel_type::ATOM_PAIR;
+    //     build_chi0_q_space_time_atom_pair_routing(LRI_Cs, R_period, atpairs_ABF, qlist);
+    // }
+    cout << "atom_pair_routing" << endl;
+    para_mpi.chi_parallel_type = Parallel_MPI::parallel_type::ATOM_PAIR;
+    build_chi0_q_space_time_atom_pair_routing(LRI_Cs, R_period, atpairs_ABF, qlist);
 
 }
 

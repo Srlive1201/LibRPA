@@ -7,6 +7,7 @@ int ncell;
 map<Vector3_Order<double>, double> irk_weight;
 map<atom_t, size_t> atom_nw;
 map<atom_t, size_t> atom_mu;
+vector<size_t> atom_mu_part_range;
 
 atpair_R_mat_t Cs;
 atpair_k_cplx_mat_t Vq;
@@ -21,10 +22,20 @@ int atom_iw_loc2glo(const int &atom_index, const int &iw_lcoal)
 
 int atom_mu_loc2glo(const int &atom_index, const int &mu_lcoal)
 {
-    int nb = 0;
-    for (int ia = 0; ia != atom_index; ia++)
-        nb += atom_mu[ia];
-    return mu_lcoal + nb;
+    // int nb = 0;
+    // for (int ia = 0; ia != atom_index; ia++)
+    //     nb += atom_mu[ia];
+    // return mu_lcoal + nb;
+    return atom_mu_part_range[atom_index]+mu_lcoal;
+}
+
+int atom_mu_glo2loc(const int &glo_index, int &mu_index)
+{
+    for(int I=0;I!=atom_mu.size();I++)
+    {
+        if((mu_index=glo_index-atom_mu_part_range[I])<atom_mu[I])
+            return I;
+    }
 }
 
 matrix reshape_Cs(size_t n1, size_t n2, size_t n3, const shared_ptr<matrix> &Csmat) //(n1*n2,n3) -> (n2,n1*n3)
