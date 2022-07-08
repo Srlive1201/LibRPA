@@ -454,10 +454,55 @@ ComplexMatrix conj(const ComplexMatrix &m)
 	return cm;
 }
 
-ComplexMatrix power_hemat(ComplexMatrix &cmat, double power, double threshold)
+ComplexMatrix power_hemat(ComplexMatrix &cmat, double power, bool original_filter, double threshold)
 {
     assert (cmat.nr == cmat.nc);
-    ComplexMatrix pmat = ComplexMatrix(cmat.nr, cmat.nc);
+    const char jobz = 'V';
+    const char uplo = 'U';
+
+    int nb = LapackConnector::ilaenv(1, "zheev", "VU", cmat.nc, -1, -1, -1);
+    int lwork = cmat.nc * (nb+1);
+    int info = 0;
+    double w[cmat.nc], wpow[cmat.nc];
+    double rwork[3*cmat.nc-2];
+    complex<double> work[lwork];
+    LapackConnector::zheev(jobz, uplo, cmat.nc, cmat, cmat.nc,
+                           w, work, lwork, rwork, &info);
+    bool is_int_power = fabs(power - int(power)) < 1e-8;
+    for ( int i = 0; i != cmat.nc; i++ )
+    {
+        if (w[i] < 0 && w[i] > threshold && !is_int_power)
+            printf("Warning! kept negative eigenvalue with non-integer power: # %d ev = %f , pow = %f\n", i, w[i], power);
+        if (fabs(w[i]) < 1e-10 && power < 0)
+            printf("Warning! nearly-zero eigenvalue with negative power: # %d ev = %f , pow = %f\n", i, w[i], power);
+        if (w[i] < threshold)
+        {
+            wpow[i] = 0;
+            if (original_filter)
+                w[i] = 0;
+        }
+        else
+            wpow[i] = w[i];
+        wpow[i] = pow(wpow[i], power);
+    }
+    ComplexMatrix evconj = transpose(cmat, true);
+    for ( int i = 0; i != cmat.nr; i++ )
+        for ( int j = 0; j != cmat.nc; j++ )
+            evconj.c[i*cmat.nc+j] *= wpow[i];
+    auto pmat = cmat * evconj;
+
+    evconj = transpose(cmat, true);
+    // recover the original matrix here
+    for ( int i = 0; i != cmat.nr; i++ )
+        for ( int j = 0; j != cmat.nc; j++ )
+            evconj.c[i*cmat.nc+j] *= w[i];
+    cmat = cmat * evconj;
+    return pmat;
+}
+
+void power_hemat_onsite(ComplexMatrix &cmat, double power, double threshold)
+{
+    assert (cmat.nr == cmat.nc);
     const char jobz = 'V';
     const char uplo = 'U';
 
@@ -485,8 +530,12 @@ ComplexMatrix power_hemat(ComplexMatrix &cmat, double power, double threshold)
     for ( int i = 0; i != cmat.nr; i++ )
         for ( int j = 0; j != cmat.nc; j++ )
             evconj.c[i*cmat.nc+j] *= w[i];
+    auto pmat = cmat * evconj;
 
-    return cmat * evconj;
+    // parse back to the original matrix here
+    for ( int i = 0; i != cmat.nr; i++ )
+        for ( int j = 0; j != cmat.nc; j++ )
+            cmat.c[i*cmat.nc+j] = pmat.c[i*cmat.nc+j];
 }
 
 void print_complex_matrix(const char *desc, const ComplexMatrix &mat)

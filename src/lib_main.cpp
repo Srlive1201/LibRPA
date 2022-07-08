@@ -45,6 +45,11 @@ int main(int argc, char **argv)
 
     Vector3_Order<int> period {kv_nmp[0], kv_nmp[1], kv_nmp[2]};
     auto Rlist = construct_R_grid(period);
+    cout << "Rlist to compute:" << endl;
+    for (int iR = 0; iR != Rlist.size(); iR++)
+    {
+        printf("iR %5d: R = (%2d, %2d, %2d)\n", iR, Rlist[iR].x, Rlist[iR].y, Rlist[iR].z);
+    }
     // build ABF IJ and qlist from Vq
     vector<atpair_t> atpairs_ABF = get_atom_pair(Vq);
     vector<Vector3_Order<double>> qlist;

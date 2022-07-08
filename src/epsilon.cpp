@@ -247,9 +247,8 @@ map<double, map<Vector3_Order<double>, atom_mapping<ComplexMatrix>::pair_t_old>>
 }
 
 
-// TODO: should side effect be implemented? i.e. coulmat_wc change with small evs filtered out
 map<double, atpair_k_cplx_mat_t>
-compute_Wc_freq_q(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, const atpair_k_cplx_mat_t &coulmat_wc)
+compute_Wc_freq_q(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, atpair_k_cplx_mat_t &coulmat_wc)
 {
     map<double, atpair_k_cplx_mat_t> Wc_freq_q;
     int range_all = 0;
@@ -259,16 +258,85 @@ compute_Wc_freq_q(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, cons
     }
     const auto part_range = get_part_range();
 
-    for ( auto &freq_qMuNuchi: chi0.get_chi0_q() )
+    // use q-points as the outmost loop, so that square root of Coulomb will not be recalculated at each frequency point
+    vector<Vector3_Order<double>> qpts;
+    for ( const auto &qMuNuchi: chi0.get_chi0_q().at(chi0.tfg.get_freq_nodes()[0]))
+        qpts.push_back(qMuNuchi.first);
+
+    for (const auto &q: qpts)
     {
-        auto freq = freq_qMuNuchi.first;
-        for ( auto & q_MuNuchi: freq_qMuNuchi.second )
+        int iq = std::distance(klist.begin(), std::find(klist.begin(), klist.end(), q));
+        char fn[80];
+
+        ComplexMatrix Vq_all(range_all, range_all);
+        for (const auto &Mu_NuqVq: coulmat_eps)
         {
-            auto q = q_MuNuchi.first;
-            ComplexMatrix chi0fq_all(range_all, range_all);
-            // synthesize the whole chi0 matrix at freq and q
-            // FIXME: MPI not considered yet, memory consumption can be large for big system
-            for ( auto &Mu_Nuchi: q_MuNuchi.second )
+            auto Mu = Mu_NuqVq.first;
+            auto n_mu = atom_mu[Mu];
+            for ( auto &Nu_qVq: Mu_NuqVq.second )
+            {
+                auto Nu = Nu_qVq.first;
+                if ( 0 == Nu_qVq.second.count(q) ) continue;
+                auto n_nu = atom_mu[Nu];
+                for ( int i_mu = 0; i_mu != n_mu; i_mu++ )
+                    for ( int i_nu = 0; i_nu != n_nu; i_nu++ )
+                    {
+                        Vq_all(part_range[Mu] + i_mu, part_range[Nu] + i_nu) = (*Nu_qVq.second.at(q))(i_mu, i_nu);
+                        Vq_all(part_range[Nu] + i_nu, part_range[Mu] + i_mu) = conj((*Nu_qVq.second.at(q))(i_mu, i_nu));
+                    }
+            }
+        }
+        auto sqrtVq_all = power_hemat(Vq_all, 0.5, false, sqrt_coulomb_threshold);
+        // sprintf(fn, "sqrtVq_all_q_%d.mtx", iq);
+        // print_complex_matrix_mm(sqrtVq_all, fn, 1e-15);
+
+        // truncated (cutoff) Coulomb
+        ComplexMatrix Vqcut_all(range_all, range_all);
+        for ( auto &Mu_NuqVq: coulmat_wc )
+        {
+            auto Mu = Mu_NuqVq.first;
+            auto n_mu = atom_mu[Mu];
+            for ( auto &Nu_qVq: Mu_NuqVq.second )
+            {
+                auto Nu = Nu_qVq.first;
+                if ( 0 == Nu_qVq.second.count(q) ) continue;
+                auto n_nu = atom_mu[Nu];
+                for ( int i_mu = 0; i_mu != n_mu; i_mu++ )
+                    for ( int i_nu = 0; i_nu != n_nu; i_nu++ )
+                    {
+                        Vqcut_all(part_range[Mu] + i_mu, part_range[Nu] + i_nu) = (*Nu_qVq.second.at(q))(i_mu, i_nu);
+                        Vqcut_all(part_range[Nu] + i_nu, part_range[Mu] + i_mu) = conj((*Nu_qVq.second.at(q))(i_mu, i_nu));
+                    }
+            }
+        }
+        auto sqrtVqcut_all = power_hemat(Vqcut_all, 0.5, true, sqrt_coulomb_threshold);
+        // sprintf(fn, "sqrtVqcut_all_q_%d.mtx", iq);
+        // print_complex_matrix_mm(sqrtVqcut_all, fn, 1e-15);
+        sprintf(fn, "Vqcut_all_filtered_q_%d.mtx", iq);
+        print_complex_matrix_mm(Vqcut_all, fn, 1e-15);
+        // save the filtered truncated Coulomb back to the atom mapping object
+        for ( auto &Mu_NuqVq: coulmat_wc )
+        {
+            auto Mu = Mu_NuqVq.first;
+            auto n_mu = atom_mu[Mu];
+            for ( auto &Nu_qVq: Mu_NuqVq.second )
+            {
+                auto Nu = Nu_qVq.first;
+                if ( 0 == Nu_qVq.second.count(q) ) continue;
+                auto n_nu = atom_mu[Nu];
+                for ( int i_mu = 0; i_mu != n_mu; i_mu++ )
+                    for ( int i_nu = 0; i_nu != n_nu; i_nu++ )
+                        (*Nu_qVq.second.at(q))(i_mu, i_nu) = Vqcut_all(part_range[Mu] + i_mu, part_range[Nu] + i_nu);
+            }
+        }
+
+        ComplexMatrix chi0fq_all(range_all, range_all);
+        for (const auto &freq_qMuNuchi: chi0.get_chi0_q())
+        {
+            auto freq = freq_qMuNuchi.first;
+            auto ifreq = chi0.tfg.get_freq_index(freq);
+            auto MuNuchi = freq_qMuNuchi.second.at(q);
+            for (const auto &Mu_Nuchi: MuNuchi)
             {
                 auto Mu = Mu_Nuchi.first;
                 auto n_mu = atom_mu[Mu];
@@ -284,82 +352,25 @@ compute_Wc_freq_q(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, cons
                         }
                 }
             }
-            ComplexMatrix Vq_all(range_all, range_all);
-            ComplexMatrix Vqcut_all(range_all, range_all);
-            // synthesize the whole Coulomb matrix
-            for ( auto &Mu_NuqVq: coulmat_eps )
-            {
-                auto Mu = Mu_NuqVq.first;
-                auto n_mu = atom_mu[Mu];
-                for ( auto &Nu_qVq: Mu_NuqVq.second )
-                {
-                    auto Nu = Nu_qVq.first;
-                    if ( 0 == Nu_qVq.second.count(q) ) continue;
-                    auto n_nu = atom_mu[Nu];
-                    for ( int i_mu = 0; i_mu != n_mu; i_mu++ )
-                        for ( int i_nu = 0; i_nu != n_nu; i_nu++ )
-                        {
-                            Vq_all(part_range[Mu] + i_mu, part_range[Nu] + i_nu) = (*Nu_qVq.second.at(q))(i_mu, i_nu);
-                            Vq_all(part_range[Nu] + i_nu, part_range[Mu] + i_mu) = conj((*Nu_qVq.second.at(q))(i_mu, i_nu));
-                        }
-                }
-            }
-            // truncated Coulomb
-            for ( auto &Mu_NuqVq: coulmat_wc )
-            {
-                auto Mu = Mu_NuqVq.first;
-                auto n_mu = atom_mu[Mu];
-                for ( auto &Nu_qVq: Mu_NuqVq.second )
-                {
-                    auto Nu = Nu_qVq.first;
-                    if ( 0 == Nu_qVq.second.count(q) ) continue;
-                    auto n_nu = atom_mu[Nu];
-                    for ( int i_mu = 0; i_mu != n_mu; i_mu++ )
-                        for ( int i_nu = 0; i_nu != n_nu; i_nu++ )
-                        {
-                            Vqcut_all(part_range[Mu] + i_mu, part_range[Nu] + i_nu) = (*Nu_qVq.second.at(q))(i_mu, i_nu);
-                            Vqcut_all(part_range[Nu] + i_nu, part_range[Mu] + i_mu) = conj((*Nu_qVq.second.at(q))(i_mu, i_nu));
-                        }
-                }
-            }
-            int iq = std::distance(klist.begin(), std::find(klist.begin(), klist.end(), q));
-            char fn[80];
-            // if ( chi0.tfg.get_freq_nodes()[0] == freq )
-            // {
-            //     cout <<  "freq: " << freq << ", q: " << q << endl;
-            //     sprintf(fn, "Vq_all_q_%d_freq_%d.mtx", iq, 0);
-            //     /* cout << "Vq_all(112,15) = " << Vq_all(112, 15) << endl; */
-            //     print_complex_matrix_mm(Vq_all, fn);
-            // }
-            auto sqrtVq_all = power_hemat(Vq_all, 0.5, sqrt_coulomb_threshold);
+            sprintf(fn, "chi0fq_all_q_%d_freq_%d.mtx", iq, ifreq);
+            print_complex_matrix_mm(chi0fq_all, fn, 1e-15);
 
             ComplexMatrix identity(range_all, range_all);
             identity.set_as_identity_matrix();
             auto eps_fq = identity - sqrtVq_all * chi0fq_all * sqrtVq_all;
-            // if ( chi0.tfg.get_freq_nodes()[0] == freq )
-            // {
-            //     sprintf(fn, "sqrtVq_all_q_%d_freq_%d.mtx", iq, 0);
-            //     print_complex_matrix_mm(sqrtVq_all, fn, 1e-15);
-            //     sprintf(fn, "chi0fq_all_q_%d_freq_%d.mtx", iq, 0);
-            //     print_complex_matrix_mm(chi0fq_all, fn, 1e-15);
-            //     sprintf(fn, "eps_q_%d_freq_%d.mtx", iq, 0);
-            //     print_complex_matrix_mm(eps_fq, fn, 1e-15);
-            // }
-            auto inveps = power_hemat(eps_fq, -1);
-            auto sqrtVqcut_all = power_hemat(Vqcut_all, 0.5, sqrt_coulomb_threshold);
-            auto wc_all = sqrtVqcut_all * (inveps - identity) * sqrtVqcut_all;
-            /* if ( chi0.tfg.get_freq_nodes()[0] == freq && q == Vector3_Order<double>(0, 0, 0)) */
-            // if ( chi0.tfg.get_freq_nodes()[0] == freq )
-            {
-            //     sprintf(fn, "inveps_q_%d_freq_%d.mtx", iq, 0);
-            //     print_complex_matrix_mm(inveps, fn, 1e-15);
-                auto ifreq = chi0.tfg.get_freq_index(freq);
-                sprintf(fn, "wc_q_%d_freq_%d.mtx", iq, ifreq);
-                print_complex_matrix_mm(wc_all, fn, 1e-15);
-            }
-            
+            // sprintf(fn, "eps_q_%d_freq_%d.mtx", iq, ifreq);
+            // print_complex_matrix_mm(eps_fq, fn, 1e-15);
+
+            // invert the epsilon matrix
+            power_hemat_onsite(eps_fq, -1);
+            auto wc_all = sqrtVqcut_all * (eps_fq - identity) * sqrtVqcut_all;
+            // sprintf(fn, "inveps_q_%d_freq_%d.mtx", iq, ifreq);
+            // print_complex_matrix_mm(eps_fq, fn, 1e-15);
+            sprintf(fn, "wc_q_%d_freq_%d.mtx", iq, ifreq);
+            print_complex_matrix_mm(wc_all, fn, 1e-15);
+
             // save result to the atom mapping object
-            for ( auto &Mu_Nuchi: q_MuNuchi.second )
+            for ( auto &Mu_Nuchi: MuNuchi )
             {
                 auto Mu = Mu_Nuchi.first;
                 auto n_mu = atom_mu[Mu];
@@ -373,14 +384,13 @@ compute_Wc_freq_q(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, cons
                         for ( int i_nu = 0; i_nu != n_nu; i_nu++ )
                         {
                             (*wc_ptr)(i_mu, i_nu) = wc_all(part_range[Mu] + i_mu, part_range[Nu] + i_nu);
-                            (*wc_ptr)(i_mu, i_nu) = wc_all(part_range[Nu] + i_nu, part_range[Mu] + i_mu);
                         }
                     Wc_freq_q[freq][Mu][Nu][q] = wc_ptr;
                 }
             }
         }
     }
-    // collect V and compute square root of V
+
     return Wc_freq_q;
 }
 
@@ -391,6 +401,8 @@ FT_Vq(const atpair_k_cplx_mat_t &coulmat, vector<Vector3_Order<int>> Rlist)
     char fn[80];
     for (auto R: Rlist)
     {
+        auto iteR = std::find(Rlist.cbegin(), Rlist.cend(), R);
+        auto iR = std::distance(Rlist.cbegin(), iteR);
         for (const auto &Mu_NuqV: coulmat)
         {
             const auto Mu = Mu_NuqV.first;
@@ -412,49 +424,57 @@ FT_Vq(const atpair_k_cplx_mat_t &coulmat, vector<Vector3_Order<int>> Rlist)
                     auto q = q_V.first;
                     for (auto q_bz: map_irk_ks[q])
                     {
+                        /* if (q != klist[1]) continue; // debug zmy, break the result */
+                        /* if (q_bz != klist[5]) continue; // debug zmy, break the result */
                         double ang = - q_bz * (R * latvec) * TWO_PI;
                         /* cout << q_bz << ", " << q << endl; */
                         complex<double> kphase = complex<double>(cos(ang), sin(ang));
                         // FIXME: currently support inverse symmetry only
                         if (q_bz == q)
+                        {
+                            cout << "Direct:  " << q_bz << " => " << q << ", phase = " << kphase << endl;
                             *pV_MuNuR += (*q_V.second) * kphase;
+                        }
                         else
+                        {
+                            cout << "Inverse: " << q_bz << " => " << q << ", phase = " << kphase << endl;
                             *pV_MuNuR += conj(*q_V.second) * kphase;
+                        }
                     }
                     // minyez debug: check hermicity of Vq
-                    // auto iteR = std::find(Rlist.cbegin(), Rlist.cend(), R);
-                    // auto iR = std::distance(Rlist.cbegin(), iteR);
-                    // if ( iR == 0)
-                    // {
-                    //     int iq = std::distance(klist.begin(), std::find(klist.begin(), klist.end(), q));
-                    //     sprintf(fn, "Vq_Mu_%zu_Nu_%zu_iq_%d.mtx", Mu, Nu, iq);
-                    //     print_complex_matrix_mm(*q_V.second, fn);
-                    // }
+                    if (iR == 0)
+                    {
+                        int iq = std::distance(klist.begin(), std::find(klist.begin(), klist.end(), q));
+                        sprintf(fn, "Vq_Mu_%zu_Nu_%zu_iq_%d.mtx", Mu, Nu, iq);
+                        print_complex_matrix_mm(*q_V.second, fn);
+                    }
                     // end minyez debug
                 }
+                sprintf(fn, "VR_Mu_%zu_Nu_%zu_iR_%zu.mtx", Mu, Nu, iR);
+                print_complex_matrix_mm(*pV_MuNuR, fn);
             }
         }
     }
     // myz debug: check the imaginary part of the coulomb matrix
-    for (const auto & Mu_NuRV: VR)
-    {
-        auto Mu = Mu_NuRV.first;
-        const int n_mu = atom_mu[Mu];
-        for (const auto & Nu_RV: Mu_NuRV.second)
-        {
-            auto Nu = Nu_RV.first;
-            const int n_nu = atom_mu[Nu];
-            for (const auto & R_V: Nu_RV.second)
-            {
-                auto R = R_V.first;
-                auto &V = R_V.second;
-                auto iteR = std::find(Rlist.cbegin(), Rlist.cend(), R);
-                auto iR = std::distance(Rlist.cbegin(), iteR);
-                sprintf(fn, "VR_Mu_%zu_Nu_%zu_iR_%zu.mtx", Mu, Nu, iR);
-                print_complex_matrix_mm(*V, fn);
-            }
-        }
-    }
+    /* for (const auto & Mu_NuRV: VR) */
+    /* { */
+    /*     auto Mu = Mu_NuRV.first; */
+    /*     const int n_mu = atom_mu[Mu]; */
+    /*     for (const auto & Nu_RV: Mu_NuRV.second) */
+    /*     { */
+    /*         auto Nu = Nu_RV.first; */
+    /*         const int n_nu = atom_mu[Nu]; */
+    /*         for (const auto & R_V: Nu_RV.second) */
+    /*         { */
+    /*             auto R = R_V.first; */
+    /*             auto &V = R_V.second; */
+    /*             auto iteR = std::find(Rlist.cbegin(), Rlist.cend(), R); */
+    /*             auto iR = std::distance(Rlist.cbegin(), iteR); */
+    /*             sprintf(fn, "VR_Mu_%zu_Nu_%zu_iR_%zu.mtx", Mu, Nu, iR); */
+    /*             print_complex_matrix_mm(*V, fn); */
+    /*         } */
+    /*     } */
+    /* } */
     return VR;
 }
 

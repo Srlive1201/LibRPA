@@ -131,7 +131,7 @@ def generate_trans_mat(omegas, taus, erange, trans, kind):
     ngrids = len(taus) // 2
     x = generate_x(ngrids, erange)
     num_x_node = len(x)
-    print(x)
+    # print(x)
     omega_g = omegas[:ngrids]
     tau_g = taus[:ngrids]
     p0 = np.ones(ngrids)

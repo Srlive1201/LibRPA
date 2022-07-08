@@ -113,8 +113,10 @@ void scaled_sum(
 		ComplexMatrix **mout);
 
 //! compute the power of Hermitian matrix. Hermicity not checked itself
-ComplexMatrix power_hemat(ComplexMatrix &cmat, double power,
+ComplexMatrix power_hemat(ComplexMatrix &cmat, double power, bool original_filter,
                           double threshold = -1e16); // Minye Zhang add 2022-06-04
+//! Does the same as power_hemat, but save the powered matrix in the original matrix
+void power_hemat_onsite(ComplexMatrix &cmat, double power, double threshold = -1e16); // Minye Zhang add 2022-07-07
 
 void print_complex_matrix(const char *desc, const ComplexMatrix &mat);
 void print_complex_matrix_file(const char *desc, const ComplexMatrix &mat, ofstream &fs, bool use_scientific);
