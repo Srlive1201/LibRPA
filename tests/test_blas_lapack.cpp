@@ -1,54 +1,12 @@
-#include "blas_connector.h"
-#include "lapack_connector.h"
+#include "../src/blas_connector.h"
+#include "../src/lapack_connector.h"
+#include "testutils.h"
+#include "../src/complexmatrix.h"
 #include <cassert>
 #include <cstdlib>
 #include <ctime>
 
-template<typename T>
-bool is_mat_A_equal_B(const int m, const int n, const T *A, const T* B, bool transpose, bool print,
-                      const char stra[]  = "A", const char strb[]  = "B")
-{
-    int ndiff = 0;
-    for ( int im = 0; im != m; im++)
-        for ( int in = 0; in != n; in ++)
-        {
-            T a = A[im*n+in];
-            T b;
-            if (transpose)
-                b = B[in*m+im];
-            else
-                b = B[im*n+in];
-            if ( print )
-            {
-                printf("%d %d: %s = %f, %s = %f\n", im, in, stra, a, strb, b);
-            }
-            if ( fabs(a-b) > 1e-14 )
-            {
-                ndiff++;
-                if (!print) return false;
-            }
-        }
-    return ndiff == 0;
-}
-
-template <typename T>
-bool is_matmul_AB_equal_C(const int m, const int n, const int k,
-                          const T *A, const T *B, const T *C, bool transpose_C, bool print)
-{
-    T AB[m][n];
-    for ( int im = 0; im != m; im++)
-        for ( int in = 0; in != n; in++)
-        {
-            AB[im][in] = 0;
-            for ( int ik = 0; ik != k; ik++)
-                AB[im][in] += A[im*k+ik] * B[ik*n+in];
-        }
-    return is_mat_A_equal_B(m, n, *AB, C, transpose_C, print, "AB", "C");
-}
-
-void test_blas_float() {}
-
-void test_blas_double()
+void test_blas_mv_mm_double(bool debug = false)
 {
     const int RDIM = 6;
     const int IDIM = 2;
@@ -87,9 +45,9 @@ void test_blas_double()
     const char transt = 'T';
     // mat[RDIM][CDIM] * mat2[CDIM][RIM] = m[RDIM][RDIM]
     dgemm_(&transn, &transn, &RDIM, &RDIM, &CDIM, &alpha, *mat2, &RDIM, *mat, &CDIM, &beta, *mat_or, &RDIM);
-    assert( is_matmul_AB_equal_C(RDIM, RDIM, CDIM, *mat, *mat2, *mat_or, false, false));
+    assert( is_matmul_AB_equal_C(RDIM, RDIM, CDIM, *mat, *mat2, *mat_or, false, debug));
     LapackConnector::gemm(transn, transn, RDIM, RDIM, CDIM, 1.0, *mat, CDIM, *mat2, RDIM, 0.0, *mat_or, RDIM);
-    assert( is_matmul_AB_equal_C(RDIM, RDIM, CDIM, *mat, *mat2, *mat_or, false, false));
+    assert( is_matmul_AB_equal_C(RDIM, RDIM, CDIM, *mat, *mat2, *mat_or, false, debug));
 
     // Check Cs like per-mu gemm
     const size_t n_mu = 3, n_i = 4, n_k = 12, n_j = 4;
@@ -121,15 +79,40 @@ void test_blas_double()
                               Cs[mu], n_k,
                               *G, n_j,
                               1.0, res[mu], n_j);
-    assert(is_mat_A_equal_B(n_mu, n_i*n_j, *res, *ref, false, false));
+    assert(is_mat_A_equal_B(n_mu, n_i*n_j, *res, *ref, false, debug));
 }
 
-void test_blas_complex() {}
+void test_lapack_ev_complex(bool debug = false)
+{
+    ComplexMatrix a(2, 2);
+
+    // Hermitian eigenvalue and eigenvectors
+    a(0, 0) = cmplx(1, 0);
+    a(0, 1) = cmplx(0, -1);
+    a(1, 0) = cmplx(0, 1);
+    a(1, 1) = cmplx(1, 0);
+    int nb = LapackConnector::ilaenv(1, "zheev", "VU", 2, -1, -1, -1);
+    int lwork = 2 * (nb+1);
+    int info = 0;
+    double w[2];
+    double w_ref[2] = {0, 2};
+    double rwork[3*a.nc-2];
+    complex<double> work[lwork];
+    ComplexMatrix ev_ref(2, 2);
+    ev_ref(0, 0) = cmplx(0, -1);
+    ev_ref(1, 0) = cmplx(-1, 0);
+    ev_ref(1, 1) = cmplx(1, 0);
+    ev_ref(0, 1) = cmplx(0, -1);
+    ev_ref *= 1/sqrt(2);
+    LapackConnector::zheev('V', 'U', 2, a, 2,
+                           w, work, lwork, rwork, &info);
+    assert( fequal_array(2, w, w_ref, debug) );
+    assert( fequal_array(4, a.c, ev_ref.c, debug) );
+}
 
 int main (int argc, char *argv[])
 {
-    test_blas_float();
-    test_blas_double();
-    test_blas_complex();
+    test_blas_mv_mm_double(false);
+    test_lapack_ev_complex(true);
     return 0;
 }

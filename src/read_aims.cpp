@@ -209,7 +209,7 @@ void handle_Cs_file(const string &file_path, double threshold)
     }
 }
 
-void READ_AIMS_Vq(const string &dir_path, double threshold)
+void READ_AIMS_Vq(const string &dir_path, const string &vq_fprefix, double threshold, atpair_k_cplx_mat_t &coulomb_mat)
 {
     int vq_save = 0;
     int vq_discard = 0;
@@ -221,7 +221,7 @@ void READ_AIMS_Vq(const string &dir_path, double threshold)
     while ((ptr = readdir(dir)) != NULL)
     {
         string fm(ptr->d_name);
-        if (fm.find("coulomb_mat") == 0)
+        if (fm.find(vq_fprefix) == 0)
         {
             handle_Vq_file(fm, threshold, Vq_full);
         }
@@ -257,7 +257,7 @@ void READ_AIMS_Vq(const string &dir_path, double threshold)
 
                 if ((*vq_ptr).real().absmax() >= threshold)
                 {
-                    Vq[I][J][qvec] = vq_ptr;
+                    coulomb_mat[I][J][qvec] = vq_ptr;
                     vq_save++;
                 }
                 else
@@ -271,7 +271,7 @@ void READ_AIMS_Vq(const string &dir_path, double threshold)
     cout << "vq threshold: " << threshold << endl;
     cout << "vq_save:    " << vq_save << endl;
     cout << "vq_dicard:  " << vq_discard << endl;
-    cout << "  Vq_dim   " << Vq.size() << "    " << Vq[0].size() << "   " << Vq[0][0].size() << endl;
+    cout << "  Vq_dim   " << coulomb_mat.size() << "    " << coulomb_mat[0].size() << "   " << coulomb_mat[0][0].size() << endl;
     for (auto &irk : irk_weight)
     {
         cout << " irk_vec and weight: " << irk.first << "  " << irk.second << endl;
@@ -309,7 +309,9 @@ void handle_Vq_file(const string &file_path, double threshold, map<Vector3_Order
         int ecol = stoi(end_col) - 1;
         int iq = stoi(q_num) - 1;
         Vector3_Order<double> qvec(kvec_c[iq]);
-        irk_weight.insert(pair<Vector3_Order<double>, double>(qvec, stod(q_weight)));
+        // skip duplicate insert of k weight, since 
+        if (irk_weight.count(qvec) == 0)
+            irk_weight.insert(pair<Vector3_Order<double>, double>(qvec, stod(q_weight)));
         if (!Vq_full.count(qvec))
         {
             Vq_full[qvec].create(mu, nu);

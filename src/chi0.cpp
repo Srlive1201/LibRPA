@@ -374,6 +374,7 @@ void Chi0::build_chi0_q_space_time_R_tau_routing(const atpair_R_mat_t &LRI_Cs,
                 /* if (para_mpi.get_myid()==0 && Mu == 0 && Nu == 0 && ifreq == 0 ) */
                 /* if (para_mpi.get_myid()==0 && ifreq == 0 && q == Vector3_Order<double>{0, 0, 0}) */
                 /* { */
+                /*     cout <<  "freq: " << freq << ", q: " << q << endl; */
                 /*     printf("Mu %zu Nu %zu\n", Mu, Nu); */
                 /*     print_complex_matrix("chi0_q ap, first freq first q", chi0_q[freq][q][Mu][Nu]); */
                 /* } */

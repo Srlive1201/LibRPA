@@ -105,6 +105,10 @@ double mdot(const matrix &A, const matrix &B);			// mohan add 2011-01-13
 
 std::ostream & operator<<( std::ostream & os, const matrix & m );		// Peize Lin add 2016-09-08
 
+//! compute the power of a symmetric matrix. Symmetry not checked itself
+matrix power_symat(matrix &mat, double power,
+                   double threshold = -1e16); // Minye Zhang add 2022-06-04
+
 // minyez copied from Shi Rong's cal_periodic_chi0.cpp, for test use
 void print_matrix(const char *desc, const matrix &mat);
 #endif // MATRIX_H

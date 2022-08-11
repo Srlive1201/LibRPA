@@ -8,6 +8,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
+#include <iomanip>
 #include "complexmatrix.h"
 #include "lapack_connector.h"
 
@@ -172,6 +173,13 @@ ComplexMatrix operator+(const ComplexMatrix &m1, const ComplexMatrix &m2)
 	return tm;
 }
 
+ComplexMatrix operator-(const ComplexMatrix &m,   const complex<double> &s) // minyez add 2022-06-06
+{
+	ComplexMatrix tm(m);
+	tm+=s;
+    return tm;
+}
+                                                                             
 // Subtracting matrices, as a friend
 ComplexMatrix operator-(const ComplexMatrix &m1, const ComplexMatrix &m2)
 {
@@ -180,6 +188,14 @@ ComplexMatrix operator-(const ComplexMatrix &m1, const ComplexMatrix &m2)
 	
 	ComplexMatrix tm(m1);
 	tm-=m2;
+	return tm;
+}
+
+ComplexMatrix operator-(const complex<double> &s, const ComplexMatrix &m)
+{
+	ComplexMatrix tm(m);
+	tm*=-1;
+    tm+=s;
 	return tm;
 }
 
@@ -270,6 +286,12 @@ ComplexMatrix& ComplexMatrix::operator+=(const ComplexMatrix &m)
 	assert(this->nr == m.nr);
 	assert(this->nc == m.nc);
 	for(int i=0; i<size; i++) this->c[i] += m.c[i];
+	return *this;
+}
+
+ComplexMatrix& ComplexMatrix::operator+=(const complex<double> &s)
+{
+	for(int i=0; i<size; i++) this->c[i] += s;
 	return *this;
 }
 
@@ -432,18 +454,186 @@ ComplexMatrix conj(const ComplexMatrix &m)
 	return cm;
 }
 
+ComplexMatrix power_hemat(ComplexMatrix &cmat, double power, bool original_filter, double threshold)
+{
+    assert (cmat.nr == cmat.nc);
+    const char jobz = 'V';
+    const char uplo = 'U';
+
+    int nb = LapackConnector::ilaenv(1, "zheev", "VU", cmat.nc, -1, -1, -1);
+    int lwork = cmat.nc * (nb+1);
+    int info = 0;
+    double w[cmat.nc], wpow[cmat.nc];
+    double rwork[3*cmat.nc-2];
+    complex<double> work[lwork];
+    LapackConnector::zheev(jobz, uplo, cmat.nc, cmat, cmat.nc,
+                           w, work, lwork, rwork, &info);
+    bool is_int_power = fabs(power - int(power)) < 1e-8;
+    for ( int i = 0; i != cmat.nc; i++ )
+    {
+        if (w[i] < 0 && w[i] > threshold && !is_int_power)
+            printf("Warning! kept negative eigenvalue with non-integer power: # %d ev = %f , pow = %f\n", i, w[i], power);
+        if (fabs(w[i]) < 1e-10 && power < 0)
+            printf("Warning! nearly-zero eigenvalue with negative power: # %d ev = %f , pow = %f\n", i, w[i], power);
+        if (w[i] < threshold)
+        {
+            wpow[i] = 0;
+            if (original_filter)
+                w[i] = 0;
+        }
+        else
+            wpow[i] = w[i];
+        wpow[i] = pow(wpow[i], power);
+    }
+    ComplexMatrix evconj = transpose(cmat, true);
+    for ( int i = 0; i != cmat.nr; i++ )
+        for ( int j = 0; j != cmat.nc; j++ )
+            evconj.c[i*cmat.nc+j] *= wpow[i];
+    auto pmat = cmat * evconj;
+
+    evconj = transpose(cmat, true);
+    // recover the original matrix here
+    for ( int i = 0; i != cmat.nr; i++ )
+        for ( int j = 0; j != cmat.nc; j++ )
+            evconj.c[i*cmat.nc+j] *= w[i];
+    cmat = cmat * evconj;
+    return pmat;
+}
+
+void power_hemat_onsite(ComplexMatrix &cmat, double power, double threshold)
+{
+    assert (cmat.nr == cmat.nc);
+    const char jobz = 'V';
+    const char uplo = 'U';
+
+    int nb = LapackConnector::ilaenv(1, "zheev", "VU", cmat.nc, -1, -1, -1);
+    int lwork = cmat.nc * (nb+1);
+    int info = 0;
+    double w[cmat.nc];
+    double rwork[3*cmat.nc-2];
+    complex<double> work[lwork];
+    LapackConnector::zheev(jobz, uplo, cmat.nc, cmat, cmat.nc,
+                           w, work, lwork, rwork, &info);
+    bool is_int_power = fabs(power - int(power)) < 1e-8;
+    for ( int i = 0; i != cmat.nc; i++ )
+    {
+        if (w[i] < 0 && w[i] > threshold && !is_int_power)
+            printf("Warning! kept negative eigenvalue with non-integer power: # %d ev = %f , pow = %f\n", i, w[i], power);
+        if (fabs(w[i]) < 1e-10 && power < 0)
+            printf("Warning! nearly-zero eigenvalue with negative power: # %d ev = %f , pow = %f\n", i, w[i], power);
+        if (w[i] < threshold)
+            w[i] = 0;
+        else
+            w[i] = pow(w[i], power);
+    }
+    ComplexMatrix evconj = transpose(cmat, true);
+    for ( int i = 0; i != cmat.nr; i++ )
+        for ( int j = 0; j != cmat.nc; j++ )
+            evconj.c[i*cmat.nc+j] *= w[i];
+    auto pmat = cmat * evconj;
+
+    // parse back to the original matrix here
+    for ( int i = 0; i != cmat.nr; i++ )
+        for ( int j = 0; j != cmat.nc; j++ )
+            cmat.c[i*cmat.nc+j] = pmat.c[i*cmat.nc+j];
+}
+
 void print_complex_matrix(const char *desc, const ComplexMatrix &mat)
 {
     int nr = mat.nr;
     int nc = mat.nc;
     printf("\n %s\n", desc);
+    printf("nr = %d, nc = %d\n", nr, nc);
     for (int i = 0; i < nr; i++)
     {
         for (int j = 0; j < nc; j++)
-            printf("%10.6f,%8.6f ", mat.c[i * nc + j].real(), mat.c[i * nc + j].imag());
+            printf("%10.6f,%9.6f ", mat.c[i * nc + j].real(), mat.c[i * nc + j].imag());
         printf("\n");
     }
 }
+
+
+void print_complex_matrix_file(const char *desc, const ComplexMatrix &mat, ofstream &fs, bool use_scientific)
+{
+    int nr = mat.nr;
+    int nc = mat.nc;
+    int w = 22;
+    int prec = 15;
+    auto format = fixed;
+    if (use_scientific)
+        format = scientific;
+    fs << "#" << desc << endl;
+    // c for complex
+    fs << "# c " << nr << " " << nc << endl;
+    for (int i = 0; i < nr; i++)
+    {
+        for (int j = 0; j < nc - 1; j++)
+            fs << setw(w) << showpoint << format << setprecision(prec) << mat.c[i * nc + j].real() << " " << setw(w) << showpoint << format << setprecision(prec) << mat.c[i * nc + j].imag() << " ";
+        fs << setw(w) << showpoint << format << setprecision(prec) << mat.c[i * nc + nc - 1].real() << " " << setw(w) << showpoint << format << setprecision(prec) << mat.c[i * nc + nc - 1].imag() << "\n";
+    }
+}
+
+void print_complex_matrix_mm(const ComplexMatrix &mat, ofstream &fs, double threshold, bool row_first)
+{
+    int nr = mat.nr;
+    int nc = mat.nc;
+    int prec = 15;
+    size_t nnz = 0;
+    auto format = scientific;
+    fs << "%%MatrixMarket matrix coordinate complex general" << endl;
+    fs << "%" << endl;
+    // count non-zero values first
+    for (int i = 0; i < mat.size; i++)
+    {
+        auto v = mat.c[i];
+        if ( fabs(v.real()) > threshold || fabs(v.imag()) > threshold )
+            nnz++;
+    }
+
+    fs << nr << " " << nc << " " << nnz << endl;
+
+    if (row_first)
+    {
+        for (int j = 0; j < nc; j++)
+        {
+            for (int i = 0; i < nr; i++)
+            {
+                auto v = mat.c[i*nc+j];
+                if ( fabs(v.real()) > threshold || fabs(v.imag()) > threshold )
+                    fs << i + 1 << " " << j + 1 << " " << showpoint << format << setprecision(prec) << v.real() << " " << showpoint << format << setprecision(prec) << v.imag() << "\n";
+            }
+        }
+    }
+    else
+    {
+        for (int i = 0; i < nr; i++)
+        {
+            for (int j = 0; j < nc; j++)
+            {
+                auto v = mat.c[i*nc+j];
+                if ( fabs(v.real()) > threshold || fabs(v.imag()) > threshold )
+                    fs << i + 1 << " " << j + 1 << " " << showpoint << format << setprecision(prec) << v.real() << " " << showpoint << format << setprecision(prec) << v.imag() << "\n";
+            }
+        }
+    }
+}
+
+void print_complex_matrix_file(const char *desc, const ComplexMatrix &mat, const string &fn, bool use_scientific)
+{
+    ofstream fs;
+    fs.open(fn);
+    print_complex_matrix_file(desc, mat, fs, use_scientific);
+    fs.close();
+}
+
+void print_complex_matrix_mm(const ComplexMatrix &mat, const string &fn, double threshold, bool row_first)
+{
+    ofstream fs;
+    fs.open(fn);
+    print_complex_matrix_mm(mat, fs, threshold, row_first);
+    fs.close();
+}
+
 void print_complex_real_matrix(const char *desc, const ComplexMatrix &mat)
 {
     int nr = mat.nr;
@@ -456,3 +646,4 @@ void print_complex_real_matrix(const char *desc, const ComplexMatrix &mat)
         printf("\n");
     }
 }
+

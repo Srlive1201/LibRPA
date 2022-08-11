@@ -1,66 +1,3 @@
-diff --git a/src/evaluate_crpa_energy_kspace.f90 b/src/evaluate_crpa_energy_kspace.f90
-index 561ad4993..b712e32d1 100644
---- a/src/evaluate_crpa_energy_kspace.f90
-+++ b/src/evaluate_crpa_energy_kspace.f90
-@@ -135,11 +135,13 @@
-       integer :: i_prodbas_1
-       integer :: max_irk_points_task
-       integer:: n_freqs_block, i_fblock, lbf, ubf, n_blocks
--
-+      integer:: i_rc,j_rc,mu,nu,two_nbas
- !      comm
-+      real*8  temp_crpa_grid
-+      real*8 :: k_vec(3)
- 
-       integer :: mpierr
--
-+      character(len=100) vFile
- !     begin work
- 
-       call perfon('ev_rpa')
-@@ -237,6 +239,10 @@
-       end if
-       call check_allocation(i_index, 'polar_kspace_complex                    ')
- 
-+      write(vFile,*)myid
-+      vFile='coulomb_mat_'//trim(adjustl(vFile))//'.txt'
-+      open(11,file=vFile)
-+      write(11,*)max_irk_points_task
-       do i_irk_point_local = 1, max_irk_points_task
-          i_irk_point=n_tasks_irkq*(i_irk_point_local-1) + myid_irkq + 1
-          do i_fblock=1,n_blocks
-@@ -259,6 +265,15 @@
-          !this seems to hold, but i don't know why and use real_eigenvectors instead
- !         i_k_point=inv_irk_point_mapping(i_irk_point)
- !         if (i_k_point.eq.kq_point_list(1,i_k_point)) then
-+            write(11,*)n_basbas,lbb_row,ubb_row,lbb_col,ubb_col
-+            write(11,*)inv_irk_point_mapping(i_irk_point),irk_weight(i_irk_point)
-+               !print*, i_irk_point_local
-+            do i_rc=lbb_row,ubb_row
-+               do j_rc = lbb_col,ubb_col
-+                  write(11,'(2F20.15)')coulomb_matr_blacs(i_rc,j_rc,i_irk_point_local)
-+                  !print*, coulomb_matr_blacs_real(i_rc,j_rc)
-+               end do
-+            end do
-             if(real_eigenvectors) then 
-                allocate(coulomb_matr_blacs_real(lbb_row:ubb_row, lbb_col:ubb_col),stat=i_index)
-                allocate(rv_times_polar(lbb_row:ubb_row, lbb_col:ubb_col),stat=i_index)
-@@ -325,7 +340,6 @@
-                   rpa_c_kgrid(i_irk_point) = rpa_c_kgrid(i_irk_point) + &
-                        rpa_c_integrand * womega_full(i_freq) 
-                   ! end of loop over i_freq
--                  
-                enddo
-                deallocate(coulomb_matr_blacs_real,rv_times_polar,rv_times_polar_t)
-             else
-@@ -401,6 +415,7 @@
-             ! end of loop over i_irk_point_local
-          enddo
-       end do
-+      close(11)
-       call sync_timing(time_polar)
-       call sync_timing(time_rpa_corr)
- 
 diff --git a/src/get_lvl_tricoeff_bravais.f90 b/src/get_lvl_tricoeff_bravais.f90
 index f8ce02cde..2c7b2ed6c 100644
 --- a/src/get_lvl_tricoeff_bravais.f90
@@ -153,10 +90,18 @@ index f8ce02cde..2c7b2ed6c 100644
  !    do i_cell = 1, n_cells, 1
  !        if(myid .ne. mod(i_cell, n_tasks)) cycle
 diff --git a/src/post_scf_correlation_treatment_p0.f90 b/src/post_scf_correlation_treatment_p0.f90
-index f699a7ac7..79b2600e4 100644
+index f699a7ac7..107c78e5b 100644
 --- a/src/post_scf_correlation_treatment_p0.f90
 +++ b/src/post_scf_correlation_treatment_p0.f90
-@@ -107,7 +107,11 @@
+@@ -32,6 +32,7 @@
+       use lvl_tricoeff
+       use KS_optical_properties, only : KS_dielectric_calculation_imagfreq
+       use pbc_lists, only: k_phase, n_cells, inv_irk_point_mapping
++      use pbc_lists, only : irk_weight, irk_point_mapping
+       use scalapack_wrapper,     only : mxld, mxcol, eigenvec, eigenvec_complex
+       ! use CC4S_interface, only:output_CC4S_vertex_Gamma
+       use xc_library, only: xc__hf
+@@ -107,7 +108,13 @@
            func='post_scf_correlation_treatment_p0'
        ! for parallel threads
        integer :: omp_get_max_threads, omp_get_thread_num, nrThreads, myThreadId, i_thread ,mode
@@ -165,11 +110,13 @@ index f699a7ac7..79b2600e4 100644
 +      real*8, allocatable :: lvl_tricoeff_bravais(:,:,:,:)
 +      real*8 :: k_vec(3)
 +      character(len=100) eFile
++      character(len=100) vFile
 +      real*8 :: nt_d_nk
++      integer :: max_irk_points_task
        nrThreads   = 1
        myThreadId = 1
  !$    nrThreads = omp_get_max_threads()
-@@ -246,7 +250,120 @@ end if
+@@ -246,7 +253,123 @@ end if
             write(use_unit,'(2X,A)') "Finished with initialization of Coulomb interaction matrix ..."
             write(use_unit,*)
          endif
@@ -268,6 +215,9 @@ index f699a7ac7..79b2600e4 100644
 +          k_vec = matmul(recip_lattice_vector,k_point_list(i_k_point,:))
 +          write(4,*)k_vec
 +        end do
++        do i_k_point = 1, n_k_points, 1
++          write(4,*) inv_irk_point_mapping(irk_point_mapping(i_k_point))
++        end do
 +
  
 +        
@@ -290,3 +240,51 @@ index f699a7ac7..79b2600e4 100644
  !        if(n_k_points.gt.1) then
             !ACHTUNG: this section can be removed by removing lvl_tricoef_recip* from evaluate_exchange_matr_kspace_p0!!
  !           allocate(lvl_tricoeff_recip1(max_n_basbas_sp,n_basis,n_basis,n_k_points_min),stat=info) 
+@@ -387,6 +510,47 @@ end if
+ 
+ ! end of if(.not. gamma_cut_coulomb) 
+        endif
++       ! librpa interface by minye zhang
++       ! export coulomb_matr_blacs here to take account of both RPA and GW
++       write(vFile,*)myid
++       vFile='coulomb_mat_'//trim(adjustl(vFile))//'.txt'
++       open(11,file=vFile)
++       if (mod(n_irk_points,n_tasks_irkq).eq.0) then    
++          max_irk_points_task=n_irk_points/n_tasks_irkq
++       else
++          max_irk_points_task=n_irk_points/n_tasks_irkq+1
++       end if
++       write(11,*)max_irk_points_task
++       do i_irk_point_local = 1, max_irk_points_task
++         i_irk_point=n_tasks_irkq*(i_irk_point_local-1) + myid_irkq + 1
++         write(11,*)n_basbas,lbb_row,ubb_row,lbb_col,ubb_col
++         write(11,*)inv_irk_point_mapping(i_irk_point),irk_weight(i_irk_point)
++         do i_bb_1=lbb_row,ubb_row
++            do i_bb_2 = lbb_col,ubb_col
++               write(11,'(2F20.15)')coulomb_matr_blacs(i_bb_1,i_bb_2,i_irk_point_local)
++            end do
++         end do
++       end do
++       close(11)
++       ! export truncated Coulomb as well for GW (i.e. synthesizing W from epsilon)
++       if(use_periodic_gw) then
++         write(vFile,*)myid
++         vFile='coulomb_cut_'//trim(adjustl(vFile))//'.txt'
++         open(11,file=vFile)
++         write(11,*)max_irk_points_task
++         do i_irk_point_local = 1, max_irk_points_task
++           i_irk_point=n_tasks_irkq*(i_irk_point_local-1) + myid_irkq + 1
++           write(11,*)n_basbas,lbb_row,ubb_row,lbb_col,ubb_col
++           write(11,*)inv_irk_point_mapping(i_irk_point),irk_weight(i_irk_point)
++           do i_bb_1=lbb_row,ubb_row
++              do i_bb_2 = lbb_col,ubb_col
++                 write(11,'(2F20.15)')coulomb_cut_blacs(i_bb_1,i_bb_2,i_irk_point_local)
++              end do
++           end do
++         end do
++         close(11)
++       endif
++       ! end librpa interface by minye zhang
+        call perfoff
+ ! end of if(.not.use_hf_realspace)
+    endif

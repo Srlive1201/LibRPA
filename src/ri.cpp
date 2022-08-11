@@ -11,6 +11,7 @@ vector<size_t> atom_mu_part_range;
 
 atpair_R_mat_t Cs;
 atpair_k_cplx_mat_t Vq;
+atpair_k_cplx_mat_t Vq_cut;
 
 int atom_iw_loc2glo(const int &atom_index, const int &iw_lcoal)
 {
@@ -36,6 +37,21 @@ int atom_mu_glo2loc(const int &glo_index, int &mu_index)
         if((mu_index=glo_index-atom_mu_part_range[I])<atom_mu[I])
             return I;
     }
+}
+
+vector<int> get_part_range()
+{
+    vector<int> part_range;
+    part_range.resize(atom_mu.size());
+    part_range[0] = 0;
+
+    int count_range = 0;
+    for (int Mu = 0; Mu != atom_mu.size() - 1; Mu++)
+    {
+        count_range += atom_mu[Mu];
+        part_range[Mu + 1] = count_range;
+    }
+    return part_range;
 }
 
 matrix reshape_Cs(size_t n1, size_t n2, size_t n3, const shared_ptr<matrix> &Csmat) //(n1*n2,n3) -> (n2,n1*n3)
@@ -78,3 +94,4 @@ matrix reshape_mat_21(const size_t n1, const size_t n2, const size_t n3, const m
     memcpy(m_new_ptr, m_ptr, length);
     return m_new;
 }
+

@@ -1,0 +1,113 @@
+diff --git a/src/KS_optical_properties.f90 b/src/KS_optical_properties.f90
+index 4d1b0851c..abaa9be9b 100644
+--- a/src/KS_optical_properties.f90
++++ b/src/KS_optical_properties.f90
+@@ -2396,6 +2396,7 @@ contains
+         deallocate_gw
+     use mpi_tasks, only: aims_stop, myid
+     use runtime_choices, only: n_omega, omega_min, omega_max
++    use scgw_grid, only: tf_ini_homo2
+     implicit none
+     !  ARGUMENTS
+     integer,    intent(in)    :: n_state_min_in
+@@ -2486,6 +2487,11 @@ contains
+       call tf_ini_trans(n_freq,n_full_freq, omegamax,omegamax, &
+            omega_grid,omega_full_grid, &
+            womega,womega_full,.true.)
++  elseif (freq_grid_type.eq.3) then
++    n_freq=n_full_freq 
++     call tf_ini_homo2(n_freq, n_full_freq, omegamax, &
++     omega_grid,omega_full_grid, &
++     womega,womega_full, .true.)     
+     else
+       call aims_stop("Unsupported freq_grid_type", func)
+     end if
+diff --git a/src/evaluate_periodic_gw_selfenergy.f90 b/src/evaluate_periodic_gw_selfenergy.f90
+index 77a8db875..9e24d7bc8 100644
+--- a/src/evaluate_periodic_gw_selfenergy.f90
++++ b/src/evaluate_periodic_gw_selfenergy.f90
+@@ -456,6 +456,8 @@
+          i_irk_point=n_tasks_irkq*(i_irkq_point_local-1) + myid_irkq + 1
+          i_k_point = inv_irk_point_mapping(i_irk_point)
+ 
++         write(mat_file,"(A,I6.6,A,I3.3,A)") "coulomb_matr_prodbas_matrix_rot_kpt_",i_k_point,".csc"
++         call aims_elsi_dump_mat_serial(trim(mat_file),n_basbas,coulomb_matr_blacs(:,:,i_irkq_point_local))
+          if (all(abs(k_point_list(i_k_point,:)) .lt. 1.e-10)) then
+             call diagonalize_auxmat_scalapack_complex &
+                  (n_basbas, coulomb_matr_blacs(:,:,i_irkq_point_local), prodbas_threshold, n_nonsingular, &
+@@ -464,10 +466,17 @@
+          else
+             call power_auxmat_scalapack_complex(n_basbas,0.5d0,coulomb_matr_blacs(:,:,i_irkq_point_local),'')
+          endif
++         !   write(mat_file,"(A,I6.6,A,I3.3,A)") "sqrt_coulomb_prodbas_matrix_rot_kpt_",i_k_point,".csc"
++         ! call aims_elsi_dump_mat_serial(trim(mat_file),n_basbas,coulomb_matr_blacs(:,:,i_irkq_point_local))
+       enddo
+ 
+       do i_irkq_point_local = 1, n_irkq_points_task
++         !   write(mat_file,"(A,I6.6,A,I3.3,A)") "coulomb_cut_prodbas_matrix_rot_kpt_",i_k_point,".csc"
++         ! call aims_elsi_dump_mat_serial(trim(mat_file),n_basbas,coulomb_cut_blacs(:,:,i_irkq_point_local))
+            call power_auxmat_scalapack_complex(n_basbas,0.5d0,coulomb_cut_blacs(:,:,i_irkq_point_local),'')
++         ! i_k_point = inv_irk_point_mapping(i_irk_point)
++         !   write(mat_file,"(A,I6.6,A,I3.3,A)") "sqrt_coulomb_cut_prodbas_matrix_rot_kpt_",i_k_point,".csc"
++         ! call aims_elsi_dump_mat_serial(trim(mat_file),n_basbas,coulomb_cut_blacs(:,:,i_irkq_point_local))
+       enddo
+       
+       checkloc=0.
+@@ -501,6 +510,11 @@
+          if(n_k_points.eq.1) then
+             polar_kspace_complex=cmplx(polar_kspace_real)
+          endif
++         do i_freq = 1, n_full_freq
++           i_k_point = inv_irk_point_mapping(i_irk_point)
++           write(mat_file,"(A,I6.6,A,I3.3,A)") "polarizability_prodbas_matrix_rot_kpt_",i_k_point,"_freq_",i_freq,".csc"
++         call aims_elsi_dump_mat_serial(trim(mat_file),n_basbas,polar_kspace_complex(:,:,i_freq))
++         end do
+ 
+          if (irkblacs_member.and.(myid_irkq.lt.n_irk_points)) checkloc = checkloc + sum(abs(polar_kspace_complex))
+          call perfon('epgwla')
+@@ -575,7 +589,10 @@
+                             v_times_polar, 1, 1, bb2desc, &
+                             coulomb_matr_blacs(lbb_row,lbb_col,i_irkq_point_local), 1, 1, bb2desc, (0.d0,0.d0), &
+                             polar_kspace_complex(lbb_row,lbb_col,i_freq), 1, 1, bb2desc) 
+-  
++                    if (i_freq.eq.1) then
++                      write(mat_file,"(A,I6.6,A,I3.3,A)") "sqrt_coulomb_matr_prodbas_matrix_rot_kpt_",i_k_point,".csc"
++                      call aims_elsi_dump_mat_serial(trim(mat_file),n_basbas,coulomb_matr_blacs(:,:,i_irkq_point_local))
++                    endif
+   !               if (all(abs(k_point_list(i_k_point,:)) .lt. 1.e-10)) then
+   !                  write(use_unit,*) "i_k_point", i_k_point
+   !                  do i_prodbas_2 = 1, n_basbas, 1
+@@ -597,6 +614,8 @@
+                             v_times_polar(i_prodbas_1,i_prodbas_1) + (1.d0,0.d0)
+                     end if
+                  enddo
++           write(mat_file,"(A,I6.6,A,I3.3,A)") "epsilon_prodbas_matrix_rot_kpt_",i_k_point,"_freq_",i_freq,".csc"
++         call aims_elsi_dump_mat_serial(trim(mat_file),n_basbas,v_times_polar(:,:))
+                  call get_timestamps(temp_time_before_inv_2, temp_clock_time_before_inv_2 )
+                  if ((myid.eq.0).and.(output_level .eq. "full")) write(*,*) "Time (s) before mat inv:", &
+                      temp_time_before_inv_2 - temp_time_before_inv, temp_clock_time_before_inv_2 - temp_clock_time_before_inv
+@@ -608,6 +627,8 @@
+                  else
+                    call power_auxmat_scalapack_complex(n_basbas, -1.d0, v_times_polar, 'gw_self_inv')
+                  end if
++           write(mat_file,"(A,I6.6,A,I3.3,A)") "inv_epsilon_prodbas_matrix_rot_kpt_",i_k_point,"_freq_",i_freq,".csc"
++         call aims_elsi_dump_mat_serial(trim(mat_file),n_basbas,v_times_polar(:,:))
+                  call get_timestamps(temp_time_mat_inv_2, temp_clock_time_mat_inv_2 )
+                  if ((myid.eq.0).and.(output_level .eq. "full")) write(*,*) "Time (s) for mat inv:", temp_time_mat_inv_2 - temp_time_mat_inv, &
+                                            temp_clock_time_mat_inv_2 - temp_clock_time_mat_inv
+@@ -1221,10 +1242,11 @@
+          time_polar = time_polar + rtime - temp_time_polar
+          clock_time_polar = clock_time_polar + clock_rtime - temp_clock_time_polar
+          ! YY tmp debug
+-         !do i_freq = 1, n_full_freq
+-         !  write(mat_file,"(A,I6.6,A,I3.3,A)") "screened_coulomb_prodbas_matrix_rot_kpt_",i_k_point,"_freq_",i_freq,".csc"
+-         !  call aims_elsi_dump_mat_serial(trim(mat_file),n_basbas,polar_kspace_complex(:,:,i_freq))
+-         !end do
++         do i_freq = 1, n_full_freq
++           print*, myid, n_basbas, i_freq, omega_full(i_freq), dielec_func_imagfreq(i_freq)
++           write(mat_file,"(A,I6.6,A,I3.3,A)") "screened_coulomb_prodbas_matrix_rot_kpt_",i_k_point,"_freq_",i_freq,".csc"
++         call aims_elsi_dump_mat_serial(trim(mat_file),n_basbas,polar_kspace_complex(:,:,i_freq))
++         end do
+          ! YY tmp debug
+          
+          !  Now what is actually contained in "polar_kspace" is the screened coulomb interaction 

@@ -52,6 +52,7 @@ public:
 	
 	ComplexMatrix& operator*=(const complex<double> &s);
 	ComplexMatrix& operator+=(const ComplexMatrix &m);
+	ComplexMatrix& operator+=(const complex<double> &s); // minez add 2022-06-06
 	ComplexMatrix& operator-=(const ComplexMatrix &m);
 	matrix real() const;						// Peize Lin add 2017-03-29
 	
@@ -67,6 +68,8 @@ public:
 
 ComplexMatrix operator+(const ComplexMatrix &m1,  const ComplexMatrix &m2);
 ComplexMatrix operator-(const ComplexMatrix &m1,  const ComplexMatrix &m2);
+ComplexMatrix operator-(const complex<double> &s, const ComplexMatrix &m); // minyez add 2022-06-06
+ComplexMatrix operator-(const ComplexMatrix &m,   const complex<double> &s); // minyez add 2022-06-06
 ComplexMatrix operator*(const ComplexMatrix &m1,  const ComplexMatrix &m2);
 ComplexMatrix operator*(const complex<double> &s, const ComplexMatrix &m);
 ComplexMatrix operator*(const ComplexMatrix &m,   const complex<double> &s);
@@ -109,6 +112,17 @@ void scaled_sum(
 		ComplexMatrix **m2, 
 		ComplexMatrix **mout);
 
+//! compute the power of Hermitian matrix. Hermicity not checked itself
+ComplexMatrix power_hemat(ComplexMatrix &cmat, double power, bool original_filter,
+                          double threshold = -1e16); // Minye Zhang add 2022-06-04
+//! Does the same as power_hemat, but save the powered matrix in the original matrix
+void power_hemat_onsite(ComplexMatrix &cmat, double power, double threshold = -1e16); // Minye Zhang add 2022-07-07
+
 void print_complex_matrix(const char *desc, const ComplexMatrix &mat);
+
+void print_complex_matrix_file(const char *desc, const ComplexMatrix &mat, ofstream &fs, bool use_scientific);
+void print_complex_matrix_mm(const ComplexMatrix &mat, ofstream &fs, double threshold = 1e-15, bool row_first = true);
+void print_complex_matrix_file(const char *desc, const ComplexMatrix &mat, const string &fn, bool use_scientific);
+void print_complex_matrix_mm(const ComplexMatrix &mat, const string &fn, double threshold = 1e-15, bool row_first = true);
 void print_complex_real_matrix(const char* desc, const ComplexMatrix &mat );
 #endif

@@ -37,6 +37,16 @@ When you run LibRPA, the two parameters needed to be offered, like:
 $ mpirun /home/rongshi/LibRPA/chi0_main.exe 16 1e-4 > LibRPA_$workdir.$SLURM_JOB_ID.out
 ```
 
+Other input parameters are parsed by specifying keyword and value pair in file `librpa.in` at the same directory.
+For example, if you want to set Coulomb threshold to `1e-5` and task to G0W0, you can write `librpa.in` as
+
+```
+task = g0w0
+vq_threshold = 1e-5
+```
+
+If `librpa.in` and the related keyword is not found, the default value will be used.
+
 ### Code design
 
 ![image](docs/IMG/farmwork.png)

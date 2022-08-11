@@ -79,21 +79,21 @@ map<double, double> read_local_grid(int grid_N, const string &file_path, const c
     return minimax_grid;
 }
 
-vector<double> read_time2freq_trans(const string &file_path, double inverse_scale)
+vector<double> read_trans_matrix(const string &file_path, double inverse_scale)
 {
     ifstream infile;
     infile.open(file_path);
 
     vector<double> tran;
     string s;
-    int n_freq = 0;
+    int ng = 0;
     // stringstream ss;
     // double ss_d;
     while (getline(infile, s))
     {
-        if (s[0] == 'F')
+        if (s[0] == 'F' || s[0] == 'T')
         {
-            n_freq++;
+            ng++;
         }
         else
         {
@@ -142,6 +142,8 @@ void TFGrids::set_time()
     time_weights.resize(n_grids);
     costrans_t2f.create(n_grids, n_grids);
     sintrans_t2f.create(n_grids, n_grids);
+    costrans_f2t.create(n_grids, n_grids);
+    sintrans_f2t.create(n_grids, n_grids);
     fourier_t2f.create(n_grids, n_grids);
 }
 
@@ -179,6 +181,8 @@ void TFGrids::unset()
     time_weights.clear();
     costrans_t2f.create(0, 0);
     sintrans_t2f.create(0, 0);
+    costrans_f2t.create(0, 0);
+    sintrans_f2t.create(0, 0);
     fourier_t2f.create(0, 0);
 }
 
@@ -230,6 +234,8 @@ void TFGrids::generate_evenspaced_tf(double emin, double eintv, double tmin, dou
         // WARN: fake transform matrices
         costrans_t2f(i, i) = weight;
         sintrans_t2f(i, i) = weight;
+        costrans_f2t(i, i) = 1/weight;
+        sintrans_f2t(i, i) = 1/weight;
     }
 }
 
@@ -264,14 +270,22 @@ void TFGrids::generate_minimax(double emin, double emax)
     }
     vector<double> trans;
     // cosine transform
-    trans = read_time2freq_trans(to_string(n_grids) + "_time2freq_grid_cos.txt", emin);
+    trans = read_trans_matrix(to_string(n_grids) + "_time2freq_grid_cos.txt", emin);
     for (int k = 0; k != n_grids; k++)
         for (int j = 0; j != n_grids; j++)
             costrans_t2f(k, j) = trans[ k * n_grids + j];
-    trans = read_time2freq_trans(to_string(n_grids) + "_time2freq_grid_sin.txt", emin);
+    trans = read_trans_matrix(to_string(n_grids) + "_time2freq_grid_sin.txt", emin);
     for (int k = 0; k != n_grids; k++)
         for (int j = 0; j != n_grids; j++)
             sintrans_t2f(k, j) = trans[ k * n_grids + j];
+    trans = read_trans_matrix(to_string(n_grids) + "_freq2time_grid_cos.txt", 1/emin);
+    for (int k = 0; k != n_grids; k++)
+        for (int j = 0; j != n_grids; j++)
+            costrans_f2t(k, j) = trans[ k * n_grids + j];
+    trans = read_trans_matrix(to_string(n_grids) + "_freq2time_grid_sin.txt", 1/emin);
+    for (int k = 0; k != n_grids; k++)
+        for (int j = 0; j != n_grids; j++)
+            sintrans_f2t(k, j) = trans[ k * n_grids + j];
 }
 
 void TFGrids::generate_GaussChebyshevI()
@@ -316,11 +330,34 @@ void TFGrids::generate_GaussLegendre()
     }
 }
 
+int TFGrids::get_time_index(const double &time) const
+{
+    if (!has_time_grids())
+        throw logic_error("time grids not available");
+    auto itr = std::find(time_nodes.cbegin(), time_nodes.cend(), time);
+    if ( itr == time_nodes.cend() )
+        throw invalid_argument("time not found");
+    int i = std::distance(time_nodes.cbegin(), itr);
+    return i;
+}
+
+int TFGrids::get_freq_index(const double &freq) const
+{
+    auto itr = std::find(freq_nodes.cbegin(), freq_nodes.cend(), freq);
+    if ( itr == freq_nodes.cend() )
+        throw invalid_argument("frequency not found");
+    int i = std::distance(freq_nodes.cbegin(), itr);
+    return i;
+}
+
+const pair<int, int> TFGrids::get_tf_index(const pair<double, double> &tf) const
+{
+    auto itime = get_time_index(tf.first);
+    auto ifreq = get_freq_index(tf.second);
+    return pair<int, int>{itime, ifreq};
+}
+
 double TFGrids::find_freq_weight(const double & freq) const
 {
-    auto itr = std::find(freq_nodes.begin(), freq_nodes.end(), freq);
-    if ( itr == freq_nodes.end() )
-        throw invalid_argument("frequency not found");
-    int i = std::distance(freq_nodes.begin(), itr);
-    return freq_weights[i];
+    return freq_weights[get_freq_index(freq)];
 }
