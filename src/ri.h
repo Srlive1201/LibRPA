@@ -19,6 +19,7 @@ extern int ncell;
 extern map<Vector3_Order<double>, double> irk_weight;
 extern map<atom_t, size_t> atom_nw;
 extern map<atom_t, size_t> atom_mu;
+extern vector<size_t> atom_mu_part_range;
 
 //! type alias of atom-pair mapping to real matrix indexed by unit-cell vector
 typedef atom_mapping< map<Vector3_Order<int>, std::shared_ptr<matrix>> >::pair_t_old atpair_R_mat_t;
@@ -36,6 +37,7 @@ extern atpair_k_cplx_mat_t Vq_cut;
 
 int atom_iw_loc2glo(const int &atom_index, const int &iw_lcoal);
 int atom_mu_loc2glo(const int &atom_index, const int &mu_lcoal);
+int atom_mu_glo2loc(const int &glo_index, int &mu_index); //in-out mu_index, return atom_index;
 
 //! inverse Fouriter transform of atom-pair mapping to complex matrix
 atpair_R_cplx_mat_t inverse_FT_atpair_cplx_mat(atpair_k_cplx_mat_t kmat, vector<Vector3_Order<int>> Rlist);

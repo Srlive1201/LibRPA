@@ -35,8 +35,12 @@ extern "C"
 	void sgemv_(const char *transa, const int *m, const int *n, const float *alpha,  const float *a,  
 		const int *lda, const float *x, const int *incx, const float *beta, float *y, const int *incy);
 		
-	void dgemv_(const char *transa, const int *m, const int *n, const double *alpha,  const double *a,  
-		const int *lda, const double *x, const int *incx, const double *beta, double *y, const int *incy);
+	// void dgemv_(const char *transa, const int *m, const int *n, const double *alpha,  const double *a,  
+	// 	const int *lda, const double *x, const int *incx, const double *beta, double *y, const int *incy);
+	double dgemv_(const char*const transA, const int*const m, const int*const n,
+		const double*const alpha, const double*const A, const int*const ldA, const double*const X, const int*const incX,
+		const double*const beta, double*const Y, const int*const incY);
+
 		
 	void zgemv_(const char *trans, const int *m, const int *n, const complex<double> *alpha,
 			const complex<double> *a, const int *lda, const complex<double> *x, const int *incx,

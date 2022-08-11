@@ -1,5 +1,5 @@
 #include "parallel_mpi.h"
-
+#include "scalapack_connector.h"
 Parallel_MPI::Parallel_MPI(void)
 {
     cout<<"Parallel_MPI Object is being created !"<<endl;
@@ -59,6 +59,11 @@ void Parallel_MPI::mpi_init(int argc, char **argv)
 	printf ("%s \n", name);
 }
 
+void Parallel_MPI::mpi_barrier()
+{
+    MPI_Barrier(MPI_COMM_WORLD);
+}
+
 vector<double> Parallel_MPI::pack_mat(const map<size_t,map<size_t,map<Vector3_Order<int>,shared_ptr<matrix>>>> &Cs_m)
 {
     vector<double> pack;
@@ -104,6 +109,60 @@ map<size_t,map<size_t,map<Vector3_Order<int>,shared_ptr<matrix>>>>  Parallel_MPI
     }
     return Cs;
 }
+
+void Parallel_MPI::set_blacs_parameters()
+{
+    int np_rows,np_cols; 
+    int nprocs=this->size;
+    for(np_cols=int(sqrt(double(nprocs))); np_cols>=2; --np_cols)
+	{
+		if((nprocs)%np_cols==0) break;
+	}
+	np_rows=nprocs/np_cols;
+	my_blacs_ctxt = MPI_Comm_f2c(MPI_COMM_WORLD);
+    
+	blacs_gridinit_(&my_blacs_ctxt, &BLACS_LAYOUT, &np_rows, &np_cols);
+	blacs_gridinfo_(&my_blacs_ctxt, &nprow, &npcol, &myprow, &mypcol);
+    cout<<"blacs   myid: " <<myid<<"    np_rows: "<<np_rows<<"   np_cols: "<<np_cols
+        <<"   myrow: "<<myprow<<"   mycol: "<<mypcol<<endl;
+
+}
+
+void Parallel_MPI::set_blacs_mat(
+    int *desc, int &loc_row, int &loc_col, 
+    const int tot_row, const int tot_col,
+    const int row_blk, const int col_blk )
+{
+    int IRSRC=0;
+    int info;
+    loc_row=ScalapackConnector::numroc(tot_row, row_blk, this->myprow,IRSRC,this->nprow);
+    loc_col=ScalapackConnector::numroc(tot_col, row_blk, this->mypcol,IRSRC,this->npcol);
+    ScalapackConnector::descinit(desc,tot_row, tot_col, row_blk, col_blk, IRSRC, IRSRC, this->my_blacs_ctxt,loc_row,info);
+
+}
+
+int Parallel_MPI::globalIndex(int localIndex, int nblk, int nprocs, int myproc)
+{
+	int iblock, gIndex;
+	iblock = localIndex / nblk;
+	gIndex = (iblock*nprocs + myproc)*nblk + localIndex % nblk;
+	return gIndex;
+}
+
+
+int Parallel_MPI::localIndex(int globalIndex, int nblk, int nprocs, int myproc)
+{
+	int inproc = int((globalIndex % (nblk*nprocs)) / nblk);
+	if(myproc==inproc)
+	{
+		return int(globalIndex / (nblk*nprocs))*nblk + globalIndex % nblk;
+	}
+	else
+	{
+		return -1;
+	}
+}
+
 
 vector<int> dispatcher(int ist, int ied, unsigned myid, unsigned size, bool sequential)
 {

@@ -552,6 +552,7 @@ void print_complex_matrix(const char *desc, const ComplexMatrix &mat)
     }
 }
 
+
 void print_complex_matrix_file(const char *desc, const ComplexMatrix &mat, ofstream &fs, bool use_scientific)
 {
     int nr = mat.nr;
@@ -632,3 +633,17 @@ void print_complex_matrix_mm(const ComplexMatrix &mat, const string &fn, double 
     print_complex_matrix_mm(mat, fs, threshold, row_first);
     fs.close();
 }
+
+void print_complex_real_matrix(const char *desc, const ComplexMatrix &mat)
+{
+    int nr = mat.nr;
+    int nc = mat.nc;
+    printf("\n %s\n", desc);
+    for (int i = 0; i < nr; i++)
+    {
+        for (int j = 0; j < nc; j++)
+            printf(" %10.6f", mat.c[i * nc + j].real());
+        printf("\n");
+    }
+}
+

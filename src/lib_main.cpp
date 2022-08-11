@@ -1,5 +1,5 @@
 #include "lib_main.h"
-
+#include "scalapack_connector.h"
 int main(int argc, char **argv)
 {
     para_mpi.mpi_init(argc,argv);
@@ -11,6 +11,7 @@ int main(int argc, char **argv)
     prof.add(2, "cal_Green_func",       "space-time Green's function");
     prof.add(2, "R_tau_routing", "Loop over R-tau");
     prof.add(2, "atom_pair_rouing", "Loop over atom pairs");
+    prof.add(2, "LibRI_rouing", "Loop over LibRI");
     prof.add(3, "cal_chi0_element", "chi(tau,R,I,J)");
     prof.add(4, "X");
     prof.add(4, "O");
@@ -28,6 +29,8 @@ int main(int argc, char **argv)
     parser.parse_double("vq_threshold", vq_threshold, 1e-6, flag);
     parser.parse_double("sqrt_coulomb_threshold", sqrt_coulomb_threshold, 1e-4, flag);
 
+    para_mpi.set_blacs_parameters();
+    
     READ_AIMS_BAND("band_out", meanfield);
     READ_AIMS_STRU("stru_out");
     READ_AIMS_EIGENVECTOR("./", meanfield);
@@ -60,6 +63,7 @@ int main(int argc, char **argv)
     }
     chi0.build(Cs, Rlist, period, atpairs_ABF, qlist, TFGrids::GRID_TYPES::Minimax, true);
     // RPA total energy
+
     if ( task == "rpa" )
         compute_RPA_correlation(chi0, Vq);
     else if ( task == "g0w0" )
@@ -71,7 +75,8 @@ int main(int argc, char **argv)
     }
 
     prof.stop("total");
-    prof.display();
+    if(para_mpi.get_myid()==0)
+        prof.display();
 
     return 0;
 }

@@ -48,6 +48,11 @@ class Chi0
                                                    const Vector3_Order<int> &R_period,
                                                    const vector<atpair_t> &atpairs_ABF,
                                                    const vector<Vector3_Order<double>> &qlist);
+        void build_chi0_q_space_time_LibRI_routing(const atpair_R_mat_t &LRI_Cs,
+                                                   const Vector3_Order<int> &R_period,
+                                                   const vector<atpair_t> &atpairs_ABF,
+                                                   const vector<Vector3_Order<double>> &qlist);
+
         //! Internal procedure to compute chi0_q in the conventional method, i.e. in frequency domain and reciprocal space
         // TODO: implement the conventional method
         void build_chi0_q_conventional(const atpair_R_mat_t &LRI_Cs,

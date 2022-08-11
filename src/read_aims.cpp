@@ -140,6 +140,15 @@ void READ_AIMS_Cs(const string &dir_path, double threshold)
     }
     closedir(dir);
     dir = NULL;
+    
+    atom_mu_part_range.resize(atom_mu.size());
+    atom_mu_part_range[0]=0;
+    for(int I=1;I!=atom_mu.size();I++)
+        atom_mu_part_range[I]=atom_mu.at(I-1)+atom_mu_part_range[I-1];
+    
+    for(int i=0;i!=atom_mu_part_range.size();i++)
+        cout<<" atom_mu_part_range ,i: "<<i<<"    "<<atom_mu_part_range[i]<<endl;
+
     cout << "Finish read Cs" << endl;
 }
 

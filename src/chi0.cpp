@@ -13,14 +13,18 @@
 #include "lapack_connector.h"
 #include "input.h"
 #include "constants.h"
-
+#include "scalapack_connector.h"
+#include <RI/physics/RPA.h>
+#include <array>
+#include <map>
+//#include "../AtomicTensor/libRI-master/include/RI/physics/RPA.h"
 void Chi0::build(const atpair_R_mat_t &LRI_Cs,
                    const vector<Vector3_Order<int>> &Rlist,
                    const Vector3_Order<int> &R_period,
                    const vector<atpair_t> &atpairs_ABF,
                    const vector<Vector3_Order<double>> &qlist,
                    TFGrids::GRID_TYPES gt, bool use_space_time)
-{
+{   
     gf_save = gf_discard = 0;
     // reset chi0_q in case the method was called before
     chi0_q.clear();
@@ -159,8 +163,15 @@ void Chi0::build_chi0_q_space_time(const atpair_R_mat_t &LRI_Cs,
                                    const vector<atpair_t> &atpairs_ABF,
                                    const vector<Vector3_Order<double>> &qlist)
 {
-    int R_tau_size = Rlist_gf.size() * tfg.size(); 
-    if ( atpairs_ABF.size() < R_tau_size )
+    int R_tau_size = Rlist_gf.size() * tfg.size();
+    bool use_libri=true;
+    if(use_libri)
+    {
+        cout<<"LibRI_routing"<<endl;
+        build_chi0_q_space_time_LibRI_routing(LRI_Cs, R_period, atpairs_ABF, qlist);
+
+    } 
+    else if ( atpairs_ABF.size() < R_tau_size )
     {
         cout << "R_tau_routing" << endl;
         para_mpi.chi_parallel_type = Parallel_MPI::parallel_type::R_TAU;
@@ -172,8 +183,105 @@ void Chi0::build_chi0_q_space_time(const atpair_R_mat_t &LRI_Cs,
         para_mpi.chi_parallel_type = Parallel_MPI::parallel_type::ATOM_PAIR;
         build_chi0_q_space_time_atom_pair_routing(LRI_Cs, R_period, atpairs_ABF, qlist);
     }
+   
 
 }
+
+void Chi0::build_chi0_q_space_time_LibRI_routing(const atpair_R_mat_t &LRI_Cs,
+                                                   const Vector3_Order<int> &R_period,
+                                                   const vector<atpair_t> &atpairs_ABF,
+                                                   const vector<Vector3_Order<double>> &qlist)
+{
+    prof.start("LibRI_routing");
+    map<int,std::array<double,3>> atoms_pos;
+    for(int i=0;i!=atom_mu.size();i++)
+        atoms_pos.insert(pair<int,std::array<double,3>>{i,{0,0,0}});
+    
+    std::array<double,3> xa{latvec.e11,latvec.e12,latvec.e13};
+    std::array<double,3> ya{latvec.e21,latvec.e22,latvec.e23};
+    std::array<double,3> za{latvec.e31,latvec.e32,latvec.e33};
+    std::array<std::array<double,3>,3> lat_array{xa,ya,za};
+
+    std::array<int,3> period_array{R_period.x,R_period.y,R_period.z};
+    
+    RPA<int,int,3,double> rpa(MPI_COMM_WORLD);
+    rpa.set_stru(atoms_pos,lat_array,period_array);
+    std::map<int, std::map<std::pair<int,std::array<int,3>>,Tensor<double>>> Cs_libri;
+    for(auto &Ip:LRI_Cs)
+    {
+        auto I=Ip.first;
+        map<std::pair<int,std::array<int,3>>,Tensor<double>> Jp_libri;
+        for(auto &Jp:Ip.second)
+        {
+            const auto J=Jp.first;
+            for(auto &Rp:Jp.second)
+            {
+                const auto R=Rp.first;
+                std::array<int,3> Ra{R.x,R.y,R.z};
+                const auto &mat=Rp.second;
+                std::valarray<double> mat_array((*mat).c, (*mat).size);
+                std::shared_ptr<std::valarray<double>> mat_ptr = std::make_shared<std::valarray<double>>();
+                *mat_ptr=mat_array;
+                
+                Tensor<double> Tmat({(*mat).nr,(*mat).nc},mat_ptr);
+                Jp_libri.insert(make_pair(make_pair(J,Ra),Tmat));
+            }
+        }
+        Cs_libri.insert(make_pair(I,Jp_libri));
+    }
+    rpa.set_Cs(Cs_libri,0);
+
+    for (auto it = 0; it != tfg.size(); it++)
+    {
+        double tau = tfg.get_time_nodes()[it];
+        for(auto &isp:gf_is_R_tau)
+        {
+            std::map<int, std::map<std::pair<int,std::array<int,3>>,Tensor<double>>> gf_po_libri;
+            std::map<int, std::map<std::pair<int,std::array<int,3>>,Tensor<double>>> gf_ne_libri;
+            for(auto &Ip:isp.second)
+            {
+                auto I=Ip.first;
+                map<std::pair<int,std::array<int,3>>,Tensor<double>> Jp_po_libri;
+                map<std::pair<int,std::array<int,3>>,Tensor<double>> Jp_ne_libri;
+                for(auto &Jp:Ip.second)
+                {
+                    auto J=Jp.first;
+                    for(auto &Rp:Jp.second)
+                    {
+                        
+                        auto R=Rp.first;
+                        std::array<int,3> Ra{R.x,R.y,R.z};
+                        auto &taup=Rp.second;
+
+                       // cout<<"I J R:  "<<I<<"  "<<J<<"  "<<R<<endl;
+                        const auto &mat_po=taup.at(tau);
+                        const auto &mat_ne=taup.at(-tau);
+
+                        std::valarray<double> mat_po_array(mat_po.c, mat_po.size);
+                        std::shared_ptr<std::valarray<double>> mat_po_ptr = std::make_shared<std::valarray<double>>();
+                        *mat_po_ptr=mat_po_array;
+                        Tensor<double> Tmat_po({mat_po.nr,mat_po.nc},mat_po_ptr);
+
+                        std::valarray<double> mat_ne_array(mat_ne.c, mat_ne.size);
+                        std::shared_ptr<std::valarray<double>> mat_ne_ptr = std::make_shared<std::valarray<double>>();
+                        *mat_ne_ptr=mat_ne_array;
+                        Tensor<double> Tmat_ne({mat_ne.nr,mat_ne.nc},mat_ne_ptr);
+
+                        Jp_po_libri.insert(make_pair(make_pair(J,Ra),Tmat_po));
+                        Jp_ne_libri.insert(make_pair(make_pair(J,Ra),Tmat_ne));
+
+                    }
+                }
+                gf_po_libri.insert(make_pair(I,Jp_po_libri));
+                gf_ne_libri.insert(make_pair(I,Jp_ne_libri));
+            }
+            rpa.cal_chi0s(gf_po_libri,gf_ne_libri,0);
+        }
+
+    }
+    prof.stop("LibRI_routing");
+}
+
 
 void Chi0::build_chi0_q_space_time_R_tau_routing(const atpair_R_mat_t &LRI_Cs,
                                                  const Vector3_Order<int> &R_period,
