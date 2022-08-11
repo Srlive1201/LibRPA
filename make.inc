@@ -3,9 +3,13 @@
 
 CXX = mpiicpc
 
+LIBCOMM_DIR=/home/linpz/software/LibComm/include
+LIBRI_DIR=/home/linpz/software/libRI/include
+CEREAL_DIR=/home/linpz/software/cereal-1.3.0/include
+INCLUDES= -I. -I${CEREAL_DIR} -I$(LIBCOMM_DIR) -I$(LIBRI_DIR)
 # C++ compiler flags
 # production
-CXXFLAGS = -g -O2 -std=c++11 -qopenmp
+CXXFLAGS = $(INCLUDES) -g -O2 -std=c++11 -qopenmp
 # # debug
 # CXXFLAGS = -g -O0 -Wall -std=c++11 -qopenmp
 

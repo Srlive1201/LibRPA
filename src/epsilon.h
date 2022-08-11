@@ -17,4 +17,7 @@ CorrEnergy compute_MP2_correlation(const Chi0 &chi0, const atpair_k_cplx_mat_t &
 
 map<double, map<Vector3_Order<double>, atom_mapping<ComplexMatrix>::pair_t_old>> compute_Pi_q(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat);
 
-complex<double> compute_pi_det(map<size_t, map<size_t, ComplexMatrix>> &pi_freq_q);
+
+atom_mapping<ComplexMatrix>::pair_t_old compute_Pi_freq_q(const Vector3_Order<double> &ik_vec, const atom_mapping<ComplexMatrix>::pair_t_old &chi0_freq_q, const atpair_k_cplx_mat_t &coulmat);
+
+complex<double> compute_pi_det(map<size_t, map<size_t, ComplexMatrix>> &pi_freq_q, bool out_pi=0);

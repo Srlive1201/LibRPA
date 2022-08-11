@@ -8,6 +8,7 @@ int main(int argc, char **argv)
     prof.add(2, "cal_Green_func",       "space-time Green's function");
     prof.add(2, "R_tau_routing", "Loop over R-tau");
     prof.add(2, "atom_pair_rouing", "Loop over atom pairs");
+    prof.add(2, "LibRI_rouing", "Loop over LibRI");
     prof.add(3, "cal_chi0_element", "chi(tau,R,I,J)");
     prof.add(4, "X");
     prof.add(4, "O");
@@ -47,8 +48,8 @@ int main(int argc, char **argv)
     }
     chi0.build(Cs, Rlist, period, atpairs_ABF, qlist, TFGrids::GRID_TYPES::Minimax, true);
     // RPA total energy
-    //compute_RPA_correlation(chi0, Vq);
-    compute_RPA_correlation_blacs(chi0, Vq);
+    compute_RPA_correlation(chi0, Vq);
+    //compute_RPA_correlation_blacs(chi0, Vq);
     para_mpi.mpi_barrier();
     prof.stop("total");
     if(para_mpi.get_myid()==0)
