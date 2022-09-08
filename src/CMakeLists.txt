@@ -23,6 +23,15 @@ target_include_directories(librpa_exe
     ${CMAKE_CURRENT_LIST_DIR}
   )
 
+if(USE_LIBRI)
+  target_include_directories(librpa_exe
+    PUBLIC
+      ${Cereal_INCLUDE_DIR}
+      ${LibComm_INCLUDE_DIR}
+      ${LibRI_INCLUDE_DIR}
+    )
+endif()
+
 configure_file(envs.cpp.in envs.cpp)
 list(APPEND sources
         aperiodic_chi0.cpp
@@ -59,6 +68,14 @@ if(USE_LIBRARY)
     PUBLIC
       ${CMAKE_CURRENT_LIST_DIR}
     )
+  if(USE_LIBRI)
+    target_include_directories(librpa_lib
+      PUBLIC
+        ${Cereal_INCLUDE_DIR}
+        ${LibComm_INCLUDE_DIR}
+        ${LibRI_INCLUDE_DIR}
+      )
+  endif()
   target_sources(librpa_lib PUBLIC ${sources})
   target_link_libraries(librpa_lib PUBLIC ${LAPACK_LIBRARIES})
   target_link_libraries(librpa_exe PRIVATE librpa_lib)

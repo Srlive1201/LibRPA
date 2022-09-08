@@ -37,7 +37,7 @@ extern "C"
 		
 	// void dgemv_(const char *transa, const int *m, const int *n, const double *alpha,  const double *a,  
 	// 	const int *lda, const double *x, const int *incx, const double *beta, double *y, const int *incy);
-	double dgemv_(const char*const transA, const int*const m, const int*const n,
+	void dgemv_(const char*const transA, const int*const m, const int*const n,
 		const double*const alpha, const double*const A, const int*const ldA, const double*const X, const int*const incX,
 		const double*const beta, double*const Y, const int*const incY);
 

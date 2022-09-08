@@ -1,11 +1,12 @@
-#include "input.h"
 /* #include "atoms.h" */
+#include <algorithm>
 #include <fstream>
 #include <iostream>
 #include <regex>
 #include "cal_periodic_chi0.h"
-#include "meanfield.h"
 #include "constants.h"
+#include "input.h"
+#include "meanfield.h"
 using namespace std;
 double cs_threshold = 1E-6;
 double vq_threshold = 1e-6;
@@ -157,6 +158,20 @@ void InputParser::parse_string(const std::string &vname, std::string &var, const
     std::string s = get_last_matched(params, vname, "([\\w ,;.]+)", 1);
     if (s != "")
         var = s;
+    else
+        flag = 1;
+    if (flag) var = de;
+}
+
+void InputParser::parse_bool(const std::string &vname, bool &var, const bool &de, int &flag)
+{
+    flag = 0;
+    std::string s = get_last_matched(params, vname, "([\\w]+)", 1);
+    std::transform(s.begin(), s.end(), s.begin(), ::tolower);
+    if (s == "true" || s == "t" || s == ".t.")
+        var = true;
+    else if (s == "f" || s == "false" || s == ".f.")
+        var = false;
     else
         flag = 1;
     if (flag) var = de;
