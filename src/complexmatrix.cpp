@@ -454,7 +454,7 @@ ComplexMatrix conj(const ComplexMatrix &m)
 	return cm;
 }
 
-ComplexMatrix power_hemat(ComplexMatrix &cmat, double power, bool original_filter, double threshold)
+ComplexMatrix power_hemat(ComplexMatrix &cmat, double power, bool filter_original, double threshold)
 {
     assert (cmat.nr == cmat.nc);
     const char jobz = 'V';
@@ -478,7 +478,7 @@ ComplexMatrix power_hemat(ComplexMatrix &cmat, double power, bool original_filte
         if (w[i] < threshold)
         {
             wpow[i] = 0;
-            if (original_filter)
+            if (filter_original)
                 w[i] = 0;
         }
         else
@@ -493,6 +493,7 @@ ComplexMatrix power_hemat(ComplexMatrix &cmat, double power, bool original_filte
 
     evconj = transpose(cmat, true);
     // recover the original matrix here
+    // NOTE: may need a ComplexMatrix object to back up the matrix when the original matrix is required to save a second matmul
     for ( int i = 0; i != cmat.nr; i++ )
         for ( int j = 0; j != cmat.nc; j++ )
             evconj.c[i*cmat.nc+j] *= w[i];

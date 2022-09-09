@@ -7,7 +7,7 @@ void test_power_hemat()
     a(0, 0) = cmplx(1, 0);
     a(1, 1) = cmplx(-1, 0);
     print_complex_matrix("a", a);
-    auto b = power_hemat(a, 2);
+    auto b = power_hemat(a, 2, false);
     print_complex_matrix("sq_a", b);
     assert( fequal(b(0, 0), cmplx(1, 0)) &&
             fequal(b(1, 1), cmplx(1, 0))
@@ -20,7 +20,7 @@ void test_power_hemat()
     a(1, 0) = cmplx(0, 2);
     print_complex_matrix("a", a);
     auto origa = a;
-    b = power_hemat(a, 0.5);
+    b = power_hemat(a, 0.5, false);
     print_complex_matrix("sqrt_a", b);
     // phase is undetermined, use square of sqrt to check
     /* assert( fequal(b(0, 0), cmplx(1, 0)) && */

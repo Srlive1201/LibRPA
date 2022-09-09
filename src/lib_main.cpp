@@ -28,6 +28,7 @@ int main(int argc, char **argv)
     parser.parse_double("cs_threshold", cs_threshold, 1e-6, flag);
     parser.parse_double("vq_threshold", vq_threshold, 1e-6, flag);
     parser.parse_double("sqrt_coulomb_threshold", sqrt_coulomb_threshold, 1e-4, flag);
+    parser.parse_bool("use_libri_chi0", use_libri_chi0, false, flag);
 
     para_mpi.set_blacs_parameters();
     

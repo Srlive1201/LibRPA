@@ -14,7 +14,9 @@
 #include "input.h"
 #include "constants.h"
 #include "scalapack_connector.h"
+#ifdef __USE_LIBRI
 #include <RI/physics/RPA.h>
+#endif
 #include <array>
 #include <map>
 //#include "../AtomicTensor/libRI-master/include/RI/physics/RPA.h"
@@ -164,11 +166,16 @@ void Chi0::build_chi0_q_space_time(const atpair_R_mat_t &LRI_Cs,
                                    const vector<Vector3_Order<double>> &qlist)
 {
     int R_tau_size = Rlist_gf.size() * tfg.size();
-    bool use_libri=true;
-    if(use_libri)
+    if(use_libri_chi0)
     {
         cout<<"LibRI_routing"<<endl;
+#ifdef __USE_LIBRI
         build_chi0_q_space_time_LibRI_routing(LRI_Cs, R_period, atpairs_ABF, qlist);
+#else
+        cout << "LibRI routing requested, but the executable is not compiled with LibRI" << endl;
+        cout << "Please recompiler libRPA with -DUSE_LIBRI and configure include path" << endl;
+        throw std::logic_error("compilation");
+#endif
 
     } 
     else if ( atpairs_ABF.size() < R_tau_size )
@@ -187,6 +194,7 @@ void Chi0::build_chi0_q_space_time(const atpair_R_mat_t &LRI_Cs,
 
 }
 
+#ifdef __USE_LIBRI
 void Chi0::build_chi0_q_space_time_LibRI_routing(const atpair_R_mat_t &LRI_Cs,
                                                    const Vector3_Order<int> &R_period,
                                                    const vector<atpair_t> &atpairs_ABF,
@@ -204,8 +212,8 @@ void Chi0::build_chi0_q_space_time_LibRI_routing(const atpair_R_mat_t &LRI_Cs,
 
     std::array<int,3> period_array{R_period.x,R_period.y,R_period.z};
     
-    RPA<int,int,3,double> rpa(MPI_COMM_WORLD);
-    rpa.set_stru(atoms_pos,lat_array,period_array);
+    RPA<int,int,3,double> rpa;
+    rpa.set_parallel(MPI_COMM_WORLD, atoms_pos,lat_array,period_array);
     std::map<int, std::map<std::pair<int,std::array<int,3>>,Tensor<double>>> Cs_libri;
     for(auto &Ip:LRI_Cs)
     {
@@ -223,7 +231,7 @@ void Chi0::build_chi0_q_space_time_LibRI_routing(const atpair_R_mat_t &LRI_Cs,
                 std::shared_ptr<std::valarray<double>> mat_ptr = std::make_shared<std::valarray<double>>();
                 *mat_ptr=mat_array;
                 
-                Tensor<double> Tmat({(*mat).nr,(*mat).nc},mat_ptr);
+                Tensor<double> Tmat({size_t((*mat).nr),size_t((*mat).nc)},mat_ptr);
                 Jp_libri.insert(make_pair(make_pair(J,Ra),Tmat));
             }
         }
@@ -260,12 +268,12 @@ void Chi0::build_chi0_q_space_time_LibRI_routing(const atpair_R_mat_t &LRI_Cs,
                         std::valarray<double> mat_po_array(mat_po.c, mat_po.size);
                         std::shared_ptr<std::valarray<double>> mat_po_ptr = std::make_shared<std::valarray<double>>();
                         *mat_po_ptr=mat_po_array;
-                        Tensor<double> Tmat_po({mat_po.nr,mat_po.nc},mat_po_ptr);
+                        Tensor<double> Tmat_po({size_t(mat_po.nr),size_t(mat_po.nc)},mat_po_ptr);
 
                         std::valarray<double> mat_ne_array(mat_ne.c, mat_ne.size);
                         std::shared_ptr<std::valarray<double>> mat_ne_ptr = std::make_shared<std::valarray<double>>();
                         *mat_ne_ptr=mat_ne_array;
-                        Tensor<double> Tmat_ne({mat_ne.nr,mat_ne.nc},mat_ne_ptr);
+                        Tensor<double> Tmat_ne({size_t(mat_ne.nr),size_t(mat_ne.nc)},mat_ne_ptr);
 
                         Jp_po_libri.insert(make_pair(make_pair(J,Ra),Tmat_po));
                         Jp_ne_libri.insert(make_pair(make_pair(J,Ra),Tmat_ne));
@@ -281,6 +289,7 @@ void Chi0::build_chi0_q_space_time_LibRI_routing(const atpair_R_mat_t &LRI_Cs,
     }
     prof.stop("LibRI_routing");
 }
+#endif
 
 
 void Chi0::build_chi0_q_space_time_R_tau_routing(const atpair_R_mat_t &LRI_Cs,
@@ -940,3 +949,6 @@ map<size_t, matrix> compute_chi0_munu_tau_LRI_saveN_noreshape(const map<size_t, 
 
     return chi0_tau;
 }
+
+bool use_libri_chi0 = false;
+

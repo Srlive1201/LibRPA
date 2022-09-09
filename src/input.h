@@ -63,6 +63,8 @@ class InputParser
         void parse_int(const std::string &vname, int &var, int de, int &flag);
         //! parse single string to var
         void parse_string(const std::string &vname, std::string &var, const std::string &de, int &flag);
+        //! parse single bool to var
+        void parse_bool(const std::string &vname, bool &var, const bool &de, int &flag);
 };
 
 //! Class to represent the input file
