@@ -6,10 +6,16 @@ CXX = mpiicpc
 LIBCOMM_DIR=/home/linpz/software/LibComm/include
 LIBRI_DIR=/home/linpz/software/libRI/include
 CEREAL_DIR=/home/linpz/software/cereal-1.3.0/include
+
+# definitions for preprocessor
+#   -D__USE_LIBRI : use libRI for tensor contraction
+CPPFLAGS = -D__USE_LIBRI
+
 INCLUDES= -I. -I${CEREAL_DIR} -I$(LIBCOMM_DIR) -I$(LIBRI_DIR)
+
 # C++ compiler flags
 # production
-CXXFLAGS = $(INCLUDES) -g -O2 -std=c++11 -qopenmp
+CXXFLAGS = -g -O2 -std=c++11 -qopenmp
 # # debug
 # CXXFLAGS = -g -O0 -Wall -std=c++11 -qopenmp
 

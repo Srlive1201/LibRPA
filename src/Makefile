@@ -54,7 +54,7 @@ $(LIBNAME): $(objects)
 	$(AR) s $@
 
 .cpp.o:
-	$(CXX) $(CXXFLAGS) -c $< -o $@
+	$(CXX) $(CPPFLAGS) $(INCLUDES) $(CXXFLAGS) -c $< -o $@
 
 envs.o: envs.cpp
-	$(CXX) $(CXXFLAGS) -c $(PWD)/$< -o $@
+	$(CXX) $(CPPFLAGS) $(INCLUDES) $(CXXFLAGS) -c $(PWD)/$< -o $@
