@@ -2,7 +2,7 @@
 template <typename T>
 inline bool fequal(const T &a, const T &b, double thres = 1e-14)
 {
-    return fabs(a - b) < thres;
+    return std::abs(a - b) < thres;
 }
 
 template <typename T>

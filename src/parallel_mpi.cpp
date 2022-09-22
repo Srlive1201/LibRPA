@@ -119,7 +119,7 @@ void Parallel_MPI::set_blacs_parameters()
 		if((nprocs)%np_cols==0) break;
 	}
 	np_rows=nprocs/np_cols;
-	my_blacs_ctxt = MPI_Comm_f2c(MPI_COMM_WORLD);
+	my_blacs_ctxt = MPI_Comm_c2f(MPI_COMM_WORLD);
     
 	blacs_gridinit_(&my_blacs_ctxt, &BLACS_LAYOUT, &np_rows, &np_cols);
 	blacs_gridinfo_(&my_blacs_ctxt, &nprow, &npcol, &myprow, &mypcol);
