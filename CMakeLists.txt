@@ -1,5 +1,5 @@
 # main CMake file for LibRPA
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.13)
 
 # extract version number
 file(READ "src/Makefile" mkfile)
@@ -11,6 +11,7 @@ project(LibRPA VERSION ${version} LANGUAGES NONE)
 
 # options setup
 option(USE_LIBRI "Use LibRI for tensor contraction" OFF)
+option(USE_CMAKE_INC "Use cmake.in for configure" ON)
 
 # Add cmake load files
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
@@ -19,10 +20,48 @@ include(UseDoxygenDoc)
 # C++ standard requirement
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
+enable_language(CXX)
 
-if(EXISTS "${PROJECT_SOURCE_DIR}/cmake.inc")
+set(math_libs "")
+set(parallel_libs "")
+
+if(EXISTS "${PROJECT_SOURCE_DIR}/cmake.inc" AND USE_CMAKE_INC)
   include("${PROJECT_SOURCE_DIR}/cmake.inc")
+  list(APPEND math_libs ${LAPACK_LIBRARIES})
+else()
+  if(DEFINED ENV{MKLROOT} AND NOT DEFINED MKLROOT)
+    set(MKLROOT "$ENV{MKLROOT}")
+  endif()
+  if(MKLROOT)
+    find_package(IntelMKL REQUIRED)
+    include_directories(${MKL_INCLUDE_DIRS} ${MKL_INCLUDE_DIRS}/fftw)
+    list(APPEND math_libs IntelMKL::MKL)
+  else()
+    find_package(LAPACK REQUIRED)
+    find_package(ScaLAPACK REQUIRED)
+    list(APPEND math_libs
+            ${LAPACK_LIBRARIES}
+            ${ScaLAPACK_LIBRARIES}
+            )
+  endif()
+
+  find_package(MPI REQUIRED)
+  if (MPI_CXX_FOUND)
+    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${MPI_CXX_FLAGS}")
+  endif()
+
+  find_package(OpenMP REQUIRED)
+  if (OpenMP_CXX_FOUND)
+    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+  endif()
+  list(APPEND parallel_libs
+          OpenMP::OpenMP_CXX
+          MPI::MPI_CXX
+          )
+  include_directories(${MPI_CXX_INCLUDE_PATH})
 endif()
+
+include_directories(src)
 
 # use LibRI, which in turn depends on Cereal
 if(USE_LIBRI)
@@ -41,8 +80,6 @@ if(USE_LIBRI)
   add_compile_definitions("__USE_LIBRI")
   message(STATUS "The project will be compiled with LibRI")
 endif()
-
-enable_language(CXX)
 
 add_subdirectory(src)
 

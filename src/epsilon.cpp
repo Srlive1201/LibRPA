@@ -39,7 +39,7 @@ complex<double> compute_pi_det(map<size_t, map<size_t, ComplexMatrix>> &pi_freq_
             }
             else
             {
-                loc_piT(j,i)=-1*  pi_freq_q.at(I).at(J)(mu,nu);
+                loc_piT(j,i)=-1. *  pi_freq_q.at(I).at(J)(mu,nu);
             }
             
         }
@@ -67,7 +67,7 @@ complex<double> compute_pi_det(map<size_t, map<size_t, ComplexMatrix>> &pi_freq_
             if(loc_piT(locc,locr).real()>0)
                 ln_det_loc+=std::log(loc_piT(locc,locr));
             else
-                ln_det_loc+=std::log(-1 * loc_piT(locc,locr));
+                ln_det_loc+=std::log(-1. * loc_piT(locc,locr));
 		}
     }
     MPI_Allreduce(&ln_det_loc,&ln_det_all,1,MPI_DOUBLE_COMPLEX,MPI_SUM,MPI_COMM_WORLD);
@@ -158,7 +158,7 @@ CorrEnergy compute_RPA_correlation_blacs(const Chi0 &chi0, const atpair_k_cplx_m
                     trace_pi+=MuNupi.at(Mu).at(Mu)(mu,mu);
             }
             bool out_pi=false;
-            if(freq==chi0.tfg.get_freq_nodes()[0] && q == Vector3_Order<double>({0,0,0}))
+            if(freq==chi0.tfg.get_freq_nodes()[0] && q == Vector3_Order<double>(0, 0, 0))
                 out_pi=true;
             complex<double> ln_det=compute_pi_det(MuNupi,out_pi);
             para_mpi.mpi_barrier();
