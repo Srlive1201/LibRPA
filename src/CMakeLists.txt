@@ -57,7 +57,7 @@ list(APPEND sources
         )
 
 
-if(USE_LIBRARY)
+if(BUILD_LIBRARY)
   add_library(librpa_lib)
   set_target_properties(librpa_lib PROPERTIES
     OUTPUT_NAME ${libname}
@@ -77,10 +77,10 @@ if(USE_LIBRARY)
       )
   endif()
   target_sources(librpa_lib PUBLIC ${sources})
-  target_link_libraries(librpa_lib PUBLIC ${LAPACK_LIBRARIES})
+  target_link_libraries(librpa_lib PUBLIC ${math_libs} ${parallel_libs})
   target_link_libraries(librpa_exe PRIVATE librpa_lib)
 else()
   target_sources(librpa_exe PRIVATE ${sources})
-  target_link_libraries(librpa_exe PRIVATE ${LAPACK_LIBRARIES})
+  target_link_libraries(librpa_exe PRIVATE ${math_libs} ${parallel_libs})
 endif()
 
