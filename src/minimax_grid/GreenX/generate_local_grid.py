@@ -16,11 +16,11 @@ if sys.version_info.major >= 3:
     fnerror = FileNotFoundError
 
 
-cols = 120
-if sys.platform.lower() in ["linux", "darwin"]:
-    _, cols = sp.check_output(['stty', 'size']).split()
-    cols = int(cols)
-np.set_printoptions(precision=2, linewidth=cols)
+# cols = 120
+# if sys.platform.lower() in ["linux", "darwin"]:
+#     _, cols = sp.check_output(['stty', 'size']).split()
+#     cols = int(cols)
+# np.set_printoptions(precision=2, linewidth=cols)
 
 
 def phi_nu_x(nu, x):
