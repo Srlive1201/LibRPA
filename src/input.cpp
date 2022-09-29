@@ -9,7 +9,7 @@
 #include "meanfield.h"
 using namespace std;
 double cs_threshold = 1E-6;
-double vq_threshold = 0y;
+double vq_threshold = 0;
 double sqrt_coulomb_threshold = 1e-4;
 
 int kv_nmp[3] = {1, 1, 1};
