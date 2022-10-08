@@ -40,10 +40,10 @@ void Parallel_MPI::reduce_ComplexMatrix(ComplexMatrix &cmat_loc, ComplexMatrix &
 void Parallel_MPI::mpi_init(int argc, char **argv)
 {
     int provided;
-	MPI_Init_thread (&argc, &argv, MPI_THREAD_FUNNELED, &provided);
-	if (MPI_THREAD_FUNNELED != provided)
+	MPI_Init_thread (&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
+	if (MPI_THREAD_MULTIPLE != provided)
 	{
-		printf ("%d != required %d", MPI_THREAD_FUNNELED, provided);
+		printf ("%d != required %d", MPI_THREAD_MULTIPLE, provided);
     }
     MPI_Comm_rank (MPI_COMM_WORLD, &myid);
     MPI_Comm_size (MPI_COMM_WORLD, &size);

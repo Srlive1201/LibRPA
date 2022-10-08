@@ -78,7 +78,7 @@ complex<double> compute_pi_det(map<size_t, map<size_t, ComplexMatrix>> &pi_freq_
 CorrEnergy compute_RPA_correlation_blacs(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat)
 {
     CorrEnergy corr;
-    printf("Begin cal cRPA , pid:  %d\n", para_mpi.get_myid());
+    printf("Begin cal cRPA with BLACS , pid:  %d\n", para_mpi.get_myid());
     const auto & mf = chi0.mf;
     
     // freq, q
@@ -155,7 +155,8 @@ CorrEnergy compute_RPA_correlation_blacs(const Chi0 &chi0, const atpair_k_cplx_m
             {
                 const size_t n_mu = atom_mu[Mu];
                 for(int mu=0;mu!=n_mu;mu++)
-                    trace_pi+=MuNupi.at(Mu).at(Mu)(mu,mu);
+                    if (MuNupi.count(Mu) && MuNupi.at(Mu).count(Mu))
+                        trace_pi+=MuNupi.at(Mu).at(Mu)(mu,mu);
             }
             bool out_pi=false;
             if(freq==chi0.tfg.get_freq_nodes()[0] && q == Vector3_Order<double>(0, 0, 0))
@@ -225,7 +226,7 @@ CorrEnergy compute_RPA_correlation(const Chi0 &chi0, const atpair_k_cplx_mat_t &
     for (const auto &freq_q_MuNupi : pi_freq_q_Mu_Nu)
     {
         const auto freq = freq_q_MuNupi.first;
-    
+
         for (const auto &q_MuNupi : freq_q_MuNupi.second)
         {
             const auto q = q_MuNupi.first;
@@ -433,7 +434,7 @@ atom_mapping<ComplexMatrix>::pair_t_old compute_Pi_freq_q(const Vector3_Order<do
 {
     atom_mapping<ComplexMatrix>::pair_t_old pi;
     printf("Begin cal_pi_k , pid:  %d\n", para_mpi.get_myid());
-    
+
     for (auto &JQchi0 : chi0_freq_q )
     {
         const size_t J = JQchi0.first;

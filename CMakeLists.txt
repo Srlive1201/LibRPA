@@ -8,10 +8,11 @@ string(REGEX REPLACE " *VERSION *= *" "" version ${version})
 # Project information
 project(LibRPA VERSION ${version} LANGUAGES NONE)
 
-
 # options setup
 option(USE_LIBRI "Use LibRI for tensor contraction" OFF)
 option(USE_CMAKE_INC "Use cmake.in for configure" ON)
+option(DEBUG "Switch on debug mode and facility" OFF)
+option(BUILD_LIBRARY "Whether to build library" OFF)
 
 # Add cmake load files
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
@@ -79,6 +80,11 @@ if(USE_LIBRI)
   endif()
   add_compile_definitions("__USE_LIBRI")
   message(STATUS "The project will be compiled with LibRI")
+endif()
+
+if(DEBUG)
+  message(STATUS "Debug mode switched on")
+  add_compile_definitions("__DEBUG")
 endif()
 
 add_subdirectory(src)

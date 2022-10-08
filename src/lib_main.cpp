@@ -1,4 +1,5 @@
 #include "lib_main.h"
+#include <algorithm>
 #include "scalapack_connector.h"
 int main(int argc, char **argv)
 {
@@ -37,7 +38,7 @@ int main(int argc, char **argv)
     READ_AIMS_EIGENVECTOR("./", meanfield);
 
     READ_AIMS_Cs("./", cs_threshold);
-    READ_AIMS_Vq("./", "coulomb_mat_", vq_threshold, Vq); 
+    READ_AIMS_Vq("./", "coulomb_mat", vq_threshold, Vq); 
     /* if(argv[1][0]=='0') */
     /*     ap_chi0.chi0_main(argv[1],argv[2]);  */
     /* else */
@@ -63,6 +64,27 @@ int main(int argc, char **argv)
         qlist.push_back(q_weight.first);
     }
     chi0.build(Cs, Rlist, period, atpairs_ABF, qlist, TFGrids::GRID_TYPES::Minimax, true);
+    { // debug, check chi0
+        char fn[80];
+        for (const auto &chi0q: chi0.get_chi0_q())
+        {
+            const int ifreq = chi0.tfg.get_freq_index(chi0q.first);
+            for (const auto &q_IJchi0: chi0q.second)
+            {
+                const int iq = std::distance(klist.begin(), std::find(klist.begin(), klist.end(), q_IJchi0.first));
+                for (const auto &I_Jchi0: q_IJchi0.second)
+                {
+                    const auto &I = I_Jchi0.first;
+                    for (const auto &J_chi0: I_Jchi0.second)
+                    {
+                        const auto &J = J_chi0.first;
+                        sprintf(fn, "chi0fq_ifreq_%d_iq_%d_I_%zu_J_%zu_id_%d.mtx", ifreq, iq, I, J, para_mpi.get_myid());
+                        // print_complex_matrix_mm(J_chi0.second, fn, 1e-15);
+                    }
+                }
+            }
+        }
+    }
     // RPA total energy
 
     if ( task == "rpa" )
