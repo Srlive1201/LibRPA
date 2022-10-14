@@ -1,5 +1,5 @@
 #include "read_aims.h"
-#include <iostream>
+// #include <iostream>
 #include <fstream>
 #include <string>
 #include <dirent.h>
@@ -7,15 +7,15 @@
 #include "ri.h"
 #include "input.h"
 
-using std::cout;
-using std::endl;
+// using std::cout;
+// using std::endl;
 using std::ifstream;
 using std::string;
 /* using std::stod; */
 
 void READ_AIMS_BAND(const string &file_path, MeanField &mf)
 {
-    cout << "Begin to read aims-band_out" << endl;
+    // cout << "Begin to read aims-band_out" << endl;
     ifstream infile;
     infile.open(file_path);
     string ks, ss, a, ws, es, d;
@@ -32,11 +32,6 @@ void READ_AIMS_BAND(const string &file_path, MeanField &mf)
 
     mf.set(n_spins, n_kpoints, n_bands, n_aos);
 
-    cout << "| number of spins: " << mf.get_n_spins() << endl
-         << "| number of k-points: " << mf.get_n_kpoints() << endl
-         << "| number of bands: " << mf.get_n_bands() << endl
-         << "| number of NAOs: " << mf.get_n_aos() << endl;
-
     auto & eskb = mf.get_eigenvals();
     auto & wg = mf.get_weight();
 
@@ -46,7 +41,7 @@ void READ_AIMS_BAND(const string &file_path, MeanField &mf)
             infile >> ks >> ss;
             // cout<<ik<<is<<endl;
             int k_index = stoi(ks) - 1;
-            int s_index = stoi(ss) - 1;
+            // int s_index = stoi(ss) - 1;
             for (int i = 0; i != n_bands; i++)
             {
                 infile >> a >> ws >> es >> d;
@@ -55,13 +50,6 @@ void READ_AIMS_BAND(const string &file_path, MeanField &mf)
                 eskb[is](k_index, i) = stod(es) * 2;
             }
         }
-    cout << "efermi (Ha):" << efermi << endl;
-    cout << "Success read aims-band_out" << endl;
-    double emin, emax, gap;
-    gap = mf.get_E_min_max(emin, emax);
-    cout << "| Minimal transition energy (Ha): " << emin << endl
-         << "| Maximal transition energy (Ha): " << emax << endl
-         << "| Band gap (Ha): " << gap << endl;
 }
 
 void READ_AIMS_EIGENVECTOR(const string &dir_path, MeanField &mf)
@@ -83,7 +71,7 @@ void READ_AIMS_EIGENVECTOR(const string &dir_path, MeanField &mf)
     }
     closedir(dir);
     dir = NULL;
-    cout << "Finish read KS_eignvector! " << endl;
+    // cout << "Finish read KS_eignvector! " << endl;
 }
 
 
@@ -91,9 +79,9 @@ void handle_KS_file(const string &file_path, MeanField &mf)
 {
     // cout<<file_path<<endl;
     ifstream infile;
-    cout << "Reading eigenvector from file " << file_path << endl;
+    // cout << "Reading eigenvector from file " << file_path << endl;
     infile.open(file_path);
-    int ik;
+    // int ik;
     string rvalue, ivalue, kstr;
     auto & wfc = mf.get_eigenvectors();
     while (infile.peek() != EOF)
@@ -124,10 +112,11 @@ void handle_KS_file(const string &file_path, MeanField &mf)
         //         }
     }}
 
-void READ_AIMS_Cs(const string &dir_path, double threshold)
+size_t READ_AIMS_Cs(const string &dir_path, double threshold)
 {
-    cout << "Begin to read Cs" << endl;
-    cout << "cs_threshold:  " << threshold << endl;
+    size_t cs_discard = 0;
+    // cout << "Begin to read Cs" << endl;
+    // cout << "cs_threshold:  " << threshold << endl;
     struct dirent *ptr;
     DIR *dir;
     dir = opendir(dir_path.c_str());
@@ -136,7 +125,7 @@ void READ_AIMS_Cs(const string &dir_path, double threshold)
     {
         string fm(ptr->d_name);
         if (fm.find("Cs_data") == 0)
-            handle_Cs_file(fm, threshold);
+            cs_discard += handle_Cs_file(fm, threshold);
     }
     closedir(dir);
     dir = NULL;
@@ -146,15 +135,17 @@ void READ_AIMS_Cs(const string &dir_path, double threshold)
     for(int I=1;I!=atom_mu.size();I++)
         atom_mu_part_range[I]=atom_mu.at(I-1)+atom_mu_part_range[I-1];
     
-    for(int i=0;i!=atom_mu_part_range.size();i++)
-        cout<<" atom_mu_part_range ,i: "<<i<<"    "<<atom_mu_part_range[i]<<endl;
+    // for(int i=0;i!=atom_mu_part_range.size();i++)
+    //     cout<<" atom_mu_part_range ,i: "<<i<<"    "<<atom_mu_part_range[i]<<endl;
 
-    cout << "Finish read Cs" << endl;
+    // cout << "Finish read Cs" << endl;
+    return cs_discard;
 }
 
-void handle_Cs_file(const string &file_path, double threshold)
+size_t handle_Cs_file(const string &file_path, double threshold)
 {
     // map<size_t,map<size_t,map<Vector3_Order<int>,std::shared_ptr<matrix>>>> Cs_m;
+    size_t cs_discard = 0;
     string natom_s, ncell_s, ia1_s, ia2_s, ic_1, ic_2, ic_3, i_s, j_s, mu_s, Cs_ele;
     ifstream infile;
     infile.open(file_path);
@@ -204,15 +195,17 @@ void handle_Cs_file(const string &file_path, double threshold)
         // if (box == Vector3_Order<int>({0, 0, 1}))continue;
         if ((*cs_ptr).absmax() >= threshold)
             Cs[ia1][ia2][box] = cs_ptr;
-
+        else
+            cs_discard++;
         // cout<<" READ Cs, INDEX:  "<<ia1<<"   "<<ia2<<"   "<<box<<"   "<<(*Cs.at(ia1).at(ia2).at(box))(n_i*n_j-1,n_mu-1)<<endl;
     }
+    return cs_discard;
 }
 
-void READ_AIMS_Vq(const string &dir_path, const string &vq_fprefix, double threshold, atpair_k_cplx_mat_t &coulomb_mat)
+size_t READ_AIMS_Vq(const string &dir_path, const string &vq_fprefix, double threshold, atpair_k_cplx_mat_t &coulomb_mat)
 {
-    int vq_save = 0;
-    int vq_discard = 0;
+    size_t vq_save = 0;
+    size_t vq_discard = 0;
     struct dirent *ptr;
     DIR *dir;
     dir = opendir(dir_path.c_str());
@@ -226,11 +219,11 @@ void READ_AIMS_Vq(const string &dir_path, const string &vq_fprefix, double thres
             handle_Vq_file(fm, threshold, Vq_full);
         }
     }
-    cout << "FINISH coulomb files reading!" << endl;
+    // cout << "FINISH coulomb files reading!" << endl;
     for (auto &vf_p : Vq_full)
     {
         auto qvec = vf_p.first;
-        cout << "Qvec:" << qvec << endl;
+        // cout << "Qvec:" << qvec << endl;
         for (int I = 0; I != atom_mu.size(); I++)
             for (int J = 0; J != atom_mu.size(); J++)
             {
@@ -239,7 +232,7 @@ void READ_AIMS_Vq(const string &dir_path, const string &vq_fprefix, double thres
                 shared_ptr<ComplexMatrix> vq_ptr = make_shared<ComplexMatrix>();
                 vq_ptr->create(atom_mu[I], atom_mu[J]);
                 // vq_ptr_tran->create(atom_mu[J],atom_mu[I]);
-                cout << "I J: " << I << "  " << J << "   mu,nu: " << atom_mu[I] << "  " << atom_mu[J] << endl;
+                // cout << "I J: " << I << "  " << J << "   mu,nu: " << atom_mu[I] << "  " << atom_mu[J] << endl;
                 for (int i_mu = 0; i_mu != atom_mu[I]; i_mu++)
                 {
 
@@ -268,21 +261,22 @@ void READ_AIMS_Vq(const string &dir_path, const string &vq_fprefix, double thres
     }
     closedir(dir);
     dir = NULL;
-    cout << "vq threshold: " << threshold << endl;
-    cout << "vq_save:    " << vq_save << endl;
-    cout << "vq_dicard:  " << vq_discard << endl;
-    cout << "  Vq_dim   " << coulomb_mat.size() << "    " << coulomb_mat[0].size() << "   " << coulomb_mat[0][0].size() << endl;
-    for (auto &irk : irk_weight)
-    {
-        cout << " irk_vec and weight: " << irk.first << "  " << irk.second << endl;
-        // Cal_Periodic_Chi0::print_complex_matrix("full_Vq",Vq_full.at(irk.first));
-    }
-    cout << "Finish read aims vq" << endl;
+    // cout << "vq threshold: " << threshold << endl;
+    // cout << "vq_save:    " << vq_save << endl;
+    // cout << "vq_dicard:  " << vq_discard << endl;
+    // cout << "  Vq_dim   " << coulomb_mat.size() << "    " << coulomb_mat[0].size() << "   " << coulomb_mat[0][0].size() << endl;
+    // for (auto &irk : irk_weight)
+    // {
+    //     cout << " irk_vec and weight: " << irk.first << "  " << irk.second << endl;
+    //     Cal_Periodic_Chi0::print_complex_matrix("full_Vq",Vq_full.at(irk.first));
+    // }
+    // cout << "Finish read aims vq" << endl;
+    return vq_discard;
 }
 
 void handle_Vq_file(const string &file_path, double threshold, map<Vector3_Order<double>, ComplexMatrix> &Vq_full)
 {
-    cout << "Begin to read aims vq_real from " << file_path << endl;
+    // cout << "Begin to read aims vq_real from " << file_path << endl;
     ifstream infile;
     infile.open(file_path);
     string nbasbas, begin_row, end_row, begin_col, end_col, q1, q2, q3, vq_r, vq_i, q_num, q_weight;

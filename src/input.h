@@ -11,9 +11,6 @@
 #include "vector3.h"
 #include "vector3_order.h"
 #include "matrix3.h"
-extern double cs_threshold;
-extern double vq_threshold;
-extern double sqrt_coulomb_threshold;
 
 extern int kv_nmp[3];
 extern Matrix3 latvec;
@@ -23,7 +20,7 @@ extern std::vector<int> irk_point_id_mapping;
 extern map<Vector3_Order<double>, vector<Vector3_Order<double>>> map_irk_ks;
 extern Vector3<double> *kvec_c;
 
-void READ_AIMS_STRU(const std::string &file_path);
+void READ_AIMS_STRU(const int& n_kpoints, const std::string &file_path);
 
 //! task of the problem
 extern string task;

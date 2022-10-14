@@ -1,6 +1,7 @@
 #include <algorithm>
 #include "epsilon.h"
 #include "input.h"
+#include "params.h"
 #include "parallel_mpi.h"
 #include "lapack_connector.h"
 #include "ri.h"
@@ -78,18 +79,19 @@ complex<double> compute_pi_det(map<size_t, map<size_t, ComplexMatrix>> &pi_freq_
 CorrEnergy compute_RPA_correlation_blacs(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat)
 {
     CorrEnergy corr;
-    printf("Begin cal cRPA with BLACS , pid:  %d\n", para_mpi.get_myid());
+    if (para_mpi.get_myid() == 0)
+        printf("Calculating EcRPA with BLACS/ScaLAPACK\n");
+    // printf("Calculating EcRPA with BLACS, pid:  %d\n", para_mpi.get_myid());
     const auto & mf = chi0.mf;
     
     // freq, q
     //auto pi_freq_q_Mu_Nu = compute_Pi_q(chi0, coulmat);
-    int range_all = 0;
+    // int range_all = 0;
+    // for (auto &iat : atom_mu)
+    // {
+    //     range_all += iat.second;
+    // }
 
-    for (auto &iat : atom_mu)
-    {
-        range_all += iat.second;
-    }
-    
     vector<int> part_range;
     part_range.resize(atom_mu.size());
     part_range[0] = 0;
@@ -100,12 +102,13 @@ CorrEnergy compute_RPA_correlation_blacs(const Chi0 &chi0, const atpair_k_cplx_m
         part_range[I + 1] = count_range;
     }
 
-    cout << "part_range:" << endl;
-    for (int I = 0; I != atom_mu.size(); I++)
-    {
-        cout << part_range[I] << endl;
-    }
-    cout << "part_range over" << endl;
+    // cout << "part_range:" << endl;
+    // for (int I = 0; I != atom_mu.size(); I++)
+    // {
+    //     cout << part_range[I] << endl;
+    // }
+    // cout << "part_range over" << endl;
+
     // pi_freq_q contains all atoms
     map<double, map<Vector3_Order<double>, ComplexMatrix>> pi_freq_q;
     complex<double> tot_RPA_energy(0.0, 0.0);
@@ -140,7 +143,7 @@ CorrEnergy compute_RPA_correlation_blacs(const Chi0 &chi0, const atpair_k_cplx_m
                                 flag_insert_mat=false;
                             }
                         }
-                        
+
                         para_mpi.mpi_barrier();
                         para_mpi.allreduce_ComplexMatrix(loc_pi_Mu_Nu,rd_pi_Mu_Nu);
                         //if(flag_insert_mat)
@@ -166,7 +169,7 @@ CorrEnergy compute_RPA_correlation_blacs(const Chi0 &chi0, const atpair_k_cplx_m
             if(para_mpi.get_myid()==0)
             {
                 complex<double> rpa_for_omega_q=trace_pi+ln_det;
-                cout << " ifreq:" << freq << "      rpa_for_omega_k: " << rpa_for_omega_q << "      lnt_det: " << ln_det << "    trace_pi " << trace_pi << endl;
+                // cout << " ifreq:" << freq << "      rpa_for_omega_k: " << rpa_for_omega_q << "      lnt_det: " << ln_det << "    trace_pi " << trace_pi << endl;
                 cRPA_q[q] += rpa_for_omega_q * freq_weight * irk_weight[q] * double(mf.get_n_spins()) / TWO_PI;
                 tot_RPA_energy += rpa_for_omega_q * freq_weight * irk_weight[q] * double(mf.get_n_spins()) / TWO_PI;
             }
@@ -178,9 +181,9 @@ CorrEnergy compute_RPA_correlation_blacs(const Chi0 &chi0, const atpair_k_cplx_m
         for (auto &q_crpa : cRPA_q)
         {
             corr.qcontrib[q_crpa.first] = q_crpa.second;
-            cout << q_crpa.first << q_crpa.second << endl;
+            // cout << q_crpa.first << q_crpa.second << endl;
         }
-        cout << "gx_num_" << chi0.tfg.size() << "  tot_RPA_energy:  " << setprecision(8)    <<tot_RPA_energy << endl;
+        // cout << "gx_num_" << chi0.tfg.size() << "  tot_RPA_energy:  " << setprecision(8)    <<tot_RPA_energy << endl;
     }
     para_mpi.mpi_barrier();
     corr.value = tot_RPA_energy;
@@ -192,7 +195,9 @@ CorrEnergy compute_RPA_correlation_blacs(const Chi0 &chi0, const atpair_k_cplx_m
 CorrEnergy compute_RPA_correlation(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat)
 {
     CorrEnergy corr;
-    printf("Begin cal cRPA , pid:  %d\n", para_mpi.get_myid());
+    if (para_mpi.get_myid() == 0)
+        printf("Calculating EcRPA without BLACS/ScaLAPACK\n");
+    // printf("Begin cal cRPA , pid:  %d\n", para_mpi.get_myid());
     const auto & mf = chi0.mf;
     
     // freq, q
@@ -214,12 +219,13 @@ CorrEnergy compute_RPA_correlation(const Chi0 &chi0, const atpair_k_cplx_mat_t &
         part_range[I + 1] = count_range;
     }
 
-    cout << "part_range:" << endl;
-    for (int I = 0; I != atom_mu.size(); I++)
-    {
-        cout << part_range[I] << endl;
-    }
-    cout << "part_range over" << endl;
+    // cout << "part_range:" << endl;
+    // for (int I = 0; I != atom_mu.size(); I++)
+    // {
+    //     cout << part_range[I] << endl;
+    // }
+    // cout << "part_range over" << endl;
+
     // pi_freq_q contains all atoms
     map<double, map<Vector3_Order<double>, ComplexMatrix>> pi_freq_q;
     
@@ -302,10 +308,10 @@ CorrEnergy compute_RPA_correlation(const Chi0 &chi0, const atpair_k_cplx_mat_t &
                 complex<double> ln_det;
                 ln_det = std::log(det_for_rpa);
                 trace_pi = trace(pi_freq_q.at(freq).at(q));
-                cout << "PI trace vector:" << endl;
-                cout << endl;
+                // cout << "PI trace vector:" << endl;
+                // cout << endl;
                 rpa_for_omega_q = ln_det + trace_pi;
-                cout << " ifreq:" << freq << "      rpa_for_omega_k: " << rpa_for_omega_q << "      lnt_det: " << ln_det << "    trace_pi " << trace_pi << endl;
+                // cout << " ifreq:" << freq << "      rpa_for_omega_k: " << rpa_for_omega_q << "      lnt_det: " << ln_det << "    trace_pi " << trace_pi << endl;
                 cRPA_q[q] += rpa_for_omega_q * freq_weight * irk_weight[q] * double(mf.get_n_spins()) / TWO_PI;
                 tot_RPA_energy += rpa_for_omega_q * freq_weight * irk_weight[q] * double(mf.get_n_spins()) / TWO_PI;
             }
@@ -314,9 +320,7 @@ CorrEnergy compute_RPA_correlation(const Chi0 &chi0, const atpair_k_cplx_mat_t &
         for (auto &q_crpa : cRPA_q)
         {
             corr.qcontrib[q_crpa.first] = q_crpa.second;
-            cout << q_crpa.first << q_crpa.second << endl;
         }
-        cout << "gx_num_" << chi0.tfg.size() << "  tot_RPA_energy:  " << setprecision(8) << tot_RPA_energy << endl;
         corr.value = tot_RPA_energy;
     }
     corr.etype = CorrEnergy::type::RPA;
@@ -333,7 +337,7 @@ CorrEnergy compute_MP2_correlation(const Chi0 &chi0, const atpair_k_cplx_mat_t &
 map<double, map<Vector3_Order<double>, atom_mapping<ComplexMatrix>::pair_t_old>> compute_Pi_q(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat)
 {
     map<double, map<Vector3_Order<double>, atom_mapping<ComplexMatrix>::pair_t_old>> pi;
-    printf("Begin cal_pi_k , pid:  %d\n", para_mpi.get_myid());
+    // printf("Begin cal_pi_k , pid:  %d\n", para_mpi.get_myid());
     for (auto const & freq_qJQchi0: chi0.get_chi0_q())
     {
         const double freq = freq_qJQchi0.first;
@@ -348,7 +352,7 @@ map<double, map<Vector3_Order<double>, atom_mapping<ComplexMatrix>::pair_t_old>>
                 {
                     const size_t Q = Qchi0.first;
                     const size_t Q_mu = atom_mu[Q];
-                    auto &chi0_mat = Qchi0.second;
+                    // auto &chi0_mat = Qchi0.second;
                     for (auto &I_p : Vq)
                     {
                         const size_t I = I_p.first;
@@ -433,7 +437,7 @@ map<double, map<Vector3_Order<double>, atom_mapping<ComplexMatrix>::pair_t_old>>
 atom_mapping<ComplexMatrix>::pair_t_old compute_Pi_freq_q(const Vector3_Order<double> &ik_vec, const atom_mapping<ComplexMatrix>::pair_t_old &chi0_freq_q, const atpair_k_cplx_mat_t &coulmat)
 {
     atom_mapping<ComplexMatrix>::pair_t_old pi;
-    printf("Begin cal_pi_k , pid:  %d\n", para_mpi.get_myid());
+    // printf("Begin cal_pi_k , pid:  %d\n", para_mpi.get_myid());
 
     for (auto &JQchi0 : chi0_freq_q )
     {
@@ -443,7 +447,7 @@ atom_mapping<ComplexMatrix>::pair_t_old compute_Pi_freq_q(const Vector3_Order<do
         {
             const size_t Q = Qchi0.first;
             const size_t Q_mu = atom_mu[Q];
-            auto &chi0_mat = Qchi0.second;
+            // auto &chi0_mat = Qchi0.second;
             for (auto &I_p : Vq)
             {
                 const size_t I = I_p.first;
@@ -554,7 +558,7 @@ compute_Wc_freq_q(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, atpa
                     }
             }
         }
-        auto sqrtVq_all = power_hemat(Vq_all, 0.5, false, sqrt_coulomb_threshold);
+        auto sqrtVq_all = power_hemat(Vq_all, 0.5, false, params.sqrt_coulomb_threshold);
         // sprintf(fn, "sqrtVq_all_q_%d.mtx", iq);
         // print_complex_matrix_mm(sqrtVq_all, fn, 1e-15);
 
@@ -577,7 +581,7 @@ compute_Wc_freq_q(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, atpa
                     }
             }
         }
-        auto sqrtVqcut_all = power_hemat(Vqcut_all, 0.5, true, sqrt_coulomb_threshold);
+        auto sqrtVqcut_all = power_hemat(Vqcut_all, 0.5, true, params.sqrt_coulomb_threshold);
         // sprintf(fn, "sqrtVqcut_all_q_%d.mtx", iq);
         // print_complex_matrix_mm(sqrtVqcut_all, fn, 1e-15);
         sprintf(fn, "Vqcut_all_filtered_q_%d.mtx", iq);
@@ -812,11 +816,11 @@ CT_FT_Wc_freq_q(const map<double, atpair_k_cplx_mat_t> &Wc_freq_q,
         for (const auto & Mu_NuRWc: tau_MuNuRWc.second)
         {
             auto Mu = Mu_NuRWc.first;
-            const int n_mu = atom_mu[Mu];
+            // const int n_mu = atom_mu[Mu];
             for (const auto & Nu_RWc: Mu_NuRWc.second)
             {
                 auto Nu = Nu_RWc.first;
-                const int n_nu = atom_mu[Nu];
+                // const int n_nu = atom_mu[Nu];
                 for (const auto & R_Wc: Nu_RWc.second)
                 {
                     auto R = R_Wc.first;

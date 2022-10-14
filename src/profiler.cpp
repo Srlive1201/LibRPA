@@ -4,6 +4,12 @@
 #include <omp.h>
 #include "profiler.h"
 
+double cpu_time_from_clocks_diff(const std::clock_t& ct_start,
+                                 const std::clock_t& ct_end)
+{
+    return double(ct_end - ct_start) / CLOCKS_PER_SEC;
+}
+
 void Profiler::Timer::start()
 {
     if(is_on())
@@ -17,7 +23,7 @@ void Profiler::Timer::start()
 void Profiler::Timer::stop()
 {
     if(!is_on()) return;
-    cpu_time += double(clock() - clock_start) / CLOCKS_PER_SEC;
+    cpu_time += cpu_time_from_clocks_diff(clock_start, clock());
     wall_time += omp_get_wtime() - wt_start;
     // printf("stop: %f %f %f\n", wt_start, wall_time, cpu_time);
     wt_start = 0.;

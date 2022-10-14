@@ -58,9 +58,9 @@ map<double, double> read_local_grid(int grid_N, const string &file_path, const c
                 minimax_grid.insert({i_pair.first * scale, i_pair.second * scale});
         }
 
-        cout << " MINIMAX_GRID_Freq " << endl;
-        for (const auto &m : minimax_grid)
-            cout << m.first << "      " << m.second << endl;
+        // cout << " MINIMAX_GRID_Freq " << endl;
+        // for (const auto &m : minimax_grid)
+        //     cout << m.first << "      " << m.second << endl;
         break;
     }
 
@@ -69,9 +69,9 @@ map<double, double> read_local_grid(int grid_N, const string &file_path, const c
         for (auto i_pair : grid)
             minimax_grid.insert({i_pair.first / (scale), i_pair.second / (scale)});
 
-        cout << " MINIMAX_GRID_Tau " << endl;
-        for (const auto &m : minimax_grid)
-            cout << m.first << "      " << m.second << endl;
+        // cout << " MINIMAX_GRID_Tau " << endl;
+        // for (const auto &m : minimax_grid)
+        //     cout << m.first << "      " << m.second << endl;
         break;
     }
     }
@@ -86,15 +86,12 @@ vector<double> read_trans_matrix(const string &file_path, double inverse_scale)
 
     vector<double> tran;
     string s;
-    int ng = 0;
     // stringstream ss;
     // double ss_d;
     while (getline(infile, s))
     {
         if (s[0] == 'F' || s[0] == 'T')
-        {
-            ng++;
-        }
+            continue;
         else
         {
             stringstream ss(s);
@@ -105,10 +102,9 @@ vector<double> read_trans_matrix(const string &file_path, double inverse_scale)
     }
     infile.close();
 
-    double gap;
-    double Emin, Emax;
-    /* cout << "Cosine_tran_grid" << endl; */
-    cout << "read transformation grid" << endl;
+    // double gap;
+    // double Emin, Emax;
+    // cout << "read transformation grid" << endl;
     for (int i = 0; i != tran.size(); i++)
     {
         tran[i] /= inverse_scale;
@@ -129,6 +125,23 @@ const string TFGrids::GRID_TYPES_NOTES[TFGrids::GRID_TYPES::COUNT] =
 
 const bool TFGrids::SUPPORT_TIME_GRIDS[TFGrids::GRID_TYPES::COUNT] = 
     { false, false, false, true, false, true };
+
+TFGrids::GRID_TYPES TFGrids::get_grid_type(const string& grid_str)
+{
+    if (grid_str == "GL")
+        return TFGrids::GRID_TYPES::GaussLegendre;
+    if (grid_str == "GC-I")
+        return TFGrids::GRID_TYPES::GaussChebyshevI;
+    if (grid_str == "GL-II")
+        return TFGrids::GRID_TYPES::GaussChebyshevII;
+    if (grid_str == "minimax")
+        return TFGrids::GRID_TYPES::Minimax;
+    if (grid_str == "evenspaced")
+        return TFGrids::GRID_TYPES::EvenSpaced;
+    if (grid_str == "evenspaced_tf")
+        return TFGrids::GRID_TYPES::EvenSpaced_TF;
+    throw std::invalid_argument("Unknown grid string: " + grid_str);
+}
 
 void TFGrids::set_freq()
 {
@@ -159,18 +172,17 @@ void TFGrids::show()
         cout << "Time node & weight: " << endl;
         for ( int i = 0; i != n_grids; i++ )
             printf("%2d %10.6f %10.6f\n", i, time_nodes[i], time_weights[i]);
-        cout << "t->f transform: " << endl;
-        if (costrans_t2f.size)
-        {
-            cout << "Cosine transform matrix" << endl;
-            print_matrix("", costrans_t2f);
-        }
-        if (sintrans_t2f.size)
-        {
-            cout << "Sine transform matrix" << endl;
-            print_matrix("", sintrans_t2f);
-        }
+        // cout << "t->f transform: " << endl;
+        // if (costrans_t2f.size)
+        // {
+        //     print_matrix("Cosine transform matrix", costrans_t2f);
+        // }
+        // if (sintrans_t2f.size)
+        // {
+        //     print_matrix("Sine transform matrix", sintrans_t2f);
+        // }
     }
+    printf("\n");
 }
 
 void TFGrids::unset()

@@ -33,6 +33,7 @@ class Parallel_MPI
     void mpi_barrier();
     int get_myid(){return myid;}
     int get_size(){return size;}
+    bool is_master() { return myid == 0; }
     void allreduce_matrix(matrix &cmat_loc, matrix & cmat_glo);
     void allreduce_ComplexMatrix(ComplexMatrix &cmat_loc, ComplexMatrix & cmat_glo);
     void reduce_ComplexMatrix(ComplexMatrix &cmat_loc, ComplexMatrix & cmat_glo);

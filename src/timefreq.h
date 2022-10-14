@@ -47,6 +47,7 @@ class TFGrids
         };
         static const string GRID_TYPES_NOTES[GRID_TYPES::COUNT];
         static const bool SUPPORT_TIME_GRIDS[GRID_TYPES::COUNT];
+        static GRID_TYPES get_grid_type(const string& grid_str);
     private:
         //! Internal storage of grid type
         GRID_TYPES grid_type;

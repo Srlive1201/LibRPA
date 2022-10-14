@@ -17,8 +17,8 @@ using std::vector;
 class Chi0
 {
     private:
-        unsigned gf_save;
-        unsigned gf_discard;
+        size_t gf_save;
+        size_t gf_discard;
         //! space-time Green's function in occupied space, [ispin][I][J][R][tau]
         /*!
          * @note: tau (index) less than zero correspond to occupied GF,
