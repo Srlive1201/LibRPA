@@ -21,7 +21,6 @@ include(UseDoxygenDoc)
 # C++ standard requirement
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
-enable_language(CXX)
 
 set(math_libs "")
 set(parallel_libs "")
@@ -61,6 +60,8 @@ else()
           )
   include_directories(${MPI_CXX_INCLUDE_PATH})
 endif()
+
+enable_language(CXX)
 
 include_directories(src)
 
