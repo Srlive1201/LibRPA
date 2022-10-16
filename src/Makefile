@@ -25,6 +25,7 @@ objects = \
 		  matrix3.o \
 		  meanfield.o \
 		  parallel_mpi.o \
+		  params.o \
 		  pbc.o \
 		  profiler.o \
 		  read_aims.o \

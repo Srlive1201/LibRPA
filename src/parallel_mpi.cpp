@@ -2,14 +2,14 @@
 #include "scalapack_connector.h"
 Parallel_MPI::Parallel_MPI(void)
 {
-    cout<<"Parallel_MPI Object is being created !"<<endl;
+    // cout<<"Parallel_MPI Object is being created !"<<endl;
     chi_parallel_type = Parallel_MPI::parallel_type::ATOM_PAIR;
 }
 
 Parallel_MPI::~Parallel_MPI(void)
 {
     MPI_Finalize();
-    cout<<"Parallel_MPI Object is being deleted !"<<endl;
+    // cout<<"Parallel_MPI Object is being deleted !"<<endl;
 }
 
 void Parallel_MPI::allreduce_matrix(matrix &cmat_loc, matrix & cmat_glo)
@@ -40,10 +40,10 @@ void Parallel_MPI::reduce_ComplexMatrix(ComplexMatrix &cmat_loc, ComplexMatrix &
 void Parallel_MPI::mpi_init(int argc, char **argv)
 {
     int provided;
-	MPI_Init_thread (&argc, &argv, MPI_THREAD_FUNNELED, &provided);
-	if (MPI_THREAD_FUNNELED != provided)
+	MPI_Init_thread (&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
+	if (MPI_THREAD_MULTIPLE != provided)
 	{
-		printf ("%d != required %d", MPI_THREAD_FUNNELED, provided);
+		printf ("Warning: MPI_Init_thread provide %d != required %d", provided, MPI_THREAD_MULTIPLE);
     }
     MPI_Comm_rank (MPI_COMM_WORLD, &myid);
     MPI_Comm_size (MPI_COMM_WORLD, &size);
@@ -51,12 +51,17 @@ void Parallel_MPI::mpi_init(int argc, char **argv)
 	int length;
 	MPI_Get_processor_name (name, &length);
  
-	int omp_num_threads = 1;
-	if (argc > 1)
-	{
-		omp_num_threads = atoi (argv[1]);
-	}
-	printf ("%s \n", name);
+    // NOTE: omp threads set through environment variable, instead of command line argument
+	// int omp_num_threads = 1;
+	// if (argc > 1)
+	// {
+	// 	omp_num_threads = atoi (argv[1]);
+	// }
+    if (myid == 0)
+    {
+        printf("Number of processors: %d\n", size);
+    }
+	printf ("World Proc %4d: %s \n", myid, name);
 }
 
 void Parallel_MPI::mpi_barrier()
@@ -123,9 +128,15 @@ void Parallel_MPI::set_blacs_parameters()
     
 	blacs_gridinit_(&my_blacs_ctxt, &BLACS_LAYOUT, &np_rows, &np_cols);
 	blacs_gridinfo_(&my_blacs_ctxt, &nprow, &npcol, &myprow, &mypcol);
-    cout<<"blacs   myid: " <<myid<<"    np_rows: "<<np_rows<<"   np_cols: "<<np_cols
-        <<"   myrow: "<<myprow<<"   mycol: "<<mypcol<<endl;
-
+    if(myid == 0)
+    {
+        printf("BLACS parameters: nprows %d, npcols %d\nProc  IRow  ICol\n", np_rows, np_cols);
+    }
+    printf("%4d  %4d  %4d\n", myid, myprow, mypcol);
+    mpi_barrier();
+    if(myid == 0)
+        printf("\n");
+    mpi_barrier();
 }
 
 void Parallel_MPI::set_blacs_mat(
@@ -136,9 +147,12 @@ void Parallel_MPI::set_blacs_mat(
     int IRSRC=0;
     int info;
     loc_row=ScalapackConnector::numroc(tot_row, row_blk, this->myprow,IRSRC,this->nprow);
-    loc_col=ScalapackConnector::numroc(tot_col, row_blk, this->mypcol,IRSRC,this->npcol);
-    ScalapackConnector::descinit(desc,tot_row, tot_col, row_blk, col_blk, IRSRC, IRSRC, this->my_blacs_ctxt,loc_row,info);
-
+    loc_col=ScalapackConnector::numroc(tot_col, col_blk, this->mypcol,IRSRC,this->npcol);
+    ScalapackConnector::descinit(desc, tot_row, tot_col, row_blk, col_blk, IRSRC, IRSRC, this->my_blacs_ctxt, loc_row, info);
+    if (info != 0)
+    {
+        printf("Warning: non-zero return (%d) by DESCINT on Proc %d\n", info, myid);
+    }
 }
 
 int Parallel_MPI::globalIndex(int localIndex, int nblk, int nprocs, int myproc)

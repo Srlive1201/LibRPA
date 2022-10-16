@@ -37,6 +37,7 @@ int atom_mu_glo2loc(const int &glo_index, int &mu_index)
         if((mu_index=glo_index-atom_mu_part_range[I])<atom_mu[I])
             return I;
     }
+    throw invalid_argument("invalid glo_index");
 }
 
 vector<int> get_part_range()

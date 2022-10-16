@@ -33,6 +33,7 @@ class Parallel_MPI
     void mpi_barrier();
     int get_myid(){return myid;}
     int get_size(){return size;}
+    bool is_master() { return myid == 0; }
     void allreduce_matrix(matrix &cmat_loc, matrix & cmat_glo);
     void allreduce_ComplexMatrix(ComplexMatrix &cmat_loc, ComplexMatrix & cmat_glo);
     void reduce_ComplexMatrix(ComplexMatrix &cmat_loc, ComplexMatrix & cmat_glo);
@@ -60,6 +61,16 @@ vector<T> dispatch_vector(vector<T> world_vec, unsigned myid, unsigned size, boo
     vector<T> local_vec;
     for ( auto id: ids )
         local_vec.push_back(world_vec[id]);
+    return local_vec;
+}
+
+template <typename T1, typename T2>
+vector<pair<T1, T2>> dispatch_vector_prod(vector<T1> vec1, vector<T2> vec2, unsigned myid, unsigned size, bool sequential, bool favor_1st)
+{
+    vector<pair<int, int>> ids = dispatcher(0, int(vec1.size()), 0, int(vec2.size()), myid, size, sequential, favor_1st);
+    vector<pair<T1, T2>> local_vec;
+    for ( auto id: ids )
+        local_vec.push_back({vec1[id.first], vec2[id.second]});
     return local_vec;
 }
 

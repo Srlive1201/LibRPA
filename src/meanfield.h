@@ -18,12 +18,12 @@ using std::vector;
 class MeanField
 {
     private:
-        //! number of bands
-        int n_bands;
         //! number of spin channels
         int n_spins;
         //! number of atomic orbitals
         int n_aos;
+        //! number of bands
+        int n_bands;
         //! number of kpoints
         int n_kpoints;
         //! eigenvalues, (n_spins, n_kpoints, n_bands)

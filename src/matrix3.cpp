@@ -188,8 +188,8 @@ bool operator!=(const Matrix3 &m1, const Matrix3 &m2)
 
 void Matrix3::print(void)const
 {
-	cout << e11 << setw(15) << e12 << setw(15) << e13 << endl ;
-	cout << e21 << setw(15) << e22 << setw(15) << e23 << endl ;
-	cout << e31 << setw(15) << e32 << setw(15) << e33 << endl ;
+	cout << setw(10)<< e11 << setw(10) << e12 << setw(10) << e13 << endl ;
+	cout << setw(10)<< e21 << setw(10) << e22 << setw(10) << e23 << endl ;
+	cout << setw(10)<< e31 << setw(10) << e32 << setw(10) << e33 << endl ;
 	return;
 }

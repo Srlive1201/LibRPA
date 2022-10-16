@@ -8,10 +8,11 @@ string(REGEX REPLACE " *VERSION *= *" "" version ${version})
 # Project information
 project(LibRPA VERSION ${version} LANGUAGES NONE)
 
-
 # options setup
 option(USE_LIBRI "Use LibRI for tensor contraction" OFF)
 option(USE_CMAKE_INC "Use cmake.in for configure" ON)
+option(DEBUG "Switch on debug mode and facility" OFF)
+option(BUILD_LIBRARY "Whether to build library" OFF)
 
 # Add cmake load files
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
@@ -20,7 +21,6 @@ include(UseDoxygenDoc)
 # C++ standard requirement
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
-enable_language(CXX)
 
 set(math_libs "")
 set(parallel_libs "")
@@ -61,6 +61,8 @@ else()
   include_directories(${MPI_CXX_INCLUDE_PATH})
 endif()
 
+enable_language(CXX)
+
 include_directories(src)
 
 # use LibRI, which in turn depends on Cereal
@@ -79,6 +81,11 @@ if(USE_LIBRI)
   endif()
   add_compile_definitions("__USE_LIBRI")
   message(STATUS "The project will be compiled with LibRI")
+endif()
+
+if(DEBUG)
+  message(STATUS "Debug mode switched on")
+  add_compile_definitions("__DEBUG")
 endif()
 
 add_subdirectory(src)

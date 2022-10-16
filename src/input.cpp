@@ -6,11 +6,7 @@
 #include "cal_periodic_chi0.h"
 #include "constants.h"
 #include "input.h"
-#include "meanfield.h"
 using namespace std;
-double cs_threshold = 1E-6;
-double vq_threshold = 0;
-double sqrt_coulomb_threshold = 1e-4;
 
 int kv_nmp[3] = {1, 1, 1};
 Vector3<double> *kvec_c;
@@ -20,10 +16,9 @@ map<Vector3_Order<double>, vector<Vector3_Order<double>>> map_irk_ks;
 Matrix3 latvec;
 Matrix3 G;
 
-void READ_AIMS_STRU(const std::string &file_path)
+void READ_AIMS_STRU(const int& n_kpoints, const std::string &file_path)
 {
-    int n_kpoints = meanfield.get_n_kpoints();
-    cout << "Begin to read aims stru" << endl;
+    // cout << "Begin to read aims stru" << endl;
     ifstream infile;
     string x, y, z;
     infile.open(file_path);
@@ -40,7 +35,7 @@ void READ_AIMS_STRU(const std::string &file_path)
     latvec.e32 = stod(y);
     latvec.e33 = stod(z);
     latvec /= ANG2BOHR;
-    latvec.print();
+    // latvec.print();
 
     infile >> x >> y >> z;
     G.e11 = stod(x);
@@ -57,10 +52,10 @@ void READ_AIMS_STRU(const std::string &file_path)
 
     G /= TWO_PI;
     G *= ANG2BOHR;
-    G.print();
-    Matrix3 latG = latvec * G;
-    cout << " lat * G" << endl;
-    latG.print();
+    // G.print();
+    // Matrix3 latG = latvec * G;
+    // cout << " lat * G" << endl;
+    // latG.print();
     infile >> x >> y >> z;
     kv_nmp[0] = stoi(x);
     kv_nmp[1] = stoi(y);
@@ -71,7 +66,7 @@ void READ_AIMS_STRU(const std::string &file_path)
         infile >> x >> y >> z;
         kvec_c[i] = {stod(x), stod(y), stod(z)};
         kvec_c[i] *= (ANG2BOHR / TWO_PI);
-        cout << "kvec [" << i << "]: " << kvec_c[i] << endl;
+        // cout << "kvec [" << i << "]: " << kvec_c[i] << endl;
         klist.push_back(kvec_c[i]);
     }
     for (int i = 0; i != n_kpoints; i++)
