@@ -6,6 +6,7 @@
 #include "lapack_connector.h"
 #include "ri.h"
 #include "scalapack_connector.h"
+#include <omp.h>
 complex<double> compute_pi_det(map<size_t, map<size_t, ComplexMatrix>> &pi_freq_q,bool out_pi)
 {
     int range_all = atom_mu_part_range[natom-1]+atom_mu[natom-1];
@@ -16,7 +17,7 @@ complex<double> compute_pi_det(map<size_t, map<size_t, ComplexMatrix>> &pi_freq_
     int col_nblk=1;
     int one=1;
     para_mpi.set_blacs_mat(desc_pi,loc_row,loc_col,range_all,range_all,row_nblk,col_nblk);
-    int *ipiv = new int [loc_row];
+    int *ipiv = new int [loc_row*10];
     ComplexMatrix loc_piT(loc_col,loc_row);
     
     for(int i=0;i!=loc_row;i++)
@@ -40,7 +41,7 @@ complex<double> compute_pi_det(map<size_t, map<size_t, ComplexMatrix>> &pi_freq_
             }
             else
             {
-                loc_piT(j,i)=-1. *  pi_freq_q.at(I).at(J)(mu,nu);
+                loc_piT(j,i)=-1*  pi_freq_q.at(I).at(J)(mu,nu);
             }
             
         }
@@ -51,8 +52,14 @@ complex<double> compute_pi_det(map<size_t, map<size_t, ComplexMatrix>> &pi_freq_
     //     print_complex_real_matrix("first_pi",pi_freq_q.at(0).at(0));
     //     print_complex_real_matrix("first_loc_piT_mat",loc_piT);
     // }
+    
     ScalapackConnector::transpose_desc(DESCPI_T,desc_pi);
+
+   // para_mpi.mpi_barrier();
+    //printf("   before LU Myid: %d        Available DOS memory = %ld bytes\n",para_mpi.get_myid(), memavail());
+    //printf("   before LU myid: %d  range_all: %d,  loc_mat.size: %d\n",para_mpi.get_myid(),range_all,loc_piT.size);
     pzgetrf_(&range_all,&range_all,loc_piT.c,&one,&one,DESCPI_T,ipiv, &info);
+    //printf("   after LU myid: %d\n",para_mpi.get_myid());
     complex<double> ln_det_loc(0.0,0.0);
     complex<double> ln_det_all(0.0,0.0);
     for(int ig=0;ig!=range_all;ig++)
@@ -68,7 +75,7 @@ complex<double> compute_pi_det(map<size_t, map<size_t, ComplexMatrix>> &pi_freq_
             if(loc_piT(locc,locr).real()>0)
                 ln_det_loc+=std::log(loc_piT(locc,locr));
             else
-                ln_det_loc+=std::log(-1. * loc_piT(locc,locr));
+                ln_det_loc+=std::log(-1 * loc_piT(locc,locr));
 		}
     }
     MPI_Allreduce(&ln_det_loc,&ln_det_all,1,MPI_DOUBLE_COMPLEX,MPI_SUM,MPI_COMM_WORLD);
@@ -88,33 +95,8 @@ CorrEnergy compute_RPA_correlation_blacs(const Chi0 &chi0, const atpair_k_cplx_m
         printf("Calculating EcRPA with BLACS/ScaLAPACK\n");
     // printf("Calculating EcRPA with BLACS, pid:  %d\n", para_mpi.get_myid());
     const auto & mf = chi0.mf;
-    
-    // freq, q
-    //auto pi_freq_q_Mu_Nu = compute_Pi_q(chi0, coulmat);
-    // int range_all = 0;
-    // for (auto &iat : atom_mu)
-    // {
-    //     range_all += iat.second;
-    // }
-
-    vector<int> part_range;
-    part_range.resize(atom_mu.size());
-    part_range[0] = 0;
-    int count_range = 0;
-    for (int I = 0; I != atom_mu.size() - 1; I++)
-    {
-        count_range += atom_mu[I];
-        part_range[I + 1] = count_range;
-    }
-
-    // cout << "part_range:" << endl;
-    // for (int I = 0; I != atom_mu.size(); I++)
-    // {
-    //     cout << part_range[I] << endl;
-    // }
-    // cout << "part_range over" << endl;
-
-    // pi_freq_q contains all atoms
+    int range_all = atom_mu_part_range[natom-1]+atom_mu[natom-1];
+    //cout<<"range_all:  "<<range_all<<"   natoms: "<<natom<<endl;
     map<double, map<Vector3_Order<double>, ComplexMatrix>> pi_freq_q;
     complex<double> tot_RPA_energy(0.0, 0.0);
     map<Vector3_Order<double>, complex<double>> cRPA_q;
@@ -133,48 +115,73 @@ CorrEnergy compute_RPA_correlation_blacs(const Chi0 &chi0, const atpair_k_cplx_m
                 for (int Mu=0;Mu!=atom_mu.size();Mu++)
                 {
                     const size_t n_mu = atom_mu[Mu];
+                    ComplexMatrix loc_pi_Mu(range_all,n_mu);
+                    ComplexMatrix rd_pi_Mu(range_all,n_mu);
+                    complex<double> *loc_ptr=loc_pi_Mu.c;
+                    //cout<<"  loc size:  "<<loc_pi_Mu.size<<"  sizeof: "<<sizeof(loc_pi_Mu.c)<<"     sizeof cd  "<<sizeof(complex<double>)<<endl;
                     for (int Nu=0;Nu!=atom_mu.size();Nu++)
                     {
                         const size_t n_nu = atom_mu[Nu];
-
-                        ComplexMatrix loc_pi_Mu_Nu(n_mu,n_nu);
-                        ComplexMatrix rd_pi_Mu_Nu(n_mu,n_nu);
+                        const auto length=sizeof(complex<double>)* n_mu *n_nu;
+                        //cout<<" Nu length: "<<Nu<<"  "<<length<<endl;
+                        double bt = omp_get_wtime();
+                        // ComplexMatrix loc_pi_Mu_Nu(n_mu,n_nu);
+                        // ComplexMatrix rd_pi_Mu_Nu(n_mu,n_nu);
                         bool flag_insert_mat=true;
                         if(MuNupi.count(Mu))
                         {
                             if(MuNupi.at(Mu).count(Nu))
                             {
-                                loc_pi_Mu_Nu=MuNupi.at(Mu).at(Nu);
-                                flag_insert_mat=false;
+                                // loc_pi_Mu_Nu=MuNupi.at(Mu).at(Nu);
+                                // flag_insert_mat=false;
+                                //cout<<"   sizeof MuNupi:"<<sizeof(MuNupi.at(Mu).at(Nu).c)<<endl;
+                                memcpy(loc_ptr,MuNupi.at(Mu).at(Nu).c,length);
+                                // print_complex_matrix("loc",loc_pi_Mu);
+                                // print_complex_matrix("MuNupi",MuNupi.at(Mu).at(Nu));
                             }
                         }
+                        loc_ptr+=n_mu *n_nu;
+                        // printf("      in_loop freq:  %f   myid: %d\n",freq,para_mpi.get_myid());
+                        // //para_mpi.mpi_barrier();
+                        // para_mpi.allreduce_ComplexMatrix(loc_pi_Mu_Nu,rd_pi_Mu_Nu);
+                        // double et = omp_get_wtime();
+                        // printf("            in_loop time myid: %d   time:%f\n",para_mpi.get_myid(),et-bt);
+                        //para_mpi.mpi_barrier();
+			//if(flag_insert_mat)
+                        //MuNupi[Mu][Nu]=std::move(rd_pi_Mu_Nu);
 
-                        para_mpi.mpi_barrier();
-                        para_mpi.allreduce_ComplexMatrix(loc_pi_Mu_Nu,rd_pi_Mu_Nu);
-                        //if(flag_insert_mat)
-                        MuNupi[Mu][Nu]=std::move(rd_pi_Mu_Nu);
-
+                    }
+                    para_mpi.mpi_barrier();
+                    para_mpi.allreduce_ComplexMatrix(loc_pi_Mu,rd_pi_Mu);
+                   // printf("      in_loop freq:  %f  Mu: %d  myid: %d\n",freq,Mu,para_mpi.get_myid());
+                    complex<double> *rd_ptr=rd_pi_Mu.c;
+                    for (int Nu=0;Nu!=atom_mu.size();Nu++)
+                    {
+                        const size_t n_nu = atom_mu[Nu];
+                        const auto length=sizeof(complex<double>)* n_mu *n_nu;
+                        memcpy(MuNupi[Mu][Nu].c,rd_ptr,length);
+                        rd_ptr+=n_mu *n_nu;
                     }
                 }
             }
-            para_mpi.mpi_barrier();
+            //printf("freq:  %f   myid: %d\n",freq,para_mpi.get_myid());
+            //para_mpi.mpi_barrier();
             complex<double> trace_pi(0.0,0.0);
             for (int Mu=0;Mu!=atom_mu.size();Mu++)
             {
                 const size_t n_mu = atom_mu[Mu];
                 for(int mu=0;mu!=n_mu;mu++)
-                    if (MuNupi.count(Mu) && MuNupi.at(Mu).count(Mu))
-                        trace_pi+=MuNupi.at(Mu).at(Mu)(mu,mu);
+                    trace_pi+=MuNupi.at(Mu).at(Mu)(mu,mu);
             }
             bool out_pi=false;
-            if(freq==chi0.tfg.get_freq_nodes()[0] && q == Vector3_Order<double>(0, 0, 0))
+            if(freq==chi0.tfg.get_freq_nodes()[0] && q == Vector3_Order<double>({0,0,0}))
                 out_pi=true;
             complex<double> ln_det=compute_pi_det(MuNupi,out_pi);
-            para_mpi.mpi_barrier();
+            //para_mpi.mpi_barrier();
             if(para_mpi.get_myid()==0)
             {
                 complex<double> rpa_for_omega_q=trace_pi+ln_det;
-                // cout << " ifreq:" << freq << "      rpa_for_omega_k: " << rpa_for_omega_q << "      lnt_det: " << ln_det << "    trace_pi " << trace_pi << endl;
+                //cout << " ifreq:" << freq << "      rpa_for_omega_k: " << rpa_for_omega_q << "      lnt_det: " << ln_det << "    trace_pi " << trace_pi << endl;
                 cRPA_q[q] += rpa_for_omega_q * freq_weight * irk_weight[q] * double(mf.get_n_spins()) / TWO_PI;
                 tot_RPA_energy += rpa_for_omega_q * freq_weight * irk_weight[q] * double(mf.get_n_spins()) / TWO_PI;
             }
@@ -186,9 +193,9 @@ CorrEnergy compute_RPA_correlation_blacs(const Chi0 &chi0, const atpair_k_cplx_m
         for (auto &q_crpa : cRPA_q)
         {
             corr.qcontrib[q_crpa.first] = q_crpa.second;
-            // cout << q_crpa.first << q_crpa.second << endl;
+            cout << q_crpa.first << q_crpa.second << endl;
         }
-        // cout << "gx_num_" << chi0.tfg.size() << "  tot_RPA_energy:  " << setprecision(8)    <<tot_RPA_energy << endl;
+        //cout << "gx_num_" << chi0.tfg.size() << "  tot_RPA_energy:  " << setprecision(8)    <<tot_RPA_energy << endl;
     }
     para_mpi.mpi_barrier();
     corr.value = tot_RPA_energy;
