@@ -79,6 +79,11 @@ complex<double> compute_pi_det(map<size_t, map<size_t, ComplexMatrix>> &pi_freq_
 CorrEnergy compute_RPA_correlation_blacs(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat)
 {
     CorrEnergy corr;
+    if(para_mpi.chi_parallel_type == Parallel_MPI::parallel_type::R_TAU)
+    {
+        compute_RPA_correlation(chi0,coulmat);
+        return corr;
+    }
     if (para_mpi.get_myid() == 0)
         printf("Calculating EcRPA with BLACS/ScaLAPACK\n");
     // printf("Calculating EcRPA with BLACS, pid:  %d\n", para_mpi.get_myid());
