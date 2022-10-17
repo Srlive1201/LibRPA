@@ -32,10 +32,20 @@ struct Params
     //! switch of using LibRI for chi0 calculation
     bool use_libri_chi0 = false;
 
+    //! CS-matrix threshold parsed to RPA object of LibRI. 
+    double libri_chi0_csm_threshold = 0.0;
+
+    //! Cs threshold parsed to RPA object of LibRI. 
+    double libri_chi0_threshold_C = 0.0;
+
+    //! Green's function threshold parsed to RPA object of LibRI. 
+    double libri_chi0_threshold_G = 0.0;
+
     //! switch of using ScaLAPACK for EcRPA calculation
     bool use_scalapack_ecrpa = false;
 
     void check_consistency();
+    void print();
 };
 
 extern Params params;

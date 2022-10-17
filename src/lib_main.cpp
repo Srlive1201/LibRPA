@@ -33,9 +33,14 @@ int main(int argc, char **argv)
     parser.parse_bool("use_scalapack_ecrpa", params.use_scalapack_ecrpa, false, flag);
     parser.parse_int("nfreq", params.nfreq, stoi(argv[1]), flag);
     parser.parse_double("gf_R_threshold", params.gf_R_threshold, stod(argv[2]), flag);
+    parser.parse_double("libri_chi0_csm_threshold", params.libri_chi0_csm_threshold, 0.0, flag);
+    parser.parse_double("libri_chi0_threshold_C", params.libri_chi0_threshold_C, 0.0, flag);
+    parser.parse_double("libri_chi0_threshold_G", params.libri_chi0_threshold_G, 0.0, flag);
 
     params.check_consistency();
-
+    if (para_mpi.is_master())
+        params.print();
+    para_mpi.mpi_barrier();
     para_mpi.set_blacs_parameters();
 
     READ_AIMS_BAND("band_out", meanfield);

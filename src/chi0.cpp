@@ -14,6 +14,7 @@
 #include "lapack_connector.h"
 #include "input.h"
 #include "constants.h"
+#include "params.h"
 #include "scalapack_connector.h"
 #ifdef __USE_LIBRI
 #include <RI/physics/RPA.h>
@@ -176,7 +177,7 @@ void Chi0::build_chi0_q_space_time(const atpair_R_mat_t &LRI_Cs,
                                    const vector<Vector3_Order<double>> &qlist)
 {
     int R_tau_size = Rlist_gf.size() * tfg.size();
-    if(use_libri_chi0)
+    if(params.use_libri_chi0)
     {
 #ifdef __USE_LIBRI
         if (para_mpi.is_master())
@@ -274,35 +275,9 @@ void Chi0::build_chi0_q_space_time_LibRI_routing(const atpair_R_mat_t &LRI_Cs,
         // Tensor<double> Tmat({size_t((*mat).nr),size_t((*mat).nc)},mat_ptr);
         Cs_libri[I][{J, Ra}] = Tensor<double>({atom_mu[I], atom_nw[I], atom_nw[J]}, mat_ptr);
     }
-    // for(auto &Ip:LRI_Cs)
-    // {
-    //     cout << "Initializing Cs for LibRI" << endl;
-    //     auto I=Ip.first;
-    //     map<std::pair<int,std::array<int,3>>,Tensor<double>> Jp_libri;
-    //     for(auto &Jp:Ip.second)
-    //     {
-    //         const auto J=Jp.first;
-    //         for(auto &Rp:Jp.second)
-    //         {
-    //             const auto R=Rp.first;
-    //             std::array<int,3> Ra{R.x,R.y,R.z};
-    //             const auto &mat=transpose(*(Rp.second));
-    //             std::valarray<double> mat_array(mat.c, mat.size);
-    //             std::shared_ptr<std::valarray<double>> mat_ptr = std::make_shared<std::valarray<double>>();
-    //             *mat_ptr=mat_array;
-    //
-				// const auto nao_i = atom_nw[I];
-				// const auto nao_j = atom_nw[J];
-				// const auto nabf_mu = atom_mu[I];
-    //             Tensor<double> Tmat({nabf_mu, nao_i, nao_j},mat_ptr);
-    //             Jp_libri.insert(make_pair(make_pair(J,Ra),Tmat));
-    //         }
-    //     }
-    //     Cs_libri.insert(make_pair(I,Jp_libri));
-    // }
 	/* cout << Cs_libri; */
     // cout << "Setting Cs for rpa object" << endl;
-	rpa.set_Cs(Cs_libri,0);
+    rpa.set_Cs(Cs_libri, params.libri_chi0_threshold_C);
     // cout << "Cs of rpa object set" << endl;
 
     // dispatch GF accoding to atpair and R
@@ -349,7 +324,8 @@ void Chi0::build_chi0_q_space_time_LibRI_routing(const atpair_R_mat_t &LRI_Cs,
             }
             para_mpi.mpi_barrier();
             // std::clock_t cpu_clock_done_init_gf = clock();
-            rpa.cal_chi0s(gf_po_libri,gf_ne_libri,0);
+            rpa.set_csm_threshold(params.libri_chi0_csm_threshold);
+            rpa.cal_chi0s(gf_po_libri,gf_ne_libri, params.libri_chi0_threshold_G);
             std::clock_t cpu_clock_done_chi0s = clock();
             // parse back to chi0
             for (const auto &atpair: atpairs_ABF)
@@ -1066,6 +1042,4 @@ map<size_t, matrix> compute_chi0_munu_tau_LRI_saveN_noreshape(const map<size_t, 
 
     return chi0_tau;
 }
-
-bool use_libri_chi0 = false;
 
