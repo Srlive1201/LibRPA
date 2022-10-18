@@ -112,4 +112,3 @@ map<size_t, matrix> compute_chi0_munu_tau_LRI_saveN_noreshape(const map<size_t, 
                                                               const vector<int> iRs,
                                                               atom_t mu, atom_t nu);
 
-extern bool use_libri_chi0;
