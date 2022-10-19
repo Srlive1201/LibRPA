@@ -6,6 +6,7 @@ endif()
 add_executable(test_atoms test_atoms.cpp)
 add_executable(test_timefreq test_timefreq.cpp)
 add_executable(test_matrix test_matrix.cpp)
+add_executable(test_meanfield test_meanfield.cpp)
 add_executable(test_complexmatrix test_complexmatrix.cpp)
 add_executable(test_pbc test_pbc.cpp)
 add_executable(test_parallel_mpi test_parallel_mpi.cpp)
@@ -17,6 +18,11 @@ if (NOT BUILD_LIBRARY)
   target_sources(test_atoms PRIVATE ../src/atoms.cpp)
   target_sources(test_matrix PRIVATE ../src/matrix.cpp)
   target_sources(test_complexmatrix PRIVATE
+          ../src/complexmatrix.cpp
+          ../src/matrix.cpp
+          )
+  target_sources(test_meanfield PRIVATE
+          ../src/meanfield.cpp
           ../src/complexmatrix.cpp
           ../src/matrix.cpp
           )
@@ -45,6 +51,7 @@ if (NOT BUILD_LIBRARY)
   target_link_libraries(test_timefreq PRIVATE ${math_libs})
   target_link_libraries(test_matrix PRIVATE ${math_libs})
   target_link_libraries(test_complexmatrix PRIVATE ${math_libs})
+  target_link_libraries(test_meanfield PRIVATE ${math_libs})
   target_link_libraries(test_parallel_mpi PRIVATE ${math_libs} ${parallel_libs})
   target_link_libraries(test_blas_lapack PRIVATE ${math_libs})
 endif()
@@ -62,6 +69,11 @@ add_test(
 add_test(
         NAME test_matrix
         COMMAND $<TARGET_FILE:test_matrix>
+)
+
+add_test(
+        NAME test_meanfield
+        COMMAND $<TARGET_FILE:test_meanfield>
 )
 
 add_test(
