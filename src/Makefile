@@ -16,7 +16,9 @@ objects = \
 		  chi0.o \
 		  complexmatrix.o \
 		  constants.o \
+		  coulmat.o \
 		  envs.o \
+		  exx.o \
 		  epsilon.o \
 		  Gauss_Quadrature.o \
 		  input.o \

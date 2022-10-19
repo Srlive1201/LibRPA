@@ -1,4 +1,5 @@
 #include "meanfield.h"
+#include "lapack_connector.h"
 #include <stdexcept>
 #include <iostream>
 
@@ -98,6 +99,17 @@ double MeanField::get_band_gap()
         }
     gap = 0.5 * (lumo - homo);
     return gap;
+}
+
+ComplexMatrix MeanField::get_dmat_cplx(int ispin, int ikpt) const
+{
+    assert(ispin < this->n_spins);
+    assert(ikpt < this->n_kpoints);
+    auto scaled_wfc_conj = conj(wfc[ispin][ikpt]);
+    for (int ib = 0; ib != this->n_bands; ib++)
+        LapackConnector::scal(this->n_aos, this->wg[ispin](ikpt, ib), scaled_wfc_conj.c + n_aos * ib, 1);
+    auto dmat_cplx = transpose(this->wfc[ispin][ikpt], false) * scaled_wfc_conj;
+    return dmat_cplx;
 }
 
 MeanField meanfield = MeanField();

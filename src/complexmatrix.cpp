@@ -161,6 +161,14 @@ double ComplexMatrix::get_max_real(int &ir, int &ic) const
     ic = pos % nc;
     return rv;
 }
+double ComplexMatrix::get_max_imag() const
+{
+    double iv = c[0].imag();
+    for (int i = 1; i != this->size; i++)
+        if (c[i].real() > iv)
+            iv = c[i].imag();
+    return iv;
+}
 
 // Adding matrices, as a friend
 ComplexMatrix operator+(const ComplexMatrix &m1, const ComplexMatrix &m2)

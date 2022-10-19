@@ -39,8 +39,10 @@ list(APPEND sources
         chi0.cpp
         complexmatrix.cpp
         constants.cpp
+        coulmat.cpp
         ${CMAKE_CURRENT_BINARY_DIR}/envs.cpp
         epsilon.cpp
+        exx.cpp
         Gauss_Quadrature.cpp
         input.cpp
         mathtools.cpp

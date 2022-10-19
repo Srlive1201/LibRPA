@@ -162,9 +162,9 @@ int main(int argc, char **argv)
     else if ( task == "g0w0" )
     {
         READ_AIMS_Vq("./", "coulomb_cut_", params.vq_threshold, Vq_cut); 
-        const auto Wc_freq_q = compute_Wc_freq_q(chi0, Vq, Vq_cut);
-        const auto Wc_tau_R = CT_FT_Wc_freq_q(Wc_freq_q, chi0.tfg, Rlist);
         const auto VR = FT_Vq(Vq_cut, Rlist);
+        // const auto Wc_freq_q = compute_Wc_freq_q(chi0, Vq, Vq_cut);
+        // const auto Wc_tau_R = CT_FT_Wc_freq_q(Wc_freq_q, chi0.tfg, Rlist);
     }
 
     prof.stop("total");

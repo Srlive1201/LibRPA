@@ -53,6 +53,8 @@ class MeanField
         const vector<matrix> & get_eigenvals() const { return eskb; }
         vector<matrix> & get_weight() { return wg; }
         const vector<matrix> & get_weight() const { return wg; }
+        //! get the density matrix of a particular spin and kpoint
+        ComplexMatrix get_dmat_cplx(int ispin, int ikpt) const;
         vector<vector<ComplexMatrix>> & get_eigenvectors() { return wfc; }
         const vector<vector<ComplexMatrix>> & get_eigenvectors() const { return wfc; }
         double get_E_min_max(double &emin, double &emax);
