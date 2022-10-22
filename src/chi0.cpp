@@ -176,33 +176,31 @@ void Chi0::build_chi0_q_space_time(const atpair_R_mat_t &LRI_Cs,
                                    const vector<atpair_t> &atpairs_ABF,
                                    const vector<Vector3_Order<double>> &qlist)
 {
-    int R_tau_size = Rlist_gf.size() * tfg.size();
-    if(params.use_libri_chi0)
+   // int R_tau_size = Rlist_gf.size() * tfg.size();
+    if(para_mpi.chi_parallel_type == Parallel_MPI::parallel_type::LIBRI_USED)
     {
-#ifdef __USE_LIBRI
+//#ifdef __USE_LIBRI
         if (para_mpi.is_master())
             cout<<"Use LibRI for chi0"<<endl;
         build_chi0_q_space_time_LibRI_routing(LRI_Cs, R_period, atpairs_ABF, qlist);
-#else
-        cout << "LibRI routing requested, but the executable is not compiled with LibRI" << endl;
-        cout << "Please recompiler libRPA with -DUSE_LIBRI and configure include path" << endl;
-        para_mpi.mpi_barrier();
-        throw std::logic_error("compilation");
-#endif
+// #else
+//         cout << "LibRI routing requested, but the executable is not compiled with LibRI" << endl;
+//         cout << "Please recompiler libRPA with -DUSE_LIBRI and configure include path" << endl;
+//         para_mpi.mpi_barrier();
+//         throw std::logic_error("compilation");
+// #endif
 
     }
-    else if ( atpairs_ABF.size() < R_tau_size )
+    else if ( para_mpi.chi_parallel_type == Parallel_MPI::parallel_type::R_TAU)
     {
-        if (para_mpi.is_master())
-            cout << "R_tau_routing" << endl;
-        para_mpi.chi_parallel_type = Parallel_MPI::parallel_type::R_TAU;
+        // if (para_mpi.is_master())
+        //     cout << "R_tau_routing" << endl;
         build_chi0_q_space_time_R_tau_routing(LRI_Cs, R_period, atpairs_ABF, qlist);
     }
     else
     {
-        if (para_mpi.is_master())
-            cout << "atom_pair_routing" << endl;
-        para_mpi.chi_parallel_type = Parallel_MPI::parallel_type::ATOM_PAIR;
+        // if (para_mpi.is_master())
+        //     cout << "atom_pair_routing" << endl;
         build_chi0_q_space_time_atom_pair_routing(LRI_Cs, R_period, atpairs_ABF, qlist);
     }
 }

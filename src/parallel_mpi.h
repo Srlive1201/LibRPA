@@ -24,7 +24,7 @@ class Parallel_MPI
     int my_blacs_ctxt;
     int myprow, mypcol, nprow, npcol;
     char BLACS_LAYOUT;
-    enum parallel_type { ATOM_PAIR, R_TAU };
+    enum parallel_type { ATOM_PAIR, R_TAU, LIBRI_USED };
     parallel_type chi_parallel_type;
     Parallel_MPI();
     ~Parallel_MPI();
@@ -39,6 +39,8 @@ class Parallel_MPI
     void reduce_ComplexMatrix(ComplexMatrix &cmat_loc, ComplexMatrix & cmat_glo);
     vector<double> pack_mat(const map<size_t,map<size_t,map<Vector3_Order<int>,shared_ptr<matrix>>>> &Cs_m);
     map<size_t,map<size_t,map<Vector3_Order<int>,shared_ptr<matrix>>>> unpack_mat(vector<double> &pack);
+
+    void set_chi_parallel_type(const int &atpais_num, const int Rt_num, const bool use_libri);
 
     void set_blacs_parameters();
     void set_blacs_mat(

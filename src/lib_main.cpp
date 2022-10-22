@@ -90,6 +90,10 @@ int main(int argc, char **argv)
     READ_AIMS_EIGENVECTOR("./", meanfield);
 
     READ_AIMS_Cs("./", params.cs_threshold);
+
+    int atpairs_num=natom*(natom-1) * 0.5+ natom;
+    int Rt_num = Rlist.size() * params.nfreq;
+    para_mpi.set_chi_parallel_type(atpairs_num,Rt_num,params.use_libri_chi0);
     READ_AIMS_Vq("./", "coulomb_mat", params.vq_threshold, Vq); 
     /* if(argv[1][0]=='0') */
     /*     ap_chi0.chi0_main(argv[1],argv[2]);  */

@@ -95,6 +95,45 @@ vector<double> Parallel_MPI::pack_mat(const map<size_t,map<size_t,map<Vector3_Or
     return pack;
 }
 
+void Parallel_MPI::set_chi_parallel_type(const int &atpais_num, const int Rt_num, const bool use_libri)
+{
+    if(para_mpi.is_master())
+    {
+        cout<<"Chi parallel type"<<endl;
+        cout<<"| Atom_pairs_num:  "<<atpais_num<<endl;
+        cout<<"| R_tau_num:  "<<Rt_num<<endl;
+#ifdef __USE_LIBRI
+        cout<<"| USE_LibRI:  "<<boolalpha<<use_libri<<endl;
+#endif        
+    }
+    if(use_libri)
+    {
+#ifdef __USE_LIBRI
+        this->chi_parallel_type=Parallel_MPI::parallel_type::LIBRI_USED;
+        if (para_mpi.is_master())
+            cout<<"| Use LibRI for chi0"<<endl;
+#else
+        cout << "LibRI routing requested, but the executable is not compiled with LibRI" << endl;
+        cout << "Please recompiler libRPA with -DUSE_LIBRI and configure include path" << endl;
+        para_mpi.mpi_barrier();
+        throw std::logic_error("compilation");
+#endif
+
+    }
+    else if( atpais_num< Rt_num)
+    {
+        this->chi_parallel_type=Parallel_MPI::parallel_type::R_TAU;
+        if (para_mpi.is_master())
+            cout << "| R_tau_routing" << endl;
+    }
+    else
+    {
+        this->chi_parallel_type=Parallel_MPI::parallel_type::ATOM_PAIR;
+        if (para_mpi.is_master())
+            cout << "| atom_pair_routing" << endl;
+    }
+}
+
 map<size_t,map<size_t,map<Vector3_Order<int>,shared_ptr<matrix>>>>  Parallel_MPI::unpack_mat(vector<double> &pack)
 {
     map<size_t,map<size_t,map<Vector3_Order<int>,shared_ptr<matrix>>>> Cs;
