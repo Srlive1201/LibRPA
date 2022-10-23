@@ -202,7 +202,7 @@ size_t handle_Cs_file(const string &file_path, double threshold)
     return cs_discard;
 }
 
-size_t READ_AIMS_Vq(const string &dir_path, const string &vq_fprefix, double threshold, atpair_k_cplx_mat_t &coulomb_mat)
+size_t READ_Vq_Full(const string &dir_path, const string &vq_fprefix, double threshold, atpair_k_cplx_mat_t &coulomb_mat)
 {
     size_t vq_save = 0;
     size_t vq_discard = 0;
@@ -216,7 +216,7 @@ size_t READ_AIMS_Vq(const string &dir_path, const string &vq_fprefix, double thr
         string fm(ptr->d_name);
         if (fm.find(vq_fprefix) == 0)
         {
-            handle_Vq_file(fm, threshold, Vq_full);
+            handle_Vq_full_file(fm, threshold, Vq_full);
         }
     }
     // cout << "FINISH coulomb files reading!" << endl;
@@ -238,8 +238,8 @@ size_t READ_AIMS_Vq(const string &dir_path, const string &vq_fprefix, double thr
 
                     for (int i_nu = 0; i_nu != atom_mu[J]; i_nu++)
                     {
-                        (*vq_ptr)(i_mu, i_nu) = vf_p.second(atom_mu_loc2glo(J, i_nu), atom_mu_loc2glo(I, i_mu)); ////for aims
-                        //(*vq_ptr)(i_mu, i_nu) = vf_p.second(atom_mu_loc2glo(I, i_mu), atom_mu_loc2glo(J, i_nu)); // for abacus
+                        //(*vq_ptr)(i_mu, i_nu) = vf_p.second(atom_mu_loc2glo(J, i_nu), atom_mu_loc2glo(I, i_mu)); ////for aims
+                        (*vq_ptr)(i_mu, i_nu) = vf_p.second(atom_mu_loc2glo(I, i_mu), atom_mu_loc2glo(J, i_nu)); // for abacus
                     }
                 }
 
@@ -274,7 +274,7 @@ size_t READ_AIMS_Vq(const string &dir_path, const string &vq_fprefix, double thr
     return vq_discard;
 }
 
-void handle_Vq_file(const string &file_path, double threshold, map<Vector3_Order<double>, ComplexMatrix> &Vq_full)
+void handle_Vq_full_file(const string &file_path, double threshold, map<Vector3_Order<double>, ComplexMatrix> &Vq_full)
 {
     // cout << "Begin to read aims vq_real from " << file_path << endl;
     ifstream infile;
@@ -314,8 +314,8 @@ void handle_Vq_file(const string &file_path, double threshold, map<Vector3_Order
             for (int i_nu = bcol; i_nu <= ecol; i_nu++)
             {
                 infile >> vq_r >> vq_i;
-                Vq_full[qvec](i_nu, i_mu) = complex<double>(stod(vq_r), stod(vq_i)); // for FHI-aims
-                // Vq_full[qvec](i_mu, i_nu) = complex<double>(stod(vq_r), stod(vq_i)); // for abacus
+                //Vq_full[qvec](i_nu, i_mu) = complex<double>(stod(vq_r), stod(vq_i)); // for FHI-aims
+                Vq_full[qvec](i_mu, i_nu) = complex<double>(stod(vq_r), stod(vq_i)); // for abacus
             }
     }
 }
