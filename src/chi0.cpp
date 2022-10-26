@@ -235,6 +235,7 @@ void Chi0::build_chi0_q_space_time_LibRI_routing(const atpair_R_mat_t &LRI_Cs,
 
     RPA<int,int,3,double> rpa;
     rpa.set_parallel(MPI_COMM_WORLD, atoms_pos,lat_array,period_array);
+    rpa.set_csm_threshold(params.libri_chi0_threshold_CSM);
     // divide the whole Cs and distribute to each process
     std::vector<std::pair<atom_t, std::pair<atom_t, Vector3_Order<int>>>> IJRs_local;
     size_t n_IJRs = 0;
@@ -322,7 +323,6 @@ void Chi0::build_chi0_q_space_time_LibRI_routing(const atpair_R_mat_t &LRI_Cs,
             }
             para_mpi.mpi_barrier();
             // std::clock_t cpu_clock_done_init_gf = clock();
-            rpa.set_csm_threshold(params.libri_chi0_csm_threshold);
             rpa.cal_chi0s(gf_po_libri,gf_ne_libri, params.libri_chi0_threshold_G);
             std::clock_t cpu_clock_done_chi0s = clock();
             // parse back to chi0

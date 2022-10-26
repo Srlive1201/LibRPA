@@ -32,8 +32,11 @@ struct Params
     //! switch of using LibRI for chi0 calculation
     bool use_libri_chi0 = false;
 
+    //! switch of using LibRI for EXX calculation
+    bool use_libri_exx = false;
+
     //! CS-matrix threshold parsed to RPA object of LibRI. 
-    double libri_chi0_csm_threshold = 0.0;
+    double libri_chi0_threshold_CSM = 0.0;
 
     //! Cs threshold parsed to RPA object of LibRI. 
     double libri_chi0_threshold_C = 0.0;
@@ -43,6 +46,18 @@ struct Params
 
     //! switch of using ScaLAPACK for EcRPA calculation
     bool use_scalapack_ecrpa = false;
+
+    //! CS-matrix threshold parsed to EXX object of LibRI. 
+    double libri_exx_threshold_CSM = 0.0;
+
+    //! Cs threshold parsed to EXX object of LibRI. 
+    double libri_exx_threshold_C = 0.0;
+
+    //! Density matrix threshold parsed to EXX object of LibRI. 
+    double libri_exx_threshold_D = 0.0;
+
+    //! Coulomb matrix threshold parsed to EXX object of LibRI. 
+    double libri_exx_threshold_V = 0.0;
 
     void check_consistency();
     void print();

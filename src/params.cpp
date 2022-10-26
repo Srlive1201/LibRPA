@@ -17,11 +17,45 @@ void Params::print()
             {"sqrt_coulomb_threshold", sqrt_coulomb_threshold},
             {"libri_chi0_threshold_C", libri_chi0_threshold_C},
             {"libri_chi0_threshold_G", libri_chi0_threshold_G},
-            {"libri_chi0_csm_threshold", libri_chi0_csm_threshold},
+            {"libri_chi0_threshold_CSM", libri_chi0_threshold_CSM},
+            {"libri_exx_threshold_C", libri_exx_threshold_C},
+            {"libri_exx_threshold_D", libri_exx_threshold_D},
+            {"libri_exx_threshold_V", libri_exx_threshold_V},
+            {"libri_exx_threshold_CSM", libri_exx_threshold_CSM},
         };
 
-    for (auto &param: double_params)
+    const std::vector<std::pair<std::string, int>> int_params
+        {
+            {"nfreq", nfreq},
+        };
+
+    const std::vector<std::pair<std::string, std::string>> str_params
+        {
+            {"task", task},
+            {"tfgrids_type", tfgrids_type},
+        };
+
+    const std::vector<std::pair<std::string, bool>> bool_params
+        {
+            {"use_libri_chi0", use_libri_chi0},
+            {"use_libri_exx", use_libri_exx},
+            {"use_scalapack_ecrpa", use_scalapack_ecrpa},
+        };
+
+    for (const auto &param: str_params)
+        printf("%s = %s\n", param.first.c_str(), param.second.c_str());
+
+    for (const auto &param: int_params)
+        printf("%s = %d\n", param.first.c_str(), param.second);
+
+    for (const auto &param: double_params)
         printf("%s = %f\n", param.first.c_str(), param.second);
+
+    for (const auto &param: bool_params)
+    {
+        std::string note = param.second? "T": "F";
+        printf("%s = %s\n", param.first.c_str(), note.c_str());
+    }
 }
 
 Params params;
