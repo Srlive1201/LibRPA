@@ -489,8 +489,8 @@ void Chi0::build_chi0_q_space_time_atom_pair_routing(const atpair_R_mat_t &LRI_C
                                                  const vector<Vector3_Order<double>> &qlist)
 {
     prof.start("atom_pair_routing");
-    auto tot_pair = dispatch_vector(atpairs_ABF, para_mpi.get_myid(), para_mpi.get_size(), false);
-    printf("Number of atom pairs on Proc %4d: %zu\n", para_mpi.get_myid(), tot_pair.size());
+    //auto tot_pair = dispatch_vector(atpairs_ABF, para_mpi.get_myid(), para_mpi.get_size(), false);
+    printf("Number of atom pairs on Proc %4d: %zu\n", para_mpi.get_myid(), atpairs_ABF.size());
     para_mpi.mpi_barrier();
     omp_lock_t chi0_lock;
     omp_init_lock(&chi0_lock);
@@ -498,10 +498,10 @@ void Chi0::build_chi0_q_space_time_atom_pair_routing(const atpair_R_mat_t &LRI_C
 #pragma omp parallel
     {
 #pragma omp for schedule(dynamic)
-        for (size_t atom_pair = 0; atom_pair != tot_pair.size(); atom_pair++)
+        for (size_t atom_pair = 0; atom_pair != atpairs_ABF.size(); atom_pair++)
         {
-            auto Mu = tot_pair[atom_pair].first;
-            auto Nu = tot_pair[atom_pair].second;
+            auto Mu = atpairs_ABF[atom_pair].first;
+            auto Nu = atpairs_ABF[atom_pair].second;
             // const size_t mu_num = atom_mu[Mu];
             // const size_t nu_num = atom_mu[Nu];
             double task_begin = omp_get_wtime();

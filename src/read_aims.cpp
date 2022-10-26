@@ -3,6 +3,8 @@
 #include <fstream>
 #include <string>
 #include <dirent.h>
+#include <algorithm>
+#include <parallel_mpi.h>
 #include "atoms.h"
 #include "ri.h"
 #include "input.h"
@@ -135,6 +137,7 @@ size_t READ_AIMS_Cs(const string &dir_path, double threshold)
     for(int I=1;I!=atom_mu.size();I++)
         atom_mu_part_range[I]=atom_mu.at(I-1)+atom_mu_part_range[I-1];
     
+    N_all_mu=atom_mu_part_range[natom-1]+atom_mu[natom-1];
     // for(int i=0;i!=atom_mu_part_range.size();i++)
     //     cout<<" atom_mu_part_range ,i: "<<i<<"    "<<atom_mu_part_range[i]<<endl;
 
@@ -319,6 +322,143 @@ void handle_Vq_full_file(const string &file_path, double threshold, map<Vector3_
             }
     }
 }
+
+
+size_t READ_Vq_Row(const string &dir_path, const string &vq_fprefix, double threshold, atpair_k_cplx_mat_t &coulomb_mat, const vector<atpair_t> &local_atpair)
+{
+    cout<<"Begin READ_Vq_Row"<<endl;
+    set<int> local_I_set;
+    for(auto &lap:local_atpair)
+    {
+        local_I_set.insert(lap.first);
+        local_I_set.insert(lap.second);
+    }
+
+    size_t vq_save = 0;
+    size_t vq_discard = 0;
+    struct dirent *ptr;
+    DIR *dir;
+    dir = opendir(dir_path.c_str());
+    vector<string> files;
+    //map<Vector3_Order<double>, ComplexMatrix> Vq_full;
+    while ((ptr = readdir(dir)) != NULL)
+    {
+        string fm(ptr->d_name);
+        if (fm.find(vq_fprefix) == 0)
+        {
+            //handle_Vq_full_file(fm, threshold, Vq_full);
+            handle_Vq_row_file(fm,threshold,coulomb_mat,local_atpair);
+        }
+    }
+    // cout << "FINISH coulomb files reading!" << endl;
+
+    closedir(dir);
+    dir = NULL;
+
+    // ofstream fs;
+    // std::stringstream ss;
+    // ss<<"out_coulomb_rank_"<<para_mpi.get_myid()<<".txt";
+    // fs.open(ss.str());
+    // for(auto &Ip:coulomb_mat)
+    // {
+    //     for(auto &Jp:Ip.second)
+    //         for(auto &qp:Jp.second)
+    //         {
+    //             std::stringstream sm;
+    //             sm<<"I,J "<<Ip.first<<"  "<<Jp.first;
+    //             //printf("|process %d  I J: %d, %d\n",para_mpi.get_myid(), Ip.first,Jp.first);
+    //             print_complex_matrix_file(sm.str().c_str(),(*qp.second),fs,false);
+    //         }
+                
+    // }
+    // fs.close();
+    return vq_discard;
+}
+
+void handle_Vq_row_file(const string &file_path, double threshold, atpair_k_cplx_mat_t &coulomb, const vector<atpair_t> &local_atpair)
+{
+    // cout << "Begin to read aims vq_real from " << file_path << endl;
+    ifstream infile;
+    infile.open(file_path);
+    string nbasbas, begin_row, end_row, begin_col, end_col, q1, q2, q3, vq_r, vq_i, q_num, q_weight;
+    infile >> n_irk_points;
+
+    while (infile.peek() != EOF)
+    {
+        infile >> nbasbas >> begin_row >> end_row >> begin_col >> end_col;
+        if (infile.peek() == EOF)
+            break;
+        // cout << "vq range: " << begin_row << " ~ " << end_row << "  ,   " << begin_col << " ~ " << end_col << endl;
+        infile >> q_num >> q_weight;
+        int mu = stoi(nbasbas);
+        int nu = stoi(nbasbas);
+        int brow = stoi(begin_row) - 1;
+        int erow = stoi(end_row) - 1;
+        int bcol = stoi(begin_col) - 1;
+        int ecol = stoi(end_col) - 1;
+        int iq = stoi(q_num) - 1;
+        Vector3_Order<double> qvec(kvec_c[iq]);
+        // skip duplicate insert of k weight, since 
+        if (irk_weight.count(qvec) == 0)
+            irk_weight.insert(pair<Vector3_Order<double>, double>(qvec, stod(q_weight)));
+
+        for(const auto &ap:local_atpair)
+        {
+            auto I=ap.first;
+            auto J=ap.second;
+            if(!coulomb[I][J].count(qvec))
+            {
+                shared_ptr<ComplexMatrix> vq_ptr = make_shared<ComplexMatrix>();
+                vq_ptr->create(atom_mu[I], atom_mu[J]);
+                // cout<<"  create  IJ: "<<I<<"  "<<J<<"   "<<atom_mu[I]<<"  "<<atom_mu[J];
+                coulomb[I][J][qvec]=vq_ptr;
+            }
+        }   
+
+        set<int> coulomb_row_need;
+        for(auto &Ip:coulomb)
+            for(int ir=atom_mu_part_range[Ip.first];ir!=atom_mu_part_range[Ip.first]+atom_mu[Ip.first];ir++)
+                coulomb_row_need.insert(ir);
+
+        //printf("   |process %d, coulomb_begin:  %d, size: %d\n",para_mpi.get_myid(),*coulomb_row_need.begin(),coulomb_row_need.size());
+        for (int i_mu = brow; i_mu <= erow; i_mu++)
+        {
+            vector<complex<double>> tmp_row(ecol-bcol+1);
+            for (int i_nu = bcol; i_nu <= ecol; i_nu++)
+            {
+                infile >> vq_r >> vq_i;
+                
+                tmp_row[i_nu-bcol] = complex<double>(stod(vq_r), stod(vq_i)); // for abacus
+                
+            }
+            if(coulomb_row_need.count(i_mu))
+            {
+                int I_loc,mu_loc;
+                I_loc=atom_mu_glo2loc(i_mu,mu_loc);
+                int bI=atom_mu_part_range[I_loc];
+                for(auto &Jp:coulomb[I_loc] )
+                {
+                    auto J=Jp.first;
+                    int Jb=atom_mu_part_range[J];
+                    int Je=atom_mu_part_range[J]+atom_mu[J];
+                    if(ecol>=Jb && bcol<Je)
+                    {
+                        int start_point = ( bcol<=Jb ? Jb:bcol);
+                        for(int i=start_point;i<=ecol;i++)
+                        {
+                            int J_loc, nu_loc;
+                            J_loc=atom_mu_glo2loc(i,nu_loc);
+                            assert(J==J_loc);
+                            (*coulomb[I_loc][J_loc][qvec])(mu_loc,nu_loc)=tmp_row[i-bcol];
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+}
+
 
 // TODO: implement the wrapper of all input readers
 void read_aims(MeanField &mf)

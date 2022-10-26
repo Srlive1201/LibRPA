@@ -91,10 +91,26 @@ int main(int argc, char **argv)
 
     READ_AIMS_Cs("./", params.cs_threshold);
 
-    int atpairs_num=natom*(natom-1) * 0.5+ natom;
+    vector<atpair_t> tot_atpair= generate_atom_pair_from_nat(natom);
+    cout<<"| Natoms: "<<natom<<"   tot_atpairs:  "<<tot_atpair.size()<<endl;
     int Rt_num = Rlist.size() * params.nfreq;
-    para_mpi.set_chi_parallel_type(atpairs_num,Rt_num,params.use_libri_chi0);
-    READ_Vq_Full("./", "coulomb_mat", params.vq_threshold, Vq); 
+    //para_mpi.set_chi_parallel_type(tot_atpair.size(),Rt_num,params.use_libri_chi0);
+    para_mpi.chi_parallel_type=Parallel_MPI::parallel_type::ATOM_PAIR;
+    vector<atpair_t> local_atpair;
+    if(para_mpi.chi_parallel_type==Parallel_MPI::parallel_type::ATOM_PAIR)
+    {
+        local_atpair = dispatch_vector(tot_atpair, para_mpi.get_myid(), para_mpi.get_size(), true);
+        printf("|process %d , local_atom_pair size:  %d\n",para_mpi.get_myid(),local_atpair.size());
+        // for(auto &ap:local_atpair)
+        //     printf(" |process %d , local_atom_pair:  %d,  %d\n",para_mpi.get_myid(),ap.first,ap.second);
+        READ_Vq_Row("./", "coulomb_mat", params.vq_threshold, Vq, local_atpair);
+    }
+    else
+    {
+        READ_Vq_Full("./", "coulomb_mat", params.vq_threshold, Vq); 
+        local_atpair = get_atom_pair(Vq);
+    }
+    //READ_Vq_Row("./", "coulomb_mat", params.vq_threshold, Vq, local_atpair);
     /* if(argv[1][0]=='0') */
     /*     ap_chi0.chi0_main(argv[1],argv[2]);  */
     /* else */
@@ -105,7 +121,7 @@ int main(int argc, char **argv)
     chi0.gf_R_threshold = params.gf_R_threshold;
 
     // build ABF IJ and qlist from Vq
-    vector<atpair_t> atpairs_ABF = get_atom_pair(Vq);
+    
     vector<Vector3_Order<double>> qlist;
 
     for ( auto q_weight: irk_weight)
@@ -113,7 +129,7 @@ int main(int argc, char **argv)
         qlist.push_back(q_weight.first);
     }
 
-    chi0.build(Cs, Rlist, period, atpairs_ABF, qlist,
+    chi0.build(Cs, Rlist, period, local_atpair, qlist,
                TFGrids::get_grid_type(params.tfgrids_type), true);
     { // debug, check chi0
         char fn[80];
