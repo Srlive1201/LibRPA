@@ -9,7 +9,7 @@
 const char * get_dirname(const char * file_abspath)
 {
     char * fn = new char [std::strlen(file_abspath) + 1];
-    std::strcpy(fn, __FILE__);
+    std::strcpy(fn, file_abspath);
     char *p;
     p = std::strrchr(fn, '/');
     if(p) p[0] = '\0';

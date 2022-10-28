@@ -111,4 +111,7 @@ matrix power_symat(matrix &mat, double power,
 
 // minyez copied from Shi Rong's cal_periodic_chi0.cpp, for test use
 void print_matrix(const char *desc, const matrix &mat);
+
+void print_matrix_mm(const matrix &mat, std::ostream &os, double threshold = 1e-15, bool row_first = true);
+void print_matrix_mm(const matrix &mat, const std::string &fn, double threshold = 1e-15, bool row_first = true);
 #endif // MATRIX_H

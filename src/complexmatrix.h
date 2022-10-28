@@ -64,6 +64,9 @@ public:
     //! Get the max real value of matrix element
     double get_max_real() const; // minyez add 2022-05-05
     double get_max_real(int &ir, int &ic) const; // minyez add 2022-05-05
+    //! Get the max imaginary value of matrix element
+    double get_max_imag() const; // minyez add 2022-10-18
+    double get_max_abs_imag() const; // minyez add 2022-10-26
 };
 
 ComplexMatrix operator+(const ComplexMatrix &m1,  const ComplexMatrix &m2);
