@@ -13,6 +13,7 @@ option(USE_LIBRI "Use LibRI for tensor contraction" OFF)
 option(USE_CMAKE_INC "Use cmake.in for configure" ON)
 option(DEBUG "Switch on debug mode and facility" OFF)
 option(BUILD_LIBRARY "Whether to build library" OFF)
+option(ENABLE_TEST "Enable building tests" OFF)
 
 # Add cmake load files
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
@@ -92,5 +93,7 @@ add_subdirectory(src)
 
 add_subdirectory(docs)
 
-enable_testing()
-add_subdirectory(tests)
+if(ENABLE_TEST)
+  enable_testing()
+  add_subdirectory(tests)
+endif()

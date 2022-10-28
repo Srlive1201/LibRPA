@@ -23,20 +23,12 @@ int main(int argc, char **argv)
     prof.start("total");
 
     int flag;
+    parse_inputfile_to_params(input_filename, params);
+    // NOTE: to comply with command line input, may be removed later
+    InputFile inputf;
     auto parser = inputf.load(input_filename, false);
-    parser.parse_string("task", params.task, "rpa", flag);
-    parser.parse_string("tfgrid_type", params.tfgrids_type, "minimax", flag);
-    parser.parse_double("cs_threshold", params.cs_threshold, 1e-6, flag);
-    parser.parse_double("vq_threshold", params.vq_threshold, 0, flag);
-    parser.parse_double("sqrt_coulomb_threshold", params.sqrt_coulomb_threshold, 1e-4, flag);
-    parser.parse_bool("use_libri_chi0", params.use_libri_chi0, false, flag);
-    parser.parse_bool("use_scalapack_ecrpa", params.use_scalapack_ecrpa, false, flag);
     parser.parse_int("nfreq", params.nfreq, stoi(argv[1]), flag);
     parser.parse_double("gf_R_threshold", params.gf_R_threshold, stod(argv[2]), flag);
-    parser.parse_double("libri_chi0_csm_threshold", params.libri_chi0_csm_threshold, 0.0, flag);
-    parser.parse_double("libri_chi0_threshold_C", params.libri_chi0_threshold_C, 0.0, flag);
-    parser.parse_double("libri_chi0_threshold_G", params.libri_chi0_threshold_G, 0.0, flag);
-
     params.check_consistency();
     if (para_mpi.is_master())
         params.print();
@@ -175,12 +167,38 @@ int main(int argc, char **argv)
                 printf("Warning: considerable imaginary part of EcRPA = %f\n", corr.value.imag());
         }
     }
-    else if ( task == "g0w0" )
+    else if ( params.task == "g0w0" )
     {
         READ_Vq_Full("./", "coulomb_cut_", params.vq_threshold, Vq_cut); 
-        const auto Wc_freq_q = compute_Wc_freq_q(chi0, Vq, Vq_cut);
-        const auto Wc_tau_R = CT_FT_Wc_freq_q(Wc_freq_q, chi0.tfg, Rlist);
-        const auto VR = FT_Vq(Vq_cut, Rlist);
+        const auto VR = FT_Vq(Vq_cut, Rlist, true);
+        auto exx = LIBRPA::Exx(meanfield, klist);
+        exx.build_exx_orbital_energy(Cs, Rlist, period, VR);
+        // const auto Wc_freq_q = compute_Wc_freq_q(chi0, Vq, Vq_cut);
+        // const auto Wc_tau_R = CT_FT_Wc_freq_q(Wc_freq_q, chi0.tfg, Rlist);
+    }
+    else if ( params.task == "exx" )
+    {
+        READ_Vq_Full("./", "coulomb_cut_", params.vq_threshold, Vq_cut); 
+        const auto VR = FT_Vq(Vq_cut, Rlist, true);
+        auto exx = LIBRPA::Exx(meanfield, klist);
+        exx.build_exx_orbital_energy(Cs, Rlist, period, VR);
+        // FIXME: need to reduce first when MPI is used
+        // NOTE: may extract to a common function
+        if (para_mpi.is_master())
+        {
+            for (int isp = 0; isp != meanfield.get_n_spins(); isp++)
+            {
+                printf("Spin channel %1d\n", isp+1);
+                for (int ik = 0; ik != meanfield.get_n_kpoints(); ik++)
+                {
+                    cout << "k-point " << ik + 1 << ": " << kvec_c[ik] << endl;
+                    printf("%-4s  %-10s  %-10s\n", "Band", "e_exx (Ha)", "e_exx (eV)");
+                    for (int ib = 0; ib != meanfield.get_n_bands(); ib++)
+                        printf("%4d  %10.5f  %10.5f\n", ib+1, exx.Eexx[isp][ik][ib], HA2EV * exx.Eexx[isp][ik][ib]);
+                    printf("\n");
+                }
+            }
+        }
     }
 
     prof.stop("total");

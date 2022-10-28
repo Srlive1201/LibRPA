@@ -8,6 +8,7 @@
 #include <string>
 #include <vector>
 #include <map>
+#include "params.h"
 #include "vector3.h"
 #include "vector3_order.h"
 #include "matrix3.h"
@@ -21,9 +22,6 @@ extern map<Vector3_Order<double>, vector<Vector3_Order<double>>> map_irk_ks;
 extern Vector3<double> *kvec_c;
 
 void READ_AIMS_STRU(const int& n_kpoints, const std::string &file_path);
-
-//! task of the problem
-extern string task;
 
 //! Class to parse parameters from string
 /*!
@@ -80,6 +78,7 @@ class InputFile
         std::string get_orig_content() { return orig_content; };
 };
 
-extern InputFile inputf;
+void parse_inputfile_to_params(const string& fn, Params& p);
+
 extern const string input_filename;
 #endif

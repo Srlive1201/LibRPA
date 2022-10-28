@@ -82,8 +82,6 @@ const std::string SPACE_SEP = "[ \r\f\t]*";
 const std::string InputParser::KV_SEP = "=";
 const std::string InputParser::COMMENTS_IDEN = "[#!]";
 
-string task;
-
 std::string get_last_matched(const std::string &s,
                              const std::string &key,
                              const std::string &vregex,
@@ -197,5 +195,34 @@ InputParser InputFile::load(const std::string &fn, bool error_if_fail_open)
     return InputParser(params);
 }
 
-InputFile inputf;
+void parse_inputfile_to_params(const string& fn, Params& p)
+{
+    InputFile inputf;
+    int flag;
+    auto parser = inputf.load(fn, false);
+
+    // general parameters
+    parser.parse_string("task", p.task, "rpa", flag);
+
+    // chi0 related
+    parser.parse_string("tfgrid_type", p.tfgrids_type, "minimax", flag);
+    parser.parse_int("nfreq", p.nfreq, 6, flag);
+    parser.parse_bool("use_libri_chi0", p.use_libri_chi0, false, flag);
+    parser.parse_bool("use_scalapack_ecrpa", p.use_scalapack_ecrpa, false, flag);
+    parser.parse_double("cs_threshold", p.cs_threshold, 1e-6, flag);
+    parser.parse_double("vq_threshold", p.vq_threshold, 0, flag);
+    parser.parse_double("sqrt_coulomb_threshold", p.sqrt_coulomb_threshold, 1e-4, flag);
+    parser.parse_double("gf_R_threshold", p.gf_R_threshold, 1e-4, flag);
+    parser.parse_double("libri_chi0_threshold_CSM", p.libri_chi0_threshold_CSM, 0.0, flag);
+    parser.parse_double("libri_chi0_threshold_C", p.libri_chi0_threshold_C, 0.0, flag);
+    parser.parse_double("libri_chi0_threshold_G", p.libri_chi0_threshold_G, 0.0, flag);
+
+    // exx related
+    parser.parse_bool("use_libri_exx", p.use_libri_exx, false, flag);
+    parser.parse_double("libri_exx_threshold_CSM", p.libri_exx_threshold_CSM, 0.0, flag);
+    parser.parse_double("libri_exx_threshold_C", p.libri_exx_threshold_C, 0.0, flag);
+    parser.parse_double("libri_exx_threshold_D", p.libri_exx_threshold_D, 0.0, flag);
+    parser.parse_double("libri_exx_threshold_V", p.libri_exx_threshold_V, 0.0, flag);
+}
+
 const string input_filename = "librpa.in";

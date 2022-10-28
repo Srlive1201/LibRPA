@@ -506,3 +506,57 @@ void print_matrix(const char *desc, const matrix &mat)
 // {
 	// return LapackConnector::nrm2(nr*nc,c,1);
 // }
+
+void print_matrix_mm(const matrix &mat, std::ostream &os, double threshold, bool row_first)
+{
+    int nr = mat.nr;
+    int nc = mat.nc;
+    int prec = 15;
+    size_t nnz = 0;
+    auto format = scientific;
+    os << "%%MatrixMarket matrix coordinate real general" << endl;
+    os << "%" << endl;
+    // count non-zero values first
+    for (int i = 0; i < mat.size; i++)
+    {
+        auto v = mat.c[i];
+        if ( fabs(v) > threshold )
+            nnz++;
+    }
+
+    os << nr << " " << nc << " " << nnz << endl;
+
+    if (row_first)
+    {
+        for (int j = 0; j < nc; j++)
+        {
+            for (int i = 0; i < nr; i++)
+            {
+                auto v = mat.c[i*nc+j];
+                if ( fabs(v) > threshold )
+                    os << i + 1 << " " << j + 1 << " " << showpoint << format << setprecision(prec) << v << "\n";
+            }
+        }
+    }
+    else
+    {
+        for (int i = 0; i < nr; i++)
+        {
+            for (int j = 0; j < nc; j++)
+            {
+                auto v = mat.c[i*nc+j];
+                if ( fabs(v) > threshold )
+                    os << i + 1 << " " << j + 1 << " " << showpoint << format << setprecision(prec) << v << "\n";
+            }
+        }
+    }
+}
+
+void print_matrix_mm(const matrix &mat, const string &fn, double threshold, bool row_first)
+{
+    ofstream fs;
+    fs.open(fn);
+    print_matrix_mm(mat, fs, threshold, row_first);
+    fs.close();
+}
+
