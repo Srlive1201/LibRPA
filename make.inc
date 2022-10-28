@@ -3,9 +3,9 @@
 
 CXX = mpiicpc
 
-LIBCOMM_DIR=/home/linpz/software/LibComm/include
-LIBRI_DIR=/home/linpz/software/libRI/include
-CEREAL_DIR=/home/linpz/software/cereal-1.3.0/include
+LIBCOMM_DIR=/home/rongshi/software_make/git_LibRI/LibComm/include
+LIBRI_DIR=/home/rongshi/software_make/git_LibRI/LibRI/include
+CEREAL_DIR=/home/linpz/software/cereal/cereal-1.3.0/include
 
 # definitions for preprocessor
 #   -D__USE_LIBRI : use libRI for tensor contraction
