@@ -213,13 +213,14 @@ CorrEnergy compute_RPA_correlation(const Chi0 &chi0, const atpair_k_cplx_mat_t &
     const auto & mf = chi0.mf;
     
     // freq, q
-    auto pi_freq_q_Mu_Nu = compute_Pi_q(chi0, coulmat);
-    int range_all = 0;
+    map<double, map<Vector3_Order<double>, atom_mapping<ComplexMatrix>::pair_t_old>> pi_freq_q_Mu_Nu;
+    if(para_mpi.chi_parallel_type==Parallel_MPI::parallel_type::ATOM_PAIR)
+        pi_freq_q_Mu_Nu = compute_Pi_q_MPI(chi0, coulmat);
+    else 
+        pi_freq_q_Mu_Nu = compute_Pi_q(chi0, coulmat);
 
-    for (auto &iat : atom_mu)
-    {
-        range_all += iat.second;
-    }
+    int range_all = N_all_mu;
+
     
     vector<int> part_range;
     part_range.resize(atom_mu.size());
@@ -365,9 +366,9 @@ map<double, map<Vector3_Order<double>, atom_mapping<ComplexMatrix>::pair_t_old>>
                     const size_t Q = Qchi0.first;
                     const size_t Q_mu = atom_mu[Q];
                     // auto &chi0_mat = Qchi0.second;
-                    for (auto &I_p : Vq)
+                    for (int I=0;I!=natom;I++)
                     {
-                        const size_t I = I_p.first;
+                        //const size_t I = I_p.first;
                         const size_t I_mu = atom_mu[I];
                         pi[freq][q][I][Q].create(I_mu, Q_mu);
                         if (J != Q)
@@ -375,9 +376,18 @@ map<double, map<Vector3_Order<double>, atom_mapping<ComplexMatrix>::pair_t_old>>
                     }
                 }
             }
+            // if(freq==chi0.tfg.get_freq_nodes()[0])
+            //     for(auto &Ip:pi[freq][q])
+            //         for(auto &Jp:Ip.second)
+            //             printf("  |process  %d, pi atpair: %d, %d \n",para_mpi.get_myid(),Ip.first,Jp.first);
         }
+        
     }
 
+    // ofstream fp;
+    // std::stringstream ss;
+    // ss<<"out_pi_rank_"<<para_mpi.get_myid()<<".txt";
+    // fp.open(ss.str());
     for (auto &freq_p : chi0.get_chi0_q())
     {
         const double freq = freq_p.first;
@@ -393,29 +403,32 @@ map<double, map<Vector3_Order<double>, atom_mapping<ComplexMatrix>::pair_t_old>>
                 {
                     const size_t Q = Q_p.first;
                     auto &chi0_mat = Q_p.second;
-                    for (auto &I_p : Vq)
+                    for (int I=0;I!=natom;I++)
                     {
-                        const size_t I = I_p.first;
-                        // printf("cal_pi  pid: %d , IJQ:  %d  %d  %d\n", para_mpi.get_myid(), I, J, Q);
+                        //const size_t I = I_p.first;
+                        //printf("cal_pi  pid: %d , IJQ:  %d  %d  %d\n", para_mpi.get_myid(), I, J, Q);
                         //  cout<<"         pi_IQ: "<<pi_k.at(freq).at(ik_vec).at(I).at(Q)(0,0)<<"   pi_IJ: "<<pi_k.at(freq).at(ik_vec).at(I).at(J)(0,0);
                         if (I <= J)
                         {
-                            // cout << "   1"
+                            // if (freq == chi0.tfg.get_freq_nodes()[0])
+                            //     printf("cal_pi  pid: %d , IJQ:  %d  %d  %d   type: %d \n", para_mpi.get_myid(), I, J, Q,1);
                             //      << "  Vq: " << (*Vq.at(I).at(J).at(ik_vec))(0, 0) << endl;
                             pi.at(freq).at(ik_vec).at(I).at(Q) += (*Vq.at(I).at(J).at(ik_vec)) * chi0_mat;
-                            // if (freq == first_freq)
+                            // if (freq == chi0.tfg.get_freq_nodes()[0])
                             // {
+                            //     std:stringstream sm;
                             //     complex<double> trace_pi;
-                            //     trace_pi = trace(pi_k.at(freq).at(ik_vec).at(I).at(Q));
-                            //     cout << " IJQ: " << I << " " << J << " " << Q << "  ik_vec: " << ik_vec << "  trace_pi:  " << trace_pi << endl;
-                            //     print_complex_matrix("vq:", (*Vq.at(I).at(J).at(ik_vec)));
-                            //     print_complex_matrix("chi0:", chi0_mat);
-                            //     print_complex_matrix("pi_mat:", pi_k.at(freq).at(ik_vec).at(I).at(Q));
+                            //     trace_pi = trace(pi.at(freq).at(ik_vec).at(I).at(Q));
+                            //     sm << " IJQ: " << I << " " << J << " " << Q << "  ik_vec: " << ik_vec << "  trace_pi:  " << trace_pi << endl;
+                            //     print_complex_matrix_file(sm.str().c_str(), (*Vq.at(I).at(J).at(ik_vec)),fp,false);
+                            //     print_complex_matrix_file("chi0:", chi0_mat,fp,false);
+                            //     print_complex_matrix_file("pi_mat:", pi.at(freq).at(ik_vec).at(I).at(Q),fp,false);
                             // }
                         }
                         else
                         {
-                            // cout << "   2"
+                            // if (freq == chi0.tfg.get_freq_nodes()[0])
+                            //     printf("cal_pi  pid: %d , IJQ:  %d  %d  %d   type: %d \n", para_mpi.get_myid(), I, J, Q,2);
                             //      << "  Vq: " << transpose(*Vq.at(J).at(I).at(ik_vec), 1)(0, 0) << endl;
                             pi.at(freq).at(ik_vec).at(I).at(Q) += transpose(*Vq.at(J).at(I).at(ik_vec), 1) * chi0_mat;
                         }
@@ -425,13 +438,15 @@ map<double, map<Vector3_Order<double>, atom_mapping<ComplexMatrix>::pair_t_old>>
                             ComplexMatrix chi0_QJ = transpose(chi0_mat, 1);
                             if (I <= Q)
                             {
-                                // cout << "   3"
+                                // if (freq == chi0.tfg.get_freq_nodes()[0])
+                                //     printf("cal_pi  pid: %d , IJQ:  %d  %d  %d   type: %d \n", para_mpi.get_myid(), I, J, Q,3);
                                 //      << "  Vq: " << (*Vq.at(I).at(Q).at(ik_vec))(0, 0) << endl;
                                 pi.at(freq).at(ik_vec).at(I).at(J) += (*Vq.at(I).at(Q).at(ik_vec)) * chi0_QJ;
                             }
                             else
                             {
-                                // cout << "   4"
+                                // if (freq == chi0.tfg.get_freq_nodes()[0])
+                                //     printf("cal_pi  pid: %d , IJQ:  %d  %d  %d   type: %d \n", para_mpi.get_myid(), I, J, Q,4);
                                 //      << "  Vq: " << transpose(*Vq.at(J).at(I).at(ik_vec), 1)(0, 0) << endl;
                                 pi.at(freq).at(ik_vec).at(I).at(J) += transpose(*Vq.at(Q).at(I).at(ik_vec), 1) * chi0_QJ;
                             }
@@ -441,10 +456,114 @@ map<double, map<Vector3_Order<double>, atom_mapping<ComplexMatrix>::pair_t_old>>
             }
         }
     }
+    //fp.close();
     // print_complex_matrix(" first_pi_mat:",pi.at(chi0.tfg.get_freq_nodes()[0]).at({0,0,0}).at(0).at(0)); 
     /* print_complex_matrix("  last_pi_mat:",pi.at(chi0.tfg.get_freq_nodes()[0]).at({0,0,0}).at(natom-1).at(natom-1)); */
     return pi;
 }
+
+map<double, map<Vector3_Order<double>, atom_mapping<ComplexMatrix>::pair_t_old>> compute_Pi_q_MPI(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat)
+{
+    map<double, map<Vector3_Order<double>, atom_mapping<ComplexMatrix>::pair_t_old>> pi;
+    // printf("Begin cal_pi_k , pid:  %d\n", para_mpi.get_myid());
+    for (auto const & freq_qJQchi0: chi0.get_chi0_q())
+    {
+        const double freq = freq_qJQchi0.first;
+        for (auto &q_JQchi0 : freq_qJQchi0.second)
+        {
+            Vector3_Order<double> q = q_JQchi0.first;
+            for (auto &JQchi0 : q_JQchi0.second )
+            {
+                const size_t J = JQchi0.first;
+                const size_t J_mu = atom_mu[J];
+                for (auto &Qchi0 : JQchi0.second)
+                {
+                    const size_t Q = Qchi0.first;
+                    const size_t Q_mu = atom_mu[Q];
+                    // auto &chi0_mat = Qchi0.second;
+                    for (int I=0;I!=natom;I++)
+                    {
+                        //const size_t I = I_p.first;
+                        const size_t I_mu = atom_mu[I];
+                        pi[freq][q][I][Q].create(I_mu, Q_mu);
+                        if (J != Q)
+                            pi[freq][q][I][J].create(I_mu, J_mu);
+                    }
+                }
+            }
+            // if(freq==chi0.tfg.get_freq_nodes()[0])
+            //     for(auto &Ip:pi[freq][q])
+            //         for(auto &Jp:Ip.second)
+            //             printf("  |process  %d, pi atpair: %d, %d \n",para_mpi.get_myid(),Ip.first,Jp.first);
+        }
+        
+    }
+
+    // ofstream fp;
+    // std::stringstream ss;
+    // ss<<"out_pi_rank_"<<para_mpi.get_myid()<<".txt";
+    // fp.open(ss.str());
+    for (auto &k_pair : irk_weight)
+    {
+        Vector3_Order<double> ik_vec = k_pair.first;
+        for (int I=0;I!=natom;I++)
+        {
+            atom_mapping<ComplexMatrix>::pair_t_old Vq_row=gather_vq_row_q(I,coulmat,ik_vec);
+            for (auto &freq_p : chi0.get_chi0_q())
+            {
+                const double freq = freq_p.first;
+                const auto chi0_freq = freq_p.second;
+            
+                
+                auto chi0_freq_k = freq_p.second.at(ik_vec);
+
+                for (auto &J_p : chi0_freq_k)
+                {
+                    const size_t J = J_p.first;
+                    for (auto &Q_p : J_p.second)
+                    {
+                        const size_t Q = Q_p.first;
+                        auto &chi0_mat = Q_p.second;
+                    
+                        //const size_t I = I_p.first;
+                        //printf("cal_pi  pid: %d , IJQ:  %d  %d  %d\n", para_mpi.get_myid(), I, J, Q);
+                        //  cout<<"         pi_IQ: "<<pi_k.at(freq).at(ik_vec).at(I).at(Q)(0,0)<<"   pi_IJ: "<<pi_k.at(freq).at(ik_vec).at(I).at(J)(0,0);
+                        
+                        // if (freq == chi0.tfg.get_freq_nodes()[0])
+                        //     printf("cal_pi  pid: %d , IJQ:  %d  %d  %d   type: %d \n", para_mpi.get_myid(), I, J, Q,1);
+                        //      << "  Vq: " << (*Vq.at(I).at(J).at(ik_vec))(0, 0) << endl;
+                        pi.at(freq).at(ik_vec).at(I).at(Q) += Vq_row.at(I).at(J) * chi0_mat;
+                        // if (freq == chi0.tfg.get_freq_nodes()[0])
+                        // {
+                        //     std:stringstream sm;
+                        //     complex<double> trace_pi;
+                        //     trace_pi = trace(pi.at(freq).at(ik_vec).at(I).at(Q));
+                        //     sm << " IJQ: " << I << " " << J << " " << Q << "  ik_vec: " << ik_vec << "  trace_pi:  " << trace_pi << endl;
+                        //     print_complex_matrix_file(sm.str().c_str(), Vq_row.at(I).at(J),fp,false);
+                        //     print_complex_matrix_file("chi0:", chi0_mat,fp,false);
+                        //     print_complex_matrix_file("pi_mat:", pi.at(freq).at(ik_vec).at(I).at(Q),fp,false);
+                        // }  
+
+                        if (J != Q)
+                        {
+                            ComplexMatrix chi0_QJ = transpose(chi0_mat, 1);
+                            // if (freq == chi0.tfg.get_freq_nodes()[0])
+                            //     printf("cal_pi  pid: %d , IJQ:  %d  %d  %d   type: %d \n", para_mpi.get_myid(), I, J,Q,3);
+                            //      << "  Vq: " << (*Vq.at(I).at(Q).at(ik_vec))(0, 0) << endl;
+                            pi.at(freq).at(ik_vec).at(I).at(J) += Vq_row.at(I).at(Q) * chi0_QJ;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    //fp.close();
+    // print_complex_matrix(" first_pi_mat:",pi.at(chi0.tfg.get_freq_nodes()[0]).at({0,0,0}).at(0).at(0)); 
+    /* print_complex_matrix("  last_pi_mat:",pi.at(chi0.tfg.get_freq_nodes()[0]).at({0,0,0}).at(natom-1).at(natom-1)); */
+    return pi;
+}
+
+
 
 atom_mapping<ComplexMatrix>::pair_t_old compute_Pi_freq_q(const Vector3_Order<double> &ik_vec, const atom_mapping<ComplexMatrix>::pair_t_old &chi0_freq_q, const atpair_k_cplx_mat_t &coulmat)
 {
@@ -530,6 +649,34 @@ atom_mapping<ComplexMatrix>::pair_t_old compute_Pi_freq_q(const Vector3_Order<do
     return pi;
 }
 
+atom_mapping<ComplexMatrix>::pair_t_old gather_vq_row_q(const int &I, const atpair_k_cplx_mat_t &coulmat, const Vector3_Order<double> &ik_vec)
+{
+    auto I_mu=atom_mu[I];
+    atom_mapping<ComplexMatrix>::pair_t_old Vq_row;
+    for(int J_tmp=0;J_tmp!=natom;J_tmp++)
+    {
+        auto J_mu=atom_mu[J_tmp];
+        ComplexMatrix loc_vq(atom_mu[I],atom_mu[J_tmp]);
+        Vq_row[I][J_tmp].create(atom_mu[I],atom_mu[J_tmp]);
+       // const auto length=sizeof(complex<double>)* I_mu *J_mu;
+       // complex<double> *loc_vq_ptr=loc_vq.c;
+        if(I<=J_tmp)
+        {
+            if(Vq.count(I))
+                if(Vq.at(I).count(J_tmp))
+                    loc_vq=*Vq.at(I).at(J_tmp).at(ik_vec);
+        }
+        else
+        {
+            if(Vq.count(J_tmp))
+                if(Vq.at(J_tmp).count(I))
+                    loc_vq=transpose(*Vq.at(J_tmp).at(I).at(ik_vec), 1);
+                    
+        }
+        para_mpi.allreduce_ComplexMatrix(loc_vq,Vq_row[I][J_tmp]);
+    }
+    return Vq_row;
+}
 
 map<double, atpair_k_cplx_mat_t>
 compute_Wc_freq_q(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, atpair_k_cplx_mat_t &coulmat_wc)

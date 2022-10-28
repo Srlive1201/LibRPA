@@ -8,6 +8,7 @@ map<Vector3_Order<double>, double> irk_weight;
 map<atom_t, size_t> atom_nw;
 map<atom_t, size_t> atom_mu;
 vector<size_t> atom_mu_part_range;
+int N_all_mu;
 
 atpair_R_mat_t Cs;
 atpair_k_cplx_mat_t Vq;
