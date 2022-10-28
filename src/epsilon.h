@@ -25,6 +25,6 @@ map<double, atpair_R_cplx_mat_t> CT_FT_Wc_freq_q(const map<double, atpair_k_cplx
 
 atpair_R_cplx_mat_t FT_Vq(const atpair_k_cplx_mat_t &coulmat, vector<Vector3_Order<int>> Rlist);
 
-atom_mapping<ComplexMatrix>::pair_t_old compute_Pi_freq_q(const Vector3_Order<double> &ik_vec, const atom_mapping<ComplexMatrix>::pair_t_old &chi0_freq_q, const atpair_k_cplx_mat_t &coulmat);
+ComplexMatrix compute_Pi_freq_q_row(const Vector3_Order<double> &ik_vec, const atom_mapping<ComplexMatrix>::pair_t_old &chi0_freq_q, const atom_mapping<ComplexMatrix>::pair_t_old &Vq_row, const int &I);
 
-complex<double> compute_pi_det(map<size_t, map<size_t, ComplexMatrix>> &pi_freq_q, bool out_pi=0);
+complex<double> compute_pi_det_blacs(ComplexMatrix &loc_piT, const int row_nblk, const int col_nblk, const int desc_pi[9], int *ipiv, int &info);

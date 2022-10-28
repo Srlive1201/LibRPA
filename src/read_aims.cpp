@@ -459,7 +459,22 @@ void handle_Vq_row_file(const string &file_path, double threshold, atpair_k_cplx
 
 }
 
+void erase_Cs_from_local_atp(atpair_R_mat_t &Cs, vector<atpair_t> &local_atpair)
+{
+    //erase no need Cs
+    
+    set<size_t> loc_atp_index;
+    for(auto &lap:local_atpair)
+    {
+        loc_atp_index.insert(lap.first);
+        loc_atp_index.insert(lap.second);
+    }
+    for(auto &Ip:Cs)
+        if(!loc_atp_index.count(Ip.first))
+            Cs.erase(Ip.first);
+    printf("  |process %d, size of Cs after erase: %d\n",para_mpi.get_myid(),Cs.size());
 
+}
 // TODO: implement the wrapper of all input readers
 void read_aims(MeanField &mf)
 {

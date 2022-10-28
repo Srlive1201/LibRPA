@@ -1,6 +1,7 @@
 #include "lib_main.h"
 #include <algorithm>
 #include "scalapack_connector.h"
+#include <set>
 int main(int argc, char **argv)
 {
     para_mpi.mpi_init(argc,argv);
@@ -26,11 +27,11 @@ int main(int argc, char **argv)
     auto parser = inputf.load(input_filename, false);
     parser.parse_string("task", params.task, "rpa", flag);
     parser.parse_string("tfgrid_type", params.tfgrids_type, "minimax", flag);
-    parser.parse_double("cs_threshold", params.cs_threshold, 1e-6, flag);
+    parser.parse_double("cs_threshold", params.cs_threshold, 1e-4, flag);
     parser.parse_double("vq_threshold", params.vq_threshold, 0, flag);
     parser.parse_double("sqrt_coulomb_threshold", params.sqrt_coulomb_threshold, 1e-4, flag);
     parser.parse_bool("use_libri_chi0", params.use_libri_chi0, false, flag);
-    parser.parse_bool("use_scalapack_ecrpa", params.use_scalapack_ecrpa, false, flag);
+    parser.parse_bool("use_scalapack_ecrpa", params.use_scalapack_ecrpa, true, flag);
     parser.parse_int("nfreq", params.nfreq, stoi(argv[1]), flag);
     parser.parse_double("gf_R_threshold", params.gf_R_threshold, stod(argv[2]), flag);
     parser.parse_double("libri_chi0_csm_threshold", params.libri_chi0_csm_threshold, 0.0, flag);
@@ -84,6 +85,7 @@ int main(int argc, char **argv)
         cout << endl;
     }
 
+    const int Rt_num = Rlist.size() * params.nfreq;
     // barrier to wait for information print on master process
     para_mpi.mpi_barrier();
 
@@ -93,9 +95,9 @@ int main(int argc, char **argv)
 
     vector<atpair_t> tot_atpair= generate_atom_pair_from_nat(natom);
     cout<<"| Natoms: "<<natom<<"   tot_atpairs:  "<<tot_atpair.size()<<endl;
-    int Rt_num = Rlist.size() * params.nfreq;
-    //para_mpi.set_chi_parallel_type(tot_atpair.size(),Rt_num,params.use_libri_chi0);
-    para_mpi.chi_parallel_type=Parallel_MPI::parallel_type::ATOM_PAIR;
+    
+    para_mpi.set_chi_parallel_type(tot_atpair.size(),Rt_num,params.use_libri_chi0);
+    //para_mpi.chi_parallel_type=Parallel_MPI::parallel_type::ATOM_PAIR;
     vector<atpair_t> local_atpair;
     if(para_mpi.chi_parallel_type==Parallel_MPI::parallel_type::ATOM_PAIR)
     {
@@ -110,6 +112,7 @@ int main(int argc, char **argv)
         READ_Vq_Full("./", "coulomb_mat", params.vq_threshold, Vq); 
         local_atpair = get_atom_pair(Vq);
     }
+    erase_Cs_from_local_atp(Cs,local_atpair);
     //READ_Vq_Row("./", "coulomb_mat", params.vq_threshold, Vq, local_atpair);
     /* if(argv[1][0]=='0') */
     /*     ap_chi0.chi0_main(argv[1],argv[2]);  */
