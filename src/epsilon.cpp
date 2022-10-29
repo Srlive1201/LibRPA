@@ -75,7 +75,7 @@ complex<double> compute_pi_det_blacs(ComplexMatrix &loc_piT, const int row_nblk,
             if(loc_piT(locc,locr).real()>0)
                 ln_det_loc+=std::log(loc_piT(locc,locr));
             else
-                ln_det_loc+=std::log(-1 * loc_piT(locc,locr));
+                ln_det_loc+=std::log(-loc_piT(locc,locr));
 		}
     }
     MPI_Allreduce(&ln_det_loc,&ln_det_all,1,MPI_DOUBLE_COMPLEX,MPI_SUM,MPI_COMM_WORLD);
@@ -153,7 +153,7 @@ CorrEnergy compute_RPA_correlation_blacs(const Chi0 &chi0, const atpair_k_cplx_m
                             }
                             else
                             {
-                                loc_piT(j,i)=-1*  glo_pi_rowT(atom_mu_part_range[J_blacs] + mu_blacs, nu_blacs);
+                                loc_piT(j,i) = -glo_pi_rowT(atom_mu_part_range[J_blacs] + mu_blacs, nu_blacs);
                             }
 
                         }
@@ -735,8 +735,8 @@ compute_Wc_freq_q(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, atpa
             auto wc_all = sqrtVqcut_all * (eps_fq - identity) * sqrtVqcut_all;
             // sprintf(fn, "inveps_q_%d_freq_%d.mtx", iq, ifreq);
             // print_complex_matrix_mm(eps_fq, fn, 1e-15);
-            sprintf(fn, "wc_q_%d_freq_%d.mtx", iq, ifreq);
-            print_complex_matrix_mm(wc_all, fn, 1e-15);
+            // sprintf(fn, "wc_q_%d_freq_%d.mtx", iq, ifreq);
+            // print_complex_matrix_mm(wc_all, fn, 1e-15);
 
             // save result to the atom mapping object
             for ( auto &Mu_Nuchi: MuNuchi )
