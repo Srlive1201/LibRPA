@@ -11,6 +11,7 @@ using namespace std;
 int kv_nmp[3] = {1, 1, 1};
 Vector3<double> *kvec_c;
 std::vector<Vector3_Order<double>> klist;
+std::vector<Vector3_Order<double>> kfrac_list;
 std::vector<int> irk_point_id_mapping;
 map<Vector3_Order<double>, vector<Vector3_Order<double>>> map_irk_ks;
 Matrix3 latvec;
@@ -53,8 +54,8 @@ void READ_AIMS_STRU(const int& n_kpoints, const std::string &file_path)
     G /= TWO_PI;
     G *= ANG2BOHR;
     // G.print();
-    // Matrix3 latG = latvec * G;
-    // cout << " lat * G" << endl;
+    // Matrix3 latG = latvec * G.Transpose();
+    // cout << " lat * G^T" << endl;
     // latG.print();
     infile >> x >> y >> z;
     kv_nmp[0] = stoi(x);
@@ -67,7 +68,9 @@ void READ_AIMS_STRU(const int& n_kpoints, const std::string &file_path)
         kvec_c[i] = {stod(x), stod(y), stod(z)};
         kvec_c[i] *= (ANG2BOHR / TWO_PI);
         // cout << "kvec [" << i << "]: " << kvec_c[i] << endl;
-        klist.push_back(kvec_c[i]);
+        Vector3_Order<double> k(kvec_c[i]);
+        klist.push_back(k);
+        kfrac_list.push_back(latvec * k);
     }
     for (int i = 0; i != n_kpoints; i++)
     {

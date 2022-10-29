@@ -14,8 +14,8 @@ class Exx
     private:
         //! refenrence to the MeanField object to compute density matrix
         const MeanField& mf_;
-        //! reference to the kpoint list on which the MeanField object is computed
-        const vector<Vector3_Order<double>>& klist_;
+        //! reference to the fractional kpoint list on which the MeanField object is computed
+        const vector<Vector3_Order<double>>& kfrac_list_;
 
         ComplexMatrix get_dmat_cplx_R_global(const int& ispin, const Vector3_Order<int>& R);
         ComplexMatrix extract_dmat_cplx_R_IJblock(const ComplexMatrix& dmat_cplx, const atom_t& I, const atom_t& J);
@@ -40,7 +40,7 @@ class Exx
         //! exact-exchange energy of each state, dimension (nspins, n_kpoints, n_bands). This is actually the diagonal elements of Heex_KS.
         map<int, map<int, map<int, double>>> Eexx;
 
-        Exx(const MeanField& mf, const vector<Vector3_Order<double>> &klist): mf_(mf), klist_(klist) {};
+        Exx(const MeanField& mf, const vector<Vector3_Order<double>> &kfrac_list): mf_(mf), kfrac_list_(kfrac_list) {};
         //! Build and store the density matrix from the meanfield object
         void build_exx_orbital_energy(const atpair_R_mat_t& LRI_Cs,
                                       const vector<Vector3_Order<int>> &Rlist,
