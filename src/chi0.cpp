@@ -173,6 +173,7 @@ void Chi0::build_gf_Rt(Vector3_Order<int> R, double tau)
             }
         }
         omp_destroy_lock(&gf_lock);
+#pragma omp barrier
     }
     prof.stop("cal_Green_func");
 }
