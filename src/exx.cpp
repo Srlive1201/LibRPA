@@ -15,16 +15,8 @@ namespace LIBRPA
 ComplexMatrix Exx::get_dmat_cplx_R_global(const int& ispin, const Vector3_Order<int>& R)
 {
     const auto nspins = this->mf_.get_n_spins();
-    const auto naos = this->mf_.get_n_aos();
-    const auto nkpts = this->mf_.get_n_kpoints();
-    ComplexMatrix dmat_cplx(naos, naos);
-    for (int ik = 0; ik != nkpts; ik++)
-    {
-        double ang = - this->klist_[ik] * (R * latvec) * TWO_PI;
-        complex<double> kphase = complex<double>(cos(ang), sin(ang));
-        dmat_cplx += kphase * this->mf_.get_dmat_cplx(ispin, ik);
-    }
-    // renormalize
+    auto dmat_cplx = this->mf_.get_dmat_cplx_R(ispin, this->kfrac_list_, R);
+    // renormalize to single spin channel
     dmat_cplx *= 0.5 * nspins;
     return dmat_cplx;
 }
@@ -212,25 +204,25 @@ void Exx::build_exx_orbital_energy_LibRI(const atpair_R_mat_t &LRI_Cs,
                 const auto& I = T.first;
                 const auto& J = T1.first.first;
                 const auto& Ra =  T1.first.second;
-                for (const auto& k: this->klist_)
+                for (const auto& kfrac: this->kfrac_list_)
                 {
                     if (Hexx.count(isp) == 0 ||
                         Hexx.at(isp).count(I) == 0 ||
                         Hexx.at(isp).at(I).count(J) == 0 ||
-                        Hexx.at(isp).at(I).at(J).count(k) == 0
+                        Hexx.at(isp).at(I).at(J).count(kfrac) == 0
                         )
                     {
-                        Hexx[isp][I][J][k] = make_shared<ComplexMatrix>();
+                        Hexx[isp][I][J][kfrac] = make_shared<ComplexMatrix>();
                         ComplexMatrix cm(atom_nw[I], atom_nw[J]);
-                        *Hexx[isp][I][J][k] = cm;
+                        *Hexx[isp][I][J][kfrac] = cm;
                     }
                     ComplexMatrix cm(atom_nw[I], atom_nw[J]);
                     for (int i = 0; i != cm.size; i++)
                         cm.c[i] = *(T1.second.ptr()+i);
-                    double ang = k * (Vector3_Order<int>{Ra[0], Ra[1], Ra[2]} * latvec) * TWO_PI;
+                    double ang = kfrac * Vector3_Order<int>{Ra[0], Ra[1], Ra[2]} * TWO_PI;
                     complex<double> kphase = complex<double>(cos(ang), sin(ang));
-                    // FIXME: scaling with nkpoints is required
-                    *Hexx[isp][I][J][k] += cm * (kphase / double(this->mf_.get_n_kpoints()));
+                    // NOTE: scaling with nkpoints is required
+                    *Hexx[isp][I][J][kfrac] += cm * (kphase / double(this->mf_.get_n_kpoints()));
                 }
                 // debug, check size
                 // cout << I << " " << J << " {" << Ra[0] << " " << Ra[1] << " " << Ra[2] << "} whole size: " << T1.second.get_shape_all() << endl;
@@ -266,7 +258,7 @@ void Exx::build_exx_orbital_energy_LibRI(const atpair_R_mat_t &LRI_Cs,
     {
         for (int ik = 0; ik < this->mf_.get_n_kpoints(); ik++)
         {
-            const auto& k = this->klist_[ik];
+            const auto& k = this->kfrac_list_[ik];
             // retrieve the global Hexx
             ComplexMatrix hexx(n_aos, n_aos);
             for (const auto& I_JkH: this->Hexx.at(isp))

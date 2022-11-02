@@ -46,6 +46,7 @@ template <class T> Vector3<T> operator+( const Vector3<T> &u, const Vector3<T> &
 template <class T> Vector3<T> operator-( const Vector3<T> &u, const Vector3<T> &v ) { return Vector3<T>( u.x-v.x, u.y-v.y, u.z-v.z ); }
 //u.v=(ux*vx)+(uy*vy)+(uz*vz)                                                     
 template <class T> T          operator*( const Vector3<T> &u, const Vector3<T> &v ) { return ( u.x*v.x + u.y*v.y + u.z*v.z ); }
+template <class T1, class T2, class TRet = T1> TRet operator*( const Vector3<T1> &u, const Vector3<T2> &v ) { return ( u.x*v.x + u.y*v.y + u.z*v.z ); }
 template <class T> Vector3<T> operator*( const T &s,          const Vector3<T> &u ) { return Vector3<T>( u.x*s, u.y*s, u.z*s ); }
 template <class T> Vector3<T> operator*( const Vector3<T> &u, const T &s          ) { return Vector3<T>( u.x*s, u.y*s, u.z*s ); } // mohan add 2009-5-10
 template <class T> Vector3<T> operator/( const Vector3<T> &u, const T &s          ) { return Vector3<T>( u.x/s, u.y/s, u.z/s ); }

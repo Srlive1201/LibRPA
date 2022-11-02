@@ -76,13 +76,12 @@ vector<atpair_t> get_atom_pair(const map<atpair_t, T> &apdata) // work
 }
 
 template <typename T>
-vector<atpair_t> generate_atom_pair_from_nat(const T &nat)
+vector<atpair_t> generate_atom_pair_from_nat(const T &nat, bool ordered_pair = false)
 {
     vector<atpair_t> apair;
     for(int i=0; i!=nat; i++)
-        for(int j=0; j!=nat; j++)
-            if(i<=j)
-                apair.push_back({i,j});
+        for(int j = ordered_pair? 0 : i; j!=nat; j++)
+            apair.push_back({i,j});
     return apair;
 }
 

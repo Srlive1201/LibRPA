@@ -63,11 +63,12 @@ int main(int argc, char **argv)
         cout << "Reciprocal lattice vectors (2PI Bohr^-1)" << endl;
         G.print();
         printf("kgrids: %2d %2d %2d\n", kv_nmp[0], kv_nmp[1], kv_nmp[2]);
-        cout << "k-points read:" << endl;
+        cout << "k-points read (Cartisian in 2Pi Bohr^-1 | fractional):" << endl;
         for (int ik = 0; ik != meanfield.get_n_kpoints(); ik++)
         {
-            printf("ik %4d: %10.7f %10.7f %10.7f\n",
-                   ik+1, kvec_c[ik].x, kvec_c[ik].y, kvec_c[ik].z);
+            printf("ik %4d: %10.7f %10.7f %10.7f | %10.7f %10.7f %10.7f\n",
+                   ik+1, kvec_c[ik].x, kvec_c[ik].y, kvec_c[ik].z,
+                   kfrac_list[ik].x, kfrac_list[ik].y, kfrac_list[ik].z);
         }
         cout << "R-points to compute:" << endl;
         for (int iR = 0; iR != Rlist.size(); iR++)
@@ -78,15 +79,16 @@ int main(int argc, char **argv)
     }
 
     const int Rt_num = Rlist.size() * params.nfreq;
-    // barrier to wait for information print on master process
-    para_mpi.mpi_barrier();
 
     READ_AIMS_EIGENVECTOR("./", meanfield);
 
     READ_AIMS_Cs("./", params.cs_threshold);
 
-    vector<atpair_t> tot_atpair= generate_atom_pair_from_nat(natom);
-    cout<<"| Natoms: "<<natom<<"   tot_atpairs:  "<<tot_atpair.size()<<endl;
+    vector<atpair_t> tot_atpair = generate_atom_pair_from_nat(natom, false);
+    if (para_mpi.is_master())
+        cout << "| Natoms: " << natom << "   tot_atpairs:  " << tot_atpair.size() << endl;
+    // barrier to wait for information print on master process
+    para_mpi.mpi_barrier();
     
     para_mpi.set_chi_parallel_type(tot_atpair.size(),Rt_num,params.use_libri_chi0);
     //para_mpi.chi_parallel_type=Parallel_MPI::parallel_type::ATOM_PAIR;
@@ -94,7 +96,7 @@ int main(int argc, char **argv)
     if(para_mpi.chi_parallel_type==Parallel_MPI::parallel_type::ATOM_PAIR)
     {
         local_atpair = dispatch_vector(tot_atpair, para_mpi.get_myid(), para_mpi.get_size(), true);
-        printf("|process %d , local_atom_pair size:  %d\n",para_mpi.get_myid(),local_atpair.size());
+        printf("| process %d , local_atom_pair size:  %zu\n", para_mpi.get_myid(), local_atpair.size());
         // for(auto &ap:local_atpair)
         //     printf(" |process %d , local_atom_pair:  %d,  %d\n",para_mpi.get_myid(),ap.first,ap.second);
         READ_Vq_Row("./", "coulomb_mat", params.vq_threshold, Vq, local_atpair);
@@ -183,7 +185,7 @@ int main(int argc, char **argv)
     {
         READ_Vq_Full("./", "coulomb_cut_", params.vq_threshold, Vq_cut); 
         const auto VR = FT_Vq(Vq_cut, Rlist, true);
-        auto exx = LIBRPA::Exx(meanfield, klist);
+        auto exx = LIBRPA::Exx(meanfield, kfrac_list);
         exx.build_exx_orbital_energy(Cs, Rlist, period, VR);
         // FIXME: need to reduce first when MPI is used
         // NOTE: may extract to a common function

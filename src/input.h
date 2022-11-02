@@ -14,9 +14,12 @@
 #include "matrix3.h"
 
 extern int kv_nmp[3];
+//! lattice vectors as a 3D-matrix, each row as a lattice vector
 extern Matrix3 latvec;
+//! reciprocal lattice vectors as a 3D-matrix, each row as a reciprocal vector
 extern Matrix3 G;
 extern std::vector<Vector3_Order<double>> klist;
+extern std::vector<Vector3_Order<double>> kfrac_list;
 extern std::vector<int> irk_point_id_mapping;
 extern map<Vector3_Order<double>, vector<Vector3_Order<double>>> map_irk_ks;
 extern Vector3<double> *kvec_c;

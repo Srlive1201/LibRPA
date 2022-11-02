@@ -1,5 +1,6 @@
 #include "meanfield.h"
 #include "lapack_connector.h"
+#include "constants.h"
 #include <stdexcept>
 #include <iostream>
 
@@ -109,6 +110,18 @@ ComplexMatrix MeanField::get_dmat_cplx(int ispin, int ikpt) const
     for (int ib = 0; ib != this->n_bands; ib++)
         LapackConnector::scal(this->n_aos, this->wg[ispin](ikpt, ib), scaled_wfc_conj.c + n_aos * ib, 1);
     auto dmat_cplx = transpose(this->wfc[ispin][ikpt], false) * scaled_wfc_conj;
+    return dmat_cplx;
+}
+
+ComplexMatrix MeanField::get_dmat_cplx_R(int ispin, const std::vector<Vector3_Order<double>>&kfrac_list, const Vector3_Order<int>& R) const
+{
+    ComplexMatrix dmat_cplx(this->n_aos, this->n_aos);
+    for (int ik = 0; ik != this->n_kpoints; ik++)
+    {
+        auto ang = - (kfrac_list[ik] * R) * TWO_PI;
+        complex<double> kphase = complex<double>(cos(ang), sin(ang));
+        dmat_cplx += kphase * this->get_dmat_cplx(ispin, ik);
+    }
     return dmat_cplx;
 }
 

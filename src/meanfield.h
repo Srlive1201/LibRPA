@@ -8,6 +8,7 @@
 #include <vector>
 #include "matrix.h"
 #include "complexmatrix.h"
+#include "vector3_order.h"
 using std::vector;
 
 //! Object of the meanfield input of Green's function
@@ -55,6 +56,7 @@ class MeanField
         const vector<matrix> & get_weight() const { return wg; }
         //! get the density matrix of a particular spin and kpoint
         ComplexMatrix get_dmat_cplx(int ispin, int ikpt) const;
+        ComplexMatrix get_dmat_cplx_R(int ispin, const std::vector<Vector3_Order<double>>& kfrac_list, const Vector3_Order<int>& R) const;
         vector<vector<ComplexMatrix>> & get_eigenvectors() { return wfc; }
         const vector<vector<ComplexMatrix>> & get_eigenvectors() const { return wfc; }
         double get_E_min_max(double &emin, double &emax);
