@@ -135,6 +135,9 @@ void Chi0::build_gf_Rt(Vector3_Order<int> R, double tau)
             gf_Rt_is_global += (kphase * transpose(mf.get_eigenvectors()[is][ik], false) * scaled_wfc_conj).real();
         }
         if ( tau < 0 ) gf_Rt_is_global *= -1.;
+        omp_lock_t gf_lock;
+        omp_init_lock(&gf_lock);  
+#pragma omp parallel for schedule(dynamic)
         for ( int I = 0; I != natom; I++)
         {
             const auto I_num = atom_nw[I];
@@ -154,7 +157,9 @@ void Chi0::build_gf_Rt(Vector3_Order<int> R, double tau)
                 if (tmp_green.absmax() > gf_R_threshold)
                 {
                     // cout<<" max_green_ele:  "<<tmp_green.absmax()<<endl;
+                    omp_set_lock(&gf_lock);
                     gf_is_R_tau[is][I][J][R][tau] = std::move(tmp_green);
+                    omp_unset_lock(&gf_lock);
                     /* cout << is << " " << I << " " << J << " " << R << " " << tau << endl; */
                     /* print_matrix("gf_is_itau_R[is][I][J][R][itau]", gf_is_itau_R[is][I][J][R][tau]); */
                     gf_save++;
@@ -167,6 +172,7 @@ void Chi0::build_gf_Rt(Vector3_Order<int> R, double tau)
                 }
             }
         }
+        omp_destroy_lock(&gf_lock);
     }
     prof.stop("cal_Green_func");
 }
