@@ -7,7 +7,6 @@ import sys
 import os
 import numpy as np
 from scipy.optimize import least_squares
-import matplotlib.pyplot as plt
 # from scipy.optimize import minimize,Bounds,least_squares
 # import matplotlib.pyplot as plt
 
@@ -209,6 +208,9 @@ def main():
     sin_t2f = generate_trans_mat(omegas, taus, erange, "sin", "t2f")
     cos_f2t = generate_trans_mat(omegas, taus, erange, "cos", "f2t")
     sin_f2t = generate_trans_mat(omegas, taus, erange, "sin", "f2t")
+
+    if args.check_mat or args.check_delta:
+        import matplotlib.pyplot as plt
 
     if args.check_mat:
         fig, axs = plt.subplots(2, 2, figsize=(12, 12))
