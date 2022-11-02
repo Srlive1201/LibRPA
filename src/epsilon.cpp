@@ -89,7 +89,7 @@ CorrEnergy compute_RPA_correlation_blacs(const Chi0 &chi0, const atpair_k_cplx_m
     if(para_mpi.chi_parallel_type == Parallel_MPI::parallel_type::R_TAU)
     {
         compute_RPA_correlation(chi0,coulmat);
-        return corr;
+        //return corr;
     }
     if (para_mpi.get_myid() == 0)
         printf("Calculating EcRPA with BLACS/ScaLAPACK\n");
