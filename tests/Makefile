@@ -14,7 +14,7 @@ test_targets = $(patsubst %.exe, run_%, $(serial_objects) $(para_objects))
 test_timefreq_deps = timefreq,envs,complexmatrix,matrix,mathtools,constants
 test_parallel_mpi_deps = parallel_mpi,matrix,complexmatrix,vector3_order
 test_pbc_deps = pbc,vector3_order
-test_meanfield_deps = meanfield,matrix,complexmatrix
+test_meanfield_deps = meanfield,matrix,complexmatrix,constants
 
 default: $(serial_objects) $(para_objects)
 
