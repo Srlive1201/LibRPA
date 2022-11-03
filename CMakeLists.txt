@@ -29,7 +29,11 @@ set(parallel_libs "")
 if(EXISTS "${PROJECT_SOURCE_DIR}/cmake.inc" AND USE_CMAKE_INC)
   include("${PROJECT_SOURCE_DIR}/cmake.inc")
   list(APPEND math_libs ${LAPACK_LIBRARIES})
+  # enable_language later than cmake to take the variables therein into accout
+  # TODO: maybe better way to customize environments?
+  enable_language(CXX)
 else()
+  enable_language(CXX)
   if(DEFINED ENV{MKLROOT} AND NOT DEFINED MKLROOT)
     set(MKLROOT "$ENV{MKLROOT}")
   endif()
@@ -51,6 +55,7 @@ else()
     set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${MPI_CXX_FLAGS}")
   endif()
 
+  # message(INFO "${CMAKE_C_COMPILER_LOADED} ${CMAKE_CXX_COMPILER_LOADED} ${CMAKE_Fortran_COMPILER_LOADED}") 
   find_package(OpenMP REQUIRED)
   if (OpenMP_CXX_FOUND)
     set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
@@ -61,8 +66,6 @@ else()
           )
   include_directories(${MPI_CXX_INCLUDE_PATH})
 endif()
-
-enable_language(CXX)
 
 include_directories(src)
 

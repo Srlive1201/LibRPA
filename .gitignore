@@ -61,7 +61,7 @@ local_*_points.dat
 *_freq2time_grid_*.txt
 
 # cmake build directories
-build*
+build*/
 
 # Doxygen build and generated config file
 docs/_build
