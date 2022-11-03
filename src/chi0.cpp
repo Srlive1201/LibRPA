@@ -186,16 +186,9 @@ void Chi0::build_chi0_q_space_time(const atpair_R_mat_t &LRI_Cs,
    // int R_tau_size = Rlist_gf.size() * tfg.size();
     if(para_mpi.chi_parallel_type == Parallel_MPI::parallel_type::LIBRI_USED)
     {
-//#ifdef __USE_LIBRI
         if (para_mpi.is_master())
             cout<<"Use LibRI for chi0"<<endl;
         build_chi0_q_space_time_LibRI_routing(LRI_Cs, R_period, atpairs_ABF, qlist);
-// #else
-//         cout << "LibRI routing requested, but the executable is not compiled with LibRI" << endl;
-//         cout << "Please recompiler libRPA with -DUSE_LIBRI and configure include path" << endl;
-//         para_mpi.mpi_barrier();
-//         throw std::logic_error("compilation");
-// #endif
 
     }
     else if ( para_mpi.chi_parallel_type == Parallel_MPI::parallel_type::R_TAU)
@@ -212,12 +205,17 @@ void Chi0::build_chi0_q_space_time(const atpair_R_mat_t &LRI_Cs,
     }
 }
 
-#ifdef __USE_LIBRI
 void Chi0::build_chi0_q_space_time_LibRI_routing(const atpair_R_mat_t &LRI_Cs,
                                                    const Vector3_Order<int> &R_period,
                                                    const vector<atpair_t> &atpairs_ABF,
                                                    const vector<Vector3_Order<double>> &qlist)
 {
+#ifndef __USE_LIBRI
+    cout << "LibRI routing requested, but the executable is not compiled with LibRI" << endl;
+    cout << "Please recompiler libRPA with -DUSE_LIBRI and configure include path" << endl;
+    para_mpi.mpi_barrier();
+    throw std::logic_error("compilation");
+#else
     prof.start("LibRI_routing");
     map<int,std::array<double,3>> atoms_pos;
     for(int i=0;i!=atom_mu.size();i++)
@@ -385,8 +383,8 @@ void Chi0::build_chi0_q_space_time_LibRI_routing(const atpair_R_mat_t &LRI_Cs,
     if (para_mpi.is_master()) printf("\n");
     para_mpi.mpi_barrier();
     prof.stop("LibRI_routing");
-}
 #endif
+}
 
 
 void Chi0::build_chi0_q_space_time_R_tau_routing(const atpair_R_mat_t &LRI_Cs,
