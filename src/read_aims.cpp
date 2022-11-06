@@ -5,6 +5,7 @@
 #include <dirent.h>
 #include <algorithm>
 #include <parallel_mpi.h>
+#include <malloc.h>
 #include "atoms.h"
 #include "ri.h"
 #include "input.h"
@@ -440,14 +441,17 @@ void handle_Vq_row_file(const string &file_path, double threshold, atpair_k_cplx
                 {
                     auto J=Jp.first;
                     int Jb=atom_mu_part_range[J];
-                    int Je=atom_mu_part_range[J]+atom_mu[J];
+                    int Je=atom_mu_part_range[J]+atom_mu[J]-1;
+                    
                     if(ecol>=Jb && bcol<Je)
                     {
                         int start_point = ( bcol<=Jb ? Jb:bcol);
-                        for(int i=start_point;i<=ecol;i++)
+                        int end_point = (ecol<=Je? ecol:Je);
+                        for(int i=start_point;i<=end_point;i++)
                         {
                             int J_loc, nu_loc;
                             J_loc=atom_mu_glo2loc(i,nu_loc);
+                            //printf("|i: %d   J: %d   J_loc: %d, nu_loc: %d\n",i,J,J_loc,nu_loc);
                             assert(J==J_loc);
                             (*coulomb[I_loc][J_loc][qvec])(mu_loc,nu_loc)=tmp_row[i-bcol];
                         }
@@ -471,8 +475,12 @@ void erase_Cs_from_local_atp(atpair_R_mat_t &Cs, vector<atpair_t> &local_atpair)
     }
     for(auto &Ip:Cs)
         if(!loc_atp_index.count(Ip.first))
+        {
             Cs.erase(Ip.first);
-    printf("  |process %d, size of Cs after erase: %d\n",para_mpi.get_myid(),Cs.size());
+            
+        }
+    malloc_trim(0);
+    printf("  |process %d, size of Cs after erase: %d,  max_size: %d\n",para_mpi.get_myid(),Cs.size(),Cs.max_size());
 
 }
 // TODO: implement the wrapper of all input readers

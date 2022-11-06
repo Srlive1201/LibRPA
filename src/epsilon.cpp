@@ -1,5 +1,7 @@
 #include <algorithm>
 #include "epsilon.h"
+#include <math.h>
+#include <omp.h>
 #include "input.h"
 #include "params.h"
 #include "parallel_mpi.h"
@@ -86,21 +88,23 @@ complex<double> compute_pi_det_blacs(ComplexMatrix &loc_piT, const int row_nblk,
 CorrEnergy compute_RPA_correlation_blacs(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat)
 {
     CorrEnergy corr;
-    if(para_mpi.chi_parallel_type == Parallel_MPI::parallel_type::R_TAU)
-    {
-        compute_RPA_correlation(chi0,coulmat);
-        //return corr;
-    }
+    // if(para_mpi.chi_parallel_type == Parallel_MPI::parallel_type::R_TAU)
+    // {
+    //     compute_RPA_correlation(chi0,coulmat);
+    //     //return corr;
+    // }
     if (para_mpi.get_myid() == 0)
         printf("Calculating EcRPA with BLACS/ScaLAPACK\n");
     // printf("Calculating EcRPA with BLACS, pid:  %d\n", para_mpi.get_myid());
     const auto & mf = chi0.mf;
 
     //init blacs pi_mat
+    int np_row= int(sqrt(para_mpi.get_size()));
+    int np_col= int(para_mpi.get_size()/np_row);
     int desc_pi[9];
     int loc_row, loc_col, info;
-    int row_nblk=1;
-    int col_nblk=1;
+    int row_nblk=ceil(N_all_mu/np_row);
+    int col_nblk=ceil(N_all_mu/np_col);
     int one=1;
     para_mpi.set_blacs_mat(desc_pi,loc_row,loc_col,N_all_mu,N_all_mu,row_nblk,col_nblk);
     int *ipiv = new int [loc_row*10];
@@ -115,6 +119,7 @@ CorrEnergy compute_RPA_correlation_blacs(const Chi0 &chi0, const atpair_k_cplx_m
         const double freq_weight = chi0.tfg.find_freq_weight(freq);
         for (const auto &q_MuNuchi0 : freq_q_MuNuchi0.second)
         {
+            double task_begin = omp_get_wtime();
             const auto q = q_MuNuchi0.first;
             auto &MuNuchi0 = q_MuNuchi0.second;
             
@@ -125,9 +130,9 @@ CorrEnergy compute_RPA_correlation_blacs(const Chi0 &chi0, const atpair_k_cplx_m
                // printf(" |process %d,  Mu:  %d\n",para_mpi.get_myid(),Mu);
                 const size_t n_mu = atom_mu[Mu];
                 atom_mapping<ComplexMatrix>::pair_t_old Vq_row=gather_vq_row_q(Mu,coulmat,q);
-               // printf("   |process %d,   vq_row.size: %dn",para_mpi.get_myid(),Vq_row[Mu].size());
+                //printf("   |process %d, Mu: %d  vq_row.size: %d\n",para_mpi.get_myid(),Mu,Vq_row[Mu].size());
                 ComplexMatrix loc_pi_rowT=compute_Pi_freq_q_row(q,MuNuchi0,Vq_row,Mu);
-               // printf("   |process %d,   compute_pi\n",para_mpi.get_myid());
+                //printf("   |process %d,   compute_pi\n",para_mpi.get_myid());
                 ComplexMatrix glo_pi_rowT(N_all_mu, n_mu);
                 para_mpi.mpi_barrier();
                 para_mpi.allreduce_ComplexMatrix(loc_pi_rowT,glo_pi_rowT);
@@ -161,8 +166,12 @@ CorrEnergy compute_RPA_correlation_blacs(const Chi0 &chi0, const atpair_k_cplx_m
                 }
                 
             }
-            
+            double task_mid = omp_get_wtime();
+            //printf("|process  %d, before det\n",para_mpi.get_myid());
             complex<double> ln_det=compute_pi_det_blacs(loc_piT, row_nblk, col_nblk, desc_pi, ipiv, info);
+            double task_end = omp_get_wtime();
+            if(para_mpi.is_master())
+                printf("| After det for freq:  %f,  q: ( %d, %d, %d)   TIME_LOCMAT: %f   TIME_DET: %f\n",freq, q.x,q.y,q.z,task_mid-task_begin,task_end-task_mid);
             //para_mpi.mpi_barrier();
             if(para_mpi.get_myid()==0)
             {

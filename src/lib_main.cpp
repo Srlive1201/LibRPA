@@ -1,5 +1,6 @@
 #include "lib_main.h"
 #include <algorithm>
+#include <malloc.h>
 #include "scalapack_connector.h"
 #include <set>
 int main(int argc, char **argv)
@@ -106,7 +107,15 @@ int main(int argc, char **argv)
         READ_Vq_Full("./", "coulomb_mat", params.vq_threshold, Vq); 
         local_atpair = get_atom_pair(Vq);
     }
+    // malloc_trim(0);
+    // para_mpi.mpi_barrier();
+    // if(para_mpi.is_master())
+    //     system("free -m");
     erase_Cs_from_local_atp(Cs,local_atpair);
+    // malloc_trim(0);
+    // para_mpi.mpi_barrier();
+    // if(para_mpi.is_master())
+    //     system("free -m");
     //READ_Vq_Row("./", "coulomb_mat", params.vq_threshold, Vq, local_atpair);
     /* if(argv[1][0]=='0') */
     /*     ap_chi0.chi0_main(argv[1],argv[2]);  */
@@ -149,12 +158,22 @@ int main(int argc, char **argv)
             }
         }
     }
-
+    //malloc_trim(0);
+    
+    // para_mpi.mpi_barrier();
+    // if(para_mpi.is_master())
+    //     system("free -m");
+    for(auto &Cp:Cs)
+    {
+        Cs.erase(Cp.first);
+       
+    }
+    malloc_trim(0);
     // RPA total energy
     if ( params.task == "rpa" )
     {
         CorrEnergy corr;
-        if (params.use_scalapack_ecrpa)
+        if (params.use_scalapack_ecrpa && para_mpi.chi_parallel_type==Parallel_MPI::parallel_type::ATOM_PAIR)
             corr = compute_RPA_correlation_blacs(chi0, Vq);
         else
             corr = compute_RPA_correlation(chi0, Vq);
