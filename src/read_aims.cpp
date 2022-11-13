@@ -58,7 +58,7 @@ void READ_AIMS_BAND(const string &file_path, MeanField &mf)
 void READ_AIMS_EIGENVECTOR(const string &dir_path, MeanField &mf)
 {
     // cout<<"Begin to read aims eigenvecor"<<endl;
-    assert(mf.get_n_spins() == 1);
+    //assert(mf.get_n_spins() == 1);
 
     struct dirent *ptr;
     DIR *dir;
