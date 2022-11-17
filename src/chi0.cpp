@@ -110,9 +110,14 @@ void Chi0::build_gf_Rt(Vector3_Order<int> R, double tau)
         if ( tau > 0)
             for (int i = 0; i != wg.size; i++)
             {
-                wg.c[i] = 1.0 / nkpts * nspins - wg.c[i];
+                //wg.c[i] = 1.0 / nkpts *nspins - wg.c[i];
+                wg.c[i] = 1.0 / nkpts  - wg.c[i]/2*nspins;//
                 if (wg.c[i] < 0) wg.c[i] = 0;
             }
+        else
+        {
+            wg *=0.5 *nspins;
+        }
         matrix scale(nkpts, nbands);
         // tau-energy phase
         scale = - 0.5 * tau * (mf.get_eigenvals()[is] - mf.get_efermi());
@@ -431,7 +436,7 @@ void Chi0::build_chi0_q_space_time_R_tau_routing(const atpair_R_mat_t &LRI_Cs,
                 // double chi0_ele_begin = omp_get_wtime();
                 matrix chi0_tau;
                 /* if (itau == 0) // debug first itau */
-                    chi0_tau = compute_chi0_s_munu_tau_R(LRI_Cs, R_period, is, Mu, Nu, tau, R);
+                    chi0_tau = 2.0 /mf.get_n_spins() * compute_chi0_s_munu_tau_R(LRI_Cs, R_period, is, Mu, Nu, tau, R);
                 /* else continue; // debug first itau */
                 // double chi0_ele_t = omp_get_wtime() - chi0_ele_begin;
                 omp_set_lock(&chi0_lock);

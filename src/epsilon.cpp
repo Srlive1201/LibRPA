@@ -177,8 +177,8 @@ CorrEnergy compute_RPA_correlation_blacs(const Chi0 &chi0, const atpair_k_cplx_m
             {
                 complex<double> rpa_for_omega_q=trace_pi+ln_det;
                 //cout << " ifreq:" << freq << "      rpa_for_omega_k: " << rpa_for_omega_q << "      lnt_det: " << ln_det << "    trace_pi " << trace_pi << endl;
-                cRPA_q[q] += rpa_for_omega_q * freq_weight * irk_weight[q] * double(mf.get_n_spins()) / TWO_PI;
-                tot_RPA_energy += rpa_for_omega_q * freq_weight * irk_weight[q] * double(mf.get_n_spins()) / TWO_PI;
+                cRPA_q[q] += rpa_for_omega_q * freq_weight * irk_weight[q] / TWO_PI;//!check
+                tot_RPA_energy += rpa_for_omega_q * freq_weight * irk_weight[q] / TWO_PI;
             }
         }
     }
@@ -320,8 +320,8 @@ CorrEnergy compute_RPA_correlation(const Chi0 &chi0, const atpair_k_cplx_mat_t &
                 // cout << endl;
                 rpa_for_omega_q = ln_det + trace_pi;
                 // cout << " ifreq:" << freq << "      rpa_for_omega_k: " << rpa_for_omega_q << "      lnt_det: " << ln_det << "    trace_pi " << trace_pi << endl;
-                cRPA_q[q] += rpa_for_omega_q * freq_weight * irk_weight[q] * double(mf.get_n_spins()) / TWO_PI;
-                tot_RPA_energy += rpa_for_omega_q * freq_weight * irk_weight[q] * double(mf.get_n_spins()) / TWO_PI;
+                cRPA_q[q] += rpa_for_omega_q * freq_weight * irk_weight[q] / TWO_PI;
+                tot_RPA_energy += rpa_for_omega_q * freq_weight * irk_weight[q]  / TWO_PI;
             }
         }
     
@@ -379,8 +379,8 @@ map<double, map<Vector3_Order<double>, atom_mapping<ComplexMatrix>::pair_t_old>>
         
     }
 
-    ofstream fp;
-    std::stringstream ss;
+    // ofstream fp;
+    // std::stringstream ss;
     // ss<<"out_pi_rank_"<<para_mpi.get_myid()<<".txt";
     // fp.open(ss.str());
     for (auto &freq_p : chi0.get_chi0_q())
@@ -408,7 +408,7 @@ map<double, map<Vector3_Order<double>, atom_mapping<ComplexMatrix>::pair_t_old>>
                             // if (freq == chi0.tfg.get_freq_nodes()[0])
                             //     printf("cal_pi  pid: %d , IJQ:  %d  %d  %d   type: %d \n", para_mpi.get_myid(), I, J, Q,1);
                             //      << "  Vq: " << (*Vq.at(I).at(J).at(ik_vec))(0, 0) << endl;
-                            pi.at(freq).at(ik_vec).at(I).at(Q) += (*Vq.at(I).at(J).at(ik_vec)) * chi0_mat;
+                            // pi.at(freq).at(ik_vec).at(I).at(Q) += (*Vq.at(I).at(J).at(ik_vec)) * chi0_mat;
                             // if (freq == chi0.tfg.get_freq_nodes()[0])
                             // {
                             //     std:stringstream sm;
@@ -418,7 +418,7 @@ map<double, map<Vector3_Order<double>, atom_mapping<ComplexMatrix>::pair_t_old>>
                             //     print_complex_matrix_file(sm.str().c_str(), (*Vq.at(I).at(J).at(ik_vec)),fp,false);
                             //     print_complex_matrix_file("chi0:", chi0_mat,fp,false);
                             //     print_complex_matrix_file("pi_mat:", pi.at(freq).at(ik_vec).at(I).at(Q),fp,false);
-                            // }
+                            //}
                         }
                         else
                         {

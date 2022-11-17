@@ -37,12 +37,13 @@ void READ_AIMS_BAND(const string &file_path, MeanField &mf)
 
     auto & eskb = mf.get_eigenvals();
     auto & wg = mf.get_weight();
-
-    for (int is = 0; is != n_spins; is++)
-        for (int ik = 0; ik != n_kpoints; ik++)
+    //cout<<"|eskb: "<<endl;
+    for (int ik = 0; ik != n_kpoints; ik++)
+    {
+        for (int is = 0; is != n_spins; is++)
         {
             infile >> ks >> ss;
-            // cout<<ik<<is<<endl;
+            //cout<<ik<<is<<endl;
             int k_index = stoi(ks) - 1;
             // int s_index = stoi(ss) - 1;
             for (int i = 0; i != n_bands; i++)
@@ -51,8 +52,12 @@ void READ_AIMS_BAND(const string &file_path, MeanField &mf)
                 // cout<<a<<b<<c<<d<<endl;
                 wg[is](k_index, i) = stod(ws) / n_kpoints; // different with abacus!
                 eskb[is](k_index, i) = stod(es) * 2;
+                //cout<<" i_band: "<<i<<"    eskb: "<<eskb[is](k_index, i)<<endl;
             }
         }
+    }
+    for (int is = 0; is != n_spins; is++)
+        print_matrix("eskb_mat",eskb[is]);
 }
 
 void READ_AIMS_EIGENVECTOR(const string &dir_path, MeanField &mf)
@@ -74,6 +79,9 @@ void READ_AIMS_EIGENVECTOR(const string &dir_path, MeanField &mf)
     }
     closedir(dir);
     dir = NULL;
+    auto tmp_wfc=mf.get_eigenvectors();
+    for(int is=0;is!=mf.get_n_spins();is++)
+        print_complex_matrix("wfc ",tmp_wfc.at(is).at(0));
     // cout << "Finish read KS_eignvector! " << endl;
 }
 

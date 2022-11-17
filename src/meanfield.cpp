@@ -82,6 +82,8 @@ double MeanField::get_band_gap()
     // FIXME: should be nspins/nkpoints?
     double midpoint = 1.0 / (n_spins * n_kpoints);
     for (int is = 0; is != n_spins; is++)
+    {
+        //print_matrix("mf.eskb: ",this->eskb[is]);
         for (int ik = 0; ik != n_kpoints; ik++)
         {
             int homo_level = 0;
@@ -92,12 +94,12 @@ double MeanField::get_band_gap()
                     homo_level = n;
                 }
             }
-            if (homo < eskb[is](ik, homo_level))
-                homo = eskb[is](ik, homo_level);
-
-            if (lumo > eskb[is](ik, homo_level + 1))
-                lumo = eskb[is](ik, homo_level + 1);
+            //cout<<"|is ik: "<<is<<" "<<ik<<"  homo_level: "<<homo_level<<"   eskb0: "<<eskb[is](ik, homo_level)<<"  eskb1: "<<eskb[is](ik, homo_level + 1)<<endl;
+            homo = eskb[is](ik, homo_level) > homo ? eskb[is](ik, homo_level) : homo;
+            lumo = eskb[is](ik, homo_level + 1) < lumo ?  eskb[is](ik, homo_level + 1) : lumo;
+            //cout<<"   homo: "<<homo<<"  lumo: "<<lumo<<endl;
         }
+    }
     gap = 0.5 * (lumo - homo);
     return gap;
 }
