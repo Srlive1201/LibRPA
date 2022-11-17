@@ -418,7 +418,7 @@ map<double, map<Vector3_Order<double>, atom_mapping<ComplexMatrix>::pair_t_old>>
                             //     print_complex_matrix_file(sm.str().c_str(), (*Vq.at(I).at(J).at(ik_vec)),fp,false);
                             //     print_complex_matrix_file("chi0:", chi0_mat,fp,false);
                             //     print_complex_matrix_file("pi_mat:", pi.at(freq).at(ik_vec).at(I).at(Q),fp,false);
-                            }
+                            //}
                         }
                         else
                         {
