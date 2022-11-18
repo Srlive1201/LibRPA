@@ -56,8 +56,8 @@ void READ_AIMS_BAND(const string &file_path, MeanField &mf)
             }
         }
     }
-    for (int is = 0; is != n_spins; is++)
-        print_matrix("eskb_mat",eskb[is]);
+    // for (int is = 0; is != n_spins; is++)
+    //     print_matrix("eskb_mat",eskb[is]);
 }
 
 void READ_AIMS_EIGENVECTOR(const string &dir_path, MeanField &mf)
@@ -79,9 +79,9 @@ void READ_AIMS_EIGENVECTOR(const string &dir_path, MeanField &mf)
     }
     closedir(dir);
     dir = NULL;
-    auto tmp_wfc=mf.get_eigenvectors();
-    for(int is=0;is!=mf.get_n_spins();is++)
-        print_complex_matrix("wfc ",tmp_wfc.at(is).at(0));
+    //auto tmp_wfc=mf.get_eigenvectors();
+    // for(int is=0;is!=mf.get_n_spins();is++)
+    //     print_complex_matrix("wfc ",tmp_wfc.at(is).at(0));
     // cout << "Finish read KS_eignvector! " << endl;
 }
 
@@ -305,7 +305,7 @@ void handle_Vq_full_file(const string &file_path, double threshold, map<Vector3_
         infile >> nbasbas >> begin_row >> end_row >> begin_col >> end_col;
         if (infile.peek() == EOF)
             break;
-        // cout << "vq range: " << begin_row << " ~ " << end_row << "  ,   " << begin_col << " ~ " << end_col << endl;
+        //cout << "vq range: " << begin_row << " ~ " << end_row << "  ,   " << begin_col << " ~ " << end_col << endl;
         infile >> q_num >> q_weight;
         int mu = stoi(nbasbas);
         int nu = stoi(nbasbas);
@@ -314,6 +314,8 @@ void handle_Vq_full_file(const string &file_path, double threshold, map<Vector3_
         int bcol = stoi(begin_col) - 1;
         int ecol = stoi(end_col) - 1;
         int iq = stoi(q_num) - 1;
+        if((erow-brow<=0) || (ecol-bcol<=0))
+            return;
         Vector3_Order<double> qvec(kvec_c[iq]);
         // skip duplicate insert of k weight, since 
         if (irk_weight.count(qvec) == 0)
