@@ -103,8 +103,10 @@ CorrEnergy compute_RPA_correlation_blacs(const Chi0 &chi0, const atpair_k_cplx_m
     int np_col= int(para_mpi.get_size()/np_row);
     int desc_pi[9];
     int loc_row, loc_col, info;
-    int row_nblk=ceil(N_all_mu/np_row);
-    int col_nblk=ceil(N_all_mu/np_col);
+    int row_nblk=ceil(double(N_all_mu)/np_row);
+    int col_nblk=ceil(double(N_all_mu)/np_col);
+    if(para_mpi.is_master())
+        printf("| BLACS row_nblk: %d,  col_nblk: %d\n",row_nblk,col_nblk);
     int one=1;
     para_mpi.set_blacs_mat(desc_pi,loc_row,loc_col,N_all_mu,N_all_mu,row_nblk,col_nblk);
     int *ipiv = new int [loc_row*10];
@@ -567,22 +569,42 @@ ComplexMatrix compute_Pi_freq_q_row(const Vector3_Order<double> &ik_vec, const a
     auto I_mu=atom_mu[I];
     for(int J=0;J!=natom;J++)
         pi[J].create(I_mu,atom_mu[J]);
-   
-    for (auto &J_p : chi0_freq_q)
+
+omp_lock_t pi_lock;
+omp_init_lock(&pi_lock);
+#pragma omp parallel for schedule(dynamic)
+    for (int iap=0;iap!=local_atpair.size();iap++)
     {
-        const size_t J = J_p.first;
-        for (auto &Q_p : J_p.second)
-        {
-            const size_t Q = Q_p.first;
-            auto &chi0_mat = Q_p.second;
-            pi.at(Q) += Vq_row.at(I).at(J) * chi0_mat;
-            if (J != Q)
+        const size_t J = local_atpair[iap].first;
+        const size_t Q = local_atpair[iap].second;
+        auto &chi0_mat= chi0_freq_q.at(J).at(Q);
+        auto tmp_pi_mat= Vq_row.at(I).at(J) * chi0_mat;
+        ComplexMatrix chi0_QJ = transpose(chi0_mat, 1);
+        auto tmp_pi_mat2= Vq_row.at(I).at(Q) * chi0_QJ;
+        omp_set_lock(&pi_lock);
+        pi.at(Q)+=tmp_pi_mat;
+        if(J!=Q)
             {
-                ComplexMatrix chi0_QJ = transpose(chi0_mat, 1);
-                pi.at(J) += Vq_row.at(I).at(Q) * chi0_QJ;
+                pi.at(J)+=tmp_pi_mat2;
             }
-        }
+        omp_unset_lock(&pi_lock);
     }
+    omp_destroy_lock(&pi_lock);
+    // for (auto &J_p : chi0_freq_q)
+    // {
+    //     const size_t J = J_p.first;
+    //     for (auto &Q_p : J_p.second)
+    //     {
+    //         const size_t Q = Q_p.first;
+    //         auto &chi0_mat = Q_p.second;
+    //         pi.at(Q) += Vq_row.at(I).at(J) * chi0_mat;
+    //         if (J != Q)
+    //         {
+    //             ComplexMatrix chi0_QJ = transpose(chi0_mat, 1);
+    //             pi.at(J) += Vq_row.at(I).at(Q) * chi0_QJ;
+    //         }
+    //     }
+    // }
     //Pi_rowT 
     // ComplexMatrix pi_row(N_all_mu,atom_mu[I]);
     // complex<double> *pi_row_ptr=pi_row.c;

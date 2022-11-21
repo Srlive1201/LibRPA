@@ -10,6 +10,9 @@ map<atom_t, size_t> atom_mu;
 vector<size_t> atom_mu_part_range;
 int N_all_mu;
 
+vector<atpair_t> tot_atpair;
+vector<atpair_t> local_atpair;
+
 atpair_R_mat_t Cs;
 atpair_k_cplx_mat_t Vq;
 atpair_k_cplx_mat_t Vq_cut;

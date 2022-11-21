@@ -420,11 +420,11 @@ void Chi0::build_chi0_q_space_time_R_tau_routing(const atpair_R_mat_t &LRI_Cs,
     // double t_chi0_begin = omp_get_wtime();
     // double t_chi0_tot = 0;
 #pragma omp parallel for schedule(dynamic)
-    for ( auto itau_iR: itauiRs_local)
+    for ( int i=0;i!= itauiRs_local.size();i++)
     {
-        auto itau = itau_iR.first;
+        auto itau = itauiRs_local[i].first;
         auto tau = tfg.get_time_nodes()[itau];
-        auto iR = itau_iR.second;
+        auto iR = itauiRs_local[i].second;
         auto R = Rlist_gf[iR];
         double t_Rtau_begin = omp_get_wtime();
         for ( auto atpair: atpairs_ABF)

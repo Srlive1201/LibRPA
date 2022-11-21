@@ -85,7 +85,7 @@ int main(int argc, char **argv)
 
     READ_AIMS_Cs("./", params.cs_threshold);
 
-    vector<atpair_t> tot_atpair = generate_atom_pair_from_nat(natom, false);
+    tot_atpair = generate_atom_pair_from_nat(natom, false);
     if (para_mpi.is_master())
         cout << "| Natoms: " << natom << "   tot_atpairs:  " << tot_atpair.size() << endl;
     // barrier to wait for information print on master process
@@ -93,7 +93,7 @@ int main(int argc, char **argv)
     
     para_mpi.set_chi_parallel_type(tot_atpair.size(),Rt_num,params.use_libri_chi0);
     //para_mpi.chi_parallel_type=Parallel_MPI::parallel_type::ATOM_PAIR;
-    vector<atpair_t> local_atpair;
+    //vector<atpair_t> local_atpair;
     if(para_mpi.chi_parallel_type==Parallel_MPI::parallel_type::ATOM_PAIR)
     {
         local_atpair = dispatch_vector(tot_atpair, para_mpi.get_myid(), para_mpi.get_size(), true);

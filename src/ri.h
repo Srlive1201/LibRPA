@@ -21,6 +21,10 @@ extern map<atom_t, size_t> atom_nw;
 extern map<atom_t, size_t> atom_mu;
 extern vector<size_t> atom_mu_part_range;
 extern int N_all_mu;
+
+extern vector<atpair_t> tot_atpair;
+extern vector<atpair_t> local_atpair;
+
 //! type alias of atom-pair mapping to real matrix indexed by unit-cell vector
 typedef atom_mapping< map<Vector3_Order<int>, std::shared_ptr<matrix>> >::pair_t_old atpair_R_mat_t;
 //! type alias of atom-pair mapping to complex matrix indexed by unit-cell vector
