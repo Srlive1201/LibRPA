@@ -528,7 +528,7 @@ void Chi0::build_chi0_q_space_time_atom_pair_routing(const atpair_R_mat_t &LRI_C
                     for (auto it = 0; it != tfg.size(); it++)
                     {
                         double tau = tfg.get_time_nodes()[it];
-                        ComplexMatrix tmp_chi0_tau(ComplexMatrix(compute_chi0_s_munu_tau_R(LRI_Cs, R_period, is, Mu, Nu, tau, R)));
+                        ComplexMatrix tmp_chi0_tau(2.0 /mf.get_n_spins() * ComplexMatrix(compute_chi0_s_munu_tau_R(LRI_Cs, R_period, is, Mu, Nu, tau, R)));
                         for (auto &q : qlist)
                         {
                             const double arg = (q * (R * latvec)) * TWO_PI;
