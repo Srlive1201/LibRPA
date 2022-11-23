@@ -86,7 +86,7 @@ double MeanField::get_band_gap()
         //print_matrix("mf.eskb: ",this->eskb[is]);
         for (int ik = 0; ik != n_kpoints; ik++)
         {
-            int homo_level = 0;
+            int homo_level = -1;
             for (int n = 0; n != n_bands; n++)
             {
                 if (wg[is](ik, n) >= midpoint)
@@ -95,8 +95,10 @@ double MeanField::get_band_gap()
                 }
             }
             //cout<<"|is ik: "<<is<<" "<<ik<<"  homo_level: "<<homo_level<<"   eskb0: "<<eskb[is](ik, homo_level)<<"  eskb1: "<<eskb[is](ik, homo_level + 1)<<endl;
-            homo = eskb[is](ik, homo_level) > homo ? eskb[is](ik, homo_level) : homo;
             lumo = eskb[is](ik, homo_level + 1) < lumo ?  eskb[is](ik, homo_level + 1) : lumo;
+            if(homo_level != -1)
+                homo = eskb[is](ik, homo_level) > homo ? eskb[is](ik, homo_level) : homo;
+            
             //cout<<"   homo: "<<homo<<"  lumo: "<<lumo<<endl;
         }
     }
