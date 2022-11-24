@@ -1,6 +1,7 @@
 #ifndef PARALLEL_MPI_H
 #define PARALLEL_MPI_H
 
+#include "atomic_basis.h"
 #include "matrix.h"
 #include "matrix_m.h"
 #include "complexmatrix.h"
@@ -8,6 +9,7 @@
 #include <mpi.h>
 #include <string>
 #include <cassert>
+#include <set>
 #include <vector>
 #include <utility>
 #include <map>
@@ -128,7 +130,7 @@ private:
     int n_local_;
 
     //! flag to indicate that the current process should contain no data of local matrix, but for scalapack routines, it will generate a dummy matrix of size 1, nrows = ncols = 1
-    bool gen_dummy_matrix_ = false;
+    bool empty_local_mat_ = false;
 
     //! flag for initialization
     bool initialized_ = false;
@@ -159,6 +161,8 @@ template <typename T>
 inline matrix_m<T> init_local_mat(const Array_Desc &ad, MAJOR major)
 {
     matrix_m<T> mat_lo(ad.m_loc(), ad.n_loc(), major);
+    if (mat_lo.size() == 0)
+        mat_lo.resize(1, 1);
     return mat_lo;
 }
 
@@ -180,6 +184,8 @@ inline matrix_m<T> get_local_mat(const matrix_m<T> &mat_go, const Array_Desc &ad
             mat_lo(i_lo, j_lo) = mat_go(i, j);
         }
     }
+    if (mat_lo.size() == 0)
+        mat_lo.resize(1, 1);
     return mat_lo;
 }
 
@@ -188,6 +194,8 @@ inline matrix_m<T> get_local_mat(const matrix_m<T> &mat_go, const Array_Desc &ad
 std::pair<Array_Desc, Array_Desc> prepare_array_desc_mr2d_src_and_all(
     const BLACS_CTXT_handler &ctxt_h, const int &m, const int &n, const int &mb,
     const int &nb, const int &irsrc, const int &icsrc);
+
+std::set<std::pair<int, int>> get_necessary_IJ_from_block_2D(const AtomicBasis &atbasis, const Array_Desc& arrdesc);
 
 } // namespace LIBRPA
 

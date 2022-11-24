@@ -16,13 +16,24 @@
 #include "lapack_connector.h"
 #include "vec.h"
 
+//! type alias for functors to map 2D array index to flatten array index
+typedef std::function<int(const int& nr, const int& ir, const int& nc, const int& ic)> Indx_picker_2d;
 // major dependent flatted index of 2D matrix
-// row-major
+//! row-major 2D index picker
 inline int flatid_rm(const int &nr, const int &ir, const int &nc, const int &ic) { return ir*nc+ic; }
-// column-major
+//! column-major 2D index picker
 inline int flatid_cm(const int &nr, const int &ir, const int &nc, const int &ic) { return ic*nr+ir; }
 
-enum MAJOR { ROW, COL };
+enum MAJOR
+{
+    ROW = 0,
+    COL = 1
+};
+const Indx_picker_2d Indx_pickers_2d[]
+{
+    flatid_rm,
+    flatid_cm
+};
 
 template <typename T>
 void get_nr_nc_from_nested_vector(const std::vector<std::vector<T>> &nested_vec, int &nr, int &nc)
@@ -42,20 +53,13 @@ void expand_nested_vector_to_pointer(const std::vector<std::vector<T>> &nested_v
     if (nr < nr_) nr_ = nr;
     if (nc < nc_) nc_ = nc;
 
+    const Indx_picker_2d picker = Indx_pickers_2d[int(!row_major)];
+
     if (nr&&nc)
     {
-        if (row_major)
-        {
-            for (int ir = 0; ir < nr_; ir++)
-                for (int ic = 0; ic < std::min(size_t(nc_), nested_vector[ir].size()); ic++)
-                    c[ir*nc+ic] = nested_vector[ir][ic];
-        }
-        else
-        {
-            for (int ir = 0; ir < nr_; ir++)
-                for (int ic = 0; ic < std::min(size_t(nc_), nested_vector[ir].size()); ic++)
-                    c[ic*nr+ir] = nested_vector[ir][ic];
-        }
+        for (int ir = 0; ir < nr_; ir++)
+            for (int ic = 0; ic < std::min(size_t(nc_), nested_vector[ir].size()); ic++)
+                c[picker(nr, ir, nc, ic)] = nested_vector[ir][ic];
     }
 }
 
@@ -79,7 +83,7 @@ private:
     //! The number of matrix elements, i.e. nr * nc
     int size_;
     //! Function to extract the data in the memory from 2D indexing
-    std::function<int(const int& nr, const int& ir, const int& nc, const int& ic)> indx_picker_2d_;
+    Indx_picker_2d indx_picker_2d_;
 
 public:
     // std::shared_ptr<std::valarray<T>> data; // to conform with LibRI tensor
@@ -91,12 +95,19 @@ private:
         for (int i = 0; i < size_; i++)
             c[i] = v;
     }
-    void assign_value(const T* const pv)
+    void assign_value(const T* const pv, MAJOR major_pv)
     {
-        // do not check out of bound
-        // data are copied from pv as it is, despite the major
-        for (int i = 0; i < size_; i++)
-            c[i] = pv[i];
+        if (major_ == major_pv)
+        {
+            for (int i = 0; i < size_; i++) c[i] = pv[i];
+        }
+        else
+        {
+            const Indx_picker_2d pv_picker = Indx_pickers_2d[major_pv];
+            for (int ir = 0; ir < nr_; ir++)
+                for (int ic = 0; ic < nc_; ic++)
+                    this->at(ir, ic) = pv[pv_picker(nr_, ir, nc_, ic)];
+        }
     }
 
     void allocate_storage()
@@ -175,13 +186,13 @@ public:
         allocate_storage();
         zero_out();
     }
-    matrix_m(const int &nrows, const int &ncols, const T * const valarr, MAJOR major = MAJOR::ROW): nr_(nrows), nc_(ncols), major_(major), c(nullptr)
+    matrix_m(const int &nrows, const int &ncols, const T * const valarr, MAJOR major = MAJOR::ROW, MAJOR major_valarr = MAJOR::ROW): nr_(nrows), nc_(ncols), major_(major), c(nullptr)
     {
         set_rank_size();
         set_indx_picker();
         allocate_storage();
         zero_out();
-        assign_value(valarr);
+        assign_value(valarr, major_valarr);
     }
     // constructor from a nested vector
     matrix_m(const std::vector<std::vector<T>> &nested_vector, MAJOR major = MAJOR::ROW): major_(major), c(nullptr)

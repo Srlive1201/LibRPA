@@ -46,6 +46,7 @@ if (NOT BUILD_LIBRARY)
           ../src/matrix.cpp
           )
   target_sources(test_parallel_mpi PRIVATE
+          ../src/atomic_basis.cpp
           ../src/parallel_mpi.cpp
           ../src/matrix.cpp
           ../src/complexmatrix.cpp

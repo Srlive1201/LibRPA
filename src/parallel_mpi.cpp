@@ -296,9 +296,7 @@ int Array_Desc::init(const int &m, const int &n, const int &mb, const int &nb,
     // this is CRUCIAL when calling scalapack for small matrix with many processors
     if (m_local_ < 1 || n_local_ < 1)
     {
-        gen_dummy_matrix_ = true;
-        m_local_ = 1;
-        n_local_ = 1;
+        empty_local_mat_ = true;
     }
 
     ScalapackConnector::descinit(this->desc, m, n, mb, nb, irsrc, icsrc, ictxt_, lld_, info);
@@ -328,40 +326,40 @@ std::string Array_Desc::info() const
          + "PCOOR (" + std::to_string(myprow_) + "," + std::to_string(mypcol_) + ") "
          + "GSIZE (" + std::to_string(m_) + "," + std::to_string(n_) + ") "
          + "LSIZE (" + std::to_string(m_local_) + "," + std::to_string(n_local_) + ") "
-         + "DUMMY? " + std::string(gen_dummy_matrix_? "T" : "F");
+         + "DUMMY? " + std::string(empty_local_mat_? "T" : "F");
     return info;
 }
 
 int Array_Desc::indx_g2l_r(int gindx) const
 {
-    // return myprow_ != ScalapackConnector::indxg2p(gindx, mb_, myprow_, irsrc_, nprows_)
-    //            ? -1
-    //            : ScalapackConnector::indxg2l(gindx, mb_, myprow_, irsrc_, nprows_);
-	int inproc = int((gindx % (mb_*nprows_)) / mb_);
-	if(myprow_==inproc)
-	{
-		return int(gindx / (mb_*nprows_))*mb_ + gindx % mb_;
-	}
-	else
-	{
-		return -1;
-	}
+    return myprow_ != ScalapackConnector::indxg2p(gindx, mb_, myprow_, irsrc_, nprows_)
+               ? -1
+               : ScalapackConnector::indxg2l(gindx, mb_, myprow_, irsrc_, nprows_);
+	// int inproc = int((gindx % (mb_*nprows_)) / mb_);
+	// if(myprow_==inproc)
+	// {
+	// 	return int(gindx / (mb_*nprows_))*mb_ + gindx % mb_;
+	// }
+	// else
+	// {
+	// 	return -1;
+	// }
 }
 
 int Array_Desc::indx_g2l_c(int gindx) const
 {
-    // return mypcol_ != ScalapackConnector::indxg2p(gindx, nb_, mypcol_, icsrc_, npcols_)
-    //            ? -1
-    //            : ScalapackConnector::indxg2l(gindx, nb_, mypcol_, icsrc_, npcols_);
-	int inproc = int((gindx % (nb_*npcols_)) / mb_);
-	if(mypcol_==inproc)
-	{
-		return int(gindx / (nb_*npcols_))*nb_ + gindx % nb_;
-	}
-	else
-	{
-		return -1;
-	}
+    return mypcol_ != ScalapackConnector::indxg2p(gindx, nb_, mypcol_, icsrc_, npcols_)
+               ? -1
+               : ScalapackConnector::indxg2l(gindx, nb_, mypcol_, icsrc_, npcols_);
+	// int inproc = int((gindx % (nb_*npcols_)) / mb_);
+	// if(mypcol_==inproc)
+	// {
+	// 	return int(gindx / (nb_*npcols_))*nb_ + gindx % nb_;
+	// }
+	// else
+	// {
+	// 	return -1;
+	// }
 }
 
 int Array_Desc::indx_l2g_r(int lindx) const
@@ -388,6 +386,27 @@ std::pair<Array_Desc, Array_Desc> prepare_array_desc_mr2d_src_and_all(const BLAC
     desc_fullblk_on_src.init(m, n, m, n, irsrc, icsrc);
     desc_all_procs.init(m, n, mb, nb, irsrc, icsrc);
     return {desc_fullblk_on_src, desc_all_procs};
+}
+
+std::set<std::pair<int, int>> get_necessary_IJ_from_block_2D(const AtomicBasis &atbasis, const Array_Desc& arrdesc)
+{
+    std::set<std::pair<int, int>> IJs;
+    if (arrdesc.m() != atbasis.nb_total || arrdesc.n() != atbasis.nb_total)
+        throw std::invalid_argument("basis and array descriptor inconsistent");
+    const auto mlo = arrdesc.m_loc();
+    const auto nlo = arrdesc.n_loc();
+    size_t glo;
+    int I, J;
+    for (int ilo = 0; ilo != mlo; ilo++)
+        for (int jlo = 0; jlo != nlo; jlo++)
+        {
+            glo = arrdesc.indx_l2g_r(ilo);
+            I = atbasis.get_i_atom(glo);
+            glo = arrdesc.indx_l2g_c(jlo);
+            J = atbasis.get_i_atom(glo);
+            IJs.insert({I, J});
+        }
+    return IJs;
 }
 
 } // namespace LIBRPA
