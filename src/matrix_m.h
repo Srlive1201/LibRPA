@@ -642,6 +642,13 @@ inline matrix_m<T2> operator*(const T1 &cnum, const matrix_m<T2> &m)
     return m * cnum;
 }
 
+template <typename T>
+std::ostream& operator<<(std::ostream& os, const matrix_m<T> &m)
+{
+    os << str(m);
+    return os;
+}
+
 //! invert matrix m and store in m_inv
 template <typename T>
 void inverse(const matrix_m<T> &m, matrix_m<T> &m_inv)
