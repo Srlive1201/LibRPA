@@ -28,12 +28,12 @@ if (NOT BUILD_LIBRARY)
           ../src/matrix.cpp
           )
   target_sources(test_timefreq PRIVATE
+          ${CMAKE_CURRENT_BINARY_DIR}/../src/envs.cpp
           ../src/constants.cpp
           ../src/timefreq.cpp
           ../src/mathtools.cpp
           ../src/matrix.cpp
           ../src/complexmatrix.cpp
-          ${CMAKE_CURRENT_BINARY_DIR}/../src/envs.cpp
           )
   target_sources(test_pbc PRIVATE
           ../src/pbc.cpp

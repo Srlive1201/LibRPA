@@ -12,7 +12,7 @@ para_objects = test_parallel_mpi.exe
 
 test_targets = $(patsubst %.exe, run_%, $(serial_objects) $(para_objects))
 
-test_timefreq_deps = timefreq,envs,complexmatrix,matrix,mathtools,constants
+test_timefreq_deps = envs,timefreq,complexmatrix,matrix,mathtools,constants
 test_parallel_mpi_deps = parallel_mpi,matrix,complexmatrix,vector3_order
 test_pbc_deps = pbc,vector3_order
 test_meanfield_deps = meanfield,matrix,complexmatrix,constants
@@ -79,3 +79,4 @@ run_test_meanfield: test_meanfield.exe
 
 clean:
 	rm -f *.o *.exe
+	rm -f INFO.txt *grid*.txt local*.dat

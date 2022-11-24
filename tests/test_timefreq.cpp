@@ -1,7 +1,19 @@
-#include "testutils.h"
-#include "../src/timefreq.h"
 #include <iostream>
 #include <stdexcept>
+
+#include "../src/timefreq.h"
+#include "../src/envs.h"
+#include "testutils.h"
+
+using namespace std;
+
+void check_initialize()
+{
+    cout << "Available time-frequency grids: " << TFGrids::GRID_TYPES::COUNT << endl;
+    cout << source_dir << endl;
+    cout << minimax_grid_path << endl;
+    TFGrids tfg(6);
+}
 
 void check_minimax_ng16_diamond_k222()
 {
@@ -96,6 +108,7 @@ void check_minimax_ng6_HF_123()
 
 int main ()
 {
+    check_initialize();
     check_minimax_ng16_diamond_k222();
     check_minimax_ng6_HF_123();
     return 0;

@@ -1,8 +1,9 @@
 #include <mpi.h>
+
 #include <stdexcept>
-#include <stdexcept>
-#include "../src/parallel_mpi.h"
+
 #include "../src/matrix_m.h"
+#include "../src/parallel_mpi.h"
 #include "testutils.h"
 
 using namespace LIBRPA;
