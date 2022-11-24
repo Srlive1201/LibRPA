@@ -14,9 +14,17 @@ void test_constuctor()
     assert(ab.n_atoms == 3);
     assert(ab.nb_total == 12);
 
-    LIBRPA::AtomicBasis ab_from_map({0, 1, 1}, {{0, 4}, {1, 8}});
-    assert(ab_from_map.n_atoms == 3);
-    assert(ab_from_map.nb_total == (4 + 2 * 8));
+    // unordered iatom-nbasis set
+    // 3 atoms 2, 5, 4
+    ab.set({{1, 5}, {0, 2}, {4, 4}});
+    assert(ab.n_atoms == 3);
+    assert(ab.nb_total == 11);
+    assert(8 == ab.get_global_index(2, 1));
+    assert(4 == ab.get_global_index(1, 2));
+
+    LIBRPA::AtomicBasis ab_from_doublemap({0, 1, 1}, {{0, 4}, {1, 8}});
+    assert(ab_from_doublemap.n_atoms == 3);
+    assert(ab_from_doublemap.nb_total == (4 + 2 * 8));
 }
 
 void test_indexing()

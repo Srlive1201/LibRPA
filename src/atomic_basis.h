@@ -17,11 +17,13 @@ private:
 public:
     std::size_t n_atoms;
     std::size_t nb_total;
-    AtomicBasis() {};
+    AtomicBasis(): nbs_(), part_range(), n_atoms(0), nb_total(0) {};
     AtomicBasis(const std::vector<std::size_t>& nbs);
     AtomicBasis(const std::vector<int>& atoms,
                 const std::map<int, std::size_t>& map_atom_nb);
+    AtomicBasis(const std::map<std::size_t, std::size_t>& iatom_nbs);
     void set(const std::vector<std::size_t>& nbs);
+    void set(const std::map<std::size_t, std::size_t>& iatom_nbs);
     std::size_t get_global_index(const int& i_atom, const std::size_t& i_loc_b) const;
     int get_i_atom(const std::size_t& i_glo_b) const;
     void get_local_index(const std::size_t& i_glo_b, int& i_atom, int& i_loc_b) const;

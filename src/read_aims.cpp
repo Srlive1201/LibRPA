@@ -7,6 +7,7 @@
 #include <parallel_mpi.h>
 #include <malloc.h>
 #include "atoms.h"
+#include "atomic_basis.h"
 #include "ri.h"
 #include "input.h"
 
@@ -140,6 +141,9 @@ size_t READ_AIMS_Cs(const string &dir_path, double threshold)
     }
     closedir(dir);
     dir = NULL;
+    // initialize basis set object
+    LIBRPA::atomic_basis_wfc.set(atom_nw);
+    LIBRPA::atomic_basis_abf.set(atom_mu);
     
     atom_mu_part_range.resize(atom_mu.size());
     atom_mu_part_range[0]=0;

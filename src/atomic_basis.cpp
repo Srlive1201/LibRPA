@@ -1,7 +1,10 @@
+#include "atomic_basis.h"
+
+#include <algorithm>
 #include <cassert>
+#include <functional>
 #include <stdexcept>
 #include <string>
-#include "atomic_basis.h"
 
 namespace LIBRPA {
 
@@ -20,7 +23,7 @@ void AtomicBasis::initialize()
 
 AtomicBasis::AtomicBasis(const std::vector<int>& atoms,
                          const std::map<int, std::size_t>& map_atom_nb)
-    : nbs_()
+    : nbs_(), part_range(), n_atoms(0), nb_total(0)
 {
     for (const auto &atom: atoms)
     {
@@ -35,15 +38,40 @@ AtomicBasis::AtomicBasis(const std::vector<int>& atoms,
 }
 
 AtomicBasis::AtomicBasis(const std::vector<std::size_t>& nbs)
-    : nbs_(nbs)
+    : nbs_(nbs), part_range(), n_atoms(0), nb_total(0)
 {
     initialize();
+}
+
+AtomicBasis::AtomicBasis(const std::map<std::size_t, std::size_t>& iatom_nbs)
+    : nbs_(), part_range(), n_atoms(0), nb_total(0)
+{
+    // sort atom index first
+    // std::function<bool(const std::pair<std::size_t, std::size_t>&,
+    //                    const std::pair<std::size_t, std::size_t>&)>
+    set(iatom_nbs);
 }
 
 void AtomicBasis::set(const std::vector<std::size_t>& nbs)
 {
     nbs_.clear();
     nbs_ = nbs;
+    initialize();
+}
+
+void AtomicBasis::set(const std::map<std::size_t, std::size_t>& iatom_nbs)
+{
+    auto sortfn = [](const std::pair<std::size_t, std::size_t> &p1,
+                     const std::pair<std::size_t, std::size_t>& p2)
+                    { return p1.first < p2.first; };
+    std::vector<std::pair<std::size_t, std::size_t>> v_ianb;
+    for (const auto &ia_nb: iatom_nbs)
+        v_ianb.push_back(ia_nb);
+    std::sort(v_ianb.begin(), v_ianb.end(), sortfn);
+    std::vector<std::size_t> nbs;
+    nbs_.clear();
+    for (const auto &nb: v_ianb)
+        nbs_.push_back(nb.second);
     initialize();
 }
 
