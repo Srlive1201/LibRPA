@@ -366,20 +366,28 @@ int Array_Desc::indx_g2l_c(int gindx) const
 
 int Array_Desc::indx_l2g_r(int lindx) const
 {
-    // return ScalapackConnector::indxl2g(lindx, mb_, myprow_, irsrc_, nprows_);
-	int iblock, gIndex;
-	iblock = lindx / mb_;
-	gIndex = (iblock*nprows_ + myprow_)* mb_ + lindx % mb_;
-	return gIndex;
+    return ScalapackConnector::indxl2g(lindx, mb_, myprow_, irsrc_, nprows_);
+	// int iblock, gIndex;
+	// iblock = lindx / mb_;
+	// gIndex = (iblock*nprows_ + myprow_)* mb_ + lindx % mb_;
+	// return gIndex;
 }
 
 int Array_Desc::indx_l2g_c(int lindx) const
 {
-    // return ScalapackConnector::indxl2g(lindx, nb_, mypcol_, icsrc_, npcols_);
-	int iblock, gIndex;
-	iblock = lindx / nb_;
-	gIndex = (iblock*npcols_ + mypcol_)* nb_ + lindx % nb_;
-	return gIndex;
+    return ScalapackConnector::indxl2g(lindx, nb_, mypcol_, icsrc_, npcols_);
+	// int iblock, gIndex;
+	// iblock = lindx / nb_;
+	// gIndex = (iblock*npcols_ + mypcol_)* nb_ + lindx % nb_;
+	// return gIndex;
+}
+
+std::pair<Array_Desc, Array_Desc> prepare_array_desc_mr2d_src_and_all(const BLACS_CTXT_handler &ctxt_h, const int &m, const int &n, const int &mb, const int &nb, const int &irsrc, const int &icsrc)
+{
+    Array_Desc desc_fullblk_on_src(ctxt_h), desc_all_procs(ctxt_h);
+    desc_fullblk_on_src.init(m, n, m, n, irsrc, icsrc);
+    desc_all_procs.init(m, n, mb, nb, irsrc, icsrc);
+    return {desc_fullblk_on_src, desc_all_procs};
 }
 
 } // namespace LIBRPA

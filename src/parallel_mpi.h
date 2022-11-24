@@ -183,6 +183,12 @@ inline matrix_m<T> get_local_mat(const matrix_m<T> &mat_go, const Array_Desc &ad
     return mat_lo;
 }
 
+//! prepare array descriptors for distributing(collecting) submatrices
+//! from(to) a full matrix on source process with p?gemr2d
+std::pair<Array_Desc, Array_Desc> prepare_array_desc_mr2d_src_and_all(
+    const BLACS_CTXT_handler &ctxt_h, const int &m, const int &n, const int &mb,
+    const int &nb, const int &irsrc, const int &icsrc);
+
 } // namespace LIBRPA
 
 class Parallel_MPI
