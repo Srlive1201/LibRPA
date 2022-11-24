@@ -100,6 +100,176 @@ public:
     }
 
     static inline
+    void pscal_f(const int &N, const float &alpha, float *X,
+                 const int &IX, const int &JX, const int *DESCX,
+                 int &INCX)
+    {
+        psscal_(&N, &alpha, X, &IX, &JX, DESCX, &INCX);
+    }
+
+    static inline
+    void pscal_f(const int &N, const double &alpha, double *X,
+                 const int &IX, const int &JX, const int *DESCX,
+                 int &INCX)
+    {
+        pdscal_(&N, &alpha, X, &IX, &JX, DESCX, &INCX);
+    }
+
+    static inline
+    void pscal_f(const int &N, const std::complex<float> &alpha, std::complex<float> *X,
+                 const int &IX, const int &JX, const int *DESCX,
+                 int &INCX)
+    {
+        pcscal_(&N, &alpha, X, &IX, &JX, DESCX, &INCX);
+    }
+
+    static inline
+    void pscal_f(const int &N, const std::complex<double> &alpha, std::complex<double> *X,
+                 const int &IX, const int &JX, const int *DESCX,
+                 int &INCX)
+    {
+        pzscal_(&N, &alpha, X, &IX, &JX, DESCX, &INCX);
+    }
+
+    static inline
+    void pscal_f(const int &N, const float &alpha, std::complex<float> *X,
+                 const int &IX, const int &JX, const int *DESCX,
+                 int &INCX)
+    {
+        pcsscal_(&N, &alpha, X, &IX, &JX, DESCX, &INCX);
+    }
+
+    static inline
+    void pscal_f(const int &N, const double &alpha, std::complex<double> *X,
+                 const int &IX, const int &JX, const int *DESCX,
+                 int &INCX)
+    {
+        pzdscal_(&N, &alpha, X, &IX, &JX, DESCX, &INCX);
+    }
+
+    static inline
+    float pdot_f(const int &N, const float *X, const int &IX,
+                 const int &JX, const int *DESCX, const int &INCX,
+                 const float *Y, const int &IY, const int &JY,
+                 const int *DESCY, const int &INCY)
+    {
+        float result = 0.0;
+        psdot_(&N, &result, X, &IX, &JX, DESCX, &INCX, Y, &IY, &JY, DESCY, &INCY);
+        return result;
+    }
+
+    static inline
+    double pdot_f(const int &N, const double *X, const int &IX,
+                 const int &JX, const int *DESCX, const int &INCX,
+                 const double *Y, const int &IY, const int &JY,
+                 const int *DESCY, const int &INCY)
+    {
+        double result = 0.0;
+        pddot_(&N, &result, X, &IX, &JX, DESCX, &INCX, Y, &IY, &JY, DESCY, &INCY);
+        return result;
+    }
+
+    static inline
+    std::complex<float> pdot_f(const int &N, const std::complex<float> *X,
+                               const int &IX, const int &JX, const int *DESCX,
+                               const int &INCX, const std::complex<float> *Y,
+                               const int &IY, const int &JY, const int *DESCY,
+                               const int &INCY)
+    {
+        std::complex<float> result = 0.0;
+        pcdotu_(&N, &result, X, &IX, &JX, DESCX, &INCX, Y, &IY, &JY, DESCY, &INCY);
+        return result;
+    }
+
+    static inline
+    std::complex<float> pdotc_f(const int &N, const std::complex<float> *X,
+                                const int &IX, const int &JX, const int *DESCX,
+                                const int &INCX, const std::complex<float> *Y,
+                                const int &IY, const int &JY, const int *DESCY,
+                                const int &INCY)
+    {
+        std::complex<float> result = 0.0;
+        pcdotc_(&N, &result, X, &IX, &JX, DESCX, &INCX, Y, &IY, &JY, DESCY, &INCY);
+        return result;
+    }
+
+    static inline
+    std::complex<double> pdot_f(const int &N, const std::complex<double> *X,
+                                const int &IX, const int &JX, const int *DESCX,
+                                const int &INCX, const std::complex<double> *Y,
+                                const int &IY, const int &JY, const int *DESCY,
+                                const int &INCY)
+    {
+        std::complex<double> result = 0.0;
+        pzdotu_(&N, &result, X, &IX, &JX, DESCX, &INCX, Y, &IY, &JY, DESCY, &INCY);
+        return result;
+    }
+
+    static inline
+    std::complex<double> pdotc_f(const int &N, const std::complex<double> *X,
+                                 const int &IX, const int &JX, const int *DESCX,
+                                 const int &INCX, const std::complex<double> *Y,
+                                 const int &IY, const int &JY, const int *DESCY,
+                                 const int &INCY)
+    {
+        std::complex<double> result = 0.0;
+        pzdotc_(&N, &result, X, &IX, &JX, DESCX, &INCX, Y, &IY, &JY, DESCY, &INCY);
+        return result;
+    }
+
+    static inline
+    void pgemv_f(const char &transa, const int &M, const int &N, const float &alpha,
+                 const float *A, const int &IA, const int &JA, const int *DESCA,
+                 const float *X, const int &IX, const int &JX, const int *DESCX, const int &INCX,
+                 const float &beta,
+                 float *Y, const int &IY, const int &JY, const int *DESCY, const int &INCY)
+    {
+        psgemv_(&transa, &M, &N, &alpha,
+                A, &IA, &JA, DESCA,
+                X, &IX, &JX, DESCX, &INCX,
+                &beta, Y, &IY, &JY, DESCY, &INCY);
+    }
+
+    static inline
+    void pgemv_f(const char &transa, const int &M, const int &N, const double &alpha,
+                 const double *A, const int &IA, const int &JA, const int *DESCA,
+                 const double *X, const int &IX, const int &JX, const int *DESCX, const int &INCX,
+                 const double &beta,
+                 double *Y, const int &IY, const int &JY, const int *DESCY, const int &INCY)
+    {
+        pdgemv_(&transa, &M, &N, &alpha,
+                A, &IA, &JA, DESCA,
+                X, &IX, &JX, DESCX, &INCX,
+                &beta, Y, &IY, &JY, DESCY, &INCY);
+    }
+
+    static inline
+    void pgemv_f(const char &transa, const int &M, const int &N, const std::complex<float> &alpha,
+                 const std::complex<float> *A, const int &IA, const int &JA, const int *DESCA,
+                 const std::complex<float> *X, const int &IX, const int &JX, const int *DESCX, const int &INCX,
+                 const std::complex<float> &beta,
+                 std::complex<float> *Y, const int &IY, const int &JY, const int *DESCY, const int &INCY)
+    {
+        pcgemv_(&transa, &M, &N, &alpha,
+                A, &IA, &JA, DESCA,
+                X, &IX, &JX, DESCX, &INCX,
+                &beta, Y, &IY, &JY, DESCY, &INCY);
+    }
+
+    static inline
+    void pgemv_f(const char &transa, const int &M, const int &N, const std::complex<double> &alpha,
+                 const std::complex<double> *A, const int &IA, const int &JA, const int *DESCA,
+                 const std::complex<double> *X, const int &IX, const int &JX, const int *DESCX, const int &INCX,
+                 const std::complex<double> &beta,
+                 std::complex<double> *Y, const int &IY, const int &JY, const int *DESCY, const int &INCY)
+    {
+        pzgemv_(&transa, &M, &N, &alpha,
+                A, &IA, &JA, DESCA,
+                X, &IX, &JX, DESCX, &INCX,
+                &beta, Y, &IY, &JY, DESCY, &INCY);
+    }
+
+    static inline
     void pgemm_f(const char &transa, const char &transb,
                  const int &M, const int &N, const int &K,
                  const float &alpha,
@@ -197,6 +367,47 @@ public:
                    const int ictxt)
     {
         pzgemr2d_(&m, &n, a, &ia, &ja, desca, b, &ib, &jb, descb, &ictxt);
+    }
+
+    static inline
+    void psyev_f(const char &jobz, const char &uplo,
+                 const int &n, float *A, const int &ia, const int &ja, const int *desca,
+                 float *W, float *Z, const int &iz, const int &jz, const int *descz,
+                 float *work, const int &lwork, float *rwork, const int &lrwork, int &info)
+    {
+        pssyev_(&jobz, &uplo, &n, A, &ia, &ja, desca,
+                W, Z, &iz, &jz, descz,
+                work, &lwork, rwork, &lrwork, &info);
+    }
+    static inline
+    void psyev_f(const char &jobz, const char &uplo,
+                 const int &n, double *A, const int &ia, const int &ja, const int *desca,
+                 double *W, double *Z, const int &iz, const int &jz, const int *descz,
+                 double *work, const int &lwork, double *rwork, const int &lrwork, int &info)
+    {
+        pdsyev_(&jobz, &uplo, &n, A, &ia, &ja, desca,
+                W, Z, &iz, &jz, descz,
+                work, &lwork, rwork, &lrwork, &info);
+    }
+    static inline
+    void pheev_f(const char &jobz, const char &uplo,
+                 const int &n, std::complex<float> *A, const int &ia, const int &ja, const int *desca,
+                 float *W, std::complex<float> *Z, const int &iz, const int &jz, const int *descz,
+                 std::complex<float> *work, const int &lwork, std::complex<float> *rwork, const int &lrwork, int &info)
+    {
+        pcheev_(&jobz, &uplo, &n, A, &ia, &ja, desca,
+                W, Z, &iz, &jz, descz,
+                work, &lwork, rwork, &lrwork, &info);
+    }
+    static inline
+    void pheev_f(const char &jobz, const char &uplo,
+                 const int &n, std::complex<double> *A, const int &ia, const int &ja, const int *desca,
+                 double *W, std::complex<double> *Z, const int &iz, const int &jz, const int *descz,
+                 std::complex<double> *work, const int &lwork, std::complex<double> *rwork, const int &lrwork, int &info)
+    {
+        pzheev_(&jobz, &uplo, &n, A, &ia, &ja, desca,
+                W, Z, &iz, &jz, descz,
+                work, &lwork, rwork, &lrwork, &info);
     }
 };
 

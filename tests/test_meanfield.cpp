@@ -39,10 +39,11 @@ void test_BCC_He_gamma_minimal_basis_aims()
 
     // test density matrix
     const auto dmat_gamma = mf.get_dmat_cplx(0, 0);
-    assert(fequal(dmat_gamma(0, 0), { 1.924748044018415e+00, 0}, 1e-10));
-    assert(fequal(dmat_gamma(4, 0), {-3.098398823937398e-01, 0}, 1e-10));
-    assert(fequal(dmat_gamma(0, 4), {-3.098398823937398e-01, 0}, 1e-10));
-    assert(fequal(dmat_gamma(4, 4), { 1.924748044018417e+00, 0}, 1e-10));
+    const complex<double> thres = 1e-10;
+    assert(fequal(dmat_gamma(0, 0), { 1.924748044018415e+00, 0}, thres));
+    assert(fequal(dmat_gamma(4, 0), {-3.098398823937398e-01, 0}, thres));
+    assert(fequal(dmat_gamma(0, 4), {-3.098398823937398e-01, 0}, thres));
+    assert(fequal(dmat_gamma(4, 4), { 1.924748044018417e+00, 0}, thres));
 }
 
 int main (int argc, char *argv[])

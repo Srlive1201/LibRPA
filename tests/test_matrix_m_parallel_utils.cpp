@@ -4,7 +4,7 @@
 using namespace LIBRPA;
 
 template <typename T>
-void test_blacs(const T &m1_lb, const T &m1_ub)
+void test_pgemm(const T &m1_lb, const T &m1_ub)
 {
     typedef T type;
     blacs_ctxt_world_h.set_square_grid();
@@ -31,7 +31,7 @@ void test_blacs(const T &m1_lb, const T &m1_ub)
         printf("Mat1:\n%s", str(m1).c_str());
         printf("Mat2:\n%s", str(m2).c_str());
         prod_lapack = m1 * m2;
-        printf("Product:\n%s", str(prod).c_str());
+        printf("Product:\n%s", str(prod_lapack).c_str());
     }
     blacs_ctxt_world_h.barrier();
 
@@ -68,8 +68,24 @@ void test_blacs(const T &m1_lb, const T &m1_ub)
 
     if (blacs_ctxt_world_h.myid == pid_src)
     {
-        assert(fequal_array(m*n, prod_lapack.c, prod.c));
+        T thres = 1e-14;
+        // small threshold when float is used
+        if (std::is_same<typename to_real<type>::type, float>::value)
+            thres = 1e-6;
+        assert(fequal_array(m*n, prod_lapack.c, prod.c, false, thres));
     }
+    blacs_ctxt_world_h.exit();
+}
+
+template <typename T>
+void test_power_hemat_blacs(const T &m1_lb, const T &m1_ub)
+{
+    blacs_ctxt_world_h.set_square_grid();
+    assert(blacs_ctxt_world_h.nprocs == 4);
+    assert(blacs_ctxt_world_h.nprows == 2);
+    assert(blacs_ctxt_world_h.npcols == 2);
+
+    blacs_ctxt_world_h.exit();
 }
 
 int main (int argc, char *argv[])
@@ -80,8 +96,10 @@ int main (int argc, char *argv[])
     mpi_comm_world_h.init();
     blacs_ctxt_world_h.init();
 
-    test_blacs<double>(-2, 1);
-    test_blacs<complex<double>>({-2, -1}, {1, 0});
+    test_pgemm<double>(-2, 1);
+    test_pgemm<complex<double>>({-2, -1}, {1, 0});
+    test_pgemm<float>(-2, 1);
+    test_pgemm<complex<float>>({-2, -1}, {1, 0});
 
     MPI_Wrapper::finalize();
 

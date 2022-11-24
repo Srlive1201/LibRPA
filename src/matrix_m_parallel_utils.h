@@ -1,9 +1,10 @@
 #pragma once
 #include "matrix_m.h"
 #include "parallel_mpi.h"
+#include "scalapack_connector.h"
 
 template <typename T>
-inline matrix_m<T> init_local_mat(const LIBRPA::Array_Desc &ad, MAJOR major)
+matrix_m<T> init_local_mat(const LIBRPA::Array_Desc &ad, MAJOR major)
 {
     matrix_m<T> mat_lo(ad.m_loc(), ad.n_loc(), major);
     if (mat_lo.size() == 0)
@@ -12,7 +13,7 @@ inline matrix_m<T> init_local_mat(const LIBRPA::Array_Desc &ad, MAJOR major)
 }
 
 template <typename T>
-inline matrix_m<T> get_local_mat(const matrix_m<T> &mat_go, const LIBRPA::Array_Desc &ad, MAJOR major)
+matrix_m<T> get_local_mat(const matrix_m<T> &mat_go, const LIBRPA::Array_Desc &ad, MAJOR major)
 {
     // assert the shape of global matrix conforms with the array descriptor
     assert(mat_go.nr() == ad.m() && mat_go.nc() == ad.n());
@@ -35,7 +36,7 @@ inline matrix_m<T> get_local_mat(const matrix_m<T> &mat_go, const LIBRPA::Array_
 }
 
 template <typename T>
-inline matrix_m<T> get_local_mat(const T *pv, MAJOR major_pv, const LIBRPA::Array_Desc &ad, MAJOR major)
+matrix_m<T> get_local_mat(const T *pv, MAJOR major_pv, const LIBRPA::Array_Desc &ad, MAJOR major)
 {
     const int nr = ad.m(), nc = ad.n();
     matrix_m<T> mat_lo(ad.m_loc(), ad.n_loc(), major);
@@ -57,7 +58,7 @@ inline matrix_m<T> get_local_mat(const T *pv, MAJOR major_pv, const LIBRPA::Arra
 }
 
 template <typename Tdst, typename Tsrc>
-inline void collect_block_from_IJ_storage(
+void collect_block_from_IJ_storage(
     matrix_m<Tdst> &mat_lo,
     const LIBRPA::Array_Desc &ad,
     const LIBRPA::AtomicBasis &atbasis_row,
@@ -84,3 +85,55 @@ inline void collect_block_from_IJ_storage(
     }
 }
 
+template <typename T>
+void power_hemat_blacs(matrix_m<std::complex<T>> &A_local,
+                       const LIBRPA::Array_Desc &ad_A,
+                       matrix_m<std::complex<T>> &Z_local,
+                       const LIBRPA::Array_Desc &ad_Z,
+                       T *W, double power,
+                       double threshold = -1e5)
+{
+    assert (A_local.is_col_major() && Z_local.is_col_major());
+    const bool is_int_power = fabs(power - int(power)) < 1e-8;
+    const int n = ad_A.m();
+    const char jobz = 'V';
+    const char uplo = 'U';
+
+    int lwork = -1, lrwork = -1, info = 0;
+    {
+        // query the optimal lwork and lrwork
+        T Wquery[1], work[1];
+        std::complex<T> rwork[1];
+        ScalapackConnector::pheev_f(jobz, uplo,
+                n, A_local.c, 1, 1, ad_A.desc,
+                Wquery, Z_local.c, 1, 1, ad_Z.desc, work, lwork, rwork, lrwork, info);
+        lwork = int(work[0]);
+        lrwork = int(rwork[0].real());
+    }
+
+    T *work = new T [lwork];
+    std::complex<T> *rwork = new std::complex<T> [lrwork];
+    ScalapackConnector::pheev_f(jobz, uplo,
+            n, A_local.c, 1, 1, ad_A.desc,
+            W, Z_local.c, 1, 1, ad_Z.desc, work, lwork, rwork, lrwork, info);
+
+    // filter and scale the eigenvalues, store in a temp array
+    T W_temp[n] = 0;
+    for (int i = 0; i != n; i++)
+    {
+        if (W[i] < 0 && !is_int_power)
+            printf("Warning! negative eigenvalue with non-integer power: # %d ev = %f , pow = %f", i, W[i], power);
+        if (fabs(W[i]) < 1e-10 && power < 0)
+            printf("Warning! nearly-zero eigenvalue with negative power: # %d ev = %f , pow = %f", i, W[i], power);
+        if (W[i] < threshold)
+            W_temp[i] = 0;
+        else
+            W_temp[i] = std::pow(W[i], power);
+    }
+
+    // create scaled eigenvectors
+    matrix_m<std::complex<T>> scaled_Z_local(Z_local);
+    for (int i = 0; i != n; i++)
+        ScalapackConnector::pscal_f(n, scaled_Z_local.c, W_temp[i], 1, 1+i, ad_Z.desc, 1);
+    ScalapackConnector::pgemm_f('N', 'C', n, n, n, 1.0, Z_local.c, 1, 1, ad_Z.desc, scaled_Z_local.c, 1, 1, ad_Z.desc, 0.0, A_local.c, 1, 1, ad_A.desc);
+}

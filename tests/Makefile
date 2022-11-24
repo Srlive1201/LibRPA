@@ -6,6 +6,7 @@ CXXFLAGS = -g -O0 -Wall -std=c++11 -qopenmp
 .PHONY: default clean test serial_test para4_test
 
 serial_objects = test_atoms.exe test_matrix.exe test_timefreq.exe test_pbc.exe \
+		  test_base_utility.exe \
 		  test_blas_lapack.exe test_complexmatrix.exe test_meanfield.exe test_matrix_m.exe \
 		  test_atomic_basis.exe test_matrix_m_parallel_utils.exe
 para_objects = test_parallel_mpi.exe
@@ -30,6 +31,11 @@ run_test_atoms: test_atoms.exe
 test_atomic_basis.exe: test_atomic_basis.o ../src/atomic_basis.o
 	$(CXX) $(CXXFLAGS) -o $@ $^
 run_test_atomic_basis: test_atomic_basis.exe
+	./$<
+
+test_base_utility.exe: test_base_utility.o
+	$(CXX) $(CXXFLAGS) -o $@ $^
+run_test_base_utility: test_base_utility.exe
 	./$<
 
 test_pbc.exe: test_pbc.o $(shell echo ../src/{$(test_pbc_deps)}.o)

@@ -692,22 +692,36 @@ public:
 			&alpha, b, &ldb, a, &lda, 
 			&beta, c, &ldc);
 	}
-    
+
 	static inline
-	void gemm(const char transa, const char transb, const int m, const int n, const int k,
-		const complex<double> alpha, const complex<double> *a, const int lda, const complex<double> *b, const int ldb, 
-		const complex<double> beta, complex<double> *c, const int ldc)
-	{
+    void gemm(const char transa, const char transb, const int m,
+              const int n, const int k, const complex<float> alpha,
+              const complex<float> *a, const int lda,
+              const complex<float> *b, const int ldb,
+              const complex<float> beta, complex<float> *c, const int ldc)
+    {
+        cgemm_(&transb, &transa, &n, &m, &k, &alpha, b, &ldb, a, &lda,
+               &beta, c, &ldc);
+    }
+
+        static inline
+    void gemm(const char transa, const char transb, const int m,
+              const int n, const int k, const complex<double> alpha,
+              const complex<double> *a, const int lda,
+              const complex<double> *b, const int ldb,
+              const complex<double> beta, complex<double> *c, const int ldc)
+    {
 		zgemm_(&transb, &transa, &n, &m, &k,
 			&alpha, b, &ldb, a, &lda, 
 			&beta, c, &ldc);
 	}
 
-    static inline void gemm_f(const char transa, const char transb,
-                              const int m, const int n, const int k,
-                              const float alpha, const float *a,
-                              const int lda, const float *b, const int ldb,
-                              const float beta, float *c, const int ldc)
+    static inline
+    void gemm_f(const char transa, const char transb,
+                const int m, const int n, const int k,
+                const float alpha, const float *a,
+                const int lda, const float *b, const int ldb,
+                const float beta, float *c, const int ldc)
     {
         sgemm_(&transa, &transb, &m, &n, &k, &alpha, a, &lda, b, &ldb,
                &beta, c, &ldc);
@@ -788,6 +802,5 @@ public:
 		const char trans_changed = change_trans_NC(trans);
 		zherk_(&uplo_changed, &trans_changed, &n, &k, &alpha, A, &lda, &beta, C, &ldc);
 	}
-	
 };
 #endif  // LAPACKCONNECTOR_HPP

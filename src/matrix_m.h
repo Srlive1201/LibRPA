@@ -12,7 +12,6 @@
 #include <memory>
 #include <functional>
 #include "base_utility.h"
-#include "scalapack_connector.h"
 #include "lapack_connector.h"
 #include "vec.h"
 
@@ -156,16 +155,8 @@ private:
 
     void set_indx_picker()
     {
-        if (major_ == MAJOR::ROW)
-        {
-            ld_ = nc_;
-            indx_picker_2d_ = flatid_rm;
-        }
-        else
-        {
-            ld_ = nr_;
-            indx_picker_2d_ = flatid_cm;
-        }
+        indx_picker_2d_ = Indx_pickers_2d[major_];
+        ld_ = major_ == MAJOR::ROW ? nc_ : nr_;
     }
 
 public:
@@ -174,19 +165,19 @@ public:
     using cplx_t = typename to_cplx<T>::type;
 
     // constructors
-    matrix_m() : nr_(0), nc_(0), major_(MAJOR::ROW), c(nullptr)
+    matrix_m() : nr_(0), nc_(0), ld_(0), major_(MAJOR::ROW), c(nullptr)
     {
         set_rank_size();
         set_indx_picker();
     }
-    matrix_m(const int &nrows, const int &ncols, MAJOR major = MAJOR::ROW): nr_(nrows), nc_(ncols), major_(major), c(nullptr)
+    matrix_m(const int &nrows, const int &ncols, MAJOR major = MAJOR::ROW): nr_(nrows), nc_(ncols), ld_(nrows), major_(major), c(nullptr)
     {
         set_rank_size();
         set_indx_picker();
         allocate_storage();
         zero_out();
     }
-    matrix_m(const int &nrows, const int &ncols, const T * const valarr, MAJOR major = MAJOR::ROW, MAJOR major_valarr = MAJOR::ROW): nr_(nrows), nc_(ncols), major_(major), c(nullptr)
+    matrix_m(const int &nrows, const int &ncols, const T * const valarr, MAJOR major = MAJOR::ROW, MAJOR major_valarr = MAJOR::ROW): nr_(nrows), nc_(ncols), ld_(nrows), major_(major), c(nullptr)
     {
         set_rank_size();
         set_indx_picker();
@@ -195,7 +186,7 @@ public:
         assign_value(valarr, major_valarr);
     }
     // constructor from a nested vector
-    matrix_m(const std::vector<std::vector<T>> &nested_vector, MAJOR major = MAJOR::ROW): major_(major), c(nullptr)
+    matrix_m(const std::vector<std::vector<T>> &nested_vector, MAJOR major = MAJOR::ROW): nr_(0), nc_(0), ld_(0), major_(major), mrank_(0), size_(0), c(nullptr)
     {
         get_nr_nc_from_nested_vector(nested_vector, nr_, nc_);
         set_rank_size();
@@ -205,7 +196,7 @@ public:
     }
 
     // copy constructor
-    matrix_m(const matrix_m<T> &m): nr_(m.nr_), nc_(m.nc_), major_(m.major_), c(nullptr)
+    matrix_m(const matrix_m<T> &m): nr_(m.nr_), nc_(m.nc_), ld_(m.ld_), major_(m.major_), mrank_(0), size_(0), c(nullptr)
     {
         set_rank_size();
         set_indx_picker();
@@ -213,19 +204,15 @@ public:
         memcpy(c, m.c, nr_*nc_*sizeof(T));
     }
 
-    matrix_m(matrix_m &&m) : nr_(m.nr_), nc_(m.nc_), major_(m.major_), c(nullptr)
+    matrix_m(matrix_m &&m) : nr_(m.nr_), nc_(m.nc_), ld_(m.ld_), major_(m.major_), mrank_(m.mrank_), size_(m.size_), indx_picker_2d_(m.indx_picker_2d_), c(m.c)
     {
-        c = m.c;
-        mrank_ = m.mrank_;
-        size_ = m.size_;
-        indx_picker_2d_ = m.indx_picker_2d_;
-        m.nr_ = m.nc_ = 0;
+        m.nr_ = m.nc_ = m.ld_ = m.mrank_ = m.size_ = 0;
         m.c = nullptr;
     }
     // destructor
     ~matrix_m()
     {
-        nc_ = nr_ = mrank_ = size_ = 0;
+        nc_ = nr_ = ld_ = mrank_ = size_ = 0;
         deallocate_storage();
     }
 
@@ -258,7 +245,7 @@ public:
             {
                 for (int i = 0; i != mrank_; i++)
                 {
-                    join_re_im((*this)(i, i), dr(e), 0.0);
+                    join_re_im((*this)(i, i), dr(e), real_t(0.0));
                     for (int j = i + 1; j < mrank_; j++)
                     {
                         join_re_im((*this)(i, j), dr(e), di(e));
@@ -604,12 +591,12 @@ inline matrix_m<T> operator*(const matrix_m<T> &m1, const matrix_m<T> &m2)
     if (m1.is_row_major())
     {
         LapackConnector::gemm('N', 'N', m1.nr(), m2.nc(), m1.nc(),
-                              1.0, m1.c, m1.nc(), m2.c, m2.nc(), 0.0, prod.c, prod.nc());
+                              T(1.0), m1.c, m1.nc(), m2.c, m2.nc(), T(0.0), prod.c, prod.nc());
     }
     else
     {
         LapackConnector::gemm_f('N', 'N', m1.nr(), m2.nc(), m1.nc(),
-                                1.0, m1.c, m1.nr(), m2.c, m2.nr(), 0.0, prod.c, prod.nr());
+                                T(1.0), m1.c, m1.nr(), m2.c, m2.nr(), T(0.0), prod.c, prod.nr());
     }
 
     return prod;

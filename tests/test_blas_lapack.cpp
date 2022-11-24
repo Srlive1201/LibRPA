@@ -86,10 +86,10 @@ void test_lapack_ev_complex(bool debug = false)
     ComplexMatrix a(2, 2);
 
     // Hermitian eigenvalue and eigenvectors
-    a(0, 0) = cmplx(1, 0);
-    a(0, 1) = cmplx(0, -1);
-    a(1, 0) = cmplx(0, 1);
-    a(1, 1) = cmplx(1, 0);
+    a(0, 0) = cmplx(1., 0.);
+    a(0, 1) = cmplx(0., -1.);
+    a(1, 0) = cmplx(0., 1.);
+    a(1, 1) = cmplx(1., 0.);
     int nb = LapackConnector::ilaenv(1, "zheev", "VU", 2, -1, -1, -1);
     int lwork = 2 * (nb+1);
     int info = 0;
@@ -98,15 +98,15 @@ void test_lapack_ev_complex(bool debug = false)
     double rwork[3*a.nc-2];
     complex<double> work[lwork];
     ComplexMatrix ev_ref(2, 2);
-    ev_ref(0, 0) = cmplx(0, -1);
-    ev_ref(1, 0) = cmplx(-1, 0);
-    ev_ref(1, 1) = cmplx(1, 0);
-    ev_ref(0, 1) = cmplx(0, -1);
+    ev_ref(0, 0) = cmplx(0., -1.);
+    ev_ref(1, 0) = cmplx(-1., 0.);
+    ev_ref(1, 1) = cmplx(1., 0.);
+    ev_ref(0, 1) = cmplx(0., -1.);
     ev_ref *= 1/sqrt(2);
     LapackConnector::zheev('V', 'U', 2, a, 2,
                            w, work, lwork, rwork, &info);
-    assert( fequal_array(2, w, w_ref, debug) );
-    assert( fequal_array(4, a.c, ev_ref.c, debug) );
+    assert(fequal_array(2, w, w_ref, debug) );
+    assert(fequal_array(4, a.c, ev_ref.c, debug) );
 }
 
 int main (int argc, char *argv[])

@@ -55,33 +55,86 @@ extern "C"
                  double *beta, 
                  double *c, int *ic, int *jc, int *descc);
 
-// matrix-vector
-    void psgemv_(const char *transa, const int *M, const int *N, const float *alpha,
-                 const float *A, const int *IA, const int *JA, const int *DESCA,
-                 const float *B, const int *IB, const int *JB, const int *DESCB,
-                 const int *K, const float *beta,
-                 float *C, const int *IC, const int *JC, const int *DESCC,
-                 const int *L);
-    void pdgemv_(const char *transa, const int *M, const int *N, const double *alpha,
-                 const double *A, const int *IA, const int *JA, const int *DESCA,
-                 const double *B, const int *IB, const int *JB, const int *DESCB,
-                 const int *K, const double *beta,
-                 double *C, const int *IC, const int *JC, const int *DESCC,
-                 const int *L);
-    void pcgemv_(const char *transa, const int *M, const int *N, const std::complex<float> *alpha,
-                 const std::complex<float> *A, const int *IA, const int *JA, const int *DESCA,
-                 const std::complex<float> *B, const int *IB, const int *JB, const int *DESCB,
-                 const int *K, const std::complex<float> *beta,
-                 std::complex<float> *C, const int *IC, const int *JC, const int *DESCC,
-                 const int *L);
-    void pzgemv_(const char *transa, const int *M, const int *N, const std::complex<double> *alpha,
-                 const std::complex<double> *A, const int *IA, const int *JA, const int *DESCA,
-                 const std::complex<double> *B, const int *IB, const int *JB, const int *DESCB,
-                 const int *K, const std::complex<double> *beta,
-                 std::complex<double> *C, const int *IC, const int *JC, const int *DESCC,
-                 const int *L);
+    // scale
+    // P?SCAL  multiplies  an  n  element  subvector  sub( X ) by the scalar alpha,
+    // where
+    //    sub( X ) denotes X(IX,JX:JX+N-1) if INCX = M_X,
+    //                     X(IX:IX+N-1,JX) if INCX = 1 and INCX <> M_X.
+    void psscal_(const int *N, const float *alpha, float *X, const int *IX,
+                 const int *JX, const int *DESCX, int *INCX);
+    void pdscal_(const int *N, const double *alpha, double *X, const int *IX,
+                 const int *JX, const int *DESCX, int *INCX);
+    void pcscal_(const int *N, const std::complex<float> *alpha,
+                 std::complex<float> *X, const int *IX, const int *JX,
+                 const int *DESCX, int *INCX);
+    void pzscal_(const int *N, const std::complex<double> *alpha,
+                 std::complex<double> *X, const int *IX, const int *JX,
+                 const int *DESCX, int *INCX);
+    // by real scalar
+    void pcsscal_(const int *N, const float *alpha, std::complex<float> *X,
+                  const int *IX, const int *JX, const int *DESCX, int *INCX);
+    void pzdscal_(const int *N, const double *alpha, std::complex<double> *X,
+                  const int *IX, const int *JX, const int *DESCX, int *INCX);
 
-// matrix-matrix
+    // dot
+    void psdot_(const int *N, float *DOT, const float *X, const int *IX,
+                const int *JX, const int *DESCX, const int *INCX,
+                const float *Y, const int *IY, const int *JY, const int *DESCY,
+                const int *INCY);
+    void pddot_(const int *N, double *DOT, const double *X, const int *IX,
+                const int *JX, const int *DESCX, const int *INCX,
+                const double *Y, const int *IY, const int *JY, const int *DESCY,
+                const int *INCY);
+    void pcdotc_(const int *N, std::complex<float> *DOT,
+                 const std::complex<float> *X, const int *IX, const int *JX,
+                 const int *DESCX, const int *INCX,
+                 const std::complex<float> *Y, const int *IY, const int *JY,
+                 const int *DESCY, const int *INCY);
+    void pzdotc_(const int *N, std::complex<double> *DOT,
+                 const std::complex<double> *X, const int *IX, const int *JX,
+                 const int *DESCX, const int *INCX,
+                 const std::complex<double> *Y, const int *IY, const int *JY,
+                 const int *DESCY, const int *INCY);
+    void pcdotu_(const int *N, std::complex<float> *DOT,
+                 const std::complex<float> *X, const int *IX, const int *JX,
+                 const int *DESCX, const int *INCX,
+                 const std::complex<float> *Y, const int *IY, const int *JY,
+                 const int *DESCY, const int *INCY);
+    void pzdotu_(const int *N, std::complex<double> *DOT,
+                 const std::complex<double> *X, const int *IX, const int *JX,
+                 const int *DESCX, const int *INCX,
+                 const std::complex<double> *Y, const int *IY, const int *JY,
+                 const int *DESCY, const int *INCY);
+
+    // matrix-vector
+    void psgemv_(const char *transa, const int *M, const int *N,
+                 const float *alpha, const float *A, const int *IA,
+                 const int *JA, const int *DESCA, const float *X, const int *IX,
+                 const int *JX, const int *DESCX, const int *INCX,
+                 const float *beta, float *Y, const int *IY, const int *JY,
+                 const int *DESCY, const int *INCY);
+    void pdgemv_(const char *transa, const int *M, const int *N,
+                 const double *alpha, const double *A, const int *IA,
+                 const int *JA, const int *DESCA, const double *X,
+                 const int *IX, const int *JX, const int *DESCX,
+                 const int *INCX, const double *beta, double *Y, const int *IY,
+                 const int *JY, const int *DESCY, const int *INCY);
+    void pcgemv_(const char *transa, const int *M, const int *N,
+                 const std::complex<float> *alpha, const std::complex<float> *A,
+                 const int *IA, const int *JA, const int *DESCA,
+                 const std::complex<float> *X, const int *IX, const int *JX,
+                 const int *DESCX, const int *INCX,
+                 const std::complex<float> *beta, std::complex<float> *Y,
+                 const int *IY, const int *JY, const int *DESCY, const int *INCY);
+    void pzgemv_(const char *transa, const int *M, const int *N,
+                 const std::complex<double> *alpha,
+                 const std::complex<double> *A, const int *IA, const int *JA,
+                 const int *DESCA, const std::complex<double> *X, const int *IX,
+                 const int *JX, const int *DESCX, const int *INCX,
+                 const std::complex<double> *beta, std::complex<double> *Y,
+                 const int *IY, const int *JY, const int *DESCY, const int *INCY);
+
+    // matrix-matrix
     void psgemm_(const char *transa, const char *transb,
                  const int *M, const int *N, const int *K,
                  const float *alpha,
@@ -174,6 +227,23 @@ extern "C"
                   std::complex<double> *work, int *lwork, double *rwork, int *lrwork, int *iwork, int*liwork, int *ifail, int *iclustr,
                   double *gap, int *info);
 
+    void pssyev_(const char *jobz, const char *uplo,
+                 const int *n, float *A, const int *ia, const int *ja, const int *desca,
+                 float *W, float *Z, const int *iz, const int *jz, const int *descz,
+                 float *work, const int *lwork, float *rwork, const int *lrwork, int *info);
+    void pdsyev_(const char *jobz, const char *uplo,
+                 const int *n, double *A, const int *ia, const int *ja, const int *desca,
+                 double *W, double *Z, const int *iz, const int *jz, const int *descz,
+                 double *work, const int *lwork, double *rwork, const int *lrwork, int *info);
+    void pcheev_(const char *jobz, const char *uplo,
+                 const int *n, std::complex<float> *A, const int *ia, const int *ja, const int *desca,
+                 float *W, std::complex<float> *Z, const int *iz, const int *jz, const int *descz,
+                 std::complex<float> *work, const int *lwork, std::complex<float> *rwork, const int *lrwork, int *info);
+    void pzheev_(const char *jobz, const char *uplo,
+                 const int *n, std::complex<double> *A, const int *ia, const int *ja, const int *desca,
+                 double *W, std::complex<double> *Z, const int *iz, const int *jz, const int *descz,
+                 std::complex<double> *work, const int *lwork, std::complex<double> *rwork, const int *lrwork, int *info);
+
 // Matrix inversion
     void psgetri_(const int *n, 
                   float *A, const int *ia, const int *ja, const int *desca,
@@ -232,6 +302,11 @@ extern "C"
                    std::complex<double> *b, const int *ib, const int *jb, const int *descb,
                    const int *ictxt);
 
+    int pilaenvx_(const int *ictxt, const int *ispec, const char *name, const char *opts,
+                  const int *n1, const int *n2, const int *n3, const int *n4);
+
+    int pjlaenv_(const int *ictxt, const int *ispec, const char *name, const char *opts,
+                 const int *n1, const int *n2, const int *n3, const int *n4);
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */
