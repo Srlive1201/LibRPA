@@ -6,6 +6,7 @@
 #include <stdexcept>
 #include <iostream>
 #include <cassert>
+#include "base_utility.h"
 #include "matrix.h"
 #include "complexmatrix.h"
 #include "interface/blas_lapack.h"
@@ -16,6 +17,35 @@
 class LapackConnector
 {
 public:
+    // Transpose an row-major array to the fortran-form colum-major array.
+    template <typename T>
+    static T* transpose(const T* a, const int &n, const int &lda, bool conjugate = false)
+    {
+        T* a_fort = new T[lda*n];
+        if (is_complex<T>() && conjugate)
+            for (int i = 0; i < n; i++)
+                for (int j = 0; j < lda; j++)
+                    a_fort[i*lda+j] = get_conj(a[j*n+i]);
+        else
+            for (int i = 0; i < n; i++)
+                for (int j = 0; j < lda; j++)
+                    a_fort[i*lda+j] = a[j*n+i];
+        return a_fort;
+    }
+
+    template <typename T>
+    static void transpose(const T* a, T* a_trans, const int &n, const int &lda, bool conjugate = false)
+    {
+        if (is_complex<T>() && conjugate)
+            for (int i = 0; i < n; i++)
+                for (int j = 0; j < lda; j++)
+                    a_trans[j*n+i] = get_conj(a[i*lda+j]);
+        else
+            for (int i = 0; i < n; i++)
+                for (int j = 0; j < lda; j++)
+                    a_trans[j*n+i] = a[i*lda+j];
+    }
+
     // Transpose the complex matrix to the fortran-form real-complex array.
     static inline
     complex<double>* transpose(const ComplexMatrix& a, const int n, const int lda)
@@ -398,6 +428,110 @@ public:
         return;
     }
 
+    static inline void getrf(const int &m, const int &n, float *A, const int &lda, int *ipiv, int &info)
+    {
+        float *a_fort = transpose(A, n, lda);
+        sgetrf_(&m, &n, a_fort, &lda, ipiv, &info);
+        transpose(a_fort, A, n, lda);
+        delete [] a_fort;
+    }
+
+    static inline void getrf(const int &m, const int &n, double *A, const int &lda, int *ipiv, int &info)
+    {
+        double *a_fort = transpose(A, n, lda);
+        dgetrf_(&m, &n, a_fort, &lda, ipiv, &info);
+        transpose(a_fort, *A, n, lda);
+        delete [] a_fort;
+    }
+
+    static inline void getrf(const int &m, const int &n, std::complex<float> *A, const int &lda, int *ipiv, int &info)
+    {
+        std::complex<float> *a_fort = transpose(A, n, lda);
+        cgetrf_(&m, &n, a_fort, &lda, ipiv, &info);
+        transpose(a_fort, A, n, lda);
+        delete [] a_fort;
+    }
+
+    static inline void getrf(const int &m, const int &n, std::complex<double> *A, const int &lda, int *ipiv, int &info)
+    {
+        std::complex<double> *a_fort = transpose(A, n, lda);
+        zgetrf_(&m, &n, a_fort, &lda, ipiv, &info);
+        transpose(a_fort, A, n, lda);
+        delete [] a_fort;
+    }
+
+    static inline void getrf_f(const int &m, const int &n, float *A, const int &lda, int *ipiv, int &info)
+    {
+        sgetrf_(&m, &n, A, &lda, ipiv, &info);
+    }
+
+    static inline void getrf_f(const int &m, const int &n, double *A, const int &lda, int *ipiv, int &info)
+    {
+        dgetrf_(&m, &n, A, &lda, ipiv, &info);
+    }
+
+    static inline void getrf_f(const int &m, const int &n, std::complex<float> *A, const int &lda, int *ipiv, int &info)
+    {
+        cgetrf_(&m, &n, A, &lda, ipiv, &info);
+    }
+
+    static inline void getrf_f(const int &m, const int &n, std::complex<double> *A, const int &lda, int *ipiv, int &info)
+    {
+        zgetrf_(&m, &n, A, &lda, ipiv, &info);
+    }
+
+    static inline void getri(const int &n, float *A, const int &lda, int *ipiv, float *work, const int &lwork, int &info)
+    {
+        float *a_fort = transpose(A, n, lda);
+        sgetri_(&n, a_fort, &lda, ipiv, work, &lwork, &info);
+        transpose(a_fort, A, n, lda);
+        delete [] a_fort;
+    }
+
+    static inline void getri(const int &n, double *A, const int &lda, int *ipiv, double *work, const int &lwork, int &info)
+    {
+        double *a_fort = transpose(A, n, lda);
+        dgetri_(&n, a_fort, &lda, ipiv, work, &lwork, &info);
+        transpose(a_fort, A, n, lda);
+        delete [] a_fort;
+    }
+
+    static inline void getri(const int &n, std::complex<float> *A, const int &lda, int *ipiv, std::complex<float> *work, const int &lwork, int &info)
+    {
+        std::complex<float> *a_fort = transpose(A, n, lda);
+        cgetri_(&n, a_fort, &lda, ipiv, work, &lwork, &info);
+        transpose(a_fort, A, n, lda);
+        delete [] a_fort;
+    }
+
+    static inline void getri(const int &n, std::complex<double> *A, const int &lda, int *ipiv, std::complex<double> *work, const int &lwork, int &info)
+    {
+        std::complex<double> *a_fort = transpose(A, n, lda);
+        zgetri_(&n, a_fort, &lda, ipiv, work, &lwork, &info);
+        transpose(a_fort, A, n, lda);
+        delete [] a_fort;
+    }
+
+    static inline void getri_f(const int &n, float *A, const int &lda, int *ipiv, float *work, const int &lwork, int &info)
+    {
+        sgetri_(&n, A, &lda, ipiv, work, &lwork, &info);
+    }
+
+    static inline void getri_f(const int &n, double *A, const int &lda, int *ipiv, double *work, const int &lwork, int &info)
+    {
+        dgetri_(&n, A, &lda, ipiv, work, &lwork, &info);
+    }
+
+    static inline void getri_f(const int &n, std::complex<float> *A, const int &lda, int *ipiv, std::complex<float> *work, const int &lwork, int &info)
+    {
+        cgetri_(&n, A, &lda, ipiv, work, &lwork, &info);
+    }
+
+    static inline void getri_f(const int &n, std::complex<double> *A, const int &lda, int *ipiv, std::complex<double> *work, const int &lwork, int &info)
+    {
+        zgetri_(&n, A, &lda, ipiv, work, &lwork, &info);
+    }
+
 	// Peize Lin add 2016-07-09
 	static inline
 	void dpotrf( char uplo, const int n, matrix &a, const int lda, int *info )
@@ -524,7 +658,51 @@ public:
 			&beta, c, &ldc);
 	}
 
-	// Peize Lin add 2018-06-12
+    static inline void gemm_f(const char transa, const char transb,
+                              const int m, const int n, const int k,
+                              const float alpha, const float *a,
+                              const int lda, const float *b, const int ldb,
+                              const float beta, float *c, const int ldc)
+    {
+        sgemm_(&transa, &transb, &m, &n, &k, &alpha, a, &lda, b, &ldb,
+               &beta, c, &ldc);
+    }
+
+    static inline void gemm_f(const char transa, const char transb,
+                              const int m, const int n, const int k,
+                              const complex<float> alpha,
+                              const complex<float> *a, const int lda,
+                              const complex<float> *b, const int ldb,
+                              const complex<float> beta,
+                              complex<float> *c, const int ldc)
+    {
+        cgemm_(&transa, &transb, &m, &n, &k, &alpha, a, &lda, b, &ldb, &beta, c,
+               &ldc);
+    }
+
+    static inline void gemm_f(const char transa, const char transb,
+                              const int m, const int n, const int k,
+                              const double alpha, const double *a,
+                              const int lda, const double *b, const int ldb,
+                              const double beta, double *c, const int ldc)
+    {
+        dgemm_(&transa, &transb, &m, &n, &k, &alpha, a, &lda, b, &ldb,
+               &beta, c, &ldc);
+    }
+
+    static inline void gemm_f(const char transa, const char transb,
+                              const int m, const int n, const int k,
+                              const complex<double> alpha,
+                              const complex<double> *a, const int lda,
+                              const complex<double> *b, const int ldb,
+                              const complex<double> beta,
+                              complex<double> *c, const int ldc)
+    {
+        zgemm_(&transa, &transb, &m, &n, &k, &alpha, a, &lda, b, &ldb, &beta, c,
+               &ldc);
+    }
+
+        // Peize Lin add 2018-06-12
 	// out = ||x||_2
 	// static inline
 	// float nrm2( const int n, const float *X, const int incX )
