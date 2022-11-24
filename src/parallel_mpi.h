@@ -2,6 +2,7 @@
 #define PARALLEL_MPI_H
 
 #include "matrix.h"
+#include "matrix_m.h"
 #include "complexmatrix.h"
 #include "vector3_order.h"
 #include <mpi.h>
@@ -149,8 +150,8 @@ public:
     const int& nb() const { return nb_; }
     const int& irsrc() const { return irsrc_; }
     const int& icsrc() const { return icsrc_; }
-    const int& num_r() const { return m_local_; }
-    const int& num_c() const { return n_local_; }
+    const int& m_loc() const { return m_local_; }
+    const int& n_loc() const { return n_local_; }
     std::string info() const;
 };
 

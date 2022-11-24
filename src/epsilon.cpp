@@ -112,7 +112,7 @@ CorrEnergy compute_RPA_correlation_blacs(const Chi0 &chi0, const atpair_k_cplx_m
     int one=1;
     LIBRPA::Array_Desc arrdesc_pi(LIBRPA::blacs_ctxt_world_h);
     arrdesc_pi.init(N_all_mu, N_all_mu, row_nblk, col_nblk, 0, 0);
-    int loc_row = arrdesc_pi.num_r(), loc_col = arrdesc_pi.num_c(), info;
+    int loc_row = arrdesc_pi.m_loc(), loc_col = arrdesc_pi.n_loc(), info;
 
     // para_mpi.set_blacs_mat(desc_pi,loc_row,loc_col,N_all_mu,N_all_mu,row_nblk,col_nblk);
     int *ipiv = new int [loc_row*10];

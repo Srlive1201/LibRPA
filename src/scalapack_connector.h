@@ -22,19 +22,6 @@ public:
         return nprocs * nb * (indxloc / nb) + indxloc % nb +
                ((nprocs + iproc - isrcproc) % nprocs) * nb;
     }
-    static void infog1l(const int &gindx, const int &nb, const int &nprocs, const int &myroc, const int &isrcproc, int &lindx, int &rocsrc)
-    {
-        int iblk;
-        iblk = gindx / nb;
-        rocsrc = (iblk + isrcproc) % nprocs;
-        lindx = (iblk / nprocs + 1) * nb;
-        if ((myroc + nprocs - isrcproc) % nprocs > iblk % nprocs)
-        {
-            if (myroc == rocsrc)
-                lindx = lindx + gindx % nb;
-            lindx = lindx - nb;
-        }
-    }
 
 	static void transpose_desc( int desc_T[9], const int desc[9] )
 	{
