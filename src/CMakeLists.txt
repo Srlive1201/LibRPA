@@ -34,8 +34,8 @@ endif()
 
 configure_file(envs.cpp.in envs.cpp)
 list(APPEND sources
-        aperiodic_chi0.cpp
-        cal_periodic_chi0.cpp
+        # aperiodic_chi0.cpp
+        # cal_periodic_chi0.cpp
         chi0.cpp
         complexmatrix.cpp
         constants.cpp
@@ -43,7 +43,7 @@ list(APPEND sources
         ${CMAKE_CURRENT_BINARY_DIR}/envs.cpp
         epsilon.cpp
         exx.cpp
-        Gauss_Quadrature.cpp
+        # Gauss_Quadrature.cpp
         input.cpp
         mathtools.cpp
         matrix.cpp

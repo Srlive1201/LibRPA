@@ -87,9 +87,9 @@ void Exx::build_exx_orbital_energy(const atpair_R_mat_t &LRI_Cs,
         this->build_exx_orbital_energy_LibRI(LRI_Cs, Rlist, R_period, coul_mat);
     else
     {
-        if (para_mpi.is_master())
+        if (mpi_comm_world_h.is_root())
             printf("Error: EXX orbital energy without LibRI is not implemented yet\n");
-        para_mpi.mpi_barrier();
+        mpi_comm_world_h.barrier();
         throw std::logic_error("not implemented");
     }
 }
@@ -100,9 +100,9 @@ void Exx::build_exx_orbital_energy_LibRI(const atpair_R_mat_t &LRI_Cs,
                                          const atpair_R_mat_t &coul_mat)
 {
 #ifdef __USE_LIBRI
-    if (para_mpi.is_master())
+    if (mpi_comm_world_h.is_root())
         printf("Computing EXX orbital energy using LibRI\n");
-    para_mpi.mpi_barrier();
+    mpi_comm_world_h.barrier();
     ::Exx<int, int, 3, double> exx_libri;
     map<int,std::array<double,3>> atoms_pos;
     for(int i=0;i!=atom_mu.size();i++)
@@ -127,15 +127,15 @@ void Exx::build_exx_orbital_energy_LibRI(const atpair_R_mat_t &LRI_Cs,
                 const auto &I = Ip.first;
                 const auto &J = Jp.first;
                 const auto &R=Rp.first;
-                if ((n_Cs_IJRs++) % para_mpi.get_size() == para_mpi.get_myid())
+                if ((n_Cs_IJRs++) % mpi_comm_world_h.nprocs == mpi_comm_world_h.myid)
                 {
                     Cs_IJRs_local.push_back({I, {J, R}});
                     n_Cs_IJRs_local++;
                 }
             }
-    // if (para_mpi.get_myid() == 0)
+    // if (mpi_comm_world_h.myid == 0)
     //     printf("Total count of Cs: %zu\n", n_IJRs);
-    // printf("| Number of Cs on Proc %4d: %zu\n", para_mpi.get_myid(), n_IJRs_local);
+    // printf("| Number of Cs on Proc %4d: %zu\n", mpi_comm_world_h.myid, n_IJRs_local);
     std::map<int, std::map<std::pair<int,std::array<int,3>>,Tensor<double>>> Cs_libri;
     for (auto &IJR: Cs_IJRs_local)
     {
@@ -153,7 +153,7 @@ void Exx::build_exx_orbital_energy_LibRI(const atpair_R_mat_t &LRI_Cs,
 
     // initialize Coulomb matrix
     std::map<int, std::map<std::pair<int,std::array<int,3>>,Tensor<double>>> V_libri;
-    for (auto IJR: dispatch_vector_prod(get_atom_pair(coul_mat), Rlist, para_mpi.get_myid(), para_mpi.get_size(), true, true))
+    for (auto IJR: dispatch_vector_prod(get_atom_pair(coul_mat), Rlist, mpi_comm_world_h.myid, mpi_comm_world_h.nprocs, true, true))
     {
         const auto I = IJR.first.first;
         const auto J = IJR.first.second;
@@ -172,7 +172,7 @@ void Exx::build_exx_orbital_energy_LibRI(const atpair_R_mat_t &LRI_Cs,
     for (int I = 0; I < atom_nw.size(); I++)
         for (int J = 0; J < atom_nw.size(); J++)
             atpair_dmat.push_back({I, J});
-    const auto dmat_IJRs_local = dispatch_vector_prod(atpair_dmat, Rlist, para_mpi.get_myid(), para_mpi.get_size(), true, true);
+    const auto dmat_IJRs_local = dispatch_vector_prod(atpair_dmat, Rlist, mpi_comm_world_h.myid, mpi_comm_world_h.nprocs, true, true);
     for (auto isp = 0; isp != this->mf_.get_n_spins(); isp++)
     {
         std::map<int, std::map<std::pair<int,std::array<int,3>>,Tensor<double>>> dmat_libri;
@@ -291,12 +291,12 @@ void Exx::build_exx_orbital_energy_LibRI(const atpair_R_mat_t &LRI_Cs,
         }
     }
 #else
-    if (para_mpi.is_master())
+    if (mpi_comm_world_h.is_root())
     {
         printf("Error: trying build EXX orbital energy with LibRI, but the program is not compiled against LibRI\n");
     }
-    para_mpi.mpi_barrier();
     throw std::logic_error("compilation");
+    mpi_comm_world_h.barrier();
 #endif
 }
 }

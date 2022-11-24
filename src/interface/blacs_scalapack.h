@@ -17,26 +17,37 @@ extern "C"
     void blacs_pinfo_(int *pid, int *nprocs);
     void blacs_get_(const int *ictxt, const int *what, int *val);
     void blacs_set_(const int *ictxt, const int *what, const int *val);
-    int numroc_(const int *n, const int *nb, const int *iproc, const int *srcproc, const int *nprocs);
-    void descinit_(int *desc,
-                   const int *m, const int *n, const int *mb, const int *nb,
-                   const int *irsrc, const int *icsrc, const int *ictxt, const int *lld,
-                   int *info);
     void blacs_pcoord_(const int *ictxt, const int *pid, int *prow, int *pcol);
     int blacs_pnum_(const int *ictxt, const int *prow, const int *pcol);
-    void blacs_gridexit_(const int *ictxt);
+    void blacs_gridexit_(int *ictxt);
 
     int Csys2blacs_handle(int SysCtxt);
     void Cblacs_pinfo(int *myid, int *nprocs);
-    void Cblacs_gridmap(int* icontxt, int *usermap, int ldumap, int nprow, int npcol);
+    void Cblacs_gridmap(int* ictxt, int *usermap, int ldumap, int nprow, int npcol);
     void Cblacs_gridinfo(int ictxt, int *nprow, int *npcol, int *prow, int *pcol);
     void Cblacs_gridinit(int *ictxt, char *layout, int nprow, int npcol);
-    int  Cblacs_pnum(int icontxt, int prow, int pcol);
-    void Cblacs_pcoord(int icontxt, int pnum, int *prow, int *pcol);
+    void Cblacs_gridexit(int ictxt);
+    int  Cblacs_pnum(int ictxt, int prow, int pcol);
+    void Cblacs_pcoord(int ictxt, int pnum, int *prow, int *pcol);
+    void Cblacs_barrier(int ictxt, char *scope);
 
 ////////////////////
 /* PBLAS bindings */
 ////////////////////
+// tools
+    void descinit_(int *desc,
+                   const int *m, const int *n, const int *mb, const int *nb,
+                   const int *irsrc, const int *icsrc, const int *ictxt, const int *lld,
+                   int *info);
+    int numroc_(const int *n, const int *nb, const int *iproc, const int *srcproc, const int *nprocs);
+    // void infog2l_();
+    // void PB_Cinfog1l(int i, int j, int *desc, int nprow, int npcol,
+    //                  int myrow, int mycol, int * ii, int * jj,
+    //                  int *prow, int *pcol);
+    // void PB_Cinfog2l(int i, int j, int *desc, int nprow, int npcol,
+    //                  int myrow, int mycol, int * ii, int * jj,
+    //                  int *prow, int *pcol);
+
     void pdpotrf_(char *uplo, int *n, double *a, int *ia, int *ja, int *desca, int *info);
     void pzpotrf_(char *uplo, int *n, std::complex<double> *a, int *ia, int *ja, int *desca, int *info);
     void pdtran_(int *m, int *n, double *alpha,

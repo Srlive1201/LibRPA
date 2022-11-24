@@ -490,7 +490,7 @@ void erase_Cs_from_local_atp(atpair_R_mat_t &Cs, vector<atpair_t> &local_atpair)
             
         }
     malloc_trim(0);
-    printf("  |process %d, size of Cs after erase: %d,  max_size: %d\n",para_mpi.get_myid(),Cs.size(),Cs.max_size());
+    printf("  |process %d, size of Cs after erase: %d,  max_size: %d\n", LIBRPA::mpi_comm_world_h.myid, Cs.size(),Cs.max_size());
 
 }
 // TODO: implement the wrapper of all input readers

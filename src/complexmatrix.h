@@ -41,11 +41,15 @@ public:
 	//============
 	complex<double> &operator()(const int ir,const int ic)
 	{
+        if (ir >= nr) printf("ir %d nr %d\n", ir, nr);
+        if (ic >= nc) printf("ic %d nc %d\n", ic, nc);
 		assert(ir>=0);	assert(ir<nr);	assert(ic>=0);	assert(ic<nc);
 		return c[ir*nc+ic];//mohan modify in-line 2007-10-1
 	}
 	const complex<double> &operator()(const int ir,const int ic)const
 	{
+        if (ir >= nr) printf("ir %d nr %d\n", ir, nr);
+        if (ic >= nc) printf("ic %d nc %d\n", ic, nc);
 		assert(ir>=0);	assert(ir<nr);	assert(ic>=0);	assert(ic<nc);
 		return c[ir*nc+ic];//mohan modify in-line 2007-10-13
 	}

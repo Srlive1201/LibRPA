@@ -3,14 +3,18 @@
 #include <stdexcept>
 #include "parallel_mpi.h"
 
+
 int main (int argc, char *argv[])
 {
-    para_mpi.mpi_init(argc, argv);
-    if ( para_mpi.get_size() != 4 )
+    using namespace LIBRPA;
+
+    MPI_Wrapper::init(argc, argv);
+    if ( MPI_Wrapper::nprocs_world != 4 )
         throw invalid_argument("test imposes 4 MPI processes");
 
-    const int myid = para_mpi.get_myid();
-    const int size = para_mpi.get_size();
+    mpi_comm_world_h.init();
+    const int myid = mpi_comm_world_h.myid;
+    const int size = mpi_comm_world_h.nprocs;
 
     // single index dispatcher
     // balanced sequential case

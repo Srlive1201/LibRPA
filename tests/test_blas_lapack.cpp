@@ -1,4 +1,3 @@
-#include "../src/blas_connector.h"
 #include "../src/lapack_connector.h"
 #include "testutils.h"
 #include "../src/complexmatrix.h"

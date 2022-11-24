@@ -8,6 +8,34 @@
 class ScalapackConnector
 {
 public:
+    // indexing functions adapted from ScaLAPACK TOOLS
+    inline static int indxg2p(const int &indxglob, const int &nb, const int &iproc, const int &isrcproc, const int &nprocs)
+    {
+        return (isrcproc + indxglob / nb) % nprocs;
+    }
+    inline static int indxg2l(const int &indxglob, const int &nb, const int &iproc, const int &isrcproc, const int &nprocs)
+    {
+        return nb * (indxglob/ (nb * nprocs)) + indxglob % nb;
+    }
+    inline static int indxl2g(const int &indxloc, const int &nb, const int &iproc, const int &isrcproc, const int &nprocs)
+    {
+        return nprocs * nb * (indxloc / nb) + indxloc % nb +
+               ((nprocs + iproc - isrcproc) % nprocs) * nb;
+    }
+    static void infog1l(const int &gindx, const int &nb, const int &nprocs, const int &myroc, const int &isrcproc, int &lindx, int &rocsrc)
+    {
+        int iblk;
+        iblk = gindx / nb;
+        rocsrc = (iblk + isrcproc) % nprocs;
+        lindx = (iblk / nprocs + 1) * nb;
+        if ((myroc + nprocs - isrcproc) % nprocs > iblk % nprocs)
+        {
+            if (myroc == rocsrc)
+                lindx = lindx + gindx % nb;
+            lindx = lindx - nb;
+        }
+    }
+
 	static void transpose_desc( int desc_T[9], const int desc[9] )
 	{
 		desc_T[0] = desc[0];

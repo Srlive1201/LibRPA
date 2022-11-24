@@ -1,5 +1,389 @@
 #include "parallel_mpi.h"
+
+#include <stdexcept>
+
+#include "interface/blacs_scalapack.h"
 #include "scalapack_connector.h"
+
+namespace LIBRPA {
+
+parallel_type chi_parallel_type = parallel_type::ATOM_PAIR;
+
+void set_chi_parallel_type(const int &atpais_num, const int Rt_num,
+                           const bool use_libri)
+{
+    if (MPI_Wrapper::is_root_world())
+    {
+        cout << "Chi parallel type" << endl;
+        cout << "| Atom_pairs_num:  " << atpais_num << endl;
+        cout << "| R_tau_num:  " << Rt_num << endl;
+#ifdef __USE_LIBRI
+        cout << "| USE_LibRI:  " << boolalpha << use_libri << endl;
+#endif
+    }
+    if (use_libri)
+    {
+#ifdef __USE_LIBRI
+        chi_parallel_type = parallel_type::LIBRI_USED;
+        if (MPI_Wrapper::is_root_world())
+            cout << "| Use LibRI for chi0" << endl;
+#else
+        cout << "LibRI routing requested, but the executable is not compiled "
+                "with LibRI"
+             << endl;
+        cout << "Please recompiler libRPA with -DUSE_LIBRI and configure "
+                "include path"
+             << endl;
+        MPI_Wrapper::barrier_world();
+        throw std::logic_error("compilation");
+#endif
+    }
+    else if (atpais_num < Rt_num)
+    {
+        chi_parallel_type = parallel_type::R_TAU;
+        if (MPI_Wrapper::is_root_world()) cout << "| R_tau_routing" << endl;
+    }
+    else
+    {
+        chi_parallel_type = parallel_type::ATOM_PAIR;
+        if (MPI_Wrapper::is_root_world()) cout << "| atom_pair_routing" << endl;
+    }
+}
+
+namespace MPI_Wrapper {
+
+bool initialized = false;
+std::string procname;
+int myid_world = -1;
+int nprocs_world = -1;
+
+bool is_root_world() { return PROCID_ROOT == myid_world; }
+
+void init(int argc, char **argv)
+{
+    if (initialized) return;
+    int provided;
+    MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
+    if (MPI_THREAD_MULTIPLE != provided)
+    {
+        printf ("Warning: MPI_Init_thread provide %d != required %d", provided, MPI_THREAD_MULTIPLE);
+    }
+    MPI_Comm_rank(MPI_COMM_WORLD, &myid_world);
+    MPI_Comm_size(MPI_COMM_WORLD, &nprocs_world);
+    char name[MPI_MAX_PROCESSOR_NAME];
+    int length;
+    MPI_Get_processor_name (name, &length);
+    procname = name;
+    initialized = true;
+}
+
+void allreduce_matrix(matrix &mat_send, matrix &mat_recv, MPI_Comm mpi_comm)
+{
+    assert(mat_send.nr==mat_recv.nr);
+    assert(mat_send.nc==mat_recv.nc);
+    int mat_size=mat_recv.nr*mat_recv.nc;
+    MPI_Allreduce(mat_send.c, mat_recv.c, mat_size, MPI_DOUBLE, MPI_SUM, mpi_comm);
+}
+
+void allreduce_ComplexMatrix(ComplexMatrix &cmat_send, ComplexMatrix &cmat_recv, MPI_Comm mpi_comm)
+{
+    assert(cmat_send.nr==cmat_recv.nr);
+    assert(cmat_send.nc==cmat_recv.nc);
+    MPI_Allreduce(cmat_send.c, cmat_recv.c, cmat_recv.size, MPI_DOUBLE_COMPLEX, MPI_SUM, mpi_comm);
+}
+
+void reduce_matrix(matrix &mat_send, matrix &mat_recv, int root, MPI_Comm mpi_comm)
+{
+    assert(mat_send.nr==mat_recv.nr);
+    assert(mat_send.nc==mat_recv.nc);
+    int mat_size = mat_recv.nr * mat_recv.nc;
+    MPI_Reduce(mat_send.c, mat_recv.c, mat_size, MPI_DOUBLE, MPI_SUM, root, mpi_comm);
+}
+
+void reduce_ComplexMatrix(ComplexMatrix &cmat_send, ComplexMatrix &cmat_recv, int root, MPI_Comm mpi_comm)
+{
+    assert(cmat_send.nr==cmat_recv.nr);
+    assert(cmat_send.nc==cmat_recv.nc);
+    MPI_Reduce(cmat_send.c, cmat_recv.c, cmat_recv.size, MPI_DOUBLE_COMPLEX, MPI_SUM, root, mpi_comm);
+}
+
+void finalize() { MPI_Finalize(); }
+
+void barrier_world() { MPI_Barrier(MPI_COMM_WORLD); }
+
+}  // namespace MPI_Wraper
+
+MPI_COMM_handler::MPI_COMM_handler(MPI_Comm comm_in)
+        : comm(comm_in)
+{
+    this->initialized = false; 
+}
+
+void MPI_COMM_handler::check_initialized() const
+{
+    if (!initialized)
+        throw std::logic_error("MPI_COMM_handler not initialized");
+}
+
+void MPI_COMM_handler::init()
+{
+    MPI_Comm_rank(this->comm, &(this->myid));
+    MPI_Comm_size(this->comm, &(this->nprocs));
+    this->initialized = true;
+}
+
+void MPI_COMM_handler::barrier() const
+{
+    this->check_initialized();
+    MPI_Barrier(this->comm);
+}
+
+void MPI_COMM_handler::allreduce_matrix(matrix &mat_send,
+                                        matrix &mat_recv) const
+{
+    this->check_initialized();
+    MPI_Wrapper::allreduce_matrix(mat_send, mat_recv, this->comm);
+}
+
+void MPI_COMM_handler::reduce_matrix(matrix &mat_send, matrix &mat_recv,
+                                     int root) const
+{
+    this->check_initialized();
+    MPI_Wrapper::reduce_matrix(mat_send, mat_recv, root, this->comm);
+}
+
+void MPI_COMM_handler::allreduce_ComplexMatrix(ComplexMatrix &cmat_sent,
+                                               ComplexMatrix &cmat_recv) const
+{
+    this->check_initialized();
+    MPI_Wrapper::allreduce_ComplexMatrix(cmat_sent, cmat_recv, this->comm);
+}
+
+void MPI_COMM_handler::reduce_ComplexMatrix(ComplexMatrix &cmat_sent,
+                                            ComplexMatrix &cmat_recv,
+                                            int root) const
+{
+    this->check_initialized();
+    MPI_Wrapper::reduce_ComplexMatrix(cmat_sent, cmat_recv, root, this->comm);
+}
+
+MPI_COMM_handler mpi_comm_world_h(MPI_COMM_WORLD);
+
+void BLACS_CTXT_handler::init()
+{
+    this->mpi_comm_h.init();
+    this->ictxt = Csys2blacs_handle(this->mpi_comm_h.comm);
+    Cblacs_pinfo(&this->myid, &this->nprocs);
+    this->initialized = true;
+}
+
+void BLACS_CTXT_handler::set_grid(const int &nprows_in, const int &npcols_in,
+                                  LAYOUT layout_in)
+{
+    // if the grid has been set, exit it first
+    if (pgrid_set) exit();
+    if (nprocs != nprows_in * npcols_in)
+        throw std::invalid_argument("nprocs != nprows * npcols");
+    layout = layout_in;
+    if (layout == LAYOUT::C)
+        layout_ch = 'C';
+    else
+        layout_ch = 'R';
+    Cblacs_gridinit(&ictxt, &layout_ch, nprows_in, npcols_in);
+    Cblacs_gridinfo(ictxt, &nprows, &npcols, &myprow, &mypcol);
+    pgrid_set = true;
+}
+
+void BLACS_CTXT_handler::set_square_grid(bool more_rows, LAYOUT layout_in)
+{
+    int nroc;
+    layout = layout_in;
+    for (nroc = int(sqrt(double(nprocs))); nroc >= 2; --nroc)
+    {
+        if ((nprocs) % nroc == 0) break;
+    }
+    more_rows ? nprows = nprocs / (npcols = nroc)
+              : npcols = nprocs / (nprows = nroc);
+    set_grid(nprows, npcols, layout_in);
+}
+
+void BLACS_CTXT_handler::set_horizon_grid()
+{
+    set_grid(1, nprocs, LAYOUT::R);
+}
+
+void BLACS_CTXT_handler::set_vertical_grid()
+{
+    set_grid(nprocs, 1, LAYOUT::C);
+}
+
+void BLACS_CTXT_handler::exit()
+{
+    if (pgrid_set)
+    {
+        Cblacs_gridexit(ictxt);
+        // recollect the system context
+        ictxt = Csys2blacs_handle(mpi_comm_h.comm);
+        pgrid_set = false;
+    }
+}
+
+std::string BLACS_CTXT_handler::info() const
+{
+    std::string info;
+    info = std::string("BLACS_CTXT_handler: ")
+         + "ICTXT " + std::to_string(ictxt) + " "
+         + "PSIZE " + std::to_string(nprocs) + " "
+         + "PID " + std::to_string(myid) + " "
+         + "PGRID (" + std::to_string(nprows) + "," + std::to_string(npcols) + ") "
+         + "PCOOD (" + std::to_string(myprow) + "," + std::to_string(mypcol) +")";
+    return info;
+}
+
+int BLACS_CTXT_handler::get_pnum(int prow, int pcol) const
+{
+    return Cblacs_pnum(ictxt, prow, pcol);
+}
+
+void BLACS_CTXT_handler::get_pcoord(int pid, int &prow, int &pcol) const
+{
+    Cblacs_pcoord(ictxt, pid, &prow, &pcol);
+}
+
+void BLACS_CTXT_handler::barrier(SCOPE scope) const
+{
+    char scope_ch;
+    switch (scope)
+    {
+        case (SCOPE::R): scope_ch = 'R';
+        case (SCOPE::C): scope_ch = 'C';
+        case (SCOPE::A): scope_ch = 'A';
+    }
+    Cblacs_barrier(ictxt, &scope_ch);
+}
+
+BLACS_CTXT_handler blacs_ctxt_world_h(MPI_COMM_WORLD);
+
+void Array_Desc::set_blacs_params_(int ictxt, int nprocs, int myid, int nprows,
+                                  int myprow, int npcols, int mypcol)
+{
+    assert(myid < nprocs && myprow < nprows && mypcol < npcols);
+    ictxt_ = ictxt;
+    nprocs_ = nprocs;
+    myid_ = myid;
+    nprows_ = nprows;
+    myprow_ = myprow;
+    npcols_ = npcols;
+    mypcol_ = mypcol;
+}
+
+Array_Desc::Array_Desc(const BLACS_CTXT_handler &blacs_h)
+{
+    set_blacs_params_(blacs_h.ictxt, blacs_h.nprocs, blacs_h.myid,
+                      blacs_h.nprows, blacs_h.myprow, blacs_h.npcols,
+                      blacs_h.mypcol);
+}
+
+int Array_Desc::init(const int &m, const int &n, const int &mb, const int &nb,
+                    const int &irsrc, const int &icsrc)
+{
+    int info = 0;
+    m_local_ = ScalapackConnector::numroc(m, mb, myprow_, irsrc, nprows_);
+    // leading dimension
+    lld_ = std::max(m_local_, 1);
+    n_local_ = ScalapackConnector::numroc(n, nb, mypcol_, icsrc, npcols_);
+    // create a dummy matrix of size 1, such that pointer c is not nullptr
+    // this is CRUCIAL when calling scalapack for small matrix with many processors
+    if (m_local_ < 1 || n_local_ < 1)
+    {
+        gen_dummy_matrix_ = true;
+        m_local_ = 1;
+        n_local_ = 1;
+    }
+
+    ScalapackConnector::descinit(this->desc, m, n, mb, nb, irsrc, icsrc, ictxt_, lld_, info);
+    if (info)
+        printf(
+            "ERROR DESCINIT! PROC %d (%d,%d) PARAMS: DESC %d %d %d %d %d %d %d %d\n",
+            myid_, myprow_, mypcol_, m, n, mb, nb, irsrc, icsrc, ictxt_, m_local_);
+    // else
+    //     printf("SUCCE DESCINIT! PROC %d (%d,%d) PARAMS: DESC %d %d %d %d %d %d %d %d\n", myid_, myprow_, mypcol_, m, n, mb, nb, irsrc, icsrc, ictxt_, m_local_);
+    m_ = desc[2];
+    n_ = desc[3];
+    mb_ = desc[4];
+    nb_ = desc[5];
+    irsrc_ = desc[6];
+    icsrc_ = desc[7];
+    lld_ = desc[8];
+    initialized_ = true;
+    return info;
+}
+
+std::string Array_Desc::info() const
+{
+    std::string info;
+    info = std::string("ArrayDesc: ")
+         + "ICTXT " + std::to_string(ictxt_) + " "
+         + "ID " + std::to_string(myid_) + " "
+         + "PCOOR (" + std::to_string(myprow_) + "," + std::to_string(mypcol_) + ") "
+         + "GSIZE (" + std::to_string(m_) + "," + std::to_string(n_) + ") "
+         + "LSIZE (" + std::to_string(m_local_) + "," + std::to_string(n_local_) + ") "
+         + "DUMMY? " + std::string(gen_dummy_matrix_? "T" : "F");
+    return info;
+}
+
+int Array_Desc::indx_g2l_r(int gindx) const
+{
+    // return myprow_ != ScalapackConnector::indxg2p(gindx, mb_, myprow_, irsrc_, nprows_)
+    //            ? -1
+    //            : ScalapackConnector::indxg2l(gindx, mb_, myprow_, irsrc_, nprows_);
+	int inproc = int((gindx % (mb_*nprows_)) / mb_);
+	if(myprow_==inproc)
+	{
+		return int(gindx / (mb_*nprows_))*mb_ + gindx % mb_;
+	}
+	else
+	{
+		return -1;
+	}
+}
+
+int Array_Desc::indx_g2l_c(int gindx) const
+{
+    // return mypcol_ != ScalapackConnector::indxg2p(gindx, nb_, mypcol_, icsrc_, npcols_)
+    //            ? -1
+    //            : ScalapackConnector::indxg2l(gindx, nb_, mypcol_, icsrc_, npcols_);
+	int inproc = int((gindx % (nb_*npcols_)) / mb_);
+	if(mypcol_==inproc)
+	{
+		return int(gindx / (nb_*npcols_))*nb_ + gindx % nb_;
+	}
+	else
+	{
+		return -1;
+	}
+}
+
+int Array_Desc::indx_l2g_r(int lindx) const
+{
+    // return ScalapackConnector::indxl2g(lindx, mb_, myprow_, irsrc_, nprows_);
+	int iblock, gIndex;
+	iblock = lindx / mb_;
+	gIndex = (iblock*nprows_ + myprow_)* mb_ + lindx % mb_;
+	return gIndex;
+}
+
+int Array_Desc::indx_l2g_c(int lindx) const
+{
+    // return ScalapackConnector::indxl2g(lindx, nb_, mypcol_, icsrc_, npcols_);
+	int iblock, gIndex;
+	iblock = lindx / nb_;
+	gIndex = (iblock*npcols_ + mypcol_)* nb_ + lindx % nb_;
+	return gIndex;
+}
+
+} // namespace LIBRPA
+
 Parallel_MPI::Parallel_MPI(void)
 {
     // cout<<"Parallel_MPI Object is being created !"<<endl;
@@ -8,65 +392,8 @@ Parallel_MPI::Parallel_MPI(void)
 
 Parallel_MPI::~Parallel_MPI(void)
 {
-    MPI_Finalize();
+    // MPI_Finalize();
     // cout<<"Parallel_MPI Object is being deleted !"<<endl;
-}
-
-void Parallel_MPI::allreduce_matrix(matrix &cmat_loc, matrix & cmat_glo)
-{
-    assert(cmat_loc.nr==cmat_glo.nr);
-    assert(cmat_loc.nc==cmat_glo.nc);
-    int mat_size=cmat_glo.nr*cmat_glo.nc;
-    MPI_Allreduce(cmat_loc.c,cmat_glo.c,mat_size,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
-}
-
-
-void Parallel_MPI::allreduce_ComplexMatrix(ComplexMatrix &cmat_loc, ComplexMatrix & cmat_glo)
-{
-    assert(cmat_loc.nr==cmat_glo.nr);
-    assert(cmat_loc.nc==cmat_glo.nc);
-    MPI_Allreduce(cmat_loc.c,cmat_glo.c,cmat_glo.size,MPI_DOUBLE_COMPLEX,MPI_SUM,MPI_COMM_WORLD);
-}
-
-void Parallel_MPI::reduce_ComplexMatrix(ComplexMatrix &cmat_loc, ComplexMatrix & cmat_glo)
-{
-    /* cout << "cmat_loc nr/nc: " << cmat_loc.nr << ", " << cmat_loc.nc << endl; */
-    /* cout << "cmat_glo nr/nc: " << cmat_glo.nr << ", " << cmat_glo.nc << endl; */
-    assert(cmat_loc.nr==cmat_glo.nr);
-    assert(cmat_loc.nc==cmat_glo.nc);
-    MPI_Reduce(cmat_loc.c,cmat_glo.c,cmat_glo.size,MPI_DOUBLE_COMPLEX,MPI_SUM,0,MPI_COMM_WORLD);
-}
-
-void Parallel_MPI::mpi_init(int argc, char **argv)
-{
-    int provided;
-	MPI_Init_thread (&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
-	if (MPI_THREAD_MULTIPLE != provided)
-	{
-		printf ("Warning: MPI_Init_thread provide %d != required %d", provided, MPI_THREAD_MULTIPLE);
-    }
-    MPI_Comm_rank (MPI_COMM_WORLD, &myid);
-    MPI_Comm_size (MPI_COMM_WORLD, &size);
-    char name[MPI_MAX_PROCESSOR_NAME];
-	int length;
-	MPI_Get_processor_name (name, &length);
- 
-    // NOTE: omp threads set through environment variable, instead of command line argument
-	// int omp_num_threads = 1;
-	// if (argc > 1)
-	// {
-	// 	omp_num_threads = atoi (argv[1]);
-	// }
-    if (myid == 0)
-    {
-        printf("Number of processors: %d\n", size);
-    }
-	printf ("World Proc %4d: %s \n", myid, name);
-}
-
-void Parallel_MPI::mpi_barrier()
-{
-    MPI_Barrier(MPI_COMM_WORLD);
 }
 
 vector<double> Parallel_MPI::pack_mat(const map<size_t,map<size_t,map<Vector3_Order<int>,shared_ptr<matrix>>>> &Cs_m)
@@ -95,44 +422,6 @@ vector<double> Parallel_MPI::pack_mat(const map<size_t,map<size_t,map<Vector3_Or
     return pack;
 }
 
-void Parallel_MPI::set_chi_parallel_type(const int &atpais_num, const int Rt_num, const bool use_libri)
-{
-    if(para_mpi.is_master())
-    {
-        cout<<"Chi parallel type"<<endl;
-        cout<<"| Atom_pairs_num:  "<<atpais_num<<endl;
-        cout<<"| R_tau_num:  "<<Rt_num<<endl;
-#ifdef __USE_LIBRI
-        cout<<"| USE_LibRI:  "<<boolalpha<<use_libri<<endl;
-#endif        
-    }
-    if(use_libri)
-    {
-#ifdef __USE_LIBRI
-        this->chi_parallel_type=Parallel_MPI::parallel_type::LIBRI_USED;
-        if (para_mpi.is_master())
-            cout<<"| Use LibRI for chi0"<<endl;
-#else
-        cout << "LibRI routing requested, but the executable is not compiled with LibRI" << endl;
-        cout << "Please recompiler libRPA with -DUSE_LIBRI and configure include path" << endl;
-        para_mpi.mpi_barrier();
-        throw std::logic_error("compilation");
-#endif
-
-    }
-    else if( atpais_num< Rt_num)
-    {
-        this->chi_parallel_type=Parallel_MPI::parallel_type::R_TAU;
-        if (para_mpi.is_master())
-            cout << "| R_tau_routing" << endl;
-    }
-    else
-    {
-        this->chi_parallel_type=Parallel_MPI::parallel_type::ATOM_PAIR;
-        if (para_mpi.is_master())
-            cout << "| atom_pair_routing" << endl;
-    }
-}
 
 map<size_t,map<size_t,map<Vector3_Order<int>,shared_ptr<matrix>>>>  Parallel_MPI::unpack_mat(vector<double> &pack)
 {
@@ -152,46 +441,6 @@ map<size_t,map<size_t,map<Vector3_Order<int>,shared_ptr<matrix>>>>  Parallel_MPI
         ptr+=7+nr*nc;
     }
     return Cs;
-}
-
-void Parallel_MPI::set_blacs_parameters()
-{
-    int np_rows,np_cols; 
-    int nprocs=this->size;
-    for(np_cols=int(sqrt(double(nprocs))); np_cols>=2; --np_cols)
-	{
-		if((nprocs)%np_cols==0) break;
-	}
-	np_rows=nprocs/np_cols;
-	my_blacs_ctxt = MPI_Comm_c2f(MPI_COMM_WORLD);
-    
-	blacs_gridinit_(&my_blacs_ctxt, &BLACS_LAYOUT, &np_rows, &np_cols);
-	blacs_gridinfo_(&my_blacs_ctxt, &nprow, &npcol, &myprow, &mypcol);
-    if(myid == 0)
-    {
-        printf("BLACS parameters: nprows %d, npcols %d\nProc  IRow  ICol\n", np_rows, np_cols);
-    }
-    printf("%4d  %4d  %4d\n", myid, myprow, mypcol);
-    mpi_barrier();
-    if(myid == 0)
-        printf("\n");
-    mpi_barrier();
-}
-
-void Parallel_MPI::set_blacs_mat(
-    int *desc, int &loc_row, int &loc_col, 
-    const int tot_row, const int tot_col,
-    const int row_blk, const int col_blk )
-{
-    int IRSRC=0;
-    int info;
-    loc_row=ScalapackConnector::numroc(tot_row, row_blk, this->myprow,IRSRC,this->nprow);
-    loc_col=ScalapackConnector::numroc(tot_col, col_blk, this->mypcol,IRSRC,this->npcol);
-    ScalapackConnector::descinit(desc, tot_row, tot_col, row_blk, col_blk, IRSRC, IRSRC, this->my_blacs_ctxt, loc_row, info);
-    if (info != 0)
-    {
-        printf("Warning: non-zero return (%d) by DESCINT on Proc %d\n", info, myid);
-    }
 }
 
 int Parallel_MPI::globalIndex(int localIndex, int nblk, int nprocs, int myproc)

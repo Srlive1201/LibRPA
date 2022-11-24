@@ -18,12 +18,14 @@
 #include "scalapack_connector.h"
 #ifdef __USE_LIBRI
 #include <RI/physics/RPA.h>
-// #include <unittests/print_stl.h>
-// #include <unittests/global/Tensor-test.h>
 #endif
 #include <array>
 #include <map>
-//#include "../AtomicTensor/libRI-master/include/RI/physics/RPA.h"
+
+using LIBRPA::mpi_comm_world_h;
+using LIBRPA::parallel_type;
+using LIBRPA::chi_parallel_type;
+
 void Chi0::build(const atpair_R_mat_t &LRI_Cs,
                    const vector<Vector3_Order<int>> &Rlist,
                    const Vector3_Order<int> &R_period,
@@ -58,9 +60,9 @@ void Chi0::build(const atpair_R_mat_t &LRI_Cs,
     if (use_space_time && !tfg.has_time_grids())
         throw invalid_argument("current grid type does not have time grids");
 
-    if (para_mpi.get_myid() == 0)
+    if (mpi_comm_world_h.is_root())
         tfg.show();
-    para_mpi.mpi_barrier();
+    mpi_comm_world_h.barrier();
 
     if (use_space_time)
     {
@@ -75,7 +77,7 @@ void Chi0::build(const atpair_R_mat_t &LRI_Cs,
                 build_gf_Rt(R, -tau);
             }
         }
-        if (para_mpi.get_myid() == 0)
+        if (mpi_comm_world_h.is_root())
         {
             // cout << " Green threshold: " << gf_R_threshold << endl;
             printf("Finished construction of R-space Green's function\n");
@@ -189,14 +191,14 @@ void Chi0::build_chi0_q_space_time(const atpair_R_mat_t &LRI_Cs,
                                    const vector<Vector3_Order<double>> &qlist)
 {
    // int R_tau_size = Rlist_gf.size() * tfg.size();
-    if(para_mpi.chi_parallel_type == Parallel_MPI::parallel_type::LIBRI_USED)
+    if(chi_parallel_type == parallel_type::LIBRI_USED)
     {
-        if (para_mpi.is_master())
+        if (mpi_comm_world_h.is_root())
             cout<<"Use LibRI for chi0"<<endl;
         build_chi0_q_space_time_LibRI_routing(LRI_Cs, R_period, atpairs_ABF, qlist);
 
     }
-    else if ( para_mpi.chi_parallel_type == Parallel_MPI::parallel_type::R_TAU)
+    else if ( chi_parallel_type == parallel_type::R_TAU)
     {
         // if (para_mpi.is_master())
         //     cout << "R_tau_routing" << endl;
@@ -218,7 +220,7 @@ void Chi0::build_chi0_q_space_time_LibRI_routing(const atpair_R_mat_t &LRI_Cs,
 #ifndef __USE_LIBRI
     cout << "LibRI routing requested, but the executable is not compiled with LibRI" << endl;
     cout << "Please recompiler libRPA with -DUSE_LIBRI and configure include path" << endl;
-    para_mpi.mpi_barrier();
+    mpi_comm_world_h.barrier();
     throw std::logic_error("compilation");
 #else
     prof.start("LibRI_routing");
@@ -258,16 +260,16 @@ void Chi0::build_chi0_q_space_time_LibRI_routing(const atpair_R_mat_t &LRI_Cs,
                 const auto &I = Ip.first;
                 const auto &J = Jp.first;
                 const auto &R=Rp.first;
-                if ((n_IJRs++) % para_mpi.get_size() == para_mpi.get_myid())
+                if ((n_IJRs++) % mpi_comm_world_h.nprocs == mpi_comm_world_h.myid)
                 {
                     IJRs_local.push_back({I, {J, R}});
                     n_IJRs_local++;
                 }
             }
 
-    if (para_mpi.get_myid() == 0)
+    if (mpi_comm_world_h.myid == 0)
         printf("Total count of Cs: %zu\n", n_IJRs);
-    printf("| Number of Cs on Proc %4d: %zu\n", para_mpi.get_myid(), n_IJRs_local);
+    printf("| Number of Cs on Proc %4d: %zu\n", mpi_comm_world_h.myid, n_IJRs_local);
 
     std::map<int, std::map<std::pair<int,std::array<int,3>>,Tensor<double>>> Cs_libri;
     // I, J, ij, mu -> I, J, mu, i, j
@@ -290,13 +292,13 @@ void Chi0::build_chi0_q_space_time_LibRI_routing(const atpair_R_mat_t &LRI_Cs,
     // cout << "Cs of rpa object set" << endl;
 
     // dispatch GF accoding to atpair and R
-    if (para_mpi.is_master())
+    if (mpi_comm_world_h.is_root())
         printf("Total count of GFs IJR: %zu\n", get_atom_pair(gf_is_R_tau[0]).size() * Rlist_gf.size());
-    para_mpi.mpi_barrier();
+    mpi_comm_world_h.barrier();
     const auto IJRs_gf_local = dispatch_vector_prod(get_atom_pair(gf_is_R_tau[0]),
                                                     Rlist_gf,
-                                                    para_mpi.get_myid(), para_mpi.get_size(), true, true);
-    printf("| Number of GFs IJR on Proc %4d: %zu\n", para_mpi.get_myid(), IJRs_gf_local.size());
+                                                    mpi_comm_world_h.myid, mpi_comm_world_h.nprocs, true, true);
+    printf("| Number of GFs IJR on Proc %4d: %zu\n", mpi_comm_world_h.myid, IJRs_gf_local.size());
 
     for (auto it = 0; it != tfg.size(); it++)
     {
@@ -331,7 +333,7 @@ void Chi0::build_chi0_q_space_time_LibRI_routing(const atpair_R_mat_t &LRI_Cs,
                     gf_ne_libri[I][{J, Ra}] = Tensor<double>({size_t(gf_tau.at(-tau).nr), size_t(gf_tau.at(-tau).nc)}, mat_ne_ptr);
                 }
             }
-            para_mpi.mpi_barrier();
+            mpi_comm_world_h.barrier();
             // std::clock_t cpu_clock_done_init_gf = clock();
             rpa.cal_chi0s(gf_po_libri,gf_ne_libri, params.libri_chi0_threshold_G);
             std::clock_t cpu_clock_done_chi0s = clock();
@@ -356,7 +358,7 @@ void Chi0::build_chi0_q_space_time_LibRI_routing(const atpair_R_mat_t &LRI_Cs,
                         cm_chi0.c[i] = *(chi0_Rtau.ptr()+i);
                     // char fn[80];
                     // const int iR = std::distance(Rlist_gf.begin(), std::find(Rlist_gf.begin(), Rlist_gf.end(), Rint));
-                    // sprintf(fn, "chi0tR_is_%d_itau_%d_iR_%d_I_%zu_J_%zu_id_%d.mtx", isp.first, it, iR, I, J, para_mpi.get_myid());
+                    // sprintf(fn, "chi0tR_is_%d_itau_%d_iR_%d_I_%zu_J_%zu_id_%d.mtx", isp.first, it, iR, I, J, LIBRPA::mpi_comm_world_h.myid);
                     // print_complex_matrix_mm(cm_chi0, fn, 1e-15);
 
                     for ( auto q: qlist )
@@ -376,7 +378,7 @@ void Chi0::build_chi0_q_space_time_LibRI_routing(const atpair_R_mat_t &LRI_Cs,
             }
             std::clock_t cpu_clock_done_trans = clock();
             double wtime_end_isp_tau = omp_get_wtime();
-            if (para_mpi.get_myid() == 0)
+            if (LIBRPA::mpi_comm_world_h.myid == 0)
             {
                 printf("chi0s for time point %f, spin %d. CPU time: %f (tensor), %f (trans). Wall time %f\n",
                        tau, isp.first, cpu_time_from_clocks_diff(cpu_clock_start_isp_tau, cpu_clock_done_chi0s),
@@ -385,8 +387,8 @@ void Chi0::build_chi0_q_space_time_LibRI_routing(const atpair_R_mat_t &LRI_Cs,
             }
         }
     }
-    if (para_mpi.is_master()) printf("\n");
-    para_mpi.mpi_barrier();
+    if (mpi_comm_world_h.is_root()) printf("\n");
+    mpi_comm_world_h.barrier();
     prof.stop("LibRI_routing");
 #endif
 }
@@ -401,7 +403,7 @@ void Chi0::build_chi0_q_space_time_R_tau_routing(const atpair_R_mat_t &LRI_Cs,
     // taus and Rs to compute on MPI task
     // tend to calculate more Rs on one process
     vector<pair<int, int>> itauiRs_local = dispatcher(0, tfg.size(), 0, Rlist_gf.size(),
-                                                      para_mpi.get_myid(), para_mpi.get_size(), true, false);
+                                                      mpi_comm_world_h.myid, mpi_comm_world_h.nprocs, true, false);
 
     map<double, map<Vector3_Order<double>, atom_mapping<ComplexMatrix>::pair_t_old>> chi0_q_tmp;
     for ( auto freq: tfg.get_freq_nodes() )
@@ -461,7 +463,7 @@ void Chi0::build_chi0_q_space_time_R_tau_routing(const atpair_R_mat_t &LRI_Cs,
         double time_used = t_Rtau_end - t_Rtau_begin;
         // t_chi0_tot += time_used;
         printf("CHI0 p_id: %3d, thread: %3d, R: ( %d,  %d,  %d ), tau: %f , TIME_USED: %f\n",
-                para_mpi.get_myid(), omp_get_thread_num(), R.x, R.y, R.z, tau, time_used);
+               mpi_comm_world_h.myid, omp_get_thread_num(), R.x, R.y, R.z, tau, time_used);
     }
 
     omp_destroy_lock(&chi0_lock);
@@ -478,10 +480,10 @@ void Chi0::build_chi0_q_space_time_R_tau_routing(const atpair_R_mat_t &LRI_Cs,
                 chi0_q[freq][q][Mu][Nu].create(atom_mu[Mu], atom_mu[Nu]);
                 /* cout << "nr/nc chi0_q_tmp: " << chi0_q_tmp[ifreq][iq][Mu][Nu].nr << ", "<< chi0_q_tmp[ifreq][iq][Mu][Nu].nc << endl; */
                 /* cout << "nr/nc chi0_q: " << chi0_q[ifreq][iq][Mu][Nu].nr << ", "<< chi0_q[ifreq][iq][Mu][Nu].nc << endl; */
-                para_mpi.reduce_ComplexMatrix(chi0_q_tmp[freq][q][Mu][Nu], chi0_q[freq][q][Mu][Nu]);
-                /* if (para_mpi.get_myid()==0 && Mu == 0 && Nu == 0 && ifreq == 0 && q == Vector3_Order<double>{0, 0, 0}) */
-                /* if (para_mpi.get_myid()==0 && Mu == 0 && Nu == 0 && ifreq == 0 ) */
-                /* if (para_mpi.get_myid()==0 && ifreq == 0 && q == Vector3_Order<double>{0, 0, 0}) */
+                mpi_comm_world_h.reduce_ComplexMatrix(chi0_q_tmp[freq][q][Mu][Nu], chi0_q[freq][q][Mu][Nu], 0);
+                /* if (LIBRPA::mpi_comm_world_h.myid==0 && Mu == 0 && Nu == 0 && ifreq == 0 && q == Vector3_Order<double>{0, 0, 0}) */
+                /* if (LIBRPA::mpi_comm_world_h.myid==0 && Mu == 0 && Nu == 0 && ifreq == 0 ) */
+                /* if (LIBRPA::mpi_comm_world_h.myid==0 && ifreq == 0 && q == Vector3_Order<double>{0, 0, 0}) */
                 /* { */
                 /*     cout <<  "freq: " << freq << ", q: " << q << endl; */
                 /*     printf("Mu %zu Nu %zu\n", Mu, Nu); */
@@ -499,9 +501,9 @@ void Chi0::build_chi0_q_space_time_atom_pair_routing(const atpair_R_mat_t &LRI_C
                                                  const vector<Vector3_Order<double>> &qlist)
 {
     prof.start("atom_pair_routing");
-    //auto tot_pair = dispatch_vector(atpairs_ABF, para_mpi.get_myid(), para_mpi.get_size(), false);
-    printf("Number of atom pairs on Proc %4d: %zu\n", para_mpi.get_myid(), atpairs_ABF.size());
-    para_mpi.mpi_barrier();
+    //auto tot_pair = dispatch_vector(atpairs_ABF, LIBRPA::mpi_comm_world_h.myid, para_mpi.get_size(), false);
+    printf("Number of atom pairs on Proc %4d: %zu\n", LIBRPA::mpi_comm_world_h.myid, atpairs_ABF.size());
+    mpi_comm_world_h.barrier();
     omp_lock_t chi0_lock;
     omp_init_lock(&chi0_lock);
     // double t_chi0_begin = omp_get_wtime();
@@ -558,7 +560,7 @@ void Chi0::build_chi0_q_space_time_atom_pair_routing(const atpair_R_mat_t &LRI_C
             }
             double add_end = omp_get_wtime();
             double add_time = add_end - task_end;
-            printf("CHI0 p_id: %3d, thread: %3d, I: %zu, J: %zu, move time: %f  TIME_USED: %f\n", para_mpi.get_myid(), omp_get_thread_num(), Mu, Nu, add_time, time_used);
+            printf("CHI0 p_id: %3d, thread: %3d, I: %zu, J: %zu, move time: %f  TIME_USED: %f\n", LIBRPA::mpi_comm_world_h.myid, omp_get_thread_num(), Mu, Nu, add_time, time_used);
             omp_unset_lock(&chi0_lock);
         }
     }
@@ -751,7 +753,7 @@ matrix Chi0::compute_chi0_s_munu_tau_R(const atpair_R_mat_t &LRI_Cs,
         }
     }
     
-    /* if ( para_mpi.get_myid()==0 && Mu == 1 && Nu == 1 && tau == tfg.get_time_nodes()[0]) */
+    /* if ( LIBRPA::mpi_comm_world_h.myid==0 && Mu == 1 && Nu == 1 && tau == tfg.get_time_nodes()[0]) */
     /* { */
     /*     cout << R << " Mu=" << Mu << " Nu=" << Nu << " tau:" << tau << endl; */
     /*     print_matrix("space-time chi0", O_sum); */
@@ -1036,8 +1038,8 @@ map<size_t, matrix> compute_chi0_munu_tau_LRI_saveN_noreshape(const map<size_t, 
                 Yc.c, n_i*n_j,
                 Xcnt.c, n_i*n_j, 1.0, chi0_tau[iR].c, n_nu);
     }
-    /* if (para_mpi.get_myid()==0 && Mu == 0 && Nu == 0) */
-    if (para_mpi.get_myid()==0 && Mu == 0 && Nu == 1)
+    /* if (LIBRPA::mpi_comm_world_h.myid==0 && Mu == 0 && Nu == 0) */
+    if (LIBRPA::mpi_comm_world_h.myid==0 && Mu == 0 && Nu == 1)
     {
         /* for (auto iR_chi0_tau: chi0_tau) */
         /* { */

@@ -5,7 +5,12 @@
 #include <set>
 int main(int argc, char **argv)
 {
-    para_mpi.mpi_init(argc,argv);
+    using namespace LIBRPA;
+    MPI_Wrapper::init(argc, argv);
+
+    mpi_comm_world_h.init();
+    blacs_ctxt_world_h.init();
+    blacs_ctxt_world_h.set_square_grid();
 
     prof.add(0, "total", "Total");
     prof.add(1, "chi0_main", "Chi0 object");
@@ -32,13 +37,13 @@ int main(int argc, char **argv)
     parser.parse_int("nfreq", params.nfreq, stoi(argv[1]), flag);
     parser.parse_double("gf_R_threshold", params.gf_R_threshold, stod(argv[2]), flag);
     params.check_consistency();
-    if (para_mpi.is_master())
+    if (mpi_comm_world_h.is_root())
         params.print();
-    para_mpi.mpi_barrier();
-    para_mpi.set_blacs_parameters();
+    mpi_comm_world_h.barrier();
+    // para_mpi.set_blacs_parameters();
 
     READ_AIMS_BAND("band_out", meanfield);
-    if (para_mpi.get_myid() == 0)
+    if (mpi_comm_world_h.is_root())
     {
         cout << "Information of mean-field starting-point" << endl;
         cout << "| number of spins: " << meanfield.get_n_spins() << endl
@@ -57,7 +62,7 @@ int main(int argc, char **argv)
     Vector3_Order<int> period {kv_nmp[0], kv_nmp[1], kv_nmp[2]};
     auto Rlist = construct_R_grid(period);
 
-    if (para_mpi.get_myid() == 0)
+    if (mpi_comm_world_h.is_root())
     {
         cout << "Lattice vectors (Bohr)" << endl;
         latvec.print();
@@ -86,18 +91,18 @@ int main(int argc, char **argv)
     READ_AIMS_Cs("./", params.cs_threshold);
 
     tot_atpair = generate_atom_pair_from_nat(natom, false);
-    if (para_mpi.is_master())
+    if (mpi_comm_world_h.is_root())
         cout << "| Natoms: " << natom << "   tot_atpairs:  " << tot_atpair.size() << endl;
     // barrier to wait for information print on master process
-    para_mpi.mpi_barrier();
+    mpi_comm_world_h.barrier();
     
-    para_mpi.set_chi_parallel_type(tot_atpair.size(),Rt_num,params.use_libri_chi0);
+    set_chi_parallel_type(tot_atpair.size(),Rt_num,params.use_libri_chi0);
     //para_mpi.chi_parallel_type=Parallel_MPI::parallel_type::ATOM_PAIR;
-    //vector<atpair_t> local_atpair;
-    if(para_mpi.chi_parallel_type==Parallel_MPI::parallel_type::ATOM_PAIR)
+    // vector<atpair_t> local_atpair;
+    if(chi_parallel_type == parallel_type::ATOM_PAIR)
     {
-        local_atpair = dispatch_vector(tot_atpair, para_mpi.get_myid(), para_mpi.get_size(), true);
-        printf("| process %d , local_atom_pair size:  %zu\n", para_mpi.get_myid(), local_atpair.size());
+        local_atpair = dispatch_vector(tot_atpair, mpi_comm_world_h.myid, mpi_comm_world_h.nprocs, true);
+        printf("| process %d , local_atom_pair size:  %zu\n", mpi_comm_world_h.myid, local_atpair.size());
         // for(auto &ap:local_atpair)
         //     printf(" |process %d , local_atom_pair:  %d,  %d\n",para_mpi.get_myid(),ap.first,ap.second);
         READ_Vq_Row("./", "coulomb_mat", params.vq_threshold, Vq, local_atpair);
@@ -151,7 +156,7 @@ int main(int argc, char **argv)
                     for (const auto &J_chi0: I_Jchi0.second)
                     {
                         const auto &J = J_chi0.first;
-                        sprintf(fn, "chi0fq_ifreq_%d_iq_%d_I_%zu_J_%zu_id_%d.mtx", ifreq, iq, I, J, para_mpi.get_myid());
+                        sprintf(fn, "chi0fq_ifreq_%d_iq_%d_I_%zu_J_%zu_id_%d.mtx", ifreq, iq, I, J, mpi_comm_world_h.myid);
                         // print_complex_matrix_mm(J_chi0.second, fn, 1e-15);
                     }
                 }
@@ -178,7 +183,7 @@ int main(int argc, char **argv)
         else
             corr = compute_RPA_correlation(chi0, Vq);
 
-        if (para_mpi.get_myid() == 0)
+        if (mpi_comm_world_h.is_root())
         {
             printf("RPA correlation energy (Hartree)\n");
             printf("| Weighted contribution from each k:\n");
@@ -208,7 +213,7 @@ int main(int argc, char **argv)
         exx.build_exx_orbital_energy(Cs, Rlist, period, VR);
         // FIXME: need to reduce first when MPI is used
         // NOTE: may extract to a common function
-        if (para_mpi.is_master())
+        if (LIBRPA::mpi_comm_world_h.is_root())
         {
             for (int isp = 0; isp != meanfield.get_n_spins(); isp++)
             {
@@ -226,8 +231,9 @@ int main(int argc, char **argv)
     }
 
     prof.stop("total");
-    if(para_mpi.get_myid()==0)
+    if(mpi_comm_world_h.is_root())
         prof.display();
 
+    MPI_Wrapper::finalize();
     return 0;
 }

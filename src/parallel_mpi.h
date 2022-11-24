@@ -16,39 +16,165 @@ using std::vector;
 using std::map;
 using std::pair;
 
+namespace LIBRPA {
+
+enum parallel_type {
+    ATOM_PAIR,
+    R_TAU,
+    LIBRI_USED 
+};
+
+extern parallel_type chi_parallel_type;
+
+void set_chi_parallel_type(const int &atpais_num, const int Rt_num, const bool use_libri);
+
+namespace MPI_Wrapper
+{
+    constexpr int PROCID_ROOT = 0;
+    extern std::string procname;
+    extern bool initialized;
+    extern int myid_world;
+    extern int nprocs_world;
+    bool is_root_world();
+    void init(int argc, char **argv);
+    void finalize();
+    void barrier_world();
+    void allreduce_matrix(const matrix& mat_send, matrix& mat_recv, MPI_Comm mpi_comm);
+    void allreduce_ComplexMatrix(const ComplexMatrix& cmat_send, ComplexMatrix & cmat_recv, MPI_Comm mpi_comm);
+    void reduce_matrix(const matrix& mat_send, matrix& mat_recv, int root, MPI_Comm mpi_comm);
+    void reduce_ComplexMatrix(const ComplexMatrix& cmat_send, ComplexMatrix& cmat_recv, int root, MPI_Comm mpi_comm);
+};
+
+class MPI_COMM_handler
+{
+public:
+    MPI_Comm comm;
+    int myid;
+    int nprocs;
+    bool initialized;
+    void check_initialized() const;
+public:
+    MPI_COMM_handler(MPI_Comm comm_in);
+    ~MPI_COMM_handler() {};
+    void init();
+    bool is_root() const { return myid == MPI_Wrapper::PROCID_ROOT; }
+    void barrier() const;
+    void allreduce_matrix(matrix &mat_send, matrix &mat_recv) const;
+    void allreduce_ComplexMatrix(ComplexMatrix &cmat_send, ComplexMatrix & cmat_recv) const;
+    void reduce_matrix(matrix &mat_send, matrix & cmat_recv, int root) const;
+    void reduce_ComplexMatrix(ComplexMatrix &cmat_send, ComplexMatrix & cmat_recv, int root) const;
+};
+
+extern MPI_COMM_handler mpi_comm_world_h;
+
+class BLACS_CTXT_handler
+{
+private:
+    MPI_COMM_handler mpi_comm_h;
+    char layout_ch;
+    bool initialized;
+    bool pgrid_set;
+public:
+    enum class LAYOUT {R, C};
+    enum class SCOPE {R, C, A};
+public:
+    int ictxt;
+    LAYOUT layout;
+    int myid;
+    int nprocs;
+    int nprows;
+    int npcols;
+    int mypcol;
+    int myprow;
+    BLACS_CTXT_handler(MPI_Comm comm_in): mpi_comm_h(comm_in) { pgrid_set = initialized = false; }
+    ~BLACS_CTXT_handler() {};
+    void init();
+    void set_grid(const int &nprows_in, const int &npcols_in, LAYOUT layout_in = LAYOUT::R);
+    void set_square_grid(bool more_rows = true, LAYOUT layout_in = LAYOUT::R);
+    void set_horizon_grid();
+    void set_vertical_grid();
+    std::string info() const;
+    int get_pnum(int prow, int pcol) const;
+    void get_pcoord(int pid, int &prow, int &pcol) const;
+    void barrier(SCOPE scope = SCOPE::A) const;
+    void exit();
+};
+
+extern BLACS_CTXT_handler blacs_ctxt_world_h;
+
+class Array_Desc
+{
+private:
+    // BLACS parameters obtained upon construction
+    int ictxt_;
+    int nprocs_;
+    int myid_;
+    int nprows_;
+    int myprow_;
+    int npcols_;
+    int mypcol_;
+    void set_blacs_params_(int ictxt, int nprocs, int myid, int nprows, int myprow, int npcols, int mypcol);
+
+    // Array dimensions
+    int m_;
+    int n_;
+    int mb_;
+    int nb_;
+    int irsrc_;
+    int icsrc_;
+    int lld_;
+    int m_local_;
+    int n_local_;
+
+    //! flag to indicate that the current process should contain no data of local matrix, but for scalapack routines, it will generate a dummy matrix of size 1, nrows = ncols = 1
+    bool gen_dummy_matrix_ = false;
+
+    //! flag for initialization
+    bool initialized_ = false;
+
+public:
+    int desc[9];
+    Array_Desc(const BLACS_CTXT_handler &blacs_ctxt_h);
+    Array_Desc(const int &ictxt);
+    int init(const int &m, const int &n,
+             const int &mb, const int &nb,
+             const int &irsrc, const int &icsrc);
+    int indx_g2l_r(int gindx) const;
+    int indx_g2l_c(int gindx) const;
+    int indx_l2g_r(int lindx) const;
+    int indx_l2g_c(int lindx) const;
+    const int& m() const { return m_; }
+    const int& n() const { return n_; }
+    const int& mb() const { return mb_; }
+    const int& nb() const { return nb_; }
+    const int& irsrc() const { return irsrc_; }
+    const int& icsrc() const { return icsrc_; }
+    const int& num_r() const { return m_local_; }
+    const int& num_c() const { return n_local_; }
+    std::string info() const;
+};
+
+} // namespace LIBRPA
+
 class Parallel_MPI
 {
-    int myid, size;
-    
-    public:
-    int my_blacs_ctxt;
-    int myprow, mypcol, nprow, npcol;
-    char BLACS_LAYOUT;
+public:
     enum parallel_type { ATOM_PAIR, R_TAU, LIBRI_USED };
     parallel_type chi_parallel_type;
+    
+    static vector<double> pack_mat(const map<size_t,map<size_t,map<Vector3_Order<int>,shared_ptr<matrix>>>> &Cs_m);
+    static map<size_t,map<size_t,map<Vector3_Order<int>,shared_ptr<matrix>>>> unpack_mat(vector<double> &pack);
+
     Parallel_MPI();
     ~Parallel_MPI();
-    
-    void mpi_init(int argc, char **argv);
-    void mpi_barrier();
-    int get_myid(){return myid;}
-    int get_size(){return size;}
-    bool is_master() { return myid == 0; }
-    void allreduce_matrix(matrix &cmat_loc, matrix & cmat_glo);
-    void allreduce_ComplexMatrix(ComplexMatrix &cmat_loc, ComplexMatrix & cmat_glo);
-    void reduce_ComplexMatrix(ComplexMatrix &cmat_loc, ComplexMatrix & cmat_glo);
-    vector<double> pack_mat(const map<size_t,map<size_t,map<Vector3_Order<int>,shared_ptr<matrix>>>> &Cs_m);
-    map<size_t,map<size_t,map<Vector3_Order<int>,shared_ptr<matrix>>>> unpack_mat(vector<double> &pack);
 
-    void set_chi_parallel_type(const int &atpais_num, const int Rt_num, const bool use_libri);
-
-    void set_blacs_parameters();
-    void set_blacs_mat(
-        int *desc, int &loc_row, int &loc_col, 
-        const int tot_row, const int tot_col,
-        const int row_blk=1, const int col_blk=1 );
-    int globalIndex(int localIndex, int nblk, int nprocs, int myproc);
-    int localIndex(int globalIndex, int nblk, int nprocs, int myproc);
+    // void set_blacs_parameters();
+    // void set_blacs_mat(
+    //     int *desc, int &loc_row, int &loc_col, 
+    //     const int tot_row, const int tot_col,
+    //     const int row_blk=1, const int col_blk=1 );
+    static int globalIndex(int localIndex, int nblk, int nprocs, int myproc);
+    static int localIndex(int globalIndex, int nblk, int nprocs, int myproc);
 };
 
 //! task dispatchers, implemented single index and double indices versions. Ending indices are excluded
