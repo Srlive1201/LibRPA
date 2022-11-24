@@ -98,6 +98,106 @@ public:
         delete[] aux;
         return;
     }
+
+    static inline
+    void pgemm_f(const char &transa, const char &transb,
+                 const int &M, const int &N, const int &K,
+                 const float &alpha,
+                 const float *A, const int &IA, const int &JA, const int *DESCA,
+                 const float *B, const int &IB, const int &JB, const int *DESCB,
+                 const float &beta,
+                 float *C, const int &IC, const int &JC, const int *DESCC)
+    {
+        psgemm_(&transa, &transb, &M, &N, &K, &alpha,
+                A, &IA, &JA, DESCA,
+                B, &IB, &JB, DESCB,
+                &beta,
+                C, &IC, &JC, DESCC);
+    }
+
+    static inline
+    void pgemm_f(const char &transa, const char &transb,
+                 const int &M, const int &N, const int &K,
+                 const double &alpha,
+                 const double *A, const int &IA, const int &JA, const int *DESCA,
+                 const double *B, const int &IB, const int &JB, const int *DESCB,
+                 const double &beta,
+                 double *C, const int &IC, const int &JC, const int *DESCC)
+    {
+        pdgemm_(&transa, &transb, &M, &N, &K, &alpha,
+                A, &IA, &JA, DESCA,
+                B, &IB, &JB, DESCB,
+                &beta,
+                C, &IC, &JC, DESCC);
+    }
+
+    static inline
+    void pgemm_f(const char &transa, const char &transb,
+                 const int &M, const int &N, const int &K,
+                 const std::complex<float> &alpha,
+                 const std::complex<float> *A, const int &IA, const int &JA, const int *DESCA,
+                 const std::complex<float> *B, const int &IB, const int &JB, const int *DESCB,
+                 const std::complex<float> &beta,
+                 std::complex<float> *C, const int &IC, const int &JC, const int *DESCC)
+    {
+        pcgemm_(&transa, &transb, &M, &N, &K, &alpha,
+                A, &IA, &JA, DESCA,
+                B, &IB, &JB, DESCB,
+                &beta,
+                C, &IC, &JC, DESCC);
+    }
+
+    static inline
+    void pgemm_f(const char &transa, const char &transb,
+                 const int &M, const int &N, const int &K,
+                 const std::complex<double> &alpha,
+                 const std::complex<double> *A, const int &IA, const int &JA, const int *DESCA,
+                 const std::complex<double> *B, const int &IB, const int &JB, const int *DESCB,
+                 const std::complex<double> &beta,
+                 std::complex<double> *C, const int &IC, const int &JC, const int *DESCC)
+    {
+        pzgemm_(&transa, &transb, &M, &N, &K, &alpha,
+                A, &IA, &JA, DESCA,
+                B, &IB, &JB, DESCB,
+                &beta,
+                C, &IC, &JC, DESCC);
+    }
+
+    static inline
+    void pgemr2d_f(const int m, const int n,
+                   const float *a, const int ia, const int ja, const int *desca,
+                   float *b, const int ib, const int jb, const int *descb,
+                   const int ictxt)
+    {
+        psgemr2d_(&m, &n, a, &ia, &ja, desca, b, &ib, &jb, descb, &ictxt);
+    }
+
+    static inline
+    void pgemr2d_f(const int m, const int n,
+                   const double *a, const int ia, const int ja, const int *desca,
+                   double *b, const int ib, const int jb, const int *descb,
+                   const int ictxt)
+    {
+        pdgemr2d_(&m, &n, a, &ia, &ja, desca, b, &ib, &jb, descb, &ictxt);
+    }
+
+    static inline
+    void pgemr2d_f(const int m, const int n,
+                   const std::complex<float> *a, const int ia, const int ja, const int *desca,
+                   std::complex<float> *b, const int ib, const int jb, const int *descb,
+                   const int ictxt)
+    {
+        pcgemr2d_(&m, &n, a, &ia, &ja, desca, b, &ib, &jb, descb, &ictxt);
+    }
+
+    static inline
+    void pgemr2d_f(const int m, const int n,
+                   const std::complex<double> *a, const int ia, const int ja, const int *desca,
+                   std::complex<double> *b, const int ib, const int jb, const int *descb,
+                   const int ictxt)
+    {
+        pzgemr2d_(&m, &n, a, &ia, &ja, desca, b, &ib, &jb, descb, &ictxt);
+    }
 };
 
 #endif
