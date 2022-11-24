@@ -155,6 +155,34 @@ public:
     std::string info() const;
 };
 
+template <typename T>
+inline matrix_m<T> init_local_mat(const Array_Desc &ad, MAJOR major)
+{
+    matrix_m<T> mat_lo(ad.m_loc(), ad.n_loc(), major);
+    return mat_lo;
+}
+
+template <typename T>
+inline matrix_m<T> get_local_mat(const matrix_m<T> &mat_go, const Array_Desc &ad, MAJOR major)
+{
+    // assert the shape of global matrix conforms with the array descriptor
+    assert(mat_go.nr() == ad.m() && mat_go.nc() == ad.n());
+
+    matrix_m<T> mat_lo(ad.m_loc(), ad.n_loc(), major);
+    for (int i = 0; i != mat_go.nr(); i++)
+    {
+        auto i_lo = ad.indx_g2l_r(i);
+        if (i_lo < 0) continue;
+        for (int j = 0; j != mat_go.nc(); j++)
+        {
+            auto j_lo = ad.indx_g2l_c(j);
+            if (j_lo < 0) continue;
+            mat_lo(i_lo, j_lo) = mat_go(i, j);
+        }
+    }
+    return mat_lo;
+}
+
 } // namespace LIBRPA
 
 class Parallel_MPI
