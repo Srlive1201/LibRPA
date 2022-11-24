@@ -4,8 +4,11 @@ if (BUILD_LIBRARY)
 endif()
 
 add_executable(test_atoms test_atoms.cpp)
+add_executable(test_atomic_basis test_atomic_basis.cpp)
 add_executable(test_timefreq test_timefreq.cpp)
 add_executable(test_matrix test_matrix.cpp)
+add_executable(test_matrix_m test_matrix_m.cpp)
+add_executable(test_matrix_m_parallel_utils test_matrix_m_parallel_utils.cpp)
 add_executable(test_meanfield test_meanfield.cpp)
 add_executable(test_complexmatrix test_complexmatrix.cpp)
 add_executable(test_pbc test_pbc.cpp)
@@ -18,6 +21,7 @@ include_directories(PUBLIC ${CMAKE_CURRENT_LIST_DIR})
 
 if (NOT BUILD_LIBRARY)
   target_sources(test_atoms PRIVATE ../src/atoms.cpp)
+  target_sources(test_atomic_basis PRIVATE ../src/atomic_basis.cpp)
   target_sources(test_matrix PRIVATE ../src/matrix.cpp)
   target_sources(test_complexmatrix PRIVATE
           ../src/complexmatrix.cpp
@@ -52,8 +56,17 @@ if (NOT BUILD_LIBRARY)
           ../src/complexmatrix.cpp
           ../src/vector3_order.cpp
           )
+  target_sources(test_matrix_m_parallel_utils PRIVATE
+          ../src/atomic_basis.cpp
+          ../src/parallel_mpi.cpp
+          ../src/matrix.cpp
+          ../src/complexmatrix.cpp
+          ../src/vector3_order.cpp
+          )
   target_link_libraries(test_timefreq PRIVATE ${math_libs})
   target_link_libraries(test_matrix PRIVATE ${math_libs})
+  target_link_libraries(test_matrix_m PRIVATE ${math_libs})
+  target_link_libraries(test_matrix_m_parallel_utils PRIVATE ${math_libs})
   target_link_libraries(test_complexmatrix PRIVATE ${math_libs})
   target_link_libraries(test_meanfield PRIVATE ${math_libs})
   target_link_libraries(test_parallel_mpi PRIVATE ${math_libs} ${parallel_libs})
@@ -66,6 +79,11 @@ add_test(
 )
 
 add_test(
+        NAME test_atomic_basis
+        COMMAND $<TARGET_FILE:test_atomic_basis>
+)
+
+add_test(
         NAME test_timefreq
         COMMAND $<TARGET_FILE:test_timefreq>
 )
@@ -73,6 +91,11 @@ add_test(
 add_test(
         NAME test_matrix
         COMMAND $<TARGET_FILE:test_matrix>
+)
+
+add_test(
+        NAME test_matrix_m
+        COMMAND $<TARGET_FILE:test_matrix_m>
 )
 
 add_test(
@@ -88,6 +111,11 @@ add_test(
 add_test(
         NAME test_parallel_mpi
         COMMAND mpirun -np 4 $<TARGET_FILE:test_parallel_mpi>
+)
+
+add_test(
+        NAME test_matrix_m_parallel_utils
+        COMMAND mpirun -np 4 $<TARGET_FILE:test_matrix_m_parallel_utils>
 )
 
 add_test(

@@ -7,13 +7,14 @@ CXXFLAGS = -g -O0 -Wall -std=c++11 -qopenmp
 
 serial_objects = test_atoms.exe test_matrix.exe test_timefreq.exe test_pbc.exe \
 		  test_blas_lapack.exe test_complexmatrix.exe test_meanfield.exe test_matrix_m.exe \
-		  test_atomic_basis.exe
+		  test_atomic_basis.exe test_matrix_m_parallel_utils.exe
 para_objects = test_parallel_mpi.exe
 
 test_targets = $(patsubst %.exe, run_%, $(serial_objects) $(para_objects))
 
 test_timefreq_deps = envs,timefreq,complexmatrix,matrix,mathtools,constants
 test_parallel_mpi_deps = atomic_basis,parallel_mpi,matrix,complexmatrix,vector3_order
+test_matrix_m_parallel_utils_deps = atomic_basis,parallel_mpi,matrix,complexmatrix,vector3_order
 test_pbc_deps = pbc,vector3_order
 test_meanfield_deps = meanfield,matrix,complexmatrix,constants
 
@@ -59,6 +60,11 @@ run_test_complexmatrix: test_complexmatrix.exe
 test_parallel_mpi.exe: test_parallel_mpi.o $(shell echo ../src/{$(test_parallel_mpi_deps)}.o)
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LAPACK_LIBRARIES)
 run_test_parallel_mpi: test_parallel_mpi.exe
+	mpirun -np 4 ./$<
+
+test_matrix_m_parallel_utils.exe: test_matrix_m_parallel_utils.o $(shell echo ../src/{$(test_matrix_m_parallel_utils_deps)}.o)
+	$(CXX) $(CXXFLAGS) -o $@ $^ $(LAPACK_LIBRARIES)
+run_test_matrix_m_parallel_utils: test_matrix_m_parallel_utils.exe
 	mpirun -np 4 ./$<
 
 test_blas_lapack.exe: test_blas_lapack.o ../src/complexmatrix.o ../src/matrix.o

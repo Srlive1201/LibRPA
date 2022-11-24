@@ -1,4 +1,5 @@
 #include "parallel_mpi.h"
+#include "matrix_m_parallel_utils.h"
 #include "params.h"
 #include "constants.h"
 #include "exx.h"
