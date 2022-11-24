@@ -99,6 +99,11 @@ void Exx::build_exx_orbital_energy_LibRI(const atpair_R_mat_t &LRI_Cs,
                                          const Vector3_Order<int> &R_period,
                                          const atpair_R_mat_t &coul_mat)
 {
+    const auto& n_aos = this->mf_.get_n_aos();
+    const auto& n_spins = this->mf_.get_n_spins();
+    const auto& n_kpts = this->mf_.get_n_kpoints();
+    const auto& n_bands = this->mf_.get_n_bands();
+
 #ifdef __USE_LIBRI
     if (mpi_comm_world_h.is_root())
         printf("Computing EXX orbital energy using LibRI\n");
@@ -197,6 +202,12 @@ void Exx::build_exx_orbital_energy_LibRI(const atpair_R_mat_t &LRI_Cs,
         }
         exx_libri.set_Ds(dmat_libri, params.libri_exx_threshold_D);
         exx_libri.cal_Hs();
+        Array_Desc desc_nao_nao(LIBRPA::blacs_ctxt_world_h);
+        Array_Desc desc_nband_nao(LIBRPA::blacs_ctxt_world_h);
+        desc_nao_nao.init_1b1p(n_aos, n_aos, 0, 0);
+        desc_nband_nao.init_1b1p(n_bands, n_aos, 0, 0);
+
+        // collect the IJ pair of Hs
         for (auto &T: exx_libri.Hs)
         {
             for (auto &T1: T.second)
@@ -207,14 +218,14 @@ void Exx::build_exx_orbital_energy_LibRI(const atpair_R_mat_t &LRI_Cs,
                 for (const auto& kfrac: this->kfrac_list_)
                 {
                     if (Hexx.count(isp) == 0 ||
-                        Hexx.at(isp).count(I) == 0 ||
-                        Hexx.at(isp).at(I).count(J) == 0 ||
-                        Hexx.at(isp).at(I).at(J).count(kfrac) == 0
+                        Hexx.at(isp).count(kfrac) == 0 ||
+                        Hexx.at(isp).at(kfrac).count(I) == 0 ||
+                        Hexx.at(isp).at(kfrac).at(I).count(J) == 0
                         )
                     {
-                        Hexx[isp][I][J][kfrac] = make_shared<ComplexMatrix>();
+                        Hexx[isp][kfrac][I][J] = make_shared<ComplexMatrix>();
                         ComplexMatrix cm(atom_nw[I], atom_nw[J]);
-                        *Hexx[isp][I][J][kfrac] = cm;
+                        *Hexx[isp][kfrac][I][J] = cm;
                     }
                     ComplexMatrix cm(atom_nw[I], atom_nw[J]);
                     for (int i = 0; i != cm.size; i++)
@@ -222,7 +233,7 @@ void Exx::build_exx_orbital_energy_LibRI(const atpair_R_mat_t &LRI_Cs,
                     double ang = kfrac * Vector3_Order<int>{Ra[0], Ra[1], Ra[2]} * TWO_PI;
                     complex<double> kphase = complex<double>(cos(ang), sin(ang));
                     // NOTE: scaling with nkpoints is required
-                    *Hexx[isp][I][J][kfrac] += cm * (kphase / double(this->mf_.get_n_kpoints()));
+                    *Hexx[isp][kfrac][I][J] += cm * (kphase / double(this->mf_.get_n_kpoints()));
                 }
                 // debug, check size
                 // cout << I << " " << J << " {" << Ra[0] << " " << Ra[1] << " " << Ra[2] << "} whole size: " << T1.second.get_shape_all() << endl;
@@ -253,23 +264,23 @@ void Exx::build_exx_orbital_energy_LibRI(const atpair_R_mat_t &LRI_Cs,
     // }
 
     // Rotate the Hamiltonian in basis of KS state for each spin and kpoints
-    const auto& n_aos = this->mf_.get_n_aos();
-    for (int isp = 0; isp < this->mf_.get_n_spins(); isp++)
+    for (int isp = 0; isp < n_spins; isp++)
     {
-        for (int ik = 0; ik < this->mf_.get_n_kpoints(); ik++)
+        for (int ik = 0; ik < n_kpts; ik++)
         {
             const auto& k = this->kfrac_list_[ik];
+            const auto& IJHs = this->Hexx.at(isp).at(k);
             // retrieve the global Hexx
             ComplexMatrix hexx(n_aos, n_aos);
-            for (const auto& I_JkH: this->Hexx.at(isp))
+            for (const auto& I_JH: IJHs)
             {
-                const auto& I = I_JkH.first;
+                const auto& I = I_JH.first;
                 const auto I_num = atom_nw[I];
-                for (const auto& J_kH: I_JkH.second)
+                for (const auto& J_H: I_JH.second)
                 {
-                    const auto& J = J_kH.first;
+                    const auto& J = J_H.first;
                     const auto J_num = atom_nw[J];
-                    const auto& H = J_kH.second.at(k);
+                    const auto& H = J_H.second;
                     for (int i = 0; i != I_num; i++)
                     {
                         size_t i_glo = atom_iw_loc2glo(I, i);

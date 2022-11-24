@@ -6,6 +6,7 @@
 #ifndef ATOMS_H
 #define ATOMS_H
 
+#include <set>
 #include <vector>
 #include <utility>
 #include <map>
@@ -83,6 +84,18 @@ vector<atpair_t> generate_atom_pair_from_nat(const T &nat, bool ordered_pair = f
         for(int j = ordered_pair? 0 : i; j!=nat; j++)
             apair.push_back({i,j});
     return apair;
+}
+
+template <typename TA1, typename TA2>
+std::pair<std::set<TA1>, std::set<TA2>> convert_IJset_to_Iset_Jset(std::set<std::pair<TA1, TA2>> IJset)
+{
+    std::set<TA1> Iset, Jset;
+    for (const auto& IJ: IJset)
+    {
+        Iset.insert(IJ.first);
+        Jset.insert(IJ.second);
+    }
+    return {Iset, Jset};
 }
 
 //! Object to handle the atomic structure

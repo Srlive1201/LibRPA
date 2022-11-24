@@ -140,8 +140,11 @@ int main(int argc, char **argv)
         qlist.push_back(q_weight.first);
     }
 
-    chi0.build(Cs, Rlist, period, local_atpair, qlist,
-               TFGrids::get_grid_type(params.tfgrids_type), true);
+    if ( params.task != "exx" )
+    {
+        chi0.build(Cs, Rlist, period, local_atpair, qlist,
+                   TFGrids::get_grid_type(params.tfgrids_type), true);
+    }
     { // debug, check chi0
         char fn[80];
         for (const auto &chi0q: chi0.get_chi0_q())
@@ -168,17 +171,21 @@ int main(int argc, char **argv)
     // para_mpi.mpi_barrier();
     // if(para_mpi.is_master())
     //     system("free -m");
-    for(auto &Cp:Cs)
+    // FIXME: a more general strategy to deal with Cs
+    if (LIBRPA::chi_parallel_type != LIBRPA::parallel_type::LIBRI_USED)
     {
-        Cs.erase(Cp.first);
-       
+        for(auto &Cp:Cs)
+        {
+            Cs.erase(Cp.first);
+        }
     }
+
     malloc_trim(0);
     // RPA total energy
     if ( params.task == "rpa" )
     {
         CorrEnergy corr;
-        if (params.use_scalapack_ecrpa && para_mpi.chi_parallel_type==Parallel_MPI::parallel_type::ATOM_PAIR)
+        if (params.use_scalapack_ecrpa && LIBRPA::chi_parallel_type==LIBRPA::parallel_type::ATOM_PAIR)
             corr = compute_RPA_correlation_blacs(chi0, Vq);
         else
             corr = compute_RPA_correlation(chi0, Vq);

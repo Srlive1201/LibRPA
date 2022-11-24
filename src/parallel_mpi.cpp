@@ -207,7 +207,7 @@ void BLACS_CTXT_handler::set_square_grid(bool more_rows, LAYOUT layout_in)
     set_grid(nprows, npcols, layout_in);
 }
 
-void BLACS_CTXT_handler::set_horizon_grid()
+void BLACS_CTXT_handler::set_horizontal_grid()
 {
     set_grid(1, nprocs, LAYOUT::R);
 }
@@ -277,23 +277,14 @@ void Array_Desc::set_blacs_params_(int ictxt, int nprocs, int myid, int nprows,
     mypcol_ = mypcol;
 }
 
-Array_Desc::Array_Desc(const BLACS_CTXT_handler &blacs_h)
-{
-    set_blacs_params_(blacs_h.ictxt, blacs_h.nprocs, blacs_h.myid,
-                      blacs_h.nprows, blacs_h.myprow, blacs_h.npcols,
-                      blacs_h.mypcol);
-}
-
-int Array_Desc::init(const int &m, const int &n, const int &mb, const int &nb,
-                    const int &irsrc, const int &icsrc)
+int Array_Desc::set_desc_(const int &m, const int &n, const int &mb, const int &nb,
+                          const int &irsrc, const int &icsrc)
 {
     int info = 0;
     m_local_ = ScalapackConnector::numroc(m, mb, myprow_, irsrc, nprows_);
     // leading dimension
     lld_ = std::max(m_local_, 1);
     n_local_ = ScalapackConnector::numroc(n, nb, mypcol_, icsrc, npcols_);
-    // create a dummy matrix of size 1, such that pointer c is not nullptr
-    // this is CRUCIAL when calling scalapack for small matrix with many processors
     if (m_local_ < 1 || n_local_ < 1)
     {
         empty_local_mat_ = true;
@@ -317,6 +308,49 @@ int Array_Desc::init(const int &m, const int &n, const int &mb, const int &nb,
     return info;
 }
 
+Array_Desc::Array_Desc(const BLACS_CTXT_handler &blacs_h)
+    : ictxt_(0), nprocs_(0), myid_(0),
+      nprows_(0), myprow_(0), npcols_(0), mypcol_(0),
+      m_(0), n_(0), mb_(0), nb_(0), irsrc_(0), icsrc_(0),
+      lld_(0), m_local_(0), n_local_(0),
+      empty_local_mat_(false), initialized_(false)
+{
+    set_blacs_params_(blacs_h.ictxt, blacs_h.nprocs, blacs_h.myid,
+                      blacs_h.nprows, blacs_h.myprow, blacs_h.npcols,
+                      blacs_h.mypcol);
+}
+
+Array_Desc::Array_Desc(const int &ictxt)
+    : ictxt_(0), nprocs_(0), myid_(0),
+      nprows_(0), myprow_(0), npcols_(0), mypcol_(0),
+      m_(0), n_(0), mb_(0), nb_(0), irsrc_(0), icsrc_(0),
+      lld_(0), m_local_(0), n_local_(0),
+      empty_local_mat_(false), initialized_(false)
+{
+    int nprocs, myid, nprows, npcols, myprow, mypcol;
+    Cblacs_gridinfo(ictxt, &nprows, &npcols, &myprow, &mypcol);
+    myid = Cblacs_pnum(ictxt, myprow, mypcol);
+    nprocs = nprows * npcols;
+    set_blacs_params_(ictxt, nprocs, myid,
+                      nprows, myprow, npcols,
+                      mypcol);
+}
+
+int Array_Desc::init(const int &m, const int &n, const int &mb, const int &nb,
+                    const int &irsrc, const int &icsrc)
+{
+    return set_desc_(m, n, mb, nb, irsrc, icsrc);
+}
+
+int Array_Desc::init_1b1p(const int &m, const int &n,
+                          const int &irsrc, const int &icsrc)
+{
+    int mb = 1, nb = 1;
+    mb = std::ceil(double(m)/nprows_);
+    nb = std::ceil(double(n)/npcols_);
+    return set_desc_(m, n, mb, nb, irsrc, icsrc);
+}
+
 std::string Array_Desc::info() const
 {
     std::string info;
@@ -328,6 +362,16 @@ std::string Array_Desc::info() const
          + "LSIZE (" + std::to_string(m_local_) + "," + std::to_string(n_local_) + ") "
          + "DUMMY? " + std::string(empty_local_mat_? "T" : "F");
     return info;
+}
+
+std::string Array_Desc::info_desc() const
+{
+    char s[100];
+    sprintf(s, "DESC %d %d %d %d %d %d %d %d %d",
+            desc[0], desc[1], desc[2],
+            desc[3], desc[4], desc[5],
+            desc[6], desc[7], desc[8]);
+    return std::string(s);
 }
 
 int Array_Desc::indx_g2l_r(int gindx) const
@@ -388,11 +432,14 @@ std::pair<Array_Desc, Array_Desc> prepare_array_desc_mr2d_src_and_all(const BLAC
     return {desc_fullblk_on_src, desc_all_procs};
 }
 
-std::set<std::pair<int, int>> get_necessary_IJ_from_block_2D(const AtomicBasis &atbasis, const Array_Desc& arrdesc)
+std::set<std::pair<int, int>> get_necessary_IJ_from_block_2D(const AtomicBasis &atbasis_row, const AtomicBasis &atbasis_col, const Array_Desc& arrdesc)
 {
     std::set<std::pair<int, int>> IJs;
-    if (arrdesc.m() != atbasis.nb_total || arrdesc.n() != atbasis.nb_total)
-        throw std::invalid_argument("basis and array descriptor inconsistent");
+    if (arrdesc.m() != atbasis_row.nb_total)
+        throw std::invalid_argument("row basis and array descriptor inconsistent");
+    if (arrdesc.n() != atbasis_col.nb_total)
+        throw std::invalid_argument("col basis and array descriptor inconsistent");
+
     const auto mlo = arrdesc.m_loc();
     const auto nlo = arrdesc.n_loc();
     size_t glo;
@@ -401,9 +448,9 @@ std::set<std::pair<int, int>> get_necessary_IJ_from_block_2D(const AtomicBasis &
         for (int jlo = 0; jlo != nlo; jlo++)
         {
             glo = arrdesc.indx_l2g_r(ilo);
-            I = atbasis.get_i_atom(glo);
+            I = atbasis_row.get_i_atom(glo);
             glo = arrdesc.indx_l2g_c(jlo);
-            J = atbasis.get_i_atom(glo);
+            J = atbasis_col.get_i_atom(glo);
             IJs.insert({I, J});
         }
     return IJs;
