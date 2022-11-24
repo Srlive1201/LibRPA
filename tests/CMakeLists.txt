@@ -12,6 +12,8 @@ add_executable(test_pbc test_pbc.cpp)
 add_executable(test_parallel_mpi test_parallel_mpi.cpp)
 add_executable(test_blas_lapack test_blas_lapack.cpp)
 
+configure_file(../src/envs.cpp.in envs.cpp)
+
 include_directories(PUBLIC ${CMAKE_CURRENT_LIST_DIR})
 
 if (NOT BUILD_LIBRARY)
@@ -28,7 +30,7 @@ if (NOT BUILD_LIBRARY)
           ../src/matrix.cpp
           )
   target_sources(test_timefreq PRIVATE
-          ${CMAKE_CURRENT_BINARY_DIR}/../src/envs.cpp
+          ${CMAKE_CURRENT_BINARY_DIR}/envs.cpp
           ../src/constants.cpp
           ../src/timefreq.cpp
           ../src/mathtools.cpp
