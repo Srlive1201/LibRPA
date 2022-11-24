@@ -1,19 +1,3 @@
-// =============================================================================
-//                          C++ Header File
-// Project:         LapackConnector
-// File:            LapackConnector.hpp
-// Author:          sltk
-// Comment:         LapackConnector provide the connector to the fortran Lapack routine.
-// Warning:
-// Start time:      2007-03-08
-// Last modified:   2008-08-12 ywcui : add zhegvx
-// 					2008-08-13 mohan : find bug,test.
-// 					2008-09-03 mohan : Add zgesv
-// 					2009-03-08 mohan : add ilaenv
-//					2010-01-22 spshu : add dgesvd
-//					2022-05-05 minyez: add dgeev_ interface
-// =============================================================================
-
 #ifndef LAPACKCONNECTOR_HPP
 #define LAPACKCONNECTOR_HPP
 
@@ -24,81 +8,14 @@
 #include <cassert>
 #include "matrix.h"
 #include "complexmatrix.h"
-#include "blas_connector.h"
-//#include "src_global/global_function.h"
-
-
-extern "C"
-{
-    int ilaenv_(int* ispec,const char* name,const char* opts,
-    const int* n1,const int* n2,const int* n3,const int* n4);
-    void zgesv_(const int* n,const int* nrhs,const complex<double> *A,const int *lda,
-                const int *ipiv,const complex<double> *B,const int* ldb,int* info);
-    void zhegv_(const int* itype,const char* jobz,const char* uplo,const int* n,
-                complex<double>* a,const int* lda,complex<double>* b,const int* ldb,
-                double* w,complex<double>* work,int* lwork,double* rwork,int* info);
-	// mohan add dsygv 2010-03-20, to compute the eigenfunctions and eigenvalues of a real symmetry matrix.
-	void dsygv_(const int* itype, const char* jobz,const char* uplo, const int* n,
-				double* a,const int* lda,double* b,const int* ldb,
-	 			double* w,double* work,int* lwork,int* info);
-	// mohan add sspgvx 2010-03-21, to compute the selected eigenvalues of a generalized symmetric/Hermitian 
-	// definite generalized problems. 
-	void sspgvx_(const int* itype, const char* jobz,const char* range,const char* uplo,
-				const int* n,double *ap,double *bp,const double* vl,
-				const int* vu, const int* il, const int* iu,const double* abstol,
-				const int* m,double* w,double *z,const int *ldz,
-				double *work,int* iwork,int* ifail,int* info);
-	void dsyev_(const char* jobz,const char* uplo,const int* n,double *a,
-                const int* lda,double* w,double* work,const int* lwork, int* info);
-    void dgeev_(const char* jobvl, const char* jobvr, const int *n, double *a,
-                const int *lda, double *wr, double *wi, double* vl, const int* ldvl,
-                double* vr, const int* ldvr, double* work, const int* lwork, int* info);
-    void zheev_(const char* jobz,const char* uplo,const int* n,complex<double> *a,
-                const int* lda,double* w,complex<double >* work,const int* lwork,
-                double* rwork,int* info);
-    void dsytrf_(const char* uplo, const int* n, double * a, const int* lda,
-                 int *ipiv,double *work, int* lwork ,int *info);
-    void dsytri_(const char* uplo,const int* n,double *a, const int *lda,
-                 int *ipiv, double * work,int *info);
-    void dgesvd_(const char* jobu,const char* jobvt,const int *m,const int *n,double *a,
-                 const int *lda,double *s,double *u,const int *ldu,double *vt,
-                 const int *ldvt,double *work,const int *lwork,int *info);
-    void zhegvx_(const int* itype,const char* jobz,const char* range,const char* uplo,
-                 const int* n,complex<double> *a,const int* lda,complex<double> *b,
-                 const int* ldb,const double* vl,const double* vu,const int* il,
-                 const int* iu,const double* abstol,const int* m,double* w,
-                 complex<double> *z,const int *ldz,complex<double> *work,const int* lwork,
-                 double* rwork,int* iwork,int* ifail,int* info);
-    // mohan add dsptrf and dsptri 2010-02-03, to compute inverse real symmetry indefinit matrix.
-    void spotrf_(const char* uplo,const int* n, double* A, int* lda, int *info);
-    void spotri_(const char* uplo,const int* n, double* A, int* lda, int *info);
-    // Peize Lin add dsptrf and dsptri 2016-06-21, to compute inverse real symmetry indefinit matrix.
-    void dpotrf_(const char* uplo,const int* n, double* A, const int* lda, int *info);
-    void dpotri_(const char* uplo,const int* n, double* A, const int* lda, int *info);
-    // mohan add zpotrf and zpotri 2010-02-03, to compute inverse complex hermit matrix.
-    void zpotrf_(const char* uplo,const int* n,const complex<double> *A,const int* lda,const int* info);
-    void zpotri_(const char* uplo,const int* n,const complex<double> *A,const int* lda,const int* info);
-    void zgetrf_(const int* m, const int *n, const complex<double> *A, const int *lda, int *ipiv, const int* info);
-    void zgetri_(const int* n, complex<double> *A, const int *lda, int *ipiv, complex<double> *work, int *lwork, const int *info);
-    void pdgetrf_(const int *m, const int *n, double *a, const int *ia, const int *ja, int *desca, int *ipiv, int *info);
-	// Peize Lin add ?nrm2 2018-06-12, to compute out = ||x||_2 = \sqrt{ \sum_i x_i**2 }
-	//float snrm2_( const int *n, const float *X, const int *incX );
-	//double dnrm2_( const int *n, const double *X, const int *incX );
-	//double dznrm2_( const int *n, const complex<double> *X, const int *incX );
-	// Peize Lin add zherk 2019-04-14
-	// if trans=='N':	C = a * A * A.H + b * C
-	// if trans=='C':	C = a * A.H * A + b * C	
-	void zherk_(const char *uplo, const char *trans, const int *n, const int *k, 
-		const double *alpha, const complex<double> *A, const int *lda, 
-		const double *beta, complex<double> *C, const int *ldc);
-}
+#include "interface/blas_lapack.h"
 
 // Class LapackConnector provide the connector to fortran lapack routine.
 // The entire function in this class are static and inline function.
 // Usage example:	LapackConnector::functionname(parameter list).
 class LapackConnector
 {
-private:
+public:
     // Transpose the complex matrix to the fortran-form real-complex array.
     static inline
     complex<double>* transpose(const ComplexMatrix& a, const int n, const int lda)
@@ -243,33 +160,33 @@ public:
 
 	// calculate the selected eigenvalues.
 	// mohan add 2010/03/21
-	static inline
-	void sspgvx(const int itype, const char jobz,const char range,const char uplo,
-				const int n,const matrix &ap,const matrix &bp,const double vl,
-				const int vu, const int il, const int iu,const double abstol,
-				const int m,double* w,matrix &z,const int ldz,
-				double *work,int* iwork,int* ifail,int* info)
-	{
-	    // Transpose the complex matrix to the fortran-form real*16 array.
-		double* aux = LapackConnector::transpose_matrix(ap, n, n);
-		double* bux = LapackConnector::transpose_matrix(bp, n, n);
-		double* zux = new double[n*iu];
-
-        // call the fortran routine
-        sspgvx_(&itype, &jobz, &range, &uplo, 
-				&n, aux, bux, &vl,
-                &vu, &il,&iu, &abstol, 
-				&m, w, zux, &ldz, 
-				work, iwork, ifail, info);
-
-        // Transpose the fortran-form real*16 array to the matrix
-        LapackConnector::transpose_matrix(zux, z, iu, n);
-
-        // free the memory.
-        delete[] aux;
-        delete[] bux;
-        delete[] zux;
-	}
+	// static inline
+	// void sspgvx(const int itype, const char jobz,const char range,const char uplo,
+	// 			const int n,const matrix &ap,const matrix &bp,const double vl,
+	// 			const int vu, const int il, const int iu,const double abstol,
+	// 			const int m,double* w,matrix &z,const int ldz,
+	// 			double *work,int* iwork,int* ifail,int* info)
+	// {
+	//     // Transpose the complex matrix to the fortran-form real*16 array.
+	// 	double* aux = LapackConnector::transpose_matrix(ap, n, n);
+	// 	double* bux = LapackConnector::transpose_matrix(bp, n, n);
+	// 	double* zux = new double[n*iu];
+	//
+ //        // call the fortran routine
+ //        sspgvx_(&itype, &jobz, &range, &uplo, 
+	// 			&n, aux, bux, &vl,
+ //                &vu, &il,&iu, &abstol, 
+	// 			&m, w, zux, &ldz, 
+	// 			work, iwork, ifail, info);
+	//
+ //        // Transpose the fortran-form real*16 array to the matrix
+ //        LapackConnector::transpose_matrix(zux, z, iu, n);
+	//
+ //        // free the memory.
+ //        delete[] aux;
+ //        delete[] bux;
+ //        delete[] zux;
+	// }
 
 	// calculate the eigenvalues and eigenfunctions of a real symmetric matrix.
     static inline
@@ -438,29 +355,30 @@ public:
 		return;
     }
 
-    static inline
-    void spotrf(char uplo,int n,matrix &a, int lda,int *info)
-	{
-		double *aux = LapackConnector::transpose_matrix(a, n, lda);
-		for(int i=0; i<4; i++)std::cout << "\n aux=" << aux[i]; 
-		spotrf_( &uplo, &n, aux, &lda, info);
-		for(int i=0; i<4; i++)std::cout << "\n aux=" << aux[i]; 
-		LapackConnector::transpose_matrix(aux, a, n, lda);
-		delete[] aux;
-		return;
-	}
+ //    static inline
+ //    void spotrf(char uplo,int n,matrix &a, int lda,int *info)
+	// {
+	// 	double *aux = LapackConnector::transpose_matrix(a, n, lda);
+	// 	for(int i=0; i<4; i++)std::cout << "\n aux=" << aux[i]; 
+	// 	spotrf_( &uplo, &n, aux, &lda, info);
+	// 	for(int i=0; i<4; i++)std::cout << "\n aux=" << aux[i]; 
+	// 	LapackConnector::transpose_matrix(aux, a, n, lda);
+	// 	delete[] aux;
+	// 	return;
+	// }
+	//
+	// static inline
+	// void spotri(char uplo,int n,matrix &a, int lda, int *info)
+	// {
+	// 	double *aux = LapackConnector::transpose_matrix(a, n, lda);
+	// 	for(int i=0; i<4; i++)std::cout << "\n aux=" << aux[i]; 
+	// 	spotri_( &uplo, &n, aux, &lda, info);
+	// 	for(int i=0; i<4; i++)std::cout << "\n aux=" << aux[i]; 
+	// 	LapackConnector::transpose_matrix(aux, a, n, lda);
+	// 	delete[] aux;
+	// 	return;
+	// }
 
-	static inline
-	void spotri(char uplo,int n,matrix &a, int lda, int *info)
-	{
-		double *aux = LapackConnector::transpose_matrix(a, n, lda);
-		for(int i=0; i<4; i++)std::cout << "\n aux=" << aux[i]; 
-		spotri_( &uplo, &n, aux, &lda, info);
-		for(int i=0; i<4; i++)std::cout << "\n aux=" << aux[i]; 
-		LapackConnector::transpose_matrix(aux, a, n, lda);
-		delete[] aux;
-		return;
-	}
     static inline
     void zgetrf(int m, int n, ComplexMatrix &a, const int lda, int *ipiv, int *info)
     {
@@ -478,15 +396,6 @@ public:
         LapackConnector::transpose(aux, a, n, lda);
         delete[] aux;
         return;
-    }
-    static inline
-    void pdgetrf(int m, int n, matrix &a,int ia, int ja, int *desca, int *ipiv, int *info)
-    {
-	double *aux = LapackConnector::transpose_matrix(a, n, m);
-	pdgetrf_( &m, &n, aux, &ia, &ja, desca, ipiv, info);
-	LapackConnector::transpose_matrix(aux, a, n, m);
-	delete[] aux;
-	return;
     }
 
 	// Peize Lin add 2016-07-09
