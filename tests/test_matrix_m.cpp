@@ -8,9 +8,13 @@ void test_constuctor()
     m1(0, 1) = 1.0;
     m1(1, 0) = 2.0;
     printf("Matrix (set column-major)\n%s", str(m1).c_str());
+    auto det = get_determinant(m1);
+    printf("Determinant = %f\n", det);
 
     m1.swap_to_row_major();
     printf("Matrix (swap to row-major)\n%s", str(m1).c_str());
+    det = get_determinant(m1);
+    printf("Determinant = %f\n", det);
 }
 
 void test_multiply()

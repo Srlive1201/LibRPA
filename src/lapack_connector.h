@@ -440,7 +440,7 @@ public:
     {
         double *a_fort = transpose(A, n, lda);
         dgetrf_(&m, &n, a_fort, &lda, ipiv, &info);
-        transpose(a_fort, *A, n, lda);
+        transpose(a_fort, A, n, lda);
         delete [] a_fort;
     }
 
@@ -607,6 +607,23 @@ public:
 		return ddot_(&n, X, &incX, Y, &incY);
 	}
 
+    // minyez add 2022-11-15
+    static inline
+    std::complex<float> dot( const int n, const std::complex<float> *X, const int incX, const std::complex<float> *Y, const int incY)
+    {
+        std::complex<float> result;
+        cdotu_(&result, &n, X, &incX, Y, &incY);
+        return result;
+    }
+
+    static inline
+    std::complex<double> dot( const int n, const std::complex<double> *X, const int incX, const std::complex<double> *Y, const int incY)
+    {
+        std::complex<double> result;
+        zdotu_(&result, &n, X, &incX, Y, &incY);
+        return result;
+    }
+
     // minyez add 2022-05-12
     // matrix-vector product
     // single-prec version
@@ -625,7 +642,35 @@ public:
         char transa_f = change_trans_NT(transa);
         dgemv_(&transa_f, &n, &m, &alpha, a, &lda, x, &incx, &beta, y, &incy);
     }
-	
+
+    inline void gemv_f(const char &transa, const int &m, const int &n,
+                       const float &alpha, const float *a, const int &lda,
+                       const float *x, const int &incx, const float &beta, float *y, const int &incy)
+    {
+        sgemv_(&transa, &m, &n, &alpha, a, &lda, x, &incx, &beta, y, &incy);
+    }
+
+    inline void gemv_f(const char &transa, const int &m, const int &n,
+                       const double &alpha, const double *a, const int &lda,
+                       const double *x, const int &incx, const double &beta, double *y, const int &incy)
+    {
+        dgemv_(&transa, &m, &n, &alpha, a, &lda, x, &incx, &beta, y, &incy);
+    }
+
+    inline void gemv_f(const char &transa, const int &m, const int &n,
+                       const std::complex<float> &alpha, const std::complex<float> *a, const int &lda,
+                       const std::complex<float> *x, const int &incx, const std::complex<float> &beta, std::complex<float> *y, const int &incy)
+    {
+        cgemv_(&transa, &m, &n, &alpha, a, &lda, x, &incx, &beta, y, &incy);
+    }
+
+    inline void gemv_f(const char &transa, const int &m, const int &n,
+                       const std::complex<double> &alpha, const std::complex<double> *a, const int &lda,
+                       const std::complex<double> *x, const int &incx, const std::complex<double> &beta, std::complex<double> *y, const int &incy)
+    {
+        zgemv_(&transa, &m, &n, &alpha, a, &lda, x, &incx, &beta, y, &incy);
+    }
+
 	// Peize Lin add 2017-10-27, fix bug trans 2019-01-17
 	// C = a * A.? * B.? + b * C 
 	static inline

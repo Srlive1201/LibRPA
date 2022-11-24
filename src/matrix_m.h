@@ -214,6 +214,22 @@ public:
         assign_value(T(0));
     }
 
+    void randomize(const T &lb = 0, const T &ub = 1)
+    {
+        std::default_random_engine e(time(0));
+        std::uniform_real_distribution<real_t> dr(::get_real(lb), ::get_real(ub)), di(::get_imag(lb), ::get_imag(ub));
+        if (is_complex)
+        {
+            for (int i = 0; i != size_; i++)
+                this->c[i] = std::complex<T>{dr(e), di(e)};
+        }
+        else
+        {
+            for (int i = 0; i != size_; i++)
+                this->c[i] = dr(e);
+        }
+    }
+
     // access to private variables
     int nr() const { return nr_; }
     int nc() const { return nc_; }
@@ -661,25 +677,10 @@ std::string str(const matrix_m<std::complex<T>> &m)
 
 //! generate a random matrix
 template <typename T>
-inline matrix_m<T> random(int nr, int nc, const T &lb, const T &ub)
+inline matrix_m<T> random(int nr, int nc, const T &lb, const T &ub, MAJOR major = MAJOR::ROW)
 {
-    matrix_m<T> m(nr, nc);
-    std::default_random_engine e(time(0));
-    std::uniform_real_distribution<T> d(lb, ub);
-    for (int i = 0; i != m.size(); i++)
-        m.c[i] = d(e);
-    return m;
-}
-
-//! generate a random complex matrix
-template <typename T>
-inline matrix_m<std::complex<T>> random(int nr, int nc, const std::complex<T> &lb, const std::complex<T> &ub)
-{
-    matrix_m<std::complex<T>> m(nr, nc);
-    std::default_random_engine e(time(0));
-    std::uniform_real_distribution<T> dr(lb.real(), ub.real()), di(lb.imag(), lb.imag());
-    for (int i = 0; i != m.size(); i++)
-        m.c[i] = std::complex<T>{dr(e), di(e)};
+    matrix_m<T> m(nr, nc, major);
+    m.randomize(lb, ub);
     return m;
 }
 
