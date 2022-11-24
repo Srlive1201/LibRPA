@@ -301,38 +301,3 @@ std::string str(const vec<std::complex<T>> &v)
         s = s + " (" + std::to_string(v[0].real()) + "," + std::to_string(v[0].imag()) + ")";
     return s;
 }
-
-template <typename T>
-void get_nr_nc_from_nested_vec(const std::vector<vec<T>> &nested_vec, int &nr, int &nc)
-{
-    nr = nested_vec.size();
-    int nc_;
-    for (const auto& v: nested_vec)
-        nc_ = v.size() > nc_? v.size() : nc_;
-    nc = nc_;
-}
-
-template <typename T>
-void expand_nested_vec_to_pointer(const std::vector<vec<T>> &nested_vec, const int &nr, const int &nc, T* c, bool row_major = true)
-{
-    int nc_, nr_;
-    get_nr_nc_from_nested_vec(nested_vec, nr_, nc_);
-    if (nr < nr_) nr_ = nr;
-    if (nc < nc_) nc_ = nc;
-
-    if (nr&&nc)
-    {
-        if (row_major)
-        {
-            for (int ir = 0; ir < nr_; ir++)
-                for (int ic = 0; ic < std::min(nc_, nested_vec[ir].size()); ic++)
-                    c[ir*nc+ic] = nested_vec[ir][ic];
-        }
-        else
-        {
-            for (int ir = 0; ir < nr_; ir++)
-                for (int ic = 0; ic < std::min(nc_, nested_vec[ir].size()); ic++)
-                    c[ic*nr+ir] = nested_vec[ir][ic];
-        }
-    }
-}

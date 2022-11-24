@@ -25,6 +25,41 @@ inline int flatid_cm(const int &nr, const int &ir, const int &nc, const int &ic)
 enum MAJOR { ROW, COL };
 
 template <typename T>
+void get_nr_nc_from_nested_vector(const std::vector<std::vector<T>> &nested_vec, int &nr, int &nc)
+{
+    nr = nested_vec.size();
+    int nc_ = 0;
+    for (const auto& v: nested_vec)
+        nc_ = v.size() > nc_? v.size() : nc_;
+    nc = nc_;
+}
+
+template <typename T>
+void expand_nested_vector_to_pointer(const std::vector<std::vector<T>> &nested_vector, const int &nr, const int &nc, T* c, bool row_major = true)
+{
+    int nc_, nr_;
+    get_nr_nc_from_nested_vector(nested_vector, nr_, nc_);
+    if (nr < nr_) nr_ = nr;
+    if (nc < nc_) nc_ = nc;
+
+    if (nr&&nc)
+    {
+        if (row_major)
+        {
+            for (int ir = 0; ir < nr_; ir++)
+                for (int ic = 0; ic < std::min(size_t(nc_), nested_vector[ir].size()); ic++)
+                    c[ir*nc+ic] = nested_vector[ir][ic];
+        }
+        else
+        {
+            for (int ir = 0; ir < nr_; ir++)
+                for (int ic = 0; ic < std::min(size_t(nc_), nested_vector[ir].size()); ic++)
+                    c[ic*nr+ir] = nested_vector[ir][ic];
+        }
+    }
+}
+
+template <typename T>
 class matrix_m
 {
 private:
@@ -41,7 +76,7 @@ public:
     T* c;
 
 private:
-    void assign_value(T v)
+    void assign_value(const T &v)
     {
         for (int i = 0; i < size_; i++)
             c[i] = v;
@@ -139,14 +174,14 @@ public:
         zero_out();
         assign_value(valarr);
     }
-    // constructor from a vector of vec objects (nested vec)
-    matrix_m(const std::vector<vec<T>> &nested_vec, MAJOR major = MAJOR::ROW): major_(major), c(nullptr)
+    // constructor from a nested vector
+    matrix_m(const std::vector<std::vector<T>> &nested_vector, MAJOR major = MAJOR::ROW): major_(major), c(nullptr)
     {
-        get_nr_nc_from_nested_vec(nested_vec, nr_, nc_);
+        get_nr_nc_from_nested_vector(nested_vector, nr_, nc_);
         set_rank_size();
         set_indx_picker();
         allocate_storage();
-        expand_nested_vec_to_pointer(nested_vec, nr_, nc_, c, is_row_major());
+        expand_nested_vector_to_pointer(nested_vector, nr_, nc_, c, is_row_major());
     }
 
     // copy constructor
@@ -176,7 +211,7 @@ public:
 
     void zero_out()
     {
-        assign_value(0);
+        assign_value(T(0));
     }
 
     // access to private variables
@@ -201,7 +236,7 @@ public:
         if (is_col_major())
         {
             int nr = nr_, nc = nc_;
-            transpose();
+            this->transpose();
             reshape(nr, nc);
             major_ = MAJOR::ROW;
             set_indx_picker();
@@ -212,7 +247,7 @@ public:
         if (is_row_major())
         {
             int nr = nr_, nc = nc_;
-            transpose();
+            this->transpose();
             reshape(nr, nc);
             major_ = MAJOR::COL;
             set_indx_picker();
@@ -571,23 +606,24 @@ inline matrix_m<T> transpose(const matrix_m<T> &m, bool conjugate = false)
 
 //! compute the determinant of a matrix
 template <typename T>
-T get_determinant(matrix_m<T> &m)
+T get_determinant(const matrix_m<T> &m)
 {
-    int lwork = m.nr();
+    matrix_m<T> m_copy(m);
+    int lwork = m_copy.nr();
     int info = 0;
-    int mrank = std::min(m.nr(), m.nc());
+    int mrank = std::min(m_copy.nr(), m_copy.nc());
     T work[lwork];
     int ipiv[mrank];
     // debug
-    if (m.is_row_major())
-        LapackConnector::getrf(m.nr(), m.nc(), m.c, m.nr(), ipiv, info);
+    if (m_copy.is_row_major())
+        LapackConnector::getrf(m_copy.nr(), m_copy.nc(), m_copy.c, m_copy.nr(), ipiv, info);
     else
-        LapackConnector::getrf_f(m.nr(), m.nc(), m.c, m.nr(), ipiv, info);
+        LapackConnector::getrf_f(m_copy.nr(), m_copy.nc(), m_copy.c, m_copy.nr(), ipiv, info);
     T det = 1;
     for (int i = 0; i < mrank; i++)
     {
         /* std::cout << i << " " << ipiv[i] << " " << m.c[i*m.nc+i] << " "; */
-        det *= (2*int(ipiv[i] == (i+1))-1) * m(i, i);
+        det *= (2*int(ipiv[i] == (i+1))-1) * m_copy(i, i);
     }
     return det;
 }
