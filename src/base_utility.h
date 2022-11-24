@@ -25,6 +25,11 @@ template <typename T>
 struct to_cplx<std::complex<T>> { using type = T; };
 
 template <typename T>
+inline void join_re_im(T &pt, const T &re, const T &im) { pt = re; }
+template <typename T>
+inline void join_re_im(std::complex<T> &pt, const T &re, const T &im) { pt = std::complex<T>{re, im}; }
+
+template <typename T>
 inline T get_real(const T& v) { return v; }
 template <typename T>
 inline T get_real(const std::complex<T>& v) { return v.real(); }

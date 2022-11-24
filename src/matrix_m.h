@@ -221,7 +221,7 @@ public:
         if (is_complex)
         {
             for (int i = 0; i != size_; i++)
-                this->c[i] = std::complex<T>{dr(e), di(e)};
+                join_re_im(this->c[i], dr(e), di(e));
         }
         else
         {
