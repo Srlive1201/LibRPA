@@ -62,17 +62,27 @@ void expand_nested_vector_to_pointer(const std::vector<std::vector<T>> &nested_v
 template <typename T>
 class matrix_m
 {
+public:
+    //! Flag of whether the instantialized matrix class is complex-typed
+    static const bool is_complex = is_complex_t<T>::value;
 private:
-    int mrank_;
-    int size_;
-    int ld_;
+    //! The number of rows
     int nr_;
+    //! The number of columns
     int nc_;
+    //! The leading dimension of the matrix
+    int ld_;
+    //! Major of matrix data storage, either row- or column-major
     MAJOR major_;
+    //! The maximal rank of the matrix, i.e. min(nr, nc)
+    int mrank_;
+    //! The number of matrix elements, i.e. nr * nc
+    int size_;
+    //! Function to extract the data in the memory from 2D indexing
     std::function<int(const int& nr, const int& ir, const int& nc, const int& ic)> indx_picker_2d_;
 
 public:
-    std::shared_ptr<std::valarray<T>> data; // not used yet
+    // std::shared_ptr<std::valarray<T>> data; // to conform with LibRI tensor
     T* c;
 
 private:
@@ -151,7 +161,6 @@ public:
     using type = T;
     using real_t = typename to_real<T>::type;
     using cplx_t = typename to_cplx<T>::type;
-    const bool is_complex = is_complex_t<T>::value;
 
     // constructors
     matrix_m() : nr_(0), nc_(0), major_(MAJOR::ROW), c(nullptr)
@@ -214,19 +223,59 @@ public:
         assign_value(T(0));
     }
 
-    void randomize(const T &lb = 0, const T &ub = 1)
+    //! Randomize the matrix elements with lower and upper bound and symmetry constraint
+    void randomize(const T &lb = 0, const T &ub = 1, bool symmetrize = false, bool hermitian = false)
     {
         std::default_random_engine e(time(0));
-        std::uniform_real_distribution<real_t> dr(::get_real(lb), ::get_real(ub)), di(::get_imag(lb), ::get_imag(ub));
-        if (is_complex)
+        std::uniform_real_distribution<real_t> dr(::get_real(lb), ::get_real(ub));
+        if (matrix_m<T>::is_complex)
         {
-            for (int i = 0; i != size_; i++)
-                join_re_im(this->c[i], dr(e), di(e));
+            std::uniform_real_distribution<real_t> di(::get_imag(lb), ::get_imag(ub));
+            if (symmetrize)
+            {
+                for (int i = 0; i != mrank_; i++)
+                {
+                    join_re_im((*this)(i, i), dr(e), di(e));
+                    for (int j = i + 1; j < mrank_; j++)
+                    {
+                        join_re_im((*this)(i, j), dr(e), di(e));
+                        (*this)(j, i) = (*this)(i, j);
+                    }
+                }
+            }
+            else if (hermitian)
+            {
+                for (int i = 0; i != mrank_; i++)
+                {
+                    join_re_im((*this)(i, i), dr(e), 0.0);
+                    for (int j = i + 1; j < mrank_; j++)
+                    {
+                        join_re_im((*this)(i, j), dr(e), di(e));
+                        (*this)(j, i) = ::get_conj((*this)(i, j));
+                    }
+                }
+            }
+            else
+                for (int i = 0; i != size_; i++)
+                    join_re_im(this->c[i], dr(e), di(e));
         }
         else
         {
-            for (int i = 0; i != size_; i++)
-                this->c[i] = dr(e);
+            if (symmetrize)
+                for (int i = 0; i != mrank_; i++)
+                {
+                    this->at(i, i) = dr(e);
+                    for (int j = i + 1; j < mrank_; j++)
+                    {
+                        this->at(i, j) = dr(e);
+                        this->at(j, i) = this->at(i, j);
+                    }
+                }
+            else
+            {
+                for (int i = 0; i != size_; i++)
+                    this->c[i] = dr(e);
+            }
         }
     }
 
@@ -242,8 +291,9 @@ public:
     bool is_col_major() const { return major_ == MAJOR::COL; }
 
     // indexing
-    T &operator()(const int ir, const int ic) { return c[indx_picker_2d_(nr_, ir, nc_, ic)]; }
+    T &operator()(const int ir, const int ic) { return this->at(ir, ic); }
     const T &operator()(const int ir, const int ic) const { return this->at(ir, ic); }
+    T &at(const int ir, const int ic) { return c[indx_picker_2d_(nr_, ir, nc_, ic)]; }
     const T &at(const int ir, const int ic) const { return c[indx_picker_2d_(nr_, ir, nc_, ic)]; }
 
     // swap major
@@ -375,12 +425,6 @@ public:
         nc_ = ncols_new;
         set_rank_size();
         zero_out();
-    }
-    void resize(int nrows_new, int ncols_new, MAJOR major)
-    {
-        this->resize(nrows_new, ncols_new);
-        major_ = major;
-        set_indx_picker();
     }
 
     void conj()
@@ -686,35 +730,18 @@ inline matrix_m<T> random(int nr, int nc, const T &lb, const T &ub, MAJOR major 
 
 //! generate a random symmetric matrix
 template <typename T>
-inline matrix_m<T> random_sy(int n, const T &lb, const T &ub)
+inline matrix_m<T> random_sy(int n, const T &lb, const T &ub, MAJOR major = MAJOR::ROW)
 {
-    matrix_m<T> m(n, n);
-    std::default_random_engine e(time(0));
-    std::uniform_real_distribution<T> d(lb, ub);
-    for (int i = 0; i != n; i++)
-    {
-        for (int j = i; j != n; j++)
-        {
-            m(i, j) = m(j, i) = d(e);
-        }
-    }
+    matrix_m<T> m(n, n, major);
+    m.randomize(lb, ub, true, false);
     return m;
 }
 
 //! generate a random Hermitian matrix
 template <typename T>
-inline matrix_m<std::complex<T>> random_he(int n, const std::complex<T> &lb, const std::complex<T> &ub)
+inline matrix_m<std::complex<T>> random_he(int n, const std::complex<T> &lb, const std::complex<T> &ub, MAJOR major = MAJOR::ROW)
 {
-    matrix_m<std::complex<T>> m(n, n);
-    std::default_random_engine e(time(0));
-    std::uniform_real_distribution<T> dr(lb.real(), ub.real()), di(lb.imag(), lb.imag());
-    for (int i = 0; i != n; i++)
-    {
-        m(i, i) = dr(e);
-        for (int j = i + 1; j != n; j++)
-        {
-            m(i, j) = std::conj(m(j, i) = std::complex<T>{dr(e), di(e)});
-        }
-    }
+    matrix_m<std::complex<T>> m(n, n, major);
+    m.randomize(lb, ub, false, true);
     return m;
 }
