@@ -761,6 +761,23 @@ public:
                &ldc);
     }
 
+    // eigenvector of hermitian matrix
+    static inline
+    void heev_f(const char &jobz, const char &uplo, const int &n,
+                std::complex<float> *a, const int &lda, float *w,
+                std::complex<float> *work, const int &lwork, float *rwork, int &info)
+    {
+        cheev_(&jobz, &uplo, &n, a, &lda, w, work, &lwork, rwork, &info);
+    }
+
+    static inline
+    void heev_f(const char &jobz, const char &uplo, const int &n,
+                std::complex<double> *a, const int &lda, double *w,
+                std::complex<double> *work, const int &lwork, double *rwork, int &info)
+    {
+        zheev_(&jobz, &uplo, &n, a, &lda, w, work, &lwork, rwork, &info);
+    }
+
         // Peize Lin add 2018-06-12
 	// out = ||x||_2
 	// static inline
