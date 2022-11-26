@@ -90,50 +90,58 @@ void power_hemat_blacs(matrix_m<std::complex<T>> &A_local,
                        const LIBRPA::Array_Desc &ad_A,
                        matrix_m<std::complex<T>> &Z_local,
                        const LIBRPA::Array_Desc &ad_Z,
-                       T *W, double power,
-                       double threshold = -1e5)
+                       T *W, T power,
+                       T threshold = -1e5)
 {
     assert (A_local.is_col_major() && Z_local.is_col_major());
-    const bool is_int_power = fabs(power - int(power)) < 1e-8;
+    const bool is_int_power = fabs(power - int(power)) < 1e-4;
     const int n = ad_A.m();
     const char jobz = 'V';
     const char uplo = 'U';
 
     int lwork = -1, lrwork = -1, info = 0;
+    std::complex<T>  *work;
+    T *rwork;
     {
+        work  = new std::complex<T>[1];
+        rwork = new T[1];
         // query the optimal lwork and lrwork
-        T Wquery[1], work[1];
-        std::complex<T> rwork[1];
+        T *Wquery = new T[1];
         ScalapackConnector::pheev_f(jobz, uplo,
                 n, A_local.c, 1, 1, ad_A.desc,
                 Wquery, Z_local.c, 1, 1, ad_Z.desc, work, lwork, rwork, lrwork, info);
-        lwork = int(work[0]);
-        lrwork = int(rwork[0].real());
+        lwork = int(work[0].real());
+        lrwork = int(rwork[0]);
+        delete [] work, Wquery, rwork;
     }
+    // printf("lwork %d lrwork %d\n", lwork, lrwork); // debug
 
-    T *work = new T [lwork];
-    std::complex<T> *rwork = new std::complex<T> [lrwork];
+    work = new std::complex<T> [lwork];
+    rwork = new T [lrwork];
     ScalapackConnector::pheev_f(jobz, uplo,
             n, A_local.c, 1, 1, ad_A.desc,
             W, Z_local.c, 1, 1, ad_Z.desc, work, lwork, rwork, lrwork, info);
+    delete [] work, rwork;
 
     // filter and scale the eigenvalues, store in a temp array
-    T W_temp[n] = 0;
+    T W_temp[n];
     for (int i = 0; i != n; i++)
     {
         if (W[i] < 0 && !is_int_power)
-            printf("Warning! negative eigenvalue with non-integer power: # %d ev = %f , pow = %f", i, W[i], power);
+            printf("Warning! negative eigenvalue with non-integer power: # %d ev = %f , pow = %f\n", i, W[i], power);
         if (fabs(W[i]) < 1e-10 && power < 0)
-            printf("Warning! nearly-zero eigenvalue with negative power: # %d ev = %f , pow = %f", i, W[i], power);
+            printf("Warning! nearly-zero eigenvalue with negative power: # %d ev = %f , pow = %f\n", i, W[i], power);
         if (W[i] < threshold)
             W_temp[i] = 0;
         else
             W_temp[i] = std::pow(W[i], power);
     }
+    // for (int i = 0; i != n; i++)
+    //     printf("%f | %f\n", W[i], W_temp[i]);
 
     // create scaled eigenvectors
     matrix_m<std::complex<T>> scaled_Z_local(Z_local);
     for (int i = 0; i != n; i++)
-        ScalapackConnector::pscal_f(n, scaled_Z_local.c, W_temp[i], 1, 1+i, ad_Z.desc, 1);
+        ScalapackConnector::pscal_f(n, W_temp[i], scaled_Z_local.c, 1, 1+i, ad_Z.desc, 1);
     ScalapackConnector::pgemm_f('N', 'C', n, n, n, 1.0, Z_local.c, 1, 1, ad_Z.desc, scaled_Z_local.c, 1, 1, ad_Z.desc, 0.0, A_local.c, 1, 1, ad_A.desc);
 }
