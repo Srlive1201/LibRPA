@@ -68,6 +68,7 @@ class matrix_m
 public:
     //! Flag of whether the instantialized matrix class is complex-typed
     static const bool is_complex = is_complex_t<T>::value;
+    static const bool is_double = std::is_same<T, double>::value;
 private:
     //! The number of rows
     int nr_;
@@ -219,6 +220,18 @@ public:
     void zero_out()
     {
         assign_value(T(0));
+    }
+
+    void scale_row(int irow, const T &scale)
+    {
+        for (int ic = 0; ic < nc_; ic++)
+            this->at(irow, ic) *= scale;
+    }
+
+    void scale_col(int icol, const T &scale)
+    {
+        for (int ir = 0; ir < nr_; ir++)
+            this->at(ir, icol) *= scale;
     }
 
     //! Randomize the matrix elements with lower and upper bound and symmetry constraint
@@ -438,6 +451,7 @@ public:
         for (int i = 0; i < nr_; i++)
             for (int j = 0; j < nc_; j++)
                 m_trans(j, i) = this->at(i, j);
+        if (conjugate) m_trans.conj();
         return m_trans;
     }
 
@@ -749,4 +763,40 @@ inline matrix_m<std::complex<T>> random_he(int n, const std::complex<T> &lb, con
     matrix_m<std::complex<T>> m(n, n, major);
     m.randomize(lb, ub, false, true);
     return m;
+}
+
+//! generate a random unitary matrix, implemented as using ?heev upon hermitian matrix
+template <typename T>
+inline matrix_m<std::complex<T>> random_unitary(int n, MAJOR major = MAJOR::ROW)
+{
+    int info;
+    // always use column major here to ensure that the eigvec construction is correct
+    auto mat = random_he<T>(n, {-1.0, -1.0}, {1.0, 1.0}, MAJOR::COL);
+    const char *name = mat.is_double? "ZHETRD" : "CHETRD";
+    // printf("%s\n", name);
+    int nb = LapackConnector::ilaenv(1, name, "VU", n, -1, -1, -1);
+    if (nb <= 1) nb = std::max(1, n);
+    const int lwork = n * (nb + 1);
+
+    T *w = new T[n];
+    std::complex<T> *work = new std::complex<T>[lwork];
+    T *rwork = new T[std::max(1, 3 * n - 2)];
+
+    LapackConnector::heev_f('V', 'U', n, mat.c, mat.nr(), w, work, lwork, rwork, info);
+    delete [] rwork, w, work;
+    return matrix_m<std::complex<T>>(n, n, mat.c, major, MAJOR::COL);
+}
+
+//! generate a random Hermitian matrix with selected eigenvalues
+template <typename T>
+inline matrix_m<std::complex<T>> random_he_selected_ev(int n, const vector<T> &evs, MAJOR major = MAJOR::ROW)
+{
+    const int nvec = evs.size();
+    if (nvec == 0) return matrix_m<std::complex<T>>{0, 0, major};
+
+    auto eigvec = random_unitary<T>(n, major);
+    auto eigvec_H = eigvec.get_transpose(true);
+    for (int ie = 0; ie != n; ie++)
+        eigvec_H.scale_row(ie, ie < nvec? evs[ie]: +0.0);
+    return eigvec * eigvec_H;
 }
