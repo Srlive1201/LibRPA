@@ -102,7 +102,7 @@ public:
     static inline
     void pscal_f(const int &N, const float &alpha, float *X,
                  const int &IX, const int &JX, const int *DESCX,
-                 int &INCX)
+                 const int &INCX)
     {
         psscal_(&N, &alpha, X, &IX, &JX, DESCX, &INCX);
     }
@@ -110,7 +110,7 @@ public:
     static inline
     void pscal_f(const int &N, const double &alpha, double *X,
                  const int &IX, const int &JX, const int *DESCX,
-                 int &INCX)
+                 const int &INCX)
     {
         pdscal_(&N, &alpha, X, &IX, &JX, DESCX, &INCX);
     }
@@ -118,7 +118,7 @@ public:
     static inline
     void pscal_f(const int &N, const std::complex<float> &alpha, std::complex<float> *X,
                  const int &IX, const int &JX, const int *DESCX,
-                 int &INCX)
+                 const int &INCX)
     {
         pcscal_(&N, &alpha, X, &IX, &JX, DESCX, &INCX);
     }
@@ -134,7 +134,7 @@ public:
     static inline
     void pscal_f(const int &N, const float &alpha, std::complex<float> *X,
                  const int &IX, const int &JX, const int *DESCX,
-                 int &INCX)
+                 const int &INCX)
     {
         pcsscal_(&N, &alpha, X, &IX, &JX, DESCX, &INCX);
     }
@@ -142,7 +142,7 @@ public:
     static inline
     void pscal_f(const int &N, const double &alpha, std::complex<double> *X,
                  const int &IX, const int &JX, const int *DESCX,
-                 int &INCX)
+                 const int &INCX)
     {
         pzdscal_(&N, &alpha, X, &IX, &JX, DESCX, &INCX);
     }
@@ -393,7 +393,7 @@ public:
     void pheev_f(const char &jobz, const char &uplo,
                  const int &n, std::complex<float> *A, const int &ia, const int &ja, const int *desca,
                  float *W, std::complex<float> *Z, const int &iz, const int &jz, const int *descz,
-                 std::complex<float> *work, const int &lwork, std::complex<float> *rwork, const int &lrwork, int &info)
+                 std::complex<float> *work, const int &lwork, float *rwork, const int &lrwork, int &info)
     {
         pcheev_(&jobz, &uplo, &n, A, &ia, &ja, desca,
                 W, Z, &iz, &jz, descz,
@@ -403,7 +403,8 @@ public:
     void pheev_f(const char &jobz, const char &uplo,
                  const int &n, std::complex<double> *A, const int &ia, const int &ja, const int *desca,
                  double *W, std::complex<double> *Z, const int &iz, const int &jz, const int *descz,
-                 std::complex<double> *work, const int &lwork, std::complex<double> *rwork, const int &lrwork, int &info)
+                 std::complex<double> *work, const int &lwork, double *rwork, const int &lrwork, int &info)
+    // const char, const char, const int, std::complex<double> *, int, int, const int [9], double *, std::complex<double> *, int, int, const int [9], double *, int, std::complex<double> *, int, int
     {
         pzheev_(&jobz, &uplo, &n, A, &ia, &ja, desca,
                 W, Z, &iz, &jz, descz,

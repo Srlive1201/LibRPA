@@ -61,20 +61,20 @@ extern "C"
     //    sub( X ) denotes X(IX,JX:JX+N-1) if INCX = M_X,
     //                     X(IX:IX+N-1,JX) if INCX = 1 and INCX <> M_X.
     void psscal_(const int *N, const float *alpha, float *X, const int *IX,
-                 const int *JX, const int *DESCX, int *INCX);
+                 const int *JX, const int *DESCX, const int *INCX);
     void pdscal_(const int *N, const double *alpha, double *X, const int *IX,
-                 const int *JX, const int *DESCX, int *INCX);
+                 const int *JX, const int *DESCX, const int *INCX);
     void pcscal_(const int *N, const std::complex<float> *alpha,
                  std::complex<float> *X, const int *IX, const int *JX,
-                 const int *DESCX, int *INCX);
+                 const int *DESCX, const int *INCX);
     void pzscal_(const int *N, const std::complex<double> *alpha,
                  std::complex<double> *X, const int *IX, const int *JX,
-                 const int *DESCX, int *INCX);
+                 const int *DESCX, const int *INCX);
     // by real scalar
     void pcsscal_(const int *N, const float *alpha, std::complex<float> *X,
-                  const int *IX, const int *JX, const int *DESCX, int *INCX);
+                  const int *IX, const int *JX, const int *DESCX, const int *INCX);
     void pzdscal_(const int *N, const double *alpha, std::complex<double> *X,
-                  const int *IX, const int *JX, const int *DESCX, int *INCX);
+                  const int *IX, const int *JX, const int *DESCX, const int *INCX);
 
     // dot
     void psdot_(const int *N, float *DOT, const float *X, const int *IX,
@@ -238,11 +238,11 @@ extern "C"
     void pcheev_(const char *jobz, const char *uplo,
                  const int *n, std::complex<float> *A, const int *ia, const int *ja, const int *desca,
                  float *W, std::complex<float> *Z, const int *iz, const int *jz, const int *descz,
-                 std::complex<float> *work, const int *lwork, std::complex<float> *rwork, const int *lrwork, int *info);
+                 std::complex<float> *work, const int *lwork, float *rwork, const int *lrwork, int *info);
     void pzheev_(const char *jobz, const char *uplo,
                  const int *n, std::complex<double> *A, const int *ia, const int *ja, const int *desca,
                  double *W, std::complex<double> *Z, const int *iz, const int *jz, const int *descz,
-                 std::complex<double> *work, const int *lwork, std::complex<double> *rwork, const int *lrwork, int *info);
+                 std::complex<double> *work, const int *lwork, double *rwork, const int *lrwork, int *info);
 
 // Matrix inversion
     void psgetri_(const int *n, 
