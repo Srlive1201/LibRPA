@@ -96,7 +96,7 @@ void test_power_hemat_blacs(const T &m_lb, const T &m_ub)
     blacs_ctxt_world_h.get_pcoord(pid_src, irsrc, icsrc);
     if (blacs_ctxt_world_h.myid == pid_src)
     {
-        vector<real_type> evs {0.2, 0.5, 1.0, 2.0, 4.0};
+        vector<real_type> evs {0.1, 0.2, 0.5, 1.0, 2.0, 4.0};
         mat = random_he_selected_ev(n, evs, MAJOR::COL);
         mat_gather = mat;
     }
