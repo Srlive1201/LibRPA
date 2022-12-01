@@ -153,3 +153,63 @@ matrix_m<std::complex<T>> power_hemat_blacs(matrix_m<std::complex<T>> &A_local,
     ScalapackConnector::pgemm_f('N', 'C', n, n, n, 1.0, Z_local.c, 1, 1, ad_Z.desc, scaled_Z_local.c, 1, 1, ad_Z.desc, 0.0, A_local.c, 1, 1, ad_A.desc);
     return scaled_Z_local;
 }
+
+template <typename T>
+matrix_m<T> multiply_scalpack(const matrix_m<T> &m1_loc, const LIBRPA::Array_Desc &desc_m1,
+                              const matrix_m<T> &m2_loc, const LIBRPA::Array_Desc &desc_m2,
+                              const LIBRPA::Array_Desc &desc_prod)
+{
+    if (m1_loc.major() != m2_loc.major())
+        throw std::invalid_argument("m1 and m2 in different major");
+    if (desc_m1.n() != desc_m2.m())
+        throw std::invalid_argument("m1.col != m2.row");
+    const int m = desc_m1.m();
+    const int n = desc_m2.n();
+    const int k = desc_m1.n();
+    matrix_m<T> prod_loc = init_local_mat<T>(desc_prod, m1_loc.major());
+    if (m1_loc.is_col_major())
+    {
+        ScalapackConnector::pgemm_f('N', 'N', m, n, k, 1.0,
+                m1_loc.c, 1, 1, desc_m1.desc,
+                m2_loc.c, 1, 1, desc_m2.desc,
+                0.0,
+                prod_loc.c, 1, 1, desc_prod.desc);
+    }
+    else
+    {
+        throw std::logic_error("row-major parallel multiply is not implemented");
+    }
+    return prod_loc;
+}
+
+template <typename T>
+void invert_scalapack(matrix_m<T> &m_loc, const LIBRPA::Array_Desc &desc_m)
+{
+    assert(m_loc.is_col_major());
+    int info = 0;
+    if (m_loc.is_col_major())
+    {
+        int *ipiv = new int [desc_m.lld()];
+        ScalapackConnector::pgetrf_f(desc_m.m(), desc_m.n(), m_loc.c, 1, 1, desc_m.desc, ipiv, info);
+        // get optimized work size
+        int lwork = -1, liwork = -1;
+        T *work = new T [1];
+        int *iwork = new int [1];
+        ScalapackConnector::pgetri_f(desc_m.m(), m_loc.c, 1, 1, desc_m.desc, ipiv, work, lwork, iwork, liwork, info);
+        lwork = int(get_real(work[0]));
+        liwork = iwork[0];
+        delete [] work;
+        delete [] iwork;
+
+        work = new T[lwork];
+        iwork = new T[liwork];
+        ScalapackConnector::pgetri_f(desc_m.m(), m_loc.c, 1, 1, desc_m.desc, ipiv, work, lwork, iwork, liwork, info);
+        delete [] work;
+        delete [] iwork;
+        delete [] ipiv;
+    }
+    else
+    {
+        throw std::logic_error("row-major invert is not implemented");
+    }
+}
