@@ -86,12 +86,12 @@ void collect_block_from_IJ_storage(
 }
 
 template <typename T>
-void power_hemat_blacs(matrix_m<std::complex<T>> &A_local,
-                       const LIBRPA::Array_Desc &ad_A,
-                       matrix_m<std::complex<T>> &Z_local,
-                       const LIBRPA::Array_Desc &ad_Z,
-                       T *W, T power,
-                       T threshold = -1e5)
+matrix_m<std::complex<T>> power_hemat_blacs(matrix_m<std::complex<T>> &A_local,
+                                            const LIBRPA::Array_Desc &ad_A,
+                                            matrix_m<std::complex<T>> &Z_local,
+                                            const LIBRPA::Array_Desc &ad_Z,
+                                            size_t &n_filtered, T *W, T power,
+                                            const T &threshold = -1.e5)
 {
     assert (A_local.is_col_major() && Z_local.is_col_major());
     const bool is_int_power = fabs(power - int(power)) < 1e-4;
@@ -123,25 +123,33 @@ void power_hemat_blacs(matrix_m<std::complex<T>> &A_local,
             W, Z_local.c, 1, 1, ad_Z.desc, work, lwork, rwork, lrwork, info);
     delete [] work, rwork;
 
+    // check the number of non-singular eigenvalues,
+    // using the fact that W is in ascending order
+    n_filtered = n;
+    for (int i = 0; i != n; i++)
+        if (W[i] >= threshold)
+        {
+            n_filtered = i;
+            break;
+        }
+
     // filter and scale the eigenvalues, store in a temp array
     T W_temp[n];
-    for (int i = 0; i != n; i++)
+    for (int i = 0; i != n_filtered; i++)
+        W_temp[i] = 0.0;
+    for (int i = n_filtered; i != n; i++)
     {
         if (W[i] < 0 && !is_int_power)
-            printf("Warning! negative eigenvalue with non-integer power: # %d ev = %f , pow = %f\n", i, W[i], power);
+            printf("Warning! unfiltered negative eigenvalue with non-integer power: # %d ev = %f , pow = %f\n", i, W[i], power);
         if (fabs(W[i]) < 1e-10 && power < 0)
-            printf("Warning! nearly-zero eigenvalue with negative power: # %d ev = %f , pow = %f\n", i, W[i], power);
-        if (W[i] < threshold)
-            W_temp[i] = 0;
-        else
-            W_temp[i] = std::pow(W[i], power);
+            printf("Warning! unfiltered nearly-singular eigenvalue with negative power: # %d ev = %f , pow = %f\n", i, W[i], power);
+        W_temp[i] = std::pow(W[i], power);
     }
-    // for (int i = 0; i != n; i++)
-    //     printf("%f | %f\n", W[i], W_temp[i]);
 
     // create scaled eigenvectors
     matrix_m<std::complex<T>> scaled_Z_local(Z_local);
     for (int i = 0; i != n; i++)
         ScalapackConnector::pscal_f(n, W_temp[i], scaled_Z_local.c, 1, 1+i, ad_Z.desc, 1);
     ScalapackConnector::pgemm_f('N', 'C', n, n, n, 1.0, Z_local.c, 1, 1, ad_Z.desc, scaled_Z_local.c, 1, 1, ad_Z.desc, 0.0, A_local.c, 1, 1, ad_A.desc);
+    return scaled_Z_local;
 }

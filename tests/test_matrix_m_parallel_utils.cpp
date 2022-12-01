@@ -113,8 +113,11 @@ void test_power_hemat_blacs(const T &m_lb, const T &m_ub)
 
     real_type *W = new real_type [n];
 
-    power_hemat_blacs(mat_loc, pair_desc_m.second,
-                      eig_loc, pair_desc_m.second, W, real_type(1.0/3.0));
+    size_t n_filtered;
+
+    power_hemat_blacs<real_type>(mat_loc, pair_desc_m.second,
+                                 eig_loc, pair_desc_m.second, n_filtered, W, 1.0/3.0, -1.0e5);
+    assert(n_filtered == 0);
     if (blacs_ctxt_world_h.myid == pid_src)
     {
         printf("Eigenvalues: ");
@@ -124,8 +127,9 @@ void test_power_hemat_blacs(const T &m_lb, const T &m_ub)
     }
     blacs_ctxt_world_h.barrier();
     // printf("mat_loc of PID %d middle\n%s", blacs_ctxt_world_h.myid, str(mat_loc).c_str());
-    power_hemat_blacs(mat_loc, pair_desc_m.second,
-                      eig_loc, pair_desc_m.second, W, real_type(3.0));
+    power_hemat_blacs<real_type>(mat_loc, pair_desc_m.second,
+                                 eig_loc, pair_desc_m.second, n_filtered, W, 3.0, -1.0e5);
+    assert(n_filtered == 0);
     // printf("eig_loc\n%s", str(eig_loc).c_str());
     // printf("mat_loc of PID %d after\n%s", blacs_ctxt_world_h.myid, str(mat_loc).c_str());
 
