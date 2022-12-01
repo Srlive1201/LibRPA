@@ -8,7 +8,7 @@
 #include "vector3_order.h"
 #ifdef __USE_LIBRI
 #include <RI/physics/Exx.h>
-#include "print_stl.h"
+// #include "print_stl.h"
 #endif
 
 namespace LIBRPA
