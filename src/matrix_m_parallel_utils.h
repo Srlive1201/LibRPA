@@ -228,24 +228,29 @@ void invert_scalapack(matrix_m<T> &m_loc, const LIBRPA::Array_Desc &desc_m)
     int info = 0;
     if (m_loc.is_col_major())
     {
-        int *ipiv = new int [desc_m.lld()];
+        // NOTE: use local leading dimension desc_m.lld() will lead to invalid pointer error
+        int *ipiv = new int [desc_m.m()];
         ScalapackConnector::pgetrf_f(desc_m.m(), desc_m.n(), m_loc.c, 1, 1, desc_m.desc, ipiv, info);
         // get optimized work size
         int lwork = -1, liwork = -1;
-        T *work = new T [1];
-        int *iwork = new int [1];
-        ScalapackConnector::pgetri_f(desc_m.m(), m_loc.c, 1, 1, desc_m.desc, ipiv, work, lwork, iwork, liwork, info);
-        lwork = int(get_real(work[0]));
-        liwork = iwork[0];
-        delete [] work;
-        delete [] iwork;
+        {
+            T *work = new T [1];
+            int *iwork = new int [1];
+            ScalapackConnector::pgetri_f(desc_m.m(), m_loc.c, 1, 1, desc_m.desc, ipiv, work, lwork, iwork, liwork, info);
+            lwork = int(get_real(work[0]));
+            liwork = iwork[0];
+            // printf("lwork %d liwork %d\n", lwork, liwork);
+            delete [] work;
+            delete [] iwork;
+        }
 
-        work = new T[lwork];
-        iwork = new T[liwork];
+        T *work = new T[lwork];
+        int *iwork = new int[liwork];
         ScalapackConnector::pgetri_f(desc_m.m(), m_loc.c, 1, 1, desc_m.desc, ipiv, work, lwork, iwork, liwork, info);
-        delete [] work;
         delete [] iwork;
+        delete [] work;
         delete [] ipiv;
+        // printf("done free\n");
     }
     else
     {
