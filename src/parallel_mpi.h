@@ -156,6 +156,7 @@ public:
     const int& n() const { return n_; }
     const int& mb() const { return mb_; }
     const int& nb() const { return nb_; }
+    const int& lld() const { return lld_; }
     const int& irsrc() const { return irsrc_; }
     const int& icsrc() const { return icsrc_; }
     const int& m_loc() const { return m_local_; }
@@ -172,6 +173,8 @@ std::pair<Array_Desc, Array_Desc> prepare_array_desc_mr2d_src_and_all(
 
 //! obtain the necessary atom pair of atomic basis to build the block-cyclic submatrix
 std::set<std::pair<int, int>> get_necessary_IJ_from_block_2D(const AtomicBasis &atbasis_row, const AtomicBasis &atbasis_col, const Array_Desc& arrdesc);
+
+std::set<std::pair<int, int>> get_necessary_IJ_from_block_2D_sy(const char &uplo, const AtomicBasis &atbasis, const Array_Desc& arrdesc);
 
 } // namespace LIBRPA
 

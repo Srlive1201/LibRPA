@@ -1,5 +1,6 @@
 #pragma once
 #include "matrix_m.h"
+#include "constants.h"
 #include "parallel_mpi.h"
 #include "scalapack_connector.h"
 
@@ -83,6 +84,44 @@ void collect_block_from_IJ_storage(
             mat_lo(ilo, jlo) += alpha * pvIJ[picker(row_nb, iI, col_nb, jJ)];
         }
     }
+}
+
+//! collect 2D block from a IJ-pair storage exploiting its symmetric/Hermitian property
+template <typename Tdst, typename Tsrc>
+void collect_block_from_IJ_storage_syhe(
+    matrix_m<Tdst> &mat_lo,
+    const LIBRPA::Array_Desc &ad,
+    const LIBRPA::AtomicBasis &atbasis,
+    const int &I, const int &J, bool conjugate,
+    Tdst alpha, const Tsrc *pvIJ, MAJOR major_pv)
+{
+    // assert(mat_lo.nr() == ad.m_loc() && mat_lo.nc() == ad.n_loc());
+    assert(ad.m() == atbasis.nb_total && ad.n() == atbasis.nb_total);
+    // blocks on diagonal is trivial
+    if (I == J)
+    {
+        collect_block_from_IJ_storage(mat_lo, ad, atbasis, atbasis, I, J, alpha, pvIJ, major_pv);
+        return;
+    }
+    const std::function<Tsrc(Tsrc)> filter = conjugate ? [](Tsrc a) { return get_conj(a); }
+                                                       : [](Tsrc a) { return a; };
+    const int I_start_id = atbasis.get_part_range()[I];
+    const int J_start_id = atbasis.get_part_range()[J];
+    const int I_nb = atbasis.get_atom_nb(I);
+    const int J_nb = atbasis.get_atom_nb(J);
+    const auto picker = Indx_pickers_2d[major_pv];
+    for (int ilo = 0; ilo != ad.m_loc(); ilo++)
+        for (int jlo = 0; jlo != ad.n_loc(); jlo++)
+        {
+            int i_gl = ad.indx_l2g_r(ilo);
+            int j_gl = ad.indx_l2g_c(jlo);
+            Tsrc temp;
+            if ((i_gl > j_gl && I > J) || (i_gl < j_gl && I < J))
+                temp = pvIJ[picker(I_nb, i_gl - I_start_id, J_nb, j_gl - J_start_id)];
+            else
+                temp = filter(pvIJ[picker(J_nb, i_gl - J_start_id, I_nb, j_gl - I_start_id)]);
+            mat_lo(ilo, jlo) += alpha * temp;
+        }
 }
 
 template <typename T>
