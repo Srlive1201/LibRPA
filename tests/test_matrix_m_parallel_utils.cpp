@@ -74,6 +74,64 @@ void test_pgemm(const T &m1_lb, const T &m1_ub)
             thres = 1e-6;
         assert(fequal_array(m*n, prod_lapack.c, prod.c, false, thres));
     }
+
+    blacs_ctxt_world_h.exit();
+}
+
+template <typename T>
+void test_invert_scalapack()
+{
+    typedef T type;
+    typedef typename to_real<type>::type real_type;
+    const T thres = std::is_same<real_type, float>::value ? 1e-5 : 1e-14;
+
+    blacs_ctxt_world_h.set_square_grid();
+    assert(blacs_ctxt_world_h.nprocs == 4);
+    assert(blacs_ctxt_world_h.nprows == 2);
+    assert(blacs_ctxt_world_h.npcols == 2);
+
+    const int n = 8;
+    matrix_m<T> mat(0, 0, MAJOR::COL);
+
+    int pid_src, irsrc, icsrc;
+    pid_src = 2;
+    blacs_ctxt_world_h.get_pcoord(pid_src, irsrc, icsrc);
+    // initialize a non-singular matrix at source process
+    if (blacs_ctxt_world_h.myid == pid_src)
+    {
+        bool is_singular = true;
+        while (is_singular)
+        {
+            mat = random<T>(n, n, -1.0, 1.0, MAJOR::COL);
+            is_singular = fequal(get_determinant(mat), T(0.0), thres);
+        }
+    }
+
+    Array_Desc desc_mat(blacs_ctxt_world_h), desc_mat_fb_src(blacs_ctxt_world_h);
+    desc_mat.init_1b1p(n, n, irsrc, icsrc);
+    desc_mat_fb_src.init(n, n, n, n, irsrc, icsrc);
+    // create local matrix and distribute the source to the process grid
+    matrix_m<T> mat_loc = init_local_mat<T>(desc_mat, MAJOR::COL);
+    ScalapackConnector::pgemr2d_f(n, n,
+                                  mat.c, 1, 1, desc_mat_fb_src.desc,
+                                  mat_loc.c, 1, 1, desc_mat.desc,
+                                  blacs_ctxt_world_h.ictxt);
+    auto mat_loc_orig = mat_loc;
+    invert_scalapack(mat_loc, desc_mat);
+    auto mat_times_invmat = multiply_scalpack(mat_loc, desc_mat, mat_loc_orig, desc_mat, desc_mat);
+    ScalapackConnector::pgemr2d_f(n, n,
+                                  mat_times_invmat.c, 1, 1, desc_mat.desc,
+                                  mat.c, 1, 1, desc_mat_fb_src.desc,
+                                  blacs_ctxt_world_h.ictxt);
+    printf("mat * invmat on proc %d\n%s", blacs_ctxt_world_h.myid, str(mat_times_invmat).c_str());
+    if (blacs_ctxt_world_h.myid == pid_src)
+    {
+        matrix_m<T> identity(n, n, MAJOR::COL);
+        identity.zero_out();
+        identity.set_diag(1.0);
+        assert(fequal_array(n*n, mat.c, identity.c, false, thres));
+    }
+
     blacs_ctxt_world_h.exit();
 }
 
@@ -158,13 +216,18 @@ int main (int argc, char *argv[])
     mpi_comm_world_h.init();
     blacs_ctxt_world_h.init();
 
-    test_pgemm<double>(-2, 1);
-    test_pgemm<complex<double>>({-2, -1}, {1, 0});
     test_pgemm<float>(-2, 1);
+    test_pgemm<double>(-2, 1);
     test_pgemm<complex<float>>({-2, -1}, {1, 0});
+    test_pgemm<complex<double>>({-2, -1}, {1, 0});
 
     test_power_hemat_blacs<complex<double>>(0.0, {1.0, 1.0});
     test_power_hemat_blacs<complex<float>>(0.0, {1.0, 2.0});
+
+    test_invert_scalapack<float>();
+    test_invert_scalapack<double>();
+    test_invert_scalapack<complex<float>>();
+    test_invert_scalapack<complex<double>>();
 
     MPI_Wrapper::finalize();
 

@@ -222,6 +222,12 @@ public:
         assign_value(T(0));
     }
 
+    void set_diag(const T& v)
+    {
+        for (int i = 0; i < mrank_; i++)
+            this->at(i, i) = v;
+    }
+
     void scale_row(int irow, const T &scale)
     {
         for (int ic = 0; ic < nc_; ic++)
