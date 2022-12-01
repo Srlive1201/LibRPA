@@ -410,6 +410,54 @@ public:
                 W, Z, &iz, &jz, descz,
                 work, &lwork, rwork, &lrwork, &info);
     }
+
+    static inline
+    void pgetrf_f(const int &m, const int &n, float *a, const int &ia, const int &ja, int *desca, int *ipiv, int &info)
+    {
+        psgetrf_(&m, &n, a, &ia, &ja, desca, ipiv, &info);
+    }
+
+    static inline
+    void pgetrf_f(const int &m, const int &n, double *a, const int &ia, const int &ja, int *desca, int *ipiv, int &info)
+    {
+        pdgetrf_(&m, &n, a, &ia, &ja, desca, ipiv, &info);
+    }
+
+    static inline
+    void pgetrf_f(const int &m, const int &n, std::complex<float> *a, const int &ia, const int &ja, int *desca, int *ipiv, int &info)
+    {
+        pcgetrf_(&m, &n, a, &ia, &ja, desca, ipiv, &info);
+    }
+
+    void pgetrf_f(const int &m, const int &n, std::complex<double> *a, const int &ia, const int &ja, int *desca, int *ipiv, int &info)
+    {
+        pzgetrf_(&m, &n, a, &ia, &ja, desca, ipiv, &info);
+    }
+
+    static inline
+    void pgetri_f(const int &n, float *a, const int &ia, const int &ja, int *desca, int *ipiv, float *work, const int &lwork, int *iwork, const int &liwork, int &info)
+    {
+        psgetri_(&n, a, &ia, &ja, desca, ipiv, work, &lwork, iwork, &liwork, &info);
+    }
+
+    static inline
+    void pgetri_f(const int &n, double *a, const int &ia, const int &ja, int *desca, int *ipiv, double *work, const int &lwork, int *iwork, const int &liwork, int &info)
+    {
+        pdgetri_(&n, a, &ia, &ja, desca, ipiv, work, &lwork, iwork, &liwork, &info);
+    }
+
+    static inline
+    void pgetri_f(const int &n, std::complex<float> *a, const int &ia, const int &ja, int *desca, int *ipiv, std::complex<float> *work, const int &lwork, int *iwork, const int &liwork, int &info)
+    {
+        pcgetri_(&n, a, &ia, &ja, desca, ipiv, work, &lwork, iwork, &liwork, &info);
+    }
+
+    static inline
+    void pgetri_f(const int &n, std::complex<double> *a, const int &ia, const int &ja, int *desca, int *ipiv, std::complex<double> *work, const int &lwork, int *iwork, const int &liwork, int &info)
+    {
+        pzgetri_(&n, a, &ia, &ja, desca, ipiv, work, &lwork, iwork, &liwork, &info);
+    }
+
 };
 
 #endif

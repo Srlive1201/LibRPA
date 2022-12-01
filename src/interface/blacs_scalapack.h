@@ -247,20 +247,20 @@ extern "C"
 // Matrix inversion
     void psgetri_(const int *n, 
                   float *A, const int *ia, const int *ja, const int *desca,
-                  int *ipiv, const float *work, const int *lwork, const int *iwork, const int *liwork,
-                  const int *info);
+                  int *ipiv, float *work, const int *lwork, int *iwork, const int *liwork,
+                  int *info);
     void pdgetri_(const int *n, 
                   double *A, const int *ia, const int *ja, const int *desca,
-                  int *ipiv, const double *work, const int *lwork, const int *iwork, const int *liwork,
-                  const int *info);
+                  int *ipiv, double *work, const int *lwork, int *iwork, const int *liwork,
+                  int *info);
     void pcgetri_(const int *n, 
                   std::complex<float> *A, const int *ia, const int *ja, const int *desca,
-                  int *ipiv, const std::complex<float> *work, const int *lwork, const int *iwork, const int *liwork,
-                  const int *info);
+                  int *ipiv, std::complex<float> *work, const int *lwork, int *iwork, const int *liwork,
+                  int *info);
     void pzgetri_(const int *n, 
                   std::complex<double> *A, const int *ia, const int *ja, const int *desca,
-                  int *ipiv, const std::complex<double> *work, const int *lwork, const int *iwork, const int *liwork,
-                  const int *info);
+                  int *ipiv, std::complex<double> *work, const int *lwork, int *iwork, const int *liwork,
+                  int *info);
 
 // Matrix addition
     void psgeadd_(const char *transa, const int *m, const int *n,
