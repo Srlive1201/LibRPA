@@ -4,6 +4,7 @@
  */
 #pragma once
 #include <cassert>
+#include <iomanip>
 #include <vector>
 #include <cmath>
 #include <ctime>
@@ -11,6 +12,7 @@
 #include <valarray>
 #include <memory>
 #include <functional>
+#include <ostream>
 #include "base_utility.h"
 #include "lapack_connector.h"
 #include "vec.h"
@@ -157,7 +159,7 @@ private:
     void set_indx_picker()
     {
         indx_picker_2d_ = Indx_pickers_2d[major_];
-        ld_ = major_ == MAJOR::ROW ? nc_ : nr_;
+        ld_ = (major_ == MAJOR::ROW ? nc_ : nr_);
     }
 
 public:
@@ -193,6 +195,7 @@ public:
         set_rank_size();
         set_indx_picker();
         allocate_storage();
+        zero_out();
         expand_nested_vector_to_pointer(nested_vector, nr_, nc_, c, is_row_major());
     }
 
@@ -222,6 +225,11 @@ public:
         assign_value(T(0));
     }
 
+    void clear()
+    {
+        this->resize(0, 0);
+    }
+
     void set_diag(const T& v)
     {
         for (int i = 0; i < mrank_; i++)
@@ -243,7 +251,7 @@ public:
     //! Randomize the matrix elements with lower and upper bound and symmetry constraint
     void randomize(const T &lb = 0, const T &ub = 1, bool symmetrize = false, bool hermitian = false)
     {
-        std::default_random_engine e(time(0));
+        static std::default_random_engine e(time(0));
         std::uniform_real_distribution<real_t> dr(::get_real(lb), ::get_real(ub));
         if (matrix_m<T>::is_complex)
         {
@@ -435,13 +443,21 @@ public:
         nc_ = ncols_new;
         mrank_ = std::min(nr_, nc_);
     }
-    void resize(int nrows_new, int ncols_new)
+    matrix_m<T>& resize(int nrows_new, int ncols_new)
     {
         reallocate_storage(nrows_new, ncols_new);
         nr_ = nrows_new;
         nc_ = ncols_new;
         set_rank_size();
         zero_out();
+        return *this;
+    }
+
+    matrix_m<T>& resize(int nrows_new, int ncols_new, MAJOR major)
+    {
+        major_ = major;
+        set_indx_picker();
+        return this->resize(nrows_new, ncols_new);
     }
 
     void conj()
@@ -451,7 +467,7 @@ public:
             this->c[i] = get_conj(this->c[i]);
     };
 
-    matrix_m<T> get_transpose(bool conjugate = false)
+    matrix_m<T> get_transpose(bool conjugate = false) const
     {
         matrix_m<T> m_trans(nc_, nr_, major_);
         for (int i = 0; i < nr_; i++)
@@ -805,4 +821,51 @@ inline matrix_m<std::complex<T>> random_he_selected_ev(int n, const vector<T> &e
     for (int ie = 0; ie != n; ie++)
         eigvec_H.scale_row(ie, ie < nvec? evs[ie]: +0.0);
     return eigvec * eigvec_H;
+}
+
+//! print the matrix in matrix-market style
+template <typename T, typename Treal = typename to_real<T>::type>
+void print_matrix_mm(const matrix_m<T> &mat, ostream &os, Treal threshold = 1e-15, bool row_first = true)
+{
+    const int nr = mat.nr(), nc = mat.nc();
+    size_t nnz = 0;
+    for (int i = 0; i != mat.size(); i++)
+    {
+        if (fabs(mat.c[i]) > threshold)
+            nnz++;
+    }
+    os << "%%MatrixMarket matrix coordinate "
+       << (is_complex<T>()? "complex" : "real") << " general" << endl
+       << "%" << endl;
+    os << nr << " " << nc << " " << nnz << endl;
+        if (row_first)
+        {
+            for (int i = 0; i != nr; i++)
+                for (int j = 0; j != nc; j++)
+                {
+                    auto &v = mat(i, j);
+                    if (fabs(v) > threshold)
+                    {
+                        os << i + 1 << " " << j + 1 << " " << showpoint << scientific << setprecision(15) << get_real(v);
+                        if (is_complex<T>())
+                            os << " " << showpoint << scientific << setprecision(15) << get_imag(v);
+                        os << endl;
+                    }
+                }
+        }
+        else
+        {
+            for (int j = 0; j != nc; j++)
+                for (int i = 0; i != nr; i++)
+                {
+                    auto &v = mat(i, j);
+                    if (fabs(v) > threshold)
+                    {
+                        os << i + 1 << " " << j + 1 << " " << showpoint << scientific << setprecision(15) << get_real(v);
+                        if (is_complex<T>())
+                            os << " " << showpoint << scientific << setprecision(15) << get_imag(v);
+                        os << endl;
+                    }
+                }
+        }
 }
