@@ -106,8 +106,7 @@ int main(int argc, char **argv)
 
     // barrier to wait for information print on master process
     mpi_comm_world_h.barrier();
-    
-    set_chi_parallel_type(tot_atpair.size(),Rt_num,params.use_libri_chi0);
+
     //para_mpi.chi_parallel_type=Parallel_MPI::parallel_type::ATOM_PAIR;
     // vector<atpair_t> local_atpair;
     if(chi_parallel_type == parallel_type::ATOM_PAIR)
