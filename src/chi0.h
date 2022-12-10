@@ -1,7 +1,6 @@
 /*!
  @file chi0.h
  @brief Utlities to compute the independent response function
- @warning Not work now
  */
 #pragma once
 #include <vector>
@@ -26,6 +25,7 @@ class Chi0
          * @note: May need to use ComplexMatrix for GF.
          */
         map<int, atom_mapping<map<Vector3_Order<int>, map<double, matrix>>>::pair_t_old> gf_is_R_tau;
+
         //! R on which the space-time GF are created.
         vector<Vector3_Order<int>> Rlist_gf;
         //! chi0 data in frequency domain and reciprocal space, [omega][q]

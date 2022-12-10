@@ -6,6 +6,7 @@
 #include "parallel_mpi.h"
 #include "profiler.h"
 #include "chi0.h"
+#include "libri_utils.h"
 #include "pbc.h"
 #include "ri.h"
 #include <omp.h>
@@ -271,6 +272,10 @@ void Chi0::build_chi0_q_space_time_LibRI_routing(const atpair_R_mat_t &LRI_Cs,
         printf("Total count of Cs: %zu\n", n_IJRs);
     printf("| Number of Cs on Proc %4d: %zu\n", mpi_comm_world_h.myid, n_IJRs_local);
 
+    // local Rlist to collect after chi0s on each process
+    auto Rlist_local = dispatch_vector(Rlist_gf, mpi_comm_world_h.myid, mpi_comm_world_h.nprocs, true);
+    auto s0_s1 = get_s0_s1_for_comm_map2_first<atom_t, int>(atpairs_ABF);
+
     std::map<int, std::map<std::pair<int,std::array<int,3>>,Tensor<double>>> Cs_libri;
     // I, J, ij, mu -> I, J, mu, i, j
     for (auto &IJR: IJRs_local)
@@ -336,14 +341,16 @@ void Chi0::build_chi0_q_space_time_LibRI_routing(const atpair_R_mat_t &LRI_Cs,
             mpi_comm_world_h.barrier();
             // std::clock_t cpu_clock_done_init_gf = clock();
             rpa.cal_chi0s(gf_po_libri,gf_ne_libri, params.libri_chi0_threshold_G);
+            // collect chi0 on selected atpairs of all R
+            auto chi0s_IJR = Communicate_Tensors_Map_Judge::comm_map2_first(mpi_comm_world_h.comm, rpa.chi0s, s0_s1.first, s0_s1.second);
             std::clock_t cpu_clock_done_chi0s = clock();
             // parse back to chi0
             for (const auto &atpair: atpairs_ABF)
             {
                 const auto &I = atpair.first;
                 const auto &J = atpair.second;
-                if (rpa.chi0s.count(I) == 0) continue;
-                for (const auto & JR_chi0: rpa.chi0s.at(I))
+                if (chi0s_IJR.count(I) == 0) continue;
+                for (const auto & JR_chi0: chi0s_IJR.at(I))
                 {
                     if (J != JR_chi0.first.first) continue;
                     const auto &R = JR_chi0.first.second;
