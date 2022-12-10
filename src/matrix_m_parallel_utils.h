@@ -74,14 +74,20 @@ void collect_block_from_IJ_storage(
     const int row_nb = atbasis_row.get_atom_nb(I);
     const int col_nb = atbasis_col.get_atom_nb(J);
     const auto picker = Indx_pickers_2d[major_pv];
+    // cout << str(mat_lo);
     for (int iI = 0; iI != row_nb; iI++)
     {
+        int ilo = ad.indx_g2l_r(row_start_id + iI);
+        // printf("row igo %d ilo %d\n", row_start_id + iI, ilo);
+        if (ilo < 0) continue;
         for (int jJ = 0; jJ != col_nb; jJ++)
         {
-            int ilo = ad.indx_g2l_r(row_start_id + iI);
             int jlo = ad.indx_g2l_c(col_start_id + jJ);
-            if (ilo < 0 || jlo < 0) continue;
+            // printf("col jgo %d jlo %d\n", col_start_id + jJ, jlo);
+            if (jlo < 0) continue;
+            // cout << "pickerID " << picker(row_nb, iI, col_nb, jJ) << " " << pvIJ[picker(row_nb, iI, col_nb, jJ)] << " matloc befor " << mat_lo(ilo, jlo);
             mat_lo(ilo, jlo) += alpha * pvIJ[picker(row_nb, iI, col_nb, jJ)];
+            // cout << " after " << mat_lo(ilo, jlo) << endl;
         }
     }
 }
@@ -103,24 +109,60 @@ void collect_block_from_IJ_storage_syhe(
         collect_block_from_IJ_storage(mat_lo, ad, atbasis, atbasis, I, J, alpha, pvIJ, major_pv);
         return;
     }
-    const std::function<Tsrc(Tsrc)> filter = conjugate ? [](Tsrc a) { return get_conj(a); }
-                                                       : [](Tsrc a) { return a; };
-    const int I_start_id = atbasis.get_part_range()[I];
-    const int J_start_id = atbasis.get_part_range()[J];
+    const std::function<Tdst(Tdst)> filter = conjugate ? [](Tdst a) { return get_conj(a); }
+                                                 : [](Tdst a) { return a; };
     const int I_nb = atbasis.get_atom_nb(I);
     const int J_nb = atbasis.get_atom_nb(J);
     const auto picker = Indx_pickers_2d[major_pv];
+    int I_loc, J_loc, i_ab, j_ab;
     for (int ilo = 0; ilo != ad.m_loc(); ilo++)
         for (int jlo = 0; jlo != ad.n_loc(); jlo++)
         {
             int i_gl = ad.indx_l2g_r(ilo);
             int j_gl = ad.indx_l2g_c(jlo);
-            Tsrc temp;
-            if ((i_gl > j_gl && I > J) || (i_gl < j_gl && I < J))
-                temp = pvIJ[picker(I_nb, i_gl - I_start_id, J_nb, j_gl - J_start_id)];
+            atbasis.get_local_index(i_gl, I_loc, i_ab);
+            atbasis.get_local_index(j_gl, J_loc, j_ab);
+            Tdst temp;
+            // printf("i_gl I_loc i_ab %d %d %d j_gl J_loc j_ab %d %d %d\n", i_gl, I_loc, i_ab, j_gl, J_loc, j_ab);
+            if ((I_loc == I) && (J_loc == J))
+            {
+                // in the same block
+                temp = pvIJ[picker(I_nb, i_ab, J_nb, j_ab)];
+                // cout << "same block pickerID " << picker(I_nb, i_ab, J_nb, j_ab) << " " << temp << " matloc befor " << mat_lo(ilo, jlo);
+            }
+            else if ((I_loc == J) && (J_loc == I))
+            {
+                // in the opposite block
+                temp = filter(pvIJ[picker(I_nb, j_ab, J_nb, i_ab)]);
+                // cout << "opposite block pickerID " << picker(I_nb, j_ab, J_nb, i_ab) << " " << temp << " matloc befor " << mat_lo(ilo, jlo);
+            }
             else
-                temp = filter(pvIJ[picker(J_nb, i_gl - J_start_id, I_nb, j_gl - I_start_id)]);
+                continue;
             mat_lo(ilo, jlo) += alpha * temp;
+            // cout << " after " << mat_lo(ilo, jlo) << endl;
+        }
+}
+
+//! collect a IJ-pair storage from a 2D block local matrix
+template <typename T>
+void map_block_to_IJ_storage(map<int, map<int, matrix_m<T>>> &IJmap,
+                             const LIBRPA::AtomicBasis &atbasis_row,
+                             const LIBRPA::AtomicBasis &atbasis_col,
+                             const matrix_m<T> &mat_lo,
+                             const LIBRPA::Array_Desc &desc, MAJOR major_map)
+{
+    assert(desc.m() == atbasis_row.nb_total && desc.n() == atbasis_col.nb_total);
+    int I, J, iI, jJ;
+    for (int i_lo = 0; i_lo != desc.m_loc(); i_lo++)
+        for (int j_lo = 0; j_lo != desc.n_loc(); j_lo++)
+        {
+            int i_glo = desc.indx_l2g_r(i_lo);
+            int j_glo = desc.indx_l2g_c(j_lo);
+            atbasis_row.get_local_index(i_glo, I, iI);
+            atbasis_col.get_local_index(j_glo, J, jJ);
+            if (IJmap.count(I) == 0 || IJmap.at(I).count(J) == 0 || IJmap.at(I).at(J).size() == 0)
+                IJmap[I][J] = matrix_m<T>{atbasis_row.get_atom_nb(I), atbasis_col.get_atom_nb(J), major_map};
+            IJmap[I][J](iI, jJ) = mat_lo(i_lo, j_lo);
         }
 }
 
@@ -184,6 +226,11 @@ matrix_m<std::complex<T>> power_hemat_blacs(matrix_m<std::complex<T>> &A_local,
             printf("Warning! unfiltered nearly-singular eigenvalue with negative power: # %d ev = %f , pow = %f\n", i, W[i], power);
         W_temp[i] = std::pow(W[i], power);
     }
+    // debug print
+    // for (int i = 0; i != n; i++)
+    // {
+    //     printf("%d %f %f\n", i, W[i], W_temp[i]);
+    // }
 
     // create scaled eigenvectors
     matrix_m<std::complex<T>> scaled_Z_local(Z_local);
@@ -193,10 +240,45 @@ matrix_m<std::complex<T>> power_hemat_blacs(matrix_m<std::complex<T>> &A_local,
     return scaled_Z_local;
 }
 
+template <typename T, typename Treal = typename to_real<T>::type>
+void print_matrix_mm_parallel(ostream &os, const matrix_m<T> &mat_loc, const LIBRPA::Array_Desc &ad, Treal threshold = 1e-15, bool row_first = true)
+{
+    LIBRPA::Array_Desc ad_fb(ad.ictxt());
+    const int nr = ad.m(), nc = ad.n();
+    const int irsrc = ad.irsrc(), icsrc = ad.icsrc();
+    ad_fb.init(nr, nc, nr, nc, irsrc, icsrc);
+    matrix_m<T> mat_glo = init_local_mat<T>(ad_fb, mat_loc.major());
+    size_t nnz = 0;
+
+    ScalapackConnector::pgemr2d_f(nr, nc, mat_loc.c, 1, 1, ad.desc, mat_glo.c, 1, 1, ad_fb.desc, ad.ictxt());
+    if (ad_fb.is_src() && os.good())
+    {
+        for (int i = 0; i != mat_glo.size(); i++)
+        {
+            if (fabs(mat_glo.c[i]) > threshold)
+                nnz++;
+        }
+        os << "%%MatrixMarket matrix coordinate "
+           << (is_complex<T>()? "complex" : "real") << " general" << endl
+           << "%" << endl;
+        os << nr << " " << nc << " " << nnz << endl;
+        print_matrix_mm(mat_glo, os, threshold, row_first);
+    }
+}
+
+template <typename T, typename Treal = typename to_real<T>::type>
+void print_matrix_mm_file_parallel(const char *fn, const matrix_m<T> &mat_loc, const LIBRPA::Array_Desc &ad, Treal threshold = 1e-15, bool row_first = true)
+{
+    ofstream fs;
+    if (ad.is_src())
+        fs.open(fn);
+    print_matrix_mm_parallel(fs, mat_loc, ad, threshold, row_first);
+}
+
 template <typename T>
-matrix_m<T> multiply_scalpack(const matrix_m<T> &m1_loc, const LIBRPA::Array_Desc &desc_m1,
-                              const matrix_m<T> &m2_loc, const LIBRPA::Array_Desc &desc_m2,
-                              const LIBRPA::Array_Desc &desc_prod)
+matrix_m<T> multiply_scalapack(const matrix_m<T> &m1_loc, const LIBRPA::Array_Desc &desc_m1,
+                               const matrix_m<T> &m2_loc, const LIBRPA::Array_Desc &desc_m2,
+                               const LIBRPA::Array_Desc &desc_prod)
 {
     if (m1_loc.major() != m2_loc.major())
         throw std::invalid_argument("m1 and m2 in different major");

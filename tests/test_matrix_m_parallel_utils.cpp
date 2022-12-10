@@ -118,7 +118,7 @@ void test_invert_scalapack()
                                   blacs_ctxt_world_h.ictxt);
     auto mat_loc_orig = mat_loc;
     invert_scalapack(mat_loc, desc_mat);
-    auto mat_times_invmat = multiply_scalpack(mat_loc, desc_mat, mat_loc_orig, desc_mat, desc_mat);
+    auto mat_times_invmat = multiply_scalapack(mat_loc, desc_mat, mat_loc_orig, desc_mat, desc_mat);
     ScalapackConnector::pgemr2d_f(n, n,
                                   mat_times_invmat.c, 1, 1, desc_mat.desc,
                                   mat.c, 1, 1, desc_mat_fb_src.desc,
@@ -208,11 +208,89 @@ void test_power_hemat_blacs(const T &m_lb, const T &m_ub)
     blacs_ctxt_world_h.exit();
 }
 
+template<typename T>
+void test_collect_block_from_IJ_storage()
+{
+    // typedef T type;
+    // typedef typename to_real<type>::type real_type;
+    blacs_ctxt_world_h.set_square_grid();
+    // assert(blacs_ctxt_world_h.nprocs == 4);
+    // assert(blacs_ctxt_world_h.nprows == 2);
+    // assert(blacs_ctxt_world_h.npcols == 2);
+    map<int, map<int, matrix_m<T>>> IJmap;
+
+    AtomicBasis ab(vector<size_t>{1, 2, 2, 1});
+
+    for (int i = 0; i < ab.n_atoms; i++)
+    {
+        IJmap[i][i].resize(ab.get_atom_nb(i), ab.get_atom_nb(i), MAJOR::COL).randomize(0, 1, !is_complex<T>(), is_complex<T>());
+        for (int j = i + 1; j < ab.n_atoms; j++)
+        {
+            IJmap[i][j].resize(ab.get_atom_nb(i), ab.get_atom_nb(j), MAJOR::COL).randomize(-1, 0, false, false);
+            IJmap[j][i] = transpose(IJmap[i][j], is_complex<T>());
+        }
+    }
+
+    if (blacs_ctxt_world_h.myid == 0)
+    {
+        for (int I = 0; I < ab.n_atoms; I++)
+            for (int J = 0; J < ab.n_atoms; J++)
+                cout << I << " " << J << endl << str(IJmap[I][J]);
+    }
+    blacs_ctxt_world_h.barrier();
+    T alpha = 1.0;
+
+    Array_Desc desc_fb(blacs_ctxt_world_h);
+    desc_fb.init(ab.nb_total, ab.nb_total, ab.nb_total, ab.nb_total, 0, 0);
+    auto mat_loc = init_local_mat<T>(desc_fb, IJmap[0][0].major());
+
+    for (int I = 0; I < ab.n_atoms; I++)
+        for (int J = 0; J < ab.n_atoms; J++)
+            collect_block_from_IJ_storage(mat_loc, desc_fb, ab, ab, I, J, alpha, IJmap[I][J].c, MAJOR::COL);
+
+    // if (blacs_ctxt_world_h.myid == 0)
+    // {
+    //     cout << "Use collect_block_from_IJ_storage" << endl << str(mat_loc);
+    // }
+    blacs_ctxt_world_h.barrier();
+
+    auto mat_loc_syhe = init_local_mat<T>(desc_fb, IJmap[0][0].major());
+    for (int I = 0; I < ab.n_atoms; I++)
+        for (int J = I; J < ab.n_atoms; J++)
+        {
+            // printf("myid %d I %d J %d\n", blacs_ctxt_world_h.myid, I, J);
+            collect_block_from_IJ_storage_syhe(mat_loc_syhe, desc_fb, ab, I, J, is_complex<T>(), alpha, IJmap[I][J].c, MAJOR::COL);
+        }
+    // if (blacs_ctxt_world_h.myid == 0)
+    // {
+    //     cout << "Use collect_block_from_IJ_storage_syhe" << endl << str(mat_loc_syhe);
+    // }
+
+    map<int, map<int, matrix_m<T>>> IJmap_collect;
+    if (blacs_ctxt_world_h.myid == 0)
+    {
+        for (int I = 0; I < ab.n_atoms; I++)
+            for (int J = 0; J < ab.n_atoms; J++)
+                cout << I << " " << J << endl << str(IJmap_collect[I][J]);
+    }
+    // cout << "mapping the 2D block to IJ" << endl;
+    map_block_to_IJ_storage(IJmap_collect, ab, ab, mat_loc_syhe, desc_fb, MAJOR::COL);
+    // cout << "done map" << endl;
+    if (blacs_ctxt_world_h.myid == 0)
+    {
+        for (int I = 0; I < ab.n_atoms; I++)
+            for (int J = 0; J < ab.n_atoms; J++)
+                cout << I << " " << J << endl << str(IJmap_collect[I][J]);
+    }
+
+    blacs_ctxt_world_h.exit();
+}
+
 int main (int argc, char *argv[])
 {
     MPI_Wrapper::init(argc, argv);
-    if ( MPI_Wrapper::nprocs_world != 4 )
-        throw invalid_argument("test imposes 4 MPI processes");
+    // if ( MPI_Wrapper::nprocs_world != 4 )
+    //     throw invalid_argument("test imposes 4 MPI processes");
     mpi_comm_world_h.init();
     blacs_ctxt_world_h.init();
 
@@ -228,6 +306,9 @@ int main (int argc, char *argv[])
     test_invert_scalapack<double>();
     test_invert_scalapack<complex<float>>();
     test_invert_scalapack<complex<double>>();
+
+    test_collect_block_from_IJ_storage<double>();
+    test_collect_block_from_IJ_storage<complex<double>>();
 
     MPI_Wrapper::finalize();
 
