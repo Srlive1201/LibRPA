@@ -7,47 +7,104 @@
 
 namespace LIBRPA {
 
-parallel_type chi_parallel_type = parallel_type::ATOM_PAIR;
+const string parallel_types_note[parallel_type::COUNT] = {
+    "atom-pair",
+    "R-tau",
+    "LibRI"
+};
 
-void set_chi_parallel_type(const int &atpais_num, const int Rt_num,
+parallel_type chi_parallel_type = parallel_type::ATOM_PAIR;
+parallel_type exx_parallel_type = parallel_type::ATOM_PAIR;
+
+ofstream fout_para;
+
+void set_parallel_type(const string &option, parallel_type &ptype)
+{
+    if (option == "atompair")
+        ptype = parallel_type::ATOM_PAIR;
+    else if (option == "rtau")
+        ptype = parallel_type::R_TAU;
+    else if (option == "libri")
+        ptype = parallel_type::LIBRI_USED;
+    else
+        throw std::invalid_argument("Unsupported parallel type option: " + option);
+}
+
+void set_chi_parallel_type(const string &option, const int &atpais_num, const int Rt_num,
                            const bool use_libri)
 {
-    if (MPI_Wrapper::is_root_world())
+    if (option == "auto")
     {
-        cout << "Chi parallel type" << endl;
-        cout << "| Atom_pairs_num:  " << atpais_num << endl;
-        cout << "| R_tau_num:  " << Rt_num << endl;
-#ifdef __USE_LIBRI
-        cout << "| USE_LibRI:  " << boolalpha << use_libri << endl;
-#endif
+        if (use_libri)
+        {
+            chi_parallel_type = parallel_type::LIBRI_USED;
+        }
+        else if (atpais_num < Rt_num)
+        {
+            chi_parallel_type = parallel_type::R_TAU;
+        }
+        else
+        {
+            chi_parallel_type = parallel_type::ATOM_PAIR;
+        }
     }
-    if (use_libri)
+    else
     {
-#ifdef __USE_LIBRI
-        chi_parallel_type = parallel_type::LIBRI_USED;
+        set_parallel_type(option, chi_parallel_type);
+    }
+}
+
+void set_exx_parallel_type(const string& option, const int &atpais_num, const int Rt_num, const bool use_libri)
+{
+    if (option == "auto")
+    {
+        if (use_libri)
+        {
+            exx_parallel_type = parallel_type::LIBRI_USED;
+        }
+        else if (atpais_num < Rt_num)
+        {
+            exx_parallel_type = parallel_type::R_TAU;
+        }
+        else
+        {
+            exx_parallel_type = parallel_type::ATOM_PAIR;
+        }
+    }
+    else
+    {
+        set_parallel_type(option, exx_parallel_type);
+    }
+}
+
+void check_parallel_type()
+{
+    if (chi_parallel_type == parallel_type::LIBRI_USED ||
+        exx_parallel_type == parallel_type::LIBRI_USED)
+    {
+#ifndef __USE_LIBRI
         if (MPI_Wrapper::is_root_world())
-            cout << "| Use LibRI for chi0" << endl;
-#else
-        cout << "LibRI routing requested, but the executable is not compiled "
-                "with LibRI"
-             << endl;
-        cout << "Please recompiler libRPA with -DUSE_LIBRI and configure "
-                "include path"
-             << endl;
+        {
+            cout << "LibRI routing requested, but the executable is not compiled "
+                    "with LibRI"
+                 << endl;
+            cout << "Please recompiler libRPA with -DUSE_LIBRI and configure "
+                    "include path"
+                 << endl;
+        }
         MPI_Wrapper::barrier_world();
         throw std::logic_error("compilation");
 #endif
     }
-    else if (atpais_num < Rt_num)
+    if (MPI_Wrapper::is_root_world())
     {
-        chi_parallel_type = parallel_type::R_TAU;
-        if (MPI_Wrapper::is_root_world()) cout << "| R_tau_routing" << endl;
+        cout << "Parallel types" << endl;
+        // cout << "| Atom_pairs_num:  " << atpais_num << endl;
+        // cout << "| R_tau_num:  " << Rt_num << endl;
+        cout << "| chi: " << parallel_types_note[chi_parallel_type] << endl;
+        cout << "| exx: " << parallel_types_note[exx_parallel_type] << endl;
     }
-    else
-    {
-        chi_parallel_type = parallel_type::ATOM_PAIR;
-        if (MPI_Wrapper::is_root_world()) cout << "| atom_pair_routing" << endl;
-    }
+    MPI_Wrapper::barrier_world();
 }
 
 namespace MPI_Wrapper {
@@ -75,6 +132,9 @@ void init(int argc, char **argv)
     MPI_Get_processor_name (name, &length);
     procname = name;
     initialized = true;
+
+    string pfn = "librpa_para_nprocs_" + std::to_string(nprocs_world) +  "_myid_" + std::to_string(myid_world) + ".out";
+    fout_para.open(pfn);
 }
 
 void allreduce_matrix(matrix &mat_send, matrix &mat_recv, MPI_Comm mpi_comm)
@@ -107,7 +167,11 @@ void reduce_ComplexMatrix(ComplexMatrix &cmat_send, ComplexMatrix &cmat_recv, in
     MPI_Reduce(cmat_send.c, cmat_recv.c, cmat_recv.size, MPI_DOUBLE_COMPLEX, MPI_SUM, root, mpi_comm);
 }
 
-void finalize() { MPI_Finalize(); }
+void finalize()
+{
+    MPI_Finalize();
+    fout_para.close();
+}
 
 void barrier_world() { MPI_Barrier(MPI_COMM_WORLD); }
 
@@ -169,6 +233,19 @@ void MPI_COMM_handler::reduce_ComplexMatrix(ComplexMatrix &cmat_sent,
 
 MPI_COMM_handler mpi_comm_world_h(MPI_COMM_WORLD);
 
+void CTXT_barrier(int ictxt, CTXT_SCOPE scope)
+{
+    char scope_ch;
+    switch (scope)
+    {
+        case (CTXT_SCOPE::R): scope_ch = 'R';
+        case (CTXT_SCOPE::C): scope_ch = 'C';
+        case (CTXT_SCOPE::A): scope_ch = 'A';
+    }
+    Cblacs_barrier(ictxt, &scope_ch);
+
+}
+
 void BLACS_CTXT_handler::init()
 {
     this->mpi_comm_h.init();
@@ -178,14 +255,14 @@ void BLACS_CTXT_handler::init()
 }
 
 void BLACS_CTXT_handler::set_grid(const int &nprows_in, const int &npcols_in,
-                                  LAYOUT layout_in)
+                                  CTXT_LAYOUT layout_in)
 {
     // if the grid has been set, exit it first
     if (pgrid_set) exit();
     if (nprocs != nprows_in * npcols_in)
         throw std::invalid_argument("nprocs != nprows * npcols");
     layout = layout_in;
-    if (layout == LAYOUT::C)
+    if (layout == CTXT_LAYOUT::C)
         layout_ch = 'C';
     else
         layout_ch = 'R';
@@ -194,7 +271,7 @@ void BLACS_CTXT_handler::set_grid(const int &nprows_in, const int &npcols_in,
     pgrid_set = true;
 }
 
-void BLACS_CTXT_handler::set_square_grid(bool more_rows, LAYOUT layout_in)
+void BLACS_CTXT_handler::set_square_grid(bool more_rows, CTXT_LAYOUT layout_in)
 {
     int nroc;
     layout = layout_in;
@@ -209,12 +286,12 @@ void BLACS_CTXT_handler::set_square_grid(bool more_rows, LAYOUT layout_in)
 
 void BLACS_CTXT_handler::set_horizontal_grid()
 {
-    set_grid(1, nprocs, LAYOUT::R);
+    set_grid(1, nprocs, CTXT_LAYOUT::R);
 }
 
 void BLACS_CTXT_handler::set_vertical_grid()
 {
-    set_grid(nprocs, 1, LAYOUT::C);
+    set_grid(nprocs, 1, CTXT_LAYOUT::C);
 }
 
 void BLACS_CTXT_handler::exit()
@@ -250,16 +327,9 @@ void BLACS_CTXT_handler::get_pcoord(int pid, int &prow, int &pcol) const
     Cblacs_pcoord(ictxt, pid, &prow, &pcol);
 }
 
-void BLACS_CTXT_handler::barrier(SCOPE scope) const
+void BLACS_CTXT_handler::barrier(CTXT_SCOPE scope) const
 {
-    char scope_ch;
-    switch (scope)
-    {
-        case (SCOPE::R): scope_ch = 'R';
-        case (SCOPE::C): scope_ch = 'C';
-        case (SCOPE::A): scope_ch = 'A';
-    }
-    Cblacs_barrier(ictxt, &scope_ch);
+    CTXT_barrier(ictxt, scope);
 }
 
 BLACS_CTXT_handler blacs_ctxt_world_h(MPI_COMM_WORLD);

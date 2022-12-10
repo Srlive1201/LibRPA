@@ -209,9 +209,11 @@ void parse_inputfile_to_params(const string& fn, Params& p)
 
     // chi0 related
     parser.parse_string("tfgrid_type", p.tfgrids_type, "minimax", flag);
+    parser.parse_string("chi_parallel_routing", p.chi_parallel_routing, "auto", flag);
     parser.parse_int("nfreq", p.nfreq, 6, flag);
     parser.parse_bool("use_libri_chi0", p.use_libri_chi0, false, flag);
     parser.parse_bool("use_scalapack_ecrpa", p.use_scalapack_ecrpa, false, flag);
+    parser.parse_bool("use_scalapack_gw_wc", p.use_scalapack_gw_wc, false, flag);
     parser.parse_double("cs_threshold", p.cs_threshold, 1e-6, flag);
     parser.parse_double("vq_threshold", p.vq_threshold, 0, flag);
     parser.parse_double("sqrt_coulomb_threshold", p.sqrt_coulomb_threshold, 1e-4, flag);
@@ -222,6 +224,7 @@ void parse_inputfile_to_params(const string& fn, Params& p)
 
     // exx related
     parser.parse_bool("use_libri_exx", p.use_libri_exx, false, flag);
+    parser.parse_string("exx_parallel_routing", p.exx_parallel_routing, "auto", flag);
     parser.parse_double("libri_exx_threshold_CSM", p.libri_exx_threshold_CSM, 0.0, flag);
     parser.parse_double("libri_exx_threshold_C", p.libri_exx_threshold_C, 0.0, flag);
     parser.parse_double("libri_exx_threshold_D", p.libri_exx_threshold_D, 0.0, flag);

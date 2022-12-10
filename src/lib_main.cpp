@@ -91,8 +91,19 @@ int main(int argc, char **argv)
     READ_AIMS_Cs("./", params.cs_threshold);
 
     tot_atpair = generate_atom_pair_from_nat(natom, false);
+    tot_atpair_ordered = generate_atom_pair_from_nat(natom, true);
+
     if (mpi_comm_world_h.is_root())
-        cout << "| Natoms: " << natom << "   tot_atpairs:  " << tot_atpair.size() << endl;
+    {
+        cout << "| Number of atoms: " << natom << endl;
+        cout << "| Total atom pairs (unordered): " << tot_atpair.size() << endl;
+        cout << "| R-tau                       : " << Rt_num << endl;
+        cout << "| Total atom pairs (ordered)  : " << tot_atpair_ordered.size() << endl;
+    }
+    set_chi_parallel_type(params.chi_parallel_routing, tot_atpair.size(), Rt_num, params.use_libri_chi0);
+    set_exx_parallel_type(params.exx_parallel_routing, tot_atpair.size(), Rt_num, params.use_libri_exx);
+    check_parallel_type();
+
     // barrier to wait for information print on master process
     mpi_comm_world_h.barrier();
     
@@ -185,7 +196,7 @@ int main(int argc, char **argv)
     if ( params.task == "rpa" )
     {
         CorrEnergy corr;
-        if (params.use_scalapack_ecrpa && LIBRPA::chi_parallel_type==LIBRPA::parallel_type::ATOM_PAIR)
+        if (params.use_scalapack_ecrpa && LIBRPA::chi_parallel_type == LIBRPA::parallel_type::ATOM_PAIR)
             corr = compute_RPA_correlation_blacs(chi0, Vq);
         else
             corr = compute_RPA_correlation(chi0, Vq);

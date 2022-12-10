@@ -23,12 +23,21 @@ namespace LIBRPA {
 enum parallel_type {
     ATOM_PAIR,
     R_TAU,
-    LIBRI_USED 
+    LIBRI_USED,
+    COUNT
 };
 
-extern parallel_type chi_parallel_type;
+extern const string parallel_types_note[parallel_type::COUNT];
 
-void set_chi_parallel_type(const int &atpais_num, const int Rt_num, const bool use_libri);
+extern parallel_type chi_parallel_type;
+extern parallel_type exx_parallel_type;
+
+extern ofstream fout_para;
+
+void set_parallel_type(const string &option, parallel_type &ptype);
+void set_chi_parallel_type(const string &option, const int &atpais_num, const int Rt_num, const bool use_libri);
+void set_exx_parallel_type(const string &option, const int &atpais_num, const int Rt_num, const bool use_libri);
+void check_parallel_type();
 
 namespace MPI_Wrapper
 {
@@ -69,6 +78,11 @@ public:
 
 extern MPI_COMM_handler mpi_comm_world_h;
 
+enum class CTXT_LAYOUT {R, C};
+enum class CTXT_SCOPE {R, C, A};
+
+void CTXT_barrier(int ictxt, CTXT_SCOPE scope = CTXT_SCOPE::A);
+
 class BLACS_CTXT_handler
 {
 private:
@@ -77,11 +91,8 @@ private:
     bool initialized;
     bool pgrid_set;
 public:
-    enum class LAYOUT {R, C};
-    enum class SCOPE {R, C, A};
-public:
     int ictxt;
-    LAYOUT layout;
+    CTXT_LAYOUT layout;
     int myid;
     int nprocs;
     int nprows;
@@ -90,15 +101,16 @@ public:
     int myprow;
     BLACS_CTXT_handler(MPI_Comm comm_in): mpi_comm_h(comm_in) { pgrid_set = initialized = false; }
     ~BLACS_CTXT_handler() {};
+
     void init();
-    void set_grid(const int &nprows_in, const int &npcols_in, LAYOUT layout_in = LAYOUT::R);
-    void set_square_grid(bool more_rows = true, LAYOUT layout_in = LAYOUT::R);
+    void set_grid(const int &nprows_in, const int &npcols_in, CTXT_LAYOUT layout_in = CTXT_LAYOUT::R);
+    void set_square_grid(bool more_rows = true, CTXT_LAYOUT layout_in = CTXT_LAYOUT::R);
     void set_horizontal_grid();
     void set_vertical_grid();
     std::string info() const;
     int get_pnum(int prow, int pcol) const;
     void get_pcoord(int pid, int &prow, int &pcol) const;
-    void barrier(SCOPE scope = SCOPE::A) const;
+    void barrier(CTXT_SCOPE scope = CTXT_SCOPE::A) const;
     void exit();
 };
 
@@ -163,6 +175,8 @@ public:
     const int& n_loc() const { return n_local_; }
     std::string info() const;
     std::string info_desc() const;
+    bool is_src() const { return myprow_ == irsrc_ && mypcol_ == icsrc_; }
+    void barrier(CTXT_SCOPE scope = CTXT_SCOPE::A);
 };
 
 //! prepare array descriptors for distributing(collecting) submatrices

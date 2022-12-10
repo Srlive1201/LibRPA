@@ -17,6 +17,12 @@ struct Params
     //! the type of time-frequency grids
     std::string tfgrids_type = "minimax";
 
+    //! parallel routing of chi
+    std::string chi_parallel_routing = "auto";
+
+    //! parallel routing of exx
+    std::string exx_parallel_routing = "auto";
+
     //! threshold of R-space Green's function when construcing.
     double gf_R_threshold = 1e-4;
 
@@ -27,7 +33,7 @@ struct Params
     double vq_threshold = 0;
 
     //! threshold to filter when computing the square root of Coulomb matrix
-    double sqrt_coulomb_threshold = 0;
+    double sqrt_coulomb_threshold = 1e-8;
 
     //! switch of using LibRI for chi0 calculation
     bool use_libri_chi0 = false;
@@ -58,6 +64,12 @@ struct Params
 
     //! Coulomb matrix threshold parsed to EXX object of LibRI. 
     double libri_exx_threshold_V = 0.0;
+
+    //! switch of using ScaLAPACK for computing Wc from chi0
+    bool use_scalapack_gw_wc = false;
+
+    //! switch of run-time debug mode
+    bool debug = false;
 
     void check_consistency();
     void print();

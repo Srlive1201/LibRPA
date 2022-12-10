@@ -43,7 +43,7 @@ AtomicBasis::AtomicBasis(const std::vector<std::size_t>& nbs)
     initialize();
 }
 
-AtomicBasis::AtomicBasis(const std::map<std::size_t, std::size_t>& iatom_nbs)
+AtomicBasis::AtomicBasis(const std::map<size_t, std::size_t>& iatom_nbs)
     : nbs_(), part_range(), n_atoms(0), nb_total(0)
 {
     // sort atom index first
@@ -100,8 +100,7 @@ void AtomicBasis::get_local_index(const std::size_t& i_glo_b, int& i_atom, int& 
 std::pair<int, int> AtomicBasis::get_local_index(const std::size_t& i_glo_b) const
 {
     int i_atom, i_loc_b;
-    i_atom = get_i_atom(i_glo_b);
-    i_loc_b = i_glo_b - part_range[i_atom];
+    this->get_local_index(i_glo_b, i_atom, i_loc_b);
     return {i_atom, i_loc_b};
 }
 

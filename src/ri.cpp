@@ -12,6 +12,7 @@ int N_all_mu;
 
 vector<atpair_t> tot_atpair;
 vector<atpair_t> local_atpair;
+vector<atpair_t> tot_atpair_ordered;
 
 atpair_R_mat_t Cs;
 atpair_k_cplx_mat_t Vq;
