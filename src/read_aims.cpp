@@ -487,16 +487,23 @@ void erase_Cs_from_local_atp(atpair_R_mat_t &Cs, vector<atpair_t> &local_atpair)
         loc_atp_index.insert(lap.first);
         loc_atp_index.insert(lap.second);
     }
-    for(auto &Ip:Cs)
-        if(!loc_atp_index.count(Ip.first))
-        {
-            Cs.erase(Ip.first);
-            
-        }
+    vector<atom_t> Cs_first;
+    for (const auto &Ip: Cs)
+        Cs_first.push_back(Ip.first);
+    for (const auto &I: Cs_first)
+    {
+        if(!loc_atp_index.count(I))
+            Cs.erase(I);
+    }
+    // for(auto &Ip:Cs)
+    //     if(!loc_atp_index.count(Ip.first))
+    //     {
+    //         Cs.erase(Ip.first);
+    //     }
     malloc_trim(0);
-    printf("  |process %d, size of Cs after erase: %d,  max_size: %d\n", LIBRPA::mpi_comm_world_h.myid, Cs.size(),Cs.max_size());
-
+    printf("| process %d, size of Cs after erase: %lu,  max_size: %zu\n", LIBRPA::mpi_comm_world_h.myid, Cs.size(), Cs.max_size());
 }
+
 // TODO: implement the wrapper of all input readers
 void read_aims(MeanField &mf)
 {

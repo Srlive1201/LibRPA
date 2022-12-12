@@ -114,7 +114,7 @@ std::string procname;
 int myid_world = -1;
 int nprocs_world = -1;
 
-bool is_root_world() { return PROCID_ROOT == myid_world; }
+bool is_root_world() { return 0 == myid_world; }
 
 void init(int argc, char **argv)
 {
@@ -198,8 +198,17 @@ void MPI_COMM_handler::init()
 
 void MPI_COMM_handler::barrier() const
 {
+#ifdef __DEBUG
     this->check_initialized();
+#endif
     MPI_Barrier(this->comm);
+}
+
+string MPI_COMM_handler::str() const
+{
+    char s[80];
+    sprintf(s, "Proc %4d of Size %4d", this->myid, this->nprocs);
+    return string(s);
 }
 
 void MPI_COMM_handler::allreduce_matrix(matrix &mat_send,
@@ -421,6 +430,16 @@ int Array_Desc::init_1b1p(const int &m, const int &n,
     return set_desc_(m, n, mb, nb, irsrc, icsrc);
 }
 
+int Array_Desc::init_square_blk(const int &m, const int &n,
+                                    const int &irsrc, const int &icsrc)
+{
+    int mb = 1, nb = 1, minblk = 1;
+    mb = std::ceil(double(m)/nprows_);
+    nb = std::ceil(double(n)/npcols_);
+    minblk = std::min(mb, nb);
+    return set_desc_(m, n, minblk, minblk, irsrc, icsrc);
+}
+
 std::string Array_Desc::info() const
 {
     std::string info;
@@ -443,6 +462,8 @@ std::string Array_Desc::info_desc() const
             desc[6], desc[7], desc[8]);
     return std::string(s);
 }
+
+bool Array_Desc::is_src() const { return myprow_ == irsrc_ && mypcol_ == icsrc_; }
 
 int Array_Desc::indx_g2l_r(int gindx) const
 {

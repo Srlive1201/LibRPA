@@ -41,7 +41,6 @@ void check_parallel_type();
 
 namespace MPI_Wrapper
 {
-    constexpr int PROCID_ROOT = 0;
     extern std::string procname;
     extern bool initialized;
     extern int myid_world;
@@ -68,8 +67,9 @@ public:
     MPI_COMM_handler(MPI_Comm comm_in);
     ~MPI_COMM_handler() {};
     void init();
-    bool is_root() const { return myid == MPI_Wrapper::PROCID_ROOT; }
+    bool is_root() const { return this->myid == 0; }
     void barrier() const;
+    string str() const;
     void allreduce_matrix(matrix &mat_send, matrix &mat_recv) const;
     void allreduce_ComplexMatrix(ComplexMatrix &cmat_send, ComplexMatrix & cmat_recv) const;
     void reduce_matrix(matrix &mat_send, matrix & cmat_recv, int root) const;
@@ -159,6 +159,8 @@ public:
     //! initialize the array descriptor such that each process has exactly one block
     int init_1b1p(const int &m, const int &n,
                   const int &irsrc, const int &icsrc);
+    int init_square_blk(const int &m, const int &n,
+                        const int &irsrc, const int &icsrc);
     int indx_g2l_r(int gindx) const;
     int indx_g2l_c(int gindx) const;
     int indx_l2g_r(int lindx) const;
@@ -173,9 +175,11 @@ public:
     const int& icsrc() const { return icsrc_; }
     const int& m_loc() const { return m_local_; }
     const int& n_loc() const { return n_local_; }
+    const int& myprow() const { return myprow_; }
+    const int& mypcol() const { return mypcol_; }
     std::string info() const;
     std::string info_desc() const;
-    bool is_src() const { return myprow_ == irsrc_ && mypcol_ == icsrc_; }
+    bool is_src() const;
     void barrier(CTXT_SCOPE scope = CTXT_SCOPE::A);
 };
 

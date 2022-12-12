@@ -188,6 +188,7 @@ matrix_m<std::complex<T>> power_hemat_blacs(matrix_m<std::complex<T>> &A_local,
         rwork = new T[1];
         // query the optimal lwork and lrwork
         T *Wquery = new T[1];
+        // printf("power_hemat_blacs descA %s\n", ad_A.info_desc().c_str());
         ScalapackConnector::pheev_f(jobz, uplo,
                 n, A_local.c, 1, 1, ad_A.desc,
                 Wquery, Z_local.c, 1, 1, ad_Z.desc, work, lwork, rwork, lrwork, info);
@@ -248,20 +249,10 @@ void print_matrix_mm_parallel(ostream &os, const matrix_m<T> &mat_loc, const LIB
     const int irsrc = ad.irsrc(), icsrc = ad.icsrc();
     ad_fb.init(nr, nc, nr, nc, irsrc, icsrc);
     matrix_m<T> mat_glo = init_local_mat<T>(ad_fb, mat_loc.major());
-    size_t nnz = 0;
 
     ScalapackConnector::pgemr2d_f(nr, nc, mat_loc.c, 1, 1, ad.desc, mat_glo.c, 1, 1, ad_fb.desc, ad.ictxt());
     if (ad_fb.is_src() && os.good())
     {
-        for (int i = 0; i != mat_glo.size(); i++)
-        {
-            if (fabs(mat_glo.c[i]) > threshold)
-                nnz++;
-        }
-        os << "%%MatrixMarket matrix coordinate "
-           << (is_complex<T>()? "complex" : "real") << " general" << endl
-           << "%" << endl;
-        os << nr << " " << nc << " " << nnz << endl;
         print_matrix_mm(mat_glo, os, threshold, row_first);
     }
 }
@@ -312,6 +303,7 @@ void invert_scalapack(matrix_m<T> &m_loc, const LIBRPA::Array_Desc &desc_m)
     {
         // NOTE: use local leading dimension desc_m.lld() will lead to invalid pointer error
         int *ipiv = new int [desc_m.m()];
+        // printf("invert_scalpack desc %s\n", desc_m.info_desc().c_str());
         ScalapackConnector::pgetrf_f(desc_m.m(), desc_m.n(), m_loc.c, 1, 1, desc_m.desc, ipiv, info);
         // get optimized work size
         int lwork = -1, liwork = -1;

@@ -136,7 +136,7 @@ void test_invert_scalapack()
 }
 
 template <typename T>
-void test_power_hemat_blacs(const T &m_lb, const T &m_ub)
+void test_power_hemat_blacs_square_grid(const T &m_lb, const T &m_ub)
 {
     typedef T type;
     typedef typename to_real<type>::type real_type;
@@ -299,8 +299,8 @@ int main (int argc, char *argv[])
     test_pgemm<complex<float>>({-2, -1}, {1, 0});
     test_pgemm<complex<double>>({-2, -1}, {1, 0});
 
-    test_power_hemat_blacs<complex<double>>(0.0, {1.0, 1.0});
-    test_power_hemat_blacs<complex<float>>(0.0, {1.0, 2.0});
+    test_power_hemat_blacs_square_grid<complex<double>>(0.0, {1.0, 1.0});
+    test_power_hemat_blacs_square_grid<complex<float>>(0.0, {1.0, 2.0});
 
     test_invert_scalapack<float>();
     test_invert_scalapack<double>();

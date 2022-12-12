@@ -9,6 +9,8 @@ int main(int argc, char **argv)
     MPI_Wrapper::init(argc, argv);
 
     mpi_comm_world_h.init();
+    cout << mpi_comm_world_h.str() << endl;
+    mpi_comm_world_h.barrier();
     blacs_ctxt_world_h.init();
     blacs_ctxt_world_h.set_square_grid();
 
@@ -40,7 +42,6 @@ int main(int argc, char **argv)
     if (mpi_comm_world_h.is_root())
         params.print();
     mpi_comm_world_h.barrier();
-    // para_mpi.set_blacs_parameters();
 
     READ_AIMS_BAND("band_out", meanfield);
     if (mpi_comm_world_h.is_root())
@@ -122,6 +123,7 @@ int main(int argc, char **argv)
         READ_Vq_Full("./", "coulomb_mat", params.vq_threshold, Vq); 
         local_atpair = get_atom_pair(Vq);
     }
+    mpi_comm_world_h.barrier();
     // malloc_trim(0);
     // para_mpi.mpi_barrier();
     // if(para_mpi.is_master())
@@ -150,11 +152,17 @@ int main(int argc, char **argv)
         qlist.push_back(q_weight.first);
     }
 
+    mpi_comm_world_h.barrier(); // FIXME: barrier seems not work here...
+    // cout << endl;
+    if (mpi_comm_world_h.myid == 0)
+        cout << "Initialization finished, start task job from myid\n";
+
     if ( params.task != "exx" )
     {
         chi0.build(Cs, Rlist, period, local_atpair, qlist,
                    TFGrids::get_grid_type(params.tfgrids_type), true);
     }
+
     { // debug, check chi0
         char fn[80];
         for (const auto &chi0q: chi0.get_chi0_q())
@@ -182,12 +190,14 @@ int main(int argc, char **argv)
     // if(para_mpi.is_master())
     //     system("free -m");
     // FIXME: a more general strategy to deal with Cs
-    if (LIBRPA::chi_parallel_type != LIBRPA::parallel_type::LIBRI_USED)
+    // Cs is not required after chi0 is computed in rpa task
+    if (LIBRPA::chi_parallel_type != LIBRPA::parallel_type::LIBRI_USED && params.task == "rpa")
     {
-        for(auto &Cp:Cs)
-        {
-            Cs.erase(Cp.first);
-        }
+        // for(auto &Cp:Cs)
+        // {
+        //     Cs.erase(Cp.first);
+        // }
+        Cs.clear();
     }
 
     malloc_trim(0);
@@ -219,8 +229,34 @@ int main(int argc, char **argv)
         const auto VR = FT_Vq(Vq_cut, Rlist, true);
         auto exx = LIBRPA::Exx(meanfield, klist);
         exx.build_exx_orbital_energy(Cs, Rlist, period, VR);
-        // const auto Wc_freq_q = compute_Wc_freq_q(chi0, Vq, Vq_cut);
-        // const auto Wc_tau_R = CT_FT_Wc_freq_q(Wc_freq_q, chi0.tfg, Rlist);
+        vector<std::complex<double>> epsmac_LF_imagfreq;
+        map<double, atpair_k_cplx_mat_t> Wc_freq_q;
+        if (params.use_scalapack_gw_wc)
+            Wc_freq_q = compute_Wc_freq_q_blacs(chi0, Vq, Vq_cut, epsmac_LF_imagfreq);
+        else
+            Wc_freq_q = compute_Wc_freq_q(chi0, Vq, Vq_cut, epsmac_LF_imagfreq);
+        { // debug, check Wc
+            char fn[80];
+            for (const auto &Wc: Wc_freq_q)
+            {
+                const int ifreq = chi0.tfg.get_freq_index(Wc.first);
+                for (const auto &I_JqWc: Wc.second)
+                {
+                    const auto &I = I_JqWc.first;
+                    for (const auto &J_qWc: I_JqWc.second)
+                    {
+                        const auto &J = J_qWc.first;
+                        for (const auto &q_Wc: J_qWc.second)
+                        {
+                            const int iq = std::distance(klist.begin(), std::find(klist.begin(), klist.end(), q_Wc.first));
+                            sprintf(fn, "Wcfq_ifreq_%d_iq_%d_I_%zu_J_%zu_id_%d.mtx", ifreq, iq, I, J, mpi_comm_world_h.myid);
+                            print_complex_matrix_mm(*q_Wc.second, fn, 1e-15);
+                        }
+                    }
+                }
+            }
+        }
+        const auto Wc_tau_R = CT_FT_Wc_freq_q(Wc_freq_q, chi0.tfg, Rlist);
     }
     else if ( params.task == "exx" )
     {
