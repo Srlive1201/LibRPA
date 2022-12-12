@@ -27,3 +27,14 @@ int get_R_index(vector<Vector3_Order<int>> Rlist, const Vector3_Order<int> &R)
     if ( itr != Rlist.end()) return distance(Rlist.begin(), itr);
     return -1;
 }
+
+bool is_gamma_point(const Vector3_Order<double> &kpt)
+{
+    double thres = 1.0e-5;
+    return (-thres < kpt.x < thres) && (-thres < kpt.y < thres) && (-thres < kpt.z < thres);
+}
+
+bool is_gamma_point(const Vector3_Order<int> &kpt_int)
+{
+    return kpt_int.x == 0 && kpt_int.y == 0 && kpt_int.z == 0;
+}

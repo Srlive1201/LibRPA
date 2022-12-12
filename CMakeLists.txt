@@ -10,7 +10,7 @@ project(LibRPA VERSION ${version} LANGUAGES NONE)
 
 # options setup
 option(USE_LIBRI "Use LibRI for tensor contraction" OFF)
-option(USE_CMAKE_INC "Use cmake.in for configure" ON)
+option(USE_CMAKE_INC "Use cmake.inc for configure" ON)
 option(DEBUG "Switch on debug mode and facility" OFF)
 option(BUILD_LIBRARY "Whether to build library" OFF)
 option(BUILD_DOCS "Whether to build documentation" OFF)
@@ -19,21 +19,30 @@ option(ENABLE_TEST "Enable building tests" OFF)
 # Add cmake load files
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 
-# C++ standard requirement
-set(CMAKE_CXX_STANDARD 11)
-set(CMAKE_CXX_STANDARD_REQUIRED True)
-
 set(math_libs "")
 set(parallel_libs "")
+set(_loaded_cmake_inc OFF)
 
+# TODO: maybe better way to customize environments?
 if(EXISTS "${PROJECT_SOURCE_DIR}/cmake.inc" AND USE_CMAKE_INC)
   include("${PROJECT_SOURCE_DIR}/cmake.inc")
   list(APPEND math_libs ${LAPACK_LIBRARIES})
-  # enable_language later than cmake to take the variables therein into accout
-  # TODO: maybe better way to customize environments?
-  enable_language(CXX)
+  set(_loaded_cmake_inc ON)
+  message(STATUS "Using customize environemnt variables from ${PROJECT_SOURCE_DIR}/cmake.inc")
+endif()
+
+# C++ standard requirement
+if(USE_LIBRI)
+  set(CMAKE_CXX_STANDARD 14)
 else()
-  enable_language(CXX)
+  set(CMAKE_CXX_STANDARD 11)
+endif()
+set(CMAKE_CXX_STANDARD_REQUIRED True)
+
+# enable_language later than cmake.inc to take the variables therein into accout
+enable_language(CXX)
+
+if(NOT _loaded_cmake_inc)
   if(DEFINED ENV{MKLROOT} AND NOT DEFINED MKLROOT)
     set(MKLROOT "$ENV{MKLROOT}")
   endif()

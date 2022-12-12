@@ -5,7 +5,14 @@
 #include <set>
 int main(int argc, char **argv)
 {
-    para_mpi.mpi_init(argc,argv);
+    using namespace LIBRPA;
+    MPI_Wrapper::init(argc, argv);
+
+    mpi_comm_world_h.init();
+    cout << mpi_comm_world_h.str() << endl;
+    mpi_comm_world_h.barrier();
+    blacs_ctxt_world_h.init();
+    blacs_ctxt_world_h.set_square_grid();
 
     prof.add(0, "total", "Total");
     prof.add(1, "chi0_main", "Chi0 object");
@@ -32,13 +39,12 @@ int main(int argc, char **argv)
     parser.parse_int("nfreq", params.nfreq, stoi(argv[1]), flag);
     parser.parse_double("gf_R_threshold", params.gf_R_threshold, stod(argv[2]), flag);
     params.check_consistency();
-    if (para_mpi.is_master())
+    if (mpi_comm_world_h.is_root())
         params.print();
-    para_mpi.mpi_barrier();
-    para_mpi.set_blacs_parameters();
+    mpi_comm_world_h.barrier();
 
     READ_AIMS_BAND("band_out", meanfield);
-    if (para_mpi.get_myid() == 0)
+    if (mpi_comm_world_h.is_root())
     {
         cout << "Information of mean-field starting-point" << endl;
         cout << "| number of spins: " << meanfield.get_n_spins() << endl
@@ -57,7 +63,7 @@ int main(int argc, char **argv)
     Vector3_Order<int> period {kv_nmp[0], kv_nmp[1], kv_nmp[2]};
     auto Rlist = construct_R_grid(period);
 
-    if (para_mpi.get_myid() == 0)
+    if (mpi_comm_world_h.is_root())
     {
         cout << "Lattice vectors (Bohr)" << endl;
         latvec.print();
@@ -86,18 +92,28 @@ int main(int argc, char **argv)
     READ_AIMS_Cs("./", params.cs_threshold);
 
     tot_atpair = generate_atom_pair_from_nat(natom, false);
-    if (para_mpi.is_master())
-        cout << "| Natoms: " << natom << "   tot_atpairs:  " << tot_atpair.size() << endl;
-    // barrier to wait for information print on master process
-    para_mpi.mpi_barrier();
-    
-    para_mpi.set_chi_parallel_type(tot_atpair.size(),Rt_num,params.use_libri_chi0);
-    //para_mpi.chi_parallel_type=Parallel_MPI::parallel_type::ATOM_PAIR;
-    //vector<atpair_t> local_atpair;
-    if(para_mpi.chi_parallel_type==Parallel_MPI::parallel_type::ATOM_PAIR)
+    tot_atpair_ordered = generate_atom_pair_from_nat(natom, true);
+
+    if (mpi_comm_world_h.is_root())
     {
-        local_atpair = dispatch_vector(tot_atpair, para_mpi.get_myid(), para_mpi.get_size(), true);
-        printf("| process %d , local_atom_pair size:  %zu\n", para_mpi.get_myid(), local_atpair.size());
+        cout << "| Number of atoms: " << natom << endl;
+        cout << "| Total atom pairs (unordered): " << tot_atpair.size() << endl;
+        cout << "| R-tau                       : " << Rt_num << endl;
+        cout << "| Total atom pairs (ordered)  : " << tot_atpair_ordered.size() << endl;
+    }
+    set_chi_parallel_type(params.chi_parallel_routing, tot_atpair.size(), Rt_num, params.use_libri_chi0);
+    set_exx_parallel_type(params.exx_parallel_routing, tot_atpair.size(), Rt_num, params.use_libri_exx);
+    check_parallel_type();
+
+    // barrier to wait for information print on master process
+    mpi_comm_world_h.barrier();
+
+    //para_mpi.chi_parallel_type=Parallel_MPI::parallel_type::ATOM_PAIR;
+    // vector<atpair_t> local_atpair;
+    if(chi_parallel_type == parallel_type::ATOM_PAIR)
+    {
+        local_atpair = dispatch_vector(tot_atpair, mpi_comm_world_h.myid, mpi_comm_world_h.nprocs, true);
+        printf("| process %d , local_atom_pair size:  %zu\n", mpi_comm_world_h.myid, local_atpair.size());
         // for(auto &ap:local_atpair)
         //     printf(" |process %d , local_atom_pair:  %d,  %d\n",para_mpi.get_myid(),ap.first,ap.second);
         READ_Vq_Row("./", "coulomb_mat", params.vq_threshold, Vq, local_atpair);
@@ -107,6 +123,7 @@ int main(int argc, char **argv)
         READ_Vq_Full("./", "coulomb_mat", params.vq_threshold, Vq); 
         local_atpair = get_atom_pair(Vq);
     }
+    mpi_comm_world_h.barrier();
     // malloc_trim(0);
     // para_mpi.mpi_barrier();
     // if(para_mpi.is_master())
@@ -135,8 +152,17 @@ int main(int argc, char **argv)
         qlist.push_back(q_weight.first);
     }
 
-    chi0.build(Cs, Rlist, period, local_atpair, qlist,
-               TFGrids::get_grid_type(params.tfgrids_type), true);
+    mpi_comm_world_h.barrier(); // FIXME: barrier seems not work here...
+    // cout << endl;
+    if (mpi_comm_world_h.myid == 0)
+        cout << "Initialization finished, start task job from myid\n";
+
+    if ( params.task != "exx" )
+    {
+        chi0.build(Cs, Rlist, period, local_atpair, qlist,
+                   TFGrids::get_grid_type(params.tfgrids_type), true);
+    }
+
     { // debug, check chi0
         char fn[80];
         for (const auto &chi0q: chi0.get_chi0_q())
@@ -151,7 +177,7 @@ int main(int argc, char **argv)
                     for (const auto &J_chi0: I_Jchi0.second)
                     {
                         const auto &J = J_chi0.first;
-                        sprintf(fn, "chi0fq_ifreq_%d_iq_%d_I_%zu_J_%zu_id_%d.mtx", ifreq, iq, I, J, para_mpi.get_myid());
+                        sprintf(fn, "chi0fq_ifreq_%d_iq_%d_I_%zu_J_%zu_id_%d.mtx", ifreq, iq, I, J, mpi_comm_world_h.myid);
                         // print_complex_matrix_mm(J_chi0.second, fn, 1e-15);
                     }
                 }
@@ -163,22 +189,28 @@ int main(int argc, char **argv)
     // para_mpi.mpi_barrier();
     // if(para_mpi.is_master())
     //     system("free -m");
-    for(auto &Cp:Cs)
+    // FIXME: a more general strategy to deal with Cs
+    // Cs is not required after chi0 is computed in rpa task
+    if (LIBRPA::chi_parallel_type != LIBRPA::parallel_type::LIBRI_USED && params.task == "rpa")
     {
-        Cs.erase(Cp.first);
-       
+        // for(auto &Cp:Cs)
+        // {
+        //     Cs.erase(Cp.first);
+        // }
+        Cs.clear();
     }
+
     malloc_trim(0);
     // RPA total energy
     if ( params.task == "rpa" )
     {
         CorrEnergy corr;
-        if (params.use_scalapack_ecrpa && para_mpi.chi_parallel_type==Parallel_MPI::parallel_type::ATOM_PAIR)
+        if (params.use_scalapack_ecrpa && LIBRPA::chi_parallel_type == LIBRPA::parallel_type::ATOM_PAIR)
             corr = compute_RPA_correlation_blacs(chi0, Vq);
         else
             corr = compute_RPA_correlation(chi0, Vq);
 
-        if (para_mpi.get_myid() == 0)
+        if (mpi_comm_world_h.is_root())
         {
             printf("RPA correlation energy (Hartree)\n");
             printf("| Weighted contribution from each k:\n");
@@ -197,8 +229,34 @@ int main(int argc, char **argv)
         const auto VR = FT_Vq(Vq_cut, Rlist, true);
         auto exx = LIBRPA::Exx(meanfield, klist);
         exx.build_exx_orbital_energy(Cs, Rlist, period, VR);
-        // const auto Wc_freq_q = compute_Wc_freq_q(chi0, Vq, Vq_cut);
-        // const auto Wc_tau_R = CT_FT_Wc_freq_q(Wc_freq_q, chi0.tfg, Rlist);
+        vector<std::complex<double>> epsmac_LF_imagfreq;
+        map<double, atpair_k_cplx_mat_t> Wc_freq_q;
+        if (params.use_scalapack_gw_wc)
+            Wc_freq_q = compute_Wc_freq_q_blacs(chi0, Vq, Vq_cut, epsmac_LF_imagfreq);
+        else
+            Wc_freq_q = compute_Wc_freq_q(chi0, Vq, Vq_cut, epsmac_LF_imagfreq);
+        { // debug, check Wc
+            char fn[80];
+            for (const auto &Wc: Wc_freq_q)
+            {
+                const int ifreq = chi0.tfg.get_freq_index(Wc.first);
+                for (const auto &I_JqWc: Wc.second)
+                {
+                    const auto &I = I_JqWc.first;
+                    for (const auto &J_qWc: I_JqWc.second)
+                    {
+                        const auto &J = J_qWc.first;
+                        for (const auto &q_Wc: J_qWc.second)
+                        {
+                            const int iq = std::distance(klist.begin(), std::find(klist.begin(), klist.end(), q_Wc.first));
+                            sprintf(fn, "Wcfq_ifreq_%d_iq_%d_I_%zu_J_%zu_id_%d.mtx", ifreq, iq, I, J, mpi_comm_world_h.myid);
+                            print_complex_matrix_mm(*q_Wc.second, fn, 1e-15);
+                        }
+                    }
+                }
+            }
+        }
+        const auto Wc_tau_R = CT_FT_Wc_freq_q(Wc_freq_q, chi0.tfg, Rlist);
     }
     else if ( params.task == "exx" )
     {
@@ -208,7 +266,7 @@ int main(int argc, char **argv)
         exx.build_exx_orbital_energy(Cs, Rlist, period, VR);
         // FIXME: need to reduce first when MPI is used
         // NOTE: may extract to a common function
-        if (para_mpi.is_master())
+        if (LIBRPA::mpi_comm_world_h.is_root())
         {
             for (int isp = 0; isp != meanfield.get_n_spins(); isp++)
             {
@@ -226,8 +284,9 @@ int main(int argc, char **argv)
     }
 
     prof.stop("total");
-    if(para_mpi.get_myid()==0)
+    if(mpi_comm_world_h.is_root())
         prof.display();
 
+    MPI_Wrapper::finalize();
     return 0;
 }

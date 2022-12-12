@@ -31,8 +31,8 @@ class Exx
     public:
         //! Density matrix in lattice vector space, dimension (nspins, I, J, R, nao_I, nao_J)
         map<int, atpair_R_mat_t> dmat;
-        //! exact-exchange Hamiltonian in k space, dimension (nspins, I, J, k, nao_I, nao_J)
-        map<int, atpair_k_cplx_mat_t> Hexx;
+        //! exact-exchange Hamiltonian in k space, dimension (nspins, k, I, J, nao_I, nao_J)
+        map<int, map<Vector3_Order<double>, map<atom_t, map<atom_t, shared_ptr<ComplexMatrix>>>>> Hexx;
 
         //! exact-exchange Hamiltonian in the basis of KS states, dimension (nspins, n_kpoints, n_bands, n_bands)
         map<int, map<int, ComplexMatrix>> Hexx_KS;

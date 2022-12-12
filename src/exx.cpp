@@ -1,4 +1,5 @@
 #include "parallel_mpi.h"
+#include "matrix_m_parallel_utils.h"
 #include "params.h"
 #include "constants.h"
 #include "exx.h"
@@ -7,6 +8,7 @@
 #include "vector3_order.h"
 #ifdef __USE_LIBRI
 #include <RI/physics/Exx.h>
+// #include "print_stl.h"
 #endif
 
 namespace LIBRPA
@@ -87,9 +89,9 @@ void Exx::build_exx_orbital_energy(const atpair_R_mat_t &LRI_Cs,
         this->build_exx_orbital_energy_LibRI(LRI_Cs, Rlist, R_period, coul_mat);
     else
     {
-        if (para_mpi.is_master())
+        if (mpi_comm_world_h.is_root())
             printf("Error: EXX orbital energy without LibRI is not implemented yet\n");
-        para_mpi.mpi_barrier();
+        mpi_comm_world_h.barrier();
         throw std::logic_error("not implemented");
     }
 }
@@ -99,10 +101,15 @@ void Exx::build_exx_orbital_energy_LibRI(const atpair_R_mat_t &LRI_Cs,
                                          const Vector3_Order<int> &R_period,
                                          const atpair_R_mat_t &coul_mat)
 {
+    const auto& n_aos = this->mf_.get_n_aos();
+    const auto& n_spins = this->mf_.get_n_spins();
+    const auto& n_kpts = this->mf_.get_n_kpoints();
+    const auto& n_bands = this->mf_.get_n_bands();
+
 #ifdef __USE_LIBRI
-    if (para_mpi.is_master())
+    if (mpi_comm_world_h.is_root())
         printf("Computing EXX orbital energy using LibRI\n");
-    para_mpi.mpi_barrier();
+    mpi_comm_world_h.barrier();
     ::Exx<int, int, 3, double> exx_libri;
     map<int,std::array<double,3>> atoms_pos;
     for(int i=0;i!=atom_mu.size();i++)
@@ -127,15 +134,15 @@ void Exx::build_exx_orbital_energy_LibRI(const atpair_R_mat_t &LRI_Cs,
                 const auto &I = Ip.first;
                 const auto &J = Jp.first;
                 const auto &R=Rp.first;
-                if ((n_Cs_IJRs++) % para_mpi.get_size() == para_mpi.get_myid())
+                if ((n_Cs_IJRs++) % mpi_comm_world_h.nprocs == mpi_comm_world_h.myid)
                 {
                     Cs_IJRs_local.push_back({I, {J, R}});
                     n_Cs_IJRs_local++;
                 }
             }
-    // if (para_mpi.get_myid() == 0)
+    // if (mpi_comm_world_h.myid == 0)
     //     printf("Total count of Cs: %zu\n", n_IJRs);
-    // printf("| Number of Cs on Proc %4d: %zu\n", para_mpi.get_myid(), n_IJRs_local);
+    // printf("| Number of Cs on Proc %4d: %zu\n", mpi_comm_world_h.myid, n_IJRs_local);
     std::map<int, std::map<std::pair<int,std::array<int,3>>,Tensor<double>>> Cs_libri;
     for (auto &IJR: Cs_IJRs_local)
     {
@@ -153,7 +160,7 @@ void Exx::build_exx_orbital_energy_LibRI(const atpair_R_mat_t &LRI_Cs,
 
     // initialize Coulomb matrix
     std::map<int, std::map<std::pair<int,std::array<int,3>>,Tensor<double>>> V_libri;
-    for (auto IJR: dispatch_vector_prod(get_atom_pair(coul_mat), Rlist, para_mpi.get_myid(), para_mpi.get_size(), true, true))
+    for (auto IJR: dispatch_vector_prod(get_atom_pair(coul_mat), Rlist, mpi_comm_world_h.myid, mpi_comm_world_h.nprocs, true, true))
     {
         const auto I = IJR.first.first;
         const auto J = IJR.first.second;
@@ -166,14 +173,33 @@ void Exx::build_exx_orbital_energy_LibRI(const atpair_R_mat_t &LRI_Cs,
         V_libri[I][{J, Ra}] = Tensor<double>({size_t(VIJR->nr), size_t(VIJR->nc)}, pv);
     }
     exx_libri.set_Vs(V_libri, params.libri_exx_threshold_V);
+    // cout << V_libri << endl;
 
     // initialize density matrix
     vector<atpair_t> atpair_dmat;
     for (int I = 0; I < atom_nw.size(); I++)
         for (int J = 0; J < atom_nw.size(); J++)
             atpair_dmat.push_back({I, J});
-    const auto dmat_IJRs_local = dispatch_vector_prod(atpair_dmat, Rlist, para_mpi.get_myid(), para_mpi.get_size(), true, true);
-    for (auto isp = 0; isp != this->mf_.get_n_spins(); isp++)
+    const auto dmat_IJRs_local = dispatch_vector_prod(atpair_dmat, Rlist, mpi_comm_world_h.myid, mpi_comm_world_h.nprocs, true, true);
+
+    // prepare scalapack array descriptors
+    Array_Desc desc_nao_nao(LIBRPA::blacs_ctxt_world_h);
+    Array_Desc desc_nband_nao(LIBRPA::blacs_ctxt_world_h);
+    Array_Desc desc_nband_nband(LIBRPA::blacs_ctxt_world_h);
+    Array_Desc desc_nband_nband_fb(LIBRPA::blacs_ctxt_world_h);
+    desc_nao_nao.init_1b1p(n_aos, n_aos, 0, 0);
+    desc_nband_nao.init_1b1p(n_bands, n_aos, 0, 0);
+    desc_nband_nband.init_1b1p(n_bands, n_bands, 0, 0);
+    desc_nband_nband_fb.init(n_bands, n_bands, n_bands, n_bands, 0, 0);
+    // local 2D-block submatrices
+    auto Hexx_nao_nao = init_local_mat<complex<double>>(desc_nao_nao, MAJOR::COL);
+    auto temp_nband_nao = init_local_mat<complex<double>>(desc_nband_nao, MAJOR::COL);
+    auto Hexx_nband_nband = init_local_mat<complex<double>>(desc_nband_nband, MAJOR::COL);
+    auto Hexx_nband_nband_fb = init_local_mat<complex<double>>(desc_nband_nband_fb, MAJOR::COL);
+    // printf("%d size naonao %d nbandnao %d nbandnband %d\n",
+    //        blacs_ctxt_world_h.myid, Hexx_nao_nao.size(), temp_nband_nao.size(), Hexx_nband_nband.size());
+
+    for (auto isp = 0; isp != n_spins; isp++)
     {
         std::map<int, std::map<std::pair<int,std::array<int,3>>,Tensor<double>>> dmat_libri;
         for (const auto &R: Rlist)
@@ -196,41 +222,64 @@ void Exx::build_exx_orbital_energy_LibRI(const atpair_R_mat_t &LRI_Cs,
             }
         }
         exx_libri.set_Ds(dmat_libri, params.libri_exx_threshold_D);
+        // start building EXX Hamiltonian
         exx_libri.cal_Hs();
-        for (auto &T: exx_libri.Hs)
+        // cout << exx_libri.Hs << endl;
+
+        // collect necessary data
+        // collect the IJ pair of Hs with all R, do the Fourier transform
+        const auto set_IJ_naonao = get_necessary_IJ_from_block_2D(atomic_basis_wfc,
+                                                                  atomic_basis_wfc,
+                                                                  desc_nao_nao);
+        const auto Iset_Jset = convert_IJset_to_Iset_Jset(set_IJ_naonao);
+        const auto I_JallR_Hs = Communicate_Tensors_Map_Judge::comm_map2_first(LIBRPA::mpi_comm_world_h.comm,
+                exx_libri.Hs, Iset_Jset.first, Iset_Jset.second);
+        // cout << I_JallR_Hs << endl;
+
+        for (int ik = 0; ik < n_kpts; ik++)
         {
-            for (auto &T1: T.second)
+            Hexx_nao_nao.zero_out();
+            const Vector3_Order<double>& kfrac = this->kfrac_list_[ik];
+            for (auto &T: I_JallR_Hs)
             {
-                const auto& I = T.first;
-                const auto& J = T1.first.first;
-                const auto& Ra =  T1.first.second;
-                for (const auto& kfrac: this->kfrac_list_)
+                for (auto &T1: T.second)
                 {
-                    if (Hexx.count(isp) == 0 ||
-                        Hexx.at(isp).count(I) == 0 ||
-                        Hexx.at(isp).at(I).count(J) == 0 ||
-                        Hexx.at(isp).at(I).at(J).count(kfrac) == 0
-                        )
-                    {
-                        Hexx[isp][I][J][kfrac] = make_shared<ComplexMatrix>();
-                        ComplexMatrix cm(atom_nw[I], atom_nw[J]);
-                        *Hexx[isp][I][J][kfrac] = cm;
-                    }
-                    ComplexMatrix cm(atom_nw[I], atom_nw[J]);
-                    for (int i = 0; i != cm.size; i++)
-                        cm.c[i] = *(T1.second.ptr()+i);
+                    const auto& I = T.first;
+                    const auto& J = T1.first.first;
+                    const auto& Ra =  T1.first.second;
                     double ang = kfrac * Vector3_Order<int>{Ra[0], Ra[1], Ra[2]} * TWO_PI;
                     complex<double> kphase = complex<double>(cos(ang), sin(ang));
-                    // NOTE: scaling with nkpoints is required
-                    *Hexx[isp][I][J][kfrac] += cm * (kphase / double(this->mf_.get_n_kpoints()));
+                    auto alpha = kphase / double(n_kpts);
+                    collect_block_from_IJ_storage(Hexx_nao_nao, desc_nao_nao,
+                                                  atomic_basis_wfc, atomic_basis_wfc,
+                                                  I, J, alpha, T1.second.ptr(), MAJOR::ROW);
                 }
-                // debug, check size
-                // cout << I << " " << J << " {" << Ra[0] << " " << Ra[1] << " " << Ra[2] << "} whole size: " << T1.second.get_shape_all() << endl;
-                // matrix m(atom_nw[I], atom_nw[J]);
-                // for (int i = 0; i < m.size; i++)
-                //     m.c[i] = (*T1.second.data)[i];
-                // print_matrix("", m);
             }
+            // printf("%s\n", str(Hexx_nao_nao).c_str());
+            const auto &wfc_isp_k = this->mf_.get_eigenvectors()[isp][ik];
+            blacs_ctxt_world_h.barrier();
+            auto wfc_block = get_local_mat(wfc_isp_k.c, MAJOR::ROW, desc_nband_nao, MAJOR::COL);
+            // printf("%s\n", str(wfc_block).c_str());
+            // printf("%s\n", desc_nao_nao.info_desc().c_str());
+            // printf("%s\n", desc_nband_nao.info_desc().c_str());
+            ScalapackConnector::pgemm_f('N', 'N', n_bands, n_aos, n_aos, 1.0,
+                                        wfc_block.c, 1, 1, desc_nband_nao.desc,
+                                        Hexx_nao_nao.c, 1, 1, desc_nao_nao.desc,
+                                        0.0,
+                                        temp_nband_nao.c, 1, 1, desc_nband_nao.desc);
+            ScalapackConnector::pgemm_f('N', 'C', n_bands, n_bands, n_aos, -1.0,
+                                        temp_nband_nao.c, 1, 1, desc_nao_nao.desc,
+                                        wfc_block.c, 1, 1, desc_nband_nao.desc,
+                                        0.0,
+                                        Hexx_nband_nband.c, 1, 1, desc_nband_nband.desc);
+            // collect to master
+            ScalapackConnector::pgemr2d_f(n_bands, n_bands,
+                                          Hexx_nband_nband.c, 1, 1, desc_nband_nband.desc,
+                                          Hexx_nband_nband_fb.c, 1, 1, desc_nband_nband_fb.desc,
+                                          desc_nband_nband_fb.ictxt());
+            if (LIBRPA::blacs_ctxt_world_h.myid == 0)
+                for (int ib = 0; ib != n_bands; ib++)
+                    this->Eexx[isp][ik][ib] = Hexx_nband_nband_fb(ib, ib).real();
         }
     }
     // debug, print the Hexx matrices
@@ -253,50 +302,48 @@ void Exx::build_exx_orbital_energy_LibRI(const atpair_R_mat_t &LRI_Cs,
     // }
 
     // Rotate the Hamiltonian in basis of KS state for each spin and kpoints
-    const auto& n_aos = this->mf_.get_n_aos();
-    for (int isp = 0; isp < this->mf_.get_n_spins(); isp++)
-    {
-        for (int ik = 0; ik < this->mf_.get_n_kpoints(); ik++)
-        {
-            const auto& k = this->kfrac_list_[ik];
-            // retrieve the global Hexx
-            ComplexMatrix hexx(n_aos, n_aos);
-            for (const auto& I_JkH: this->Hexx.at(isp))
-            {
-                const auto& I = I_JkH.first;
-                const auto I_num = atom_nw[I];
-                for (const auto& J_kH: I_JkH.second)
-                {
-                    const auto& J = J_kH.first;
-                    const auto J_num = atom_nw[J];
-                    const auto& H = J_kH.second.at(k);
-                    for (int i = 0; i != I_num; i++)
-                    {
-                        size_t i_glo = atom_iw_loc2glo(I, i);
-                        for (int j = 0; j != J_num; j++)
-                        {
-                            size_t j_glo = atom_iw_loc2glo(J, j);
-                            hexx(i_glo, j_glo) = (*H)(i, j);
-                        }
-                    }
-                }
-            }
-            const auto& wfc = this->mf_.get_eigenvectors()[isp][ik];
-            this->Hexx_KS[isp][ik] = wfc * hexx * transpose(wfc, true);
-            this->Hexx_KS[isp][ik] *= -1.0;
-            for (int ib = 0; ib != this->mf_.get_n_bands(); ib++)
-                this->Eexx[isp][ik][ib] = this->Hexx_KS[isp][ik](ib, ib).real();
-            // debug, print the matrix
-            // print_complex_matrix("", this->Hexx_KS[isp][ik] * HA2EV);
-        }
-    }
+    // for (int isp = 0; isp < n_spins; isp++)
+    // {
+    //     for (int ik = 0; ik < n_kpts; ik++)
+    //     {
+    //         const auto& k = this->kfrac_list_[ik];
+    //         const auto& IJHs = this->Hexx.at(isp).at(k);
+    //         // retrieve the global Hexx
+    //         ComplexMatrix hexx(n_aos, n_aos);
+    //         for (const auto& I_JH: IJHs)
+    //         {
+    //             const auto& I = I_JH.first;
+    //             const auto I_num = atom_nw[I];
+    //             for (const auto& J_H: I_JH.second)
+    //             {
+    //                 const auto& J = J_H.first;
+    //                 const auto J_num = atom_nw[J];
+    //                 const auto& H = J_H.second;
+    //                 for (int i = 0; i != I_num; i++)
+    //                 {
+    //                     size_t i_glo = atom_iw_loc2glo(I, i);
+    //                     for (int j = 0; j != J_num; j++)
+    //                     {
+    //                         size_t j_glo = atom_iw_loc2glo(J, j);
+    //                         hexx(i_glo, j_glo) = (*H)(i, j);
+    //                     }
+    //                 }
+    //             }
+    //         }
+    //         const auto& wfc = this->mf_.get_eigenvectors()[isp][ik];
+    //         this->Hexx_KS[isp][ik] = wfc * hexx * transpose(wfc, true);
+    //         this->Hexx_KS[isp][ik] *= -1.0;
+    //         for (int ib = 0; ib != this->mf_.get_n_bands(); ib++)
+    //             this->Eexx[isp][ik][ib] = this->Hexx_KS[isp][ik](ib, ib).real();
+    //     }
+    // }
 #else
-    if (para_mpi.is_master())
+    if (mpi_comm_world_h.is_root())
     {
         printf("Error: trying build EXX orbital energy with LibRI, but the program is not compiled against LibRI\n");
     }
-    para_mpi.mpi_barrier();
     throw std::logic_error("compilation");
+    mpi_comm_world_h.barrier();
 #endif
 }
 }

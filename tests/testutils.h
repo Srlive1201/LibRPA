@@ -1,31 +1,13 @@
 #include <complex>
 template <typename T>
-inline bool fequal(const T &a, const T &b, double thres = 1e-14)
+inline bool fequal(const T &a, const T &b, const T &thres = 1e-14)
 {
-    return std::abs(a - b) < thres;
+    return std::abs(a - b) < std::abs(thres);
 }
 
 template <typename T>
-bool fequal_array(int n, const T *a, const T *b, bool print = false, double thres = 1e-14)
-{
-    int ndiff = 0;
-    for ( int i = 0; i != n; i++ )
-    {
-        if (print)
-            printf("%d : a %f , b %f\n", i, *(a+i), *(b+i));
-        if ( !fequal(*(a+i), *(b+i), thres) )
-        {
-            ndiff++;
-            if (!print)
-                return false;
-        }
-    }
-    return ndiff == 0;
-}
-
-template <>
-bool fequal_array<std::complex<double>>(int n, const std::complex<double> *a,
-                                        const std::complex<double> *b, bool print, double thres)
+bool fequal_array(int n, const std::complex<T> *a,
+                  const std::complex<T> *b, bool print, const std::complex<T> thres = 1e-14)
 {
     int ndiff = 0;
     for ( int i = 0; i != n; i++ )
@@ -45,14 +27,33 @@ bool fequal_array<std::complex<double>>(int n, const std::complex<double> *a,
     return ndiff == 0;
 }
 
-inline std::complex<double> cmplx(double re, double im)
+template <typename T>
+bool fequal_array(int n, const T *a, const T *b, bool print = false, T thres = 1e-14)
 {
-    return std::complex<double>(re, im);
+    int ndiff = 0;
+    for ( int i = 0; i != n; i++ )
+    {
+        if (print)
+            printf("%d : a %f , b %f\n", i, *(a+i), *(b+i));
+        if ( !fequal(*(a+i), *(b+i), thres) )
+        {
+            ndiff++;
+            if (!print)
+                return false;
+        }
+    }
+    return ndiff == 0;
+}
+
+template <typename T>
+inline std::complex<T> cmplx(T re, T im)
+{
+    return std::complex<T>(re, im);
 }
 
 template<typename T>
 bool is_mat_A_equal_B(const int m, const int n, const T *A, const T* B, bool transpose, bool print,
-                      double thres = 1e-14, const char stra[]  = "A", const char strb[]  = "B")
+                      T thres = 1e-14, const char stra[]  = "A", const char strb[]  = "B")
 {
     int ndiff = 0;
     for ( int im = 0; im != m; im++)
@@ -77,10 +78,10 @@ bool is_mat_A_equal_B(const int m, const int n, const T *A, const T* B, bool tra
     return ndiff == 0;
 }
 
-template<>
-bool is_mat_A_equal_B<std::complex<double>>(const int m, const int n, const std::complex<double> *A,
-                                            const std::complex<double> *B, bool transpose, bool print,
-                                            double thres, const char stra[], const char strb[])
+template <typename T>
+bool is_mat_A_equal_B(const int m, const int n, const std::complex<T> *A,
+                      const std::complex<T> *B, bool transpose, bool print,
+                      std::complex<T> thres, const char stra[], const char strb[])
 {
     int ndiff = 0;
     for ( int im = 0; im != m; im++)
@@ -107,7 +108,7 @@ bool is_mat_A_equal_B<std::complex<double>>(const int m, const int n, const std:
 
 template <typename T>
 bool is_matmul_AB_equal_C(const int m, const int n, const int k,
-                          const T *A, const T *B, const T *C, bool transpose_C, bool print, double thres = 1e-14)
+                          const T *A, const T *B, const T *C, bool transpose_C, bool print, T thres = 1e-14)
 {
     T AB[m][n];
     for ( int im = 0; im != m; im++)

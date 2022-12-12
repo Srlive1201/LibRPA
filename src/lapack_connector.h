@@ -1,19 +1,3 @@
-// =============================================================================
-//                          C++ Header File
-// Project:         LapackConnector
-// File:            LapackConnector.hpp
-// Author:          sltk
-// Comment:         LapackConnector provide the connector to the fortran Lapack routine.
-// Warning:
-// Start time:      2007-03-08
-// Last modified:   2008-08-12 ywcui : add zhegvx
-// 					2008-08-13 mohan : find bug,test.
-// 					2008-09-03 mohan : Add zgesv
-// 					2009-03-08 mohan : add ilaenv
-//					2010-01-22 spshu : add dgesvd
-//					2022-05-05 minyez: add dgeev_ interface
-// =============================================================================
-
 #ifndef LAPACKCONNECTOR_HPP
 #define LAPACKCONNECTOR_HPP
 
@@ -22,83 +6,46 @@
 #include <stdexcept>
 #include <iostream>
 #include <cassert>
+#include "base_utility.h"
 #include "matrix.h"
 #include "complexmatrix.h"
-#include "blas_connector.h"
-//#include "src_global/global_function.h"
-
-
-extern "C"
-{
-    int ilaenv_(int* ispec,const char* name,const char* opts,
-    const int* n1,const int* n2,const int* n3,const int* n4);
-    void zgesv_(const int* n,const int* nrhs,const complex<double> *A,const int *lda,
-                const int *ipiv,const complex<double> *B,const int* ldb,int* info);
-    void zhegv_(const int* itype,const char* jobz,const char* uplo,const int* n,
-                complex<double>* a,const int* lda,complex<double>* b,const int* ldb,
-                double* w,complex<double>* work,int* lwork,double* rwork,int* info);
-	// mohan add dsygv 2010-03-20, to compute the eigenfunctions and eigenvalues of a real symmetry matrix.
-	void dsygv_(const int* itype, const char* jobz,const char* uplo, const int* n,
-				double* a,const int* lda,double* b,const int* ldb,
-	 			double* w,double* work,int* lwork,int* info);
-	// mohan add sspgvx 2010-03-21, to compute the selected eigenvalues of a generalized symmetric/Hermitian 
-	// definite generalized problems. 
-	void sspgvx_(const int* itype, const char* jobz,const char* range,const char* uplo,
-				const int* n,double *ap,double *bp,const double* vl,
-				const int* vu, const int* il, const int* iu,const double* abstol,
-				const int* m,double* w,double *z,const int *ldz,
-				double *work,int* iwork,int* ifail,int* info);
-	void dsyev_(const char* jobz,const char* uplo,const int* n,double *a,
-                const int* lda,double* w,double* work,const int* lwork, int* info);
-    void dgeev_(const char* jobvl, const char* jobvr, const int *n, double *a,
-                const int *lda, double *wr, double *wi, double* vl, const int* ldvl,
-                double* vr, const int* ldvr, double* work, const int* lwork, int* info);
-    void zheev_(const char* jobz,const char* uplo,const int* n,complex<double> *a,
-                const int* lda,double* w,complex<double >* work,const int* lwork,
-                double* rwork,int* info);
-    void dsytrf_(const char* uplo, const int* n, double * a, const int* lda,
-                 int *ipiv,double *work, int* lwork ,int *info);
-    void dsytri_(const char* uplo,const int* n,double *a, const int *lda,
-                 int *ipiv, double * work,int *info);
-    void dgesvd_(const char* jobu,const char* jobvt,const int *m,const int *n,double *a,
-                 const int *lda,double *s,double *u,const int *ldu,double *vt,
-                 const int *ldvt,double *work,const int *lwork,int *info);
-    void zhegvx_(const int* itype,const char* jobz,const char* range,const char* uplo,
-                 const int* n,complex<double> *a,const int* lda,complex<double> *b,
-                 const int* ldb,const double* vl,const double* vu,const int* il,
-                 const int* iu,const double* abstol,const int* m,double* w,
-                 complex<double> *z,const int *ldz,complex<double> *work,const int* lwork,
-                 double* rwork,int* iwork,int* ifail,int* info);
-    // mohan add dsptrf and dsptri 2010-02-03, to compute inverse real symmetry indefinit matrix.
-    void spotrf_(const char* uplo,const int* n, double* A, int* lda, int *info);
-    void spotri_(const char* uplo,const int* n, double* A, int* lda, int *info);
-    // Peize Lin add dsptrf and dsptri 2016-06-21, to compute inverse real symmetry indefinit matrix.
-    void dpotrf_(const char* uplo,const int* n, double* A, const int* lda, int *info);
-    void dpotri_(const char* uplo,const int* n, double* A, const int* lda, int *info);
-    // mohan add zpotrf and zpotri 2010-02-03, to compute inverse complex hermit matrix.
-    void zpotrf_(const char* uplo,const int* n,const complex<double> *A,const int* lda,const int* info);
-    void zpotri_(const char* uplo,const int* n,const complex<double> *A,const int* lda,const int* info);
-    void zgetrf_(const int* m, const int *n, const complex<double> *A, const int *lda, int *ipiv, const int* info);
-    void zgetri_(const int* n, complex<double> *A, const int *lda, int *ipiv, complex<double> *work, int *lwork, const int *info);
-    void pdgetrf_(const int *m, const int *n, double *a, const int *ia, const int *ja, int *desca, int *ipiv, int *info);
-	// Peize Lin add ?nrm2 2018-06-12, to compute out = ||x||_2 = \sqrt{ \sum_i x_i**2 }
-	//float snrm2_( const int *n, const float *X, const int *incX );
-	//double dnrm2_( const int *n, const double *X, const int *incX );
-	//double dznrm2_( const int *n, const complex<double> *X, const int *incX );
-	// Peize Lin add zherk 2019-04-14
-	// if trans=='N':	C = a * A * A.H + b * C
-	// if trans=='C':	C = a * A.H * A + b * C	
-	void zherk_(const char *uplo, const char *trans, const int *n, const int *k, 
-		const double *alpha, const complex<double> *A, const int *lda, 
-		const double *beta, complex<double> *C, const int *ldc);
-}
+#include "interface/blas_lapack.h"
 
 // Class LapackConnector provide the connector to fortran lapack routine.
 // The entire function in this class are static and inline function.
 // Usage example:	LapackConnector::functionname(parameter list).
 class LapackConnector
 {
-private:
+public:
+    // Transpose an row-major array to the fortran-form colum-major array.
+    template <typename T>
+    static T* transpose(const T* a, const int &n, const int &lda, bool conjugate = false)
+    {
+        T* a_fort = new T[lda*n];
+        if (is_complex<T>() && conjugate)
+            for (int i = 0; i < n; i++)
+                for (int j = 0; j < lda; j++)
+                    a_fort[i*lda+j] = get_conj(a[j*n+i]);
+        else
+            for (int i = 0; i < n; i++)
+                for (int j = 0; j < lda; j++)
+                    a_fort[i*lda+j] = a[j*n+i];
+        return a_fort;
+    }
+
+    template <typename T>
+    static void transpose(const T* a, T* a_trans, const int &n, const int &lda, bool conjugate = false)
+    {
+        if (is_complex<T>() && conjugate)
+            for (int i = 0; i < n; i++)
+                for (int j = 0; j < lda; j++)
+                    a_trans[j*n+i] = get_conj(a[i*lda+j]);
+        else
+            for (int i = 0; i < n; i++)
+                for (int j = 0; j < lda; j++)
+                    a_trans[j*n+i] = a[i*lda+j];
+    }
+
     // Transpose the complex matrix to the fortran-form real-complex array.
     static inline
     complex<double>* transpose(const ComplexMatrix& a, const int n, const int lda)
@@ -243,33 +190,33 @@ public:
 
 	// calculate the selected eigenvalues.
 	// mohan add 2010/03/21
-	static inline
-	void sspgvx(const int itype, const char jobz,const char range,const char uplo,
-				const int n,const matrix &ap,const matrix &bp,const double vl,
-				const int vu, const int il, const int iu,const double abstol,
-				const int m,double* w,matrix &z,const int ldz,
-				double *work,int* iwork,int* ifail,int* info)
-	{
-	    // Transpose the complex matrix to the fortran-form real*16 array.
-		double* aux = LapackConnector::transpose_matrix(ap, n, n);
-		double* bux = LapackConnector::transpose_matrix(bp, n, n);
-		double* zux = new double[n*iu];
-
-        // call the fortran routine
-        sspgvx_(&itype, &jobz, &range, &uplo, 
-				&n, aux, bux, &vl,
-                &vu, &il,&iu, &abstol, 
-				&m, w, zux, &ldz, 
-				work, iwork, ifail, info);
-
-        // Transpose the fortran-form real*16 array to the matrix
-        LapackConnector::transpose_matrix(zux, z, iu, n);
-
-        // free the memory.
-        delete[] aux;
-        delete[] bux;
-        delete[] zux;
-	}
+	// static inline
+	// void sspgvx(const int itype, const char jobz,const char range,const char uplo,
+	// 			const int n,const matrix &ap,const matrix &bp,const double vl,
+	// 			const int vu, const int il, const int iu,const double abstol,
+	// 			const int m,double* w,matrix &z,const int ldz,
+	// 			double *work,int* iwork,int* ifail,int* info)
+	// {
+	//     // Transpose the complex matrix to the fortran-form real*16 array.
+	// 	double* aux = LapackConnector::transpose_matrix(ap, n, n);
+	// 	double* bux = LapackConnector::transpose_matrix(bp, n, n);
+	// 	double* zux = new double[n*iu];
+	//
+ //        // call the fortran routine
+ //        sspgvx_(&itype, &jobz, &range, &uplo, 
+	// 			&n, aux, bux, &vl,
+ //                &vu, &il,&iu, &abstol, 
+	// 			&m, w, zux, &ldz, 
+	// 			work, iwork, ifail, info);
+	//
+ //        // Transpose the fortran-form real*16 array to the matrix
+ //        LapackConnector::transpose_matrix(zux, z, iu, n);
+	//
+ //        // free the memory.
+ //        delete[] aux;
+ //        delete[] bux;
+ //        delete[] zux;
+	// }
 
 	// calculate the eigenvalues and eigenfunctions of a real symmetric matrix.
     static inline
@@ -438,29 +385,30 @@ public:
 		return;
     }
 
-    static inline
-    void spotrf(char uplo,int n,matrix &a, int lda,int *info)
-	{
-		double *aux = LapackConnector::transpose_matrix(a, n, lda);
-		for(int i=0; i<4; i++)std::cout << "\n aux=" << aux[i]; 
-		spotrf_( &uplo, &n, aux, &lda, info);
-		for(int i=0; i<4; i++)std::cout << "\n aux=" << aux[i]; 
-		LapackConnector::transpose_matrix(aux, a, n, lda);
-		delete[] aux;
-		return;
-	}
+ //    static inline
+ //    void spotrf(char uplo,int n,matrix &a, int lda,int *info)
+	// {
+	// 	double *aux = LapackConnector::transpose_matrix(a, n, lda);
+	// 	for(int i=0; i<4; i++)std::cout << "\n aux=" << aux[i]; 
+	// 	spotrf_( &uplo, &n, aux, &lda, info);
+	// 	for(int i=0; i<4; i++)std::cout << "\n aux=" << aux[i]; 
+	// 	LapackConnector::transpose_matrix(aux, a, n, lda);
+	// 	delete[] aux;
+	// 	return;
+	// }
+	//
+	// static inline
+	// void spotri(char uplo,int n,matrix &a, int lda, int *info)
+	// {
+	// 	double *aux = LapackConnector::transpose_matrix(a, n, lda);
+	// 	for(int i=0; i<4; i++)std::cout << "\n aux=" << aux[i]; 
+	// 	spotri_( &uplo, &n, aux, &lda, info);
+	// 	for(int i=0; i<4; i++)std::cout << "\n aux=" << aux[i]; 
+	// 	LapackConnector::transpose_matrix(aux, a, n, lda);
+	// 	delete[] aux;
+	// 	return;
+	// }
 
-	static inline
-	void spotri(char uplo,int n,matrix &a, int lda, int *info)
-	{
-		double *aux = LapackConnector::transpose_matrix(a, n, lda);
-		for(int i=0; i<4; i++)std::cout << "\n aux=" << aux[i]; 
-		spotri_( &uplo, &n, aux, &lda, info);
-		for(int i=0; i<4; i++)std::cout << "\n aux=" << aux[i]; 
-		LapackConnector::transpose_matrix(aux, a, n, lda);
-		delete[] aux;
-		return;
-	}
     static inline
     void zgetrf(int m, int n, ComplexMatrix &a, const int lda, int *ipiv, int *info)
     {
@@ -479,14 +427,109 @@ public:
         delete[] aux;
         return;
     }
-    static inline
-    void pdgetrf(int m, int n, matrix &a,int ia, int ja, int *desca, int *ipiv, int *info)
+
+    static inline void getrf(const int &m, const int &n, float *A, const int &lda, int *ipiv, int &info)
     {
-	double *aux = LapackConnector::transpose_matrix(a, n, m);
-	pdgetrf_( &m, &n, aux, &ia, &ja, desca, ipiv, info);
-	LapackConnector::transpose_matrix(aux, a, n, m);
-	delete[] aux;
-	return;
+        float *a_fort = transpose(A, n, lda);
+        sgetrf_(&m, &n, a_fort, &lda, ipiv, &info);
+        transpose(a_fort, A, n, lda);
+        delete [] a_fort;
+    }
+
+    static inline void getrf(const int &m, const int &n, double *A, const int &lda, int *ipiv, int &info)
+    {
+        double *a_fort = transpose(A, n, lda);
+        dgetrf_(&m, &n, a_fort, &lda, ipiv, &info);
+        transpose(a_fort, A, n, lda);
+        delete [] a_fort;
+    }
+
+    static inline void getrf(const int &m, const int &n, std::complex<float> *A, const int &lda, int *ipiv, int &info)
+    {
+        std::complex<float> *a_fort = transpose(A, n, lda);
+        cgetrf_(&m, &n, a_fort, &lda, ipiv, &info);
+        transpose(a_fort, A, n, lda);
+        delete [] a_fort;
+    }
+
+    static inline void getrf(const int &m, const int &n, std::complex<double> *A, const int &lda, int *ipiv, int &info)
+    {
+        std::complex<double> *a_fort = transpose(A, n, lda);
+        zgetrf_(&m, &n, a_fort, &lda, ipiv, &info);
+        transpose(a_fort, A, n, lda);
+        delete [] a_fort;
+    }
+
+    static inline void getrf_f(const int &m, const int &n, float *A, const int &lda, int *ipiv, int &info)
+    {
+        sgetrf_(&m, &n, A, &lda, ipiv, &info);
+    }
+
+    static inline void getrf_f(const int &m, const int &n, double *A, const int &lda, int *ipiv, int &info)
+    {
+        dgetrf_(&m, &n, A, &lda, ipiv, &info);
+    }
+
+    static inline void getrf_f(const int &m, const int &n, std::complex<float> *A, const int &lda, int *ipiv, int &info)
+    {
+        cgetrf_(&m, &n, A, &lda, ipiv, &info);
+    }
+
+    static inline void getrf_f(const int &m, const int &n, std::complex<double> *A, const int &lda, int *ipiv, int &info)
+    {
+        zgetrf_(&m, &n, A, &lda, ipiv, &info);
+    }
+
+    static inline void getri(const int &n, float *A, const int &lda, int *ipiv, float *work, const int &lwork, int &info)
+    {
+        float *a_fort = transpose(A, n, lda);
+        sgetri_(&n, a_fort, &lda, ipiv, work, &lwork, &info);
+        transpose(a_fort, A, n, lda);
+        delete [] a_fort;
+    }
+
+    static inline void getri(const int &n, double *A, const int &lda, int *ipiv, double *work, const int &lwork, int &info)
+    {
+        double *a_fort = transpose(A, n, lda);
+        dgetri_(&n, a_fort, &lda, ipiv, work, &lwork, &info);
+        transpose(a_fort, A, n, lda);
+        delete [] a_fort;
+    }
+
+    static inline void getri(const int &n, std::complex<float> *A, const int &lda, int *ipiv, std::complex<float> *work, const int &lwork, int &info)
+    {
+        std::complex<float> *a_fort = transpose(A, n, lda);
+        cgetri_(&n, a_fort, &lda, ipiv, work, &lwork, &info);
+        transpose(a_fort, A, n, lda);
+        delete [] a_fort;
+    }
+
+    static inline void getri(const int &n, std::complex<double> *A, const int &lda, int *ipiv, std::complex<double> *work, const int &lwork, int &info)
+    {
+        std::complex<double> *a_fort = transpose(A, n, lda);
+        zgetri_(&n, a_fort, &lda, ipiv, work, &lwork, &info);
+        transpose(a_fort, A, n, lda);
+        delete [] a_fort;
+    }
+
+    static inline void getri_f(const int &n, float *A, const int &lda, int *ipiv, float *work, const int &lwork, int &info)
+    {
+        sgetri_(&n, A, &lda, ipiv, work, &lwork, &info);
+    }
+
+    static inline void getri_f(const int &n, double *A, const int &lda, int *ipiv, double *work, const int &lwork, int &info)
+    {
+        dgetri_(&n, A, &lda, ipiv, work, &lwork, &info);
+    }
+
+    static inline void getri_f(const int &n, std::complex<float> *A, const int &lda, int *ipiv, std::complex<float> *work, const int &lwork, int &info)
+    {
+        cgetri_(&n, A, &lda, ipiv, work, &lwork, &info);
+    }
+
+    static inline void getri_f(const int &n, std::complex<double> *A, const int &lda, int *ipiv, std::complex<double> *work, const int &lwork, int &info)
+    {
+        zgetri_(&n, A, &lda, ipiv, work, &lwork, &info);
     }
 
 	// Peize Lin add 2016-07-09
@@ -564,6 +607,23 @@ public:
 		return ddot_(&n, X, &incX, Y, &incY);
 	}
 
+    // minyez add 2022-11-15
+    static inline
+    std::complex<float> dot( const int n, const std::complex<float> *X, const int incX, const std::complex<float> *Y, const int incY)
+    {
+        std::complex<float> result;
+        cdotu_(&result, &n, X, &incX, Y, &incY);
+        return result;
+    }
+
+    static inline
+    std::complex<double> dot( const int n, const std::complex<double> *X, const int incX, const std::complex<double> *Y, const int incY)
+    {
+        std::complex<double> result;
+        zdotu_(&result, &n, X, &incX, Y, &incY);
+        return result;
+    }
+
     // minyez add 2022-05-12
     // matrix-vector product
     // single-prec version
@@ -582,7 +642,35 @@ public:
         char transa_f = change_trans_NT(transa);
         dgemv_(&transa_f, &n, &m, &alpha, a, &lda, x, &incx, &beta, y, &incy);
     }
-	
+
+    inline void gemv_f(const char &transa, const int &m, const int &n,
+                       const float &alpha, const float *a, const int &lda,
+                       const float *x, const int &incx, const float &beta, float *y, const int &incy)
+    {
+        sgemv_(&transa, &m, &n, &alpha, a, &lda, x, &incx, &beta, y, &incy);
+    }
+
+    inline void gemv_f(const char &transa, const int &m, const int &n,
+                       const double &alpha, const double *a, const int &lda,
+                       const double *x, const int &incx, const double &beta, double *y, const int &incy)
+    {
+        dgemv_(&transa, &m, &n, &alpha, a, &lda, x, &incx, &beta, y, &incy);
+    }
+
+    inline void gemv_f(const char &transa, const int &m, const int &n,
+                       const std::complex<float> &alpha, const std::complex<float> *a, const int &lda,
+                       const std::complex<float> *x, const int &incx, const std::complex<float> &beta, std::complex<float> *y, const int &incy)
+    {
+        cgemv_(&transa, &m, &n, &alpha, a, &lda, x, &incx, &beta, y, &incy);
+    }
+
+    inline void gemv_f(const char &transa, const int &m, const int &n,
+                       const std::complex<double> &alpha, const std::complex<double> *a, const int &lda,
+                       const std::complex<double> *x, const int &incx, const std::complex<double> &beta, std::complex<double> *y, const int &incy)
+    {
+        zgemv_(&transa, &m, &n, &alpha, a, &lda, x, &incx, &beta, y, &incy);
+    }
+
 	// Peize Lin add 2017-10-27, fix bug trans 2019-01-17
 	// C = a * A.? * B.? + b * C 
 	static inline
@@ -604,18 +692,93 @@ public:
 			&alpha, b, &ldb, a, &lda, 
 			&beta, c, &ldc);
 	}
-    
+
 	static inline
-	void gemm(const char transa, const char transb, const int m, const int n, const int k,
-		const complex<double> alpha, const complex<double> *a, const int lda, const complex<double> *b, const int ldb, 
-		const complex<double> beta, complex<double> *c, const int ldc)
-	{
+    void gemm(const char transa, const char transb, const int m,
+              const int n, const int k, const complex<float> alpha,
+              const complex<float> *a, const int lda,
+              const complex<float> *b, const int ldb,
+              const complex<float> beta, complex<float> *c, const int ldc)
+    {
+        cgemm_(&transb, &transa, &n, &m, &k, &alpha, b, &ldb, a, &lda,
+               &beta, c, &ldc);
+    }
+
+        static inline
+    void gemm(const char transa, const char transb, const int m,
+              const int n, const int k, const complex<double> alpha,
+              const complex<double> *a, const int lda,
+              const complex<double> *b, const int ldb,
+              const complex<double> beta, complex<double> *c, const int ldc)
+    {
 		zgemm_(&transb, &transa, &n, &m, &k,
 			&alpha, b, &ldb, a, &lda, 
 			&beta, c, &ldc);
 	}
 
-	// Peize Lin add 2018-06-12
+    static inline
+    void gemm_f(const char transa, const char transb,
+                const int m, const int n, const int k,
+                const float alpha, const float *a,
+                const int lda, const float *b, const int ldb,
+                const float beta, float *c, const int ldc)
+    {
+        sgemm_(&transa, &transb, &m, &n, &k, &alpha, a, &lda, b, &ldb,
+               &beta, c, &ldc);
+    }
+
+    static inline void gemm_f(const char transa, const char transb,
+                              const int m, const int n, const int k,
+                              const complex<float> alpha,
+                              const complex<float> *a, const int lda,
+                              const complex<float> *b, const int ldb,
+                              const complex<float> beta,
+                              complex<float> *c, const int ldc)
+    {
+        cgemm_(&transa, &transb, &m, &n, &k, &alpha, a, &lda, b, &ldb, &beta, c,
+               &ldc);
+    }
+
+    static inline void gemm_f(const char transa, const char transb,
+                              const int m, const int n, const int k,
+                              const double alpha, const double *a,
+                              const int lda, const double *b, const int ldb,
+                              const double beta, double *c, const int ldc)
+    {
+        dgemm_(&transa, &transb, &m, &n, &k, &alpha, a, &lda, b, &ldb,
+               &beta, c, &ldc);
+    }
+
+    static inline void gemm_f(const char transa, const char transb,
+                              const int m, const int n, const int k,
+                              const complex<double> alpha,
+                              const complex<double> *a, const int lda,
+                              const complex<double> *b, const int ldb,
+                              const complex<double> beta,
+                              complex<double> *c, const int ldc)
+    {
+        zgemm_(&transa, &transb, &m, &n, &k, &alpha, a, &lda, b, &ldb, &beta, c,
+               &ldc);
+    }
+
+    // eigenvector of hermitian matrix
+    static inline
+    void heev_f(const char &jobz, const char &uplo, const int &n,
+                std::complex<float> *a, const int &lda, float *w,
+                std::complex<float> *work, const int &lwork, float *rwork, int &info)
+    {
+        cheev_(&jobz, &uplo, &n, a, &lda, w, work, &lwork, rwork, &info);
+    }
+
+    static inline
+    void heev_f(const char &jobz, const char &uplo, const int &n,
+                std::complex<double> *a, const int &lda, double *w,
+                std::complex<double> *work, const int &lwork, double *rwork, int &info)
+    {
+        zheev_(&jobz, &uplo, &n, a, &lda, w, work, &lwork, rwork, &info);
+    }
+
+        // Peize Lin add 2018-06-12
 	// out = ||x||_2
 	// static inline
 	// float nrm2( const int n, const float *X, const int incX )
@@ -656,6 +819,5 @@ public:
 		const char trans_changed = change_trans_NC(trans);
 		zherk_(&uplo_changed, &trans_changed, &n, &k, &alpha, A, &lda, &beta, C, &ldc);
 	}
-	
 };
 #endif  // LAPACKCONNECTOR_HPP

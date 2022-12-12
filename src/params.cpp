@@ -33,6 +33,8 @@ void Params::print()
         {
             {"task", task},
             {"tfgrids_type", tfgrids_type},
+            {"chi_parallel_routing", chi_parallel_routing},
+            {"exx_parallel_routing", exx_parallel_routing},
         };
 
     const std::vector<std::pair<std::string, bool>> bool_params
@@ -40,6 +42,7 @@ void Params::print()
             {"use_libri_chi0", use_libri_chi0},
             {"use_libri_exx", use_libri_exx},
             {"use_scalapack_ecrpa", use_scalapack_ecrpa},
+            {"use_scalapack_gw_wc", use_scalapack_gw_wc},
         };
 
     for (const auto &param: str_params)
@@ -52,10 +55,7 @@ void Params::print()
         printf("%s = %f\n", param.first.c_str(), param.second);
 
     for (const auto &param: bool_params)
-    {
-        std::string note = param.second? "T": "F";
-        printf("%s = %s\n", param.first.c_str(), note.c_str());
-    }
+        printf("%s = %s\n", param.first.c_str(), param.second? "T": "F");
 }
 
 Params params;

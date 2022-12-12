@@ -23,6 +23,7 @@ extern vector<size_t> atom_mu_part_range;
 extern int N_all_mu;
 
 extern vector<atpair_t> tot_atpair;
+extern vector<atpair_t> tot_atpair_ordered;
 extern vector<atpair_t> local_atpair;
 
 //! type alias of atom-pair mapping to real matrix indexed by unit-cell vector
