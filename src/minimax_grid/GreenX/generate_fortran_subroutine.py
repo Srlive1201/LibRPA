@@ -98,7 +98,7 @@ def format_tf_subroutine(ngrids, data, keyword, indent=4, doubletype="real*8"):
         assignments.append(" " * indent + "%s_weights(:) = (/ &" % keyword)
         for grid in weights[:-1]:
             assignments.append(" " * 2 * indent + "%.16e, &" % grid)
-        assignments.append(" " * 2 * indent + "%.16e &" % grids[-1])
+        assignments.append(" " * 2 * indent + "%.16e &" % weights[-1])
         assignments.append(" " * indent + "/)")
 
         if i == len(data) - 1:
@@ -191,6 +191,9 @@ if __name__ == "__main__":
     parser.add_argument("--freqdata", nargs="+", type=str, help="filenames of frequency grids")
     parser.add_argument("--timedata", nargs="+", type=str, help="filenames of time grids")
     parser.add_argument("--indent", default=4, type=int, help="indent inside subroutines")
+    parser.add_argument("--dt", default="double precision",
+                        type=str, choices=["double precision", "real*8"],
+                        help="indent inside subroutines")
     parser.add_argument("--disable-preprocess-freq-weight", action="store_true", help="")
 
     args = parser.parse_args()
@@ -212,7 +215,11 @@ if __name__ == "__main__":
                 for d in data:
                     d["weights"] *= preproc_weight_scale
             freq_ngrids_list.append(ngrids)
-            freq_subroutines.append(format_freq_subroutine(ngrids, data, args.indent))
+            freq_subroutines.append(
+                format_freq_subroutine(ngrids,
+                                       data,
+                                       args.indent,
+                                       doubletype=args.dt))
 
     if args.timedata is not None:
         for timefile in args.timedata:
@@ -220,7 +227,11 @@ if __name__ == "__main__":
             if ngrids is None:
                 continue
             time_ngrids_list.append(ngrids)
-            time_subroutines.append(format_time_subroutine(ngrids, data, args.indent))
+            time_subroutines.append(
+                format_time_subroutine(ngrids,
+                                       data,
+                                       args.indent,
+                                       doubletype=args.dt))
 
     subroutines = []
     ngrids_list = []
@@ -231,8 +242,14 @@ if __name__ == "__main__":
             subroutines.append(time_subroutines[time_ngrids_list.index(ngrids)])
 
     module_header = ["module mod_minimax_grids", ]
-    module_declare = ["", "contains", ""]
-    module_footer = ["end module", ]
+    module_declare = [
+        "", "private",
+        "public :: %s" % WRAPPER_SUBROUTINE_NAME,
+        "", "contains", ""
+    ]
+    module_footer = [
+        "end module",
+    ]
 
     module_body = []
     for s in module_declare:
@@ -241,7 +258,10 @@ if __name__ == "__main__":
         else:
             module_body.append(" " * args.indent + s)
 
-    for sub in [format_wrapper_subroutine(ngrids_list, args.indent), ] + subroutines:
+    for sub in [
+            format_wrapper_subroutine(
+                ngrids_list, args.indent, doubletype=args.dt),
+    ] + subroutines:
         for s in sub:
             if s.strip() == '':
                 module_body.append("")
