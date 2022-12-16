@@ -88,7 +88,7 @@ class BLACS_CTXT_handler
 private:
     MPI_COMM_handler mpi_comm_h;
     char layout_ch;
-    bool initialized;
+    bool initialized_;
     bool pgrid_set;
 public:
     int ictxt;
@@ -99,7 +99,7 @@ public:
     int npcols;
     int mypcol;
     int myprow;
-    BLACS_CTXT_handler(MPI_Comm comm_in): mpi_comm_h(comm_in) { pgrid_set = initialized = false; }
+    BLACS_CTXT_handler(MPI_Comm comm_in): mpi_comm_h(comm_in) { pgrid_set = initialized_ = false; }
     ~BLACS_CTXT_handler() {};
 
     void init();
@@ -112,6 +112,7 @@ public:
     void get_pcoord(int pid, int &prow, int &pcol) const;
     void barrier(CTXT_SCOPE scope = CTXT_SCOPE::A) const;
     void exit();
+    bool initialized() const { return initialized_; }
 };
 
 extern BLACS_CTXT_handler blacs_ctxt_world_h;
