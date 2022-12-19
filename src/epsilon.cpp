@@ -1315,7 +1315,7 @@ compute_Wc_freq_q_blacs(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps
         // collect the block elements of coulomb matrices
         {
             // LibRI tensor for communication, release once done
-            std::map<int, std::map<std::pair<int, std::array<double, 3>>, Tensor<complex<double>>>> couleps_libri;
+            std::map<int, std::map<std::pair<int, std::array<double, 3>>, RI::Tensor<complex<double>>>> couleps_libri;
             // for (const auto &Mu_NuqVq: coulmat_eps)
             // {
             //     const auto Mu = Mu_NuqVq.first;
@@ -1347,7 +1347,7 @@ compute_Wc_freq_q_blacs(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps
                 std::valarray<complex<double>> Vq_va(Vq->c, Vq->size);
                 auto pvq = std::make_shared<std::valarray<complex<double>>>();
                 *pvq = Vq_va;
-                couleps_libri[Mu][{Nu, qa}] = Tensor<complex<double>>({n_mu, n_nu}, pvq);
+                couleps_libri[Mu][{Nu, qa}] = RI::Tensor<complex<double>>({n_mu, n_nu}, pvq);
             }
             // LIBRPA::fout_para << "Couleps_libri" << endl << couleps_libri;
             // if (couleps_libri.size() == 0)
@@ -1355,7 +1355,7 @@ compute_Wc_freq_q_blacs(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps
 
             // perform communication
             // cout << "Iset&Jset" << Iset_Jset << endl;
-            const auto IJq_coul = Communicate_Tensors_Map_Judge::comm_map2_first(LIBRPA::mpi_comm_world_h.comm, couleps_libri, s0_s1.first, s0_s1.second);
+            const auto IJq_coul = RI::Communicate_Tensors_Map_Judge::comm_map2_first(LIBRPA::mpi_comm_world_h.comm, couleps_libri, s0_s1.first, s0_s1.second);
             // LIBRPA::fout_para << "IJq_coul" << endl << IJq_coul;
 
             for (const auto &IJ: set_IJ_nabf_nabf)
@@ -1389,7 +1389,7 @@ compute_Wc_freq_q_blacs(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps
         // collect the block elements of truncated coulomb matrices
         {
             // LibRI tensor for communication, release once done
-            std::map<int, std::map<std::pair<int, std::array<double, 3>>, Tensor<complex<double>>>> couleps_libri;
+            std::map<int, std::map<std::pair<int, std::array<double, 3>>, RI::Tensor<complex<double>>>> couleps_libri;
             // for (const auto &Mu_NuqVq: coulmat_wc)
             // {
             //     const auto Mu = Mu_NuqVq.first;
@@ -1421,13 +1421,13 @@ compute_Wc_freq_q_blacs(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps
                 std::valarray<complex<double>> Vq_va(Vq->c, Vq->size);
                 auto pvq = std::make_shared<std::valarray<complex<double>>>();
                 *pvq = Vq_va;
-                couleps_libri[Mu][{Nu, qa}] = Tensor<complex<double>>({n_mu, n_nu}, pvq);
+                couleps_libri[Mu][{Nu, qa}] = RI::Tensor<complex<double>>({n_mu, n_nu}, pvq);
             }
             // if (couleps_libri.size() == 0)
             //     throw std::logic_error("data at q-point not found in coulmat_wc");
 
             // perform communication
-            const auto IJq_coul = Communicate_Tensors_Map_Judge::comm_map2_first(LIBRPA::mpi_comm_world_h.comm, couleps_libri, s0_s1.first, s0_s1.second);
+            const auto IJq_coul = RI::Communicate_Tensors_Map_Judge::comm_map2_first(LIBRPA::mpi_comm_world_h.comm, couleps_libri, s0_s1.first, s0_s1.second);
 
             for (const auto &IJ: set_IJ_nabf_nabf)
             {
@@ -1448,7 +1448,7 @@ compute_Wc_freq_q_blacs(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps
             const auto ifreq = chi0.tfg.get_freq_index(freq);
             chi0_block.zero_out();
             {
-                std::map<int, std::map<std::pair<int, std::array<double, 3>>, Tensor<complex<double>>>> chi0_libri;
+                std::map<int, std::map<std::pair<int, std::array<double, 3>>, RI::Tensor<complex<double>>>> chi0_libri;
                 const auto &chi0_wq = chi0.get_chi0_q().at(freq).at(q);
                 // for (const auto &Mu_Nu: atpair_unordered_local)
                 // {
@@ -1477,11 +1477,11 @@ compute_Wc_freq_q_blacs(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps
                         std::valarray<complex<double>> chi_va(chi.c, chi.size);
                         auto pchi = std::make_shared<std::valarray<complex<double>>>();
                         *pchi = chi_va;
-                        chi0_libri[M][{N, qa}] = Tensor<complex<double>>({n_mu, n_nu}, pchi);
+                        chi0_libri[M][{N, qa}] = RI::Tensor<complex<double>>({n_mu, n_nu}, pchi);
                     }
                 }
                 // LIBRPA::fout_para << "chi0_libri" << endl << chi0_libri;
-                const auto IJq_chi0 = Communicate_Tensors_Map_Judge::comm_map2_first(LIBRPA::mpi_comm_world_h.comm, chi0_libri, s0_s1.first, s0_s1.second);
+                const auto IJq_chi0 = RI::Communicate_Tensors_Map_Judge::comm_map2_first(LIBRPA::mpi_comm_world_h.comm, chi0_libri, s0_s1.first, s0_s1.second);
                 // LIBRPA::fout_para << "IJq_chi0" << endl << IJq_chi0;
                 for (const auto &IJ: set_IJ_nabf_nabf)
                 {
@@ -1567,7 +1567,7 @@ compute_Wc_freq_q_blacs(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps
                                     desc_nabf_nabf, MAJOR::ROW);
             // cout << Wc_MNmap;
             {
-                std::map<int, std::map<std::pair<int, std::array<double, 3>>, Tensor<complex<double>>>> Wc_libri;
+                std::map<int, std::map<std::pair<int, std::array<double, 3>>, RI::Tensor<complex<double>>>> Wc_libri;
                 for (const auto &M_NWc: Wc_MNmap)
                 {
                     const auto &M = M_NWc.first;
@@ -1580,12 +1580,12 @@ compute_Wc_freq_q_blacs(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps
                         std::valarray<complex<double>> Wc_va(Wc.c, Wc.size());
                         auto pWc = std::make_shared<std::valarray<complex<double>>>();
                         *pWc = Wc_va;
-                        Wc_libri[M][{N, qa}] = Tensor<complex<double>>({n_mu, n_nu}, pWc);
+                        Wc_libri[M][{N, qa}] = RI::Tensor<complex<double>>({n_mu, n_nu}, pWc);
                     }
                 }
                 // cout << Wc_libri;
-                const auto IJq_Wc = Communicate_Tensors_Map_Judge::comm_map2_first(LIBRPA::mpi_comm_world_h.comm, Wc_libri, Iset_Jset_Wc.first, Iset_Jset_Wc.second);
-                // parse collected to
+                const auto IJq_Wc = RI::Communicate_Tensors_Map_Judge::comm_map2_first(LIBRPA::mpi_comm_world_h.comm, Wc_libri, Iset_Jset_Wc.first, Iset_Jset_Wc.second);
+                // parse collected to 
                 for (const auto &MN: atpair_unordered_local)
                 {
                     const auto &M = MN.first;

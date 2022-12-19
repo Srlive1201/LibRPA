@@ -143,7 +143,7 @@ void Exx::build_exx_orbital_energy_LibRI(const atpair_R_mat_t &LRI_Cs,
     // if (mpi_comm_world_h.myid == 0)
     //     printf("Total count of Cs: %zu\n", n_IJRs);
     // printf("| Number of Cs on Proc %4d: %zu\n", mpi_comm_world_h.myid, n_IJRs_local);
-    std::map<int, std::map<std::pair<int,std::array<int,3>>,Tensor<double>>> Cs_libri;
+    std::map<int, std::map<std::pair<int,std::array<int,3>>,RI::Tensor<double>>> Cs_libri;
     for (auto &IJR: Cs_IJRs_local)
     {
         const auto I = IJR.first;
@@ -154,12 +154,12 @@ void Exx::build_exx_orbital_energy_LibRI(const atpair_R_mat_t &LRI_Cs,
         std::valarray<double> mat_array(mat.c, mat.size);
         std::shared_ptr<std::valarray<double>> mat_ptr = std::make_shared<std::valarray<double>>();
         *mat_ptr=mat_array;
-        Cs_libri[I][{J, Ra}] = Tensor<double>({atom_mu[I], atom_nw[I], atom_nw[J]}, mat_ptr);
+        Cs_libri[I][{J, Ra}] = RI::Tensor<double>({atom_mu[I], atom_nw[I], atom_nw[J]}, mat_ptr);
     }
     exx_libri.set_Cs(Cs_libri, params.libri_exx_threshold_C);
 
     // initialize Coulomb matrix
-    std::map<int, std::map<std::pair<int,std::array<int,3>>,Tensor<double>>> V_libri;
+    std::map<int, std::map<std::pair<int,std::array<int,3>>,RI::Tensor<double>>> V_libri;
     for (auto IJR: dispatch_vector_prod(get_atom_pair(coul_mat), Rlist, mpi_comm_world_h.myid, mpi_comm_world_h.nprocs, true, true))
     {
         const auto I = IJR.first.first;
@@ -170,7 +170,7 @@ void Exx::build_exx_orbital_energy_LibRI(const atpair_R_mat_t &LRI_Cs,
         std::valarray<double> VIJR_va(VIJR->c, VIJR->size);
         auto pv = std::make_shared<std::valarray<double>>();
         *pv = VIJR_va;
-        V_libri[I][{J, Ra}] = Tensor<double>({size_t(VIJR->nr), size_t(VIJR->nc)}, pv);
+        V_libri[I][{J, Ra}] = RI::Tensor<double>({size_t(VIJR->nr), size_t(VIJR->nc)}, pv);
     }
     exx_libri.set_Vs(V_libri, params.libri_exx_threshold_V);
     // cout << V_libri << endl;
@@ -201,7 +201,7 @@ void Exx::build_exx_orbital_energy_LibRI(const atpair_R_mat_t &LRI_Cs,
 
     for (auto isp = 0; isp != n_spins; isp++)
     {
-        std::map<int, std::map<std::pair<int,std::array<int,3>>,Tensor<double>>> dmat_libri;
+        std::map<int, std::map<std::pair<int,std::array<int,3>>,RI::Tensor<double>>> dmat_libri;
         for (const auto &R: Rlist)
         {
             std::array<int,3> Ra{R.x,R.y,R.z};
@@ -217,7 +217,7 @@ void Exx::build_exx_orbital_energy_LibRI(const atpair_R_mat_t &LRI_Cs,
                     std::valarray<double> dmat_va(dmat_IJR.real().c, dmat_IJR.size);
                     auto pdmat = std::make_shared<std::valarray<double>>();
                     *pdmat = dmat_va;
-                    dmat_libri[I][{J, Ra}] = Tensor<double>({size_t(dmat_IJR.nr), size_t(dmat_IJR.nc)}, pdmat);
+                    dmat_libri[I][{J, Ra}] = RI::Tensor<double>({size_t(dmat_IJR.nr), size_t(dmat_IJR.nc)}, pdmat);
                 }
             }
         }
@@ -232,7 +232,7 @@ void Exx::build_exx_orbital_energy_LibRI(const atpair_R_mat_t &LRI_Cs,
                                                                   atomic_basis_wfc,
                                                                   desc_nao_nao);
         const auto Iset_Jset = convert_IJset_to_Iset_Jset(set_IJ_naonao);
-        const auto I_JallR_Hs = Communicate_Tensors_Map_Judge::comm_map2_first(LIBRPA::mpi_comm_world_h.comm,
+        const auto I_JallR_Hs = RI::Communicate_Tensors_Map_Judge::comm_map2_first(LIBRPA::mpi_comm_world_h.comm,
                 exx_libri.Hs, Iset_Jset.first, Iset_Jset.second);
         // cout << I_JallR_Hs << endl;
 
