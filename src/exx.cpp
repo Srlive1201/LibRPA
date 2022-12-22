@@ -263,19 +263,19 @@ void Exx::build_exx_orbital_energy_LibRI(const atpair_R_mat_t &LRI_Cs,
             // printf("%s\n", desc_nao_nao.info_desc().c_str());
             // printf("%s\n", desc_nband_nao.info_desc().c_str());
             ScalapackConnector::pgemm_f('N', 'N', n_bands, n_aos, n_aos, 1.0,
-                                        wfc_block.c, 1, 1, desc_nband_nao.desc,
-                                        Hexx_nao_nao.c, 1, 1, desc_nao_nao.desc,
+                                        wfc_block.ptr(), 1, 1, desc_nband_nao.desc,
+                                        Hexx_nao_nao.ptr(), 1, 1, desc_nao_nao.desc,
                                         0.0,
-                                        temp_nband_nao.c, 1, 1, desc_nband_nao.desc);
+                                        temp_nband_nao.ptr(), 1, 1, desc_nband_nao.desc);
             ScalapackConnector::pgemm_f('N', 'C', n_bands, n_bands, n_aos, -1.0,
-                                        temp_nband_nao.c, 1, 1, desc_nao_nao.desc,
-                                        wfc_block.c, 1, 1, desc_nband_nao.desc,
+                                        temp_nband_nao.ptr(), 1, 1, desc_nao_nao.desc,
+                                        wfc_block.ptr(), 1, 1, desc_nband_nao.desc,
                                         0.0,
-                                        Hexx_nband_nband.c, 1, 1, desc_nband_nband.desc);
+                                        Hexx_nband_nband.ptr(), 1, 1, desc_nband_nband.desc);
             // collect to master
             ScalapackConnector::pgemr2d_f(n_bands, n_bands,
-                                          Hexx_nband_nband.c, 1, 1, desc_nband_nband.desc,
-                                          Hexx_nband_nband_fb.c, 1, 1, desc_nband_nband_fb.desc,
+                                          Hexx_nband_nband.ptr(), 1, 1, desc_nband_nband.desc,
+                                          Hexx_nband_nband_fb.ptr(), 1, 1, desc_nband_nband_fb.desc,
                                           desc_nband_nband_fb.ictxt());
             if (LIBRPA::blacs_ctxt_world_h.myid == 0)
                 for (int ib = 0; ib != n_bands; ib++)
