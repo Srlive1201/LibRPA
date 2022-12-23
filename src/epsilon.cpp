@@ -1579,10 +1579,10 @@ compute_Wc_freq_q_blacs(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps
                         const auto &N = N_Wc.first;
                         const auto n_nu = LIBRPA::atomic_basis_abf.get_atom_nb(N);
                         const auto &Wc = N_Wc.second;
-                        std::valarray<complex<double>> Wc_va(Wc.ptr(), Wc.size());
-                        auto pWc = std::make_shared<std::valarray<complex<double>>>();
-                        *pWc = Wc_va;
-                        Wc_libri[M][{N, qa}] = RI::Tensor<complex<double>>({n_mu, n_nu}, pWc);
+                        // std::valarray<complex<double>> Wc_va(Wc.ptr(), Wc.size());
+                        // auto pWc = std::make_shared<std::valarray<complex<double>>>();
+                        // *pWc = Wc_va;
+                        Wc_libri[M][{N, qa}] = RI::Tensor<complex<double>>({n_mu, n_nu}, Wc.sptr());
                     }
                 }
                 // cout << Wc_libri;
