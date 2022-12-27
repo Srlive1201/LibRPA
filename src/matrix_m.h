@@ -20,11 +20,19 @@
 
 //! type alias for functors to map 2D array index to flatten array index
 typedef std::function<int(const int& nr, const int& ir, const int& nc, const int& ic)> Indx_picker_2d;
+typedef std::function<void(const int& indx, const int& nr, int& ir, const int& nc, int& ic)> Indx_folder_2d;
 // major dependent flatted index of 2D matrix
 //! row-major 2D index picker
 inline int flatid_rm(const int &nr, const int &ir, const int &nc, const int &ic) { return ir*nc+ic; }
 //! column-major 2D index picker
 inline int flatid_cm(const int &nr, const int &ir, const int &nc, const int &ic) { return ic*nr+ir; }
+
+// major dependent folding of 1D index to 2D index of matrix
+//! row-major 1D index folder to 2D
+inline void foldid_rm(const int& indx, const int &nr, int &ir, const int &nc, int &ic) { ir = indx / nc; ic = indx % nc; }
+//! column-major 1D index folder to 2D
+inline void foldid_cm(const int& indx, const int &nr, int &ir, const int &nc, int &ic) { ir = indx % nr; ic = indx / nr; }
+
 
 enum MAJOR
 {
@@ -36,6 +44,12 @@ const Indx_picker_2d Indx_pickers_2d[]
     flatid_rm,
     flatid_cm
 };
+const Indx_folder_2d Indx_folders_2d[]
+{
+    foldid_rm,
+    foldid_cm
+};
+
 
 template <typename T>
 void get_nr_nc_from_nested_vector(const std::vector<std::vector<T>> &nested_vec, int &nr, int &nc)
@@ -169,6 +183,8 @@ private:
     int ld_;
     //! Function to extract the data in the memory from 2D indexing
     Indx_picker_2d indx_picker_2d_;
+    //! Function to convert 1D index to 2D index
+    Indx_folder_2d indx_folder_2d_;
 
 public:
     matrix_data<T> dataobj;
@@ -199,9 +215,10 @@ private:
         ld_ = (major_ == MAJOR::ROW ? nc() : nr());
     }
 
-    void set_indx_picker()
+    void set_indx_picker_folder()
     {
         indx_picker_2d_ = Indx_pickers_2d[major_];
+        indx_folder_2d_ = Indx_folders_2d[major_];
     }
 
 public:
@@ -213,23 +230,23 @@ public:
     matrix_m() : major_(MAJOR::ROW), ld_(0), dataobj()
     {
         set_ld();
-        set_indx_picker();
+        set_indx_picker_folder();
     }
     matrix_m(const int &nrows, const int &ncols, MAJOR major = MAJOR::ROW): major_(major), ld_(0), dataobj({nrows, ncols})
     {
         set_ld();
-        set_indx_picker();
+        set_indx_picker_folder();
         zero_out();
     }
     matrix_m(const int &nrows, const int &ncols, const T * const valarr, MAJOR major = MAJOR::ROW): major_(major), ld_(0), dataobj({nrows, ncols}, valarr)
     {
         set_ld();
-        set_indx_picker();
+        set_indx_picker_folder();
     }
     matrix_m(const int &nrows, const int &ncols, const T * const valarr, MAJOR major_valarr, MAJOR major): major_(major), ld_(0), dataobj({nrows, ncols})
     {
         set_ld();
-        set_indx_picker();
+        set_indx_picker_folder();
         zero_out();
         assign_value(valarr, major_valarr);
     }
@@ -240,7 +257,7 @@ public:
         get_nr_nc_from_nested_vector(nested_vector, nr_, nc_);
         dataobj.resize({nr_, nc_});
         set_ld();
-        set_indx_picker();
+        set_indx_picker_folder();
         zero_out();
         expand_nested_vector_to_pointer(nested_vector, nr_, nc_, dataobj.ptr(), is_row_major());
     }
@@ -376,7 +393,7 @@ public:
             reshape(nr_old, nc_old);
             major_ = MAJOR::ROW;
             set_ld();
-            set_indx_picker();
+            set_indx_picker_folder();
         }
     }
     void swap_to_col_major()
@@ -388,7 +405,7 @@ public:
             reshape(nr_old, nc_old);
             major_ = MAJOR::COL;
             set_ld();
-            set_indx_picker();
+            set_indx_picker_folder();
         }
     }
 
@@ -475,13 +492,13 @@ public:
     matrix_m<T>& resize(int nrows_new, int ncols_new, MAJOR major)
     {
         major_ = major;
-        set_indx_picker();
+        set_indx_picker_folder();
         return this->resize(nrows_new, ncols_new);
     }
 
     void conj()
     {
-        if (!is_complex) return;
+        if (!matrix_m<T>::is_complex) return;
         for (int i = 0; i < this->size(); i++)
             dataobj[i] = get_conj(dataobj[i]);
     };
@@ -547,6 +564,98 @@ public:
         for (int i = 0; i < size(); i++)
             m.dataobj[i] = ::get_imag(dataobj[i]);
         return m;
+    }
+
+    int count_absle(real_t thres) const
+    {
+        int count = 0;
+        for (int i = 0; i < size(); i++)
+            if (std::abs(dataobj[i]) <= thres) count++;
+        return count;
+    }
+
+    int count_absge(real_t thres) const
+    {
+        int count = 0;
+        for (int i = 0; i < size(); i++)
+            if (std::abs(dataobj[i]) >= thres) count++;
+        return count;
+    }
+
+    void argmin(int &ir, int &ic) const
+    {
+        // for complex type, compare the absolute value
+        const std::function<real_t(T)> filter =
+            matrix_m<T>::is_complex ? [](T a) { return std::abs(a); } : [](T a) { return ::get_real(a); };
+        real_t value = std::numeric_limits<real_t>::max();
+        int indx = 0;
+        for (int i = 0; i < size(); i++)
+            if (filter(dataobj[i]) < value)
+            {
+                indx = i;
+                value = filter(dataobj[i]);
+            }
+        indx_folder_2d_(indx, nr(), ir, nc(), ic);
+    }
+
+    void argmax(int &ir, int &ic) const
+    {
+        // for complex type, compare the absolute value
+        const std::function<real_t(T)> filter =
+            matrix_m<T>::is_complex ? [](T a) { return std::abs(a); } : [](T a) { return ::get_real(a); };
+        real_t value = std::numeric_limits<real_t>::min();
+        int indx = 0;
+        for (int i = 0; i < size(); i++)
+            if (filter(dataobj[i]) > value)
+            {
+                indx = i;
+                value = filter(dataobj[i]);
+            }
+        indx_folder_2d_(indx, nr(), ir, nc(), ic);
+    }
+
+    real_t min() const
+    {
+        // for complex type, compare the absolute value
+        const std::function<real_t(T)> filter =
+            matrix_m<T>::is_complex ? [](T a) { return std::abs(a); } : [](T a) { return ::get_real(a); };
+        real_t value = std::numeric_limits<real_t>::max();
+        for (int i = 0; i < size(); i++)
+            if (filter(dataobj[i]) < value)
+            {
+                value = filter(dataobj[i]);
+            }
+        return value;
+    }
+
+    real_t max() const
+    {
+        // for complex type, compare the absolute value
+        const std::function<real_t(T)> filter =
+            matrix_m<T>::is_complex ? [](T a) { return std::abs(a); } : [](T a) { return ::get_real(a); };
+        real_t value = std::numeric_limits<real_t>::min();
+        for (int i = 0; i < size(); i++)
+            if (filter(dataobj[i]) > value)
+            {
+                value = filter(dataobj[i]);
+            }
+        return value;
+    }
+
+    real_t absmin() const
+    {
+        real_t value = 0;
+        for (int i = 0; i < size(); i++)
+            value = std::min(value, std::abs(dataobj[i]));
+        return value;
+    }
+
+    real_t absmax() const
+    {
+        real_t value = 0;
+        for (int i = 0; i < size(); i++)
+            value = std::max(value, std::abs(dataobj[i]));
+        return value;
     }
 };
 

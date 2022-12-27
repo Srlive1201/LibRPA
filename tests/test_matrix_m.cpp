@@ -17,6 +17,27 @@ void test_constuctor()
     printf("Determinant = %f\n", det);
 }
 
+void test_minmax()
+{
+    int ir = 0, ic = 0;
+    matrix_m<double> m1({{1.0, 2.0}, {3.0, -4.0}}, MAJOR::ROW);
+    assert(fequal(m1.max(), 3.0));
+    assert(fequal(m1.min(), -4.0));
+    m1.argmin(ir, ic);
+    assert( ir == 1 && ic == 1);
+    m1.argmax(ir, ic);
+    assert( ir == 1 && ic == 0);
+
+    // complex matrix
+    matrix_m<complex<double>> mc1({{1.0, 2.0}, {3.0, -4.0}}, MAJOR::ROW);
+    assert(fequal(mc1.max(), 4.0));
+    assert(fequal(mc1.min(), 1.0));
+    mc1.argmin(ir, ic);
+    assert( ir == 0 && ic == 0);
+    mc1.argmax(ir, ic);
+    assert( ir == 1 && ic == 1);
+}
+
 void test_multiply()
 {
     matrix_m<double> m1({{1.0, 2.0}, {2.0, -1.0}}, MAJOR::ROW);
@@ -38,6 +59,7 @@ void test_multiply()
 int main (int argc, char *argv[])
 {
     test_constuctor();
-    // test_multiply();
+    test_multiply();
+    test_minmax();
     return 0;
 }
