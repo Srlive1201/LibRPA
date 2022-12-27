@@ -29,3 +29,4 @@ The hash number indicates the git version of FHI-aims on which the patch file is
 
 `fhiaims.62c7cfa45f.patch`: Base on [commit 62c7cfa45f](https://aims-git.rz-berlin.mpg.de/aims/FHIaims/-/tree/62c7cfa45f7161f9ac04f5d97a0aaa272af94f34) on 2022-06-03. Used for GW development.
 
+`fhiaims.06f38003bc.patch`: Base on [06f38003bc](https://aims-git.rz-berlin.mpg.de/aims/FHIaims/-/tree/06f38003bccd7601f15ed8e16a218d715a16de85) on 2022-12-09. Add tricoeff derivative dump. Add Cs/dCs dump threshold to reduce the size of Cs/dCs files.
