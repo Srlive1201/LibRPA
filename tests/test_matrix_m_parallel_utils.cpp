@@ -86,7 +86,8 @@ void test_invert_scalapack()
 {
     typedef T type;
     typedef typename to_real<type>::type real_type;
-    const T thres = std::is_same<real_type, float>::value ? 1e-5 : 1e-14;
+    // a looser threshold than gemm
+    const T thres = std::is_same<real_type, float>::value ? 1e-4 : 1e-13;
 
     blacs_ctxt_world_h.set_square_grid();
     assert(blacs_ctxt_world_h.nprocs == 4);
