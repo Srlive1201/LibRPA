@@ -19,7 +19,7 @@ class LapackConnector
 public:
     // Transpose an row-major array to the fortran-form colum-major array.
     template <typename T>
-    static T* transpose(const T* a, const int &n, const int &lda, bool conjugate = false)
+    static inline T* transpose(const T* a, const int &n, const int &lda, bool conjugate = false)
     {
         T* a_fort = new T[lda*n];
         if (is_complex<T>() && conjugate)
@@ -34,7 +34,7 @@ public:
     }
 
     template <typename T>
-    static void transpose(const T* a, T* a_trans, const int &n, const int &lda, bool conjugate = false)
+    static inline void transpose(const T* a, T* a_trans, const int &n, const int &lda, bool conjugate = false)
     {
         if (is_complex<T>() && conjugate)
             for (int i = 0; i < n; i++)
