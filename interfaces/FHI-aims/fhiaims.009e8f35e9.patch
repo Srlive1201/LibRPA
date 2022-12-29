@@ -1,13 +1,8 @@
 diff --git a/src/get_lvl_tricoeff_bravais.f90 b/src/get_lvl_tricoeff_bravais.f90
-index f8ce02cde..9315d9014 100644
+index bbd5fd26b..e288c424e 100644
 --- a/src/get_lvl_tricoeff_bravais.f90
 +++ b/src/get_lvl_tricoeff_bravais.f90
-@@ -54,20 +54,54 @@
-     real*8 :: Dvec(3), Cvec(3)
-     real*8 :: Rvecs(3,n_cells_task), dummy(1,1,1,1,1,1)
-     real*8, allocatable :: coeff_3fn(:,:,:,:,:)
-+    real*8, allocatable :: d_coeff_3fn(:,:,:,:,:,:)
-     integer :: info
+@@ -59,8 +59,20 @@
      character*150 :: info_str
      character(*), parameter :: func = 'get_lvl_tricoeff_bravais'
  
@@ -28,16 +23,8 @@ index f8ce02cde..9315d9014 100644
  
      if(.not. allocated(coeff_3fn)) then
        allocate(coeff_3fn(max_n_basis_sp,max_n_basis_sp,max_n_basbas_sp,2, n_cells_task), stat=info)
-       call check_allocation(info, 'coeff_3fn', func)
-     endif
+@@ -74,6 +86,20 @@
  
-+    if (use_rpa_force) then
-+      if(.not. allocated(d_coeff_3fn)) then
-+        allocate(d_coeff_3fn(max_n_basis_sp,max_n_basis_sp,max_n_basbas_sp,2,3,n_cells_task), stat=info)
-+        call check_allocation(info, 'd_coeff_3fn', func)
-+      endif
-+    endif
-+
      lvl_tricoeff_bravais(:,:,:,:) = 0.d0
  
 +    write(cFile, *) myid
@@ -57,18 +44,7 @@ index f8ce02cde..9315d9014 100644
      do i_atom_1 = 1, n_atoms, 1
         i_species_1 = species(i_atom_1)
         basis_off_1 = atom2basis_off(i_atom_1)
-@@ -101,12 +135,79 @@
-           n_cell_local = i_cell_local   ! Last value
- 
-           if(n_cell_local.gt.0) then
--            call get_pairwise_coeff_3fn(i_species_1, i_species_2, n_cell_local, Rvecs, coeff_3fn, dummy, .false.)
-+            if (use_rpa_force) then
-+              call get_pairwise_coeff_3fn(i_species_1, i_species_2, n_cell_local, Rvecs, coeff_3fn, d_coeff_3fn, .true.)
-+            else
-+              call get_pairwise_coeff_3fn(i_species_1, i_species_2, n_cell_local, Rvecs, coeff_3fn, dummy, .false.)
-+            endif
-           endif
- 
+@@ -117,6 +143,69 @@
            do i_cell = 1, n_cells, 1
               if(myid .ne. mod(i_cell, n_tasks)) cycle
               i_cell_local = (i_cell-1)/n_tasks + 1
@@ -138,7 +114,7 @@ index f8ce02cde..9315d9014 100644
  
               lvl_tricoeff_bravais(basis_off_1+1:basis_off_1+n_sp_basis_1, &
               & basis_off_2+1:basis_off_2+n_sp_basis_2, bboff_1+1:bboff_1+n_spbb_1, i_cell_local) &
-@@ -117,7 +218,6 @@
+@@ -127,7 +216,6 @@
               & basis_off_2+1:basis_off_2+n_sp_basis_2, bboff_2+1:bboff_2+n_spbb_2, i_cell_local) &
               & = coeff_3fn(1:n_sp_basis_1,1:n_sp_basis_2,1:n_spbb_2, 2, i_cell_local)
              endif
@@ -146,7 +122,7 @@ index f8ce02cde..9315d9014 100644
  ! end loop over i_cell
            enddo
  
-@@ -125,6 +225,10 @@
+@@ -135,6 +223,10 @@
         enddo
  ! end loop over i_atom_1
      enddo
@@ -157,15 +133,6 @@ index f8ce02cde..9315d9014 100644
  ! The on-site coefficients (which are stored in the first task) have to be halved
  !    do i_cell = 1, n_cells, 1
  !        if(myid .ne. mod(i_cell, n_tasks)) cycle
-@@ -146,5 +250,8 @@
-     if(allocated(coeff_3fn)) then
-       deallocate(coeff_3fn)
-     endif
-+    if(allocated(d_coeff_3fn)) then
-+      deallocate(d_coeff_3fn)
-+    endif
- 
-   end subroutine get_lvl_tricoeff_bravais
 diff --git a/src/main.f90 b/src/main.f90
 index df17d09da..a40a1758a 100644
 --- a/src/main.f90
@@ -180,7 +147,7 @@ index df17d09da..a40a1758a 100644
      call post_scf_correlation_treatment_p0()
      call cali_end_region('post_scf_correlation_treatment_p0')
 diff --git a/src/post_scf_correlation_treatment_p0.f90 b/src/post_scf_correlation_treatment_p0.f90
-index 41839adb5..f59e28aac 100644
+index c7ae95dcd..ee22fc1ee 100644
 --- a/src/post_scf_correlation_treatment_p0.f90
 +++ b/src/post_scf_correlation_treatment_p0.f90
 @@ -32,6 +32,7 @@
@@ -206,7 +173,24 @@ index 41839adb5..f59e28aac 100644
        nrThreads   = 1
        myThreadId = 1
  !$    nrThreads = omp_get_max_threads()
-@@ -246,7 +253,123 @@ end if
+@@ -183,11 +190,16 @@
+            if(.not.use_hf_kspace_with_rpa)then
+              call calculate_fock_matrix%cleanup
+           if (use_rpa_force) then
++            if(.not.allocated(d_exx_ene1)) then ! to bypass the compute_forces tag
++              allocate(d_exx_ene1(3, n_atoms))
++              d_exx_ene1 = 0.0d0
++            endif
+          call calculate_fock_matrix%init(.true., .false.)                                                   
+          call calculate_fock_matrix%evaluate(KS_eigenvector,&
+                    &KS_eigenvector_complex,occ_numbers,exx_ene, d_exx_ene1, .true., .false.)
+            my_exx=-exx_ene   ! a minus sign belong to exchange energy
+            else
++            print*, "not in use_rpa_force calculate_fock_matrix%evaluate d_exx_ene"
+              call calculate_fock_matrix%init(.false., .false.)
+              call calculate_fock_matrix%evaluate(KS_eigenvector,&
+                  &KS_eigenvector_complex,occ_numbers,exx_ene, d_exx_ene, .false., .false.)
+@@ -253,7 +265,123 @@ end if
             write(use_unit,'(2X,A)') "Finished with initialization of Coulomb interaction matrix ..."
             write(use_unit,*)
          endif
@@ -330,7 +314,7 @@ index 41839adb5..f59e28aac 100644
  !        if(n_k_points.gt.1) then
             !ACHTUNG: this section can be removed by removing lvl_tricoef_recip* from evaluate_exchange_matr_kspace_p0!!
  !           allocate(lvl_tricoeff_recip1(max_n_basbas_sp,n_basis,n_basis,n_k_points_min),stat=info) 
-@@ -387,6 +510,47 @@ end if
+@@ -394,6 +522,47 @@ end if
  
  ! end of if(.not. gamma_cut_coulomb) 
         endif
