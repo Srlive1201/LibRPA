@@ -761,6 +761,35 @@ public:
                &ldc);
     }
 
+    // eigenvector of hermitian matrix, row-major
+    static inline
+    void heev(const char &jobz, const char &uplo, const int &n,
+              std::complex<float> *a, const int &lda, float *w,
+              std::complex<float> *work, const int &lwork, float *rwork, int &info)
+    {
+        complex<float> *aux = LapackConnector::transpose(a, n, lda);
+        // call the fortran routine
+        cheev_(&jobz, &uplo, &n, aux, &lda, w, work, &lwork, rwork, &info);
+        // Transpose the fortran-form real-complex array to the complex matrix.
+        LapackConnector::transpose(aux, a, n, lda);
+        // free the memory.
+        delete[] aux;
+    }
+
+    static inline
+    void heev(const char &jobz, const char &uplo, const int &n,
+              std::complex<double> *a, const int &lda, double *w,
+              std::complex<double> *work, const int &lwork, double *rwork, int &info)
+    {
+        complex<double> *aux = LapackConnector::transpose(a, n, lda);
+        // call the fortran routine
+        zheev_(&jobz, &uplo, &n, aux, &lda, w, work, &lwork, rwork, &info);
+        // Transpose the fortran-form real-complex array to the complex matrix.
+        LapackConnector::transpose(aux, a, n, lda);
+        // free the memory.
+        delete[] aux;
+    }
+
     // eigenvector of hermitian matrix
     static inline
     void heev_f(const char &jobz, const char &uplo, const int &n,

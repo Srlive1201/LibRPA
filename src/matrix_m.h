@@ -13,6 +13,7 @@
 #include <valarray>
 #include <memory>
 #include <functional>
+#include <utility>
 #include <ostream>
 #include "base_utility.h"
 #include "lapack_connector.h"
@@ -102,28 +103,35 @@ public:
         dim = std::make_shared<std::array<int, 2>>();
         mrank_ = size_ = 0;
     }
-    matrix_data(const std::array<int, 2>& dim_in)
+    matrix_data(const std::array<int, 2> &dim_in)
     {
         dim = std::make_shared<std::array<int, 2>>(dim_in);
         set_size_mrank();
         if (size())
             data = std::make_shared<std::valarray<T>>(size());
     }
-    matrix_data(const std::array<int, 2>& dim_in, const std::valarray<T>& data_in)
+    matrix_data(const std::array<int, 2> &dim_in, const std::valarray<T> &data_in)
     {
         dim = std::make_shared<std::array<int, 2>>(dim_in);
         data = std::make_shared<std::valarray<T>>(data_in);
         set_size_mrank();
     }
-    matrix_data(const std::array<int, 2>& dim_in, const T* const pdata)
+    matrix_data(const std::array<int, 2> &dim_in, const T* const pdata)
     {
         dim = std::make_shared<std::array<int, 2>>(dim_in);
         set_size_mrank();
         if (size() > 0)
             data = std::make_shared<std::valarray<T>>(pdata, size());
     }
-    matrix_data(std::shared_ptr<std::array<int, 2>> dim_in,
-                std::shared_ptr<std::valarray<T>> data_in)
+    matrix_data(const std::array<int, 2> &dim_in,
+                const std::shared_ptr<std::valarray<T>> &data_in)
+        : data(data_in)
+    {
+        dim = std::make_shared<std::array<int, 2>>(dim_in);
+        set_size_mrank();
+    }
+    matrix_data(const std::shared_ptr<std::array<int, 2>> &dim_in,
+                const std::shared_ptr<std::valarray<T>> &data_in)
         : dim(dim_in), data(data_in)
     {
         set_size_mrank();
@@ -167,7 +175,36 @@ public:
         *dim = dim_new;
         set_size_mrank();
     }
+
+    void operator+=(const matrix_data<T> &mdata)
+    {
+        if (data != nullptr && mdata.data != nullptr)
+            *data += *(mdata.data);
+    }
+
+    void operator-=(const matrix_data<T> &mdata)
+    {
+        if (data != nullptr && mdata.data != nullptr)
+            *data -= *(mdata.data);
+    }
 };
+
+template <typename T>
+bool operator==(const matrix_data<T> &mdata1, const matrix_data<T> &mdata2)
+{
+    if (mdata1.nr() != mdata2.nr() || mdata1.nc() != mdata2.nc())
+        return false;
+    if (mdata1.sptr() == nullptr || mdata2.sptr() == nullptr)
+        return false;
+    using real_t = typename to_real<T>::type;
+    const bool is_double = std::is_same<T, double>::value;
+    const real_t thres = is_double ? 1e-14 : 1e-6;
+    auto diff = std::abs(*(mdata1.data) - *(mdata2.data));
+    for (int i = 0; i < mdata1.size(); i++)
+        if (::get_real(diff[i]) > thres)
+            return false;
+    return true;
+}
 
 template <typename T>
 class matrix_m
@@ -238,17 +275,22 @@ public:
         set_indx_picker_folder();
         zero_out();
     }
-    matrix_m(const int &nrows, const int &ncols, const T * const valarr, MAJOR major = MAJOR::ROW): major_(major), ld_(0), dataobj({nrows, ncols}, valarr)
+    matrix_m(const int &nrows, const int &ncols, const T * const parr, MAJOR major = MAJOR::ROW): major_(major), ld_(0), dataobj({nrows, ncols}, parr)
     {
         set_ld();
         set_indx_picker_folder();
     }
-    matrix_m(const int &nrows, const int &ncols, const T * const valarr, MAJOR major_valarr, MAJOR major): major_(major), ld_(0), dataobj({nrows, ncols})
+    matrix_m(const int &nrows, const int &ncols, const T * const parr, MAJOR major_arr, MAJOR major): major_(major), ld_(0), dataobj({nrows, ncols})
     {
         set_ld();
         set_indx_picker_folder();
         zero_out();
-        assign_value(valarr, major_valarr);
+        assign_value(parr, major_arr);
+    }
+    matrix_m(const int &nrows, const int &ncols, const std::shared_ptr<std::valarray<T>> &valarr, MAJOR major_valarr): major_(major_valarr), ld_(0), dataobj({nrows, ncols}, valarr)
+    {
+        set_ld();
+        set_indx_picker_folder();
     }
     // constructor from a nested vector
     matrix_m(const std::vector<std::vector<T>> &nested_vector, MAJOR major = MAJOR::ROW): major_(major), ld_(0), dataobj()
@@ -496,11 +538,12 @@ public:
         return this->resize(nrows_new, ncols_new);
     }
 
-    void conj()
+    matrix_m<T>& conj()
     {
-        if (!matrix_m<T>::is_complex) return;
+        if (!matrix_m<T>::is_complex) return *this;
         for (int i = 0; i < this->size(); i++)
             dataobj[i] = get_conj(dataobj[i]);
+        return *this;
     };
 
     matrix_m<T> get_transpose(bool conjugate = false) const
@@ -738,15 +781,15 @@ inline matrix_m<T1> operator-(const matrix_m<T1> &m, const std::vector<T2> &v)
     return mnew;
 }
 
+//! memory-retaining matrix multiply
 template <typename T>
-inline matrix_m<T> operator*(const matrix_m<T> &m1, const matrix_m<T> &m2)
+void matmul(const matrix_m<T> &m1, const matrix_m<T> &m2, matrix_m<T> &prod)
 {
     assert(m1.nc() == m2.nr());
-    assert(m1.major() == m2.major());
+    assert(m1.nr() == prod.nr());
+    assert(m2.nc() == prod.nc());
+    assert(m1.major() == m2.major() && m1.major() == prod.major());
 
-    auto major = m1.major();
-
-    matrix_m<T> prod(m1.nr(), m2.nc(), major);
     if (m1.is_row_major())
     {
         LapackConnector::gemm('N', 'N', m1.nr(), m2.nc(), m1.nc(),
@@ -757,7 +800,18 @@ inline matrix_m<T> operator*(const matrix_m<T> &m1, const matrix_m<T> &m2)
         LapackConnector::gemm_f('N', 'N', m1.nr(), m2.nc(), m1.nc(),
                                 T(1.0), m1.ptr(), m1.nr(), m2.ptr(), m2.nr(), T(0.0), prod.ptr(), prod.nr());
     }
+}
 
+template <typename T>
+inline matrix_m<T> operator*(const matrix_m<T> &m1, const matrix_m<T> &m2)
+{
+    assert(m1.nc() == m2.nr());
+    assert(m1.major() == m2.major());
+
+    auto major = m1.major();
+
+    matrix_m<T> prod(m1.nr(), m2.nc(), major);
+    matmul<T>(m1, m2, prod);
     return prod;
 }
 
@@ -828,6 +882,13 @@ inline matrix_m<T> transpose(const matrix_m<T> &m, bool conjugate = false)
     return m.get_transpose(conjugate);
 }
 
+//! get the conjugate of matrix
+template <typename T>
+inline matrix_m<T> conj(const matrix_m<T> &m)
+{
+    return m.copy().conj();
+}
+
 //! compute the determinant of a matrix
 template <typename T>
 T get_determinant(const matrix_m<T> &m)
@@ -850,6 +911,73 @@ T get_determinant(const matrix_m<T> &m)
         det *= (2*int(ipiv[i] == (i+1))-1) * m_copy(i, i);
     }
     return det;
+}
+
+template <typename T>
+matrix_m<std::complex<T>> power_hemat(matrix_m<std::complex<T>> &mat,
+                                      T power, bool filter_original,
+                                      const T &threshold = -1.e5)
+{
+    assert (mat.nr() == mat.nc());
+    const char jobz = 'V';
+    const char uplo = 'U';
+    const int n = mat.nr();
+    int nb;
+    if (matrix_m<T>::is_double)
+        nb = LapackConnector::ilaenv(1, "zheev", "VU", n, -1, -1, -1);
+    else
+        nb = LapackConnector::ilaenv(1, "cheev", "VU", n, -1, -1, -1);
+
+    int lwork = mat.nc() * (nb+1);
+    int info = 0;
+    T w[n], wpow[n];
+    T rwork[3*n-2];
+    std::complex<T> work[lwork];
+    if (mat.is_row_major())
+        LapackConnector::heev(jobz, uplo, n, mat.ptr(), n, w, work, lwork, rwork, info);
+    else
+        LapackConnector::heev_f(jobz, uplo, n, mat.ptr(), n, w, work, lwork, rwork, info);
+    bool is_int_power = fabs(power - int(power)) < 1e-8;
+    // debug
+    // for ( int i = 0; i != n; i++ )
+    // {
+    //     cout << w[i] << " ";
+    // }
+    // cout << endl;
+    // end debug
+    for ( int i = 0; i != n; i++ )
+    {
+        if (w[i] < 0 && w[i] > threshold && !is_int_power)
+            printf("Warning! kept negative eigenvalue with non-integer power: # %d ev = %f , pow = %f\n", i, w[i], power);
+        if (fabs(w[i]) < 1e-10 && power < 0)
+            printf("Warning! nearly-zero eigenvalue with negative power: # %d ev = %f , pow = %f\n", i, w[i], power);
+        if (w[i] < threshold)
+        {
+            wpow[i] = 0;
+            if (filter_original)
+                w[i] = 0;
+        }
+        else
+            wpow[i] = w[i];
+        wpow[i] = pow(wpow[i], power);
+    }
+    auto evconj = transpose(mat, true);
+    auto temp = evconj.copy();
+    for (int i = 0; i != n; i++)
+        temp.scale_row(i, wpow[i]);
+    auto pmat = mat * temp;
+    // recover the original matrix here
+    temp = mat.copy();
+    for (int i = 0; i != n; i++)
+        evconj.scale_row(i, w[i]);
+    matmul(temp, evconj, mat);
+    return pmat;
+}
+
+template <typename T>
+bool operator==(const matrix_m<T> &m1, const matrix_m<T> &m2)
+{
+    return m1.dataobj == m2.dataobj;
 }
 
 //! convert matrix into a string
@@ -932,9 +1060,11 @@ inline matrix_m<std::complex<T>> random_unitary(int n, MAJOR major = MAJOR::ROW)
     return matrix_m<std::complex<T>>(n, n, mat.ptr(), MAJOR::COL, major);
 }
 
-//! generate a random Hermitian matrix with selected eigenvalues
+//! generate a random Hermitian matrix with selected eigenvalues.
+//! when the number of provided eigenvalues is smaller than the dimension,
+//! padding_zero will be used as the missing eigenvalues
 template <typename T>
-inline matrix_m<std::complex<T>> random_he_selected_ev(int n, const vector<T> &evs, MAJOR major = MAJOR::ROW)
+inline matrix_m<std::complex<T>> random_he_selected_ev(int n, const vector<T> &evs, MAJOR major = MAJOR::ROW, const T& padding_zero = 1e-14)
 {
     const int nvec = evs.size();
     if (nvec == 0) return matrix_m<std::complex<T>>{0, 0, major};
@@ -942,7 +1072,7 @@ inline matrix_m<std::complex<T>> random_he_selected_ev(int n, const vector<T> &e
     auto eigvec = random_unitary<T>(n, major);
     auto eigvec_H = eigvec.get_transpose(true);
     for (int ie = 0; ie != n; ie++)
-        eigvec_H.scale_row(ie, ie < nvec? evs[ie]: +0.0);
+        eigvec_H.scale_row(ie, ie < nvec? evs[ie]: padding_zero);
     return eigvec * eigvec_H;
 }
 
@@ -1018,4 +1148,12 @@ void print_whole_matrix(const char *desc, const matrix_m<T> &mat)
             printf("\n");
         }
     }
+}
+
+template <typename T, typename Treal = typename to_real<T>::type>
+void print_matrix_mm_file(const matrix_m<T> &mat, const char *fn, Treal threshold = 1e-15, bool row_first = true)
+{
+    ofstream fs;
+    fs.open(fn);
+    print_matrix_mm(mat, fs, threshold, row_first);
 }

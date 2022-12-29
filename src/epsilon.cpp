@@ -1114,10 +1114,10 @@ atom_mapping<ComplexMatrix>::pair_t_old gather_vq_row_q(const int &I, const atpa
     return Vq_row;
 }
 
-map<double, atpair_k_cplx_mat_t>
+map<double, atom_mapping<std::map<Vector3_Order<double>, matrix_m<complex<double>>>>::pair_t_old>
 compute_Wc_freq_q(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, atpair_k_cplx_mat_t &coulmat_wc, const vector<std::complex<double>> &epsilon_mac_imagfreq)
 {
-    map<double, atpair_k_cplx_mat_t> Wc_freq_q;
+    map<double, atom_mapping<std::map<Vector3_Order<double>, matrix_m<complex<double>>>>::pair_t_old> Wc_freq_q;
     const int range_all = LIBRPA::atomic_basis_abf.nb_total;
     const auto part_range = LIBRPA::atomic_basis_abf.get_part_range();
 
@@ -1248,7 +1248,7 @@ compute_Wc_freq_q(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, atpa
                         {
                             (*wc_ptr)(i_mu, i_nu) = wc_all(part_range[Mu] + i_mu, part_range[Nu] + i_nu);
                         }
-                    Wc_freq_q[freq][Mu][Nu][q] = wc_ptr;
+                    Wc_freq_q[freq][Mu][Nu][q] = matrix_m<complex<double>>(n_mu, n_nu, wc_ptr->c, MAJOR::ROW, MAJOR::ROW);
                 }
             }
         }
@@ -1257,10 +1257,10 @@ compute_Wc_freq_q(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, atpa
     return Wc_freq_q;
 }
 
-map<double, atpair_k_cplx_mat_t>
+map<double, atom_mapping<std::map<Vector3_Order<double>, matrix_m<complex<double>>>>::pair_t_old>
 compute_Wc_freq_q_blacs(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, atpair_k_cplx_mat_t &coulmat_wc, const vector<std::complex<double>> &epsmac_LF_imagfreq)
 {
-    map<double, atpair_k_cplx_mat_t> Wc_freq_q;
+    map<double, atom_mapping<std::map<Vector3_Order<double>, matrix_m<complex<double>>>>::pair_t_old> Wc_freq_q;
     const complex<double> CONE{1.0, 0.0};
     const int n_abf = LIBRPA::atomic_basis_abf.nb_total;
     const auto part_range = LIBRPA::atomic_basis_abf.get_part_range();
@@ -1592,16 +1592,10 @@ compute_Wc_freq_q_blacs(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps
                 {
                     const auto &M = MN.first;
                     const auto &N = MN.second;
-                    shared_ptr<ComplexMatrix> wc_ptr = make_shared<ComplexMatrix>();
                     const auto n_mu = LIBRPA::atomic_basis_abf.get_atom_nb(M);
                     const auto n_nu = LIBRPA::atomic_basis_abf.get_atom_nb(N);
-                    wc_ptr->create(n_mu, n_nu);
-                    for ( int i_mu = 0; i_mu != n_mu; i_mu++ )
-                        for ( int i_nu = 0; i_nu != n_nu; i_nu++ )
-                        {
-                            (*wc_ptr)(i_mu, i_nu) = IJq_Wc.at(M).at({N, qa})(i_mu, i_nu);
-                        }
-                    Wc_freq_q[freq][M][N][q] = wc_ptr;
+                    Wc_freq_q[freq][M][N][q] = matrix_m<complex<double>>(
+                        n_mu, n_nu, IJq_Wc.at(M).at({N, qa}).data, MAJOR::ROW);
                 }
                 // for ( int i_mu = 0; i_mu != n_mu; i_mu++ )
                 //     for ( int i_nu = 0; i_nu != n_nu; i_nu++ )
@@ -1616,13 +1610,14 @@ compute_Wc_freq_q_blacs(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps
     return Wc_freq_q;
 }
 
-map<double, atpair_R_cplx_mat_t>
-CT_FT_Wc_freq_q(const map<double, atpair_k_cplx_mat_t> &Wc_freq_q,
+map<double, atom_mapping<std::map<Vector3_Order<int>, matrix_m<complex<double>>>>::pair_t_old>
+CT_FT_Wc_freq_q(const map<double, atom_mapping<std::map<Vector3_Order<double>, matrix_m<complex<double>>>>::pair_t_old> &Wc_freq_q,
                 const TFGrids &tfg, vector<Vector3_Order<int>> Rlist)
 {
-    map<double, atpair_R_cplx_mat_t> Wc_tau_R;
+    map<double, atom_mapping<std::map<Vector3_Order<int>, matrix_m<complex<double>>>>::pair_t_old> Wc_tau_R;
     if (!tfg.has_time_grids())
         throw logic_error("TFGrids object does not have time grids");
+    auto major = Wc_freq_q.cbegin()->second.cbegin()->second.cbegin()->second.cbegin()->second.major();
     const int ngrids = tfg.get_n_grids();
     for (auto R: Rlist)
     {
@@ -1648,8 +1643,8 @@ CT_FT_Wc_freq_q(const map<double, atpair_k_cplx_mat_t> &Wc_freq_q,
                                  Wc_tau_R.at(tau).at(Mu).count(Nu) &&
                                  Wc_tau_R.at(tau).at(Mu).at(Nu).count(R)))
                             {
-                                Wc_tau_R[tau][Mu][Nu][R] = make_shared<ComplexMatrix>();
-                                Wc_tau_R[tau][Mu][Nu][R]->create(n_mu, n_nu);
+                                // ensure same major
+                                Wc_tau_R[tau][Mu][Nu][R] = matrix_m<complex<double>>(n_mu, n_nu, major);
                             }
                             auto & WtR = Wc_tau_R[tau][Mu][Nu][R];
                             for (const auto &q_Wc: Nu_qWc.second)
@@ -1661,9 +1656,9 @@ CT_FT_Wc_freq_q(const map<double, atpair_k_cplx_mat_t> &Wc_freq_q,
                                     complex<double> kphase = complex<double>(cos(ang), sin(ang));
                                     complex<double> weight = kphase * f2t;
                                     if (q == q_bz)
-                                        *WtR += (*q_Wc.second) * weight;
+                                        WtR += q_Wc.second * weight;
                                     else
-                                        *WtR += conj(*q_Wc.second) * weight;
+                                        WtR += conj(q_Wc.second) * weight;
                                 }
                             }
                         }
@@ -1694,7 +1689,7 @@ CT_FT_Wc_freq_q(const map<double, atpair_k_cplx_mat_t> &Wc_freq_q,
                     auto iteR = std::find(Rlist.cbegin(), Rlist.cend(), R);
                     auto iR = std::distance(Rlist.cbegin(), iteR);
                     sprintf(fn, "Wc_Mu_%zu_Nu_%zu_iR_%zu_itau_%d.mtx", Mu, Nu, iR, itau);
-                    print_complex_matrix_mm(*Wc, fn);
+                    print_matrix_mm_file(Wc, fn);
                 }
             }
         }

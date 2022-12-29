@@ -38,6 +38,22 @@ void test_minmax()
     assert( ir == 1 && ic == 1);
 }
 
+void test_power_hemat()
+{
+    cout << "Run test_power_hemat" << endl;
+    const int n = 8;
+    auto hemat = random_he_selected_ev<double>(n, {1.0, 2.25, 4.0, 9.0}, MAJOR::ROW);
+    cout << "hemat" << endl << hemat;
+    const auto hemat_back = hemat.copy();
+    auto sqrt_hemat = power_hemat(hemat, 0.5, false);
+    cout << "hemat after power_hemat" << endl << hemat;
+    assert(hemat == hemat_back);
+    assert(hemat == sqrt_hemat * sqrt_hemat);
+    hemat.swap_to_col_major();
+    sqrt_hemat = power_hemat(hemat, 0.5, false);
+    assert(hemat == sqrt_hemat * sqrt_hemat);
+}
+
 void test_multiply()
 {
     matrix_m<double> m1({{1.0, 2.0}, {2.0, -1.0}}, MAJOR::ROW);
@@ -61,5 +77,6 @@ int main (int argc, char *argv[])
     test_constuctor();
     test_multiply();
     test_minmax();
+    test_power_hemat();
     return 0;
 }

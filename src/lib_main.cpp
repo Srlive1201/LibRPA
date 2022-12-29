@@ -260,7 +260,7 @@ int main(int argc, char **argv)
         auto exx = LIBRPA::Exx(meanfield, klist);
         exx.build_exx_orbital_energy(Cs, Rlist, period, VR);
         vector<std::complex<double>> epsmac_LF_imagfreq;
-        map<double, atpair_k_cplx_mat_t> Wc_freq_q;
+        map<double, atom_mapping<std::map<Vector3_Order<double>, matrix_m<complex<double>>>>::pair_t_old> Wc_freq_q;
         if (params.use_scalapack_gw_wc)
             Wc_freq_q = compute_Wc_freq_q_blacs(chi0, Vq, Vq_cut, epsmac_LF_imagfreq);
         else
@@ -280,7 +280,7 @@ int main(int argc, char **argv)
                         {
                             const int iq = std::distance(klist.begin(), std::find(klist.begin(), klist.end(), q_Wc.first));
                             sprintf(fn, "Wcfq_ifreq_%d_iq_%d_I_%zu_J_%zu_id_%d.mtx", ifreq, iq, I, J, mpi_comm_world_h.myid);
-                            print_complex_matrix_mm(*q_Wc.second, fn, 1e-15);
+                            print_matrix_mm_file(q_Wc.second, fn, 1e-15);
                         }
                     }
                 }
