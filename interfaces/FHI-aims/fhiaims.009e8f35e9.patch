@@ -1,0 +1,364 @@
+diff --git a/src/get_lvl_tricoeff_bravais.f90 b/src/get_lvl_tricoeff_bravais.f90
+index bbd5fd26b..e288c424e 100644
+--- a/src/get_lvl_tricoeff_bravais.f90
++++ b/src/get_lvl_tricoeff_bravais.f90
+@@ -59,8 +59,20 @@
+     character*150 :: info_str
+     character(*), parameter :: func = 'get_lvl_tricoeff_bravais'
+ 
++    integer :: i_c,j_c,k_c
++    real*8 :: dR
++    character(len=100) cFile, dcFile
++    ! threshold of maximal Cs/dCs elements
++    real*8, parameter :: thres_dump = 1d-14
++    real*8 :: Cs_maxval, dCs_maxval
++    logical :: dump_Cs, dump_dCs
++
+     write(info_str,'(2X,A)') "Computing the triple LVL expansion coefficents in real space ..."
+     call localorb_info(info_str)
++    write(info_str,'(2X,A)') "    along with the derivative ..."
++    if (use_rpa_force) then
++      call localorb_info(info_str)
++    endif
+ 
+     if(.not. allocated(coeff_3fn)) then
+       allocate(coeff_3fn(max_n_basis_sp,max_n_basis_sp,max_n_basbas_sp,2, n_cells_task), stat=info)
+@@ -74,6 +86,20 @@
+ 
+     lvl_tricoeff_bravais(:,:,:,:) = 0.d0
+ 
++    write(cFile, *) myid
++    cFile='Cs_data_'//trim(adjustl(cFile))//'.txt'
++    write(dcFile, *) myid
++    dcFile='dCs_data_'//trim(adjustl(dcFile))//'.txt'
++
++    open(1, file=cFile)
++    if (use_rpa_force) then
++      open(2, file=dcFile)
++    endif
++
++    write(1, *) n_atoms,n_cells
++    if (use_rpa_force) then
++      write(2, *) n_atoms,n_cells
++    endif
+     do i_atom_1 = 1, n_atoms, 1
+        i_species_1 = species(i_atom_1)
+        basis_off_1 = atom2basis_off(i_atom_1)
+@@ -117,6 +143,69 @@
+           do i_cell = 1, n_cells, 1
+              if(myid .ne. mod(i_cell, n_tasks)) cycle
+              i_cell_local = (i_cell-1)/n_tasks + 1
++             Cs_maxval = maxval(abs(coeff_3fn(:,:,:,1,i_cell_local)))
++             dCs_maxval = maxval(abs(d_coeff_3fn(:,:,:,1,:,i_cell_local)))
++             dump_Cs = .false.
++             dump_dCs = .false.
++             if (abs(Cs_maxval) .ge. thres_dump) dump_Cs = .true.
++             if (abs(dCs_maxval) .ge. thres_dump) dump_dCs = .true.
++
++             i_cell_1 = cell_index(i_cell, 1)
++             i_cell_2 = cell_index(i_cell, 2)
++             i_cell_3 = cell_index(i_cell, 3)
++             if (dump_Cs) write(1, *) i_atom_1, i_atom_2, i_cell_1, i_cell_2, i_cell_3, n_sp_basis_1, n_sp_basis_2, n_spbb_1
++             if (use_rpa_force .and. dump_dCs) then
++               write(2, *) i_atom_1, i_atom_2, i_cell_1, i_cell_2, i_cell_3, n_sp_basis_1, n_sp_basis_2, n_spbb_1
++             endif
++             if(myid.eq.mod(1,n_tasks)) then
++               if((i_cell == 1) .and. (i_atom_1 .eq. i_atom_2))  then
++                 do i_c=1, n_sp_basis_1,1
++                   do j_c=1, n_sp_basis_2,1
++                     do k_c=1,n_spbb_1,1
++                       if (dump_Cs) write(1,'(F20.15)') coeff_3fn(i_c,j_c,k_c,1,i_cell_local)/2.0
++                       if (use_rpa_force .and. dump_dCs) then
++                         write(2, '(3F20.15)') d_coeff_3fn(i_c,j_c,k_c,1,:,i_cell_local) / 2.0
++                       endif
++                     end do
++                   end do
++                 end do
++               else
++                 do i_c=1, n_sp_basis_1,1
++                   do j_c=1, n_sp_basis_2,1
++                     do k_c=1,n_spbb_1,1
++                       if (dump_Cs) write(1,'(F20.15)') coeff_3fn(i_c,j_c,k_c,1,i_cell_local)
++                       if (use_rpa_force .and. dump_dCs) then
++                         write(2, '(3F20.15)') d_coeff_3fn(i_c,j_c,k_c,1,:,i_cell_local)
++                       endif
++                     end do
++                   end do
++                 end do
++               end if
++             else
++               if((i_cell == 1) .and. (i_atom_1 .eq. i_atom_2)) then
++                 do i_c=1, n_sp_basis_1,1
++                   do j_c=1, n_sp_basis_2,1
++                     do k_c=1,n_spbb_1,1
++                       if (dump_Cs) write(1,'(F20.15)')coeff_3fn(i_c,j_c,k_c,1,i_cell_local)/2.0
++                       if (use_rpa_force .and. dump_dCs) then
++                         write(2, '(3F20.15)') d_coeff_3fn(i_c,j_c,k_c,1,:,i_cell_local) / 2.0
++                       endif
++                     end do
++                   end do
++                 end do
++               else
++                 do i_c=1, n_sp_basis_1,1
++                   do j_c=1, n_sp_basis_2,1
++                     do k_c=1,n_spbb_1,1
++                       if (dump_Cs) write(1,'(F20.15)')coeff_3fn(i_c,j_c,k_c,1,i_cell_local)
++                       if (use_rpa_force .and. dump_dCs) then
++                         write(2, '(3F20.15)') d_coeff_3fn(i_c,j_c,k_c,1,:,i_cell_local)
++                       endif
++                     end do
++                   end do
++                 end do
++               end if
++             end if
+ 
+              lvl_tricoeff_bravais(basis_off_1+1:basis_off_1+n_sp_basis_1, &
+              & basis_off_2+1:basis_off_2+n_sp_basis_2, bboff_1+1:bboff_1+n_spbb_1, i_cell_local) &
+@@ -127,7 +216,6 @@
+              & basis_off_2+1:basis_off_2+n_sp_basis_2, bboff_2+1:bboff_2+n_spbb_2, i_cell_local) &
+              & = coeff_3fn(1:n_sp_basis_1,1:n_sp_basis_2,1:n_spbb_2, 2, i_cell_local)
+             endif
+-
+ ! end loop over i_cell
+           enddo
+ 
+@@ -135,6 +223,10 @@
+        enddo
+ ! end loop over i_atom_1
+     enddo
++    close(1)
++    if (use_rpa_force) then
++      close(2)
++    endif
+ ! The on-site coefficients (which are stored in the first task) have to be halved
+ !    do i_cell = 1, n_cells, 1
+ !        if(myid .ne. mod(i_cell, n_tasks)) cycle
+diff --git a/src/main.f90 b/src/main.f90
+index df17d09da..a40a1758a 100644
+--- a/src/main.f90
++++ b/src/main.f90
+@@ -551,7 +551,7 @@
+       call dielectric_analysis ( converged_scf )
+     endif
+ 
+-   if(n_periodic > 0 .and. (use_rpa_ene .or. use_periodic_gw .or. use_cc).and.(.not.use_rpa_force)) then
++   if(n_periodic > 0 .and. (use_rpa_ene .or. use_periodic_gw .or. use_cc)) then
+     call cali_begin_region('post_scf_correlation_treatment_p0')
+     call post_scf_correlation_treatment_p0()
+     call cali_end_region('post_scf_correlation_treatment_p0')
+diff --git a/src/post_scf_correlation_treatment_p0.f90 b/src/post_scf_correlation_treatment_p0.f90
+index c7ae95dcd..ee22fc1ee 100644
+--- a/src/post_scf_correlation_treatment_p0.f90
++++ b/src/post_scf_correlation_treatment_p0.f90
+@@ -32,6 +32,7 @@
+       use lvl_tricoeff
+       use KS_optical_properties, only : KS_dielectric_calculation_imagfreq
+       use pbc_lists, only: k_phase, n_cells, inv_irk_point_mapping
++      use pbc_lists, only : irk_weight, irk_point_mapping
+       use scalapack_wrapper,     only : mxld, mxcol, eigenvec, eigenvec_complex
+       ! use CC4S_interface, only:output_CC4S_vertex_Gamma
+       use xc_library, only: xc__hf
+@@ -107,7 +108,13 @@
+           func='post_scf_correlation_treatment_p0'
+       ! for parallel threads
+       integer :: omp_get_max_threads, omp_get_thread_num, nrThreads, myThreadId, i_thread ,mode
+-
++      integer :: ks_i,ks_j,ks_k,ks_l,i_k
++      real*8, allocatable :: lvl_tricoeff_bravais(:,:,:,:)
++      real*8 :: k_vec(3)
++      character(len=100) eFile
++      character(len=100) vFile
++      real*8 :: nt_d_nk
++      integer :: max_irk_points_task
+       nrThreads   = 1
+       myThreadId = 1
+ !$    nrThreads = omp_get_max_threads()
+@@ -183,11 +190,16 @@
+            if(.not.use_hf_kspace_with_rpa)then
+              call calculate_fock_matrix%cleanup
+           if (use_rpa_force) then
++            if(.not.allocated(d_exx_ene1)) then ! to bypass the compute_forces tag
++              allocate(d_exx_ene1(3, n_atoms))
++              d_exx_ene1 = 0.0d0
++            endif
+          call calculate_fock_matrix%init(.true., .false.)                                                   
+          call calculate_fock_matrix%evaluate(KS_eigenvector,&
+                    &KS_eigenvector_complex,occ_numbers,exx_ene, d_exx_ene1, .true., .false.)
+            my_exx=-exx_ene   ! a minus sign belong to exchange energy
+            else
++            print*, "not in use_rpa_force calculate_fock_matrix%evaluate d_exx_ene"
+              call calculate_fock_matrix%init(.false., .false.)
+              call calculate_fock_matrix%evaluate(KS_eigenvector,&
+                  &KS_eigenvector_complex,occ_numbers,exx_ene, d_exx_ene, .false., .false.)
+@@ -253,7 +265,123 @@ end if
+            write(use_unit,'(2X,A)') "Finished with initialization of Coulomb interaction matrix ..."
+            write(use_unit,*)
+         endif
++!shirong add 2021-01-19
++        open(1, file='band_out')
++        write(1,*)n_k_points
++        write(1,*)n_spin
++        write(1,*)n_states
++        write(1,*)n_basis
++        write(1,*)chemical_potential
++        do i_k_point = 1,n_k_points,1
++          do i_spin = 1, n_spin, 1
++            write(1,*)i_k_point,i_spin
++            do i_state = 1, n_states, 1
++                write(1,'(2X,I5,6X,F8.5,5X,F17.9,4X,F15.5)') &
++                     i_state, occ_numbers(i_state, i_spin, i_k_point), &
++                     (KS_eigenvalue(i_state, i_spin, i_k_point)), &
++                     (KS_eigenvalue(i_state, i_spin, i_k_point)*hartree)
++             end do
++          end do
++        end do
++        close(1)
++        ! print *, ' INFO in post_scf ',n_basis,n_states, n_spin,n_k_points_task,n_k_points
++        ! print *, ' KS_eigenvector  size ',size(KS_eigenvector)
++        ! print *, ' KS_eigenvector  dim1 ',size(KS_eigenvector,dim=1)
++        ! print *, ' KS_eigenvector  dim2 ',size(KS_eigenvector,dim=2)
++        ! print *, ' KS_eigenvector  dim3 ',size(KS_eigenvector,dim=3)
++        ! print *, ' KS_eigenvector  dim4 ',size(KS_eigenvector,dim=4)
++        i_k=0
++
++        write(eFile,*)myid
++        eFile='KS_eigenvector_'//trim(adjustl(eFile))//'.txt'
++
++       ! write(2,*)'KS_eigenvector dim',real_eigenvectors,n_basis,n_states, n_spin,n_k_points_task
++        nt_d_nk=n_tasks*1.d0/n_k_points
++        open(2,file=eFile)
++        if(use_scalapack) then
++        do i_k_point=1,n_k_points
++          if(myid == CEILING((i_k_point-1)*nt_d_nk)) then
++            write(2,*)i_k_point
++            if(real_eigenvectors) then
++              do ks_i=1, n_basis,1
++                do ks_j=1, n_states,1
++                  do ks_k=1,n_spin,1
++                    write(2,'(2F24.15)')KS_eigenvector(ks_i,ks_j,ks_k,1),0.d0
++                  end do
++                end do
++              end do
++            else
++              do ks_i=1, n_basis,1
++                do ks_j=1, n_states,1
++                  do ks_k=1,n_spin,1
++                    write(2,'(2F24.15)')KS_eigenvector_complex(ks_i,ks_j,ks_k,1)
++                  end do
++                end do
++              end do
++            end if
++          end if
++        end do
++        else
++        do i_k_point = 1, n_k_points
++          if(myid == MOD(i_k_point, n_tasks)  .and. myid <= n_k_points) then
++            i_k=i_k+1
++            write(2,*)i_k_point
++            if(real_eigenvectors) then
++              do ks_i=1, n_basis,1
++                do ks_j=1, n_states,1
++                  do ks_k=1,n_spin,1
++                    write(2,'(2F24.15)')KS_eigenvector(ks_i,ks_j,ks_k,i_k),0.d0
++                  end do
++                end do
++              end do
++            else
++              do ks_i=1, n_basis,1
++                do ks_j=1, n_states,1
++                  do ks_k=1,n_spin,1
++                    write(2,'(2F24.15)')KS_eigenvector_complex(ks_i,ks_j,ks_k,i_k)
++                  end do
++                end do
++              end do
++            end if
++          end if
++        end do
++        end if
++        close(2)
++
++        open(4,file='stru_out')
++        write(4,*)lattice_vector(:,1)
++        write(4,*)lattice_vector(:,2)
++        write(4,*)lattice_vector(:,3)
++        write(4,*)recip_lattice_vector(:,1)
++        write(4,*)recip_lattice_vector(:,2)
++        write(4,*)recip_lattice_vector(:,3)
++        write(4,*)n_k_points_xyz(:)
++        do i_k_point = 1, n_k_points, 1
++          k_vec = matmul(recip_lattice_vector,k_point_list(i_k_point,:))
++          write(4,*)k_vec
++        end do
++        do i_k_point = 1, n_k_points, 1
++          write(4,*) inv_irk_point_mapping(irk_point_mapping(i_k_point))
++        end do
++
++
++
++       ! print*, 'post_scf n_cells  ',n_cells,'      n_task  ',n_tasks
++        if(mod(n_cells, n_tasks).eq.0) then
++          n_cells_task = n_cells/n_tasks
++        else
++          n_cells_task = n_cells/n_tasks+1
++        endif
++       ! print *, 'post_scf  n_cell_tasks   ', n_cells_task
++        if(.not. allocated(lvl_tricoeff_bravais)) then
++          allocate(lvl_tricoeff_bravais(n_basis,n_basis,n_basbas,n_cells_task),stat=info)
++          call check_allocation(info,'lvl_tricoeff_bravais',func)
++        endif
++        call get_lvl_tricoeff_bravais(n_cells_task, lvl_tricoeff_bravais)
+ 
++        if(allocated(lvl_tricoeff_bravais)) then
++          deallocate(lvl_tricoeff_bravais)
++        endif
+ !        if(n_k_points.gt.1) then
+            !ACHTUNG: this section can be removed by removing lvl_tricoef_recip* from evaluate_exchange_matr_kspace_p0!!
+ !           allocate(lvl_tricoeff_recip1(max_n_basbas_sp,n_basis,n_basis,n_k_points_min),stat=info) 
+@@ -394,6 +522,47 @@ end if
+ 
+ ! end of if(.not. gamma_cut_coulomb) 
+        endif
++       ! librpa interface by minye zhang
++       ! export coulomb_matr_blacs here to take account of both RPA and GW
++       write(vFile,*)myid
++       vFile='coulomb_mat_'//trim(adjustl(vFile))//'.txt'
++       open(11,file=vFile)
++       if (mod(n_irk_points,n_tasks_irkq).eq.0) then
++          max_irk_points_task=n_irk_points/n_tasks_irkq
++       else
++          max_irk_points_task=n_irk_points/n_tasks_irkq+1
++       end if
++       write(11,*)max_irk_points_task
++       do i_irk_point_local = 1, max_irk_points_task
++         i_irk_point=n_tasks_irkq*(i_irk_point_local-1) + myid_irkq + 1
++         write(11,*)n_basbas,lbb_row,ubb_row,lbb_col,ubb_col
++         write(11,*)inv_irk_point_mapping(i_irk_point),irk_weight(i_irk_point)
++         do i_bb_1=lbb_row,ubb_row
++            do i_bb_2 = lbb_col,ubb_col
++               write(11,'(2F20.15)')coulomb_matr_blacs(i_bb_1,i_bb_2,i_irk_point_local)
++            end do
++         end do
++       end do
++       close(11)
++       ! export truncated Coulomb as well for GW (i.e. synthesizing W from epsilon)
++       if(use_periodic_gw) then
++         write(vFile,*)myid
++         vFile='coulomb_cut_'//trim(adjustl(vFile))//'.txt'
++         open(11,file=vFile)
++         write(11,*)max_irk_points_task
++         do i_irk_point_local = 1, max_irk_points_task
++           i_irk_point=n_tasks_irkq*(i_irk_point_local-1) + myid_irkq + 1
++           write(11,*)n_basbas,lbb_row,ubb_row,lbb_col,ubb_col
++           write(11,*)inv_irk_point_mapping(i_irk_point),irk_weight(i_irk_point)
++           do i_bb_1=lbb_row,ubb_row
++              do i_bb_2 = lbb_col,ubb_col
++                 write(11,'(2F20.15)')coulomb_cut_blacs(i_bb_1,i_bb_2,i_irk_point_local)
++              end do
++           end do
++         end do
++         close(11)
++       endif
++       ! end librpa interface by minye zhang
+        call perfoff
+ ! end of if(.not.use_hf_realspace)
+    endif
