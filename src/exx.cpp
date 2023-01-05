@@ -246,10 +246,10 @@ void Exx::build_exx_orbital_energy_LibRI(const atpair_R_mat_t &LRI_Cs,
                 {
                     const auto& I = T.first;
                     const auto& J = T1.first.first;
-                    const auto& Ra =  T1.first.second;
+                    const auto& Ra = T1.first.second;
                     double ang = kfrac * Vector3_Order<int>{Ra[0], Ra[1], Ra[2]} * TWO_PI;
                     complex<double> kphase = complex<double>(cos(ang), sin(ang));
-                    auto alpha = kphase / double(n_kpts);
+                    const auto alpha = kphase / double(n_kpts);
                     collect_block_from_IJ_storage(Hexx_nao_nao, desc_nao_nao,
                                                   atomic_basis_wfc, atomic_basis_wfc,
                                                   I, J, alpha, T1.second.ptr(), MAJOR::ROW);
@@ -258,7 +258,7 @@ void Exx::build_exx_orbital_energy_LibRI(const atpair_R_mat_t &LRI_Cs,
             // printf("%s\n", str(Hexx_nao_nao).c_str());
             const auto &wfc_isp_k = this->mf_.get_eigenvectors()[isp][ik];
             blacs_ctxt_world_h.barrier();
-            auto wfc_block = get_local_mat(wfc_isp_k.c, MAJOR::ROW, desc_nband_nao, MAJOR::COL);
+            const auto wfc_block = get_local_mat(wfc_isp_k.c, MAJOR::ROW, desc_nband_nao, MAJOR::COL).conj();
             // printf("%s\n", str(wfc_block).c_str());
             // printf("%s\n", desc_nao_nao.info_desc().c_str());
             // printf("%s\n", desc_nband_nao.info_desc().c_str());
@@ -277,6 +277,7 @@ void Exx::build_exx_orbital_energy_LibRI(const atpair_R_mat_t &LRI_Cs,
                                           Hexx_nband_nband.ptr(), 1, 1, desc_nband_nband.desc,
                                           Hexx_nband_nband_fb.ptr(), 1, 1, desc_nband_nband_fb.desc,
                                           desc_nband_nband_fb.ictxt());
+            // cout << "Hexx_nband_nband_fb isp " << isp  << " ik " << ik << endl << Hexx_nband_nband_fb;
             if (LIBRPA::blacs_ctxt_world_h.myid == 0)
                 for (int ib = 0; ib != n_bands; ib++)
                     this->Eexx[isp][ik][ib] = Hexx_nband_nband_fb(ib, ib).real();
