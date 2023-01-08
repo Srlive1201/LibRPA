@@ -556,7 +556,7 @@ public:
         return m_trans;
     }
 
-    void transpose(bool conjugate = false)
+    matrix_m<T>& transpose(bool conjugate = false)
     {
         if (nr() == nc())
         {
@@ -583,9 +583,10 @@ public:
             }
         }
         if (conjugate) conj();
+        return *this;
     }
 
-    matrix_m<cplx_t> to_complex()
+    matrix_m<cplx_t> to_complex() const
     {
         matrix_m<cplx_t> m(nr(), nc(), major_);
         for (int i = 0; i < size(); i++)
@@ -593,7 +594,7 @@ public:
         return m;
     }
 
-    matrix_m<real_t> get_real()
+    matrix_m<real_t> get_real() const
     {
         matrix_m<real_t> m(nr(), nc(), major_);
         for (int i = 0; i < size(); i++)
@@ -601,7 +602,7 @@ public:
         return m;
     }
 
-    matrix_m<real_t> get_imag()
+    matrix_m<real_t> get_imag() const
     {
         matrix_m<real_t> m(nr(), nc(), major_);
         for (int i = 0; i < size(); i++)
