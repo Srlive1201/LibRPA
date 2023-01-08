@@ -15,6 +15,7 @@ std::vector<Vector3_Order<double>> kfrac_list;
 std::vector<int> irk_point_id_mapping;
 map<Vector3_Order<double>, vector<Vector3_Order<double>>> map_irk_ks;
 Matrix3 latvec;
+std::array<std::array<double, 3>, 3> lat_array;
 Matrix3 G;
 
 void READ_AIMS_STRU(const int& n_kpoints, const std::string &file_path)
@@ -37,6 +38,9 @@ void READ_AIMS_STRU(const int& n_kpoints, const std::string &file_path)
     latvec.e33 = stod(z);
     latvec /= ANG2BOHR;
     // latvec.print();
+    lat_array[0] = {latvec.e11,latvec.e12,latvec.e13};
+    lat_array[1] = {latvec.e21,latvec.e22,latvec.e23};
+    lat_array[2] = {latvec.e31,latvec.e32,latvec.e33};
 
     infile >> x >> y >> z;
     G.e11 = stod(x);
