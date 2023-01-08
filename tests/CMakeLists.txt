@@ -29,6 +29,7 @@ if (NOT BUILD_LIBRARY)
           )
   target_sources(test_meanfield PRIVATE
           ../src/meanfield.cpp
+          ../src/vector3_order.cpp
           ../src/constants.cpp
           ../src/complexmatrix.cpp
           ../src/matrix.cpp
