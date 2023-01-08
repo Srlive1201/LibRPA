@@ -44,6 +44,7 @@ list(APPEND sources
         ${CMAKE_CURRENT_BINARY_DIR}/envs.cpp
         epsilon.cpp
         exx.cpp
+        gw.cpp
         # Gauss_Quadrature.cpp
         input.cpp
         mathtools.cpp
