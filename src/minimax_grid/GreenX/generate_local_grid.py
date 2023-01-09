@@ -188,6 +188,8 @@ def parser():
     p.add_argument("erange", type=float, help="energy range")
     p.add_argument("--check-delta", action="store_true",
                    help="check the Delta matrix of cosine and sine transform")
+    p.add_argument("--delta-use-f2t-t2f", action="store_true",
+                   help="Delta = f2t.t2f, default t2f.f2t")
     p.add_argument("--check-mat", action="store_true",
                    help="check the transform matrices")
     p.add_argument("--no-show", action="store_true")
@@ -229,18 +231,26 @@ def main():
 
     # internal check for Delta matrix
     if args.check_delta:
+        if args.delta_use_f2t_t2f:
+            prods = [np.matmul(cos_f2t, cos_t2f), np.matmul(sin_f2t, sin_t2f)]
+        else:
+            prods = [np.matmul(cos_t2f, cos_f2t), np.matmul(sin_t2f, sin_f2t)]
+        deltas = [np.absolute(np.identity(ngrids) - x) for x in prods]
+        vmax = np.max(deltas)
         fig, axs = plt.subplots(1, 2, figsize=(12, 6))
         fig.suptitle("t2f.f2t, ngrid = %d, erange = %f" % (ngrids, erange))
-        for title, ax, mat in zip(["Cos", "Sin"],
-                                  axs, [np.matmul(cos_t2f, cos_f2t),
-                                  np.matmul(sin_t2f, sin_f2t)]):
-            delta = np.absolute(np.identity(ngrids) - mat)
+        for title, ax, delta in zip(["Cos", "Sin"], axs, deltas):
             # print(delta)
             norm = np.linalg.norm(delta)
-            vmax = np.max(delta)
+            # vmax = np.max(delta)
             print("max diff element: %f, 2-norm of %s trans: %f" % (vmax, title, norm))
             ax.set_title(title + " Delta, 2-norm: %.4f" % norm)
             c = ax.matshow(delta, cmap="Blues", vmin=0, vmax=vmax)
+            for (i, j), z in np.ndenumerate(delta):
+                if z < 0.01 * vmax:
+                    continue
+                ax.text(j, i, '{:0.2f}'.format(z), ha='center', va='center',
+                        bbox=dict(boxstyle='round', facecolor='white', edgecolor='0.3'))
             fig.colorbar(c, ax=ax, fraction=0.046, pad=0.04)
         fig.tight_layout()
         if args.plot:
