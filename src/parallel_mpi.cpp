@@ -722,4 +722,67 @@ vector<pair<int, int>> dispatcher(int i1st, int i1ed, int i2st, int i2ed,
     return ilist;
 }
 
+vector<pair<int,int>> dispatch_upper_trangular_tasks(const int &natoms, const int &myid, const int &nprows, const int &npcols, const int &myprow, const int &mypcol)
+{
+    // int myid = blacs_ctxt_world_h.myid;
+    // int nprows = blacs_ctxt_world_h.nprows;
+    // int npcols = blacs_ctxt_world_h.npcols;
+    // int myprow = blacs_ctxt_world_h.myprow;
+    // int mypcol = blacs_ctxt_world_h.mypcol;
+
+    int rev_myprow = nprows - 1 - myprow;
+    int rev_mypcol = npcols - 1 - mypcol;
+
+    bool flag_former=true;
+    if(myprow>rev_myprow)
+    {
+        flag_former=false;
+    }
+    else if(myprow == rev_myprow && mypcol> rev_mypcol)
+    {
+        flag_former=false;
+    }
+
+    auto list_row = dispatcher(0, natoms, myprow, nprows, true );
+    auto list_col = dispatcher(0, natoms, mypcol, npcols, true );
+    auto list_rev_row = dispatcher(0, natoms, rev_myprow, nprows, true );
+    auto list_rev_col = dispatcher(0, natoms, rev_mypcol, npcols, true );
+
+    auto loc_task= pick_upper_trangular_tasks(list_row,list_col);
+    auto rev_loc_task =pick_upper_trangular_tasks(list_rev_row,list_rev_col);
+
+    vector<pair<int,int>> combine_task, final_loc_task;
+    if(myprow == rev_myprow && mypcol==rev_mypcol)
+    {
+        return loc_task;
+    }
+    else if(flag_former)
+    {
+        combine_task.insert(combine_task.end(),loc_task.begin(),loc_task.end());
+        combine_task.insert(combine_task.end(),rev_loc_task.begin(),rev_loc_task.end());
+        int n_half_task= combine_task.size()/2;
+        final_loc_task.insert(final_loc_task.end(),combine_task.begin(),combine_task.begin()+n_half_task);
+    }
+    else
+    {
+        combine_task.insert(combine_task.end(),rev_loc_task.begin(),rev_loc_task.end());
+        combine_task.insert(combine_task.end(),loc_task.begin(),loc_task.end());
+        int n_half_task= combine_task.size()/2;
+        final_loc_task.insert(final_loc_task.end(),combine_task.begin()+n_half_task,combine_task.end());
+    }
+    // for(auto &iap:final_loc_task)
+    //     printf(" loc_task  myid: %d, myprow ,mypcol: %d, %d  task-pair ( %d, %d ) \n",myid, myprow,mypcol, iap.first, iap.second);
+    return final_loc_task;
+}
+
+vector<pair<int,int>> pick_upper_trangular_tasks(vector<int> list_row, vector<int> list_col)
+{
+    vector<pair<int,int>> loc_task;
+    for(auto &lr:list_row)
+        for(auto &lc:list_col)
+            if(lr<=lc)
+                loc_task.push_back(pair<int,int>(lr,lc));
+    return loc_task;
+}
+
 Parallel_MPI para_mpi;

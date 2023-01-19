@@ -10,7 +10,7 @@
 #include <RI/physics/Exx.h>
 // #include "print_stl.h"
 #endif
-
+using namespace RI;
 namespace LIBRPA
 {
 
@@ -110,7 +110,7 @@ void Exx::build_exx_orbital_energy_LibRI(const atpair_R_mat_t &LRI_Cs,
     if (mpi_comm_world_h.is_root())
         printf("Computing EXX orbital energy using LibRI\n");
     mpi_comm_world_h.barrier();
-    ::Exx<int, int, 3, double> exx_libri;
+    RI::Exx<int, int, 3, double> exx_libri;
     map<int,std::array<double,3>> atoms_pos;
     for(int i=0;i!=atom_mu.size();i++)
         atoms_pos.insert(pair<int,std::array<double,3>>{i,{0,0,0}});

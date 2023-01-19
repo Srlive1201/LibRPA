@@ -124,7 +124,7 @@ void handle_KS_file(const string &file_path, MeanField &mf)
         //         }
     }}
 
-size_t READ_AIMS_Cs(const string &dir_path, double threshold)
+size_t READ_AIMS_Cs(const string &dir_path, double threshold,const vector<atpair_t> &local_atpair)
 {
     size_t cs_discard = 0;
     // cout << "Begin to read Cs" << endl;
@@ -137,7 +137,7 @@ size_t READ_AIMS_Cs(const string &dir_path, double threshold)
     {
         string fm(ptr->d_name);
         if (fm.find("Cs_data") == 0)
-            cs_discard += handle_Cs_file(fm, threshold);
+            cs_discard += handle_Cs_file(fm, threshold,local_atpair);
     }
     closedir(dir);
     dir = NULL;
@@ -158,8 +158,31 @@ size_t READ_AIMS_Cs(const string &dir_path, double threshold)
     return cs_discard;
 }
 
-size_t handle_Cs_file(const string &file_path, double threshold)
+size_t get_natom_ncell_from_first_Cs_file(const string file_path)
 {
+    cout<<file_path<<endl;
+    string natom_s, ncell_s;
+    ifstream infile;
+    infile.open(file_path);
+    infile >> natom_s >> ncell_s;
+    // cout<<"  natom_s:"<<natom_s<<"  ncell_s: "<<ncell_s<<endl;
+    natom = stoi(natom_s);
+    ncell = stoi(ncell_s);
+    // printf("natom: %d   ncell: %d\n",natom,ncell);
+    return natom;
+}
+
+
+size_t handle_Cs_file(const string &file_path, double threshold,const vector<atpair_t> &local_atpair)
+{
+    
+    set<size_t> loc_atp_index;
+    for(auto &lap:local_atpair)
+    {
+        loc_atp_index.insert(lap.first);
+        loc_atp_index.insert(lap.second);
+    }
+    // cout<<"READING Cs from file: "<<file_path<<"  Cs_first_size: "<<loc_atp_index.size()<<endl;
     // map<size_t,map<size_t,map<Vector3_Order<int>,std::shared_ptr<matrix>>>> Cs_m;
     size_t cs_discard = 0;
     string natom_s, ncell_s, ia1_s, ia2_s, ic_1, ic_2, ic_3, i_s, j_s, mu_s, Cs_ele;
@@ -207,9 +230,10 @@ size_t handle_Cs_file(const string &file_path, double threshold)
                     //     (*cs_ptr)(i * n_j + j, mu) = 1.0;
                     // }
                 }
-
+        // if(!loc_atp_index.count(ia1))
+        //     continue;
         // if (box == Vector3_Order<int>({0, 0, 1}))continue;
-        if ((*cs_ptr).absmax() >= threshold)
+        if (loc_atp_index.count(ia1) && (*cs_ptr).absmax() >= threshold )
             Cs[ia1][ia2][box] = cs_ptr;
         else
             cs_discard++;
@@ -501,7 +525,7 @@ void erase_Cs_from_local_atp(atpair_R_mat_t &Cs, vector<atpair_t> &local_atpair)
     //         Cs.erase(Ip.first);
     //     }
     malloc_trim(0);
-    printf("| process %d, size of Cs after erase: %lu,  max_size: %zu\n", LIBRPA::mpi_comm_world_h.myid, Cs.size(), Cs.max_size());
+    printf("| process %d, size of Cs after erase: %lu\n", LIBRPA::mpi_comm_world_h.myid, Cs.size());
 }
 
 // TODO: implement the wrapper of all input readers

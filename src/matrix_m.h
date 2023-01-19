@@ -869,3 +869,30 @@ void print_matrix_mm(const matrix_m<T> &mat, ostream &os, Treal threshold = 1e-1
                 }
         }
 }
+
+template <typename T, typename Treal = typename to_real<T>::type>
+void print_whole_matrix(const char *desc, const matrix_m<T> &mat)
+{
+    int nr = mat.nr();
+    int nc = mat.nc();
+    printf("\n %s\n", desc);
+    printf("nr = %d, nc = %d\n", nr, nc);
+    if(is_complex<T>())
+    {
+        for (int i = 0; i < nr; i++)
+        {
+            for (int j = 0; j < nc; j++)
+                printf("%10.6f,%9.6f ", mat.c[i * nc + j].real(), mat.c[i * nc + j].imag());
+            printf("\n");
+        }
+    }
+    else
+    {
+        for (int i = 0; i < nr; i++)
+        {
+            for (int j = 0; j < nc; j++)
+                printf("%10.6f", mat.c[i * nc + j].real());
+            printf("\n");
+        }
+    }
+}

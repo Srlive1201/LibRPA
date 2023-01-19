@@ -26,7 +26,7 @@
 using LIBRPA::mpi_comm_world_h;
 using LIBRPA::parallel_type;
 using LIBRPA::chi_parallel_type;
-
+using namespace RI;
 void Chi0::build(const atpair_R_mat_t &LRI_Cs,
                    const vector<Vector3_Order<int>> &Rlist,
                    const Vector3_Order<int> &R_period,
@@ -246,7 +246,7 @@ void Chi0::build_chi0_q_space_time_LibRI_routing(const atpair_R_mat_t &LRI_Cs,
 
     std::array<int,3> period_array{R_period.x,R_period.y,R_period.z};
 
-    RPA<int,int,3,double> rpa;
+    RI::RPA<int,int,3,double> rpa;
     rpa.set_parallel(MPI_COMM_WORLD, atoms_pos,lat_array,period_array);
     rpa.set_csm_threshold(params.libri_chi0_threshold_CSM);
     // divide the whole Cs and distribute to each process
@@ -513,7 +513,7 @@ void Chi0::build_chi0_q_space_time_atom_pair_routing(const atpair_R_mat_t &LRI_C
     mpi_comm_world_h.barrier();
     omp_lock_t chi0_lock;
     omp_init_lock(&chi0_lock);
-    // double t_chi0_begin = omp_get_wtime();
+    double t_chi0_begin = omp_get_wtime();
 #pragma omp parallel
     {
 #pragma omp for schedule(dynamic)
@@ -571,6 +571,10 @@ void Chi0::build_chi0_q_space_time_atom_pair_routing(const atpair_R_mat_t &LRI_C
             omp_unset_lock(&chi0_lock);
         }
     }
+    mpi_comm_world_h.barrier();
+    double t_chi0_end= omp_get_wtime();
+    if(mpi_comm_world_h.is_root())
+        printf("| total chi0 time: %f\n",t_chi0_end-t_chi0_begin);
 }
 
 matrix Chi0::compute_chi0_s_munu_tau_R(const atpair_R_mat_t &LRI_Cs,

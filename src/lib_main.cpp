@@ -3,6 +3,8 @@
 #include <malloc.h>
 #include "scalapack_connector.h"
 #include <set>
+#include <RI/distribute/Distribute_Equally.h>
+
 int main(int argc, char **argv)
 {
     using namespace LIBRPA;
@@ -89,8 +91,8 @@ int main(int argc, char **argv)
 
     READ_AIMS_EIGENVECTOR("./", meanfield);
 
-    READ_AIMS_Cs("./", params.cs_threshold);
-
+    
+    natom=get_natom_ncell_from_first_Cs_file();
     tot_atpair = generate_atom_pair_from_nat(natom, false);
     tot_atpair_ordered = generate_atom_pair_from_nat(natom, true);
 
@@ -112,23 +114,48 @@ int main(int argc, char **argv)
     // vector<atpair_t> local_atpair;
     if(chi_parallel_type == parallel_type::ATOM_PAIR)
     {
-        local_atpair = dispatch_vector(tot_atpair, mpi_comm_world_h.myid, mpi_comm_world_h.nprocs, true);
+        // vector<int> atoms_list(natom);
+        // for(int iat=0;iat!=natom;iat++)
+        //     atoms_list[iat]=iat;
+        // std::array<int,3> period_arr{kv_nmp[0], kv_nmp[1], kv_nmp[2]};
+        // std::pair<std::vector<int>, std::vector<std::vector<std::pair<int, std::array<int, 3>>>>> list_loc_atp
+        // = RI::Distribute_Equally::distribute_atoms(mpi_comm_world_h.comm, atoms_list, period_arr, 2, false);
+        // // for(auto &atp:list_loc_atp.first)
+        // //     printf("| myid: %d   atp.first: %d\n",mpi_comm_world_h.myid,atp);
+        // // for(auto &atps:list_loc_atp.second)
+        // //     printf("| myid: %d   atp.second: %d\n",mpi_comm_world_h.myid,atps);
+        // std::ofstream ofs("out."+std::to_string(RI::MPI_Wrapper::mpi_get_rank(MPI_COMM_WORLD)));
+        // for(auto &af:list_loc_atp.first)
+		//     ofs<<af<<"  ";
+		// ofs<<endl;
+        // for( auto &a1 : list_loc_atp.second)
+        //     for(auto &a2:a1)
+        //         ofs<<a2.first<<"  ("<<a2.second[0]<<", "<<a2.second[1]<<", "<<a2.second[2]<<" )"<<endl;
+        auto trangular_loc_atpair= dispatch_upper_trangular_tasks(natom,blacs_ctxt_world_h.myid,blacs_ctxt_world_h.nprows,blacs_ctxt_world_h.npcols,blacs_ctxt_world_h.myprow,blacs_ctxt_world_h.mypcol);
+        //local_atpair = dispatch_vector(tot_atpair, mpi_comm_world_h.myid, mpi_comm_world_h.nprocs, true);
+        for(auto &iap:trangular_loc_atpair)
+            local_atpair.push_back(iap);
         printf("| process %d , local_atom_pair size:  %zu\n", mpi_comm_world_h.myid, local_atpair.size());
+        
+        READ_AIMS_Cs("./", params.cs_threshold,local_atpair );
+        printf("| process %d, size of Cs from local_atpair: %lu\n", LIBRPA::mpi_comm_world_h.myid, Cs.size());
         // for(auto &ap:local_atpair)
-        //     printf(" |process %d , local_atom_pair:  %d,  %d\n",para_mpi.get_myid(),ap.first,ap.second);
+        //     printf("   |process %d , local_atom_pair:  %d,  %d\n", mpi_comm_world_h.myid,ap.first,ap.second);
         READ_Vq_Row("./", "coulomb_mat", params.vq_threshold, Vq, local_atpair);
     }
     else
     {
+        local_atpair = dispatch_vector(tot_atpair, mpi_comm_world_h.myid, mpi_comm_world_h.nprocs, true);
+        READ_AIMS_Cs("./", params.cs_threshold,local_atpair );
+        printf("| process %d, size of Cs from local_atpair: %lu\n", LIBRPA::mpi_comm_world_h.myid, Cs.size());
         READ_Vq_Full("./", "coulomb_mat", params.vq_threshold, Vq); 
-        local_atpair = get_atom_pair(Vq);
     }
     mpi_comm_world_h.barrier();
     // malloc_trim(0);
     // para_mpi.mpi_barrier();
     // if(para_mpi.is_master())
     //     system("free -m");
-    erase_Cs_from_local_atp(Cs,local_atpair);
+    //erase_Cs_from_local_atp(Cs,local_atpair);
     // malloc_trim(0);
     // para_mpi.mpi_barrier();
     // if(para_mpi.is_master())

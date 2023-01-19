@@ -6,6 +6,8 @@
 #include <vector>
 #include <utility>
 #include <algorithm>
+#include <parallel_mpi.h>
+#include <unistd.h>
 
 using std::map;
 using std::pair;
@@ -14,7 +16,7 @@ using std::vector;
 using std::ifstream;
 using std::endl;
 using std::cout;
-
+using LIBRPA::mpi_comm_world_h;
 const string minimax_grid_path = string(source_dir) + "/minimax_grid";
 const string GX_path = minimax_grid_path + "/GreenX/generate_local_grid.py";
 
@@ -123,7 +125,7 @@ const string TFGrids::GRID_TYPES_NOTES[TFGrids::GRID_TYPES::COUNT] =
         "Even-spaced time-frequency grids (debug use)",
     };
 
-const bool TFGrids::SUPPORT_TIME_GRIDS[TFGrids::GRID_TYPES::COUNT] = 
+const bool TFGrids::SUPPORT_TIME_GRIDS[TFGrids::GRID_TYPES::COUNT] =
     { false, false, false, true, false, true };
 
 TFGrids::GRID_TYPES TFGrids::get_grid_type(const string& grid_str)
@@ -261,8 +263,13 @@ void TFGrids::generate_minimax(double emin, double emax)
     if ( emax < emin)
         throw invalid_argument("emax must be larger than emin");
     double erange = emax / emin;
-    tmps = "python " + GX_path + " " + to_string(n_grids) + " " + to_string(erange);
-    system(tmps.c_str());
+    if(mpi_comm_world_h.is_root())
+    {
+        tmps = "python " + GX_path + " " + to_string(n_grids) + " " + to_string(erange);
+        system(tmps.c_str());
+    }
+    mpi_comm_world_h.barrier();
+    sleep(1);
 
     map<double, double> freq_grid = read_local_grid(n_grids, "local_" + to_string(n_grids) + "_freq_points.dat", 'F', emin);
     int ig = 0;

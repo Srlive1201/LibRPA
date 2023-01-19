@@ -23,11 +23,305 @@
 
 using LIBRPA::mpi_comm_world_h;
 using LIBRPA::Array_Desc;
+using namespace RI;
+
+CorrEnergy compute_RPA_correlation_blacs_2d(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat)
+{
+    CorrEnergy corr;
+    if (mpi_comm_world_h.myid == 0)
+        printf("Calculating EcRPA with BLACS/ScaLAPACK 2D\n");
+    // printf("Calculating EcRPA with BLACS, pid:  %d\n", mpi_comm_world_h.myid);
+    const auto & mf = chi0.mf;
+    const complex<double> CONE{1.0, 0.0};
+    const int n_abf = LIBRPA::atomic_basis_abf.nb_total;
+    const auto part_range = LIBRPA::atomic_basis_abf.get_part_range();
+
+    mpi_comm_world_h.barrier();
+
+    Array_Desc desc_nabf_nabf(LIBRPA::blacs_ctxt_world_h);
+    // use a square blocksize instead max block, otherwise heev and inversion will complain about illegal parameter
+    desc_nabf_nabf.init_square_blk(n_abf, n_abf, 0, 0);
+    const auto set_IJ_nabf_nabf = LIBRPA::get_necessary_IJ_from_block_2D_sy('U', LIBRPA::atomic_basis_abf, desc_nabf_nabf);
+    const auto s0_s1 = get_s0_s1_for_comm_map2_first(set_IJ_nabf_nabf);
+    auto chi0_block = init_local_mat<complex<double>>(desc_nabf_nabf, MAJOR::COL);
+    auto coul_block = init_local_mat<complex<double>>(desc_nabf_nabf, MAJOR::COL);
+    auto coul_chi0_block = init_local_mat<complex<double>>(desc_nabf_nabf, MAJOR::COL);
+   
+    // LIBRPA::fout_para << "Iset Jset " << s0_s1 << endl;
+    // LIBRPA::fout_para << "atpair_unordered_local of myid " << LIBRPA::blacs_ctxt_world_h.myid << " " << atpair_unordered_local << endl;
+
+
+    vector<Vector3_Order<double>> qpts;
+    for (const auto &qMuNuchi: chi0.get_chi0_q().at(chi0.tfg.get_freq_nodes()[0]))
+        qpts.push_back(qMuNuchi.first);
+    
+    complex<double> tot_RPA_energy(0.0, 0.0);
+    map<Vector3_Order<double>, complex<double>> cRPA_q;
+    if(mpi_comm_world_h.is_root())
+        printf("Finish init RPA blacs 2d\n");
+#ifdef __USE_LIBRI
+    for (const auto &q: qpts)
+    {
+        coul_block.zero_out();
+
+        int iq = std::distance(klist.begin(), std::find(klist.begin(), klist.end(), q));
+        std::array<double, 3> qa = {q.x, q.y, q.z};
+        double vq_begin = omp_get_wtime();
+        // collect the block elements of coulomb matrices
+        {
+            // LibRI tensor for communication, release once done
+            std::map<int, std::map<std::pair<int, std::array<double, 3>>, Tensor<complex<double>>>> coul_libri;
+        
+            for (const auto &Mu_Nu: local_atpair)
+            {
+                const auto Mu = Mu_Nu.first;
+                const auto Nu = Mu_Nu.second;
+                LIBRPA::fout_para << "myid " << LIBRPA::blacs_ctxt_world_h.myid << "Mu " << Mu << " Nu " << Nu << endl;
+                if (coulmat.count(Mu) == 0 ||
+                    coulmat.at(Mu).count(Nu) == 0 ||
+                    coulmat.at(Mu).at(Nu).count(q) == 0) continue;
+                const auto &Vq = coulmat.at(Mu).at(Nu).at(q);
+                const auto n_mu = LIBRPA::atomic_basis_abf.get_atom_nb(Mu);
+                const auto n_nu = LIBRPA::atomic_basis_abf.get_atom_nb(Nu);
+                std::valarray<complex<double>> Vq_va(Vq->c, Vq->size);
+                auto pvq = std::make_shared<std::valarray<complex<double>>>();
+                *pvq = Vq_va;
+                coul_libri[Mu][{Nu, qa}] = Tensor<complex<double>>({n_mu, n_nu}, pvq);
+            }
+            printf("Finish RPA blacs 2d  vq arr\n");
+            mpi_comm_world_h.barrier();
+            const auto IJq_coul = Communicate_Tensors_Map_Judge::comm_map2_first(LIBRPA::mpi_comm_world_h.comm, coul_libri, s0_s1.first, s0_s1.second);
+            // LIBRPA::fout_para << "IJq_coul" << endl << IJq_coul;
+            printf("Finish RPA blacs 2d  vq 2d\n");
+            for (const auto &IJ: set_IJ_nabf_nabf)
+            {
+                const auto &I = IJ.first;
+                const auto &J = IJ.second;
+                // cout << IJq_coul.at(I).at({J, qa});
+                collect_block_from_IJ_storage_syhe(
+                    coul_block, desc_nabf_nabf, LIBRPA::atomic_basis_abf, IJ.first,
+                    IJ.second, true, CONE, IJq_coul.at(I).at({J, qa}).ptr(), MAJOR::ROW);
+                // printf("myid %d I %d J %d nr %d nc %d\n%s",
+                //        LIBRPA::blacs_ctxt_world_h.myid, I, J,
+                //        coul_block.nr(), coul_block.nc(),
+                //        str(coul_block).c_str());
+            }
+        }
+        double vq_end = omp_get_wtime();
+        //if(mpi_comm_world_h.is_root())
+        printf("Finish RPA blacs 2d  vq comm\n");
+        // char fn[100];
+        // sprintf(fn, "coul_iq_%d.mtx", iq);
+        // print_matrix_mm_file_parallel(fn, coul_block, desc_nabf_nabf);
+        // LIBRPA::fout_para << str(coul_block);
+        // printf("coul_block\n%s", str(coul_block).c_str());
+        double chi_arr_time=0.0;
+        double chi_comm_time=0.0;
+        double chi_2d_time=0.0;
+        for (const auto &freq: chi0.tfg.get_freq_nodes())
+        {
+            const auto ifreq = chi0.tfg.get_freq_index(freq);
+            const double freq_weight = chi0.tfg.find_freq_weight(freq);
+            chi0_block.zero_out();
+            {
+                double chi_begin_arr = omp_get_wtime();
+                std::map<int, std::map<std::pair<int, std::array<double, 3>>, Tensor<complex<double>>>> chi0_libri;
+                const auto &chi0_wq = chi0.get_chi0_q().at(freq).at(q);
+                
+                for (const auto &M_Nchi: chi0_wq)
+                {
+                    const auto &M = M_Nchi.first;
+                    const auto n_mu = LIBRPA::atomic_basis_abf.get_atom_nb(M);
+                    for (const auto &N_chi: M_Nchi.second)
+                    {
+                        const auto &N = N_chi.first;
+                        const auto n_nu = LIBRPA::atomic_basis_abf.get_atom_nb(N);
+                        const auto &chi = N_chi.second;
+                        std::valarray<complex<double>> chi_va(chi.c, chi.size);
+                        auto pchi = std::make_shared<std::valarray<complex<double>>>();
+                        *pchi = chi_va;
+                        chi0_libri[M][{N, qa}] = Tensor<complex<double>>({n_mu, n_nu}, pchi);
+                    }
+                }
+                double chi_end_arr = omp_get_wtime();
+                // LIBRPA::fout_para << "chi0_libri" << endl << chi0_libri;
+                mpi_comm_world_h.barrier();
+                const auto IJq_chi0 = Communicate_Tensors_Map_Judge::comm_map2_first(LIBRPA::mpi_comm_world_h.comm, chi0_libri, s0_s1.first, s0_s1.second);
+                // LIBRPA::fout_para << "IJq_chi0" << endl << IJq_chi0;
+                double chi_end_comm = omp_get_wtime();
+                printf("Finish RPA blacs 2d  chi  comm\n");
+                for (const auto &IJ: set_IJ_nabf_nabf)
+                {
+                    const auto &I = IJ.first;
+                    const auto &J = IJ.second;
+                    collect_block_from_IJ_storage_syhe(
+                        chi0_block, desc_nabf_nabf, LIBRPA::atomic_basis_abf, IJ.first,
+                        IJ.second, true, CONE, IJq_chi0.at(I).at({J, qa}).ptr(), MAJOR::ROW);
+                }
+                double chi_end_2d = omp_get_wtime();
+
+                chi_arr_time=(chi_end_arr-chi_begin_arr);
+                chi_comm_time=(chi_end_comm-chi_end_arr);
+                chi_2d_time=(chi_end_2d-chi_end_comm);
+                // char fnc[100];
+                // sprintf(fnc, "chi_ifreq_%d_iq_%d.mtx", ifreq, iq);
+                // if( ifreq== 0)
+                //     print_matrix_mm_file_parallel(fnc, chi0_block, desc_nabf_nabf);
+            }
+            mpi_comm_world_h.barrier();
+            double pi_begin = omp_get_wtime();
+            ScalapackConnector::pgemm_f('N', 'N', n_abf, n_abf, n_abf, 1.0,
+                    coul_block.c, 1, 1, desc_nabf_nabf.desc,
+                    chi0_block.c, 1, 1, desc_nabf_nabf.desc, 0.0,
+                    coul_chi0_block.c, 1, 1, desc_nabf_nabf.desc);
+            // char fnp[100];
+            // sprintf(fnp, "pi_ifreq_%d_iq_%d.mtx", ifreq, iq);
+            double pi_end = omp_get_wtime();
+            
+            complex<double> trace_pi(0.0,0.0);
+            complex<double> trace_pi_loc(0.0,0.0);
+            for(int i=0;i!= n_abf;i++)
+            {
+                const int ilo = desc_nabf_nabf.indx_g2l_r(i);
+                const int jlo = desc_nabf_nabf.indx_g2l_c(i);
+                if (ilo >= 0 && jlo >= 0)
+                    trace_pi_loc+=coul_chi0_block(ilo,jlo);
+            }
+            
+            coul_chi0_block*=-1.0;
+            for(int i=0;i!= n_abf;i++)
+            {
+                const int ilo = desc_nabf_nabf.indx_g2l_r(i);
+                const int jlo = desc_nabf_nabf.indx_g2l_c(i);
+                if (ilo >= 0 && jlo >= 0)
+                    coul_chi0_block(ilo,jlo)+=CONE;
+            }
+            // if( ifreq== 0 && mpi_comm_world_h.is_root() )
+            //     print_whole_matrix("pi-2D-loc", coul_chi0_block);
+
+            int *ipiv = new int [desc_nabf_nabf.m_loc()*10];
+            int info;
+            complex<double> ln_det=compute_pi_det_blacs_2d(coul_chi0_block, desc_nabf_nabf, ipiv, info);
+            double det_end = omp_get_wtime();
+            mpi_comm_world_h.barrier();
+            MPI_Allreduce(&trace_pi_loc,&trace_pi,1,MPI_DOUBLE_COMPLEX,MPI_SUM,MPI_COMM_WORLD);
+            //double task_end = omp_get_wtime();
+            // if(mpi_comm_world_h.is_root())
+            //     printf("| After det for freq:  %f,  q: ( %f, %f, %f)   TIME_LOCMAT: %f   TIME_DET: %f  TIME_CAL_Pi: %f, TIME_TRAN_LOC: %f\n",ifreq, q.x,q.y,q.z,task_mid-task_begin,task_end-task_mid,pi_time,loc_tran_time);
+            //para_mpi.mpi_barrier();
+            if(mpi_comm_world_h.myid==0)
+            {
+                printf("| TIME of DET-freq-q:  %f,  q: ( %f, %f, %f)   Vq: %f   CHI_arr: %f  CHI_comm: %f, CHI_2d: %f, Pi: %f, Det: %f\n",freq, q.x,q.y,q.z,vq_end-vq_begin,chi_arr_time,chi_comm_time,chi_2d_time,pi_end-pi_begin,det_end-pi_end);
+                complex<double> rpa_for_omega_q=trace_pi+ln_det;
+                //cout << " ifreq:" << freq << "      rpa_for_omega_k: " << rpa_for_omega_q << "      lnt_det: " << ln_det << "    trace_pi " << trace_pi << endl;
+                cRPA_q[q] += rpa_for_omega_q * freq_weight * irk_weight[q] / TWO_PI;//!check
+                tot_RPA_energy += rpa_for_omega_q * freq_weight * irk_weight[q] / TWO_PI;
+            }
+        }
+    }
+#else
+    throw std::logic_error("need compilation with LibRI");
+#endif
+    if(mpi_comm_world_h.myid==0)
+    {
+        for (auto &q_crpa : cRPA_q)
+        {
+            corr.qcontrib[q_crpa.first] = q_crpa.second;
+            //cout << q_crpa.first << q_crpa.second << endl;
+        }
+        //cout << "gx_num_" << chi0.tfg.size() << "  tot_RPA_energy:  " << setprecision(8)    <<tot_RPA_energy << endl;
+    }
+    mpi_comm_world_h.barrier();
+    corr.value = tot_RPA_energy;
+
+    corr.etype = CorrEnergy::type::RPA;
+    return corr;
+}
+
+complex<double> compute_pi_det_blacs_2d(matrix_m<complex<double>> &loc_piT, const Array_Desc &arrdesc_pi, int *ipiv, int &info)
+{
+    int one=1;
+    int range_all= N_all_mu;
+    int DESCPI_T[9];
+    // if(out_pi)
+    // {
+    //     print_complex_real_matrix("first_pi",pi_freq_q.at(0).at(0));
+    //     print_complex_real_matrix("first_loc_piT_mat",loc_piT);
+    // }
+
+    //ScalapackConnector::transpose_desc(DESCPI_T, arrdesc_pi.desc);
+    pzgetrf_(&range_all,&range_all,loc_piT.c,&one,&one,arrdesc_pi.desc,ipiv, &info);
+    //ScalapackConnector::pgetrf_f(range_all,range_all,loc_piT.c,one,one,DESCPI_T,ipiv, info);
+    //printf("   after LU myid: %d\n",mpi_comm_world_h.myid);
+    //printf("desc myid: %d,  m n: %d,%d,  mb nb: %d, %d,  loc_m_n: %d, %d, myp: %d,%d, npr,npc: %d, %d\n",mpi_comm_world_h.myid, arrdesc_pi.m(),arrdesc_pi.n(), arrdesc_pi.mb(),arrdesc_pi.nb(), arrdesc_pi.m_loc(),arrdesc_pi.n_loc(),arrdesc_pi.myprow(),arrdesc_pi.mypcol(),arrdesc_pi.nprows(),arrdesc_pi.npcols());
+    complex<double> ln_det_loc(0.0,0.0);
+    complex<double> ln_det_all(0.0,0.0);
+    // complex<double> det_loc(1.0,0.0);
+    // complex<double> det_glo(0.0,0.0);
+    // vector<complex<double>>  det_dig;
+    // vector<complex<double>>  ln_det_dig;
+    // vector<complex<double>>  det_dig_r;
+    // vector<complex<double>>  det_dig_c;
+    //printf(" myid: %d ig=25, locr,locc: %d, %d)\n",mpi_comm_world_h.myid,arrdesc_pi.indx_g2l_r(25),arrdesc_pi.indx_g2l_c(25));
+    for(int ig=0;ig!=range_all;ig++)
+    {
+        // int locr=para_mpi.localIndex(ig,row_nblk,para_mpi.nprow,para_mpi.myprow);
+		// int locc=para_mpi.localIndex(ig,col_nblk,para_mpi.npcol,para_mpi.mypcol);
+        int locr = arrdesc_pi.indx_g2l_r(ig);
+        int locc = arrdesc_pi.indx_g2l_c(ig);
+        if (locr >= 0 && locc >= 0)
+        {
+            // if(ipiv[locr]!=(ig+1))
+            // 	det_loc=-1*det_loc * loc_piT(locc,locr);
+            // else
+            // 	det_loc=det_loc * loc_piT(locc,locr);
+            // det_dig.push_back(loc_piT(locr,locc));
+            // det_dig_r.push_back(locr);
+            // det_dig_c.push_back(locc);
+            complex<double> tmp_ln_det;
+            if(loc_piT(locr,locc).real()>0)
+            {
+                tmp_ln_det=std::log(loc_piT(locr,locc));
+                //ln_det_dig.push_back(tmp_ln_det);
+            }
+            else
+            {
+                tmp_ln_det=std::log(-loc_piT(locr,locc));
+                //ln_det_dig.push_back(tmp_ln_det);
+            }
+            ln_det_loc+=tmp_ln_det;
+		}
+    }
+//     ComplexMatrix det_mm(loc_piT.nr(),loc_piT.nc());
+//     for(int i=0;i!=loc_piT.nr();i++)
+//         for(int j=0;j!=loc_piT.nc();j++)
+//             det_mm(i,j)=loc_piT(i,j);
+//    // sort(det_dig.rbegin(),det_dig.rend());
+//     ComplexMatrix det_dig_mm(det_dig.size(),4);
+//     for(int i=0;i!=det_dig.size();i++)
+//     {
+//         det_dig_mm(i,0) =det_dig_r[i];
+//         det_dig_mm(i,1) =det_dig_c[i];
+//         det_dig_mm(i,2)=det_dig[i];
+//         det_dig_mm(i,3)=ln_det_dig[i];
+//     }
+//     char fn[100];
+//     sprintf(fn, "det_dig_myid_%d.mtx", mpi_comm_world_h.myid);
+//     print_complex_matrix_file("det_dig_loc", det_dig_mm, fn, false);
+    
+//     sprintf(fn, "det_mat_myid_%d.mtx", mpi_comm_world_h.myid);
+//     print_complex_matrix_file("det_mat_loc", det_mm, fn, false);
+    
+
+    MPI_Allreduce(&ln_det_loc,&ln_det_all,1,MPI_DOUBLE_COMPLEX,MPI_SUM,MPI_COMM_WORLD);
+    //MPI_Allreduce(&det_loc,&det_glo,1,MPI_DOUBLE_COMPLEX,MPI_PROD,MPI_COMM_WORLD);
+    //ln_det_all=std::log(det_glo);
+    return ln_det_all;
+}
 
 complex<double> compute_pi_det_blacs(ComplexMatrix &loc_piT, const Array_Desc &arrdesc_pi, int *ipiv, int &info)
 {
     // int range_all = atom_mu_part_range[natom-1]+atom_mu[natom-1];
-
     // int desc_pi[9];
     // int loc_row, loc_col, info;
     // int row_nblk=1;
@@ -37,7 +331,7 @@ complex<double> compute_pi_det_blacs(ComplexMatrix &loc_piT, const Array_Desc &a
     // para_mpi.set_blacs_mat(desc_pi,loc_row,loc_col,range_all,range_all,row_nblk,col_nblk);
     // int *ipiv = new int [loc_row*10];
     // ComplexMatrix loc_piT(loc_col,loc_row);
-    
+
     // for(int i=0;i!=loc_row;i++)
     // {
     //     int global_row = para_mpi.globalIndex(i,row_nblk,para_mpi.nprow,para_mpi.myprow);
@@ -48,7 +342,7 @@ complex<double> compute_pi_det_blacs(ComplexMatrix &loc_piT, const Array_Desc &a
     //         int global_col = para_mpi.globalIndex(j,col_nblk,para_mpi.npcol,para_mpi.mypcol);
     //         int nu;
     //         int J=atom_mu_glo2loc(global_col,nu);
-            
+
     //         if( global_col == global_row)
     //         {
     //             loc_piT(j,i)=complex<double>(1.0,0.0) - pi_freq_q.at(I).at(J)(mu,nu);
@@ -57,7 +351,7 @@ complex<double> compute_pi_det_blacs(ComplexMatrix &loc_piT, const Array_Desc &a
     //         {
     //             loc_piT(j,i)=-1*  pi_freq_q.at(I).at(J)(mu,nu);
     //         }
-            
+
     //     }
     // }
     int DESCPI_T[9];
@@ -66,7 +360,7 @@ complex<double> compute_pi_det_blacs(ComplexMatrix &loc_piT, const Array_Desc &a
     //     print_complex_real_matrix("first_pi",pi_freq_q.at(0).at(0));
     //     print_complex_real_matrix("first_loc_piT_mat",loc_piT);
     // }
-    
+
     ScalapackConnector::transpose_desc(DESCPI_T, arrdesc_pi.desc);
 
    // para_mpi.mpi_barrier();
@@ -102,33 +396,87 @@ complex<double> compute_pi_det_blacs(ComplexMatrix &loc_piT, const Array_Desc &a
 CorrEnergy compute_RPA_correlation_blacs(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat)
 {
     CorrEnergy corr;
-    // if(para_mpi.chi_parallel_type == Parallel_MPI::parallel_type::R_TAU)
-    // {
-    //     compute_RPA_correlation(chi0,coulmat);
-    //     //return corr;
-    // }
     if (mpi_comm_world_h.myid == 0)
-        printf("Calculating EcRPA with BLACS/ScaLAPACK\n");
-    // printf("Calculating EcRPA with BLACS, pid:  %d\n", mpi_comm_world_h.myid);
-    const auto & mf = chi0.mf;
+        printf("Calculating EcRPA with BLACS/ScaLAPACK row\n");
 
-    //init blacs pi_mat
-    int np_row= int(sqrt(mpi_comm_world_h.nprocs));
-    int np_col= int(mpi_comm_world_h.nprocs/np_row);
-    int desc_pi[9];
-    int row_nblk=ceil(N_all_mu/np_row);
-    int col_nblk=ceil(N_all_mu/np_col);
-    if(LIBRPA::mpi_comm_world_h.is_root())
-        printf("| BLACS row_nblk: %d,  col_nblk: %d\n",row_nblk,col_nblk);
-    int one=1;
+    const auto & mf = chi0.mf;
+    const complex<double> CONE{1.0, 0.0};
+    const int n_abf = LIBRPA::atomic_basis_abf.nb_total;
+    const auto part_range = LIBRPA::atomic_basis_abf.get_part_range();
+
+    mpi_comm_world_h.barrier();
+  
     LIBRPA::Array_Desc arrdesc_pi(LIBRPA::blacs_ctxt_world_h);
-    arrdesc_pi.init(N_all_mu, N_all_mu, row_nblk, col_nblk, 0, 0);
+    arrdesc_pi.init_square_blk(n_abf, n_abf, 0, 0);
     int loc_row = arrdesc_pi.m_loc(), loc_col = arrdesc_pi.n_loc(), info;
 
     // para_mpi.set_blacs_mat(desc_pi,loc_row,loc_col,N_all_mu,N_all_mu,row_nblk,col_nblk);
     int *ipiv = new int [loc_row*10];
-    
-
+    // double vq_begin_m2t= omp_get_wtime();
+    // std::map<int, std::map<std::pair<int, std::array<double, 3>>, Tensor<complex<double>>>> vq_libri;
+    // for(auto &Ip:Vq)
+    // {
+    //     auto I=Ip.first;
+    //     const auto n_mu = LIBRPA::atomic_basis_abf.get_atom_nb(I);
+    //     for(auto &Jp:Ip.second)
+    //     {
+    //         auto J=Jp.first;
+    //         const auto n_nu = LIBRPA::atomic_basis_abf.get_atom_nb(J);
+    //         for(auto &qp:Jp.second)
+    //         {
+    //             auto q=qp.first;
+    //             std::array<double, 3> qa = {q.x, q.y, q.z};
+    //             const auto &vq_ptr=qp.second;
+    //             std::valarray<complex<double>> Vq_va(vq_ptr->c, vq_ptr->size);
+    //             auto pvq = std::make_shared<std::valarray<complex<double>>>();
+    //             *pvq = Vq_va;
+    //             vq_libri[I][{J, qa}] = Tensor<complex<double>>({n_mu, n_nu}, pvq);
+    //             if(I!=J)
+    //             {
+    //                 auto vqT=transpose(*vq_ptr, 1);
+    //                 std::valarray<complex<double>> VqT_va(vqT.c, vqT.size);
+    //                 auto pvqT = std::make_shared<std::valarray<complex<double>>>();
+    //                 *pvqT = VqT_va;
+    //                 vq_libri[J][{I, qa}] = Tensor<complex<double>>({n_nu, n_mu}, pvqT);
+    //             }
+    //         }
+    //     }
+    // }
+    // double vq_end_m2t = omp_get_wtime();
+    // set<int> loc_atp_IJ;
+    // for(auto &atp:local_atpair)
+    // {
+    //     loc_atp_IJ.insert(atp.first);
+    //     loc_atp_IJ.insert(atp.second);
+    // }
+    // set<int> all_atom_set;
+    // for(int I=0;I!=natom;I++)
+    //     all_atom_set.insert(I);
+    // const auto IJq_coul = Communicate_Tensors_Map_Judge::comm_map2_first(LIBRPA::mpi_comm_world_h.comm, vq_libri, all_atom_set, loc_atp_IJ);
+    // atpair_k_cplx_mat_t Vq_loc;
+    // double vq_end_comm = omp_get_wtime();
+    // for(auto Ip:IJq_coul)
+    // {
+    //     auto I=Ip.first;
+    //     auto n_mu=atom_mu[I];
+    //     for(auto &Jqp:Ip.second)
+    //     {
+    //         auto J=Jqp.first.first;
+    //         auto n_nu=atom_mu[J];
+    //         auto qa=Jqp.first.second;
+    //         Vector3_Order<double> q{qa[0],qa[1],qa[2]};
+    //         shared_ptr<ComplexMatrix> vq_ptr = make_shared<ComplexMatrix>();
+    //         vq_ptr->create(n_mu, n_nu);
+    //         const auto length=sizeof(complex<double>)* n_mu *n_nu;
+    //         memcpy((*vq_ptr).c, Jqp.second.ptr(),length);
+    //         Vq_loc[I][J][q]=vq_ptr;
+    //         //printf("| process %d, I: %d  J: %d\n",mpi_comm_world_h.myid, I,J );
+    //     }
+    // }
+    // double vq_end_t2m = omp_get_wtime();
+    // mpi_comm_world_h.barrier();
+    // if(mpi_comm_world_h.is_root())
+    //     printf("| Vq_time %f, TIME_m2t: %f   TIME_comm: %f  TIME_t2m: %f\n",vq_end_t2m-vq_begin_m2t,vq_end_m2t-vq_begin_m2t,vq_end_comm-vq_end_m2t,vq_end_t2m-vq_end_comm);
     map<double, map<Vector3_Order<double>, ComplexMatrix>> pi_freq_q;
     complex<double> tot_RPA_energy(0.0, 0.0);
     map<Vector3_Order<double>, complex<double>> cRPA_q;
@@ -141,25 +489,51 @@ CorrEnergy compute_RPA_correlation_blacs(const Chi0 &chi0, const atpair_k_cplx_m
             double task_begin = omp_get_wtime();
             const auto q = q_MuNuchi0.first;
             auto &MuNuchi0 = q_MuNuchi0.second;
-            
-            ComplexMatrix loc_piT(loc_col,loc_row);
+
+            //ComplexMatrix loc_piT(loc_col,loc_row);
+            auto loc_piT = init_local_mat<complex<double>>(arrdesc_pi, MAJOR::COL);
             complex<double> trace_pi(0.0,0.0);
+            double vq_time=0.0;
+            double pi_time=0.0;
+            double loc_tran_time=0.0;
             for(int Mu=0;Mu!=natom;Mu++)
             {
+                double Mu_begin=omp_get_wtime();
                // printf(" |process %d,  Mu:  %d\n",mpi_comm_world_h.myid,Mu);
                 const size_t n_mu = atom_mu[Mu];
                 atom_mapping<ComplexMatrix>::pair_t_old Vq_row=gather_vq_row_q(Mu,coulmat,q);
+                double Mu_after_vq=omp_get_wtime();
+                // atom_mapping<ComplexMatrix>::pair_t_old Vq_row;
+                // const auto IJq_coul = Communicate_Tensors_Map_Judge::comm_map2_first(LIBRPA::mpi_comm_world_h.comm, vq_libri, {Mu}, loc_atp_atoms);
+                // double Mu_vq_comm = omp_get_wtime();
+                // for(auto Ip:IJq_coul)
+                // {
+                //     auto I=Ip.first;
+                //     auto n_mu=atom_mu[I];
+                //     for(auto &Jqp:Ip.second)
+                //     {
+                //         auto J=Jqp.first.first;
+                //         auto n_nu=atom_mu[J];
+                //         auto q=Jqp.first.second;
+                //         Vq_row[I][J].create(n_mu,n_nu);
+                //         const auto length=sizeof(complex<double>)* n_mu *n_nu;
+                //         memcpy(Vq_row[I][J].c, Jqp.second.ptr(),length);
+                //     }
+                // }
+                // double Mu_after_vq=omp_get_wtime();
                 //printf("   |process %d, Mu: %d  vq_row.size: %d\n",para_mpi.get_myid(),Mu,Vq_row[Mu].size());
+                //ComplexMatrix loc_pi_row=compute_Pi_freq_q_row(q,MuNuchi0,Vq_loc,Mu,q);
                 ComplexMatrix loc_pi_row=compute_Pi_freq_q_row(q,MuNuchi0,Vq_row,Mu);
                 //printf("   |process %d,   compute_pi\n",para_mpi.get_myid());
                 ComplexMatrix glo_pi_row( n_mu,N_all_mu);
                 mpi_comm_world_h.barrier();
                 mpi_comm_world_h.allreduce_ComplexMatrix(loc_pi_row,glo_pi_row);
-                //cout<<"  glo_pi_rowT nr,nc: "<<glo_pi_row.nr<<" "<<glo_pi_row.nc<<endl; 
-                
+                double Mu_after_pi_loc=omp_get_wtime();
+                //cout<<"  glo_pi_rowT nr,nc: "<<glo_pi_row.nr<<" "<<glo_pi_row.nc<<endl;
+
                 for(int i_mu=0;i_mu!=n_mu;i_mu++)
                     trace_pi+=glo_pi_row(i_mu,atom_mu_part_range[Mu]+i_mu);
-                //select glo_pi_rowT to pi_blacs 
+                //select glo_pi_rowT to pi_blacs
                 for(int i=0;i!=loc_row;i++)
                 {
                     // int global_row = para_mpi.globalIndex(i,row_nblk,para_mpi.nprow,para_mpi.myprow);
@@ -176,24 +550,30 @@ CorrEnergy compute_RPA_correlation_blacs(const Chi0 &chi0, const atpair_k_cplx_m
                             //cout<<" Mu: "<<Mu<<"  i,j: "<<i<<"  "<<j<<"    glo_row,col: "<<global_row<<"  "<<global_col<<"  J:"<<J_blacs<< "  index i,j: "<<atom_mu_part_range[J_blacs] + mu_blacs<<" "<<nu_blacs<<endl;
                             if( global_col == global_row)
                             {
-                                loc_piT(j,i)=complex<double>(1.0,0.0) - glo_pi_row(mu_blacs, atom_mu_part_range[J_blacs]+nu_blacs);
+                                loc_piT(i,j)=complex<double>(1.0,0.0) - glo_pi_row(mu_blacs, atom_mu_part_range[J_blacs]+nu_blacs);
                             }
                             else
                             {
-                                loc_piT(j,i) = -glo_pi_row(mu_blacs, atom_mu_part_range[J_blacs]+nu_blacs);
+                                loc_piT(i,j) = -glo_pi_row(mu_blacs, atom_mu_part_range[J_blacs]+nu_blacs);
                             }
 
                         }
 
                 }
-                
+                double Mu_after_loc_tran=omp_get_wtime();
+                vq_time+=(Mu_after_vq-Mu_begin);
+                pi_time+=(Mu_after_pi_loc-Mu_after_vq);
+                loc_tran_time+=(Mu_after_loc_tran-Mu_after_pi_loc);
+
             }
+            // if(freq == chi0.tfg.get_freq_nodes()[0] && mpi_comm_world_h.is_root())
+            //     print_complex_matrix(" loc_piT",loc_piT);
             double task_mid = omp_get_wtime();
             //printf("|process  %d, before det\n",mpi_comm_world_h.myid);
-            complex<double> ln_det=compute_pi_det_blacs(loc_piT, arrdesc_pi, ipiv, info);
+            complex<double> ln_det=compute_pi_det_blacs_2d(loc_piT, arrdesc_pi, ipiv, info);
             double task_end = omp_get_wtime();
             if(mpi_comm_world_h.is_root())
-                printf("| After det for freq:  %f,  q: ( %f, %f, %f)   TIME_LOCMAT: %f   TIME_DET: %f\n",freq, q.x,q.y,q.z,task_mid-task_begin,task_end-task_mid);
+                printf("| After det for freq:  %f,  q: ( %f, %f, %f)   TIME_Vq_COMM: %f   TIME_DET: %f  TIME_CAL_Pi: %f, TIME_TRAN_LOC: %f\n",freq, q.x,q.y,q.z,vq_time,task_end-task_mid,pi_time,loc_tran_time);
             //para_mpi.mpi_barrier();
             if(mpi_comm_world_h.myid==0)
             {
@@ -204,7 +584,7 @@ CorrEnergy compute_RPA_correlation_blacs(const Chi0 &chi0, const atpair_k_cplx_m
             }
         }
     }
-    
+
     if(mpi_comm_world_h.myid==0)
     {
         for (auto &q_crpa : cRPA_q)
@@ -216,7 +596,6 @@ CorrEnergy compute_RPA_correlation_blacs(const Chi0 &chi0, const atpair_k_cplx_m
     }
     mpi_comm_world_h.barrier();
     corr.value = tot_RPA_energy;
-
     corr.etype = CorrEnergy::type::RPA;
     return corr;
 }
@@ -228,19 +607,19 @@ CorrEnergy compute_RPA_correlation(const Chi0 &chi0, const atpair_k_cplx_mat_t &
         printf("Calculating EcRPA without BLACS/ScaLAPACK\n");
     // printf("Begin cal cRPA , pid:  %d\n", mpi_comm_world_h.myid);
     const auto & mf = chi0.mf;
-    
+
     // freq, q
     map<double, map<Vector3_Order<double>, atom_mapping<ComplexMatrix>::pair_t_old>> pi_freq_q_Mu_Nu;
     if (LIBRPA::chi_parallel_type == LIBRPA::parallel_type::ATOM_PAIR)
         pi_freq_q_Mu_Nu = compute_Pi_q_MPI(chi0, coulmat);
-    else 
+    else
         pi_freq_q_Mu_Nu = compute_Pi_q(chi0, coulmat);
     printf("Finish Pi freq on Proc %4d, size %zu\n", mpi_comm_world_h.myid, pi_freq_q_Mu_Nu.size());
     mpi_comm_world_h.barrier();
 
     int range_all = N_all_mu;
 
-    
+
     vector<int> part_range;
     part_range.resize(atom_mu.size());
     part_range[0] = 0;
@@ -260,7 +639,7 @@ CorrEnergy compute_RPA_correlation(const Chi0 &chi0, const atpair_k_cplx_mat_t &
 
     // pi_freq_q contains all atoms
     map<double, map<Vector3_Order<double>, ComplexMatrix>> pi_freq_q;
-    
+
     for (const auto &freq_q_MuNupi : pi_freq_q_Mu_Nu)
     {
         const auto freq = freq_q_MuNupi.first;
@@ -270,7 +649,7 @@ CorrEnergy compute_RPA_correlation(const Chi0 &chi0, const atpair_k_cplx_mat_t &
             const auto q = q_MuNupi.first;
             const auto MuNupi = q_MuNupi.second;
             pi_freq_q[freq][q].create(range_all, range_all);
-    
+
             ComplexMatrix pi_munu_tmp(range_all, range_all);
             pi_munu_tmp.zero_out();
 
@@ -284,7 +663,7 @@ CorrEnergy compute_RPA_correlation(const Chi0 &chi0, const atpair_k_cplx_mat_t &
                     const auto Nu = Nu_pi.first;
                     const auto pimat = Nu_pi.second;
                     const size_t n_nu = atom_mu[Nu];
-    
+
                     for (size_t mu = 0; mu != n_mu; ++mu)
                     {
                         for (size_t nu = 0; nu != n_nu; ++nu)
@@ -320,9 +699,7 @@ CorrEnergy compute_RPA_correlation(const Chi0 &chi0, const atpair_k_cplx_mat_t &
                 complex<double> rpa_for_omega_q(0.0, 0.0);
                 ComplexMatrix identity(range_all, range_all);
                 ComplexMatrix identity_minus_pi(range_all, range_all);
-    
                 identity.set_as_identity_matrix();
-    
                 identity_minus_pi = identity - pi_freq_q[freq][q];
                 complex<double> det_for_rpa(1.0, 0.0);
                 int info_LU = 0;
@@ -336,7 +713,7 @@ CorrEnergy compute_RPA_correlation(const Chi0 &chi0, const atpair_k_cplx_mat_t &
                         det_for_rpa = det_for_rpa * identity_minus_pi(ib, ib);
                 }
                 delete[] ipiv;
-    
+
                 complex<double> trace_pi;
                 complex<double> ln_det;
                 ln_det = std::log(det_for_rpa);
@@ -349,7 +726,7 @@ CorrEnergy compute_RPA_correlation(const Chi0 &chi0, const atpair_k_cplx_mat_t &
                 tot_RPA_energy += rpa_for_omega_q * freq_weight * irk_weight[q]  / TWO_PI;
             }
         }
-    
+
         for (auto &q_crpa : cRPA_q)
         {
             corr.qcontrib[q_crpa.first] = q_crpa.second;
@@ -401,7 +778,7 @@ map<double, map<Vector3_Order<double>, atom_mapping<ComplexMatrix>::pair_t_old>>
             //         for(auto &Jp:Ip.second)
             //             printf("  |process  %d, pi atpair: %d, %d \n",mpi_comm_world_h.myid,Ip.first,Jp.first);
         }
-        
+
     }
 
     // ofstream fp;
@@ -477,7 +854,7 @@ map<double, map<Vector3_Order<double>, atom_mapping<ComplexMatrix>::pair_t_old>>
         }
     }
     //fp.close();
-    // print_complex_matrix(" first_pi_mat:",pi.at(chi0.tfg.get_freq_nodes()[0]).at({0,0,0}).at(0).at(0)); 
+    print_complex_matrix(" first_pi_mat:",pi.at(chi0.tfg.get_freq_nodes()[0]).at({0,0,0}).at(0).at(0));
     /* print_complex_matrix("  last_pi_mat:",pi.at(chi0.tfg.get_freq_nodes()[0]).at({0,0,0}).at(natom-1).at(natom-1)); */
     return pi;
 }
@@ -516,7 +893,7 @@ map<double, map<Vector3_Order<double>, atom_mapping<ComplexMatrix>::pair_t_old>>
             //         for(auto &Jp:Ip.second)
             //             printf("  |process  %d, pi atpair: %d, %d \n",mpi_comm_world_h.myid,Ip.first,Jp.first);
         }
-        
+
     }
 
     // ofstream fp;
@@ -533,8 +910,8 @@ map<double, map<Vector3_Order<double>, atom_mapping<ComplexMatrix>::pair_t_old>>
             {
                 const double freq = freq_p.first;
                 const auto chi0_freq = freq_p.second;
-            
-                
+
+
                 auto chi0_freq_k = freq_p.second.at(ik_vec);
 
                 for (auto &J_p : chi0_freq_k)
@@ -544,11 +921,11 @@ map<double, map<Vector3_Order<double>, atom_mapping<ComplexMatrix>::pair_t_old>>
                     {
                         const size_t Q = Q_p.first;
                         auto &chi0_mat = Q_p.second;
-                    
+
                         //const size_t I = I_p.first;
                         //printf("cal_pi  pid: %d , IJQ:  %d  %d  %d\n", mpi_comm_world_h.myid, I, J, Q);
                         //  cout<<"         pi_IQ: "<<pi_k.at(freq).at(ik_vec).at(I).at(Q)(0,0)<<"   pi_IJ: "<<pi_k.at(freq).at(ik_vec).at(I).at(J)(0,0);
-                        
+
                         // if (freq == chi0.tfg.get_freq_nodes()[0])
                         //     printf("cal_pi  pid: %d , IJQ:  %d  %d  %d   type: %d \n", mpi_comm_world_h.myid, I, J, Q,1);
                         //      << "  Vq: " << (*Vq.at(I).at(J).at(ik_vec))(0, 0) << endl;
@@ -562,7 +939,7 @@ map<double, map<Vector3_Order<double>, atom_mapping<ComplexMatrix>::pair_t_old>>
                         //     print_complex_matrix_file(sm.str().c_str(), Vq_row.at(I).at(J),fp,false);
                         //     print_complex_matrix_file("chi0:", chi0_mat,fp,false);
                         //     print_complex_matrix_file("pi_mat:", pi.at(freq).at(ik_vec).at(I).at(Q),fp,false);
-                        // }  
+                        // }
 
                         if (J != Q)
                         {
@@ -578,17 +955,15 @@ map<double, map<Vector3_Order<double>, atom_mapping<ComplexMatrix>::pair_t_old>>
         }
     }
     //fp.close();
-    // print_complex_matrix(" first_pi_mat:",pi.at(chi0.tfg.get_freq_nodes()[0]).at({0,0,0}).at(0).at(0)); 
+    // print_complex_matrix(" first_pi_mat:",pi.at(chi0.tfg.get_freq_nodes()[0]).at({0,0,0}).at(0).at(0));
     /* print_complex_matrix("  last_pi_mat:",pi.at(chi0.tfg.get_freq_nodes()[0]).at({0,0,0}).at(natom-1).at(natom-1)); */
     return pi;
 }
 
-
-
 ComplexMatrix compute_Pi_freq_q_row(const Vector3_Order<double> &ik_vec, const atom_mapping<ComplexMatrix>::pair_t_old &chi0_freq_q, const atom_mapping<ComplexMatrix>::pair_t_old &Vq_row, const int &I)
 {
     map<size_t,ComplexMatrix> pi;
-    // printf("Begin cal_pi_k , pid:  %d\n", mpi_comm_world_h.myid);
+    // printf("Begin cal_pi_k , pid:  %d\n", para_mpi.get_myid());
     auto I_mu=atom_mu[I];
     for(int J=0;J!=natom;J++)
         pi[J].create(I_mu,atom_mu[J]);
@@ -647,6 +1022,69 @@ omp_init_lock(&pi_lock);
     return pi_row;
 }
 
+ComplexMatrix compute_Pi_freq_q_row_ri(const Vector3_Order<double> &ik_vec, const atom_mapping<ComplexMatrix>::pair_t_old &chi0_freq_q, const atpair_k_cplx_mat_t &Vq_loc, const int &I, const Vector3_Order<double> &q)
+{
+    map<size_t,ComplexMatrix> pi;
+    // printf("Begin cal_pi_k , pid:  %d\n", mpi_comm_world_h.myid);
+    auto I_mu=atom_mu[I];
+    for(int J=0;J!=natom;J++)
+        pi[J].create(I_mu,atom_mu[J]);
+
+omp_lock_t pi_lock;
+omp_init_lock(&pi_lock);
+#pragma omp parallel for schedule(dynamic)
+    for (int iap=0;iap!=local_atpair.size();iap++)
+    {
+        const size_t J = local_atpair[iap].first;
+        const size_t Q = local_atpair[iap].second;
+        auto &chi0_mat= chi0_freq_q.at(J).at(Q);
+        //printf("| IN cal Pi process %d, I: %d  J: %d  Q: %d\n",mpi_comm_world_h.myid, I,J,Q );
+        auto tmp_pi_mat= *Vq_loc.at(I).at(J).at(q) * chi0_mat;
+        ComplexMatrix chi0_QJ = transpose(chi0_mat, 1);
+        auto tmp_pi_mat2= *Vq_loc.at(I).at(Q).at(q) * chi0_QJ;
+        omp_set_lock(&pi_lock);
+        pi.at(Q)+=tmp_pi_mat;
+        if(J!=Q)
+            {
+                pi.at(J)+=tmp_pi_mat2;
+            }
+        omp_unset_lock(&pi_lock);
+    }
+    omp_destroy_lock(&pi_lock);
+    // for (auto &J_p : chi0_freq_q)
+    // {
+    //     const size_t J = J_p.first;
+    //     for (auto &Q_p : J_p.second)
+    //     {
+    //         const size_t Q = Q_p.first;
+    //         auto &chi0_mat = Q_p.second;
+    //         pi.at(Q) += Vq_row.at(I).at(J) * chi0_mat;
+    //         if (J != Q)
+    //         {
+    //             ComplexMatrix chi0_QJ = transpose(chi0_mat, 1);
+    //             pi.at(J) += Vq_row.at(I).at(Q) * chi0_QJ;
+    //         }
+    //     }
+    // }
+    //Pi_rowT
+    // ComplexMatrix pi_row(N_all_mu,atom_mu[I]);
+    // complex<double> *pi_row_ptr=pi_row.c;
+    // for(auto &Jp:pi)
+    // {
+    //     auto J=Jp.first;
+    //     auto J_mu=atom_mu[J];
+    //     const auto length=sizeof(complex<double>)* I_mu *J_mu;
+    //     memcpy(pi_row_ptr, pi.at(J).c,length);
+    //     pi_row_ptr+=I_mu *J_mu;
+    // }
+    ComplexMatrix pi_row(atom_mu[I],N_all_mu);
+    for(int i=0;i!=pi_row.nr;i++)
+        for(int J=0;J!=natom;J++)
+            for(int j=0;j!=atom_mu[J];j++)
+                pi_row(i,atom_mu_part_range[J]+j)=pi.at(J)(i,j);
+    return pi_row;
+}
+
 atom_mapping<ComplexMatrix>::pair_t_old gather_vq_row_q(const int &I, const atpair_k_cplx_mat_t &coulmat, const Vector3_Order<double> &ik_vec)
 {
     auto I_mu=atom_mu[I];
@@ -669,7 +1107,7 @@ atom_mapping<ComplexMatrix>::pair_t_old gather_vq_row_q(const int &I, const atpa
             if(Vq.count(J_tmp))
                 if(Vq.at(J_tmp).count(I))
                     loc_vq=transpose(*Vq.at(J_tmp).at(I).at(ik_vec), 1);
-                    
+
         }
         mpi_comm_world_h.allreduce_ComplexMatrix(loc_vq,Vq_row[I][J_tmp]);
     }
@@ -1147,7 +1585,7 @@ compute_Wc_freq_q_blacs(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps
                 }
                 // cout << Wc_libri;
                 const auto IJq_Wc = Communicate_Tensors_Map_Judge::comm_map2_first(LIBRPA::mpi_comm_world_h.comm, Wc_libri, Iset_Jset_Wc.first, Iset_Jset_Wc.second);
-                // parse collected to 
+                // parse collected to
                 for (const auto &MN: atpair_unordered_local)
                 {
                     const auto &M = MN.first;

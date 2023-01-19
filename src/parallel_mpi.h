@@ -177,6 +177,8 @@ public:
     const int& n_loc() const { return n_local_; }
     const int& myprow() const { return myprow_; }
     const int& mypcol() const { return mypcol_; }
+    const int& nprows() const { return nprows_; }
+    const int& npcols() const { return npcols_; }
     std::string info() const;
     std::string info_desc() const;
     bool is_src() const;
@@ -221,6 +223,9 @@ public:
 vector<int> dispatcher(int ist, int ied, unsigned myid, unsigned size, bool sequential);
 vector<pair<int, int>> dispatcher(int i1st, int i1ed, int i2st, int i2ed,
                                   unsigned myid, unsigned size, bool sequential, bool favor_1st);
+
+vector<pair<int,int>> pick_upper_trangular_tasks(vector<int> list_row, vector<int> list_col);
+vector<pair<int,int>> dispatch_upper_trangular_tasks(const int &natoms, const int &myid, const int &nprows, const int &npcols, const int &myprow, const int &mypcol);
 
 template <typename T>
 vector<T> dispatch_vector(vector<T> world_vec, unsigned myid, unsigned size, bool sequential)
