@@ -21,7 +21,7 @@ int main(int argc, char **argv)
     prof.add(2, "cal_Green_func_R_tau", "space-time Green's function");
     prof.add(2, "cal_Green_func",       "space-time Green's function");
     prof.add(2, "R_tau_routing", "Loop over R-tau");
-    prof.add(2, "atom_pair_rouing", "Loop over atom pairs");
+    prof.add(2, "atom_pair_routing", "Loop over atom pairs");
     prof.add(2, "LibRI_rouing", "Loop over LibRI");
     prof.add(3, "cal_chi0_element", "chi(tau,R,I,J)");
     prof.add(4, "X");
@@ -30,7 +30,7 @@ int main(int argc, char **argv)
     prof.add(4, "Z");
     prof.add(4, "reshape_Cs", "reshape Cs");
     prof.add(4, "reshape_mat", "reshape mat");
-
+    prof.add(2,"EcRPA");
     prof.start("total");
 
     int flag;
@@ -231,12 +231,14 @@ int main(int argc, char **argv)
     // RPA total energy
     if ( params.task == "rpa" )
     {
+        prof.start("EcRPA");
         CorrEnergy corr;
         if (params.use_scalapack_ecrpa && LIBRPA::chi_parallel_type == LIBRPA::parallel_type::ATOM_PAIR)
             corr = compute_RPA_correlation_blacs(chi0, Vq);
         else
             corr = compute_RPA_correlation(chi0, Vq);
 
+        prof.stop("EcRPA");
         if (mpi_comm_world_h.is_root())
         {
             printf("RPA correlation energy (Hartree)\n");
