@@ -573,6 +573,7 @@ void Chi0::build_chi0_q_space_time_atom_pair_routing(const atpair_R_mat_t &LRI_C
     }
     mpi_comm_world_h.barrier();
     double t_chi0_end= omp_get_wtime();
+    prof.stop("atom_pair_routing");
     if(mpi_comm_world_h.is_root())
         printf("| total chi0 time: %f\n",t_chi0_end-t_chi0_begin);
 }
