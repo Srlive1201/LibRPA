@@ -615,7 +615,7 @@ CorrEnergy compute_RPA_correlation(const Chi0 &chi0, const atpair_k_cplx_mat_t &
     else
         pi_freq_q_Mu_Nu = compute_Pi_q(chi0, coulmat);
     printf("Finish Pi freq on Proc %4d, size %zu\n", mpi_comm_world_h.myid, pi_freq_q_Mu_Nu.size());
-    mpi_comm_world_h.barrier();
+    //mpi_comm_world_h.barrier();
 
     int range_all = N_all_mu;
 

@@ -145,7 +145,7 @@ int main(int argc, char **argv)
     }
     else
     {
-        local_atpair = dispatch_vector(tot_atpair, mpi_comm_world_h.myid, mpi_comm_world_h.nprocs, true);
+        local_atpair = generate_atom_pair_from_nat(natom, false);
         READ_AIMS_Cs("./", params.cs_threshold,local_atpair );
         printf("| process %d, size of Cs from local_atpair: %lu\n", LIBRPA::mpi_comm_world_h.myid, Cs.size());
         READ_Vq_Full("./", "coulomb_mat", params.vq_threshold, Vq); 
@@ -231,6 +231,7 @@ int main(int argc, char **argv)
     // RPA total energy
     if ( params.task == "rpa" )
     {
+        mpi_comm_world_h.barrier();
         prof.start("EcRPA");
         CorrEnergy corr;
         if (params.use_scalapack_ecrpa && LIBRPA::chi_parallel_type == LIBRPA::parallel_type::ATOM_PAIR)
