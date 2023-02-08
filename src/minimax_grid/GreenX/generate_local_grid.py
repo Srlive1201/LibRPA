@@ -246,12 +246,14 @@ def main():
             print("max diff element: %f, 2-norm of %s trans: %f" % (vmax, title, norm))
             ax.set_title(title + " Delta, 2-norm: %.4f" % norm)
             c = ax.matshow(delta, cmap="Blues", vmin=0, vmax=vmax)
+            fig.colorbar(c, ax=ax, fraction=0.046, pad=0.04)
+            if ngrids > 10:
+                continue
             for (i, j), z in np.ndenumerate(delta):
                 if z < 0.01 * vmax:
                     continue
                 ax.text(j, i, '{:0.2f}'.format(z), ha='center', va='center',
                         bbox=dict(boxstyle='round', facecolor='white', edgecolor='0.3'))
-            fig.colorbar(c, ax=ax, fraction=0.046, pad=0.04)
         fig.tight_layout()
         if args.plot:
             plt.savefig("Delta_n%d_e%.5f.png" % (ngrids, erange), dpi=args.dpi)
