@@ -4,8 +4,8 @@ import warnings
 from argparse import ArgumentParser
 import numpy as np
 
-SUBROUTINE_NAME_TEMPLATE = "init_minimax_%s_grid_%d"
-WRAPPER_SUBROUTINE_NAME = "init_minimax_grid"
+FUNCTION_NAME_TEMPLATE = "_init_minimax_%s_grid_%d"
+WRAPPER_FUNCTION_NAME = "init_minimax_grid"
 
 
 def get_grids_weights_from_datafile(datafile):
@@ -60,20 +60,12 @@ def get_grids_weights_from_datafile(datafile):
     return ngrids, data
 
 
-def format_tf_subroutine(ngrids, data, keyword, indent=4, doubletype="real*8"):
+def format_tf_module(ngrids, data, keyword, indent=4, doubletype="float64"):
     """base function to format the fortran subroutine"""
     header = [
-        "subroutine " + SUBROUTINE_NAME_TEMPLATE % (keyword, ngrids)
-        + "(%s_grids, %s_weights, eratio, scale)" % (keyword, keyword),
+        "def " + FUNCTION_NAME_TEMPLATE % (keyword, ngrids) + "(eratio, scale):",
     ]
-    variables = [
-        "",
-        "%s,intent(out) :: %s_grids(%d)" % (doubletype, keyword, ngrids),
-        "%s,intent(out) :: %s_weights(%d)" % (doubletype, keyword, ngrids),
-        "%s,intent(in)  :: eratio" % doubletype,
-        "%s,intent(in)  :: scale" % doubletype,
-        "",
-    ]
+    variables = []
 
     assignments = []
     for i in range(len(data)):
@@ -82,31 +74,27 @@ def format_tf_subroutine(ngrids, data, keyword, indent=4, doubletype="real*8"):
         weights = data[i]["weights"]
 
         if i == 0:
-            assignments.append("if (eratio .le. %.4f) then" % eratio[1])
+            assignments.append("if eratio <= %.4f:" % eratio[1])
         elif i == len(data) - 1:
-            assignments.append("else")
+            assignments.append("else:")
         else:
-            assignments.append("else if (eratio .lt. %.4f) then" % eratio[1])
+            assignments.append("elif eratio < %.4f:" % eratio[1])
 
-        assignments.append(" " * indent + "%s_grids(:) = (/ &" % keyword)
+        assignments.append(" " * indent + "%s_grids = [" % keyword)
 
-        for grid in grids[:-1]:
-            assignments.append(" " * 2 * indent + "%.16e, &" % grid)
-        assignments.append(" " * 2 * indent + "%.16e &" % grids[-1])
-        assignments.append(" " * indent + "/)")
+        for grid in grids:
+            assignments.append(" " * 2 * indent + "%.16e," % grid)
+        assignments.append(" " * indent + "]")
 
-        assignments.append(" " * indent + "%s_weights(:) = (/ &" % keyword)
-        for grid in weights[:-1]:
-            assignments.append(" " * 2 * indent + "%.16e, &" % grid)
-        assignments.append(" " * 2 * indent + "%.16e &" % weights[-1])
-        assignments.append(" " * indent + "/)")
-
-        if i == len(data) - 1:
-            assignments.append("end if")
+        assignments.append(" " * indent + "%s_weights = [" % keyword)
+        for grid in weights:
+            assignments.append(" " * 2 * indent + "%.16e," % grid)
+        assignments.append(" " * indent + "]")
 
     postprocess = [
-        "%s_grids(:) = %s_grids(:) * scale" % (keyword, keyword),
-        "%s_weights(:) = %s_weights(:) * scale" % (keyword, keyword)
+        "%s_grids = np.array(%s_grids, dtype='%s') * scale" % (keyword, keyword, doubletype),
+        "%s_weights = np.array(%s_weights, dtype='%s') * scale" % (keyword, keyword, doubletype),
+        "return %s_grids, %s_weights" % (keyword, keyword),
     ]
 
     body = []
@@ -115,74 +103,64 @@ def format_tf_subroutine(ngrids, data, keyword, indent=4, doubletype="real*8"):
             body.append(x)
         else:
             body.append(" " * indent + x)
-    footer = ["end subroutine"]
+    footer = []
     return header + body + footer
 
 
-def format_freq_subroutine(ngrids, freqdata, indent=4, doubletype="real*8"):
+def format_freq_function(ngrids, freqdata, indent=4, doubletype="float64"):
     """format the fortran subroutine for a frequency ngrids"""
-    return format_tf_subroutine(ngrids, freqdata, "freq", indent, doubletype)
+    return format_tf_module(ngrids, freqdata, "freq", indent, doubletype)
 
 
-def format_time_subroutine(ngrids, timedata, indent=4, doubletype="real*8"):
+def format_time_function(ngrids, timedata, indent=4, doubletype="float64"):
     """format the fortran subroutine for a frequency ngrids"""
-    return format_tf_subroutine(ngrids, timedata, "time", indent, doubletype)
+    return format_tf_module(ngrids, timedata, "time", indent, doubletype)
 
 
-def format_wrapper_subroutine(ngrids_list, indent=4, doubletype="real*8"):
+def format_wrapper_function(ngrids_list, indent=4, doubletype="float64"):
     """format the wrapper subroutine of a list of ngrids"""
     header = [
-        "subroutine " + WRAPPER_SUBROUTINE_NAME +
-        "(ngrids, emin, emax, freq_grids, freq_weights, time_grids, time_weights, ierr)"
+        "def " + WRAPPER_FUNCTION_NAME + "(ngrids, emin, emax, no_scale=False):"
     ]
-    variables = [
-        "",
-        "integer,intent(in)  :: ngrids",
-        "integer,intent(out) :: ierr",
-        "%s,intent(in)        :: emin" % doubletype,
-        "%s,intent(in)        :: emax" % doubletype,
-        "%s,intent(out)       :: freq_grids(ngrids)" % doubletype,
-        "%s,intent(out)       :: freq_weights(ngrids)" % doubletype,
-        "%s,intent(out)       :: time_grids(ngrids)" % doubletype,
-        "%s,intent(out)       :: time_weights(ngrids)" % doubletype,
-        "",
-        "%s :: eratio" % doubletype,
-        "%s :: scale_freq" % doubletype,
-        "%s :: scale_time" % doubletype,
-        "",
-    ]
+    variables = []
     assignments = [
         "",
-        "if (emin .le. 0.0) then",
-        " " * indent + "ierr = 2",
-        " " * indent + "return",
-        "end if",
+        "if emin < 0.0:",
+        " " * indent + "raise ValueError('Metal system not implemented')",
         "",
         "eratio = emax / emin",
         "scale_freq = emin",
+        "if no_scale:",
+        " " * indent + "scale_freq = 1.0",
         "scale_time = 1.0 / scale_freq",
-        "ierr = 0",
         ""
     ]
 
     selection = [
-        "select case (ngrids)",
+        "grid_func_dict = {",
     ]
     for ngrids in ngrids_list:
-        selection.extend([
-            "case (%d)" % ngrids,
-            " " * indent + "call " + SUBROUTINE_NAME_TEMPLATE % ("freq", ngrids) + "(freq_grids, freq_weights, eratio, scale_freq)",
-            " " * indent + "call " + SUBROUTINE_NAME_TEMPLATE % ("time", ngrids) + "(time_grids, time_weights, eratio, scale_time)",
-        ])
-    selection.extend(["case default", " " * indent + "ierr = 1", "end select"])
+        selection.append(" " * indent + "%d: " % ngrids + "(" + FUNCTION_NAME_TEMPLATE %
+                         ("freq", ngrids) + ", " + FUNCTION_NAME_TEMPLATE %
+                         ("time", ngrids) + "),")
+    selection.append("}")
+    selection.extend([
+        "if ngrids not in grid_func_dict:",
+        " " * indent + "raise ValueError('grid size not supported')",
+        "freq_func, time_func = grid_func_dict[ngrids]",
+        "freq_grids, freq_weights = freq_func(eratio, scale_freq)",
+        "time_grids, time_weights = time_func(eratio, scale_time)",
+    ])
+
+    ret = ["return freq_grids, freq_weights, time_grids, time_weights", ]
 
     body = []
-    for x in variables + assignments + selection:
+    for x in variables + assignments + selection + ret:
         if x.strip() == '':
             body.append(x)
         else:
             body.append(" " * indent + x)
-    footer = ["end subroutine"]
+    footer = []
     return header + body + footer
 
 
@@ -191,14 +169,14 @@ if __name__ == "__main__":
     parser.add_argument("--freqdata", nargs="+", type=str, help="filenames of frequency grids")
     parser.add_argument("--timedata", nargs="+", type=str, help="filenames of time grids")
     parser.add_argument("--indent", default=4, type=int, help="indent inside subroutines")
-    parser.add_argument("--dt", default="double precision",
-                        type=str, choices=["double precision", "real*8"],
+    parser.add_argument("--dt", default="float64",
+                        type=str, choices=["float64", "float128"],
                         help="indent inside subroutines")
     parser.add_argument("--disable-preprocess-freq-weight", action="store_true", help="")
 
     args = parser.parse_args()
-    freq_subroutines = []
-    time_subroutines = []
+    freq_functions = []
+    time_functions = []
     freq_ngrids_list = []
     time_ngrids_list = []
     preproc_weight_scale = 0.25
@@ -215,11 +193,11 @@ if __name__ == "__main__":
                 for d in data:
                     d["weights"] *= preproc_weight_scale
             freq_ngrids_list.append(ngrids)
-            freq_subroutines.append(
-                format_freq_subroutine(ngrids,
-                                       data,
-                                       args.indent,
-                                       doubletype=args.dt))
+            freq_functions.append(
+                format_freq_function(ngrids,
+                                     data,
+                                     args.indent,
+                                     doubletype=args.dt))
 
     if args.timedata is not None:
         for timefile in args.timedata:
@@ -227,46 +205,35 @@ if __name__ == "__main__":
             if ngrids is None:
                 continue
             time_ngrids_list.append(ngrids)
-            time_subroutines.append(
-                format_time_subroutine(ngrids,
-                                       data,
-                                       args.indent,
-                                       doubletype=args.dt))
+            time_functions.append(
+                format_time_function(ngrids,
+                                     data,
+                                     args.indent,
+                                     doubletype=args.dt))
 
-    subroutines = []
+    functions = []
     ngrids_list = []
     for ngrids in freq_ngrids_list:
         if ngrids in time_ngrids_list:
             ngrids_list.append(ngrids)
-            subroutines.append(freq_subroutines[freq_ngrids_list.index(ngrids)])
-            subroutines.append(time_subroutines[time_ngrids_list.index(ngrids)])
+            functions.append(freq_functions[freq_ngrids_list.index(ngrids)])
+            functions.append(time_functions[time_ngrids_list.index(ngrids)])
 
-    module_header = ["module mod_minimax_grids", ]
-    module_declare = [
-        "", "private",
-        "public :: %s" % WRAPPER_SUBROUTINE_NAME,
-        "", "contains", ""
-    ]
-    module_footer = [
-        "end module",
-    ]
-
-    module_body = []
-    for s in module_declare:
-        if s.strip() == '':
-            module_body.append("")
-        else:
-            module_body.append(" " * args.indent + s)
+    module_imports = ["import numpy as np", ""]
+    module_headers = ["__all__ = ['%s', 'available_minimax_grid ']" % WRAPPER_FUNCTION_NAME, "",
+                      ""]
+    module_body = ["available_minimax_grid = (" + ", ".join(str(x) for x in ngrids_list) + ")", "", ""]
 
     for sub in [
-            format_wrapper_subroutine(
+            format_wrapper_function(
                 ngrids_list, args.indent, doubletype=args.dt),
-    ] + subroutines:
+    ] + functions:
         for s in sub:
             if s.strip() == '':
                 module_body.append("")
             else:
-                module_body.append(" " * args.indent + s)
+                module_body.append(s)
+        module_body.append("")
         module_body.append("")
 
-    print("\n".join(module_header + module_body + module_footer))
+    print("\n".join(module_imports + module_headers + module_body))

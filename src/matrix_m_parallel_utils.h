@@ -190,8 +190,8 @@ matrix_m<std::complex<T>> power_hemat_blacs(matrix_m<std::complex<T>> &A_local,
         T *Wquery = new T[1];
         // printf("power_hemat_blacs descA %s\n", ad_A.info_desc().c_str());
         ScalapackConnector::pheev_f(jobz, uplo,
-                n, A_local.c, 1, 1, ad_A.desc,
-                Wquery, Z_local.c, 1, 1, ad_Z.desc, work, lwork, rwork, lrwork, info);
+                n, A_local.ptr(), 1, 1, ad_A.desc,
+                Wquery, Z_local.ptr(), 1, 1, ad_Z.desc, work, lwork, rwork, lrwork, info);
         lwork = int(work[0].real());
         lrwork = int(rwork[0]);
         delete [] work, Wquery, rwork;
@@ -201,8 +201,8 @@ matrix_m<std::complex<T>> power_hemat_blacs(matrix_m<std::complex<T>> &A_local,
     work = new std::complex<T> [lwork];
     rwork = new T [lrwork];
     ScalapackConnector::pheev_f(jobz, uplo,
-            n, A_local.c, 1, 1, ad_A.desc,
-            W, Z_local.c, 1, 1, ad_Z.desc, work, lwork, rwork, lrwork, info);
+            n, A_local.ptr(), 1, 1, ad_A.desc,
+            W, Z_local.ptr(), 1, 1, ad_Z.desc, work, lwork, rwork, lrwork, info);
     delete [] work, rwork;
 
     // check the number of non-singular eigenvalues,
@@ -234,10 +234,10 @@ matrix_m<std::complex<T>> power_hemat_blacs(matrix_m<std::complex<T>> &A_local,
     // }
 
     // create scaled eigenvectors
-    matrix_m<std::complex<T>> scaled_Z_local(Z_local);
+    auto scaled_Z_local = Z_local.copy();
     for (int i = 0; i != n; i++)
-        ScalapackConnector::pscal_f(n, W_temp[i], scaled_Z_local.c, 1, 1+i, ad_Z.desc, 1);
-    ScalapackConnector::pgemm_f('N', 'C', n, n, n, 1.0, Z_local.c, 1, 1, ad_Z.desc, scaled_Z_local.c, 1, 1, ad_Z.desc, 0.0, A_local.c, 1, 1, ad_A.desc);
+        ScalapackConnector::pscal_f(n, W_temp[i], scaled_Z_local.ptr(), 1, 1+i, ad_Z.desc, 1);
+    ScalapackConnector::pgemm_f('N', 'C', n, n, n, 1.0, Z_local.ptr(), 1, 1, ad_Z.desc, scaled_Z_local.ptr(), 1, 1, ad_Z.desc, 0.0, A_local.ptr(), 1, 1, ad_A.desc);
     return scaled_Z_local;
 }
 
@@ -250,7 +250,7 @@ void print_matrix_mm_parallel(ostream &os, const matrix_m<T> &mat_loc, const LIB
     ad_fb.init(nr, nc, nr, nc, irsrc, icsrc);
     matrix_m<T> mat_glo = init_local_mat<T>(ad_fb, mat_loc.major());
 
-    ScalapackConnector::pgemr2d_f(nr, nc, mat_loc.c, 1, 1, ad.desc, mat_glo.c, 1, 1, ad_fb.desc, ad.ictxt());
+    ScalapackConnector::pgemr2d_f(nr, nc, mat_loc.ptr(), 1, 1, ad.desc, mat_glo.ptr(), 1, 1, ad_fb.desc, ad.ictxt());
     if (ad_fb.is_src() && os.good())
     {
         print_matrix_mm(mat_glo, os, threshold, row_first);
@@ -282,10 +282,10 @@ matrix_m<T> multiply_scalapack(const matrix_m<T> &m1_loc, const LIBRPA::Array_De
     if (m1_loc.is_col_major())
     {
         ScalapackConnector::pgemm_f('N', 'N', m, n, k, 1.0,
-                m1_loc.c, 1, 1, desc_m1.desc,
-                m2_loc.c, 1, 1, desc_m2.desc,
+                m1_loc.ptr(), 1, 1, desc_m1.desc,
+                m2_loc.ptr(), 1, 1, desc_m2.desc,
                 0.0,
-                prod_loc.c, 1, 1, desc_prod.desc);
+                prod_loc.ptr(), 1, 1, desc_prod.desc);
     }
     else
     {
@@ -304,13 +304,13 @@ void invert_scalapack(matrix_m<T> &m_loc, const LIBRPA::Array_Desc &desc_m)
         // NOTE: use local leading dimension desc_m.lld() will lead to invalid pointer error
         int *ipiv = new int [desc_m.m()];
         // printf("invert_scalpack desc %s\n", desc_m.info_desc().c_str());
-        ScalapackConnector::pgetrf_f(desc_m.m(), desc_m.n(), m_loc.c, 1, 1, desc_m.desc, ipiv, info);
+        ScalapackConnector::pgetrf_f(desc_m.m(), desc_m.n(), m_loc.ptr(), 1, 1, desc_m.desc, ipiv, info);
         // get optimized work size
         int lwork = -1, liwork = -1;
         {
             T *work = new T [1];
             int *iwork = new int [1];
-            ScalapackConnector::pgetri_f(desc_m.m(), m_loc.c, 1, 1, desc_m.desc, ipiv, work, lwork, iwork, liwork, info);
+            ScalapackConnector::pgetri_f(desc_m.m(), m_loc.ptr(), 1, 1, desc_m.desc, ipiv, work, lwork, iwork, liwork, info);
             lwork = int(get_real(work[0]));
             liwork = iwork[0];
             // printf("lwork %d liwork %d\n", lwork, liwork);
@@ -320,7 +320,7 @@ void invert_scalapack(matrix_m<T> &m_loc, const LIBRPA::Array_Desc &desc_m)
 
         T *work = new T[lwork];
         int *iwork = new int[liwork];
-        ScalapackConnector::pgetri_f(desc_m.m(), m_loc.c, 1, 1, desc_m.desc, ipiv, work, lwork, iwork, liwork, info);
+        ScalapackConnector::pgetri_f(desc_m.m(), m_loc.ptr(), 1, 1, desc_m.desc, ipiv, work, lwork, iwork, liwork, info);
         delete [] iwork;
         delete [] work;
         delete [] ipiv;

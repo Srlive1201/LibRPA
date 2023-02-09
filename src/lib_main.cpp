@@ -3,7 +3,9 @@
 #include <malloc.h>
 #include "scalapack_connector.h"
 #include <set>
+#ifdef __USE_LIBRI
 #include <RI/distribute/Distribute_Equally.h>
+#endif
 
 int main(int argc, char **argv)
 {
@@ -257,10 +259,10 @@ int main(int argc, char **argv)
     {
         READ_Vq_Full("./", "coulomb_cut_", params.vq_threshold, Vq_cut); 
         const auto VR = FT_Vq(Vq_cut, Rlist, true);
-        auto exx = LIBRPA::Exx(meanfield, klist);
+        auto exx = LIBRPA::Exx(meanfield, kfrac_list);
         exx.build_exx_orbital_energy(Cs, Rlist, period, VR);
         vector<std::complex<double>> epsmac_LF_imagfreq;
-        map<double, atpair_k_cplx_mat_t> Wc_freq_q;
+        map<double, atom_mapping<std::map<Vector3_Order<double>, matrix_m<complex<double>>>>::pair_t_old> Wc_freq_q;
         if (params.use_scalapack_gw_wc)
             Wc_freq_q = compute_Wc_freq_q_blacs(chi0, Vq, Vq_cut, epsmac_LF_imagfreq);
         else
@@ -280,13 +282,56 @@ int main(int argc, char **argv)
                         {
                             const int iq = std::distance(klist.begin(), std::find(klist.begin(), klist.end(), q_Wc.first));
                             sprintf(fn, "Wcfq_ifreq_%d_iq_%d_I_%zu_J_%zu_id_%d.mtx", ifreq, iq, I, J, mpi_comm_world_h.myid);
-                            print_complex_matrix_mm(*q_Wc.second, fn, 1e-15);
+                            // print_matrix_mm_file(q_Wc.second, fn, 1e-15);
                         }
                     }
                 }
             }
         }
-        const auto Wc_tau_R = CT_FT_Wc_freq_q(Wc_freq_q, chi0.tfg, Rlist);
+        LIBRPA::G0W0 s_g0w0(meanfield, kfrac_list, chi0.tfg);
+        s_g0w0.build_spacetime_LibRI(Cs, Wc_freq_q, Rlist, period);
+        { // debug, check Sigc, rotate to KS basis
+            char fn[80];
+            for (const auto &ispin_freq_k_IJSigc: s_g0w0.sigc_is_freq_k_IJ)
+            {
+                const auto &ispin = ispin_freq_k_IJSigc.first;
+                for (const auto &freq_k_IJSigc: ispin_freq_k_IJSigc.second)
+                {
+                    const int ifreq = s_g0w0.tfg.get_freq_index(freq_k_IJSigc.first);
+                    for (const auto &k_IJSigc: freq_k_IJSigc.second)
+                    {
+                        const auto &k = k_IJSigc.first;
+                        const int ik = std::distance(kfrac_list.begin(), std::find(kfrac_list.begin(), kfrac_list.end(), k));
+                        matrix_m<complex<double>> sigc_all(meanfield.get_n_aos(), meanfield.get_n_aos(), MAJOR::COL);
+                        for (const auto &I_JSigc: k_IJSigc.second)
+                        {
+                            const auto &I = I_JSigc.first;
+                            for (const auto &J_Sigc: I_JSigc.second)
+                            {
+                                const auto &J = J_Sigc.first;
+                                const auto &sigc_IJ = J_Sigc.second;
+                                sprintf(fn, "Sigc_fk_ij_ispin_%d_ifreq_%d_ik_%d_I_%zu_J_%zu_id_%d.mtx", ispin, ifreq, ik, I, J, mpi_comm_world_h.myid);
+                                // print_matrix_mm_file(sigc_IJ, fn, 1e-10);
+                                for (int i = 0; i != atomic_basis_wfc.get_atom_nb(I); i++)
+                                {
+                                    for (int j = 0; j != atomic_basis_wfc.get_atom_nb(J); j++)
+                                    {
+                                        sigc_all(atomic_basis_wfc.get_global_index(I, i), atomic_basis_wfc.get_global_index(J, j)) = sigc_IJ(i, j);
+                                    }
+                                }
+                            }
+                        }
+                        if (mpi_comm_world_h.nprocs > 1) continue;
+                        matrix_m<complex<double>> wfc(meanfield.get_n_bands(), meanfield.get_n_aos(),
+                                                      meanfield.get_eigenvectors()[ispin][ik].c, MAJOR::ROW, MAJOR::COL);
+                        wfc.conj();
+                        auto sigc_KS = wfc * sigc_all * transpose(wfc, true);
+                        sprintf(fn, "Sigc_fk_mn_ispin_%d_ifreq_%d_ik_%d_id_%d.mtx", ispin, ifreq, ik, mpi_comm_world_h.myid);
+                        print_matrix_mm_file(sigc_KS, fn, 1e-10);
+                    }
+                }
+            }
+        }
     }
     else if ( params.task == "exx" )
     {

@@ -1,9 +1,13 @@
 #pragma once
 #include <utility>
+#include <ostream>
 #include <set>
 #include <array>
 #include "atoms.h"
 #include "vector3_order.h"
+#ifdef __USE_LIBRI
+#include <RI/global/Tensor.h>
+#endif
 
 template <typename TA, typename Tcell>
 struct libri_types
@@ -58,3 +62,55 @@ get_s0_s1_for_comm_map2_first(const std::set<std::pair<TA, TA>>& atpairs)
     }
     return {set_s0, set_s1};
 }
+
+template <typename Tcell, size_t Ndim>
+std::ostream& operator<<(std::ostream& os, const std::array<Tcell, Ndim> &cell)
+{
+    for (int i = 0; i != Ndim; i++)
+        os << cell[i] << " ";
+    return os;
+}
+
+#ifdef __USE_LIBRI
+template <typename T>
+std::ostream& operator<<(std::ostream& os, const RI::Tensor<T>& t)
+{
+    switch (t.shape.size())
+    {
+        case 1:
+        {
+            for (size_t i0 = 0; i0 < t.shape[0]; ++i0) os << t(i0) << " ";
+            os << std::endl;
+            return os;
+        }
+        case 2:
+        {
+            for (size_t i0 = 0; i0 < t.shape[0]; ++i0)
+            {
+                for (size_t i1 = 0; i1 < t.shape[1]; ++i1)
+                    os << (std::abs(t(i0, i1)) > 1E-10 ? t(i0, i1) : 0) << " ";
+                os << std::endl;
+            }
+            return os;
+        }
+        case 3:
+        {
+            os << "[" << std::endl;
+            for (size_t i0 = 0; i0 < t.shape[0]; ++i0)
+            {
+                for (size_t i1 = 0; i1 < t.shape[1]; ++i1)
+                {
+                    for (size_t i2 = 0; i2 < t.shape[2]; ++i2) os << t(i0, i1, i2) << " ";
+                    os << std::endl;
+                }
+                os << std::endl;
+            }
+            os << "]" << std::endl;
+            return os;
+        }
+        default:
+            throw std::invalid_argument(std::string(__FILE__) + " line " +
+                                        std::to_string(__LINE__));
+    }
+}
+#endif

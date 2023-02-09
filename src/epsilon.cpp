@@ -23,7 +23,10 @@
 
 using LIBRPA::mpi_comm_world_h;
 using LIBRPA::Array_Desc;
-using namespace RI;
+#ifdef __USE_LIBRI
+using RI::Tensor;
+using RI::Communicate_Tensors_Map_Judge::comm_map2_first;
+#endif
 
 CorrEnergy compute_RPA_correlation_blacs_2d(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat)
 {
@@ -90,7 +93,7 @@ CorrEnergy compute_RPA_correlation_blacs_2d(const Chi0 &chi0, const atpair_k_cpl
             }
             printf("Finish RPA blacs 2d  vq arr\n");
             mpi_comm_world_h.barrier();
-            const auto IJq_coul = Communicate_Tensors_Map_Judge::comm_map2_first(LIBRPA::mpi_comm_world_h.comm, coul_libri, s0_s1.first, s0_s1.second);
+            const auto IJq_coul = comm_map2_first(LIBRPA::mpi_comm_world_h.comm, coul_libri, s0_s1.first, s0_s1.second);
             // LIBRPA::fout_para << "IJq_coul" << endl << IJq_coul;
             printf("Finish RPA blacs 2d  vq 2d\n");
             for (const auto &IJ: set_IJ_nabf_nabf)
@@ -146,7 +149,7 @@ CorrEnergy compute_RPA_correlation_blacs_2d(const Chi0 &chi0, const atpair_k_cpl
                 double chi_end_arr = omp_get_wtime();
                 // LIBRPA::fout_para << "chi0_libri" << endl << chi0_libri;
                 mpi_comm_world_h.barrier();
-                const auto IJq_chi0 = Communicate_Tensors_Map_Judge::comm_map2_first(LIBRPA::mpi_comm_world_h.comm, chi0_libri, s0_s1.first, s0_s1.second);
+                const auto IJq_chi0 = comm_map2_first(LIBRPA::mpi_comm_world_h.comm, chi0_libri, s0_s1.first, s0_s1.second);
                 // LIBRPA::fout_para << "IJq_chi0" << endl << IJq_chi0;
                 double chi_end_comm = omp_get_wtime();
                 printf("Finish RPA blacs 2d  chi  comm\n");
@@ -171,9 +174,9 @@ CorrEnergy compute_RPA_correlation_blacs_2d(const Chi0 &chi0, const atpair_k_cpl
             mpi_comm_world_h.barrier();
             double pi_begin = omp_get_wtime();
             ScalapackConnector::pgemm_f('N', 'N', n_abf, n_abf, n_abf, 1.0,
-                    coul_block.c, 1, 1, desc_nabf_nabf.desc,
-                    chi0_block.c, 1, 1, desc_nabf_nabf.desc, 0.0,
-                    coul_chi0_block.c, 1, 1, desc_nabf_nabf.desc);
+                    coul_block.ptr(), 1, 1, desc_nabf_nabf.desc,
+                    chi0_block.ptr(), 1, 1, desc_nabf_nabf.desc, 0.0,
+                    coul_chi0_block.ptr(), 1, 1, desc_nabf_nabf.desc);
             // char fnp[100];
             // sprintf(fnp, "pi_ifreq_%d_iq_%d.mtx", ifreq, iq);
             double pi_end = omp_get_wtime();
@@ -250,7 +253,7 @@ complex<double> compute_pi_det_blacs_2d(matrix_m<complex<double>> &loc_piT, cons
     // }
 
     //ScalapackConnector::transpose_desc(DESCPI_T, arrdesc_pi.desc);
-    pzgetrf_(&range_all,&range_all,loc_piT.c,&one,&one,arrdesc_pi.desc,ipiv, &info);
+    pzgetrf_(&range_all,&range_all,loc_piT.ptr(),&one,&one,arrdesc_pi.desc,ipiv, &info);
     //ScalapackConnector::pgetrf_f(range_all,range_all,loc_piT.c,one,one,DESCPI_T,ipiv, info);
     //printf("   after LU myid: %d\n",mpi_comm_world_h.myid);
     //printf("desc myid: %d,  m n: %d,%d,  mb nb: %d, %d,  loc_m_n: %d, %d, myp: %d,%d, npr,npc: %d, %d\n",mpi_comm_world_h.myid, arrdesc_pi.m(),arrdesc_pi.n(), arrdesc_pi.mb(),arrdesc_pi.nb(), arrdesc_pi.m_loc(),arrdesc_pi.n_loc(),arrdesc_pi.myprow(),arrdesc_pi.mypcol(),arrdesc_pi.nprows(),arrdesc_pi.npcols());
@@ -1114,10 +1117,10 @@ atom_mapping<ComplexMatrix>::pair_t_old gather_vq_row_q(const int &I, const atpa
     return Vq_row;
 }
 
-map<double, atpair_k_cplx_mat_t>
+map<double, atom_mapping<std::map<Vector3_Order<double>, matrix_m<complex<double>>>>::pair_t_old>
 compute_Wc_freq_q(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, atpair_k_cplx_mat_t &coulmat_wc, const vector<std::complex<double>> &epsilon_mac_imagfreq)
 {
-    map<double, atpair_k_cplx_mat_t> Wc_freq_q;
+    map<double, atom_mapping<std::map<Vector3_Order<double>, matrix_m<complex<double>>>>::pair_t_old> Wc_freq_q;
     const int range_all = LIBRPA::atomic_basis_abf.nb_total;
     const auto part_range = LIBRPA::atomic_basis_abf.get_part_range();
 
@@ -1151,7 +1154,7 @@ compute_Wc_freq_q(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, atpa
         }
         auto sqrtVq_all = power_hemat(Vq_all, 0.5, false, params.sqrt_coulomb_threshold);
         sprintf(fn, "sqrtVq_all_q_%d.mtx", iq);
-        print_complex_matrix_mm(sqrtVq_all, fn, 1e-15);
+        // print_complex_matrix_mm(sqrtVq_all, fn, 1e-15);
 
         // truncated (cutoff) Coulomb
         ComplexMatrix Vqcut_all(range_all, range_all);
@@ -1176,7 +1179,7 @@ compute_Wc_freq_q(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, atpa
         // sprintf(fn, "sqrtVqcut_all_q_%d.mtx", iq);
         // print_complex_matrix_mm(sqrtVqcut_all, fn, 1e-15);
         sprintf(fn, "Vqcut_all_filtered_q_%d.mtx", iq);
-        print_complex_matrix_mm(Vqcut_all, fn, 1e-15);
+        // print_complex_matrix_mm(Vqcut_all, fn, 1e-15);
         // save the filtered truncated Coulomb back to the atom mapping object
         for ( auto &Mu_NuqVq: coulmat_wc )
         {
@@ -1216,7 +1219,7 @@ compute_Wc_freq_q(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, atpa
                 }
             }
             sprintf(fn, "chi0fq_all_q_%d_freq_%d.mtx", iq, ifreq);
-            print_complex_matrix_mm(chi0fq_all, fn, 1e-15);
+            // print_complex_matrix_mm(chi0fq_all, fn, 1e-15);
 
             ComplexMatrix identity(range_all, range_all);
             identity.set_as_identity_matrix();
@@ -1248,7 +1251,7 @@ compute_Wc_freq_q(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, atpa
                         {
                             (*wc_ptr)(i_mu, i_nu) = wc_all(part_range[Mu] + i_mu, part_range[Nu] + i_nu);
                         }
-                    Wc_freq_q[freq][Mu][Nu][q] = wc_ptr;
+                    Wc_freq_q[freq][Mu][Nu][q] = matrix_m<complex<double>>(n_mu, n_nu, wc_ptr->c, MAJOR::ROW, MAJOR::ROW);
                 }
             }
         }
@@ -1257,10 +1260,10 @@ compute_Wc_freq_q(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, atpa
     return Wc_freq_q;
 }
 
-map<double, atpair_k_cplx_mat_t>
+map<double, atom_mapping<std::map<Vector3_Order<double>, matrix_m<complex<double>>>>::pair_t_old>
 compute_Wc_freq_q_blacs(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, atpair_k_cplx_mat_t &coulmat_wc, const vector<std::complex<double>> &epsmac_LF_imagfreq)
 {
-    map<double, atpair_k_cplx_mat_t> Wc_freq_q;
+    map<double, atom_mapping<std::map<Vector3_Order<double>, matrix_m<complex<double>>>>::pair_t_old> Wc_freq_q;
     const complex<double> CONE{1.0, 0.0};
     const int n_abf = LIBRPA::atomic_basis_abf.nb_total;
     const auto part_range = LIBRPA::atomic_basis_abf.get_part_range();
@@ -1315,7 +1318,7 @@ compute_Wc_freq_q_blacs(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps
         // collect the block elements of coulomb matrices
         {
             // LibRI tensor for communication, release once done
-            std::map<int, std::map<std::pair<int, std::array<double, 3>>, Tensor<complex<double>>>> couleps_libri;
+            std::map<int, std::map<std::pair<int, std::array<double, 3>>, RI::Tensor<complex<double>>>> couleps_libri;
             // for (const auto &Mu_NuqVq: coulmat_eps)
             // {
             //     const auto Mu = Mu_NuqVq.first;
@@ -1347,7 +1350,7 @@ compute_Wc_freq_q_blacs(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps
                 std::valarray<complex<double>> Vq_va(Vq->c, Vq->size);
                 auto pvq = std::make_shared<std::valarray<complex<double>>>();
                 *pvq = Vq_va;
-                couleps_libri[Mu][{Nu, qa}] = Tensor<complex<double>>({n_mu, n_nu}, pvq);
+                couleps_libri[Mu][{Nu, qa}] = RI::Tensor<complex<double>>({n_mu, n_nu}, pvq);
             }
             // LIBRPA::fout_para << "Couleps_libri" << endl << couleps_libri;
             // if (couleps_libri.size() == 0)
@@ -1355,7 +1358,7 @@ compute_Wc_freq_q_blacs(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps
 
             // perform communication
             // cout << "Iset&Jset" << Iset_Jset << endl;
-            const auto IJq_coul = Communicate_Tensors_Map_Judge::comm_map2_first(LIBRPA::mpi_comm_world_h.comm, couleps_libri, s0_s1.first, s0_s1.second);
+            const auto IJq_coul = RI::Communicate_Tensors_Map_Judge::comm_map2_first(LIBRPA::mpi_comm_world_h.comm, couleps_libri, s0_s1.first, s0_s1.second);
             // LIBRPA::fout_para << "IJq_coul" << endl << IJq_coul;
 
             for (const auto &IJ: set_IJ_nabf_nabf)
@@ -1373,8 +1376,8 @@ compute_Wc_freq_q_blacs(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps
             }
         }
         char fn[100];
-        sprintf(fn, "couleps_iq_%d.mtx", iq);
-        print_matrix_mm_file_parallel(fn, coul_block, desc_nabf_nabf);
+        // sprintf(fn, "couleps_iq_%d.mtx", iq);
+        // print_matrix_mm_file_parallel(fn, coul_block, desc_nabf_nabf);
         // LIBRPA::fout_para << str(coul_block);
         // printf("coul_block\n%s", str(coul_block).c_str());
         size_t n_singular;
@@ -1389,7 +1392,7 @@ compute_Wc_freq_q_blacs(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps
         // collect the block elements of truncated coulomb matrices
         {
             // LibRI tensor for communication, release once done
-            std::map<int, std::map<std::pair<int, std::array<double, 3>>, Tensor<complex<double>>>> couleps_libri;
+            std::map<int, std::map<std::pair<int, std::array<double, 3>>, RI::Tensor<complex<double>>>> couleps_libri;
             // for (const auto &Mu_NuqVq: coulmat_wc)
             // {
             //     const auto Mu = Mu_NuqVq.first;
@@ -1421,13 +1424,13 @@ compute_Wc_freq_q_blacs(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps
                 std::valarray<complex<double>> Vq_va(Vq->c, Vq->size);
                 auto pvq = std::make_shared<std::valarray<complex<double>>>();
                 *pvq = Vq_va;
-                couleps_libri[Mu][{Nu, qa}] = Tensor<complex<double>>({n_mu, n_nu}, pvq);
+                couleps_libri[Mu][{Nu, qa}] = RI::Tensor<complex<double>>({n_mu, n_nu}, pvq);
             }
             // if (couleps_libri.size() == 0)
             //     throw std::logic_error("data at q-point not found in coulmat_wc");
 
             // perform communication
-            const auto IJq_coul = Communicate_Tensors_Map_Judge::comm_map2_first(LIBRPA::mpi_comm_world_h.comm, couleps_libri, s0_s1.first, s0_s1.second);
+            const auto IJq_coul = RI::Communicate_Tensors_Map_Judge::comm_map2_first(LIBRPA::mpi_comm_world_h.comm, couleps_libri, s0_s1.first, s0_s1.second);
 
             for (const auto &IJ: set_IJ_nabf_nabf)
             {
@@ -1438,8 +1441,8 @@ compute_Wc_freq_q_blacs(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps
                     IJ.second, true, CONE, IJq_coul.at(I).at({J, qa}).ptr(), MAJOR::ROW);
             }
             // WARN: check whether one should pass back the filtered coulwc_block
-            sprintf(fn, "coulwc_iq_%d.mtx", iq);
-            print_matrix_mm_file_parallel(fn, coulwc_block, desc_nabf_nabf);
+            // sprintf(fn, "coulwc_iq_%d.mtx", iq);
+            // print_matrix_mm_file_parallel(fn, coulwc_block, desc_nabf_nabf);
             power_hemat_blacs(coulwc_block, desc_nabf_nabf, coul_eigen_block, desc_nabf_nabf, n_singular, eigenvalues.c, 0.5, params.sqrt_coulomb_threshold);
         }
 
@@ -1448,7 +1451,7 @@ compute_Wc_freq_q_blacs(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps
             const auto ifreq = chi0.tfg.get_freq_index(freq);
             chi0_block.zero_out();
             {
-                std::map<int, std::map<std::pair<int, std::array<double, 3>>, Tensor<complex<double>>>> chi0_libri;
+                std::map<int, std::map<std::pair<int, std::array<double, 3>>, RI::Tensor<complex<double>>>> chi0_libri;
                 const auto &chi0_wq = chi0.get_chi0_q().at(freq).at(q);
                 // for (const auto &Mu_Nu: atpair_unordered_local)
                 // {
@@ -1477,11 +1480,11 @@ compute_Wc_freq_q_blacs(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps
                         std::valarray<complex<double>> chi_va(chi.c, chi.size);
                         auto pchi = std::make_shared<std::valarray<complex<double>>>();
                         *pchi = chi_va;
-                        chi0_libri[M][{N, qa}] = Tensor<complex<double>>({n_mu, n_nu}, pchi);
+                        chi0_libri[M][{N, qa}] = RI::Tensor<complex<double>>({n_mu, n_nu}, pchi);
                     }
                 }
                 // LIBRPA::fout_para << "chi0_libri" << endl << chi0_libri;
-                const auto IJq_chi0 = Communicate_Tensors_Map_Judge::comm_map2_first(LIBRPA::mpi_comm_world_h.comm, chi0_libri, s0_s1.first, s0_s1.second);
+                const auto IJq_chi0 = RI::Communicate_Tensors_Map_Judge::comm_map2_first(LIBRPA::mpi_comm_world_h.comm, chi0_libri, s0_s1.first, s0_s1.second);
                 // LIBRPA::fout_para << "IJq_chi0" << endl << IJq_chi0;
                 for (const auto &IJ: set_IJ_nabf_nabf)
                 {
@@ -1491,54 +1494,55 @@ compute_Wc_freq_q_blacs(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps
                         chi0_block, desc_nabf_nabf, LIBRPA::atomic_basis_abf, IJ.first,
                         IJ.second, true, CONE, IJq_chi0.at(I).at({J, qa}).ptr(), MAJOR::ROW);
                 }
-                sprintf(fn, "chi_ifreq_%d_iq_%d.mtx", ifreq, iq);
-                print_matrix_mm_file_parallel(fn, chi0_block, desc_nabf_nabf);
+                // sprintf(fn, "chi_ifreq_%d_iq_%d.mtx", ifreq, iq);
+                // print_matrix_mm_file_parallel(fn, chi0_block, desc_nabf_nabf);
             }
             // for Gamma point, overwrite the head term
             if (epsmac_LF_imagfreq.size() > 0 && is_gamma_point(q))
             {
                 // rotate to Coulomb-eigenvector basis
                 ScalapackConnector::pgemm_f('N', 'N', n_abf, n_nonsingular, n_abf, 1.0,
-                        chi0_block.c, 1, 1, desc_nabf_nabf.desc,
-                        sqrtveig_blacs.c, 1, n_singular+1, desc_nabf_nabf.desc, 0.0,
-                        coul_chi0_block.c, 1, 1, desc_nabf_nabf.desc);
+                        chi0_block.ptr(), 1, 1, desc_nabf_nabf.desc,
+                        sqrtveig_blacs.ptr(), 1, n_singular+1, desc_nabf_nabf.desc, 0.0,
+                        coul_chi0_block.ptr(), 1, 1, desc_nabf_nabf.desc);
                 ScalapackConnector::pgemm_f('C', 'N', n_nonsingular, n_nonsingular, n_abf, 1.0,
-                        sqrtveig_blacs.c, 1, n_singular+1, desc_nabf_nabf.desc,
-                        coul_chi0_block.c, 1, 1, desc_nabf_nabf.desc, 0.0,
-                        chi0_block.c, 1, 1, desc_nabf_nabf.desc);
+                        sqrtveig_blacs.ptr(), 1, n_singular+1, desc_nabf_nabf.desc,
+                        coul_chi0_block.ptr(), 1, 1, desc_nabf_nabf.desc, 0.0,
+                        chi0_block.ptr(), 1, 1, desc_nabf_nabf.desc);
                 const int ilo = desc_nabf_nabf.indx_g2l_r(n_nonsingular);
                 const int jlo = desc_nabf_nabf.indx_g2l_c(n_nonsingular);
                 if (ilo >= 0 && jlo >= 0)
-                    chi0_block(ilo, jlo) = 1.0 - epsmac_LF_imagfreq[ifreq];
+                    chi0_block(ilo, jlo) = - epsmac_LF_imagfreq[ifreq];
                 // rotate back to ABF
                 ScalapackConnector::pgemm_f('N', 'N', n_abf, n_nonsingular, n_nonsingular, 1.0,
-                        coul_eigen_block.c, 1, n_singular+1, desc_nabf_nabf.desc,
-                        chi0_block.c, 1, 1, desc_nabf_nabf.desc, 0.0,
-                        coul_chi0_block.c, 1, 1, desc_nabf_nabf.desc);
+                        coul_eigen_block.ptr(), 1, n_singular+1, desc_nabf_nabf.desc,
+                        chi0_block.ptr(), 1, 1, desc_nabf_nabf.desc, 0.0,
+                        coul_chi0_block.ptr(), 1, 1, desc_nabf_nabf.desc);
                 ScalapackConnector::pgemm_f('N', 'C', n_abf, n_abf, n_nonsingular, 1.0,
-                        coul_chi0_block.c, 1, 1, desc_nabf_nabf.desc,
-                        coul_eigen_block.c, 1, n_singular+1, desc_nabf_nabf.desc, 0.0,
-                        chi0_block.c, 1, 1, desc_nabf_nabf.desc);
+                        coul_chi0_block.ptr(), 1, 1, desc_nabf_nabf.desc,
+                        coul_eigen_block.ptr(), 1, n_singular+1, desc_nabf_nabf.desc, 0.0,
+                        chi0_block.ptr(), 1, 1, desc_nabf_nabf.desc);
             }
             else
             {
                 ScalapackConnector::pgemm_f('N', 'N', n_abf, n_abf, n_abf, 1.0,
-                        coul_block.c, 1, 1, desc_nabf_nabf.desc,
-                        chi0_block.c, 1, 1, desc_nabf_nabf.desc, 0.0,
-                        coul_chi0_block.c, 1, 1, desc_nabf_nabf.desc);
+                        coul_block.ptr(), 1, 1, desc_nabf_nabf.desc,
+                        chi0_block.ptr(), 1, 1, desc_nabf_nabf.desc, 0.0,
+                        coul_chi0_block.ptr(), 1, 1, desc_nabf_nabf.desc);
                 ScalapackConnector::pgemm_f('N', 'N', n_abf, n_abf, n_abf, 1.0,
-                        coul_chi0_block.c, 1, 1, desc_nabf_nabf.desc,
-                        coul_block.c, 1, 1, desc_nabf_nabf.desc, 0.0,
-                        chi0_block.c, 1, 1, desc_nabf_nabf.desc);
+                        coul_chi0_block.ptr(), 1, 1, desc_nabf_nabf.desc,
+                        coul_block.ptr(), 1, 1, desc_nabf_nabf.desc, 0.0,
+                        chi0_block.ptr(), 1, 1, desc_nabf_nabf.desc);
             }
             // now chi0_block is actually v1/2 chi v1/2
             chi0_block *= -1.0;
             for (int i = 0; i != n_abf; i++)
             {
                 const int ilo = desc_nabf_nabf.indx_g2l_r(i);
+                if (ilo < 0) continue;
                 const int jlo = desc_nabf_nabf.indx_g2l_c(i);
-                if (ilo >= 0 && jlo >= 0)
-                    chi0_block(ilo, jlo) += 1.0;
+                if (jlo < 0) continue;
+                chi0_block(ilo, jlo) += 1.0;
             }
             // now chi0_block is actually the dielectric matrix
             // perform inversion
@@ -1547,18 +1551,19 @@ compute_Wc_freq_q_blacs(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps
             for (int i = 0; i != n_abf; i++)
             {
                 const int ilo = desc_nabf_nabf.indx_g2l_r(i);
+                if (ilo < 0) continue;
                 const int jlo = desc_nabf_nabf.indx_g2l_c(i);
-                if (ilo >= 0 && jlo >= 0)
-                    chi0_block(ilo, jlo) -= 1.0;
+                if (jlo < 0) continue;
+                chi0_block(ilo, jlo) -= 1.0;
             }
             ScalapackConnector::pgemm_f('N', 'N', n_abf, n_abf, n_abf, 1.0,
-                    coulwc_block.c, 1, 1, desc_nabf_nabf.desc,
-                    chi0_block.c, 1, 1, desc_nabf_nabf.desc, 0.0,
-                    coul_chi0_block.c, 1, 1, desc_nabf_nabf.desc);
+                    coulwc_block.ptr(), 1, 1, desc_nabf_nabf.desc,
+                    chi0_block.ptr(), 1, 1, desc_nabf_nabf.desc, 0.0,
+                    coul_chi0_block.ptr(), 1, 1, desc_nabf_nabf.desc);
             ScalapackConnector::pgemm_f('N', 'N', n_abf, n_abf, n_abf, 1.0,
-                    coul_chi0_block.c, 1, 1, desc_nabf_nabf.desc,
-                    coulwc_block.c, 1, 1, desc_nabf_nabf.desc, 0.0,
-                    chi0_block.c, 1, 1, desc_nabf_nabf.desc);
+                    coul_chi0_block.ptr(), 1, 1, desc_nabf_nabf.desc,
+                    coulwc_block.ptr(), 1, 1, desc_nabf_nabf.desc, 0.0,
+                    chi0_block.ptr(), 1, 1, desc_nabf_nabf.desc);
             // printf("chi0_block\n%s", str(chi0_block).c_str());
             // now chi0_block is the screened Coulomb interaction Wc (i.e. W-V)
             map<int, map<int, matrix_m<complex<double>>>> Wc_MNmap;
@@ -1567,7 +1572,7 @@ compute_Wc_freq_q_blacs(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps
                                     desc_nabf_nabf, MAJOR::ROW);
             // cout << Wc_MNmap;
             {
-                std::map<int, std::map<std::pair<int, std::array<double, 3>>, Tensor<complex<double>>>> Wc_libri;
+                std::map<int, std::map<std::pair<int, std::array<double, 3>>, RI::Tensor<complex<double>>>> Wc_libri;
                 for (const auto &M_NWc: Wc_MNmap)
                 {
                     const auto &M = M_NWc.first;
@@ -1577,29 +1582,23 @@ compute_Wc_freq_q_blacs(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps
                         const auto &N = N_Wc.first;
                         const auto n_nu = LIBRPA::atomic_basis_abf.get_atom_nb(N);
                         const auto &Wc = N_Wc.second;
-                        std::valarray<complex<double>> Wc_va(Wc.c, Wc.size());
-                        auto pWc = std::make_shared<std::valarray<complex<double>>>();
-                        *pWc = Wc_va;
-                        Wc_libri[M][{N, qa}] = Tensor<complex<double>>({n_mu, n_nu}, pWc);
+                        // std::valarray<complex<double>> Wc_va(Wc.ptr(), Wc.size());
+                        // auto pWc = std::make_shared<std::valarray<complex<double>>>();
+                        // *pWc = Wc_va;
+                        Wc_libri[M][{N, qa}] = RI::Tensor<complex<double>>({n_mu, n_nu}, Wc.sptr());
                     }
                 }
                 // cout << Wc_libri;
-                const auto IJq_Wc = Communicate_Tensors_Map_Judge::comm_map2_first(LIBRPA::mpi_comm_world_h.comm, Wc_libri, Iset_Jset_Wc.first, Iset_Jset_Wc.second);
-                // parse collected to
+                const auto IJq_Wc = RI::Communicate_Tensors_Map_Judge::comm_map2_first(LIBRPA::mpi_comm_world_h.comm, Wc_libri, Iset_Jset_Wc.first, Iset_Jset_Wc.second);
+                // parse collected to 
                 for (const auto &MN: atpair_unordered_local)
                 {
                     const auto &M = MN.first;
                     const auto &N = MN.second;
-                    shared_ptr<ComplexMatrix> wc_ptr = make_shared<ComplexMatrix>();
                     const auto n_mu = LIBRPA::atomic_basis_abf.get_atom_nb(M);
                     const auto n_nu = LIBRPA::atomic_basis_abf.get_atom_nb(N);
-                    wc_ptr->create(n_mu, n_nu);
-                    for ( int i_mu = 0; i_mu != n_mu; i_mu++ )
-                        for ( int i_nu = 0; i_nu != n_nu; i_nu++ )
-                        {
-                            (*wc_ptr)(i_mu, i_nu) = IJq_Wc.at(M).at({N, qa})(i_mu, i_nu);
-                        }
-                    Wc_freq_q[freq][M][N][q] = wc_ptr;
+                    Wc_freq_q[freq][M][N][q] = matrix_m<complex<double>>(
+                        n_mu, n_nu, IJq_Wc.at(M).at({N, qa}).data, MAJOR::ROW);
                 }
                 // for ( int i_mu = 0; i_mu != n_mu; i_mu++ )
                 //     for ( int i_nu = 0; i_nu != n_nu; i_nu++ )
@@ -1614,13 +1613,14 @@ compute_Wc_freq_q_blacs(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps
     return Wc_freq_q;
 }
 
-map<double, atpair_R_cplx_mat_t>
-CT_FT_Wc_freq_q(const map<double, atpair_k_cplx_mat_t> &Wc_freq_q,
+map<double, atom_mapping<std::map<Vector3_Order<int>, matrix_m<complex<double>>>>::pair_t_old>
+CT_FT_Wc_freq_q(const map<double, atom_mapping<std::map<Vector3_Order<double>, matrix_m<complex<double>>>>::pair_t_old> &Wc_freq_q,
                 const TFGrids &tfg, vector<Vector3_Order<int>> Rlist)
 {
-    map<double, atpair_R_cplx_mat_t> Wc_tau_R;
+    map<double, atom_mapping<std::map<Vector3_Order<int>, matrix_m<complex<double>>>>::pair_t_old> Wc_tau_R;
     if (!tfg.has_time_grids())
         throw logic_error("TFGrids object does not have time grids");
+    auto major = Wc_freq_q.cbegin()->second.cbegin()->second.cbegin()->second.cbegin()->second.major();
     const int ngrids = tfg.get_n_grids();
     for (auto R: Rlist)
     {
@@ -1646,8 +1646,8 @@ CT_FT_Wc_freq_q(const map<double, atpair_k_cplx_mat_t> &Wc_freq_q,
                                  Wc_tau_R.at(tau).at(Mu).count(Nu) &&
                                  Wc_tau_R.at(tau).at(Mu).at(Nu).count(R)))
                             {
-                                Wc_tau_R[tau][Mu][Nu][R] = make_shared<ComplexMatrix>();
-                                Wc_tau_R[tau][Mu][Nu][R]->create(n_mu, n_nu);
+                                // ensure same major
+                                Wc_tau_R[tau][Mu][Nu][R] = matrix_m<complex<double>>(n_mu, n_nu, major);
                             }
                             auto & WtR = Wc_tau_R[tau][Mu][Nu][R];
                             for (const auto &q_Wc: Nu_qWc.second)
@@ -1659,9 +1659,9 @@ CT_FT_Wc_freq_q(const map<double, atpair_k_cplx_mat_t> &Wc_freq_q,
                                     complex<double> kphase = complex<double>(cos(ang), sin(ang));
                                     complex<double> weight = kphase * f2t;
                                     if (q == q_bz)
-                                        *WtR += (*q_Wc.second) * weight;
+                                        WtR += q_Wc.second * weight;
                                     else
-                                        *WtR += conj(*q_Wc.second) * weight;
+                                        WtR += conj(q_Wc.second) * weight;
                                 }
                             }
                         }
@@ -1692,7 +1692,7 @@ CT_FT_Wc_freq_q(const map<double, atpair_k_cplx_mat_t> &Wc_freq_q,
                     auto iteR = std::find(Rlist.cbegin(), Rlist.cend(), R);
                     auto iR = std::distance(Rlist.cbegin(), iteR);
                     sprintf(fn, "Wc_Mu_%zu_Nu_%zu_iR_%zu_itau_%d.mtx", Mu, Nu, iR, itau);
-                    print_complex_matrix_mm(*Wc, fn);
+                    // print_matrix_mm_file(Wc, fn, 1e-10);
                 }
             }
         }

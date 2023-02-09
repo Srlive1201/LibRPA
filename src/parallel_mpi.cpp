@@ -260,7 +260,7 @@ void BLACS_CTXT_handler::init()
     this->mpi_comm_h.init();
     this->ictxt = Csys2blacs_handle(this->mpi_comm_h.comm);
     Cblacs_pinfo(&this->myid, &this->nprocs);
-    this->initialized = true;
+    this->initialized_ = true;
 }
 
 void BLACS_CTXT_handler::set_grid(const int &nprows_in, const int &npcols_in,
@@ -394,6 +394,8 @@ Array_Desc::Array_Desc(const BLACS_CTXT_handler &blacs_h)
       lld_(0), m_local_(0), n_local_(0),
       empty_local_mat_(false), initialized_(false)
 {
+    if (!blacs_h.initialized())
+        throw std::logic_error("BLACS context is not initialized before creating ArrayDesc");
     set_blacs_params_(blacs_h.ictxt, blacs_h.nprocs, blacs_h.myid,
                       blacs_h.nprows, blacs_h.myprow, blacs_h.npcols,
                       blacs_h.mypcol);
@@ -464,6 +466,11 @@ std::string Array_Desc::info_desc() const
 }
 
 bool Array_Desc::is_src() const { return myprow_ == irsrc_ && mypcol_ == icsrc_; }
+
+void Array_Desc::barrier(CTXT_SCOPE scope)
+{
+    CTXT_barrier(ictxt_, scope);
+}
 
 int Array_Desc::indx_g2l_r(int gindx) const
 {

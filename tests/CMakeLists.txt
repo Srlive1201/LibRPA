@@ -29,17 +29,21 @@ if (NOT BUILD_LIBRARY)
           )
   target_sources(test_meanfield PRIVATE
           ../src/meanfield.cpp
+          ../src/vector3_order.cpp
           ../src/constants.cpp
           ../src/complexmatrix.cpp
           ../src/matrix.cpp
           )
   target_sources(test_timefreq PRIVATE
           ${CMAKE_CURRENT_BINARY_DIR}/envs.cpp
+          ../src/vector3_order.cpp
+          ../src/atomic_basis.cpp
           ../src/constants.cpp
           ../src/timefreq.cpp
           ../src/mathtools.cpp
           ../src/matrix.cpp
           ../src/complexmatrix.cpp
+          ../src/parallel_mpi.cpp
           )
   target_sources(test_pbc PRIVATE
           ../src/pbc.cpp

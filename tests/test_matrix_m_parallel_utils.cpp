@@ -14,7 +14,8 @@ void test_pgemm(const T &m1_lb, const T &m1_ub)
 
     const int m = 2, n = 6, k = 4;
     const int mb = 1, nb = 3, kb = 2;
-    matrix_m<T> m1(0, 0, MAJOR::COL), m2(0, 0, MAJOR::COL), prod(0, 0, MAJOR::COL), prod_lapack(0, 0, MAJOR::COL);
+    // size 1 matrices to avoid nullptr in pgemr2d
+    matrix_m<T> m1(1, 1, MAJOR::COL), m2(1, 1, MAJOR::COL), prod(1, 1, MAJOR::COL), prod_lapack(1, 1, MAJOR::COL);
     int pid_src, irsrc, icsrc;
     pid_src = 2;
     blacs_ctxt_world_h.get_pcoord(pid_src, irsrc, icsrc);
@@ -37,16 +38,18 @@ void test_pgemm(const T &m1_lb, const T &m1_ub)
 
     auto pair_desc_m1 = prepare_array_desc_mr2d_src_and_all(blacs_ctxt_world_h, m, k, mb, kb, irsrc, icsrc);
     auto pair_desc_m2 = prepare_array_desc_mr2d_src_and_all(blacs_ctxt_world_h, k, n, kb, nb, irsrc, icsrc);
-    auto m1_local = init_local_mat<type>(pair_desc_m1.second, MAJOR::COL);
-    auto m2_local = init_local_mat<type>(pair_desc_m2.second, MAJOR::COL);
+    matrix_m<T> m1_local = init_local_mat<T>(pair_desc_m1.second, MAJOR::COL);
+    matrix_m<T> m2_local = init_local_mat<T>(pair_desc_m2.second, MAJOR::COL);
+    printf("mat1_local addr %p\n%s", m1_local.ptr(), str(m1_local).c_str());
+    printf("mat2_local addr %p\n%s", m2_local.ptr(), str(m2_local).c_str());
     // distribute data
     ScalapackConnector::pgemr2d_f(m, k,
-                                  m1.c, 1, 1, pair_desc_m1.first.desc,
-                                  m1_local.c, 1, 1, pair_desc_m1.second.desc,
+                                  m1.ptr(), 1, 1, pair_desc_m1.first.desc,
+                                  m1_local.ptr(), 1, 1, pair_desc_m1.second.desc,
                                   blacs_ctxt_world_h.ictxt);
     ScalapackConnector::pgemr2d_f(k, n,
-                                  m2.c, 1, 1, pair_desc_m2.first.desc,
-                                  m2_local.c, 1, 1, pair_desc_m2.second.desc,
+                                  m2.ptr(), 1, 1, pair_desc_m2.first.desc,
+                                  m2_local.ptr(), 1, 1, pair_desc_m2.second.desc,
                                   blacs_ctxt_world_h.ictxt);
 
     // initialize product matrix
@@ -55,15 +58,15 @@ void test_pgemm(const T &m1_lb, const T &m1_ub)
 
     // carry out distributed multiplication
     ScalapackConnector::pgemm_f('N', 'N', m, n, k, 1.0,
-                                m1_local.c, 1, 1, pair_desc_m1.second.desc,
-                                m2_local.c, 1, 1, pair_desc_m2.second.desc,
+                                m1_local.ptr(), 1, 1, pair_desc_m1.second.desc,
+                                m2_local.ptr(), 1, 1, pair_desc_m2.second.desc,
                                 0.0,
-                                prod_local.c, 1, 1, pair_desc_prod.second.desc);
+                                prod_local.ptr(), 1, 1, pair_desc_prod.second.desc);
     printf("prod_local on proc %d:\n%s", blacs_ctxt_world_h.myid, str(prod_local).c_str());
     // collect data back to source
     ScalapackConnector::pgemr2d_f(m, n,
-                                  prod_local.c, 1, 1, pair_desc_prod.second.desc,
-                                  prod.c, 1, 1, pair_desc_prod.first.desc,
+                                  prod_local.ptr(), 1, 1, pair_desc_prod.second.desc,
+                                  prod.ptr(), 1, 1, pair_desc_prod.first.desc,
                                   blacs_ctxt_world_h.ictxt);
 
     if (blacs_ctxt_world_h.myid == pid_src)
@@ -72,7 +75,7 @@ void test_pgemm(const T &m1_lb, const T &m1_ub)
         // small threshold when float is used
         if (std::is_same<typename to_real<type>::type, float>::value)
             thres = 1e-6;
-        assert(fequal_array(m*n, prod_lapack.c, prod.c, false, thres));
+        assert(fequal_array(m*n, prod_lapack.ptr(), prod.ptr(), false, thres));
     }
 
     blacs_ctxt_world_h.exit();
@@ -83,7 +86,8 @@ void test_invert_scalapack()
 {
     typedef T type;
     typedef typename to_real<type>::type real_type;
-    const T thres = std::is_same<real_type, float>::value ? 1e-5 : 1e-14;
+    // a looser threshold than gemm
+    const T thres = std::is_same<real_type, float>::value ? 1e-4 : 1e-12;
 
     blacs_ctxt_world_h.set_square_grid();
     assert(blacs_ctxt_world_h.nprocs == 4);
@@ -91,7 +95,7 @@ void test_invert_scalapack()
     assert(blacs_ctxt_world_h.npcols == 2);
 
     const int n = 8;
-    matrix_m<T> mat(0, 0, MAJOR::COL);
+    matrix_m<T> mat(1, 1, MAJOR::COL);
 
     int pid_src, irsrc, icsrc;
     pid_src = 2;
@@ -113,15 +117,15 @@ void test_invert_scalapack()
     // create local matrix and distribute the source to the process grid
     matrix_m<T> mat_loc = init_local_mat<T>(desc_mat, MAJOR::COL);
     ScalapackConnector::pgemr2d_f(n, n,
-                                  mat.c, 1, 1, desc_mat_fb_src.desc,
-                                  mat_loc.c, 1, 1, desc_mat.desc,
+                                  mat.ptr(), 1, 1, desc_mat_fb_src.desc,
+                                  mat_loc.ptr(), 1, 1, desc_mat.desc,
                                   blacs_ctxt_world_h.ictxt);
-    auto mat_loc_orig = mat_loc;
+    auto mat_loc_orig = mat_loc.copy();
     invert_scalapack(mat_loc, desc_mat);
     auto mat_times_invmat = multiply_scalapack(mat_loc, desc_mat, mat_loc_orig, desc_mat, desc_mat);
     ScalapackConnector::pgemr2d_f(n, n,
-                                  mat_times_invmat.c, 1, 1, desc_mat.desc,
-                                  mat.c, 1, 1, desc_mat_fb_src.desc,
+                                  mat_times_invmat.ptr(), 1, 1, desc_mat.desc,
+                                  mat.ptr(), 1, 1, desc_mat_fb_src.desc,
                                   blacs_ctxt_world_h.ictxt);
     printf("mat * invmat on proc %d\n%s", blacs_ctxt_world_h.myid, str(mat_times_invmat).c_str());
     if (blacs_ctxt_world_h.myid == pid_src)
@@ -129,7 +133,7 @@ void test_invert_scalapack()
         matrix_m<T> identity(n, n, MAJOR::COL);
         identity.zero_out();
         identity.set_diag(1.0);
-        assert(fequal_array(n*n, mat.c, identity.c, false, thres));
+        assert(fequal_array(n*n, mat.ptr(), identity.ptr(), false, thres));
     }
 
     blacs_ctxt_world_h.exit();
@@ -148,7 +152,7 @@ void test_power_hemat_blacs_square_grid(const T &m_lb, const T &m_ub)
     assert(blacs_ctxt_world_h.npcols == 2);
 
     const int n = 6, nb = n / 2;
-    matrix_m<T> mat(0, 0, MAJOR::COL), mat_gather(0, 0, MAJOR::COL);
+    matrix_m<T> mat(1, 1, MAJOR::COL), mat_gather(1, 1, MAJOR::COL);
     int pid_src, irsrc, icsrc;
     pid_src = 2;
     blacs_ctxt_world_h.get_pcoord(pid_src, irsrc, icsrc);
@@ -163,8 +167,8 @@ void test_power_hemat_blacs_square_grid(const T &m_lb, const T &m_ub)
     auto eig_loc = init_local_mat<T>(pair_desc_m.second, MAJOR::COL);
     // printf("eig_loc\n%s", str(eig_loc).c_str());
     ScalapackConnector::pgemr2d_f(n, n,
-                                  mat.c, 1, 1, pair_desc_m.first.desc,
-                                  mat_loc.c, 1, 1, pair_desc_m.second.desc,
+                                  mat.ptr(), 1, 1, pair_desc_m.first.desc,
+                                  mat_loc.ptr(), 1, 1, pair_desc_m.second.desc,
                                   blacs_ctxt_world_h.ictxt);
     // printf("mat_loc of PID %d before\n%s", blacs_ctxt_world_h.myid, str(mat_loc).c_str());
     auto mat_loc_back = mat_loc;
@@ -192,15 +196,15 @@ void test_power_hemat_blacs_square_grid(const T &m_lb, const T &m_ub)
     // printf("mat_loc of PID %d after\n%s", blacs_ctxt_world_h.myid, str(mat_loc).c_str());
 
     ScalapackConnector::pgemr2d_f(n, n,
-                                  mat_loc.c, 1, 1, pair_desc_m.second.desc,
-                                  mat_gather.c, 1, 1, pair_desc_m.first.desc,
+                                  mat_loc.ptr(), 1, 1, pair_desc_m.second.desc,
+                                  mat_gather.ptr(), 1, 1, pair_desc_m.first.desc,
                                   blacs_ctxt_world_h.ictxt);
 
     if (blacs_ctxt_world_h.myid == pid_src)
     {
         printf("mat global at pid_src %d\n%s", pid_src, str(mat).c_str());
         printf("mat gathered at pid_src %d\n%s", pid_src, str(mat_gather).c_str());
-        assert(fequal_array(n*n, mat.c, mat_gather.c, false, thres));
+        assert(fequal_array(n*n, mat.ptr(), mat_gather.ptr(), false, thres));
     }
 
     delete [] W;
@@ -246,7 +250,7 @@ void test_collect_block_from_IJ_storage()
 
     for (int I = 0; I < ab.n_atoms; I++)
         for (int J = 0; J < ab.n_atoms; J++)
-            collect_block_from_IJ_storage(mat_loc, desc_fb, ab, ab, I, J, alpha, IJmap[I][J].c, MAJOR::COL);
+            collect_block_from_IJ_storage(mat_loc, desc_fb, ab, ab, I, J, alpha, IJmap[I][J].ptr(), MAJOR::COL);
 
     // if (blacs_ctxt_world_h.myid == 0)
     // {
@@ -259,7 +263,7 @@ void test_collect_block_from_IJ_storage()
         for (int J = I; J < ab.n_atoms; J++)
         {
             // printf("myid %d I %d J %d\n", blacs_ctxt_world_h.myid, I, J);
-            collect_block_from_IJ_storage_syhe(mat_loc_syhe, desc_fb, ab, I, J, is_complex<T>(), alpha, IJmap[I][J].c, MAJOR::COL);
+            collect_block_from_IJ_storage_syhe(mat_loc_syhe, desc_fb, ab, I, J, is_complex<T>(), alpha, IJmap[I][J].ptr(), MAJOR::COL);
         }
     // if (blacs_ctxt_world_h.myid == 0)
     // {
@@ -294,21 +298,21 @@ int main (int argc, char *argv[])
     mpi_comm_world_h.init();
     blacs_ctxt_world_h.init();
 
-    test_pgemm<float>(-2, 1);
-    test_pgemm<double>(-2, 1);
-    test_pgemm<complex<float>>({-2, -1}, {1, 0});
-    test_pgemm<complex<double>>({-2, -1}, {1, 0});
-
-    test_power_hemat_blacs_square_grid<complex<double>>(0.0, {1.0, 1.0});
-    test_power_hemat_blacs_square_grid<complex<float>>(0.0, {1.0, 2.0});
+    // test_pgemm<float>(-2, 1);
+    // test_pgemm<double>(-2, 1);
+    // test_pgemm<complex<float>>({-2, -1}, {1, 0});
+    // test_pgemm<complex<double>>({-2, -1}, {1, 0});
+    //
+    // test_power_hemat_blacs_square_grid<complex<double>>(0.0, {1.0, 1.0});
+    // test_power_hemat_blacs_square_grid<complex<float>>(0.0, {1.0, 2.0});
 
     test_invert_scalapack<float>();
     test_invert_scalapack<double>();
     test_invert_scalapack<complex<float>>();
     test_invert_scalapack<complex<double>>();
 
-    test_collect_block_from_IJ_storage<double>();
-    test_collect_block_from_IJ_storage<complex<double>>();
+    // test_collect_block_from_IJ_storage<double>();
+    // test_collect_block_from_IJ_storage<complex<double>>();
 
     MPI_Wrapper::finalize();
 

@@ -5,6 +5,7 @@
 #define INPUT_H
 
 /* #include "atoms.h" */
+#include <array>
 #include <string>
 #include <vector>
 #include <map>
@@ -16,6 +17,8 @@
 extern int kv_nmp[3];
 //! lattice vectors as a 3D-matrix, each row as a lattice vector
 extern Matrix3 latvec;
+//! same as latvec, but a nested array for LibRI call
+extern std::array<std::array<double, 3>, 3> lat_array;
 //! reciprocal lattice vectors as a 3D-matrix, each row as a reciprocal vector
 extern Matrix3 G;
 extern std::vector<Vector3_Order<double>> klist;

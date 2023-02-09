@@ -129,4 +129,80 @@ ComplexMatrix MeanField::get_dmat_cplx_R(int ispin, const std::vector<Vector3_Or
     return dmat_cplx;
 }
 
+std::map<double, std::map<Vector3_Order<int>, ComplexMatrix>> MeanField::get_gf_cplx_imagtimes_Rs(
+    int ispin, const std::vector<Vector3_Order<double>> &kfrac_list, std::vector<double> imagtimes,
+    const std::vector<Vector3_Order<int>> &Rs) const
+{
+    std::map<double, std::map<Vector3_Order<int>, ComplexMatrix>> gf_tau_R;
+    // NOTE: occupation must be copied here, not reference
+    auto wg_empty = wg[ispin];
+    // cout << "In get_gf_cplx_imagtimes_Rs ispin " << ispin << endl << wg_empty << endl;
+    for (int i = 0; i != wg_empty.size; i++)
+    {
+        wg_empty.c[i] = 1.0 / n_kpoints - wg_empty.c[i] * (0.5 * n_spins);
+        if (wg_empty.c[i] < 0) wg_empty.c[i] = 0;
+        // printf("%d %f\n", i, wg_empty.c[i]);
+    }
+    // cout << "wg_empty " << wg_empty << endl;
+    const auto wg_occ = wg[ispin] * (0.5 * n_spins);
+    // cout << "wg_occ " << wg_occ << endl;
+    for (const auto &tau : imagtimes)
+    {
+        // cout << "tau " << tau << endl;
+        const auto &prefac_occ = tau > 0 ? wg_empty : wg_occ;
+        // cout << "prefac_occ " << prefac_occ << endl;
+        const auto scale = -0.5 * tau * (eskb[ispin] - efermi);
+        for (int ie = 0; ie != scale.size; ie++)
+        {
+            if (scale.c[ie] > 0) scale.c[ie] = 0;
+            scale.c[ie] = std::exp(scale.c[ie]) * prefac_occ.c[ie];
+        }
+        // cout << "tau " << tau << endl << scale << endl;
+        for (int ik = 0; ik != n_kpoints; ik++)
+        {
+            auto scaled_wfc_conj = conj(wfc[ispin][ik]);
+            for (int ib = 0; ib != n_bands; ib++)
+                LapackConnector::scal(n_aos, scale(ik, ib), scaled_wfc_conj.c + n_aos * ib, 1);
+            const auto gf_k = transpose(wfc[ispin][ik], false) * scaled_wfc_conj;
+            for (const auto &R : Rs)
+            {
+                double ang = -kfrac_list[ik] * R * TWO_PI;
+                auto kphase = std::complex<double>(cos(ang), sin(ang));
+                auto phase = kphase * (tau > 0 ? 1.0 : -1.0);
+                if (gf_tau_R.count(tau) == 0 || gf_tau_R.at(tau).count(R) == 0)
+                {
+                    gf_tau_R[tau][R].create(n_aos, n_aos);
+                }
+                gf_tau_R[tau][R] += gf_k * phase;
+            }
+        }
+        // zmy debug, print
+        // for (const auto &R: Rs)
+        // {
+        //     cout << "tau " << tau << " R " << R << endl;
+        //     print_complex_matrix("", gf_tau_R[tau][R]);
+        // }
+    }
+    return gf_tau_R;
+}
+
+std::map<double, std::map<Vector3_Order<int>, matrix>> MeanField::get_gf_real_imagtimes_Rs(
+    int ispin, const std::vector<Vector3_Order<double>> &kfrac_list, std::vector<double> imagtimes,
+    const std::vector<Vector3_Order<int>> &Rs) const
+{
+    std::map<double, std::map<Vector3_Order<int>, matrix>> gf_tau_R;
+    for (const auto &tau_gf_cplx_R: this->get_gf_cplx_imagtimes_Rs(ispin, kfrac_list, imagtimes, Rs))
+    {
+        const auto &tau = tau_gf_cplx_R.first;
+        for (const auto &R_gf_cplx: tau_gf_cplx_R.second)
+        {
+            const auto &R = R_gf_cplx.first;
+            gf_tau_R[tau][R] = R_gf_cplx.second.real();
+            // cout << "tau " << tau << " R " << R << endl;
+            // print_matrix("", gf_tau_R[tau][R]);
+        }
+    }
+    return gf_tau_R;
+}
+
 MeanField meanfield = MeanField();

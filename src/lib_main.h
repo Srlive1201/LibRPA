@@ -3,9 +3,11 @@
 
 //Parallel_MPI para_mpi;
 #include "parallel_mpi.h"
-#include "cal_periodic_chi0.h"
+// #include "cal_periodic_chi0.h"
 #include "coulmat.h"
-#include "aperiodic_chi0.h"
+// #include "aperiodic_chi0.h"
+#include "gw.h"
+#include "input.h"
 #include "profiler.h"
 #include "meanfield.h"
 #include "read_aims.h"

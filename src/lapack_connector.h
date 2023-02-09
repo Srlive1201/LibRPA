@@ -19,7 +19,7 @@ class LapackConnector
 public:
     // Transpose an row-major array to the fortran-form colum-major array.
     template <typename T>
-    static T* transpose(const T* a, const int &n, const int &lda, bool conjugate = false)
+    static inline T* transpose(const T* a, const int &n, const int &lda, bool conjugate = false)
     {
         T* a_fort = new T[lda*n];
         if (is_complex<T>() && conjugate)
@@ -34,7 +34,7 @@ public:
     }
 
     template <typename T>
-    static void transpose(const T* a, T* a_trans, const int &n, const int &lda, bool conjugate = false)
+    static inline void transpose(const T* a, T* a_trans, const int &n, const int &lda, bool conjugate = false)
     {
         if (is_complex<T>() && conjugate)
             for (int i = 0; i < n; i++)
@@ -759,6 +759,35 @@ public:
     {
         zgemm_(&transa, &transb, &m, &n, &k, &alpha, a, &lda, b, &ldb, &beta, c,
                &ldc);
+    }
+
+    // eigenvector of hermitian matrix, row-major
+    static inline
+    void heev(const char &jobz, const char &uplo, const int &n,
+              std::complex<float> *a, const int &lda, float *w,
+              std::complex<float> *work, const int &lwork, float *rwork, int &info)
+    {
+        complex<float> *aux = LapackConnector::transpose(a, n, lda);
+        // call the fortran routine
+        cheev_(&jobz, &uplo, &n, aux, &lda, w, work, &lwork, rwork, &info);
+        // Transpose the fortran-form real-complex array to the complex matrix.
+        LapackConnector::transpose(aux, a, n, lda);
+        // free the memory.
+        delete[] aux;
+    }
+
+    static inline
+    void heev(const char &jobz, const char &uplo, const int &n,
+              std::complex<double> *a, const int &lda, double *w,
+              std::complex<double> *work, const int &lwork, double *rwork, int &info)
+    {
+        complex<double> *aux = LapackConnector::transpose(a, n, lda);
+        // call the fortran routine
+        zheev_(&jobz, &uplo, &n, aux, &lda, w, work, &lwork, rwork, &info);
+        // Transpose the fortran-form real-complex array to the complex matrix.
+        LapackConnector::transpose(aux, a, n, lda);
+        // free the memory.
+        delete[] aux;
     }
 
     // eigenvector of hermitian matrix

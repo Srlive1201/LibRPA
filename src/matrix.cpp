@@ -261,7 +261,7 @@ void matrix::operator+=(const matrix & m)
 }
 
 // minyez added 2022-05-06
-matrix matrix::operator+(double s)
+matrix matrix::operator+(double s) const
 {
 	matrix newm = *this;
     newm += s;
@@ -269,7 +269,7 @@ matrix matrix::operator+(double s)
 }
 
 // minyez added 2022-05-06
-matrix matrix::operator-(double s)
+matrix matrix::operator-(double s) const
 {
 	matrix newm = *this;
     newm -= s;
@@ -498,7 +498,7 @@ void print_matrix(const char *desc, const matrix &mat)
     for (int i = 0; i < nr; i++)
     {
         for (int j = 0; j < nc; j++)
-            printf(" %9.5f", mat.c[i * nc + j]);
+            printf(" %9.5e", mat.c[i * nc + j]);
         printf("\n");
     }
 }

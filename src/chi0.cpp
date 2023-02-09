@@ -26,7 +26,7 @@
 using LIBRPA::mpi_comm_world_h;
 using LIBRPA::parallel_type;
 using LIBRPA::chi_parallel_type;
-using namespace RI;
+
 void Chi0::build(const atpair_R_mat_t &LRI_Cs,
                    const vector<Vector3_Order<int>> &Rlist,
                    const Vector3_Order<int> &R_period,
@@ -168,8 +168,8 @@ void Chi0::build_gf_Rt(Vector3_Order<int> R, double tau)
                     omp_set_lock(&gf_lock);
                     gf_is_R_tau[is][I][J][R][tau] = std::move(tmp_green);
                     omp_unset_lock(&gf_lock);
-                    /* cout << is << " " << I << " " << J << " " << R << " " << tau << endl; */
-                    /* print_matrix("gf_is_itau_R[is][I][J][R][itau]", gf_is_itau_R[is][I][J][R][tau]); */
+                    // cout << is << " " << I << " " << J << " " << R << " " << tau << endl;
+                    // print_matrix("gf_is_itau_R[is][I][J][R][itau]", gf_is_R_tau[is][I][J][R][tau]);
                     gf_save++;
                 }
                 else
@@ -276,7 +276,7 @@ void Chi0::build_chi0_q_space_time_LibRI_routing(const atpair_R_mat_t &LRI_Cs,
     auto Rlist_local = dispatch_vector(Rlist_gf, mpi_comm_world_h.myid, mpi_comm_world_h.nprocs, true);
     auto s0_s1 = get_s0_s1_for_comm_map2_first<atom_t, int>(atpairs_ABF);
 
-    std::map<int, std::map<std::pair<int,std::array<int,3>>,Tensor<double>>> Cs_libri;
+    std::map<int, std::map<std::pair<int,std::array<int,3>>,RI::Tensor<double>>> Cs_libri;
     // I, J, ij, mu -> I, J, mu, i, j
     for (auto &IJR: IJRs_local)
     {
@@ -289,7 +289,7 @@ void Chi0::build_chi0_q_space_time_LibRI_routing(const atpair_R_mat_t &LRI_Cs,
         std::shared_ptr<std::valarray<double>> mat_ptr = std::make_shared<std::valarray<double>>();
         *mat_ptr=mat_array;
         // Tensor<double> Tmat({size_t((*mat).nr),size_t((*mat).nc)},mat_ptr);
-        Cs_libri[I][{J, Ra}] = Tensor<double>({atom_mu[I], atom_nw[I], atom_nw[J]}, mat_ptr);
+        Cs_libri[I][{J, Ra}] = RI::Tensor<double>({atom_mu[I], atom_nw[I], atom_nw[J]}, mat_ptr);
     }
 	/* cout << Cs_libri; */
     // cout << "Setting Cs for rpa object" << endl;
@@ -311,8 +311,8 @@ void Chi0::build_chi0_q_space_time_LibRI_routing(const atpair_R_mat_t &LRI_Cs,
         for(const auto &isp: gf_is_R_tau)
         {
             const auto &gf_IJR_tau = isp.second;
-            std::map<int, std::map<std::pair<int,std::array<int,3>>,Tensor<double>>> gf_po_libri;
-            std::map<int, std::map<std::pair<int,std::array<int,3>>,Tensor<double>>> gf_ne_libri;
+            std::map<int, std::map<std::pair<int,std::array<int,3>>,RI::Tensor<double>>> gf_po_libri;
+            std::map<int, std::map<std::pair<int,std::array<int,3>>,RI::Tensor<double>>> gf_ne_libri;
             std::clock_t cpu_clock_start_isp_tau = clock();
             double wtime_start_isp_tau = omp_get_wtime();
             for (const auto &IJR_gf: IJRs_gf_local)
@@ -330,19 +330,19 @@ void Chi0::build_chi0_q_space_time_LibRI_routing(const atpair_R_mat_t &LRI_Cs,
                     std::valarray<double> mat_po_array(gf_tau.at(tau).c, gf_tau.at(tau).size);
                     std::shared_ptr<std::valarray<double>> mat_po_ptr = std::make_shared<std::valarray<double>>();
                     *mat_po_ptr=mat_po_array;
-                    gf_po_libri[I][{J, Ra}] = Tensor<double>({size_t(gf_tau.at(tau).nr), size_t(gf_tau.at(tau).nc)}, mat_po_ptr);
+                    gf_po_libri[I][{J, Ra}] = RI::Tensor<double>({size_t(gf_tau.at(tau).nr), size_t(gf_tau.at(tau).nc)}, mat_po_ptr);
                     // negative tau
                     std::valarray<double> mat_ne_array(gf_tau.at(-tau).c, gf_tau.at(-tau).size);
                     std::shared_ptr<std::valarray<double>> mat_ne_ptr = std::make_shared<std::valarray<double>>();
                     *mat_ne_ptr=mat_ne_array;
-                    gf_ne_libri[I][{J, Ra}] = Tensor<double>({size_t(gf_tau.at(-tau).nr), size_t(gf_tau.at(-tau).nc)}, mat_ne_ptr);
+                    gf_ne_libri[I][{J, Ra}] = RI::Tensor<double>({size_t(gf_tau.at(-tau).nr), size_t(gf_tau.at(-tau).nc)}, mat_ne_ptr);
                 }
             }
             mpi_comm_world_h.barrier();
             // std::clock_t cpu_clock_done_init_gf = clock();
             rpa.cal_chi0s(gf_po_libri,gf_ne_libri, params.libri_chi0_threshold_G);
             // collect chi0 on selected atpairs of all R
-            auto chi0s_IJR = Communicate_Tensors_Map_Judge::comm_map2_first(mpi_comm_world_h.comm, rpa.chi0s, s0_s1.first, s0_s1.second);
+            auto chi0s_IJR = RI::Communicate_Tensors_Map_Judge::comm_map2_first(mpi_comm_world_h.comm, rpa.chi0s, s0_s1.first, s0_s1.second);
             std::clock_t cpu_clock_done_chi0s = clock();
             // parse back to chi0
             for (const auto &atpair: atpairs_ABF)
@@ -363,6 +363,7 @@ void Chi0::build_chi0_q_space_time_LibRI_routing(const atpair_R_mat_t &LRI_Cs,
                     Vector3_Order<int> Rint(R[0], R[1], R[2]);
                     for (int i = 0; i < cm_chi0.size; i++)
                         cm_chi0.c[i] = *(chi0_Rtau.ptr()+i);
+                    cm_chi0 *= 2.0 / mf.get_n_spins();
                     // char fn[80];
                     // const int iR = std::distance(Rlist_gf.begin(), std::find(Rlist_gf.begin(), Rlist_gf.end(), Rint));
                     // sprintf(fn, "chi0tR_is_%d_itau_%d_iR_%d_I_%zu_J_%zu_id_%d.mtx", isp.first, it, iR, I, J, LIBRPA::mpi_comm_world_h.myid);
@@ -446,6 +447,7 @@ void Chi0::build_chi0_q_space_time_R_tau_routing(const atpair_R_mat_t &LRI_Cs,
                 matrix chi0_tau;
                 /* if (itau == 0) // debug first itau */
                     chi0_tau = 2.0 /mf.get_n_spins() * compute_chi0_s_munu_tau_R(LRI_Cs, R_period, is, Mu, Nu, tau, R);
+                // print_matrix("", chi0_tau);
                 /* else continue; // debug first itau */
                 // double chi0_ele_t = omp_get_wtime() - chi0_ele_begin;
                 omp_set_lock(&chi0_lock);
@@ -538,6 +540,7 @@ void Chi0::build_chi0_q_space_time_atom_pair_routing(const atpair_R_mat_t &LRI_C
                     {
                         double tau = tfg.get_time_nodes()[it];
                         ComplexMatrix tmp_chi0_tau(2.0 /mf.get_n_spins() * ComplexMatrix(compute_chi0_s_munu_tau_R(LRI_Cs, R_period, is, Mu, Nu, tau, R)));
+                        // print_complex_matrix("", tmp_chi0_tau);
                         for (auto &q : qlist)
                         {
                             const double arg = (q * (R * latvec)) * TWO_PI;

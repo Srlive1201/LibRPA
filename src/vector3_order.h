@@ -22,6 +22,14 @@ public:
 template<typename T>
 bool operator< ( const Vector3_Order<T> &v1, const Vector3_Order<T> &v2 );
 
+template<typename T>
+Vector3_Order<T> operator-(const Vector3_Order<T> &v1)
+{
+    return {-v1.x, -v1.y, -v1.z};
+}
+
+template<typename T>
+bool operator== ( const Vector3_Order<T> &v1, const Vector3_Order<T> &v2 );
 /*
 template<typename T>
 bool operator> ( const Abfs::Vector3_Order<T> &v1, const Abfs::Vector3_Order<T> &v2 )
