@@ -95,10 +95,10 @@ class TFGrids
         const vector<double> get_time_nodes() const { return time_nodes; }
         const vector<double> get_time_weights() const { return time_weights; }
         // NOTE: use reference for return matrix?
-        const matrix get_costrans_t2f() const { return costrans_t2f; }
-        const matrix get_sintrans_t2f() const { return sintrans_t2f; }
-        const matrix get_costrans_f2t() const { return costrans_f2t; }
-        const matrix get_sintrans_f2t() const { return sintrans_f2t; }
+        const matrix &get_costrans_t2f() const { return costrans_t2f; }
+        const matrix &get_sintrans_t2f() const { return sintrans_t2f; }
+        const matrix &get_costrans_f2t() const { return costrans_f2t; }
+        const matrix &get_sintrans_f2t() const { return sintrans_f2t; }
         int get_time_index(const double &time) const;
         int get_freq_index(const double &freq) const;
         const pair<int, int> get_tf_index(const pair<double, double> &tf) const;

@@ -280,14 +280,14 @@ int main(int argc, char **argv)
                         {
                             const int iq = std::distance(klist.begin(), std::find(klist.begin(), klist.end(), q_Wc.first));
                             sprintf(fn, "Wcfq_ifreq_%d_iq_%d_I_%zu_J_%zu_id_%d.mtx", ifreq, iq, I, J, mpi_comm_world_h.myid);
-                            print_matrix_mm_file(q_Wc.second, fn, 1e-15);
+                            // print_matrix_mm_file(q_Wc.second, fn, 1e-15);
                         }
                     }
                 }
             }
         }
         LIBRPA::G0W0 s_g0w0(meanfield, kfrac_list, chi0.tfg);
-        s_g0w0.build_spacetime(Cs, Wc_freq_q, Rlist, period);
+        s_g0w0.build_spacetime_LibRI(Cs, Wc_freq_q, Rlist, period);
         { // debug, check Sigc, rotate to KS basis
             char fn[80];
             for (const auto &ispin_freq_k_IJSigc: s_g0w0.sigc_is_freq_k_IJ)
@@ -309,7 +309,7 @@ int main(int argc, char **argv)
                                 const auto &J = J_Sigc.first;
                                 const auto &sigc_IJ = J_Sigc.second;
                                 sprintf(fn, "Sigc_fk_ij_ispin_%d_ifreq_%d_ik_%d_I_%zu_J_%zu_id_%d.mtx", ispin, ifreq, ik, I, J, mpi_comm_world_h.myid);
-                                print_matrix_mm_file(sigc_IJ, fn, 1e-15);
+                                // print_matrix_mm_file(sigc_IJ, fn, 1e-10);
                                 for (int i = 0; i != atomic_basis_wfc.get_atom_nb(I); i++)
                                 {
                                     for (int j = 0; j != atomic_basis_wfc.get_atom_nb(J); j++)
@@ -325,7 +325,7 @@ int main(int argc, char **argv)
                         wfc.conj();
                         auto sigc_KS = wfc * sigc_all * transpose(wfc, true);
                         sprintf(fn, "Sigc_fk_mn_ispin_%d_ifreq_%d_ik_%d_id_%d.mtx", ispin, ifreq, ik, mpi_comm_world_h.myid);
-                        print_matrix_mm_file(sigc_KS, fn, 1e-15);
+                        print_matrix_mm_file(sigc_KS, fn, 1e-10);
                     }
                 }
             }

@@ -32,8 +32,16 @@ public:
     G0W0 operator=(const G0W0 &s_g0w0) const = delete;
     G0W0 operator=(G0W0 &&s_g0w0) = delete;
 
-    //!
-    void build_spacetime(
+    //! using native tensor contraction
+    // void build_spacetime(
+    //     const atpair_R_mat_t &LRI_Cs,
+    //     const map<double, atom_mapping<std::map<Vector3_Order<double>,
+    //                                             matrix_m<complex<double>>>>::pair_t_old> &Wc_freq_q,
+    //     const vector<Vector3_Order<int>> &Rlist,
+    //     const Vector3_Order<int> &R_period);
+
+    //! using LibRI
+    void build_spacetime_LibRI(
         const atpair_R_mat_t &LRI_Cs,
         const map<double, atom_mapping<std::map<Vector3_Order<double>,
                                                 matrix_m<complex<double>>>>::pair_t_old> &Wc_freq_q,

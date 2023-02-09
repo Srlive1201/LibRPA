@@ -498,7 +498,7 @@ void print_matrix(const char *desc, const matrix &mat)
     for (int i = 0; i < nr; i++)
     {
         for (int j = 0; j < nc; j++)
-            printf(" %9.5f", mat.c[i * nc + j]);
+            printf(" %9.5e", mat.c[i * nc + j]);
         printf("\n");
     }
 }

@@ -567,7 +567,7 @@ void print_complex_matrix(const char *desc, const ComplexMatrix &mat)
     for (int i = 0; i < nr; i++)
     {
         for (int j = 0; j < nc; j++)
-            printf("%10.6f,%9.6f ", mat.c[i * nc + j].real(), mat.c[i * nc + j].imag());
+            printf("%10.6e,%9.6e ", mat.c[i * nc + j].real(), mat.c[i * nc + j].imag());
         printf("\n");
     }
 }

@@ -5,6 +5,7 @@
 #include "libri_utils.h"
 #ifdef __USE_LIBRI
 #include <RI/physics/GW.h>
+#include "print_stl.h"
 #endif
 
 namespace LIBRPA
@@ -16,7 +17,7 @@ G0W0::G0W0(const MeanField &mf,
     : mf(mf), kfrac_list(kfrac_list), tfg(tfg)
 {}
 
-void G0W0::build_spacetime(
+void G0W0::build_spacetime_LibRI(
     const atpair_R_mat_t &LRI_Cs,
     const map<double,
               atom_mapping<std::map<Vector3_Order<double>, matrix_m<complex<double>>>>::pair_t_old>
@@ -121,15 +122,28 @@ void G0W0::build_spacetime(
                         const auto &R = R_Wc.first;
                         // handle the <IJ(R)> block
                         Wc_libri[I][{J, {R.x, R.y, R.z}}] = RI::Tensor<double>({nabf_I, nabf_J}, R_Wc.second.get_real().sptr());
+                        // cout << "I " << I << " J " << J <<  " R " << R << " tau " << tau << endl ;
+                        // cout << Wc_libri[I][{J, {R.x, R.y, R.z}}] << endl;
                         // handle the <JI(R)> block
                         if (I == J) continue;
-                        auto minusR = -R % R_period;
+                        auto minusR = (-R) % R_period;
                         if (J_RWc.second.count(minusR) == 0) continue;
-                        const auto &Wc_IJmR = J_RWc.second.at(minusR).get_real().transpose();
+                        const auto Wc_IJmR = J_RWc.second.at(minusR).get_real().get_transpose();
+                        // cout << R_Wc.second << endl;
+                        // cout << Wc_IJmR << endl;
                         Wc_libri[J][{I, {R.x, R.y, R.z}}] = RI::Tensor<double>({nabf_J, nabf_I}, Wc_IJmR.sptr());
                     }
                 }
             }
+            // zmy debug check libri
+            // for (const auto &I_JR_Wc: Wc_libri)
+            // {
+            //     for (const auto &JR_Wc: I_JR_Wc.second)
+            //     {
+            //         cout << "I " << I_JR_Wc.first << " J " << JR_Wc.first.first << " R " << JR_Wc.first.second << endl;
+            //         cout << JR_Wc.second << endl;
+            //     }
+            // }
 
             auto sigc_posi_tau = g0w0_libri.Sigc_tau;
             auto sigc_nega_tau = g0w0_libri.Sigc_tau;
@@ -146,6 +160,7 @@ void G0W0::build_spacetime(
                     const auto &n_J = atomic_basis_wfc.get_atom_nb(J);
                     const auto &R = IJR.second;
                     const auto &gf_global = gf.at(t).at(R);
+                    // cout << "R " << R << " t " << t << endl << gf_global << endl;
                     matrix gf_IJ_block(n_I, n_J);
                     {
                         for (int i = 0; i != n_I; i++)
@@ -158,6 +173,7 @@ void G0W0::build_spacetime(
                         gf_libri[I][{J, {R.x, R.y, R.z}}] = RI::Tensor<double>({n_I, n_J}, mat_ptr);
                     }
                 }
+                // cout << Wc_libri << endl;
                 g0w0_libri.cal_Sigc(gf_libri, 0.0, Wc_libri, 0.0);
                 if (t > 0)
                     sigc_posi_tau = std::move(g0w0_libri.Sigc_tau);
@@ -185,25 +201,36 @@ void G0W0::build_spacetime(
                     const auto &Ra = JR_sigc_posi.first.second;
                     const auto &sigc_posi_block = JR_sigc_posi.second;
                     const auto &sigc_nega_block = sigc_nega_tau.at(I).at(JR_sigc_posi.first);
-                    auto sigc_cos = sigc_posi_block + sigc_nega_block;
-                    auto sigc_sin = sigc_posi_block - sigc_nega_block;
+                    auto iR = std::distance(Rlist.cbegin(), std::find(Rlist.cbegin(), Rlist.cend(), Vector3_Order<int>{Ra[0], Ra[1], Ra[2]}));
+                    char fn[100];
+                    // sprintf(fn, "Sigc_tR_posi_ispin_%d_I_%d_J_%d_iR_%zu_itau_%d.mtx",
+                    //         ispin, I, J, iR, itau);
+                    // print_matrix_mm_file(matrix_m<double>(n_I, n_J, sigc_posi_block.ptr(), MAJOR::ROW), fn, 1e-10);
+                    // sprintf(fn, "Sigc_tR_nega_ispin_%d_I_%d_J_%d_iR_%zu_itau_%d.mtx",
+                    //         ispin, I, J, iR, itau);
+                    // print_matrix_mm_file(matrix_m<double>(n_I, n_J, sigc_nega_block.ptr(), MAJOR::ROW), fn, 1e-10);
+                    // FIXME: I don't know why 0.5 is required here to get correct result as in FHI-aims
+                    // will figure out later
+                    auto sigc_cos = 0.5 * (sigc_posi_block + sigc_nega_block);
+                    auto sigc_sin = 0.5 * (sigc_posi_block - sigc_nega_block);
                     for (int ik = 0; ik != mf.get_n_kpoints(); ik++)
                     {
                         const auto &kfrac = kfrac_list[ik];
                         const auto ang = (kfrac * Vector3_Order<double>(Ra[0], Ra[1], Ra[2])) * TWO_PI;
-                        const auto kphase = complex<double>{std::cos(ang), std::sin(ang)};
+                        const auto kphase = complex<double>{std::cos(ang), std::sin(ang)} / double(mf.get_n_kpoints());
+                        // cout << kphase << endl;
                         for (int iomega = 0; iomega != tfg.get_n_grids(); iomega++)
                         {
                             const auto omega = tfg.get_freq_nodes()[iomega];
-                            const auto t2f_sin = tfg.get_sintrans_t2f()(itau, iomega);
-                            const auto t2f_cos = tfg.get_costrans_t2f()(itau, iomega);
+                            const auto t2f_sin = tfg.get_sintrans_t2f()(iomega, itau);
+                            const auto t2f_cos = tfg.get_costrans_t2f()(iomega, itau);
                             matrix_m<complex<double>> sigc_temp(n_I, n_J, MAJOR::COL);
                             for (int i = 0; i != n_I; i++)
                                 for (int j = 0; j != n_J; j++)
                                 {
-                                    sigc_temp(i, j) += std::complex<double>{sigc_cos(i, j) * t2f_cos, sigc_sin(i, j) * t2f_sin};
+                                    sigc_temp(i, j) = std::complex<double>{sigc_cos(i, j) * t2f_cos, sigc_sin(i, j) * t2f_sin};
                                 }
-                            sigc_temp *= - kphase;
+                            sigc_temp *= kphase;
                             if (sigc_is_freq_k_IJ.count(ispin) == 0 ||
                                 sigc_is_freq_k_IJ.at(ispin).count(omega) == 0 ||
                                 sigc_is_freq_k_IJ.at(ispin).at(omega).count(kfrac) == 0 ||

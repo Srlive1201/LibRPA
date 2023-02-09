@@ -305,6 +305,19 @@ void TFGrids::generate_minimax(double emin, double emax)
     for (int k = 0; k != n_grids; k++)
         for (int j = 0; j != n_grids; j++)
             sintrans_f2t(k, j) = trans[ k * n_grids + j];
+    // zmy debug
+    // cout << "Cos transform time -> freq (freq each row)" << endl;
+    // cout << costrans_t2f << endl;
+    // cout << "Cos transform freq -> time (time each row)" << endl;
+    // cout << costrans_f2t << endl;
+    // cout << "Cos transform Delta" << endl;
+    // cout << costrans_t2f * costrans_f2t << endl;
+    // cout << "Sin transform time -> freq (freq each row)" << endl;
+    // cout << sintrans_t2f << endl;
+    // cout << "Sin transform freq -> time (time each row)" << endl;
+    // cout << sintrans_f2t << endl;
+    // cout << "Sin transform Delta" << endl;
+    // cout << sintrans_t2f * sintrans_f2t << endl;
 }
 
 void TFGrids::generate_GaussChebyshevI()

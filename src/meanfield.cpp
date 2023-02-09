@@ -198,6 +198,8 @@ std::map<double, std::map<Vector3_Order<int>, matrix>> MeanField::get_gf_real_im
         {
             const auto &R = R_gf_cplx.first;
             gf_tau_R[tau][R] = R_gf_cplx.second.real();
+            // cout << "tau " << tau << " R " << R << endl;
+            // print_matrix("", gf_tau_R[tau][R]);
         }
     }
     return gf_tau_R;

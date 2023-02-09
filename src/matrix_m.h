@@ -703,6 +703,11 @@ public:
     }
 };
 
+//! typedef of double matrix
+typedef matrix_m<double> Matd;
+//! typedef of complex double matrix
+typedef matrix_m<std::complex<double>> Matz;
+
 template <typename T1, typename T2>
 inline bool same_major(const matrix_m<T1> &m1, const matrix_m<T2> &m2)
 {

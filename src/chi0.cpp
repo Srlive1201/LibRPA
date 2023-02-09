@@ -168,8 +168,8 @@ void Chi0::build_gf_Rt(Vector3_Order<int> R, double tau)
                     omp_set_lock(&gf_lock);
                     gf_is_R_tau[is][I][J][R][tau] = std::move(tmp_green);
                     omp_unset_lock(&gf_lock);
-                    /* cout << is << " " << I << " " << J << " " << R << " " << tau << endl; */
-                    /* print_matrix("gf_is_itau_R[is][I][J][R][itau]", gf_is_itau_R[is][I][J][R][tau]); */
+                    // cout << is << " " << I << " " << J << " " << R << " " << tau << endl;
+                    // print_matrix("gf_is_itau_R[is][I][J][R][itau]", gf_is_R_tau[is][I][J][R][tau]);
                     gf_save++;
                 }
                 else
@@ -363,6 +363,7 @@ void Chi0::build_chi0_q_space_time_LibRI_routing(const atpair_R_mat_t &LRI_Cs,
                     Vector3_Order<int> Rint(R[0], R[1], R[2]);
                     for (int i = 0; i < cm_chi0.size; i++)
                         cm_chi0.c[i] = *(chi0_Rtau.ptr()+i);
+                    cm_chi0 *= 2.0 / mf.get_n_spins();
                     // char fn[80];
                     // const int iR = std::distance(Rlist_gf.begin(), std::find(Rlist_gf.begin(), Rlist_gf.end(), Rint));
                     // sprintf(fn, "chi0tR_is_%d_itau_%d_iR_%d_I_%zu_J_%zu_id_%d.mtx", isp.first, it, iR, I, J, LIBRPA::mpi_comm_world_h.myid);
@@ -446,6 +447,7 @@ void Chi0::build_chi0_q_space_time_R_tau_routing(const atpair_R_mat_t &LRI_Cs,
                 matrix chi0_tau;
                 /* if (itau == 0) // debug first itau */
                     chi0_tau = 2.0 /mf.get_n_spins() * compute_chi0_s_munu_tau_R(LRI_Cs, R_period, is, Mu, Nu, tau, R);
+                // print_matrix("", chi0_tau);
                 /* else continue; // debug first itau */
                 // double chi0_ele_t = omp_get_wtime() - chi0_ele_begin;
                 omp_set_lock(&chi0_lock);
@@ -538,6 +540,7 @@ void Chi0::build_chi0_q_space_time_atom_pair_routing(const atpair_R_mat_t &LRI_C
                     {
                         double tau = tfg.get_time_nodes()[it];
                         ComplexMatrix tmp_chi0_tau(2.0 /mf.get_n_spins() * ComplexMatrix(compute_chi0_s_munu_tau_R(LRI_Cs, R_period, is, Mu, Nu, tau, R)));
+                        // print_complex_matrix("", tmp_chi0_tau);
                         for (auto &q : qlist)
                         {
                             const double arg = (q * (R * latvec)) * TWO_PI;

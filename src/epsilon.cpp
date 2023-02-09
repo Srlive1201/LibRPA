@@ -1151,7 +1151,7 @@ compute_Wc_freq_q(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, atpa
         }
         auto sqrtVq_all = power_hemat(Vq_all, 0.5, false, params.sqrt_coulomb_threshold);
         sprintf(fn, "sqrtVq_all_q_%d.mtx", iq);
-        print_complex_matrix_mm(sqrtVq_all, fn, 1e-15);
+        // print_complex_matrix_mm(sqrtVq_all, fn, 1e-15);
 
         // truncated (cutoff) Coulomb
         ComplexMatrix Vqcut_all(range_all, range_all);
@@ -1176,7 +1176,7 @@ compute_Wc_freq_q(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, atpa
         // sprintf(fn, "sqrtVqcut_all_q_%d.mtx", iq);
         // print_complex_matrix_mm(sqrtVqcut_all, fn, 1e-15);
         sprintf(fn, "Vqcut_all_filtered_q_%d.mtx", iq);
-        print_complex_matrix_mm(Vqcut_all, fn, 1e-15);
+        // print_complex_matrix_mm(Vqcut_all, fn, 1e-15);
         // save the filtered truncated Coulomb back to the atom mapping object
         for ( auto &Mu_NuqVq: coulmat_wc )
         {
@@ -1216,7 +1216,7 @@ compute_Wc_freq_q(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, atpa
                 }
             }
             sprintf(fn, "chi0fq_all_q_%d_freq_%d.mtx", iq, ifreq);
-            print_complex_matrix_mm(chi0fq_all, fn, 1e-15);
+            // print_complex_matrix_mm(chi0fq_all, fn, 1e-15);
 
             ComplexMatrix identity(range_all, range_all);
             identity.set_as_identity_matrix();
@@ -1689,7 +1689,7 @@ CT_FT_Wc_freq_q(const map<double, atom_mapping<std::map<Vector3_Order<double>, m
                     auto iteR = std::find(Rlist.cbegin(), Rlist.cend(), R);
                     auto iR = std::distance(Rlist.cbegin(), iteR);
                     sprintf(fn, "Wc_Mu_%zu_Nu_%zu_iR_%zu_itau_%d.mtx", Mu, Nu, iR, itau);
-                    print_matrix_mm_file(Wc, fn);
+                    // print_matrix_mm_file(Wc, fn, 1e-10);
                 }
             }
         }
