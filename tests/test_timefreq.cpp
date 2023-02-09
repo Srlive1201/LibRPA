@@ -2,6 +2,7 @@
 #include <stdexcept>
 
 #include "../src/timefreq.h"
+#include "../src/parallel_mpi.h"
 #include "../src/envs.h"
 #include "testutils.h"
 
@@ -106,10 +107,12 @@ void check_minimax_ng6_HF_123()
 /*    0.06496  -0.00675  -0.01183   0.01955  -0.03648   0.13263 */
 }
 
-int main ()
+int main (int argc, char **argv)
 {
+    LIBRPA::MPI_Wrapper::init(argc, argv);
     check_initialize();
     check_minimax_ng16_diamond_k222();
     check_minimax_ng6_HF_123();
+    LIBRPA::MPI_Wrapper::finalize();
     return 0;
 }

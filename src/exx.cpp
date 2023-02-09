@@ -10,7 +10,7 @@
 #include <RI/physics/Exx.h>
 // #include "print_stl.h"
 #endif
-using namespace RI;
+
 namespace LIBRPA
 {
 

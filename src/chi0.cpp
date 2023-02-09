@@ -26,7 +26,7 @@
 using LIBRPA::mpi_comm_world_h;
 using LIBRPA::parallel_type;
 using LIBRPA::chi_parallel_type;
-using namespace RI;
+
 void Chi0::build(const atpair_R_mat_t &LRI_Cs,
                    const vector<Vector3_Order<int>> &Rlist,
                    const Vector3_Order<int> &R_period,

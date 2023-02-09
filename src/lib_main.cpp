@@ -3,7 +3,9 @@
 #include <malloc.h>
 #include "scalapack_connector.h"
 #include <set>
+#ifdef __USE_LIBRI
 #include <RI/distribute/Distribute_Equally.h>
+#endif
 
 int main(int argc, char **argv)
 {
