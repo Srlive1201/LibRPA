@@ -1,0 +1,6 @@
+[submodule "thirdparty/LibComm"]
+	path = thirdparty/LibComm
+	url = https://github.com/abacusmodeling/LibComm
+[submodule "thirdparty/LibRI"]
+	path = thirdparty/LibRI
+	url = https://github.com/abacusmodeling/LibRI
