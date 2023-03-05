@@ -18,3 +18,5 @@ target_include_directories(rpa_exe
 target_sources(rpa_exe PRIVATE ${exe_sources})
 
 target_link_libraries(rpa_exe PRIVATE rpa_lib)
+
+install(TARGETS rpa_exe DESTINATION ${CMAKE_INSTALL_BINDIR})

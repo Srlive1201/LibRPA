@@ -56,3 +56,11 @@ endif()
 # source must be PRIVATE to avoid recompilation when linking driver to this library
 target_sources(rpa_lib PRIVATE ${lib_sources})
 target_link_libraries(rpa_lib PRIVATE ${math_libs} ${parallel_libs})
+
+install(TARGETS rpa_lib ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
+install(FILES ${PROJECT_SOURCE_DIR}/src/librpa.h
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+
+if(ENABLE_TEST)
+  add_subdirectory(test)
+endif()

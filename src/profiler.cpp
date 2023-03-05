@@ -4,7 +4,7 @@
 #include <iostream>
 #include <omp.h>
 
-static double cpu_time_from_clocks_diff(const std::clock_t& ct_start,
+double cpu_time_from_clocks_diff(const std::clock_t& ct_start,
                                  const std::clock_t& ct_end)
 {
     return double(ct_end - ct_start) / CLOCKS_PER_SEC;

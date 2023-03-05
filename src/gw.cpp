@@ -3,9 +3,9 @@
 #include "epsilon.h"
 #include "input.h"
 #include "libri_utils.h"
-#ifdef __USE_LIBRI
+#ifdef LIBRPA_USE_LIBRI
 #include <RI/physics/GW.h>
-#include "print_stl.h"
+// #include "print_stl.h"
 #endif
 
 namespace LIBRPA
@@ -37,7 +37,7 @@ void G0W0::build_spacetime_LibRI(
         mpi_comm_world_h.barrier();
         throw std::logic_error("no time grids");
     }
-#ifndef __USE_LIBRI
+#ifndef LIBRPA_USE_LIBRI
     if (mpi_comm_world_h.myid == 0)
     {
         cout << "LIBRA::G0W0::build_spacetime is only implemented on top of LibRI" << endl;

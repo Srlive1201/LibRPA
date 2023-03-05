@@ -21,7 +21,7 @@ option(USE_LIBRI     "Use LibRI for tensor contraction" OFF)
 option(USE_CMAKE_INC "Use cmake.inc for configure" OFF)
 option(ENABLE_DEBUG  "Flag of debug mode " OFF)
 option(ENABLE_DOC    "Flag to build documentation" OFF)
-option(ENABLE_TEST   "Flag to build unit tests" OFF)
+option(ENABLE_TEST   "Flag to build unit tests" ON)
 option(ENABLE_DRIVER "Flag to build driver executables" ON)
 
 # Add cmake load files
@@ -91,25 +91,40 @@ include_directories(src)
 
 # use LibRI, which in turn depends on Cereal
 if(USE_LIBRI)
+  message(STATUS "Build with LibRI and dependeicies")
   find_package(Cereal)
   if(NOT Cereal_FOUND)
-    message(FATAL_ERROR "USE_LIBRI set, but no Cereal headers found as dependency")
+    message(WARNING "User Cereal not found, use thirdparty/cereal-1.3.0")
+    set(Cereal_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/./thirdparty/cereal-1.3.0/include)
   endif()
   find_package(LibComm)
   if(NOT LibComm_FOUND)
-    message(FATAL_ERROR "USE_LIBRI set, but no LibComm headers found")
+    message(WARNING "User LibComm not found, use thirdparty/LibComm")
+    set(LibComm_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/./thirdparty/LibComm/include)
   endif()
   find_package(LibRI)
   if(NOT LibRI_FOUND)
-    message(FATAL_ERROR "USE_LIBRI set, but no LibRI headers found")
+    message(WARNING "User LibRI not found, use thirdparty/LibRI")
+    set(LibRI_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/./thirdparty/LibRI/include)
   endif()
   add_compile_definitions("LIBRPA_USE_LIBRI")
-  message(STATUS "The project will be compiled with LibRI")
 endif()
 
 if(ENABLE_DEBUG)
   message(STATUS "Debug mode switched on")
   add_compile_definitions("LIBRPA_DEBUG")
+endif()
+
+if(ENABLE_TEST)
+  # FetchContent_Declare(
+  #   googletest
+  #   GIT_REPOSITORY https://github.com/google/googletest.git
+  #   GIT_TAG release-1.12.1
+  # )
+  # FetchContent_MakeAvailable(googletest)
+  # include(GoogleTest)
+  message(STATUS "Test enabled")
+  enable_testing()
 endif()
 
 if(ENABLE_DRIVER)
@@ -122,9 +137,4 @@ add_subdirectory(src)
 if(ENABLE_DOC)
   include(UseDoxygenDoc)
   add_subdirectory(docs)
-endif()
-
-if(ENABLE_TEST)
-  enable_testing()
-  add_subdirectory(tests)
 endif()

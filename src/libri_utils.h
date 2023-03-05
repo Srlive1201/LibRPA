@@ -5,7 +5,7 @@
 #include <array>
 #include "atoms.h"
 #include "vector3_order.h"
-#ifdef __USE_LIBRI
+#ifdef LIBRPA_USE_LIBRI
 #include <RI/global/Tensor.h>
 #endif
 
@@ -71,7 +71,7 @@ std::ostream& operator<<(std::ostream& os, const std::array<Tcell, Ndim> &cell)
     return os;
 }
 
-#ifdef __USE_LIBRI
+#ifdef LIBRPA_USE_LIBRI
 template <typename T>
 std::ostream& operator<<(std::ostream& os, const RI::Tensor<T>& t)
 {

@@ -6,7 +6,7 @@
 #include "input.h"
 #include "lapack_connector.h"
 #include "vector3_order.h"
-#ifdef __USE_LIBRI
+#ifdef LIBRPA_USE_LIBRI
 #include <RI/physics/Exx.h>
 // #include "print_stl.h"
 #endif
@@ -106,7 +106,7 @@ void Exx::build_exx_orbital_energy_LibRI(const atpair_R_mat_t &LRI_Cs,
     const auto& n_kpts = this->mf_.get_n_kpoints();
     const auto& n_bands = this->mf_.get_n_bands();
 
-#ifdef __USE_LIBRI
+#ifdef LIBRPA_USE_LIBRI
     if (mpi_comm_world_h.is_root())
         printf("Computing EXX orbital energy using LibRI\n");
     mpi_comm_world_h.barrier();

@@ -17,7 +17,7 @@
 #include "constants.h"
 #include "params.h"
 #include "scalapack_connector.h"
-#ifdef __USE_LIBRI
+#ifdef LIBRPA_USE_LIBRI
 #include <RI/physics/RPA.h>
 #endif
 #include <array>
@@ -218,7 +218,7 @@ void Chi0::build_chi0_q_space_time_LibRI_routing(const atpair_R_mat_t &LRI_Cs,
                                                    const vector<atpair_t> &atpairs_ABF,
                                                    const vector<Vector3_Order<double>> &qlist)
 {
-#ifndef __USE_LIBRI
+#ifndef LIBRPA_USE_LIBRI
     cout << "LibRI routing requested, but the executable is not compiled with LibRI" << endl;
     cout << "Please recompiler libRPA with -DUSE_LIBRI and configure include path" << endl;
     mpi_comm_world_h.barrier();

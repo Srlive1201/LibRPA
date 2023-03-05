@@ -8,6 +8,9 @@
 #include <ctime>
 #include <string>
 
+double cpu_time_from_clocks_diff(const std::clock_t& ct_start,
+                                 const std::clock_t& ct_end);
+
 //! A simple profiler object to record timing of code snippet runs in the program.
 class Profiler
 {

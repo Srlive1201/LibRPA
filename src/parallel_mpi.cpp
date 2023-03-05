@@ -82,7 +82,7 @@ void check_parallel_type()
     if (chi_parallel_type == parallel_type::LIBRI_USED ||
         exx_parallel_type == parallel_type::LIBRI_USED)
     {
-#ifndef __USE_LIBRI
+#ifndef LIBRPA_USE_LIBRI
         if (MPI_Wrapper::is_root_world())
         {
             cout << "LibRI routing requested, but the executable is not compiled "
@@ -198,7 +198,7 @@ void MPI_COMM_handler::init()
 
 void MPI_COMM_handler::barrier() const
 {
-#ifdef __DEBUG
+#ifdef LIBRPA_DEBUG
     this->check_initialized();
 #endif
     MPI_Barrier(this->comm);

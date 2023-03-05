@@ -14,7 +14,7 @@
 #include "ri.h"
 #include "scalapack_connector.h"
 #include "libri_utils.h"
-#ifdef __USE_LIBRI
+#ifdef LIBRPA_USE_LIBRI
 #include <RI/global/Tensor.h>
 #include <RI/comm/mix/Communicate_Tensors_Map_Judge.h>
 #endif
@@ -23,7 +23,7 @@
 
 using LIBRPA::mpi_comm_world_h;
 using LIBRPA::Array_Desc;
-#ifdef __USE_LIBRI
+#ifdef LIBRPA_USE_LIBRI
 using RI::Tensor;
 using RI::Communicate_Tensors_Map_Judge::comm_map2_first;
 #endif
@@ -61,7 +61,7 @@ CorrEnergy compute_RPA_correlation_blacs_2d(const Chi0 &chi0, const atpair_k_cpl
     map<Vector3_Order<double>, complex<double>> cRPA_q;
     if(mpi_comm_world_h.is_root())
         printf("Finish init RPA blacs 2d\n");
-#ifdef __USE_LIBRI
+#ifdef LIBRPA_USE_LIBRI
     for (const auto &q: qpts)
     {
         coul_block.zero_out();
@@ -1334,7 +1334,7 @@ compute_Wc_freq_q_blacs(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps
     for (const auto &qMuNuchi: chi0.get_chi0_q().at(chi0.tfg.get_freq_nodes()[0]))
         qpts.push_back(qMuNuchi.first);
 
-#ifdef __USE_LIBRI
+#ifdef LIBRPA_USE_LIBRI
     for (const auto &q: qpts)
     {
         coul_block.zero_out();
