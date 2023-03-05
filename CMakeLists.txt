@@ -1,20 +1,28 @@
 # main CMake file for LibRPA
 cmake_minimum_required(VERSION 3.13)
 
+project(LibRPA NONE)
+
 # extract version number
-file(READ "src/Makefile" mkfile)
-string(REGEX MATCH " *VERSION *= *[0-9.]*" version ${mkfile})
-string(REGEX REPLACE " *VERSION *= *" "" version ${version})
-# Project information
-project(LibRPA VERSION ${version} LANGUAGES NONE)
+file(READ ${PROJECT_SOURCE_DIR}/src/version.h version_file)
+string(REGEX MATCH "LIBRPA_MAJOR_VERSION ([0-9]+)" librpa_major_version ${version_file})
+set(librpa_major_version ${CMAKE_MATCH_1})
+string(REGEX MATCH "LIBRPA_MINOR_VERSION ([0-9]+)" librpa_minor_version ${version_file})
+set(librpa_minor_version ${CMAKE_MATCH_1})
+string(REGEX MATCH "LIBRPA_MICRO_VERSION ([0-9]+)" librpa_micro_version ${version_file})
+set(librpa_micro_version ${CMAKE_MATCH_1})
+set(version "${spglib_major_version}.${spglib_minor_version}.${spglib_micro_version}")
+
+set(DRIVER_NAME "chi0_main.exe")
+set(LIB_NAME    "rpa")
 
 # options setup
-option(USE_LIBRI "Use LibRI for tensor contraction" OFF)
-option(USE_CMAKE_INC "Use cmake.inc for configure" ON)
-option(DEBUG "Switch on debug mode and facility" OFF)
-option(BUILD_LIBRARY "Whether to build library" OFF)
-option(BUILD_DOCS "Whether to build documentation" OFF)
-option(ENABLE_TEST "Enable building tests" OFF)
+option(USE_LIBRI     "Use LibRI for tensor contraction" OFF)
+option(USE_CMAKE_INC "Use cmake.inc for configure" OFF)
+option(ENABLE_DEBUG  "Flag of debug mode " OFF)
+option(ENABLE_DOC    "Flag to build documentation" OFF)
+option(ENABLE_TEST   "Flag to build unit tests" OFF)
+option(ENABLE_DRIVER "Flag to build driver executables" ON)
 
 # Add cmake load files
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
@@ -41,6 +49,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 # enable_language later than cmake.inc to take the variables therein into accout
 enable_language(CXX)
+
+# for installation
+include(GNUInstallDirs)
 
 if(NOT _loaded_cmake_inc)
   if(DEFINED ENV{MKLROOT} AND NOT DEFINED MKLROOT)
@@ -92,18 +103,23 @@ if(USE_LIBRI)
   if(NOT LibRI_FOUND)
     message(FATAL_ERROR "USE_LIBRI set, but no LibRI headers found")
   endif()
-  add_compile_definitions("__USE_LIBRI")
+  add_compile_definitions("LIBRPA_USE_LIBRI")
   message(STATUS "The project will be compiled with LibRI")
 endif()
 
-if(DEBUG)
+if(ENABLE_DEBUG)
   message(STATUS "Debug mode switched on")
-  add_compile_definitions("__DEBUG")
+  add_compile_definitions("LIBRPA_DEBUG")
+endif()
+
+if(ENABLE_DRIVER)
+  message(STATUS "Build driver")
+  add_subdirectory(driver)
 endif()
 
 add_subdirectory(src)
 
-if(BUILD_DOCS)
+if(ENABLE_DOC)
   include(UseDoxygenDoc)
   add_subdirectory(docs)
 endif()

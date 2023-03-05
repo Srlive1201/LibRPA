@@ -1,0 +1,5 @@
+#pragma once
+
+#define LIBRPA_MAJOR_VERSION 0
+#define LIBRPA_MINOR_VERSION 2
+#define LIBRPA_MICRO_VERSION 0

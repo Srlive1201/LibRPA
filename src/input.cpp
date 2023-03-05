@@ -3,7 +3,6 @@
 #include <fstream>
 #include <iostream>
 #include <regex>
-#include "cal_periodic_chi0.h"
 #include "constants.h"
 #include "input.h"
 using namespace std;

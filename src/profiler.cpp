@@ -1,10 +1,10 @@
+#include "profiler.h"
 #include <ctime>
 #include <string>
 #include <iostream>
 #include <omp.h>
-#include "profiler.h"
 
-double cpu_time_from_clocks_diff(const std::clock_t& ct_start,
+static double cpu_time_from_clocks_diff(const std::clock_t& ct_start,
                                  const std::clock_t& ct_end)
 {
     return double(ct_end - ct_start) / CLOCKS_PER_SEC;
