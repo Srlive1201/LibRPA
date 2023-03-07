@@ -49,6 +49,15 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 # enable_language later than cmake.inc to take the variables therein into accout
 enable_language(CXX)
+# bypass the deprecation warning of classic C++ of oneAPI
+if(CMAKE_CXX_COMPILER_ID MATCHES Intel)
+  if(CMAKE_CXX_COMPILER MATCHES "mpiicpc" OR CMAKE_CXX_COMPILER MATCHES "icpc")
+    if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL "2021.7.0.20221019")
+      message(STATUS "Intel C++ Compiler Classic detected, adding -diag-disable=10441 flag")
+      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -diag-disable=10441")
+    endif()
+  endif()
+endif()
 
 # for installation
 include(GNUInstallDirs)
@@ -59,7 +68,8 @@ if(NOT _loaded_cmake_inc)
   endif()
   if(MKLROOT)
     find_package(IntelMKL REQUIRED)
-    include_directories(${MKL_INCLUDE_DIRS} ${MKL_INCLUDE_DIRS}/fftw)
+    # include_directories(${MKL_INCLUDE_DIRS} ${MKL_INCLUDE_DIRS}/fftw)
+    include_directories(${MKL_INCLUDE_DIRS})
     list(APPEND math_libs IntelMKL::MKL)
   else()
     find_package(LAPACK REQUIRED)
@@ -138,3 +148,7 @@ if(ENABLE_DOC)
   include(UseDoxygenDoc)
   add_subdirectory(docs)
 endif()
+
+
+message(STATUS "CXX compiling flags: ${CMAKE_CXX_FLAGS}")
+message(STATUS "Linking against math libraries: ${math_libs}")

@@ -4,7 +4,7 @@
 # - https://stackoverflow.com/questions/19278510/cmake-ctest-add-test-command-appends-extra-quotes-to-my-command-parameters
 macro(config_test TARGET NUMPROC)
   add_executable(${TARGET} ${TARGET}.cpp)
-  target_link_libraries(${TARGET} PRIVATE rpa_lib)
+  target_link_libraries(${TARGET} PRIVATE rpa_lib ${math_libs} ${parallel_libs})
   if(${NUMPROC} GREATER 1)
     # message("parallel test")
     add_test(

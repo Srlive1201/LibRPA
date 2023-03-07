@@ -6,7 +6,7 @@
 #   LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}
 #   RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
 
-add_library(rpa_lib STATIC)
+add_library(rpa_lib SHARED)
 set_target_properties(rpa_lib PROPERTIES
   OUTPUT_NAME ${LIB_NAME})
 
@@ -23,6 +23,7 @@ list(APPEND lib_sources
         epsilon.cpp
         exx.cpp
         gw.cpp
+        librpa.cpp
         # Gauss_Quadrature.cpp
         input.cpp
         mathtools.cpp
@@ -39,14 +40,14 @@ list(APPEND lib_sources
         )
 
 target_include_directories(rpa_lib
-  PUBLIC
+  PRIVATE
     # ${CMAKE_CURRENT_LIST_DIR}
     ${PROJECT_SOURCE_DIR}/src
   )
 
 if(USE_LIBRI)
   target_include_directories(rpa_lib
-    PUBLIC
+    PRIVATE
       ${Cereal_INCLUDE_DIR}
       ${LibComm_INCLUDE_DIR}
       ${LibRI_INCLUDE_DIR}
