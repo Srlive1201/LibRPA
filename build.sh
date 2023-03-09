@@ -53,9 +53,7 @@ else
 fi
 
 if (( DEBUG )); then
-  options="-DENABLE_DEBUG=ON $options"
-else
-  options="-DENABLE_DEBUG=OFF $options"
+  options="-DCMAKE_BUILD_TYPE=Debug $options"
 fi
 
 CXX=$CXX cmake -B "$BUILDDIR" $options
