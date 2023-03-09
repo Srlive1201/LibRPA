@@ -1,5 +1,5 @@
+#include "../atoms.h"
 #include <iostream>
-#include "atoms.h"
 
 int main (int argc, char *argv[])
 {

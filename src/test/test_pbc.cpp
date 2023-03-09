@@ -1,4 +1,4 @@
-#include "../src/pbc.h"
+#include "../pbc.h"
 #include <cassert>
 
 int main (int argc, char *argv[])

@@ -1,6 +1,6 @@
-#include "../src/lapack_connector.h"
+#include "../lapack_connector.h"
 #include "testutils.h"
-#include "../src/complexmatrix.h"
+#include "../complexmatrix.h"
 #include <cassert>
 #include <cstdlib>
 #include <ctime>

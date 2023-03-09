@@ -1,4 +1,5 @@
-#include "../src/matrix_m_parallel_utils.h"
+#include "../matrix_m_parallel_utils.h"
+
 #include "testutils.h"
 
 using namespace LIBRPA;

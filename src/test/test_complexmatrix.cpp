@@ -1,4 +1,4 @@
-#include "../src/complexmatrix.h"
+#include "../complexmatrix.h"
 #include "testutils.h"
 
 void test_power_hemat()

@@ -1,6 +1,7 @@
 #include "lib_main.h"
 #include <algorithm>
 #include <malloc.h>
+#include "constants.h"
 #include "scalapack_connector.h"
 #include <set>
 #ifdef __USE_LIBRI

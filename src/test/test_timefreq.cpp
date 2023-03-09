@@ -1,18 +1,17 @@
+#include "../timefreq.h"
+#include "../parallel_mpi.h"
+#include "testutils.h"
+
 #include <iostream>
 #include <stdexcept>
-
-#include "../src/timefreq.h"
-#include "../src/parallel_mpi.h"
-#include "../src/envs.h"
-#include "testutils.h"
 
 using namespace std;
 
 void check_initialize()
 {
     cout << "Available time-frequency grids: " << TFGrids::GRID_TYPES::COUNT << endl;
-    cout << source_dir << endl;
-    cout << minimax_grid_path << endl;
+    // cout << source_dir << endl;
+    // cout << minimax_grid_path << endl;
     TFGrids tfg(6);
 }
 
@@ -24,6 +23,10 @@ void check_minimax_ng16_diamond_k222()
     double emin = 0.173388;
     double emax = 23.7738;
     tfg.generate_minimax(emin, emax);
+    cout << tfg.get_freq_nodes() << endl;
+    cout << tfg.get_freq_weights() << endl;
+    cout << tfg.get_time_nodes() << endl;
+    cout << tfg.get_time_weights() << endl;
     /* if (tfg.get_grid_type() != TFGrids::GRID_TYPES::Minimax) */
     /*     throw logic_error("internal type should be minimax grid"); */
     /* print_matrix("cos: t2f * f2t, ideally close to identity", tfg.get_costrans_t2f() * tfg.get_costrans_f2t() ); */
@@ -110,6 +113,7 @@ void check_minimax_ng6_HF_123()
 int main (int argc, char **argv)
 {
     LIBRPA::MPI_Wrapper::init(argc, argv);
+    LIBRPA::mpi_comm_world_h.init();
     check_initialize();
     check_minimax_ng16_diamond_k222();
     check_minimax_ng6_HF_123();

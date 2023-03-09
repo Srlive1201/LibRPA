@@ -1,6 +1,6 @@
+#include "../meanfield.h"
 #include <utility>
 #include <map>
-#include "../src/meanfield.h"
 #include "testutils.h"
 
 void test_BCC_He_gamma_minimal_basis_aims()

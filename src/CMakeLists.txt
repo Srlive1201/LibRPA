@@ -39,6 +39,16 @@ list(APPEND lib_sources
         vector3_order.cpp
         )
 
+if(USE_GREENX_MINIMAX)
+  list(APPEND lib_sources get_minimax_gx.cpp gx_minimax_wrp.f90)
+  target_link_libraries(rpa_lib PRIVATE GXCommon LibGXMiniMax)
+  target_include_directories(rpa_lib
+    PRIVATE ${PROJECT_BINARY_DIR}/thirdparty/greenX-08632c0/modules
+    )
+else()
+  list(APPEND lib_sources get_minimax_local.cpp)
+endif()
+
 target_include_directories(rpa_lib
   PRIVATE
     # ${CMAKE_CURRENT_LIST_DIR}

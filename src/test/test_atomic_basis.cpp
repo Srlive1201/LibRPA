@@ -1,8 +1,10 @@
+#include "../atomic_basis.h"
+
+#include "testutils.h"
+
 #include <cassert>
 #include <unordered_map>
 #include <utility>
-#include "../src/atomic_basis.h"
-#include "testutils.h"
 
 void test_constuctor()
 {

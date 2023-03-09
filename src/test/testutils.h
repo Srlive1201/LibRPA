@@ -1,4 +1,19 @@
 #include <complex>
+#include <ostream>
+#include <vector>
+
+template <typename T>
+std::ostream& operator<<(std::ostream &os, std::vector<T> vec)
+{
+    if (!vec.empty())
+    {
+        int i;
+        for (i = 0; i < vec.size() - 1; i++)
+            os << vec[i] << " ";
+        os << vec[i];
+    }
+}
+
 template <typename T>
 inline bool fequal(const T &a, const T &b, const T &thres = 1e-14)
 {

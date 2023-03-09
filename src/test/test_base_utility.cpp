@@ -1,4 +1,4 @@
-#include "../src/base_utility.h"
+#include "../base_utility.h"
 #include <cassert>
 
 int main (int argc, char *argv[])

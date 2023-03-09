@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.13)
 
 project(LibRPA NONE)
 
-# extract version number
+# extract version number from version.h file
 file(READ ${PROJECT_SOURCE_DIR}/src/version.h version_file)
 string(REGEX MATCH "LIBRPA_MAJOR_VERSION ([0-9]+)" librpa_major_version ${version_file})
 set(librpa_major_version ${CMAKE_MATCH_1})
@@ -11,15 +11,18 @@ string(REGEX MATCH "LIBRPA_MINOR_VERSION ([0-9]+)" librpa_minor_version ${versio
 set(librpa_minor_version ${CMAKE_MATCH_1})
 string(REGEX MATCH "LIBRPA_MICRO_VERSION ([0-9]+)" librpa_micro_version ${version_file})
 set(librpa_micro_version ${CMAKE_MATCH_1})
-set(version "${spglib_major_version}.${spglib_minor_version}.${spglib_micro_version}")
+set(version "${librpa_major_version}.${librpa_minor_version}.${librpa_micro_version}")
+
+set(CMAKE_PROJECT_VERSION "${version}")
 
 set(DRIVER_NAME "chi0_main.exe")
 set(LIB_NAME    "rpa")
 
 # options setup
-option(USE_LIBRI     "Use LibRI for tensor contraction" OFF)
-option(USE_CMAKE_INC "Use cmake.inc for configure" OFF)
-option(ENABLE_DEBUG  "Flag of debug mode " OFF)
+option(USE_LIBRI          "Use LibRI for tensor contraction" OFF)
+option(USE_CMAKE_INC      "Use cmake.inc for configure" OFF)
+option(USE_GREENX_MINIMAX "Use GreenX library for minimax grids generation" OFF)
+
 option(ENABLE_DOC    "Flag to build documentation" OFF)
 option(ENABLE_TEST   "Flag to build unit tests" ON)
 option(ENABLE_DRIVER "Flag to build driver executables" ON)
@@ -48,7 +51,13 @@ endif()
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 # enable_language later than cmake.inc to take the variables therein into accout
-enable_language(CXX)
+# require Fortran to compile GreenX for the minimax grids
+if(USE_GREENX_MINIMAX)
+  enable_language(CXX Fortran)
+else()
+  enable_language(CXX)
+endif()
+
 # bypass the deprecation warning of classic C++ of oneAPI
 if(CMAKE_CXX_COMPILER_ID MATCHES Intel)
   if(CMAKE_CXX_COMPILER MATCHES "mpiicpc" OR CMAKE_CXX_COMPILER MATCHES "icpc")
@@ -120,9 +129,16 @@ if(USE_LIBRI)
   add_compile_definitions("LIBRPA_USE_LIBRI")
 endif()
 
-if(ENABLE_DEBUG)
-  message(STATUS "Debug mode switched on")
+if(CMAKE_BUILD_TYPE MATCHES "Debug")
+  message(STATUS "Build type set to Debug, adding LIBRPA_DEBUG preprocessor directive")
   add_compile_definitions("LIBRPA_DEBUG")
+endif()
+
+if(USE_GREENX_MINIMAX)
+  message(STATUS "Generate MiniMax grids by linking to GreenX library")
+  add_subdirectory(./thirdparty/greenX-08632c0)
+else()
+  message(STATUS "Generate MiniMax grids by loading plain data accessed from old GreenX repository")
 endif()
 
 if(ENABLE_TEST)
@@ -148,7 +164,3 @@ if(ENABLE_DOC)
   include(UseDoxygenDoc)
   add_subdirectory(docs)
 endif()
-
-
-message(STATUS "CXX compiling flags: ${CMAKE_CXX_FLAGS}")
-message(STATUS "Linking against math libraries: ${math_libs}")
