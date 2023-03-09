@@ -41,8 +41,8 @@ jobs:
           du -csh /opt/intel/oneapi
       - name: Install build and runtime python dependency
         run: sudo apt-get install -y build-essential cmake python3-scipy
-      - name: Initialize and update submodules
-        run: git submodule update --init
+      - name: Initialize and update submodules recursively
+        run: git submodule update --init --recursive
       - name: Build LibRPA without LibRI
         run: |
           source /opt/intel/oneapi/setvars.sh
