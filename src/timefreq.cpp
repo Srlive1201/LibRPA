@@ -173,6 +173,7 @@ void TFGrids::generate_minimax(double emin, double emax)
 
     if (ierr != 0)
         throw invalid_argument(string("minimax grids failed, return code: ") + to_string(ierr));
+    printf("Cosine transform duality error: %20.12f\n", cosft_duality_error);
 
     for (int ig = 0; ig != n_grids; ig++)
     {

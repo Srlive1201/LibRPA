@@ -2,6 +2,11 @@
 
 #include "gx_minimax_wrp.h"
 
+// NOTE(minye): rescale frequency weights for number of grids below
+//              some point due to inconsistency in greenx
+static const int ngrids_below_freqweight_inconsistent = 26;
+static const double scale_inconsistent = 0.25;
+
 bool check_minimax_available(int ngrids)
 {
     bool avail = false;
@@ -13,6 +18,9 @@ void get_minimax_grid_frequency(int ngrids, double e_min, double e_max,
                                 int &ierr)
 {
     gx_minimax_grid_frequency_wrp(&ngrids, &e_min, &e_max, omega_points, omega_weights, &ierr);
+    if (ngrids < ngrids_below_freqweight_inconsistent)
+        for (int i = 0; i != ngrids; i++)
+            omega_weights[i] *= scale_inconsistent;
 }
 
 void get_minimax_grid(int ngrids, double e_min, double e_max,
@@ -25,4 +33,7 @@ void get_minimax_grid(int ngrids, double e_min, double e_max,
     gx_minimax_grid_wrp(&ngrids, &e_min, &e_max, tau_points, tau_weights,
                         omega_points, omega_weights, cosft_wt, cosft_tw,
                         sinft_wt, max_errors, &cosft_duality_error, &ierr);
+    if (ngrids < ngrids_below_freqweight_inconsistent)
+        for (int i = 0; i != ngrids; i++)
+            omega_weights[i] *= scale_inconsistent;
 }
