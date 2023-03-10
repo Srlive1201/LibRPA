@@ -24,6 +24,7 @@ void check_minimax_ng16_diamond_k222()
     double emax = 23.7738;
     tfg.generate_minimax(emin, emax);
     cout << tfg.get_freq_nodes() << endl;
+    // TODO(minye): CI failed after this part. I am completely ignorant of why it should.
     cout << tfg.get_freq_weights() << endl;
     cout << tfg.get_time_nodes() << endl;
     cout << tfg.get_time_weights() << endl;

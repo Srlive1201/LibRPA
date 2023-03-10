@@ -43,4 +43,4 @@ foreach(target
   config_test(${target} 4)
 endforeach()
 
-# TODO: make use of GTest
+# TODO(minye): make use of GTest
