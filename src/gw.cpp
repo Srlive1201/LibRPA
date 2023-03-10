@@ -1,6 +1,7 @@
 #include "atomic_basis.h"
 #include "gw.h"
 #include "epsilon.h"
+#include "constants.h"
 #include "input.h"
 #include "libri_utils.h"
 #ifdef LIBRPA_USE_LIBRI
