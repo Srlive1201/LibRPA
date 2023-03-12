@@ -136,7 +136,7 @@ endif()
 
 if(USE_GREENX_MINIMAX)
   message(STATUS "Generate MiniMax grids by linking to GreenX library")
-  add_subdirectory(./thirdparty/greenX-08632c0)
+  add_subdirectory(./thirdparty/greenX-6ff8a00)
 else()
   message(STATUS "Generate MiniMax grids by loading plain data accessed from old GreenX repository")
 endif()
