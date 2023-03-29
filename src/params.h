@@ -9,70 +9,68 @@
 struct Params
 {
     //! the task to perform in LibRPA.
-    std::string task = "rpa";
+    static std::string task;
 
     //! the number of frequency grid points
-    int nfreq = 0;
+    static int nfreq;
 
     //! the type of time-frequency grids
-    std::string tfgrids_type = "minimax";
+    static std::string tfgrids_type;
 
     //! parallel routing of chi
-    std::string chi_parallel_routing = "auto";
+    static std::string chi_parallel_routing;
 
     //! parallel routing of exx
-    std::string exx_parallel_routing = "auto";
+    static std::string exx_parallel_routing;
 
     //! threshold of R-space Green's function when construcing.
-    double gf_R_threshold = 1e-4;
+    static double gf_R_threshold;
 
     //! threshold of RI coefficient when parsing. The atomic block with maximal element smaller than it will be filtered.
-    double cs_threshold = 1e-6;
+    static double cs_threshold;
 
     //! threshold of Coulomb matrix when parsing. The atom-pair block of Coulomb matrix with maximal element smaller than it will be filtered
-    double vq_threshold = 0;
+    static double vq_threshold;
 
     //! threshold to filter when computing the square root of Coulomb matrix
-    double sqrt_coulomb_threshold = 1e-8;
+    static double sqrt_coulomb_threshold;
 
     //! switch of using LibRI for chi0 calculation
-    bool use_libri_chi0 = false;
+    static bool use_libri_chi0;
 
     //! switch of using LibRI for EXX calculation
-    bool use_libri_exx = false;
+    static bool use_libri_exx;
 
     //! CS-matrix threshold parsed to RPA object of LibRI. 
-    double libri_chi0_threshold_CSM = 0.0;
+    static double libri_chi0_threshold_CSM;
 
     //! Cs threshold parsed to RPA object of LibRI. 
-    double libri_chi0_threshold_C = 0.0;
+    static double libri_chi0_threshold_C;
 
     //! Green's function threshold parsed to RPA object of LibRI. 
-    double libri_chi0_threshold_G = 0.0;
+    static double libri_chi0_threshold_G;
 
     //! switch of using ScaLAPACK for EcRPA calculation
-    bool use_scalapack_ecrpa = false;
+    static bool use_scalapack_ecrpa;
 
     //! CS-matrix threshold parsed to EXX object of LibRI. 
-    double libri_exx_threshold_CSM = 0.0;
+    static double libri_exx_threshold_CSM;
 
     //! Cs threshold parsed to EXX object of LibRI. 
-    double libri_exx_threshold_C = 0.0;
+    static double libri_exx_threshold_C;
 
     //! Density matrix threshold parsed to EXX object of LibRI. 
-    double libri_exx_threshold_D = 0.0;
+    static double libri_exx_threshold_D;
 
     //! Coulomb matrix threshold parsed to EXX object of LibRI. 
-    double libri_exx_threshold_V = 0.0;
+    static double libri_exx_threshold_V;
 
     //! switch of using ScaLAPACK for computing Wc from chi0
-    bool use_scalapack_gw_wc = false;
+    static bool use_scalapack_gw_wc;
 
     //! switch of run-time debug mode
-    bool debug = false;
+    static bool debug;
 
-    void check_consistency();
-    void print();
+    static void check_consistency();
+    static void print();
 };
-
-extern Params params;

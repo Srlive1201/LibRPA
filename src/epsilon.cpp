@@ -1180,7 +1180,7 @@ compute_Wc_freq_q(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, atpa
                     }
             }
         }
-        auto sqrtVq_all = power_hemat(Vq_all, 0.5, false, params.sqrt_coulomb_threshold);
+        auto sqrtVq_all = power_hemat(Vq_all, 0.5, false, Params::sqrt_coulomb_threshold);
         sprintf(fn, "sqrtVq_all_q_%d.mtx", iq);
         // print_complex_matrix_mm(sqrtVq_all, fn, 1e-15);
 
@@ -1203,7 +1203,7 @@ compute_Wc_freq_q(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, atpa
                     }
             }
         }
-        auto sqrtVqcut_all = power_hemat(Vqcut_all, 0.5, true, params.sqrt_coulomb_threshold);
+        auto sqrtVqcut_all = power_hemat(Vqcut_all, 0.5, true, Params::sqrt_coulomb_threshold);
         // sprintf(fn, "sqrtVqcut_all_q_%d.mtx", iq);
         // print_complex_matrix_mm(sqrtVqcut_all, fn, 1e-15);
         sprintf(fn, "Vqcut_all_filtered_q_%d.mtx", iq);
@@ -1410,7 +1410,7 @@ compute_Wc_freq_q_blacs(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps
         // printf("coul_block\n%s", str(coul_block).c_str());
         size_t n_singular;
         vec<double> eigenvalues(n_abf);
-        auto sqrtveig_blacs = power_hemat_blacs(coul_block, desc_nabf_nabf, coul_eigen_block, desc_nabf_nabf, n_singular, eigenvalues.c, 0.5, params.sqrt_coulomb_threshold);
+        auto sqrtveig_blacs = power_hemat_blacs(coul_block, desc_nabf_nabf, coul_eigen_block, desc_nabf_nabf, n_singular, eigenvalues.c, 0.5, Params::sqrt_coulomb_threshold);
         // printf("nabf %d nsingu %lu\n", n_abf, n_singular);
         // release sqrtv when the q-point is not Gamma, or macroscopic dielectric constant at imaginary frequency is not prepared
         if (epsmac_LF_imagfreq.empty() || !is_gamma_point(q))
@@ -1471,7 +1471,7 @@ compute_Wc_freq_q_blacs(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps
             // WARN: check whether one should pass back the filtered coulwc_block
             // sprintf(fn, "coulwc_iq_%d.mtx", iq);
             // print_matrix_mm_file_parallel(fn, coulwc_block, desc_nabf_nabf);
-            power_hemat_blacs(coulwc_block, desc_nabf_nabf, coul_eigen_block, desc_nabf_nabf, n_singular, eigenvalues.c, 0.5, params.sqrt_coulomb_threshold);
+            power_hemat_blacs(coulwc_block, desc_nabf_nabf, coul_eigen_block, desc_nabf_nabf, n_singular, eigenvalues.c, 0.5, Params::sqrt_coulomb_threshold);
         }
 
         for (const auto &freq: chi0.tfg.get_freq_nodes())

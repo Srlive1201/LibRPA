@@ -201,37 +201,38 @@ InputParser InputFile::load(const std::string &fn, bool error_if_fail_open)
     return InputParser(params);
 }
 
-void parse_inputfile_to_params(const string& fn, Params& p)
+void parse_inputfile_to_params(const string& fn)
 {
     InputFile inputf;
     int flag;
     auto parser = inputf.load(fn, false);
 
     // general parameters
-    parser.parse_string("task", p.task, "rpa", flag);
+    parser.parse_string("task", Params::task, "rpa", flag);
 
     // chi0 related
-    parser.parse_string("tfgrid_type", p.tfgrids_type, "minimax", flag);
-    parser.parse_string("chi_parallel_routing", p.chi_parallel_routing, "auto", flag);
-    parser.parse_int("nfreq", p.nfreq, 6, flag);
-    parser.parse_bool("use_libri_chi0", p.use_libri_chi0, false, flag);
-    parser.parse_bool("use_scalapack_ecrpa", p.use_scalapack_ecrpa, false, flag);
-    parser.parse_bool("use_scalapack_gw_wc", p.use_scalapack_gw_wc, false, flag);
-    parser.parse_double("cs_threshold", p.cs_threshold, 1e-6, flag);
-    parser.parse_double("vq_threshold", p.vq_threshold, 0, flag);
-    parser.parse_double("sqrt_coulomb_threshold", p.sqrt_coulomb_threshold, 1e-4, flag);
-    parser.parse_double("gf_R_threshold", p.gf_R_threshold, 1e-4, flag);
-    parser.parse_double("libri_chi0_threshold_CSM", p.libri_chi0_threshold_CSM, 0.0, flag);
-    parser.parse_double("libri_chi0_threshold_C", p.libri_chi0_threshold_C, 0.0, flag);
-    parser.parse_double("libri_chi0_threshold_G", p.libri_chi0_threshold_G, 0.0, flag);
+    parser.parse_string("tfgrid_type", Params::tfgrids_type, "minimax", flag);
+    parser.parse_string("chi_parallel_routing", Params::chi_parallel_routing, "auto", flag);
+    parser.parse_int("nfreq", Params::nfreq, 6, flag);
+    parser.parse_bool("use_libri_chi0", Params::use_libri_chi0, false, flag);
+    parser.parse_bool("use_scalapack_ecrpa", Params::use_scalapack_ecrpa, false, flag);
+    parser.parse_bool("use_scalapack_gw_wc", Params::use_scalapack_gw_wc, false, flag);
+    parser.parse_double("cs_threshold", Params::cs_threshold, 1e-6, flag);
+    parser.parse_double("vq_threshold", Params::vq_threshold, 0, flag);
+    parser.parse_double("sqrt_coulomb_threshold", Params::sqrt_coulomb_threshold, 1e-4, flag);
+    parser.parse_double("gf_R_threshold", Params::gf_R_threshold, 1e-4, flag);
+    parser.parse_double("libri_chi0_threshold_CSM", Params::libri_chi0_threshold_CSM, 0.0, flag);
+    parser.parse_double("libri_chi0_threshold_C", Params::libri_chi0_threshold_C, 0.0, flag);
+    parser.parse_double("libri_chi0_threshold_G", Params::libri_chi0_threshold_G, 0.0, flag);
 
     // exx related
-    parser.parse_bool("use_libri_exx", p.use_libri_exx, false, flag);
-    parser.parse_string("exx_parallel_routing", p.exx_parallel_routing, "auto", flag);
-    parser.parse_double("libri_exx_threshold_CSM", p.libri_exx_threshold_CSM, 0.0, flag);
-    parser.parse_double("libri_exx_threshold_C", p.libri_exx_threshold_C, 0.0, flag);
-    parser.parse_double("libri_exx_threshold_D", p.libri_exx_threshold_D, 0.0, flag);
-    parser.parse_double("libri_exx_threshold_V", p.libri_exx_threshold_V, 0.0, flag);
+    parser.parse_bool("use_libri_exx", Params::use_libri_exx, false, flag);
+    parser.parse_bool("debug", Params::debug, false, flag);
+    parser.parse_string("exx_parallel_routing", Params::exx_parallel_routing, "auto", flag);
+    parser.parse_double("libri_exx_threshold_CSM", Params::libri_exx_threshold_CSM, 0.0, flag);
+    parser.parse_double("libri_exx_threshold_C", Params::libri_exx_threshold_C, 0.0, flag);
+    parser.parse_double("libri_exx_threshold_D", Params::libri_exx_threshold_D, 0.0, flag);
+    parser.parse_double("libri_exx_threshold_V", Params::libri_exx_threshold_V, 0.0, flag);
 }
 
 const string input_filename = "librpa.in";

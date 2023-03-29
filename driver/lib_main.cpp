@@ -4,9 +4,6 @@
 #include "constants.h"
 #include "scalapack_connector.h"
 #include <set>
-#ifdef __USE_LIBRI
-#include <RI/distribute/Distribute_Equally.h>
-#endif
 
 int main(int argc, char **argv)
 {
@@ -37,15 +34,15 @@ int main(int argc, char **argv)
     prof.start("total");
 
     int flag;
-    parse_inputfile_to_params(input_filename, params);
+    parse_inputfile_to_params(input_filename);
     // NOTE: to comply with command line input, may be removed later
     InputFile inputf;
     auto parser = inputf.load(input_filename, false);
-    parser.parse_int("nfreq", params.nfreq, stoi(argv[1]), flag);
-    parser.parse_double("gf_R_threshold", params.gf_R_threshold, stod(argv[2]), flag);
-    params.check_consistency();
+    parser.parse_int("nfreq", Params::nfreq, stoi(argv[1]), flag);
+    parser.parse_double("gf_R_threshold", Params::gf_R_threshold, stod(argv[2]), flag);
+    Params::check_consistency();
     if (mpi_comm_world_h.is_root())
-        params.print();
+        Params::print();
     mpi_comm_world_h.barrier();
 
     READ_AIMS_BAND("band_out", meanfield);
@@ -90,7 +87,7 @@ int main(int argc, char **argv)
         cout << endl;
     }
 
-    const int Rt_num = Rlist.size() * params.nfreq;
+    const int Rt_num = Rlist.size() * Params::nfreq;
 
     READ_AIMS_EIGENVECTOR("./", meanfield);
 
@@ -106,8 +103,8 @@ int main(int argc, char **argv)
         cout << "| R-tau                       : " << Rt_num << endl;
         cout << "| Total atom pairs (ordered)  : " << tot_atpair_ordered.size() << endl;
     }
-    set_chi_parallel_type(params.chi_parallel_routing, tot_atpair.size(), Rt_num, params.use_libri_chi0);
-    set_exx_parallel_type(params.exx_parallel_routing, tot_atpair.size(), Rt_num, params.use_libri_exx);
+    set_chi_parallel_type(Params::chi_parallel_routing, tot_atpair.size(), Rt_num, Params::use_libri_chi0);
+    set_exx_parallel_type(Params::exx_parallel_routing, tot_atpair.size(), Rt_num, Params::use_libri_exx);
     check_parallel_type();
 
     // barrier to wait for information print on master process
@@ -140,18 +137,18 @@ int main(int argc, char **argv)
             local_atpair.push_back(iap);
         printf("| process %d , local_atom_pair size:  %zu\n", mpi_comm_world_h.myid, local_atpair.size());
         
-        READ_AIMS_Cs("./", params.cs_threshold,local_atpair );
+        READ_AIMS_Cs("./", Params::cs_threshold,local_atpair );
         printf("| process %d, size of Cs from local_atpair: %lu\n", LIBRPA::mpi_comm_world_h.myid, Cs.size());
         // for(auto &ap:local_atpair)
         //     printf("   |process %d , local_atom_pair:  %d,  %d\n", mpi_comm_world_h.myid,ap.first,ap.second);
-        READ_Vq_Row("./", "coulomb_mat", params.vq_threshold, Vq, local_atpair);
+        READ_Vq_Row("./", "coulomb_mat", Params::vq_threshold, Vq, local_atpair);
     }
     else
     {
         local_atpair = generate_atom_pair_from_nat(natom, false);
-        READ_AIMS_Cs("./", params.cs_threshold,local_atpair );
+        READ_AIMS_Cs("./", Params::cs_threshold,local_atpair );
         printf("| process %d, size of Cs from local_atpair: %lu\n", LIBRPA::mpi_comm_world_h.myid, Cs.size());
-        READ_Vq_Full("./", "coulomb_mat", params.vq_threshold, Vq); 
+        READ_Vq_Full("./", "coulomb_mat", Params::vq_threshold, Vq); 
     }
     mpi_comm_world_h.barrier();
     // malloc_trim(0);
@@ -163,15 +160,15 @@ int main(int argc, char **argv)
     // para_mpi.mpi_barrier();
     // if(para_mpi.is_master())
     //     system("free -m");
-    //READ_Vq_Row("./", "coulomb_mat", params.vq_threshold, Vq, local_atpair);
+    //READ_Vq_Row("./", "coulomb_mat", Params::vq_threshold, Vq, local_atpair);
     /* if(argv[1][0]=='0') */
     /*     ap_chi0.chi0_main(argv[1],argv[2]);  */
     /* else */
         /* cal_chi0.chi0_main(argv[1],argv[2]);  */
     /* return 0; */
     // try the new version
-    Chi0 chi0(meanfield, klist, params.nfreq);
-    chi0.gf_R_threshold = params.gf_R_threshold;
+    Chi0 chi0(meanfield, klist, Params::nfreq);
+    chi0.gf_R_threshold = Params::gf_R_threshold;
 
     // build ABF IJ and qlist from Vq
     
@@ -187,10 +184,10 @@ int main(int argc, char **argv)
     if (mpi_comm_world_h.myid == 0)
         cout << "Initialization finished, start task job from myid\n";
 
-    if ( params.task != "exx" )
+    if ( Params::task != "exx" )
     {
         chi0.build(Cs, Rlist, period, local_atpair, qlist,
-                   TFGrids::get_grid_type(params.tfgrids_type), true);
+                   TFGrids::get_grid_type(Params::tfgrids_type), true);
     }
 
     { // debug, check chi0
@@ -221,7 +218,7 @@ int main(int argc, char **argv)
     //     system("free -m");
     // FIXME: a more general strategy to deal with Cs
     // Cs is not required after chi0 is computed in rpa task
-    if (LIBRPA::chi_parallel_type != LIBRPA::parallel_type::LIBRI_USED && params.task == "rpa")
+    if (LIBRPA::chi_parallel_type != LIBRPA::parallel_type::LIBRI_USED && Params::task == "rpa")
     {
         // for(auto &Cp:Cs)
         // {
@@ -232,12 +229,12 @@ int main(int argc, char **argv)
 
     malloc_trim(0);
     // RPA total energy
-    if ( params.task == "rpa" )
+    if ( Params::task == "rpa" )
     {
         mpi_comm_world_h.barrier();
         prof.start("EcRPA");
         CorrEnergy corr;
-        if (params.use_scalapack_ecrpa && LIBRPA::chi_parallel_type == LIBRPA::parallel_type::ATOM_PAIR)
+        if (Params::use_scalapack_ecrpa && LIBRPA::chi_parallel_type == LIBRPA::parallel_type::ATOM_PAIR)
             corr = compute_RPA_correlation_blacs(chi0, Vq);
         else
             corr = compute_RPA_correlation(chi0, Vq);
@@ -256,18 +253,19 @@ int main(int argc, char **argv)
                 printf("Warning: considerable imaginary part of EcRPA = %f\n", corr.value.imag());
         }
     }
-    else if ( params.task == "g0w0" )
+    else if ( Params::task == "g0w0" )
     {
-        READ_Vq_Full("./", "coulomb_cut_", params.vq_threshold, Vq_cut); 
+        READ_Vq_Full("./", "coulomb_cut_", Params::vq_threshold, Vq_cut); 
         const auto VR = FT_Vq(Vq_cut, Rlist, true);
         auto exx = LIBRPA::Exx(meanfield, kfrac_list);
         exx.build_exx_orbital_energy(Cs, Rlist, period, VR);
         vector<std::complex<double>> epsmac_LF_imagfreq;
         map<double, atom_mapping<std::map<Vector3_Order<double>, matrix_m<complex<double>>>>::pair_t_old> Wc_freq_q;
-        if (params.use_scalapack_gw_wc)
+        if (Params::use_scalapack_gw_wc)
             Wc_freq_q = compute_Wc_freq_q_blacs(chi0, Vq, Vq_cut, epsmac_LF_imagfreq);
         else
             Wc_freq_q = compute_Wc_freq_q(chi0, Vq, Vq_cut, epsmac_LF_imagfreq);
+        if (Params::debug)
         { // debug, check Wc
             char fn[80];
             for (const auto &Wc: Wc_freq_q)
@@ -283,7 +281,7 @@ int main(int argc, char **argv)
                         {
                             const int iq = std::distance(klist.begin(), std::find(klist.begin(), klist.end(), q_Wc.first));
                             sprintf(fn, "Wcfq_ifreq_%d_iq_%d_I_%zu_J_%zu_id_%d.mtx", ifreq, iq, I, J, mpi_comm_world_h.myid);
-                            // print_matrix_mm_file(q_Wc.second, fn, 1e-15);
+                            print_matrix_mm_file(q_Wc.second, fn, 1e-15);
                         }
                     }
                 }
@@ -291,6 +289,7 @@ int main(int argc, char **argv)
         }
         LIBRPA::G0W0 s_g0w0(meanfield, kfrac_list, chi0.tfg);
         s_g0w0.build_spacetime_LibRI(Cs, Wc_freq_q, Rlist, period);
+        if (Params::debug)
         { // debug, check Sigc, rotate to KS basis
             char fn[80];
             for (const auto &ispin_freq_k_IJSigc: s_g0w0.sigc_is_freq_k_IJ)
@@ -334,9 +333,9 @@ int main(int argc, char **argv)
             }
         }
     }
-    else if ( params.task == "exx" )
+    else if ( Params::task == "exx" )
     {
-        READ_Vq_Full("./", "coulomb_cut_", params.vq_threshold, Vq_cut); 
+        READ_Vq_Full("./", "coulomb_cut_", Params::vq_threshold, Vq_cut); 
         const auto VR = FT_Vq(Vq_cut, Rlist, true);
         auto exx = LIBRPA::Exx(meanfield, kfrac_list);
         exx.build_exx_orbital_energy(Cs, Rlist, period, VR);

@@ -85,7 +85,7 @@ void Exx::build_exx_orbital_energy(const atpair_R_mat_t &LRI_Cs,
                                    const Vector3_Order<int> &R_period,
                                    const atpair_R_mat_t &coul_mat)
 {
-    if (params.use_libri_exx)
+    if (Params::use_libri_exx)
         this->build_exx_orbital_energy_LibRI(LRI_Cs, Rlist, R_period, coul_mat);
     else
     {
@@ -120,7 +120,7 @@ void Exx::build_exx_orbital_energy_LibRI(const atpair_R_mat_t &LRI_Cs,
     std::array<std::array<double,3>,3> lat_array{xa,ya,za};
     std::array<int,3> period_array{R_period.x,R_period.y,R_period.z};
     exx_libri.set_parallel(MPI_COMM_WORLD, atoms_pos, lat_array, period_array);
-    exx_libri.set_csm_threshold(params.libri_exx_threshold_CSM);
+    exx_libri.set_csm_threshold(Params::libri_exx_threshold_CSM);
 
     // initialize Cs to each process
     std::vector<std::pair<atom_t, std::pair<atom_t, Vector3_Order<int>>>> Cs_IJRs_local;
@@ -156,7 +156,7 @@ void Exx::build_exx_orbital_energy_LibRI(const atpair_R_mat_t &LRI_Cs,
         *mat_ptr=mat_array;
         Cs_libri[I][{J, Ra}] = RI::Tensor<double>({atom_mu[I], atom_nw[I], atom_nw[J]}, mat_ptr);
     }
-    exx_libri.set_Cs(Cs_libri, params.libri_exx_threshold_C);
+    exx_libri.set_Cs(Cs_libri, Params::libri_exx_threshold_C);
 
     // initialize Coulomb matrix
     std::map<int, std::map<std::pair<int,std::array<int,3>>,RI::Tensor<double>>> V_libri;
@@ -172,7 +172,7 @@ void Exx::build_exx_orbital_energy_LibRI(const atpair_R_mat_t &LRI_Cs,
         *pv = VIJR_va;
         V_libri[I][{J, Ra}] = RI::Tensor<double>({size_t(VIJR->nr), size_t(VIJR->nc)}, pv);
     }
-    exx_libri.set_Vs(V_libri, params.libri_exx_threshold_V);
+    exx_libri.set_Vs(V_libri, Params::libri_exx_threshold_V);
     // cout << V_libri << endl;
 
     // initialize density matrix
@@ -221,7 +221,7 @@ void Exx::build_exx_orbital_energy_LibRI(const atpair_R_mat_t &LRI_Cs,
                 }
             }
         }
-        exx_libri.set_Ds(dmat_libri, params.libri_exx_threshold_D);
+        exx_libri.set_Ds(dmat_libri, Params::libri_exx_threshold_D);
         // start building EXX Hamiltonian
         exx_libri.cal_Hs();
         // cout << exx_libri.Hs << endl;

@@ -248,7 +248,7 @@ void Chi0::build_chi0_q_space_time_LibRI_routing(const atpair_R_mat_t &LRI_Cs,
 
     RI::RPA<int,int,3,double> rpa;
     rpa.set_parallel(MPI_COMM_WORLD, atoms_pos,lat_array,period_array);
-    rpa.set_csm_threshold(params.libri_chi0_threshold_CSM);
+    rpa.set_csm_threshold(Params::libri_chi0_threshold_CSM);
     // divide the whole Cs and distribute to each process
     std::vector<std::pair<atom_t, std::pair<atom_t, Vector3_Order<int>>>> IJRs_local;
     size_t n_IJRs = 0;
@@ -293,7 +293,7 @@ void Chi0::build_chi0_q_space_time_LibRI_routing(const atpair_R_mat_t &LRI_Cs,
     }
 	/* cout << Cs_libri; */
     // cout << "Setting Cs for rpa object" << endl;
-    rpa.set_Cs(Cs_libri, params.libri_chi0_threshold_C);
+    rpa.set_Cs(Cs_libri, Params::libri_chi0_threshold_C);
     // cout << "Cs of rpa object set" << endl;
 
     // dispatch GF accoding to atpair and R
@@ -340,7 +340,7 @@ void Chi0::build_chi0_q_space_time_LibRI_routing(const atpair_R_mat_t &LRI_Cs,
             }
             mpi_comm_world_h.barrier();
             // std::clock_t cpu_clock_done_init_gf = clock();
-            rpa.cal_chi0s(gf_po_libri,gf_ne_libri, params.libri_chi0_threshold_G);
+            rpa.cal_chi0s(gf_po_libri,gf_ne_libri, Params::libri_chi0_threshold_G);
             // collect chi0 on selected atpairs of all R
             auto chi0s_IJR = RI::Communicate_Tensors_Map_Judge::comm_map2_first(mpi_comm_world_h.comm, rpa.chi0s, s0_s1.first, s0_s1.second);
             std::clock_t cpu_clock_done_chi0s = clock();

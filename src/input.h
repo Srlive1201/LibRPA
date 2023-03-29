@@ -84,7 +84,7 @@ class InputFile
         std::string get_orig_content() { return orig_content; };
 };
 
-void parse_inputfile_to_params(const string& fn, Params& p);
+void parse_inputfile_to_params(const string& fn);
 
 extern const string input_filename;
 #endif
