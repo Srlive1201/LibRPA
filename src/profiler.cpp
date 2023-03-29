@@ -10,6 +10,10 @@ double cpu_time_from_clocks_diff(const std::clock_t& ct_start,
     return double(ct_end - ct_start) / CLOCKS_PER_SEC;
 }
 
+std::vector<Profiler::Timer> Profiler::timers;
+std::vector<int> Profiler::timer_levels;
+std::vector<std::string> Profiler::timer_notes;
+
 void Profiler::Timer::start()
 {
     if(is_on())
@@ -73,7 +77,7 @@ void Profiler::stop(const char *tname)
         pt->stop();
 }
 
-std::string banner(char c, int n)
+static std::string banner(char c, int n)
 {
     std::string s = "";
     while(n--) s += c;
@@ -97,5 +101,3 @@ void Profiler::display()
         printf("%-45s %14zu %19.4f %19.4f\n", s.c_str(), pt->get_ncalls(), pt->get_cpu_time(), pt->get_wall_time());
     }
 }
-
-Profiler prof;

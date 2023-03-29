@@ -16,22 +16,23 @@ int main(int argc, char **argv)
     blacs_ctxt_world_h.init();
     blacs_ctxt_world_h.set_square_grid();
 
-    prof.add(0, "total", "Total");
-    prof.add(1, "chi0_main", "Chi0 object");
-    prof.add(2, "cal_Green_func_R_tau", "space-time Green's function");
-    prof.add(2, "cal_Green_func",       "space-time Green's function");
-    prof.add(2, "R_tau_routing", "Loop over R-tau");
-    prof.add(2, "atom_pair_routing", "Loop over atom pairs");
-    prof.add(2, "LibRI_rouing", "Loop over LibRI");
-    prof.add(3, "cal_chi0_element", "chi(tau,R,I,J)");
-    prof.add(4, "X");
-    prof.add(4, "O");
-    prof.add(4, "N");
-    prof.add(4, "Z");
-    prof.add(4, "reshape_Cs", "reshape Cs");
-    prof.add(4, "reshape_mat", "reshape mat");
-    prof.add(2,"EcRPA");
-    prof.start("total");
+    Profiler::add(0, "total", "Total");
+    Profiler::add(1, "chi0_main", "Chi0 object");
+    Profiler::add(2, "cal_Green_func_R_tau", "space-time Green's function");
+    Profiler::add(2, "cal_Green_func",       "space-time Green's function");
+    Profiler::add(2, "R_tau_routing", "Loop over R-tau");
+    Profiler::add(2, "atom_pair_routing", "Loop over atom pairs");
+    Profiler::add(2, "LibRI_rouing", "Loop over LibRI");
+    Profiler::add(3, "cal_chi0_element", "chi(tau,R,I,J)");
+    Profiler::add(4, "X");
+    Profiler::add(4, "O");
+    Profiler::add(4, "N");
+    Profiler::add(4, "Z");
+    Profiler::add(4, "reshape_Cs", "reshape Cs");
+    Profiler::add(4, "reshape_mat", "reshape mat");
+    Profiler::add(2, "EcRPA");
+
+    Profiler::start("total");
 
     int flag;
     parse_inputfile_to_params(input_filename);
@@ -232,14 +233,14 @@ int main(int argc, char **argv)
     if ( Params::task == "rpa" )
     {
         mpi_comm_world_h.barrier();
-        prof.start("EcRPA");
+        Profiler::start("EcRPA");
         CorrEnergy corr;
         if (Params::use_scalapack_ecrpa && LIBRPA::chi_parallel_type == LIBRPA::parallel_type::ATOM_PAIR)
             corr = compute_RPA_correlation_blacs(chi0, Vq);
         else
             corr = compute_RPA_correlation(chi0, Vq);
 
-        prof.stop("EcRPA");
+        Profiler::stop("EcRPA");
         if (mpi_comm_world_h.is_root())
         {
             printf("RPA correlation energy (Hartree)\n");
@@ -358,9 +359,9 @@ int main(int argc, char **argv)
         }
     }
 
-    prof.stop("total");
+    Profiler::stop("total");
     if(mpi_comm_world_h.is_root())
-        prof.display();
+        Profiler::display();
 
     MPI_Wrapper::finalize();
     return 0;

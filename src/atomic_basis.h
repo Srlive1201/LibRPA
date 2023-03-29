@@ -27,6 +27,7 @@ public:
     std::size_t get_global_index(const int& i_atom, const std::size_t& i_loc_b) const;
     int get_i_atom(const std::size_t& i_glo_b) const;
     void get_local_index(const std::size_t& i_glo_b, int& i_atom, int& i_loc_b) const;
+    int get_local_index(const std::size_t& i_glo_b, const int& i_atom) const;
     std::pair<int, int> get_local_index(const std::size_t& i_glo_b) const;
     std::size_t get_atom_nb(const int& i_atom) const { return nbs_[i_atom]; }
     const std::vector<std::size_t>& get_part_range() const { return part_range; }
