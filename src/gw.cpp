@@ -1,9 +1,12 @@
-#include "atomic_basis.h"
 #include "gw.h"
+
+#include "atomic_basis.h"
+#include "profiler.h"
 #include "epsilon.h"
 #include "constants.h"
 #include "input.h"
 #include "libri_utils.h"
+
 #ifdef LIBRPA_USE_LIBRI
 #include <RI/physics/GW.h>
 // #include "print_stl.h"

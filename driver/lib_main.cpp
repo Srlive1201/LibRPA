@@ -16,24 +16,9 @@ int main(int argc, char **argv)
     blacs_ctxt_world_h.init();
     blacs_ctxt_world_h.set_square_grid();
 
-    Profiler::add(0, "total", "Total");
-    Profiler::add(1, "chi0_main", "Chi0 object");
-    Profiler::add(2, "cal_Green_func_R_tau", "space-time Green's function");
-    Profiler::add(2, "cal_Green_func",       "space-time Green's function");
-    Profiler::add(2, "R_tau_routing", "Loop over R-tau");
-    Profiler::add(2, "atom_pair_routing", "Loop over atom pairs");
-    Profiler::add(2, "LibRI_rouing", "Loop over LibRI");
-    Profiler::add(3, "cal_chi0_element", "chi(tau,R,I,J)");
-    Profiler::add(4, "X");
-    Profiler::add(4, "O");
-    Profiler::add(4, "N");
-    Profiler::add(4, "Z");
-    Profiler::add(4, "reshape_Cs", "reshape Cs");
-    Profiler::add(4, "reshape_mat", "reshape mat");
-    Profiler::add(2, "EcRPA");
+    Profiler::start("total", "Total");
 
-    Profiler::start("total");
-
+    Profiler::start("driver_io_init", "Driver IO Initialization");
     int flag;
     parse_inputfile_to_params(input_filename);
     // NOTE: to comply with command line input, may be removed later
@@ -152,6 +137,8 @@ int main(int argc, char **argv)
         READ_Vq_Full("./", "coulomb_mat", Params::vq_threshold, Vq); 
     }
     mpi_comm_world_h.barrier();
+    Profiler::stop("driver_io_init");
+
     // malloc_trim(0);
     // para_mpi.mpi_barrier();
     // if(para_mpi.is_master())
@@ -187,8 +174,10 @@ int main(int argc, char **argv)
 
     if ( Params::task != "exx" )
     {
+        Profiler::start("chi0_build", "Build response function chi0");
         chi0.build(Cs, Rlist, period, local_atpair, qlist,
                    TFGrids::get_grid_type(Params::tfgrids_type), true);
+        Profiler::stop("chi0_build");
     }
 
     { // debug, check chi0
@@ -233,7 +222,7 @@ int main(int argc, char **argv)
     if ( Params::task == "rpa" )
     {
         mpi_comm_world_h.barrier();
-        Profiler::start("EcRPA");
+        Profiler::start("EcRPA", "Compute RPA correlation Energy");
         CorrEnergy corr;
         if (Params::use_scalapack_ecrpa && LIBRPA::chi_parallel_type == LIBRPA::parallel_type::ATOM_PAIR)
             corr = compute_RPA_correlation_blacs(chi0, Vq);
@@ -253,19 +242,31 @@ int main(int argc, char **argv)
             if (std::abs(corr.value.imag()) > 1.e-3)
                 printf("Warning: considerable imaginary part of EcRPA = %f\n", corr.value.imag());
         }
+        Profiler::stop("EcRPA");
     }
     else if ( Params::task == "g0w0" )
     {
+        Profiler::start("g0w0", "G0W0 quasi-particle calculation");
+
+        Profiler::start("read_vq_cut", "Load truncated Coulomb");
         READ_Vq_Full("./", "coulomb_cut_", Params::vq_threshold, Vq_cut); 
         const auto VR = FT_Vq(Vq_cut, Rlist, true);
+        Profiler::stop("read_vq_cut");
+
+        Profiler::start("g0w0_exx", "Build exchange self-energy");
         auto exx = LIBRPA::Exx(meanfield, kfrac_list);
         exx.build_exx_orbital_energy(Cs, Rlist, period, VR);
+        Profiler::stop("g0w0_exx");
+
+        Profiler::start("g0w0_wc", "Build screened interaction");
         vector<std::complex<double>> epsmac_LF_imagfreq;
         map<double, atom_mapping<std::map<Vector3_Order<double>, matrix_m<complex<double>>>>::pair_t_old> Wc_freq_q;
         if (Params::use_scalapack_gw_wc)
             Wc_freq_q = compute_Wc_freq_q_blacs(chi0, Vq, Vq_cut, epsmac_LF_imagfreq);
         else
             Wc_freq_q = compute_Wc_freq_q(chi0, Vq, Vq_cut, epsmac_LF_imagfreq);
+        Profiler::stop("g0w0_wc");
+
         if (Params::debug)
         { // debug, check Wc
             char fn[80];
@@ -289,7 +290,10 @@ int main(int argc, char **argv)
             }
         }
         LIBRPA::G0W0 s_g0w0(meanfield, kfrac_list, chi0.tfg);
+        Profiler::start("g0w0_sigc_IJ", "Build correlation self-energy (basis space)");
         s_g0w0.build_spacetime_LibRI(Cs, Wc_freq_q, Rlist, period);
+        Profiler::stop("g0w0_sigc_IJ");
+
         if (Params::debug)
         { // debug, check Sigc, rotate to KS basis
             char fn[80];
@@ -333,6 +337,7 @@ int main(int argc, char **argv)
                 }
             }
         }
+        Profiler::stop("g0w0");
     }
     else if ( Params::task == "exx" )
     {

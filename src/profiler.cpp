@@ -1,6 +1,8 @@
 #include "profiler.h"
+
 #include <ctime>
 #include <string>
+#include <cstring>
 #include <iostream>
 #include <omp.h>
 
@@ -10,11 +12,12 @@ double cpu_time_from_clocks_diff(const std::clock_t& ct_start,
     return double(ct_end - ct_start) / CLOCKS_PER_SEC;
 }
 
-std::vector<Profiler::Timer> Profiler::timers;
-std::vector<int> Profiler::timer_levels;
-std::vector<std::string> Profiler::timer_notes;
+std::map<std::string, Profiler::Timer> Profiler::sd_map_timer;
+std::map<std::string, int> Profiler::sd_map_level;
+std::map<std::string, std::string> Profiler::sd_map_note;
+std::vector<std::string> Profiler::sd_order;
 
-void Profiler::Timer::start()
+void Profiler::Timer::start() noexcept
 {
     if(is_on())
         stop();
@@ -24,7 +27,7 @@ void Profiler::Timer::start()
     // printf("start: %zu %zu %f\n", ncalls, clock_start, wt_start);
 }
 
-void Profiler::Timer::stop()
+void Profiler::Timer::stop() noexcept
 {
     if(!is_on()) return;
     cpu_time += cpu_time_from_clocks_diff(clock_start, clock());
@@ -34,47 +37,56 @@ void Profiler::Timer::stop()
     clock_start = 0;
 }
 
-Profiler::Timer * Profiler::find_timer(const char *tname)
+void Profiler::add(const char *tname, const char *tnote, int level) noexcept
 {
-    Profiler::Timer * pt = nullptr;
-    for (auto i = 0; i != timers.size(); i++)
+    if (sd_map_timer.count(tname) == 0)
     {
-        if(timers[i].get_name() == tname)
+        // when level is negative, set the level according to status of previous timers
+        const auto n = get_num_timers();
+        if (level < 0)
         {
-            pt = &timers[i];
-            // printf("%s\n", i.get_name().c_str());
-            break;
+            level = 0;
+            for (auto it = sd_order.crbegin(); it != sd_order.crend(); it++)
+            {
+                const auto t = sd_map_timer[*it];
+                if (t.is_on())
+                {
+                    level = sd_map_level[*it] + 1;
+                    break;
+                }
+            }
         }
+        sd_map_timer[tname] = Timer();
+        sd_map_level[tname] = level;
+        if (strcmp(tnote, "") == 0)
+            sd_map_note[tname] = tname;
+        else
+            sd_map_note[tname] = tnote;
+        sd_order.push_back(tname);
     }
-    return pt;
 }
 
-void Profiler::add(int level, const char *tname, const char *tnote)
+void Profiler::start(const char *tname, const char *tnote, int level) noexcept
 {
-    timer_levels.push_back(level);
-    timers.push_back(Timer(tname));
-    // printf("add: %zu\n", t.get_ncalls());
-    std::string note = tnote;
-    if(note == "")
-        timer_notes.push_back(std::string(tname));
+    if(omp_get_thread_num()!=0) return;
+    if (sd_map_timer.count(tname) == 0)
+    {
+        add(tname, tnote, level);
+    }
+    sd_map_timer.at(tname).start();
+}
+
+void Profiler::stop(const char *tname) noexcept
+{
+    if(omp_get_thread_num()!=0) return;
+    if (sd_map_timer.count(tname))
+    {
+        sd_map_timer.at(tname).stop();
+    }
     else
-        timer_notes.push_back(std::string(tnote));
-}
-
-void Profiler::start(const char *tname)
-{
-    if(omp_get_thread_num()!=0) return;
-    Timer * pt = find_timer(tname);
-    if(pt!=nullptr)
-        pt->start();
-}
-
-void Profiler::stop(const char *tname)
-{
-    if(omp_get_thread_num()!=0) return;
-    Timer * pt = find_timer(tname);
-    if(pt!=nullptr)
-        pt->stop();
+    {
+        printf("Warning!!! Timer %s not found, profiling is very likely wrong!\n", tname);
+    }
 }
 
 static std::string banner(char c, int n)
@@ -84,20 +96,19 @@ static std::string banner(char c, int n)
     return s;
 }
 
-void Profiler::display()
+void Profiler::display() noexcept
 {
     printf("%-45s %14s %19s %19s\n", "Entry", "#calls", "CPU time (s)", "Wall time (s)");
     printf("%100s\n", banner('-', 100).c_str());
-    Timer * pt;
-    for (auto t = 0; t < timers.size(); t++)
+    for (auto &tname: sd_order)
     {
         std::string s = "";
-        int i = timer_levels[t];
+        int i = sd_map_level[tname];
         while(i--) s += "  ";
-        s += timer_notes[t];
-        pt = &timers[t];
+        s += sd_map_note[tname];
+        const auto& t = sd_map_timer[tname];
         // skip timers that have not been called
-        if(!pt->get_ncalls()) continue;
-        printf("%-45s %14zu %19.4f %19.4f\n", s.c_str(), pt->get_ncalls(), pt->get_cpu_time(), pt->get_wall_time());
+        if(!t.get_ncalls()) continue;
+        printf("%-45s %14zu %19.4f %19.4f\n", s.c_str(), t.get_ncalls(), t.get_cpu_time(), t.get_wall_time());
     }
 }

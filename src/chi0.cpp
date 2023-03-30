@@ -96,7 +96,7 @@ void Chi0::build(const atpair_R_mat_t &LRI_Cs,
 
 void Chi0::build_gf_Rt(Vector3_Order<int> R, double tau)
 {
-    Profiler::start("cal_Green_func");
+    Profiler::start("cal_Green_func", "space-time Green's function");
     const auto nkpts = mf.get_n_kpoints();
     const auto nspins = mf.get_n_spins();
     const auto nbands = mf.get_n_bands();
@@ -224,7 +224,7 @@ void Chi0::build_chi0_q_space_time_LibRI_routing(const atpair_R_mat_t &LRI_Cs,
     mpi_comm_world_h.barrier();
     throw std::logic_error("compilation");
 #else
-    Profiler::start("LibRI_routing");
+    Profiler::start("LibRI_routing", "Loop over LibRI");
     map<int,std::array<double,3>> atoms_pos;
     for(int i=0;i!=atom_mu.size();i++)
         atoms_pos.insert(pair<int,std::array<double,3>>{i,{0,0,0}});
@@ -407,7 +407,7 @@ void Chi0::build_chi0_q_space_time_R_tau_routing(const atpair_R_mat_t &LRI_Cs,
                                                  const vector<atpair_t> &atpairs_ABF,
                                                  const vector<Vector3_Order<double>> &qlist)
 {
-    Profiler::start("R_tau_routing");
+    Profiler::start("R_tau_routing", "Loop over R-tau");
     // taus and Rs to compute on MPI task
     // tend to calculate more Rs on one process
     vector<pair<int, int>> itauiRs_local = dispatcher(0, tfg.size(), 0, Rlist_gf.size(),
@@ -509,7 +509,7 @@ void Chi0::build_chi0_q_space_time_atom_pair_routing(const atpair_R_mat_t &LRI_C
                                                  const vector<atpair_t> &atpairs_ABF,
                                                  const vector<Vector3_Order<double>> &qlist)
 {
-    Profiler::start("atom_pair_routing");
+    Profiler::start("atom_pair_routing", "Loop over atom pairs");
     //auto tot_pair = dispatch_vector(atpairs_ABF, LIBRPA::mpi_comm_world_h.myid, para_mpi.get_size(), false);
     printf("Number of atom pairs on Proc %4d: %zu\n", LIBRPA::mpi_comm_world_h.myid, atpairs_ABF.size());
     mpi_comm_world_h.barrier();
@@ -586,7 +586,7 @@ matrix Chi0::compute_chi0_s_munu_tau_R(const atpair_R_mat_t &LRI_Cs,
                                        int spin_channel,
                                        atom_t Mu, atom_t Nu, double tau, Vector3_Order<int> R)
 {
-    Profiler::start("cal_chi0_element");
+    Profiler::start("cal_chi0_element", "chi(tau,R,I,J)");
     /* printf("     begin chi0  thread: %d,  I: %zu, J: %zu\n",omp_get_thread_num(), Mu, Nu); */
 
     assert ( tau > 0 );
@@ -773,6 +773,7 @@ matrix Chi0::compute_chi0_s_munu_tau_R(const atpair_R_mat_t &LRI_Cs,
     /*     cout << R << " Mu=" << Mu << " Nu=" << Nu << " tau:" << tau << endl; */
     /*     print_matrix("space-time chi0", O_sum); */
     /* } */
+    Profiler::stop("cal_chi0_element");
     return O_sum;
 }
 
