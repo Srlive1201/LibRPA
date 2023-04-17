@@ -41,6 +41,9 @@ struct Params
     //! switch of using LibRI for EXX calculation
     static bool use_libri_exx;
 
+    //! switch of using LibRI for GW calculation
+    static bool use_libri_gw;
+
     //! CS-matrix threshold parsed to RPA object of LibRI. 
     static double libri_chi0_threshold_CSM;
 
@@ -70,6 +73,9 @@ struct Params
 
     //! switch of run-time debug mode
     static bool debug;
+
+    //! switch of output correlation self-energy matrix
+    static bool output_gw_sigc_mat;
 
     static void check_consistency();
     static void print();

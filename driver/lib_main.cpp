@@ -293,8 +293,7 @@ int main(int argc, char **argv)
         Profiler::start("g0w0_sigc_IJ", "Build correlation self-energy (basis space)");
         s_g0w0.build_spacetime_LibRI(Cs, Wc_freq_q, Rlist, period);
         Profiler::stop("g0w0_sigc_IJ");
-
-        if (Params::debug)
+        if (Params::output_gw_sigc_mat)
         { // debug, check Sigc, rotate to KS basis
             char fn[80];
             for (const auto &ispin_freq_k_IJSigc: s_g0w0.sigc_is_freq_k_IJ)
@@ -315,8 +314,11 @@ int main(int argc, char **argv)
                             {
                                 const auto &J = J_Sigc.first;
                                 const auto &sigc_IJ = J_Sigc.second;
-                                sprintf(fn, "Sigc_fk_ij_ispin_%d_ifreq_%d_ik_%d_I_%zu_J_%zu_id_%d.mtx", ispin, ifreq, ik, I, J, mpi_comm_world_h.myid);
-                                // print_matrix_mm_file(sigc_IJ, fn, 1e-10);
+                                if (Params::debug)
+                                {
+                                    sprintf(fn, "Sigc_fk_ij_ispin_%d_ifreq_%d_ik_%d_I_%zu_J_%zu_id_%d.mtx", ispin, ifreq, ik, I, J, mpi_comm_world_h.myid);
+                                    print_matrix_mm_file(sigc_IJ, fn, 1e-10);
+                                }
                                 for (int i = 0; i != atomic_basis_wfc.get_atom_nb(I); i++)
                                 {
                                     for (int j = 0; j != atomic_basis_wfc.get_atom_nb(J); j++)

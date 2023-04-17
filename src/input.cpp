@@ -209,6 +209,7 @@ void parse_inputfile_to_params(const string& fn)
 
     // general parameters
     parser.parse_string("task", Params::task, "rpa", flag);
+    parser.parse_bool("debug", Params::debug, false, flag);
 
     // chi0 related
     parser.parse_string("tfgrid_type", Params::tfgrids_type, "minimax", flag);
@@ -227,12 +228,15 @@ void parse_inputfile_to_params(const string& fn)
 
     // exx related
     parser.parse_bool("use_libri_exx", Params::use_libri_exx, false, flag);
-    parser.parse_bool("debug", Params::debug, false, flag);
     parser.parse_string("exx_parallel_routing", Params::exx_parallel_routing, "auto", flag);
     parser.parse_double("libri_exx_threshold_CSM", Params::libri_exx_threshold_CSM, 0.0, flag);
     parser.parse_double("libri_exx_threshold_C", Params::libri_exx_threshold_C, 0.0, flag);
     parser.parse_double("libri_exx_threshold_D", Params::libri_exx_threshold_D, 0.0, flag);
     parser.parse_double("libri_exx_threshold_V", Params::libri_exx_threshold_V, 0.0, flag);
+
+    // gw related
+    parser.parse_bool("use_libri_gw", Params::use_libri_gw, true, flag);
+    parser.parse_bool("output_gw_sigc_mat", Params::output_gw_sigc_mat, true, flag);
 }
 
 const string input_filename = "librpa.in";
