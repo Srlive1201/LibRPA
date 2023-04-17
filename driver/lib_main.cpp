@@ -256,8 +256,16 @@ int main(int argc, char **argv)
         
         std::vector<double> omegas_dielect;
         std::vector<double> dielect_func;
-        read_dielec_func("dielectfunc_out", omegas_dielect, dielect_func);
+        read_dielec_func("dielecfunc_out", omegas_dielect, dielect_func);
+        // printf("read dielecfunc_out\n");
+        // for (int i = 0; i < omegas_dielect.size(); i++)
+        //     printf("%d %f %f\n", i+1, omegas_dielect[i], dielect_func[i]);
+        // printf("epsmac_LF_imagfreq_re start\n");
         auto epsmac_LF_imagfreq_re = UTILS::interp_cubic_spline(omegas_dielect, dielect_func, chi0.tfg.get_freq_nodes());
+        // printf("interpolated dielecfunc_out\n");
+        // for (int i = 0; i < chi0.tfg.get_freq_nodes().size(); i++)
+        //     printf("%d %f %f\n", i+1, chi0.tfg.get_freq_nodes()[i], epsmac_LF_imagfreq_re[i]);
+        // printf("epsmac_LF_imagfreq_re built\n");
 
         Profiler::start("g0w0_exx", "Build exchange self-energy");
         auto exx = LIBRPA::Exx(meanfield, kfrac_list);
@@ -266,7 +274,10 @@ int main(int argc, char **argv)
 
         Profiler::start("g0w0_wc", "Build screened interaction");
         vector<std::complex<double>> epsmac_LF_imagfreq(epsmac_LF_imagfreq_re.cbegin(), epsmac_LF_imagfreq_re.cend());
+        printf("epsmac_LF_imagfreq built\n");
         map<double, atom_mapping<std::map<Vector3_Order<double>, matrix_m<complex<double>>>>::pair_t_old> Wc_freq_q;
+        if (!Params::replace_w_head)
+            epsmac_LF_imagfreq.clear();
         if (Params::use_scalapack_gw_wc)
             Wc_freq_q = compute_Wc_freq_q_blacs(chi0, Vq, Vq_cut, epsmac_LF_imagfreq);
         else
@@ -296,7 +307,7 @@ int main(int argc, char **argv)
             }
         }
         LIBRPA::G0W0 s_g0w0(meanfield, kfrac_list, chi0.tfg);
-        Profiler::start("g0w0_sigc_IJ", "Build correlation self-energy (basis space)");
+        Profiler::start("g0w0_sigc_IJ", "Build correlation self-energy");
         s_g0w0.build_spacetime_LibRI(Cs, Wc_freq_q, Rlist, period);
         Profiler::stop("g0w0_sigc_IJ");
         if (Params::output_gw_sigc_mat)

@@ -29,6 +29,7 @@ bool Params::use_scalapack_gw_wc = false;
 bool Params::debug = false;
 bool Params::use_libri_gw = true;
 bool Params::output_gw_sigc_mat = true;
+bool Params::replace_w_head = true;
 
 void Params::check_consistency()
 {
@@ -72,6 +73,7 @@ void Params::print()
             {"use_scalapack_ecrpa", use_scalapack_ecrpa},
             {"use_scalapack_gw_wc", use_scalapack_gw_wc},
             {"output_gw_sigc_mat", output_gw_sigc_mat},
+            {"replace_w_head", replace_w_head},
         };
 
     for (const auto &param: str_params)

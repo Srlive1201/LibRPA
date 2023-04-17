@@ -1,5 +1,7 @@
 #include "interpolate.h"
 #include <cmath>
+#include <cstdio>
+#include <stdexcept>
 
 namespace LIBRPA
 {
@@ -13,6 +15,8 @@ CubicSpline::CubicSpline(const std::vector<double>& xs, const std::vector<double
     d_b.resize(n);
     d_c.resize(n);
     d_d.resize(n);
+    if (n < 2)
+        throw std::logic_error("CubicSpline require at least 2 points to interpolate");
 
     // Create and initialize the vectors h, alpha, l, and mu
     std::vector<double> h(n - 1);

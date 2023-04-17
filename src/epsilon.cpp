@@ -1540,7 +1540,7 @@ compute_Wc_freq_q_blacs(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps
                 const int ilo = desc_nabf_nabf.indx_g2l_r(n_nonsingular);
                 const int jlo = desc_nabf_nabf.indx_g2l_c(n_nonsingular);
                 if (ilo >= 0 && jlo >= 0)
-                    chi0_block(ilo, jlo) = - epsmac_LF_imagfreq[ifreq];
+                    chi0_block(ilo, jlo) = 1.0 - epsmac_LF_imagfreq[ifreq];
                 // rotate back to ABF
                 ScalapackConnector::pgemm_f('N', 'N', n_abf, n_nonsingular, n_nonsingular, 1.0,
                         coul_eigen_block.ptr(), 1, n_singular+1, desc_nabf_nabf.desc,
