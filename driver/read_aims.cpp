@@ -172,6 +172,18 @@ size_t get_natom_ncell_from_first_Cs_file(const string file_path)
     return natom;
 }
 
+void read_dielec_func(const string &file_path, std::vector<double> &omegas, std::vector<double> &dielec_func_imagfreq)
+{
+    std::ifstream ifs;
+    double omega, re, im;
+    ifs.open(file_path);
+    while(ifs >> omega >> re >> im)
+    {
+        omegas.push_back(omega);
+        dielec_func_imagfreq.push_back(re);
+    }
+    ifs.close();
+}
 
 size_t handle_Cs_file(const string &file_path, double threshold,const vector<atpair_t> &local_atpair)
 {

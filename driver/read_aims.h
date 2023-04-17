@@ -19,6 +19,7 @@ void handle_KS_file(const string &file_path, MeanField &mf);
 size_t READ_AIMS_Cs(const string &dir_path, double threshold,const vector<atpair_t> &local_atpair);
 size_t READ_Vq_Full(const string &dir_path, const string &vq_fprefix, double threshold, atpair_k_cplx_mat_t &coulomb);
 size_t READ_Vq_Row(const string &dir_path, const string &vq_fprefix, double threshold, atpair_k_cplx_mat_t &coulomb, const vector<atpair_t> &local_atpair);
+void read_dielec_func(const string &file_path, std::vector<double> &omegas, std::vector<double> &dielec_func_imagfreq);
 size_t handle_Cs_file(const std::string &file_path, double threshold,const vector<atpair_t> &local_atpair);
 void handle_Vq_full_file(const std::string &file_path, double threshold, map<Vector3_Order<double>, ComplexMatrix> &Vq_full);
 void handle_Vq_row_file(const std::string &file_path, double threshold, atpair_k_cplx_mat_t &coulomb, const vector<atpair_t> &local_atpair);

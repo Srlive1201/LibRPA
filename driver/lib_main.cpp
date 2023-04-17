@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <malloc.h>
 #include "constants.h"
+#include "interpolate.h"
 #include "scalapack_connector.h"
 #include <set>
 
@@ -252,6 +253,11 @@ int main(int argc, char **argv)
         READ_Vq_Full("./", "coulomb_cut_", Params::vq_threshold, Vq_cut); 
         const auto VR = FT_Vq(Vq_cut, Rlist, true);
         Profiler::stop("read_vq_cut");
+        
+        std::vector<double> omegas_dielect;
+        std::vector<double> dielect_func;
+        read_dielec_func("dielectfunc_out", omegas_dielect, dielect_func);
+        auto epsmac_LF_imagfreq_re = UTILS::interp_cubic_spline(omegas_dielect, dielect_func, chi0.tfg.get_freq_nodes());
 
         Profiler::start("g0w0_exx", "Build exchange self-energy");
         auto exx = LIBRPA::Exx(meanfield, kfrac_list);
@@ -259,7 +265,7 @@ int main(int argc, char **argv)
         Profiler::stop("g0w0_exx");
 
         Profiler::start("g0w0_wc", "Build screened interaction");
-        vector<std::complex<double>> epsmac_LF_imagfreq;
+        vector<std::complex<double>> epsmac_LF_imagfreq(epsmac_LF_imagfreq_re.cbegin(), epsmac_LF_imagfreq_re.cend());
         map<double, atom_mapping<std::map<Vector3_Order<double>, matrix_m<complex<double>>>>::pair_t_old> Wc_freq_q;
         if (Params::use_scalapack_gw_wc)
             Wc_freq_q = compute_Wc_freq_q_blacs(chi0, Vq, Vq_cut, epsmac_LF_imagfreq);
