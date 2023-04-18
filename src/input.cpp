@@ -227,7 +227,7 @@ void parse_inputfile_to_params(const string& fn)
     parser.parse_double("libri_chi0_threshold_G", Params::libri_chi0_threshold_G, 0.0, flag);
 
     // exx related
-    parser.parse_bool("use_libri_exx", Params::use_libri_exx, false, flag);
+    parser.parse_bool("use_libri_exx", Params::use_libri_exx, true, flag);
     parser.parse_string("exx_parallel_routing", Params::exx_parallel_routing, "auto", flag);
     parser.parse_double("libri_exx_threshold_CSM", Params::libri_exx_threshold_CSM, 0.0, flag);
     parser.parse_double("libri_exx_threshold_C", Params::libri_exx_threshold_C, 0.0, flag);

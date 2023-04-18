@@ -13,3 +13,4 @@ std::vector<Vector3_Order<int>> construct_R_grid(const Vector3_Order<int> &perio
 int get_R_index(const std::vector<Vector3_Order<int>> &Rlist, const Vector3_Order<int> &R);
 
 bool is_gamma_point(const Vector3_Order<double> &kpt);
+bool is_gamma_point(const Vector3_Order<int> &kpt);

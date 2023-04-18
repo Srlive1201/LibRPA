@@ -31,7 +31,9 @@ int get_R_index(const vector<Vector3_Order<int>> &Rlist, const Vector3_Order<int
 bool is_gamma_point(const Vector3_Order<double> &kpt)
 {
     double thres = 1.0e-5;
-    return (-thres < kpt.x < thres) && (-thres < kpt.y < thres) && (-thres < kpt.z < thres);
+    return -thres < kpt.x && kpt.x < thres
+        && -thres < kpt.y && kpt.y < thres
+        && -thres < kpt.z && kpt.z < thres;
 }
 
 bool is_gamma_point(const Vector3_Order<int> &kpt_int)
