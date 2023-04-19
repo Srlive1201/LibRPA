@@ -36,6 +36,9 @@ void check_minimax_ng16_diamond_k222()
 
 void check_minimax_ng6_HF_123()
 {
+    // TODO(minyez): the correct data vary due to the version of GreenX data.
+    // The following is correct for the local grid data, but not for the latest GreenX library
+    // Need to adapt later.
     TFGrids tfg(6);
     double emin = 0.657768, emax = 30.1366;
     tfg.generate_minimax(emin, emax);

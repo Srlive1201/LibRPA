@@ -123,7 +123,7 @@ bool is_mat_A_equal_B(const int m, const int n, const std::complex<T> *A,
 
 template <typename T>
 bool is_matmul_AB_equal_C(const int m, const int n, const int k,
-                          const T *A, const T *B, const T *C, bool transpose_C, bool print, T thres = 1e-14)
+                          const T *A, const T *B, const T *C, bool transpose_C = false, bool print = false, T thres = 1e-14)
 {
     T AB[m][n];
     for ( int im = 0; im != m; im++)

@@ -180,7 +180,7 @@ int main(int argc, char **argv)
                    TFGrids::get_grid_type(Params::tfgrids_type), true);
         Profiler::stop("chi0_build");
     }
-
+    if (Params::debug)
     { // debug, check chi0
         char fn[80];
         for (const auto &chi0q: chi0.get_chi0_q())
@@ -196,7 +196,7 @@ int main(int argc, char **argv)
                     {
                         const auto &J = J_chi0.first;
                         sprintf(fn, "chi0fq_ifreq_%d_iq_%d_I_%zu_J_%zu_id_%d.mtx", ifreq, iq, I, J, mpi_comm_world_h.myid);
-                        // print_complex_matrix_mm(J_chi0.second, fn, 1e-15);
+                        print_complex_matrix_mm(J_chi0.second, fn, 1e-15);
                     }
                 }
             }
@@ -262,10 +262,16 @@ int main(int argc, char **argv)
         //     printf("%d %f %f\n", i+1, omegas_dielect[i], dielect_func[i]);
         // printf("epsmac_LF_imagfreq_re start\n");
         auto epsmac_LF_imagfreq_re = UTILS::interp_cubic_spline(omegas_dielect, dielect_func, chi0.tfg.get_freq_nodes());
-        // printf("interpolated dielecfunc_out\n");
-        // for (int i = 0; i < chi0.tfg.get_freq_nodes().size(); i++)
-        //     printf("%d %f %f\n", i+1, chi0.tfg.get_freq_nodes()[i], epsmac_LF_imagfreq_re[i]);
-        // printf("epsmac_LF_imagfreq_re built\n");
+        if (Params::debug)
+        {
+            if (mpi_comm_world_h.is_root())
+            {
+                printf("Interpolated dielection function:\n");
+                for (int i = 0; i < chi0.tfg.get_freq_nodes().size(); i++)
+                    printf("%d %f %f\n", i+1, chi0.tfg.get_freq_nodes()[i], epsmac_LF_imagfreq_re[i]);
+            }
+            mpi_comm_world_h.barrier();
+        }
 
         Profiler::start("g0w0_exx", "Build exchange self-energy");
         auto exx = LIBRPA::Exx(meanfield, kfrac_list);

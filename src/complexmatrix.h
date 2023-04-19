@@ -123,10 +123,11 @@ void scaled_sum(
 /*
  * @param cmat: the complex matrix to compute power
  * @param power: the power to compute
+ * @param keep_ev: whether to keep the eigenvectors in cmat
  * @param filter_original: whether to filter the small values when recovering the original matrix
  * @param threshold: eigenvalue threshold to filter out in computing the power matrix
  */
-ComplexMatrix power_hemat(ComplexMatrix &cmat, double power, bool filter_original = false,
+ComplexMatrix power_hemat(ComplexMatrix &cmat, double power, bool keep_ev = false, bool filter_original = false,
                           double threshold = -1e16); // Minye Zhang add 2022-06-04
 
 //! Does the same as power_hemat, but save the powered matrix in the original matrix

@@ -1180,7 +1180,7 @@ compute_Wc_freq_q(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, atpa
                     }
             }
         }
-        auto sqrtVq_all = power_hemat(Vq_all, 0.5, false, Params::sqrt_coulomb_threshold);
+        auto sqrtVq_all = power_hemat(Vq_all, 0.5, false, false, Params::sqrt_coulomb_threshold);
         sprintf(fn, "sqrtVq_all_q_%d.mtx", iq);
         // print_complex_matrix_mm(sqrtVq_all, fn, 1e-15);
 
@@ -1203,7 +1203,7 @@ compute_Wc_freq_q(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, atpa
                     }
             }
         }
-        auto sqrtVqcut_all = power_hemat(Vqcut_all, 0.5, true, Params::sqrt_coulomb_threshold);
+        auto sqrtVqcut_all = power_hemat(Vqcut_all, 0.5, false, true, Params::sqrt_coulomb_threshold);
         // sprintf(fn, "sqrtVqcut_all_q_%d.mtx", iq);
         // print_complex_matrix_mm(sqrtVqcut_all, fn, 1e-15);
         sprintf(fn, "Vqcut_all_filtered_q_%d.mtx", iq);
