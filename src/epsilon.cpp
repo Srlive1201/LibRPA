@@ -1146,7 +1146,7 @@ atom_mapping<ComplexMatrix>::pair_t_old gather_vq_row_q(const int &I, const atpa
 }
 
 map<double, atom_mapping<std::map<Vector3_Order<double>, matrix_m<complex<double>>>>::pair_t_old>
-compute_Wc_freq_q(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, atpair_k_cplx_mat_t &coulmat_wc, const vector<std::complex<double>> &epsilon_mac_imagfreq)
+compute_Wc_freq_q(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, atpair_k_cplx_mat_t &coulmat_wc, const vector<std::complex<double>> &epsmac_LF_imagfreq)
 {
     map<double, atom_mapping<std::map<Vector3_Order<double>, matrix_m<complex<double>>>>::pair_t_old> Wc_freq_q;
     const int range_all = LIBRPA::atomic_basis_abf.nb_total;
@@ -1180,9 +1180,24 @@ compute_Wc_freq_q(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, atpa
                     }
             }
         }
-        auto sqrtVq_all = power_hemat(Vq_all, 0.5, false, false, Params::sqrt_coulomb_threshold);
-        sprintf(fn, "sqrtVq_all_q_%d.mtx", iq);
-        // print_complex_matrix_mm(sqrtVq_all, fn, 1e-15);
+        if (Params::debug)
+        {
+            sprintf(fn, "Vq_all_q_%d.mtx", iq);
+            print_complex_matrix_mm(Vq_all, fn, 1e-15);
+        }
+        auto sqrtVq_all = power_hemat(Vq_all, 0.5, true, false, Params::sqrt_coulomb_threshold);
+        // Vq_all is now eigenvectors of the original Coulomb matrix
+        const auto& Vq_eigen = Vq_all;
+        if (Params::debug)
+        {
+            sprintf(fn, "sqrtVq_all_q_%d.mtx", iq);
+            print_complex_matrix_mm(sqrtVq_all, fn, 1e-15);
+            // sprintf(fn, "rotated_sqrtVq_all_q_%d.mtx", iq);
+            // print_complex_matrix_mm(Vq_all * sqrtVq_all * transpose(Vq_all, true), fn, 1e-15);
+            // print_complex_matrix_mm(transpose(Vq_all, true) * sqrtVq_all * Vq_all, fn, 1e-15);
+            sprintf(fn, "Vqeigenvec_q_%d.mtx", iq);
+            print_complex_matrix_mm(Vq_eigen, fn, 1e-15);
+        }
 
         // truncated (cutoff) Coulomb
         ComplexMatrix Vqcut_all(range_all, range_all);
@@ -1209,6 +1224,7 @@ compute_Wc_freq_q(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, atpa
         sprintf(fn, "Vqcut_all_filtered_q_%d.mtx", iq);
         // print_complex_matrix_mm(Vqcut_all, fn, 1e-15);
         // save the filtered truncated Coulomb back to the atom mapping object
+        // TODO: revise the necessity
         for ( auto &Mu_NuqVq: coulmat_wc )
         {
             auto Mu = Mu_NuqVq.first;
@@ -1251,9 +1267,30 @@ compute_Wc_freq_q(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, atpa
 
             ComplexMatrix identity(range_all, range_all);
             identity.set_as_identity_matrix();
-            auto eps_fq = identity - sqrtVq_all * chi0fq_all * sqrtVq_all;
-            // sprintf(fn, "eps_q_%d_freq_%d.mtx", iq, ifreq);
-            // print_complex_matrix_mm(eps_fq, fn, 1e-15);
+            auto eps_fq = sqrtVq_all * chi0fq_all * sqrtVq_all;
+            eps_fq = transpose(Vq_eigen, true) * eps_fq * Vq_eigen;
+            if (!epsmac_LF_imagfreq.empty() && is_gamma_point(q))
+            {
+                // rotate to Coulomb-diagonal basis
+                // printf("Largest off-diagonal = %f\n", eps_fq.get_max_abs_offdiag());
+                // print_matrix("rotated eps_fq: ", eps_fq.real());
+                // replacing the element corresponding to largest Coulomb eigenvalue with dielectric function
+                printf("%22.12f %22.12f %22.12f %22.12f\n", freq, eps_fq(0, 0).real(), eps_fq(eps_fq.nr - 1, eps_fq.nc - 1).real(), epsmac_LF_imagfreq[ifreq].real());
+                // eps_fq(eps_fq.nr - 1, eps_fq.nc - 1) = epsmac_LF_imagfreq[ifreq];
+                eps_fq(0, 0) = 1.0 - epsmac_LF_imagfreq[ifreq];
+            }
+            if (Params::debug)
+            {
+                sprintf(fn, "rotated_vsxvs_q_%d_freq_%d.mtx", iq, ifreq);
+                print_complex_matrix_mm(eps_fq, fn, 1e-10);
+            }
+            eps_fq = Vq_eigen * eps_fq * transpose(Vq_eigen, true);
+            eps_fq = identity - eps_fq;
+            if (Params::debug)
+            {
+                sprintf(fn, "eps_q_%d_freq_%d.mtx", iq, ifreq);
+                print_complex_matrix_mm(eps_fq, fn, 1e-10);
+            }
 
             // invert the epsilon matrix
             power_hemat_onsite(eps_fq, -1);
@@ -1537,8 +1574,8 @@ compute_Wc_freq_q_blacs(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps
                         sqrtveig_blacs.ptr(), 1, n_singular+1, desc_nabf_nabf.desc,
                         coul_chi0_block.ptr(), 1, 1, desc_nabf_nabf.desc, 0.0,
                         chi0_block.ptr(), 1, 1, desc_nabf_nabf.desc);
-                const int ilo = desc_nabf_nabf.indx_g2l_r(n_nonsingular);
-                const int jlo = desc_nabf_nabf.indx_g2l_c(n_nonsingular);
+                const int ilo = desc_nabf_nabf.indx_g2l_r(n_nonsingular - 1);
+                const int jlo = desc_nabf_nabf.indx_g2l_c(n_nonsingular - 1);
                 if (ilo >= 0 && jlo >= 0)
                     chi0_block(ilo, jlo) = 1.0 - epsmac_LF_imagfreq[ifreq];
                 // rotate back to ABF

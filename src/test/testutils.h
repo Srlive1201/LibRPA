@@ -68,7 +68,7 @@ inline std::complex<T> cmplx(T re, T im)
 
 template<typename T>
 bool is_mat_A_equal_B(const int m, const int n, const T *A, const T* B, bool transpose, bool print,
-                      T thres = 1e-14, const char stra[]  = "A", const char strb[]  = "B")
+                      const T &thres = 1e-14, const char stra[] = "A", const char strb[] = "B")
 {
     int ndiff = 0;
     for ( int im = 0; im != m; im++)
@@ -96,7 +96,7 @@ bool is_mat_A_equal_B(const int m, const int n, const T *A, const T* B, bool tra
 template <typename T>
 bool is_mat_A_equal_B(const int m, const int n, const std::complex<T> *A,
                       const std::complex<T> *B, bool transpose, bool print,
-                      std::complex<T> thres, const char stra[], const char strb[])
+                      const std::complex<T> &thres, const char stra[] = "A", const char strb[] = "B")
 {
     int ndiff = 0;
     for ( int im = 0; im != m; im++)

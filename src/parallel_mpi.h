@@ -111,6 +111,7 @@ public:
     int get_pnum(int prow, int pcol) const;
     void get_pcoord(int pid, int &prow, int &pcol) const;
     void barrier(CTXT_SCOPE scope = CTXT_SCOPE::A) const;
+    //! call gridexit to reset process grid
     void exit();
     bool initialized() const { return initialized_; }
 };

@@ -280,7 +280,6 @@ int main(int argc, char **argv)
 
         Profiler::start("g0w0_wc", "Build screened interaction");
         vector<std::complex<double>> epsmac_LF_imagfreq(epsmac_LF_imagfreq_re.cbegin(), epsmac_LF_imagfreq_re.cend());
-        printf("epsmac_LF_imagfreq built\n");
         map<double, atom_mapping<std::map<Vector3_Order<double>, matrix_m<complex<double>>>>::pair_t_old> Wc_freq_q;
         if (!Params::replace_w_head)
             epsmac_LF_imagfreq.clear();

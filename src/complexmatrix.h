@@ -71,6 +71,8 @@ public:
     //! Get the max imaginary value of matrix element
     double get_max_imag() const; // minyez add 2022-10-18
     double get_max_abs_imag() const; // minyez add 2022-10-26
+    double get_max_abs_offdiag() const;
+    bool is_diagonal(const double &thres = 1e-14) const;
 };
 
 ComplexMatrix operator+(const ComplexMatrix &m1,  const ComplexMatrix &m2);

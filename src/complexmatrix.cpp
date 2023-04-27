@@ -181,6 +181,30 @@ double ComplexMatrix::get_max_abs_imag() const
     return iv;
 }
 
+double ComplexMatrix::get_max_abs_offdiag() const
+{
+    double maxabs = 0.;
+    for (int i = 0; i != nr; i++)
+        for (int j = 0; j != nc; j++)
+        {
+            if (i == j) continue;
+            maxabs = std::max(std::abs(c[i*nr+j]), maxabs);
+        }
+    return maxabs;
+}
+
+bool ComplexMatrix::is_diagonal(const double &thres) const
+{
+    for (int i = 0; i != nr; i++)
+        for (int j = 0; j != nc; j++)
+        {
+            if (i == j) continue;
+            if (std::abs(c[i*nr+j]) > thres)
+                return false;
+        }
+    return true;
+}
+
 // Adding matrices, as a friend
 ComplexMatrix operator+(const ComplexMatrix &m1, const ComplexMatrix &m2)
 {
@@ -485,11 +509,15 @@ ComplexMatrix power_hemat(ComplexMatrix &cmat, double power, bool keep_ev, bool 
     double w[cmat.nc], wpow[cmat.nc];
     double rwork[3*cmat.nc-2];
     complex<double> work[lwork];
+    // make the final eigenvalues in the descending order
+    cmat *= -1.0;
     LapackConnector::zheev(jobz, uplo, cmat.nc, cmat, cmat.nc,
                            w, work, lwork, rwork, &info);
     bool is_int_power = fabs(power - int(power)) < 1e-8;
     for ( int i = 0; i != cmat.nc; i++ )
     {
+        w[i] = -w[i];
+        // printf("%3d%22.12f\n", i+1, w[i]);
         if (w[i] < 0 && w[i] > threshold && !is_int_power)
             printf("Warning! kept negative eigenvalue with non-integer power: # %d ev = %f , pow = %f\n", i, w[i], power);
         if (fabs(w[i]) < 1e-10 && power < 0)

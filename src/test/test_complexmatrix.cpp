@@ -1,5 +1,7 @@
 #include "../complexmatrix.h"
 #include "testutils.h"
+#include <random>
+#include <ctime>
 
 void test_power_hemat()
 {
@@ -42,6 +44,25 @@ void test_power_hemat()
     /*         fequal(b(1, 0), cmplx(0, 1)) */
     /*         ); */
     assert(is_matmul_AB_equal_C(2, 2, 2, b.c, b.c, a.c));
+
+    ComplexMatrix iden(10, 10);
+    iden.set_as_identity_matrix();
+    // reset and randomize.
+    a.create(10, 10);
+    std::default_random_engine e(time(0));
+    std::uniform_real_distribution<double> d(-1.0, 1.0);
+    for (int i = 0; i < 10; i++)
+    {
+        a(i, i) = d(e);
+        for (int j = i + 1; j < 10; j++)
+        {
+            a(i, j) = {d(e), d(e)};
+            a(j, i) = conj(a(i, j));
+        }
+    }
+    power_hemat(a, 2, true);
+    const ComplexMatrix aconja = a * transpose(a, true);
+    is_mat_A_equal_B(10, 10, aconja.c, iden.c, false, false, {1e-14, 0.0});
 }
 
 int main (int argc, char *argv[])
