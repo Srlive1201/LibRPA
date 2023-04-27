@@ -30,6 +30,7 @@ foreach(target
     test_meanfield
     test_complexmatrix
     test_pbc
+    test_fitting
     test_blas_lapack
     )
   config_test(${target} 1)

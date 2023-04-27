@@ -22,6 +22,7 @@ list(APPEND lib_sources
         ${CMAKE_CURRENT_BINARY_DIR}/envs.cpp
         epsilon.cpp
         exx.cpp
+        fitting.cpp
         gw.cpp
         librpa.cpp
         # Gauss_Quadrature.cpp
