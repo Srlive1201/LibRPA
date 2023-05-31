@@ -3,6 +3,11 @@
 #include <iostream>
 #include <cmath>
 
+/*
+ * The fitting code is adapted from C version by Ron Babich
+ * See https://gist.github.com/rbabich/3539146
+ */
+
 static double error_func(const std::vector<double> &par,
                          const std::vector<double> &xs,
                          const std::vector<double> &ys,
@@ -95,10 +100,6 @@ LevMarqFitting::LevMarqFitting()
     d_target_derr = 1e-8;
 }
 
-/*!
- * The code is adapted from C version by Ron Babich
- * See https://gist.github.com/rbabich/3539146
- */
 void LevMarqFitting::fit(
     std::vector<double> &pars, const std::vector<double> &xs, const std::vector<double> &ys,
     const std::function<double(double, const std::vector<double> &)> &func,
@@ -147,8 +148,10 @@ void LevMarqFitting::fit(
             }
         }
 
-        /*  make a step "delta."  If the step is rejected, increase
-           lambda and try again */
+        /*
+         * make a step "delta."  If the step is rejected, increase
+         * lambda and try again
+         */
         double mult = 1 + lambda;
         int ill = 1; /* ill-conditioned? */
         while (ill && (it < nit))
@@ -197,6 +200,17 @@ void LevMarqFitting::fit(
             break;
         }
     }
+}
+
+std::vector<double> LevMarqFitting::fit_eval(std::vector<double> &pars, const std::vector<double> &xs, const std::vector<double> &ys, const std::function<double (double, const std::vector<double> &)> &func, const std::function<void (std::vector<double> &, double, const std::vector<double> &)> &grad, const std::vector<double> &xs_eval)
+{
+    fit(pars, xs, ys, func, grad);
+    std::vector<double> ys_eval(xs_eval.size());
+    for (int i = 0; i != ys_eval.size(); i++)
+    {
+        ys_eval[i] = func(xs_eval[i], pars);
+    }
+    return ys_eval;
 }
 
 } /* end of namespace UTILS */

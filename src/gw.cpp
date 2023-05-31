@@ -178,11 +178,15 @@ void G0W0::build_spacetime_LibRI(
                     }
                 }
                 // cout << Wc_libri << endl;
+                double wtime_g0w0_cal_sigc = omp_get_wtime();
                 g0w0_libri.cal_Sigc(gf_libri, 0.0, Wc_libri, 0.0);
                 if (t > 0)
                     sigc_posi_tau = std::move(g0w0_libri.Sigc_tau);
                 else
                     sigc_nega_tau = std::move(g0w0_libri.Sigc_tau);
+                wtime_g0w0_cal_sigc = omp_get_wtime() - wtime_g0w0_cal_sigc;
+                printf("Task %4d: Wall time of libRI G0W0, spin %1d, time grid %12.6f = %f\n",
+                       mpi_comm_world_h.myid, ispin, t, wtime_g0w0_cal_sigc);
             }
             // zmy debug
             // for (const auto &I_JRsigc: sigc_posi_tau)

@@ -1,9 +1,12 @@
 #include "lib_main.h"
-#include <algorithm>
-#include <malloc.h>
 #include "constants.h"
 #include "interpolate.h"
+#include "fitting.h"
+#include "dielecmodel.h"
 #include "scalapack_connector.h"
+
+#include <algorithm>
+#include <malloc.h>
 #include <set>
 
 int main(int argc, char **argv)
@@ -253,20 +256,40 @@ int main(int argc, char **argv)
         READ_Vq_Full("./", "coulomb_cut_", Params::vq_threshold, Vq_cut); 
         const auto VR = FT_Vq(Vq_cut, Rlist, true);
         Profiler::stop("read_vq_cut");
-        
+
         std::vector<double> omegas_dielect;
         std::vector<double> dielect_func;
         read_dielec_func("dielecfunc_out", omegas_dielect, dielect_func);
-        // printf("read dielecfunc_out\n");
-        // for (int i = 0; i < omegas_dielect.size(); i++)
-        //     printf("%d %f %f\n", i+1, omegas_dielect[i], dielect_func[i]);
-        // printf("epsmac_LF_imagfreq_re start\n");
-        auto epsmac_LF_imagfreq_re = UTILS::interp_cubic_spline(omegas_dielect, dielect_func, chi0.tfg.get_freq_nodes());
-        if (Params::debug)
+        std::vector<double> epsmac_LF_imagfreq_re;
+
+        if (Params::option_dielect_func == 2)
+        {
+            UTILS::LevMarqFitting levmarq;
+            // use double-dispersion Havriliak-Negami model
+            std::vector<double> pars(DoubleHavriliakNegami::d_npar, 1);
+            pars[0] = pars[4] = dielect_func[0];
+            epsmac_LF_imagfreq_re = levmarq.fit_eval(pars, omegas_dielect, dielect_func,
+                                                     DoubleHavriliakNegami::func_imfreq,
+                                                     DoubleHavriliakNegami::grad_imfreq,
+                                                     chi0.tfg.get_freq_nodes());
+        }
+        else if (Params::option_dielect_func == 1)
+        {
+            epsmac_LF_imagfreq_re = UTILS::interp_cubic_spline(omegas_dielect, dielect_func, chi0.tfg.get_freq_nodes());
+        }
+        else if (Params::option_dielect_func == 0)
+        {
+            // TODO: check if frequencies and close
+            epsmac_LF_imagfreq_re = dielect_func;
+        }
+        else
+            throw std::logic_error("Unsupported value for option_dielect_func");
+
+        if (Params::debug && Params::option_dielect_func != 0)
         {
             if (mpi_comm_world_h.is_root())
             {
-                printf("Interpolated dielection function:\n");
+                printf("Interpolated/fitted dielection function:\n");
                 for (int i = 0; i < chi0.tfg.get_freq_nodes().size(); i++)
                     printf("%d %f %f\n", i+1, chi0.tfg.get_freq_nodes()[i], epsmac_LF_imagfreq_re[i]);
             }

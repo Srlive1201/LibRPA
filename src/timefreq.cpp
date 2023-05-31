@@ -70,12 +70,12 @@ void TFGrids::show()
     cout << "Grid size: " << n_grids << endl;
     cout << "Frequency node & weight: " << endl;
     for ( int i = 0; i != n_grids; i++ )
-        printf("%2d %10.6f %10.6f\n", i, freq_nodes[i], freq_weights[i]);
+        printf("%2d %20.12f %20.12f\n", i, freq_nodes[i], freq_weights[i]);
     if (has_time_grids())
     {
         cout << "Time node & weight: " << endl;
         for ( int i = 0; i != n_grids; i++ )
-            printf("%2d %10.6f %10.6f\n", i, time_nodes[i], time_weights[i]);
+            printf("%2d %20.12f %20.12f\n", i, time_nodes[i], time_weights[i]);
         // cout << "t->f transform: " << endl;
         // if (costrans_t2f.size)
         // {

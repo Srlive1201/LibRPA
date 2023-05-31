@@ -1152,6 +1152,12 @@ compute_Wc_freq_q(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, atpa
     const int range_all = LIBRPA::atomic_basis_abf.nb_total;
     const auto part_range = LIBRPA::atomic_basis_abf.get_part_range();
 
+    if (mpi_comm_world_h.myid == 0)
+    {
+        cout << "Calculating Wc using LAPACK" << endl;
+    }
+
+    mpi_comm_world_h.barrier();
     // use q-points as the outmost loop, so that square root of Coulomb will not be recalculated at each frequency point
     vector<Vector3_Order<double>> qpts;
     for ( const auto &qMuNuchi: chi0.get_chi0_q().at(chi0.tfg.get_freq_nodes()[0]))

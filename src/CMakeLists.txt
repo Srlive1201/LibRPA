@@ -19,6 +19,7 @@ list(APPEND lib_sources
         complexmatrix.cpp
         constants.cpp
         coulmat.cpp
+        dielecmodel.cpp
         ${CMAKE_CURRENT_BINARY_DIR}/envs.cpp
         epsilon.cpp
         exx.cpp

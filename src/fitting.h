@@ -50,6 +50,13 @@ struct LevMarqFitting
              const std::vector<double> &ys,
              const std::function<double(double, const std::vector<double> &)> &func,
              const std::function<void(std::vector<double> &, double, const std::vector<double> &)> &grad);
+
+    //! perform the fitting and evaluate the functin on a set of abscissa points
+    std::vector<double> fit_eval(std::vector<double> &pars, const std::vector<double> &xs,
+                  const std::vector<double> &ys,
+                  const std::function<double(double, const std::vector<double> &)> &func,
+                  const std::function<void(std::vector<double> &, double, const std::vector<double> &)> &grad,
+                  const std::vector<double> &xs_eval);
 };
 
 } /* end of namespace UTILS */

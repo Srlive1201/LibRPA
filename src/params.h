@@ -80,6 +80,9 @@ struct Params
     //! switch of replacing head of screened interaction by macroscopic dielectric function
     static bool replace_w_head;
 
+    //! option of computing dielectric function on imaginary axis
+    static int option_dielect_func;
+
     static void check_consistency();
     static void print();
 };

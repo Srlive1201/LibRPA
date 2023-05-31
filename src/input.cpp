@@ -238,6 +238,7 @@ void parse_inputfile_to_params(const string& fn)
     parser.parse_bool("use_libri_gw", Params::use_libri_gw, true, flag);
     parser.parse_bool("output_gw_sigc_mat", Params::output_gw_sigc_mat, true, flag);
     parser.parse_bool("replace_w_head", Params::replace_w_head, true, flag);
+    parser.parse_int("option_dielect_func", Params::option_dielect_func, 2, flag);
 }
 
 const string input_filename = "librpa.in";
