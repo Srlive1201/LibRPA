@@ -404,7 +404,10 @@ int main(int argc, char **argv)
 
     Profiler::stop("total");
     if(mpi_comm_world_h.is_root())
+    {
         Profiler::display();
+        printf("libRPA finished");
+    }
 
     MPI_Wrapper::finalize();
     return 0;
