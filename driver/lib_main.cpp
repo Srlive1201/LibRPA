@@ -345,29 +345,33 @@ int main(int argc, char **argv)
         Profiler::start("g0w0_sigc_IJ", "Build correlation self-energy");
         s_g0w0.build_spacetime_LibRI(Cs, Wc_freq_q, Rlist, period);
         Profiler::stop("g0w0_sigc_IJ");
+        Profiler::start("g0w0_sigc_rotate_KS", "Rotate self-energy, IJ -> KS");
         s_g0w0.build_sigc_matrix_KS();
+        Profiler::stop("g0w0_sigc_rotate_KS");
+
+        Profiler::start("g0w0_export_sigc_KS", "Export self-energy in KS basis");
         mpi_comm_world_h.barrier();
-        if (Params::output_gw_sigc_mat)
+        if (mpi_comm_world_h.is_root())
         {
-            if (mpi_comm_world_h.is_root())
+            char fn[100];
+            for (const auto &ispin_sigc: s_g0w0.sigc_is_ik_f_KS)
             {
-                char fn[100];
-                for (const auto &ispin_sigc: s_g0w0.sigc_is_ik_f_KS)
+                const auto &ispin = ispin_sigc.first;
+                for (const auto &ik_sigc: ispin_sigc.second)
                 {
-                    const auto &ispin = ispin_sigc.first;
-                    for (const auto &ik_sigc: ispin_sigc.second)
+                    const auto &ik = ik_sigc.first;
+                    for (const auto &freq_sigc: ik_sigc.second)
                     {
-                        const auto &ik = ik_sigc.first;
-                        for (const auto &freq_sigc: ik_sigc.second)
-                        {
-                            const auto ifreq = s_g0w0.tfg.get_freq_index(freq_sigc.first);
-                            sprintf(fn, "Sigc_fk_mn_ispin_%d_ifreq_%d_ik_%d.mtx", ispin, ifreq, ik);
-                            print_matrix_mm_file(freq_sigc.second, fn, 1e-10);
-                        }
+                        const auto ifreq = s_g0w0.tfg.get_freq_index(freq_sigc.first);
+                        sprintf(fn, "Sigc_fk_mn_ispin_%d_ik_%d_ifreq_%d.mtx", ispin, ik, ifreq);
+                        print_matrix_mm_file(freq_sigc.second, fn, 1e-10);
                     }
                 }
             }
+            // for aims analytic continuation reader
+            write_self_energy_omega("self_energy_omega.dat", s_g0w0);
         }
+        Profiler::stop("g0w0_export_sigc_KS");
         Profiler::stop("g0w0");
     }
     else if ( Params::task == "exx" )

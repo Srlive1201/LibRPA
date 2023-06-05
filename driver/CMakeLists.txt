@@ -8,6 +8,7 @@ set_target_properties(rpa_exe PROPERTIES
 list(APPEND exe_sources
   lib_main.cpp
   read_aims.cpp
+  write_aims.cpp
   )
 
 target_include_directories(rpa_exe

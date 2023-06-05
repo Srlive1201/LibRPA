@@ -11,6 +11,7 @@
 #include "profiler.h"
 #include "meanfield.h"
 #include "read_aims.h"
+#include "write_aims.h"
 #include "chi0.h"
 #include "pbc.h"
 #include "params.h"
