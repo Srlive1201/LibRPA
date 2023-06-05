@@ -262,34 +262,41 @@ int main(int argc, char **argv)
         read_dielec_func("dielecfunc_out", omegas_dielect, dielect_func);
         std::vector<double> epsmac_LF_imagfreq_re;
 
-        if (Params::option_dielect_func == 2)
+        switch(Params::option_dielect_func)
         {
-            UTILS::LevMarqFitting levmarq;
-            // use double-dispersion Havriliak-Negami model
-            std::vector<double> pars(DoubleHavriliakNegami::d_npar, 1);
-            pars[0] = pars[4] = dielect_func[0];
-            epsmac_LF_imagfreq_re = levmarq.fit_eval(pars, omegas_dielect, dielect_func,
-                                                     DoubleHavriliakNegami::func_imfreq,
-                                                     DoubleHavriliakNegami::grad_imfreq,
-                                                     chi0.tfg.get_freq_nodes());
+            case 0:
+                {
+                    // TODO: check if frequencies and close
+                    epsmac_LF_imagfreq_re = dielect_func;
+                    break;
+                }
+            case 1:
+                {
+                    epsmac_LF_imagfreq_re = UTILS::interp_cubic_spline(omegas_dielect, dielect_func,
+                                                                       chi0.tfg.get_freq_nodes());
+                    break;
+                }
+            case 2:
+                {
+                    UTILS::LevMarqFitting levmarq;
+                    // use double-dispersion Havriliak-Negami model
+                    std::vector<double> pars(DoubleHavriliakNegami::d_npar, 1);
+                    pars[0] = pars[4] = dielect_func[0];
+                    epsmac_LF_imagfreq_re = levmarq.fit_eval(pars, omegas_dielect, dielect_func,
+                                                             DoubleHavriliakNegami::func_imfreq,
+                                                             DoubleHavriliakNegami::grad_imfreq,
+                                                             chi0.tfg.get_freq_nodes());
+                    break;
+                }
+            default:
+                throw std::logic_error("Unsupported value for option_dielect_func");
         }
-        else if (Params::option_dielect_func == 1)
-        {
-            epsmac_LF_imagfreq_re = UTILS::interp_cubic_spline(omegas_dielect, dielect_func, chi0.tfg.get_freq_nodes());
-        }
-        else if (Params::option_dielect_func == 0)
-        {
-            // TODO: check if frequencies and close
-            epsmac_LF_imagfreq_re = dielect_func;
-        }
-        else
-            throw std::logic_error("Unsupported value for option_dielect_func");
 
-        if (Params::debug && Params::option_dielect_func != 0)
+        if (Params::debug)
         {
             if (mpi_comm_world_h.is_root())
             {
-                printf("Interpolated/fitted dielection function:\n");
+                printf("Dielection function parsed:\n");
                 for (int i = 0; i < chi0.tfg.get_freq_nodes().size(); i++)
                     printf("%d %f %f\n", i+1, chi0.tfg.get_freq_nodes()[i], epsmac_LF_imagfreq_re[i]);
             }
@@ -338,48 +345,25 @@ int main(int argc, char **argv)
         Profiler::start("g0w0_sigc_IJ", "Build correlation self-energy");
         s_g0w0.build_spacetime_LibRI(Cs, Wc_freq_q, Rlist, period);
         Profiler::stop("g0w0_sigc_IJ");
+        s_g0w0.build_sigc_matrix_KS();
+        mpi_comm_world_h.barrier();
         if (Params::output_gw_sigc_mat)
-        { // debug, check Sigc, rotate to KS basis
-            char fn[80];
-            for (const auto &ispin_freq_k_IJSigc: s_g0w0.sigc_is_freq_k_IJ)
+        {
+            if (mpi_comm_world_h.is_root())
             {
-                const auto &ispin = ispin_freq_k_IJSigc.first;
-                for (const auto &freq_k_IJSigc: ispin_freq_k_IJSigc.second)
+                char fn[100];
+                for (const auto &ispin_sigc: s_g0w0.sigc_is_ik_f_KS)
                 {
-                    const int ifreq = s_g0w0.tfg.get_freq_index(freq_k_IJSigc.first);
-                    for (const auto &k_IJSigc: freq_k_IJSigc.second)
+                    const auto &ispin = ispin_sigc.first;
+                    for (const auto &ik_sigc: ispin_sigc.second)
                     {
-                        const auto &k = k_IJSigc.first;
-                        const int ik = std::distance(kfrac_list.begin(), std::find(kfrac_list.begin(), kfrac_list.end(), k));
-                        matrix_m<complex<double>> sigc_all(meanfield.get_n_aos(), meanfield.get_n_aos(), MAJOR::COL);
-                        for (const auto &I_JSigc: k_IJSigc.second)
+                        const auto &ik = ik_sigc.first;
+                        for (const auto &freq_sigc: ik_sigc.second)
                         {
-                            const auto &I = I_JSigc.first;
-                            for (const auto &J_Sigc: I_JSigc.second)
-                            {
-                                const auto &J = J_Sigc.first;
-                                const auto &sigc_IJ = J_Sigc.second;
-                                if (Params::debug)
-                                {
-                                    sprintf(fn, "Sigc_fk_ij_ispin_%d_ifreq_%d_ik_%d_I_%zu_J_%zu_id_%d.mtx", ispin, ifreq, ik, I, J, mpi_comm_world_h.myid);
-                                    print_matrix_mm_file(sigc_IJ, fn, 1e-10);
-                                }
-                                for (int i = 0; i != atomic_basis_wfc.get_atom_nb(I); i++)
-                                {
-                                    for (int j = 0; j != atomic_basis_wfc.get_atom_nb(J); j++)
-                                    {
-                                        sigc_all(atomic_basis_wfc.get_global_index(I, i), atomic_basis_wfc.get_global_index(J, j)) = sigc_IJ(i, j);
-                                    }
-                                }
-                            }
+                            const auto ifreq = s_g0w0.tfg.get_freq_index(freq_sigc.first);
+                            sprintf(fn, "Sigc_fk_mn_ispin_%d_ifreq_%d_ik_%d.mtx", ispin, ifreq, ik);
+                            print_matrix_mm_file(freq_sigc.second, fn, 1e-10);
                         }
-                        if (mpi_comm_world_h.nprocs > 1) continue;
-                        matrix_m<complex<double>> wfc(meanfield.get_n_bands(), meanfield.get_n_aos(),
-                                                      meanfield.get_eigenvectors()[ispin][ik].c, MAJOR::ROW, MAJOR::COL);
-                        wfc.conj();
-                        auto sigc_KS = wfc * sigc_all * transpose(wfc, true);
-                        sprintf(fn, "Sigc_fk_mn_ispin_%d_ifreq_%d_ik_%d_id_%d.mtx", ispin, ifreq, ik, mpi_comm_world_h.myid);
-                        print_matrix_mm_file(sigc_KS, fn, 1e-10);
                     }
                 }
             }
