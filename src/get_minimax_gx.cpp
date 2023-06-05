@@ -2,10 +2,11 @@
 
 #include "gx_minimax_wrp.h"
 
-// NOTE(minye): rescale frequency weights for number of grids below
-//              some point due to inconsistency in greenx
-static const int ngrids_below_freqweight_inconsistent = 26;
-static const double scale_inconsistent = 0.25;
+// NOTE(MYZ): rescale frequency weights for number of grids below
+//            some point due to inconsistency in greenx
+// NOTE(MYZ): Fixed upstream, so there is no need to do this any more
+// static const int ngrids_below_freqweight_inconsistent = 26;
+// static const double scale_inconsistent = 0.25;
 
 bool check_minimax_available(int ngrids)
 {

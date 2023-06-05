@@ -9,7 +9,7 @@ module gx_minimax_wrp
   private
   public :: gx_minimax_grid_frequency_wrp, gx_minimax_grid_wrp
 
-  ! internal allocatables for interfacing with greenX pure Fortran procedurs
+  ! internal allocatables for interfacing with greenX pure Fortran procedures
   real(dp), allocatable, dimension(:)   :: omega_points_f
   real(dp), allocatable, dimension(:)   :: omega_weights_f
   real(dp), allocatable, dimension(:)   :: tau_points_f
