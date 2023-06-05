@@ -1691,7 +1691,6 @@ CT_FT_Wc_freq_q(const map<double, atom_mapping<std::map<Vector3_Order<double>, m
     map<double, atom_mapping<std::map<Vector3_Order<int>, matrix_m<complex<double>>>>::pair_t_old> Wc_tau_R;
     if (!tfg.has_time_grids())
         throw logic_error("TFGrids object does not have time grids");
-    auto major = Wc_freq_q.cbegin()->second.cbegin()->second.cbegin()->second.cbegin()->second.major();
     const int ngrids = tfg.get_n_grids();
     for (auto R: Rlist)
     {
@@ -1712,12 +1711,16 @@ CT_FT_Wc_freq_q(const map<double, atom_mapping<std::map<Vector3_Order<double>, m
                         {
                             const auto Nu = Nu_qWc.first;
                             const int n_nu = atom_mu[Nu];
+                            // early check, return if q_Wc is empty
+                            if (Nu_qWc.second.empty())
+                                continue;
                             if(!(Wc_tau_R.count(tau) &&
                                  Wc_tau_R.at(tau).count(Mu) &&
                                  Wc_tau_R.at(tau).at(Mu).count(Nu) &&
                                  Wc_tau_R.at(tau).at(Mu).at(Nu).count(R)))
                             {
-                                // ensure same major
+                                // ensure same major, require early check for using the first element
+                                auto major = Nu_qWc.second.cbegin()->second.major();
                                 Wc_tau_R[tau][Mu][Nu][R] = matrix_m<complex<double>>(n_mu, n_nu, major);
                             }
                             auto & WtR = Wc_tau_R[tau][Mu][Nu][R];
