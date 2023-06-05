@@ -4,6 +4,7 @@
 #include <vector>
 
 std::string Params::task = "rpa";
+std::string Params::output_dir = "librpa.d";
 std::string Params::tfgrids_type = "minimax";
 std::string Params::chi_parallel_routing = "auto";
 std::string Params::exx_parallel_routing = "auto";
@@ -68,6 +69,7 @@ void Params::print()
     const std::vector<std::pair<std::string, std::string>> str_params
         {
             {"task", task},
+            {"output_dir", output_dir},
             {"tfgrids_type", tfgrids_type},
             {"chi_parallel_routing", chi_parallel_routing},
             {"exx_parallel_routing", exx_parallel_routing},

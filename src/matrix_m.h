@@ -1097,36 +1097,37 @@ void print_matrix_mm(const matrix_m<T> &mat, ostream &os, Treal threshold = 1e-1
        << (is_complex<T>()? "complex" : "real") << " general" << endl
        << "%" << endl;
     os << nr << " " << nc << " " << nnz << endl;
-        if (row_first)
-        {
-            for (int i = 0; i != nr; i++)
-                for (int j = 0; j != nc; j++)
-                {
-                    auto &v = mat(i, j);
-                    if (fabs(v) > threshold)
-                    {
-                        os << i + 1 << " " << j + 1 << " " << showpoint << scientific << setprecision(15) << get_real(v);
-                        if (is_complex<T>())
-                            os << " " << showpoint << scientific << setprecision(15) << get_imag(v);
-                        os << endl;
-                    }
-                }
-        }
-        else
-        {
+    // NOTE: better to remove duplicate code?
+    if (row_first)
+    {
+        for (int i = 0; i != nr; i++)
             for (int j = 0; j != nc; j++)
-                for (int i = 0; i != nr; i++)
+            {
+                auto &v = mat(i, j);
+                if (fabs(v) > threshold)
                 {
-                    auto &v = mat(i, j);
-                    if (fabs(v) > threshold)
-                    {
-                        os << i + 1 << " " << j + 1 << " " << showpoint << scientific << setprecision(15) << get_real(v);
-                        if (is_complex<T>())
-                            os << " " << showpoint << scientific << setprecision(15) << get_imag(v);
-                        os << endl;
-                    }
+                    os << i + 1 << " " << j + 1 << " " << showpoint << scientific << setprecision(15) << get_real(v);
+                    if (is_complex<T>())
+                        os << " " << showpoint << scientific << setprecision(15) << get_imag(v);
+                    os << endl;
                 }
-        }
+            }
+    }
+    else
+    {
+        for (int j = 0; j != nc; j++)
+            for (int i = 0; i != nr; i++)
+            {
+                auto &v = mat(i, j);
+                if (fabs(v) > threshold)
+                {
+                    os << i + 1 << " " << j + 1 << " " << showpoint << scientific << setprecision(15) << get_real(v);
+                    if (is_complex<T>())
+                        os << " " << showpoint << scientific << setprecision(15) << get_imag(v);
+                    os << endl;
+                }
+            }
+    }
 }
 
 template <typename T, typename Treal = typename to_real<T>::type>
@@ -1157,9 +1158,10 @@ void print_whole_matrix(const char *desc, const matrix_m<T> &mat)
 }
 
 template <typename T, typename Treal = typename to_real<T>::type>
-void print_matrix_mm_file(const matrix_m<T> &mat, const char *fn, Treal threshold = 1e-15, bool row_first = true)
+void print_matrix_mm_file(const matrix_m<T> &mat, const std::string &fn, Treal threshold = 1e-15, bool row_first = true)
 {
     ofstream fs;
     fs.open(fn);
     print_matrix_mm(mat, fs, threshold, row_first);
+    fs.close();
 }

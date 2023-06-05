@@ -1189,7 +1189,7 @@ compute_Wc_freq_q(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, atpa
         if (Params::debug)
         {
             sprintf(fn, "Vq_all_q_%d.mtx", iq);
-            print_complex_matrix_mm(Vq_all, fn, 1e-15);
+            print_complex_matrix_mm(Vq_all, Params::output_dir + "/" + fn, 1e-15);
         }
         auto sqrtVq_all = power_hemat(Vq_all, 0.5, true, false, Params::sqrt_coulomb_threshold);
         // Vq_all is now eigenvectors of the original Coulomb matrix
@@ -1197,12 +1197,12 @@ compute_Wc_freq_q(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, atpa
         if (Params::debug)
         {
             sprintf(fn, "sqrtVq_all_q_%d.mtx", iq);
-            print_complex_matrix_mm(sqrtVq_all, fn, 1e-15);
+            print_complex_matrix_mm(sqrtVq_all, Params::output_dir + "/" + fn, 1e-15);
             // sprintf(fn, "rotated_sqrtVq_all_q_%d.mtx", iq);
             // print_complex_matrix_mm(Vq_all * sqrtVq_all * transpose(Vq_all, true), fn, 1e-15);
             // print_complex_matrix_mm(transpose(Vq_all, true) * sqrtVq_all * Vq_all, fn, 1e-15);
             sprintf(fn, "Vqeigenvec_q_%d.mtx", iq);
-            print_complex_matrix_mm(Vq_eigen, fn, 1e-15);
+            print_complex_matrix_mm(Vq_eigen, Params::output_dir + "/" + fn, 1e-15);
         }
 
         // truncated (cutoff) Coulomb
@@ -1269,7 +1269,7 @@ compute_Wc_freq_q(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, atpa
                 }
             }
             sprintf(fn, "chi0fq_all_q_%d_freq_%d.mtx", iq, ifreq);
-            // print_complex_matrix_mm(chi0fq_all, fn, 1e-15);
+            print_complex_matrix_mm(chi0fq_all, Params::output_dir + "/" + fn, 1e-15);
 
             ComplexMatrix identity(range_all, range_all);
             identity.set_as_identity_matrix();
@@ -1288,14 +1288,14 @@ compute_Wc_freq_q(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, atpa
             if (Params::debug)
             {
                 sprintf(fn, "rotated_vsxvs_q_%d_freq_%d.mtx", iq, ifreq);
-                print_complex_matrix_mm(eps_fq, fn, 1e-10);
+                print_complex_matrix_mm(eps_fq, Params::output_dir + "/" + fn, 1e-10);
             }
             eps_fq = Vq_eigen * eps_fq * transpose(Vq_eigen, true);
             eps_fq = identity - eps_fq;
             if (Params::debug)
             {
                 sprintf(fn, "eps_q_%d_freq_%d.mtx", iq, ifreq);
-                print_complex_matrix_mm(eps_fq, fn, 1e-10);
+                print_complex_matrix_mm(eps_fq, Params::output_dir + "/" + fn, 1e-10);
             }
 
             // invert the epsilon matrix
@@ -1763,7 +1763,7 @@ CT_FT_Wc_freq_q(const map<double, atom_mapping<std::map<Vector3_Order<double>, m
                     auto iteR = std::find(Rlist.cbegin(), Rlist.cend(), R);
                     auto iR = std::distance(Rlist.cbegin(), iteR);
                     sprintf(fn, "Wc_Mu_%zu_Nu_%zu_iR_%zu_itau_%d.mtx", Mu, Nu, iR, itau);
-                    // print_matrix_mm_file(Wc, fn, 1e-10);
+                    // print_matrix_mm_file(Wc, Params::output_dir + "/" + fn, 1e-10);
                 }
             }
         }

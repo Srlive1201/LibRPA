@@ -23,13 +23,13 @@ int main(int argc, char **argv)
     Profiler::start("total", "Total");
 
     Profiler::start("driver_io_init", "Driver IO Initialization");
-    int flag;
     parse_inputfile_to_params(input_filename);
-    // NOTE: to comply with command line input, may be removed later
-    InputFile inputf;
-    auto parser = inputf.load(input_filename, false);
-    parser.parse_int("nfreq", Params::nfreq, stoi(argv[1]), flag);
-    parser.parse_double("gf_R_threshold", Params::gf_R_threshold, stod(argv[2]), flag);
+    // create output directory, only by the root process
+    if (mpi_comm_world_h.is_root())
+        system(("mkdir -p " + Params::output_dir).c_str());
+    mpi_comm_world_h.barrier();
+    Params::nfreq = stoi(argv[1]);
+    Params::gf_R_threshold = stod(argv[2]);
     Params::check_consistency();
     if (mpi_comm_world_h.is_root())
         Params::print();
@@ -81,8 +81,7 @@ int main(int argc, char **argv)
 
     READ_AIMS_EIGENVECTOR("./", meanfield);
 
-    
-    natom=get_natom_ncell_from_first_Cs_file();
+    natom = get_natom_ncell_from_first_Cs_file();
     tot_atpair = generate_atom_pair_from_nat(natom, false);
     tot_atpair_ordered = generate_atom_pair_from_nat(natom, true);
 
@@ -199,7 +198,7 @@ int main(int argc, char **argv)
                     {
                         const auto &J = J_chi0.first;
                         sprintf(fn, "chi0fq_ifreq_%d_iq_%d_I_%zu_J_%zu_id_%d.mtx", ifreq, iq, I, J, mpi_comm_world_h.myid);
-                        print_complex_matrix_mm(J_chi0.second, fn, 1e-15);
+                        print_complex_matrix_mm(J_chi0.second, Params::output_dir + "/" + fn, 1e-15);
                     }
                 }
             }
@@ -257,50 +256,56 @@ int main(int argc, char **argv)
         const auto VR = FT_Vq(Vq_cut, Rlist, true);
         Profiler::stop("read_vq_cut");
 
-        std::vector<double> omegas_dielect;
-        std::vector<double> dielect_func;
-        read_dielec_func("dielecfunc_out", omegas_dielect, dielect_func);
         std::vector<double> epsmac_LF_imagfreq_re;
 
-        switch(Params::option_dielect_func)
+        if (Params::replace_w_head)
         {
-            case 0:
-                {
-                    // TODO: check if frequencies and close
-                    epsmac_LF_imagfreq_re = dielect_func;
-                    break;
-                }
-            case 1:
-                {
-                    epsmac_LF_imagfreq_re = UTILS::interp_cubic_spline(omegas_dielect, dielect_func,
-                                                                       chi0.tfg.get_freq_nodes());
-                    break;
-                }
-            case 2:
-                {
-                    UTILS::LevMarqFitting levmarq;
-                    // use double-dispersion Havriliak-Negami model
-                    std::vector<double> pars(DoubleHavriliakNegami::d_npar, 1);
-                    pars[0] = pars[4] = dielect_func[0];
-                    epsmac_LF_imagfreq_re = levmarq.fit_eval(pars, omegas_dielect, dielect_func,
-                                                             DoubleHavriliakNegami::func_imfreq,
-                                                             DoubleHavriliakNegami::grad_imfreq,
-                                                             chi0.tfg.get_freq_nodes());
-                    break;
-                }
-            default:
-                throw std::logic_error("Unsupported value for option_dielect_func");
-        }
+            std::vector<double> omegas_dielect;
+            std::vector<double> dielect_func;
+            read_dielec_func("dielecfunc_out", omegas_dielect, dielect_func);
 
-        if (Params::debug)
-        {
-            if (mpi_comm_world_h.is_root())
+            switch(Params::option_dielect_func)
             {
-                printf("Dielection function parsed:\n");
-                for (int i = 0; i < chi0.tfg.get_freq_nodes().size(); i++)
-                    printf("%d %f %f\n", i+1, chi0.tfg.get_freq_nodes()[i], epsmac_LF_imagfreq_re[i]);
+                case 0:
+                    {
+                        assert(omegas_dielect.size() == chi0.tfg.size());
+                        // TODO: check if frequencies and close
+                        epsmac_LF_imagfreq_re = dielect_func;
+                        break;
+                    }
+                case 1:
+                    {
+                        epsmac_LF_imagfreq_re = UTILS::interp_cubic_spline(omegas_dielect, dielect_func,
+                                                                           chi0.tfg.get_freq_nodes());
+                        break;
+                    }
+                case 2:
+                    {
+                        UTILS::LevMarqFitting levmarq;
+                        // use double-dispersion Havriliak-Negami model
+                        // initialize the parameters as 1.0
+                        std::vector<double> pars(DoubleHavriliakNegami::d_npar, 1);
+                        pars[0] = pars[4] = dielect_func[0];
+                        epsmac_LF_imagfreq_re = levmarq.fit_eval(pars, omegas_dielect, dielect_func,
+                                                                 DoubleHavriliakNegami::func_imfreq,
+                                                                 DoubleHavriliakNegami::grad_imfreq,
+                                                                 chi0.tfg.get_freq_nodes());
+                        break;
+                    }
+                default:
+                    throw std::logic_error("Unsupported value for option_dielect_func");
             }
-            mpi_comm_world_h.barrier();
+
+            if (Params::debug)
+            {
+                if (mpi_comm_world_h.is_root())
+                {
+                    printf("Dielection function parsed:\n");
+                    for (int i = 0; i < chi0.tfg.get_freq_nodes().size(); i++)
+                        printf("%d %f %f\n", i+1, chi0.tfg.get_freq_nodes()[i], epsmac_LF_imagfreq_re[i]);
+                }
+                mpi_comm_world_h.barrier();
+            }
         }
 
         Profiler::start("g0w0_exx", "Build exchange self-energy");
@@ -311,8 +316,6 @@ int main(int argc, char **argv)
         Profiler::start("g0w0_wc", "Build screened interaction");
         vector<std::complex<double>> epsmac_LF_imagfreq(epsmac_LF_imagfreq_re.cbegin(), epsmac_LF_imagfreq_re.cend());
         map<double, atom_mapping<std::map<Vector3_Order<double>, matrix_m<complex<double>>>>::pair_t_old> Wc_freq_q;
-        if (!Params::replace_w_head)
-            epsmac_LF_imagfreq.clear();
         if (Params::use_scalapack_gw_wc)
             Wc_freq_q = compute_Wc_freq_q_blacs(chi0, Vq, Vq_cut, epsmac_LF_imagfreq);
         else
@@ -335,7 +338,7 @@ int main(int argc, char **argv)
                         {
                             const int iq = std::distance(klist.begin(), std::find(klist.begin(), klist.end(), q_Wc.first));
                             sprintf(fn, "Wcfq_ifreq_%d_iq_%d_I_%zu_J_%zu_id_%d.mtx", ifreq, iq, I, J, mpi_comm_world_h.myid);
-                            print_matrix_mm_file(q_Wc.second, fn, 1e-15);
+                            print_matrix_mm_file(q_Wc.second, Params::output_dir + "/" + fn, 1e-15);
                         }
                     }
                 }
@@ -364,7 +367,7 @@ int main(int argc, char **argv)
                     {
                         const auto ifreq = s_g0w0.tfg.get_freq_index(freq_sigc.first);
                         sprintf(fn, "Sigc_fk_mn_ispin_%d_ik_%d_ifreq_%d.mtx", ispin, ik, ifreq);
-                        print_matrix_mm_file(freq_sigc.second, fn, 1e-10);
+                        print_matrix_mm_file(freq_sigc.second, Params::output_dir + "/" + fn, 1e-10);
                     }
                 }
             }

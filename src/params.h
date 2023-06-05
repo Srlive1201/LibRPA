@@ -11,6 +11,9 @@ struct Params
     //! the task to perform in LibRPA.
     static std::string task;
 
+    //! the path of directory to store librpa output files
+    static std::string output_dir;
+
     //! the number of frequency grid points
     static int nfreq;
 

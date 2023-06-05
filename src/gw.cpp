@@ -19,8 +19,8 @@ namespace LIBRPA
 {
 
 G0W0::G0W0(const MeanField &mf,
-             const vector<Vector3_Order<double>>& kfrac_list,
-             const TFGrids &tfg)
+           const vector<Vector3_Order<double>>& kfrac_list,
+           const TFGrids &tfg)
     : mf(mf), kfrac_list(kfrac_list), tfg(tfg)
 {
     d_sigc_built = false;
