@@ -5,6 +5,15 @@
 macro(config_test TARGET NUMPROC)
   add_executable(${TARGET} ${TARGET}.cpp)
   target_link_libraries(${TARGET} PRIVATE rpa_lib ${math_libs} ${parallel_libs})
+  # TODO: separate libri test targets
+  if(USE_LIBRI)
+    target_include_directories(${TARGET}
+      PRIVATE
+        ${Cereal_INCLUDE_DIR}
+        ${LibComm_INCLUDE_DIR}
+        ${LibRI_INCLUDE_DIR}
+      )
+  endif()
   if(${NUMPROC} GREATER 1)
     # message("parallel test")
     add_test(
