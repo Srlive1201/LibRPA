@@ -233,6 +233,8 @@ void test_arraydesc()
     const int m = 10, n = 10;
     // one-block per process, distribution as even as possible
     ad.init_1b1p(m, n, 0, 0);
+    printf("%s\n", ad.info().c_str());
+    ad.barrier();
     // check overflow
     printf("r%1d c%1d row(m)=%d\n",blacs_ctxt_world_h.myprow, blacs_ctxt_world_h.mypcol, ad.indx_g2l_r(m));
     printf("r%1d c%1d col(n)=%d\n",blacs_ctxt_world_h.myprow, blacs_ctxt_world_h.mypcol, ad.indx_g2l_c(n));

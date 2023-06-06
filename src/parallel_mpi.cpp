@@ -474,7 +474,7 @@ void Array_Desc::barrier(CTXT_SCOPE scope)
 
 int Array_Desc::indx_g2l_r(int gindx) const
 {
-    return myprow_ != ScalapackConnector::indxg2p(gindx, mb_, myprow_, irsrc_, nprows_)
+    return myprow_ != ScalapackConnector::indxg2p(gindx, mb_, myprow_, irsrc_, nprows_) || gindx >= m_
                ? -1
                : ScalapackConnector::indxg2l(gindx, mb_, myprow_, irsrc_, nprows_);
 	// int inproc = int((gindx % (mb_*nprows_)) / mb_);
@@ -490,7 +490,7 @@ int Array_Desc::indx_g2l_r(int gindx) const
 
 int Array_Desc::indx_g2l_c(int gindx) const
 {
-    return mypcol_ != ScalapackConnector::indxg2p(gindx, nb_, mypcol_, icsrc_, npcols_)
+    return mypcol_ != ScalapackConnector::indxg2p(gindx, nb_, mypcol_, icsrc_, npcols_) || gindx >= n_
                ? -1
                : ScalapackConnector::indxg2l(gindx, nb_, mypcol_, icsrc_, npcols_);
 	// int inproc = int((gindx % (nb_*npcols_)) / mb_);
