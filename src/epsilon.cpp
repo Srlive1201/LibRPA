@@ -1571,27 +1571,38 @@ compute_Wc_freq_q_blacs(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps
             // for Gamma point, overwrite the head term
             if (epsmac_LF_imagfreq.size() > 0 && is_gamma_point(q))
             {
+                LIBRPA::fout_para << "Entering dielectric matrix head overwrite\n";
+                if (Params::debug)
+                {
+                    printf("Task %4d: Entering dielectric matrix head overwrite\n", mpi_comm_world_h.myid);
+                }
                 // rotate to Coulomb-eigenvector basis
                 ScalapackConnector::pgemm_f('N', 'N', n_abf, n_nonsingular, n_abf, 1.0,
                         chi0_block.ptr(), 1, 1, desc_nabf_nabf.desc,
-                        sqrtveig_blacs.ptr(), 1, n_singular+1, desc_nabf_nabf.desc, 0.0,
+                        sqrtveig_blacs.ptr(), 1, n_singular + 1, desc_nabf_nabf.desc, 0.0,
                         coul_chi0_block.ptr(), 1, 1, desc_nabf_nabf.desc);
                 ScalapackConnector::pgemm_f('C', 'N', n_nonsingular, n_nonsingular, n_abf, 1.0,
-                        sqrtveig_blacs.ptr(), 1, n_singular+1, desc_nabf_nabf.desc,
+                        sqrtveig_blacs.ptr(), 1, n_singular + 1, desc_nabf_nabf.desc,
                         coul_chi0_block.ptr(), 1, 1, desc_nabf_nabf.desc, 0.0,
                         chi0_block.ptr(), 1, 1, desc_nabf_nabf.desc);
                 const int ilo = desc_nabf_nabf.indx_g2l_r(n_nonsingular - 1);
                 const int jlo = desc_nabf_nabf.indx_g2l_c(n_nonsingular - 1);
                 if (ilo >= 0 && jlo >= 0)
+                {
+                    if (Params::debug)
+                    {
+                        printf("Task %4d: perform the head element overwrite\n", mpi_comm_world_h.myid);
+                    }
                     chi0_block(ilo, jlo) = 1.0 - epsmac_LF_imagfreq[ifreq];
+                }
                 // rotate back to ABF
                 ScalapackConnector::pgemm_f('N', 'N', n_abf, n_nonsingular, n_nonsingular, 1.0,
-                        coul_eigen_block.ptr(), 1, n_singular+1, desc_nabf_nabf.desc,
+                        coul_eigen_block.ptr(), 1, n_singular + 1, desc_nabf_nabf.desc,
                         chi0_block.ptr(), 1, 1, desc_nabf_nabf.desc, 0.0,
                         coul_chi0_block.ptr(), 1, 1, desc_nabf_nabf.desc);
                 ScalapackConnector::pgemm_f('N', 'C', n_abf, n_abf, n_nonsingular, 1.0,
                         coul_chi0_block.ptr(), 1, 1, desc_nabf_nabf.desc,
-                        coul_eigen_block.ptr(), 1, n_singular+1, desc_nabf_nabf.desc, 0.0,
+                        coul_eigen_block.ptr(), 1, n_singular + 1, desc_nabf_nabf.desc, 0.0,
                         chi0_block.ptr(), 1, 1, desc_nabf_nabf.desc);
             }
             else
@@ -1692,6 +1703,12 @@ CT_FT_Wc_freq_q(const map<double, atom_mapping<std::map<Vector3_Order<double>, m
     if (!tfg.has_time_grids())
         throw logic_error("TFGrids object does not have time grids");
     const int ngrids = tfg.get_n_grids();
+    if (Params::debug)
+    {
+        if (mpi_comm_world_h.is_root())
+            printf("Converting Wc q,w -> R,t\n");
+        mpi_comm_world_h.barrier();
+    }
     for (auto R: Rlist)
     {
         for (int itau = 0; itau != ngrids; itau++)
@@ -1703,13 +1720,16 @@ CT_FT_Wc_freq_q(const map<double, atom_mapping<std::map<Vector3_Order<double>, m
                 auto f2t = tfg.get_costrans_f2t()(itau, ifreq);
                 if (Wc_freq_q.count(freq))
                 {
+                    // cout << "freq: " << freq << "\n";
                     for (const auto &Mu_NuqWc: Wc_freq_q.at(freq))
                     {
                         const auto Mu = Mu_NuqWc.first;
+                        // cout << "Mu: " << Mu << "\n";
                         const int n_mu = atom_mu[Mu];
                         for (const auto &Nu_qWc: Mu_NuqWc.second)
                         {
                             const auto Nu = Nu_qWc.first;
+                            // cout << "Nu: " << Nu << "\n";
                             const int n_nu = atom_mu[Nu];
                             // early check, return if q_Wc is empty
                             if (Nu_qWc.second.empty())
@@ -1727,6 +1747,7 @@ CT_FT_Wc_freq_q(const map<double, atom_mapping<std::map<Vector3_Order<double>, m
                             for (const auto &q_Wc: Nu_qWc.second)
                             {
                                 auto q = q_Wc.first;
+                                // cout << q << "\n";
                                 for (auto q_bz: map_irk_ks[q])
                                 {
                                     double ang = - q_bz * (R * latvec) * TWO_PI;
@@ -1744,29 +1765,39 @@ CT_FT_Wc_freq_q(const map<double, atom_mapping<std::map<Vector3_Order<double>, m
             }
         }
     }
+    if (Params::debug)
+    {
+        if (mpi_comm_world_h.is_root())
+            printf("Done converting Wc q,w -> R,t\n");
+        mpi_comm_world_h.barrier();
+    }
+
     // myz debug: check the imaginary part of the matrix
     // NOTE: if G(R) is real, is W(R) real as well?
-    for (const auto & tau_MuNuRWc: Wc_tau_R)
+    if (Params::debug)
     {
-        char fn[80];
-        auto tau = tau_MuNuRWc.first;
-        auto itau = tfg.get_time_index(tau);
-        for (const auto & Mu_NuRWc: tau_MuNuRWc.second)
+        for (const auto & tau_MuNuRWc: Wc_tau_R)
         {
-            auto Mu = Mu_NuRWc.first;
-            // const int n_mu = atom_mu[Mu];
-            for (const auto & Nu_RWc: Mu_NuRWc.second)
+            char fn[80];
+            auto tau = tau_MuNuRWc.first;
+            auto itau = tfg.get_time_index(tau);
+            for (const auto & Mu_NuRWc: tau_MuNuRWc.second)
             {
-                auto Nu = Nu_RWc.first;
-                // const int n_nu = atom_mu[Nu];
-                for (const auto & R_Wc: Nu_RWc.second)
+                auto Mu = Mu_NuRWc.first;
+                // const int n_mu = atom_mu[Mu];
+                for (const auto & Nu_RWc: Mu_NuRWc.second)
                 {
-                    auto R = R_Wc.first;
-                    auto Wc = R_Wc.second;
-                    auto iteR = std::find(Rlist.cbegin(), Rlist.cend(), R);
-                    auto iR = std::distance(Rlist.cbegin(), iteR);
-                    sprintf(fn, "Wc_Mu_%zu_Nu_%zu_iR_%zu_itau_%d.mtx", Mu, Nu, iR, itau);
-                    // print_matrix_mm_file(Wc, Params::output_dir + "/" + fn, 1e-10);
+                    auto Nu = Nu_RWc.first;
+                    // const int n_nu = atom_mu[Nu];
+                    for (const auto & R_Wc: Nu_RWc.second)
+                    {
+                        auto R = R_Wc.first;
+                        auto Wc = R_Wc.second;
+                        auto iteR = std::find(Rlist.cbegin(), Rlist.cend(), R);
+                        auto iR = std::distance(Rlist.cbegin(), iteR);
+                        sprintf(fn, "Wc_Mu_%zu_Nu_%zu_iR_%zu_itau_%d_id_%d.mtx", Mu, Nu, iR, itau, mpi_comm_world_h.myid);
+                        print_matrix_mm_file(Wc, Params::output_dir + "/" + fn, 1e-10);
+                    }
                 }
             }
         }

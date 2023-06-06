@@ -46,6 +46,7 @@ void G0W0::build_spacetime_LibRI(
         mpi_comm_world_h.barrier();
         throw std::logic_error("no time grids");
     }
+    mpi_comm_world_h.barrier();
 #ifndef LIBRPA_USE_LIBRI
     if (mpi_comm_world_h.myid == 0)
     {
@@ -113,36 +114,47 @@ void G0W0::build_spacetime_LibRI(
     {
         for (auto itau = 0; itau != tfg.get_n_grids(); itau++)
         {
+            // printf("task %d itau %d start\n", mpi_comm_world_h.myid, itau);
             const auto tau = tfg.get_time_nodes()[itau];
             // build the Wc LibRI object. Note <JI> has to be converted from <IJ>
             // by W_IJ(R) = W^*_JI(-R)
-            const auto &Wc_tau = Wc_tau_R.at(tau);
             std::map<int, std::map<std::pair<int, std::array<int, 3>>, RI::Tensor<double>>> Wc_libri;
-            for (const auto &I_JRWc: Wc_tau)
+            // in R-tau routing, some process can have zero time point
+            // check to avoid out-of-range by at()
+            // printf("task %d Wc_tau_R.count(tau) %zu\n", mpi_comm_world_h.myid, Wc_tau_R.count(tau));
+            if (Wc_tau_R.count(tau))
             {
-                const auto &I = I_JRWc.first;
-                const auto &nabf_I = atomic_basis_abf.get_atom_nb(I);
-                for (const auto &J_RWc: I_JRWc.second)
+                for (const auto &I_JRWc: Wc_tau_R.at(tau))
                 {
-                    const auto &J = J_RWc.first;
-                    const auto &nabf_J = atomic_basis_abf.get_atom_nb(J);
-                    for (const auto &R_Wc: J_RWc.second)
+                    const auto &I = I_JRWc.first;
+                    const auto &nabf_I = atomic_basis_abf.get_atom_nb(I);
+                    for (const auto &J_RWc: I_JRWc.second)
                     {
-                        const auto &R = R_Wc.first;
-                        // handle the <IJ(R)> block
-                        Wc_libri[I][{J, {R.x, R.y, R.z}}] = RI::Tensor<double>({nabf_I, nabf_J}, R_Wc.second.get_real().sptr());
-                        // cout << "I " << I << " J " << J <<  " R " << R << " tau " << tau << endl ;
-                        // cout << Wc_libri[I][{J, {R.x, R.y, R.z}}] << endl;
-                        // handle the <JI(R)> block
-                        if (I == J) continue;
-                        auto minusR = (-R) % R_period;
-                        if (J_RWc.second.count(minusR) == 0) continue;
-                        const auto Wc_IJmR = J_RWc.second.at(minusR).get_real().get_transpose();
-                        // cout << R_Wc.second << endl;
-                        // cout << Wc_IJmR << endl;
-                        Wc_libri[J][{I, {R.x, R.y, R.z}}] = RI::Tensor<double>({nabf_J, nabf_I}, Wc_IJmR.sptr());
+                        const auto &J = J_RWc.first;
+                        const auto &nabf_J = atomic_basis_abf.get_atom_nb(J);
+                        for (const auto &R_Wc: J_RWc.second)
+                        {
+                            const auto &R = R_Wc.first;
+                            // handle the <IJ(R)> block
+                            Wc_libri[I][{J, {R.x, R.y, R.z}}] = RI::Tensor<double>({nabf_I, nabf_J}, R_Wc.second.get_real().sptr());
+                            // cout << "I " << I << " J " << J <<  " R " << R << " tau " << tau << endl ;
+                            // cout << Wc_libri[I][{J, {R.x, R.y, R.z}}] << endl;
+                            // handle the <JI(R)> block
+                            if (I == J) continue;
+                            auto minusR = (-R) % R_period;
+                            if (J_RWc.second.count(minusR) == 0) continue;
+                            const auto Wc_IJmR = J_RWc.second.at(minusR).get_real().get_transpose();
+                            // cout << R_Wc.second << endl;
+                            // cout << Wc_IJmR << endl;
+                            Wc_libri[J][{I, {R.x, R.y, R.z}}] = RI::Tensor<double>({nabf_J, nabf_I}, Wc_IJmR.sptr());
+                        }
                     }
                 }
+            }
+            size_t n_obj_wc_libri = 0;
+            for (const auto &w: Wc_libri)
+            {
+                n_obj_wc_libri += w.second.size();
             }
 
             auto sigc_posi_tau = g0w0_libri.Sigc_tau;
@@ -173,6 +185,9 @@ void G0W0::build_spacetime_LibRI(
                         gf_libri[I][{J, {R.x, R.y, R.z}}] = RI::Tensor<double>({n_I, n_J}, mat_ptr);
                     }
                 }
+                size_t n_obj_gf_libri = 0;
+                for (const auto &gf: gf_libri)
+                    n_obj_gf_libri += gf.second.size();
 
                 double wtime_g0w0_cal_sigc = omp_get_wtime();
                 g0w0_libri.cal_Sigc(gf_libri, 0.0, Wc_libri, 0.0);
@@ -181,8 +196,8 @@ void G0W0::build_spacetime_LibRI(
                 else
                     sigc_nega_tau = std::move(g0w0_libri.Sigc_tau);
                 wtime_g0w0_cal_sigc = omp_get_wtime() - wtime_g0w0_cal_sigc;
-                printf("Task %4d: Wall time of libRI G0W0, spin %1d, time grid %12.6f = %f\n",
-                       mpi_comm_world_h.myid, ispin, t, wtime_g0w0_cal_sigc);
+                printf("Task %4d. libRI G0W0, spin %1d, time grid %12.6f. Wc size %zu, GF size %zu. Wall time %f\n",
+                       mpi_comm_world_h.myid, ispin, t, n_obj_wc_libri, n_obj_gf_libri, wtime_g0w0_cal_sigc);
             }
 
             // symmetrize and perform transformation
