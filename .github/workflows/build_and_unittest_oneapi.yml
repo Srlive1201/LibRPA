@@ -43,19 +43,19 @@ jobs:
         run: sudo apt-get install -y build-essential cmake python3-scipy
       - name: Initialize and update submodules recursively
         run: git submodule update --init --recursive
-      - name: Build LibRPA without LibRI
+      - name: Build LibRPA with LibRI
         run: |
           source /opt/intel/oneapi/setvars.sh
-          CXX=mpiicpc cmake -DUSE_CMAKE_INC=OFF -DUSE_LIBRI=OFF -B build -DENABLE_TEST=ON
-          cmake --build build -j2
+          CXX=mpiicpc cmake -DUSE_CMAKE_INC=OFF -DUSE_LIBRI=ON -B build_libri -DENABLE_TEST=ON
+          cmake --build build_libri -j2
       - name: Run unittests, display log
         run: |
           source /opt/intel/oneapi/setvars.sh
-          cmake --build build --target test
-          cat build/Testing/Temporary/LastTest.log
+          cmake --build build_libri --target test
+          cat build_libri/Testing/Temporary/LastTest.log
       - name: Save last test log for check
         if: always()
         uses: actions/upload-artifact@v3
         with:
           name: save-last-test
-          path: build/Testing/Temporary/LastTest.log
+          path: build_libri/Testing/Temporary/LastTest.log
