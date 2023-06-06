@@ -1,22 +1,25 @@
+#include "epsilon.h"
+
+#include <math.h>
+#include <omp.h>
+
 #include <algorithm>
 #include <array>
 #include <valarray>
-#include "epsilon.h"
-#include <math.h>
-#include <omp.h>
+
 #include "input.h"
-#include "ri.h"
-#include "matrix_m_parallel_utils.h"
-#include "params.h"
-#include "parallel_mpi.h"
-#include "pbc.h"
 #include "lapack_connector.h"
+#include "libri_utils.h"
+#include "matrix_m_parallel_utils.h"
+#include "parallel_mpi.h"
+#include "params.h"
+#include "pbc.h"
+#include "profiler.h"
 #include "ri.h"
 #include "scalapack_connector.h"
-#include "libri_utils.h"
 #ifdef LIBRPA_USE_LIBRI
-#include <RI/global/Tensor.h>
 #include <RI/comm/mix/Communicate_Tensors_Map_Judge.h>
+#include <RI/global/Tensor.h>
 #endif
 // #include "print_stl.h"
 #include <omp.h>
@@ -1290,6 +1293,7 @@ compute_Wc_freq_q(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, atpa
                 sprintf(fn, "rotated_vsxvs_q_%d_freq_%d.mtx", iq, ifreq);
                 print_complex_matrix_mm(eps_fq, Params::output_dir + "/" + fn, 1e-10);
             }
+            // rotate back to ABF
             eps_fq = Vq_eigen * eps_fq * transpose(Vq_eigen, true);
             eps_fq = identity - eps_fq;
             if (Params::debug)
@@ -1377,6 +1381,8 @@ compute_Wc_freq_q_blacs(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps
     for (const auto &qMuNuchi: chi0.get_chi0_q().at(chi0.tfg.get_freq_nodes()[0]))
         qpts.push_back(qMuNuchi.first);
 
+    vec<double> eigenvalues(n_abf);
+
 #ifdef LIBRPA_USE_LIBRI
     for (const auto &q: qpts)
     {
@@ -1386,6 +1392,57 @@ compute_Wc_freq_q_blacs(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps
 
         int iq = std::distance(klist.begin(), std::find(klist.begin(), klist.end(), q));
         std::array<double, 3> qa = {q.x, q.y, q.z};
+
+        // collect the block elements of truncated coulomb matrices first
+        // as we reuse coul_eigen_block to reduce memory usage
+        Profiler::start("epsilon_prepare_coulwc_sqrt", "Prepare sqrt of truncated Coulomb");
+        {
+            size_t n_singular_coulwc;
+            // LibRI tensor for communication, release once done
+            std::map<int, std::map<std::pair<int, std::array<double, 3>>, RI::Tensor<complex<double>>>> couleps_libri;
+            Profiler::start("epsilon_prepare_coulwc_sqrt_1", "Setup libRI object");
+            for (const auto &Mu_Nu: atpair_unordered_local)
+            {
+                const auto Mu = Mu_Nu.first;
+                const auto Nu = Mu_Nu.second;
+                LIBRPA::fout_para << "myid " << LIBRPA::blacs_ctxt_world_h.myid << "Mu " << Mu << " Nu " << Nu << endl;
+                if (coulmat_wc.count(Mu) == 0 ||
+                    coulmat_wc.at(Mu).count(Nu) == 0 ||
+                    coulmat_wc.at(Mu).at(Nu).count(q) == 0) continue;
+                const auto &Vq = coulmat_wc.at(Mu).at(Nu).at(q);
+                const auto n_mu = LIBRPA::atomic_basis_abf.get_atom_nb(Mu);
+                const auto n_nu = LIBRPA::atomic_basis_abf.get_atom_nb(Nu);
+                std::valarray<complex<double>> Vq_va(Vq->c, Vq->size);
+                auto pvq = std::make_shared<std::valarray<complex<double>>>();
+                *pvq = Vq_va;
+                couleps_libri[Mu][{Nu, qa}] = RI::Tensor<complex<double>>({n_mu, n_nu}, pvq);
+            }
+            Profiler::stop("epsilon_prepare_coulwc_sqrt_1");
+
+            Profiler::start("epsilon_prepare_coulwc_sqrt_2", "libRI Communicate");
+            const auto IJq_coul = RI::Communicate_Tensors_Map_Judge::comm_map2_first(LIBRPA::mpi_comm_world_h.comm, couleps_libri, s0_s1.first, s0_s1.second);
+            Profiler::stop("epsilon_prepare_coulwc_sqrt_2");
+
+            Profiler::start("epsilon_prepare_coulwc_sqrt_3", "Collect 2D-block from IJ");
+            for (const auto &IJ: set_IJ_nabf_nabf)
+            {
+                const auto &I = IJ.first;
+                const auto &J = IJ.second;
+                collect_block_from_IJ_storage_syhe(
+                    coulwc_block, desc_nabf_nabf, LIBRPA::atomic_basis_abf, IJ.first,
+                    IJ.second, true, CONE, IJq_coul.at(I).at({J, qa}).ptr(), MAJOR::ROW);
+            }
+            Profiler::stop("epsilon_prepare_coulwc_sqrt_3");
+            // WARN: check whether one should pass back the filtered coulwc_block
+            // sprintf(fn, "coulwc_iq_%d.mtx", iq);
+            // print_matrix_mm_file_parallel(fn, coulwc_block, desc_nabf_nabf);
+            Profiler::start("epsilon_prepare_coulwc_sqrt_4", "Perform square root");
+            power_hemat_blacs(coulwc_block, desc_nabf_nabf, coul_eigen_block, desc_nabf_nabf, n_singular_coulwc, eigenvalues.c, 0.5, Params::sqrt_coulomb_threshold);
+            Profiler::stop("epsilon_prepare_coulwc_sqrt_4");
+        }
+        Profiler::stop("epsilon_prepare_coulwc_sqrt");
+
+        Profiler::start("epsilon_prepare_couleps_sqrt", "Prepare sqrt of bare Coulomb");
         // collect the block elements of coulomb matrices
         {
             // LibRI tensor for communication, release once done
@@ -1446,80 +1503,25 @@ compute_Wc_freq_q_blacs(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps
                 //        str(coul_block).c_str());
             }
         }
-        char fn[100];
+        // char fn[100];
         // sprintf(fn, "couleps_iq_%d.mtx", iq);
         // print_matrix_mm_file_parallel(fn, coul_block, desc_nabf_nabf);
         // LIBRPA::fout_para << str(coul_block);
         // printf("coul_block\n%s", str(coul_block).c_str());
+
         size_t n_singular;
-        vec<double> eigenvalues(n_abf);
         auto sqrtveig_blacs = power_hemat_blacs(coul_block, desc_nabf_nabf, coul_eigen_block, desc_nabf_nabf, n_singular, eigenvalues.c, 0.5, Params::sqrt_coulomb_threshold);
         // printf("nabf %d nsingu %lu\n", n_abf, n_singular);
         // release sqrtv when the q-point is not Gamma, or macroscopic dielectric constant at imaginary frequency is not prepared
         if (epsmac_LF_imagfreq.empty() || !is_gamma_point(q))
             sqrtveig_blacs.clear();
         const size_t n_nonsingular = n_abf - n_singular;
-
-        // collect the block elements of truncated coulomb matrices
-        {
-            // LibRI tensor for communication, release once done
-            std::map<int, std::map<std::pair<int, std::array<double, 3>>, RI::Tensor<complex<double>>>> couleps_libri;
-            // for (const auto &Mu_NuqVq: coulmat_wc)
-            // {
-            //     const auto Mu = Mu_NuqVq.first;
-            //     const auto n_mu = LIBRPA::atomic_basis_abf.get_atom_nb(Mu);
-            //     for (const auto &Nu_qVq: Mu_NuqVq.second)
-            //     {
-            //         const auto Nu = Nu_qVq.first;
-            //         const auto n_nu = LIBRPA::atomic_basis_abf.get_atom_nb(Nu);
-            //         if (Nu_qVq.second.count(q) == 0) continue;
-            //         const auto Vq = Nu_qVq.second.at(q);
-            //         // NOTE: will it consume extra memoery when creating valarray from shared_ptr?
-            //         std::valarray<complex<double>> Vq_va(Vq->c, Vq->size);
-            //         auto pvq = std::make_shared<std::valarray<complex<double>>>();
-            //         *pvq = Vq_va;
-            //         couleps_libri[Mu][{Nu, qa}] = Tensor<complex<double>>({n_mu, n_nu}, pvq);
-            //     }
-            // }
-            for (const auto &Mu_Nu: atpair_unordered_local)
-            {
-                const auto Mu = Mu_Nu.first;
-                const auto Nu = Mu_Nu.second;
-                LIBRPA::fout_para << "myid " << LIBRPA::blacs_ctxt_world_h.myid << "Mu " << Mu << " Nu " << Nu << endl;
-                if (coulmat_wc.count(Mu) == 0 ||
-                    coulmat_wc.at(Mu).count(Nu) == 0 ||
-                    coulmat_wc.at(Mu).at(Nu).count(q) == 0) continue;
-                const auto &Vq = coulmat_wc.at(Mu).at(Nu).at(q);
-                const auto n_mu = LIBRPA::atomic_basis_abf.get_atom_nb(Mu);
-                const auto n_nu = LIBRPA::atomic_basis_abf.get_atom_nb(Nu);
-                std::valarray<complex<double>> Vq_va(Vq->c, Vq->size);
-                auto pvq = std::make_shared<std::valarray<complex<double>>>();
-                *pvq = Vq_va;
-                couleps_libri[Mu][{Nu, qa}] = RI::Tensor<complex<double>>({n_mu, n_nu}, pvq);
-            }
-            // if (couleps_libri.size() == 0)
-            //     throw std::logic_error("data at q-point not found in coulmat_wc");
-
-            // perform communication
-            const auto IJq_coul = RI::Communicate_Tensors_Map_Judge::comm_map2_first(LIBRPA::mpi_comm_world_h.comm, couleps_libri, s0_s1.first, s0_s1.second);
-
-            for (const auto &IJ: set_IJ_nabf_nabf)
-            {
-                const auto &I = IJ.first;
-                const auto &J = IJ.second;
-                collect_block_from_IJ_storage_syhe(
-                    coulwc_block, desc_nabf_nabf, LIBRPA::atomic_basis_abf, IJ.first,
-                    IJ.second, true, CONE, IJq_coul.at(I).at({J, qa}).ptr(), MAJOR::ROW);
-            }
-            // WARN: check whether one should pass back the filtered coulwc_block
-            // sprintf(fn, "coulwc_iq_%d.mtx", iq);
-            // print_matrix_mm_file_parallel(fn, coulwc_block, desc_nabf_nabf);
-            power_hemat_blacs(coulwc_block, desc_nabf_nabf, coul_eigen_block, desc_nabf_nabf, n_singular, eigenvalues.c, 0.5, Params::sqrt_coulomb_threshold);
-        }
+        Profiler::stop("epsilon_prepare_couleps_sqrt");
 
         for (const auto &freq: chi0.tfg.get_freq_nodes())
         {
             const auto ifreq = chi0.tfg.get_freq_index(freq);
+            Profiler::start("epsilon_prepare_chi0_2d", "Prepare Chi0 2D block");
             chi0_block.zero_out();
             {
                 std::map<int, std::map<std::pair<int, std::array<double, 3>>, RI::Tensor<complex<double>>>> chi0_libri;
@@ -1568,6 +1570,9 @@ compute_Wc_freq_q_blacs(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps
                 // sprintf(fn, "chi_ifreq_%d_iq_%d.mtx", ifreq, iq);
                 // print_matrix_mm_file_parallel(fn, chi0_block, desc_nabf_nabf);
             }
+            Profiler::stop("epsilon_prepare_chi0_2d");
+
+            Profiler::start("epsilon_compute_eps", "Compute dielectric matrix");
             // for Gamma point, overwrite the head term
             if (epsmac_LF_imagfreq.size() > 0 && is_gamma_point(q))
             {
@@ -1626,8 +1631,10 @@ compute_Wc_freq_q_blacs(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps
                 if (jlo < 0) continue;
                 chi0_block(ilo, jlo) += 1.0;
             }
+            Profiler::stop("epsilon_compute_eps");
             // now chi0_block is actually the dielectric matrix
             // perform inversion
+            Profiler::start("epsilon_invert_eps", "Invert dielectric matrix");
             invert_scalapack(chi0_block, desc_nabf_nabf);
             // subtract 1 from diagonal
             for (int i = 0; i != n_abf; i++)
@@ -1638,6 +1645,9 @@ compute_Wc_freq_q_blacs(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps
                 if (jlo < 0) continue;
                 chi0_block(ilo, jlo) -= 1.0;
             }
+            Profiler::stop("epsilon_invert_eps");
+
+            Profiler::start("epsilon_multiply_coulwc", "Multiply truncated Coulomb");
             ScalapackConnector::pgemm_f('N', 'N', n_abf, n_abf, n_abf, 1.0,
                     coulwc_block.ptr(), 1, 1, desc_nabf_nabf.desc,
                     chi0_block.ptr(), 1, 1, desc_nabf_nabf.desc, 0.0,
@@ -1646,13 +1656,19 @@ compute_Wc_freq_q_blacs(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps
                     coul_chi0_block.ptr(), 1, 1, desc_nabf_nabf.desc,
                     coulwc_block.ptr(), 1, 1, desc_nabf_nabf.desc, 0.0,
                     chi0_block.ptr(), 1, 1, desc_nabf_nabf.desc);
+            Profiler::stop("epsilon_multiply_coulwc");
             // printf("chi0_block\n%s", str(chi0_block).c_str());
             // now chi0_block is the screened Coulomb interaction Wc (i.e. W-V)
+
+            Profiler::start("epsilon_convert_wc_2d_to_ij", "Convert Wc, 2D -> IJ");
+            Profiler::start("epsilon_convert_wc_map_block", "Initialize Wc atom-pair map");
             map<int, map<int, matrix_m<complex<double>>>> Wc_MNmap;
             map_block_to_IJ_storage(Wc_MNmap, LIBRPA::atomic_basis_abf,
                                     LIBRPA::atomic_basis_abf, chi0_block,
                                     desc_nabf_nabf, MAJOR::ROW);
-            // cout << Wc_MNmap;
+            Profiler::stop("epsilon_convert_wc_map_block");
+
+            Profiler::start("epsilon_convert_wc_communicate", "Communicate");
             {
                 std::map<int, std::map<std::pair<int, std::array<double, 3>>, RI::Tensor<complex<double>>>> Wc_libri;
                 for (const auto &M_NWc: Wc_MNmap)
@@ -1687,6 +1703,8 @@ compute_Wc_freq_q_blacs(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps
                 //     {
                 //     }
             }
+            Profiler::stop("epsilon_convert_wc_communicate");
+            Profiler::stop("epsilon_convert_wc_2d_to_ij");
         }
     }
 #else
