@@ -164,8 +164,8 @@ void test_power_hemat_blacs_square_grid(const T &m_lb, const T &m_ub)
         mat_gather = mat;
     }
     auto pair_desc_m = prepare_array_desc_mr2d_src_and_all(blacs_ctxt_world_h, n, n, nb, nb, irsrc, icsrc);
-    auto mat_loc = init_local_mat<T>(pair_desc_m.second, MAJOR::COL);
-    auto eig_loc = init_local_mat<T>(pair_desc_m.second, MAJOR::COL);
+    matrix_m<T> mat_loc = init_local_mat<T>(pair_desc_m.second, MAJOR::COL);
+    matrix_m<T> eig_loc = init_local_mat<T>(pair_desc_m.second, MAJOR::COL);
     // printf("eig_loc\n%s", str(eig_loc).c_str());
     ScalapackConnector::pgemr2d_f(n, n,
                                   mat.ptr(), 1, 1, pair_desc_m.first.desc,
@@ -304,7 +304,7 @@ int main (int argc, char *argv[])
     // test_pgemm<complex<float>>({-2, -1}, {1, 0});
     // test_pgemm<complex<double>>({-2, -1}, {1, 0});
     //
-    // test_power_hemat_blacs_square_grid<complex<double>>(0.0, {1.0, 1.0});
+    test_power_hemat_blacs_square_grid<complex<double>>(0.0, {1.0, 1.0});
     // test_power_hemat_blacs_square_grid<complex<float>>(0.0, {1.0, 2.0});
 
     test_invert_scalapack<float>();
