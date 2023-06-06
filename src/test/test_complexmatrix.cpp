@@ -14,20 +14,21 @@ void test_power_hemat()
     assert( fequal(b(0, 0), cmplx(1., 0.)) &&
             fequal(b(1, 1), cmplx(1., 0.))
             );
+    // check eigenvectors, with eigenvalue from big to small
     // print_complex_matrix("a", a);
-    // check eigenvectors, with eigenvalue from small to big
-    assert(fequal(a(0, 1), cmplx(1., 0.)) &&
-           fequal(a(1, 0), cmplx(1., 0.))
-           );
+    assert( fequal(a(0, 0), cmplx(1., 0.)) &&
+            fequal(a(1, 1), cmplx(1., 0.))
+            );
 
     a.zero_out();
     a(0, 0) = cmplx(-1., 0.);
     a(1, 1) = cmplx(1., 0.);
     power_hemat(a, 2, true);
+    // check eigenvectors, with eigenvalue from big to small
     // print_complex_matrix("sq_a", b);
-    assert( fequal(a(0, 0), cmplx(1., 0.)) &&
-            fequal(a(1, 1), cmplx(1., 0.))
-            );
+    assert(fequal(a(0, 1), cmplx(1., 0.)) &&
+           fequal(a(1, 0), cmplx(1., 0.))
+           );
 
     a.zero_out();
     a(0, 0) = cmplx(2., 0.);
@@ -61,6 +62,7 @@ void test_power_hemat()
         }
     }
     power_hemat(a, 2, true);
+    // confirm a is unitary after solving and keep_ev set True
     const ComplexMatrix aconja = a * transpose(a, true);
     is_mat_A_equal_B(10, 10, aconja.c, iden.c, false, false, {1e-14, 0.0});
 }
