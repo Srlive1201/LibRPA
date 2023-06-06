@@ -98,17 +98,24 @@ static std::string banner(char c, int n)
 
 void Profiler::display() noexcept
 {
-    printf("%-45s %14s %19s %19s\n", "Entry", "#calls", "CPU time (s)", "Wall time (s)");
+    printf("%-49s %-12s %-18s %-18s\n", "Entry", "#calls", "CPU time (s)", "Wall time (s)");
     printf("%100s\n", banner('-', 100).c_str());
     for (auto &tname: sd_order)
     {
+        // decide level indentation
         std::string s = "";
         int i = sd_map_level[tname];
         while(i--) s += "  ";
-        s += sd_map_note[tname];
+
+        const auto name = s + sd_map_note[tname];
         const auto& t = sd_map_timer[tname];
+        char cstr_cputime[100];
+        char cstr_walltime[100];
+        sprintf(cstr_cputime, "%.4f", t.get_cpu_time());
+        sprintf(cstr_walltime, "%.4f", t.get_wall_time());
         // skip timers that have not been called
         if(!t.get_ncalls()) continue;
-        printf("%-45s %14zu %19.4f %19.4f\n", s.c_str(), t.get_ncalls(), t.get_cpu_time(), t.get_wall_time());
+        printf("%-49s %-12zu %-18s %-18s\n", name.c_str(), t.get_ncalls(),
+               (s + cstr_cputime).c_str(), (s + cstr_walltime).c_str());
     }
 }
