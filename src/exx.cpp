@@ -160,6 +160,7 @@ void Exx::build_exx_orbital_energy_LibRI(const atpair_R_mat_t &LRI_Cs,
     }
     exx_libri.set_Cs(Cs_libri, Params::libri_exx_threshold_C);
     Profiler::stop("build_exx_orbital_energy_1");
+    printf("Task %4d: C setup for EXX\n", mpi_comm_world_h.myid);
 
     // initialize Coulomb matrix
     Profiler::start("build_exx_orbital_energy_2", "Prepare V libRI object");
@@ -178,6 +179,7 @@ void Exx::build_exx_orbital_energy_LibRI(const atpair_R_mat_t &LRI_Cs,
     }
     exx_libri.set_Vs(V_libri, Params::libri_exx_threshold_V);
     Profiler::stop("build_exx_orbital_energy_2");
+    printf("Task %4d: V setup for EXX\n", mpi_comm_world_h.myid);
     // cout << V_libri << endl;
 
     // initialize density matrix
@@ -229,10 +231,12 @@ void Exx::build_exx_orbital_energy_LibRI(const atpair_R_mat_t &LRI_Cs,
         }
         exx_libri.set_Ds(dmat_libri, Params::libri_exx_threshold_D);
         Profiler::stop("build_exx_orbital_energy_3");
+        printf("Task %4d: DM setup for EXX\n", mpi_comm_world_h.myid);
 
         Profiler::start("build_exx_orbital_energy_4", "Call libRI Hexx calculation");
         exx_libri.cal_Hs();
         Profiler::stop("build_exx_orbital_energy_4");
+        printf("Task %4d: cal_Hs elapsed time: %f\n", mpi_comm_world_h.myid, Profiler::get_wall_time_last("build_exx_orbital_energy_4"));
         // cout << exx_libri.Hs << endl;
 
         // collect necessary data
@@ -245,6 +249,7 @@ void Exx::build_exx_orbital_energy_LibRI(const atpair_R_mat_t &LRI_Cs,
         const auto I_JallR_Hs = RI::Communicate_Tensors_Map_Judge::comm_map2_first(LIBRPA::mpi_comm_world_h.comm,
                 exx_libri.Hs, Iset_Jset.first, Iset_Jset.second);
         Profiler::stop("build_exx_orbital_energy_5");
+        printf("Task %4d: tensor communicate elapsed time: %f\n", mpi_comm_world_h.myid, Profiler::get_wall_time_last("build_exx_orbital_energy_5"));
         // cout << I_JallR_Hs << endl;
 
         for (int ik = 0; ik < n_kpts; ik++)
