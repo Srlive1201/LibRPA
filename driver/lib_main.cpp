@@ -348,7 +348,7 @@ int main(int argc, char **argv)
         Profiler::start("g0w0_sigc_IJ", "Build correlation self-energy");
         s_g0w0.build_spacetime_LibRI(Cs, Wc_freq_q, Rlist, period);
         Profiler::stop("g0w0_sigc_IJ");
-        Profiler::start("g0w0_sigc_rotate_KS", "Rotate self-energy, IJ -> KS");
+        Profiler::start("g0w0_sigc_rotate_KS", "Rotate self-energy, IJ -> ij -> KS");
         s_g0w0.build_sigc_matrix_KS();
         Profiler::stop("g0w0_sigc_rotate_KS");
 

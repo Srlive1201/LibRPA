@@ -27,21 +27,27 @@ private:
         //! wall time when the timer is started
         double wt_start;
         //! accumulated cpu time
-        double cpu_time;
+        double cpu_time_accu;
         //! accumulated wall time, i.e. elapsed time
-        double wall_time;
+        double wall_time_accu;
+        //! cpu time during last call
+        double cpu_time_last;
+        //! wall time during last call
+        double wall_time_last;
+
         // private functions
-        //! check if the timer is started
     public:
-        Timer(): ncalls(0), clock_start(0), wt_start(0), cpu_time(0), wall_time(0) {}
+        Timer(): ncalls(0), clock_start(0), wt_start(0), cpu_time_accu(0), wall_time_accu(0), cpu_time_last(0), wall_time_last(0) {}
         //! start the timer
         void start() noexcept;
         //! stop the timer and record the timing
         void stop() noexcept;
         bool is_on() const { return clock_start != 0; };
         size_t get_ncalls() const { return ncalls; };
-        double get_cpu_time() const { return cpu_time; };
-        double get_wall_time() const { return wall_time; };
+        double get_cpu_time() const { return cpu_time_accu; };
+        double get_wall_time() const { return wall_time_accu; };
+        double get_cpu_time_last() const { return cpu_time_last; };
+        double get_wall_time_last() const { return wall_time_last; };
     };
     //! Container of Timer objects
     static std::map<std::string, Timer> sd_map_timer;
@@ -65,7 +71,7 @@ public:
     //! Stop a timer and record the timing
     static void stop(const char *tname) noexcept;
     //! Display the current profiling result
-    static void display() noexcept;
+    static void display(int verbose = 0) noexcept;
     //! Get the number of created timers
     static int get_num_timers() noexcept { return sd_order.size(); };
 };

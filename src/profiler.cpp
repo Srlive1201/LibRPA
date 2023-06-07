@@ -24,14 +24,16 @@ void Profiler::Timer::start() noexcept
     ncalls++;
     clock_start = clock();
     wt_start = omp_get_wtime();
+    cpu_time_last = 0.0;
+    wall_time_last = 0.0;
     // printf("start: %zu %zu %f\n", ncalls, clock_start, wt_start);
 }
 
 void Profiler::Timer::stop() noexcept
 {
     if(!is_on()) return;
-    cpu_time += cpu_time_from_clocks_diff(clock_start, clock());
-    wall_time += omp_get_wtime() - wt_start;
+    cpu_time_accu += (cpu_time_last = cpu_time_from_clocks_diff(clock_start, clock()));
+    wall_time_accu += (wall_time_last = omp_get_wtime() - wt_start);
     // printf("stop: %f %f %f\n", wt_start, wall_time, cpu_time);
     wt_start = 0.;
     clock_start = 0;
@@ -42,7 +44,6 @@ void Profiler::add(const char *tname, const char *tnote, int level) noexcept
     if (sd_map_timer.count(tname) == 0)
     {
         // when level is negative, set the level according to status of previous timers
-        const auto n = get_num_timers();
         if (level < 0)
         {
             level = 0;
@@ -96,7 +97,7 @@ static std::string banner(char c, int n)
     return s;
 }
 
-void Profiler::display() noexcept
+void Profiler::display(int verbose) noexcept
 {
     printf("%-49s %-12s %-18s %-18s\n", "Entry", "#calls", "CPU time (s)", "Wall time (s)");
     printf("%100s\n", banner('-', 100).c_str());
@@ -106,6 +107,8 @@ void Profiler::display() noexcept
         std::string s = "";
         int i = sd_map_level[tname];
         while(i--) s += "  ";
+        if (verbose > 0 && i > verbose)
+            continue;
 
         const auto name = s + sd_map_note[tname];
         const auto& t = sd_map_timer[tname];

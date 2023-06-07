@@ -56,7 +56,9 @@ void G0W0::build_spacetime_LibRI(
     mpi_comm_world_h.barrier();
     throw std::logic_error("compilation");
 #else
+    Profiler::start("g0w0_build_spacetime_1", "Tranform Wc (q,w) -> (R,t)");
     const auto Wc_tau_R = CT_FT_Wc_freq_q(Wc_freq_q, tfg, Rlist);
+    Profiler::stop("g0w0_build_spacetime_1");
     RI::G0W0<int, int, 3, double> g0w0_libri;
     map<int,std::array<double,3>> atoms_pos;
     for (int i = 0; i != natom; i++)
@@ -64,6 +66,7 @@ void G0W0::build_spacetime_LibRI(
     std::array<int,3> period_array{R_period.x,R_period.y,R_period.z};
     g0w0_libri.set_parallel(MPI_COMM_WORLD, atoms_pos, lat_array, period_array);
 
+    Profiler::start("g0w0_build_spacetime_2", "Prepare libRI C object");
     // FIXME: duplicate codes to prepare LibRI objects from chi0
     std::vector<std::pair<atom_t, std::pair<atom_t, Vector3_Order<int>>>> IJRs_local;
     size_t n_Cs_IJRs = 0;
@@ -102,6 +105,7 @@ void G0W0::build_spacetime_LibRI(
                                                    atomic_basis_wfc.get_atom_nb(J)}, mat_ptr);
     }
     g0w0_libri.set_Cs(Cs_libri, 0.0);
+    Profiler::stop("g0w0_build_spacetime_2");
 
     auto IJR_local_gf = dispatch_vector_prod(tot_atpair_ordered, Rlist, mpi_comm_world_h.myid, mpi_comm_world_h.nprocs, true, false);
     std::set<Vector3_Order<int>> Rs_local;
@@ -114,6 +118,7 @@ void G0W0::build_spacetime_LibRI(
     {
         for (auto itau = 0; itau != tfg.get_n_grids(); itau++)
         {
+            Profiler::start("g0w0_build_spacetime_3", "Prepare libRI Wc object");
             // printf("task %d itau %d start\n", mpi_comm_world_h.myid, itau);
             const auto tau = tfg.get_time_nodes()[itau];
             // build the Wc LibRI object. Note <JI> has to be converted from <IJ>
@@ -156,11 +161,15 @@ void G0W0::build_spacetime_LibRI(
             {
                 n_obj_wc_libri += w.second.size();
             }
+            Profiler::stop("g0w0_build_spacetime_3");
 
             auto sigc_posi_tau = g0w0_libri.Sigc_tau;
             auto sigc_nega_tau = g0w0_libri.Sigc_tau;
 
+            Profiler::start("g0w0_build_spacetime_4", "Compute G(R,t) and G(R,-t)");
             const auto gf = mf.get_gf_real_imagtimes_Rs(ispin, kfrac_list, {tau, -tau}, {Rs_local.cbegin(), Rs_local.cend()});
+            Profiler::stop("g0w0_build_spacetime_4");
+
             for (auto t: {tau, -tau})
             {
                 std::map<int, std::map<std::pair<int, std::array<int, 3>>, RI::Tensor<double>>> gf_libri;
@@ -190,7 +199,9 @@ void G0W0::build_spacetime_LibRI(
                     n_obj_gf_libri += gf.second.size();
 
                 double wtime_g0w0_cal_sigc = omp_get_wtime();
+                Profiler::start("g0w0_build_spacetime_5", "Call libRI cal_Sigc");
                 g0w0_libri.cal_Sigc(gf_libri, 0.0, Wc_libri, 0.0);
+                Profiler::stop("g0w0_build_spacetime_5");
                 if (t > 0)
                     sigc_posi_tau = std::move(g0w0_libri.Sigc_tau);
                 else
@@ -201,6 +212,7 @@ void G0W0::build_spacetime_LibRI(
             }
 
             // symmetrize and perform transformation
+            Profiler::start("g0w0_build_spacetime_6", "Transform Sigc (R,t) -> (q,w)");
             for (const auto &I_JR_sigc_posi: sigc_posi_tau)
             {
                 const auto &I = I_JR_sigc_posi.first;
@@ -253,6 +265,7 @@ void G0W0::build_spacetime_LibRI(
                     }
                 }
             }
+            Profiler::stop("g0w0_build_spacetime_6");
         }
     }
     d_sigc_built = true;
