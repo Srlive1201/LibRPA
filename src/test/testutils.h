@@ -12,6 +12,7 @@ std::ostream& operator<<(std::ostream &os, const std::vector<T> &vec)
             os << vec[i] << " ";
         os << vec[i];
     }
+    return os;
 }
 
 template <typename T>
