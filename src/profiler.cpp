@@ -90,6 +90,22 @@ void Profiler::stop(const char *tname) noexcept
     }
 }
 
+double Profiler::get_cpu_time_last(const char *tname) noexcept
+{
+    std::string sname = string(tname);
+    if (sd_map_timer.count(sname))
+        return sd_map_timer.at(sname).get_cpu_time_last();
+    return -1.0;
+}
+
+double Profiler::get_wall_time_last(const char *tname) noexcept
+{
+    std::string sname = string(tname);
+    if (sd_map_timer.count(sname))
+        return sd_map_timer.at(sname).get_wall_time_last();
+    return -1.0;
+}
+
 static std::string banner(char c, int n)
 {
     std::string s = "";

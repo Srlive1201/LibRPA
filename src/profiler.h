@@ -70,6 +70,10 @@ public:
     static void start(const char *tname, const char *tnote = "", int level = -1) noexcept;
     //! Stop a timer and record the timing
     static void stop(const char *tname) noexcept;
+    //! Get cpu time of last call of timer
+    static double get_cpu_time_last(const char *tname) noexcept;
+    //! Get wall time of last call of timer
+    static double get_wall_time_last(const char *tname) noexcept;
     //! Display the current profiling result
     static void display(int verbose = 0) noexcept;
     //! Get the number of created timers
