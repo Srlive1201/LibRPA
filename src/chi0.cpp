@@ -773,11 +773,11 @@ matrix Chi0::compute_chi0_s_munu_tau_R(const atpair_R_mat_t &LRI_Cs,
     /*     cout << R << " Mu=" << Mu << " Nu=" << Nu << " tau:" << tau << endl; */
     /*     print_matrix("space-time chi0", O_sum); */
     /* } */
-    if (Params::debug)
-    {
-        cout << R << " Mu=" << Mu << " Nu=" << Nu << " tau=" << tau << " R=" << R << endl;
-        print_matrix("space-time chi0", O_sum);
-    }
+    // if (Params::debug)
+    // {
+    //     cout << R << " Mu=" << Mu << " Nu=" << Nu << " tau=" << tau << " R=" << R << endl;
+    //     print_matrix("space-time chi0", O_sum);
+    // }
     Profiler::stop("cal_chi0_element");
     return O_sum;
 }

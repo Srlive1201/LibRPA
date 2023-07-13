@@ -232,7 +232,6 @@ int main(int argc, char **argv)
         else
             corr = compute_RPA_correlation(chi0, Vq);
 
-        Profiler::stop("EcRPA");
         if (mpi_comm_world_h.is_root())
         {
             printf("RPA correlation energy (Hartree)\n");
@@ -344,10 +343,41 @@ int main(int argc, char **argv)
                 }
             }
         }
+
         LIBRPA::G0W0 s_g0w0(meanfield, kfrac_list, chi0.tfg);
         Profiler::start("g0w0_sigc_IJ", "Build correlation self-energy");
         s_g0w0.build_spacetime_LibRI(Cs, Wc_freq_q, Rlist, period);
         Profiler::stop("g0w0_sigc_IJ");
+
+        if (Params::debug)
+        { // debug, check sigc_ij
+            char fn[80];
+            for (const auto &is_sigc: s_g0w0.sigc_is_f_k_IJ)
+            {
+                const int ispin = is_sigc.first;
+                for (const auto &f_sigc: is_sigc.second)
+                {
+                    const auto ifreq = chi0.tfg.get_freq_index(f_sigc.first);
+                    for (const auto &k_sigc: f_sigc.second)
+                    {
+                        const auto &k = k_sigc.first;
+                        const int ik = std::distance(klist.begin(), std::find(klist.begin(), klist.end(), k));
+                        for (const auto &I_sigc: k_sigc.second)
+                        {
+                            const auto &I = I_sigc.first;
+                            for (const auto &J_sigc: I_sigc.second)
+                            {
+                                const auto &J = J_sigc.first;
+                                sprintf(fn, "Sigcfq_ispin_%d_ifreq_%d_ik_%d_I_%zu_J_%zu_id_%d.mtx",
+                                        ispin, ifreq, ik, I, J, mpi_comm_world_h.myid);
+                                print_matrix_mm_file(J_sigc.second, Params::output_dir + "/" + fn, 1e-15);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         Profiler::start("g0w0_sigc_rotate_KS", "Rotate self-energy, IJ -> ij -> KS");
         s_g0w0.build_sigc_matrix_KS();
         Profiler::stop("g0w0_sigc_rotate_KS");
@@ -406,7 +436,7 @@ int main(int argc, char **argv)
     if(mpi_comm_world_h.is_root())
     {
         Profiler::display();
-        printf("libRPA finished");
+        printf("libRPA finished\n");
     }
 
     MPI_Wrapper::finalize();

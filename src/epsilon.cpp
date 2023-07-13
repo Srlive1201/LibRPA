@@ -1441,6 +1441,7 @@ compute_Wc_freq_q_blacs(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps
             Profiler::stop("epsilon_prepare_coulwc_sqrt_4");
         }
         Profiler::stop("epsilon_prepare_coulwc_sqrt");
+        printf("Task %d: done coulwc sqrt\n", mpi_comm_world_h.myid);
 
         Profiler::start("epsilon_prepare_couleps_sqrt", "Prepare sqrt of bare Coulomb");
         // collect the block elements of coulomb matrices
@@ -1510,13 +1511,16 @@ compute_Wc_freq_q_blacs(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps
         // printf("coul_block\n%s", str(coul_block).c_str());
 
         size_t n_singular;
+        printf("Task %d: start power hemat couleps\n", mpi_comm_world_h.myid);
         auto sqrtveig_blacs = power_hemat_blacs(coul_block, desc_nabf_nabf, coul_eigen_block, desc_nabf_nabf, n_singular, eigenvalues.c, 0.5, Params::sqrt_coulomb_threshold);
+        printf("Task %d: done power hemat couleps\n", mpi_comm_world_h.myid);
         // printf("nabf %d nsingu %lu\n", n_abf, n_singular);
         // release sqrtv when the q-point is not Gamma, or macroscopic dielectric constant at imaginary frequency is not prepared
         if (epsmac_LF_imagfreq.empty() || !is_gamma_point(q))
             sqrtveig_blacs.clear();
         const size_t n_nonsingular = n_abf - n_singular;
         Profiler::stop("epsilon_prepare_couleps_sqrt");
+        printf("Task %d: done couleps sqrt\n", mpi_comm_world_h.myid);
 
         for (const auto &freq: chi0.tfg.get_freq_nodes())
         {
