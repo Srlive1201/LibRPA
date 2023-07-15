@@ -6,9 +6,11 @@
 #include <algorithm>
 #include <array>
 #include <valarray>
+#include <stdexcept>
 
 #include "input.h"
 #include "lapack_connector.h"
+#include "stl_io_helper.h"
 #include "libri_utils.h"
 #include "matrix_m_parallel_utils.h"
 #include "parallel_mpi.h"
@@ -173,15 +175,6 @@ CorrEnergy compute_RPA_correlation_blacs_2d(const Chi0 &chi0, const atpair_k_cpl
                 const auto IJq_chi0 = comm_map2_first(LIBRPA::mpi_comm_world_h.comm, chi0_libri, s0_s1.first, s0_s1.second);
                 // LIBRPA::fout_para << "IJq_chi0" << endl << IJq_chi0;
                 double chi_end_comm = omp_get_wtime();
-                //printf("End chi0 comm_map2_first  myid: %d   TIME_USED: %f\n",mpi_comm_world_h.myid,chi_end_comm-chi_end_arr);
-                // for (const auto &IJ: set_IJ_nabf_nabf)
-                // {
-                //     const auto &I = IJ.first;
-                //     const auto &J = IJ.second;
-                //     collect_block_from_IJ_storage_syhe(
-                //         chi0_block, desc_nabf_nabf, LIBRPA::atomic_basis_abf, IJ.first,
-                //         IJ.second, true, CONE, IJq_chi0.at(I).at({J, qa}).ptr(), MAJOR::ROW);
-                // }
                 collect_block_from_ALL_IJ_Tensor(chi0_block, desc_nabf_nabf, LIBRPA::atomic_basis_abf,
                         std::array<double, 3>{0,0,0}, true, CONE, IJq_chi0, MAJOR::ROW);
                 mpi_comm_world_h.barrier();
@@ -1360,18 +1353,16 @@ compute_Wc_freq_q_blacs(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps
     auto coul_chi0_block = init_local_mat<complex<double>>(desc_nabf_nabf, MAJOR::COL);
     auto coulwc_block = init_local_mat<complex<double>>(desc_nabf_nabf, MAJOR::COL);
 
-    const auto atpair_ordered_local =
-        dispatch_vector(tot_atpair_ordered, LIBRPA::blacs_ctxt_world_h.myid,
-                        LIBRPA::blacs_ctxt_world_h.nprocs, true);
-    const auto atpair_unordered_local =
-        dispatch_vector(tot_atpair, LIBRPA::blacs_ctxt_world_h.myid,
-                        LIBRPA::blacs_ctxt_world_h.nprocs, true);
-    // LIBRPA::fout_para << "Iset Jset " << s0_s1 << endl;
-    // LIBRPA::fout_para << "atpair_unordered_local of myid " << LIBRPA::blacs_ctxt_world_h.myid << " " << atpair_unordered_local << endl;
+    const auto atpair_local = dispatch_upper_trangular_tasks(
+        natom, LIBRPA::blacs_ctxt_world_h.myid, LIBRPA::blacs_ctxt_world_h.nprows,
+        LIBRPA::blacs_ctxt_world_h.npcols, LIBRPA::blacs_ctxt_world_h.myprow,
+        LIBRPA::blacs_ctxt_world_h.mypcol);
+    LIBRPA::fout_para << "atpair_local " << LIBRPA::blacs_ctxt_world_h.myid << " " << atpair_local << endl;
+    std::flush(LIBRPA::fout_para);
 
     // IJ pair of Wc to be returned
     pair<set<int>, set<int>> Iset_Jset_Wc;
-    for (const auto &ap: atpair_unordered_local)
+    for (const auto &ap: atpair_local)
     {
         Iset_Jset_Wc.first.insert(ap.first);
         Iset_Jset_Wc.second.insert(ap.second);
@@ -1401,11 +1392,11 @@ compute_Wc_freq_q_blacs(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps
             // LibRI tensor for communication, release once done
             std::map<int, std::map<std::pair<int, std::array<double, 3>>, RI::Tensor<complex<double>>>> couleps_libri;
             Profiler::start("epsilon_prepare_coulwc_sqrt_1", "Setup libRI object");
-            for (const auto &Mu_Nu: atpair_unordered_local)
+            for (const auto &Mu_Nu: atpair_local)
             {
                 const auto Mu = Mu_Nu.first;
                 const auto Nu = Mu_Nu.second;
-                LIBRPA::fout_para << "myid " << LIBRPA::blacs_ctxt_world_h.myid << "Mu " << Mu << " Nu " << Nu << endl;
+                LIBRPA::fout_para << "Mu " << Mu << " Nu " << Nu << endl;
                 if (coulmat_wc.count(Mu) == 0 ||
                     coulmat_wc.at(Mu).count(Nu) == 0 ||
                     coulmat_wc.at(Mu).at(Nu).count(q) == 0) continue;
@@ -1433,9 +1424,6 @@ compute_Wc_freq_q_blacs(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps
                     IJ.second, true, CONE, IJq_coul.at(I).at({J, qa}).ptr(), MAJOR::ROW);
             }
             Profiler::stop("epsilon_prepare_coulwc_sqrt_3");
-            // WARN: check whether one should pass back the filtered coulwc_block
-            // sprintf(fn, "coulwc_iq_%d.mtx", iq);
-            // print_matrix_mm_file_parallel(fn, coulwc_block, desc_nabf_nabf);
             Profiler::start("epsilon_prepare_coulwc_sqrt_4", "Perform square root");
             power_hemat_blacs(coulwc_block, desc_nabf_nabf, coul_eigen_block, desc_nabf_nabf, n_singular_coulwc, eigenvalues.c, 0.5, Params::sqrt_coulomb_threshold);
             Profiler::stop("epsilon_prepare_coulwc_sqrt_4");
@@ -1448,28 +1436,12 @@ compute_Wc_freq_q_blacs(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps
         {
             // LibRI tensor for communication, release once done
             std::map<int, std::map<std::pair<int, std::array<double, 3>>, RI::Tensor<complex<double>>>> couleps_libri;
-            // for (const auto &Mu_NuqVq: coulmat_eps)
-            // {
-            //     const auto Mu = Mu_NuqVq.first;
-            //     const auto n_mu = LIBRPA::atomic_basis_abf.get_atom_nb(Mu);
-            //     for (const auto &Nu_qVq: Mu_NuqVq.second)
-            //     {
-            //         const auto Nu = Nu_qVq.first;
-            //         const auto n_nu = LIBRPA::atomic_basis_abf.get_atom_nb(Nu);
-            //         if (Nu_qVq.second.count(q) == 0) continue;
-            //         const auto Vq = Nu_qVq.second.at(q);
-            //         // NOTE: consume extra memoery when creating valarray from shared_ptr
-            //         std::valarray<complex<double>> Vq_va(Vq->c, Vq->size);
-            //         auto pvq = std::make_shared<std::valarray<complex<double>>>();
-            //         *pvq = Vq_va;
-            //         couleps_libri[Mu][{Nu, qa}] = Tensor<complex<double>>({n_mu, n_nu}, pvq);
-            //     }
-            // }
-            for (const auto &Mu_Nu: atpair_unordered_local)
+            LIBRPA::fout_para << "Start build couleps_libri\n";
+            for (const auto &Mu_Nu: atpair_local)
             {
                 const auto Mu = Mu_Nu.first;
                 const auto Nu = Mu_Nu.second;
-                LIBRPA::fout_para << "myid " << LIBRPA::blacs_ctxt_world_h.myid << "Mu " << Mu << " Nu " << Nu << endl;
+                LIBRPA::fout_para << "Mu " << Mu << " Nu " << Nu << endl;
                 if (coulmat_eps.count(Mu) == 0 ||
                     coulmat_eps.at(Mu).count(Nu) == 0 ||
                     coulmat_eps.at(Mu).at(Nu).count(q) == 0) continue;
@@ -1481,20 +1453,44 @@ compute_Wc_freq_q_blacs(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps
                 *pvq = Vq_va;
                 couleps_libri[Mu][{Nu, qa}] = RI::Tensor<complex<double>>({n_mu, n_nu}, pvq);
             }
+            LIBRPA::fout_para << "Done build couleps_libri\n";
             // LIBRPA::fout_para << "Couleps_libri" << endl << couleps_libri;
             // if (couleps_libri.size() == 0)
             //     throw std::logic_error("data at q-point not found in coulmat_eps");
 
             // perform communication
-            // cout << "Iset&Jset" << Iset_Jset << endl;
+            LIBRPA::fout_para << "Start collect couleps_libri, targets\n";
+            LIBRPA::fout_para << set_IJ_nabf_nabf << "\n";
+            LIBRPA::fout_para << "Extended blocks\n";
+            LIBRPA::fout_para << "atom 1: " << s0_s1.first << "\n";
+            LIBRPA::fout_para << "atom 2: " << s0_s1.second << "\n";
+            LIBRPA::fout_para << "Owned blocks\n";
+            print_key(LIBRPA::fout_para, couleps_libri);
+            std::flush(LIBRPA::fout_para);
+            mpi_comm_world_h.barrier();
             const auto IJq_coul = RI::Communicate_Tensors_Map_Judge::comm_map2_first(LIBRPA::mpi_comm_world_h.comm, couleps_libri, s0_s1.first, s0_s1.second);
+            LIBRPA::fout_para << "Done collect couleps_libri, collected blocks\n";
+            print_key(LIBRPA::fout_para, IJq_coul);
+            std::flush(LIBRPA::fout_para);
+            mpi_comm_world_h.barrier();
             // LIBRPA::fout_para << "IJq_coul" << endl << IJq_coul;
 
+            LIBRPA::fout_para << "Start construct couleps 2D block\n";
+            std::flush(LIBRPA::fout_para);
+            mpi_comm_world_h.barrier();
             for (const auto &IJ: set_IJ_nabf_nabf)
             {
                 const auto &I = IJ.first;
                 const auto &J = IJ.second;
-                // cout << IJq_coul.at(I).at({J, qa});
+                try
+                {
+                    IJq_coul.at(I).at({J, qa});
+                }
+                catch (const std::out_of_range& e)
+                {
+                    LIBRPA::fout_para << "Fail to find " << I << " " << J << " " << qa << ": " << e.what() << "\n";
+                    std::flush(LIBRPA::fout_para);
+                }
                 collect_block_from_IJ_storage_syhe(
                     coul_block, desc_nabf_nabf, LIBRPA::atomic_basis_abf, IJ.first,
                     IJ.second, true, CONE, IJq_coul.at(I).at({J, qa}).ptr(), MAJOR::ROW);
@@ -1503,6 +1499,9 @@ compute_Wc_freq_q_blacs(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps
                 //        coul_block.nr(), coul_block.nc(),
                 //        str(coul_block).c_str());
             }
+            LIBRPA::fout_para << "Done construct couleps 2D block\n";
+            std::flush(LIBRPA::fout_para);
+            mpi_comm_world_h.barrier();
         }
         // char fn[100];
         // sprintf(fn, "couleps_iq_%d.mtx", iq);
@@ -1530,21 +1529,6 @@ compute_Wc_freq_q_blacs(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps
             {
                 std::map<int, std::map<std::pair<int, std::array<double, 3>>, RI::Tensor<complex<double>>>> chi0_libri;
                 const auto &chi0_wq = chi0.get_chi0_q().at(freq).at(q);
-                // for (const auto &Mu_Nu: atpair_unordered_local)
-                // {
-                //     const auto Mu = Mu_Nu.first;
-                //     const auto Nu = Mu_Nu.second;
-                //     // LIBRPA::fout_para << "myid " << LIBRPA::blacs_ctxt_world_h.myid << "Mu " << Mu << " Nu " << Nu << endl;
-                //     if (chi0_wq.count(Mu) == 0 ||
-                //         chi0_wq.at(Mu).count(Nu) == 0 ) continue;
-                //     const auto &chi = chi0_wq.at(Mu).at(Nu);
-                //     const auto n_mu = LIBRPA::atomic_basis_abf.get_atom_nb(Mu);
-                //     const auto n_nu = LIBRPA::atomic_basis_abf.get_atom_nb(Nu);
-                //     std::valarray<complex<double>> chi_va(chi.c, chi.size);
-                //     auto pvq = std::make_shared<std::valarray<complex<double>>>();
-                //     *pvq = chi_va;
-                //     chi0_libri[Mu][{Nu, qa}] = Tensor<complex<double>>({n_mu, n_nu}, pvq);
-                // }
                 for (const auto &M_Nchi: chi0_wq)
                 {
                     const auto &M = M_Nchi.first;
@@ -1693,7 +1677,7 @@ compute_Wc_freq_q_blacs(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps
                 // cout << Wc_libri;
                 const auto IJq_Wc = RI::Communicate_Tensors_Map_Judge::comm_map2_first(LIBRPA::mpi_comm_world_h.comm, Wc_libri, Iset_Jset_Wc.first, Iset_Jset_Wc.second);
                 // parse collected to 
-                for (const auto &MN: atpair_unordered_local)
+                for (const auto &MN: atpair_local)
                 {
                     const auto &M = MN.first;
                     const auto &N = MN.second;

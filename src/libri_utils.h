@@ -63,14 +63,6 @@ get_s0_s1_for_comm_map2_first(const std::set<std::pair<TA, TA>>& atpairs)
     return {set_s0, set_s1};
 }
 
-template <typename Tcell, size_t Ndim>
-std::ostream& operator<<(std::ostream& os, const std::array<Tcell, Ndim> &cell)
-{
-    for (int i = 0; i != Ndim; i++)
-        os << cell[i] << " ";
-    return os;
-}
-
 #ifdef LIBRPA_USE_LIBRI
 template <typename T>
 std::ostream& operator<<(std::ostream& os, const RI::Tensor<T>& t)

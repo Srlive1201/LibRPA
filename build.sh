@@ -7,6 +7,12 @@ DEBUG=0
 BUILDDIR=build
 VERBOSE=0
 CXX=mpiicpc
+FC=mpiifort
+GREENX=0
+
+# Some build examples
+# with LibRI and GreenX minimax
+#     CXX=mpiicpc FC=mpiifort LIBRI_INCLUDE_DIR=/home/minyez/projects/LibRI/include cmake -B build -DUSE_GREENX_MINIMAX=ON -DENABLE_TEST=OFF -DUSE_LIBRI=ON
 
 help_info()
 {
@@ -20,7 +26,8 @@ help_info()
   echo " -D             : enable debug"
   echo " -v             : verbose"
   echo " -c <CXX_COMP>  : set C++ compiler (default mpiicpc)"
-  echo " --bd <builddir>: set build directory"
+  echo " -f <FC_COMP>   : set Fortran compiler, used only with GreenX (default mpiifort)"
+  echo " --bd <builddir>: set build directory (default 'build')"
   echo " --ri           : use libRI"
 }
 
@@ -28,7 +35,9 @@ while [ ${#} -gt 0 ]; do
   case "$1" in
   -c   ) CXX=$1; shift 1;;
   -t   ) TEST=1;;
+  -f   ) FC=$1; shift 1;;
   --ri ) LIBRI=1;;
+  --gx ) GREENX=1;;
   -d   ) DOCS=1;;
   -D   ) DEBUG=1;;
   --bd ) BUILDDIR=$1; shift 1;;
@@ -56,6 +65,15 @@ if (( DEBUG )); then
   options="-DCMAKE_BUILD_TYPE=Debug $options"
 fi
 
+if (( LIBRI )); then
+  options="-DUSE_LIBRI=ON $options"
+fi
+
+if (( GREENX )); then
+  options="-DUSE_GREENX_MINIMAX=ON $options"
+fi
+
+echo "CXX=$CXX cmake -B $BUILDDIR $options"
 CXX=$CXX cmake -B "$BUILDDIR" $options
 if (( VERBOSE )); then
   cmake --build "$BUILDDIR" -v

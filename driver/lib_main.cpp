@@ -137,8 +137,23 @@ int main(int argc, char **argv)
         local_atpair = generate_atom_pair_from_nat(natom, false);
         READ_AIMS_Cs("./", Params::cs_threshold,local_atpair );
         printf("| process %d, size of Cs from local_atpair: %lu\n", LIBRPA::mpi_comm_world_h.myid, Cs.size());
-        READ_Vq_Full("./", "coulomb_mat", Params::vq_threshold, Vq); 
+        READ_Vq_Full("./", "coulomb_mat", Params::vq_threshold, Vq);
     }
+    // debug, check available Coulomb blocks on each process
+    LIBRPA::fout_para << "Read Coulomb blocks in process\n";
+    for (const auto& IJqcoul: Vq)
+    {
+        const auto& I = IJqcoul.first;
+        for (const auto& Jqcoul: IJqcoul.second)
+        {
+            const auto& J = Jqcoul.first;
+            for (const auto& qcoul: Jqcoul.second)
+            {
+                LIBRPA::fout_para << I << " " << J << " " << qcoul.first << "\n";
+            }
+        }
+    }
+    std::flush(LIBRPA::fout_para);
     mpi_comm_world_h.barrier();
     Profiler::stop("driver_io_init");
 
