@@ -13,7 +13,7 @@
 #include "matrix.h"
 #include "complexmatrix.h"
 #include "lapack_connector.h"
-#include "input.h"
+#include "pbc.h"
 #include "constants.h"
 #include "params.h"
 #include "scalapack_connector.h"

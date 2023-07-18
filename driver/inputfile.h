@@ -1,34 +1,5 @@
-/*
- * @file input.h
- */
-#ifndef INPUT_H
-#define INPUT_H
-
-/* #include "atoms.h" */
-#include <array>
+#pragma once
 #include <string>
-#include <vector>
-#include <map>
-#include "params.h"
-#include "vector3.h"
-#include "vector3_order.h"
-#include "matrix3.h"
-
-extern int kv_nmp[3];
-//! lattice vectors as a 3D-matrix, each row as a lattice vector
-extern Matrix3 latvec;
-//! same as latvec, but a nested array for LibRI call
-extern std::array<std::array<double, 3>, 3> lat_array;
-//! reciprocal lattice vectors as a 3D-matrix, each row as a reciprocal vector
-extern Matrix3 G;
-extern std::vector<Vector3_Order<double>> klist;
-extern std::vector<Vector3_Order<double>> kfrac_list;
-extern std::vector<int> irk_point_id_mapping;
-extern map<Vector3_Order<double>, vector<Vector3_Order<double>>> map_irk_ks;
-extern Vector3<double> *kvec_c;
-
-void READ_AIMS_STRU(const int& n_kpoints, const std::string &file_path);
-
 //! Class to parse parameters from string
 /*!
   Member functions prefixed with parse_ have a int argument at last.
@@ -84,7 +55,6 @@ class InputFile
         std::string get_orig_content() { return orig_content; };
 };
 
-void parse_inputfile_to_params(const string& fn);
+void parse_inputfile_to_params(const std::string& fn);
 
-extern const string input_filename;
-#endif
+extern const std::string input_filename;

@@ -9,6 +9,7 @@ list(APPEND exe_sources
   lib_main.cpp
   read_aims.cpp
   write_aims.cpp
+  inputfile.cpp
   )
 
 target_include_directories(rpa_exe

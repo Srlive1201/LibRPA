@@ -7,7 +7,7 @@
 #include "coulmat.h"
 // #include "aperiodic_chi0.h"
 #include "gw.h"
-#include "input.h"
+#include "pbc.h"
 #include "profiler.h"
 #include "meanfield.h"
 #include "read_aims.h"

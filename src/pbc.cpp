@@ -40,3 +40,13 @@ bool is_gamma_point(const Vector3_Order<int> &kpt_int)
 {
     return kpt_int.x == 0 && kpt_int.y == 0 && kpt_int.z == 0;
 }
+
+int kv_nmp[3] = {1, 1, 1};
+Vector3<double> *kvec_c;
+std::vector<Vector3_Order<double>> klist;
+std::vector<Vector3_Order<double>> kfrac_list;
+std::vector<int> irk_point_id_mapping;
+map<Vector3_Order<double>, vector<Vector3_Order<double>>> map_irk_ks;
+Matrix3 latvec;
+std::array<std::array<double, 3>, 3> lat_array;
+Matrix3 G;

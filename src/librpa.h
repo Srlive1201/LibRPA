@@ -4,6 +4,8 @@
 #include <memory>
 #include <valarray>
 
+#include "params.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif

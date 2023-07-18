@@ -1,97 +1,20 @@
-/* #include "atoms.h" */
-#include <algorithm>
-#include <fstream>
-#include <iostream>
+#include "inputfile.h"
+
 #include <regex>
-#include "constants.h"
-#include "input.h"
-using namespace std;
+#include <iostream>
+#include <fstream>
 
-int kv_nmp[3] = {1, 1, 1};
-Vector3<double> *kvec_c;
-std::vector<Vector3_Order<double>> klist;
-std::vector<Vector3_Order<double>> kfrac_list;
-std::vector<int> irk_point_id_mapping;
-map<Vector3_Order<double>, vector<Vector3_Order<double>>> map_irk_ks;
-Matrix3 latvec;
-std::array<std::array<double, 3>, 3> lat_array;
-Matrix3 G;
+#include "librpa.h"
 
-void READ_AIMS_STRU(const int& n_kpoints, const std::string &file_path)
-{
-    // cout << "Begin to read aims stru" << endl;
-    ifstream infile;
-    string x, y, z;
-    infile.open(file_path);
-    infile >> x >> y >> z;
-    latvec.e11 = stod(x);
-    latvec.e12 = stod(y);
-    latvec.e13 = stod(z);
-    infile >> x >> y >> z;
-    latvec.e21 = stod(x);
-    latvec.e22 = stod(y);
-    latvec.e23 = stod(z);
-    infile >> x >> y >> z;
-    latvec.e31 = stod(x);
-    latvec.e32 = stod(y);
-    latvec.e33 = stod(z);
-    latvec /= ANG2BOHR;
-    // latvec.print();
-    lat_array[0] = {latvec.e11,latvec.e12,latvec.e13};
-    lat_array[1] = {latvec.e21,latvec.e22,latvec.e23};
-    lat_array[2] = {latvec.e31,latvec.e32,latvec.e33};
+static const std::string SPACE_SEP = "[ \r\f\t]*";
 
-    infile >> x >> y >> z;
-    G.e11 = stod(x);
-    G.e12 = stod(y);
-    G.e13 = stod(z);
-    infile >> x >> y >> z;
-    G.e21 = stod(x);
-    G.e22 = stod(y);
-    G.e23 = stod(z);
-    infile >> x >> y >> z;
-    G.e31 = stod(x);
-    G.e32 = stod(y);
-    G.e33 = stod(z);
-
-    G /= TWO_PI;
-    G *= ANG2BOHR;
-    // G.print();
-    // Matrix3 latG = latvec * G.Transpose();
-    // cout << " lat * G^T" << endl;
-    // latG.print();
-    infile >> x >> y >> z;
-    kv_nmp[0] = stoi(x);
-    kv_nmp[1] = stoi(y);
-    kv_nmp[2] = stoi(z);
-    kvec_c = new Vector3<double>[n_kpoints];
-    for (int i = 0; i != n_kpoints; i++)
-    {
-        infile >> x >> y >> z;
-        kvec_c[i] = {stod(x), stod(y), stod(z)};
-        kvec_c[i] *= (ANG2BOHR / TWO_PI);
-        // cout << "kvec [" << i << "]: " << kvec_c[i] << endl;
-        Vector3_Order<double> k(kvec_c[i]);
-        klist.push_back(k);
-        kfrac_list.push_back(latvec * k);
-    }
-    for (int i = 0; i != n_kpoints; i++)
-    {
-        infile >> x;
-        int id_irk = stoi(x) - 1;
-        irk_point_id_mapping.push_back(id_irk);
-        map_irk_ks[klist[id_irk]].push_back(klist[i]);
-    }
-}
-
-const std::string SPACE_SEP = "[ \r\f\t]*";
 const std::string InputParser::KV_SEP = "=";
 const std::string InputParser::COMMENTS_IDEN = "[#!]";
 
-std::string get_last_matched(const std::string &s,
-                             const std::string &key,
-                             const std::string &vregex,
-                             int igroup)
+static std::string get_last_matched(const std::string &s,
+                                    const std::string &key,
+                                    const std::string &vregex,
+                                    int igroup)
 {
     std::string sout = "";
     // a leading group to get rid of keys in comments
@@ -193,15 +116,15 @@ InputParser InputFile::load(const std::string &fn, bool error_if_fail_open)
     }
     else
     {
-        const string errmsg = "Error! fail to open file " + fn;
+        const std::string errmsg = "Error! fail to open file " + fn;
         std::cout << errmsg << std::endl;
-        if (error_if_fail_open) throw runtime_error(errmsg);
+        if (error_if_fail_open) throw std::runtime_error(errmsg);
         std::cout << "Default parameters will be used" << std::endl;
     }
     return InputParser(params);
 }
 
-void parse_inputfile_to_params(const string& fn)
+void parse_inputfile_to_params(const std::string& fn)
 {
     InputFile inputf;
     int flag;
@@ -242,4 +165,4 @@ void parse_inputfile_to_params(const string& fn)
     parser.parse_int("option_dielect_func", Params::option_dielect_func, 2, flag);
 }
 
-const string input_filename = "librpa.in";
+const std::string input_filename = "librpa.in";

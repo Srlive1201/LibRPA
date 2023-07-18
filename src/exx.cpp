@@ -4,7 +4,7 @@
 #include "params.h"
 #include "constants.h"
 #include "exx.h"
-#include "input.h"
+#include "pbc.h"
 #include "lapack_connector.h"
 #include "vector3_order.h"
 #ifdef LIBRPA_USE_LIBRI

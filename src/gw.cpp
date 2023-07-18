@@ -5,7 +5,7 @@
 #include "profiler.h"
 #include "epsilon.h"
 #include "constants.h"
-#include "input.h"
+#include "pbc.h"
 #include "libri_utils.h"
 
 #include <map>

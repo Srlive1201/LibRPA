@@ -4,6 +4,7 @@
 #include "fitting.h"
 #include "dielecmodel.h"
 #include "scalapack_connector.h"
+#include "inputfile.h"
 
 #include <algorithm>
 #include <malloc.h>

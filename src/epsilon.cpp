@@ -8,7 +8,6 @@
 #include <valarray>
 #include <stdexcept>
 
-#include "input.h"
 #include "lapack_connector.h"
 #include "stl_io_helper.h"
 #include "libri_utils.h"

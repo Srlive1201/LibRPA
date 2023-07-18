@@ -27,7 +27,7 @@ list(APPEND lib_sources
         gw.cpp
         librpa.cpp
         # Gauss_Quadrature.cpp
-        input.cpp
+        # input.cpp
         interpolate.cpp
         mathtools.cpp
         matrix.cpp
