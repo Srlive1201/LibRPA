@@ -16,6 +16,8 @@ vector<atpair_t> local_atpair;
 atpair_R_mat_t Cs;
 atpair_k_cplx_mat_t Vq;
 atpair_k_cplx_mat_t Vq_cut;
+atpair_k_cplx_mat_t Wc_times_polar_aims;
+atpair_k_cplx_d_mat_t dVq;
 
 int atom_iw_loc2glo(const int &atom_index, const int &iw_lcoal)
 {
