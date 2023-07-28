@@ -225,6 +225,31 @@ int main(int argc, char **argv)
         }
     }
 
+    else if ( params.task == "rpa_force" )
+    {
+        CorrEnergy corr;
+        if (params.use_scalapack_ecrpa)
+            corr = compute_RPA_correlation_blacs(chi0, Vq);
+        else
+            corr = compute_RPA_correlation(chi0, Vq);
+       cout << "energy in force " << endl; 
+
+        if (para_mpi.get_myid() == 0)
+        {
+            printf("RPA correlation energy (Hartree)\n");
+            printf("| Weighted contribution from each k:\n");
+            for (const auto& q_ecrpa: corr.qcontrib)
+            {
+                cout << "| " << q_ecrpa.first << ": " << q_ecrpa.second << endl;
+            }
+            printf("| Total EcRPA: %18.9f\n", corr.value.real());
+            if (std::abs(corr.value.imag()) > 1.e-3)
+                printf("Warning: considerable imaginary part of EcRPA = %f\n", corr.value.imag());
+        }
+
+	       
+    }
+
     prof.stop("total");
     if(para_mpi.get_myid()==0)
         prof.display();

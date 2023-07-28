@@ -335,6 +335,187 @@ void handle_Vq_full_file(const string &file_path, double threshold, map<Vector3_
 }
 
 
+size_t READ_Wc_times_polar(const string &dir_path, const string &vq_fprefix, double threshold, atpair_k_cplx_mat_t & Wc_times_polar)
+{
+    size_t vq_save = 0;
+    size_t vq_discard = 0;
+    struct dirent *ptr;
+    DIR *dir;
+    dir = opendir(dir_path.c_str());
+    vector<string> files;
+    map<Vector3_Order<double>, ComplexMatrix> Vq_full;
+    while ((ptr = readdir(dir)) != NULL)
+    {
+        string fm(ptr->d_name);
+        if (fm.find(vq_fprefix) == 0)
+        {
+            handle_Vq_full_file(fm, threshold, Vq_full);
+        }
+    }
+    for (auto &vf_p : Vq_full)
+    {
+        auto qvec = vf_p.first;
+        for (int I = 0; I != atom_mu.size(); I++)
+            for (int J = 0; J != atom_mu.size(); J++)
+            {
+                shared_ptr<ComplexMatrix> vq_ptr = make_shared<ComplexMatrix>();
+                vq_ptr->create(atom_mu[I], atom_mu[J]);
+                for (int i_mu = 0; i_mu != atom_mu[I]; i_mu++)
+                {
+
+                    for (int i_nu = 0; i_nu != atom_mu[J]; i_nu++)
+                    {
+                        (*vq_ptr)(i_mu, i_nu) = vf_p.second(atom_mu_loc2glo(I, i_mu), atom_mu_loc2glo(J, i_nu)); // for abacus
+                    }
+                }
+
+                if ((*vq_ptr).real().absmax() >= threshold)
+                {
+                    Wc_times_polar[I][J][qvec] = vq_ptr;
+                    vq_save++;
+                }
+                else
+                {
+                    vq_discard++;
+                }
+            }
+    }
+    closedir(dir);
+    dir = NULL;
+    return vq_discard;
+}
+
+
+
+size_t READ_d_Vq_Full(const string &dir_path, const string &vq_fprefix, double threshold, atpair_k_cplx_d_mat_t &d_coulomb_mat)
+{
+    size_t vq_save = 0;
+    size_t vq_discard = 0;
+    struct dirent *ptr;
+    DIR *dir;
+    dir = opendir(dir_path.c_str());
+    vector<string> files;
+    map<int,map<int,map<Vector3_Order<double>, ComplexMatrix>>> d_Vq_full;
+
+    while ((ptr = readdir(dir)) != NULL)
+    {
+        string fm(ptr->d_name);
+        if (fm.find(vq_fprefix) == 0)
+        {
+            handle_d_Vq_full_file(fm, threshold, d_Vq_full);
+        }
+    }
+   
+    //for (auto &vf_p : d_Vq_full)
+    for (auto &dvq_coord_atom : d_Vq_full)
+    {
+        auto i_coord = dvq_coord_atom.first;
+    for (auto &dvq_atom : dvq_coord_atom.second)
+    {	    
+        auto i_atom = dvq_atom.first;
+    for (auto &vf_p : dvq_atom.second)
+    {	    
+        auto qvec = vf_p.first;
+        for (int I = 0; I != atom_mu.size(); I++)
+            for (int J = 0; J != atom_mu.size(); J++)
+            {
+                if (I > J)
+                    continue;
+                shared_ptr<ComplexMatrix> vq_ptr = make_shared<ComplexMatrix>();
+                vq_ptr->create(atom_mu[I], atom_mu[J]);
+
+                for (int i_mu = 0; i_mu != atom_mu[I]; i_mu++)
+                {
+
+                    for (int i_nu = 0; i_nu != atom_mu[J]; i_nu++)
+                    {
+//			    cout << vf_p.second(atom_mu_loc2glo(I, i_mu), atom_mu_loc2glo(J, i_nu))<< "d_coul"<< endl; 
+                        (*vq_ptr)(i_mu, i_nu) = vf_p.second(atom_mu_loc2glo(I, i_mu), atom_mu_loc2glo(J, i_nu)); // for abacus
+                    }
+                }
+
+                if ((*vq_ptr).real().absmax() >= threshold)
+                {
+                    d_coulomb_mat[i_coord][i_atom][I][J][qvec] = vq_ptr;
+		    for(int ir=0; ir<atom_mu[I]; ++ir)
+			    for(int ic=0; ic<atom_mu[J]; ++ic)
+//		   cout << (*d_coulomb_mat[i_coord][i_atom][I][J][qvec])(ir,ic) << "d_coulomb_mat" <<endl; 
+                    vq_save++;
+                }
+                else
+                {
+                    vq_discard++;
+                }
+            }
+    }
+    }
+    }
+    closedir(dir);
+    dir = NULL;
+    return vq_discard;
+}
+
+
+void handle_d_Vq_full_file(const string &file_name, double threshold, map<int, map<int,map<Vector3_Order<double>, ComplexMatrix>>> &d_Vq_full)
+{
+    ifstream infile;
+    infile.open(file_name);
+    string nbasbas, begin_row, end_row, begin_col, end_col, q1, q2, q3;
+    string vqx_r, vqx_i, vqy_r, vqy_i, vqz_r,vqz_i, q_num, q_weight, natoms;
+    infile >> n_irk_points;
+    while (infile.peek() != EOF)
+    {
+        infile >> nbasbas >> begin_row >> end_row >> begin_col >> end_col >> natoms;
+        if (infile.peek() == EOF)
+            break;
+        infile >> q_num >> q_weight;
+        int mu = stoi(nbasbas);
+        int nu = stoi(nbasbas);
+        int brow = stoi(begin_row) - 1;
+        int erow = stoi(end_row) - 1;
+        int bcol = stoi(begin_col) - 1;
+        int ecol = stoi(end_col) - 1;
+        int iq = stoi(q_num) - 1;
+	int my_n_atoms=stoi(natoms);
+        Vector3_Order<double> qvec(kvec_c[iq]);
+        if (irk_weight.count(qvec) == 0)
+            irk_weight.insert(pair<Vector3_Order<double>, double>(qvec, stod(q_weight)));
+	for (int i_atom =1; i_atom<=my_n_atoms; i_atom++)
+	{
+        for (int i=1; i<=3; i++)
+        {			
+        if (!d_Vq_full[i][i_atom].count(qvec))
+        {
+            d_Vq_full[i][i_atom][qvec].create(mu, nu);
+        }
+	}
+//        if (!d_Vq_full[2][i_atom].count(qvec))
+//        {
+//            d_Vq_full[2][i_atom][qvec].create(mu, nu);
+//        }
+//        if (!d_Vq_full[3][i_atom].count(qvec))
+//        {
+//            d_Vq_full[3][i_atom][qvec].create(mu, nu);
+//        }
+	}
+	for (int i_atom =1; i_atom<=my_n_atoms; i_atom++)
+        for (int i_mu = brow; i_mu <= erow; i_mu++)
+	{
+            for (int i_nu = bcol; i_nu <= ecol; i_nu++)
+            {
+                infile >> vqx_r >> vqx_i >> vqy_r >> vqy_i >> vqz_r >> vqz_i;
+	//	cout << vqx_r << vqx_i << " vqx_r;, vqx_i" << endl;
+                d_Vq_full[1][i_atom][qvec](i_mu, i_nu) = complex<double>(stod(vqx_r), stod(vqx_i)); 
+                d_Vq_full[2][i_atom][qvec](i_mu, i_nu) = complex<double>(stod(vqy_r), stod(vqy_i)); 
+                d_Vq_full[3][i_atom][qvec](i_mu, i_nu) = complex<double>(stod(vqz_r), stod(vqz_i)); 
+	//   cout << d_Vq_full[3][i_atom][qvec](i_mu, i_nu) << endl;
+            }
+	}
+    }
+}
+
+
+
 size_t READ_Vq_Row(const string &dir_path, const string &vq_fprefix, double threshold, atpair_k_cplx_mat_t &coulomb_mat, const vector<atpair_t> &local_atpair)
 {
     cout<<"Begin READ_Vq_Row"<<endl;
