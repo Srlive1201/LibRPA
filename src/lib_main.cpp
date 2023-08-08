@@ -84,6 +84,10 @@ int main(int argc, char **argv)
     READ_AIMS_EIGENVECTOR("./", meanfield);
 
     READ_AIMS_Cs("./", params.cs_threshold);
+    if ( params.task == "rpa_force" )
+    {
+    READ_AIMS_d_Cs("./", params.cs_threshold);
+    };
 
     tot_atpair = generate_atom_pair_from_nat(natom, false);
     if (para_mpi.is_master())
