@@ -14,6 +14,7 @@ vector<atpair_t> tot_atpair;
 vector<atpair_t> local_atpair;
 
 atpair_R_mat_t Cs;
+atpair_R_d_mat_t d_Cs;
 atpair_k_cplx_mat_t Vq;
 atpair_k_cplx_mat_t Vq_cut;
 atpair_k_cplx_mat_t Wc_times_polar_aims;

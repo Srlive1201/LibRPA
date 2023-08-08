@@ -214,6 +214,102 @@ size_t handle_Cs_file(const string &file_path, double threshold)
     return cs_discard;
 }
 
+
+
+size_t READ_AIMS_d_Cs(const string &dir_path, double threshold)
+{
+    size_t cs_discard = 0;
+    struct dirent *ptr;
+    DIR *dir;
+    dir = opendir(dir_path.c_str());
+    vector<string> files;
+    while ((ptr = readdir(dir)) != NULL)
+    {
+        string fm(ptr->d_name);
+        if (fm.find("d_Cs_data") == 0)
+            cs_discard += handle_d_Cs_file(fm, threshold);
+    }
+    closedir(dir);
+    dir = NULL;
+    
+    atom_mu_part_range.resize(atom_mu.size());
+    atom_mu_part_range[0]=0;
+    for(int I=1;I!=atom_mu.size();I++)
+        atom_mu_part_range[I]=atom_mu.at(I-1)+atom_mu_part_range[I-1];
+    
+    N_all_mu=atom_mu_part_range[natom-1]+atom_mu[natom-1];
+    return cs_discard;
+}
+
+size_t handle_d_Cs_file(const string &file_name, double threshold)
+{
+    size_t d_cs_discard = 0;
+    string natom_s, ncell_s, ia1_s, ia2_s, ic_1, ic_2, ic_3, i_s, j_s, mu_s;
+    string d_Cs_ele_x, d_Cs_ele_y, d_Cs_ele_z;
+    ifstream infile;
+    infile.open(file_name);
+    infile >> natom_s >> ncell_s;
+    natom = stoi(natom_s);
+    ncell = stoi(ncell_s);
+    while (infile.peek() != EOF)   // EOF (end of file reached) 
+    {
+        infile >> ia1_s >> ia2_s >> ic_1 >> ic_2 >> ic_3 >> i_s;
+        if (infile.peek() == EOF)
+            break;
+        infile >> j_s >> mu_s;
+        int ia1 = stoi(ia1_s) - 1;
+        int ia2 = stoi(ia2_s) - 1;
+        int ic1 = stoi(ic_1);
+        int ic2 = stoi(ic_2);
+        int ic3 = stoi(ic_3);
+        int n_i = stoi(i_s);
+        int n_j = stoi(j_s);
+        int n_mu = stoi(mu_s);
+
+        atom_nw.insert(pair<int, int>(ia1, n_i));
+        atom_mu.insert(pair<int, int>(ia1, n_mu));
+        Vector3_Order<int> box(ic1, ic2, ic3);
+
+        shared_ptr<matrix> cs_ptr_x = make_shared<matrix>();
+        shared_ptr<matrix> cs_ptr_y = make_shared<matrix>();
+        shared_ptr<matrix> cs_ptr_z = make_shared<matrix>();
+
+        cs_ptr_x->create(n_i * n_j, n_mu);
+        cs_ptr_y->create(n_i * n_j, n_mu);
+        cs_ptr_z->create(n_i * n_j, n_mu);
+
+        for (int i = 0; i != n_i; i++)
+            for (int j = 0; j != n_j; j++)
+                for (int mu = 0; mu != n_mu; mu++)
+                {
+                    infile >> d_Cs_ele_x >> d_Cs_ele_y >> d_Cs_ele_z;
+
+                    (*cs_ptr_x)(i * n_j + j, mu) = stod(d_Cs_ele_x);
+                    (*cs_ptr_y)(i * n_j + j, mu) = stod(d_Cs_ele_y);
+                    (*cs_ptr_z)(i * n_j + j, mu) = stod(d_Cs_ele_z);
+                }
+
+        if ((*cs_ptr_x).absmax() >= threshold)
+            d_Cs[ia1][ia2][1][box] = cs_ptr_x;
+        else
+            d_cs_discard++;
+
+
+        if ((*cs_ptr_y).absmax() >= threshold)
+            d_Cs[ia1][ia2][2][box] = cs_ptr_y;
+        else
+            d_cs_discard++;
+
+        if ((*cs_ptr_z).absmax() >= threshold)
+            d_Cs[ia1][ia2][3][box] = cs_ptr_z;
+        else
+            d_cs_discard++;
+
+    }
+    return d_cs_discard;
+}
+
+
 size_t READ_Vq_Full(const string &dir_path, const string &vq_fprefix, double threshold, atpair_k_cplx_mat_t &coulomb_mat)
 {
     size_t vq_save = 0;
