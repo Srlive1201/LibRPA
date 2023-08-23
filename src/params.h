@@ -35,6 +35,9 @@ struct Params
     //! parallel routing of exx
     static std::string exx_parallel_routing;
 
+    //! parallel routing of gw
+    static std::string gw_parallel_routing;
+
     //! threshold of R-space Green's function when construcing.
     static double gf_R_threshold;
 

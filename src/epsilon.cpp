@@ -1464,12 +1464,12 @@ compute_Wc_freq_q_blacs(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps
             LIBRPA::fout_para << "atom 1: " << s0_s1.first << "\n";
             LIBRPA::fout_para << "atom 2: " << s0_s1.second << "\n";
             LIBRPA::fout_para << "Owned blocks\n";
-            print_key(LIBRPA::fout_para, couleps_libri);
+            print_keys(LIBRPA::fout_para, couleps_libri);
             std::flush(LIBRPA::fout_para);
             mpi_comm_world_h.barrier();
             const auto IJq_coul = RI::Communicate_Tensors_Map_Judge::comm_map2_first(LIBRPA::mpi_comm_world_h.comm, couleps_libri, s0_s1.first, s0_s1.second);
             LIBRPA::fout_para << "Done collect couleps_libri, collected blocks\n";
-            print_key(LIBRPA::fout_para, IJq_coul);
+            print_keys(LIBRPA::fout_para, IJq_coul);
             std::flush(LIBRPA::fout_para);
             mpi_comm_world_h.barrier();
             // LIBRPA::fout_para << "IJq_coul" << endl << IJq_coul;

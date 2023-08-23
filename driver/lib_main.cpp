@@ -5,6 +5,7 @@
 #include "dielecmodel.h"
 #include "scalapack_connector.h"
 #include "inputfile.h"
+#include "stl_io_helper.h"
 
 #include <algorithm>
 #include <malloc.h>
@@ -96,6 +97,7 @@ int main(int argc, char **argv)
     }
     set_chi_parallel_type(Params::chi_parallel_routing, tot_atpair.size(), Rt_num, Params::use_libri_chi0);
     set_exx_parallel_type(Params::exx_parallel_routing, tot_atpair.size(), Rt_num, Params::use_libri_exx);
+    set_gw_parallel_type(Params::gw_parallel_routing, tot_atpair.size(), Rt_num, Params::use_libri_gw);
     check_parallel_type();
 
     // barrier to wait for information print on master process
@@ -122,23 +124,36 @@ int main(int argc, char **argv)
         // for( auto &a1 : list_loc_atp.second)
         //     for(auto &a2:a1)
         //         ofs<<a2.first<<"  ("<<a2.second[0]<<", "<<a2.second[1]<<", "<<a2.second[2]<<" )"<<endl;
+        if (LIBRPA::mpi_comm_world_h.is_root()) printf("Triangular dispatching of atom pairs\n");
         auto trangular_loc_atpair= dispatch_upper_trangular_tasks(natom,blacs_ctxt_world_h.myid,blacs_ctxt_world_h.nprows,blacs_ctxt_world_h.npcols,blacs_ctxt_world_h.myprow,blacs_ctxt_world_h.mypcol);
         //local_atpair = dispatch_vector(tot_atpair, mpi_comm_world_h.myid, mpi_comm_world_h.nprocs, true);
         for(auto &iap:trangular_loc_atpair)
             local_atpair.push_back(iap);
-        printf("| process %d , local_atom_pair size:  %zu\n", mpi_comm_world_h.myid, local_atpair.size());
-        
+        for (int i = 0; i < mpi_comm_world_h.nprocs; i++)
+        {
+            if (i == mpi_comm_world_h.myid)
+            {
+                printf("| process %d , local_atom_pair size:  %zu\n", mpi_comm_world_h.myid, local_atpair.size());
+                cout << local_atpair << "\n";
+            }
+            mpi_comm_world_h.barrier();
+        }
         READ_AIMS_Cs("./", Params::cs_threshold,local_atpair );
-        printf("| process %d, size of Cs from local_atpair: %lu\n", LIBRPA::mpi_comm_world_h.myid, Cs.size());
+        printf("| process %d, size of Cs from local_atpair: %d\n", LIBRPA::mpi_comm_world_h.myid, get_num_keys(Cs));
+        LIBRPA::fout_para << "Cs keys:\n";
+        print_keys(LIBRPA::fout_para, Cs);
         // for(auto &ap:local_atpair)
         //     printf("   |process %d , local_atom_pair:  %d,  %d\n", mpi_comm_world_h.myid,ap.first,ap.second);
         READ_Vq_Row("./", "coulomb_mat", Params::vq_threshold, Vq, local_atpair);
     }
     else
     {
+        if (LIBRPA::mpi_comm_world_h.is_root()) printf("Full dispatching of atom pairs\n");
         local_atpair = generate_atom_pair_from_nat(natom, false);
         READ_AIMS_Cs("./", Params::cs_threshold,local_atpair );
-        printf("| process %d, size of Cs from local_atpair: %lu\n", LIBRPA::mpi_comm_world_h.myid, Cs.size());
+        printf("| process %d, size of Cs from local_atpair: %d\n", LIBRPA::mpi_comm_world_h.myid, get_num_keys(Cs));
+        LIBRPA::fout_para << "Cs keys:\n";
+        print_keys(LIBRPA::fout_para, Cs);
         READ_Vq_Full("./", "coulomb_mat", Params::vq_threshold, Vq);
     }
     // debug, check available Coulomb blocks on each process
@@ -230,11 +245,26 @@ int main(int argc, char **argv)
     // Cs is not required after chi0 is computed in rpa task
     if (LIBRPA::chi_parallel_type != LIBRPA::parallel_type::LIBRI_USED && Params::task == "rpa")
     {
-        // for(auto &Cp:Cs)
-        // {
-        //     Cs.erase(Cp.first);
-        // }
         Cs.clear();
+    }
+    else if (LIBRPA::chi_parallel_type == LIBRPA::parallel_type::ATOM_PAIR)
+    {
+        if (LIBRPA::exx_parallel_type == LIBRPA::parallel_type::LIBRI_USED)
+        {
+            vector<pair<int, int>> pairs_Cs;
+            for (const auto& I_JRCs: Cs)
+            {
+                for (const auto& J_RCs: I_JRCs.second)
+                {
+                    pairs_Cs.push_back({I_JRCs.first, J_RCs.first});
+                }
+            }
+            const auto duplicate_pairs = find_duplicate_ordered_pair(natom, pairs_Cs, mpi_comm_world_h.comm);
+            for (const auto& dp: duplicate_pairs)
+            {
+                Cs.at(dp.first).erase(dp.second);
+            }
+        }
     }
 
     malloc_trim(0);
@@ -328,6 +358,22 @@ int main(int argc, char **argv)
         auto exx = LIBRPA::Exx(meanfield, kfrac_list);
         exx.build_exx_orbital_energy(Cs, Rlist, period, VR);
         Profiler::stop("g0w0_exx");
+        if (mpi_comm_world_h.is_root())
+        {
+            for (int isp = 0; isp != meanfield.get_n_spins(); isp++)
+            {
+                printf("Spin channel %1d\n", isp+1);
+                for (int ik = 0; ik != meanfield.get_n_kpoints(); ik++)
+                {
+                    cout << "k-point " << ik + 1 << ": " << kvec_c[ik] << endl;
+                    printf("%-4s  %-10s  %-10s\n", "Band", "e_exx (Ha)", "e_exx (eV)");
+                    for (int ib = 0; ib != meanfield.get_n_bands(); ib++)
+                        printf("%4d  %10.5f  %10.5f\n", ib+1, exx.Eexx[isp][ik][ib], HA2EV * exx.Eexx[isp][ik][ib]);
+                    printf("\n");
+                }
+            }
+        }
+        mpi_comm_world_h.barrier();
 
         Profiler::start("g0w0_wc", "Build screened interaction");
         vector<std::complex<double>> epsmac_LF_imagfreq(epsmac_LF_imagfreq_re.cbegin(), epsmac_LF_imagfreq_re.cend());

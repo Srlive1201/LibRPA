@@ -31,12 +31,14 @@ extern const string parallel_types_note[parallel_type::COUNT];
 
 extern parallel_type chi_parallel_type;
 extern parallel_type exx_parallel_type;
+extern parallel_type gw_parallel_type;
 
 extern ofstream fout_para;
 
 void set_parallel_type(const string &option, parallel_type &ptype);
 void set_chi_parallel_type(const string &option, const int &atpais_num, const int Rt_num, const bool use_libri);
 void set_exx_parallel_type(const string &option, const int &atpais_num, const int Rt_num, const bool use_libri);
+void set_gw_parallel_type(const string &option, const int &atpais_num, const int Rt_num, const bool use_libri);
 void check_parallel_type();
 
 namespace MPI_Wrapper
@@ -229,6 +231,14 @@ vector<pair<int, int>> dispatcher(int i1st, int i1ed, int i2st, int i2ed,
 
 vector<pair<int,int>> pick_upper_trangular_tasks(vector<int> list_row, vector<int> list_col);
 vector<pair<int,int>> dispatch_upper_trangular_tasks(const int &natoms, const int &myid, const int &nprows, const int &npcols, const int &myprow, const int &mypcol);
+
+/*!
+ * @brief find duplicate pairs across all processes
+ * @param n: the maximum index in the ordered pair
+ * @param ordered_pairs: the pairs on each process
+ * @return the pairs to be removed in each process to ensure that one pair appears only once across the processes in comm
+ */
+vector<pair<int, int>> find_duplicate_ordered_pair(int n, const vector<pair<int, int>>& ordered_pairs, const MPI_Comm &comm);
 
 template <typename T>
 vector<T> dispatch_vector(vector<T> world_vec, unsigned myid, unsigned size, bool sequential)
