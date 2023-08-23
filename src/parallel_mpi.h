@@ -47,6 +47,7 @@ namespace MPI_Wrapper
     extern int nprocs_world;
     bool is_root_world();
     void init(int argc, char **argv);
+    void init(MPI_Comm comm_in);
     void finalize();
     void barrier_world();
     void allreduce_matrix(const matrix& mat_send, matrix& mat_recv, MPI_Comm mpi_comm);

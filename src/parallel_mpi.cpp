@@ -137,6 +137,23 @@ void init(int argc, char **argv)
     fout_para.open(pfn);
 }
 
+void init(MPI_Comm comm_in)
+{
+    if (initialized) return;
+    int provided;
+    
+    MPI_Comm_rank(comm_in, &myid_world);
+    MPI_Comm_size(comm_in, &nprocs_world);
+    char name[MPI_MAX_PROCESSOR_NAME];
+    int length;
+    MPI_Get_processor_name (name, &length);
+    procname = name;
+    initialized = true;
+
+    string pfn = "librpa_para_nprocs_" + std::to_string(nprocs_world) +  "_myid_" + std::to_string(myid_world) + ".out";
+    std::cout<<pfn<<std::endl;
+    fout_para.open(pfn);
+}
 void allreduce_matrix(matrix &mat_send, matrix &mat_recv, MPI_Comm mpi_comm)
 {
     assert(mat_send.nr==mat_recv.nr);

@@ -44,6 +44,7 @@ int atom_iw_loc2glo(const int &atom_index, const int &iw_lcoal);
 int atom_mu_loc2glo(const int &atom_index, const int &mu_lcoal);
 int atom_mu_glo2loc(const int &glo_index, int &mu_index); //in-out mu_index, return atom_index;
 
+void init_N_all_mu();
 //! inverse Fouriter transform of atom-pair mapping to complex matrix
 atpair_R_cplx_mat_t inverse_FT_atpair_cplx_mat(atpair_k_cplx_mat_t kmat, vector<Vector3_Order<int>> Rlist);
 

@@ -26,6 +26,7 @@ list(APPEND lib_sources
         fitting.cpp
         gw.cpp
         librpa.cpp
+        librpa_main.cpp
         # Gauss_Quadrature.cpp
         # input.cpp
         interpolate.cpp

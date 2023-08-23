@@ -101,3 +101,12 @@ matrix reshape_mat_21(const size_t n1, const size_t n2, const size_t n3, const m
     return m_new;
 }
 
+void init_N_all_mu()
+{
+    atom_mu_part_range.resize(atom_mu.size());
+    atom_mu_part_range[0]=0;
+    for(int I=1;I!=atom_mu.size();I++)
+        atom_mu_part_range[I]=atom_mu.at(I-1)+atom_mu_part_range[I-1];
+    
+    N_all_mu=atom_mu_part_range[natom-1]+atom_mu[natom-1];
+}

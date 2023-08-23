@@ -32,7 +32,7 @@ void READ_AIMS_BAND(const string &file_path, MeanField &mf)
     infile >> n_aos;
     infile >> efermi;
     efermi *= 2;
-    mf.get_efermi() = efermi;
+    mf.get_efermi() = efermi;   
     // efermi=0.2;
 
     mf.set(n_spins, n_kpoints, n_bands, n_aos);
@@ -123,7 +123,8 @@ void handle_KS_file(const string &file_path, MeanField &mf)
         //             // cout<<rvalue<<ivalue<<endl;
         //             wfc_k.at(stoi(ik) - 1)(ib, iw) = complex<double>(stod(rvalue), stod(ivalue));
         //         }
-    }}
+    }
+}
 
 size_t READ_AIMS_Cs(const string &dir_path, double threshold,const vector<atpair_t> &local_atpair)
 {
@@ -146,12 +147,14 @@ size_t READ_AIMS_Cs(const string &dir_path, double threshold,const vector<atpair
     LIBRPA::atomic_basis_wfc.set(atom_nw);
     LIBRPA::atomic_basis_abf.set(atom_mu);
     
-    atom_mu_part_range.resize(atom_mu.size());
-    atom_mu_part_range[0]=0;
-    for(int I=1;I!=atom_mu.size();I++)
-        atom_mu_part_range[I]=atom_mu.at(I-1)+atom_mu_part_range[I-1];
+    // atom_mu_part_range.resize(atom_mu.size());
+    // atom_mu_part_range[0]=0;
+    // for(int I=1;I!=atom_mu.size();I++)
+    //     atom_mu_part_range[I]=atom_mu.at(I-1)+atom_mu_part_range[I-1];
     
-    N_all_mu=atom_mu_part_range[natom-1]+atom_mu[natom-1];
+    // N_all_mu=atom_mu_part_range[natom-1]+atom_mu[natom-1];
+    init_N_all_mu();
+
     // for(int i=0;i!=atom_mu_part_range.size();i++)
     //     cout<<" atom_mu_part_range ,i: "<<i<<"    "<<atom_mu_part_range[i]<<endl;
 

@@ -26,6 +26,7 @@ extern std::array<std::array<double, 3>, 3> lat_array;
 //! reciprocal lattice vectors as a 3D-matrix, each row as a reciprocal vector
 extern Matrix3 G;
 extern std::vector<Vector3_Order<double>> klist;
+extern std::vector<Vector3_Order<double>> klist_ibz;
 extern std::vector<Vector3_Order<double>> kfrac_list;
 extern std::vector<int> irk_point_id_mapping;
 extern map<Vector3_Order<double>, vector<Vector3_Order<double>>> map_irk_ks;
