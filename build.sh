@@ -10,6 +10,7 @@ CXX=mpiicpc
 FC=mpiifort
 GREENX=0
 
+CMAKE=cmake3
 # Some build examples
 # with LibRI and GreenX minimax
 #     CXX=mpiicpc FC=mpiifort LIBRI_INCLUDE_DIR=/home/minyez/projects/LibRI/include cmake -B build -DUSE_GREENX_MINIMAX=ON -DENABLE_TEST=OFF -DUSE_LIBRI=ON
@@ -25,6 +26,7 @@ help_info()
   echo " -d             : enable doc"
   echo " -D             : enable debug"
   echo " -v             : verbose"
+  echo " --gx           : use GreenX library for minimax grids"
   echo " -c <CXX_COMP>  : set C++ compiler (default mpiicpc)"
   echo " -f <FC_COMP>   : set Fortran compiler, used only with GreenX (default mpiifort)"
   echo " --bd <builddir>: set build directory (default 'build')"
@@ -33,14 +35,14 @@ help_info()
 
 while [ ${#} -gt 0 ]; do
   case "$1" in
-  -c   ) CXX=$1; shift 1;;
+  -c   ) CXX=$2; shift 1;;
   -t   ) TEST=1;;
-  -f   ) FC=$1; shift 1;;
+  -f   ) FC=$2; shift 1;;
   --ri ) LIBRI=1;;
   --gx ) GREENX=1;;
   -d   ) DOCS=1;;
   -D   ) DEBUG=1;;
-  --bd ) BUILDDIR=$1; shift 1;;
+  --bd ) BUILDDIR=$2; shift 1;;
   -v   ) VERBOSE=1;;
   -h | --help | help | h ) help_info; exit 0;;
   * ) echo "Unknown option $0"; exit 1;;
@@ -74,9 +76,9 @@ if (( GREENX )); then
 fi
 
 echo "CXX=$CXX cmake -B $BUILDDIR $options"
-CXX=$CXX cmake -B "$BUILDDIR" $options
+CXX="$CXX" $CMAKE -B "$BUILDDIR" $options
 if (( VERBOSE )); then
-  cmake --build "$BUILDDIR" -v
+  $CMAKE --build "$BUILDDIR" -v
 else
-  cmake --build "$BUILDDIR"
+  $CMAKE --build "$BUILDDIR"
 fi
