@@ -56,6 +56,7 @@ int main(int argc, char **argv)
     READ_AIMS_STRU(meanfield.get_n_kpoints(), "stru_out");
     Vector3_Order<int> period {kv_nmp[0], kv_nmp[1], kv_nmp[2]};
     auto Rlist = construct_R_grid(period);
+    my_Rlist = Rlist;
 
     if (para_mpi.get_myid() == 0)
     {
@@ -131,9 +132,11 @@ int main(int argc, char **argv)
     chi0.gf_R_threshold = params.gf_R_threshold;
 
     // build ABF IJ and qlist from Vq
-    
+     
     vector<Vector3_Order<double>> qlist;
-
+     atpairs_ABF=local_atpair;
+     R_period=period;
+     
     for ( auto q_weight: irk_weight)
     {
         qlist.push_back(q_weight.first);
@@ -167,10 +170,13 @@ int main(int argc, char **argv)
     // para_mpi.mpi_barrier();
     // if(para_mpi.is_master())
     //     system("free -m");
+    if (params.task != "rpa_force")
+    {	    
     for(auto &Cp:Cs)
     {
         Cs.erase(Cp.first);
        
+    }
     }
     malloc_trim(0);
     // RPA total energy

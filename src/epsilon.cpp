@@ -10,7 +10,7 @@
 #include "scalapack_connector.h"
 #include <omp.h>
 #include <read_aims.h> 
-
+#include "d_chi0.h" 
 
 
 complex<double> compute_pi_det_blacs(ComplexMatrix &loc_piT, const int row_nblk, const int col_nblk, const int desc_pi[9], int *ipiv, int &info)
@@ -452,6 +452,43 @@ CorrEnergy compute_RPA_correlation(const Chi0 &chi0, const atpair_k_cplx_mat_t &
 //             RPA force task 
 //********************************************************************************    
 
+     map<Vector3_Order<double>, ComplexMatrix> Vq_full; 
+
+       if ( params.task == "rpa_force" )
+       {
+        for (const auto & q_vec : kvec_q)
+       {
+            auto q=q_vec.first; 	       
+	    Vq_full[q].create(range_all, range_all);
+	    Vq_full[q].zero_out(); 
+        for (const auto IJq_Vq : Vq)
+	{
+           int I=IJq_Vq.first;
+            const size_t n_mu = atom_mu[I];
+	for (const auto Jq_Vq : IJq_Vq.second )
+	{
+	   int J=Jq_Vq.first;
+            const size_t n_nu = atom_mu[J];
+	 ComplexMatrix temp_mat=*Vq.at(I).at(J).at(q); 
+          for (size_t mu = 0; mu != n_mu; ++mu)
+          {
+          for (size_t nu = 0; nu != n_nu; ++nu)
+          {
+          Vq_full.at(q)(part_range[I]+mu, part_range[J]+nu)= -temp_mat(mu, nu)/TWO_PI;  // -1/2pi a prefactor 
+	  if (I!=J) 
+          Vq_full.at(q)(part_range[J]+nu, part_range[I]+mu)= -conj(temp_mat(mu, nu))/TWO_PI; // -1/2pi  a prefactor 
+      	  
+	  }
+	  }
+
+         }
+	 }
+        }
+      }
+
+
+    map<int, map<Vector3_Order<double>, ComplexMatrix>> wc_times_v_tau;  
+    d_Chi0     d_chi; 
 
 
 
@@ -459,6 +496,7 @@ CorrEnergy compute_RPA_correlation(const Chi0 &chi0, const atpair_k_cplx_mat_t &
     {
         complex<double> tot_RPA_energy(0.0, 0.0);
         map<Vector3_Order<double>, complex<double>> cRPA_q;
+        map<double, map<Vector3_Order<double>, ComplexMatrix>> Wc_times_V;
 
 
 	ComplexMatrix W_c_times_chi; 
@@ -511,6 +549,10 @@ CorrEnergy compute_RPA_correlation(const Chi0 &chi0, const atpair_k_cplx_mat_t &
                chi_mat=chi_freq_q[freq][q];
 
                W_c_times_chi += freq_weight*chi_mat* W_c;
+	       // -1/(2\pi) *Wc_{\nu'' \mu''}*V_{\mu'' \mu}
+	       Wc_times_V[freq][q].create(range_all, range_all);
+	       Wc_times_V[freq][q].zero_out();
+	       Wc_times_V[freq][q]=W_c*Vq_full[q];///TWO_PI; 
 	      }	     
 //           RPA force part 
 
@@ -578,7 +620,8 @@ CorrEnergy compute_RPA_correlation(const Chi0 &chi0, const atpair_k_cplx_mat_t &
 	       n_atoms=n_atoms+1; 
 	}
 	} 	
-
+ 
+	 rpa_force = rpa_force_dV;
          cout << "rpa force is " << endl;
 
         for (auto i_atom=1; i_atom<=n_atoms; i_atom++)
@@ -586,6 +629,10 @@ CorrEnergy compute_RPA_correlation(const Chi0 &chi0, const atpair_k_cplx_mat_t &
         cout << "atom   "  << i_atom << "  "  <<rpa_force_dV[1][i_atom]*constant_1 << "  " << rpa_force_dV[2][i_atom]*constant_1 << "  " << rpa_force_dV[3][i_atom]*constant_1 << endl; 
 	}  
 
+//      work for the d_C terms 
+
+	    d_chi.integrate_freq_wc_times_v(Wc_times_V, chi0.tfg, wc_times_v_tau); 
+            d_chi.integrate_time_wc_times_v_R_tau(wc_times_v_tau,  chi0.tfg, chi0.mf); 
             }
 //       RPA force 
 
