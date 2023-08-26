@@ -289,21 +289,21 @@ size_t handle_d_Cs_file(const string &file_name, double threshold)
                     (*cs_ptr_z)(i * n_j + j, mu) = stod(d_Cs_ele_z);
                 }
 
-        if ((*cs_ptr_x).absmax() >= threshold)
+       // if ((*cs_ptr_x).absmax() >= threshold)
             d_Cs[ia1][ia2][1][box] = cs_ptr_x;
-        else
-            d_cs_discard++;
+       // else
+       //     d_cs_discard++;
 
 
-        if ((*cs_ptr_y).absmax() >= threshold)
+       // if ((*cs_ptr_y).absmax() >= threshold)
             d_Cs[ia1][ia2][2][box] = cs_ptr_y;
-        else
-            d_cs_discard++;
+       // else
+       //     d_cs_discard++;
 
-        if ((*cs_ptr_z).absmax() >= threshold)
+       // if ((*cs_ptr_z).absmax() >= threshold)
             d_Cs[ia1][ia2][3][box] = cs_ptr_z;
-        else
-            d_cs_discard++;
+       // else
+       //     d_cs_discard++;
 
     }
     return d_cs_discard;
@@ -515,7 +515,7 @@ size_t READ_d_Vq_Full(const string &dir_path, const string &vq_fprefix, double t
         for (int I = 0; I != atom_mu.size(); I++)
             for (int J = 0; J != atom_mu.size(); J++)
             {
-                if (I > J)
+                if (I >= J)
                     continue;
                 shared_ptr<ComplexMatrix> vq_ptr = make_shared<ComplexMatrix>();
                 vq_ptr->create(atom_mu[I], atom_mu[J]);

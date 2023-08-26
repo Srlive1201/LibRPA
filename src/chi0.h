@@ -10,7 +10,6 @@
 #include "timefreq.h"
 #include "ri.h"
 #include "vector3_order.h"
-
 using std::vector;
 
 //! Object to handle calculation of independent repsonse function (\f$\chi_0\f$)
@@ -25,7 +24,7 @@ class Chi0
          *        and larger than zero correspond to unoccpued GF.
          * @note: May need to use ComplexMatrix for GF.
          */
-        map<int, atom_mapping<map<Vector3_Order<int>, map<double, matrix>>>::pair_t_old> gf_is_R_tau;
+//        map<int, atom_mapping<map<Vector3_Order<int>, map<double, matrix>>>::pair_t_old> gf_is_R_tau;
         //! R on which the space-time GF are created.
         vector<Vector3_Order<int>> Rlist_gf;
         //! chi0 data in frequency domain and reciprocal space, [omega][q]
@@ -66,6 +65,14 @@ class Chi0
                                           const Vector3_Order<int> &R_period, 
                                           int spin_channel,
                                           atom_t mu, atom_t nu, double tau, Vector3_Order<int> R);
+
+        matrix compute_chi0_s_munu_tau_R_naeem(const atpair_R_mat_t &LRI_Cs,
+                                          const Vector3_Order<int> &R_period, 
+                                          int spin_channel,
+                                          atom_t mu, atom_t nu, double tau, Vector3_Order<int> R);
+
+
+
         // copy some reshape method inside chi0, test performance
         /* matrix reshape_Cs(const size_t n1, const size_t n2, const size_t n3, const std::shared_ptr<matrix> &Cs); */
         /* matrix reshape_dim_Cs(const size_t n1, const size_t n2, const size_t n3, const std::shared_ptr<matrix> &Cs);//(n1*n2,n3) -> (n1,n2*n3) */

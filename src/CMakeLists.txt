@@ -57,6 +57,7 @@ list(APPEND sources
         ri.cpp
         timefreq.cpp
         vector3_order.cpp
+	d_chi0.cpp
         )
 
 

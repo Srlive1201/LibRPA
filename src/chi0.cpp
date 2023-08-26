@@ -23,6 +23,7 @@
 #endif
 #include <array>
 #include <map>
+#include "d_chi0.h" 
 //#include "../AtomicTensor/libRI-master/include/RI/physics/RPA.h"
 void Chi0::build(const atpair_R_mat_t &LRI_Cs,
                    const vector<Vector3_Order<int>> &Rlist,
@@ -437,6 +438,7 @@ void Chi0::build_chi0_q_space_time_R_tau_routing(const atpair_R_mat_t &LRI_Cs,
                 matrix chi0_tau;
                 /* if (itau == 0) // debug first itau */
                     chi0_tau = 2.0 /mf.get_n_spins() * compute_chi0_s_munu_tau_R(LRI_Cs, R_period, is, Mu, Nu, tau, R);
+                    //chi0_tau = 2.0 /mf.get_n_spins() * compute_chi0_s_munu_tau_R_naeem(LRI_Cs, R_period, is, Mu, Nu, tau, R);
                 /* else continue; // debug first itau */
                 // double chi0_ele_t = omp_get_wtime() - chi0_ele_begin;
                 omp_set_lock(&chi0_lock);
@@ -758,6 +760,163 @@ matrix Chi0::compute_chi0_s_munu_tau_R(const atpair_R_mat_t &LRI_Cs,
     /* } */
     return O_sum;
 }
+
+
+
+matrix Chi0::compute_chi0_s_munu_tau_R_naeem(const atpair_R_mat_t &LRI_Cs,
+                                       const Vector3_Order<int> &R_period, 
+                                       int spin_channel,
+                                       atom_t Mu, atom_t Nu, double tau, Vector3_Order<int> R)
+{
+    prof.start("cal_chi0_element");
+
+    assert ( tau > 0 );
+    // Local RI requires
+    const atom_t I_index = Mu;
+    const atom_t J_index = Nu;
+
+    const size_t i_num = atom_nw[Mu];
+    const size_t mu_num = atom_mu[Mu];
+
+    const size_t j_num = atom_nw[Nu];
+    const size_t nu_num = atom_mu[Nu];
+
+    int flag_G_IJRt = 0;
+    int flag_G_IJRNt = 0;
+    const auto & gf_R_tau = gf_is_R_tau.at(spin_channel);
+    if (gf_R_tau.at(I_index).count(J_index))
+        if (gf_R_tau.at(I_index).at(J_index).count(R))
+        {
+            if (gf_R_tau.at(I_index).at(J_index).at(R).count(tau))
+                flag_G_IJRt = 1;
+
+            if (gf_R_tau.at(I_index).at(J_index).at(R).count(-tau))
+                flag_G_IJRNt = 1;
+        }
+
+    matrix X_R1(j_num, i_num * mu_num);
+    matrix X_conj_R1(j_num, i_num * mu_num);
+
+    for (const auto &K_pair : Cs[I_index])
+    {
+        const auto K_index = K_pair.first;
+        const size_t k_num = atom_nw[K_index];
+        if (gf_R_tau.at(K_index).count(J_index))
+        {
+            for (const auto &R1_index : K_pair.second)
+            {
+                const auto R1 = R1_index.first;
+                const auto &Cs_mat1 = R1_index.second;
+
+                Vector3_Order<int> R_temp_2(Vector3_Order<int>(R - R1) % R_period);
+
+                if (gf_R_tau.at(K_index).at(J_index).count(R_temp_2))
+                {
+                    assert(i_num * k_num == (*Cs_mat1).nr);
+                    matrix Cs2_reshape(reshape_Cs(i_num, k_num, mu_num, Cs_mat1));
+                    
+                    if (gf_R_tau.at(K_index).at(J_index).at(R_temp_2).count(tau))
+                    {
+                        X_R1 += transpose(gf_R_tau.at(K_index).at(J_index).at(R_temp_2).at(tau)) * Cs2_reshape;
+                    }
+
+                    if (gf_R_tau.at(K_index).at(J_index).at(R_temp_2).count(-tau))
+                    {
+                        X_conj_R1 += transpose(gf_R_tau.at(K_index).at(J_index).at(R_temp_2).at(-tau)) * Cs2_reshape;
+                    }
+                    
+                }
+            }
+        }
+    }
+    matrix X_R1_rs(reshape_mat(j_num, i_num, mu_num, X_R1));
+    matrix X_conj_R1_rs(reshape_mat(j_num, i_num, mu_num, X_conj_R1));
+    
+    matrix O_sum(mu_num, nu_num);
+    for (const auto &L_pair : Cs[J_index])
+    {
+        const auto L_index = L_pair.first;
+        const size_t l_num = atom_nw[L_index];
+
+        for (const auto &R2_index : L_pair.second)
+        {
+            const auto R2 = R2_index.first;
+            const auto &Cs_mat2 = R2_index.second;
+                matrix O(j_num, l_num * mu_num);
+                matrix Z(l_num, j_num * mu_num);
+
+                if (flag_G_IJRt || flag_G_IJRNt)
+                {
+                    matrix N_R1(l_num, i_num * mu_num);
+                    matrix N_conj_R1(l_num, i_num * mu_num);
+                    for (const auto &K_pair : Cs[I_index])
+                    {
+                        const auto K_index = K_pair.first;
+                        const size_t k_num = atom_nw[K_index];
+                        if (gf_R_tau.at(K_index).count(L_index))
+                        {
+                            for (const auto &R1_index : K_pair.second)
+                            {
+                                const auto R1 = R1_index.first;
+                                const auto &Cs_mat1 = R1_index.second;
+                                Vector3_Order<int> R_temp_1(Vector3_Order<int>(R + R2 - R1) % R_period);
+                                if (gf_R_tau.at(K_index).at(L_index).count(R_temp_1))
+                                {
+                                    
+                                    assert(i_num * k_num == (*Cs_mat1).nr);
+                                    matrix Cs2_reshape(reshape_Cs(i_num, k_num, mu_num, Cs_mat1));
+                                    if (flag_G_IJRNt && gf_R_tau.at(K_index).at(L_index).at(R_temp_1).count(tau))
+                                    {
+                                        N_R1 += transpose(gf_R_tau.at(K_index).at(L_index).at(R_temp_1).at(tau)) * Cs2_reshape;
+                                    }
+                                    if (flag_G_IJRt && gf_R_tau.at(K_index).at(L_index).at(R_temp_1).count(-tau))
+                                    {
+                                        N_conj_R1 += transpose(gf_R_tau.at(K_index).at(L_index).at(R_temp_1).at(-tau)) * Cs2_reshape;
+                                    }
+                                    
+                                }
+                            }
+                        }
+                    }
+                    if (flag_G_IJRt)
+                    {
+                        matrix N_conj_R1_rs(reshape_mat(l_num, i_num, mu_num, N_conj_R1));
+                        O += transpose(gf_R_tau.at(I_index).at(J_index).at(R).at(tau)) * N_conj_R1_rs;
+                    }
+                    if (flag_G_IJRNt)
+                    {
+                        matrix N_R1_rs(reshape_mat(l_num, i_num, mu_num, N_R1));
+                        O += transpose(gf_R_tau.at(I_index).at(J_index).at(R).at(-tau)) * N_R1_rs;
+                    }
+                }
+                Vector3_Order<int> R_temp_3(Vector3_Order<int>(R + R2) % R_period);
+                if (gf_R_tau.at(I_index).count(L_index))
+                {
+                    if (gf_R_tau.at(I_index).at(L_index).count(R_temp_3))
+                    {
+                        if (gf_R_tau.at(I_index).at(L_index).at(R_temp_3).count(-tau))
+                        {
+                            Z += transpose(gf_R_tau.at(I_index).at(L_index).at(R_temp_3).at(-tau)) * X_R1_rs;
+                        }
+
+                        if (gf_R_tau.at(I_index).at(L_index).at(R_temp_3).count(tau))
+                        {
+                            Z += transpose(gf_R_tau.at(I_index).at(L_index).at(R_temp_3).at(tau)) * X_conj_R1_rs;
+                        }
+                    }
+                }
+
+                matrix Z_rs(reshape_mat(l_num, j_num, mu_num, Z));
+
+                O += Z_rs;
+                matrix OZ(reshape_mat_21(j_num, l_num, mu_num, O));
+                O_sum += transpose(OZ)*(*Cs_mat2);
+        }
+    }
+    
+    return O_sum;
+}
+
 
 void Chi0::build_chi0_q_conventional(const atpair_R_mat_t &LRI_Cs,
                                      const Vector3_Order<int> &R_period,

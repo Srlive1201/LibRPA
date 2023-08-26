@@ -14,5 +14,6 @@
 #include "params.h"
 #include "epsilon.h"
 #include "exx.h"
+#include "d_chi0.h"
 
 #endif
