@@ -3,14 +3,13 @@
 #include "mathtools.h"
 #include "parallel_mpi.h"
 #include "get_minimax.h"
-
+#include "params.h"
 #include <iostream>
 #include <fstream>
 #include <vector>
 #include <utility>
 #include <algorithm>
 #include <unistd.h>
-
 using std::pair;
 using std::string;
 using std::ifstream;

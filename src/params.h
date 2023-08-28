@@ -2,6 +2,12 @@
  * @file params.h
  * @brief parameters for controlling LibRPA calculation
  */
+#ifndef PARAMS_H
+#define PARAMS_H
+#include <iostream>
+#include <cstdarg>
+#include <fstream>
+
 #pragma once
 #include <string>
 
@@ -11,6 +17,9 @@ struct Params
     //! the task to perform in LibRPA.
     static std::string task;
 
+    //! the path of file to store librpa mainly output
+    static std::string output_file;
+    
     //! the path of directory to store librpa output files
     static std::string output_dir;
 
@@ -89,3 +98,19 @@ struct Params
     static void check_consistency();
     static void print();
 };
+
+static void customPrint(const char* format, ...) {
+    va_list args;
+    va_start(args, format);
+
+    char buffer[1024];
+    vsnprintf(buffer, sizeof(buffer), format, args);
+
+    static std::ofstream outputFile(Params::output_file, std::ios_base::app);
+    outputFile << buffer;
+    outputFile.flush();
+    va_end(args);
+}
+#define printf customPrint
+
+#endif 

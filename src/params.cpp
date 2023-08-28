@@ -4,6 +4,7 @@
 #include <vector>
 
 std::string Params::task = "rpa";
+std::string Params::output_file="LibRPA_output.txt";
 std::string Params::output_dir = "librpa.d";
 std::string Params::tfgrids_type = "minimax";
 std::string Params::chi_parallel_routing = "auto";

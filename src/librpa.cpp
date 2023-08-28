@@ -16,6 +16,7 @@
 #include "constants.h"
 #include "ri.h"
 #include "librpa_main.h"
+#include "params.h"
 void set_dimension(int nspins, int nkpts, int nstates, int nbasis,int natoms)
 {
     meanfield.set(nspins, nkpts, nstates, nbasis);
@@ -37,11 +38,11 @@ void set_wg_ekb_efermi(int nspins, int nkpts, int nstates, double* wg, double* e
         swg[is]*=(1.0/nkpts);
         
     }
-    for(int is=0;is!=nspins;is++)
-    {
-        print_matrix(" eskb",eskb[is]);
-        print_matrix(" swg",swg[is]);
-    }
+    // for(int is=0;is!=nspins;is++)
+    // {
+    //     print_matrix(" eskb",eskb[is]);
+    //     print_matrix(" swg",swg[is]);
+    // }
 }
 
 void set_ao_basis_wfc(int is, int ik, double* wfc_real, double* wfc_imag)
@@ -170,7 +171,7 @@ void set_aux_coulomb_k_atom_pair(int I, int J, int naux_mu, int naux_nu, int ik,
     {
         Vq[I][J][qvec] = vq_ptr;
     }
-    print_complex_matrix("Vq",(*Vq[I][J][qvec]));
+    //print_complex_matrix("Vq",(*Vq[I][J][qvec]));
 }
 
 void set_librpa_params()
@@ -182,6 +183,12 @@ void set_librpa_params()
 void run_librpa_main(MPI_Comm comm_in)
 {
     init_N_all_mu();
+    std::ofstream outputFile("LibRPA_cout.txt");
+    std::streambuf* originalCoutBuffer = std::cout.rdbuf();
+    std::cout.rdbuf(outputFile.rdbuf());
+    
     librpa_main(comm_in);
-
+    
+    std::cout.rdbuf(originalCoutBuffer);
+    outputFile.close();
 }

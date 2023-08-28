@@ -1,5 +1,5 @@
 #include "profiler.h"
-
+#include "params.h"
 #include <ctime>
 #include <string>
 #include <cstring>

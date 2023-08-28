@@ -491,7 +491,7 @@ void Chi0::build_chi0_q_space_time_R_tau_routing(const atpair_R_mat_t &LRI_Cs,
                 auto Mu = atpair.first;
                 auto Nu = atpair.second;
                 chi0_q[freq][q][Mu][Nu].create(atom_mu[Mu], atom_mu[Nu]);
-                cout << "nr/nc chi0_q_tmp: " << chi0_q_tmp[ifreq][q][Mu][Nu].nr << ", "<< chi0_q_tmp[ifreq][q][Mu][Nu].nc << endl;
+                //cout << "nr/nc chi0_q_tmp: " << chi0_q_tmp[ifreq][q][Mu][Nu].nr << ", "<< chi0_q_tmp[ifreq][q][Mu][Nu].nc << endl;
                 /* cout << "nr/nc chi0_q: " << chi0_q[ifreq][iq][Mu][Nu].nr << ", "<< chi0_q[ifreq][iq][Mu][Nu].nc << endl; */
                 mpi_comm_world_h.reduce_ComplexMatrix(chi0_q_tmp[freq][q][Mu][Nu], chi0_q[freq][q][Mu][Nu], 0);
                 /* if (LIBRPA::mpi_comm_world_h.myid==0 && Mu == 0 && Nu == 0 && ifreq == 0 && q == Vector3_Order<double>{0, 0, 0}) */
