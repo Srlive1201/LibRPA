@@ -111,6 +111,7 @@ static void customPrint(const char* format, ...) {
     outputFile.flush();
     va_end(args);
 }
+
 #define printf customPrint
 
 #endif 

@@ -21,6 +21,7 @@ int main(int argc, char **argv)
     blacs_ctxt_world_h.init();
     blacs_ctxt_world_h.set_square_grid();
 
+    Params::output_file="LibRPA_driver_output.txt";
     Profiler::start("total", "Total");
 
     Profiler::start("driver_io_init", "Driver IO Initialization");

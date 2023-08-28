@@ -37,10 +37,7 @@ void Chi0::build(const atpair_R_mat_t &LRI_Cs,
     gf_save = gf_discard = 0;
     // reset chi0_q in case the method was called before
     chi0_q.clear();
-    for(int ia=0;ia!=atom_nw.size();ia++)
-    {
-        printf("atom: %d,  nw: %d,  mu: %d\n",ia, atom_nw[ia],atom_mu[ia]);
-    }
+
     // prepare the time-freq grids
     switch (gt)
     {
@@ -204,14 +201,14 @@ void Chi0::build_chi0_q_space_time(const atpair_R_mat_t &LRI_Cs,
     }
     else if ( chi_parallel_type == parallel_type::R_TAU)
     {
-        if (mpi_comm_world_h.is_root())
-            cout << "R_tau_routing" << endl;
+        // if (para_mpi.is_master())
+        //     cout << "R_tau_routing" << endl;
         build_chi0_q_space_time_R_tau_routing(LRI_Cs, R_period, atpairs_ABF, qlist);
     }
     else
     {
-        if (mpi_comm_world_h.is_root())
-            cout << "atom_pair_routing" << endl;
+        // if (para_mpi.is_master())
+        //     cout << "atom_pair_routing" << endl;
         build_chi0_q_space_time_atom_pair_routing(LRI_Cs, R_period, atpairs_ABF, qlist);
     }
 }
@@ -481,7 +478,6 @@ void Chi0::build_chi0_q_space_time_R_tau_routing(const atpair_R_mat_t &LRI_Cs,
     omp_destroy_lock(&chi0_lock);
     // Reduce to MPI
 #pragma omp barrier
-    cout<<"tfg.size: "<<tfg.size()<<"   q.size: "<<qlist.size()<<"  atp.size: "<<atpairs_ABF.size()<<endl;
     for ( int ifreq = 0; ifreq < tfg.size(); ifreq++ )
     {
         double freq = tfg.get_freq_nodes()[ifreq];
@@ -491,17 +487,17 @@ void Chi0::build_chi0_q_space_time_R_tau_routing(const atpair_R_mat_t &LRI_Cs,
                 auto Mu = atpair.first;
                 auto Nu = atpair.second;
                 chi0_q[freq][q][Mu][Nu].create(atom_mu[Mu], atom_mu[Nu]);
-                //cout << "nr/nc chi0_q_tmp: " << chi0_q_tmp[ifreq][q][Mu][Nu].nr << ", "<< chi0_q_tmp[ifreq][q][Mu][Nu].nc << endl;
+                /* cout << "nr/nc chi0_q_tmp: " << chi0_q_tmp[ifreq][iq][Mu][Nu].nr << ", "<< chi0_q_tmp[ifreq][iq][Mu][Nu].nc << endl; */
                 /* cout << "nr/nc chi0_q: " << chi0_q[ifreq][iq][Mu][Nu].nr << ", "<< chi0_q[ifreq][iq][Mu][Nu].nc << endl; */
                 mpi_comm_world_h.reduce_ComplexMatrix(chi0_q_tmp[freq][q][Mu][Nu], chi0_q[freq][q][Mu][Nu], 0);
                 /* if (LIBRPA::mpi_comm_world_h.myid==0 && Mu == 0 && Nu == 0 && ifreq == 0 && q == Vector3_Order<double>{0, 0, 0}) */
                 /* if (LIBRPA::mpi_comm_world_h.myid==0 && Mu == 0 && Nu == 0 && ifreq == 0 ) */
-                // if (LIBRPA::mpi_comm_world_h.myid==0 && ifreq == 0 && q == Vector3_Order<double>{0, 0, 0}) 
-                // { 
-                //     cout <<  "freq: " << freq << ", q: " << q << endl;
-                //     printf("Mu %zu Nu %zu\n", Mu, Nu); 
-                //     print_complex_matrix("chi0_q ap, first freq first q", chi0_q[freq][q][Mu][Nu]); 
-                // } 
+                /* if (LIBRPA::mpi_comm_world_h.myid==0 && ifreq == 0 && q == Vector3_Order<double>{0, 0, 0}) */
+                /* { */
+                /*     cout <<  "freq: " << freq << ", q: " << q << endl; */
+                /*     printf("Mu %zu Nu %zu\n", Mu, Nu); */
+                /*     print_complex_matrix("chi0_q ap, first freq first q", chi0_q[freq][q][Mu][Nu]); */
+                /* } */
                 chi0_q_tmp[freq][q][Mu].erase(Nu);
             }
     }
