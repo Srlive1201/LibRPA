@@ -4,6 +4,7 @@
 #include <string>
 #include <dirent.h>
 #include <algorithm>
+#include <unordered_map>
 #include <parallel_mpi.h>
 #include <malloc.h>
 #include "atoms.h"
@@ -162,6 +163,52 @@ size_t READ_AIMS_Cs(const string &dir_path, double threshold,const vector<atpair
     return cs_discard;
 }
 
+size_t READ_AIMS_Cs_evenly_distribute(const string &dir_path, double threshold, int myid, int nprocs)
+{
+    size_t cs_discard = 0;
+    struct dirent *ptr;
+    DIR *dir;
+    dir = opendir(dir_path.c_str());
+    vector<string> files;
+    unordered_map<string, vector<size_t>> files_Cs_ids_this_proc;
+    int Cs_keep_total = 0;
+
+    while ((ptr = readdir(dir)) != NULL)
+    {
+        string fn(ptr->d_name);
+        if (fn.find("Cs_data") == 0)
+        {
+            files.push_back(fn);
+            auto ids_keep_this_file = handle_Cs_file_dry(fn, threshold);
+            for (int id = 0; id < ids_keep_this_file.size(); id++)
+            {
+                int id_global = id + Cs_keep_total;
+                if (id_global % nprocs == myid) files_Cs_ids_this_proc[fn].push_back(id);
+            }
+            Cs_keep_total += ids_keep_this_file.size();
+        }
+    }
+    closedir(dir);
+    dir = NULL;
+
+    for (const auto& fn_ids: files_Cs_ids_this_proc)
+    {
+        cs_discard += handle_Cs_file_by_ids(fn_ids.first, threshold, fn_ids.second);
+    }
+
+    // initialize basis set object
+    LIBRPA::atomic_basis_wfc.set(atom_nw);
+    LIBRPA::atomic_basis_abf.set(atom_mu);
+    
+    atom_mu_part_range.resize(atom_mu.size());
+    atom_mu_part_range[0]=0;
+    for(int I=1;I!=atom_mu.size();I++)
+        atom_mu_part_range[I]=atom_mu.at(I-1)+atom_mu_part_range[I-1];
+    
+    N_all_mu=atom_mu_part_range[natom-1]+atom_mu[natom-1];
+    return cs_discard;
+}
+
 size_t get_natom_ncell_from_first_Cs_file(const string file_path)
 {
     cout<<file_path<<endl;
@@ -189,7 +236,7 @@ void read_dielec_func(const string &file_path, std::vector<double> &omegas, std:
     ifs.close();
 }
 
-size_t handle_Cs_file(const string &file_path, double threshold,const vector<atpair_t> &local_atpair)
+size_t handle_Cs_file(const string &file_path, double threshold, const vector<atpair_t> &local_atpair)
 {
     
     set<size_t> loc_atp_index;
@@ -253,7 +300,107 @@ size_t handle_Cs_file(const string &file_path, double threshold,const vector<atp
             Cs[ia1][ia2][box] = cs_ptr;
         else
             cs_discard++;
-        // cout<<" READ Cs, INDEX:  "<<ia1<<"   "<<ia2<<"   "<<box<<"   "<<(*Cs.at(ia1).at(ia2).at(box))(n_i*n_j-1,n_mu-1)<<endl;
+    }
+    return cs_discard;
+}
+
+std::vector<size_t> handle_Cs_file_dry(const string &file_path, double threshold)
+{
+    std::vector<size_t> Cs_ids_keep;
+    string natom_s, ncell_s, ia1_s, ia2_s, ic_1, ic_2, ic_3, i_s, j_s, mu_s, Cs_ele;
+    ifstream infile;
+    infile.open(file_path);
+    infile >> natom_s >> ncell_s;
+    natom = stoi(natom_s);
+    ncell = stoi(ncell_s);
+
+    size_t id = 0;
+    while (infile.peek() != EOF)
+    {
+        infile >> ia1_s;
+        if (infile.peek() == EOF)
+            break;
+        infile >> ia2_s >> ic_1 >> ic_2 >> ic_3 >> i_s >> j_s >> mu_s;
+        int n_i = stoi(i_s);
+        int n_j = stoi(j_s);
+        int n_mu = stoi(mu_s);
+
+        double maxval = -1.0;
+        for (int i = 0; i != n_i; i++)
+            for (int j = 0; j != n_j; j++)
+                for (int mu = 0; mu != n_mu; mu++)
+                {
+                    infile >> Cs_ele;
+                    maxval = std::max(maxval, abs(stod(Cs_ele)));
+                }
+        if (maxval >= threshold)
+            Cs_ids_keep.push_back(id);
+        id++;
+    }
+    return Cs_ids_keep;
+}
+
+size_t handle_Cs_file_by_ids(const string &file_path, double threshold, const vector<size_t> &ids)
+{
+    
+    size_t cs_discard = 0;
+    string natom_s, ncell_s, ia1_s, ia2_s, ic_1, ic_2, ic_3, i_s, j_s, mu_s, Cs_ele;
+    ifstream infile;
+    infile.open(file_path);
+    infile >> natom_s >> ncell_s;
+    natom = stoi(natom_s);
+    ncell = stoi(ncell_s);
+    /* cout<<"  Natom  Ncell  "<<natom<<"  "<<ncell<<endl; */
+    // for(int loop=0;loop!=natom*natom*ncell;loop++)
+    size_t id = 0;
+    while (infile.peek() != EOF)
+    {
+        infile >> ia1_s >> ia2_s >> ic_1 >> ic_2 >> ic_3 >> i_s;
+        if (infile.peek() == EOF)
+            break;
+        // cout << " ia1_s,ia2_s: " << ia1_s << "  " << ia2_s << endl;
+        infile >> j_s >> mu_s;
+        // cout<<ic_1<<mu_s<<endl;
+        int ia1 = stoi(ia1_s) - 1;
+        int ia2 = stoi(ia2_s) - 1;
+        int ic1 = stoi(ic_1);
+        int ic2 = stoi(ic_2);
+        int ic3 = stoi(ic_3);
+        int n_i = stoi(i_s);
+        int n_j = stoi(j_s);
+        int n_mu = stoi(mu_s);
+
+        atom_nw.insert(pair<int, int>(ia1, n_i));
+        atom_mu.insert(pair<int, int>(ia1, n_mu));
+        Vector3_Order<int> box(ic1, ic2, ic3);
+
+        if (std::find(ids.cbegin(), ids.cend(), id) != ids.cend())
+        {
+            shared_ptr<matrix> cs_ptr = make_shared<matrix>();
+            cs_ptr->create(n_i * n_j, n_mu);
+
+            for (int i = 0; i != n_i; i++)
+                for (int j = 0; j != n_j; j++)
+                    for (int mu = 0; mu != n_mu; mu++)
+                    {
+                        infile >> Cs_ele;
+                        (*cs_ptr)(i * n_j + j, mu) = stod(Cs_ele);
+                    }
+            Cs[ia1][ia2][box] = cs_ptr;
+        }
+        else
+        {
+            double maxval = -1.0;
+            for (int i = 0; i != n_i; i++)
+                for (int j = 0; j != n_j; j++)
+                    for (int mu = 0; mu != n_mu; mu++)
+                    {
+                        infile >> Cs_ele;
+                        maxval = std::max(maxval, abs(stod(Cs_ele)));
+                    }
+            if (maxval < threshold) cs_discard++;
+        }
+        id++;
     }
     return cs_discard;
 }

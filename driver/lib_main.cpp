@@ -146,9 +146,29 @@ int main(int argc, char **argv)
         //     printf("   |process %d , local_atom_pair:  %d,  %d\n", mpi_comm_world_h.myid,ap.first,ap.second);
         READ_Vq_Row("./", "coulomb_mat", Params::vq_threshold, Vq, local_atpair);
     }
+    else if(chi_parallel_type == parallel_type::LIBRI_USED)
+    {
+        if (LIBRPA::mpi_comm_world_h.is_root()) printf("Evenly distributed Cs and V for LibRI\n");
+        READ_AIMS_Cs_evenly_distribute("./", Params::cs_threshold, mpi_comm_world_h.myid, mpi_comm_world_h.nprocs);
+        for (int i = 0; i < mpi_comm_world_h.nprocs; i++)
+        {
+            if (i == mpi_comm_world_h.myid)
+            {
+                printf("| process %d, size of Cs: %d\n", LIBRPA::mpi_comm_world_h.myid, get_num_keys(Cs));
+            }
+            mpi_comm_world_h.barrier();
+        }
+
+        // Vq distributed using the same strategy
+        // There should be not duplicate for V
+        auto trangular_loc_atpair= dispatch_upper_trangular_tasks(natom,blacs_ctxt_world_h.myid,blacs_ctxt_world_h.nprows,blacs_ctxt_world_h.npcols,blacs_ctxt_world_h.myprow,blacs_ctxt_world_h.mypcol);
+        for(auto &iap:trangular_loc_atpair)
+            local_atpair.push_back(iap);
+        READ_Vq_Row("./", "coulomb_mat", Params::vq_threshold, Vq, local_atpair);
+    }
     else
     {
-        if (LIBRPA::mpi_comm_world_h.is_root()) printf("Full dispatching of atom pairs\n");
+        if (LIBRPA::mpi_comm_world_h.is_root()) printf("Complte copy of Cs and V on each process\n");
         local_atpair = generate_atom_pair_from_nat(natom, false);
         READ_AIMS_Cs("./", Params::cs_threshold,local_atpair );
         printf("| process %d, size of Cs from local_atpair: %d\n", LIBRPA::mpi_comm_world_h.myid, get_num_keys(Cs));
@@ -156,22 +176,23 @@ int main(int argc, char **argv)
         print_keys(LIBRPA::fout_para, Cs);
         READ_Vq_Full("./", "coulomb_mat", Params::vq_threshold, Vq);
     }
+
     // debug, check available Coulomb blocks on each process
-    LIBRPA::fout_para << "Read Coulomb blocks in process\n";
-    for (const auto& IJqcoul: Vq)
-    {
-        const auto& I = IJqcoul.first;
-        for (const auto& Jqcoul: IJqcoul.second)
-        {
-            const auto& J = Jqcoul.first;
-            for (const auto& qcoul: Jqcoul.second)
-            {
-                LIBRPA::fout_para << I << " " << J << " " << qcoul.first << "\n";
-            }
-        }
-    }
-    std::flush(LIBRPA::fout_para);
-    mpi_comm_world_h.barrier();
+    // LIBRPA::fout_para << "Read Coulomb blocks in process\n";
+    // for (const auto& IJqcoul: Vq)
+    // {
+    //     const auto& I = IJqcoul.first;
+    //     for (const auto& Jqcoul: IJqcoul.second)
+    //     {
+    //         const auto& J = Jqcoul.first;
+    //         for (const auto& qcoul: Jqcoul.second)
+    //         {
+    //             LIBRPA::fout_para << I << " " << J << " " << qcoul.first << "\n";
+    //         }
+    //     }
+    // }
+    // std::flush(LIBRPA::fout_para);
+    // mpi_comm_world_h.barrier();
     Profiler::stop("driver_io_init");
 
     // malloc_trim(0);
@@ -183,13 +204,6 @@ int main(int argc, char **argv)
     // para_mpi.mpi_barrier();
     // if(para_mpi.is_master())
     //     system("free -m");
-    //READ_Vq_Row("./", "coulomb_mat", Params::vq_threshold, Vq, local_atpair);
-    /* if(argv[1][0]=='0') */
-    /*     ap_chi0.chi0_main(argv[1],argv[2]);  */
-    /* else */
-        /* cal_chi0.chi0_main(argv[1],argv[2]);  */
-    /* return 0; */
-    // try the new version
     Chi0 chi0(meanfield, klist, Params::nfreq);
     chi0.gf_R_threshold = Params::gf_R_threshold;
 

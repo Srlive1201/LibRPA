@@ -284,7 +284,7 @@ void Exx::build_exx_orbital_energy_LibRI(const atpair_R_mat_t &LRI_Cs,
         Profiler::stop("build_exx_orbital_energy_4");
         printf("Task %4d: cal_Hs elapsed time: %f\n", mpi_comm_world_h.myid, Profiler::get_wall_time_last("build_exx_orbital_energy_4"));
         print_keys(LIBRPA::fout_para, exx_libri.Hs);
-        LIBRPA::fout_para << "exx_libri.Hs:\n" << exx_libri.Hs << endl;
+        // LIBRPA::fout_para << "exx_libri.Hs:\n" << exx_libri.Hs << endl;
 
         // collect necessary data
         Profiler::start("build_exx_orbital_energy_5", "Collect Hexx IJ from world");
