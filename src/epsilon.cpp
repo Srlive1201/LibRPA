@@ -1414,14 +1414,16 @@ compute_Wc_freq_q_blacs(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps
             Profiler::stop("epsilon_prepare_coulwc_sqrt_2");
 
             Profiler::start("epsilon_prepare_coulwc_sqrt_3", "Collect 2D-block from IJ");
-            for (const auto &IJ: set_IJ_nabf_nabf)
-            {
-                const auto &I = IJ.first;
-                const auto &J = IJ.second;
-                collect_block_from_IJ_storage_syhe(
-                    coulwc_block, desc_nabf_nabf, LIBRPA::atomic_basis_abf, IJ.first,
-                    IJ.second, true, CONE, IJq_coul.at(I).at({J, qa}).ptr(), MAJOR::ROW);
-            }
+            // for (const auto &IJ: set_IJ_nabf_nabf)
+            // {
+            //     const auto &I = IJ.first;
+            //     const auto &J = IJ.second;
+            //     collect_block_from_IJ_storage_syhe(
+            //         coulwc_block, desc_nabf_nabf, LIBRPA::atomic_basis_abf, IJ.first,
+            //         IJ.second, true, CONE, IJq_coul.at(I).at({J, qa}).ptr(), MAJOR::ROW);
+            // }
+            collect_block_from_ALL_IJ_Tensor(coulwc_block, desc_nabf_nabf, LIBRPA::atomic_basis_abf,
+                                             qa, true, CONE, IJq_coul, MAJOR::ROW);
             Profiler::stop("epsilon_prepare_coulwc_sqrt_3");
             Profiler::start("epsilon_prepare_coulwc_sqrt_4", "Perform square root");
             power_hemat_blacs(coulwc_block, desc_nabf_nabf, coul_eigen_block, desc_nabf_nabf, n_singular_coulwc, eigenvalues.c, 0.5, Params::sqrt_coulomb_threshold);
@@ -1490,9 +1492,11 @@ compute_Wc_freq_q_blacs(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps
                     LIBRPA::fout_para << "Fail to find " << I << " " << J << " " << qa << ": " << e.what() << "\n";
                     std::flush(LIBRPA::fout_para);
                 }
-                collect_block_from_IJ_storage_syhe(
-                    coul_block, desc_nabf_nabf, LIBRPA::atomic_basis_abf, IJ.first,
-                    IJ.second, true, CONE, IJq_coul.at(I).at({J, qa}).ptr(), MAJOR::ROW);
+                // collect_block_from_IJ_storage_syhe(
+                //     coul_block, desc_nabf_nabf, LIBRPA::atomic_basis_abf, IJ.first,
+                //     IJ.second, true, CONE, IJq_coul.at(I).at({J, qa}).ptr(), MAJOR::ROW);
+                collect_block_from_ALL_IJ_Tensor(coul_block, desc_nabf_nabf, LIBRPA::atomic_basis_abf,
+                                                 qa, true, CONE, IJq_coul, MAJOR::ROW);
                 // printf("myid %d I %d J %d nr %d nc %d\n%s",
                 //        LIBRPA::blacs_ctxt_world_h.myid, I, J,
                 //        coul_block.nr(), coul_block.nc(),
@@ -1546,14 +1550,16 @@ compute_Wc_freq_q_blacs(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps
                 // LIBRPA::fout_para << "chi0_libri" << endl << chi0_libri;
                 const auto IJq_chi0 = RI::Communicate_Tensors_Map_Judge::comm_map2_first(LIBRPA::mpi_comm_world_h.comm, chi0_libri, s0_s1.first, s0_s1.second);
                 // LIBRPA::fout_para << "IJq_chi0" << endl << IJq_chi0;
-                for (const auto &IJ: set_IJ_nabf_nabf)
-                {
-                    const auto &I = IJ.first;
-                    const auto &J = IJ.second;
-                    collect_block_from_IJ_storage_syhe(
-                        chi0_block, desc_nabf_nabf, LIBRPA::atomic_basis_abf, IJ.first,
-                        IJ.second, true, CONE, IJq_chi0.at(I).at({J, qa}).ptr(), MAJOR::ROW);
-                }
+                // for (const auto &IJ: set_IJ_nabf_nabf)
+                // {
+                //     const auto &I = IJ.first;
+                //     const auto &J = IJ.second;
+                //     collect_block_from_IJ_storage_syhe(
+                //         chi0_block, desc_nabf_nabf, LIBRPA::atomic_basis_abf, IJ.first,
+                //         IJ.second, true, CONE, IJq_chi0.at(I).at({J, qa}).ptr(), MAJOR::ROW);
+                // }
+                collect_block_from_ALL_IJ_Tensor(chi0_block, desc_nabf_nabf, LIBRPA::atomic_basis_abf,
+                                                 qa, true, CONE, IJq_chi0, MAJOR::ROW);
                 // sprintf(fn, "chi_ifreq_%d_iq_%d.mtx", ifreq, iq);
                 // print_matrix_mm_file_parallel(fn, chi0_block, desc_nabf_nabf);
             }
