@@ -120,7 +120,7 @@ CorrEnergy compute_RPA_correlation_blacs_2d(const Chi0 &chi0, const atpair_k_cpl
             //     //        str(coul_block).c_str());
             // }
             collect_block_from_ALL_IJ_Tensor(coul_block, desc_nabf_nabf, LIBRPA::atomic_basis_abf,
-                        std::array<double, 3>{0,0,0}, true, CONE, IJq_coul, MAJOR::ROW);
+                                             qa, true, CONE, IJq_coul, MAJOR::ROW);
             double block_end = omp_get_wtime();
             printf("Vq Time  myid: %d  arr_time: %f  comm_time: %f   block_time: %f   pair_size: %d\n",mpi_comm_world_h.myid,arr_end-vq_begin, comm_end-comm_begin, block_end-block_begin,set_IJ_nabf_nabf.size());
             mpi_comm_world_h.barrier();
@@ -175,7 +175,7 @@ CorrEnergy compute_RPA_correlation_blacs_2d(const Chi0 &chi0, const atpair_k_cpl
                 // LIBRPA::fout_para << "IJq_chi0" << endl << IJq_chi0;
                 double chi_end_comm = omp_get_wtime();
                 collect_block_from_ALL_IJ_Tensor(chi0_block, desc_nabf_nabf, LIBRPA::atomic_basis_abf,
-                        std::array<double, 3>{0,0,0}, true, CONE, IJq_chi0, MAJOR::ROW);
+                                                 qa, true, CONE, IJq_chi0, MAJOR::ROW);
                 mpi_comm_world_h.barrier();
                 double chi_end_2d = omp_get_wtime();
 
