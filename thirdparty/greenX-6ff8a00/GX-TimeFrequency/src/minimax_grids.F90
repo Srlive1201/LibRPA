@@ -184,7 +184,7 @@ contains
 
     ! Internal variables
     integer, parameter                                :: cos_t_to_cos_w = 1
-    integer                                           :: i_point, j_point
+    ! integer                                           :: i_point, j_point
     real(kind=dp)                                     :: e_range, scaling
     real(kind=dp), dimension(:), allocatable          :: x_tw
 
@@ -322,6 +322,9 @@ contains
     integer, allocatable, dimension(:)                 :: iwork      
     real(kind=dp), allocatable, dimension(:)           :: vec_S, vec_UT_psi, work     
     real(kind=dp), allocatable, dimension(:, :)        :: mat_U, mat_VT, mat_VT_s
+
+    external :: dgemm
+    external :: dgesdd
 
     ! Begin work
     ierr = 0
