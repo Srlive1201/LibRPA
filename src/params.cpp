@@ -3,6 +3,44 @@
 #include <utility>
 #include <vector>
 
+std::string Params::task = "rpa";
+std::string Params::output_file="LibRPA_output.txt";
+std::string Params::output_dir = "librpa.d";
+std::string Params::tfgrids_type = "minimax";
+std::string Params::chi_parallel_routing = "auto";
+std::string Params::exx_parallel_routing = "auto";
+std::string Params::gw_parallel_routing = "auto";
+
+int Params::nfreq = 0;
+
+double Params::gf_R_threshold = 1e-4;
+double Params::cs_threshold = 1e-6;
+double Params::vq_threshold = 0;
+double Params::sqrt_coulomb_threshold = 1e-8;
+double Params::libri_chi0_threshold_CSM = 0.0;
+double Params::libri_chi0_threshold_C = 0.0;
+double Params::libri_chi0_threshold_G = 0.0;
+double Params::libri_exx_threshold_CSM = 0.0;
+double Params::libri_exx_threshold_C = 0.0;
+double Params::libri_exx_threshold_D = 0.0;
+double Params::libri_exx_threshold_V = 0.0;
+
+bool Params::use_libri_chi0 = false;
+bool Params::use_libri_exx = true;
+bool Params::use_scalapack_ecrpa = false;
+bool Params::use_scalapack_gw_wc = false;
+bool Params::debug = false;
+bool Params::use_libri_gw = true;
+bool Params::output_gw_sigc_mat = true;
+bool Params::replace_w_head = true;
+
+/*!
+ * 0: direct read from input
+ * 1: dielectric model fitting
+ * 2: cubic-spline interpolation
+ */
+int Params::option_dielect_func = 2;
+
 void Params::check_consistency()
 {
 }
@@ -27,22 +65,28 @@ void Params::print()
     const std::vector<std::pair<std::string, int>> int_params
         {
             {"nfreq", nfreq},
+            {"option_dielect_func", option_dielect_func},
         };
 
     const std::vector<std::pair<std::string, std::string>> str_params
         {
             {"task", task},
+            {"output_dir", output_dir},
             {"tfgrids_type", tfgrids_type},
             {"chi_parallel_routing", chi_parallel_routing},
             {"exx_parallel_routing", exx_parallel_routing},
+            {"gw_parallel_routing", gw_parallel_routing},
         };
 
     const std::vector<std::pair<std::string, bool>> bool_params
         {
             {"use_libri_chi0", use_libri_chi0},
             {"use_libri_exx", use_libri_exx},
+            {"use_libri_gw", use_libri_gw},
             {"use_scalapack_ecrpa", use_scalapack_ecrpa},
             {"use_scalapack_gw_wc", use_scalapack_gw_wc},
+            {"output_gw_sigc_mat", output_gw_sigc_mat},
+            {"replace_w_head", replace_w_head},
         };
 
     for (const auto &param: str_params)

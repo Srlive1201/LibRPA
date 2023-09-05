@@ -1,21 +1,30 @@
-#include "atomic_basis.h"
 #include "gw.h"
+
+#include "atomic_basis.h"
+#include "matrix_m_parallel_utils.h"
+#include "profiler.h"
 #include "epsilon.h"
-#include "input.h"
+#include "constants.h"
+#include "pbc.h"
 #include "libri_utils.h"
-#ifdef __USE_LIBRI
+
+#include <map>
+#ifdef LIBRPA_USE_LIBRI
+#include <RI/global/Tensor.h>
 #include <RI/physics/GW.h>
-#include "print_stl.h"
+// #include "print_stl.h"
 #endif
 
 namespace LIBRPA
 {
 
 G0W0::G0W0(const MeanField &mf,
-             const vector<Vector3_Order<double>>& kfrac_list,
-             const TFGrids &tfg)
+           const vector<Vector3_Order<double>>& kfrac_list,
+           const TFGrids &tfg)
     : mf(mf), kfrac_list(kfrac_list), tfg(tfg)
-{}
+{
+    d_sigc_built = false;
+}
 
 void G0W0::build_spacetime_LibRI(
     const atpair_R_mat_t &LRI_Cs,
@@ -37,7 +46,8 @@ void G0W0::build_spacetime_LibRI(
         mpi_comm_world_h.barrier();
         throw std::logic_error("no time grids");
     }
-#ifndef __USE_LIBRI
+    mpi_comm_world_h.barrier();
+#ifndef LIBRPA_USE_LIBRI
     if (mpi_comm_world_h.myid == 0)
     {
         cout << "LIBRA::G0W0::build_spacetime is only implemented on top of LibRI" << endl;
@@ -46,7 +56,9 @@ void G0W0::build_spacetime_LibRI(
     mpi_comm_world_h.barrier();
     throw std::logic_error("compilation");
 #else
+    Profiler::start("g0w0_build_spacetime_1", "Tranform Wc (q,w) -> (R,t)");
     const auto Wc_tau_R = CT_FT_Wc_freq_q(Wc_freq_q, tfg, Rlist);
+    Profiler::stop("g0w0_build_spacetime_1");
     RI::G0W0<int, int, 3, double> g0w0_libri;
     map<int,std::array<double,3>> atoms_pos;
     for (int i = 0; i != natom; i++)
@@ -54,44 +66,80 @@ void G0W0::build_spacetime_LibRI(
     std::array<int,3> period_array{R_period.x,R_period.y,R_period.z};
     g0w0_libri.set_parallel(MPI_COMM_WORLD, atoms_pos, lat_array, period_array);
 
-    // FIXME: duplicate codes to prepare LibRI objects from chi0
-    std::vector<std::pair<atom_t, std::pair<atom_t, Vector3_Order<int>>>> IJRs_local;
-    size_t n_Cs_IJRs = 0;
-    size_t n_Cs_IJRs_local = 0;
-    for(auto &Ip:LRI_Cs)
-        for(auto &Jp:Ip.second)
-            for(auto &Rp:Jp.second)
-            {
-                const auto &I = Ip.first;
-                const auto &J = Jp.first;
-                const auto &R=Rp.first;
-                if ((n_Cs_IJRs++) % mpi_comm_world_h.nprocs == mpi_comm_world_h.myid)
-                {
-                    IJRs_local.push_back({I, {J, R}});
-                    n_Cs_IJRs_local++;
-                }
-            }
-    if (mpi_comm_world_h.myid == 0)
-        printf("Total count of Cs: %zu\n", n_Cs_IJRs);
-    printf("| Number of Cs on Proc %4d: %zu\n", mpi_comm_world_h.myid, n_Cs_IJRs_local);
+    Profiler::start("g0w0_build_spacetime_2", "Prepare libRI C object");
 
     std::map<int, std::map<std::pair<int,std::array<int,3>>,RI::Tensor<double>>> Cs_libri;
-    for (auto &IJR: IJRs_local)
+    // FIXME: duplicate codes to prepare LibRI objects from chi0
+    if(gw_parallel_type == parallel_type::LIBRI_USED)
     {
-        const auto I = IJR.first;
-        const auto J = IJR.second.first;
-        const auto R = IJR.second.second;
-        const std::array<int,3> Ra{R.x,R.y,R.z};
-        const auto mat = transpose(*(LRI_Cs.at(I).at(J).at(R)));
-        std::valarray<double> mat_array(mat.c, mat.size);
-        std::shared_ptr<std::valarray<double>> mat_ptr = std::make_shared<std::valarray<double>>();
-        *mat_ptr=mat_array;
-        // Tensor<double> Tmat({size_t((*mat).nr),size_t((*mat).nc)},mat_ptr);
-        Cs_libri[I][{J, Ra}] = RI::Tensor<double>({atomic_basis_abf.get_atom_nb(I),
-                                                   atomic_basis_wfc.get_atom_nb(I),
-                                                   atomic_basis_wfc.get_atom_nb(J)}, mat_ptr);
+        if (chi_parallel_type == parallel_type::R_TAU)
+        {
+            std::vector<std::pair<atom_t, std::pair<atom_t, Vector3_Order<int>>>> IJRs_local;
+            size_t n_Cs_IJRs = 0;
+            size_t n_Cs_IJRs_local = 0;
+            for(auto &Ip:LRI_Cs)
+                for(auto &Jp:Ip.second)
+                    for(auto &Rp:Jp.second)
+                    {
+                        const auto &I = Ip.first;
+                        const auto &J = Jp.first;
+                        const auto &R=Rp.first;
+                        if ((n_Cs_IJRs++) % mpi_comm_world_h.nprocs == mpi_comm_world_h.myid)
+                        {
+                            IJRs_local.push_back({I, {J, R}});
+                            n_Cs_IJRs_local++;
+                        }
+                    }
+            if (mpi_comm_world_h.myid == 0)
+                printf("Total count of Cs: %zu\n", n_Cs_IJRs);
+            printf("| Number of Cs on Proc %4d: %zu\n", mpi_comm_world_h.myid, n_Cs_IJRs_local);
+
+            for (auto &IJR: IJRs_local)
+            {
+                const auto I = IJR.first;
+                const auto J = IJR.second.first;
+                const auto R = IJR.second.second;
+                const std::array<int,3> Ra{R.x,R.y,R.z};
+                const auto mat = transpose(*(LRI_Cs.at(I).at(J).at(R)));
+                std::valarray<double> mat_array(mat.c, mat.size);
+                std::shared_ptr<std::valarray<double>> mat_ptr = std::make_shared<std::valarray<double>>();
+                *mat_ptr=mat_array;
+                // Tensor<double> Tmat({size_t((*mat).nr),size_t((*mat).nc)},mat_ptr);
+                Cs_libri[I][{J, Ra}] = RI::Tensor<double>({atomic_basis_abf.get_atom_nb(I),
+                                                           atomic_basis_wfc.get_atom_nb(I),
+                                                           atomic_basis_wfc.get_atom_nb(J)}, mat_ptr);
+            }
+        }
+        else if (chi_parallel_type == parallel_type::ATOM_PAIR)
+        {
+            for (auto &I_JRCs: LRI_Cs)
+            {
+                const auto &I = I_JRCs.first;
+                for (auto &J_RCs: I_JRCs.second)
+                {
+                    const auto &J = J_RCs.first;
+                    for (auto &R_Cs: J_RCs.second)
+                    {
+                        const auto &R = R_Cs.first;
+                        const std::array<int,3> Ra{R.x,R.y,R.z};
+                        const auto mat = transpose(*R_Cs.second);
+                        std::valarray<double> mat_array(mat.c, mat.size);
+                        std::shared_ptr<std::valarray<double>> mat_ptr = std::make_shared<std::valarray<double>>();
+                        *mat_ptr=mat_array;
+                        Cs_libri[I][{J, Ra}] = RI::Tensor<double>({atom_mu[I], atom_nw[I], atom_nw[J]}, mat_ptr);
+                    }
+                }
+            }
+        }
+    }
+    else
+    {
+        // Not implemented
+        MPI_Wrapper::barrier_world();
+        throw std::logic_error("not implemented");
     }
     g0w0_libri.set_Cs(Cs_libri, 0.0);
+    Profiler::stop("g0w0_build_spacetime_2");
 
     auto IJR_local_gf = dispatch_vector_prod(tot_atpair_ordered, Rlist, mpi_comm_world_h.myid, mpi_comm_world_h.nprocs, true, false);
     std::set<Vector3_Order<int>> Rs_local;
@@ -104,51 +152,58 @@ void G0W0::build_spacetime_LibRI(
     {
         for (auto itau = 0; itau != tfg.get_n_grids(); itau++)
         {
+            Profiler::start("g0w0_build_spacetime_3", "Prepare libRI Wc object");
+            // printf("task %d itau %d start\n", mpi_comm_world_h.myid, itau);
             const auto tau = tfg.get_time_nodes()[itau];
             // build the Wc LibRI object. Note <JI> has to be converted from <IJ>
             // by W_IJ(R) = W^*_JI(-R)
-            const auto &Wc_tau = Wc_tau_R.at(tau);
             std::map<int, std::map<std::pair<int, std::array<int, 3>>, RI::Tensor<double>>> Wc_libri;
-            for (const auto &I_JRWc: Wc_tau)
+            // in R-tau routing, some process can have zero time point
+            // check to avoid out-of-range by at()
+            // printf("task %d Wc_tau_R.count(tau) %zu\n", mpi_comm_world_h.myid, Wc_tau_R.count(tau));
+            if (Wc_tau_R.count(tau))
             {
-                const auto &I = I_JRWc.first;
-                const auto &nabf_I = atomic_basis_abf.get_atom_nb(I);
-                for (const auto &J_RWc: I_JRWc.second)
+                for (const auto &I_JRWc: Wc_tau_R.at(tau))
                 {
-                    const auto &J = J_RWc.first;
-                    const auto &nabf_J = atomic_basis_abf.get_atom_nb(J);
-                    for (const auto &R_Wc: J_RWc.second)
+                    const auto &I = I_JRWc.first;
+                    const auto &nabf_I = atomic_basis_abf.get_atom_nb(I);
+                    for (const auto &J_RWc: I_JRWc.second)
                     {
-                        const auto &R = R_Wc.first;
-                        // handle the <IJ(R)> block
-                        Wc_libri[I][{J, {R.x, R.y, R.z}}] = RI::Tensor<double>({nabf_I, nabf_J}, R_Wc.second.get_real().sptr());
-                        // cout << "I " << I << " J " << J <<  " R " << R << " tau " << tau << endl ;
-                        // cout << Wc_libri[I][{J, {R.x, R.y, R.z}}] << endl;
-                        // handle the <JI(R)> block
-                        if (I == J) continue;
-                        auto minusR = (-R) % R_period;
-                        if (J_RWc.second.count(minusR) == 0) continue;
-                        const auto Wc_IJmR = J_RWc.second.at(minusR).get_real().get_transpose();
-                        // cout << R_Wc.second << endl;
-                        // cout << Wc_IJmR << endl;
-                        Wc_libri[J][{I, {R.x, R.y, R.z}}] = RI::Tensor<double>({nabf_J, nabf_I}, Wc_IJmR.sptr());
+                        const auto &J = J_RWc.first;
+                        const auto &nabf_J = atomic_basis_abf.get_atom_nb(J);
+                        for (const auto &R_Wc: J_RWc.second)
+                        {
+                            const auto &R = R_Wc.first;
+                            // handle the <IJ(R)> block
+                            Wc_libri[I][{J, {R.x, R.y, R.z}}] = RI::Tensor<double>({nabf_I, nabf_J}, R_Wc.second.get_real().sptr());
+                            // cout << "I " << I << " J " << J <<  " R " << R << " tau " << tau << endl ;
+                            // cout << Wc_libri[I][{J, {R.x, R.y, R.z}}] << endl;
+                            // handle the <JI(R)> block
+                            if (I == J) continue;
+                            auto minusR = (-R) % R_period;
+                            if (J_RWc.second.count(minusR) == 0) continue;
+                            const auto Wc_IJmR = J_RWc.second.at(minusR).get_real().get_transpose();
+                            // cout << R_Wc.second << endl;
+                            // cout << Wc_IJmR << endl;
+                            Wc_libri[J][{I, {R.x, R.y, R.z}}] = RI::Tensor<double>({nabf_J, nabf_I}, Wc_IJmR.sptr());
+                        }
                     }
                 }
             }
-            // zmy debug check libri
-            // for (const auto &I_JR_Wc: Wc_libri)
-            // {
-            //     for (const auto &JR_Wc: I_JR_Wc.second)
-            //     {
-            //         cout << "I " << I_JR_Wc.first << " J " << JR_Wc.first.first << " R " << JR_Wc.first.second << endl;
-            //         cout << JR_Wc.second << endl;
-            //     }
-            // }
+            size_t n_obj_wc_libri = 0;
+            for (const auto &w: Wc_libri)
+            {
+                n_obj_wc_libri += w.second.size();
+            }
+            Profiler::stop("g0w0_build_spacetime_3");
 
             auto sigc_posi_tau = g0w0_libri.Sigc_tau;
             auto sigc_nega_tau = g0w0_libri.Sigc_tau;
 
+            Profiler::start("g0w0_build_spacetime_4", "Compute G(R,t) and G(R,-t)");
             const auto gf = mf.get_gf_real_imagtimes_Rs(ispin, kfrac_list, {tau, -tau}, {Rs_local.cbegin(), Rs_local.cend()});
+            Profiler::stop("g0w0_build_spacetime_4");
+
             for (auto t: {tau, -tau})
             {
                 std::map<int, std::map<std::pair<int, std::array<int, 3>>, RI::Tensor<double>>> gf_libri;
@@ -160,7 +215,7 @@ void G0W0::build_spacetime_LibRI(
                     const auto &n_J = atomic_basis_wfc.get_atom_nb(J);
                     const auto &R = IJR.second;
                     const auto &gf_global = gf.at(t).at(R);
-                    // cout << "R " << R << " t " << t << endl << gf_global << endl;
+
                     matrix gf_IJ_block(n_I, n_J);
                     {
                         for (int i = 0; i != n_I; i++)
@@ -173,23 +228,25 @@ void G0W0::build_spacetime_LibRI(
                         gf_libri[I][{J, {R.x, R.y, R.z}}] = RI::Tensor<double>({n_I, n_J}, mat_ptr);
                     }
                 }
-                // cout << Wc_libri << endl;
+                size_t n_obj_gf_libri = 0;
+                for (const auto &gf: gf_libri)
+                    n_obj_gf_libri += gf.second.size();
+
+                double wtime_g0w0_cal_sigc = omp_get_wtime();
+                Profiler::start("g0w0_build_spacetime_5", "Call libRI cal_Sigc");
                 g0w0_libri.cal_Sigc(gf_libri, 0.0, Wc_libri, 0.0);
+                Profiler::stop("g0w0_build_spacetime_5");
                 if (t > 0)
                     sigc_posi_tau = std::move(g0w0_libri.Sigc_tau);
                 else
                     sigc_nega_tau = std::move(g0w0_libri.Sigc_tau);
+                wtime_g0w0_cal_sigc = omp_get_wtime() - wtime_g0w0_cal_sigc;
+                printf("Task %4d. libRI G0W0, spin %1d, time grid %12.6f. Wc size %zu, GF size %zu. Wall time %f\n",
+                       mpi_comm_world_h.myid, ispin, t, n_obj_wc_libri, n_obj_gf_libri, wtime_g0w0_cal_sigc);
             }
-            // zmy debug
-            // for (const auto &I_JRsigc: sigc_posi_tau)
-            // {
-            //     for (const auto &JR_sigc: I_JRsigc.second)
-            //     {
-            //         cout << "I " << I_JRsigc.first << " J(R) " << JR_sigc.first.first << " " << JR_sigc.first.second << endl;
-            //         cout << JR_sigc.second;
-            //     }
-            // }
+
             // symmetrize and perform transformation
+            Profiler::start("g0w0_build_spacetime_6", "Transform Sigc (R,t) -> (q,w)");
             for (const auto &I_JR_sigc_posi: sigc_posi_tau)
             {
                 const auto &I = I_JR_sigc_posi.first;
@@ -202,13 +259,7 @@ void G0W0::build_spacetime_LibRI(
                     const auto &sigc_posi_block = JR_sigc_posi.second;
                     const auto &sigc_nega_block = sigc_nega_tau.at(I).at(JR_sigc_posi.first);
                     auto iR = std::distance(Rlist.cbegin(), std::find(Rlist.cbegin(), Rlist.cend(), Vector3_Order<int>{Ra[0], Ra[1], Ra[2]}));
-                    char fn[100];
-                    // sprintf(fn, "Sigc_tR_posi_ispin_%d_I_%d_J_%d_iR_%zu_itau_%d.mtx",
-                    //         ispin, I, J, iR, itau);
-                    // print_matrix_mm_file(matrix_m<double>(n_I, n_J, sigc_posi_block.ptr(), MAJOR::ROW), fn, 1e-10);
-                    // sprintf(fn, "Sigc_tR_nega_ispin_%d_I_%d_J_%d_iR_%zu_itau_%d.mtx",
-                    //         ispin, I, J, iR, itau);
-                    // print_matrix_mm_file(matrix_m<double>(n_I, n_J, sigc_nega_block.ptr(), MAJOR::ROW), fn, 1e-10);
+
                     // FIXME: I don't know why 0.5 is required here to get correct result as in FHI-aims
                     // will figure out later
                     auto sigc_cos = 0.5 * (sigc_posi_block + sigc_nega_block);
@@ -218,38 +269,119 @@ void G0W0::build_spacetime_LibRI(
                         const auto &kfrac = kfrac_list[ik];
                         const auto ang = (kfrac * Vector3_Order<double>(Ra[0], Ra[1], Ra[2])) * TWO_PI;
                         const auto kphase = complex<double>{std::cos(ang), std::sin(ang)} / double(mf.get_n_kpoints());
-                        // cout << kphase << endl;
+
                         for (int iomega = 0; iomega != tfg.get_n_grids(); iomega++)
                         {
                             const auto omega = tfg.get_freq_nodes()[iomega];
                             const auto t2f_sin = tfg.get_sintrans_t2f()(iomega, itau);
                             const auto t2f_cos = tfg.get_costrans_t2f()(iomega, itau);
-                            matrix_m<complex<double>> sigc_temp(n_I, n_J, MAJOR::COL);
+                            // row-major used here for libRI communication when building sigc_KS
+                            matrix_m<complex<double>> sigc_temp(n_I, n_J, MAJOR::ROW);
                             for (int i = 0; i != n_I; i++)
                                 for (int j = 0; j != n_J; j++)
                                 {
                                     sigc_temp(i, j) = std::complex<double>{sigc_cos(i, j) * t2f_cos, sigc_sin(i, j) * t2f_sin};
                                 }
                             sigc_temp *= kphase;
-                            if (sigc_is_freq_k_IJ.count(ispin) == 0 ||
-                                sigc_is_freq_k_IJ.at(ispin).count(omega) == 0 ||
-                                sigc_is_freq_k_IJ.at(ispin).at(omega).count(kfrac) == 0 ||
-                                sigc_is_freq_k_IJ.at(ispin).at(omega).at(kfrac).count(I) == 0 ||
-                                sigc_is_freq_k_IJ.at(ispin).at(omega).at(kfrac).at(I).count(J) == 0)
+                            if (sigc_is_f_k_IJ.count(ispin) == 0 ||
+                                sigc_is_f_k_IJ.at(ispin).count(omega) == 0 ||
+                                sigc_is_f_k_IJ.at(ispin).at(omega).count(kfrac) == 0 ||
+                                sigc_is_f_k_IJ.at(ispin).at(omega).at(kfrac).count(I) == 0 ||
+                                sigc_is_f_k_IJ.at(ispin).at(omega).at(kfrac).at(I).count(J) == 0)
                             {
-                                sigc_is_freq_k_IJ[ispin][omega][kfrac][I][J] = std::move(sigc_temp);
+                                sigc_is_f_k_IJ[ispin][omega][kfrac][I][J] = std::move(sigc_temp);
                             }
                             else
                             {
-                                sigc_is_freq_k_IJ[ispin][omega][kfrac][I][J] += sigc_temp;
+                                sigc_is_f_k_IJ[ispin][omega][kfrac][I][J] += sigc_temp;
                             }
                         }
                     }
                 }
             }
+            Profiler::stop("g0w0_build_spacetime_6");
         }
     }
+    d_sigc_built = true;
 #endif
+}
+
+void G0W0::build_sigc_matrix_KS() noexcept
+{
+    const complex<double> CONE{1.0, 0.0};
+    const int n_aos = mf.get_n_aos();
+    const int n_bands = mf.get_n_bands();
+    // char fn[80];
+    Array_Desc desc_nband_nao(blacs_ctxt_world_h);
+    desc_nband_nao.init_1b1p(n_aos, n_bands, 0, 0);
+    Array_Desc desc_nao_nao(blacs_ctxt_world_h);
+    desc_nao_nao.init_1b1p(n_aos, n_aos, 0, 0);
+    Array_Desc desc_nband_nband(blacs_ctxt_world_h);
+    desc_nband_nband.init_1b1p(n_bands, n_bands, 0, 0);
+    Array_Desc desc_nband_nband_fb(blacs_ctxt_world_h);
+    desc_nband_nband_fb.init(n_bands, n_bands, n_bands, n_bands, 0, 0);
+
+    // local 2D-block submatrices
+    auto sigc_nao_nao = init_local_mat<complex<double>>(desc_nao_nao, MAJOR::COL);
+    auto sigc_nband_nband = init_local_mat<complex<double>>(desc_nband_nband, MAJOR::COL);
+
+    const auto set_IJ_nao_nao = get_necessary_IJ_from_block_2D(atomic_basis_wfc,
+                                                               atomic_basis_wfc,
+                                                               desc_nao_nao);
+    const auto s0_s1 = get_s0_s1_for_comm_map2_first(set_IJ_nao_nao);
+
+    // NOTE: With many MPI tasks, matrix at a particular k point
+    // can have contributions from many tasks. The same happens for EXX.
+    for (int ispin = 0; ispin < this->mf.get_n_spins(); ispin++)
+    {
+        for (const auto& freq: this->tfg.get_freq_nodes())
+        {
+            const auto& sigc_is_freq = this->sigc_is_f_k_IJ.at(ispin).at(freq);
+            for (int ik = 0; ik < this->mf.get_n_kpoints(); ik++)
+            {
+                const auto kfrac = this->kfrac_list[ik];
+                const std::array<double, 3> ka{kfrac.x, kfrac.y, kfrac.z};
+                // build a libRI object to collect all k
+                std::map<int, std::map<std::pair<int, std::array<double, 3>>, RI::Tensor<complex<double>>>>
+                    sigc_I_Jk;
+                sigc_nao_nao.zero_out();
+                if (sigc_is_freq.count(kfrac))
+                {
+                    for (const auto& I_Jsigc: sigc_is_freq.at(kfrac))
+                    {
+                        const auto &I = I_Jsigc.first;
+                        const auto &n_I = atomic_basis_wfc.get_atom_nb(I);
+                        for (const auto& J_sigc: I_Jsigc.second)
+                        {
+                            const auto &J = J_sigc.first;
+                            const auto &n_J = atomic_basis_wfc.get_atom_nb(J);
+                            sigc_I_Jk[I][{J, ka}] = RI::Tensor<complex<double>>({n_I, n_J}, J_sigc.second.sptr());
+                        }
+                    }
+                    const auto sigc_src = RI::Communicate_Tensors_Map_Judge::comm_map2_first(
+                        LIBRPA::mpi_comm_world_h.comm, sigc_I_Jk, s0_s1.first, s0_s1.second);
+                    collect_block_from_IJ_storage_tensor(sigc_nao_nao, desc_nao_nao, atomic_basis_wfc, atomic_basis_wfc,
+                                                         ka, CONE, sigc_src);
+                }
+                // prepare wave function BLACS
+                const auto &wfc_isp_k = this->mf.get_eigenvectors()[ispin][ik];
+                blacs_ctxt_world_h.barrier();
+                const auto wfc_block = get_local_mat(wfc_isp_k.c, MAJOR::ROW, desc_nband_nao, MAJOR::COL).conj();
+                auto temp_nband_nao = multiply_scalapack(wfc_block, desc_nband_nao, sigc_nao_nao, desc_nao_nao, desc_nband_nao);
+                ScalapackConnector::pgemm_f('N', 'C', n_bands, n_bands, n_aos, 1.0,
+                                            temp_nband_nao.ptr(), 1, 1, desc_nao_nao.desc,
+                                            wfc_block.ptr(), 1, 1, desc_nband_nao.desc, 0.0,
+                                            sigc_nband_nband.ptr(), 1, 1, desc_nband_nband.desc);
+                // collect to master
+                auto sigc_nband_nband_fb = init_local_mat<complex<double>>(desc_nband_nband_fb, MAJOR::COL);
+                ScalapackConnector::pgemr2d_f(n_bands, n_bands,
+                                              sigc_nband_nband.ptr(), 1, 1, desc_nband_nband.desc,
+                                              sigc_nband_nband_fb.ptr(), 1, 1, desc_nband_nband_fb.desc,
+                                              desc_nband_nband_fb.ictxt());
+                sigc_is_ik_f_KS[ispin][ik][freq] = sigc_nband_nband_fb;
+            }
+        }
+    }
 }
 
 } // namespace LIBRPA

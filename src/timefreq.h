@@ -8,26 +8,11 @@
 #include <map>
 #include <vector>
 #include <string>
-#include "constants.h"
-#include "matrix.h"
 #include "complexmatrix.h"
-using std::map;
-using std::vector;
-using std::string;
+#include "matrix.h"
 
-extern const string minimax_grid_path;
-extern const string GX_path;
-
-//! read the file containing grids points information
-/*!
- @param[in] grid_N: number of grid points
- @param[in] file_path: the file containing the grids
- @param[in] type: the type of grid, either time ('T') or frequency ('F')
- @param[in] scale: scaling parameter. Usually the spectral width of energy transition
- */
-map<double, double> read_local_grid(int grid_N, const string &file_path, const char type, double scale);
-//! read the file containing transformation matrix from time to frequency domain
-vector<double> read_trans_matrix(const string &file_path, double inverse_scale);
+// extern const string minimax_grid_path;
+// extern const string GX_path;
 
 //! Object to handle time/frequency grids for quadrature
 /*!

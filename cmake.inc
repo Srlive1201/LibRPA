@@ -13,6 +13,3 @@ set(LAPACK_LIBRARIES "-L$ENV{MKLROOT}/lib/intel64 -lmkl_scalapack_lp64 -lmkl_int
 
 # whether to use LibRI for tensor contraction
 # set(USE_LIBRI ON)
-
-# whether to build a library
-set(BUILD_LIBRARY OFF)

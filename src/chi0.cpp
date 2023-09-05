@@ -13,11 +13,11 @@
 #include "matrix.h"
 #include "complexmatrix.h"
 #include "lapack_connector.h"
-#include "input.h"
+#include "pbc.h"
 #include "constants.h"
 #include "params.h"
 #include "scalapack_connector.h"
-#ifdef __USE_LIBRI
+#ifdef LIBRPA_USE_LIBRI
 #include <RI/physics/RPA.h>
 #endif
 #include <array>
@@ -96,7 +96,7 @@ void Chi0::build(const atpair_R_mat_t &LRI_Cs,
 
 void Chi0::build_gf_Rt(Vector3_Order<int> R, double tau)
 {
-    prof.start("cal_Green_func");
+    Profiler::start("cal_Green_func", "space-time Green's function");
     const auto nkpts = mf.get_n_kpoints();
     const auto nspins = mf.get_n_spins();
     const auto nbands = mf.get_n_bands();
@@ -183,7 +183,7 @@ void Chi0::build_gf_Rt(Vector3_Order<int> R, double tau)
         omp_destroy_lock(&gf_lock);
 #pragma omp barrier
     }
-    prof.stop("cal_Green_func");
+    Profiler::stop("cal_Green_func");
 }
 
 void Chi0::build_chi0_q_space_time(const atpair_R_mat_t &LRI_Cs,
@@ -218,13 +218,13 @@ void Chi0::build_chi0_q_space_time_LibRI_routing(const atpair_R_mat_t &LRI_Cs,
                                                    const vector<atpair_t> &atpairs_ABF,
                                                    const vector<Vector3_Order<double>> &qlist)
 {
-#ifndef __USE_LIBRI
+#ifndef LIBRPA_USE_LIBRI
     cout << "LibRI routing requested, but the executable is not compiled with LibRI" << endl;
     cout << "Please recompiler libRPA with -DUSE_LIBRI and configure include path" << endl;
     mpi_comm_world_h.barrier();
     throw std::logic_error("compilation");
 #else
-    prof.start("LibRI_routing");
+    Profiler::start("LibRI_routing", "Loop over LibRI");
     map<int,std::array<double,3>> atoms_pos;
     for(int i=0;i!=atom_mu.size();i++)
         atoms_pos.insert(pair<int,std::array<double,3>>{i,{0,0,0}});
@@ -248,7 +248,7 @@ void Chi0::build_chi0_q_space_time_LibRI_routing(const atpair_R_mat_t &LRI_Cs,
 
     RI::RPA<int,int,3,double> rpa;
     rpa.set_parallel(MPI_COMM_WORLD, atoms_pos,lat_array,period_array);
-    rpa.set_csm_threshold(params.libri_chi0_threshold_CSM);
+    rpa.set_csm_threshold(Params::libri_chi0_threshold_CSM);
     // divide the whole Cs and distribute to each process
     std::vector<std::pair<atom_t, std::pair<atom_t, Vector3_Order<int>>>> IJRs_local;
     size_t n_IJRs = 0;
@@ -293,7 +293,7 @@ void Chi0::build_chi0_q_space_time_LibRI_routing(const atpair_R_mat_t &LRI_Cs,
     }
 	/* cout << Cs_libri; */
     // cout << "Setting Cs for rpa object" << endl;
-    rpa.set_Cs(Cs_libri, params.libri_chi0_threshold_C);
+    rpa.set_Cs(Cs_libri, Params::libri_chi0_threshold_C);
     // cout << "Cs of rpa object set" << endl;
 
     // dispatch GF accoding to atpair and R
@@ -340,7 +340,7 @@ void Chi0::build_chi0_q_space_time_LibRI_routing(const atpair_R_mat_t &LRI_Cs,
             }
             mpi_comm_world_h.barrier();
             // std::clock_t cpu_clock_done_init_gf = clock();
-            rpa.cal_chi0s(gf_po_libri,gf_ne_libri, params.libri_chi0_threshold_G);
+            rpa.cal_chi0s(gf_po_libri,gf_ne_libri, Params::libri_chi0_threshold_G);
             // collect chi0 on selected atpairs of all R
             auto chi0s_IJR = RI::Communicate_Tensors_Map_Judge::comm_map2_first(mpi_comm_world_h.comm, rpa.chi0s, s0_s1.first, s0_s1.second);
             std::clock_t cpu_clock_done_chi0s = clock();
@@ -397,7 +397,7 @@ void Chi0::build_chi0_q_space_time_LibRI_routing(const atpair_R_mat_t &LRI_Cs,
     }
     if (mpi_comm_world_h.is_root()) printf("\n");
     mpi_comm_world_h.barrier();
-    prof.stop("LibRI_routing");
+    Profiler::stop("LibRI_routing");
 #endif
 }
 
@@ -407,7 +407,7 @@ void Chi0::build_chi0_q_space_time_R_tau_routing(const atpair_R_mat_t &LRI_Cs,
                                                  const vector<atpair_t> &atpairs_ABF,
                                                  const vector<Vector3_Order<double>> &qlist)
 {
-    prof.start("R_tau_routing");
+    Profiler::start("R_tau_routing", "Loop over R-tau");
     // taus and Rs to compute on MPI task
     // tend to calculate more Rs on one process
     vector<pair<int, int>> itauiRs_local = dispatcher(0, tfg.size(), 0, Rlist_gf.size(),
@@ -501,7 +501,7 @@ void Chi0::build_chi0_q_space_time_R_tau_routing(const atpair_R_mat_t &LRI_Cs,
                 chi0_q_tmp[freq][q][Mu].erase(Nu);
             }
     }
-    prof.stop("R_tau_routing");
+    Profiler::stop("R_tau_routing");
 }
 
 void Chi0::build_chi0_q_space_time_atom_pair_routing(const atpair_R_mat_t &LRI_Cs,
@@ -509,7 +509,7 @@ void Chi0::build_chi0_q_space_time_atom_pair_routing(const atpair_R_mat_t &LRI_C
                                                  const vector<atpair_t> &atpairs_ABF,
                                                  const vector<Vector3_Order<double>> &qlist)
 {
-    prof.start("atom_pair_routing");
+    Profiler::start("atom_pair_routing", "Loop over atom pairs");
     //auto tot_pair = dispatch_vector(atpairs_ABF, LIBRPA::mpi_comm_world_h.myid, para_mpi.get_size(), false);
     printf("Number of atom pairs on Proc %4d: %zu\n", LIBRPA::mpi_comm_world_h.myid, atpairs_ABF.size());
     mpi_comm_world_h.barrier();
@@ -576,7 +576,7 @@ void Chi0::build_chi0_q_space_time_atom_pair_routing(const atpair_R_mat_t &LRI_C
     }
     mpi_comm_world_h.barrier();
     double t_chi0_end= omp_get_wtime();
-    prof.stop("atom_pair_routing");
+    Profiler::stop("atom_pair_routing");
     if(mpi_comm_world_h.is_root())
         printf("| total chi0 time: %f\n",t_chi0_end-t_chi0_begin);
 }
@@ -586,7 +586,7 @@ matrix Chi0::compute_chi0_s_munu_tau_R(const atpair_R_mat_t &LRI_Cs,
                                        int spin_channel,
                                        atom_t Mu, atom_t Nu, double tau, Vector3_Order<int> R)
 {
-    prof.start("cal_chi0_element");
+    Profiler::start("cal_chi0_element", "chi(tau,R,I,J)");
     /* printf("     begin chi0  thread: %d,  I: %zu, J: %zu\n",omp_get_thread_num(), Mu, Nu); */
 
     assert ( tau > 0 );
@@ -642,17 +642,17 @@ matrix Chi0::compute_chi0_s_munu_tau_R(const atpair_R_mat_t &LRI_Cs,
                     if (gf_R_tau.at(I_index).at(L_index).at(R_temp_2).count(tau))
                     {
                         // cout<<"C";
-                        // prof.start("X");
+                        // Profiler::start("X");
                         X_R2 += gf_R_tau.at(I_index).at(L_index).at(R_temp_2).at(tau) * Cs2_reshape;
-                        // prof.stop("X");
+                        // Profiler::stop("X");
                     }
 
                     if (gf_R_tau.at(I_index).at(L_index).at(R_temp_2).count(-tau))
                     {
                         // cout<<"D";
-                        // prof.start("X");
+                        // Profiler::start("X");
                         X_conj_R2 += gf_R_tau.at(I_index).at(L_index).at(R_temp_2).at(-tau) * Cs2_reshape;
-                        // prof.stop("X");
+                        // Profiler::stop("X");
                     }
                     
                 }
@@ -703,16 +703,16 @@ matrix Chi0::compute_chi0_s_munu_tau_R(const atpair_R_mat_t &LRI_Cs,
                                     if (flag_G_IJRNt && gf_R_tau.at(K_index).at(L_index).at(R_temp_1).count(tau))
                                     {
                                         // cout<<"A";
-                                        // prof.start("N");
+                                        // Profiler::start("N");
                                         N_R2 += gf_R_tau.at(K_index).at(L_index).at(R_temp_1).at(tau) * Cs2_reshape;
-                                        // prof.stop("N");
+                                        // Profiler::stop("N");
                                     }
                                     if (flag_G_IJRt && gf_R_tau.at(K_index).at(L_index).at(R_temp_1).count(-tau))
                                     {
                                         // cout<<"B";
-                                        // prof.start("N");
+                                        // Profiler::start("N");
                                         N_conj_R2 += gf_R_tau.at(K_index).at(L_index).at(R_temp_1).at(-tau) * Cs2_reshape;
-                                        // prof.stop("N");
+                                        // Profiler::stop("N");
                                     }
                                     
                                 }
@@ -721,17 +721,17 @@ matrix Chi0::compute_chi0_s_munu_tau_R(const atpair_R_mat_t &LRI_Cs,
                     }
                     if (flag_G_IJRt)
                     {
-                        // prof.start("O");
+                        // Profiler::start("O");
                         matrix N_conj_R2_rs(reshape_mat(k_num, j_num, nu_num, N_conj_R2));
                         O += gf_R_tau.at(I_index).at(J_index).at(R).at(tau) * N_conj_R2_rs;
-                        // prof.stop("O");
+                        // Profiler::stop("O");
                     }
                     if (flag_G_IJRNt)
                     {
-                        // prof.start("O");
+                        // Profiler::start("O");
                         matrix N_R2_rs(reshape_mat(k_num, j_num, nu_num, N_R2));
                         O += gf_R_tau.at(I_index).at(J_index).at(R).at(-tau) * N_R2_rs;
-                        // prof.stop("O");
+                        // Profiler::stop("O");
                     }
                 }
                 Vector3_Order<int> R_temp_3(Vector3_Order<int>(R - R1) % R_period);
@@ -741,16 +741,16 @@ matrix Chi0::compute_chi0_s_munu_tau_R(const atpair_R_mat_t &LRI_Cs,
                     {
                         if (gf_R_tau.at(K_index).at(J_index).at(R_temp_3).count(-tau))
                         {
-                            // prof.start("Z");
+                            // Profiler::start("Z");
                             Z += gf_R_tau.at(K_index).at(J_index).at(R_temp_3).at(-tau) * X_R2_rs;
-                            // prof.stop("Z");
+                            // Profiler::stop("Z");
                         }
 
                         if (gf_R_tau.at(K_index).at(J_index).at(R_temp_3).count(tau))
                         {
-                            // prof.start("Z");
+                            // Profiler::start("Z");
                             Z += gf_R_tau.at(K_index).at(J_index).at(R_temp_3).at(tau) * X_conj_R2_rs;
-                            // prof.stop("Z");
+                            // Profiler::stop("Z");
                         }
                     }
                 }
@@ -760,9 +760,9 @@ matrix Chi0::compute_chi0_s_munu_tau_R(const atpair_R_mat_t &LRI_Cs,
                 O += Z_rs;
                 matrix OZ(reshape_mat_21(i_num, k_num, nu_num, O));
                 matrix Cs1_tran(transpose(*Cs_mat1));
-                // prof.start("O");
+                // Profiler::start("O");
                 O_sum += Cs1_tran * OZ;
-                // prof.stop("O");
+                // Profiler::stop("O");
                 // cout<<"   K, R1:   "<<K_index<<"   "<<R1;
                 // rt_m_max(O_sum);
         }
@@ -773,6 +773,12 @@ matrix Chi0::compute_chi0_s_munu_tau_R(const atpair_R_mat_t &LRI_Cs,
     /*     cout << R << " Mu=" << Mu << " Nu=" << Nu << " tau:" << tau << endl; */
     /*     print_matrix("space-time chi0", O_sum); */
     /* } */
+    // if (Params::debug)
+    // {
+    //     cout << R << " Mu=" << Mu << " Nu=" << Nu << " tau=" << tau << " R=" << R << endl;
+    //     print_matrix("space-time chi0", O_sum);
+    // }
+    Profiler::stop("cal_chi0_element");
     return O_sum;
 }
 

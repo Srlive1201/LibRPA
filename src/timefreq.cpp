@@ -1,119 +1,20 @@
 #include "timefreq.h"
-#include "mathtools.h"
 #include "envs.h"
+#include "mathtools.h"
+#include "parallel_mpi.h"
+#include "get_minimax.h"
+#include "params.h"
 #include <iostream>
 #include <fstream>
 #include <vector>
 #include <utility>
 #include <algorithm>
-#include <parallel_mpi.h>
 #include <unistd.h>
-
-using std::map;
 using std::pair;
 using std::string;
-using std::vector;
 using std::ifstream;
 using std::endl;
 using std::cout;
-using LIBRPA::mpi_comm_world_h;
-const string minimax_grid_path = string(source_dir) + "/minimax_grid";
-const string GX_path = minimax_grid_path + "/GreenX/generate_local_grid.py";
-
-map<double, double> read_local_grid(int grid_N, const string &file_path, const char type, double scale)
-{
-    ifstream infile;
-    map<double, double> grid;
-    infile.open(file_path);
-
-    vector<double> tran(grid_N * 2);
-    string ss;
-    int itran = 0;
-    while (infile.peek() != EOF)
-    {
-        if (infile.peek() == EOF)
-            break;
-        infile >> ss;
-        tran[itran] = stod(ss);
-        itran++;
-    }
-    for (int i = 0; i != grid_N; i++)
-    {
-        grid.insert(pair<double, double>(tran[i], tran[i + grid_N]));
-    }
-
-    infile.close();
-    map<double, double> minimax_grid;
-    minimax_grid.clear();
-    switch (type)
-    {
-    case 'F':
-    {
-        if (grid_N <= 20)
-        {
-            for (auto &i_pair : grid)
-                minimax_grid.insert({i_pair.first * scale, i_pair.second * scale * 0.25});
-        }
-        else
-        {
-            for (auto &i_pair : grid)
-                minimax_grid.insert({i_pair.first * scale, i_pair.second * scale});
-        }
-
-        // cout << " MINIMAX_GRID_Freq " << endl;
-        // for (const auto &m : minimax_grid)
-        //     cout << m.first << "      " << m.second << endl;
-        break;
-    }
-
-    case 'T':
-    {
-        for (auto i_pair : grid)
-            minimax_grid.insert({i_pair.first / (scale), i_pair.second / (scale)});
-
-        // cout << " MINIMAX_GRID_Tau " << endl;
-        // for (const auto &m : minimax_grid)
-        //     cout << m.first << "      " << m.second << endl;
-        break;
-    }
-    }
-
-    return minimax_grid;
-}
-
-vector<double> read_trans_matrix(const string &file_path, double inverse_scale)
-{
-    ifstream infile;
-    infile.open(file_path);
-
-    vector<double> tran;
-    string s;
-    // stringstream ss;
-    // double ss_d;
-    while (getline(infile, s))
-    {
-        if (s[0] == 'F' || s[0] == 'T')
-            continue;
-        else
-        {
-            stringstream ss(s);
-            double ss_d;
-            ss >> ss_d;
-            tran.push_back(ss_d);
-        }
-    }
-    infile.close();
-
-    // double gap;
-    // double Emin, Emax;
-    // cout << "read transformation grid" << endl;
-    for (int i = 0; i != tran.size(); i++)
-    {
-        tran[i] /= inverse_scale;
-        // cout<<tran[i]<<endl;
-    }
-    return tran;
-}
 
 const string TFGrids::GRID_TYPES_NOTES[TFGrids::GRID_TYPES::COUNT] =
     {
@@ -168,12 +69,12 @@ void TFGrids::show()
     cout << "Grid size: " << n_grids << endl;
     cout << "Frequency node & weight: " << endl;
     for ( int i = 0; i != n_grids; i++ )
-        printf("%2d %10.6f %10.6f\n", i, freq_nodes[i], freq_weights[i]);
+        printf("%2d %20.12f %20.12f\n", i, freq_nodes[i], freq_weights[i]);
     if (has_time_grids())
     {
         cout << "Time node & weight: " << endl;
         for ( int i = 0; i != n_grids; i++ )
-            printf("%2d %10.6f %10.6f\n", i, time_nodes[i], time_weights[i]);
+            printf("%2d %20.12f %20.12f\n", i, time_nodes[i], time_weights[i]);
         // cout << "t->f transform: " << endl;
         // if (costrans_t2f.size)
         // {
@@ -257,54 +158,35 @@ void TFGrids::generate_minimax(double emin, double emax)
 {
     grid_type = TFGrids::GRID_TYPES::Minimax;
     set_time();
-    string tmps;
-    if ( emin <= 0)
-        throw invalid_argument("emin must be positive");
-    if ( emax < emin)
-        throw invalid_argument("emax must be larger than emin");
-    double erange = emax / emin;
-    if(mpi_comm_world_h.is_root())
-    {
-        tmps = "python " + GX_path + " " + to_string(n_grids) + " " + to_string(erange);
-        system(tmps.c_str());
-    }
-    mpi_comm_world_h.barrier();
-    sleep(1);
 
-    map<double, double> freq_grid = read_local_grid(n_grids, "local_" + to_string(n_grids) + "_freq_points.dat", 'F', emin);
-    int ig = 0;
-    for (auto nw: freq_grid)
+    double * omega_points = new double [n_grids];
+    double * tau_points = new double [n_grids];
+    double * omega_weights = new double [n_grids];
+    double * tau_weights = new double [n_grids];
+    double max_errors[3];
+    double cosft_duality_error;
+    int ierr;
+
+    get_minimax_grid(n_grids, emin, emax, tau_points, tau_weights, omega_points, omega_weights,
+                     costrans_t2f.c, costrans_f2t.c, sintrans_t2f.c, max_errors, cosft_duality_error, ierr);
+
+    if (ierr != 0)
+        throw invalid_argument(string("minimax grids failed, return code: ") + to_string(ierr));
+    printf("Cosine transform duality error: %20.12f\n", cosft_duality_error);
+
+    for (int ig = 0; ig != n_grids; ig++)
     {
-        freq_nodes[ig] = nw.first;
-        freq_weights[ig] = nw.second;
-        ig++;
+        freq_nodes[ig] = omega_points[ig];
+        freq_weights[ig] = omega_weights[ig];
+        time_nodes[ig] = tau_points[ig];
+        time_weights[ig] = tau_weights[ig];
     }
-    map<double, double> time_grid = read_local_grid(n_grids, "local_" + to_string(n_grids) + "_time_points.dat", 'T', emin);
-    ig = 0;
-    for (auto nw: time_grid)
-    {
-        time_nodes[ig] = nw.first;
-        time_weights[ig] = nw.second;
-        ig++;
-    }
-    vector<double> trans;
-    // cosine transform
-    trans = read_trans_matrix(to_string(n_grids) + "_time2freq_grid_cos.txt", emin);
-    for (int k = 0; k != n_grids; k++)
-        for (int j = 0; j != n_grids; j++)
-            costrans_t2f(k, j) = trans[ k * n_grids + j];
-    trans = read_trans_matrix(to_string(n_grids) + "_time2freq_grid_sin.txt", emin);
-    for (int k = 0; k != n_grids; k++)
-        for (int j = 0; j != n_grids; j++)
-            sintrans_t2f(k, j) = trans[ k * n_grids + j];
-    trans = read_trans_matrix(to_string(n_grids) + "_freq2time_grid_cos.txt", 1/emin);
-    for (int k = 0; k != n_grids; k++)
-        for (int j = 0; j != n_grids; j++)
-            costrans_f2t(k, j) = trans[ k * n_grids + j];
-    trans = read_trans_matrix(to_string(n_grids) + "_freq2time_grid_sin.txt", 1/emin);
-    for (int k = 0; k != n_grids; k++)
-        for (int j = 0; j != n_grids; j++)
-            sintrans_f2t(k, j) = trans[ k * n_grids + j];
+
+    delete [] omega_points;
+    delete [] omega_weights;
+    delete [] tau_points;
+    delete [] tau_weights;
+
     // zmy debug
     // cout << "Cos transform time -> freq (freq each row)" << endl;
     // cout << costrans_t2f << endl;

@@ -1,5 +1,6 @@
 #include "parallel_mpi.h"
 
+#include <algorithm>
 #include <stdexcept>
 
 #include "interface/blacs_scalapack.h"
@@ -15,6 +16,7 @@ const string parallel_types_note[parallel_type::COUNT] = {
 
 parallel_type chi_parallel_type = parallel_type::ATOM_PAIR;
 parallel_type exx_parallel_type = parallel_type::ATOM_PAIR;
+parallel_type gw_parallel_type = parallel_type::ATOM_PAIR;
 
 ofstream fout_para;
 
@@ -77,12 +79,36 @@ void set_exx_parallel_type(const string& option, const int &atpais_num, const in
     }
 }
 
+void set_gw_parallel_type(const string& option, const int &atpais_num, const int Rt_num, const bool use_libri)
+{
+    if (option == "auto")
+    {
+        if (use_libri)
+        {
+            gw_parallel_type = parallel_type::LIBRI_USED;
+        }
+        else if (atpais_num < Rt_num)
+        {
+            gw_parallel_type = parallel_type::R_TAU;
+        }
+        else
+        {
+            gw_parallel_type = parallel_type::ATOM_PAIR;
+        }
+    }
+    else
+    {
+        set_parallel_type(option, gw_parallel_type);
+    }
+}
+
 void check_parallel_type()
 {
     if (chi_parallel_type == parallel_type::LIBRI_USED ||
-        exx_parallel_type == parallel_type::LIBRI_USED)
+        exx_parallel_type == parallel_type::LIBRI_USED ||
+        gw_parallel_type == parallel_type::LIBRI_USED)
     {
-#ifndef __USE_LIBRI
+#ifndef LIBRPA_USE_LIBRI
         if (MPI_Wrapper::is_root_world())
         {
             cout << "LibRI routing requested, but the executable is not compiled "
@@ -103,6 +129,7 @@ void check_parallel_type()
         // cout << "| R_tau_num:  " << Rt_num << endl;
         cout << "| chi: " << parallel_types_note[chi_parallel_type] << endl;
         cout << "| exx: " << parallel_types_note[exx_parallel_type] << endl;
+        cout << "| gw : " << parallel_types_note[gw_parallel_type] << endl;
     }
     MPI_Wrapper::barrier_world();
 }
@@ -137,6 +164,23 @@ void init(int argc, char **argv)
     fout_para.open(pfn);
 }
 
+void init(MPI_Comm comm_in)
+{
+    if (initialized) return;
+    int provided;
+    
+    MPI_Comm_rank(comm_in, &myid_world);
+    MPI_Comm_size(comm_in, &nprocs_world);
+    char name[MPI_MAX_PROCESSOR_NAME];
+    int length;
+    MPI_Get_processor_name (name, &length);
+    procname = name;
+    initialized = true;
+
+    string pfn = "librpa_para_nprocs_" + std::to_string(nprocs_world) +  "_myid_" + std::to_string(myid_world) + ".out";
+    std::cout<<pfn<<std::endl;
+    fout_para.open(pfn);
+}
 void allreduce_matrix(matrix &mat_send, matrix &mat_recv, MPI_Comm mpi_comm)
 {
     assert(mat_send.nr==mat_recv.nr);
@@ -198,7 +242,7 @@ void MPI_COMM_handler::init()
 
 void MPI_COMM_handler::barrier() const
 {
-#ifdef __DEBUG
+#ifdef LIBRPA_DEBUG
     this->check_initialized();
 #endif
     MPI_Barrier(this->comm);
@@ -474,7 +518,7 @@ void Array_Desc::barrier(CTXT_SCOPE scope)
 
 int Array_Desc::indx_g2l_r(int gindx) const
 {
-    return myprow_ != ScalapackConnector::indxg2p(gindx, mb_, myprow_, irsrc_, nprows_)
+    return myprow_ != ScalapackConnector::indxg2p(gindx, mb_, myprow_, irsrc_, nprows_) || gindx >= m_
                ? -1
                : ScalapackConnector::indxg2l(gindx, mb_, myprow_, irsrc_, nprows_);
 	// int inproc = int((gindx % (mb_*nprows_)) / mb_);
@@ -490,7 +534,7 @@ int Array_Desc::indx_g2l_r(int gindx) const
 
 int Array_Desc::indx_g2l_c(int gindx) const
 {
-    return mypcol_ != ScalapackConnector::indxg2p(gindx, nb_, mypcol_, icsrc_, npcols_)
+    return mypcol_ != ScalapackConnector::indxg2p(gindx, nb_, mypcol_, icsrc_, npcols_) || gindx >= n_
                ? -1
                : ScalapackConnector::indxg2l(gindx, nb_, mypcol_, icsrc_, npcols_);
 	// int inproc = int((gindx % (nb_*npcols_)) / mb_);
@@ -791,5 +835,87 @@ vector<pair<int,int>> pick_upper_trangular_tasks(vector<int> list_row, vector<in
                 loc_task.push_back(pair<int,int>(lr,lc));
     return loc_task;
 }
+
+vector<pair<int, int>> find_duplicate_ordered_pair(int n, const vector<pair<int, int>>& ordered_pairs, const MPI_Comm &comm)
+{
+    int myid, nprocs;
+    vector<pair<int, int>> pairs_duplicate;
+    MPI_Comm_rank(comm, &myid);
+    MPI_Comm_size(comm, &nprocs);
+    const size_t npairs_total = n * n;
+    const size_t maxbytes = 1000 * 1000 * 1000; // 1 GB
+    // Communicate atom pair information per batch, reduce memory usage
+    const size_t npairs_batch = min(maxbytes / size_t(nprocs), npairs_total);
+    const size_t nbatch = npairs_total % npairs_batch ?
+                          npairs_total / npairs_batch + 1 :
+                          npairs_total / npairs_batch;
+    size_t npairs_local = ordered_pairs.size();
+    vector<size_t> npairs(nprocs, 0);
+    MPI_Allgather(&npairs_local, 1, MPI_UNSIGNED_LONG, npairs.data(), 1, MPI_UNSIGNED_LONG, comm);
+    // flatten the pair index, using ordered set
+    // NOTE: assuming no duplicates in ordered_pairs
+    std::set<size_t> ordered_pairs_flatten;
+    for (const auto& op: ordered_pairs)
+    {
+        ordered_pairs_flatten.insert(op.first * n + op.second);
+    }
+    for (int ib = 0; ib != nbatch; ib++)
+    {
+        const size_t pair_start_batch = ib * npairs_batch;
+        const size_t npairs_batch_current = ib == nbatch - 1?
+            npairs_total - npairs_batch * ib : npairs_batch;
+        vector<unsigned char> have_pair_all(npairs_batch_current * nprocs, 0);
+        {
+            vector<unsigned char> have_pair_this(npairs_batch_current * nprocs, 0);
+            for (size_t i = 0; i < npairs_batch_current; i++)
+            {
+                size_t id_pair = pair_start_batch + i;
+                if (std::find(ordered_pairs_flatten.cbegin(), ordered_pairs_flatten.cend(), id_pair) != ordered_pairs_flatten.cend())
+                {
+                    int ind = nprocs * i + myid;
+                    have_pair_this[ind] = 49;
+                }
+            }
+            MPI_Allreduce(have_pair_this.data(), have_pair_all.data(), npairs_batch * nprocs, MPI_UNSIGNED_CHAR, MPI_SUM, MPI_COMM_WORLD);
+        }
+        map<size_t, vector<int>> has_copies;
+        for (size_t iap = 0; iap < npairs_batch_current; iap++)
+        {
+            for (int id = 0; id < nprocs; id++)
+            {
+                if (have_pair_all[iap * nprocs + id] == 49)
+                {
+                    has_copies[iap].push_back(id);
+                }
+            }
+        }
+        // now check the duplicates
+        for (const auto &i_v: has_copies)
+        {
+            size_t id_pair = pair_start_batch + i_v.first;
+            // keep the one with least elements at this stage, remove the other copies (short-sighted)
+            // Assuming that there is at least one copy
+            // if (i_v.second.size() == 0) cout << "Warning! " << i_v.first << " has no copy across\n";
+            if (i_v.second.size() == 1) continue;
+            vector<size_t> sizes(i_v.second.size());
+            for (int i = 0; i < sizes.size(); i++)
+            {
+                sizes[i] = npairs[i_v.second[i]];
+            }
+            auto iter_id = std::min_element(sizes.cbegin(), sizes.cend());
+            int id_keep = i_v.second[std::distance(sizes.cbegin(), iter_id)];
+            if (myid != id_keep && std::find(i_v.second.cbegin(), i_v.second.cend(), myid) != i_v.second.cend())
+            {
+                pairs_duplicate.push_back({id_pair / n, id_pair % n});
+            }
+            for (const auto &id: i_v.second)
+            {
+                if (id != id_keep) npairs[id] -= 1;
+            }
+        }
+    }
+    return pairs_duplicate;
+}
+
 
 Parallel_MPI para_mpi;
