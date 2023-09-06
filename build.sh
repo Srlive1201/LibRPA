@@ -10,7 +10,7 @@ CXX=mpiicpc
 FC=mpiifort
 GREENX=0
 
-CMAKE=cmake3
+CMAKE=${CMAKE:=cmake3}
 # Some build examples
 # with LibRI and GreenX minimax
 #     CXX=mpiicpc FC=mpiifort LIBRI_INCLUDE_DIR=/home/minyez/projects/LibRI/include cmake -B build -DUSE_GREENX_MINIMAX=ON -DENABLE_TEST=OFF -DUSE_LIBRI=ON
