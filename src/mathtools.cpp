@@ -11,7 +11,7 @@
  * \f]
  * The weight function is
  * \f[
- *   w(x) = \frac{1}/{\sqrt{1-x^2}}.
+ *   w(x) = \frac{1}{\sqrt{1-x^2}}.
  * \f]
  * with \f$i = 0, 1, ..., N-1\f$.
  */
