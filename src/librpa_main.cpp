@@ -232,7 +232,12 @@ void librpa_main(MPI_Comm comm_in)
         Profiler::start("EcRPA", "Compute RPA correlation Energy");
         CorrEnergy corr;
         if (Params::use_scalapack_ecrpa && LIBRPA::chi_parallel_type == LIBRPA::parallel_type::ATOM_PAIR)
-            corr = compute_RPA_correlation_blacs(chi0, Vq);
+        {
+            if(meanfield.get_n_kpoints() == 1)
+                corr = compute_RPA_correlation_blacs_2d_gamma_only(chi0, Vq);
+            else
+                corr = compute_RPA_correlation_blacs_2d(chi0, Vq);
+        }
         else
             corr = compute_RPA_correlation(chi0, Vq);
 

@@ -89,6 +89,7 @@ class Chi0
                    const vector<Vector3_Order<double>> &qlist,
                    TFGrids::GRID_TYPES gt, bool use_space_time);
         const map<double, map<Vector3_Order<double>, atom_mapping<ComplexMatrix>::pair_t_old>> & get_chi0_q() const { return chi0_q; }
+        void free_chi0_q(const double freq, const Vector3_Order<double> q);
         
 };
 

@@ -412,6 +412,15 @@ void Chi0::build_chi0_q_space_time_R_tau_routing(const atpair_R_mat_t &LRI_Cs,
     // tend to calculate more Rs on one process
     vector<pair<int, int>> itauiRs_local = dispatcher(0, tfg.size(), 0, Rlist_gf.size(),
                                                       mpi_comm_world_h.myid, mpi_comm_world_h.nprocs, true, false);
+    map<Vector3_Order<double>,int> qlist2myid;
+    auto loc_qlist = dispatch_vector(qlist , mpi_comm_world_h.myid, mpi_comm_world_h.nprocs, true);
+    for(int id=0;id!=mpi_comm_world_h.nprocs;id++)
+    {
+        auto id_qlist=dispatch_vector(qlist , id, mpi_comm_world_h.nprocs, true);
+        for(auto &id_q:id_qlist)
+            qlist2myid.insert(std::make_pair(id_q,id));
+    }
+
 
     map<double, map<Vector3_Order<double>, atom_mapping<ComplexMatrix>::pair_t_old>> chi0_q_tmp;
     for ( auto freq: tfg.get_freq_nodes() )
@@ -482,14 +491,21 @@ void Chi0::build_chi0_q_space_time_R_tau_routing(const atpair_R_mat_t &LRI_Cs,
     {
         double freq = tfg.get_freq_nodes()[ifreq];
         for ( auto q: qlist )
+        {
+            int id_contain_q = qlist2myid[q];
             for ( auto atpair: atpairs_ABF)
             {
                 auto Mu = atpair.first;
                 auto Nu = atpair.second;
-                chi0_q[freq][q][Mu][Nu].create(atom_mu[Mu], atom_mu[Nu]);
+                ComplexMatrix tmp_chi0_recv(atom_mu[Mu], atom_mu[Nu]);
+                tmp_chi0_recv.zero_out();
+                
+                mpi_comm_world_h.barrier();
                 /* cout << "nr/nc chi0_q_tmp: " << chi0_q_tmp[ifreq][iq][Mu][Nu].nr << ", "<< chi0_q_tmp[ifreq][iq][Mu][Nu].nc << endl; */
                 /* cout << "nr/nc chi0_q: " << chi0_q[ifreq][iq][Mu][Nu].nr << ", "<< chi0_q[ifreq][iq][Mu][Nu].nc << endl; */
-                mpi_comm_world_h.reduce_ComplexMatrix(chi0_q_tmp[freq][q][Mu][Nu], chi0_q[freq][q][Mu][Nu], 0);
+                mpi_comm_world_h.reduce_ComplexMatrix(chi0_q_tmp[freq][q][Mu][Nu], tmp_chi0_recv, id_contain_q);
+                if(id_contain_q == mpi_comm_world_h.myid )
+                    chi0_q[freq][q][Mu][Nu]=std::move(tmp_chi0_recv);
                 /* if (LIBRPA::mpi_comm_world_h.myid==0 && Mu == 0 && Nu == 0 && ifreq == 0 && q == Vector3_Order<double>{0, 0, 0}) */
                 /* if (LIBRPA::mpi_comm_world_h.myid==0 && Mu == 0 && Nu == 0 && ifreq == 0 ) */
                 /* if (LIBRPA::mpi_comm_world_h.myid==0 && ifreq == 0 && q == Vector3_Order<double>{0, 0, 0}) */
@@ -500,6 +516,7 @@ void Chi0::build_chi0_q_space_time_R_tau_routing(const atpair_R_mat_t &LRI_Cs,
                 /* } */
                 chi0_q_tmp[freq][q][Mu].erase(Nu);
             }
+        }
     }
     Profiler::stop("R_tau_routing");
 }
@@ -1074,3 +1091,9 @@ map<size_t, matrix> compute_chi0_munu_tau_LRI_saveN_noreshape(const map<size_t, 
     return chi0_tau;
 }
 
+void Chi0::free_chi0_q(const double freq, const Vector3_Order<double> q)
+{
+    auto &chi0_for_free = chi0_q.at(freq).at(q);
+    chi0_for_free.clear();
+    map<size_t, map<size_t,ComplexMatrix>>().swap(chi0_for_free); 
+}

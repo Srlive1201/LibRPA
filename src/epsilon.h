@@ -16,7 +16,7 @@ CorrEnergy compute_RPA_correlation(const Chi0 &chi0, const atpair_k_cplx_mat_t &
 
 CorrEnergy compute_RPA_correlation_blacs(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat);
 CorrEnergy compute_RPA_correlation_blacs_2d(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat);
-
+CorrEnergy compute_RPA_correlation_blacs_2d_gamma_only( Chi0 &chi0,  atpair_k_cplx_mat_t &coulmat);
 CorrEnergy compute_MP2_correlation(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat);
 
 map<double, map<Vector3_Order<double>, atom_mapping<ComplexMatrix>::pair_t_old>> compute_Pi_q(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat);
@@ -46,3 +46,4 @@ ComplexMatrix compute_Pi_freq_q_row(const Vector3_Order<double> &ik_vec, const a
 complex<double> compute_pi_det_blacs(ComplexMatrix &loc_piT, const LIBRPA::Array_Desc& arrdesc_pi, int *ipiv, int &info);
 
 complex<double> compute_pi_det_blacs_2d(matrix_m<complex<double>> &loc_piT, const LIBRPA::Array_Desc &arrdesc_pi, int *ipiv, int &info);
+double compute_pi_det_blacs_2d_gamma_only(matrix_m<double> &loc_piT, const LIBRPA::Array_Desc &arrdesc_pi, int *ipiv, int &info);

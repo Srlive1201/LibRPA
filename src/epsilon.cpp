@@ -24,13 +24,225 @@
 #endif
 // #include "print_stl.h"
 #include <omp.h>
-
+#include <malloc.h>
 using LIBRPA::mpi_comm_world_h;
 using LIBRPA::Array_Desc;
 #ifdef LIBRPA_USE_LIBRI
 using RI::Tensor;
 using RI::Communicate_Tensors_Map_Judge::comm_map2_first;
 #endif
+CorrEnergy compute_RPA_correlation_blacs_2d_gamma_only( Chi0 &chi0, atpair_k_cplx_mat_t &coulmat)
+{
+    CorrEnergy corr;
+    if (mpi_comm_world_h.myid == 0)
+        printf("Calculating EcRPA with BLACS/ScaLAPACK 2D gamma_only\n");
+    // printf("Calculating EcRPA with BLACS, pid:  %d\n", mpi_comm_world_h.myid);
+    const auto & mf = chi0.mf;
+    const double CONE=1.0;
+    const int n_abf = LIBRPA::atomic_basis_abf.nb_total;
+    const auto part_range = LIBRPA::atomic_basis_abf.get_part_range();
+
+    mpi_comm_world_h.barrier();
+
+    Array_Desc desc_nabf_nabf(LIBRPA::blacs_ctxt_world_h);
+    // use a square blocksize instead max block, otherwise heev and inversion will complain about illegal parameter
+    desc_nabf_nabf.init_square_blk(n_abf, n_abf, 0, 0);
+    const auto set_IJ_nabf_nabf = LIBRPA::get_necessary_IJ_from_block_2D_sy('U', LIBRPA::atomic_basis_abf, desc_nabf_nabf);
+    const auto s0_s1 = get_s0_s1_for_comm_map2_first(set_IJ_nabf_nabf);
+    auto chi0_block = init_local_mat<double>(desc_nabf_nabf, MAJOR::COL);
+    auto coul_block = init_local_mat<double>(desc_nabf_nabf, MAJOR::COL);
+    auto coul_chi0_block = init_local_mat<double>(desc_nabf_nabf, MAJOR::COL);
+
+    vector<Vector3_Order<double>> qpts;
+    for (const auto &qMuNuchi: chi0.get_chi0_q().at(chi0.tfg.get_freq_nodes()[0]))
+        qpts.push_back(qMuNuchi.first);
+    
+    complex<double> tot_RPA_energy(0.0, 0.0);
+    map<Vector3_Order<double>, complex<double>> cRPA_q;
+    if(mpi_comm_world_h.is_root())
+        printf("Finish init RPA blacs 2d\n");
+#ifdef LIBRPA_USE_LIBRI
+    for (const auto &q: qpts)
+    {
+        coul_block.zero_out();
+
+        int iq = std::distance(klist.begin(), std::find(klist.begin(), klist.end(), q));
+        std::array<double, 3> qa = {q.x, q.y, q.z};
+        // collect the block elements of coulomb matrices
+        {
+            double vq_begin = omp_get_wtime();
+            // LibRI tensor for communication, release once done
+            std::map<int, std::map<std::pair<int, std::array<double, 3>>, Tensor<double>>> coul_libri;
+        
+            for (const auto &Mu_Nu: local_atpair)
+            {
+                const auto Mu = Mu_Nu.first;
+                const auto Nu = Mu_Nu.second;
+                LIBRPA::fout_para << "myid " << LIBRPA::blacs_ctxt_world_h.myid << "Mu " << Mu << " Nu " << Nu << endl;
+                if (coulmat.count(Mu) == 0 ||
+                    coulmat.at(Mu).count(Nu) == 0 ||
+                    coulmat.at(Mu).at(Nu).count(q) == 0) continue;
+                const auto &Vq = coulmat.at(Mu).at(Nu).at(q);
+                const auto n_mu = LIBRPA::atomic_basis_abf.get_atom_nb(Mu);
+                const auto n_nu = LIBRPA::atomic_basis_abf.get_atom_nb(Nu);
+                matrix tmp_vq_real=(*Vq).real();
+                std::valarray<double> Vq_va(tmp_vq_real.c, Vq->size);
+                auto pvq = std::make_shared<std::valarray<double>>();
+                *pvq = Vq_va;
+                coul_libri[Mu][{Nu, std::array<double, 3>{0,0,0}}] = Tensor<double>({n_mu, n_nu}, pvq);
+                coulmat.at(Mu).at(Nu).at(q).reset(); 
+            }
+            malloc_trim(0);
+            //printf("Finish RPA blacs 2d  vq arr\n");
+            double arr_end = omp_get_wtime();
+            mpi_comm_world_h.barrier();
+            double comm_begin = omp_get_wtime();
+            //printf("Begin comm_map2_first  myid: %d\n",mpi_comm_world_h.myid);
+            const auto IJq_coul = comm_map2_first(LIBRPA::mpi_comm_world_h.comm, coul_libri, s0_s1.first, s0_s1.second);
+            double comm_end = omp_get_wtime();
+            mpi_comm_world_h.barrier();
+          
+            double block_begin = omp_get_wtime();
+        
+            collect_block_from_ALL_IJ_Tensor(coul_block, desc_nabf_nabf, LIBRPA::atomic_basis_abf,
+                        qa,true, CONE, IJq_coul, MAJOR::ROW);
+            double block_end = omp_get_wtime();
+            printf("Vq Time  myid: %d  arr_time: %f  comm_time: %f   block_time: %f   pair_size: %d\n",mpi_comm_world_h.myid,arr_end-vq_begin, comm_end-comm_begin, block_end-block_begin,set_IJ_nabf_nabf.size());
+            mpi_comm_world_h.barrier();
+            double vq_end = omp_get_wtime();
+            
+            if(mpi_comm_world_h.myid == 0)
+                printf(" | Total vq time: %f  lri_coul: %f   comm_vq: %f   block_vq: %f\n",vq_end-vq_begin, comm_begin-vq_begin,block_begin-comm_begin,vq_end-block_begin);
+        }
+        
+        double chi_arr_time=0.0;
+        double chi_comm_time=0.0;
+        double chi_2d_time=0.0;
+        for (const auto &freq: chi0.tfg.get_freq_nodes())
+        {
+            const auto ifreq = chi0.tfg.get_freq_index(freq);
+            const double freq_weight = chi0.tfg.find_freq_weight(freq);
+            double pi_freq_begin = omp_get_wtime();
+            chi0_block.zero_out();
+            {
+                double chi_begin_arr = omp_get_wtime();
+                std::map<int, std::map<std::pair<int, std::array<double, 3>>, Tensor<double>>> chi0_libri;
+                const auto &chi0_wq = chi0.get_chi0_q().at(freq).at(q);
+                
+                for (const auto &M_Nchi: chi0_wq)
+                {
+                    const auto &M = M_Nchi.first;
+                    const auto n_mu = LIBRPA::atomic_basis_abf.get_atom_nb(M);
+                    for (const auto &N_chi: M_Nchi.second)
+                    {
+                        const auto &N = N_chi.first;
+                        const auto n_nu = LIBRPA::atomic_basis_abf.get_atom_nb(N);
+                        const auto &chi = N_chi.second.real();
+                        std::valarray<double> chi_va(chi.c, chi.size);
+                        auto pchi = std::make_shared<std::valarray<double>>();
+                        *pchi = chi_va;
+                        chi0_libri[M][{N, std::array<double, 3>{0,0,0}}] = Tensor<double>({n_mu, n_nu}, pchi);
+                    }
+                }
+                
+                // if(mpi_comm_world_h.is_root())
+                // {
+                //     printf("Begin to clean chi0 !!! \n");
+                //     system("free -m");
+                //     printf("chi0_freq_q size: %d\n",chi0_wq.size());
+                // }
+                chi0.free_chi0_q(freq,q);
+                malloc_trim(0);
+                // if(mpi_comm_world_h.is_root())
+                // {
+                //     printf("After clean chi0 !!! \n");
+                //     system("free -m");
+                //     printf("chi0_freq_q size: %d\n",chi0_wq.size());
+                // }
+
+                mpi_comm_world_h.barrier();
+                double chi_end_arr = omp_get_wtime();
+                // LIBRPA::fout_para << "chi0_libri" << endl << chi0_libri;
+                
+                const auto IJq_chi0 = comm_map2_first(LIBRPA::mpi_comm_world_h.comm, chi0_libri, s0_s1.first, s0_s1.second);
+                // LIBRPA::fout_para << "IJq_chi0" << endl << IJq_chi0;
+                double chi_end_comm = omp_get_wtime();
+            
+                collect_block_from_ALL_IJ_Tensor(chi0_block, desc_nabf_nabf, LIBRPA::atomic_basis_abf,
+                        qa,true, CONE, IJq_chi0, MAJOR::ROW);
+                //printf("End collect block myid: %d ifreq: %d   TIME_USED: %f\n",mpi_comm_world_h.myid,ifreq,chi_end_comm-chi_end_arr);
+                mpi_comm_world_h.barrier();
+                double chi_end_2d = omp_get_wtime();
+
+                chi_arr_time=(chi_end_arr-chi_begin_arr);
+                chi_comm_time=(chi_end_comm-chi_end_arr);
+                chi_2d_time=(chi_end_2d-chi_end_comm);
+            }
+            
+            double pi_begin = omp_get_wtime();
+            ScalapackConnector::pgemm_f('N', 'N', n_abf, n_abf, n_abf, 1.0,
+                    coul_block.ptr(), 1, 1, desc_nabf_nabf.desc,
+                    chi0_block.ptr(), 1, 1, desc_nabf_nabf.desc, 0.0,
+                    coul_chi0_block.ptr(), 1, 1, desc_nabf_nabf.desc);
+            // char fnp[100];
+            // sprintf(fnp, "pi_ifreq_%d_iq_%d.mtx", ifreq, iq);
+            double pi_end = omp_get_wtime();
+            //printf("End pgemm  myid: %d ifreq: %d \n",mpi_comm_world_h.myid,ifreq);
+            double trace_pi=0.0;
+            double trace_pi_loc=0.0;
+            for(int i=0;i!= n_abf;i++)
+            {
+                const int ilo = desc_nabf_nabf.indx_g2l_r(i);
+                const int jlo = desc_nabf_nabf.indx_g2l_c(i);
+                if (ilo >= 0 && jlo >= 0)
+                    trace_pi_loc+=coul_chi0_block(ilo,jlo);
+            }
+            
+            coul_chi0_block*=-1.0;
+            for(int i=0;i!= n_abf;i++)
+            {
+                const int ilo = desc_nabf_nabf.indx_g2l_r(i);
+                const int jlo = desc_nabf_nabf.indx_g2l_c(i);
+                if (ilo >= 0 && jlo >= 0)
+                    coul_chi0_block(ilo,jlo)+=CONE;
+            }
+       
+            int *ipiv = new int [desc_nabf_nabf.m_loc()*10];
+            int info;
+            //printf("begin det  myid: %d ifreq: %d \n",mpi_comm_world_h.myid,ifreq);
+            double ln_det=compute_pi_det_blacs_2d_gamma_only(coul_chi0_block, desc_nabf_nabf, ipiv, info);
+            //printf("End det  myid: %d ifreq: %d \n",mpi_comm_world_h.myid,ifreq);
+            double det_end = omp_get_wtime();
+            mpi_comm_world_h.barrier();
+            MPI_Allreduce(&trace_pi_loc,&trace_pi,1,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
+            double pi_freq_end = omp_get_wtime();
+    
+            if(mpi_comm_world_h.myid==0)
+            {
+                printf("| TIME of DET-freq-q:  %f,  q: ( %f, %f, %f)  TOT: %f  CHI_arr: %f  CHI_comm: %f, CHI_2d: %f, Pi: %f, Det: %f\n",freq, q.x,q.y,q.z,pi_freq_end-pi_freq_begin, chi_arr_time,chi_comm_time,chi_2d_time,pi_end-pi_begin,det_end-pi_end);
+                complex<double> rpa_for_omega_q=complex<double>(trace_pi+ln_det);
+                cRPA_q[q] += rpa_for_omega_q * freq_weight * irk_weight[q] / TWO_PI;//!check
+                tot_RPA_energy += rpa_for_omega_q * freq_weight * irk_weight[q] / TWO_PI;
+            }
+        }
+    }
+#else
+    throw std::logic_error("need compilation with LibRI");
+#endif
+    if(mpi_comm_world_h.myid==0)
+    {
+        for (auto &q_crpa : cRPA_q)
+        {
+            corr.qcontrib[q_crpa.first] = q_crpa.second;
+        }
+    }
+    mpi_comm_world_h.barrier();
+    corr.value = tot_RPA_energy;
+
+    corr.etype = CorrEnergy::type::RPA;
+    return corr;
+}
+
 
 CorrEnergy compute_RPA_correlation_blacs_2d(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat)
 {
@@ -258,7 +470,46 @@ CorrEnergy compute_RPA_correlation_blacs_2d(const Chi0 &chi0, const atpair_k_cpl
     corr.etype = CorrEnergy::type::RPA;
     return corr;
 }
+double compute_pi_det_blacs_2d_gamma_only(matrix_m<double> &loc_piT, const Array_Desc &arrdesc_pi, int *ipiv, int &info)
+{
+    int one=1;
+    int range_all= N_all_mu;
+    int DESCPI_T[9];
+   
+    double det_begin = omp_get_wtime();
+   
+    ScalapackConnector::pgetrf_f(range_all,range_all,loc_piT.ptr(),one,one,arrdesc_pi.desc,ipiv, info);
+    double trf_end = omp_get_wtime();
 
+    double ln_det_loc=0.0;
+    double ln_det_all=0.0;
+
+    for(int ig=0;ig!=range_all;ig++)
+    {
+
+        int locr = arrdesc_pi.indx_g2l_r(ig);
+        int locc = arrdesc_pi.indx_g2l_c(ig);
+        if (locr >= 0 && locc >= 0)
+        {
+            
+            double tmp_ln_det;
+            if(loc_piT(locr,locc)>0)
+            {
+                tmp_ln_det=std::log(loc_piT(locr,locc));
+            }
+            else
+            {
+                tmp_ln_det=std::log(-loc_piT(locr,locc));
+            }
+            ln_det_loc+=tmp_ln_det;
+		}
+    }
+    double ln_end = omp_get_wtime();
+
+    MPI_Allreduce(&ln_det_loc,&ln_det_all,1,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
+    double det_end = omp_get_wtime();
+    return ln_det_all;
+}
 complex<double> compute_pi_det_blacs_2d(matrix_m<complex<double>> &loc_piT, const Array_Desc &arrdesc_pi, int *ipiv, int &info)
 {
     int one=1;
