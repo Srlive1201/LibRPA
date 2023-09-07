@@ -77,4 +77,3 @@ docs/Doxyfile
 # environment config
 .envrc
 .clangd
-.clang-format
