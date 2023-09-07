@@ -103,3 +103,69 @@ matrix reshape_mat_21(const size_t n1, const size_t n2, const size_t n3, const m
     return m_new;
 }
 
+
+matrix reshape_Cs_12(const size_t n1, const size_t n2, const size_t n3, const shared_ptr<matrix>  &Csmat) // (n1*n2,n3) ---> (n1,n2*n3)
+{
+    const auto length = sizeof(double) * n1 * n2 * n3;
+    const auto n13 = n1 * n2 * n3;
+    const double *m_ptr = (*Csmat).c;
+    matrix m_new(n1 , n2*n3);
+    double *m_new_ptr = m_new.c;
+    memcpy(m_new_ptr, m_ptr, length);
+    return m_new;
+}
+
+
+ComplexMatrix reshape_complxmat_12(const size_t n1, const size_t n2, const size_t n3, const ComplexMatrix &mat) // (n1*n2,n3) ---> (n1,n2*n3)
+{
+    const auto length = sizeof(complex<double>) * n1 * n2 * n3;
+    const auto n13 = n1 * n2 * n3;
+    const complex<double> *m_ptr = mat.c;
+    ComplexMatrix m_new(n1 , n2*n3);
+    complex<double> *m_new_ptr = m_new.c;
+    memcpy(m_new_ptr, m_ptr, length);
+    return m_new;
+
+}
+
+ComplexMatrix reshape_complxmat_21(const size_t n1, const size_t n2, const size_t n3, const ComplexMatrix &mat) //(n1,n2*n3) -> (n1*n2,n3)
+{
+    const auto length = sizeof(complex<double>) * n1 * n2 * n3;
+    const auto n13 = n1 * n2 * n3;
+    const complex<double> *m_ptr = mat.c;
+    ComplexMatrix m_new(n1 * n2, n3, false);
+    complex<double> *m_new_ptr = m_new.c;
+    memcpy(m_new_ptr, m_ptr, length);
+    return m_new;
+}
+
+
+ComplexMatrix reshape_complxmat(const size_t n1, const size_t n2, const size_t n3, const ComplexMatrix &mat) //(n1,n2*n3) -> (n2,n1*n3)
+{
+    const auto length = sizeof(complex<double>) * n3;
+    const auto n13 = n1 * n3;
+    const complex<double> *m_ptr = mat.c;
+    ComplexMatrix m_new(n2, n1 * n3, false);
+    for (size_t i1 = 0; i1 != n1; ++i1)
+    {
+        complex<double> *m_new_ptr = m_new.c + i1 * n3;
+        for (size_t i2 = 0; i2 != n2; ++i2, m_ptr += n3, m_new_ptr += n13)
+            memcpy(m_new_ptr, m_ptr, length);
+    }
+    return m_new;
+}
+
+ComplexMatrix reshape_complxmat_13(size_t n1, size_t n2, size_t n3, const ComplexMatrix & mat) //(n1*n2,n3) -> (n2,n1*n3)
+{
+    const auto length = sizeof(complex<double>) * n3;
+    const auto n13 = n1 * n3;
+    const complex<double> *m_ptr = mat.c;
+    ComplexMatrix m_new(n2, n1 * n3, false);
+    for (size_t i1 = 0; i1 != n1; ++i1)
+    {
+        complex<double> *m_new_ptr = m_new.c + i1 * n3;
+        for (size_t i2 = 0; i2 != n2; ++i2, m_ptr += n3, m_new_ptr += n13)
+            memcpy(m_new_ptr, m_ptr, length);
+    }
+    return m_new;
+}

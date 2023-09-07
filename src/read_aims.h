@@ -14,6 +14,7 @@ using std::string;
 using std::map;
 
 void READ_AIMS_BAND(const string &file_path, MeanField &mf);
+void READ_AIMS_d_BAND(const string &file_path, MeanField &mf);
 void READ_AIMS_EIGENVECTOR(const string &dir_path, MeanField &mf);
 void handle_KS_file(const string &file_path, MeanField &mf);
 size_t READ_AIMS_Cs(const string &dir_path, double threshold);

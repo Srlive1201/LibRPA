@@ -38,6 +38,11 @@ int main(int argc, char **argv)
     para_mpi.set_blacs_parameters();
 
     READ_AIMS_BAND("band_out", meanfield);
+   if ( params.task == "rpa_force" )
+   {
+    READ_AIMS_d_BAND("d_band_out", meanfield);
+   }
+
     if (para_mpi.get_myid() == 0)
     {
         cout << "Information of mean-field starting-point" << endl;
@@ -130,7 +135,11 @@ int main(int argc, char **argv)
     // try the new version
     Chi0 chi0(meanfield, klist, params.nfreq);
     chi0.gf_R_threshold = params.gf_R_threshold;
-
+//    if (params.task != "rpa_force")
+//    {
+//    d_Chi0   d_chi0;
+//    d_chi0.gf_R_threshold = params.gf_R_threshold;
+//    } 
     // build ABF IJ and qlist from Vq
      
     vector<Vector3_Order<double>> qlist;
