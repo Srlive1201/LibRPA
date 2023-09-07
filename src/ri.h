@@ -55,10 +55,18 @@ vector<int> get_part_range();
 
 //! Reshape Cs matrix from (n1*n2,n3) to (n2,n1*n3)
 matrix reshape_Cs(size_t n1, size_t n2, size_t n3, const shared_ptr<matrix> &Csmat);
+//! Reshape Cs matrix from (n1*n2,n3) to (n1,n2*n3)
+matrix reshape_Cs_12(const size_t n1, const size_t n2, const size_t n3, const shared_ptr<matrix>  &Csmat); // (n1*n2,n3) ---> (n1,n2*n3)
 //! Reshape Cs matrix from (n1,n2*n3) to (n2,n1*n3)
 matrix reshape_mat(size_t n1, size_t n2, size_t n3, const matrix &Csmat);
 //! Reshape Cs matrix from n1,n2*n3) to (n1*n2,n3)
 matrix reshape_mat_21(const size_t n1, const size_t n2, const size_t n3, const matrix &Csmat);
+//! Reshape Cs matrix from (n1*n2,n3) to (n2,n1*n3)
+ComplexMatrix reshape_complxmat_13(size_t n1, size_t n2, size_t n3, const ComplexMatrix & mat); //(n1*n2,n3) -> (n2,n1*n3)
 //! Reshape Cs matrix from n1,n2*n3) to (n1*n2,n3)
-matrix reshape_mat_21(const size_t n1, const size_t n2, const size_t n3, const matrix &Csmat);
+ComplexMatrix reshape_complxmat_21(const size_t n1, const size_t n2, const size_t n3, const ComplexMatrix &mat); //(n1,n2*n3) -> (n1*n2,n3)
+//! Reshape (n1*n2,n3) -> (n1,n2*n3)
+ComplexMatrix reshape_complxmat_12(const size_t n1, const size_t n2, const size_t n3, const ComplexMatrix &mat); //  (n1*n2,n3) ---> (n1,n2*n3)
+//! Reshape Cs matrix from (n1,n2*n3) to (n2,n1*n3)
+ComplexMatrix reshape_complxmat(const size_t n1, const size_t n2, const size_t n3, const ComplexMatrix &mat); //(n1,n2*n3) -> (n2,n1*n3)
 #endif

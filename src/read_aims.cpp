@@ -60,6 +60,51 @@ void READ_AIMS_BAND(const string &file_path, MeanField &mf)
     //     print_matrix("eskb_mat",eskb[is]);
 }
 
+
+void READ_AIMS_d_BAND(const string &file_path, MeanField &mf)
+{
+    // cout << "Begin to read aims-band_out" << endl;
+    ifstream infile;
+    infile.open(file_path);
+    string ks, ss, nbands, natoms, nkpoints, d_eigenvalue_x, d_eigenvalue_y, d_eigenvalue_z;
+    int n_kpoints, n_spins, n_bands;
+    infile >> nkpoints;
+    infile >>nbands;
+    infile >> natoms;
+    int my_n_atoms =stoi(natoms);
+      n_bands =stoi(nbands);
+      n_kpoints=stoi(nkpoints);
+    auto &  d_eskb = mf.get_d_eigenvals();
+
+     for (int i_coord=1; i_coord <=3; i_coord ++) 
+     {	     
+     for (int i_atom =1; i_atom<=my_n_atoms; i_atom++)
+     {	     
+     d_eskb[i_coord][i_atom].create(n_kpoints, n_bands);
+     }
+     }
+     
+
+
+      for (int ik = 0; ik != n_kpoints; ik++)
+       {
+            infile >> ks;
+            int k_index = stoi(ks) - 1;
+	for (int i_atom =1; i_atom<=my_n_atoms; i_atom++)
+	{
+        for (int i = 0; i != n_bands; i++)
+        {
+            infile >> d_eigenvalue_x >> d_eigenvalue_y >> d_eigenvalue_z;
+
+            d_eskb[1][i_atom](k_index, i) = stod(d_eigenvalue_x) * 2;
+            d_eskb[2][i_atom](k_index, i) = stod(d_eigenvalue_y) * 2;
+            d_eskb[3][i_atom](k_index, i) = stod(d_eigenvalue_z) * 2;
+        }
+	}
+        }
+}
+
+
 void READ_AIMS_EIGENVECTOR(const string &dir_path, MeanField &mf)
 {
     // cout<<"Begin to read aims eigenvecor"<<endl;

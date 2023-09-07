@@ -6,6 +6,7 @@
 #define MEANFIELD_H
 
 #include <vector>
+#include <map>
 #include "matrix.h"
 #include "complexmatrix.h"
 #include "vector3_order.h"
@@ -29,6 +30,8 @@ class MeanField
         int n_kpoints;
         //! eigenvalues, (n_spins, n_kpoints, n_bands)
         vector<matrix> eskb;
+	//std::map<int, std::map<int, matrix>> d_eskb;
+	map<int, map<int, matrix>> d_eskb;
         //! occupation weight, scaled by n_kpoints. (n_spins, n_kpoints, n_bands)
         vector<matrix> wg;
         //! eigenvector, (n_spins, n_kpoint, n_bands, n_aos)
@@ -51,6 +54,7 @@ class MeanField
         double & get_efermi() { return efermi; }
         const double & get_efermi() const { return efermi; }
         vector<matrix> & get_eigenvals() { return eskb; }
+        map<int, map<int, matrix>> & get_d_eigenvals() { return d_eskb; }
         const vector<matrix> & get_eigenvals() const { return eskb; }
         vector<matrix> & get_weight() { return wg; }
         const vector<matrix> & get_weight() const { return wg; }
