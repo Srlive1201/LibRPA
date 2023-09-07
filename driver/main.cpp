@@ -1,4 +1,4 @@
-#include "lib_main.h"
+#include "main.h"
 #include "constants.h"
 #include "interpolate.h"
 #include "fitting.h"
