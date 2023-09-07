@@ -31,8 +31,13 @@ int main(int argc, char **argv)
     if (mpi_comm_world_h.is_root())
         system(("mkdir -p " + Params::output_dir).c_str());
     mpi_comm_world_h.barrier();
-    Params::nfreq = stoi(argv[1]);
-    Params::gf_R_threshold = stod(argv[2]);
+
+    if (argc > 2)
+    {
+        Params::nfreq = stoi(argv[1]);
+        Params::gf_R_threshold = stod(argv[2]);
+    }
+
     Params::check_consistency();
     if (mpi_comm_world_h.is_root())
         Params::print();
