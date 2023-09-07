@@ -15,7 +15,7 @@ set(version "${librpa_major_version}.${librpa_minor_version}.${librpa_micro_vers
 
 set(CMAKE_PROJECT_VERSION "${version}")
 
-set(DRIVER_NAME "chi0_main.exe")
+set(DRIVER_NAME "librpa_driver.exe")
 set(LIB_NAME    "rpa")
 
 # options setup
