@@ -1,4 +1,4 @@
-/*
+/*!
  * @file params.h
  * @brief parameters for controlling LibRPA calculation
  */
@@ -20,7 +20,7 @@ struct Params
     static std::string DFT_software;
     //! the path of file to store librpa mainly output
     static std::string output_file;
-    
+
     //! the path of directory to store librpa output files
     static std::string output_dir;
 
@@ -60,28 +60,28 @@ struct Params
     //! switch of using LibRI for GW calculation
     static bool use_libri_gw;
 
-    //! CS-matrix threshold parsed to RPA object of LibRI. 
+    //! CS-matrix threshold parsed to RPA object of LibRI.
     static double libri_chi0_threshold_CSM;
 
-    //! Cs threshold parsed to RPA object of LibRI. 
+    //! Cs threshold parsed to RPA object of LibRI.
     static double libri_chi0_threshold_C;
 
-    //! Green's function threshold parsed to RPA object of LibRI. 
+    //! Green's function threshold parsed to RPA object of LibRI.
     static double libri_chi0_threshold_G;
 
     //! switch of using ScaLAPACK for EcRPA calculation
     static bool use_scalapack_ecrpa;
 
-    //! CS-matrix threshold parsed to EXX object of LibRI. 
+    //! CS-matrix threshold parsed to EXX object of LibRI.
     static double libri_exx_threshold_CSM;
 
-    //! Cs threshold parsed to EXX object of LibRI. 
+    //! Cs threshold parsed to EXX object of LibRI.
     static double libri_exx_threshold_C;
 
-    //! Density matrix threshold parsed to EXX object of LibRI. 
+    //! Density matrix threshold parsed to EXX object of LibRI.
     static double libri_exx_threshold_D;
 
-    //! Coulomb matrix threshold parsed to EXX object of LibRI. 
+    //! Coulomb matrix threshold parsed to EXX object of LibRI.
     static double libri_exx_threshold_V;
 
     //! switch of using ScaLAPACK for computing Wc from chi0
@@ -97,6 +97,12 @@ struct Params
     static bool replace_w_head;
 
     //! option of computing dielectric function on imaginary axis
+    /*!
+     * Available values:
+     * - 0: direct read from input
+     * - 1: dielectric model fitting
+     * - 2: cubic-spline interpolation
+     */
     static int option_dielect_func;
 
     static void check_consistency();
@@ -118,4 +124,4 @@ static void customPrint(const char* format, ...) {
 
 // #define printf customPrint
 
-#endif 
+#endif

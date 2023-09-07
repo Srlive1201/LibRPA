@@ -34,11 +34,6 @@ bool Params::use_libri_gw = true;
 bool Params::output_gw_sigc_mat = true;
 bool Params::replace_w_head = true;
 
-/*!
- * 0: direct read from input
- * 1: dielectric model fitting
- * 2: cubic-spline interpolation
- */
 int Params::option_dielect_func = 2;
 
 void Params::check_consistency()
