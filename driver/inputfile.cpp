@@ -133,6 +133,7 @@ void parse_inputfile_to_params(const std::string& fn)
     // general parameters
     parser.parse_string("task", Params::task, "rpa", flag);
     parser.parse_string("output_dir", Params::output_dir, "librpa.d", flag);
+    parser.parse_string("output_file", Params::output_file, "LibRPA_output.txt", flag);
     parser.parse_bool("debug", Params::debug, false, flag);
 
     // chi0 related
