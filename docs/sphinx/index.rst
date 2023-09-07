@@ -8,11 +8,30 @@ Welcome to LibRPA's documentation!
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
+   :caption: Get Started
 
-Indices and tables
-==================
+   install
+   usage/driver
 
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+.. toctree::
+   :maxdepth: 2
+   :caption: Manual
+
+   manual/compile
+   manual/input_parameters
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Tutorial
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Development
+
+..
+   Indices and tables
+   ==================
+   
+   * :ref:`genindex`
+   * :ref:`modindex`
+   * :ref:`search`

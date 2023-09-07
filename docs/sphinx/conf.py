@@ -28,7 +28,8 @@ author = 'LibRPA authors'
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    "breathe"
+    "breathe",
+    "sphinx_copybutton",
 ]
 breathe_default_project = "LibRPA"
 
