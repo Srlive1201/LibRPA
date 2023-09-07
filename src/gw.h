@@ -53,7 +53,7 @@ public:
         const Vector3_Order<int> &R_period);
 
     //! build the correlation self-energy matrix in Kohn-Sham basis
-    void build_sigc_matrix_KS() noexcept;
+    void build_sigc_matrix_KS();
 };
 
 }

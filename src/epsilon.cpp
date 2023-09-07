@@ -18,19 +18,19 @@
 #include "profiler.h"
 #include "ri.h"
 #include "scalapack_connector.h"
+#include <omp.h>
+#include <malloc.h>
+
 #ifdef LIBRPA_USE_LIBRI
 #include <RI/comm/mix/Communicate_Tensors_Map_Judge.h>
 #include <RI/global/Tensor.h>
-#endif
-// #include "print_stl.h"
-#include <omp.h>
-#include <malloc.h>
-using LIBRPA::mpi_comm_world_h;
-using LIBRPA::Array_Desc;
-#ifdef LIBRPA_USE_LIBRI
 using RI::Tensor;
 using RI::Communicate_Tensors_Map_Judge::comm_map2_first;
 #endif
+
+using LIBRPA::mpi_comm_world_h;
+using LIBRPA::Array_Desc;
+
 CorrEnergy compute_RPA_correlation_blacs_2d_gamma_only( Chi0 &chi0, atpair_k_cplx_mat_t &coulmat)
 {
     CorrEnergy corr;

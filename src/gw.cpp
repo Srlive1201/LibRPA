@@ -12,7 +12,8 @@
 #ifdef LIBRPA_USE_LIBRI
 #include <RI/global/Tensor.h>
 #include <RI/physics/GW.h>
-// #include "print_stl.h"
+using RI::Tensor;
+using RI::Communicate_Tensors_Map_Judge;
 #endif
 
 namespace LIBRPA
@@ -51,7 +52,7 @@ void G0W0::build_spacetime_LibRI(
     if (mpi_comm_world_h.myid == 0)
     {
         cout << "LIBRA::G0W0::build_spacetime is only implemented on top of LibRI" << endl;
-        cout << "Please recompiler libRPA with -DUSE_LIBRI and configure include path" << endl;
+        cout << "Please recompiler LibRPA with -DUSE_LIBRI and configure include path" << endl;
     }
     mpi_comm_world_h.barrier();
     throw std::logic_error("compilation");
@@ -306,11 +307,21 @@ void G0W0::build_spacetime_LibRI(
 #endif
 }
 
-void G0W0::build_sigc_matrix_KS() noexcept
+void G0W0::build_sigc_matrix_KS()
 {
     const complex<double> CONE{1.0, 0.0};
     const int n_aos = mf.get_n_aos();
     const int n_bands = mf.get_n_bands();
+
+#ifndef LIBRPA_USE_LIBRI
+    if (mpi_comm_world_h.myid == 0)
+    {
+        cout << "LIBRA::G0W0::build_sigc_matrix_KS is only implemented on top of LibRI" << endl;
+        cout << "Please recompiler LibRPA with -DUSE_LIBRI and optionally configure include path" << endl;
+    }
+    mpi_comm_world_h.barrier();
+    throw std::logic_error("compilation");
+#else
     // char fn[80];
     Array_Desc desc_nband_nao(blacs_ctxt_world_h);
     desc_nband_nao.init_1b1p(n_aos, n_bands, 0, 0);
@@ -342,7 +353,7 @@ void G0W0::build_sigc_matrix_KS() noexcept
                 const auto kfrac = this->kfrac_list[ik];
                 const std::array<double, 3> ka{kfrac.x, kfrac.y, kfrac.z};
                 // build a libRI object to collect all k
-                std::map<int, std::map<std::pair<int, std::array<double, 3>>, RI::Tensor<complex<double>>>>
+                std::map<int, std::map<std::pair<int, std::array<double, 3>>, Tensor<complex<double>>>>
                     sigc_I_Jk;
                 sigc_nao_nao.zero_out();
                 if (sigc_is_freq.count(kfrac))
@@ -355,10 +366,10 @@ void G0W0::build_sigc_matrix_KS() noexcept
                         {
                             const auto &J = J_sigc.first;
                             const auto &n_J = atomic_basis_wfc.get_atom_nb(J);
-                            sigc_I_Jk[I][{J, ka}] = RI::Tensor<complex<double>>({n_I, n_J}, J_sigc.second.sptr());
+                            sigc_I_Jk[I][{J, ka}] = Tensor<complex<double>>({n_I, n_J}, J_sigc.second.sptr());
                         }
                     }
-                    const auto sigc_src = RI::Communicate_Tensors_Map_Judge::comm_map2_first(
+                    const auto sigc_src = Communicate_Tensors_Map_Judge::comm_map2_first(
                         LIBRPA::mpi_comm_world_h.comm, sigc_I_Jk, s0_s1.first, s0_s1.second);
                     collect_block_from_IJ_storage_tensor(sigc_nao_nao, desc_nao_nao, atomic_basis_wfc, atomic_basis_wfc,
                                                          ka, CONE, sigc_src);
@@ -382,6 +393,7 @@ void G0W0::build_sigc_matrix_KS() noexcept
             }
         }
     }
+#endif
 }
 
 } // namespace LIBRPA
