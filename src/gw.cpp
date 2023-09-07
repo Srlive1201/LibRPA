@@ -13,7 +13,7 @@
 #include <RI/global/Tensor.h>
 #include <RI/physics/GW.h>
 using RI::Tensor;
-using RI::Communicate_Tensors_Map_Judge;
+using RI::Communicate_Tensors_Map_Judge::comm_map2_first;
 #endif
 
 namespace LIBRPA
@@ -369,7 +369,7 @@ void G0W0::build_sigc_matrix_KS()
                             sigc_I_Jk[I][{J, ka}] = Tensor<complex<double>>({n_I, n_J}, J_sigc.second.sptr());
                         }
                     }
-                    const auto sigc_src = Communicate_Tensors_Map_Judge::comm_map2_first(
+                    const auto sigc_src = comm_map2_first(
                         LIBRPA::mpi_comm_world_h.comm, sigc_I_Jk, s0_s1.first, s0_s1.second);
                     collect_block_from_IJ_storage_tensor(sigc_nao_nao, desc_nao_nao, atomic_basis_wfc, atomic_basis_wfc,
                                                          ka, CONE, sigc_src);
