@@ -186,7 +186,8 @@ void run_librpa_main(MPI_Comm comm_in)
     std::ofstream outputFile("LibRPA_cout.txt");
     std::streambuf* originalCoutBuffer = std::cout.rdbuf();
     std::cout.rdbuf(outputFile.rdbuf());
-    
+    LIBRPA::atomic_basis_wfc.set(atom_nw);
+    LIBRPA::atomic_basis_abf.set(atom_mu);
     librpa_main(comm_in);
     
     std::cout.rdbuf(originalCoutBuffer);
