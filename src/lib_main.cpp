@@ -41,6 +41,7 @@ int main(int argc, char **argv)
    if ( params.task == "rpa_force" )
    {
     READ_AIMS_d_BAND("d_band_out", meanfield);
+    READ_AIMS_d_EIGENVECTOR("./", meanfield);
    }
 
     if (para_mpi.get_myid() == 0)
