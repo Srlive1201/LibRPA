@@ -910,10 +910,17 @@ void d_Chi0::build_d_gf_full_unocc_R_plus_tau(Vector3_Order<int> R, double tau, 
         {
         for (int i_atom=1; i_atom<=natom; i_atom++) 
 	{
-            auto scaled_wfc_conj1 = conj(mf.get_eigenvectors()[is][ik]);
-            for ( int ib = 0; ib != nbands; ib++)
-            LapackConnector::scal(naos, d_scale[i_coord][i_atom](ik, ib), scaled_wfc_conj1.c + naos * ib, 1);
-            d_gf_Rt_is_global[i_coord][i_atom] += (kphase * transpose(mf.get_eigenvectors()[is][ik], false) * scaled_wfc_conj1).real();
+          auto scaled_wfc_conj1 = conj(mf.get_eigenvectors()[is][ik]);
+          auto scaled_wfc_conj2 = conj(meanfield.get_d_eigenvectors()[i_coord-1][i_atom-1][ik]);
+          for ( int ib = 0; ib != nbands; ib++)
+	  {
+          LapackConnector::scal(naos, d_scale[i_coord][i_atom](ik, ib), scaled_wfc_conj1.c + naos * ib, 1);
+          LapackConnector::scal(naos, scale(ik, ib), scaled_wfc_conj2.c + naos * ib, 1);
+	  }
+          d_gf_Rt_is_global[i_coord][i_atom] += (kphase * transpose(mf.get_eigenvectors()[is][ik], false) * scaled_wfc_conj1).real();
+          d_gf_Rt_is_global[i_coord][i_atom] += (kphase * transpose(mf.get_eigenvectors()[is][ik], false) * scaled_wfc_conj2).real();
+          d_gf_Rt_is_global[i_coord][i_atom] += (kphase * transpose(meanfield.get_d_eigenvectors()[i_coord-1][i_atom-1][ik], false) *
+			                         scaled_wfc_conj).real();
         }
 	}
 
@@ -1081,10 +1088,17 @@ void d_Chi0::build_d_gf_full_occ_R_minus_tau(Vector3_Order<int> R, double tau, c
         {
         for (int i_atom=1; i_atom<=natom; i_atom++) 
 	{
-            auto scaled_wfc_conj1 = conj(mf.get_eigenvectors()[is][ik]);
-            for ( int ib = 0; ib != nbands;  ib++)
-            LapackConnector::scal(naos, d_scale[i_coord][i_atom](ik, ib), scaled_wfc_conj1.c + naos * ib, 1);
-            d_gf_Rt_is_global[i_coord][i_atom] -= (kphase * transpose(mf.get_eigenvectors()[is][ik], false) * scaled_wfc_conj1).real();
+         auto scaled_wfc_conj1 = conj(mf.get_eigenvectors()[is][ik]);
+         auto scaled_wfc_conj2 = conj(meanfield.get_d_eigenvectors()[i_coord-1][i_atom-1][ik]);
+         for ( int ib = 0; ib != nbands;  ib++)
+	 {
+         LapackConnector::scal(naos, d_scale[i_coord][i_atom](ik, ib), scaled_wfc_conj1.c + naos * ib, 1);
+         LapackConnector::scal(naos, scale(ik, ib), scaled_wfc_conj2.c + naos * ib, 1);
+	 }
+         d_gf_Rt_is_global[i_coord][i_atom] -= (kphase * transpose(mf.get_eigenvectors()[is][ik], false) * scaled_wfc_conj1).real();
+         d_gf_Rt_is_global[i_coord][i_atom] -= (kphase * transpose(mf.get_eigenvectors()[is][ik], false) * scaled_wfc_conj2).real();
+         d_gf_Rt_is_global[i_coord][i_atom] -= (kphase * transpose(meanfield.get_d_eigenvectors()[i_coord-1][i_atom-1][ik], false) *
+			                         scaled_wfc_conj).real();
         }
 	}
 

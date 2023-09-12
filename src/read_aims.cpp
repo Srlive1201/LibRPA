@@ -131,6 +131,24 @@ void READ_AIMS_EIGENVECTOR(const string &dir_path, MeanField &mf)
 }
 
 
+void READ_AIMS_d_EIGENVECTOR(const string &dir_path, MeanField &mf)
+{
+    struct dirent *ptr;
+    DIR *dir;
+    dir = opendir(dir_path.c_str());
+    vector<string> files;
+    while ((ptr = readdir(dir)) != NULL)
+    {
+        string fm(ptr->d_name);
+        if (fm.find("d_KS_eigenvector") == 0)
+        {
+            handle_d_KS_file(fm, mf);
+        }
+    }
+    closedir(dir);
+    dir = NULL;
+}
+
 void handle_KS_file(const string &file_path, MeanField &mf)
 {
     // cout<<file_path<<endl;
@@ -167,6 +185,60 @@ void handle_KS_file(const string &file_path, MeanField &mf)
         //             wfc_k.at(stoi(ik) - 1)(ib, iw) = complex<double>(stod(rvalue), stod(ivalue));
         //         }
     }}
+
+
+void handle_d_KS_file(const string &file_path, MeanField &mf)
+{
+    ifstream infile;
+    infile.open(file_path);
+    string rvalue_x, ivalue_x, rvalue_y, ivalue_y, rvalue_z, ivalue_z, kstr, natoms, nkpoints;
+    auto & d_wfc = mf.get_d_eigenvectors();
+    infile >> natoms;
+    infile >> nkpoints;
+    int   n_atoms=stoi(natoms);
+    int   n_k_points=stoi(nkpoints);
+
+    const auto nbands = mf.get_n_bands();
+    const auto naos = mf.get_n_aos();
+
+
+    d_wfc.resize(3);
+    for (int i=0; i!=3; i++)
+    {
+    d_wfc[i].resize(n_atoms);
+    for (int j=0; j !=n_atoms; j++)
+    {
+    d_wfc[i][j].resize(n_k_points);
+
+    for (int k=0; k<n_k_points; k++)
+    {
+     d_wfc[i][j][k].create(nbands, naos);
+     d_wfc[i][j][k].zero_out();
+    }
+    }
+    }
+
+
+    while (infile.peek() != EOF)
+    {
+        infile >> kstr;
+        if (infile.peek() == EOF)
+            break;
+        for (int iw = 0; iw != mf.get_n_aos(); iw++)
+            for (int ib = 0; ib != mf.get_n_bands(); ib++)
+                for (int i = 0; i !=n_atoms; i++)
+                {
+                    infile >> rvalue_x >> ivalue_x >> rvalue_y >> ivalue_y >> rvalue_z >> ivalue_z;
+		    d_wfc.at(0).at(i).at(stoi(kstr) - 1)(ib, iw) = complex<double>(stod(rvalue_x), stod(ivalue_x));
+                    d_wfc.at(1).at(i).at(stoi(kstr) - 1)(ib, iw) = complex<double>(stod(rvalue_y), stod(ivalue_y));
+                    d_wfc.at(2).at(i).at(stoi(kstr) - 1)(ib, iw) = complex<double>(stod(rvalue_z), stod(ivalue_z));
+                }
+    }
+
+
+
+ }
+
 
 size_t READ_AIMS_Cs(const string &dir_path, double threshold)
 {
