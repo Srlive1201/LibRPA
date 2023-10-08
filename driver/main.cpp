@@ -14,34 +14,49 @@
 int main(int argc, char **argv)
 {
     using namespace LIBRPA;
+    /*
+     * MPI Initialization
+     */
     MPI_Wrapper::init(argc, argv);
 
+    /*
+     * Global profiler begins right after MPI is initialized
+     */
+    Profiler::start("total", "Total");
+
+    /*
+     * Initialize the global MPI communicator and BLACS context
+     * HACK: A close-to-square process grid is imposed.
+     *       This might subject to performance issue when
+     *       the number of processes is not dividable.
+     */
     mpi_comm_world_h.init();
     cout << mpi_comm_world_h.str() << endl;
     mpi_comm_world_h.barrier();
     blacs_ctxt_world_h.init();
     blacs_ctxt_world_h.set_square_grid();
 
-    Params::output_file="LibRPA_driver_output.txt";
-    Profiler::start("total", "Total");
-
-    Profiler::start("driver_io_init", "Driver IO Initialization");
+    /*
+     * Load computational parameters from input file
+     */
+    Profiler::start("driver_read_params", "Driver Read Input Parameters");
     parse_inputfile_to_params(input_filename);
-    // create output directory, only by the root process
-    if (mpi_comm_world_h.is_root())
-        system(("mkdir -p " + Params::output_dir).c_str());
-    mpi_comm_world_h.barrier();
-
+    // Backward compatibility for parsing number of frequencies and threshold from CLI
     if (argc > 2)
     {
         Params::nfreq = stoi(argv[1]);
         Params::gf_R_threshold = stod(argv[2]);
     }
-
     Params::check_consistency();
     if (mpi_comm_world_h.is_root())
+    {
+        system(("mkdir -p " + Params::output_dir).c_str());
         Params::print();
+    }
     mpi_comm_world_h.barrier();
+    Profiler::stop("driver_read_params");
+
+    Profiler::start("driver_read_common_input_data", "Driver Read Task-Common Input Data");
 
     READ_AIMS_BAND("band_out", meanfield);
     if (mpi_comm_world_h.is_root())
@@ -62,7 +77,7 @@ int main(int argc, char **argv)
     READ_AIMS_STRU(meanfield.get_n_kpoints(), "stru_out");
     Vector3_Order<int> period {kv_nmp[0], kv_nmp[1], kv_nmp[2]};
     auto Rlist = construct_R_grid(period);
-
+    const int Rt_num = Rlist.size() * Params::nfreq;
     if (mpi_comm_world_h.is_root())
     {
         cout << "Lattice vectors (Bohr)" << endl;
@@ -80,37 +95,32 @@ int main(int argc, char **argv)
         cout << "R-points to compute:" << endl;
         for (int iR = 0; iR != Rlist.size(); iR++)
         {
-            printf("iR %4d: %3d %3d %3d\n", iR+1, Rlist[iR].x, Rlist[iR].y, Rlist[iR].z);
+            printf("%4d: %3d %3d %3d\n", iR+1, Rlist[iR].x, Rlist[iR].y, Rlist[iR].z);
         }
         cout << endl;
     }
-
-    const int Rt_num = Rlist.size() * Params::nfreq;
+    mpi_comm_world_h.barrier();
 
     READ_AIMS_EIGENVECTOR("./", meanfield);
-
     natom = get_natom_ncell_from_first_Cs_file();
     tot_atpair = generate_atom_pair_from_nat(natom, false);
     tot_atpair_ordered = generate_atom_pair_from_nat(natom, true);
-
     if (mpi_comm_world_h.is_root())
     {
         cout << "| Number of atoms: " << natom << endl;
         cout << "| Total atom pairs (unordered): " << tot_atpair.size() << endl;
-        cout << "| R-tau                       : " << Rt_num << endl;
         cout << "| Total atom pairs (ordered)  : " << tot_atpair_ordered.size() << endl;
+        cout << "| Number of (R,t) points      : " << Rt_num << endl;
     }
-    set_chi_parallel_type(Params::chi_parallel_routing, tot_atpair.size(), Rt_num, Params::use_libri_chi0);
-    set_exx_parallel_type(Params::exx_parallel_routing, tot_atpair.size(), Rt_num, Params::use_libri_exx);
-    set_gw_parallel_type(Params::gw_parallel_routing, tot_atpair.size(), Rt_num, Params::use_libri_gw);
-    check_parallel_type();
+
+    set_parallel_routing(Params::parallel_routing, tot_atpair.size(), Rt_num, parallel_routing);
 
     // barrier to wait for information print on master process
     mpi_comm_world_h.barrier();
 
     //para_mpi.chi_parallel_type=Parallel_MPI::parallel_type::ATOM_PAIR;
     // vector<atpair_t> local_atpair;
-    if(chi_parallel_type == parallel_type::ATOM_PAIR)
+    if(parallel_routing == ParallelRouting::ATOM_PAIR)
     {
         // vector<int> atoms_list(natom);
         // for(int iat=0;iat!=natom;iat++)
@@ -129,7 +139,8 @@ int main(int argc, char **argv)
         // for( auto &a1 : list_loc_atp.second)
         //     for(auto &a2:a1)
         //         ofs<<a2.first<<"  ("<<a2.second[0]<<", "<<a2.second[1]<<", "<<a2.second[2]<<" )"<<endl;
-        if (LIBRPA::mpi_comm_world_h.is_root()) printf("Triangular dispatching of atom pairs\n");
+        if (LIBRPA::mpi_comm_world_h.is_root())
+            printf("Triangular dispatching of atom pairs\n");
         auto trangular_loc_atpair= dispatch_upper_trangular_tasks(natom,blacs_ctxt_world_h.myid,blacs_ctxt_world_h.nprows,blacs_ctxt_world_h.npcols,blacs_ctxt_world_h.myprow,blacs_ctxt_world_h.mypcol);
         //local_atpair = dispatch_vector(tot_atpair, mpi_comm_world_h.myid, mpi_comm_world_h.nprocs, true);
         for(auto &iap:trangular_loc_atpair)
@@ -151,7 +162,7 @@ int main(int argc, char **argv)
         //     printf("   |process %d , local_atom_pair:  %d,  %d\n", mpi_comm_world_h.myid,ap.first,ap.second);
         READ_Vq_Row("./", "coulomb_mat", Params::vq_threshold, Vq, local_atpair);
     }
-    else if(chi_parallel_type == parallel_type::LIBRI_USED)
+    else if(parallel_routing == ParallelRouting::LIBRI)
     {
         if (LIBRPA::mpi_comm_world_h.is_root()) printf("Evenly distributed Cs and V for LibRI\n");
         READ_AIMS_Cs_evenly_distribute("./", Params::cs_threshold, mpi_comm_world_h.myid, mpi_comm_world_h.nprocs);
@@ -163,9 +174,8 @@ int main(int argc, char **argv)
             }
             mpi_comm_world_h.barrier();
         }
-
         // Vq distributed using the same strategy
-        // There should be not duplicate for V
+        // There should be no duplicate for V
         auto trangular_loc_atpair= dispatch_upper_trangular_tasks(natom,blacs_ctxt_world_h.myid,blacs_ctxt_world_h.nprows,blacs_ctxt_world_h.npcols,blacs_ctxt_world_h.myprow,blacs_ctxt_world_h.mypcol);
         for(auto &iap:trangular_loc_atpair)
             local_atpair.push_back(iap);
@@ -173,9 +183,9 @@ int main(int argc, char **argv)
     }
     else
     {
-        if (LIBRPA::mpi_comm_world_h.is_root()) printf("Complte copy of Cs and V on each process\n");
+        if (LIBRPA::mpi_comm_world_h.is_root()) printf("Complete copy of Cs and V on each process\n");
         local_atpair = generate_atom_pair_from_nat(natom, false);
-        READ_AIMS_Cs("./", Params::cs_threshold,local_atpair );
+        READ_AIMS_Cs("./", Params::cs_threshold,local_atpair);
         printf("| process %d, size of Cs from local_atpair: %d\n", LIBRPA::mpi_comm_world_h.myid, get_num_keys(Cs));
         LIBRPA::fout_para << "Cs keys:\n";
         print_keys(LIBRPA::fout_para, Cs);
@@ -198,7 +208,7 @@ int main(int argc, char **argv)
     // }
     // std::flush(LIBRPA::fout_para);
     // mpi_comm_world_h.barrier();
-    Profiler::stop("driver_io_init");
+    Profiler::stop("driver_read_common_input_data");
 
     // malloc_trim(0);
     // para_mpi.mpi_barrier();
@@ -260,30 +270,13 @@ int main(int argc, char **argv)
     // para_mpi.mpi_barrier();
     // if(para_mpi.is_master())
     //     system("free -m");
+
     // FIXME: a more general strategy to deal with Cs
+
     // Cs is not required after chi0 is computed in rpa task
-    if (LIBRPA::chi_parallel_type != LIBRPA::parallel_type::LIBRI_USED && Params::task == "rpa")
+    if (Params::task == "rpa")
     {
         Cs.clear();
-    }
-    else if (LIBRPA::chi_parallel_type == LIBRPA::parallel_type::ATOM_PAIR)
-    {
-        if (LIBRPA::exx_parallel_type == LIBRPA::parallel_type::LIBRI_USED)
-        {
-            vector<pair<int, int>> pairs_Cs;
-            for (const auto& I_JRCs: Cs)
-            {
-                for (const auto& J_RCs: I_JRCs.second)
-                {
-                    pairs_Cs.push_back({I_JRCs.first, J_RCs.first});
-                }
-            }
-            const auto duplicate_pairs = find_duplicate_ordered_pair(natom, pairs_Cs, mpi_comm_world_h.comm);
-            for (const auto& dp: duplicate_pairs)
-            {
-                Cs.at(dp.first).erase(dp.second);
-            }
-        }
     }
 
     malloc_trim(0);
@@ -293,7 +286,7 @@ int main(int argc, char **argv)
         mpi_comm_world_h.barrier();
         Profiler::start("EcRPA", "Compute RPA correlation Energy");
         CorrEnergy corr;
-        if (Params::use_scalapack_ecrpa && LIBRPA::chi_parallel_type == LIBRPA::parallel_type::ATOM_PAIR)
+        if (Params::use_scalapack_ecrpa && LIBRPA::parallel_routing == LIBRPA::ParallelRouting::ATOM_PAIR)
         {
             if(meanfield.get_n_kpoints() == 1)
                 corr = compute_RPA_correlation_blacs_2d_gamma_only(chi0, Vq);

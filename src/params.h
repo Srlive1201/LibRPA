@@ -30,14 +30,8 @@ struct Params
     //! the type of time-frequency grids
     static std::string tfgrids_type;
 
-    //! parallel routing of chi
-    static std::string chi_parallel_routing;
-
-    //! parallel routing of exx
-    static std::string exx_parallel_routing;
-
-    //! parallel routing of gw
-    static std::string gw_parallel_routing;
+    //! type of parallel routing
+    static std::string parallel_routing;
 
     //! threshold of R-space Green's function when construcing.
     static double gf_R_threshold;
@@ -108,6 +102,9 @@ struct Params
     static void check_consistency();
     static void print();
 };
+
+
+// NOTE:(MYZ) Can we move customPrint to other file?
 
 static void customPrint(const char* format, ...) {
     va_list args;

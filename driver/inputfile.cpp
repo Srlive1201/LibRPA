@@ -133,14 +133,13 @@ void parse_inputfile_to_params(const std::string& fn)
     // general parameters
     parser.parse_string("task", Params::task, "rpa", flag);
     parser.parse_string("output_dir", Params::output_dir, "librpa.d", flag);
-    parser.parse_string("output_file", Params::output_file, "LibRPA_output.txt", flag);
+    parser.parse_string("output_file", Params::output_file, "stdout", flag);
     parser.parse_bool("debug", Params::debug, false, flag);
 
     // chi0 related
     parser.parse_string("tfgrid_type", Params::tfgrids_type, "minimax", flag);
-    parser.parse_string("chi_parallel_routing", Params::chi_parallel_routing, "auto", flag);
+    parser.parse_string("parallel_routing", Params::parallel_routing, "auto", flag);
     parser.parse_int("nfreq", Params::nfreq, 6, flag);
-    parser.parse_bool("use_libri_chi0", Params::use_libri_chi0, false, flag);
     parser.parse_bool("use_scalapack_ecrpa", Params::use_scalapack_ecrpa, false, flag);
     parser.parse_bool("use_scalapack_gw_wc", Params::use_scalapack_gw_wc, false, flag);
     parser.parse_double("cs_threshold", Params::cs_threshold, 1e-6, flag);
@@ -152,16 +151,12 @@ void parse_inputfile_to_params(const std::string& fn)
     parser.parse_double("libri_chi0_threshold_G", Params::libri_chi0_threshold_G, 0.0, flag);
 
     // exx related
-    parser.parse_bool("use_libri_exx", Params::use_libri_exx, true, flag);
-    parser.parse_string("exx_parallel_routing", Params::exx_parallel_routing, "auto", flag);
     parser.parse_double("libri_exx_threshold_CSM", Params::libri_exx_threshold_CSM, 0.0, flag);
     parser.parse_double("libri_exx_threshold_C", Params::libri_exx_threshold_C, 0.0, flag);
     parser.parse_double("libri_exx_threshold_D", Params::libri_exx_threshold_D, 0.0, flag);
     parser.parse_double("libri_exx_threshold_V", Params::libri_exx_threshold_V, 0.0, flag);
 
     // gw related
-    parser.parse_bool("use_libri_gw", Params::use_libri_gw, true, flag);
-    parser.parse_string("gw_parallel_routing", Params::gw_parallel_routing, "auto", flag);
     parser.parse_bool("output_gw_sigc_mat", Params::output_gw_sigc_mat, true, flag);
     parser.parse_bool("replace_w_head", Params::replace_w_head, true, flag);
     parser.parse_int("option_dielect_func", Params::option_dielect_func, 2, flag);

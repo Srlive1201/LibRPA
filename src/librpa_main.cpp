@@ -68,11 +68,19 @@ void librpa_main(MPI_Comm comm_in, int is_fortran_comm)
     //mpi_comm_world_h.barrier();
     blacs_ctxt_world_h.init();
     blacs_ctxt_world_h.set_square_grid();
+<<<<<<< HEAD
+=======
+
+    // Set output
+    Params::output_file = "LibRPA_output.txt";
+
+>>>>>>> d890684 (use single parameter to control all routing)
     Profiler::start("total", "Total");
 
     Profiler::start("driver_io_init", "Driver IO Initialization");
     //parse_inputfile_to_params(input_filename);
     // create output directory, only by the root process
+
     if (mpi_comm_world_h.is_root())
         system(("mkdir -p " + Params::output_dir).c_str());
     //mpi_comm_world_h.barrier();
@@ -132,16 +140,14 @@ void librpa_main(MPI_Comm comm_in, int is_fortran_comm)
         cout << "| R-tau                       : " << Rt_num << endl;
         cout << "| Total atom pairs (ordered)  : " << tot_atpair_ordered.size() << endl;
     }
-    set_chi_parallel_type(Params::chi_parallel_routing, tot_atpair.size(), Rt_num, Params::use_libri_chi0);
-    set_exx_parallel_type(Params::exx_parallel_routing, tot_atpair.size(), Rt_num, Params::use_libri_exx);
-    check_parallel_type();
+    set_parallel_routing(Params::parallel_routing, tot_atpair.size(), Rt_num, parallel_routing);
 
     // barrier to wait for information print on master process
     //mpi_comm_world_h.barrier();
 
     //para_mpi.chi_parallel_type=Parallel_MPI::parallel_type::ATOM_PAIR;
     // vector<atpair_t> local_atpair;
-    if(chi_parallel_type == parallel_type::ATOM_PAIR)
+    if(parallel_routing == ParallelRouting::ATOM_PAIR)
     {
         // vector<int> atoms_list(natom);
         // for(int iat=0;iat!=natom;iat++)
@@ -262,7 +268,7 @@ void librpa_main(MPI_Comm comm_in, int is_fortran_comm)
     //     system("free -m");
     // FIXME: a more general strategy to deal with Cs
     // Cs is not required after chi0 is computed in rpa task
-    if ( Params::task == "rpa")
+    if (Params::task == "rpa")
     {
         // for(auto &Cp:Cs)
         // {
@@ -279,7 +285,7 @@ void librpa_main(MPI_Comm comm_in, int is_fortran_comm)
         mpi_comm_world_h.barrier();
         Profiler::start("EcRPA", "Compute RPA correlation Energy");
         CorrEnergy corr;
-        if (Params::use_scalapack_ecrpa && LIBRPA::chi_parallel_type == LIBRPA::parallel_type::ATOM_PAIR)
+        if (Params::use_scalapack_ecrpa && LIBRPA::parallel_routing == LIBRPA::ParallelRouting::ATOM_PAIR)
         {
             if(meanfield.get_n_kpoints() == 1)
                 corr = compute_RPA_correlation_blacs_2d_gamma_only(chi0, Vq);

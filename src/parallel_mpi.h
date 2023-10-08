@@ -20,26 +20,20 @@ using std::pair;
 
 namespace LIBRPA {
 
-enum parallel_type {
+enum ParallelRouting {
     ATOM_PAIR,
     R_TAU,
-    LIBRI_USED,
+    LIBRI,
     COUNT
 };
 
-extern const string parallel_types_note[parallel_type::COUNT];
+extern const string parallel_routing_notes[ParallelRouting::COUNT];
 
-extern parallel_type chi_parallel_type;
-extern parallel_type exx_parallel_type;
-extern parallel_type gw_parallel_type;
+extern ParallelRouting parallel_routing;
 
 extern ofstream fout_para;
 
-void set_parallel_type(const string &option, parallel_type &ptype);
-void set_chi_parallel_type(const string &option, const int &atpais_num, const int Rt_num, const bool use_libri);
-void set_exx_parallel_type(const string &option, const int &atpais_num, const int Rt_num, const bool use_libri);
-void set_gw_parallel_type(const string &option, const int &atpais_num, const int Rt_num, const bool use_libri);
-void check_parallel_type();
+void set_parallel_routing(const string &option, const int &atpais_num, const int &Rt_num, ParallelRouting &routing);
 
 namespace MPI_Wrapper
 {
@@ -206,9 +200,6 @@ std::set<std::pair<int, int>> get_necessary_IJ_from_block_2D_sy(const char &uplo
 class Parallel_MPI
 {
 public:
-    enum parallel_type { ATOM_PAIR, R_TAU, LIBRI_USED };
-    parallel_type chi_parallel_type;
-    
     static vector<double> pack_mat(const map<size_t,map<size_t,map<Vector3_Order<int>,shared_ptr<matrix>>>> &Cs_m);
     static map<size_t,map<size_t,map<Vector3_Order<int>,shared_ptr<matrix>>>> unpack_mat(vector<double> &pack);
 

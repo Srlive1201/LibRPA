@@ -887,7 +887,7 @@ CorrEnergy compute_RPA_correlation(const Chi0 &chi0, const atpair_k_cplx_mat_t &
 
     // freq, q
     map<double, map<Vector3_Order<double>, atom_mapping<ComplexMatrix>::pair_t_old>> pi_freq_q_Mu_Nu;
-    if (LIBRPA::chi_parallel_type == LIBRPA::parallel_type::ATOM_PAIR)
+    if (LIBRPA::parallel_routing == LIBRPA::ParallelRouting::ATOM_PAIR)
         pi_freq_q_Mu_Nu = compute_Pi_q_MPI(chi0, coulmat);
     else
         pi_freq_q_Mu_Nu = compute_Pi_q(chi0, coulmat);
@@ -950,7 +950,7 @@ CorrEnergy compute_RPA_correlation(const Chi0 &chi0, const atpair_k_cplx_mat_t &
                     }
                 }
             }
-            if (LIBRPA::chi_parallel_type == LIBRPA::parallel_type::ATOM_PAIR)
+            if (LIBRPA::parallel_routing == LIBRPA::ParallelRouting::ATOM_PAIR)
             {
                 mpi_comm_world_h.reduce_ComplexMatrix(pi_munu_tmp, pi_freq_q.at(freq).at(q), 0);
             }

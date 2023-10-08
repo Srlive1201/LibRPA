@@ -24,8 +24,8 @@
 #include <map>
 
 using LIBRPA::mpi_comm_world_h;
-using LIBRPA::parallel_type;
-using LIBRPA::chi_parallel_type;
+using LIBRPA::ParallelRouting;
+using LIBRPA::parallel_routing;
 
 void Chi0::build(const atpair_R_mat_t &LRI_Cs,
                    const vector<Vector3_Order<int>> &Rlist,
@@ -192,14 +192,14 @@ void Chi0::build_chi0_q_space_time(const atpair_R_mat_t &LRI_Cs,
                                    const vector<Vector3_Order<double>> &qlist)
 {
    // int R_tau_size = Rlist_gf.size() * tfg.size();
-    if(chi_parallel_type == parallel_type::LIBRI_USED)
+    if(parallel_routing == ParallelRouting::LIBRI)
     {
         if (mpi_comm_world_h.is_root())
             cout<<"Use LibRI for chi0"<<endl;
         build_chi0_q_space_time_LibRI_routing(LRI_Cs, R_period, atpairs_ABF, qlist);
 
     }
-    else if ( chi_parallel_type == parallel_type::R_TAU)
+    else if (parallel_routing == ParallelRouting::R_TAU)
     {
         // if (para_mpi.is_master())
         //     cout << "R_tau_routing" << endl;
