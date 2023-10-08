@@ -112,13 +112,16 @@ struct Params
 static void customPrint(const char* format, ...) {
     va_list args;
     va_start(args, format);
+    const bool output_stdout = Params::output_file == "stdout";
 
     char buffer[1024];
     vsnprintf(buffer, sizeof(buffer), format, args);
 
-    static std::ofstream outputFile(Params::output_file, std::ios_base::app);
-    outputFile << buffer;
-    outputFile.flush();
+    static std::ofstream outputFile;
+    std::ostream &os = output_stdout ? std::cout : outputFile;
+    if (!output_stdout) outputFile.open(Params::output_file, std::ios_base::app);
+    os << buffer;
+    os.flush();
     va_end(args);
 }
 
