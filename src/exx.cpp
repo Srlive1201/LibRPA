@@ -88,6 +88,21 @@ void Exx::build_exx_orbital_energy(const atpair_R_mat_t &LRI_Cs,
                                    const Vector3_Order<int> &R_period,
                                    const atpair_R_mat_t &coul_mat)
 {
+    // debug: check coeff and coulomb in different parallel routings
+    // for (auto &I_JRCs: LRI_Cs)
+    // {
+    //     const auto &I = I_JRCs.first;
+    //     for (auto &J_RCs: I_JRCs.second)
+    //     {
+    //         const auto &J = J_RCs.first;
+    //         for (auto &R_Cs: J_RCs.second)
+    //         {
+    //             const auto &R = R_Cs.first;
+    //             fout_para << I << " " << J << " " << R << endl;
+    //             fout_para << (*R_Cs.second) << endl;
+    //         }
+    //     }
+    // }
     if (Params::use_libri_exx)
         this->build_exx_orbital_energy_LibRI(LRI_Cs, Rlist, R_period, coul_mat);
     else

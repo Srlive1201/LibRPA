@@ -183,7 +183,7 @@ size_t READ_AIMS_Cs_evenly_distribute(const string &dir_path, double threshold, 
             for (int id = 0; id < ids_keep_this_file.size(); id++)
             {
                 int id_global = id + Cs_keep_total;
-                if (id_global % nprocs == myid) files_Cs_ids_this_proc[fn].push_back(id);
+                if (id_global % nprocs == myid) files_Cs_ids_this_proc[fn].push_back(ids_keep_this_file[id]);
             }
             Cs_keep_total += ids_keep_this_file.size();
         }
@@ -193,6 +193,7 @@ size_t READ_AIMS_Cs_evenly_distribute(const string &dir_path, double threshold, 
 
     for (const auto& fn_ids: files_Cs_ids_this_proc)
     {
+        LIBRPA::fout_para << fn_ids.first << " " << fn_ids.second << endl;
         cs_discard += handle_Cs_file_by_ids(fn_ids.first, threshold, fn_ids.second);
     }
 
