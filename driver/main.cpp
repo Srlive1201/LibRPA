@@ -145,19 +145,7 @@ int main(int argc, char **argv)
         //local_atpair = dispatch_vector(tot_atpair, mpi_comm_world_h.myid, mpi_comm_world_h.nprocs, true);
         for(auto &iap:trangular_loc_atpair)
             local_atpair.push_back(iap);
-        for (int i = 0; i < mpi_comm_world_h.nprocs; i++)
-        {
-            if (i == mpi_comm_world_h.myid)
-            {
-                printf("| process %d , local_atom_pair size:  %zu\n", mpi_comm_world_h.myid, local_atpair.size());
-                cout << local_atpair << "\n";
-            }
-            mpi_comm_world_h.barrier();
-        }
         READ_AIMS_Cs("./", Params::cs_threshold,local_atpair );
-        printf("| process %d, size of Cs from local_atpair: %d\n", LIBRPA::mpi_comm_world_h.myid, get_num_keys(Cs));
-        LIBRPA::fout_para << "Cs keys:\n";
-        print_keys(LIBRPA::fout_para, Cs);
         // for(auto &ap:local_atpair)
         //     printf("   |process %d , local_atom_pair:  %d,  %d\n", mpi_comm_world_h.myid,ap.first,ap.second);
         READ_Vq_Row("./", "coulomb_mat", Params::vq_threshold, Vq, local_atpair);
@@ -166,14 +154,6 @@ int main(int argc, char **argv)
     {
         if (LIBRPA::mpi_comm_world_h.is_root()) printf("Evenly distributed Cs and V for LibRI\n");
         READ_AIMS_Cs_evenly_distribute("./", Params::cs_threshold, mpi_comm_world_h.myid, mpi_comm_world_h.nprocs);
-        for (int i = 0; i < mpi_comm_world_h.nprocs; i++)
-        {
-            if (i == mpi_comm_world_h.myid)
-            {
-                printf("| process %d, size of Cs: %d\n", LIBRPA::mpi_comm_world_h.myid, get_num_keys(Cs));
-            }
-            mpi_comm_world_h.barrier();
-        }
         // Vq distributed using the same strategy
         // There should be no duplicate for V
         auto trangular_loc_atpair= dispatch_upper_trangular_tasks(natom,blacs_ctxt_world_h.myid,blacs_ctxt_world_h.nprows,blacs_ctxt_world_h.npcols,blacs_ctxt_world_h.myprow,blacs_ctxt_world_h.mypcol);
@@ -186,11 +166,20 @@ int main(int argc, char **argv)
         if (LIBRPA::mpi_comm_world_h.is_root()) printf("Complete copy of Cs and V on each process\n");
         local_atpair = generate_atom_pair_from_nat(natom, false);
         READ_AIMS_Cs("./", Params::cs_threshold,local_atpair);
-        printf("| process %d, size of Cs from local_atpair: %d\n", LIBRPA::mpi_comm_world_h.myid, get_num_keys(Cs));
-        LIBRPA::fout_para << "Cs keys:\n";
-        print_keys(LIBRPA::fout_para, Cs);
         READ_Vq_Full("./", "coulomb_mat", Params::vq_threshold, Vq);
     }
+
+    for (int i = 0; i < mpi_comm_world_h.nprocs; i++)
+    {
+        if (i == mpi_comm_world_h.myid)
+        {
+            printf("| process %d: Cs size %d from local atpair size %d\n",
+                    LIBRPA::mpi_comm_world_h.myid, get_num_keys(Cs), local_atpair.size());
+        }
+        mpi_comm_world_h.barrier();
+    }
+    LIBRPA::fout_para << "Cs size: " << get_num_keys(Cs) << ", with keys:\n";
+    print_keys(LIBRPA::fout_para, Cs);
 
     // debug, check available Coulomb blocks on each process
     // LIBRPA::fout_para << "Read Coulomb blocks in process\n";

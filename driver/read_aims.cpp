@@ -12,6 +12,7 @@
 #include "ri.h"
 #include "pbc.h"
 #include "constants.h"
+#include "stl_io_helper.h"
 
 // using std::cout;
 // using std::endl;
@@ -334,10 +335,13 @@ std::vector<size_t> handle_Cs_file_dry(const string &file_path, double threshold
                     infile >> Cs_ele;
                     maxval = std::max(maxval, abs(stod(Cs_ele)));
                 }
+        LIBRPA::fout_para << id << " (" << ic_1 << "," << ic_2 << "," << ic_3 << ") " << maxval << " keep? " << (maxval >= threshold) << endl;
         if (maxval >= threshold)
             Cs_ids_keep.push_back(id);
         id++;
     }
+    LIBRPA::fout_para << file_path << ": " << Cs_ids_keep << endl;
+    infile.close();
     return Cs_ids_keep;
 }
 
@@ -403,6 +407,7 @@ size_t handle_Cs_file_by_ids(const string &file_path, double threshold, const ve
         }
         id++;
     }
+    infile.close();
     return cs_discard;
 }
 
