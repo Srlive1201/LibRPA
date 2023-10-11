@@ -4,6 +4,7 @@
 #include "parallel_mpi.h"
 #include "get_minimax.h"
 #include "params.h"
+#include <omp.h>
 #include <iostream>
 #include <fstream>
 #include <vector>
@@ -75,15 +76,20 @@ void TFGrids::show()
         cout << "Time node & weight: " << endl;
         for ( int i = 0; i != n_grids; i++ )
             printf("%2d %20.12f %20.12f\n", i, time_nodes[i], time_weights[i]);
-        // cout << "t->f transform: " << endl;
-        // if (costrans_t2f.size)
-        // {
-        //     print_matrix("Cosine transform matrix", costrans_t2f);
-        // }
-        // if (sintrans_t2f.size)
-        // {
-        //     print_matrix("Sine transform matrix", sintrans_t2f);
-        // }
+        cout << "t->f transform: " << endl;
+        if (costrans_t2f.size)
+        {
+            print_matrix("Cosine transform matrix", costrans_t2f);
+        }
+        if (sintrans_t2f.size)
+        {
+            print_matrix("Sine transform matrix", sintrans_t2f);
+        }
+        cout << "f->t transform: " << endl;
+        if (costrans_f2t.size)
+        {
+            print_matrix("Cosine transform matrix", costrans_f2t);
+        }
     }
     printf("\n");
 }
@@ -167,8 +173,12 @@ void TFGrids::generate_minimax(double emin, double emax)
     double cosft_duality_error;
     int ierr;
 
+    omp_lock_t minimax_lock;
+    omp_init_lock(&minimax_lock);
+    omp_set_lock(&minimax_lock);
     get_minimax_grid(n_grids, emin, emax, tau_points, tau_weights, omega_points, omega_weights,
                      costrans_t2f.c, costrans_f2t.c, sintrans_t2f.c, max_errors, cosft_duality_error, ierr);
+    omp_unset_lock(&minimax_lock);
 
     if (ierr != 0)
         throw invalid_argument(string("minimax grids failed, return code: ") + to_string(ierr));

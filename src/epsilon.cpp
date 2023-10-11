@@ -1980,6 +1980,7 @@ CT_FT_Wc_freq_q(const map<double, atom_mapping<std::map<Vector3_Order<double>, m
     }
     for (auto R: Rlist)
     {
+        LIBRPA::fout_para << "R " << R << "\n";
         for (int itau = 0; itau != ngrids; itau++)
         {
             auto tau = tfg.get_time_nodes()[itau];
@@ -1987,6 +1988,7 @@ CT_FT_Wc_freq_q(const map<double, atom_mapping<std::map<Vector3_Order<double>, m
             {
                 auto freq = tfg.get_freq_nodes()[ifreq];
                 auto f2t = tfg.get_costrans_f2t()(itau, ifreq);
+                LIBRPA::fout_para << "f2t cos eff for freq " << freq << " -> tau " << tau  << ": " << f2t << "\n";
                 if (Wc_freq_q.count(freq))
                 {
                     // cout << "freq: " << freq << "\n";
@@ -2022,6 +2024,8 @@ CT_FT_Wc_freq_q(const map<double, atom_mapping<std::map<Vector3_Order<double>, m
                                     double ang = - q_bz * (R * latvec) * TWO_PI;
                                     complex<double> kphase = complex<double>(cos(ang), sin(ang));
                                     complex<double> weight = kphase * f2t;
+                                    LIBRPA::fout_para << q << " " << q_bz << " weight = " << weight << "\n";
+                                    LIBRPA::fout_para << q_Wc.second;
                                     if (q == q_bz)
                                         WtR += q_Wc.second * weight;
                                     else

@@ -7,6 +7,7 @@
 #include "profiler.h"
 #include "chi0.h"
 #include "libri_utils.h"
+#include "stl_io_helper.h"
 #include "pbc.h"
 #include "ri.h"
 #include <omp.h>
@@ -214,9 +215,9 @@ void Chi0::build_chi0_q_space_time(const atpair_R_mat_t &LRI_Cs,
 }
 
 void Chi0::build_chi0_q_space_time_LibRI_routing(const atpair_R_mat_t &LRI_Cs,
-                                                   const Vector3_Order<int> &R_period,
-                                                   const vector<atpair_t> &atpairs_ABF,
-                                                   const vector<Vector3_Order<double>> &qlist)
+                                                 const Vector3_Order<int> &R_period,
+                                                 const vector<atpair_t> &atpairs_ABF,
+                                                 const vector<Vector3_Order<double>> &qlist)
 {
 #ifndef LIBRPA_USE_LIBRI
     cout << "LibRI routing requested, but the executable is not compiled with LibRI" << endl;
@@ -291,7 +292,7 @@ void Chi0::build_chi0_q_space_time_LibRI_routing(const atpair_R_mat_t &LRI_Cs,
         // Tensor<double> Tmat({size_t((*mat).nr),size_t((*mat).nc)},mat_ptr);
         Cs_libri[I][{J, Ra}] = RI::Tensor<double>({atom_mu[I], atom_nw[I], atom_nw[J]}, mat_ptr);
     }
-	/* cout << Cs_libri; */
+    LIBRPA::fout_para << Cs_libri;
     // cout << "Setting Cs for rpa object" << endl;
     rpa.set_Cs(Cs_libri, Params::libri_chi0_threshold_C);
     // cout << "Cs of rpa object set" << endl;
@@ -308,6 +309,7 @@ void Chi0::build_chi0_q_space_time_LibRI_routing(const atpair_R_mat_t &LRI_Cs,
     for (auto it = 0; it != tfg.size(); it++)
     {
         double tau = tfg.get_time_nodes()[it];
+        cout << tau << " ";
         for(const auto &isp: gf_is_R_tau)
         {
             const auto &gf_IJR_tau = isp.second;
@@ -321,6 +323,7 @@ void Chi0::build_chi0_q_space_time_LibRI_routing(const atpair_R_mat_t &LRI_Cs,
                 const auto &J = IJR_gf.first.second;
                 const auto &R = IJR_gf.second;
                 std::array<int,3> Ra{R.x,R.y,R.z};
+                cout << I << " " << J << " " << Ra << endl;
                 if (gf_IJR_tau.count(I) && gf_IJR_tau.at(I).count(J) && gf_IJR_tau.at(I).at(J).count(R))
                 {
                     // positive tau
@@ -340,7 +343,9 @@ void Chi0::build_chi0_q_space_time_LibRI_routing(const atpair_R_mat_t &LRI_Cs,
             }
             mpi_comm_world_h.barrier();
             // std::clock_t cpu_clock_done_init_gf = clock();
+            cout << "before chi0s" << endl;
             rpa.cal_chi0s(gf_po_libri,gf_ne_libri, Params::libri_chi0_threshold_G);
+            cout << "after chi0s" << endl;
             // collect chi0 on selected atpairs of all R
             auto chi0s_IJR = RI::Communicate_Tensors_Map_Judge::comm_map2_first(mpi_comm_world_h.comm, rpa.chi0s, s0_s1.first, s0_s1.second);
             std::clock_t cpu_clock_done_chi0s = clock();
