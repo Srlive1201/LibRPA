@@ -9,12 +9,41 @@
 #include <malloc.h>
 #include <set>
 
-void librpa_main(MPI_Comm comm_in)
+void librpa_main(MPI_Comm comm_in, int is_fortran_comm)
 {
     using namespace LIBRPA;
-    MPI_Wrapper::init(comm_in);
+    MPI_Comm comm_global;
+    if(is_fortran_comm)
+        comm_global = MPI_Comm_f2c(comm_in);
+    else
+        comm_global=comm_in;
+    
+    MPI_Wrapper::init(comm_global);
     mpi_comm_world_h.init();
     cout << mpi_comm_world_h.str() << endl;
+    //printf("AFTER init MPI  myid: %d\n",mpi_comm_world_h.myid);
+    // mpi_comm_world_h.barrier();
+    init_N_all_mu();
+
+    LIBRPA::atomic_basis_wfc.set(atom_nw);
+    LIBRPA::atomic_basis_abf.set(atom_mu);
+   
+    if(Vq_block_loc.size()>0)
+        allreduce_2D_coulomb_to_atompair(Vq_block_loc,Vq,Params::gf_R_threshold);
+    // for(auto vq_p:Vq)
+    // {
+    //     auto I=vq_p.first;
+    //     for(auto Ip:vq_p.second)
+    //     {
+    //         auto J=Ip.first;
+    //         for(auto Jp:Ip.second)
+    //         {
+    //             auto kvec=Jp.first;
+    //             cout<<"Vq  I J kvec:"<<I<<" "<<J<<" "<<kvec<<endl;
+    //             print_complex_matrix("Vq",*Jp.second);
+    //         }
+    //     }
+    // }
     mpi_comm_world_h.barrier();
     blacs_ctxt_world_h.init();
     blacs_ctxt_world_h.set_square_grid();

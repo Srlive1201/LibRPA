@@ -19,6 +19,8 @@ extern int ncell;
 extern map<Vector3_Order<double>, double> irk_weight;
 extern map<atom_t, size_t> atom_nw;
 extern map<atom_t, size_t> atom_mu;
+extern map<atom_t, size_t> atom_nw_loc;
+extern map<atom_t, size_t> atom_mu_loc;
 extern vector<size_t> atom_mu_part_range;
 extern int N_all_mu;
 
@@ -40,6 +42,8 @@ extern atpair_k_cplx_mat_t Vq;
 //! Truncated Coulomb matrix in ABF, represented in the reciprocal space.
 extern atpair_k_cplx_mat_t Vq_cut;
 
+extern map<Vector3_Order<double>, ComplexMatrix> Vq_block_loc;
+void allreduce_2D_coulomb_to_atompair(map<Vector3_Order<double>, ComplexMatrix> &Vq_loc, atpair_k_cplx_mat_t &coulomb_mat, double threshold );
 int atom_iw_loc2glo(const int &atom_index, const int &iw_lcoal);
 int atom_mu_loc2glo(const int &atom_index, const int &mu_lcoal);
 int atom_mu_glo2loc(const int &glo_index, int &mu_index); //in-out mu_index, return atom_index;

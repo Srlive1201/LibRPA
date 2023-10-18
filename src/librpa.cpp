@@ -17,11 +17,18 @@
 #include "ri.h"
 #include "librpa_main.h"
 #include "params.h"
+
+void test_interface(int test_int, char* test_str)
+{
+    cout<<"In LibRPA: "<<test_int<<"   "<<test_str<<endl;
+}
 void set_dimension(int nspins, int nkpts, int nstates, int nbasis,int natoms)
 {
+    cout<<"In LibRPA nspin: "<<nspins<<"  nkpt: "<<nkpts<<endl;
+    printf("In LibRPA nspin: %d,  nkpts: %d nstate: %d, nbasis: %d, natom: %d\n",nspins,nkpts,nstates,nbasis,natoms);
     meanfield.set(nspins, nkpts, nstates, nbasis);
     natom=natoms;
-    //printf("In LibRPA nspin: %d,  nkpts: %d\n",nspins,nkpts);
+    
 }
 
 void set_wg_ekb_efermi(int nspins, int nkpts, int nstates, double* wg, double* ekb, double efermi)
@@ -38,20 +45,26 @@ void set_wg_ekb_efermi(int nspins, int nkpts, int nstates, double* wg, double* e
         swg[is]*=(1.0/nkpts);
         
     }
-    // for(int is=0;is!=nspins;is++)
-    // {
-    //     print_matrix(" eskb",eskb[is]);
-    //     print_matrix(" swg",swg[is]);
-    // }
+    for(int is=0;is!=nspins;is++)
+    {
+        print_matrix(" eskb",eskb[is]);
+        print_matrix(" swg",swg[is]);
+    }
 }
 
 void set_ao_basis_wfc(int is, int ik, double* wfc_real, double* wfc_imag)
 {
+    printf("is: %d, ik: %d\n",is,ik);
+    // int length_ib_iw=meanfield.get_n_bands()*meanfield.get_n_aos();
+    // vector<double> vec_wfc_real(wfc_real,wfc_real+length_ib_iw);
+    // vector<double> vec_wfc_imag(wfc_imag,wfc_imag+length_ib_iw);
     auto & wfc = meanfield.get_eigenvectors();
     for(int i=0;i!=meanfield.get_n_bands()*meanfield.get_n_aos();i++)
+    {
+        printf("In ao wfc: %f, %f\n",wfc_real[i],wfc_imag[i]);
         wfc.at(is).at(ik).c[i]=complex<double>(wfc_real[i],wfc_imag[i]);
-   // printf("is: %d, ik: %d\n",is,ik);
-   // print_complex_matrix("wfc_isk", wfc.at(is).at(ik));
+    }
+    print_complex_matrix("wfc_isk", wfc.at(is).at(ik));
 }
 
 void set_latvec_and_G(double* lat_mat, double* G_mat)
@@ -87,6 +100,8 @@ void set_latvec_and_G(double* lat_mat, double* G_mat)
 
     G /= TWO_PI;
     G *= ANG2BOHR;
+    
+    printf(" LibRPA_lat : %f, %f, %f\n",latvec.e11,latvec.e12,latvec.e13);
     //latvec.print();
     //G.print();
 }
@@ -130,8 +145,8 @@ void set_ibz2bz_index_and_weight(const int nk_irk, const int* ibz2bz_index, cons
 
 void set_ao_basis_aux(int I, int J, int nbasis_i, int nbasis_j, int naux_mu, int* R, double* Cs_in)
 {
-    atom_nw.insert(pair<int, int>(I, nbasis_i));
-    atom_mu.insert(pair<int, int>(I, naux_mu));
+    atom_nw.insert(pair<atom_t, int>(I, nbasis_i));
+    atom_mu.insert(pair<atom_t, int>(I, naux_mu));
     Vector3_Order<int> box(R[0],R[1],R[2]);
         // cout<< ia1<<ia2<<box<<endl;
     //printf("Cs_in size: %zu",sizeof(Cs_in) / sizeof(Cs_in[0]));
@@ -155,7 +170,7 @@ void set_aux_coulomb_k_atom_pair(int I, int J, int naux_mu, int naux_nu, int ik,
     Vector3_Order<double> qvec(klist[ik]);
     //printf("qvec: %f,%f,%f\n",qvec.x,qvec.y,qvec.z);
     shared_ptr<ComplexMatrix> vq_ptr = make_shared<ComplexMatrix>();
-    vq_ptr->create(atom_mu[I], atom_mu[J]);
+    vq_ptr->create(naux_mu, naux_nu);
     // printf("vq_ptr_size: %d\n",(*vq_ptr).size);
     // printf(" vq_in 0 0 :  %f\n",Vq_real_in[0]);
     for (int i_mu = 0; i_mu != naux_mu; i_mu++)
@@ -174,22 +189,93 @@ void set_aux_coulomb_k_atom_pair(int I, int J, int naux_mu, int naux_nu, int ik,
     //print_complex_matrix("Vq",(*Vq[I][J][qvec]));
 }
 
+void set_aux_coulomb_k_2D_block(int ik, int max_naux, int mu_begin, int mu_end, int nu_begin, int nu_end, double* Vq_real_in, double* Vq_imag_in )
+{
+    int brow = mu_begin - 1;
+    int erow = mu_end - 1;
+    int bcol = nu_begin - 1;
+    int ecol = nu_end - 1;
+      
+    Vector3_Order<double> qvec(klist[ik]);
+    //printf("qvec: %f,%f,%f\n",qvec.x,qvec.y,qvec.z);
+    shared_ptr<ComplexMatrix> vq_ptr = make_shared<ComplexMatrix>();
+    vq_ptr->create(max_naux, max_naux);
+
+    if (!Vq_block_loc.count(qvec))
+    {
+        Vq_block_loc[qvec].create(max_naux, max_naux);
+    }
+    int ii=0;
+    for (int i_mu = brow; i_mu <= erow; i_mu++)
+    {
+        for (int i_nu = bcol; i_nu <= ecol; i_nu++)
+        {
+            Vq_block_loc[qvec](i_mu, i_nu) = complex<double>(Vq_real_in[ii], Vq_imag_in[ii]); 
+            ii+=1;
+        }
+    }
+}
+
+void allreduce_2D_coulomb_to_atompair(ComplexMatrix &Vq_loc, atpair_k_cplx_mat_t &coulomb_mat,double threshold )
+{
+    size_t vq_save = 0;
+    size_t vq_discard = 0;
+    for (auto &vf_p : Vq_block_loc)
+    {
+        auto qvec = vf_p.first;
+        // cout << "Qvec:" << qvec << endl;
+        
+        for (int I = 0; I != atom_mu.size(); I++)
+            for (int J = 0; J != atom_mu.size(); J++)
+            {
+                if (I > J)
+                    continue;
+                shared_ptr<ComplexMatrix> vq_ptr = make_shared<ComplexMatrix>();
+                vq_ptr->create(atom_mu[I], atom_mu[J]);
+                // vq_ptr_tran->create(atom_mu[J],atom_mu[I]);
+                // cout << "I J: " << I << "  " << J << "   mu,nu: " << atom_mu[I] << "  " << atom_mu[J] << endl;
+                for (int i_mu = 0; i_mu != atom_mu[I]; i_mu++)
+                {
+
+                    for (int i_nu = 0; i_nu != atom_mu[J]; i_nu++)
+                    {
+                        //(*vq_ptr)(i_mu, i_nu) = vf_p.second(atom_mu_loc2glo(J, i_nu), atom_mu_loc2glo(I, i_mu)); ////for aims
+                        (*vq_ptr)(i_mu, i_nu) = vf_p.second(atom_mu_loc2glo(I, i_mu), atom_mu_loc2glo(J, i_nu)); // for abacus
+                    }
+                }
+
+                // if (I == J)
+                // {
+                //     (*vq_ptr).set_as_identity_matrix();
+                // }
+
+                if ((*vq_ptr).real().absmax() >= threshold)
+                {
+                    coulomb_mat[I][J][qvec] = vq_ptr;
+                    vq_save++;
+                }
+                else
+                {
+                    vq_discard++;
+                }
+            }
+    }
+}
+
 void set_librpa_params()
 {
     Params::nfreq=12;
     Params::print();
 }
 
-void run_librpa_main(MPI_Comm comm_in)
+void run_librpa_main(MPI_Comm comm_in, int is_fortran_comm)
 {
-    init_N_all_mu();
-    std::ofstream outputFile("LibRPA_cout.txt");
-    std::streambuf* originalCoutBuffer = std::cout.rdbuf();
-    std::cout.rdbuf(outputFile.rdbuf());
-    LIBRPA::atomic_basis_wfc.set(atom_nw);
-    LIBRPA::atomic_basis_abf.set(atom_mu);
+    printf("begin run librpa\n");
+    // std::ofstream outputFile("LibRPA_cout.txt");
+    // std::streambuf* originalCoutBuffer = std::cout.rdbuf();
+   // std::cout.rdbuf(outputFile.rdbuf());
     librpa_main(comm_in);
     
-    std::cout.rdbuf(originalCoutBuffer);
-    outputFile.close();
+    //std::cout.rdbuf(originalCoutBuffer);
+    //outputFile.close();
 }

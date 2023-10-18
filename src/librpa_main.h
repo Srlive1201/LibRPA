@@ -16,6 +16,6 @@
 #include "epsilon.h"
 #include "exx.h"
 
-void librpa_main(MPI_Comm comm_in);
+void librpa_main(MPI_Comm comm_in,int is_fortran_comm=0);
 
 #endif
