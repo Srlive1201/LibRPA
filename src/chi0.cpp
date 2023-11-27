@@ -341,11 +341,11 @@ void Chi0::build_chi0_q_space_time_LibRI_routing(const atpair_R_mat_t &LRI_Cs,
                     gf_ne_libri[I][{J, Ra}] = RI::Tensor<double>({size_t(gf_tau.at(-tau).nr), size_t(gf_tau.at(-tau).nc)}, mat_ne_ptr);
                 }
             }
+            // LIBRPA::fout_para << "gf_po_libri\n" << gf_po_libri << "\n";
+            // LIBRPA::fout_para << "gf_ne_libri\n" << gf_ne_libri << "\n";
             mpi_comm_world_h.barrier();
             // std::clock_t cpu_clock_done_init_gf = clock();
-            cout << "before chi0s" << endl;
-            rpa.cal_chi0s(gf_po_libri,gf_ne_libri, Params::libri_chi0_threshold_G);
-            cout << "after chi0s" << endl;
+            rpa.cal_chi0s(gf_po_libri, gf_ne_libri, Params::libri_chi0_threshold_G);
             // collect chi0 on selected atpairs of all R
             auto chi0s_IJR = RI::Communicate_Tensors_Map_Judge::comm_map2_first(mpi_comm_world_h.comm, rpa.chi0s, s0_s1.first, s0_s1.second);
             std::clock_t cpu_clock_done_chi0s = clock();

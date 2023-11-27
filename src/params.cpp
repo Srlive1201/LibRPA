@@ -72,6 +72,7 @@ void Params::print()
 
     const std::vector<std::pair<std::string, bool>> bool_params
         {
+            {"debug", debug},
             {"use_libri_chi0", use_libri_chi0},
             {"use_libri_exx", use_libri_exx},
             {"use_libri_gw", use_libri_gw},

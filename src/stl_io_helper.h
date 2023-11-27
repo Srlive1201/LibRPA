@@ -65,6 +65,7 @@ std::ostream& operator<<(std::ostream& os, const std::map<Tkey, Tval> &map_objs)
     {
         os << "\"" << kv.first << "\":\"" << kv.second << "\"\n";
     }
+    os << "}";
     return os;
 }
 

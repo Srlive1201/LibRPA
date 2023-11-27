@@ -421,6 +421,7 @@ int main(int argc, char **argv)
         if (Params::debug)
         { // debug, check sigc_ij
             char fn[80];
+            // LIBRPA::fout_para << "s_g0w0.sigc_is_f_k_IJ:\n" << s_g0w0.sigc_is_f_k_IJ << "\n";
             for (const auto &is_sigc: s_g0w0.sigc_is_f_k_IJ)
             {
                 const int ispin = is_sigc.first;
