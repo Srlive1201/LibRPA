@@ -276,7 +276,8 @@ void Chi0::build_chi0_q_space_time_LibRI_routing(const atpair_R_mat_t &LRI_Cs,
             }
         }
     }
-    LIBRPA::fout_para << Cs_libri;
+    // if (Params::debug)
+    //     LIBRPA::fout_para << Cs_libri;
     // cout << "Setting Cs for rpa object" << endl;
     rpa.set_Cs(Cs_libri, Params::libri_chi0_threshold_C);
     // cout << "Cs of rpa object set" << endl;
@@ -293,7 +294,7 @@ void Chi0::build_chi0_q_space_time_LibRI_routing(const atpair_R_mat_t &LRI_Cs,
     for (auto it = 0; it != tfg.size(); it++)
     {
         double tau = tfg.get_time_nodes()[it];
-        cout << tau << " ";
+        // cout << tau << " ";
         for(const auto &isp: gf_is_R_tau)
         {
             const auto &gf_IJR_tau = isp.second;
@@ -307,7 +308,7 @@ void Chi0::build_chi0_q_space_time_LibRI_routing(const atpair_R_mat_t &LRI_Cs,
                 const auto &J = IJR_gf.first.second;
                 const auto &R = IJR_gf.second;
                 std::array<int,3> Ra{R.x,R.y,R.z};
-                cout << I << " " << J << " " << Ra << endl;
+                // cout << I << " " << J << " " << Ra << endl;
                 if (gf_IJR_tau.count(I) && gf_IJR_tau.at(I).count(J) && gf_IJR_tau.at(I).at(J).count(R))
                 {
                     // positive tau
@@ -329,7 +330,9 @@ void Chi0::build_chi0_q_space_time_LibRI_routing(const atpair_R_mat_t &LRI_Cs,
             // LIBRPA::fout_para << "gf_ne_libri\n" << gf_ne_libri << "\n";
             mpi_comm_world_h.barrier();
             // std::clock_t cpu_clock_done_init_gf = clock();
+            LIBRPA::fout_para << "rpa.cal_chi0s begin,    tau = " << tau << "\n";
             rpa.cal_chi0s(gf_po_libri, gf_ne_libri, Params::libri_chi0_threshold_G);
+            LIBRPA::fout_para << "rpa.cal_chi0s finished, tau = " << tau << "\n";
             // collect chi0 on selected atpairs of all R
             auto chi0s_IJR = RI::Communicate_Tensors_Map_Judge::comm_map2_first(mpi_comm_world_h.comm, rpa.chi0s, s0_s1.first, s0_s1.second);
             std::clock_t cpu_clock_done_chi0s = clock();

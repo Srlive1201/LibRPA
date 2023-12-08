@@ -180,6 +180,7 @@ int main(int argc, char **argv)
     }
     LIBRPA::fout_para << "Cs size: " << get_num_keys(Cs) << ", with keys:\n";
     print_keys(LIBRPA::fout_para, Cs);
+    std::flush(LIBRPA::fout_para);
 
     // debug, check available Coulomb blocks on each process
     // LIBRPA::fout_para << "Read Coulomb blocks in process\n";

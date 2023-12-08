@@ -85,7 +85,7 @@ void print_keys(std::ostream& os, const std::map<Tkey1, std::map<Tkey2, std::map
     for (const auto& k1k2k3v: nested_map)
         for (const auto& k2k3v: k1k2k3v.second)
             for (const auto& k3v: k2k3v.second)
-            os << k1k2k3v.first << " " << k2k3v.first << " " << k3v.first << "\n";
+                os << k1k2k3v.first << " " << k2k3v.first << " " << k3v.first << "\n";
 }
 
 //! Get total number of elements

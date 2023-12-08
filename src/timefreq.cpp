@@ -173,12 +173,8 @@ void TFGrids::generate_minimax(double emin, double emax)
     double cosft_duality_error;
     int ierr;
 
-    omp_lock_t minimax_lock;
-    omp_init_lock(&minimax_lock);
-    omp_set_lock(&minimax_lock);
     get_minimax_grid(n_grids, emin, emax, tau_points, tau_weights, omega_points, omega_weights,
                      costrans_t2f.c, costrans_f2t.c, sintrans_t2f.c, max_errors, cosft_duality_error, ierr);
-    omp_unset_lock(&minimax_lock);
 
     if (ierr != 0)
         throw invalid_argument(string("minimax grids failed, return code: ") + to_string(ierr));

@@ -2024,8 +2024,8 @@ CT_FT_Wc_freq_q(const map<double, atom_mapping<std::map<Vector3_Order<double>, m
                                     double ang = - q_bz * (R * latvec) * TWO_PI;
                                     complex<double> kphase = complex<double>(cos(ang), sin(ang));
                                     complex<double> weight = kphase * f2t;
-                                    LIBRPA::fout_para << q << " " << q_bz << " weight = " << weight << "\n";
-                                    LIBRPA::fout_para << q_Wc.second;
+                                    // LIBRPA::fout_para << q << " " << q_bz << " weight = " << weight << "\n";
+                                    // LIBRPA::fout_para << q_Wc.second;
                                     if (q == q_bz)
                                         WtR += q_Wc.second * weight;
                                     else
