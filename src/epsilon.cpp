@@ -1978,10 +1978,6 @@ CT_FT_Wc_freq_q(const map<double, atom_mapping<std::map<Vector3_Order<double>, m
             printf("Converting Wc q,w -> R,t\n");
         mpi_comm_world_h.barrier();
     }
-
-    omp_lock_t lock_Wc_fq;
-    omp_init_lock(&lock_Wc_fq);
-#pragma omp parallel for schedule(dynamic)
     for (auto R: Rlist)
     {
         LIBRPA::fout_para << "R " << R << "\n";
@@ -2030,14 +2026,10 @@ CT_FT_Wc_freq_q(const map<double, atom_mapping<std::map<Vector3_Order<double>, m
                                     complex<double> weight = kphase * f2t;
                                     // LIBRPA::fout_para << q << " " << q_bz << " weight = " << weight << "\n";
                                     // LIBRPA::fout_para << q_Wc.second;
-                                    matrix_m<complex<double>> new_mat;
                                     if (q == q_bz)
-                                        new_mat = q_Wc.second * weight;
+                                        WtR += q_Wc.second * weight;
                                     else
-                                        new_mat = conj(q_Wc.second) * weight;
-                                    omp_set_lock(&lock_Wc_fq);
-                                    WtR += new_mat;
-                                    omp_unset_lock(&lock_Wc_fq);
+                                        WtR += conj(q_Wc.second) * weight;
                                 }
                             }
                         }
@@ -2046,7 +2038,6 @@ CT_FT_Wc_freq_q(const map<double, atom_mapping<std::map<Vector3_Order<double>, m
             }
         }
     }
-    omp_destroy_lock(&lock_Wc_fq);
     if (Params::debug)
     {
         if (mpi_comm_world_h.is_root())
