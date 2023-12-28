@@ -47,9 +47,6 @@ void G0W0::build_spacetime_LibRI(
         mpi_comm_world_h.barrier();
         throw std::logic_error("no time grids");
     }
-
-    const int ngrids = tfg.get_n_grids();
-
     mpi_comm_world_h.barrier();
 #ifndef LIBRPA_USE_LIBRI
     if (mpi_comm_world_h.myid == 0)
@@ -111,11 +108,9 @@ void G0W0::build_spacetime_LibRI(
         Rs_local.insert(IJR.second);
     }
 
-    omp_lock_t lock_sigc_transform;
-
     for (int ispin = 0; ispin != mf.get_n_spins(); ispin++)
     {
-        for (auto itau = 0; itau < ngrids; itau++)
+        for (auto itau = 0; itau != tfg.get_n_grids(); itau++)
         {
             Profiler::start("g0w0_build_spacetime_3", "Prepare libRI Wc object");
             // printf("task %d itau %d start\n", mpi_comm_world_h.myid, itau);
@@ -171,7 +166,6 @@ void G0W0::build_spacetime_LibRI(
 
             for (auto t: {tau, -tau})
             {
-                Profiler::start("g0w0_build_spacetime_gf_block", "Build Green's function block");
                 std::map<int, std::map<std::pair<int, std::array<int, 3>>, RI::Tensor<double>>> gf_libri;
                 for (const auto &IJR: IJR_local_gf)
                 {
@@ -197,7 +191,6 @@ void G0W0::build_spacetime_LibRI(
                 size_t n_obj_gf_libri = 0;
                 for (const auto &gf: gf_libri)
                     n_obj_gf_libri += gf.second.size();
-                Profiler::stop("g0w0_build_spacetime_gf_block");
 
                 double wtime_g0w0_cal_sigc = omp_get_wtime();
                 Profiler::start("g0w0_build_spacetime_5", "Call libRI cal_Sigc");
@@ -214,21 +207,12 @@ void G0W0::build_spacetime_LibRI(
 
             // symmetrize and perform transformation
             Profiler::start("g0w0_build_spacetime_6", "Transform Sigc (R,t) -> (q,w)");
-            omp_init_lock(&lock_sigc_transform);
-#pragma omp parallel for schedule(dynamic)
-            for (auto i_I = 0; i_I < sigc_posi_tau.size(); i_I++)
+            for (const auto &I_JR_sigc_posi: sigc_posi_tau)
             {
-                auto iter_I = sigc_posi_tau.begin();
-                std::advance(iter_I, i_I);
-                const auto &I_JR_sigc_posi = *iter_I;
                 const auto &I = I_JR_sigc_posi.first;
                 const auto &n_I = atomic_basis_wfc.get_atom_nb(I);
-                const auto &JR_sigc_posi_all = I_JR_sigc_posi.second;
-                for (auto i_JR = 0; i_JR < JR_sigc_posi_all.size(); i_JR++)
+                for (const auto &JR_sigc_posi: I_JR_sigc_posi.second)
                 {
-                    auto iter_JR = JR_sigc_posi_all.begin();
-                    std::advance(iter_JR, i_JR);
-                    const auto &JR_sigc_posi = *iter_JR;
                     const auto &J = JR_sigc_posi.first.first;
                     const auto &n_J = atomic_basis_wfc.get_atom_nb(J);
                     const auto &Ra = JR_sigc_posi.first.second;
@@ -246,7 +230,7 @@ void G0W0::build_spacetime_LibRI(
                         const auto ang = (kfrac * Vector3_Order<double>(Ra[0], Ra[1], Ra[2])) * TWO_PI;
                         const auto kphase = complex<double>{std::cos(ang), std::sin(ang)} / double(mf.get_n_kpoints());
 
-                        for (auto iomega = 0; iomega < ngrids; iomega++)
+                        for (int iomega = 0; iomega != tfg.get_n_grids(); iomega++)
                         {
                             const auto omega = tfg.get_freq_nodes()[iomega];
                             const auto t2f_sin = tfg.get_sintrans_t2f()(iomega, itau);
@@ -259,7 +243,6 @@ void G0W0::build_spacetime_LibRI(
                                     sigc_temp(i, j) = std::complex<double>{sigc_cos(i, j) * t2f_cos, sigc_sin(i, j) * t2f_sin};
                                 }
                             sigc_temp *= kphase;
-                            omp_set_lock(&lock_sigc_transform);
                             if (sigc_is_f_k_IJ.count(ispin) == 0 ||
                                 sigc_is_f_k_IJ.at(ispin).count(omega) == 0 ||
                                 sigc_is_f_k_IJ.at(ispin).at(omega).count(kfrac) == 0 ||
@@ -272,7 +255,6 @@ void G0W0::build_spacetime_LibRI(
                             {
                                 sigc_is_f_k_IJ[ispin][omega][kfrac][I][J] += sigc_temp;
                             }
-                            omp_unset_lock(&lock_sigc_transform);
                         }
                     }
                 }
