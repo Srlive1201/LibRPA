@@ -257,6 +257,7 @@ void Chi0::build_chi0_q_space_time_LibRI_routing(const atpair_R_mat_t &LRI_Cs,
 
     std::map<int, std::map<std::pair<int,std::array<int,3>>,RI::Tensor<double>>> Cs_libri;
 
+    Profiler::start("chi0_libri_routing_init_cs", "Initialize Cs");
     for (const auto &I_JRCs: LRI_Cs)
     {
         const auto &I = I_JRCs.first;
@@ -276,11 +277,14 @@ void Chi0::build_chi0_q_space_time_LibRI_routing(const atpair_R_mat_t &LRI_Cs,
             }
         }
     }
+    Profiler::stop("chi0_libri_routing_init_cs");
+    Profiler::start("chi0_libri_routing_set_cs", "Set Cs");
     // if (Params::debug)
     //     LIBRPA::fout_para << Cs_libri;
     // cout << "Setting Cs for rpa object" << endl;
     rpa.set_Cs(Cs_libri, Params::libri_chi0_threshold_C);
     // cout << "Cs of rpa object set" << endl;
+    Profiler::stop("chi0_libri_routing_set_cs");
 
     // dispatch GF accoding to atpair and R
     if (mpi_comm_world_h.is_root())
@@ -331,12 +335,19 @@ void Chi0::build_chi0_q_space_time_LibRI_routing(const atpair_R_mat_t &LRI_Cs,
             mpi_comm_world_h.barrier();
             // std::clock_t cpu_clock_done_init_gf = clock();
             LIBRPA::fout_para << "rpa.cal_chi0s begin,    tau = " << tau << "\n";
+            Profiler::start("chi0_libri_routing_cal_chi0s", "Call cal_chi0s");
             rpa.cal_chi0s(gf_po_libri, gf_ne_libri, Params::libri_chi0_threshold_G);
+            Profiler::stop("chi0_libri_routing_cal_chi0s");
             LIBRPA::fout_para << "rpa.cal_chi0s finished, tau = " << tau << "\n";
+
             // collect chi0 on selected atpairs of all R
+            Profiler::start("chi0_libri_routing_collect_Rs", "Collect all R blocks");
             auto chi0s_IJR = RI::Communicate_Tensors_Map_Judge::comm_map2_first(mpi_comm_world_h.comm, rpa.chi0s, s0_s1.first, s0_s1.second);
+            Profiler::stop("chi0_libri_routing_collect_Rs");
             std::clock_t cpu_clock_done_chi0s = clock();
             // parse back to chi0
+            //
+            Profiler::start("chi0_libri_routing_ft_ct", "Fourier and Cosine transform");
             for (const auto &atpair: atpairs_ABF)
             {
                 const auto &I = atpair.first;
@@ -376,6 +387,8 @@ void Chi0::build_chi0_q_space_time_LibRI_routing(const atpair_R_mat_t &LRI_Cs,
                     }
                 }
             }
+            Profiler::stop("chi0_libri_routing_ft_ct");
+
             std::clock_t cpu_clock_done_trans = clock();
             double wtime_end_isp_tau = omp_get_wtime();
             if (LIBRPA::mpi_comm_world_h.myid == 0)
