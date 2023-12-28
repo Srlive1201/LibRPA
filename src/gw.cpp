@@ -57,7 +57,7 @@ void G0W0::build_spacetime_LibRI(
     mpi_comm_world_h.barrier();
     throw std::logic_error("compilation");
 #else
-    Profiler::start("g0w0_build_spacetime_1", "Tranform Wc (q,w) -> (R,t)");
+    Profiler::start("g0w0_build_spacetime_1", "Transform Wc (q,w) -> (R,t)");
     const auto Wc_tau_R = CT_FT_Wc_freq_q(Wc_freq_q, tfg, Rlist);
     Profiler::stop("g0w0_build_spacetime_1");
     RI::G0W0<int, int, 3, double> g0w0_libri;
