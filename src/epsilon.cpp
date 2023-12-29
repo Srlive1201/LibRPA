@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <array>
 #include <valarray>
+#include <set>
 #include <stdexcept>
 
 #include "lapack_connector.h"
@@ -56,7 +57,7 @@ CorrEnergy compute_RPA_correlation_blacs_2d_gamma_only( Chi0 &chi0, atpair_k_cpl
     vector<Vector3_Order<double>> qpts;
     for (const auto &qMuNuchi: chi0.get_chi0_q().at(chi0.tfg.get_freq_nodes()[0]))
         qpts.push_back(qMuNuchi.first);
-    
+
     complex<double> tot_RPA_energy(0.0, 0.0);
     map<Vector3_Order<double>, complex<double>> cRPA_q;
     if(mpi_comm_world_h.is_root())
@@ -73,7 +74,7 @@ CorrEnergy compute_RPA_correlation_blacs_2d_gamma_only( Chi0 &chi0, atpair_k_cpl
             double vq_begin = omp_get_wtime();
             // LibRI tensor for communication, release once done
             std::map<int, std::map<std::pair<int, std::array<double, 3>>, Tensor<double>>> coul_libri;
-        
+
             for (const auto &Mu_Nu: local_atpair)
             {
                 const auto Mu = Mu_Nu.first;
@@ -90,7 +91,7 @@ CorrEnergy compute_RPA_correlation_blacs_2d_gamma_only( Chi0 &chi0, atpair_k_cpl
                 auto pvq = std::make_shared<std::valarray<double>>();
                 *pvq = Vq_va;
                 coul_libri[Mu][{Nu, std::array<double, 3>{0,0,0}}] = Tensor<double>({n_mu, n_nu}, pvq);
-                coulmat.at(Mu).at(Nu).at(q).reset(); 
+                coulmat.at(Mu).at(Nu).at(q).reset();
             }
             malloc_trim(0);
             //printf("Finish RPA blacs 2d  vq arr\n");
@@ -101,20 +102,20 @@ CorrEnergy compute_RPA_correlation_blacs_2d_gamma_only( Chi0 &chi0, atpair_k_cpl
             const auto IJq_coul = comm_map2_first(LIBRPA::mpi_comm_world_h.comm, coul_libri, s0_s1.first, s0_s1.second);
             double comm_end = omp_get_wtime();
             mpi_comm_world_h.barrier();
-          
+
             double block_begin = omp_get_wtime();
-        
+
             collect_block_from_ALL_IJ_Tensor(coul_block, desc_nabf_nabf, LIBRPA::atomic_basis_abf,
                         qa,true, CONE, IJq_coul, MAJOR::ROW);
             double block_end = omp_get_wtime();
             printf("Vq Time  myid: %d  arr_time: %f  comm_time: %f   block_time: %f   pair_size: %d\n",mpi_comm_world_h.myid,arr_end-vq_begin, comm_end-comm_begin, block_end-block_begin,set_IJ_nabf_nabf.size());
             mpi_comm_world_h.barrier();
             double vq_end = omp_get_wtime();
-            
+
             if(mpi_comm_world_h.myid == 0)
                 printf(" | Total vq time: %f  lri_coul: %f   comm_vq: %f   block_vq: %f\n",vq_end-vq_begin, comm_begin-vq_begin,block_begin-comm_begin,vq_end-block_begin);
         }
-        
+
         double chi_arr_time=0.0;
         double chi_comm_time=0.0;
         double chi_2d_time=0.0;
@@ -128,7 +129,7 @@ CorrEnergy compute_RPA_correlation_blacs_2d_gamma_only( Chi0 &chi0, atpair_k_cpl
                 double chi_begin_arr = omp_get_wtime();
                 std::map<int, std::map<std::pair<int, std::array<double, 3>>, Tensor<double>>> chi0_libri;
                 const auto &chi0_wq = chi0.get_chi0_q().at(freq).at(q);
-                
+
                 for (const auto &M_Nchi: chi0_wq)
                 {
                     const auto &M = M_Nchi.first;
@@ -144,7 +145,7 @@ CorrEnergy compute_RPA_correlation_blacs_2d_gamma_only( Chi0 &chi0, atpair_k_cpl
                         chi0_libri[M][{N, std::array<double, 3>{0,0,0}}] = Tensor<double>({n_mu, n_nu}, pchi);
                     }
                 }
-                
+
                 // if(mpi_comm_world_h.is_root())
                 // {
                 //     printf("Begin to clean chi0 !!! \n");
@@ -163,11 +164,11 @@ CorrEnergy compute_RPA_correlation_blacs_2d_gamma_only( Chi0 &chi0, atpair_k_cpl
                 mpi_comm_world_h.barrier();
                 double chi_end_arr = omp_get_wtime();
                 // LIBRPA::fout_para << "chi0_libri" << endl << chi0_libri;
-                
+
                 const auto IJq_chi0 = comm_map2_first(LIBRPA::mpi_comm_world_h.comm, chi0_libri, s0_s1.first, s0_s1.second);
                 // LIBRPA::fout_para << "IJq_chi0" << endl << IJq_chi0;
                 double chi_end_comm = omp_get_wtime();
-            
+
                 collect_block_from_ALL_IJ_Tensor(chi0_block, desc_nabf_nabf, LIBRPA::atomic_basis_abf,
                         qa,true, CONE, IJq_chi0, MAJOR::ROW);
                 //printf("End collect block myid: %d ifreq: %d   TIME_USED: %f\n",mpi_comm_world_h.myid,ifreq,chi_end_comm-chi_end_arr);
@@ -178,7 +179,7 @@ CorrEnergy compute_RPA_correlation_blacs_2d_gamma_only( Chi0 &chi0, atpair_k_cpl
                 chi_comm_time=(chi_end_comm-chi_end_arr);
                 chi_2d_time=(chi_end_2d-chi_end_comm);
             }
-            
+
             double pi_begin = omp_get_wtime();
             ScalapackConnector::pgemm_f('N', 'N', n_abf, n_abf, n_abf, 1.0,
                     coul_block.ptr(), 1, 1, desc_nabf_nabf.desc,
@@ -197,7 +198,7 @@ CorrEnergy compute_RPA_correlation_blacs_2d_gamma_only( Chi0 &chi0, atpair_k_cpl
                 if (ilo >= 0 && jlo >= 0)
                     trace_pi_loc+=coul_chi0_block(ilo,jlo);
             }
-            
+
             coul_chi0_block*=-1.0;
             for(int i=0;i!= n_abf;i++)
             {
@@ -206,7 +207,7 @@ CorrEnergy compute_RPA_correlation_blacs_2d_gamma_only( Chi0 &chi0, atpair_k_cpl
                 if (ilo >= 0 && jlo >= 0)
                     coul_chi0_block(ilo,jlo)+=CONE;
             }
-       
+
             int *ipiv = new int [desc_nabf_nabf.m_loc()*10];
             int info;
             //printf("begin det  myid: %d ifreq: %d \n",mpi_comm_world_h.myid,ifreq);
@@ -216,7 +217,7 @@ CorrEnergy compute_RPA_correlation_blacs_2d_gamma_only( Chi0 &chi0, atpair_k_cpl
             mpi_comm_world_h.barrier();
             MPI_Allreduce(&trace_pi_loc,&trace_pi,1,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
             double pi_freq_end = omp_get_wtime();
-    
+
             if(mpi_comm_world_h.myid==0)
             {
                 printf("| TIME of DET-freq-q:  %f,  q: ( %f, %f, %f)  TOT: %f  CHI_arr: %f  CHI_comm: %f, CHI_2d: %f, Pi: %f, Det: %f\n",freq, q.x,q.y,q.z,pi_freq_end-pi_freq_begin, chi_arr_time,chi_comm_time,chi_2d_time,pi_end-pi_begin,det_end-pi_end);
@@ -272,7 +273,7 @@ CorrEnergy compute_RPA_correlation_blacs_2d(const Chi0 &chi0, const atpair_k_cpl
     vector<Vector3_Order<double>> qpts;
     for (const auto &qMuNuchi: chi0.get_chi0_q().at(chi0.tfg.get_freq_nodes()[0]))
         qpts.push_back(qMuNuchi.first);
-    
+
     complex<double> tot_RPA_energy(0.0, 0.0);
     map<Vector3_Order<double>, complex<double>> cRPA_q;
     if(mpi_comm_world_h.is_root())
@@ -289,7 +290,7 @@ CorrEnergy compute_RPA_correlation_blacs_2d(const Chi0 &chi0, const atpair_k_cpl
             double vq_begin = omp_get_wtime();
             // LibRI tensor for communication, release once done
             std::map<int, std::map<std::pair<int, std::array<double, 3>>, Tensor<complex<double>>>> coul_libri;
-        
+
             for (const auto &Mu_Nu: local_atpair)
             {
                 const auto Mu = Mu_Nu.first;
@@ -337,12 +338,12 @@ CorrEnergy compute_RPA_correlation_blacs_2d(const Chi0 &chi0, const atpair_k_cpl
             printf("Vq Time  myid: %d  arr_time: %f  comm_time: %f   block_time: %f   pair_size: %d\n",mpi_comm_world_h.myid,arr_end-vq_begin, comm_end-comm_begin, block_end-block_begin,set_IJ_nabf_nabf.size());
             mpi_comm_world_h.barrier();
             double vq_end = omp_get_wtime();
-            
+
             if(mpi_comm_world_h.myid == 0)
                 printf(" | Total vq time: %f  lri_coul: %f   comm_vq: %f   block_vq: %f\n",vq_end-vq_begin, comm_begin-vq_begin,block_begin-comm_begin,vq_end-block_begin);
         }
-        
-        
+
+
         //if(mpi_comm_world_h.is_root())
         //printf("Finish RPA blacs 2d  vq comm\n");
         // char fn[100];
@@ -363,7 +364,7 @@ CorrEnergy compute_RPA_correlation_blacs_2d(const Chi0 &chi0, const atpair_k_cpl
                 double chi_begin_arr = omp_get_wtime();
                 std::map<int, std::map<std::pair<int, std::array<double, 3>>, Tensor<complex<double>>>> chi0_libri;
                 const auto &chi0_wq = chi0.get_chi0_q().at(freq).at(q);
-                
+
                 for (const auto &M_Nchi: chi0_wq)
                 {
                     const auto &M = M_Nchi.first;
@@ -382,7 +383,7 @@ CorrEnergy compute_RPA_correlation_blacs_2d(const Chi0 &chi0, const atpair_k_cpl
                 mpi_comm_world_h.barrier();
                 double chi_end_arr = omp_get_wtime();
                 // LIBRPA::fout_para << "chi0_libri" << endl << chi0_libri;
-                
+
                 const auto IJq_chi0 = comm_map2_first(LIBRPA::mpi_comm_world_h.comm, chi0_libri, s0_s1.first, s0_s1.second);
                 // LIBRPA::fout_para << "IJq_chi0" << endl << IJq_chi0;
                 double chi_end_comm = omp_get_wtime();
@@ -399,7 +400,7 @@ CorrEnergy compute_RPA_correlation_blacs_2d(const Chi0 &chi0, const atpair_k_cpl
                 // if( ifreq== 0)
                 //     print_matrix_mm_file_parallel(fnc, chi0_block, desc_nabf_nabf);
             }
-            
+
             double pi_begin = omp_get_wtime();
             ScalapackConnector::pgemm_f('N', 'N', n_abf, n_abf, n_abf, 1.0,
                     coul_block.ptr(), 1, 1, desc_nabf_nabf.desc,
@@ -408,7 +409,7 @@ CorrEnergy compute_RPA_correlation_blacs_2d(const Chi0 &chi0, const atpair_k_cpl
             // char fnp[100];
             // sprintf(fnp, "pi_ifreq_%d_iq_%d.mtx", ifreq, iq);
             double pi_end = omp_get_wtime();
-            
+
             complex<double> trace_pi(0.0,0.0);
             complex<double> trace_pi_loc(0.0,0.0);
             for(int i=0;i!= n_abf;i++)
@@ -418,7 +419,7 @@ CorrEnergy compute_RPA_correlation_blacs_2d(const Chi0 &chi0, const atpair_k_cpl
                 if (ilo >= 0 && jlo >= 0)
                     trace_pi_loc+=coul_chi0_block(ilo,jlo);
             }
-            
+
             coul_chi0_block*=-1.0;
             for(int i=0;i!= n_abf;i++)
             {
@@ -441,7 +442,7 @@ CorrEnergy compute_RPA_correlation_blacs_2d(const Chi0 &chi0, const atpair_k_cpl
             // if(mpi_comm_world_h.is_root())
             //     printf("| After det for freq:  %f,  q: ( %f, %f, %f)   TIME_LOCMAT: %f   TIME_DET: %f  TIME_CAL_Pi: %f, TIME_TRAN_LOC: %f\n",ifreq, q.x,q.y,q.z,task_mid-task_begin,task_end-task_mid,pi_time,loc_tran_time);
             //para_mpi.mpi_barrier();
-            
+
             if(mpi_comm_world_h.myid==0)
             {
                 printf("| TIME of DET-freq-q:  %f,  q: ( %f, %f, %f)  TOT: %f  CHI_arr: %f  CHI_comm: %f, CHI_2d: %f, Pi: %f, Det: %f\n",freq, q.x,q.y,q.z,pi_freq_end-pi_freq_begin, chi_arr_time,chi_comm_time,chi_2d_time,pi_end-pi_begin,det_end-pi_end);
@@ -475,9 +476,9 @@ double compute_pi_det_blacs_2d_gamma_only(matrix_m<double> &loc_piT, const Array
     int one=1;
     int range_all= N_all_mu;
     int DESCPI_T[9];
-   
+
     double det_begin = omp_get_wtime();
-   
+
     ScalapackConnector::pgetrf_f(range_all,range_all,loc_piT.ptr(),one,one,arrdesc_pi.desc,ipiv, info);
     double trf_end = omp_get_wtime();
 
@@ -491,7 +492,7 @@ double compute_pi_det_blacs_2d_gamma_only(matrix_m<double> &loc_piT, const Array
         int locc = arrdesc_pi.indx_g2l_c(ig);
         if (locr >= 0 && locc >= 0)
         {
-            
+
             double tmp_ln_det;
             if(loc_piT(locr,locc)>0)
             {
@@ -582,10 +583,10 @@ complex<double> compute_pi_det_blacs_2d(matrix_m<complex<double>> &loc_piT, cons
 //     char fn[100];
 //     sprintf(fn, "det_dig_myid_%d.mtx", mpi_comm_world_h.myid);
 //     print_complex_matrix_file("det_dig_loc", det_dig_mm, fn, false);
-    
+
 //     sprintf(fn, "det_mat_myid_%d.mtx", mpi_comm_world_h.myid);
 //     print_complex_matrix_file("det_mat_loc", det_mm, fn, false);
-    
+
 
     MPI_Allreduce(&ln_det_loc,&ln_det_all,1,MPI_DOUBLE_COMPLEX,MPI_SUM,MPI_COMM_WORLD);
     double det_end = omp_get_wtime();
@@ -682,7 +683,7 @@ CorrEnergy compute_RPA_correlation_blacs(const Chi0 &chi0, const atpair_k_cplx_m
     const auto part_range = LIBRPA::atomic_basis_abf.get_part_range();
 
     mpi_comm_world_h.barrier();
-  
+
     LIBRPA::Array_Desc arrdesc_pi(LIBRPA::blacs_ctxt_world_h);
     arrdesc_pi.init_square_blk(n_abf, n_abf, 0, 0);
     int loc_row = arrdesc_pi.m_loc(), loc_col = arrdesc_pi.n_loc(), info;
@@ -1287,7 +1288,7 @@ omp_init_lock(&pi_lock);
     //         }
     //     }
     // }
-    //Pi_rowT 
+    //Pi_rowT
     // ComplexMatrix pi_row(N_all_mu,atom_mu[I]);
     // complex<double> *pi_row_ptr=pi_row.c;
     // for(auto &Jp:pi)
@@ -1939,13 +1940,14 @@ compute_Wc_freq_q_blacs(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps
                 }
                 // cout << Wc_libri;
                 const auto IJq_Wc = RI::Communicate_Tensors_Map_Judge::comm_map2_first(LIBRPA::mpi_comm_world_h.comm, Wc_libri, Iset_Jset_Wc.first, Iset_Jset_Wc.second);
-                // parse collected to 
+                // parse collected to
                 for (const auto &MN: atpair_local)
                 {
                     const auto &M = MN.first;
                     const auto &N = MN.second;
                     const auto n_mu = LIBRPA::atomic_basis_abf.get_atom_nb(M);
                     const auto n_nu = LIBRPA::atomic_basis_abf.get_atom_nb(N);
+                    // Use row major for later usage in LibRI
                     Wc_freq_q[freq][M][N][q] = matrix_m<complex<double>>(
                         n_mu, n_nu, IJq_Wc.at(M).at({N, qa}).data, MAJOR::ROW);
                 }
@@ -1968,6 +1970,9 @@ map<double, atom_mapping<std::map<Vector3_Order<int>, matrix_m<complex<double>>>
 CT_FT_Wc_freq_q(const map<double, atom_mapping<std::map<Vector3_Order<double>, matrix_m<complex<double>>>>::pair_t_old> &Wc_freq_q,
                 const TFGrids &tfg, vector<Vector3_Order<int>> Rlist)
 {
+    // major of Wc_freq_q input and Wc_tau_R output
+    const MAJOR major_Wc = MAJOR::ROW;
+
     map<double, atom_mapping<std::map<Vector3_Order<int>, matrix_m<complex<double>>>>::pair_t_old> Wc_tau_R;
     if (!tfg.has_time_grids())
         throw logic_error("TFGrids object does not have time grids");
@@ -1978,66 +1983,95 @@ CT_FT_Wc_freq_q(const map<double, atom_mapping<std::map<Vector3_Order<double>, m
             printf("Converting Wc q,w -> R,t\n");
         mpi_comm_world_h.barrier();
     }
-    for (auto R: Rlist)
+    set<pair<atom_t, atom_t>> atpairs_unique;
+    for (const auto &freq_MuNuqWc: Wc_freq_q)
     {
-        LIBRPA::fout_para << "R " << R << "\n";
-        for (int itau = 0; itau != ngrids; itau++)
+        for (const auto &Mu_NuqWc: freq_MuNuqWc.second)
         {
-            auto tau = tfg.get_time_nodes()[itau];
-            for (int ifreq = 0; ifreq != ngrids; ifreq++)
+            const auto Mu = Mu_NuqWc.first;
+            for (const auto &Nu_qWc: Mu_NuqWc.second)
             {
-                auto freq = tfg.get_freq_nodes()[ifreq];
-                auto f2t = tfg.get_costrans_f2t()(itau, ifreq);
-                LIBRPA::fout_para << "f2t cos eff for freq " << freq << " -> tau " << tau  << ": " << f2t << "\n";
-                if (Wc_freq_q.count(freq))
+                const auto Nu = Nu_qWc.first;
+                atpairs_unique.insert({Mu, Nu});
+                for (const auto &q_Wc: Nu_qWc.second)
                 {
-                    // cout << "freq: " << freq << "\n";
-                    for (const auto &Mu_NuqWc: Wc_freq_q.at(freq))
-                    {
-                        const auto Mu = Mu_NuqWc.first;
-                        // cout << "Mu: " << Mu << "\n";
-                        const int n_mu = atom_mu[Mu];
-                        for (const auto &Nu_qWc: Mu_NuqWc.second)
-                        {
-                            const auto Nu = Nu_qWc.first;
-                            // cout << "Nu: " << Nu << "\n";
-                            const int n_nu = atom_mu[Nu];
-                            // early check, return if q_Wc is empty
-                            if (Nu_qWc.second.empty())
-                                continue;
-                            if(!(Wc_tau_R.count(tau) &&
-                                 Wc_tau_R.at(tau).count(Mu) &&
-                                 Wc_tau_R.at(tau).at(Mu).count(Nu) &&
-                                 Wc_tau_R.at(tau).at(Mu).at(Nu).count(R)))
-                            {
-                                // ensure same major, require early check for using the first element
-                                auto major = Nu_qWc.second.cbegin()->second.major();
-                                Wc_tau_R[tau][Mu][Nu][R] = matrix_m<complex<double>>(n_mu, n_nu, major);
-                            }
-                            auto & WtR = Wc_tau_R[tau][Mu][Nu][R];
-                            for (const auto &q_Wc: Nu_qWc.second)
-                            {
-                                auto q = q_Wc.first;
-                                // cout << q << "\n";
-                                for (auto q_bz: map_irk_ks[q])
-                                {
-                                    double ang = - q_bz * (R * latvec) * TWO_PI;
-                                    complex<double> kphase = complex<double>(cos(ang), sin(ang));
-                                    complex<double> weight = kphase * f2t;
-                                    // LIBRPA::fout_para << q << " " << q_bz << " weight = " << weight << "\n";
-                                    // LIBRPA::fout_para << q_Wc.second;
-                                    if (q == q_bz)
-                                        WtR += q_Wc.second * weight;
-                                    else
-                                        WtR += conj(q_Wc.second) * weight;
-                                }
-                            }
-                        }
-                    }
+                    assert(q_Wc.second.major() == major_Wc);
                 }
             }
         }
     }
+
+    vector<pair<pair<int, Vector3_Order<int>>, pair<atom_t, atom_t>>> itauR_atpair_all;
+    // allocate space before hand
+    for (auto R: Rlist)
+    {
+        for (int itau = 0; itau != ngrids; itau++)
+        {
+            auto tau = tfg.get_time_nodes()[itau];
+            for (auto atpair_unique: atpairs_unique)
+            {
+                const auto Mu = atpair_unique.first;
+                const int n_mu = atom_mu[Mu];
+                const auto Nu = atpair_unique.second;
+                const int n_nu = atom_mu[Nu];
+                Wc_tau_R[tau][Mu][Nu][R] = matrix_m<complex<double>>(n_mu, n_nu, major_Wc);
+                itauR_atpair_all.push_back({{itau, R}, atpair_unique});
+            }
+        }
+    }
+
+    omp_lock_t lock_Wc;
+    omp_init_lock(&lock_Wc);
+
+    #pragma omp parallel for schedule(dynamic)
+    for (auto itauR_atpair: itauR_atpair_all)
+    {
+        const auto itau = itauR_atpair.first.first;
+        const auto tau = tfg.get_time_nodes()[itau];
+        const auto R = itauR_atpair.first.second;
+        const auto Mu = itauR_atpair.second.first;
+        const auto Nu = itauR_atpair.second.second;
+        const int n_mu = atom_mu[Mu];
+        const int n_nu = atom_mu[Nu];
+
+        // thread local temporary matrix
+        matrix_m<complex<double>> WtR_temp(n_mu, n_nu, major_Wc);
+
+        for (int ifreq = 0; ifreq < ngrids; ifreq++)
+        {
+            const auto freq = tfg.get_freq_nodes()[ifreq];
+            const auto f2t = tfg.get_costrans_f2t()(itau, ifreq);
+            // LIBRPA::fout_para << "f2t cos eff for freq " << freq << " -> tau " << tau  << ": " << f2t << "\n";
+            if (Wc_freq_q.count(freq) == 0) continue;
+            if (Wc_freq_q.at(freq).count(Mu) == 0) continue;
+            if (Wc_freq_q.at(freq).at(Mu).count(Nu) == 0) continue;
+            // cout << "freq: " << freq << "\n";
+
+            const auto &Wc_q_all = Wc_freq_q.at(freq).at(Mu).at(Nu);
+            for (auto &Wc_q: Wc_q_all)
+            {
+                const auto q = Wc_q.first;
+                const auto &Wc = Wc_q.second;
+                for (auto q_bz: map_irk_ks[q])
+                {
+                    double ang = - q_bz * (R * latvec) * TWO_PI;
+                    complex<double> kphase = complex<double>(cos(ang), sin(ang));
+                    complex<double> weight = kphase * f2t;
+                    // LIBRPA::fout_para << q << " " << q_bz << " weight = " << weight << "\n";
+                    // LIBRPA::fout_para << q_Wc.second;
+                    if (q == q_bz)
+                        WtR_temp += Wc * weight;
+                    else
+                        WtR_temp += conj(Wc) * weight;
+                }
+            }
+        }
+        omp_set_lock(&lock_Wc);
+        Wc_tau_R[tau][Mu][Nu][R] += WtR_temp;
+        omp_unset_lock(&lock_Wc);
+    }
+    omp_destroy_lock(&lock_Wc);
+
     if (Params::debug)
     {
         if (mpi_comm_world_h.is_root())

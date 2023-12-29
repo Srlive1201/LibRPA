@@ -78,4 +78,4 @@ docs/doxygen/Doxyfile
 .envrc
 .clangd
 # personal build script
-mybuild_*.sh
+mybuild*.sh
