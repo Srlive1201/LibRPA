@@ -295,8 +295,8 @@ void Chi0::build_chi0_q_space_time_LibRI_routing(const atpair_R_mat_t &LRI_Cs,
                                                     mpi_comm_world_h.myid, mpi_comm_world_h.nprocs, true, true);
     printf("| Number of GFs IJR on Proc %4d: %zu\n", mpi_comm_world_h.myid, IJRs_gf_local.size());
 
-    omp_lock_t lock_chi0_fourier_cosine;
-    omp_init_lock(&lock_chi0_fourier_cosine);
+    // omp_lock_t lock_chi0_fourier_cosine;
+    // omp_init_lock(&lock_chi0_fourier_cosine);
 
     for (auto it = 0; it != tfg.size(); it++)
     {
@@ -388,9 +388,9 @@ void Chi0::build_chi0_q_space_time_LibRI_routing(const atpair_R_mat_t &LRI_Cs,
                     const double arg = q * (Rint * latvec) * TWO_PI;
                     const complex<double> kphase = complex<double>(cos(arg), sin(arg));
                     cm_chi0 *= 2.0 / mf.get_n_spins() * (trans * kphase);
-                    omp_set_lock(&lock_chi0_fourier_cosine);
+                    // omp_set_lock(&lock_chi0_fourier_cosine);
                     chi0_q[freq][q][Mu][Nu] += cm_chi0;
-                    omp_unset_lock(&lock_chi0_fourier_cosine);
+                    // omp_unset_lock(&lock_chi0_fourier_cosine);
                 }
             }
             Profiler::stop("chi0_libri_routing_ft_ct");
@@ -406,7 +406,7 @@ void Chi0::build_chi0_q_space_time_LibRI_routing(const atpair_R_mat_t &LRI_Cs,
             }
         }
     }
-    omp_destroy_lock(&lock_chi0_fourier_cosine);
+    // omp_destroy_lock(&lock_chi0_fourier_cosine);
 
     if (mpi_comm_world_h.is_root()) printf("\n");
     mpi_comm_world_h.barrier();

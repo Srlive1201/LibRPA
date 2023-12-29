@@ -2020,8 +2020,8 @@ CT_FT_Wc_freq_q(const map<double, atom_mapping<std::map<Vector3_Order<double>, m
         }
     }
 
-    omp_lock_t lock_Wc;
-    omp_init_lock(&lock_Wc);
+    // omp_lock_t lock_Wc;
+    // omp_init_lock(&lock_Wc);
 
     #pragma omp parallel for schedule(dynamic)
     for (auto itauR_atpair: itauR_atpair_all)
@@ -2066,11 +2066,11 @@ CT_FT_Wc_freq_q(const map<double, atom_mapping<std::map<Vector3_Order<double>, m
                 }
             }
         }
-        omp_set_lock(&lock_Wc);
+        // omp_set_lock(&lock_Wc);
         Wc_tau_R[tau][Mu][Nu][R] += WtR_temp;
-        omp_unset_lock(&lock_Wc);
+        // omp_unset_lock(&lock_Wc);
     }
-    omp_destroy_lock(&lock_Wc);
+    // omp_destroy_lock(&lock_Wc);
 
     if (Params::debug)
     {
