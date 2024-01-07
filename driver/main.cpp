@@ -8,7 +8,11 @@
 #include "stl_io_helper.h"
 
 #include <algorithm>
+#if defined(__MACH__)
+#include <malloc/malloc.h> // for malloc_zone_pressure_relief and malloc_default_zone
+#else
 #include <malloc.h>
+#endif
 #include <set>
 
 int main(int argc, char **argv)
@@ -269,7 +273,12 @@ int main(int argc, char **argv)
         Cs.clear();
     }
 
+    #ifndef __MACH__
     malloc_trim(0);
+    #else
+    malloc_zone_pressure_relief(malloc_default_zone(), 0);
+    #endif
+
     // RPA total energy
     if ( Params::task == "rpa" )
     {

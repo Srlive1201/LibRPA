@@ -20,7 +20,11 @@
 #include "ri.h"
 #include "scalapack_connector.h"
 #include <omp.h>
+#if defined(__MACH__)
+#include <malloc/malloc.h> // for malloc_zone_pressure_relief and malloc_default_zone
+#else
 #include <malloc.h>
+#endif
 
 #ifdef LIBRPA_USE_LIBRI
 #include <RI/comm/mix/Communicate_Tensors_Map_Judge.h>
@@ -93,7 +97,11 @@ CorrEnergy compute_RPA_correlation_blacs_2d_gamma_only( Chi0 &chi0, atpair_k_cpl
                 coul_libri[Mu][{Nu, std::array<double, 3>{0,0,0}}] = Tensor<double>({n_mu, n_nu}, pvq);
                 coulmat.at(Mu).at(Nu).at(q).reset();
             }
+            #ifndef __MACH__
             malloc_trim(0);
+            #else
+            malloc_zone_pressure_relief(malloc_default_zone(), 0);
+            #endif
             //printf("Finish RPA blacs 2d  vq arr\n");
             double arr_end = omp_get_wtime();
             mpi_comm_world_h.barrier();
@@ -152,8 +160,14 @@ CorrEnergy compute_RPA_correlation_blacs_2d_gamma_only( Chi0 &chi0, atpair_k_cpl
                 //     system("free -m");
                 //     printf("chi0_freq_q size: %d\n",chi0_wq.size());
                 // }
+
                 chi0.free_chi0_q(freq,q);
+                #ifndef __MACH__
                 malloc_trim(0);
+                #else
+                malloc_zone_pressure_relief(malloc_default_zone(), 0);
+                #endif
+
                 // if(mpi_comm_world_h.is_root())
                 // {
                 //     printf("After clean chi0 !!! \n");

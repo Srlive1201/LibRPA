@@ -914,7 +914,7 @@ T get_determinant(const matrix_m<T> &m)
     for (int i = 0; i < mrank; i++)
     {
         /* std::cout << i << " " << ipiv[i] << " " << m.c[i*m.nc+i] << " "; */
-        det *= (2*int(ipiv[i] == (i+1))-1) * m_copy(i, i);
+        det *= static_cast<T>(2*int(ipiv[i] == (i+1))-1) * m_copy(i, i);
     }
     return det;
 }

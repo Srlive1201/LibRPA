@@ -6,7 +6,11 @@
 #include <algorithm>
 #include <unordered_map>
 #include <parallel_mpi.h>
+#if defined(__MACH__)
+#include <malloc/malloc.h> // for malloc_zone_pressure_relief and malloc_default_zone
+#else
 #include <malloc.h>
+#endif
 #include "atoms.h"
 #include "atomic_basis.h"
 #include "ri.h"
@@ -702,7 +706,11 @@ void erase_Cs_from_local_atp(atpair_R_mat_t &Cs, vector<atpair_t> &local_atpair)
     //     {
     //         Cs.erase(Ip.first);
     //     }
+    #ifndef __MACH__
     malloc_trim(0);
+    #else
+    malloc_zone_pressure_relief(malloc_default_zone(), 0);
+    #endif
     printf("| process %d, size of Cs after erase: %lu\n", LIBRPA::mpi_comm_world_h.myid, Cs.size());
 }
 
