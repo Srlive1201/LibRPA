@@ -132,7 +132,7 @@ void handle_KS_file(const string &file_path, MeanField &mf)
     }
 }
 
-size_t READ_AIMS_Cs(const string &dir_path, double threshold,const vector<atpair_t> &local_atpair)
+size_t READ_AIMS_Cs(const string &dir_path, double threshold,const vector<atpair_t> &local_atpair, bool binary)
 {
     size_t cs_discard = 0;
     // cout << "Begin to read Cs" << endl;
@@ -168,7 +168,7 @@ size_t READ_AIMS_Cs(const string &dir_path, double threshold,const vector<atpair
     return cs_discard;
 }
 
-size_t READ_AIMS_Cs_evenly_distribute(const string &dir_path, double threshold, int myid, int nprocs)
+size_t READ_AIMS_Cs_evenly_distribute(const string &dir_path, double threshold, int myid, int nprocs, bool binary)
 {
     size_t cs_discard = 0;
     struct dirent *ptr;

@@ -45,6 +45,8 @@ struct Params
     //! threshold to filter when computing the square root of Coulomb matrix
     static double sqrt_coulomb_threshold;
 
+    static bool binary_input;
+
     //! switch of using LibRI for chi0 calculation
     static bool use_libri_chi0;
 

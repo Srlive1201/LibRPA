@@ -24,6 +24,7 @@ double Params::libri_exx_threshold_C = 0.0;
 double Params::libri_exx_threshold_D = 0.0;
 double Params::libri_exx_threshold_V = 0.0;
 
+bool Params::binary_input = false;
 bool Params::use_libri_chi0 = false;
 bool Params::use_libri_exx = true;
 bool Params::use_scalapack_ecrpa = true;
@@ -73,6 +74,7 @@ void Params::print()
     const std::vector<std::pair<std::string, bool>> bool_params
         {
             {"debug", debug},
+            {"binary_input", binary_input},
             {"use_libri_chi0", use_libri_chi0},
             {"use_libri_exx", use_libri_exx},
             {"use_libri_gw", use_libri_gw},

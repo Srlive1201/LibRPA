@@ -3,7 +3,6 @@
 #include "interpolate.h"
 #include "fitting.h"
 #include "dielecmodel.h"
-#include "scalapack_connector.h"
 #include "inputfile.h"
 #include "stl_io_helper.h"
 
@@ -13,7 +12,6 @@
 #else
 #include <malloc.h>
 #endif
-#include <set>
 
 int main(int argc, char **argv)
 {

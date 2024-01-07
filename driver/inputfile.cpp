@@ -135,6 +135,7 @@ void parse_inputfile_to_params(const std::string& fn)
     parser.parse_string("output_dir", Params::output_dir, "librpa.d", flag);
     parser.parse_string("output_file", Params::output_file, "stdout", flag);
     parser.parse_bool("debug", Params::debug, false, flag);
+    parser.parse_bool("binary_input", Params::binary_input, false, flag);
 
     // chi0 related
     parser.parse_string("tfgrid_type", Params::tfgrids_type, "minimax", flag);
