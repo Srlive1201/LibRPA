@@ -104,7 +104,7 @@ int main(int argc, char **argv)
     mpi_comm_world_h.barrier();
 
     READ_AIMS_EIGENVECTOR("./", meanfield);
-    natom = get_natom_ncell_from_first_Cs_file();
+    get_natom_ncell_from_first_Cs_file(natom, ncell, "./", Params::binary_input);
     tot_atpair = generate_atom_pair_from_nat(natom, false);
     tot_atpair_ordered = generate_atom_pair_from_nat(natom, true);
     if (mpi_comm_world_h.is_root())
@@ -147,7 +147,7 @@ int main(int argc, char **argv)
         //local_atpair = dispatch_vector(tot_atpair, mpi_comm_world_h.myid, mpi_comm_world_h.nprocs, true);
         for(auto &iap:trangular_loc_atpair)
             local_atpair.push_back(iap);
-        READ_AIMS_Cs("./", Params::cs_threshold,local_atpair );
+        READ_AIMS_Cs("./", Params::cs_threshold,local_atpair, Params::binary_input);
         // for(auto &ap:local_atpair)
         //     printf("   |process %d , local_atom_pair:  %d,  %d\n", mpi_comm_world_h.myid,ap.first,ap.second);
         READ_Vq_Row("./", "coulomb_mat", Params::vq_threshold, Vq, local_atpair);
@@ -155,7 +155,7 @@ int main(int argc, char **argv)
     else if(parallel_routing == ParallelRouting::LIBRI)
     {
         if (LIBRPA::mpi_comm_world_h.is_root()) printf("Evenly distributed Cs and V for LibRI\n");
-        READ_AIMS_Cs_evenly_distribute("./", Params::cs_threshold, mpi_comm_world_h.myid, mpi_comm_world_h.nprocs);
+        READ_AIMS_Cs_evenly_distribute("./", Params::cs_threshold, mpi_comm_world_h.myid, mpi_comm_world_h.nprocs, Params::binary_input);
         // Vq distributed using the same strategy
         // There should be no duplicate for V
         auto trangular_loc_atpair= dispatch_upper_trangular_tasks(natom,blacs_ctxt_world_h.myid,blacs_ctxt_world_h.nprows,blacs_ctxt_world_h.npcols,blacs_ctxt_world_h.myprow,blacs_ctxt_world_h.mypcol);

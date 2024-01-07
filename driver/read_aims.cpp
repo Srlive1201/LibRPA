@@ -145,7 +145,16 @@ size_t READ_AIMS_Cs(const string &dir_path, double threshold,const vector<atpair
     {
         string fm(ptr->d_name);
         if (fm.find("Cs_data") == 0)
-            cs_discard += handle_Cs_file(fm, threshold,local_atpair);
+        {
+            if (binary)
+            {
+                cs_discard += handle_Cs_file_binary(fm, threshold, local_atpair);
+            }
+            else
+            {
+                cs_discard += handle_Cs_file(fm, threshold, local_atpair);
+            }
+        }
     }
     closedir(dir);
     dir = NULL;
@@ -184,7 +193,15 @@ size_t READ_AIMS_Cs_evenly_distribute(const string &dir_path, double threshold, 
         if (fn.find("Cs_data") == 0)
         {
             files.push_back(fn);
-            auto ids_keep_this_file = handle_Cs_file_dry(fn, threshold);
+            std::vector<size_t> ids_keep_this_file;
+            if (binary)
+            {
+                ids_keep_this_file = handle_Cs_file_binary_dry(fn, threshold);
+            }
+            else
+            {
+                ids_keep_this_file = handle_Cs_file_dry(fn, threshold);
+            }
             for (int id = 0; id < ids_keep_this_file.size(); id++)
             {
                 int id_global = id + Cs_keep_total;
@@ -195,11 +212,19 @@ size_t READ_AIMS_Cs_evenly_distribute(const string &dir_path, double threshold, 
     }
     closedir(dir);
     dir = NULL;
+    if (myid == 0) printf("Finished Cs filtering\n");
 
     for (const auto& fn_ids: files_Cs_ids_this_proc)
     {
         LIBRPA::fout_para << fn_ids.first << " " << fn_ids.second << endl;
-        cs_discard += handle_Cs_file_by_ids(fn_ids.first, threshold, fn_ids.second);
+        if (binary)
+        {
+            cs_discard += handle_Cs_file_binary_by_ids(fn_ids.first, threshold, fn_ids.second);
+        }
+        else
+        {
+            cs_discard += handle_Cs_file_by_ids(fn_ids.first, threshold, fn_ids.second);
+        }
     }
 
     // initialize basis set object
@@ -215,18 +240,46 @@ size_t READ_AIMS_Cs_evenly_distribute(const string &dir_path, double threshold, 
     return cs_discard;
 }
 
-size_t get_natom_ncell_from_first_Cs_file(const string file_path)
+void get_natom_ncell_from_first_Cs_file(int &n_atom, int &n_cell, const string &dir_path, bool binary)
 {
-    cout<<file_path<<endl;
-    string natom_s, ncell_s;
+    // cout<<file_path<<endl;
     ifstream infile;
-    infile.open(file_path);
-    infile >> natom_s >> ncell_s;
-    // cout<<"  natom_s:"<<natom_s<<"  ncell_s: "<<ncell_s<<endl;
-    natom = stoi(natom_s);
-    ncell = stoi(ncell_s);
-    // printf("natom: %d   ncell: %d\n",natom,ncell);
-    return natom;
+
+    string file_path = "";
+
+    // find Cs file
+    struct dirent *ptr;
+    DIR *dir;
+    dir = opendir(dir_path.c_str());
+    while ((ptr = readdir(dir)) != NULL)
+    {
+        string fn(ptr->d_name);
+        if (fn.find("Cs_data") == 0)
+        {
+            file_path = fn;
+            break;
+        }
+    }
+    if (file_path == "")
+        throw std::runtime_error("Cs_data file is not found under dir_path: " + dir_path);
+
+    if (binary)
+    {
+        infile.open(file_path, std::ios::in | std::ios::binary);
+        infile.read((char *) &n_atom, sizeof(int));
+        infile.read((char *) &n_cell, sizeof(int));
+        infile.close();
+    }
+    else
+    {
+        string natom_s, ncell_s;
+        infile.open(file_path);
+        infile >> natom_s >> ncell_s;
+        // cout<<"  natom_s:"<<natom_s<<"  ncell_s: "<<ncell_s<<endl;
+        n_atom = stoi(natom_s);
+        n_cell = stoi(ncell_s);
+        infile.close();
+    }
 }
 
 void read_dielec_func(const string &file_path, std::vector<double> &omegas, std::vector<double> &dielec_func_imagfreq)
@@ -310,6 +363,58 @@ size_t handle_Cs_file(const string &file_path, double threshold, const vector<at
     return cs_discard;
 }
 
+size_t handle_Cs_file_binary(const string &file_path, double threshold, const vector<atpair_t> &local_atpair)
+{
+    
+    set<size_t> loc_atp_index;
+    for(auto &lap:local_atpair)
+    {
+        loc_atp_index.insert(lap.first);
+        loc_atp_index.insert(lap.second);
+    }
+    // cout<<"READING Cs from file: "<<file_path<<"  Cs_first_size: "<<loc_atp_index.size()<<endl;
+    // map<size_t,map<size_t,map<Vector3_Order<int>,std::shared_ptr<matrix>>>> Cs_m;
+    size_t cs_discard = 0;
+    ifstream infile;
+    int dims[8];
+    int n_apcell_file;
+
+    infile.open(file_path, std::ios::in | std::ios::binary);
+    infile.read((char *) &natom, sizeof(int));
+    infile.read((char *) &ncell, sizeof(int));
+    infile.read((char *) &n_apcell_file, sizeof(int));
+
+    for (int i = 0; i < n_apcell_file; i++)
+    {
+        infile.read((char *) &dims[0], 8 * sizeof(int));
+        // cout<<ic_1<<mu_s<<endl;
+        int ia1 = dims[0] - 1;
+        int ia2 = dims[1] - 1;
+        int ic1 = dims[2];
+        int ic2 = dims[3];
+        int ic3 = dims[4];
+        int n_i = dims[5];
+        int n_j = dims[6];
+        int n_mu = dims[7];
+
+        atom_nw.insert(pair<int, int>(ia1, n_i));
+        atom_mu.insert(pair<int, int>(ia1, n_mu));
+        Vector3_Order<int> box(ic1, ic2, ic3);
+        // cout<< ia1<<ia2<<box<<endl;
+
+        shared_ptr<matrix> cs_ptr = make_shared<matrix>();
+        cs_ptr->create(n_i * n_j, n_mu);
+        // cout<<cs_ptr->nr<<cs_ptr->nc<<endl;
+
+        infile.read((char *) cs_ptr->c, n_i * n_j * n_mu * sizeof(double));
+        if (loc_atp_index.count(ia1) && (*cs_ptr).absmax() >= threshold )
+            Cs[ia1][ia2][box] = cs_ptr;
+        else
+            cs_discard++;
+    }
+    return cs_discard;
+}
+
 std::vector<size_t> handle_Cs_file_dry(const string &file_path, double threshold)
 {
     std::vector<size_t> Cs_ids_keep;
@@ -349,9 +454,56 @@ std::vector<size_t> handle_Cs_file_dry(const string &file_path, double threshold
     return Cs_ids_keep;
 }
 
+std::vector<size_t> handle_Cs_file_binary_dry(const string &file_path, double threshold)
+{
+    std::vector<size_t> Cs_ids_keep;
+    ifstream infile;
+    int dims[8];
+    int n_apcell_file;
+
+    infile.open(file_path, std::ios::in | std::ios::binary);
+    infile.read((char *) &natom, sizeof(int));
+    infile.read((char *) &ncell, sizeof(int));
+    infile.read((char *) &n_apcell_file, sizeof(int));
+
+    for (int i = 0; i < n_apcell_file; i++)
+    {
+        infile.read((char *) &dims[0], 8 * sizeof(int));
+        // cout<<ic_1<<mu_s<<endl;
+        int ia1 = dims[0] - 1;
+        int ia2 = dims[1] - 1;
+        int ic1 = dims[2];
+        int ic2 = dims[3];
+        int ic3 = dims[4];
+        int n_i = dims[5];
+        int n_j = dims[6];
+        int n_mu = dims[7];
+
+        // cout<< ia1<<ia2<<box<<endl;
+        double maxval = -1.0;
+        double Cs_read;
+        for (int i = 0; i != n_i; i++)
+        {
+            for (int j = 0; j != n_j; j++)
+            {
+                for (int mu = 0; mu != n_mu; mu++)
+                {
+                    infile.read((char *) &Cs_read, sizeof(double));
+                    maxval = std::max(maxval, abs(Cs_read));
+                }
+            }
+        }
+        LIBRPA::fout_para << i << " (" << ic1 << "," << ic2 << "," << ic3 << ") " << maxval << " keep? " << (maxval >= threshold) << endl;
+        if (maxval >= threshold)
+            Cs_ids_keep.push_back(i);
+    }
+    LIBRPA::fout_para << file_path << ": " << Cs_ids_keep << endl;
+    infile.close();
+    return Cs_ids_keep;
+}
+
 size_t handle_Cs_file_by_ids(const string &file_path, double threshold, const vector<size_t> &ids)
 {
-    
     size_t cs_discard = 0;
     string natom_s, ncell_s, ia1_s, ia2_s, ic_1, ic_2, ic_3, i_s, j_s, mu_s, Cs_ele;
     ifstream infile;
@@ -410,6 +562,52 @@ size_t handle_Cs_file_by_ids(const string &file_path, double threshold, const ve
             if (maxval < threshold) cs_discard++;
         }
         id++;
+    }
+    infile.close();
+    return cs_discard;
+}
+
+size_t handle_Cs_file_binary_by_ids(const string &file_path, double threshold, const vector<size_t> &ids)
+{
+    ifstream infile;
+    int dims[8];
+    int n_apcell_file;
+
+    infile.open(file_path, std::ios::in | std::ios::binary);
+    infile.read((char *) &natom, sizeof(int));
+    infile.read((char *) &ncell, sizeof(int));
+    infile.read((char *) &n_apcell_file, sizeof(int));
+    size_t cs_discard = 0;
+
+    for (int i = 0; i < n_apcell_file; i++)
+    {
+        infile.read((char *) &dims[0], 8 * sizeof(int));
+        // cout<<ic_1<<mu_s<<endl;
+        int ia1 = dims[0] - 1;
+        int ia2 = dims[1] - 1;
+        int ic1 = dims[2];
+        int ic2 = dims[3];
+        int ic3 = dims[4];
+        int n_i = dims[5];
+        int n_j = dims[6];
+        int n_mu = dims[7];
+
+        atom_nw.insert(pair<int, int>(ia1, n_i));
+        atom_mu.insert(pair<int, int>(ia1, n_mu));
+        Vector3_Order<int> box(ic1, ic2, ic3);
+
+        if (std::find(ids.cbegin(), ids.cend(), static_cast<size_t>(i)) != ids.cend())
+        {
+            shared_ptr<matrix> cs_ptr = make_shared<matrix>();
+            cs_ptr->create(n_i * n_j, n_mu);
+            infile.read((char *) cs_ptr->c, n_i * n_j * n_mu * sizeof(double));
+            Cs[ia1][ia2][box] = cs_ptr;
+        }
+        else
+        {
+            infile.seekg(n_i * n_j * n_mu * sizeof(double), ios::cur);
+            cs_discard++;
+        }
     }
     infile.close();
     return cs_discard;
