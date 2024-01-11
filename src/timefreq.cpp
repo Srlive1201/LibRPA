@@ -137,6 +137,7 @@ void TFGrids::generate_evenspaced(double emin, double interval)
         freq_nodes[i] = emin + interval * i;
         freq_weights[i] = weight;
     }
+    grid_type = TFGrids::GRID_TYPES::EvenSpaced;
 }
 
 void TFGrids::generate_evenspaced_tf(double emin, double eintv, double tmin, double tintv)
@@ -158,6 +159,7 @@ void TFGrids::generate_evenspaced_tf(double emin, double eintv, double tmin, dou
         costrans_f2t(i, i) = 1/weight;
         sintrans_f2t(i, i) = 1/weight;
     }
+    grid_type = TFGrids::GRID_TYPES::EvenSpaced_TF;
 }
 
 void TFGrids::generate_minimax(double emin, double emax)
