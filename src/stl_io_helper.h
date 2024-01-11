@@ -42,4 +42,4 @@ int get_num_keys(const std::map<Tkey1, std::map<Tkey2, Tval>> &nested_map);
 template <typename Tkey1, typename Tkey2, typename Tkey3, typename Tval>
 int get_num_keys(const std::map<Tkey1, std::map<Tkey2, std::map<Tkey3, Tval>>> &nested_map);
 
-#include "stl_io_helper.hpp"
+#include "stl_io_helper.hpp"  // IWYU pragma: export

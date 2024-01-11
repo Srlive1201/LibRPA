@@ -47,15 +47,6 @@ struct Params
 
     static bool binary_input;
 
-    //! switch of using LibRI for chi0 calculation
-    static bool use_libri_chi0;
-
-    //! switch of using LibRI for EXX calculation
-    static bool use_libri_exx;
-
-    //! switch of using LibRI for GW calculation
-    static bool use_libri_gw;
-
     //! CS-matrix threshold parsed to RPA object of LibRI.
     static double libri_chi0_threshold_CSM;
 

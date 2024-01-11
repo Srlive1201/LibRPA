@@ -25,12 +25,9 @@ double Params::libri_exx_threshold_D = 0.0;
 double Params::libri_exx_threshold_V = 0.0;
 
 bool Params::binary_input = false;
-bool Params::use_libri_chi0 = false;
-bool Params::use_libri_exx = true;
 bool Params::use_scalapack_ecrpa = true;
 bool Params::use_scalapack_gw_wc = false;
 bool Params::debug = false;
-bool Params::use_libri_gw = true;
 bool Params::output_gw_sigc_mat = true;
 bool Params::replace_w_head = true;
 
@@ -75,9 +72,6 @@ void Params::print()
         {
             {"debug", debug},
             {"binary_input", binary_input},
-            {"use_libri_chi0", use_libri_chi0},
-            {"use_libri_exx", use_libri_exx},
-            {"use_libri_gw", use_libri_gw},
             {"use_scalapack_ecrpa", use_scalapack_ecrpa},
             {"use_scalapack_gw_wc", use_scalapack_gw_wc},
             {"output_gw_sigc_mat", output_gw_sigc_mat},

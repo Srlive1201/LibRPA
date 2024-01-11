@@ -52,7 +52,7 @@ void Chi0::build(const atpair_R_mat_t &LRI_Cs,
         case ( TFGrids::GRID_TYPES::EvenSpaced_TF ):
         {
             // WARN: only used to debug, adjust emin and interval manually
-            tfg.generate_evenspaced_tf(0.0304601, 0.0, 0.0116073, 0.0);
+            tfg.generate_evenspaced_tf(0.005, 0.0, 0.005, 0.0);
             break;
         }
         default:

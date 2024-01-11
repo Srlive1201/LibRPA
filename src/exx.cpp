@@ -103,7 +103,7 @@ void Exx::build_exx_orbital_energy(const atpair_R_mat_t &LRI_Cs,
     //         }
     //     }
     // }
-    if (Params::use_libri_exx)
+    if (parallel_routing == ParallelRouting::LIBRI)
         this->build_exx_orbital_energy_LibRI(LRI_Cs, Rlist, R_period, coul_mat);
     else
     {
