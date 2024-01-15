@@ -1617,6 +1617,7 @@ compute_Wc_freq_q_blacs(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps
     Array_Desc desc_nabf_nabf(LIBRPA::blacs_ctxt_world_h);
     // use a square blocksize instead max block, otherwise heev and inversion will complain about illegal parameter
     desc_nabf_nabf.init_square_blk(n_abf, n_abf, 0, 0);
+    // obtain the indices of atom-pair block necessary to build 2D block of a Hermitian/symmetric matrix
     const auto set_IJ_nabf_nabf = LIBRPA::get_necessary_IJ_from_block_2D_sy('U', LIBRPA::atomic_basis_abf, desc_nabf_nabf);
     const auto s0_s1 = get_s0_s1_for_comm_map2_first(set_IJ_nabf_nabf);
     auto chi0_block = init_local_mat<complex<double>>(desc_nabf_nabf, MAJOR::COL);
@@ -1981,6 +1982,103 @@ compute_Wc_freq_q_blacs(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps
 }
 
 map<double, atom_mapping<std::map<Vector3_Order<int>, matrix_m<complex<double>>>>::pair_t_old>
+FT_Wc_freq_q(const map<double, atom_mapping<std::map<Vector3_Order<double>, matrix_m<complex<double>>>>::pair_t_old> &Wc_freq_q,
+             const TFGrids &tfg, vector<Vector3_Order<int>> Rlist)
+{
+    // major of Wc_freq_q input and Wc_tau_R output
+    const MAJOR major_Wc = MAJOR::ROW;
+
+    map<double, atom_mapping<std::map<Vector3_Order<int>, matrix_m<complex<double>>>>::pair_t_old> Wc_freq_R;
+    const int ngrids = tfg.get_n_grids();
+    if (Params::debug)
+    {
+        if (mpi_comm_world_h.is_root())
+            printf("Converting Wc q,w -> R,t\n");
+        mpi_comm_world_h.barrier();
+    }
+    set<pair<atom_t, atom_t>> atpairs_unique;
+    for (const auto &freq_MuNuqWc: Wc_freq_q)
+    {
+        for (const auto &Mu_NuqWc: freq_MuNuqWc.second)
+        {
+            const auto Mu = Mu_NuqWc.first;
+            for (const auto &Nu_qWc: Mu_NuqWc.second)
+            {
+                const auto Nu = Nu_qWc.first;
+                atpairs_unique.insert({Mu, Nu});
+                for (const auto &q_Wc: Nu_qWc.second)
+                {
+                    assert(q_Wc.second.major() == major_Wc);
+                }
+            }
+        }
+    }
+
+    vector<pair<pair<int, Vector3_Order<int>>, pair<atom_t, atom_t>>> ifreqR_atpair_all;
+    // allocate space before hand
+    for (auto R: Rlist)
+    {
+        for (int ifreq = 0; ifreq != ngrids; ifreq++)
+        {
+            auto freq = tfg.get_freq_nodes()[ifreq];
+            for (auto atpair_unique: atpairs_unique)
+            {
+                const auto Mu = atpair_unique.first;
+                const int n_mu = atom_mu[Mu];
+                const auto Nu = atpair_unique.second;
+                const int n_nu = atom_mu[Nu];
+                Wc_freq_R[freq][Mu][Nu][R] = matrix_m<complex<double>>(n_mu, n_nu, major_Wc);
+                ifreqR_atpair_all.push_back({{ifreq, R}, atpair_unique});
+            }
+        }
+    }
+
+    #pragma omp parallel for schedule(dynamic)
+    for (auto ifreqR_atpair: ifreqR_atpair_all)
+    {
+        const auto ifreq = ifreqR_atpair.first.first;
+        const auto freq = tfg.get_freq_nodes()[ifreq];
+        const auto R = ifreqR_atpair.first.second;
+        const auto Mu = ifreqR_atpair.second.first;
+        const auto Nu = ifreqR_atpair.second.second;
+        const int n_mu = atom_mu[Mu];
+        const int n_nu = atom_mu[Nu];
+
+        // thread local temporary matrix
+        matrix_m<complex<double>> WfR_temp(n_mu, n_nu, major_Wc);
+
+        if (Wc_freq_q.count(freq) == 0) continue;
+        if (Wc_freq_q.at(freq).count(Mu) == 0) continue;
+        if (Wc_freq_q.at(freq).at(Mu).count(Nu) == 0) continue;
+
+        for (auto &Wc_q: Wc_freq_q.at(freq).at(Mu).at(Nu))
+        {
+            const auto q = Wc_q.first;
+            const auto &Wc = Wc_q.second;
+            for (auto q_bz: map_irk_ks[q])
+            {
+                double ang = - q_bz * (R * latvec) * TWO_PI;
+                complex<double> kphase = complex<double>(cos(ang), sin(ang));
+                if (q == q_bz)
+                    WfR_temp += Wc * kphase;
+                else
+                    WfR_temp += conj(Wc) * kphase;
+            }
+        }
+        // omp_set_lock(&lock_Wc);
+        Wc_freq_R[freq][Mu][Nu][R] += WfR_temp;
+        // omp_unset_lock(&lock_Wc);
+    }
+
+    if (mpi_comm_world_h.is_root())
+        printf("Done converting Wc(q,w) -> Wc(R,w)\n");
+    mpi_comm_world_h.barrier();
+
+    return Wc_freq_R;
+}
+
+
+map<double, atom_mapping<std::map<Vector3_Order<int>, matrix_m<complex<double>>>>::pair_t_old>
 CT_FT_Wc_freq_q(const map<double, atom_mapping<std::map<Vector3_Order<double>, matrix_m<complex<double>>>>::pair_t_old> &Wc_freq_q,
                 const TFGrids &tfg, vector<Vector3_Order<int>> Rlist)
 {
@@ -1991,12 +2089,11 @@ CT_FT_Wc_freq_q(const map<double, atom_mapping<std::map<Vector3_Order<double>, m
     if (!tfg.has_time_grids())
         throw logic_error("TFGrids object does not have time grids");
     const int ngrids = tfg.get_n_grids();
-    if (Params::debug)
-    {
-        if (mpi_comm_world_h.is_root())
-            printf("Converting Wc q,w -> R,t\n");
-        mpi_comm_world_h.barrier();
-    }
+
+    if (mpi_comm_world_h.is_root())
+        printf("Converting Wc(q,w) -> W(R,t)\n");
+    mpi_comm_world_h.barrier();
+
     set<pair<atom_t, atom_t>> atpairs_unique;
     for (const auto &freq_MuNuqWc: Wc_freq_q)
     {
@@ -2033,9 +2130,6 @@ CT_FT_Wc_freq_q(const map<double, atom_mapping<std::map<Vector3_Order<double>, m
             }
         }
     }
-
-    // omp_lock_t lock_Wc;
-    // omp_init_lock(&lock_Wc);
 
     #pragma omp parallel for schedule(dynamic)
     for (auto itauR_atpair: itauR_atpair_all)
@@ -2084,45 +2178,41 @@ CT_FT_Wc_freq_q(const map<double, atom_mapping<std::map<Vector3_Order<double>, m
         Wc_tau_R[tau][Mu][Nu][R] += WtR_temp;
         // omp_unset_lock(&lock_Wc);
     }
-    // omp_destroy_lock(&lock_Wc);
 
-    if (Params::debug)
-    {
-        if (mpi_comm_world_h.is_root())
-            printf("Done converting Wc q,w -> R,t\n");
-        mpi_comm_world_h.barrier();
-    }
+    if (mpi_comm_world_h.is_root())
+        printf("Done converting Wc q,w -> R,t\n");
+    mpi_comm_world_h.barrier();
 
     // myz debug: check the imaginary part of the matrix
     // NOTE: if G(R) is real, is W(R) real as well?
-    if (Params::debug)
-    {
-        for (const auto & tau_MuNuRWc: Wc_tau_R)
-        {
-            char fn[80];
-            auto tau = tau_MuNuRWc.first;
-            auto itau = tfg.get_time_index(tau);
-            for (const auto & Mu_NuRWc: tau_MuNuRWc.second)
-            {
-                auto Mu = Mu_NuRWc.first;
-                // const int n_mu = atom_mu[Mu];
-                for (const auto & Nu_RWc: Mu_NuRWc.second)
-                {
-                    auto Nu = Nu_RWc.first;
-                    // const int n_nu = atom_mu[Nu];
-                    for (const auto & R_Wc: Nu_RWc.second)
-                    {
-                        auto R = R_Wc.first;
-                        auto Wc = R_Wc.second;
-                        auto iteR = std::find(Rlist.cbegin(), Rlist.cend(), R);
-                        auto iR = std::distance(Rlist.cbegin(), iteR);
-                        sprintf(fn, "Wc_Mu_%zu_Nu_%zu_iR_%zu_itau_%d_id_%d.mtx", Mu, Nu, iR, itau, mpi_comm_world_h.myid);
-                        print_matrix_mm_file(Wc, Params::output_dir + "/" + fn, 1e-10);
-                    }
-                }
-            }
-        }
-    }
+    // if (Params::debug)
+    // {
+    //     for (const auto & tau_MuNuRWc: Wc_tau_R)
+    //     {
+    //         char fn[80];
+    //         auto tau = tau_MuNuRWc.first;
+    //         auto itau = tfg.get_time_index(tau);
+    //         for (const auto & Mu_NuRWc: tau_MuNuRWc.second)
+    //         {
+    //             auto Mu = Mu_NuRWc.first;
+    //             // const int n_mu = atom_mu[Mu];
+    //             for (const auto & Nu_RWc: Mu_NuRWc.second)
+    //             {
+    //                 auto Nu = Nu_RWc.first;
+    //                 // const int n_nu = atom_mu[Nu];
+    //                 for (const auto & R_Wc: Nu_RWc.second)
+    //                 {
+    //                     auto R = R_Wc.first;
+    //                     auto Wc = R_Wc.second;
+    //                     auto iteR = std::find(Rlist.cbegin(), Rlist.cend(), R);
+    //                     auto iR = std::distance(Rlist.cbegin(), iteR);
+    //                     sprintf(fn, "Wc_Mu_%zu_Nu_%zu_iR_%zu_itau_%d_id_%d.mtx", Mu, Nu, iR, itau, mpi_comm_world_h.myid);
+    //                     print_matrix_mm_file(Wc, Params::output_dir + "/" + fn, 1e-10);
+    //                 }
+    //             }
+    //         }
+    //     }
+    // }
     // end myz debug
     return Wc_tau_R;
 }

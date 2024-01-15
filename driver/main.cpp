@@ -5,6 +5,7 @@
 #include "dielecmodel.h"
 #include "inputfile.h"
 #include "stl_io_helper.h"
+#include "task.h"
 
 #include <algorithm>
 #if defined(__MACH__)
@@ -15,11 +16,15 @@
 
 int main(int argc, char **argv)
 {
-    using namespace LIBRPA;
+    using LIBRPA::mpi_comm_world_h;
+    using LIBRPA::blacs_ctxt_world_h;
+    using LIBRPA::ParallelRouting;
+    using LIBRPA::parallel_routing;
+    using LIBRPA::task_t;
     /*
      * MPI Initialization
      */
-    MPI_Wrapper::init(argc, argv);
+    LIBRPA::MPI_Wrapper::init(argc, argv);
 
     /*
      * Global profiler begins right after MPI is initialized
@@ -50,6 +55,23 @@ int main(int argc, char **argv)
         Params::gf_R_threshold = stod(argv[2]);
     }
     Params::check_consistency();
+
+    // check and set computing task
+    task_t task;
+    std::string task_lower = Params::task;
+    transform(task_lower.begin(), task_lower.end(), task_lower.begin(), ::tolower);
+    if (task_lower == "rpa")
+        task = task_t::RPA;
+    else if (task_lower == "g0w0")
+        task = task_t::G0W0;
+    else if (task_lower == "exx")
+        task = task_t::EXX;
+    else if (task_lower == "wc_rf")
+        task = task_t::Wc_Rf;
+    else
+        throw std::logic_error("Unknown task (" + Params::task + "). Please check your input");
+
+
     if (mpi_comm_world_h.is_root())
     {
         system(("mkdir -p " + Params::output_dir).c_str());
@@ -215,7 +237,7 @@ int main(int argc, char **argv)
     chi0.gf_R_threshold = Params::gf_R_threshold;
 
     // build ABF IJ and qlist from Vq
-    
+
     vector<Vector3_Order<double>> qlist;
 
     for ( auto q_weight: irk_weight)
@@ -228,7 +250,7 @@ int main(int argc, char **argv)
     if (mpi_comm_world_h.myid == 0)
         cout << "Initialization finished, start task job from myid\n";
 
-    if ( Params::task != "exx" )
+    if ( task != task_t::EXX )
     {
         Profiler::start("chi0_build", "Build response function chi0");
         chi0.build(Cs, Rlist, period, local_atpair, qlist,
@@ -258,7 +280,7 @@ int main(int argc, char **argv)
         }
     }
     //malloc_trim(0);
-    
+
     // para_mpi.mpi_barrier();
     // if(para_mpi.is_master())
     //     system("free -m");
@@ -266,7 +288,7 @@ int main(int argc, char **argv)
     // FIXME: a more general strategy to deal with Cs
 
     // Cs is not required after chi0 is computed in rpa task
-    if (Params::task == "rpa")
+    if (task == task_t::RPA)
     {
         Cs.clear();
     }
@@ -278,7 +300,7 @@ int main(int argc, char **argv)
     #endif
 
     // RPA total energy
-    if ( Params::task == "rpa" )
+    if (task == task_t::RPA)
     {
         mpi_comm_world_h.barrier();
         Profiler::start("EcRPA", "Compute RPA correlation Energy");
@@ -307,12 +329,143 @@ int main(int argc, char **argv)
         }
         Profiler::stop("EcRPA");
     }
-    else if ( Params::task == "g0w0" )
+    else if (task == task_t::Wc_Rf)
+    {
+        Profiler::start("Wc_Rf", "Build Screened Coulomb: R and freq. space");
+
+        Profiler::start("read_vq_cut", "Load truncated Coulomb");
+        READ_Vq_Full("./", "coulomb_cut_", Params::vq_threshold, Vq_cut);
+        Profiler::stop("read_vq_cut");
+
+        std::vector<double> epsmac_LF_imagfreq_re;
+        if (Params::replace_w_head)
+        {
+            std::vector<double> omegas_dielect;
+            std::vector<double> dielect_func;
+            read_dielec_func("dielecfunc_out", omegas_dielect, dielect_func);
+
+            switch(Params::option_dielect_func)
+            {
+                case 0:
+                    {
+                        assert(omegas_dielect.size() == chi0.tfg.size());
+                        // TODO: check if frequencies and close
+                        epsmac_LF_imagfreq_re = dielect_func;
+                        break;
+                    }
+                case 1:
+                    {
+                        epsmac_LF_imagfreq_re = LIBRPA::UTILS::interp_cubic_spline(omegas_dielect, dielect_func,
+                                                                           chi0.tfg.get_freq_nodes());
+                        break;
+                    }
+                case 2:
+                    {
+                        LIBRPA::UTILS::LevMarqFitting levmarq;
+                        // use double-dispersion Havriliak-Negami model
+                        // initialize the parameters as 1.0
+                        std::vector<double> pars(DoubleHavriliakNegami::d_npar, 1);
+                        pars[0] = pars[4] = dielect_func[0];
+                        epsmac_LF_imagfreq_re = levmarq.fit_eval(pars, omegas_dielect, dielect_func,
+                                                                 DoubleHavriliakNegami::func_imfreq,
+                                                                 DoubleHavriliakNegami::grad_imfreq,
+                                                                 chi0.tfg.get_freq_nodes());
+                        break;
+                    }
+                default:
+                    throw std::logic_error("Unsupported value for option_dielect_func");
+            }
+
+            if (Params::debug)
+            {
+                if (mpi_comm_world_h.is_root())
+                {
+                    printf("Dielection function parsed:\n");
+                    for (int i = 0; i < chi0.tfg.get_freq_nodes().size(); i++)
+                        printf("%d %f %f\n", i+1, chi0.tfg.get_freq_nodes()[i], epsmac_LF_imagfreq_re[i]);
+                }
+                mpi_comm_world_h.barrier();
+            }
+        }
+
+        Profiler::start("compute_Wc_freq_q", "Build upper half of Wc(q,w)");
+        vector<std::complex<double>> epsmac_LF_imagfreq(epsmac_LF_imagfreq_re.cbegin(), epsmac_LF_imagfreq_re.cend());
+        map<double, atom_mapping<std::map<Vector3_Order<double>, matrix_m<complex<double>>>>::pair_t_old> Wc_freq_q;
+        if (Params::use_scalapack_gw_wc)
+            Wc_freq_q = compute_Wc_freq_q_blacs(chi0, Vq, Vq_cut, epsmac_LF_imagfreq);
+        else
+            Wc_freq_q = compute_Wc_freq_q(chi0, Vq, Vq_cut, epsmac_LF_imagfreq);
+        Profiler::stop("compute_Wc_freq_q");
+
+        Profiler::start("construct_Wc_lower_half", "Construct Lower Half of Wc(q,w)");
+        // NOTE: only upper half of Wc is built now
+        //       here we recover the other half before transform to R space using the Hermitian property
+        for (int ifreq = 0; ifreq < chi0.tfg.get_n_grids(); ifreq++)
+        {
+            const auto freq = chi0.tfg.get_freq_nodes()[ifreq];
+            auto &Wc = Wc_freq_q.at(freq);
+            vector<atom_t> iatoms_row;
+            for (const auto &Wc_IJ: Wc)
+                iatoms_row.push_back(Wc_IJ.first);
+            for (auto iatom_row: iatoms_row)
+            {
+                vector<atom_t> iatoms_col;
+                for (const auto &Wc_J: Wc.at(iatom_row))
+                {
+                    iatoms_col.push_back(Wc_J.first);
+                }
+                for (auto iatom_col: iatoms_col)
+                {
+                    if (iatom_row == iatom_col) continue;
+                    for (const auto &Wc_q: Wc.at(iatom_row).at(iatom_col))
+                    {
+                        Wc[iatom_col][iatom_row][Wc_q.first] = conj(Wc_q.second);
+                    }
+                }
+            }
+        }
+        Profiler::stop("construct_Wc_lower_half");
+
+        Profiler::start("FT_Wc_freq_q", "Fourier Transform Wc(q,w) -> Wc(R,w)");
+        const auto Wc_freq_MN_R = FT_Wc_freq_q(Wc_freq_q, chi0.tfg, Rlist);
+        Profiler::stop("FT_Wc_freq_q");
+
+        Profiler::start("write_Wc_freq_R", "Export Wc(R,w) to file");
+        for (const auto &freq_MuNuRWc: Wc_freq_MN_R)
+        {
+            char fn[80];
+            auto freq = freq_MuNuRWc.first;
+            auto ifreq = chi0.tfg.get_freq_index(freq);
+            for (const auto & Mu_NuRWc: freq_MuNuRWc.second)
+            {
+                auto Mu = Mu_NuRWc.first;
+                // const int n_mu = atom_mu[Mu];
+                for (const auto & Nu_RWc: Mu_NuRWc.second)
+                {
+                    auto Nu = Nu_RWc.first;
+                    // const int n_nu = atom_mu[Nu];
+                    for (const auto & R_Wc: Nu_RWc.second)
+                    {
+                        auto R = R_Wc.first;
+                        auto Wc = R_Wc.second;
+                        auto iteR = std::find(Rlist.cbegin(), Rlist.cend(), R);
+                        auto iR = std::distance(Rlist.cbegin(), iteR);
+                        sprintf(fn, "Wc_Mu_%zu_Nu_%zu_iR_%zu_ifreq_%d.mtx", Mu, Nu, iR, ifreq);
+                        print_matrix_mm_file(Wc, Params::output_dir + "/" + fn, 1e-10);
+                    }
+                }
+            }
+        }
+        Profiler::stop("write_Wc_freq_R");
+
+        Profiler::stop("Wc_Rf");
+    }
+    else if ( task == task_t::G0W0 )
     {
         Profiler::start("g0w0", "G0W0 quasi-particle calculation");
 
         Profiler::start("read_vq_cut", "Load truncated Coulomb");
-        READ_Vq_Full("./", "coulomb_cut_", Params::vq_threshold, Vq_cut); 
+        READ_Vq_Full("./", "coulomb_cut_", Params::vq_threshold, Vq_cut);
         const auto VR = FT_Vq(Vq_cut, Rlist, true);
         Profiler::stop("read_vq_cut");
 
@@ -335,13 +488,13 @@ int main(int argc, char **argv)
                     }
                 case 1:
                     {
-                        epsmac_LF_imagfreq_re = UTILS::interp_cubic_spline(omegas_dielect, dielect_func,
+                        epsmac_LF_imagfreq_re = LIBRPA::UTILS::interp_cubic_spline(omegas_dielect, dielect_func,
                                                                            chi0.tfg.get_freq_nodes());
                         break;
                     }
                 case 2:
                     {
-                        UTILS::LevMarqFitting levmarq;
+                        LIBRPA::UTILS::LevMarqFitting levmarq;
                         // use double-dispersion Havriliak-Negami model
                         // initialize the parameters as 1.0
                         std::vector<double> pars(DoubleHavriliakNegami::d_npar, 1);
@@ -485,9 +638,9 @@ int main(int argc, char **argv)
         Profiler::stop("g0w0_export_sigc_KS");
         Profiler::stop("g0w0");
     }
-    else if ( Params::task == "exx" )
+    else if ( task == task_t::EXX )
     {
-        READ_Vq_Full("./", "coulomb_cut_", Params::vq_threshold, Vq_cut); 
+        READ_Vq_Full("./", "coulomb_cut_", Params::vq_threshold, Vq_cut);
         const auto VR = FT_Vq(Vq_cut, Rlist, true);
         auto exx = LIBRPA::Exx(meanfield, kfrac_list);
         exx.build_exx_orbital_energy(Cs, Rlist, period, VR);
@@ -517,6 +670,6 @@ int main(int argc, char **argv)
         printf("libRPA finished\n");
     }
 
-    MPI_Wrapper::finalize();
+    LIBRPA::MPI_Wrapper::finalize();
     return 0;
 }
