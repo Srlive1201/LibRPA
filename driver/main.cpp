@@ -14,6 +14,26 @@
 #include <malloc.h>
 #endif
 
+void initialize(int argc, char **argv)
+{
+    // MPI Initialization
+    LIBRPA::MPI_Wrapper::init(argc, argv);
+
+    // Global profiler begins right after MPI is initialized
+    Profiler::start("total", "Total");
+}
+
+void finalize()
+{
+    if(LIBRPA::mpi_comm_world_h.is_root())
+    {
+        Profiler::display();
+        printf("libRPA finished\n");
+    }
+    Profiler::stop("total");
+    LIBRPA::MPI_Wrapper::finalize();
+}
+
 int main(int argc, char **argv)
 {
     using LIBRPA::mpi_comm_world_h;
@@ -21,15 +41,8 @@ int main(int argc, char **argv)
     using LIBRPA::ParallelRouting;
     using LIBRPA::parallel_routing;
     using LIBRPA::task_t;
-    /*
-     * MPI Initialization
-     */
-    LIBRPA::MPI_Wrapper::init(argc, argv);
 
-    /*
-     * Global profiler begins right after MPI is initialized
-     */
-    Profiler::start("total", "Total");
+    initialize(argc, argv);
 
     /*
      * Initialize the global MPI communicator and BLACS context
@@ -68,6 +81,8 @@ int main(int argc, char **argv)
         task = task_t::EXX;
     else if (task_lower == "wc_rf")
         task = task_t::Wc_Rf;
+    else if (task_lower == "print_minimax")
+        task = task_t::print_minimax;
     else
         throw std::logic_error("Unknown task (" + Params::task + "). Please check your input");
 
@@ -80,8 +95,7 @@ int main(int argc, char **argv)
     mpi_comm_world_h.barrier();
     Profiler::stop("driver_read_params");
 
-    Profiler::start("driver_read_common_input_data", "Driver Read Task-Common Input Data");
-
+    Profiler::start("driver_band_out", "Driver Read Meanfield band");
     READ_AIMS_BAND("band_out", meanfield);
     if (mpi_comm_world_h.is_root())
     {
@@ -97,7 +111,21 @@ int main(int argc, char **argv)
         cout << "| Minimal transition energy (Ha): " << emin << endl
              << "| Maximal transition energy (Ha): " << emax << endl << endl;
     }
+    Profiler::stop("driver_band_out");
 
+    if (task == task_t::print_minimax)
+    {
+        double emin, emax;
+        meanfield.get_E_min_max(emin, emax);
+        TFGrids tfg(Params::nfreq);
+        tfg.generate_minimax(emin, emax);
+        if (mpi_comm_world_h.is_root())
+            tfg.show();
+        finalize();
+        return 0;
+    }
+
+    Profiler::start("driver_read_common_input_data", "Driver Read Task-Common Input Data");
     READ_AIMS_STRU(meanfield.get_n_kpoints(), "stru_out");
     Vector3_Order<int> period {kv_nmp[0], kv_nmp[1], kv_nmp[2]};
     auto Rlist = construct_R_grid(period);
@@ -663,13 +691,6 @@ int main(int argc, char **argv)
         }
     }
 
-    Profiler::stop("total");
-    if(mpi_comm_world_h.is_root())
-    {
-        Profiler::display();
-        printf("libRPA finished\n");
-    }
-
-    LIBRPA::MPI_Wrapper::finalize();
+    finalize();
     return 0;
 }
