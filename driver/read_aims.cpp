@@ -670,7 +670,11 @@ size_t READ_Vq_Full(const string &dir_path, const string &vq_fprefix, double thr
         string fm(ptr->d_name);
         if (fm.find(vq_fprefix) == 0)
         {
-            handle_Vq_full_file(fm, threshold, Vq_full);
+            int retcode = handle_Vq_full_file(fm, threshold, Vq_full);
+            if (retcode != 0)
+            {
+                printf("Error encountered when reading %s, return code %d", fm.c_str(), retcode);
+            }
         }
     }
     // cout << "FINISH coulomb files reading!" << endl;
@@ -728,7 +732,7 @@ size_t READ_Vq_Full(const string &dir_path, const string &vq_fprefix, double thr
     return vq_discard;
 }
 
-void handle_Vq_full_file(const string &file_path, double threshold, map<Vector3_Order<double>, ComplexMatrix> &Vq_full)
+int handle_Vq_full_file(const string &file_path, double threshold, map<Vector3_Order<double>, ComplexMatrix> &Vq_full)
 {
     // cout << "Begin to read aims vq_real from " << file_path << endl;
     ifstream infile;
@@ -741,14 +745,20 @@ void handle_Vq_full_file(const string &file_path, double threshold, map<Vector3_
     // }
     // cout<<"  nline:  "<<nline<<endl;
     infile >> n_irk_points;
+    if (!infile.good())
+        return 1;
 
     while (infile.peek() != EOF)
     {
         infile >> nbasbas >> begin_row >> end_row >> begin_col >> end_col;
         if (infile.peek() == EOF)
             break;
+        if (!infile.good())
+            return 2;
         //cout << "vq range: " << begin_row << " ~ " << end_row << "  ,   " << begin_col << " ~ " << end_col << endl;
         infile >> q_num >> q_weight;
+        if (!infile.good())
+            return 3;
         int mu = stoi(nbasbas);
         int nu = stoi(nbasbas);
         int brow = stoi(begin_row) - 1;
@@ -759,8 +769,7 @@ void handle_Vq_full_file(const string &file_path, double threshold, map<Vector3_
         
         //skip empty coulumb_file
         if((erow-brow<=0) || (ecol-bcol<=0) || iq<0 || iq> klist.size())
-            return;
-        //cout<<file_path<<" iq:"<<iq<<"  kvec_c[iq]:"<<kvec_c[iq]<<endl;
+            return 4;
         Vector3_Order<double> qvec(kvec_c[iq]);
         // skip duplicate insert of k weight, since 
         if (irk_weight.count(qvec) == 0)
@@ -777,6 +786,7 @@ void handle_Vq_full_file(const string &file_path, double threshold, map<Vector3_
                 Vq_full[qvec](i_mu, i_nu) = complex<double>(stod(vq_r), stod(vq_i)); // for abacus
             }
     }
+    return 0;
 }
 
 
@@ -831,21 +841,24 @@ size_t READ_Vq_Row(const string &dir_path, const string &vq_fprefix, double thre
     return vq_discard;
 }
 
-void handle_Vq_row_file(const string &file_path, double threshold, atpair_k_cplx_mat_t &coulomb, const vector<atpair_t> &local_atpair)
+int handle_Vq_row_file(const string &file_path, double threshold, atpair_k_cplx_mat_t &coulomb, const vector<atpair_t> &local_atpair)
 {
     // cout << "Begin to read aims vq_real from " << file_path << endl;
     ifstream infile;
     infile.open(file_path);
     string nbasbas, begin_row, end_row, begin_col, end_col, q1, q2, q3, vq_r, vq_i, q_num, q_weight;
     infile >> n_irk_points;
+    if (!infile.good()) return 1;
 
     while (infile.peek() != EOF)
     {
         infile >> nbasbas >> begin_row >> end_row >> begin_col >> end_col;
         if (infile.peek() == EOF)
             break;
+        if (!infile.good()) return 2;
         // cout << "vq range: " << begin_row << " ~ " << end_row << "  ,   " << begin_col << " ~ " << end_col << endl;
         infile >> q_num >> q_weight;
+        if (!infile.good()) return 3;
         int mu = stoi(nbasbas);
         int nu = stoi(nbasbas);
         int brow = stoi(begin_row) - 1;
@@ -889,6 +902,7 @@ void handle_Vq_row_file(const string &file_path, double threshold, atpair_k_cplx
             for (int i_nu = bcol; i_nu <= ecol; i_nu++)
             {
                 infile >> vq_r >> vq_i;
+                if (!infile.good()) return 4;
                 
                 tmp_row[i_nu-bcol] = complex<double>(stod(vq_r), stod(vq_i)); // for abacus
                 
@@ -921,7 +935,7 @@ void handle_Vq_row_file(const string &file_path, double threshold, atpair_k_cplx
             }
         }
     }
-
+    return 0;
 }
 
 void erase_Cs_from_local_atp(atpair_R_mat_t &Cs, vector<atpair_t> &local_atpair)

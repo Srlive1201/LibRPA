@@ -44,8 +44,8 @@ std::vector<size_t> handle_Cs_file_binary_dry(const string &file_path, double th
 size_t handle_Cs_file_by_ids(const string &file_path, double threshold, const vector<size_t> &ids);
 size_t handle_Cs_file_binary_by_ids(const string &file_path, double threshold, const vector<size_t> &ids);
 
-void handle_Vq_full_file(const std::string &file_path, double threshold, map<Vector3_Order<double>, ComplexMatrix> &Vq_full);
-void handle_Vq_row_file(const std::string &file_path, double threshold, atpair_k_cplx_mat_t &coulomb, const vector<atpair_t> &local_atpair);
+int handle_Vq_full_file(const std::string &file_path, double threshold, map<Vector3_Order<double>, ComplexMatrix> &Vq_full);
+int handle_Vq_row_file(const std::string &file_path, double threshold, atpair_k_cplx_mat_t &coulomb, const vector<atpair_t> &local_atpair);
 void erase_Cs_from_local_atp(atpair_R_mat_t &Cs, vector<atpair_t> &local_atpair);
 
 void read_aims(MeanField &mf);

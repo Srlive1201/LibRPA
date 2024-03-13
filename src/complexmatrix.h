@@ -70,6 +70,7 @@ public:
     double get_max_real(int &ir, int &ic) const; // minyez add 2022-05-05
     //! Get the max imaginary value of matrix element
     double get_max_imag() const; // minyez add 2022-10-18
+    double get_max_abs() const; // minyez add 2024-03-13
     double get_max_abs_imag() const; // minyez add 2022-10-26
     double get_max_abs_offdiag() const;
     bool is_diagonal(const double &thres = 1e-14) const;

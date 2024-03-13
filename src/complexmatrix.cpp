@@ -171,6 +171,16 @@ double ComplexMatrix::get_max_imag() const
     return iv;
 }
 
+double ComplexMatrix::get_max_abs() const
+{
+    double iv = abs(this->c[0]);
+    for (int i = 1; i != this->size; i++)
+    {
+        iv = max(iv, abs(this->c[i]));
+    }
+    return iv;
+}
+
 double ComplexMatrix::get_max_abs_imag() const
 {
     double iv = abs(this->c[0].imag());

@@ -163,6 +163,8 @@ void Exx::build_exx_orbital_energy_LibRI(const atpair_R_mat_t &LRI_Cs,
                 {
                     const auto &R = R_Cs.first;
                     const std::array<int,3> Ra{R.x,R.y,R.z};
+                    // debug
+                    // printf("I J R %zu %zu %d %d %d, max(Cs) %f\n", I, J, R.x, R.y, R.z, (R_Cs.second)->max());
                     const auto mat = transpose(*R_Cs.second);
                     std::valarray<double> mat_array(mat.c, mat.size);
                     std::shared_ptr<std::valarray<double>> mat_ptr = std::make_shared<std::valarray<double>>();
@@ -193,6 +195,8 @@ void Exx::build_exx_orbital_energy_LibRI(const atpair_R_mat_t &LRI_Cs,
         const auto J = IJR.first.second;
         const auto R = IJR.second;
         const auto& VIJR = coul_mat.at(I).at(J).at(R);
+        // debug
+        // printf("I J R %zu %zu %d %d %d, max(V) %f\n", I, J, R.x, R.y, R.z, VIJR->max());
         std::array<int,3> Ra{R.x,R.y,R.z};
         std::valarray<double> VIJR_va(VIJR->c, VIJR->size);
         auto pv = std::make_shared<std::valarray<double>>();
@@ -261,7 +265,9 @@ void Exx::build_exx_orbital_energy_LibRI(const atpair_R_mat_t &LRI_Cs,
         Profiler::start("build_exx_orbital_energy_4", "Call libRI Hexx calculation");
         exx_libri.cal_Hs();
         Profiler::stop("build_exx_orbital_energy_4");
+
         printf("Task %4d: cal_Hs elapsed time: %f\n", mpi_comm_world_h.myid, Profiler::get_wall_time_last("build_exx_orbital_energy_4"));
+        fout_para << "Number of exx_libri.Hs keys: " << get_num_keys(exx_libri.Hs) << "\n";
         print_keys(LIBRPA::fout_para, exx_libri.Hs);
         // LIBRPA::fout_para << "exx_libri.Hs:\n" << exx_libri.Hs << endl;
 

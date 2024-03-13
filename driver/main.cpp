@@ -559,7 +559,7 @@ int main(int argc, char **argv)
             {
                 if (mpi_comm_world_h.is_root())
                 {
-                    printf("Dielection function parsed:\n");
+                    printf("Dielectric function parsed:\n");
                     for (int i = 0; i < chi0.tfg.get_freq_nodes().size(); i++)
                         printf("%d %f %f\n", i+1, chi0.tfg.get_freq_nodes()[i], epsmac_LF_imagfreq_re[i]);
                 }
