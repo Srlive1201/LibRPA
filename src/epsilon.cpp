@@ -1003,12 +1003,19 @@ CorrEnergy compute_RPA_correlation(const Chi0 &chi0, const atpair_k_cplx_mat_t &
                 tot_RPA_energy += rpa_for_omega_q * freq_weight * irk_weight[q]  / TWO_PI;
             }
         }
+        map<Vector3_Order<double>, complex<double>> global_cRPA_q;
+        for ( auto q_weight: irk_weight)
+        {
+            MPI_Reduce(&cRPA_q[q_weight.first],&global_cRPA_q[q_weight.first],1,MPI_DOUBLE_COMPLEX,MPI_SUM,0,MPI_COMM_WORLD);
+        }
 
-        for (auto &q_crpa : cRPA_q)
+        for (auto &q_crpa : global_cRPA_q)
         {
             corr.qcontrib[q_crpa.first] = q_crpa.second;
         }
-        corr.value = tot_RPA_energy;
+        complex<double> gather_tot_RPA_energy(0.0, 0.0);
+        MPI_Reduce(&tot_RPA_energy,&gather_tot_RPA_energy,1,MPI_DOUBLE_COMPLEX,MPI_SUM,0,MPI_COMM_WORLD);
+        corr.value = gather_tot_RPA_energy;
     }
     corr.etype = CorrEnergy::type::RPA;
     return corr;
