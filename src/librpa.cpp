@@ -17,7 +17,8 @@
 #include "ri.h"
 #include "librpa_main.h"
 #include "params.h"
-
+#include "parallel_mpi.h"
+using LIBRPA::mpi_comm_world_h;
 void test_interface(int test_int, char* test_str)
 {
     cout<<"In LibRPA: "<<test_int<<"   "<<test_str<<endl;
@@ -134,6 +135,7 @@ void set_ibz2bz_index_and_weight(const int nk_irk, const int* ibz2bz_index, cons
         Vector3_Order<double> kvec_ibz=klist[ibz2bz_index[ik_ibz]];
         klist_ibz.push_back(kvec_ibz);
         irk_weight.insert(pair<Vector3_Order<double>, double>(kvec_ibz, wk_irk[ik_ibz]));
+        // printf("ibz2bz:  %d   kvec_ibz:( %f, %f, %f)\n",ibz2bz_index[ik_ibz],kvec_ibz.x,kvec_ibz.y,kvec_ibz.z);
         //printf("irk_weight: %f\n",irk_weight[kvec_ibz]);
         // for (int ik = 0; ik != meanfield.get_n_kpoints(); ik++)
         // {
@@ -197,7 +199,7 @@ void set_aux_coulomb_k_2D_block(int ik, int max_naux, int mu_begin, int mu_end, 
     int ecol = nu_end - 1;
       
     Vector3_Order<double> qvec(klist[ik]);
-    //printf("qvec: %f,%f,%f\n",qvec.x,qvec.y,qvec.z);
+    printf("qvec: %f,%f,%f\n",qvec.x,qvec.y,qvec.z);
     shared_ptr<ComplexMatrix> vq_ptr = make_shared<ComplexMatrix>();
     vq_ptr->create(max_naux, max_naux);
 
@@ -213,52 +215,6 @@ void set_aux_coulomb_k_2D_block(int ik, int max_naux, int mu_begin, int mu_end, 
             Vq_block_loc[qvec](i_mu, i_nu) = complex<double>(Vq_real_in[ii], Vq_imag_in[ii]); 
             ii+=1;
         }
-    }
-}
-
-void allreduce_2D_coulomb_to_atompair(ComplexMatrix &Vq_loc, atpair_k_cplx_mat_t &coulomb_mat,double threshold )
-{
-    size_t vq_save = 0;
-    size_t vq_discard = 0;
-    for (auto &vf_p : Vq_block_loc)
-    {
-        auto qvec = vf_p.first;
-        // cout << "Qvec:" << qvec << endl;
-        
-        for (int I = 0; I != atom_mu.size(); I++)
-            for (int J = 0; J != atom_mu.size(); J++)
-            {
-                if (I > J)
-                    continue;
-                shared_ptr<ComplexMatrix> vq_ptr = make_shared<ComplexMatrix>();
-                vq_ptr->create(atom_mu[I], atom_mu[J]);
-                // vq_ptr_tran->create(atom_mu[J],atom_mu[I]);
-                // cout << "I J: " << I << "  " << J << "   mu,nu: " << atom_mu[I] << "  " << atom_mu[J] << endl;
-                for (int i_mu = 0; i_mu != atom_mu[I]; i_mu++)
-                {
-
-                    for (int i_nu = 0; i_nu != atom_mu[J]; i_nu++)
-                    {
-                        //(*vq_ptr)(i_mu, i_nu) = vf_p.second(atom_mu_loc2glo(J, i_nu), atom_mu_loc2glo(I, i_mu)); ////for aims
-                        (*vq_ptr)(i_mu, i_nu) = vf_p.second(atom_mu_loc2glo(I, i_mu), atom_mu_loc2glo(J, i_nu)); // for abacus
-                    }
-                }
-
-                // if (I == J)
-                // {
-                //     (*vq_ptr).set_as_identity_matrix();
-                // }
-
-                if ((*vq_ptr).real().absmax() >= threshold)
-                {
-                    coulomb_mat[I][J][qvec] = vq_ptr;
-                    vq_save++;
-                }
-                else
-                {
-                    vq_discard++;
-                }
-            }
     }
 }
 
