@@ -63,6 +63,7 @@ class MeanField
         double get_band_gap();
         std::map<double, std::map<Vector3_Order<int>, ComplexMatrix>> get_gf_cplx_imagtimes_Rs(int ispin, const std::vector<Vector3_Order<double>>& kfrac_list, std::vector<double> imagtimes, const std::vector<Vector3_Order<int>>& Rs) const;
         std::map<double, std::map<Vector3_Order<int>, matrix>> get_gf_real_imagtimes_Rs(int ispin, const std::vector<Vector3_Order<double>>& kfrac_list, std::vector<double> imagtimes, const std::vector<Vector3_Order<int>>& Rs) const;
+        void allredue_wfc_isk();
 };
 
 //! A global MeanField object

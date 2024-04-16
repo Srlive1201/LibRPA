@@ -10,11 +10,11 @@ std::string Params::tfgrids_type = "minimax";
 std::string Params::chi_parallel_routing = "auto";
 std::string Params::exx_parallel_routing = "auto";
 std::string Params::gw_parallel_routing = "auto";
-
+std::string Params::DFT_software =  "auto";
 int Params::nfreq = 0;
 
 double Params::gf_R_threshold = 1e-4;
-double Params::cs_threshold = 1e-6;
+double Params::cs_threshold = 1e-4;
 double Params::vq_threshold = 0;
 double Params::sqrt_coulomb_threshold = 1e-8;
 double Params::libri_chi0_threshold_CSM = 0.0;
@@ -27,7 +27,7 @@ double Params::libri_exx_threshold_V = 0.0;
 
 bool Params::use_libri_chi0 = false;
 bool Params::use_libri_exx = true;
-bool Params::use_scalapack_ecrpa = false;
+bool Params::use_scalapack_ecrpa = true;
 bool Params::use_scalapack_gw_wc = false;
 bool Params::debug = false;
 bool Params::use_libri_gw = true;

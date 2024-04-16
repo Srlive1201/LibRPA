@@ -28,8 +28,29 @@ void librpa_main(MPI_Comm comm_in, int is_fortran_comm)
     LIBRPA::atomic_basis_wfc.set(atom_nw);
     LIBRPA::atomic_basis_abf.set(atom_mu);
    
+    // for(auto &Ip:Cs)
+    //     for(auto &Jp:Ip.second)
+    //         for(auto &Rp:Jp.second)
+    //         {
+    //             auto R=Rp.first;
+    //             printf("Cs  myid : %d   I: %d, J: %d, R:(%d, %d, %d)\n",mpi_comm_world_h.myid, Ip.first,Jp.first,R.x,R.y,R.z);
+    //         }
+
+    
     if(Vq_block_loc.size()>0)
+    {
+        meanfield.allredue_wfc_isk();
+        allreduce_atp_aux();
         allreduce_2D_coulomb_to_atompair(Vq_block_loc,Vq,Params::gf_R_threshold);
+    }
+    for(auto &Ip:Vq)
+        for(auto &Jp:Ip.second)
+            for(auto &qp:Jp.second)
+            {
+                auto q=qp.first;
+                printf("allreduce Vq myid : %d   I: %d, J: %d, q:(%f, %f, %f)\n",mpi_comm_world_h.myid, Ip.first,Jp.first,q.x,q.y,q.z);
+                // print_complex_matrix("vq",*qp.second);
+            }
     // for(auto vq_p:Vq)
     // {
     //     auto I=vq_p.first;
@@ -44,10 +65,9 @@ void librpa_main(MPI_Comm comm_in, int is_fortran_comm)
     //         }
     //     }
     // }
-    mpi_comm_world_h.barrier();
+    //mpi_comm_world_h.barrier();
     blacs_ctxt_world_h.init();
     blacs_ctxt_world_h.set_square_grid();
-
     Profiler::start("total", "Total");
 
     Profiler::start("driver_io_init", "Driver IO Initialization");
@@ -55,14 +75,13 @@ void librpa_main(MPI_Comm comm_in, int is_fortran_comm)
     // create output directory, only by the root process
     if (mpi_comm_world_h.is_root())
         system(("mkdir -p " + Params::output_dir).c_str());
-    mpi_comm_world_h.barrier();
+    //mpi_comm_world_h.barrier();
     // Params::nfreq = stoi(argv[1]);
     // Params::gf_R_threshold = stod(argv[2]);
     Params::check_consistency();
     if (mpi_comm_world_h.is_root())
         Params::print();
-    mpi_comm_world_h.barrier();
-
+    //mpi_comm_world_h.barrier();
     if (mpi_comm_world_h.is_root())
     {
         cout << "Information of mean-field starting-point" << endl;
@@ -77,7 +96,6 @@ void librpa_main(MPI_Comm comm_in, int is_fortran_comm)
         cout << "| Minimal transition energy (Ha): " << emin << endl
              << "| Maximal transition energy (Ha): " << emax << endl << endl;
     }
-
     Vector3_Order<int> period {kv_nmp[0], kv_nmp[1], kv_nmp[2]};
     auto Rlist = construct_R_grid(period);
 
@@ -106,7 +124,7 @@ void librpa_main(MPI_Comm comm_in, int is_fortran_comm)
     const int Rt_num = Rlist.size() * Params::nfreq;
     tot_atpair = generate_atom_pair_from_nat(natom, false);
     tot_atpair_ordered = generate_atom_pair_from_nat(natom, true);
-
+  
     if (mpi_comm_world_h.is_root())
     {
         cout << "| Number of atoms: " << natom << endl;
@@ -119,7 +137,7 @@ void librpa_main(MPI_Comm comm_in, int is_fortran_comm)
     check_parallel_type();
 
     // barrier to wait for information print on master process
-    mpi_comm_world_h.barrier();
+    //mpi_comm_world_h.barrier();
 
     //para_mpi.chi_parallel_type=Parallel_MPI::parallel_type::ATOM_PAIR;
     // vector<atpair_t> local_atpair;
@@ -244,13 +262,14 @@ void librpa_main(MPI_Comm comm_in, int is_fortran_comm)
     //     system("free -m");
     // FIXME: a more general strategy to deal with Cs
     // Cs is not required after chi0 is computed in rpa task
-    if (LIBRPA::chi_parallel_type != LIBRPA::parallel_type::LIBRI_USED && Params::task == "rpa")
+    if ( Params::task == "rpa")
     {
         // for(auto &Cp:Cs)
         // {
         //     Cs.erase(Cp.first);
         // }
         Cs.clear();
+        printf("Cs have been cleaned!\n");
     }
 
     malloc_trim(0);
