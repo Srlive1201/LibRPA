@@ -505,8 +505,11 @@ void handle_Vq_full_file(const string &file_path, double threshold, map<Vector3_
         int bcol = stoi(begin_col) - 1;
         int ecol = stoi(end_col) - 1;
         int iq = stoi(q_num) - 1;
-        if((erow-brow<=0) || (ecol-bcol<=0))
+        
+        //skip empty coulumb_file
+        if((erow-brow<=0) || (ecol-bcol<=0) || iq<0 || iq> klist.size())
             return;
+        //cout<<file_path<<" iq:"<<iq<<"  kvec_c[iq]:"<<kvec_c[iq]<<endl;
         Vector3_Order<double> qvec(kvec_c[iq]);
         // skip duplicate insert of k weight, since 
         if (irk_weight.count(qvec) == 0)
@@ -599,6 +602,12 @@ void handle_Vq_row_file(const string &file_path, double threshold, atpair_k_cplx
         int bcol = stoi(begin_col) - 1;
         int ecol = stoi(end_col) - 1;
         int iq = stoi(q_num) - 1;
+        //cout<<file_path<<" iq:"<<iq<<"  qweight:"<<stod(q_weight)<<endl;
+
+        //skip empty coulumb_file
+        if((erow-brow<=0) || (ecol-bcol<=0) || iq<0 || iq> klist.size())
+            return;
+
         Vector3_Order<double> qvec(kvec_c[iq]);
         // skip duplicate insert of k weight, since 
         if (irk_weight.count(qvec) == 0)
