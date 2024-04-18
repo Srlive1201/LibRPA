@@ -72,13 +72,10 @@ void librpa_main(MPI_Comm comm_in, int is_fortran_comm)
     //mpi_comm_world_h.barrier();
     blacs_ctxt_world_h.init();
     blacs_ctxt_world_h.set_square_grid();
-<<<<<<< HEAD
-=======
 
     // Set output
     Params::output_file = "LibRPA_output.txt";
 
->>>>>>> d890684 (use single parameter to control all routing)
     Profiler::start("total", "Total");
 
     Profiler::start("driver_io_init", "Driver IO Initialization");
