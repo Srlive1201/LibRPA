@@ -6,7 +6,11 @@
 #include "scalapack_connector.h"
 
 #include <algorithm>
+#if defined(__MACH__)
+#include <malloc/malloc.h> // for malloc_zone_pressure_relief and malloc_default_zone
+#else
 #include <malloc.h>
+#endif
 #include <set>
 
 void librpa_main(MPI_Comm comm_in, int is_fortran_comm)
@@ -68,11 +72,16 @@ void librpa_main(MPI_Comm comm_in, int is_fortran_comm)
     //mpi_comm_world_h.barrier();
     blacs_ctxt_world_h.init();
     blacs_ctxt_world_h.set_square_grid();
+
+    // Set output
+    Params::output_file = "LibRPA_output.txt";
+
     Profiler::start("total", "Total");
 
     Profiler::start("driver_io_init", "Driver IO Initialization");
     //parse_inputfile_to_params(input_filename);
     // create output directory, only by the root process
+
     if (mpi_comm_world_h.is_root())
         system(("mkdir -p " + Params::output_dir).c_str());
     //mpi_comm_world_h.barrier();
@@ -132,16 +141,14 @@ void librpa_main(MPI_Comm comm_in, int is_fortran_comm)
         cout << "| R-tau                       : " << Rt_num << endl;
         cout << "| Total atom pairs (ordered)  : " << tot_atpair_ordered.size() << endl;
     }
-    set_chi_parallel_type(Params::chi_parallel_routing, tot_atpair.size(), Rt_num, Params::use_libri_chi0);
-    set_exx_parallel_type(Params::exx_parallel_routing, tot_atpair.size(), Rt_num, Params::use_libri_exx);
-    check_parallel_type();
+    set_parallel_routing(Params::parallel_routing, tot_atpair.size(), Rt_num, parallel_routing);
 
     // barrier to wait for information print on master process
     //mpi_comm_world_h.barrier();
 
     //para_mpi.chi_parallel_type=Parallel_MPI::parallel_type::ATOM_PAIR;
     // vector<atpair_t> local_atpair;
-    if(chi_parallel_type == parallel_type::ATOM_PAIR)
+    if(parallel_routing == ParallelRouting::ATOM_PAIR)
     {
         // vector<int> atoms_list(natom);
         // for(int iat=0;iat!=natom;iat++)
@@ -165,7 +172,7 @@ void librpa_main(MPI_Comm comm_in, int is_fortran_comm)
         for(auto &iap:trangular_loc_atpair)
             local_atpair.push_back(iap);
         printf("| process %d , local_atom_pair size:  %zu\n", mpi_comm_world_h.myid, local_atpair.size());
-        
+
         printf("| process %d, size of Cs from local_atpair: %lu\n", LIBRPA::mpi_comm_world_h.myid, Cs.size());
         // for(auto &ap:local_atpair)
         //     printf("   |process %d , local_atom_pair:  %d,  %d\n", mpi_comm_world_h.myid,ap.first,ap.second);
@@ -208,12 +215,12 @@ void librpa_main(MPI_Comm comm_in, int is_fortran_comm)
         /* cal_chi0.chi0_main(argv[1],argv[2]);  */
     /* return 0; */
     // try the new version
-    
+
     Chi0 chi0(meanfield, klist, Params::nfreq);
     chi0.gf_R_threshold = Params::gf_R_threshold;
 
     // build ABF IJ and qlist from Vq
-    
+
     vector<Vector3_Order<double>> qlist;
 
     for ( auto q_weight: irk_weight)
@@ -256,13 +263,13 @@ void librpa_main(MPI_Comm comm_in, int is_fortran_comm)
         }
     }
     //malloc_trim(0);
-    
+
     // para_mpi.mpi_barrier();
     // if(para_mpi.is_master())
     //     system("free -m");
     // FIXME: a more general strategy to deal with Cs
     // Cs is not required after chi0 is computed in rpa task
-    if ( Params::task == "rpa")
+    if (Params::task == "rpa")
     {
         // for(auto &Cp:Cs)
         // {
@@ -272,14 +279,18 @@ void librpa_main(MPI_Comm comm_in, int is_fortran_comm)
         printf("Cs have been cleaned!\n");
     }
 
+    #ifndef __MACH__
     malloc_trim(0);
+    #else
+    malloc_zone_pressure_relief(malloc_default_zone(), 0);
+    #endif
     // RPA total energy
     if ( Params::task == "rpa" )
     {
         mpi_comm_world_h.barrier();
         Profiler::start("EcRPA", "Compute RPA correlation Energy");
         CorrEnergy corr;
-        if (Params::use_scalapack_ecrpa && LIBRPA::chi_parallel_type == LIBRPA::parallel_type::ATOM_PAIR)
+        if (Params::use_scalapack_ecrpa && LIBRPA::parallel_routing == LIBRPA::ParallelRouting::ATOM_PAIR)
         {
             if(meanfield.get_n_kpoints() == 1)
                 corr = compute_RPA_correlation_blacs_2d_gamma_only(chi0, Vq);
@@ -308,7 +319,7 @@ void librpa_main(MPI_Comm comm_in, int is_fortran_comm)
         Profiler::start("g0w0", "G0W0 quasi-particle calculation");
 
         Profiler::start("read_vq_cut", "Load truncated Coulomb");
-        //READ_Vq_Full("./", "coulomb_cut_", Params::vq_threshold, Vq_cut); 
+        //READ_Vq_Full("./", "coulomb_cut_", Params::vq_threshold, Vq_cut);
         const auto VR = FT_Vq(Vq_cut, Rlist, true);
         Profiler::stop("read_vq_cut");
 
@@ -466,7 +477,7 @@ void librpa_main(MPI_Comm comm_in, int is_fortran_comm)
     }
     else if ( Params::task == "exx" )
     {
-        READ_Vq_Full("./", "coulomb_cut_", Params::vq_threshold, Vq_cut); 
+        READ_Vq_Full("./", "coulomb_cut_", Params::vq_threshold, Vq_cut);
         const auto VR = FT_Vq(Vq_cut, Rlist, true);
         auto exx = LIBRPA::Exx(meanfield, kfrac_list);
         exx.build_exx_orbital_energy(Cs, Rlist, period, VR);
@@ -497,6 +508,6 @@ void librpa_main(MPI_Comm comm_in, int is_fortran_comm)
     }
 
     //MPI_Wrapper::finalize();
-    
+
     return;
 }

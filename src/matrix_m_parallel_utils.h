@@ -4,8 +4,13 @@
 #include "parallel_mpi.h"
 #include <omp.h>
 #include "scalapack_connector.h"
+#ifdef LIBRPA_USE_LIBRI
 #include <RI/global/Tensor.h>
 using RI::Tensor;
+#else
+template <typename T>
+class Tensor;
+#endif
 
 template <typename T>
 matrix_m<T> init_local_mat(const LIBRPA::Array_Desc &ad, MAJOR major)

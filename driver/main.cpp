@@ -1,43 +1,101 @@
-#include "lib_main.h"
+#include "main.h"
 #include "constants.h"
 #include "interpolate.h"
 #include "fitting.h"
 #include "dielecmodel.h"
-#include "scalapack_connector.h"
 #include "inputfile.h"
 #include "stl_io_helper.h"
+#include "task.h"
 
 #include <algorithm>
+#if defined(__MACH__)
+#include <malloc/malloc.h> // for malloc_zone_pressure_relief and malloc_default_zone
+#else
 #include <malloc.h>
-#include <set>
+#endif
+
+void initialize(int argc, char **argv)
+{
+    // MPI Initialization
+    LIBRPA::MPI_Wrapper::init(argc, argv);
+
+    // Global profiler begins right after MPI is initialized
+    Profiler::start("total", "Total");
+}
+
+void finalize()
+{
+    if(LIBRPA::mpi_comm_world_h.is_root())
+    {
+        Profiler::display();
+        printf("libRPA finished\n");
+    }
+    Profiler::stop("total");
+    LIBRPA::MPI_Wrapper::finalize();
+}
 
 int main(int argc, char **argv)
 {
-    using namespace LIBRPA;
-    MPI_Wrapper::init(argc, argv);
+    using LIBRPA::mpi_comm_world_h;
+    using LIBRPA::blacs_ctxt_world_h;
+    using LIBRPA::ParallelRouting;
+    using LIBRPA::parallel_routing;
+    using LIBRPA::task_t;
 
+    initialize(argc, argv);
+
+    /*
+     * Initialize the global MPI communicator and BLACS context
+     * HACK: A close-to-square process grid is imposed.
+     *       This might subject to performance issue when
+     *       the number of processes is not dividable.
+     */
     mpi_comm_world_h.init();
     cout << mpi_comm_world_h.str() << endl;
     mpi_comm_world_h.barrier();
     blacs_ctxt_world_h.init();
     blacs_ctxt_world_h.set_square_grid();
 
-    Params::output_file="LibRPA_driver_output.txt";
-    Profiler::start("total", "Total");
-
-    Profiler::start("driver_io_init", "Driver IO Initialization");
+    /*
+     * Load computational parameters from input file
+     */
+    Profiler::start("driver_read_params", "Driver Read Input Parameters");
     parse_inputfile_to_params(input_filename);
-    // create output directory, only by the root process
-    if (mpi_comm_world_h.is_root())
-        system(("mkdir -p " + Params::output_dir).c_str());
-    mpi_comm_world_h.barrier();
-    Params::nfreq = stoi(argv[1]);
-    Params::gf_R_threshold = stod(argv[2]);
+    // Backward compatibility for parsing number of frequencies and threshold from CLI
+    if (argc > 2)
+    {
+        Params::nfreq = stoi(argv[1]);
+        Params::gf_R_threshold = stod(argv[2]);
+    }
     Params::check_consistency();
-    if (mpi_comm_world_h.is_root())
-        Params::print();
-    mpi_comm_world_h.barrier();
 
+    // check and set computing task
+    task_t task;
+    std::string task_lower = Params::task;
+    transform(task_lower.begin(), task_lower.end(), task_lower.begin(), ::tolower);
+    if (task_lower == "rpa")
+        task = task_t::RPA;
+    else if (task_lower == "g0w0")
+        task = task_t::G0W0;
+    else if (task_lower == "exx")
+        task = task_t::EXX;
+    else if (task_lower == "wc_rf")
+        task = task_t::Wc_Rf;
+    else if (task_lower == "print_minimax")
+        task = task_t::print_minimax;
+    else
+        throw std::logic_error("Unknown task (" + Params::task + "). Please check your input");
+
+
+    if (mpi_comm_world_h.is_root())
+    {
+        system(("mkdir -p " + Params::output_dir).c_str());
+        Params::print();
+    }
+    mpi_comm_world_h.barrier();
+    Profiler::stop("driver_read_params");
+
+    Profiler::start("driver_band_out", "Driver Read Meanfield band");
     READ_AIMS_BAND("band_out", meanfield);
     if (mpi_comm_world_h.is_root())
     {
@@ -53,11 +111,25 @@ int main(int argc, char **argv)
         cout << "| Minimal transition energy (Ha): " << emin << endl
              << "| Maximal transition energy (Ha): " << emax << endl << endl;
     }
+    Profiler::stop("driver_band_out");
 
+    if (task == task_t::print_minimax)
+    {
+        double emin, emax;
+        meanfield.get_E_min_max(emin, emax);
+        TFGrids tfg(Params::nfreq);
+        tfg.generate_minimax(emin, emax);
+        if (mpi_comm_world_h.is_root())
+            tfg.show();
+        finalize();
+        return 0;
+    }
+
+    Profiler::start("driver_read_common_input_data", "Driver Read Task-Common Input Data");
     READ_AIMS_STRU(meanfield.get_n_kpoints(), "stru_out");
     Vector3_Order<int> period {kv_nmp[0], kv_nmp[1], kv_nmp[2]};
     auto Rlist = construct_R_grid(period);
-
+    const int Rt_num = Rlist.size() * Params::nfreq;
     if (mpi_comm_world_h.is_root())
     {
         cout << "Lattice vectors (Bohr)" << endl;
@@ -75,37 +147,32 @@ int main(int argc, char **argv)
         cout << "R-points to compute:" << endl;
         for (int iR = 0; iR != Rlist.size(); iR++)
         {
-            printf("iR %4d: %3d %3d %3d\n", iR+1, Rlist[iR].x, Rlist[iR].y, Rlist[iR].z);
+            printf("%4d: %3d %3d %3d\n", iR+1, Rlist[iR].x, Rlist[iR].y, Rlist[iR].z);
         }
         cout << endl;
     }
-
-    const int Rt_num = Rlist.size() * Params::nfreq;
+    mpi_comm_world_h.barrier();
 
     READ_AIMS_EIGENVECTOR("./", meanfield);
-
-    natom = get_natom_ncell_from_first_Cs_file();
+    get_natom_ncell_from_first_Cs_file(natom, ncell, "./", Params::binary_input);
     tot_atpair = generate_atom_pair_from_nat(natom, false);
     tot_atpair_ordered = generate_atom_pair_from_nat(natom, true);
-
     if (mpi_comm_world_h.is_root())
     {
         cout << "| Number of atoms: " << natom << endl;
         cout << "| Total atom pairs (unordered): " << tot_atpair.size() << endl;
-        cout << "| R-tau                       : " << Rt_num << endl;
         cout << "| Total atom pairs (ordered)  : " << tot_atpair_ordered.size() << endl;
+        cout << "| Number of (R,t) points      : " << Rt_num << endl;
     }
-    set_chi_parallel_type(Params::chi_parallel_routing, tot_atpair.size(), Rt_num, Params::use_libri_chi0);
-    set_exx_parallel_type(Params::exx_parallel_routing, tot_atpair.size(), Rt_num, Params::use_libri_exx);
-    set_gw_parallel_type(Params::gw_parallel_routing, tot_atpair.size(), Rt_num, Params::use_libri_gw);
-    check_parallel_type();
+
+    set_parallel_routing(Params::parallel_routing, tot_atpair.size(), Rt_num, parallel_routing);
 
     // barrier to wait for information print on master process
     mpi_comm_world_h.barrier();
 
     //para_mpi.chi_parallel_type=Parallel_MPI::parallel_type::ATOM_PAIR;
     // vector<atpair_t> local_atpair;
-    if(chi_parallel_type == parallel_type::ATOM_PAIR)
+    if(parallel_routing == ParallelRouting::ATOM_PAIR)
     {
         // vector<int> atoms_list(natom);
         // for(int iat=0;iat!=natom;iat++)
@@ -124,43 +191,23 @@ int main(int argc, char **argv)
         // for( auto &a1 : list_loc_atp.second)
         //     for(auto &a2:a1)
         //         ofs<<a2.first<<"  ("<<a2.second[0]<<", "<<a2.second[1]<<", "<<a2.second[2]<<" )"<<endl;
-        if (LIBRPA::mpi_comm_world_h.is_root()) printf("Triangular dispatching of atom pairs\n");
+        if (LIBRPA::mpi_comm_world_h.is_root())
+            printf("Triangular dispatching of atom pairs\n");
         auto trangular_loc_atpair= dispatch_upper_trangular_tasks(natom,blacs_ctxt_world_h.myid,blacs_ctxt_world_h.nprows,blacs_ctxt_world_h.npcols,blacs_ctxt_world_h.myprow,blacs_ctxt_world_h.mypcol);
         //local_atpair = dispatch_vector(tot_atpair, mpi_comm_world_h.myid, mpi_comm_world_h.nprocs, true);
         for(auto &iap:trangular_loc_atpair)
             local_atpair.push_back(iap);
-        for (int i = 0; i < mpi_comm_world_h.nprocs; i++)
-        {
-            if (i == mpi_comm_world_h.myid)
-            {
-                printf("| process %d , local_atom_pair size:  %zu\n", mpi_comm_world_h.myid, local_atpair.size());
-                cout << local_atpair << "\n";
-            }
-            mpi_comm_world_h.barrier();
-        }
-        READ_AIMS_Cs("./", Params::cs_threshold,local_atpair );
-        printf("| process %d, size of Cs from local_atpair: %d\n", LIBRPA::mpi_comm_world_h.myid, get_num_keys(Cs));
-        LIBRPA::fout_para << "Cs keys:\n";
-        print_keys(LIBRPA::fout_para, Cs);
+        READ_AIMS_Cs("./", Params::cs_threshold,local_atpair, Params::binary_input);
         // for(auto &ap:local_atpair)
         //     printf("   |process %d , local_atom_pair:  %d,  %d\n", mpi_comm_world_h.myid,ap.first,ap.second);
         READ_Vq_Row("./", "coulomb_mat", Params::vq_threshold, Vq, local_atpair);
     }
-    else if(chi_parallel_type == parallel_type::LIBRI_USED)
+    else if(parallel_routing == ParallelRouting::LIBRI)
     {
         if (LIBRPA::mpi_comm_world_h.is_root()) printf("Evenly distributed Cs and V for LibRI\n");
-        READ_AIMS_Cs_evenly_distribute("./", Params::cs_threshold, mpi_comm_world_h.myid, mpi_comm_world_h.nprocs);
-        for (int i = 0; i < mpi_comm_world_h.nprocs; i++)
-        {
-            if (i == mpi_comm_world_h.myid)
-            {
-                printf("| process %d, size of Cs: %d\n", LIBRPA::mpi_comm_world_h.myid, get_num_keys(Cs));
-            }
-            mpi_comm_world_h.barrier();
-        }
-
+        READ_AIMS_Cs_evenly_distribute("./", Params::cs_threshold, mpi_comm_world_h.myid, mpi_comm_world_h.nprocs, Params::binary_input);
         // Vq distributed using the same strategy
-        // There should be not duplicate for V
+        // There should be no duplicate for V
         auto trangular_loc_atpair= dispatch_upper_trangular_tasks(natom,blacs_ctxt_world_h.myid,blacs_ctxt_world_h.nprows,blacs_ctxt_world_h.npcols,blacs_ctxt_world_h.myprow,blacs_ctxt_world_h.mypcol);
         for(auto &iap:trangular_loc_atpair)
             local_atpair.push_back(iap);
@@ -168,14 +215,24 @@ int main(int argc, char **argv)
     }
     else
     {
-        if (LIBRPA::mpi_comm_world_h.is_root()) printf("Complte copy of Cs and V on each process\n");
+        if (LIBRPA::mpi_comm_world_h.is_root()) printf("Complete copy of Cs and V on each process\n");
         local_atpair = generate_atom_pair_from_nat(natom, false);
-        READ_AIMS_Cs("./", Params::cs_threshold,local_atpair );
-        printf("| process %d, size of Cs from local_atpair: %d\n", LIBRPA::mpi_comm_world_h.myid, get_num_keys(Cs));
-        LIBRPA::fout_para << "Cs keys:\n";
-        print_keys(LIBRPA::fout_para, Cs);
+        READ_AIMS_Cs("./", Params::cs_threshold,local_atpair);
         READ_Vq_Full("./", "coulomb_mat", Params::vq_threshold, Vq);
     }
+
+    for (int i = 0; i < mpi_comm_world_h.nprocs; i++)
+    {
+        if (i == mpi_comm_world_h.myid)
+        {
+            printf("| process %d: Cs size %d from local atpair size %d\n",
+                    LIBRPA::mpi_comm_world_h.myid, get_num_keys(Cs), local_atpair.size());
+        }
+        mpi_comm_world_h.barrier();
+    }
+    LIBRPA::fout_para << "Cs size: " << get_num_keys(Cs) << ", with keys:\n";
+    print_keys(LIBRPA::fout_para, Cs);
+    std::flush(LIBRPA::fout_para);
 
     // debug, check available Coulomb blocks on each process
     // LIBRPA::fout_para << "Read Coulomb blocks in process\n";
@@ -193,7 +250,7 @@ int main(int argc, char **argv)
     // }
     // std::flush(LIBRPA::fout_para);
     // mpi_comm_world_h.barrier();
-    Profiler::stop("driver_io_init");
+    Profiler::stop("driver_read_common_input_data");
 
     // malloc_trim(0);
     // para_mpi.mpi_barrier();
@@ -208,7 +265,7 @@ int main(int argc, char **argv)
     chi0.gf_R_threshold = Params::gf_R_threshold;
 
     // build ABF IJ and qlist from Vq
-    
+
     vector<Vector3_Order<double>> qlist;
 
     for ( auto q_weight: irk_weight)
@@ -221,7 +278,7 @@ int main(int argc, char **argv)
     if (mpi_comm_world_h.myid == 0)
         cout << "Initialization finished, start task job from myid\n";
 
-    if ( Params::task != "exx" )
+    if ( task != task_t::EXX )
     {
         Profiler::start("chi0_build", "Build response function chi0");
         chi0.build(Cs, Rlist, period, local_atpair, qlist,
@@ -251,44 +308,32 @@ int main(int argc, char **argv)
         }
     }
     //malloc_trim(0);
-    
+
     // para_mpi.mpi_barrier();
     // if(para_mpi.is_master())
     //     system("free -m");
+
     // FIXME: a more general strategy to deal with Cs
+
     // Cs is not required after chi0 is computed in rpa task
-    if (LIBRPA::chi_parallel_type != LIBRPA::parallel_type::LIBRI_USED && Params::task == "rpa")
+    if (task == task_t::RPA)
     {
         Cs.clear();
     }
-    else if (LIBRPA::chi_parallel_type == LIBRPA::parallel_type::ATOM_PAIR)
-    {
-        if (LIBRPA::exx_parallel_type == LIBRPA::parallel_type::LIBRI_USED)
-        {
-            vector<pair<int, int>> pairs_Cs;
-            for (const auto& I_JRCs: Cs)
-            {
-                for (const auto& J_RCs: I_JRCs.second)
-                {
-                    pairs_Cs.push_back({I_JRCs.first, J_RCs.first});
-                }
-            }
-            const auto duplicate_pairs = find_duplicate_ordered_pair(natom, pairs_Cs, mpi_comm_world_h.comm);
-            for (const auto& dp: duplicate_pairs)
-            {
-                Cs.at(dp.first).erase(dp.second);
-            }
-        }
-    }
 
+    #ifndef __MACH__
     malloc_trim(0);
+    #else
+    malloc_zone_pressure_relief(malloc_default_zone(), 0);
+    #endif
+
     // RPA total energy
-    if ( Params::task == "rpa" )
+    if (task == task_t::RPA)
     {
         mpi_comm_world_h.barrier();
         Profiler::start("EcRPA", "Compute RPA correlation Energy");
         CorrEnergy corr;
-        if (Params::use_scalapack_ecrpa && LIBRPA::chi_parallel_type == LIBRPA::parallel_type::ATOM_PAIR)
+        if (Params::use_scalapack_ecrpa && LIBRPA::parallel_routing == LIBRPA::ParallelRouting::ATOM_PAIR)
         {
             if(meanfield.get_n_kpoints() == 1)
                 corr = compute_RPA_correlation_blacs_2d_gamma_only(chi0, Vq);
@@ -312,12 +357,143 @@ int main(int argc, char **argv)
         }
         Profiler::stop("EcRPA");
     }
-    else if ( Params::task == "g0w0" )
+    else if (task == task_t::Wc_Rf)
+    {
+        Profiler::start("Wc_Rf", "Build Screened Coulomb: R and freq. space");
+
+        Profiler::start("read_vq_cut", "Load truncated Coulomb");
+        READ_Vq_Full("./", "coulomb_cut_", Params::vq_threshold, Vq_cut);
+        Profiler::stop("read_vq_cut");
+
+        std::vector<double> epsmac_LF_imagfreq_re;
+        if (Params::replace_w_head)
+        {
+            std::vector<double> omegas_dielect;
+            std::vector<double> dielect_func;
+            read_dielec_func("dielecfunc_out", omegas_dielect, dielect_func);
+
+            switch(Params::option_dielect_func)
+            {
+                case 0:
+                    {
+                        assert(omegas_dielect.size() == chi0.tfg.size());
+                        // TODO: check if frequencies and close
+                        epsmac_LF_imagfreq_re = dielect_func;
+                        break;
+                    }
+                case 1:
+                    {
+                        epsmac_LF_imagfreq_re = LIBRPA::UTILS::interp_cubic_spline(omegas_dielect, dielect_func,
+                                                                           chi0.tfg.get_freq_nodes());
+                        break;
+                    }
+                case 2:
+                    {
+                        LIBRPA::UTILS::LevMarqFitting levmarq;
+                        // use double-dispersion Havriliak-Negami model
+                        // initialize the parameters as 1.0
+                        std::vector<double> pars(DoubleHavriliakNegami::d_npar, 1);
+                        pars[0] = pars[4] = dielect_func[0];
+                        epsmac_LF_imagfreq_re = levmarq.fit_eval(pars, omegas_dielect, dielect_func,
+                                                                 DoubleHavriliakNegami::func_imfreq,
+                                                                 DoubleHavriliakNegami::grad_imfreq,
+                                                                 chi0.tfg.get_freq_nodes());
+                        break;
+                    }
+                default:
+                    throw std::logic_error("Unsupported value for option_dielect_func");
+            }
+
+            if (Params::debug)
+            {
+                if (mpi_comm_world_h.is_root())
+                {
+                    printf("Dielection function parsed:\n");
+                    for (int i = 0; i < chi0.tfg.get_freq_nodes().size(); i++)
+                        printf("%d %f %f\n", i+1, chi0.tfg.get_freq_nodes()[i], epsmac_LF_imagfreq_re[i]);
+                }
+                mpi_comm_world_h.barrier();
+            }
+        }
+
+        Profiler::start("compute_Wc_freq_q", "Build upper half of Wc(q,w)");
+        vector<std::complex<double>> epsmac_LF_imagfreq(epsmac_LF_imagfreq_re.cbegin(), epsmac_LF_imagfreq_re.cend());
+        map<double, atom_mapping<std::map<Vector3_Order<double>, matrix_m<complex<double>>>>::pair_t_old> Wc_freq_q;
+        if (Params::use_scalapack_gw_wc)
+            Wc_freq_q = compute_Wc_freq_q_blacs(chi0, Vq, Vq_cut, epsmac_LF_imagfreq);
+        else
+            Wc_freq_q = compute_Wc_freq_q(chi0, Vq, Vq_cut, epsmac_LF_imagfreq);
+        Profiler::stop("compute_Wc_freq_q");
+
+        Profiler::start("construct_Wc_lower_half", "Construct Lower Half of Wc(q,w)");
+        // NOTE: only upper half of Wc is built now
+        //       here we recover the other half before transform to R space using the Hermitian property
+        for (int ifreq = 0; ifreq < chi0.tfg.get_n_grids(); ifreq++)
+        {
+            const auto freq = chi0.tfg.get_freq_nodes()[ifreq];
+            auto &Wc = Wc_freq_q.at(freq);
+            vector<atom_t> iatoms_row;
+            for (const auto &Wc_IJ: Wc)
+                iatoms_row.push_back(Wc_IJ.first);
+            for (auto iatom_row: iatoms_row)
+            {
+                vector<atom_t> iatoms_col;
+                for (const auto &Wc_J: Wc.at(iatom_row))
+                {
+                    iatoms_col.push_back(Wc_J.first);
+                }
+                for (auto iatom_col: iatoms_col)
+                {
+                    if (iatom_row == iatom_col) continue;
+                    for (const auto &Wc_q: Wc.at(iatom_row).at(iatom_col))
+                    {
+                        Wc[iatom_col][iatom_row][Wc_q.first] = conj(Wc_q.second);
+                    }
+                }
+            }
+        }
+        Profiler::stop("construct_Wc_lower_half");
+
+        Profiler::start("FT_Wc_freq_q", "Fourier Transform Wc(q,w) -> Wc(R,w)");
+        const auto Wc_freq_MN_R = FT_Wc_freq_q(Wc_freq_q, chi0.tfg, Rlist);
+        Profiler::stop("FT_Wc_freq_q");
+
+        Profiler::start("write_Wc_freq_R", "Export Wc(R,w) to file");
+        for (const auto &freq_MuNuRWc: Wc_freq_MN_R)
+        {
+            char fn[80];
+            auto freq = freq_MuNuRWc.first;
+            auto ifreq = chi0.tfg.get_freq_index(freq);
+            for (const auto & Mu_NuRWc: freq_MuNuRWc.second)
+            {
+                auto Mu = Mu_NuRWc.first;
+                // const int n_mu = atom_mu[Mu];
+                for (const auto & Nu_RWc: Mu_NuRWc.second)
+                {
+                    auto Nu = Nu_RWc.first;
+                    // const int n_nu = atom_mu[Nu];
+                    for (const auto & R_Wc: Nu_RWc.second)
+                    {
+                        auto R = R_Wc.first;
+                        auto Wc = R_Wc.second;
+                        auto iteR = std::find(Rlist.cbegin(), Rlist.cend(), R);
+                        auto iR = std::distance(Rlist.cbegin(), iteR);
+                        sprintf(fn, "Wc_Mu_%zu_Nu_%zu_iR_%zu_ifreq_%d.mtx", Mu, Nu, iR, ifreq);
+                        print_matrix_mm_file(Wc, Params::output_dir + "/" + fn, 1e-10);
+                    }
+                }
+            }
+        }
+        Profiler::stop("write_Wc_freq_R");
+
+        Profiler::stop("Wc_Rf");
+    }
+    else if ( task == task_t::G0W0 )
     {
         Profiler::start("g0w0", "G0W0 quasi-particle calculation");
 
         Profiler::start("read_vq_cut", "Load truncated Coulomb");
-        READ_Vq_Full("./", "coulomb_cut_", Params::vq_threshold, Vq_cut); 
+        READ_Vq_Full("./", "coulomb_cut_", Params::vq_threshold, Vq_cut);
         const auto VR = FT_Vq(Vq_cut, Rlist, true);
         Profiler::stop("read_vq_cut");
 
@@ -340,13 +516,13 @@ int main(int argc, char **argv)
                     }
                 case 1:
                     {
-                        epsmac_LF_imagfreq_re = UTILS::interp_cubic_spline(omegas_dielect, dielect_func,
+                        epsmac_LF_imagfreq_re = LIBRPA::UTILS::interp_cubic_spline(omegas_dielect, dielect_func,
                                                                            chi0.tfg.get_freq_nodes());
                         break;
                     }
                 case 2:
                     {
-                        UTILS::LevMarqFitting levmarq;
+                        LIBRPA::UTILS::LevMarqFitting levmarq;
                         // use double-dispersion Havriliak-Negami model
                         // initialize the parameters as 1.0
                         std::vector<double> pars(DoubleHavriliakNegami::d_npar, 1);
@@ -434,6 +610,7 @@ int main(int argc, char **argv)
         if (Params::debug)
         { // debug, check sigc_ij
             char fn[80];
+            // LIBRPA::fout_para << "s_g0w0.sigc_is_f_k_IJ:\n" << s_g0w0.sigc_is_f_k_IJ << "\n";
             for (const auto &is_sigc: s_g0w0.sigc_is_f_k_IJ)
             {
                 const int ispin = is_sigc.first;
@@ -489,9 +666,9 @@ int main(int argc, char **argv)
         Profiler::stop("g0w0_export_sigc_KS");
         Profiler::stop("g0w0");
     }
-    else if ( Params::task == "exx" )
+    else if ( task == task_t::EXX )
     {
-        READ_Vq_Full("./", "coulomb_cut_", Params::vq_threshold, Vq_cut); 
+        READ_Vq_Full("./", "coulomb_cut_", Params::vq_threshold, Vq_cut);
         const auto VR = FT_Vq(Vq_cut, Rlist, true);
         auto exx = LIBRPA::Exx(meanfield, kfrac_list);
         exx.build_exx_orbital_energy(Cs, Rlist, period, VR);
@@ -514,13 +691,6 @@ int main(int argc, char **argv)
         }
     }
 
-    Profiler::stop("total");
-    if(mpi_comm_world_h.is_root())
-    {
-        Profiler::display();
-        printf("libRPA finished\n");
-    }
-
-    MPI_Wrapper::finalize();
+    finalize();
     return 0;
 }

@@ -6,7 +6,7 @@ set_target_properties(rpa_exe PROPERTIES
   RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
 
 list(APPEND exe_sources
-  lib_main.cpp
+  main.cpp
   read_aims.cpp
   write_aims.cpp
   inputfile.cpp

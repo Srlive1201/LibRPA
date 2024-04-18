@@ -12,7 +12,8 @@
 #ifdef LIBRPA_USE_LIBRI
 #include <RI/global/Tensor.h>
 #include <RI/physics/GW.h>
-// #include "print_stl.h"
+using RI::Tensor;
+using RI::Communicate_Tensors_Map_Judge::comm_map2_first;
 #endif
 
 namespace LIBRPA
@@ -51,7 +52,7 @@ void G0W0::build_spacetime_LibRI(
     if (mpi_comm_world_h.myid == 0)
     {
         cout << "LIBRA::G0W0::build_spacetime is only implemented on top of LibRI" << endl;
-        cout << "Please recompiler libRPA with -DUSE_LIBRI and configure include path" << endl;
+        cout << "Please recompiler LibRPA with -DUSE_LIBRI and configure include path" << endl;
     }
     mpi_comm_world_h.barrier();
     throw std::logic_error("compilation");
@@ -70,64 +71,23 @@ void G0W0::build_spacetime_LibRI(
 
     std::map<int, std::map<std::pair<int,std::array<int,3>>,RI::Tensor<double>>> Cs_libri;
     // FIXME: duplicate codes to prepare LibRI objects from chi0
-    if(gw_parallel_type == parallel_type::LIBRI_USED)
+    if(parallel_routing == ParallelRouting::LIBRI)
     {
-        if (chi_parallel_type == parallel_type::R_TAU)
+        for (auto &I_JRCs: LRI_Cs)
         {
-            std::vector<std::pair<atom_t, std::pair<atom_t, Vector3_Order<int>>>> IJRs_local;
-            size_t n_Cs_IJRs = 0;
-            size_t n_Cs_IJRs_local = 0;
-            for(auto &Ip:LRI_Cs)
-                for(auto &Jp:Ip.second)
-                    for(auto &Rp:Jp.second)
-                    {
-                        const auto &I = Ip.first;
-                        const auto &J = Jp.first;
-                        const auto &R=Rp.first;
-                        if ((n_Cs_IJRs++) % mpi_comm_world_h.nprocs == mpi_comm_world_h.myid)
-                        {
-                            IJRs_local.push_back({I, {J, R}});
-                            n_Cs_IJRs_local++;
-                        }
-                    }
-            if (mpi_comm_world_h.myid == 0)
-                printf("Total count of Cs: %zu\n", n_Cs_IJRs);
-            printf("| Number of Cs on Proc %4d: %zu\n", mpi_comm_world_h.myid, n_Cs_IJRs_local);
-
-            for (auto &IJR: IJRs_local)
+            const auto &I = I_JRCs.first;
+            for (auto &J_RCs: I_JRCs.second)
             {
-                const auto I = IJR.first;
-                const auto J = IJR.second.first;
-                const auto R = IJR.second.second;
-                const std::array<int,3> Ra{R.x,R.y,R.z};
-                const auto mat = transpose(*(LRI_Cs.at(I).at(J).at(R)));
-                std::valarray<double> mat_array(mat.c, mat.size);
-                std::shared_ptr<std::valarray<double>> mat_ptr = std::make_shared<std::valarray<double>>();
-                *mat_ptr=mat_array;
-                // Tensor<double> Tmat({size_t((*mat).nr),size_t((*mat).nc)},mat_ptr);
-                Cs_libri[I][{J, Ra}] = RI::Tensor<double>({atomic_basis_abf.get_atom_nb(I),
-                                                           atomic_basis_wfc.get_atom_nb(I),
-                                                           atomic_basis_wfc.get_atom_nb(J)}, mat_ptr);
-            }
-        }
-        else if (chi_parallel_type == parallel_type::ATOM_PAIR)
-        {
-            for (auto &I_JRCs: LRI_Cs)
-            {
-                const auto &I = I_JRCs.first;
-                for (auto &J_RCs: I_JRCs.second)
+                const auto &J = J_RCs.first;
+                for (auto &R_Cs: J_RCs.second)
                 {
-                    const auto &J = J_RCs.first;
-                    for (auto &R_Cs: J_RCs.second)
-                    {
-                        const auto &R = R_Cs.first;
-                        const std::array<int,3> Ra{R.x,R.y,R.z};
-                        const auto mat = transpose(*R_Cs.second);
-                        std::valarray<double> mat_array(mat.c, mat.size);
-                        std::shared_ptr<std::valarray<double>> mat_ptr = std::make_shared<std::valarray<double>>();
-                        *mat_ptr=mat_array;
-                        Cs_libri[I][{J, Ra}] = RI::Tensor<double>({atom_mu[I], atom_nw[I], atom_nw[J]}, mat_ptr);
-                    }
+                    const auto &R = R_Cs.first;
+                    const std::array<int,3> Ra{R.x,R.y,R.z};
+                    const auto mat = transpose(*R_Cs.second);
+                    std::valarray<double> mat_array(mat.c, mat.size);
+                    std::shared_ptr<std::valarray<double>> mat_ptr = std::make_shared<std::valarray<double>>();
+                    *mat_ptr=mat_array;
+                    Cs_libri[I][{J, Ra}] = RI::Tensor<double>({atom_mu[I], atom_nw[I], atom_nw[J]}, mat_ptr);
                 }
             }
         }
@@ -306,11 +266,21 @@ void G0W0::build_spacetime_LibRI(
 #endif
 }
 
-void G0W0::build_sigc_matrix_KS() noexcept
+void G0W0::build_sigc_matrix_KS()
 {
     const complex<double> CONE{1.0, 0.0};
     const int n_aos = mf.get_n_aos();
     const int n_bands = mf.get_n_bands();
+
+#ifndef LIBRPA_USE_LIBRI
+    if (mpi_comm_world_h.myid == 0)
+    {
+        cout << "LIBRA::G0W0::build_sigc_matrix_KS is only implemented on top of LibRI" << endl;
+        cout << "Please recompiler LibRPA with -DUSE_LIBRI and optionally configure include path" << endl;
+    }
+    mpi_comm_world_h.barrier();
+    throw std::logic_error("compilation");
+#else
     // char fn[80];
     Array_Desc desc_nband_nao(blacs_ctxt_world_h);
     desc_nband_nao.init_1b1p(n_aos, n_bands, 0, 0);
@@ -342,7 +312,7 @@ void G0W0::build_sigc_matrix_KS() noexcept
                 const auto kfrac = this->kfrac_list[ik];
                 const std::array<double, 3> ka{kfrac.x, kfrac.y, kfrac.z};
                 // build a libRI object to collect all k
-                std::map<int, std::map<std::pair<int, std::array<double, 3>>, RI::Tensor<complex<double>>>>
+                std::map<int, std::map<std::pair<int, std::array<double, 3>>, Tensor<complex<double>>>>
                     sigc_I_Jk;
                 sigc_nao_nao.zero_out();
                 if (sigc_is_freq.count(kfrac))
@@ -355,10 +325,10 @@ void G0W0::build_sigc_matrix_KS() noexcept
                         {
                             const auto &J = J_sigc.first;
                             const auto &n_J = atomic_basis_wfc.get_atom_nb(J);
-                            sigc_I_Jk[I][{J, ka}] = RI::Tensor<complex<double>>({n_I, n_J}, J_sigc.second.sptr());
+                            sigc_I_Jk[I][{J, ka}] = Tensor<complex<double>>({n_I, n_J}, J_sigc.second.sptr());
                         }
                     }
-                    const auto sigc_src = RI::Communicate_Tensors_Map_Judge::comm_map2_first(
+                    const auto sigc_src = comm_map2_first(
                         LIBRPA::mpi_comm_world_h.comm, sigc_I_Jk, s0_s1.first, s0_s1.second);
                     collect_block_from_IJ_storage_tensor(sigc_nao_nao, desc_nao_nao, atomic_basis_wfc, atomic_basis_wfc,
                                                          ka, CONE, sigc_src);
@@ -382,6 +352,7 @@ void G0W0::build_sigc_matrix_KS() noexcept
             }
         }
     }
+#endif
 }
 
 } // namespace LIBRPA

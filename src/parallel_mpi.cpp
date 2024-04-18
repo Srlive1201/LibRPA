@@ -8,131 +8,30 @@
 
 namespace LIBRPA {
 
-const string parallel_types_note[parallel_type::COUNT] = {
+const string parallel_routing_notes[ParallelRouting::COUNT] = {
     "atom-pair",
     "R-tau",
     "LibRI"
 };
 
-parallel_type chi_parallel_type = parallel_type::ATOM_PAIR;
-parallel_type exx_parallel_type = parallel_type::ATOM_PAIR;
-parallel_type gw_parallel_type = parallel_type::ATOM_PAIR;
+ParallelRouting parallel_routing = ParallelRouting::ATOM_PAIR;
 
 ofstream fout_para;
 
-void set_parallel_type(const string &option, parallel_type &ptype)
+void set_parallel_routing(const string &option, const int &atpais_num, const int &Rt_num, ParallelRouting &routing)
 {
-    if (option == "atompair")
-        ptype = parallel_type::ATOM_PAIR;
+    if (option == "auto")
+        routing = atpais_num < Rt_num ? ParallelRouting::R_TAU : ParallelRouting::ATOM_PAIR;
+    else if (option == "atompair")
+        routing = ParallelRouting::ATOM_PAIR;
     else if (option == "rtau")
-        ptype = parallel_type::R_TAU;
+        routing = ParallelRouting::R_TAU;
     else if (option == "libri")
-        ptype = parallel_type::LIBRI_USED;
+        routing = ParallelRouting::LIBRI;
     else
         throw std::invalid_argument("Unsupported parallel type option: " + option);
 }
 
-void set_chi_parallel_type(const string &option, const int &atpais_num, const int Rt_num,
-                           const bool use_libri)
-{
-    if (option == "auto")
-    {
-        if (use_libri)
-        {
-            chi_parallel_type = parallel_type::LIBRI_USED;
-        }
-        else if (atpais_num < Rt_num)
-        {
-            chi_parallel_type = parallel_type::R_TAU;
-        }
-        else
-        {
-            chi_parallel_type = parallel_type::ATOM_PAIR;
-        }
-    }
-    else
-    {
-        set_parallel_type(option, chi_parallel_type);
-    }
-}
-
-void set_exx_parallel_type(const string& option, const int &atpais_num, const int Rt_num, const bool use_libri)
-{
-    if (option == "auto")
-    {
-        if (use_libri)
-        {
-            exx_parallel_type = parallel_type::LIBRI_USED;
-        }
-        else if (atpais_num < Rt_num)
-        {
-            exx_parallel_type = parallel_type::R_TAU;
-        }
-        else
-        {
-            exx_parallel_type = parallel_type::ATOM_PAIR;
-        }
-    }
-    else
-    {
-        set_parallel_type(option, exx_parallel_type);
-    }
-}
-
-void set_gw_parallel_type(const string& option, const int &atpais_num, const int Rt_num, const bool use_libri)
-{
-    if (option == "auto")
-    {
-        if (use_libri)
-        {
-            gw_parallel_type = parallel_type::LIBRI_USED;
-        }
-        else if (atpais_num < Rt_num)
-        {
-            gw_parallel_type = parallel_type::R_TAU;
-        }
-        else
-        {
-            gw_parallel_type = parallel_type::ATOM_PAIR;
-        }
-    }
-    else
-    {
-        set_parallel_type(option, gw_parallel_type);
-    }
-}
-
-void check_parallel_type()
-{
-    if (chi_parallel_type == parallel_type::LIBRI_USED ||
-        exx_parallel_type == parallel_type::LIBRI_USED ||
-        gw_parallel_type == parallel_type::LIBRI_USED)
-    {
-#ifndef LIBRPA_USE_LIBRI
-        if (MPI_Wrapper::is_root_world())
-        {
-            cout << "LibRI routing requested, but the executable is not compiled "
-                    "with LibRI"
-                 << endl;
-            cout << "Please recompiler libRPA with -DUSE_LIBRI and configure "
-                    "include path"
-                 << endl;
-        }
-        MPI_Wrapper::barrier_world();
-        throw std::logic_error("compilation");
-#endif
-    }
-    if (MPI_Wrapper::is_root_world())
-    {
-        cout << "Parallel types" << endl;
-        // cout << "| Atom_pairs_num:  " << atpais_num << endl;
-        // cout << "| R_tau_num:  " << Rt_num << endl;
-        cout << "| chi: " << parallel_types_note[chi_parallel_type] << endl;
-        cout << "| exx: " << parallel_types_note[exx_parallel_type] << endl;
-        cout << "| gw : " << parallel_types_note[gw_parallel_type] << endl;
-    }
-    MPI_Wrapper::barrier_world();
-}
 
 namespace MPI_Wrapper {
 
@@ -631,8 +530,6 @@ std::set<std::pair<int, int>> get_necessary_IJ_from_block_2D_sy(const char &uplo
 
 Parallel_MPI::Parallel_MPI(void)
 {
-    // cout<<"Parallel_MPI Object is being created !"<<endl;
-    chi_parallel_type = Parallel_MPI::parallel_type::ATOM_PAIR;
 }
 
 Parallel_MPI::~Parallel_MPI(void)

@@ -1,0 +1,91 @@
+name: Build and run unittest with Intel oneAPI
+on:
+  push:
+  pull_request:
+
+# oneapi install adapted from the build_linux_apt_cpp of
+# https://github.com/oneapi-src/oneapi-ci/blob/master/.github/workflows/build_all.yml
+
+env:
+  LINUX_CPP_COMPONENTS: intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic_intel-oneapi-compiler-fortran_intel-oneapi-mkl_intel-oneapi-mkl-devel_intel-oneapi-mpi_intel-oneapi-mpi-devel
+
+jobs:
+  ONEAPI:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Setup Intel oneAPI apt repo
+        run: |
+          wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS-2023.PUB
+          sudo apt-key add GPG-PUB-KEY-INTEL-SW-PRODUCTS-2023.PUB
+          echo "deb https://apt.repos.intel.com/oneapi all main" | sudo tee /etc/apt/sources.list.d/oneAPI.list
+          sudo apt-get update -o Dir::Etc::sourcelist="sources.list.d/oneAPI.list" -o APT::Get::List-Cleanup="0"
+      - name: Collect apt dependencies
+        run: |
+          echo "$LINUX_CPP_COMPONENTS" | sed "s/_/ /g" | xargs -n 1 apt-cache depends | tee depends.txt
+      - name: Cache install
+        id: cache-install
+        uses: actions/cache@v3
+        with:
+          path: /opt/intel/oneapi/
+          key: install-${{ env.LINUX_CPP_COMPONENTS }}-${{ hashFiles('**/depends.txt') }}
+      - name: Install build-essential and cmake
+        run: sudo apt-get install -y build-essential cmake
+      - name: Install python dependency
+        run: |
+          pip install --user pytest scipy
+          cd thirdparty/greenX-6ff8a00/python && python setup.py install --verbose --user
+      - name: Install tools including oneAPI
+        if: steps.cache-install.outputs.cache-hit != 'true'
+        run: |
+          sudo apt-get install -y $(echo "$LINUX_CPP_COMPONENTS" | sed "s/_/ /g")
+      - name: Initialize and update submodules recursively
+        run: git submodule update --init --recursive
+      - name: Check environment
+        run: |
+          echo -n "Size of /opt/intel/oneapi/: " && du -csh /opt/intel/oneapi
+          echo "PATH: $PATH"
+          which pytest
+          echo "PYTHONPATH: $PYTHONPATH"
+      - name: Build/test LibRPA without LibRI
+        run: |
+          source /opt/intel/oneapi/setvars.sh
+          export BUILDDIR="build"
+          CXX=mpiicpc cmake -DUSE_LIBRI=OFF -B $BUILDDIR -DENABLE_TEST=ON
+          cmake --build $BUILDDIR -j 2
+          cmake --build $BUILDDIR --target test
+      - name: Build/test LibRPA without LibRI and with GreenX TimeFrequency component
+        run: |
+          source /opt/intel/oneapi/setvars.sh
+          export BUILDDIR="build_greenx"
+          CXX=mpiicpc cmake -DUSE_LIBRI=OFF -DUSE_GREENX_MINIMAX=ON -B $BUILDDIR -DENABLE_TEST=ON
+          cmake --build $BUILDDIR -j 2
+          cmake --build $BUILDDIR --target test
+      - name: Build/test LibRPA with LibRI and without GreenX TimeFrequency component
+        run: |
+          source /opt/intel/oneapi/setvars.sh
+          export BUILDDIR="build_libri"
+          CXX=mpiicpc cmake -DUSE_LIBRI=ON -B $BUILDDIR -DENABLE_TEST=ON
+          cmake --build $BUILDDIR -j 2
+          cmake --build $BUILDDIR --target test
+      - name: Build/test LibRPA with LibRI and with GreenX TimeFrequency component
+        run: |
+          source /opt/intel/oneapi/setvars.sh
+          export BUILDDIR="build_libri_greenx"
+          CXX=mpiicpc cmake -DUSE_LIBRI=ON -DUSE_GREENX_MINIMAX=ON -B $BUILDDIR -DENABLE_TEST=ON
+          cmake --build $BUILDDIR -j 2
+          cmake --build $BUILDDIR --target test
+      - name: Save last test log for check
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: save-last-test
+          path: |
+            build/Testing/Temporary/LastTest.log
+            build_greenx/Testing/Temporary/LastTest.log
+            build_libri/Testing/Temporary/LastTest.log
+            build_libri_greenx/Testing/Temporary/LastTest.log

@@ -1,6 +1,7 @@
 # Basic C++ compiler setup
 # set(CMAKE_C_COMPILER "mpiicc" CACHE STRING "" FORCE)
 set(CMAKE_CXX_COMPILER "mpiicpc" CACHE STRING "" FORCE)
+set(CMAKE_Fortran_COMPILER "ifort" CACHE STRING "" FORCE)
 
 set(CMAKE_CXX_FLAGS "-g -O2 -fopenmp" CACHE STRING "" FORCE)
 if(DEBUG)

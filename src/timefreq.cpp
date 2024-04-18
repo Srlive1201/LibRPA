@@ -4,6 +4,7 @@
 #include "parallel_mpi.h"
 #include "get_minimax.h"
 #include "params.h"
+#include <omp.h>
 #include <iostream>
 #include <fstream>
 #include <vector>
@@ -69,21 +70,26 @@ void TFGrids::show()
     cout << "Grid size: " << n_grids << endl;
     cout << "Frequency node & weight: " << endl;
     for ( int i = 0; i != n_grids; i++ )
-        printf("%2d %20.12f %20.12f\n", i, freq_nodes[i], freq_weights[i]);
+        printf("%2d %23.16f %23.16f\n", i, freq_nodes[i], freq_weights[i]);
     if (has_time_grids())
     {
         cout << "Time node & weight: " << endl;
         for ( int i = 0; i != n_grids; i++ )
-            printf("%2d %20.12f %20.12f\n", i, time_nodes[i], time_weights[i]);
-        // cout << "t->f transform: " << endl;
-        // if (costrans_t2f.size)
-        // {
-        //     print_matrix("Cosine transform matrix", costrans_t2f);
-        // }
-        // if (sintrans_t2f.size)
-        // {
-        //     print_matrix("Sine transform matrix", sintrans_t2f);
-        // }
+            printf("%2d %23.16f %23.16f\n", i, time_nodes[i], time_weights[i]);
+        cout << "t->f transform: " << endl;
+        if (costrans_t2f.size)
+        {
+            print_matrix("Cosine transform matrix", costrans_t2f);
+        }
+        if (sintrans_t2f.size)
+        {
+            print_matrix("Sine transform matrix", sintrans_t2f);
+        }
+        cout << "f->t transform: " << endl;
+        if (costrans_f2t.size)
+        {
+            print_matrix("Cosine transform matrix", costrans_f2t);
+        }
     }
     printf("\n");
 }
@@ -131,6 +137,7 @@ void TFGrids::generate_evenspaced(double emin, double interval)
         freq_nodes[i] = emin + interval * i;
         freq_weights[i] = weight;
     }
+    grid_type = TFGrids::GRID_TYPES::EvenSpaced;
 }
 
 void TFGrids::generate_evenspaced_tf(double emin, double eintv, double tmin, double tintv)
@@ -152,6 +159,7 @@ void TFGrids::generate_evenspaced_tf(double emin, double eintv, double tmin, dou
         costrans_f2t(i, i) = 1/weight;
         sintrans_f2t(i, i) = 1/weight;
     }
+    grid_type = TFGrids::GRID_TYPES::EvenSpaced_TF;
 }
 
 void TFGrids::generate_minimax(double emin, double emax)

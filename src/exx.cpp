@@ -88,7 +88,22 @@ void Exx::build_exx_orbital_energy(const atpair_R_mat_t &LRI_Cs,
                                    const Vector3_Order<int> &R_period,
                                    const atpair_R_mat_t &coul_mat)
 {
-    if (Params::use_libri_exx)
+    // debug: check coeff and coulomb in different parallel routings
+    // for (auto &I_JRCs: LRI_Cs)
+    // {
+    //     const auto &I = I_JRCs.first;
+    //     for (auto &J_RCs: I_JRCs.second)
+    //     {
+    //         const auto &J = J_RCs.first;
+    //         for (auto &R_Cs: J_RCs.second)
+    //         {
+    //             const auto &R = R_Cs.first;
+    //             fout_para << I << " " << J << " " << R << endl;
+    //             fout_para << (*R_Cs.second) << endl;
+    //         }
+    //     }
+    // }
+    if (parallel_routing == ParallelRouting::LIBRI)
         this->build_exx_orbital_energy_LibRI(LRI_Cs, Rlist, R_period, coul_mat);
     else
     {
@@ -136,59 +151,23 @@ void Exx::build_exx_orbital_energy_LibRI(const atpair_R_mat_t &LRI_Cs,
     std::map<int, std::map<std::pair<int,std::array<int,3>>,RI::Tensor<double>>> Cs_libri;
 
     Profiler::start("build_exx_orbital_energy_1", "Prepare C libRI object");
-    if(exx_parallel_type == parallel_type::LIBRI_USED)
+    if(parallel_routing == ParallelRouting::LIBRI)
     {
-        if (chi_parallel_type == parallel_type::R_TAU)
+        for (auto &I_JRCs: LRI_Cs)
         {
-            std::vector<std::pair<atom_t, std::pair<atom_t, Vector3_Order<int>>>> Cs_IJRs_local;
-            size_t n_Cs_IJRs = 0;
-            size_t n_Cs_IJRs_local = 0;
-
-            for(auto &Ip:LRI_Cs)
-                for(auto &Jp:Ip.second)
-                    for(auto &Rp:Jp.second)
-                    {
-                        const auto &I = Ip.first;
-                        const auto &J = Jp.first;
-                        const auto &R=Rp.first;
-                        if ((n_Cs_IJRs++) % mpi_comm_world_h.nprocs == mpi_comm_world_h.myid)
-                        {
-                            Cs_IJRs_local.push_back({I, {J, R}});
-                            n_Cs_IJRs_local++;
-                        }
-                    }
-            printf("| Number of Cs on Proc %4d: %zu\n", mpi_comm_world_h.myid, n_Cs_IJRs_local);
-            for (auto &IJR: Cs_IJRs_local)
+            const auto &I = I_JRCs.first;
+            for (auto &J_RCs: I_JRCs.second)
             {
-                const auto I = IJR.first;
-                const auto J = IJR.second.first;
-                const auto R = IJR.second.second;
-                const std::array<int,3> Ra{R.x,R.y,R.z};
-                const auto mat = transpose(*(LRI_Cs.at(I).at(J).at(R)));
-                std::valarray<double> mat_array(mat.c, mat.size);
-                std::shared_ptr<std::valarray<double>> mat_ptr = std::make_shared<std::valarray<double>>();
-                *mat_ptr=mat_array;
-                Cs_libri[I][{J, Ra}] = RI::Tensor<double>({atom_mu[I], atom_nw[I], atom_nw[J]}, mat_ptr);
-            }
-        }
-        else if (chi_parallel_type == parallel_type::ATOM_PAIR)
-        {
-            for (auto &I_JRCs: LRI_Cs)
-            {
-                const auto &I = I_JRCs.first;
-                for (auto &J_RCs: I_JRCs.second)
+                const auto &J = J_RCs.first;
+                for (auto &R_Cs: J_RCs.second)
                 {
-                    const auto &J = J_RCs.first;
-                    for (auto &R_Cs: J_RCs.second)
-                    {
-                        const auto &R = R_Cs.first;
-                        const std::array<int,3> Ra{R.x,R.y,R.z};
-                        const auto mat = transpose(*R_Cs.second);
-                        std::valarray<double> mat_array(mat.c, mat.size);
-                        std::shared_ptr<std::valarray<double>> mat_ptr = std::make_shared<std::valarray<double>>();
-                        *mat_ptr=mat_array;
-                        Cs_libri[I][{J, Ra}] = RI::Tensor<double>({atom_mu[I], atom_nw[I], atom_nw[J]}, mat_ptr);
-                    }
+                    const auto &R = R_Cs.first;
+                    const std::array<int,3> Ra{R.x,R.y,R.z};
+                    const auto mat = transpose(*R_Cs.second);
+                    std::valarray<double> mat_array(mat.c, mat.size);
+                    std::shared_ptr<std::valarray<double>> mat_ptr = std::make_shared<std::valarray<double>>();
+                    *mat_ptr=mat_array;
+                    Cs_libri[I][{J, Ra}] = RI::Tensor<double>({atom_mu[I], atom_nw[I], atom_nw[J]}, mat_ptr);
                 }
             }
         }

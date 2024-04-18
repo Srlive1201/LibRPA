@@ -20,7 +20,6 @@ objects = \
 		  envs.o \
 		  exx.o \
 		  epsilon.o \
-		  Gauss_Quadrature.o \
 		  mathtools.o \
 		  matrix.o \
 		  matrix3.o \
