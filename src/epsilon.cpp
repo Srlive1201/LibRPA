@@ -319,7 +319,7 @@ CorrEnergy compute_RPA_correlation_blacs_2d(const Chi0 &chi0, const atpair_k_cpl
                 std::valarray<complex<double>> Vq_va(Vq->c, Vq->size);
                 auto pvq = std::make_shared<std::valarray<complex<double>>>();
                 *pvq = Vq_va;
-                coul_libri[Mu][{Nu, std::array<double, 3>{0,0,0}}] = Tensor<complex<double>>({n_mu, n_nu}, pvq);
+                coul_libri[Mu][{Nu, qa}] = Tensor<complex<double>>({n_mu, n_nu}, pvq);
             }
             //printf("Finish RPA blacs 2d  vq arr\n");
             double arr_end = omp_get_wtime();
@@ -391,7 +391,7 @@ CorrEnergy compute_RPA_correlation_blacs_2d(const Chi0 &chi0, const atpair_k_cpl
                         std::valarray<complex<double>> chi_va(chi.c, chi.size);
                         auto pchi = std::make_shared<std::valarray<complex<double>>>();
                         *pchi = chi_va;
-                        chi0_libri[M][{N, std::array<double, 3>{0,0,0}}] = Tensor<complex<double>>({n_mu, n_nu}, pchi);
+                        chi0_libri[M][{N,qa}] = Tensor<complex<double>>({n_mu, n_nu}, pchi);
                     }
                 }
                 mpi_comm_world_h.barrier();
@@ -1046,7 +1046,7 @@ CorrEnergy compute_MP2_correlation(const Chi0 &chi0, const atpair_k_cplx_mat_t &
 map<double, map<Vector3_Order<double>, atom_mapping<ComplexMatrix>::pair_t_old>> compute_Pi_q(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat)
 {
     map<double, map<Vector3_Order<double>, atom_mapping<ComplexMatrix>::pair_t_old>> pi;
-    // printf("Begin cal_pi_k , pid:  %d\n", mpi_comm_world_h.myid);
+    printf("Begin compute_Pi_q , pid:  %d\n", mpi_comm_world_h.myid);
     for (auto const & freq_qJQchi0: chi0.get_chi0_q())
     {
         const double freq = freq_qJQchi0.first;
@@ -1119,7 +1119,7 @@ map<double, map<Vector3_Order<double>, atom_mapping<ComplexMatrix>::pair_t_old>>
                             //     print_complex_matrix_file(sm.str().c_str(), (*Vq.at(I).at(J).at(ik_vec)),fp,false);
                             //     print_complex_matrix_file("chi0:", chi0_mat,fp,false);
                             //     print_complex_matrix_file("pi_mat:", pi.at(freq).at(ik_vec).at(I).at(Q),fp,false);
-                            //}
+                            // }
                         }
                         else
                         {
@@ -1152,7 +1152,7 @@ map<double, map<Vector3_Order<double>, atom_mapping<ComplexMatrix>::pair_t_old>>
             }
         }
     }
-    //fp.close();
+    // fp.close();
     //print_complex_matrix(" first_pi_mat:",pi.at(chi0.tfg.get_freq_nodes()[0]).at({0,0,0}).at(0).at(0));
     /* print_complex_matrix("  last_pi_mat:",pi.at(chi0.tfg.get_freq_nodes()[0]).at({0,0,0}).at(natom-1).at(natom-1)); */
     return pi;
@@ -1161,7 +1161,7 @@ map<double, map<Vector3_Order<double>, atom_mapping<ComplexMatrix>::pair_t_old>>
 map<double, map<Vector3_Order<double>, atom_mapping<ComplexMatrix>::pair_t_old>> compute_Pi_q_MPI(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat)
 {
     map<double, map<Vector3_Order<double>, atom_mapping<ComplexMatrix>::pair_t_old>> pi;
-    // printf("Begin cal_pi_k , pid:  %d\n", mpi_comm_world_h.myid);
+    printf("Begin compute_Pi_q_MPI , pid:  %d\n", mpi_comm_world_h.myid);
     for (auto const & freq_qJQchi0: chi0.get_chi0_q())
     {
         const double freq = freq_qJQchi0.first;
@@ -2215,4 +2215,97 @@ CT_FT_Wc_freq_q(const map<double, atom_mapping<std::map<Vector3_Order<double>, m
     // }
     // end myz debug
     return Wc_tau_R;
+}
+
+void test_libcomm_for_system(atpair_k_cplx_mat_t &coulmat)
+{
+    if (mpi_comm_world_h.myid == 0)
+        printf("test_libcomm_for_system Coulumb\n");
+    // printf("Calculating EcRPA with BLACS, pid:  %d\n", mpi_comm_world_h.myid);
+    const complex<double> CONE{1.0, 0.0};
+    const int n_abf = LIBRPA::atomic_basis_abf.nb_total;
+    const auto part_range = LIBRPA::atomic_basis_abf.get_part_range();
+
+    mpi_comm_world_h.barrier();
+
+    Array_Desc desc_nabf_nabf(LIBRPA::blacs_ctxt_world_h);
+    // use a square blocksize instead max block, otherwise heev and inversion will complain about illegal parameter
+    desc_nabf_nabf.init_square_blk(n_abf, n_abf, 0, 0);
+    const auto set_IJ_nabf_nabf = LIBRPA::get_necessary_IJ_from_block_2D_sy('U', LIBRPA::atomic_basis_abf, desc_nabf_nabf);
+    const auto s0_s1 = get_s0_s1_for_comm_map2_first(set_IJ_nabf_nabf);
+    
+    auto coul_block = init_local_mat<complex<double>>(desc_nabf_nabf, MAJOR::COL);
+
+
+    vector<Vector3_Order<double>> qpts;
+    for (const auto &qMuNuchi: irk_weight)
+        qpts.push_back(qMuNuchi.first);
+
+#ifdef LIBRPA_USE_LIBRI
+    for (const auto &q: qpts)
+    {
+        coul_block.zero_out();
+
+        int iq = std::distance(klist.begin(), std::find(klist.begin(), klist.end(), q));
+        std::array<double, 3> qa = {q.x, q.y, q.z};
+        // collect the block elements of coulomb matrices
+        {
+            double vq_begin = omp_get_wtime();
+            // LibRI tensor for communication, release once done
+            std::map<int, std::map<std::pair<int, std::array<double, 3>>, Tensor<complex<double>>>> coul_libri;
+            coul_libri.clear();
+            for (const auto &Mu_Nu: local_atpair)
+            {
+                const auto Mu = Mu_Nu.first;
+                const auto Nu = Mu_Nu.second;
+                // LIBRPA::fout_para << "myid " << LIBRPA::blacs_ctxt_world_h.myid << "Mu " << Mu << " Nu " << Nu << endl;
+                if (coulmat.count(Mu) == 0 ||
+                    coulmat.at(Mu).count(Nu) == 0 ||
+                    coulmat.at(Mu).at(Nu).count(q) == 0) continue;
+                const auto &Vq = coulmat.at(Mu).at(Nu).at(q);
+                const auto n_mu = LIBRPA::atomic_basis_abf.get_atom_nb(Mu);
+                const auto n_nu = LIBRPA::atomic_basis_abf.get_atom_nb(Nu);
+                std::valarray<complex<double>> Vq_va(Vq->c, Vq->size);
+                auto pvq = std::make_shared<std::valarray<complex<double>>>();
+                *pvq = Vq_va;
+                coul_libri[Mu][{Nu,qa}] = Tensor<complex<double>>({n_mu, n_nu}, pvq);
+            }
+            //printf("Finish RPA blacs 2d  vq arr\n");
+            double arr_end = omp_get_wtime();
+            mpi_comm_world_h.barrier();
+            double comm_begin = omp_get_wtime();
+            //printf("Begin comm_map2_first  myid: %d\n",mpi_comm_world_h.myid);
+            const auto IJq_coul = comm_map2_first(LIBRPA::mpi_comm_world_h.comm, coul_libri, s0_s1.first, s0_s1.second);
+            double comm_end = omp_get_wtime();
+            mpi_comm_world_h.barrier();
+            //printf("End vq comm_map2_first  myid: %d   TIME_USED: %f\n",mpi_comm_world_h.myid,comm_end-comm_begin);
+            // LIBRPA::fout_para << "IJq_coul" << endl << IJq_coul;
+            //printf("Finish RPA blacs 2d  vq 2d\n");
+            double block_begin = omp_get_wtime();
+            // for (const auto &IJ: set_IJ_nabf_nabf)
+            // {
+            //     const auto &I = IJ.first;
+            //     const auto &J = IJ.second;
+            //     // cout << IJq_coul.at(I).at({J, qa});
+            //     collect_block_from_IJ_storage_syhe(
+            //         coul_block, desc_nabf_nabf, LIBRPA::atomic_basis_abf, IJ.first,
+            //         IJ.second, true, CONE, IJq_coul.at(I).at({J, qa}).ptr(), MAJOR::ROW);
+            //     // printf("myid %d I %d J %d nr %d nc %d\n%s",
+            //     //        LIBRPA::blacs_ctxt_world_h.myid, I, J,
+            //     //        coul_block.nr(), coul_block.nc(),
+            //     //        str(coul_block).c_str());
+            // }
+            collect_block_from_ALL_IJ_Tensor(coul_block, desc_nabf_nabf, LIBRPA::atomic_basis_abf,
+                                             qa, true, CONE, IJq_coul, MAJOR::ROW);
+            double block_end = omp_get_wtime();
+            // printf("Vq Time  myid: %d  arr_time: %f  comm_time: %f   block_time: %f   pair_size: %d\n",mpi_comm_world_h.myid,arr_end-vq_begin, comm_end-comm_begin, block_end-block_begin,set_IJ_nabf_nabf.size());
+            mpi_comm_world_h.barrier();
+            double vq_end = omp_get_wtime();
+
+            if(mpi_comm_world_h.myid == 0)
+                printf(" | Total vq time: %f  lri_coul: %f   comm_vq: %f   block_vq: %f\n",vq_end-vq_begin, comm_begin-vq_begin,block_begin-comm_begin,vq_end-block_begin);
+        }
+    }
+    printf("Success test_libcomm_for_system\n");
+#endif
 }

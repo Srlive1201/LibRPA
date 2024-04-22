@@ -201,6 +201,7 @@ int main(int argc, char **argv)
         // for(auto &ap:local_atpair)
         //     printf("   |process %d , local_atom_pair:  %d,  %d\n", mpi_comm_world_h.myid,ap.first,ap.second);
         READ_Vq_Row("./", "coulomb_mat", Params::vq_threshold, Vq, local_atpair);
+        test_libcomm_for_system(Vq);
     }
     else if(parallel_routing == ParallelRouting::LIBRI)
     {

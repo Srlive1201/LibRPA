@@ -55,3 +55,5 @@ complex<double> compute_pi_det_blacs(ComplexMatrix &loc_piT, const LIBRPA::Array
 
 complex<double> compute_pi_det_blacs_2d(matrix_m<complex<double>> &loc_piT, const LIBRPA::Array_Desc &arrdesc_pi, int *ipiv, int &info);
 double compute_pi_det_blacs_2d_gamma_only(matrix_m<double> &loc_piT, const LIBRPA::Array_Desc &arrdesc_pi, int *ipiv, int &info);
+
+void test_libcomm_for_system(atpair_k_cplx_mat_t &coulmat);
