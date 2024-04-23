@@ -68,7 +68,7 @@ void READ_AIMS_BAND(const string &file_path, MeanField &mf)
     //     print_matrix("eskb_mat",eskb[is]);
 }
 
-int read_aims_vxc(const string &file_path, std::vector<matrix> &vxc)
+int read_vxc(const string &file_path, std::vector<matrix> &vxc)
 {
     // cout << "Begin to read aims-band_out" << endl;
     ifstream infile;

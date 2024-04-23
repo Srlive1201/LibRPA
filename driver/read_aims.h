@@ -24,6 +24,7 @@ void READ_AIMS_BAND(const string &file_path, MeanField &mf);
  * @return    status code, 0 for succesful read, 1 with error
  */
 int read_vxc(const string &file_path, std::vector<matrix> &vxc);
+
 void READ_AIMS_EIGENVECTOR(const string &dir_path, MeanField &mf);
 void handle_KS_file(const string &file_path, MeanField &mf);
 size_t READ_AIMS_Cs(const string &dir_path, double threshold,const vector<atpair_t> &local_atpair, bool binary = false);

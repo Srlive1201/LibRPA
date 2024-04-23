@@ -502,12 +502,15 @@ int main(int argc, char **argv)
         Profiler::start("read_vxc", "Load DFT xc potential");
         std::vector<matrix> vxc;
         int info = read_vxc("./vxc_out", vxc);
-        if (info != 0)
+        if (mpi_comm_world_h.myid == 0)
         {
-            if (mpi_comm_world_h.myid == 0)
+            if (info == 0)
             {
-                cout << "* Error in reading DFT xc potential: vxc_out\n";
-                cout << "  Switch off solving quasi-particle equation\n";
+                cout << "* Success: Read DFT xc potential, will solve quasi-particle equation\n";
+            }
+            else
+            {
+                cout << "*   Error: Read DFT xc potential, switch off solving quasi-particle equation\n";
             }
         }
         Profiler::stop("read_vxc");
