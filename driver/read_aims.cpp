@@ -68,6 +68,49 @@ void READ_AIMS_BAND(const string &file_path, MeanField &mf)
     //     print_matrix("eskb_mat",eskb[is]);
 }
 
+int read_aims_vxc(const string &file_path, std::vector<matrix> &vxc)
+{
+    // cout << "Begin to read aims-band_out" << endl;
+    ifstream infile;
+    infile.open(file_path);
+    double ha, ev;
+    int n_spins, n_kpoints, n_states;
+    int retcode;
+
+    // dimension information
+    infile >> n_kpoints;
+    infile >> n_spins;
+    infile >> n_states;
+    if (!infile.good())
+    {
+        return 1;
+    }
+
+    vxc.clear();
+    vxc.resize(n_spins);
+    for (int is = 0; is != n_spins; is++)
+    {
+        vxc[is].create(n_kpoints, n_states);
+    }
+
+    for (int ik = 0; ik != n_kpoints; ik++)
+    {
+        for (int is = 0; is != n_spins; is++)
+        {
+            for (int i = 0; i != n_states; i++)
+            {
+                infile >> ha >> ev;
+                if (!infile.good())
+                {
+                    return 2;
+                }
+                vxc[is](ik, is) = ha;
+            }
+        }
+    }
+    return 0;
+}
+
 void READ_AIMS_EIGENVECTOR(const string &dir_path, MeanField &mf)
 {
     // cout<<"Begin to read aims eigenvecor"<<endl;

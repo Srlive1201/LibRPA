@@ -499,6 +499,19 @@ int main(int argc, char **argv)
         const auto VR = FT_Vq(Vq_cut, Rlist, true);
         Profiler::stop("read_vq_cut");
 
+        Profiler::start("read_vxc", "Load DFT xc potential");
+        std::vector<matrix> vxc;
+        int info = read_vxc("./vxc_out", vxc);
+        if (info != 0)
+        {
+            if (mpi_comm_world_h.myid == 0)
+            {
+                cout << "* Error in reading DFT xc potential: vxc_out\n";
+                cout << "  Switch off solving quasi-particle equation\n";
+            }
+        }
+        Profiler::stop("read_vxc");
+
         std::vector<double> epsmac_LF_imagfreq_re;
 
         if (Params::replace_w_head)
