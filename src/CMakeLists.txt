@@ -13,6 +13,7 @@ set_target_properties(rpa_lib PROPERTIES
 configure_file(envs.cpp.in envs.cpp)
 list(APPEND lib_sources
         # aperiodic_chi0.cpp
+        analycont.cpp
         atomic_basis.cpp
         # cal_periodic_chi0.cpp
         chi0.cpp

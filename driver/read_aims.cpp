@@ -509,7 +509,7 @@ std::vector<size_t> handle_Cs_file_binary_dry(const string &file_path, double th
     infile.read((char *) &ncell, sizeof(int));
     infile.read((char *) &n_apcell_file, sizeof(int));
 
-    for (int i = 0; i < n_apcell_file; i++)
+    for (int i_file = 0; i_file < n_apcell_file; i_file++)
     {
         infile.read((char *) &dims[0], 8 * sizeof(int));
         // cout<<ic_1<<mu_s<<endl;
@@ -536,9 +536,9 @@ std::vector<size_t> handle_Cs_file_binary_dry(const string &file_path, double th
                 }
             }
         }
-        LIBRPA::fout_para << i << " (" << ic1 << "," << ic2 << "," << ic3 << ") " << maxval << " keep? " << (maxval >= threshold) << endl;
+        LIBRPA::fout_para << i_file << " (" << ic1 << "," << ic2 << "," << ic3 << ") " << maxval << " keep? " << (maxval >= threshold) << endl;
         if (maxval >= threshold)
-            Cs_ids_keep.push_back(i);
+            Cs_ids_keep.push_back(i_file);
     }
     LIBRPA::fout_para << file_path << ": " << Cs_ids_keep << endl;
     infile.close();
