@@ -17,7 +17,7 @@ public:
     AnalyContPade(int n_pars_in,
                   const std::vector<cplxdb> &xs,
                   const std::vector<cplxdb> &data);
-    cplxdb get(const cplxdb &x, const cplxdb &ref);
+    cplxdb get(const cplxdb &x);
 };
 
 }
