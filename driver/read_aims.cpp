@@ -870,7 +870,7 @@ int handle_Vq_row_file(const string &file_path, double threshold, atpair_k_cplx_
 
         //skip empty coulumb_file
         if((erow-brow<=0) || (ecol-bcol<=0) || iq<0 || iq> klist.size())
-            return;
+            return 4;
 
         Vector3_Order<double> qvec(kvec_c[iq]);
         // skip duplicate insert of k weight, since 
