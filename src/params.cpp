@@ -3,6 +3,8 @@
 #include <utility>
 #include <vector>
 
+// default setting
+
 std::string Params::task = "rpa";
 std::string Params::output_file="stdout";
 std::string Params::output_dir = "librpa.d";
@@ -11,6 +13,7 @@ std::string Params::DFT_software =  "auto";
 std::string Params::parallel_routing = "auto";
 
 int Params::nfreq = 0;
+int Params::n_params_anacon = -1;
 
 double Params::gf_R_threshold = 1e-4;
 double Params::cs_threshold = 1e-4;
@@ -35,6 +38,10 @@ int Params::option_dielect_func = 2;
 
 void Params::check_consistency()
 {
+    if (n_params_anacon < 0)
+    {
+        n_params_anacon = nfreq;
+    }
 }
 
 void Params::print()
@@ -57,6 +64,7 @@ void Params::print()
     const std::vector<std::pair<std::string, int>> int_params
         {
             {"nfreq", nfreq},
+            {"n_params_anacon", n_params_anacon},
             {"option_dielect_func", option_dielect_func},
         };
 

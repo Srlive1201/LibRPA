@@ -276,7 +276,7 @@ void G0W0::build_sigc_matrix_KS()
     if (mpi_comm_world_h.myid == 0)
     {
         cout << "LIBRA::G0W0::build_sigc_matrix_KS is only implemented on top of LibRI" << endl;
-        cout << "Please recompiler LibRPA with -DUSE_LIBRI and optionally configure include path" << endl;
+        cout << "Please recompile LibRPA with -DUSE_LIBRI and optionally configure include path" << endl;
     }
     mpi_comm_world_h.barrier();
     throw std::logic_error("compilation");

@@ -30,6 +30,9 @@ struct Params
     //! the type of time-frequency grids
     static std::string tfgrids_type;
 
+    //! the number of parameters for analytic continuation
+    static int n_params_anacon;
+
     //! type of parallel routing
     static std::string parallel_routing;
 

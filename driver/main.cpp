@@ -6,6 +6,8 @@
 #include "inputfile.h"
 #include "stl_io_helper.h"
 #include "task.h"
+#include "analycont.h"
+#include "qpe_solver.h"
 
 #include <algorithm>
 #if defined(__MACH__)
@@ -13,6 +15,7 @@
 #else
 #include <malloc.h>
 #endif
+#include <limits>
 
 void initialize(int argc, char **argv)
 {
@@ -227,7 +230,7 @@ int main(int argc, char **argv)
     {
         if (i == mpi_comm_world_h.myid)
         {
-            printf("| process %d: Cs size %d from local atpair size %d\n",
+            printf("| process %d: Cs size %d from local atpair size %zu\n",
                     LIBRPA::mpi_comm_world_h.myid, get_num_keys(Cs), local_atpair.size());
         }
         mpi_comm_world_h.barrier();
@@ -276,9 +279,10 @@ int main(int argc, char **argv)
     }
 
     mpi_comm_world_h.barrier(); // FIXME: barrier seems not work here...
-    // cout << endl;
     if (mpi_comm_world_h.myid == 0)
+    {
         cout << "Initialization finished, start task job from myid\n";
+    }
 
     if ( task != task_t::EXX )
     {
@@ -501,10 +505,10 @@ int main(int argc, char **argv)
 
         Profiler::start("read_vxc", "Load DFT xc potential");
         std::vector<matrix> vxc;
-        int info = read_vxc("./vxc_out", vxc);
+        int flag_read_vxc = read_vxc("./vxc_out", vxc);
         if (mpi_comm_world_h.myid == 0)
         {
-            if (info == 0)
+            if (flag_read_vxc == 0)
             {
                 cout << "* Success: Read DFT xc potential, will solve quasi-particle equation\n";
             }
@@ -658,6 +662,56 @@ int main(int argc, char **argv)
         Profiler::start("g0w0_sigc_rotate_KS", "Rotate self-energy, IJ -> ij -> KS");
         s_g0w0.build_sigc_matrix_KS();
         Profiler::stop("g0w0_sigc_rotate_KS");
+
+        // Solve QPE only when Vxc is successfully parsed
+        if (flag_read_vxc == 0)
+        {
+            Profiler::start("g0w0_solve_qpe", "Solve quasi-particle equation");
+            std::vector<cplxdb> imagfreqs;
+            for (const auto &freq: chi0.tfg.get_freq_nodes())
+            {
+                imagfreqs.push_back(cplxdb{0.0, freq});
+            }
+
+            // TODO: parallelize analytic continuation and QPE solver among tasks
+            if (mpi_comm_world_h.is_root())
+            {
+                map<int, map<int, map<int, double>>> e_qp_all;
+                for (int i_spin = 0; i_spin < meanfield.get_n_spins(); i_spin++)
+                {
+                    for (int i_kpoint = 0; i_kpoint < meanfield.get_n_kpoints(); i_kpoint++)
+                    {
+                        const auto &sigc_sk = s_g0w0.sigc_is_ik_f_KS[i_spin][i_kpoint];
+                        for (int i_state = 0; i_state < meanfield.get_n_bands(); i_state++)
+                        {
+                            const auto &eks_state = meanfield.get_eigenvals()[i_spin](i_kpoint, i_state);
+                            const auto &exx_state = exx.Eexx[i_spin][i_kpoint][i_state];
+                            const auto &vxc_state = vxc[i_spin](i_kpoint, i_state);
+                            std::vector<cplxdb> sigc_state;
+                            for (const auto &freq: chi0.tfg.get_freq_nodes())
+                            {
+                                sigc_state.push_back(sigc_sk.at(freq)(i_state, i_state));
+                            }
+                            LIBRPA::AnalyContPade pade(Params::n_params_anacon, imagfreqs, sigc_state);
+                            double e_qp;
+                            int flag_qpe_solver = LIBRPA::qpe_linear_solver_pade(
+                                pade, eks_state, meanfield.get_efermi(), vxc_state, exx_state, e_qp);
+                            if (flag_qpe_solver == 0)
+                            {
+                                e_qp_all[i_spin][i_kpoint][i_state] = e_qp;
+                            }
+                            else
+                            {
+                                printf("Warning! QPE solver failed for spin %d, kpoint %d, state %d",
+                                        i_spin+1, i_kpoint+1, i_state+1);
+                                e_qp_all[i_spin][i_kpoint][i_state] = std::numeric_limits<double>::quiet_NaN();
+                            }
+                        }
+                    }
+                }
+            }
+            Profiler::stop("g0w0_solve_qpe");
+        }
 
         Profiler::start("g0w0_export_sigc_KS", "Export self-energy in KS basis");
         mpi_comm_world_h.barrier();

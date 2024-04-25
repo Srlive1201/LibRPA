@@ -37,6 +37,7 @@ list(APPEND lib_sources
         params.cpp
         pbc.cpp
         profiler.cpp
+        qpe_solver.cpp
         ri.cpp
         timefreq.cpp
         vector3_order.cpp
