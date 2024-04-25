@@ -1,3 +1,7 @@
+/*!
+ * @author    Min-Ye Zhang
+ * @date      2024-04-25
+ */
 #include "analycont.h"
 
 #include <cassert>
@@ -62,7 +66,7 @@ AnalyContPade::AnalyContPade(int n_pars_in, const std::vector<cplxdb> &xs, const
 }
 
 cplxdb
-AnalyContPade::get(const cplxdb &x)
+AnalyContPade::get(const cplxdb &x) const
 {
     cplxdb tmp = {1.0, 0.0};
 

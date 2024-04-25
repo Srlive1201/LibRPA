@@ -1,3 +1,9 @@
+/*!
+ * @file      analycont.h
+ * @brief     Utilities for analytic continuation
+ * @author    Min-Ye Zhang
+ * @date      2024-04-23
+ */
 #pragma once
 #include <vector>
 
@@ -17,7 +23,15 @@ public:
     AnalyContPade(int n_pars_in,
                   const std::vector<cplxdb> &xs,
                   const std::vector<cplxdb> &data);
-    cplxdb get(const cplxdb &x);
+
+    /*!
+     * @brief get the value of continued function at complex number
+     *
+     * @param [in]    x    complex argument of function
+     *
+     * @return    a complex double, the value of function at x
+     */
+    cplxdb get(const cplxdb &x) const;
 };
 
 }
