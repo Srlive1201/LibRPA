@@ -6,7 +6,7 @@ namespace LIBRPA
 {
 
 /*!
- * \brief Solve quasi-particle equation by computing self-energy on real freqeuncy through Pade Analytic continuation
+ * \brief Solve quasi-particle equation self-consistently by computing self-energy on real freqeuncy through Pade Analytic continuation
  *
  * \param [in]     pade       AnalyContPade object, constructed from correlation self-energy at imaginary frequency
  * \param [in]     e_mf       Energy of the state of meanf-field calculation
@@ -17,7 +17,7 @@ namespace LIBRPA
  * \param [out]    sigc       Correlation self-energy of the quasi-particle
  * \retval         info       0 if QPE is solved successfully
  */
-int qpe_linear_solver_pade(
+int qpe_solver_pade_self_consistent(
         const AnalyContPade &pade,
         const double &e_mf,
         const double &e_fermi,

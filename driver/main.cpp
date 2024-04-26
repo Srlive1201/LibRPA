@@ -682,6 +682,7 @@ int main(int argc, char **argv)
             {
                 map<int, map<int, map<int, double>>> e_qp_all;
                 map<int, map<int, map<int, cplxdb>>> sigc_all;
+                const auto efermi = meanfield.get_efermi() * 0.5;
                 for (int i_spin = 0; i_spin < meanfield.get_n_spins(); i_spin++)
                 {
                     for (int i_kpoint = 0; i_kpoint < meanfield.get_n_kpoints(); i_kpoint++)
@@ -689,7 +690,9 @@ int main(int argc, char **argv)
                         const auto &sigc_sk = s_g0w0.sigc_is_ik_f_KS[i_spin][i_kpoint];
                         for (int i_state = 0; i_state < meanfield.get_n_bands(); i_state++)
                         {
-                            const auto &eks_state = meanfield.get_eigenvals()[i_spin](i_kpoint, i_state);
+                            // convert Ry to Ha
+                            // FIXME: we should use a consistent internal unit!
+                            const auto &eks_state = meanfield.get_eigenvals()[i_spin](i_kpoint, i_state) * 0.5;
                             const auto &exx_state = exx.Eexx[i_spin][i_kpoint][i_state];
                             const auto &vxc_state = vxc[i_spin](i_kpoint, i_state);
                             std::vector<cplxdb> sigc_state;
@@ -700,8 +703,8 @@ int main(int argc, char **argv)
                             LIBRPA::AnalyContPade pade(Params::n_params_anacon, imagfreqs, sigc_state);
                             double e_qp;
                             cplxdb sigc;
-                            int flag_qpe_solver = LIBRPA::qpe_linear_solver_pade(
-                                pade, eks_state, meanfield.get_efermi(), vxc_state, exx_state, e_qp, sigc);
+                            int flag_qpe_solver = LIBRPA::qpe_solver_pade_self_consistent(
+                                pade, eks_state, efermi, vxc_state, exx_state, e_qp, sigc);
                             if (flag_qpe_solver == 0)
                             {
                                 e_qp_all[i_spin][i_kpoint][i_state] = e_qp;
@@ -733,7 +736,7 @@ int main(int argc, char **argv)
                         printf("%60s\n", banner.c_str());
                         for (int i_state = 0; i_state < meanfield.get_n_bands(); i_state++)
                         {
-                            const auto &eks_state = meanfield.get_eigenvals()[i_spin](i_kpoint, i_state) * HA2EV;
+                            const auto &eks_state = meanfield.get_eigenvals()[i_spin](i_kpoint, i_state) * RY2EV;
                             const auto &exx_state = exx.Eexx[i_spin][i_kpoint][i_state] * HA2EV;
                             const auto &vxc_state = vxc[i_spin](i_kpoint, i_state) * HA2EV;
                             const auto &resigc = sigc_all[i_spin][i_kpoint][i_state].real() * HA2EV;

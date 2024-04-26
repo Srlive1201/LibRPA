@@ -1,8 +1,13 @@
 #include "qpe_solver.h"
+
+#include <cmath>
+#include <iostream>
+#include <iomanip>
+
 namespace LIBRPA
 {
 
-int qpe_linear_solver_pade(
+int qpe_solver_pade_self_consistent(
         const AnalyContPade &pade,
         const double &e_mf,
         const double &e_fermi,
@@ -22,16 +27,18 @@ int qpe_linear_solver_pade(
 
     double diff = 1e-3;
 
+    // std::cout << "QPE: " << e_mf << " " << e_fermi << " " << vxc << " " << sigma_x << "\n";
     while (n_iter++ < n_iter_max)
     {
-        e_qp += escale * diff;
+        e_qp = e_qp + escale * diff;
         sigc = pade.get(static_cast<cplxdb>(e_qp - e_fermi));
         diff = e_mf - vxc + sigma_x + sigc.real() - e_qp;
-        if (abs(diff) < thres)
+        if (std::abs(diff) < thres)
         {
             break;
         }
     }
+    // std::cout << "Finished QPE solve: " << n_iter << " " << std::scientific << diff << " " << std::abs(diff) << "\n";
 
     if (n_iter > n_iter_max)
     {
