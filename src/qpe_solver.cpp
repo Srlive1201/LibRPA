@@ -8,7 +8,8 @@ int qpe_linear_solver_pade(
         const double &e_fermi,
         const double &vxc,
         const double &sigma_x,
-        double &e_qp)
+        double &e_qp,
+        cplxdb &sigc)
 {
     int info = 0;
     const double escale = 0.1;
@@ -24,8 +25,8 @@ int qpe_linear_solver_pade(
     while (n_iter++ < n_iter_max)
     {
         e_qp += escale * diff;
-        auto sigc = pade.get(static_cast<cplxdb>(e_qp - e_fermi)).real();
-        diff = e_mf - vxc + sigma_x + sigc - e_qp;
+        sigc = pade.get(static_cast<cplxdb>(e_qp - e_fermi));
+        diff = e_mf - vxc + sigma_x + sigc.real() - e_qp;
         if (abs(diff) < thres)
         {
             break;

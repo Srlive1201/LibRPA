@@ -667,6 +667,10 @@ int main(int argc, char **argv)
         if (flag_read_vxc == 0)
         {
             Profiler::start("g0w0_solve_qpe", "Solve quasi-particle equation");
+            if (mpi_comm_world_h.is_root())
+            {
+                std::cout << "Solving quasi-particle equation\n";
+            }
             std::vector<cplxdb> imagfreqs;
             for (const auto &freq: chi0.tfg.get_freq_nodes())
             {
@@ -677,6 +681,7 @@ int main(int argc, char **argv)
             if (mpi_comm_world_h.is_root())
             {
                 map<int, map<int, map<int, double>>> e_qp_all;
+                map<int, map<int, map<int, cplxdb>>> sigc_all;
                 for (int i_spin = 0; i_spin < meanfield.get_n_spins(); i_spin++)
                 {
                     for (int i_kpoint = 0; i_kpoint < meanfield.get_n_kpoints(); i_kpoint++)
@@ -694,19 +699,49 @@ int main(int argc, char **argv)
                             }
                             LIBRPA::AnalyContPade pade(Params::n_params_anacon, imagfreqs, sigc_state);
                             double e_qp;
+                            cplxdb sigc;
                             int flag_qpe_solver = LIBRPA::qpe_linear_solver_pade(
-                                pade, eks_state, meanfield.get_efermi(), vxc_state, exx_state, e_qp);
+                                pade, eks_state, meanfield.get_efermi(), vxc_state, exx_state, e_qp, sigc);
                             if (flag_qpe_solver == 0)
                             {
                                 e_qp_all[i_spin][i_kpoint][i_state] = e_qp;
+                                sigc_all[i_spin][i_kpoint][i_state] = sigc;
                             }
                             else
                             {
                                 printf("Warning! QPE solver failed for spin %d, kpoint %d, state %d",
                                         i_spin+1, i_kpoint+1, i_state+1);
                                 e_qp_all[i_spin][i_kpoint][i_state] = std::numeric_limits<double>::quiet_NaN();
+                                sigc_all[i_spin][i_kpoint][i_state] = std::numeric_limits<cplxdb>::quiet_NaN();
                             }
                         }
+                    }
+                }
+
+                // display results
+                const std::string banner(90, '-');
+                printf("Printing quasi-particle energy [unit: eV]\n\n");
+                for (int i_spin = 0; i_spin < meanfield.get_n_spins(); i_spin++)
+                {
+                    for (int i_kpoint = 0; i_kpoint < meanfield.get_n_kpoints(); i_kpoint++)
+                    {
+                        const auto &k = kfrac_list[i_kpoint];
+                        printf("spin %2d, k-point %4d: (%.5f, %.5f, %.5f) \n",
+                                i_spin+1, i_kpoint+1, k.x, k.y, k.z);
+                        printf("%60s\n", banner.c_str());
+                        printf("%5s %16s %16s %16s %16s %16s\n", "State", "e_mf", "v_xc", "v_exx", "ReSigc", "e_qp");
+                        printf("%60s\n", banner.c_str());
+                        for (int i_state = 0; i_state < meanfield.get_n_bands(); i_state++)
+                        {
+                            const auto &eks_state = meanfield.get_eigenvals()[i_spin](i_kpoint, i_state) * HA2EV;
+                            const auto &exx_state = exx.Eexx[i_spin][i_kpoint][i_state] * HA2EV;
+                            const auto &vxc_state = vxc[i_spin](i_kpoint, i_state) * HA2EV;
+                            const auto &resigc = sigc_all[i_spin][i_kpoint][i_state].real() * HA2EV;
+                            const auto &eqp = e_qp_all[i_spin][i_kpoint][i_state] * HA2EV;
+                            printf("%5d %16.5f %16.5f %16.5f %16.5f %16.5f\n",
+                                   i_state+1, eks_state, vxc_state, exx_state, resigc, eqp);
+                        }
+                        printf("\n");
                     }
                 }
             }

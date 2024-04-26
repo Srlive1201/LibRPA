@@ -104,7 +104,7 @@ int read_vxc(const string &file_path, std::vector<matrix> &vxc)
                 {
                     return 2;
                 }
-                vxc[is](ik, is) = ha;
+                vxc[is](ik, i) = ha;
             }
         }
     }
