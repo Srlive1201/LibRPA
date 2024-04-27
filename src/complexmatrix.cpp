@@ -529,9 +529,13 @@ ComplexMatrix power_hemat(ComplexMatrix &cmat, double power, bool keep_ev, bool 
         w[i] = -w[i];
         // printf("%3d%22.12f\n", i+1, w[i]);
         if (w[i] < 0 && w[i] > threshold && !is_int_power)
+	{
             printf("Warning! kept negative eigenvalue with non-integer power: # %d ev = %f , pow = %f\n", i, w[i], power);
+	}
         if (fabs(w[i]) < 1e-10 && power < 0)
+	{
             printf("Warning! nearly-zero eigenvalue with negative power: # %d ev = %f , pow = %f\n", i, w[i], power);
+	}
         if (w[i] < threshold)
         {
             wpow[i] = 0;
@@ -539,7 +543,9 @@ ComplexMatrix power_hemat(ComplexMatrix &cmat, double power, bool keep_ev, bool 
                 w[i] = 0;
         }
         else
+	{
             wpow[i] = w[i];
+	}
         wpow[i] = pow(wpow[i], power);
     }
     ComplexMatrix evconj = transpose(cmat, true);
