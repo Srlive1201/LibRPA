@@ -53,23 +53,23 @@ target_link_libraries(GXTabulateGrids
         LibGXMiniMax
         )
 
-# -----------------------------------------------
-# Library Installation
-# -----------------------------------------------
-# Install library
-# Destination relative to ${CMAKE_INSTALL_PREFIX}, defined in top-level CMake
-install(TARGETS LibGXMiniMax
-        ARCHIVE DESTINATION lib
-        LIBRARY DESTINATION lib)
-
-# Install modules
-# Destination relative to ${CMAKE_INSTALL_PREFIX}, defined in top-level CMake
-install(DIRECTORY ${CMAKE_Fortran_MODULE_DIRECTORY}
-        DESTINATION include)
-
-# Install `Build utility` program
-install(TARGETS GXTabulateGrids
-        DESTINATION bin)
+# # -----------------------------------------------
+# # Library Installation
+# # -----------------------------------------------
+# # Install library
+# # Destination relative to ${CMAKE_INSTALL_PREFIX}, defined in top-level CMake
+# install(TARGETS LibGXMiniMax
+#         ARCHIVE DESTINATION lib
+#         LIBRARY DESTINATION lib)
+#
+# # Install modules
+# # Destination relative to ${CMAKE_INSTALL_PREFIX}, defined in top-level CMake
+# install(DIRECTORY ${CMAKE_Fortran_MODULE_DIRECTORY}
+#         DESTINATION include)
+#
+# # Install `Build utility` program
+# install(TARGETS GXTabulateGrids
+#         DESTINATION bin)
 
 # -----------------------------------------------
 # Application Testing Set-Up

@@ -6,9 +6,17 @@
 #   LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}
 #   RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
 
-add_library(rpa_lib SHARED)
+if (BUILD_LIBRPA_SHARED)
+  add_library(rpa_lib SHARED)
+else()
+  add_library(rpa_lib STATIC)
+endif()
+
 set_target_properties(rpa_lib PROPERTIES
-  OUTPUT_NAME ${LIB_NAME})
+  OUTPUT_NAME ${LIB_NAME}
+  VERSION ${CMAKE_PROJECT_VERSION}
+  SOVERSION ${CMAKE_PROJECT_VERSION}
+)
 
 configure_file(envs.cpp.in envs.cpp)
 list(APPEND lib_sources
@@ -70,9 +78,11 @@ endif()
 
 # source must be PRIVATE to avoid recompilation when linking driver to this library
 target_sources(rpa_lib PRIVATE ${lib_sources})
-target_link_libraries(rpa_lib PRIVATE ${math_libs} ${parallel_libs})
+target_link_libraries(rpa_lib PUBLIC ${math_libs} ${parallel_libs})
 
-install(TARGETS rpa_lib ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
+install(TARGETS rpa_lib
+        ARCHIVE
+        DESTINATION ${CMAKE_INSTALL_LIBDIR})
 install(FILES ${PROJECT_SOURCE_DIR}/src/librpa.h
         DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 

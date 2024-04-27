@@ -20,19 +20,19 @@ target_sources(LibGXAC PRIVATE
 
 target_link_libraries(LibGXAC GXCommon)
 
-# -----------------------------------------------
-# Library Installation
-# -----------------------------------------------
-# Install library
-# Destination relative to ${CMAKE_INSTALL_PREFIX}, defined in top-level CMake
-install(TARGETS LibGXAC
-        ARCHIVE DESTINATION lib
-        LIBRARY DESTINATION lib)
-
-# Install modules
-# Destination relative to ${CMAKE_INSTALL_PREFIX}, defined in top-level CMake
-install(DIRECTORY ${CMAKE_Fortran_MODULE_DIRECTORY}
-        DESTINATION include)
+# # -----------------------------------------------
+# # Library Installation
+# # -----------------------------------------------
+# # Install library
+# # Destination relative to ${CMAKE_INSTALL_PREFIX}, defined in top-level CMake
+# install(TARGETS LibGXAC
+#         ARCHIVE DESTINATION lib
+#         LIBRARY DESTINATION lib)
+#
+# # Install modules
+# # Destination relative to ${CMAKE_INSTALL_PREFIX}, defined in top-level CMake
+# install(DIRECTORY ${CMAKE_Fortran_MODULE_DIRECTORY}
+#         DESTINATION include)
 
 # -----------------------------------------------
 # Unit Testing Set-up

@@ -19,13 +19,14 @@ set(DRIVER_NAME "chi0_main.exe")
 set(LIB_NAME    "rpa")
 
 # options setup
-option(USE_LIBRI          "Use LibRI for tensor contraction" OFF)
-option(USE_CMAKE_INC      "Use cmake.inc for configure" OFF)
-option(USE_GREENX_MINIMAX "Use GreenX library for minimax grids generation" OFF)
-
-option(ENABLE_DOC    "Flag to build documentation" OFF)
-option(ENABLE_TEST   "Flag to build unit tests" ON)
-option(ENABLE_DRIVER "Flag to build driver executables" ON)
+option(USE_LIBRI            "Use LibRI for tensor contraction" OFF)
+option(USE_CMAKE_INC        "Use cmake.inc for configure" OFF)
+option(USE_GREENX_MINIMAX   "Use GreenX library for minimax grids generation" OFF)
+option(ENABLE_DOC           "Flag to build documentation" OFF)
+option(ENABLE_TEST          "Flag to build unit tests" ON)
+option(ENABLE_DRIVER        "Flag to build driver executables" ON)
+# NOTE: static library not tested
+option(BUILD_LIBRPA_SHARED  "Flag to build shared libraries" ON)
 
 # Add cmake load files
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
@@ -68,8 +69,15 @@ if(CMAKE_CXX_COMPILER_ID MATCHES Intel)
   endif()
 endif()
 
-# for installation
+# Setup installation paths
 include(GNUInstallDirs)
+if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+  set(default_install_prefix "${CMAKE_BINARY_DIR}/install")
+  set(CMAKE_INSTALL_PREFIX ${default_install_prefix}
+      CACHE STRING "The installation directory is not set, default to ${default_install_prefix}"
+      FORCE)
+endif()
+
 
 if(NOT _loaded_cmake_inc)
   if(DEFINED ENV{MKLROOT} AND NOT DEFINED MKLROOT)
@@ -155,6 +163,8 @@ endif()
 
 if(ENABLE_DRIVER)
   message(STATUS "Build driver")
+  list(APPEND CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR})
+  message(STATUS "CMAKE_INSTALL_RPATH: ${CMAKE_INSTALL_RPATH}")
   add_subdirectory(driver)
 endif()
 

@@ -4,7 +4,6 @@
 #include <memory>
 #include <valarray>
 #include <mpi.h>
-#include "params.h"
 
 #ifdef __cplusplus
 extern "C" {

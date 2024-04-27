@@ -4,7 +4,7 @@
 #include <iostream>
 #include <fstream>
 
-#include "librpa.h"
+#include "params.h"
 
 static const std::string SPACE_SEP = "[ \r\f\t]*";
 
