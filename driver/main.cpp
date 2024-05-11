@@ -712,7 +712,7 @@ int main(int argc, char **argv)
                             }
                             else
                             {
-                                printf("Warning! QPE solver failed for spin %d, kpoint %d, state %d",
+                                printf("Warning! QPE solver failed for spin %d, kpoint %d, state %d\n",
                                         i_spin+1, i_kpoint+1, i_state+1);
                                 e_qp_all[i_spin][i_kpoint][i_state] = std::numeric_limits<double>::quiet_NaN();
                                 sigc_all[i_spin][i_kpoint][i_state] = std::numeric_limits<cplxdb>::quiet_NaN();
