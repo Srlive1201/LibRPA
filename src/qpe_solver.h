@@ -24,6 +24,7 @@ int qpe_solver_pade_self_consistent(
         const double &vxc,
         const double &sigma_x,
         double &e_qp,
-        cplxdb &sigc);
+        cplxdb &sigc,
+        double thres = 1.0e-5);
 
 }

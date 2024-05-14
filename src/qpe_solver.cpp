@@ -1,8 +1,8 @@
 #include "qpe_solver.h"
 
 #include <cmath>
-#include <iostream>
-#include <iomanip>
+// #include <iostream>
+// #include <iomanip>
 
 namespace LIBRPA
 {
@@ -14,11 +14,11 @@ int qpe_solver_pade_self_consistent(
         const double &vxc,
         const double &sigma_x,
         double &e_qp,
-        cplxdb &sigc)
+        cplxdb &sigc,
+        double thres)
 {
     int info = 0;
     const double escale = 0.1;
-    const double thres = 1e-6;
     const int n_iter_max = 200;
     int n_iter = 0;
 
