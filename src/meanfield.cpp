@@ -214,15 +214,17 @@ void MeanField::allredue_wfc_isk()
             {
                 ComplexMatrix loc_wfc(n_bands,n_aos);
                 ComplexMatrix glo_wfc(n_bands,n_aos);
-                if(mpi_comm_world_h.is_root())
-                {
-                    loc_wfc=wfc[is][ik];
-                }
-                mpi_comm_world_h.allreduce_ComplexMatrix(loc_wfc,glo_wfc);
-                if(!mpi_comm_world_h.is_root())
-                {
-                    wfc[is][ik]=glo_wfc;
-                }
+                // if(mpi_comm_world_h.is_root())
+                // {
+                //     loc_wfc=wfc[is][ik];
+                // }
+                // mpi_comm_world_h.allreduce_ComplexMatrix(loc_wfc,glo_wfc);
+                // if(!mpi_comm_world_h.is_root())
+                // {
+                //     wfc[is][ik]=glo_wfc;
+                // }
+                mpi_comm_world_h.allreduce_ComplexMatrix(wfc[is][ik],glo_wfc);
+                wfc[is][ik]=glo_wfc;
             }
         
 }

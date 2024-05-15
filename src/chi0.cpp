@@ -365,10 +365,11 @@ void Chi0::build_chi0_q_space_time_LibRI_routing(const atpair_R_mat_t &LRI_Cs,
                     }
                 }
             }
-
+            cout<<"is: "<<isp.first<<" tau: "<<tau<<"  qifreq_atpair_all.size()"<<qifreq_atpair_all.size()<<endl;
             #pragma omp parallel for schedule(dynamic)
-            for (const auto &qifreq_atpair: qifreq_atpair_all)
+            for (int i=0; i<qifreq_atpair_all.size(); ++i)
             {
+                auto qifreq_atpair=qifreq_atpair_all[i];
                 const auto &q = qifreq_atpair.first.first;
                 const auto &ifreq = qifreq_atpair.first.second;
                 const double freq = tfg.get_freq_nodes()[ifreq];
@@ -387,8 +388,11 @@ void Chi0::build_chi0_q_space_time_LibRI_routing(const atpair_R_mat_t &LRI_Cs,
 
                     const double arg = q * (Rint * latvec) * TWO_PI;
                     const complex<double> kphase = complex<double>(cos(arg), sin(arg));
+                    // if(freq==tfg.get_freq_nodes()[10] && tau == tfg.get_time_nodes()[10])
+                    //     cout <<"freq:  "<<freq<<"   Mu Nu:"<<Mu<<", "<<Nu<<";  "<<complex<double>(cos(arg), sin(arg)) << " * " << trans <<"   chi0_tau: "<<cm_chi0(0,0)<<"   chi0_freq:"<<chi0_q[freq][q][Mu][Nu](0,0)<<endl;
                     cm_chi0 *= 2.0 / mf.get_n_spins() * (trans * kphase);
                     // omp_set_lock(&lock_chi0_fourier_cosine);
+                    
                     chi0_q[freq][q][Mu][Nu] += cm_chi0;
                     // omp_unset_lock(&lock_chi0_fourier_cosine);
                 }
@@ -483,7 +487,8 @@ void Chi0::build_chi0_q_space_time_R_tau_routing(const atpair_R_mat_t &LRI_Cs,
                         double trans = tfg.get_costrans_t2f()(ifreq, itau);
                         const complex<double> weight = trans * kphase;
                         /* cout << weight << endl; */
-                        /* cout << complex<double>(cos(arg), sin(arg)) << " * " << trans << " = " << weight << endl; */
+                        // if(freq==tfg.get_freq_nodes()[10] && tau == tfg.get_time_nodes()[10])
+                        //     cout <<"freq:  "<<freq<<"   Mu Nu:"<<Mu<<", "<<Nu<<";  "<<complex<double>(cos(arg), sin(arg)) << " * " << trans <<"   chi0_tau: "<<chi0_tau(0,0)<<"   chi0_freq:"<<chi0_q_tmp[freq][q][Mu][Nu](0,0)<<endl;
                         chi0_q_tmp[freq][q][Mu][Nu] += ComplexMatrix(chi0_tau) * weight;
                     }
                 }

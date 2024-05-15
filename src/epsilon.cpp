@@ -259,8 +259,10 @@ CorrEnergy compute_RPA_correlation_blacs_2d_gamma_only( Chi0 &chi0, atpair_k_cpl
 }
 
 
-CorrEnergy compute_RPA_correlation_blacs_2d(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat)
+CorrEnergy compute_RPA_correlation_blacs_2d( Chi0 &chi0,  atpair_k_cplx_mat_t &coulmat)
 {
+    printf("Begin to compute_RPA_correlation_blacs_2d  myid: %d\n",mpi_comm_world_h.myid );
+    system("free -m");
     CorrEnergy corr;
     if (mpi_comm_world_h.myid == 0)
         printf("Calculating EcRPA with BLACS/ScaLAPACK 2D\n");
@@ -304,7 +306,7 @@ CorrEnergy compute_RPA_correlation_blacs_2d(const Chi0 &chi0, const atpair_k_cpl
             double vq_begin = omp_get_wtime();
             // LibRI tensor for communication, release once done
             std::map<int, std::map<std::pair<int, std::array<double, 3>>, Tensor<complex<double>>>> coul_libri;
-
+            coul_libri.clear();
             for (const auto &Mu_Nu: local_atpair)
             {
                 const auto Mu = Mu_Nu.first;
@@ -378,7 +380,7 @@ CorrEnergy compute_RPA_correlation_blacs_2d(const Chi0 &chi0, const atpair_k_cpl
                 double chi_begin_arr = omp_get_wtime();
                 std::map<int, std::map<std::pair<int, std::array<double, 3>>, Tensor<complex<double>>>> chi0_libri;
                 const auto &chi0_wq = chi0.get_chi0_q().at(freq).at(q);
-
+                chi0_libri.clear();
                 for (const auto &M_Nchi: chi0_wq)
                 {
                     const auto &M = M_Nchi.first;
@@ -394,6 +396,20 @@ CorrEnergy compute_RPA_correlation_blacs_2d(const Chi0 &chi0, const atpair_k_cpl
                         chi0_libri[M][{N,qa}] = Tensor<complex<double>>({n_mu, n_nu}, pchi);
                     }
                 }
+                if(mpi_comm_world_h.is_root())
+                {
+                    printf("Begin to clean chi0 !!! \n");
+                    system("free -m");
+                    printf("chi0_freq_q size: %d,  freq: %f, q:( %f, %f, %f )\n",chi0_wq.size(),freq, q.x,q.y,q.z );
+                }
+                chi0.free_chi0_q(freq,q);
+                malloc_trim(0);
+                // if(mpi_comm_world_h.is_root())
+                // {
+                //     printf("After clean chi0 !!! \n");
+                //     system("free -m");
+                //     printf("chi0_freq_q size: %d\n",chi0_wq.size());
+                // }
                 mpi_comm_world_h.barrier();
                 double chi_end_arr = omp_get_wtime();
                 // LIBRPA::fout_para << "chi0_libri" << endl << chi0_libri;
@@ -975,8 +991,9 @@ CorrEnergy compute_RPA_correlation(const Chi0 &chi0, const atpair_k_cplx_mat_t &
             }
         }
     }
-    // mpi_comm_world_h.barrier();
-    if (mpi_comm_world_h.myid == 0)
+    // printf("Finish Pi communicate %4d, size %zu\n", mpi_comm_world_h.myid, pi_freq_q_Mu_Nu.size());
+    mpi_comm_world_h.barrier();
+    // if (mpi_comm_world_h.myid == 0)
     {
         complex<double> tot_RPA_energy(0.0, 0.0);
         map<Vector3_Order<double>, complex<double>> cRPA_q;
@@ -1018,6 +1035,8 @@ CorrEnergy compute_RPA_correlation(const Chi0 &chi0, const atpair_k_cplx_mat_t &
                 tot_RPA_energy += rpa_for_omega_q * freq_weight * irk_weight[q]  / TWO_PI;
             }
         }
+        // printf("Finish EcRPA %4d, size %zu\n", mpi_comm_world_h.myid, pi_freq_q_Mu_Nu.size());
+        mpi_comm_world_h.barrier();
         map<Vector3_Order<double>, complex<double>> global_cRPA_q;
         for ( auto q_weight: irk_weight)
         {
@@ -2217,7 +2236,7 @@ CT_FT_Wc_freq_q(const map<double, atom_mapping<std::map<Vector3_Order<double>, m
     return Wc_tau_R;
 }
 
-void test_libcomm_for_system(atpair_k_cplx_mat_t &coulmat)
+void test_libcomm_for_system(const atpair_k_cplx_mat_t &coulmat)
 {
     if (mpi_comm_world_h.myid == 0)
         printf("test_libcomm_for_system Coulumb\n");
@@ -2254,6 +2273,7 @@ void test_libcomm_for_system(atpair_k_cplx_mat_t &coulmat)
             // LibRI tensor for communication, release once done
             std::map<int, std::map<std::pair<int, std::array<double, 3>>, Tensor<complex<double>>>> coul_libri;
             coul_libri.clear();
+            int count_coul=0;
             for (const auto &Mu_Nu: local_atpair)
             {
                 const auto Mu = Mu_Nu.first;
@@ -2269,12 +2289,21 @@ void test_libcomm_for_system(atpair_k_cplx_mat_t &coulmat)
                 auto pvq = std::make_shared<std::valarray<complex<double>>>();
                 *pvq = Vq_va;
                 coul_libri[Mu][{Nu,qa}] = Tensor<complex<double>>({n_mu, n_nu}, pvq);
+                count_coul+=1;
+            }
+            int count_pair=0;
+            for(auto &Mu:coul_libri)
+            {
+                for(auto &nu_q:Mu.second)
+                {
+                    count_pair+=1;
+                }
             }
             //printf("Finish RPA blacs 2d  vq arr\n");
             double arr_end = omp_get_wtime();
             mpi_comm_world_h.barrier();
             double comm_begin = omp_get_wtime();
-            //printf("Begin comm_map2_first  myid: %d\n",mpi_comm_world_h.myid);
+            printf("Begin comm_map2_first  myid: %d  q:(%f, %f, %f)  count_coul: %d  count_pair: %d\n",mpi_comm_world_h.myid,q.x,q.y,q.z,count_coul,count_pair);
             const auto IJq_coul = comm_map2_first(LIBRPA::mpi_comm_world_h.comm, coul_libri, s0_s1.first, s0_s1.second);
             double comm_end = omp_get_wtime();
             mpi_comm_world_h.barrier();
