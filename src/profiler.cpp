@@ -1,9 +1,9 @@
 #include "profiler.h"
-#include "params.h"
+
 #include <ctime>
 #include <string>
 #include <cstring>
-#include <iostream>
+// #include <iostream>
 #include <omp.h>
 
 double cpu_time_from_clocks_diff(const std::clock_t& ct_start,

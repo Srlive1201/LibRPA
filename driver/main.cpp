@@ -28,12 +28,12 @@ void initialize(int argc, char **argv)
 
 void finalize()
 {
-    if(LIBRPA::mpi_comm_world_h.is_root())
+    Profiler::stop("total");
+    if (LIBRPA::mpi_comm_world_h.is_root())
     {
         Profiler::display();
         printf("libRPA finished\n");
     }
-    Profiler::stop("total");
     LIBRPA::MPI_Wrapper::finalize();
 }
 
