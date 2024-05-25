@@ -213,6 +213,7 @@ int main(int argc, char **argv)
         for(auto &iap:trangular_loc_atpair)
             local_atpair.push_back(iap);
         READ_Vq_Row("./", "coulomb_mat", Params::vq_threshold, Vq, local_atpair);
+        test_libcomm_for_system(Vq);
     }
     else
     {
@@ -334,7 +335,7 @@ int main(int argc, char **argv)
         mpi_comm_world_h.barrier();
         Profiler::start("EcRPA", "Compute RPA correlation Energy");
         CorrEnergy corr;
-        if (Params::use_scalapack_ecrpa && LIBRPA::parallel_routing == LIBRPA::ParallelRouting::ATOM_PAIR)
+        if (Params::use_scalapack_ecrpa && (LIBRPA::parallel_routing == LIBRPA::ParallelRouting::ATOM_PAIR || LIBRPA::parallel_routing == LIBRPA::ParallelRouting::LIBRI))
         {
             if(meanfield.get_n_kpoints() == 1)
                 corr = compute_RPA_correlation_blacs_2d_gamma_only(chi0, Vq);
