@@ -1,9 +1,6 @@
 #include "timefreq.h"
-#include "envs.h"
 #include "mathtools.h"
 #include "parallel_mpi.h"
-#include "get_minimax.h"
-#include "params.h"
 #include <omp.h>
 #include <iostream>
 #include <fstream>
