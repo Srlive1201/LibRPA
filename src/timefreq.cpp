@@ -1,6 +1,7 @@
 #include "timefreq.h"
 #include "mathtools.h"
 #include "parallel_mpi.h"
+#include "get_minimax.h"
 #include <omp.h>
 #include <iostream>
 #include <fstream>

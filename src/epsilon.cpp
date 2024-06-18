@@ -403,7 +403,11 @@ CorrEnergy compute_RPA_correlation_blacs_2d( Chi0 &chi0,  atpair_k_cplx_mat_t &c
                     printf("chi0_freq_q size: %d,  freq: %f, q:( %f, %f, %f )\n",chi0_wq.size(),freq, q.x,q.y,q.z );
                 }
                 chi0.free_chi0_q(freq,q);
+                #ifndef __MACH__
                 malloc_trim(0);
+                #else
+                malloc_zone_pressure_relief(malloc_default_zone(), 0);
+                #endif
                 // if(mpi_comm_world_h.is_root())
                 // {
                 //     printf("After clean chi0 !!! \n");
