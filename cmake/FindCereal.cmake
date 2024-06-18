@@ -2,15 +2,11 @@
 # Adapted from the ABACUS FindCereal module and cmake cookbook ch03-r10
 #
 # Variables
-#   CEREAL_INCLUDE_DIR - specify the path by either environment varaible or -DCEREAL_INCLUDE_DIR to search the cereal headers
+#   CEREAL_INCLUDE_DIR - specify the path by -DCEREAL_INCLUDE_DIR to search the cereal headers
 #
+# Returns
 #   Cereal_FOUND - True if cereal is found.
 #   Cereal_INCLUDE_DIR - Where to find cereal headers.
-
-# check environment variable if cmake definition is not set
-if(NOT CEREAL_INCLUDE_DIR)
-  set(CEREAL_INCLUDE_DIR $ENV{CEREAL_INCLUDE_DIR})
-endif()
 
 find_path(Cereal_INCLUDE_DIR
   cereal/cereal.hpp
