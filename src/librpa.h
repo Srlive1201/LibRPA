@@ -10,8 +10,44 @@ extern "C" {
 #endif
 
 /*!
- * \brief set dimension parameters of the system
+ * \brief C struct to handle input parameters
+ *
+ * The struct should have essentially the same members as the Params C++ struct in params.h.
+ * However, not all members are implemented here, because some parameters are used to control
+ * how to read the file, i.e. for the driver. They are not relevant in API calls.
+ *
+ * A better solution is to move these parameters to other place.
  */
+struct LibRPAParams
+{
+    // char array types
+    char task[20];
+    char output_file[100];
+    char output_dir[100];
+    char parallel_routing[20];
+    char tfgrids_type[20];
+
+    // integer types
+    int nfreq;
+    int n_params_anacon;
+
+    // integer types, but correspondent to bool in Params
+    int use_scalapack_gw_wc;
+    int debug;
+    int use_scalapack_ecrpa;
+
+    // double types
+    double gf_R_threshold;
+    double cs_threshold;
+    double vq_threshold;
+    double sqrt_coulomb_threshold;
+    double libri_chi0_threshold_G;
+    double libri_exx_threshold_CSM;
+    double libri_exx_threshold_C;
+    double libri_exx_threshold_D;
+    double libri_exx_threshold_V;
+};
+
 void test_interface(int test_int, char* test_str);
 
 /*!

@@ -246,9 +246,11 @@ void set_aux_coulomb_k_2D_block(int ik, int max_naux, int mu_begin, int mu_end, 
     }
 }
 
-void set_librpa_params()
+void set_librpa_params(LibRPAParams *params_c)
 {
-    Params::nfreq=12;
+    Params::nfreq = params_c->nfreq;
+    Params::gf_R_threshold = params_c->gf_R_threshold;
+
     Params::print();
 }
 
