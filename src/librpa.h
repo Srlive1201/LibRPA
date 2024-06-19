@@ -13,7 +13,16 @@ extern "C" {
  * \brief set dimension parameters of the system
  */
 void test_interface(int test_int, char* test_str);
+
+/*!
+ * \brief set dimension parameters of the system
+ */
 void set_dimension(int nspins, int nkpts, int nstates, int nbasis, int natoms);
+
+/*!
+ * \brief set dimension parameters of the system
+ */
+void initialize_librpa_parallel_environment(MPI_Comm comm_in, int is_fortran_comm);
 
 void set_wg_ekb_efermi(int nspins, int nkpts, int nstates, double* wg, double* ekb, double efermi);
 
@@ -38,7 +47,7 @@ void set_ao_basis_aux(int I, int J, int nbasis_i, int nbasis_j, int naux_mu, int
 void set_aux_coulomb_k_atom_pair(int I, int J, int naux_mu, int naux_nu, int ik, double* Vq_real_in, double* Vq_imag_in);
 void set_aux_coulomb_k_2D_block(int ik, int max_naux, int mu_begin, int mu_end, int nu_begin, int nu_end, double* Vq_real_in, double* Vq_imag_in );
 void set_librpa_params();
-void run_librpa_main(MPI_Comm comm_in, int is_fortran_comm=0);
+void run_librpa_main();
 
 #ifdef __cplusplus
 }

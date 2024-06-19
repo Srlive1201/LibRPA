@@ -1,30 +1,24 @@
 #include "librpa_main.h"
-#include "constants.h"
-#include "interpolate.h"
-#include "fitting.h"
-#include "dielecmodel.h"
-#include "scalapack_connector.h"
 
 #include <algorithm>
 #if defined(__MACH__)
-#include <malloc/malloc.h> // for malloc_zone_pressure_relief and malloc_default_zone
+#include <malloc/malloc.h>  // for malloc_zone_pressure_relief and malloc_default_zone
 #else
 #include <malloc.h>
 #endif
-#include <set>
 
-void librpa_main(MPI_Comm comm_in, int is_fortran_comm)
+#include "chi0.h"
+#include "epsilon.h"
+#include "exx.h"
+#include "meanfield.h"
+#include "parallel_mpi.h"
+#include "params.h"
+#include "pbc.h"
+#include "profiler.h"
+
+void librpa_main()
 {
     using namespace LIBRPA;
-    MPI_Comm comm_global;
-    if(is_fortran_comm)
-        comm_global = MPI_Comm_f2c(comm_in);
-    else
-        comm_global=comm_in;
-    
-    MPI_Wrapper::init(comm_global);
-    mpi_comm_world_h.init();
-    cout << mpi_comm_world_h.str() << endl;
     //printf("AFTER init MPI  myid: %d\n",mpi_comm_world_h.myid);
     // mpi_comm_world_h.barrier();
     init_N_all_mu();
@@ -47,12 +41,12 @@ void librpa_main(MPI_Comm comm_in, int is_fortran_comm)
         allreduce_atp_aux();
         allreduce_2D_coulomb_to_atompair(Vq_block_loc,Vq,Params::gf_R_threshold);
     }
-    for(auto &Ip:Vq)
-        for(auto &Jp:Ip.second)
-            for(auto &qp:Jp.second)
+    for (auto &Ip : Vq)
+        for (auto &Jp : Ip.second)
+            for (auto &qp : Jp.second)
             {
-                auto q=qp.first;
-                printf("allreduce Vq myid : %d   I: %d, J: %d, q:(%f, %f, %f)\n",mpi_comm_world_h.myid, Ip.first,Jp.first,q.x,q.y,q.z);
+                auto q = qp.first;
+                // printf("allreduce Vq myid : %d   I: %d, J: %d, q:(%f, %f, %f)\n",mpi_comm_world_h.myid, Ip.first,Jp.first,q.x,q.y,q.z);
                 // print_complex_matrix("vq",*qp.second);
             }
     // for(auto vq_p:Vq)
@@ -314,194 +308,14 @@ void librpa_main(MPI_Comm comm_in, int is_fortran_comm)
         }
         Profiler::stop("EcRPA");
     }
-/*    else if ( Params::task == "g0w0" )
+    else
     {
-        Profiler::start("g0w0", "G0W0 quasi-particle calculation");
 
-        Profiler::start("read_vq_cut", "Load truncated Coulomb");
-        //READ_Vq_Full("./", "coulomb_cut_", Params::vq_threshold, Vq_cut);
-        const auto VR = FT_Vq(Vq_cut, Rlist, true);
-        Profiler::stop("read_vq_cut");
-
-        std::vector<double> epsmac_LF_imagfreq_re;
-
-        if (Params::replace_w_head)
-        {
-            std::vector<double> omegas_dielect;
-            std::vector<double> dielect_func;
-            read_dielec_func("dielecfunc_out", omegas_dielect, dielect_func);
-
-            switch(Params::option_dielect_func)
-            {
-                case 0:
-                    {
-                        assert(omegas_dielect.size() == chi0.tfg.size());
-                        // TODO: check if frequencies and close
-                        epsmac_LF_imagfreq_re = dielect_func;
-                        break;
-                    }
-                case 1:
-                    {
-                        epsmac_LF_imagfreq_re = UTILS::interp_cubic_spline(omegas_dielect, dielect_func,
-                                                                           chi0.tfg.get_freq_nodes());
-                        break;
-                    }
-                case 2:
-                    {
-                        UTILS::LevMarqFitting levmarq;
-                        // use double-dispersion Havriliak-Negami model
-                        // initialize the parameters as 1.0
-                        std::vector<double> pars(DoubleHavriliakNegami::d_npar, 1);
-                        pars[0] = pars[4] = dielect_func[0];
-                        epsmac_LF_imagfreq_re = levmarq.fit_eval(pars, omegas_dielect, dielect_func,
-                                                                 DoubleHavriliakNegami::func_imfreq,
-                                                                 DoubleHavriliakNegami::grad_imfreq,
-                                                                 chi0.tfg.get_freq_nodes());
-                        break;
-                    }
-                default:
-                    throw std::logic_error("Unsupported value for option_dielect_func");
-            }
-
-            if (Params::debug)
-            {
-                if (mpi_comm_world_h.is_root())
-                {
-                    printf("Dielection function parsed:\n");
-                    for (int i = 0; i < chi0.tfg.get_freq_nodes().size(); i++)
-                        printf("%d %f %f\n", i+1, chi0.tfg.get_freq_nodes()[i], epsmac_LF_imagfreq_re[i]);
-                }
-                mpi_comm_world_h.barrier();
-            }
-        }
-
-        Profiler::start("g0w0_exx", "Build exchange self-energy");
-        auto exx = LIBRPA::Exx(meanfield, kfrac_list);
-        exx.build_exx_orbital_energy(Cs, Rlist, period, VR);
-        Profiler::stop("g0w0_exx");
-
-        Profiler::start("g0w0_wc", "Build screened interaction");
-        vector<std::complex<double>> epsmac_LF_imagfreq(epsmac_LF_imagfreq_re.cbegin(), epsmac_LF_imagfreq_re.cend());
-        map<double, atom_mapping<std::map<Vector3_Order<double>, matrix_m<complex<double>>>>::pair_t_old> Wc_freq_q;
-        if (Params::use_scalapack_gw_wc)
-            Wc_freq_q = compute_Wc_freq_q_blacs(chi0, Vq, Vq_cut, epsmac_LF_imagfreq);
-        else
-            Wc_freq_q = compute_Wc_freq_q(chi0, Vq, Vq_cut, epsmac_LF_imagfreq);
-        Profiler::stop("g0w0_wc");
-
-        if (Params::debug)
-        { // debug, check Wc
-            char fn[80];
-            for (const auto &Wc: Wc_freq_q)
-            {
-                const int ifreq = chi0.tfg.get_freq_index(Wc.first);
-                for (const auto &I_JqWc: Wc.second)
-                {
-                    const auto &I = I_JqWc.first;
-                    for (const auto &J_qWc: I_JqWc.second)
-                    {
-                        const auto &J = J_qWc.first;
-                        for (const auto &q_Wc: J_qWc.second)
-                        {
-                            const int iq = std::distance(klist.begin(), std::find(klist.begin(), klist.end(), q_Wc.first));
-                            sprintf(fn, "Wcfq_ifreq_%d_iq_%d_I_%zu_J_%zu_id_%d.mtx", ifreq, iq, I, J, mpi_comm_world_h.myid);
-                            print_matrix_mm_file(q_Wc.second, Params::output_dir + "/" + fn, 1e-15);
-                        }
-                    }
-                }
-            }
-        }
-
-        LIBRPA::G0W0 s_g0w0(meanfield, kfrac_list, chi0.tfg);
-        Profiler::start("g0w0_sigc_IJ", "Build correlation self-energy");
-        s_g0w0.build_spacetime_LibRI(Cs, Wc_freq_q, Rlist, period);
-        Profiler::stop("g0w0_sigc_IJ");
-
-        if (Params::debug)
-        { // debug, check sigc_ij
-            char fn[80];
-            for (const auto &is_sigc: s_g0w0.sigc_is_f_k_IJ)
-            {
-                const int ispin = is_sigc.first;
-                for (const auto &f_sigc: is_sigc.second)
-                {
-                    const auto ifreq = chi0.tfg.get_freq_index(f_sigc.first);
-                    for (const auto &k_sigc: f_sigc.second)
-                    {
-                        const auto &k = k_sigc.first;
-                        const int ik = std::distance(klist.begin(), std::find(klist.begin(), klist.end(), k));
-                        for (const auto &I_sigc: k_sigc.second)
-                        {
-                            const auto &I = I_sigc.first;
-                            for (const auto &J_sigc: I_sigc.second)
-                            {
-                                const auto &J = J_sigc.first;
-                                sprintf(fn, "Sigcfq_ispin_%d_ifreq_%d_ik_%d_I_%zu_J_%zu_id_%d.mtx",
-                                        ispin, ifreq, ik, I, J, mpi_comm_world_h.myid);
-                                print_matrix_mm_file(J_sigc.second, Params::output_dir + "/" + fn, 1e-15);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        Profiler::start("g0w0_sigc_rotate_KS", "Rotate self-energy, IJ -> ij -> KS");
-        s_g0w0.build_sigc_matrix_KS();
-        Profiler::stop("g0w0_sigc_rotate_KS");
-
-        Profiler::start("g0w0_export_sigc_KS", "Export self-energy in KS basis");
-        mpi_comm_world_h.barrier();
-        if (mpi_comm_world_h.is_root())
-        {
-            char fn[100];
-            for (const auto &ispin_sigc: s_g0w0.sigc_is_ik_f_KS)
-            {
-                const auto &ispin = ispin_sigc.first;
-                for (const auto &ik_sigc: ispin_sigc.second)
-                {
-                    const auto &ik = ik_sigc.first;
-                    for (const auto &freq_sigc: ik_sigc.second)
-                    {
-                        const auto ifreq = s_g0w0.tfg.get_freq_index(freq_sigc.first);
-                        sprintf(fn, "Sigc_fk_mn_ispin_%d_ik_%d_ifreq_%d.mtx", ispin, ik, ifreq);
-                        print_matrix_mm_file(freq_sigc.second, Params::output_dir + "/" + fn, 1e-10);
-                    }
-                }
-            }
-            // for aims analytic continuation reader
-            write_self_energy_omega("self_energy_omega.dat", s_g0w0);
-        }
-        Profiler::stop("g0w0_export_sigc_KS");
-        Profiler::stop("g0w0");
     }
-    else if ( Params::task == "exx" )
-    {
-        READ_Vq_Full("./", "coulomb_cut_", Params::vq_threshold, Vq_cut);
-        const auto VR = FT_Vq(Vq_cut, Rlist, true);
-        auto exx = LIBRPA::Exx(meanfield, kfrac_list);
-        exx.build_exx_orbital_energy(Cs, Rlist, period, VR);
-        // FIXME: need to reduce first when MPI is used
-        // NOTE: may extract to a common function
-        if (LIBRPA::mpi_comm_world_h.is_root())
-        {
-            for (int isp = 0; isp != meanfield.get_n_spins(); isp++)
-            {
-                printf("Spin channel %1d\n", isp+1);
-                for (int ik = 0; ik != meanfield.get_n_kpoints(); ik++)
-                {
-                    cout << "k-point " << ik + 1 << ": " << kvec_c[ik] << endl;
-                    printf("%-4s  %-10s  %-10s\n", "Band", "e_exx (Ha)", "e_exx (eV)");
-                    for (int ib = 0; ib != meanfield.get_n_bands(); ib++)
-                        printf("%4d  %10.5f  %10.5f\n", ib+1, exx.Eexx[isp][ik][ib], HA2EV * exx.Eexx[isp][ik][ib]);
-                    printf("\n");
-                }
-            }
-        }
-    }
-*/
+
     Profiler::stop("total");
-    if(mpi_comm_world_h.is_root())
+
+    if (mpi_comm_world_h.is_root())
     {
         Profiler::display();
         printf("libRPA finished\n");
