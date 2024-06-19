@@ -118,6 +118,6 @@ static void customPrint(const char* format, ...) {
     va_end(args);
 }
 
-// #define printf customPrint
+#define printf customPrint
 
 #endif
