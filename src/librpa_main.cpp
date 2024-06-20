@@ -68,7 +68,8 @@ void librpa_main()
     blacs_ctxt_world_h.set_square_grid();
 
     // Set output
-    Params::output_file = "LibRPA_output.txt";
+    // The output now should be set using set_librpa_params
+    // Params::output_file = "LibRPA_output.txt";
 
     Profiler::start("total", "Total");
 

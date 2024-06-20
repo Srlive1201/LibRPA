@@ -24,28 +24,27 @@ struct LibRPAParams
     char task[20];
     char output_file[100];
     char output_dir[100];
-    char parallel_routing[20];
-    char tfgrids_type[20];
+    // char parallel_routing[20];
+    // char tfgrids_type[20];
 
     // integer types
     int nfreq;
-    int n_params_anacon;
 
     // integer types, but correspondent to bool in Params
-    int use_scalapack_gw_wc;
-    int debug;
-    int use_scalapack_ecrpa;
+    // int debug;
+    // int use_scalapack_ecrpa;
 
     // double types
-    double gf_R_threshold;
-    double cs_threshold;
-    double vq_threshold;
-    double sqrt_coulomb_threshold;
-    double libri_chi0_threshold_G;
-    double libri_exx_threshold_CSM;
-    double libri_exx_threshold_C;
-    double libri_exx_threshold_D;
-    double libri_exx_threshold_V;
+    // double gf_R_threshold;
+    // double cs_threshold;
+    // double vq_threshold;
+    // double sqrt_coulomb_threshold;
+    // double libri_chi0_threshold_C;
+    // double libri_chi0_threshold_G;
+    // double libri_exx_threshold_CSM;
+    // double libri_exx_threshold_C;
+    // double libri_exx_threshold_D;
+    // double libri_exx_threshold_V;
 };
 
 void test_interface(int test_int, char* test_str);
@@ -82,7 +81,8 @@ void set_ao_basis_aux(int I, int J, int nbasis_i, int nbasis_j, int naux_mu, int
 
 void set_aux_coulomb_k_atom_pair(int I, int J, int naux_mu, int naux_nu, int ik, double* Vq_real_in, double* Vq_imag_in);
 void set_aux_coulomb_k_2D_block(int ik, int max_naux, int mu_begin, int mu_end, int nu_begin, int nu_end, double* Vq_real_in, double* Vq_imag_in );
-void set_librpa_params();
+void set_librpa_params(LibRPAParams *params);
+void get_default_librpa_params(LibRPAParams *params);
 void run_librpa_main();
 
 #ifdef __cplusplus

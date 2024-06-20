@@ -123,10 +123,10 @@ void init_N_all_mu()
         {
             loc_mu[mu_p.first]=mu_p.second;
         }
-        printf(" mid init_N_all_mu\n");
+        // printf(" mid init_N_all_mu\n");
         vector<size_t> glo_nw(natom);
         vector<size_t> glo_mu(natom);
-        printf(" mid init_N_all_mu myid: %d\n",mpi_comm_world_h.myid);
+        // printf(" mid init_N_all_mu myid: %d\n",mpi_comm_world_h.myid);
         MPI_Allreduce(loc_nw.data(),glo_nw.data(),natom,MPI_UNSIGNED_LONG_LONG,MPI_MAX,MPI_COMM_WORLD);
         MPI_Allreduce(loc_mu.data(),glo_mu.data(),natom,MPI_UNSIGNED_LONG_LONG,MPI_MAX,MPI_COMM_WORLD);
 
@@ -145,7 +145,7 @@ void init_N_all_mu()
         atom_mu_part_range[I]=atom_mu.at(I-1)+atom_mu_part_range[I-1];
     
     N_all_mu=atom_mu_part_range[natom-1]+atom_mu[natom-1];
-    printf("end init_N_all_mu, atom_mu.size: %d\n",atom_mu.size());
+    // printf("end init_N_all_mu, atom_mu.size: %d\n",atom_mu.size());
   //  MPI_Barrier(MPI_COMM_WORLD);
 }
 
@@ -170,8 +170,8 @@ void allreduce_atp_aux()
             for (const auto& Rp : Cs[I][J]) 
             {   
                 auto R=Rp.first;
-                if(I==0 && J==0)
-                    printf(" send R  Cs  myid : %d   I: %d, J: %d, R:(%d, %d, %d)\n",mpi_comm_world_h.myid, I,J,R.x,R.y,R.z);
+                // if(I==0 && J==0)
+                //     printf(" send R  Cs  myid : %d   I: %d, J: %d, R:(%d, %d, %d)\n",mpi_comm_world_h.myid, I,J,R.x,R.y,R.z);
                 send_R_data.push_back(Rp.first.x);
                 send_R_data.push_back(Rp.first.y);
                 send_R_data.push_back(Rp.first.z);
@@ -191,8 +191,8 @@ void allreduce_atp_aux()
             for(int iR=0;iR!=nR;iR++)
             {
                 Vector3_Order<int> Rv(all_R_data[iR*3],all_R_data[iR*3+1],all_R_data[iR*3+2]);
-                if(I==0 && J==0)
-                    printf(" Rv  Cs  myid : %d   I: %d, J: %d, R:(%d, %d, %d)\n",mpi_comm_world_h.myid, I,J,Rv.x,Rv.y,Rv.z);
+                // if(I==0 && J==0)
+                //     printf(" Rv  Cs  myid : %d   I: %d, J: %d, R:(%d, %d, %d)\n",mpi_comm_world_h.myid, I,J,Rv.x,Rv.y,Rv.z);
                 shared_ptr<matrix> cs_ptr = make_shared<matrix>();
                 cs_ptr->create(nbasI*nbasJ, nauxI);
                 matrix loc_cs(nbasI*nbasJ, nauxI);
@@ -218,7 +218,7 @@ void allreduce_2D_coulomb_to_atompair(map<Vector3_Order<double>, ComplexMatrix> 
         }
         
         mpi_comm_world_h.allreduce_ComplexMatrix(Vq_block_loc[qvec],Vq_glo[qvec]);
-        print_complex_matrix("vq_glo", Vq_glo[qvec]);
+        // print_complex_matrix("vq_glo", Vq_glo[qvec]);
     }
     size_t vq_save = 0;
     size_t vq_discard = 0;

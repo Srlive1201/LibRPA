@@ -11,6 +11,7 @@
 #include "librpa.h"
 
 #include <stdlib.h>
+#include <cstring>
 
 #include "constants.h"
 #include "librpa_main.h"
@@ -248,15 +249,66 @@ void set_aux_coulomb_k_2D_block(int ik, int max_naux, int mu_begin, int mu_end, 
 
 void set_librpa_params(LibRPAParams *params_c)
 {
-    Params::nfreq = params_c->nfreq;
-    Params::gf_R_threshold = params_c->gf_R_threshold;
+    // Params::print();
+    cout << "--------------------------------------\n";
 
-    Params::print();
+    Params::task = params_c->task;
+    cout << "task set\n";
+    cout << "set_librpa_params output_file before: " << Params::output_file << "\n";
+    cout << "set_librpa_params output_file input : " << params_c->output_file << "\n";
+    Params::output_file = params_c->output_file;
+    // Params::output_file = "LibRPA_output.txt";
+    cout << "set_librpa_params output_file after : " << Params::output_file << "\n";
+    cout << "output_file set\n";
+    Params::output_dir = params_c->output_dir;
+    cout << "output_dir set\n";
+    // Params::tfgrids_type = params_c->tfgrids_type;
+    // Params::parallel_routing = params_c->parallel_routing;
+
+    Params::nfreq = params_c->nfreq;
+    cout << "nfreq set\n";
+
+    // Params::debug = params_c->debug;
+    // Params::use_scalapack_ecrpa = params_c->use_scalapack_ecrpa;
+
+    // Params::gf_R_threshold = params_c->gf_R_threshold;
+    // Params::cs_threshold = params_c->cs_threshold;
+    // Params::vq_threshold = params_c->vq_threshold;
+    // Params::libri_chi0_threshold_C = params_c->libri_chi0_threshold_C;
+    // Params::libri_chi0_threshold_G = params_c->libri_chi0_threshold_G;
+
+    // Params::print();
 }
+
+
+void get_default_librpa_params(LibRPAParams *params_c)
+{
+    // All member of LibRPAParams must be set.
+    // strcpy(params_c->task,             "rpa");
+
+    // printf("get %s\n", params_c->output_file);
+    strcpy(params_c->output_file,      "stdout");
+    // printf("get %s\n", params_c->output_file);
+    strcpy(params_c->output_dir,       "librpa.d");
+    // strcpy(params_c->parallel_routing, "auto");
+    // strcpy(params_c->tfgrids_type,     "minimax");
+
+    // params_c->nfreq = 6;
+
+    // params_c->debug = 0;
+    // params_c->use_scalapack_ecrpa = 0;
+    //
+    // params_c->gf_R_threshold = 0.0e0;
+    // params_c->cs_threshold = 0.0e0;
+    // params_c->vq_threshold = 0.0e0;
+    // params_c->libri_chi0_threshold_C = 0.0e0;
+    // params_c->libri_chi0_threshold_G = 0.0e0;
+}
+
 
 void run_librpa_main()
 {
-    printf("begin run librpa\n");
+    printf("Begin run LibRPA\n");
     // std::ofstream outputFile("LibRPA_cout.txt");
     // std::streambuf* originalCoutBuffer = std::cout.rdbuf();
    // std::cout.rdbuf(outputFile.rdbuf());

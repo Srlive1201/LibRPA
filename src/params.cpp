@@ -72,6 +72,7 @@ void Params::print()
         {
             {"task", task},
             {"output_dir", output_dir},
+            {"output_file", output_file},
             {"tfgrids_type", tfgrids_type},
             {"parallel_routing", parallel_routing},
         };
