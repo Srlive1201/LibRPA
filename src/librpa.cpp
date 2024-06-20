@@ -249,7 +249,7 @@ void set_aux_coulomb_k_2D_block(int ik, int max_naux, int mu_begin, int mu_end, 
 
 void set_librpa_params(LibRPAParams *params_c)
 {
-    // Params::print();
+    Params::print();
     cout << "--------------------------------------\n";
 
     Params::task = params_c->task;
@@ -277,7 +277,8 @@ void set_librpa_params(LibRPAParams *params_c)
     // Params::libri_chi0_threshold_C = params_c->libri_chi0_threshold_C;
     // Params::libri_chi0_threshold_G = params_c->libri_chi0_threshold_G;
 
-    // Params::print();
+    Params::print();
+    cout << "end print\n";
 }
 
 
