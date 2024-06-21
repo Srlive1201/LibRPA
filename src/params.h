@@ -103,18 +103,35 @@ struct Params
 // NOTE:(MYZ) Can we move customPrint to other file?
 
 static void customPrint(const char* format, ...) {
+    // static bool first_call = true;
     va_list args;
     va_start(args, format);
     const bool output_stdout = Params::output_file == "stdout";
 
-    char buffer[1024];
-    vsnprintf(buffer, sizeof(buffer), format, args);
+    if (output_stdout)
+    {
+        vprintf(format, args);
+    }
+    else
+    {
+        // std::ios_base::openmode mode = first_call ? std::ios_base::out : std::ios_base::app;
+        std::ios_base::openmode mode = std::ios_base::app;
+        std::ofstream ofs(Params::output_file, mode);
+        if (ofs.is_open())
+        {
+            const int BUFFER_SIZE = 1024;
+            char buffer[BUFFER_SIZE];
+            vsnprintf(buffer, sizeof(buffer), format, args);
+            ofs << buffer;
+            ofs.flush();
+            // first_call = false;
+        }
+        else
+        {
+            std::cerr << "Error opening file: " << Params::output_file << std::endl;
+        }
+    }
 
-    static std::ofstream outputFile;
-    std::ostream &os = output_stdout ? std::cout : outputFile;
-    if (!output_stdout) outputFile.open(Params::output_file, std::ios_base::app);
-    os << buffer;
-    os.flush();
     va_end(args);
 }
 
