@@ -21,6 +21,13 @@ void librpa_main()
     using namespace LIBRPA;
     //printf("AFTER init MPI  myid: %d\n",mpi_comm_world_h.myid);
     // mpi_comm_world_h.barrier();
+
+    if (mpi_comm_world_h.is_root())
+    {
+        printf("LibRPA control parameters:\n");
+        Params::print();
+    }
+
     init_N_all_mu();
 
     LIBRPA::atomic_basis_wfc.set(atom_nw);
