@@ -35,7 +35,7 @@ class Chi0
         /*
          @todo add threshold parameter. Maybe in the class level?
          */
-        void build_chi0_q_space_time(const atpair_R_mat_t &LRI_Cs,
+        void build_chi0_q_space_time( atpair_R_mat_t &LRI_Cs,
                                      const Vector3_Order<int> &R_period,
                                      const vector<atpair_t> &atpairs_ABF,
                                      const vector<Vector3_Order<double>> &qlist);
@@ -47,7 +47,7 @@ class Chi0
                                                    const Vector3_Order<int> &R_period,
                                                    const vector<atpair_t> &atpairs_ABF,
                                                    const vector<Vector3_Order<double>> &qlist);
-        void build_chi0_q_space_time_LibRI_routing(const atpair_R_mat_t &LRI_Cs,
+        void build_chi0_q_space_time_LibRI_routing( atpair_R_mat_t &LRI_Cs,
                                                    const Vector3_Order<int> &R_period,
                                                    const vector<atpair_t> &atpairs_ABF,
                                                    const vector<Vector3_Order<double>> &qlist);
@@ -82,7 +82,7 @@ class Chi0
             mf(mf_in), klist(klist_in), tfg(n_tf_grids) { gf_R_threshold = 1e-9; }
         ~Chi0() {};
         //! Build the independent response function in q-omega domain for ABFs on the atom pairs atpair_ABF and q-vectors in qlist
-        void build(const atpair_R_mat_t &LRI_Cs,
+        void build( atpair_R_mat_t &LRI_Cs,
                    const vector<Vector3_Order<int>> &Rlist,
                    const Vector3_Order<int> &R_period,
                    const vector<atpair_t> &atpair_ABF,

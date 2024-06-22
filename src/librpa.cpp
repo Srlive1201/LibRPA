@@ -46,11 +46,11 @@ void set_wg_ekb_efermi(int nspins, int nkpts, int nstates, double* wg, double* e
         swg[is]*=(1.0/nkpts);
         
     }
-    for(int is=0;is!=nspins;is++)
-    {
-        print_matrix(" eskb",eskb[is]);
-        print_matrix(" swg",swg[is]);
-    }
+    // for(int is=0;is!=nspins;is++)
+    // {
+    //     print_matrix(" eskb",eskb[is]);
+    //     print_matrix(" swg",swg[is]);
+    // }
 }
 
 void set_ao_basis_wfc(int is, int ik, double* wfc_real, double* wfc_imag)
@@ -65,7 +65,7 @@ void set_ao_basis_wfc(int is, int ik, double* wfc_real, double* wfc_imag)
         printf("In ao wfc: %f, %f\n",wfc_real[i],wfc_imag[i]);
         wfc.at(is).at(ik).c[i]=complex<double>(wfc_real[i],wfc_imag[i]);
     }
-    print_complex_matrix("wfc_isk", wfc.at(is).at(ik));
+    // print_complex_matrix("wfc_isk", wfc.at(is).at(ik));
 }
 
 void set_latvec_and_G(double* lat_mat, double* G_mat)
@@ -151,7 +151,7 @@ void set_ao_basis_aux(int I, int J, int nbasis_i, int nbasis_j, int naux_mu, int
     atom_mu.insert(pair<atom_t, int>(I, naux_mu));
     Vector3_Order<int> box(R[0],R[1],R[2]);
         // cout<< ia1<<ia2<<box<<endl;
-    //printf("Cs_in size: %zu",sizeof(Cs_in) / sizeof(Cs_in[0]));
+    // printf("Cs_in size: %zu",sizeof(Cs_in) / sizeof(Cs_in[0]));
     int cs_size=nbasis_i*nbasis_j*naux_mu;
     shared_ptr<matrix> cs_ptr = make_shared<matrix>();
     cs_ptr->create(nbasis_i * nbasis_j, naux_mu);

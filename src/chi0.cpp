@@ -23,12 +23,13 @@
 #endif
 #include <array>
 #include <map>
+#include <malloc.h>
 
 using LIBRPA::mpi_comm_world_h;
 using LIBRPA::ParallelRouting;
 using LIBRPA::parallel_routing;
 
-void Chi0::build(const atpair_R_mat_t &LRI_Cs,
+void Chi0::build( atpair_R_mat_t &LRI_Cs,
                    const vector<Vector3_Order<int>> &Rlist,
                    const Vector3_Order<int> &R_period,
                    const vector<atpair_t> &atpairs_ABF,
@@ -187,7 +188,7 @@ void Chi0::build_gf_Rt(Vector3_Order<int> R, double tau)
     Profiler::stop("cal_Green_func");
 }
 
-void Chi0::build_chi0_q_space_time(const atpair_R_mat_t &LRI_Cs,
+void Chi0::build_chi0_q_space_time( atpair_R_mat_t &LRI_Cs,
                                    const Vector3_Order<int> &R_period,
                                    const vector<atpair_t> &atpairs_ABF,
                                    const vector<Vector3_Order<double>> &qlist)
@@ -214,7 +215,7 @@ void Chi0::build_chi0_q_space_time(const atpair_R_mat_t &LRI_Cs,
     }
 }
 
-void Chi0::build_chi0_q_space_time_LibRI_routing(const atpair_R_mat_t &LRI_Cs,
+void Chi0::build_chi0_q_space_time_LibRI_routing( atpair_R_mat_t &LRI_Cs,
                                                  const Vector3_Order<int> &R_period,
                                                  const vector<atpair_t> &atpairs_ABF,
                                                  const vector<Vector3_Order<double>> &qlist)
@@ -258,22 +259,29 @@ void Chi0::build_chi0_q_space_time_LibRI_routing(const atpair_R_mat_t &LRI_Cs,
     std::map<int, std::map<std::pair<int,std::array<int,3>>,RI::Tensor<double>>> Cs_libri;
 
     Profiler::start("chi0_libri_routing_init_cs", "Initialize Cs");
-    for (const auto &I_JRCs: LRI_Cs)
+    if(mpi_comm_world_h.is_root())
+    {
+        printf("Begin to Cs_libri !!! \n");
+        system("free -m");
+        // printf("chi0_freq_q size: %d,  freq: %f, q:( %f, %f, %f )\n",chi0_wq.size(),freq, q.x,q.y,q.z );
+    }
+    for ( auto &I_JRCs: LRI_Cs)
     {
         const auto &I = I_JRCs.first;
-        for (const auto &J_RCs: I_JRCs.second)
+        for ( auto &J_RCs: I_JRCs.second)
         {
             const auto &J = J_RCs.first;
-            for (const auto &R_Cs: J_RCs.second)
+            for ( auto &R_Cs: J_RCs.second)
             {
                 const auto &R = R_Cs.first;
-                const auto &C = R_Cs.second;
+                auto &C = R_Cs.second;
                 const std::array<int,3> Ra{R.x,R.y,R.z};
                 const auto mat = transpose(*C);
                 std::valarray<double> mat_array(mat.c, mat.size);
                 std::shared_ptr<std::valarray<double>> mat_ptr = std::make_shared<std::valarray<double>>();
                 *mat_ptr=mat_array;
                 Cs_libri[I][{J, Ra}] = RI::Tensor<double>({atom_mu[I], atom_nw[I], atom_nw[J]}, mat_ptr);
+                C.reset();
             }
         }
     }
@@ -282,7 +290,23 @@ void Chi0::build_chi0_q_space_time_LibRI_routing(const atpair_R_mat_t &LRI_Cs,
     // if (Params::debug)
     //     LIBRPA::fout_para << Cs_libri;
     // cout << "Setting Cs for rpa object" << endl;
+    malloc_trim(0);
+    if(mpi_comm_world_h.is_root())
+    {
+        printf("Begin set Cs !!! \n");
+        system("free -m");
+        // printf("chi0_freq_q size: %d,  freq: %f, q:( %f, %f, %f )\n",chi0_wq.size(),freq, q.x,q.y,q.z );
+    }
+    
     rpa.set_Cs(Cs_libri, Params::libri_chi0_threshold_C);
+    Cs_libri.clear();
+    malloc_trim(0);
+    if(mpi_comm_world_h.is_root())
+    {
+        printf("After set Cs !!! \n");
+        system("free -m");
+        // printf("chi0_freq_q size: %d,  freq: %f, q:( %f, %f, %f )\n",chi0_wq.size(),freq, q.x,q.y,q.z );
+    }
     // cout << "Cs of rpa object set" << endl;
     Profiler::stop("chi0_libri_routing_set_cs");
 
@@ -297,7 +321,7 @@ void Chi0::build_chi0_q_space_time_LibRI_routing(const atpair_R_mat_t &LRI_Cs,
 
     // omp_lock_t lock_chi0_fourier_cosine;
     // omp_init_lock(&lock_chi0_fourier_cosine);
-
+    int count_gf=0;
     for (auto it = 0; it != tfg.size(); it++)
     {
         double tau = tfg.get_time_nodes()[it];
@@ -322,15 +346,25 @@ void Chi0::build_chi0_q_space_time_LibRI_routing(const atpair_R_mat_t &LRI_Cs,
                     const map<double, matrix> &gf_tau = gf_IJR_tau.at(I).at(J).at(R);
                     if (gf_tau.count(tau) * gf_tau.count(-tau) == 0)
                         continue;
-                    std::valarray<double> mat_po_array(gf_tau.at(tau).c, gf_tau.at(tau).size);
-                    std::shared_ptr<std::valarray<double>> mat_po_ptr = std::make_shared<std::valarray<double>>();
-                    *mat_po_ptr=mat_po_array;
+                    // std::valarray<double> mat_po_array(gf_tau.at(tau).c, gf_tau.at(tau).size);
+                    LIBRPA::fout_para << "gf_libri 1,    tau:" << tau << "  I J R: "<<I<<"  "<<J<<"  "<<R<<" size:"<<gf_tau.at(tau).size<<"\n";
+                    std::shared_ptr<std::valarray<double>> mat_po_ptr = std::make_shared<std::valarray<double>>(gf_tau.at(tau).c, gf_tau.at(tau).size);
+                    // *mat_po_ptr=mat_po_array;
                     gf_po_libri[I][{J, Ra}] = RI::Tensor<double>({size_t(gf_tau.at(tau).nr), size_t(gf_tau.at(tau).nc)}, mat_po_ptr);
                     // negative tau
-                    std::valarray<double> mat_ne_array(gf_tau.at(-tau).c, gf_tau.at(-tau).size);
-                    std::shared_ptr<std::valarray<double>> mat_ne_ptr = std::make_shared<std::valarray<double>>();
-                    *mat_ne_ptr=mat_ne_array;
+                    // std::valarray<double> mat_ne_array(gf_tau.at(-tau).c, gf_tau.at(-tau).size);
+                    std::shared_ptr<std::valarray<double>> mat_ne_ptr = std::make_shared<std::valarray<double>>(gf_tau.at(-tau).c, gf_tau.at(-tau).size);
+                    // *mat_ne_ptr=mat_ne_array;
                     gf_ne_libri[I][{J, Ra}] = RI::Tensor<double>({size_t(gf_tau.at(-tau).nr), size_t(gf_tau.at(-tau).nc)}, mat_ne_ptr);
+                    // LIBRPA::fout_para << "gf_libri 2,    tau:" << tau << "  I J R: "<<I<<"  "<<J<<"  "<<R<<"\n";
+                    // count_gf+=1;
+        //             if(count_gf==500)
+        //             {
+        //                 printf("gf_libri myid: %d \n",mpi_comm_world_h.myid);
+        //                 system("free -m");
+        //                 count_gf=0;
+        // // printf("chi0_freq_q size: %d,  freq: %f, q:( %f, %f, %f )\n",chi0_wq.size(),freq, q.x,q.y,q.z );
+        //             }
                 }
             }
             // LIBRPA::fout_para << "gf_po_libri\n" << gf_po_libri << "\n";
