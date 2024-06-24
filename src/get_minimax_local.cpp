@@ -1,6 +1,6 @@
 #include "get_minimax.h"
 
-#include "paths.h"
+#include "envs_dir.h"
 #include "parallel_mpi.h"
 
 #include <fstream>

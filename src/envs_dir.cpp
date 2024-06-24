@@ -1,4 +1,4 @@
-#include "paths.h"
+#include "envs_dir.h"
 
 #include <cctype>
 #include <cstring>
@@ -7,7 +7,7 @@
 /*!
  @param[in] file_abspath: absolute path of a file. Support UNIX only.
  */
-const char * get_dirname(const char * file_abspath)
+static const char * get_dirname(const char * file_abspath)
 {
     char * fn = new char [std::strlen(file_abspath) + 1];
     std::strcpy(fn, file_abspath);
