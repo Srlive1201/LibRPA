@@ -25,7 +25,7 @@ void initialize_mpi(MPI_Comm mpi_comm_global_in)
     if (flag == 0)
     {
         throw std::runtime_error(
-            std::string(__FILE_NAME__) + ":" + std::to_string(__LINE__) + ":" + std::string(__FUNCTION__) + ": "
+            std::string(__FILE__) + ":" + std::to_string(__LINE__) + ":" + std::string(__FUNCTION__) + ": "
             "MPI_Init or MPI_Init_thread must be called before " + std::string(__FUNCTION__));
     }
 
