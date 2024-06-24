@@ -1,15 +1,14 @@
 #include "get_minimax.h"
 
-#include "envs.h"
+#include "paths.h"
 #include "parallel_mpi.h"
 
 #include <fstream>
-#include <map>
 #include <unistd.h>
 #include <vector>
 #include <string>
 
-static const std::string minimax_grid_path = string(source_dir) + "/minimax_grid";
+static const std::string minimax_grid_path = string(LIBRPA::envs::source_dir) + "/minimax_grid";
 static const std::string GX_path = minimax_grid_path + "/GreenX/generate_local_grid.py";
 
 //! read the file containing grids points information

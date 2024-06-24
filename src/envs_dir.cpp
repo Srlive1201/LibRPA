@@ -1,4 +1,5 @@
-#include "envs.h"
+#include "paths.h"
+
 #include <cctype>
 #include <cstring>
 
@@ -19,4 +20,13 @@ const char * get_dirname(const char * file_abspath)
     return fn;
 }
 
+namespace LIBRPA
+{
+
+namespace envs
+{
+
 const char * source_dir = get_dirname(__FILE__);
+
+} /* end of namespace envs */
+} /* end of namespace LIBRPA */

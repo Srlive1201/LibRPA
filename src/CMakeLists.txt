@@ -18,7 +18,7 @@ set_target_properties(rpa_lib PROPERTIES
   SOVERSION ${CMAKE_PROJECT_VERSION}
 )
 
-configure_file(envs.cpp.in envs.cpp)
+configure_file(envs_dir.cpp.in envs_dir.cpp)
 list(APPEND lib_sources
         # aperiodic_chi0.cpp
         analycont.cpp
@@ -29,7 +29,9 @@ list(APPEND lib_sources
         constants.cpp
         coulmat.cpp
         dielecmodel.cpp
-        ${CMAKE_CURRENT_BINARY_DIR}/envs.cpp
+        ${CMAKE_CURRENT_BINARY_DIR}/envs_dir.cpp
+        envs_io.cpp
+        envs_mpi.cpp
         epsilon.cpp
         exx.cpp
         fitting.cpp
