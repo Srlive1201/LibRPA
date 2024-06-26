@@ -121,15 +121,15 @@ int main (int argc, char **argv)
     using namespace LIBRPA::envs;
     int provided;
     MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
-    initialize_io();
     initialize_mpi(MPI_COMM_WORLD);
+    initialize_io();
 
     check_initialize();
     check_minimax_ng16_diamond_k222();
     check_minimax_ng6_HF_123();
 
-    finalize_mpi();
     finalize_io();
+    finalize_mpi();
     MPI_Finalize();
     return 0;
 }

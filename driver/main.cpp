@@ -42,8 +42,8 @@ static void initialize(int argc, char **argv)
         lib_printf("Warning: MPI_Init_thread provide %d != required %d", provided, MPI_THREAD_MULTIPLE);
     }
 
-    initialize_io(false);
     initialize_mpi(MPI_COMM_WORLD);
+    initialize_io(true);
 
     // Global profiler begins right after MPI is initialized
     Profiler::start("total", "Total");
@@ -61,8 +61,8 @@ static void finalize()
         lib_printf("libRPA finished\n");
     }
 
-    finalize_mpi();
     finalize_io();
+    finalize_mpi();
 
     MPI_Finalize();
 }
