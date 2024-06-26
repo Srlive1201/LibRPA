@@ -7,7 +7,9 @@ namespace LIBRPA
 namespace envs
 {
 
-//! Output stream handler of each process
+extern std::ofstream ofs;
+
+//! File output stream handler of each process
 extern std::ofstream ofs_myid;
 
 //! Control whether to redirect stdout (cout, fmt print) to file

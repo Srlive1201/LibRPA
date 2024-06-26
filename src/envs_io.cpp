@@ -13,6 +13,7 @@ namespace LIBRPA
 namespace envs
 {
 
+std::ofstream ofs;
 std::ofstream ofs_myid;
 bool redirect_stdout = false;
 FILE *pfile_redirect;
@@ -40,16 +41,24 @@ void initialize_io(bool redirect_stdout_in, const char *filename)
 
     redirect_stdout = redirect_stdout_in;
 
+    // Redirect output
     if (redirect_stdout)
     {
-        // Redirect cout stream
-        std::ofstream ofs(filename);
-        // Save the original cout buffer
+        // Rank 0 touches the output file
+        MPI_Barrier(mpi_comm_global);
+        if (myid_global == 0)
+        {
+            std::ofstream ofs(filename);
+            ofs.close();
+        }
+        MPI_Barrier(mpi_comm_global);
+
+        ofs.open(filename, std::ios::out | std::ios::app);
         cout_buf_old = std::cout.rdbuf();
         std::cout.rdbuf(ofs.rdbuf());
 
-        // for redirecting printf by using fprintf(pfile_redirect)
-        pfile_redirect = fopen(filename, "w");
+        // redirecting printf
+        pfile_redirect = fopen(filename, "a");
     }
 
     librpa_io_initialized = true;

@@ -17,6 +17,7 @@
 #include "constants.h"
 #include "envs_mpi.h"
 #include "envs_io.h"
+#include "utils_io.h"
 #include "stl_io_helper.h"
 
 #include "librpa.h"
@@ -265,7 +266,7 @@ size_t READ_AIMS_Cs_evenly_distribute(const string &dir_path, double threshold, 
     }
     closedir(dir);
     dir = NULL;
-    if (myid == 0) printf("Finished Cs filtering\n");
+    if (myid == 0) LIBRPA::utils::lib_printf("Finished Cs filtering\n");
 
     for (const auto& fn_ids: files_Cs_ids_this_proc)
     {

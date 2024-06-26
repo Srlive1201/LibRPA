@@ -43,7 +43,7 @@ static void initialize(int argc, char **argv)
     }
 
     initialize_mpi(MPI_COMM_WORLD);
-    initialize_io(true);
+    initialize_io(false);
 
     // Global profiler begins right after MPI is initialized
     Profiler::start("total", "Total");
