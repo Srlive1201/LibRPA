@@ -1,7 +1,8 @@
 #include "fitting.h"
 
-#include <iostream>
 #include <cmath>
+
+#include "utils_io.h"
 
 /*
  * The fitting code is adapted from C version by Ron Babich
@@ -88,7 +89,7 @@ void solve_axb_cholesky(int n, const std::vector<std::vector<double>> &l, std::v
 namespace LIBRPA
 {
 
-namespace UTILS
+namespace utils
 {
 
 LevMarqFitting::LevMarqFitting()
@@ -109,7 +110,7 @@ void LevMarqFitting::fit(
     const std::size_t n = xs.size();
     if (xs.size() != ys.size())
     {
-        printf("Warning: inconsistent x and y size of data\n");
+        lib_printf("Warning: inconsistent x and y size of data\n");
     }
     int nit = d_maxiter;
     double lambda = d_init_lambda;
@@ -170,7 +171,7 @@ void LevMarqFitting::fit(
                 ill = (derr > 0);
             }
             // if (verbose)
-            //     printf(
+            //     lib_printf(
             //         "it = %4d,   lambda = %10g,   err = %10g,   "
             //         "derr = %10g\n",
             //         it, lambda, err, derr);
@@ -185,17 +186,17 @@ void LevMarqFitting::fit(
         err = newerr;
         lambda *= down;
 #ifdef PRINT_DEBUG
-        printf("Iteration %d: ", it);
+        lib_printf("Iteration %d: ", it);
         for (i = 0; i < npar; i++)
         {
-            printf("%f:", par[i]);
+            lib_printf("%f:", par[i]);
         }
-        printf("Error: %f\n", derr);
+        lib_printf("Error: %f\n", derr);
 #endif
         if ((!ill) && (-derr < target_derr))
         {
 #ifdef PRINT_DEBUG
-            printf("Converge after: %d cycles, final error: %f\n", it, derr);
+            lib_printf("Converge after: %d cycles, final error: %f\n", it, derr);
 #endif
             break;
         }
@@ -213,6 +214,6 @@ std::vector<double> LevMarqFitting::fit_eval(std::vector<double> &pars, const st
     return ys_eval;
 }
 
-} /* end of namespace UTILS */
+} /* end of namespace utils */
 
 } /* end of namespace LIBRPA */

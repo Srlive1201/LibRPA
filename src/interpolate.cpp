@@ -5,7 +5,7 @@
 
 namespace LIBRPA
 {
-namespace UTILS
+namespace utils
 {
 CubicSpline::CubicSpline(const std::vector<double>& xs, const std::vector<double>& ys): d_xs(xs), d_ys(ys)
 {
@@ -152,6 +152,6 @@ std::vector<double> interp_cubic_spline(const std::vector<double> &xs, const std
     return cs(xs_new);
 }
 
-} /* end of namespace UTILS */
+} /* end of namespace utils */
 } /* end of namespace LIBRPA */
 

@@ -8,7 +8,7 @@
 
 void test_levmarq_sin()
 {
-    LIBRPA::UTILS::LevMarqFitting levmarq;
+    LIBRPA::utils::LevMarqFitting levmarq;
 
     // sin(ax)
     auto f_sin =

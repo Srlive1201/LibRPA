@@ -1,4 +1,5 @@
-#include "parallel_mpi.h"
+#include "envs_io.h"
+#include "envs_mpi.h"
 #include "profiler.h"
 #include "matrix_m_parallel_utils.h"
 #include "params.h"
@@ -11,8 +12,8 @@
 #include "stl_io_helper.h"
 #ifdef LIBRPA_USE_LIBRI
 #include <RI/physics/Exx.h>
-// #include "print_stl.h"
 #endif
+#include "utils_io.h"
 
 namespace LIBRPA
 {
@@ -80,7 +81,7 @@ void Exx::build_dmat_R(const atom_t& I, const atom_t& J, const Vector3_Order<int
 void Exx::warn_dmat_IJR_nonzero_imag(const ComplexMatrix& dmat_cplx, const int& ispin, const atom_t& I, const atom_t& J, const Vector3_Order<int> R)
 {
     if (dmat_cplx.get_max_abs_imag() > 1e-2)
-        printf("Warning: complex-valued density matrix, spin %d IJR %zu %zu (%d, %d, %d)\n", ispin, I, J, R.x, R.y, R.z);
+        utils::lib_printf("Warning: complex-valued density matrix, spin %d IJR %zu %zu (%d, %d, %d)\n", ispin, I, J, R.x, R.y, R.z);
 }
 
 void Exx::build_exx_orbital_energy(const atpair_R_mat_t &LRI_Cs,
@@ -88,6 +89,7 @@ void Exx::build_exx_orbital_energy(const atpair_R_mat_t &LRI_Cs,
                                    const Vector3_Order<int> &R_period,
                                    const atpair_R_mat_t &coul_mat)
 {
+    using LIBRPA::envs::mpi_comm_global_h;
     // debug: check coeff and coulomb in different parallel routings
     // for (auto &I_JRCs: LRI_Cs)
     // {
@@ -98,18 +100,20 @@ void Exx::build_exx_orbital_energy(const atpair_R_mat_t &LRI_Cs,
     //         for (auto &R_Cs: J_RCs.second)
     //         {
     //             const auto &R = R_Cs.first;
-    //             fout_para << I << " " << J << " " << R << endl;
-    //             fout_para << (*R_Cs.second) << endl;
+    //             ofs_myid << I << " " << J << " " << R << endl;
+    //             ofs_myid << (*R_Cs.second) << endl;
     //         }
     //     }
     // }
     if (parallel_routing == ParallelRouting::LIBRI)
+    {
         this->build_exx_orbital_energy_LibRI(LRI_Cs, Rlist, R_period, coul_mat);
+    }
     else
     {
-        if (mpi_comm_world_h.is_root())
-            printf("Error: EXX orbital energy without LibRI is not implemented yet\n");
-        mpi_comm_world_h.barrier();
+        if (mpi_comm_global_h.is_root())
+            utils::lib_printf("Error: EXX orbital energy without LibRI is not implemented yet\n");
+        mpi_comm_global_h.barrier();
         throw std::logic_error("not implemented");
     }
 }
@@ -119,15 +123,19 @@ void Exx::build_exx_orbital_energy_LibRI(const atpair_R_mat_t &LRI_Cs,
                                          const Vector3_Order<int> &R_period,
                                          const atpair_R_mat_t &coul_mat)
 {
+    using LIBRPA::envs::mpi_comm_global;
+    using LIBRPA::envs::mpi_comm_global_h;
+    using LIBRPA::envs::blacs_ctxt_global_h;
+
     const auto& n_aos = this->mf_.get_n_aos();
     const auto& n_spins = this->mf_.get_n_spins();
     const auto& n_kpts = this->mf_.get_n_kpoints();
     const auto& n_bands = this->mf_.get_n_bands();
 
 #ifdef LIBRPA_USE_LIBRI
-    if (mpi_comm_world_h.is_root())
-        printf("Computing EXX orbital energy using LibRI\n");
-    mpi_comm_world_h.barrier();
+    if (mpi_comm_global_h.is_root())
+        utils::lib_printf("Computing EXX orbital energy using LibRI\n");
+    mpi_comm_global_h.barrier();
     RI::Exx<int, int, 3, double> exx_libri;
     map<int,std::array<double,3>> atoms_pos;
     for(int i=0;i!=atom_mu.size();i++)
@@ -137,7 +145,7 @@ void Exx::build_exx_orbital_energy_LibRI(const atpair_R_mat_t &LRI_Cs,
     std::array<double,3> za{latvec.e31,latvec.e32,latvec.e33};
     std::array<std::array<double,3>,3> lat_array{xa,ya,za};
     std::array<int,3> period_array{R_period.x,R_period.y,R_period.z};
-    exx_libri.set_parallel(MPI_COMM_WORLD, atoms_pos, lat_array, period_array);
+    exx_libri.set_parallel(mpi_comm_global, atoms_pos, lat_array, period_array);
     exx_libri.set_csm_threshold(Params::libri_exx_threshold_CSM);
 
     // Initialize Cs libRI container on each process
@@ -177,19 +185,19 @@ void Exx::build_exx_orbital_energy_LibRI(const atpair_R_mat_t &LRI_Cs,
     else
     {
         // Not implemented
-        MPI_Wrapper::barrier_world();
+        mpi_comm_global_h.barrier();
         throw std::logic_error("not implemented");
     }
-    fout_para << "Number of Cs keys: " << get_num_keys(Cs_libri) << "\n";
-    print_keys(LIBRPA::fout_para, Cs_libri);
+    envs::ofs_myid << "Number of Cs keys: " << get_num_keys(Cs_libri) << "\n";
+    print_keys(envs::ofs_myid, Cs_libri);
     exx_libri.set_Cs(Cs_libri, Params::libri_exx_threshold_C);
     Profiler::stop("build_exx_orbital_energy_1");
-    printf("Task %4d: C setup for EXX\n", mpi_comm_world_h.myid);
+    utils::lib_printf("Task %4d: C setup for EXX\n", mpi_comm_global_h.myid);
 
     // initialize Coulomb matrix
     Profiler::start("build_exx_orbital_energy_2", "Prepare V libRI object");
     std::map<int, std::map<std::pair<int,std::array<int,3>>,RI::Tensor<double>>> V_libri;
-    for (auto IJR: dispatch_vector_prod(get_atom_pair(coul_mat), Rlist, mpi_comm_world_h.myid, mpi_comm_world_h.nprocs, true, true))
+    for (auto IJR: dispatch_vector_prod(get_atom_pair(coul_mat), Rlist, mpi_comm_global_h.myid, mpi_comm_global_h.nprocs, true, true))
     {
         const auto I = IJR.first.first;
         const auto J = IJR.first.second;
@@ -203,10 +211,10 @@ void Exx::build_exx_orbital_energy_LibRI(const atpair_R_mat_t &LRI_Cs,
         *pv = VIJR_va;
         V_libri[I][{J, Ra}] = RI::Tensor<double>({size_t(VIJR->nr), size_t(VIJR->nc)}, pv);
     }
-    fout_para << "Number of V keys: " << get_num_keys(V_libri) << "\n";
+    envs::ofs_myid << "Number of V keys: " << get_num_keys(V_libri) << "\n";
     exx_libri.set_Vs(V_libri, Params::libri_exx_threshold_V);
     Profiler::stop("build_exx_orbital_energy_2");
-    printf("Task %4d: V setup for EXX\n", mpi_comm_world_h.myid);
+    utils::lib_printf("Task %4d: V setup for EXX\n", mpi_comm_global_h.myid);
     // cout << V_libri << endl;
 
     // initialize density matrix
@@ -214,13 +222,13 @@ void Exx::build_exx_orbital_energy_LibRI(const atpair_R_mat_t &LRI_Cs,
     for (int I = 0; I < atom_nw.size(); I++)
         for (int J = 0; J < atom_nw.size(); J++)
             atpair_dmat.push_back({I, J});
-    const auto dmat_IJRs_local = dispatch_vector_prod(atpair_dmat, Rlist, mpi_comm_world_h.myid, mpi_comm_world_h.nprocs, true, true);
+    const auto dmat_IJRs_local = dispatch_vector_prod(atpair_dmat, Rlist, mpi_comm_global_h.myid, mpi_comm_global_h.nprocs, true, true);
 
     // prepare scalapack array descriptors
-    Array_Desc desc_nao_nao(LIBRPA::blacs_ctxt_world_h);
-    Array_Desc desc_nband_nao(LIBRPA::blacs_ctxt_world_h);
-    Array_Desc desc_nband_nband(LIBRPA::blacs_ctxt_world_h);
-    Array_Desc desc_nband_nband_fb(LIBRPA::blacs_ctxt_world_h);
+    Array_Desc desc_nao_nao(blacs_ctxt_global_h);
+    Array_Desc desc_nband_nao(blacs_ctxt_global_h);
+    Array_Desc desc_nband_nband(blacs_ctxt_global_h);
+    Array_Desc desc_nband_nband_fb(blacs_ctxt_global_h);
     desc_nao_nao.init_1b1p(n_aos, n_aos, 0, 0);
     desc_nband_nao.init_1b1p(n_bands, n_aos, 0, 0);
     desc_nband_nband.init_1b1p(n_bands, n_bands, 0, 0);
@@ -231,7 +239,7 @@ void Exx::build_exx_orbital_energy_LibRI(const atpair_R_mat_t &LRI_Cs,
     auto Hexx_nband_nband = init_local_mat<complex<double>>(desc_nband_nband, MAJOR::COL);
     auto Hexx_nband_nband_fb = init_local_mat<complex<double>>(desc_nband_nband_fb, MAJOR::COL);
     // printf("%d size naonao %d nbandnao %d nbandnband %d\n",
-    //        blacs_ctxt_world_h.myid, Hexx_nao_nao.size(), temp_nband_nao.size(), Hexx_nband_nband.size());
+    //        blacs_ctxt_global_h.myid, Hexx_nao_nao.size(), temp_nband_nao.size(), Hexx_nband_nband.size());
 
     for (auto isp = 0; isp != n_spins; isp++)
     {
@@ -256,20 +264,20 @@ void Exx::build_exx_orbital_energy_LibRI(const atpair_R_mat_t &LRI_Cs,
                 }
             }
         }
-        fout_para << "Number of Dmat keys: " << get_num_keys(dmat_libri) << "\n";
-        print_keys(LIBRPA::fout_para, dmat_libri);
+        envs::ofs_myid << "Number of Dmat keys: " << get_num_keys(dmat_libri) << "\n";
+        print_keys(envs::ofs_myid, dmat_libri);
         exx_libri.set_Ds(dmat_libri, Params::libri_exx_threshold_D);
         Profiler::stop("build_exx_orbital_energy_3");
-        printf("Task %4d: DM setup for EXX\n", mpi_comm_world_h.myid);
+        utils::lib_printf("Task %4d: DM setup for EXX\n", mpi_comm_global_h.myid);
 
         Profiler::start("build_exx_orbital_energy_4", "Call libRI Hexx calculation");
         exx_libri.cal_Hs();
         Profiler::stop("build_exx_orbital_energy_4");
 
-        printf("Task %4d: cal_Hs elapsed time: %f\n", mpi_comm_world_h.myid, Profiler::get_wall_time_last("build_exx_orbital_energy_4"));
-        fout_para << "Number of exx_libri.Hs keys: " << get_num_keys(exx_libri.Hs) << "\n";
-        print_keys(LIBRPA::fout_para, exx_libri.Hs);
-        // LIBRPA::fout_para << "exx_libri.Hs:\n" << exx_libri.Hs << endl;
+        utils::lib_printf("Task %4d: cal_Hs elapsed time: %f\n", mpi_comm_global_h.myid, Profiler::get_wall_time_last("build_exx_orbital_energy_4"));
+        envs::ofs_myid << "Number of exx_libri.Hs keys: " << get_num_keys(exx_libri.Hs) << "\n";
+        print_keys(envs::ofs_myid, exx_libri.Hs);
+        // ofs_myid << "exx_libri.Hs:\n" << exx_libri.Hs << endl;
 
         // collect necessary data
         Profiler::start("build_exx_orbital_energy_5", "Collect Hexx IJ from world");
@@ -278,10 +286,10 @@ void Exx::build_exx_orbital_energy_LibRI(const atpair_R_mat_t &LRI_Cs,
                                                                   atomic_basis_wfc,
                                                                   desc_nao_nao);
         const auto Iset_Jset = convert_IJset_to_Iset_Jset(set_IJ_naonao);
-        const auto I_JallR_Hs = RI::Communicate_Tensors_Map_Judge::comm_map2_first(LIBRPA::mpi_comm_world_h.comm,
+        const auto I_JallR_Hs = RI::Communicate_Tensors_Map_Judge::comm_map2_first(mpi_comm_global_h.comm,
                 exx_libri.Hs, Iset_Jset.first, Iset_Jset.second);
         Profiler::stop("build_exx_orbital_energy_5");
-        printf("Task %4d: tensor communicate elapsed time: %f\n", mpi_comm_world_h.myid, Profiler::get_wall_time_last("build_exx_orbital_energy_5"));
+        utils::lib_printf("Task %4d: tensor communicate elapsed time: %f\n", mpi_comm_global_h.myid, Profiler::get_wall_time_last("build_exx_orbital_energy_5"));
         // cout << I_JallR_Hs << endl;
 
         for (int ik = 0; ik < n_kpts; ik++)
@@ -305,13 +313,13 @@ void Exx::build_exx_orbital_energy_LibRI(const atpair_R_mat_t &LRI_Cs,
                 }
             }
             Profiler::stop("build_exx_orbital_energy_6");
-            // printf("%s\n", str(Hexx_nao_nao).c_str());
+            // utils::lib_printf("%s\n", str(Hexx_nao_nao).c_str());
             const auto &wfc_isp_k = this->mf_.get_eigenvectors()[isp][ik];
-            blacs_ctxt_world_h.barrier();
+            blacs_ctxt_global_h.barrier();
             const auto wfc_block = get_local_mat(wfc_isp_k.c, MAJOR::ROW, desc_nband_nao, MAJOR::COL).conj();
-            // printf("%s\n", str(wfc_block).c_str());
-            // printf("%s\n", desc_nao_nao.info_desc().c_str());
-            // printf("%s\n", desc_nband_nao.info_desc().c_str());
+            // utils::lib_printf("%s\n", str(wfc_block).c_str());
+            // utils::lib_printf("%s\n", desc_nao_nao.info_desc().c_str());
+            // utils::lib_printf("%s\n", desc_nband_nao.info_desc().c_str());
             Profiler::start("build_exx_orbital_energy_7", "Rotate Hexx ij -> KS");
             ScalapackConnector::pgemm_f('N', 'N', n_bands, n_aos, n_aos, 1.0,
                                         wfc_block.ptr(), 1, 1, desc_nband_nao.desc,
@@ -332,7 +340,7 @@ void Exx::build_exx_orbital_energy_LibRI(const atpair_R_mat_t &LRI_Cs,
                                           Hexx_nband_nband_fb.ptr(), 1, 1, desc_nband_nband_fb.desc,
                                           desc_nband_nband_fb.ictxt());
             // cout << "Hexx_nband_nband_fb isp " << isp  << " ik " << ik << endl << Hexx_nband_nband_fb;
-            if (LIBRPA::blacs_ctxt_world_h.myid == 0)
+            if (blacs_ctxt_global_h.myid == 0)
                 for (int ib = 0; ib != n_bands; ib++)
                     this->Eexx[isp][ik][ib] = Hexx_nband_nband_fb(ib, ib).real();
             Profiler::stop("build_exx_orbital_energy_8");
@@ -394,12 +402,13 @@ void Exx::build_exx_orbital_energy_LibRI(const atpair_R_mat_t &LRI_Cs,
     //     }
     // }
 #else
-    if (mpi_comm_world_h.is_root())
+    using LIBRPA::envs::mpi_comm_global_h;
+    if (mpi_comm_global_h.is_root())
     {
-        printf("Error: trying build EXX orbital energy with LibRI, but the program is not compiled against LibRI\n");
+        utils::lib_printf("Error: trying build EXX orbital energy with LibRI, but the program is not compiled against LibRI\n");
     }
     throw std::logic_error("compilation");
-    mpi_comm_world_h.barrier();
+    mpi_comm_global_h.barrier();
 #endif
 }
 }

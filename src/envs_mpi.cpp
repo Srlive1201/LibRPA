@@ -14,11 +14,15 @@ int size_global = 1;
 
 MPI_Comm mpi_comm_global;
 
+LIBRPA::MPI_COMM_handler mpi_comm_global_h;
+
+LIBRPA::BLACS_CTXT_handler blacs_ctxt_global_h;
+
 std::string procname = "localhost";
 
 static bool librpa_mpi_initialized = false;
 
-void initialize_mpi(MPI_Comm mpi_comm_global_in)
+void initialize_mpi(const MPI_Comm &mpi_comm_global_in)
 {
     int flag;
     MPI_Initialized(&flag);
@@ -31,13 +35,20 @@ void initialize_mpi(MPI_Comm mpi_comm_global_in)
 
     mpi_comm_global = mpi_comm_global_in;
 
-    MPI_Comm_rank(mpi_comm_global_in, &myid_global);
-    MPI_Comm_size(mpi_comm_global_in, &size_global);
+    MPI_Comm_rank(mpi_comm_global, &myid_global);
+    MPI_Comm_size(mpi_comm_global, &size_global);
 
     char name[MPI_MAX_PROCESSOR_NAME];
     int length;
     MPI_Get_processor_name(name, &length);
     procname = name;
+
+    // Initialize handlers of global MPI communicator and BLACS context
+    mpi_comm_global_h.reset_comm(mpi_comm_global);
+    mpi_comm_global_h.init();
+
+    blacs_ctxt_global_h.reset_comm(mpi_comm_global);
+    blacs_ctxt_global_h.init();
 
     librpa_mpi_initialized = true;
 }

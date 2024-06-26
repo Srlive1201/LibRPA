@@ -31,21 +31,10 @@ extern const string parallel_routing_notes[ParallelRouting::COUNT];
 
 extern ParallelRouting parallel_routing;
 
-extern ofstream fout_para;
-
 void set_parallel_routing(const string &option, const int &atpais_num, const int &Rt_num, ParallelRouting &routing);
 
 namespace MPI_Wrapper
 {
-    extern std::string procname;
-    extern bool initialized;
-    extern int myid_world;
-    extern int nprocs_world;
-    bool is_root_world();
-    void init(int argc, char **argv);
-    void init(MPI_Comm comm_in);
-    void finalize();
-    void barrier_world();
     void allreduce_matrix(const matrix& mat_send, matrix& mat_recv, MPI_Comm mpi_comm);
     void allreduce_ComplexMatrix(const ComplexMatrix& cmat_send, ComplexMatrix & cmat_recv, MPI_Comm mpi_comm);
     void reduce_matrix(const matrix& mat_send, matrix& mat_recv, int root, MPI_Comm mpi_comm);
@@ -54,26 +43,28 @@ namespace MPI_Wrapper
 
 class MPI_COMM_handler
 {
+private:
+    bool initialized_;
+    bool comm_set_;
 public:
     MPI_Comm comm;
     int myid;
     int nprocs;
-    bool initialized;
-    void check_initialized() const;
 public:
+    MPI_COMM_handler();
     MPI_COMM_handler(MPI_Comm comm_in);
     ~MPI_COMM_handler() {};
     void init();
+    void reset_comm(MPI_Comm comm_in);
     bool is_root() const { return this->myid == 0; }
     void barrier() const;
     string str() const;
+    void check_initialized() const;
     void allreduce_matrix(matrix &mat_send, matrix &mat_recv) const;
     void allreduce_ComplexMatrix(ComplexMatrix &cmat_send, ComplexMatrix & cmat_recv) const;
     void reduce_matrix(matrix &mat_send, matrix & cmat_recv, int root) const;
     void reduce_ComplexMatrix(ComplexMatrix &cmat_send, ComplexMatrix & cmat_recv, int root) const;
 };
-
-extern MPI_COMM_handler mpi_comm_world_h;
 
 enum class CTXT_LAYOUT {R, C};
 enum class CTXT_SCOPE {R, C, A};
@@ -86,7 +77,8 @@ private:
     MPI_COMM_handler mpi_comm_h;
     char layout_ch;
     bool initialized_;
-    bool pgrid_set;
+    bool pgrid_set_;
+    bool comm_set_;
 public:
     int ictxt;
     CTXT_LAYOUT layout;
@@ -96,10 +88,12 @@ public:
     int npcols;
     int mypcol;
     int myprow;
-    BLACS_CTXT_handler(MPI_Comm comm_in): mpi_comm_h(comm_in) { pgrid_set = initialized_ = false; }
+    BLACS_CTXT_handler() { comm_set_ = pgrid_set_ = initialized_ = false; }
+    BLACS_CTXT_handler(MPI_Comm comm_in): mpi_comm_h(comm_in) { comm_set_ = true; pgrid_set_ = initialized_ = false; }
     ~BLACS_CTXT_handler() {};
 
     void init();
+    void reset_comm(MPI_Comm comm_in);
     void set_grid(const int &nprows_in, const int &npcols_in, CTXT_LAYOUT layout_in = CTXT_LAYOUT::R);
     void set_square_grid(bool more_rows = true, CTXT_LAYOUT layout_in = CTXT_LAYOUT::R);
     void set_horizontal_grid();
@@ -112,8 +106,6 @@ public:
     void exit();
     bool initialized() const { return initialized_; }
 };
-
-extern BLACS_CTXT_handler blacs_ctxt_world_h;
 
 class Array_Desc
 {
@@ -201,7 +193,7 @@ class Parallel_MPI
 {
 public:
     static vector<double> pack_mat(const map<size_t,map<size_t,map<Vector3_Order<int>,shared_ptr<matrix>>>> &Cs_m);
-    static map<size_t,map<size_t,map<Vector3_Order<int>,shared_ptr<matrix>>>> unpack_mat(vector<double> &pack);
+    // static map<size_t,map<size_t,map<Vector3_Order<int>,shared_ptr<matrix>>>> unpack_mat(vector<double> &pack);
 
     Parallel_MPI();
     ~Parallel_MPI();

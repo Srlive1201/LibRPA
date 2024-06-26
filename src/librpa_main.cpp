@@ -15,16 +15,22 @@
 #include "params.h"
 #include "pbc.h"
 #include "profiler.h"
+#include "envs_io.h"
+#include "envs_mpi.h"
+#include "utils_io.h"
 
 void librpa_main()
 {
-    using namespace LIBRPA;
-    //printf("AFTER init MPI  myid: %d\n",mpi_comm_world_h.myid);
-    // mpi_comm_world_h.barrier();
+    using LIBRPA::envs::mpi_comm_global_h;
+    using LIBRPA::envs::blacs_ctxt_global_h;
+    using LIBRPA::utils::lib_printf;
 
-    if (mpi_comm_world_h.is_root())
+    //printf("AFTER init MPI  myid: %d\n",mpi_comm_global_h.myid);
+    // mpi_comm_global_h.barrier();
+
+    if (mpi_comm_global_h.is_root())
     {
-        printf("LibRPA control parameters:\n");
+        LIBRPA::utils::lib_printf("LibRPA control parameters:\n");
         Params::print();
     }
 
@@ -38,7 +44,7 @@ void librpa_main()
     //         for(auto &Rp:Jp.second)
     //         {
     //             auto R=Rp.first;
-    //             printf("Cs  myid : %d   I: %d, J: %d, R:(%d, %d, %d)\n",mpi_comm_world_h.myid, Ip.first,Jp.first,R.x,R.y,R.z);
+    //             LIBRPA::utils::lib_printf("Cs  myid : %d   I: %d, J: %d, R:(%d, %d, %d)\n",mpi_comm_global_h.myid, Ip.first,Jp.first,R.x,R.y,R.z);
     //         }
 
     
@@ -53,7 +59,7 @@ void librpa_main()
             for (auto &qp : Jp.second)
             {
                 auto q = qp.first;
-                // printf("allreduce Vq myid : %d   I: %d, J: %d, q:(%f, %f, %f)\n",mpi_comm_world_h.myid, Ip.first,Jp.first,q.x,q.y,q.z);
+                // LIBRPA::utils::lib_printf("allreduce Vq myid : %d   I: %d, J: %d, q:(%f, %f, %f)\n",mpi_comm_global_h.myid, Ip.first,Jp.first,q.x,q.y,q.z);
                 // print_complex_matrix("vq",*qp.second);
             }
     // for(auto vq_p:Vq)
@@ -70,9 +76,9 @@ void librpa_main()
     //         }
     //     }
     // }
-    //mpi_comm_world_h.barrier();
-    blacs_ctxt_world_h.init();
-    blacs_ctxt_world_h.set_square_grid();
+    //mpi_comm_global_h.barrier();
+    blacs_ctxt_global_h.init();
+    blacs_ctxt_global_h.set_square_grid();
 
     // Set output
     // The output now should be set using set_librpa_params
@@ -84,16 +90,16 @@ void librpa_main()
     //parse_inputfile_to_params(input_filename);
     // create output directory, only by the root process
 
-    if (mpi_comm_world_h.is_root())
+    if (mpi_comm_global_h.is_root())
         system(("mkdir -p " + Params::output_dir).c_str());
-    //mpi_comm_world_h.barrier();
+    //mpi_comm_global_h.barrier();
     // Params::nfreq = stoi(argv[1]);
     // Params::gf_R_threshold = stod(argv[2]);
     Params::check_consistency();
-    if (mpi_comm_world_h.is_root())
+    if (mpi_comm_global_h.is_root())
         Params::print();
-    //mpi_comm_world_h.barrier();
-    if (mpi_comm_world_h.is_root())
+    //mpi_comm_global_h.barrier();
+    if (mpi_comm_global_h.is_root())
     {
         cout << "Information of mean-field starting-point" << endl;
         cout << "| number of spins: " << meanfield.get_n_spins() << endl
@@ -110,24 +116,24 @@ void librpa_main()
     Vector3_Order<int> period {kv_nmp[0], kv_nmp[1], kv_nmp[2]};
     auto Rlist = construct_R_grid(period);
 
-    if (mpi_comm_world_h.is_root())
+    if (mpi_comm_global_h.is_root())
     {
         cout << "Lattice vectors (Bohr)" << endl;
         latvec.print();
         cout << "Reciprocal lattice vectors (2PI Bohr^-1)" << endl;
         G.print();
-        printf("kgrids: %2d %2d %2d\n", kv_nmp[0], kv_nmp[1], kv_nmp[2]);
+        LIBRPA::utils::lib_printf("kgrids: %2d %2d %2d\n", kv_nmp[0], kv_nmp[1], kv_nmp[2]);
         cout << "k-points read (Cartisian in 2Pi Bohr^-1 | fractional):" << endl;
         for (int ik = 0; ik != meanfield.get_n_kpoints(); ik++)
         {
-            printf("ik %4d: %10.7f %10.7f %10.7f | %10.7f %10.7f %10.7f\n",
+            LIBRPA::utils::lib_printf("ik %4d: %10.7f %10.7f %10.7f | %10.7f %10.7f %10.7f\n",
                    ik+1, klist[ik].x, klist[ik].y, klist[ik].z,
                    kfrac_list[ik].x, kfrac_list[ik].y, kfrac_list[ik].z);
         }
         cout << "R-points to compute:" << endl;
         for (int iR = 0; iR != Rlist.size(); iR++)
         {
-            printf("iR %4d: %3d %3d %3d\n", iR+1, Rlist[iR].x, Rlist[iR].y, Rlist[iR].z);
+            LIBRPA::utils::lib_printf("iR %4d: %3d %3d %3d\n", iR+1, Rlist[iR].x, Rlist[iR].y, Rlist[iR].z);
         }
         cout << endl;
     }
@@ -136,55 +142,55 @@ void librpa_main()
     tot_atpair = generate_atom_pair_from_nat(natom, false);
     tot_atpair_ordered = generate_atom_pair_from_nat(natom, true);
   
-    if (mpi_comm_world_h.is_root())
+    if (mpi_comm_global_h.is_root())
     {
         cout << "| Number of atoms: " << natom << endl;
         cout << "| Total atom pairs (unordered): " << tot_atpair.size() << endl;
         cout << "| R-tau                       : " << Rt_num << endl;
         cout << "| Total atom pairs (ordered)  : " << tot_atpair_ordered.size() << endl;
     }
-    set_parallel_routing(Params::parallel_routing, tot_atpair.size(), Rt_num, parallel_routing);
+    set_parallel_routing(Params::parallel_routing, tot_atpair.size(), Rt_num, LIBRPA::parallel_routing);
 
     // barrier to wait for information print on master process
-    //mpi_comm_world_h.barrier();
+    //mpi_comm_global_h.barrier();
 
     //para_mpi.chi_parallel_type=Parallel_MPI::parallel_type::ATOM_PAIR;
     // vector<atpair_t> local_atpair;
-    if(parallel_routing == ParallelRouting::ATOM_PAIR)
+    if(LIBRPA::parallel_routing == LIBRPA::ParallelRouting::ATOM_PAIR)
     {
         // vector<int> atoms_list(natom);
         // for(int iat=0;iat!=natom;iat++)
         //     atoms_list[iat]=iat;
         // std::array<int,3> period_arr{kv_nmp[0], kv_nmp[1], kv_nmp[2]};
         // std::pair<std::vector<int>, std::vector<std::vector<std::pair<int, std::array<int, 3>>>>> list_loc_atp
-        // = RI::Distribute_Equally::distribute_atoms(mpi_comm_world_h.comm, atoms_list, period_arr, 2, false);
+        // = RI::Distribute_Equally::distribute_atoms(mpi_comm_global_h.comm, atoms_list, period_arr, 2, false);
         // // for(auto &atp:list_loc_atp.first)
-        // //     printf("| myid: %d   atp.first: %d\n",mpi_comm_world_h.myid,atp);
+        // //     LIBRPA::utils::lib_printf("| myid: %d   atp.first: %d\n",mpi_comm_global_h.myid,atp);
         // // for(auto &atps:list_loc_atp.second)
-        // //     printf("| myid: %d   atp.second: %d\n",mpi_comm_world_h.myid,atps);
-        // std::ofstream ofs("out."+std::to_string(RI::MPI_Wrapper::mpi_get_rank(MPI_COMM_WORLD)));
+        // //     LIBRPA::utils::lib_printf("| myid: %d   atp.second: %d\n",mpi_comm_global_h.myid,atps);
+        // std::ofstream ofs("out."+std::to_string(RI::MPI_Wrapper::mpi_get_rank(mpi_comm_global)));
         // for(auto &af:list_loc_atp.first)
 		//     ofs<<af<<"  ";
 		// ofs<<endl;
         // for( auto &a1 : list_loc_atp.second)
         //     for(auto &a2:a1)
         //         ofs<<a2.first<<"  ("<<a2.second[0]<<", "<<a2.second[1]<<", "<<a2.second[2]<<" )"<<endl;
-        auto trangular_loc_atpair= dispatch_upper_trangular_tasks(natom,blacs_ctxt_world_h.myid,blacs_ctxt_world_h.nprows,blacs_ctxt_world_h.npcols,blacs_ctxt_world_h.myprow,blacs_ctxt_world_h.mypcol);
-        //local_atpair = dispatch_vector(tot_atpair, mpi_comm_world_h.myid, mpi_comm_world_h.nprocs, true);
+        auto trangular_loc_atpair= dispatch_upper_trangular_tasks(natom,blacs_ctxt_global_h.myid,blacs_ctxt_global_h.nprows,blacs_ctxt_global_h.npcols,blacs_ctxt_global_h.myprow,blacs_ctxt_global_h.mypcol);
+        //local_atpair = dispatch_vector(tot_atpair, mpi_comm_global_h.myid, mpi_comm_global_h.nprocs, true);
         for(auto &iap:trangular_loc_atpair)
             local_atpair.push_back(iap);
-        printf("| process %d , local_atom_pair size:  %zu\n", mpi_comm_world_h.myid, local_atpair.size());
+        LIBRPA::utils::lib_printf("| process %d , local_atom_pair size:  %zu\n", mpi_comm_global_h.myid, local_atpair.size());
 
-        printf("| process %d, size of Cs from local_atpair: %lu\n", LIBRPA::mpi_comm_world_h.myid, Cs.size());
+        LIBRPA::utils::lib_printf("| process %d, size of Cs from local_atpair: %lu\n", mpi_comm_global_h.myid, Cs.size());
         // for(auto &ap:local_atpair)
-        //     printf("   |process %d , local_atom_pair:  %d,  %d\n", mpi_comm_world_h.myid,ap.first,ap.second);
+        //     LIBRPA::utils::lib_printf("   |process %d , local_atom_pair:  %d,  %d\n", mpi_comm_global_h.myid,ap.first,ap.second);
     }
     else
     {
         local_atpair = generate_atom_pair_from_nat(natom, false);
     }
     // debug, check available Coulomb blocks on each process
-    LIBRPA::fout_para << "Read Coulomb blocks in process\n";
+    LIBRPA::envs::ofs_myid << "Read Coulomb blocks in process\n";
     for (const auto& IJqcoul: Vq)
     {
         const auto& I = IJqcoul.first;
@@ -193,12 +199,12 @@ void librpa_main()
             const auto& J = Jqcoul.first;
             for (const auto& qcoul: Jqcoul.second)
             {
-                LIBRPA::fout_para << I << " " << J << " " << qcoul.first << "\n";
+                LIBRPA::envs::ofs_myid << I << " " << J << " " << qcoul.first << "\n";
             }
         }
     }
-    std::flush(LIBRPA::fout_para);
-    mpi_comm_world_h.barrier();
+    std::flush(LIBRPA::envs::ofs_myid);
+    mpi_comm_global_h.barrier();
     Profiler::stop("driver_io_init");
 
     // malloc_trim(0);
@@ -230,9 +236,9 @@ void librpa_main()
         qlist.push_back(q_weight.first);
     }
 
-    mpi_comm_world_h.barrier(); // FIXME: barrier seems not work here...
+    mpi_comm_global_h.barrier(); // FIXME: barrier seems not work here...
     // cout << endl;
-    if (mpi_comm_world_h.myid == 0)
+    if (mpi_comm_global_h.myid == 0)
         cout << "Initialization finished, start task job from myid\n";
 
     if ( Params::task != "exx" )
@@ -257,7 +263,7 @@ void librpa_main()
                     for (const auto &J_chi0: I_Jchi0.second)
                     {
                         const auto &J = J_chi0.first;
-                        sprintf(fn, "chi0fq_ifreq_%d_iq_%d_I_%zu_J_%zu_id_%d.mtx", ifreq, iq, I, J, mpi_comm_world_h.myid);
+                        sprintf(fn, "chi0fq_ifreq_%d_iq_%d_I_%zu_J_%zu_id_%d.mtx", ifreq, iq, I, J, mpi_comm_global_h.myid);
                         print_complex_matrix_mm(J_chi0.second, Params::output_dir + "/" + fn, 1e-15);
                     }
                 }
@@ -278,7 +284,7 @@ void librpa_main()
         //     Cs.erase(Cp.first);
         // }
         Cs.clear();
-        printf("Cs have been cleaned!\n");
+        LIBRPA::utils::lib_printf("Cs have been cleaned!\n");
     }
 
     #ifndef __MACH__
@@ -289,7 +295,7 @@ void librpa_main()
     // RPA total energy
     if ( Params::task == "rpa" )
     {
-        mpi_comm_world_h.barrier();
+        mpi_comm_global_h.barrier();
         Profiler::start("EcRPA", "Compute RPA correlation Energy");
         CorrEnergy corr;
         if (Params::use_scalapack_ecrpa && LIBRPA::parallel_routing == LIBRPA::ParallelRouting::ATOM_PAIR)
@@ -302,17 +308,17 @@ void librpa_main()
         else
             corr = compute_RPA_correlation(chi0, Vq);
 
-        if (mpi_comm_world_h.is_root())
+        if (mpi_comm_global_h.is_root())
         {
-            printf("RPA correlation energy (Hartree)\n");
-            printf("| Weighted contribution from each k:\n");
+            lib_printf("RPA correlation energy (Hartree)\n");
+            lib_printf("| Weighted contribution from each k:\n");
             for (const auto& q_ecrpa: corr.qcontrib)
             {
                 cout << "| " << q_ecrpa.first << ": " << q_ecrpa.second << endl;
             }
-            printf("| Total EcRPA: %18.9f\n", corr.value.real());
+            lib_printf("| Total EcRPA: %18.9f\n", corr.value.real());
             if (std::abs(corr.value.imag()) > 1.e-3)
-                printf("Warning: considerable imaginary part of EcRPA = %f\n", corr.value.imag());
+                lib_printf("Warning: considerable imaginary part of EcRPA = %f\n", corr.value.imag());
         }
         Profiler::stop("EcRPA");
     }
@@ -323,13 +329,11 @@ void librpa_main()
 
     Profiler::stop("total");
 
-    if (mpi_comm_world_h.is_root())
+    if (mpi_comm_global_h.is_root())
     {
         Profiler::display();
-        printf("libRPA finished\n");
+        lib_printf("libRPA finished\n");
     }
-
-    //MPI_Wrapper::finalize();
 
     return;
 }

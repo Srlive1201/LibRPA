@@ -47,17 +47,22 @@ struct LibRPAParams
     // double libri_exx_threshold_V;
 };
 
-void test_interface(int test_int, char* test_str);
-
 /*!
  * \brief set dimension parameters of the system
  */
 void set_dimension(int nspins, int nkpts, int nstates, int nbasis, int natoms);
 
 /*!
- * \brief set dimension parameters of the system
+ * \brief initialize the environment of LibRPA calculation
  */
-void initialize_librpa_parallel_environment(MPI_Comm comm_in, int is_fortran_comm);
+void initialize_librpa_environment(
+        MPI_Comm comm_in, int is_fortran_comm,
+        int redirect_stdout, const char *output_filename);
+
+/*!
+ * \brief finalie the environment of LibRPA calculation
+ */
+void finalize_librpa_environment();
 
 void set_wg_ekb_efermi(int nspins, int nkpts, int nstates, double* wg, double* ekb, double efermi);
 

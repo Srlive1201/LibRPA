@@ -4,9 +4,10 @@
 #include "matrix_m_parallel_utils.h"
 #include "profiler.h"
 #include "epsilon.h"
-#include "constants.h"
 #include "pbc.h"
 #include "libri_utils.h"
+#include "envs_mpi.h"
+#include "utils_io.h"
 
 #include <map>
 #ifdef LIBRPA_USE_LIBRI
@@ -34,27 +35,29 @@ void G0W0::build_spacetime_LibRI(
         &Wc_freq_q,
     const vector<Vector3_Order<int>> &Rlist, const Vector3_Order<int> &R_period)
 {
-    if (mpi_comm_world_h.myid == 0)
+    using LIBRPA::envs::mpi_comm_global_h;
+
+    if (mpi_comm_global_h.myid == 0)
     {
-        printf("Calculating correlation self-energy by space-time method\n");
+        LIBRPA::utils::lib_printf("Calculating correlation self-energy by space-time method\n");
     }
     if (!tfg.has_time_grids())
     {
-        if (mpi_comm_world_h.myid == 0)
+        if (mpi_comm_global_h.myid == 0)
         {
-            printf("Parsed time-frequency object do not have time grids, exiting\n");
+            LIBRPA::utils::lib_printf("Parsed time-frequency object do not have time grids, exiting\n");
         }
-        mpi_comm_world_h.barrier();
+        mpi_comm_global_h.barrier();
         throw std::logic_error("no time grids");
     }
-    mpi_comm_world_h.barrier();
+    mpi_comm_global_h.barrier();
 #ifndef LIBRPA_USE_LIBRI
-    if (mpi_comm_world_h.myid == 0)
+    if (mpi_comm_global_h.myid == 0)
     {
         cout << "LIBRA::G0W0::build_spacetime is only implemented on top of LibRI" << endl;
         cout << "Please recompiler LibRPA with -DUSE_LIBRI and configure include path" << endl;
     }
-    mpi_comm_world_h.barrier();
+    mpi_comm_global_h.barrier();
     throw std::logic_error("compilation");
 #else
     Profiler::start("g0w0_build_spacetime_1", "Tranform Wc (q,w) -> (R,t)");
@@ -65,7 +68,7 @@ void G0W0::build_spacetime_LibRI(
     for (int i = 0; i != natom; i++)
         atoms_pos.insert(pair<int, std::array<double, 3>>{i, {0, 0, 0}});
     std::array<int,3> period_array{R_period.x,R_period.y,R_period.z};
-    g0w0_libri.set_parallel(MPI_COMM_WORLD, atoms_pos, lat_array, period_array);
+    g0w0_libri.set_parallel(mpi_comm_global_h.comm, atoms_pos, lat_array, period_array);
 
     Profiler::start("g0w0_build_spacetime_2", "Prepare libRI C object");
 
@@ -95,13 +98,13 @@ void G0W0::build_spacetime_LibRI(
     else
     {
         // Not implemented
-        MPI_Wrapper::barrier_world();
+        mpi_comm_global_h.barrier();
         throw std::logic_error("not implemented");
     }
     g0w0_libri.set_Cs(Cs_libri, 0.0);
     Profiler::stop("g0w0_build_spacetime_2");
 
-    auto IJR_local_gf = dispatch_vector_prod(tot_atpair_ordered, Rlist, mpi_comm_world_h.myid, mpi_comm_world_h.nprocs, true, false);
+    auto IJR_local_gf = dispatch_vector_prod(tot_atpair_ordered, Rlist, mpi_comm_global_h.myid, mpi_comm_global_h.nprocs, true, false);
     std::set<Vector3_Order<int>> Rs_local;
     for (const auto &IJR: IJR_local_gf)
     {
@@ -113,14 +116,14 @@ void G0W0::build_spacetime_LibRI(
         for (auto itau = 0; itau != tfg.get_n_grids(); itau++)
         {
             Profiler::start("g0w0_build_spacetime_3", "Prepare libRI Wc object");
-            // printf("task %d itau %d start\n", mpi_comm_world_h.myid, itau);
+            // LIBRPA::utils::lib_printf("task %d itau %d start\n", mpi_comm_global_h.myid, itau);
             const auto tau = tfg.get_time_nodes()[itau];
             // build the Wc LibRI object. Note <JI> has to be converted from <IJ>
             // by W_IJ(R) = W^*_JI(-R)
             std::map<int, std::map<std::pair<int, std::array<int, 3>>, RI::Tensor<double>>> Wc_libri;
             // in R-tau routing, some process can have zero time point
             // check to avoid out-of-range by at()
-            // printf("task %d Wc_tau_R.count(tau) %zu\n", mpi_comm_world_h.myid, Wc_tau_R.count(tau));
+            // LIBRPA::utils::lib_printf("task %d Wc_tau_R.count(tau) %zu\n", mpi_comm_global_h.myid, Wc_tau_R.count(tau));
             if (Wc_tau_R.count(tau))
             {
                 for (const auto &I_JRWc: Wc_tau_R.at(tau))
@@ -201,8 +204,8 @@ void G0W0::build_spacetime_LibRI(
                 else
                     sigc_nega_tau = std::move(g0w0_libri.Sigc_tau);
                 wtime_g0w0_cal_sigc = omp_get_wtime() - wtime_g0w0_cal_sigc;
-                printf("Task %4d. libRI G0W0, spin %1d, time grid %12.6f. Wc size %zu, GF size %zu. Wall time %f\n",
-                       mpi_comm_world_h.myid, ispin, t, n_obj_wc_libri, n_obj_gf_libri, wtime_g0w0_cal_sigc);
+                LIBRPA::utils::lib_printf("Task %4d. libRI G0W0, spin %1d, time grid %12.6f. Wc size %zu, GF size %zu. Wall time %f\n",
+                       mpi_comm_global_h.myid, ispin, t, n_obj_wc_libri, n_obj_gf_libri, wtime_g0w0_cal_sigc);
             }
 
             // symmetrize and perform transformation
@@ -268,27 +271,30 @@ void G0W0::build_spacetime_LibRI(
 
 void G0W0::build_sigc_matrix_KS()
 {
+    using LIBRPA::envs::mpi_comm_global_h;
+    using LIBRPA::envs::blacs_ctxt_global_h;
+
     const complex<double> CONE{1.0, 0.0};
     const int n_aos = mf.get_n_aos();
     const int n_bands = mf.get_n_bands();
 
 #ifndef LIBRPA_USE_LIBRI
-    if (mpi_comm_world_h.myid == 0)
+    if (mpi_comm_global_h.myid == 0)
     {
         cout << "LIBRA::G0W0::build_sigc_matrix_KS is only implemented on top of LibRI" << endl;
         cout << "Please recompile LibRPA with -DUSE_LIBRI and optionally configure include path" << endl;
     }
-    mpi_comm_world_h.barrier();
+    mpi_comm_global_h.barrier();
     throw std::logic_error("compilation");
 #else
     // char fn[80];
-    Array_Desc desc_nband_nao(blacs_ctxt_world_h);
+    Array_Desc desc_nband_nao(blacs_ctxt_global_h);
     desc_nband_nao.init_1b1p(n_aos, n_bands, 0, 0);
-    Array_Desc desc_nao_nao(blacs_ctxt_world_h);
+    Array_Desc desc_nao_nao(blacs_ctxt_global_h);
     desc_nao_nao.init_1b1p(n_aos, n_aos, 0, 0);
-    Array_Desc desc_nband_nband(blacs_ctxt_world_h);
+    Array_Desc desc_nband_nband(blacs_ctxt_global_h);
     desc_nband_nband.init_1b1p(n_bands, n_bands, 0, 0);
-    Array_Desc desc_nband_nband_fb(blacs_ctxt_world_h);
+    Array_Desc desc_nband_nband_fb(blacs_ctxt_global_h);
     desc_nband_nband_fb.init(n_bands, n_bands, n_bands, n_bands, 0, 0);
 
     // local 2D-block submatrices
@@ -329,13 +335,13 @@ void G0W0::build_sigc_matrix_KS()
                         }
                     }
                     const auto sigc_src = comm_map2_first(
-                        LIBRPA::mpi_comm_world_h.comm, sigc_I_Jk, s0_s1.first, s0_s1.second);
+                        mpi_comm_global_h.comm, sigc_I_Jk, s0_s1.first, s0_s1.second);
                     collect_block_from_IJ_storage_tensor(sigc_nao_nao, desc_nao_nao, atomic_basis_wfc, atomic_basis_wfc,
                                                          ka, CONE, sigc_src);
                 }
                 // prepare wave function BLACS
                 const auto &wfc_isp_k = this->mf.get_eigenvectors()[ispin][ik];
-                blacs_ctxt_world_h.barrier();
+                blacs_ctxt_global_h.barrier();
                 const auto wfc_block = get_local_mat(wfc_isp_k.c, MAJOR::ROW, desc_nband_nao, MAJOR::COL).conj();
                 auto temp_nband_nao = multiply_scalapack(wfc_block, desc_nband_nao, sigc_nao_nao, desc_nao_nao, desc_nband_nao);
                 ScalapackConnector::pgemm_f('N', 'C', n_bands, n_bands, n_aos, 1.0,

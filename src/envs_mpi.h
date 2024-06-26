@@ -2,6 +2,8 @@
 #include <string>
 #include <mpi.h>
 
+#include "parallel_mpi.h"
+
 namespace LIBRPA
 {
 
@@ -10,6 +12,12 @@ namespace envs
 
 //! Global communicator
 extern MPI_Comm mpi_comm_global;
+
+//! Handler of the global communicator
+extern LIBRPA::MPI_COMM_handler mpi_comm_global_h;
+
+//! Handler of the global BLACS context
+extern LIBRPA::BLACS_CTXT_handler blacs_ctxt_global_h;
 
 //! Rank of process in the global communciator
 extern int myid_global;
@@ -24,7 +32,7 @@ extern std::string procname;
 /*!
  * @param  [in]  mpi_comm_global_in    Global MPI communicator
  */
-void initialize_mpi(MPI_Comm mpi_comm_global_in);
+void initialize_mpi(const MPI_Comm &mpi_comm_global_in);
 
 //! Check the MPI environment of LibRPA is correctly initialized
 bool is_mpi_initialized();

@@ -13,6 +13,10 @@
 #include <stdlib.h>
 #include <cstring>
 
+#include "envs_mpi.h"
+#include "envs_io.h"
+#include "utils_io.h"
+
 #include "constants.h"
 #include "librpa_main.h"
 #include "meanfield.h"
@@ -21,14 +25,11 @@
 #include "pbc.h"
 #include "ri.h"
 
-using LIBRPA::mpi_comm_world_h;
+using LIBRPA::envs::mpi_comm_global_h;
 
-void test_interface(int test_int, char* test_str)
-{
-    cout<<"In LibRPA: "<<test_int<<"   "<<test_str<<endl;
-}
-
-void initialize_librpa_parallel_environment(MPI_Comm comm_in, int is_fortran_comm)
+void initialize_librpa_environment(
+        MPI_Comm comm_in, int is_fortran_comm,
+        int redirect_stdout, const char *output_filename)
 {
     MPI_Comm comm_global;
     if (is_fortran_comm)
@@ -40,17 +41,25 @@ void initialize_librpa_parallel_environment(MPI_Comm comm_in, int is_fortran_com
         comm_global = comm_in;
     }
 
-    LIBRPA::MPI_Wrapper::init(comm_global);
-    mpi_comm_world_h.init();
-    // cout << mpi_comm_world_h.str() << endl;
+    LIBRPA::envs::initialize_mpi(comm_global);
+    LIBRPA::envs::initialize_io(redirect_stdout, output_filename);
+
+    mpi_comm_global_h.init();
+    // cout << mpi_comm_global_h.str() << endl;
+}
+
+void finalize_librpa_environment()
+{
+    LIBRPA::envs::finalize_io();
+    LIBRPA::envs::finalize_mpi();
 }
 
 void set_dimension(int nspins, int nkpts, int nstates, int nbasis,int natoms)
 {
-    if (mpi_comm_world_h.is_root())
+    if (mpi_comm_global_h.is_root())
     {
         cout << "In LibRPA nspin: " << nspins << "  nkpt: " << nkpts << endl;
-        printf("In LibRPA nspin: %d,  nkpts: %d nstate: %d, nbasis: %d, natom: %d\n",
+        LIBRPA::utils::lib_printf("In LibRPA nspin: %d,  nkpts: %d nstate: %d, nbasis: %d, natom: %d\n",
                 nspins, nkpts, nstates, nbasis, natoms);
     }
     meanfield.set(nspins, nkpts, nstates, nbasis);
@@ -80,14 +89,14 @@ void set_wg_ekb_efermi(int nspins, int nkpts, int nstates, double* wg, double* e
 
 void set_ao_basis_wfc(int is, int ik, double* wfc_real, double* wfc_imag)
 {
-    // printf("is: %d, ik: %d\n",is,ik);
+    // LIBRPA::utils::lib_printf("is: %d, ik: %d\n",is,ik);
     // int length_ib_iw=meanfield.get_n_bands()*meanfield.get_n_aos();
     // vector<double> vec_wfc_real(wfc_real,wfc_real+length_ib_iw);
     // vector<double> vec_wfc_imag(wfc_imag,wfc_imag+length_ib_iw);
     auto & wfc = meanfield.get_eigenvectors();
     for(int i=0;i!=meanfield.get_n_bands()*meanfield.get_n_aos();i++)
     {
-        // printf("In ao wfc: %f, %f\n",wfc_real[i],wfc_imag[i]);
+        // LIBRPA::utils::lib_printf("In ao wfc: %f, %f\n",wfc_real[i],wfc_imag[i]);
         wfc.at(is).at(ik).c[i] = complex<double>(wfc_real[i], wfc_imag[i]);
     }
     // print_complex_matrix("wfc_isk", wfc.at(is).at(ik));
@@ -127,9 +136,9 @@ void set_latvec_and_G(double* lat_mat, double* G_mat)
     G /= TWO_PI;
     G *= ANG2BOHR;
     
-    if (mpi_comm_world_h.is_root())
+    if (mpi_comm_global_h.is_root())
     {
-        printf(" LibRPA_lat : %f, %f, %f\n",latvec.e11,latvec.e12,latvec.e13);
+        LIBRPA::utils::lib_printf(" LibRPA_lat : %f, %f, %f\n",latvec.e11,latvec.e12,latvec.e13);
     }
     //latvec.print();
     //G.print();
@@ -146,7 +155,7 @@ void set_kgrids_kvec_tot(int nk1, int nk2, int nk3, double* kvecs)
         double kx=kvecs[ik*3];
         double ky=kvecs[ik*3+1];
         double kz=kvecs[ik*3+2];
-        // printf("ik: %d, (%f, %f, %f)\n", ik,kx,ky,kz);
+        // LIBRPA::utils::lib_printf("ik: %d, (%f, %f, %f)\n", ik,kx,ky,kz);
         Vector3_Order<double> kvec_tmp{kx,ky,kz};
         kvec_tmp*=(ANG2BOHR / TWO_PI);
         klist.push_back(kvec_tmp);
@@ -156,15 +165,15 @@ void set_kgrids_kvec_tot(int nk1, int nk2, int nk3, double* kvecs)
 
 void set_ibz2bz_index_and_weight(const int nk_irk, const int* ibz2bz_index, const double* wk_irk)
 {
-   // printf(" nks_irk: %d\n",nk_irk);
+   // LIBRPA::utils::lib_printf(" nks_irk: %d\n",nk_irk);
    for (int ik_ibz = 0; ik_ibz != nk_irk; ik_ibz++)
    {
        Vector3_Order<double> kvec_ibz = klist[ibz2bz_index[ik_ibz]];
        klist_ibz.push_back(kvec_ibz);
        irk_weight.insert(pair<Vector3_Order<double>, double>(kvec_ibz, wk_irk[ik_ibz]));
-       // printf("ibz2bz:  %d   kvec_ibz:( %f, %f,
+       // LIBRPA::utils::lib_printf("ibz2bz:  %d   kvec_ibz:( %f, %f,
        // %f)\n",ibz2bz_index[ik_ibz],kvec_ibz.x,kvec_ibz.y,kvec_ibz.z);
-       // printf("irk_weight: %f\n",irk_weight[kvec_ibz]);
+       // LIBRPA::utils::lib_printf("irk_weight: %f\n",irk_weight[kvec_ibz]);
        // for (int ik = 0; ik != meanfield.get_n_kpoints(); ik++)
        // {
        //     if(klist[ik]==kvec_ibz)
@@ -179,34 +188,34 @@ void set_ao_basis_aux(int I, int J, int nbasis_i, int nbasis_j, int naux_mu, int
     atom_mu.insert(pair<atom_t, int>(I, naux_mu));
     Vector3_Order<int> box(R[0], R[1], R[2]);
     // cout<< ia1<<ia2<<box<<endl;
-    // printf("Cs_in size: %zu",sizeof(Cs_in) / sizeof(Cs_in[0]));
+    // LIBRPA::utils::lib_printf("Cs_in size: %zu",sizeof(Cs_in) / sizeof(Cs_in[0]));
     int cs_size = nbasis_i * nbasis_j * naux_mu;
     shared_ptr<matrix> cs_ptr = make_shared<matrix>();
     cs_ptr->create(nbasis_i * nbasis_j, naux_mu);
     memcpy((*cs_ptr).c, Cs_in, sizeof(double) * cs_size);
     //(*cs_ptr).c=Cs_in;
     Cs[I][J][box] = cs_ptr;
-    // printf("Cs out:\n");
+    // LIBRPA::utils::lib_printf("Cs out:\n");
     // for(int i=0;i!=cs_size;i++)
-    //     printf("   %f",(*Cs[I][J][box]).c[i]);
+    //     LIBRPA::utils::lib_printf("   %f",(*Cs[I][J][box]).c[i]);
 }
 
 void set_aux_coulomb_k_atom_pair(int I, int J, int naux_mu, int naux_nu, int ik, double* Vq_real_in, double* Vq_imag_in)
 {
-    // printf("I,J,mu,nu: %d  %d  %d  %d\n",I,J, naux_mu,naux_nu);
-    // printf("atom_mu nu: %d %d\n",atom_mu[I],atom_mu[J]);
-    // printf("Vq threshold : %f\n",Params::vq_threshold);
+    // LIBRPA::utils::lib_printf("I,J,mu,nu: %d  %d  %d  %d\n",I,J, naux_mu,naux_nu);
+    // LIBRPA::utils::lib_printf("atom_mu nu: %d %d\n",atom_mu[I],atom_mu[J]);
+    // LIBRPA::utils::lib_printf("Vq threshold : %f\n",Params::vq_threshold);
     Vector3_Order<double> qvec(klist[ik]);
-    // printf("qvec: %f,%f,%f\n",qvec.x,qvec.y,qvec.z);
+    // LIBRPA::utils::lib_printf("qvec: %f,%f,%f\n",qvec.x,qvec.y,qvec.z);
     shared_ptr<ComplexMatrix> vq_ptr = make_shared<ComplexMatrix>();
     vq_ptr->create(naux_mu, naux_nu);
-    // printf("vq_ptr_size: %d\n",(*vq_ptr).size);
-    // printf(" vq_in 0 0 :  %f\n",Vq_real_in[0]);
+    // LIBRPA::utils::lib_printf("vq_ptr_size: %d\n",(*vq_ptr).size);
+    // LIBRPA::utils::lib_printf(" vq_in 0 0 :  %f\n",Vq_real_in[0]);
     for (int i_mu = 0; i_mu != naux_mu; i_mu++)
     {
         for (int i_nu = 0; i_nu != naux_nu; i_nu++)
         {
-            // printf("mu,nu:  %d %d, vq_real: %f,  vq_imag:
+            // LIBRPA::utils::lib_printf("mu,nu:  %d %d, vq_real: %f,  vq_imag:
             // %f\n",i_mu,i_nu,Vq_real_in[i_nu+i_mu*naux_nu],Vq_imag_in[i_nu+i_mu*naux_nu]);
 
             (*vq_ptr)(i_mu, i_nu) = complex<double>(Vq_real_in[i_nu + i_mu * naux_nu],
@@ -228,7 +237,7 @@ void set_aux_coulomb_k_2D_block(int ik, int max_naux, int mu_begin, int mu_end, 
     int ecol = nu_end - 1;
       
     Vector3_Order<double> qvec(klist[ik]);
-    // printf("qvec: %f,%f,%f\n",qvec.x,qvec.y,qvec.z);
+    // LIBRPA::utils::lib_printf("qvec: %f,%f,%f\n",qvec.x,qvec.y,qvec.z);
     shared_ptr<ComplexMatrix> vq_ptr = make_shared<ComplexMatrix>();
     vq_ptr->create(max_naux, max_naux);
 
@@ -292,7 +301,7 @@ void get_default_librpa_params(LibRPAParams *params_c)
 
 void run_librpa_main()
 {
-    printf("Begin run LibRPA\n");
+    LIBRPA::utils::lib_printf("Begin run LibRPA\n");
     // std::ofstream outputFile("LibRPA_cout.txt");
     // std::streambuf* originalCoutBuffer = std::cout.rdbuf();
    // std::cout.rdbuf(outputFile.rdbuf());

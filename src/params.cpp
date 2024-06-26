@@ -1,7 +1,10 @@
 #include "params.h"
+
 #include <string>
 #include <utility>
 #include <vector>
+
+#include "utils_io.h"
 
 // default setting
 
@@ -88,16 +91,16 @@ void Params::print()
         };
 
     for (const auto &param: str_params)
-        printf("%s = %s\n", param.first.c_str(), param.second.c_str());
+        LIBRPA::utils::lib_printf("%s = %s\n", param.first.c_str(), param.second.c_str());
 
     for (const auto &param: int_params)
-        printf("%s = %d\n", param.first.c_str(), param.second);
+        LIBRPA::utils::lib_printf("%s = %d\n", param.first.c_str(), param.second);
 
     for (const auto &param: double_params)
-        printf("%s = %f\n", param.first.c_str(), param.second);
+        LIBRPA::utils::lib_printf("%s = %f\n", param.first.c_str(), param.second);
 
     for (const auto &param: bool_params)
-        printf("%s = %s\n", param.first.c_str(), param.second? "T": "F");
+        LIBRPA::utils::lib_printf("%s = %s\n", param.first.c_str(), param.second? "T": "F");
 }
 
 Params params;

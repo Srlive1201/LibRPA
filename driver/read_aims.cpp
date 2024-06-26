@@ -5,7 +5,6 @@
 #include <dirent.h>
 #include <algorithm>
 #include <unordered_map>
-#include <parallel_mpi.h>
 #if defined(__MACH__)
 #include <malloc/malloc.h> // for malloc_zone_pressure_relief and malloc_default_zone
 #else
@@ -16,6 +15,8 @@
 #include "ri.h"
 #include "pbc.h"
 #include "constants.h"
+#include "envs_mpi.h"
+#include "envs_io.h"
 #include "stl_io_helper.h"
 
 // using std::cout;
@@ -259,7 +260,7 @@ size_t READ_AIMS_Cs_evenly_distribute(const string &dir_path, double threshold, 
 
     for (const auto& fn_ids: files_Cs_ids_this_proc)
     {
-        LIBRPA::fout_para << fn_ids.first << " " << fn_ids.second << endl;
+        LIBRPA::envs::ofs_myid << fn_ids.first << " " << fn_ids.second << endl;
         if (binary)
         {
             cs_discard += handle_Cs_file_binary_by_ids(fn_ids.first, threshold, fn_ids.second);
@@ -487,12 +488,12 @@ std::vector<size_t> handle_Cs_file_dry(const string &file_path, double threshold
                     infile >> Cs_ele;
                     maxval = std::max(maxval, abs(stod(Cs_ele)));
                 }
-        LIBRPA::fout_para << id << " (" << ic_1 << "," << ic_2 << "," << ic_3 << ") " << maxval << " keep? " << (maxval >= threshold) << endl;
+        LIBRPA::envs::ofs_myid << id << " (" << ic_1 << "," << ic_2 << "," << ic_3 << ") " << maxval << " keep? " << (maxval >= threshold) << endl;
         if (maxval >= threshold)
             Cs_ids_keep.push_back(id);
         id++;
     }
-    LIBRPA::fout_para << file_path << ": " << Cs_ids_keep << endl;
+    LIBRPA::envs::ofs_myid << file_path << ": " << Cs_ids_keep << endl;
     infile.close();
     return Cs_ids_keep;
 }
@@ -536,11 +537,11 @@ std::vector<size_t> handle_Cs_file_binary_dry(const string &file_path, double th
                 }
             }
         }
-        LIBRPA::fout_para << i_file << " (" << ic1 << "," << ic2 << "," << ic3 << ") " << maxval << " keep? " << (maxval >= threshold) << endl;
+        LIBRPA::envs::ofs_myid << i_file << " (" << ic1 << "," << ic2 << "," << ic3 << ") " << maxval << " keep? " << (maxval >= threshold) << endl;
         if (maxval >= threshold)
             Cs_ids_keep.push_back(i_file);
     }
-    LIBRPA::fout_para << file_path << ": " << Cs_ids_keep << endl;
+    LIBRPA::envs::ofs_myid << file_path << ": " << Cs_ids_keep << endl;
     infile.close();
     return Cs_ids_keep;
 }
@@ -966,7 +967,7 @@ void erase_Cs_from_local_atp(atpair_R_mat_t &Cs, vector<atpair_t> &local_atpair)
     #else
     malloc_zone_pressure_relief(malloc_default_zone(), 0);
     #endif
-    printf("| process %d, size of Cs after erase: %lu\n", LIBRPA::mpi_comm_world_h.myid, Cs.size());
+    LIBRPA::utils::lib_printf("| process %d, size of Cs after erase: %lu\n", LIBRPA::envs::mpi_comm_global_h.myid, Cs.size());
 }
 
 void READ_AIMS_STRU(const int& n_kpoints, const std::string &file_path)

@@ -11,7 +11,7 @@
 
 namespace LIBRPA
 {
-namespace UTILS
+namespace utils
 {
 
 //! Class to perform cubic spline interolation
@@ -53,6 +53,6 @@ std::vector<double> interp_cubic_spline(const std::vector<double> &xs,
                                         const std::vector<double> &ys,
                                         const std::vector<double> &xs_new);
 
-} /* end of namepsace UTILS */
+} /* end of namepsace utils */
 
 } /* end of namespace LIBRPA */

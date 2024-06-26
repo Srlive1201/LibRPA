@@ -4,6 +4,7 @@
 #include "parallel_mpi.h"
 #include <omp.h>
 #include "scalapack_connector.h"
+#include "utils_io.h"
 #ifdef LIBRPA_USE_LIBRI
 #include <RI/global/Tensor.h>
 using RI::Tensor;
@@ -86,12 +87,12 @@ void collect_block_from_IJ_storage(
     for (int iI = 0; iI != row_nb; iI++)
     {
         int ilo = ad.indx_g2l_r(row_start_id + iI);
-        // printf("row igo %d ilo %d\n", row_start_id + iI, ilo);
+        // LIBRPA::utils::lib_printf("row igo %d ilo %d\n", row_start_id + iI, ilo);
         if (ilo < 0) continue;
         for (int jJ = 0; jJ != col_nb; jJ++)
         {
             int jlo = ad.indx_g2l_c(col_start_id + jJ);
-            // printf("col jgo %d jlo %d\n", col_start_id + jJ, jlo);
+            // LIBRPA::utils::lib_printf("col jgo %d jlo %d\n", col_start_id + jJ, jlo);
             if (jlo < 0) continue;
             // cout << "pickerID " << picker(row_nb, iI, col_nb, jJ) << " " << pvIJ[picker(row_nb, iI, col_nb, jJ)] << " matloc befor " << mat_lo(ilo, jlo);
             mat_lo(ilo, jlo) += alpha * pvIJ[picker(row_nb, iI, col_nb, jJ)];
@@ -130,7 +131,7 @@ void collect_block_from_IJ_storage_tensor(
             int j_gl = ad.indx_l2g_c(jlo);
             atbasis_col.get_local_index(j_gl, J_loc, j_ab);
             //Tdst temp;
-            // printf("i_gl I_loc i_ab %d %d %d j_gl J_loc j_ab %d %d %d\n", i_gl, I_loc, i_ab, j_gl, J_loc, j_ab);
+            // LIBRPA::utils::lib_printf("i_gl I_loc i_ab %d %d %d j_gl J_loc j_ab %d %d %d\n", i_gl, I_loc, i_ab, j_gl, J_loc, j_ab);
             tmp_loc_row[jlo]= TMAP.at(I_loc).at({J_loc, cell})(i_ab,j_ab);
         }
         Tdst *row_ptr=tmp_loc.ptr() + ilo* ad.n_loc();
@@ -178,7 +179,7 @@ void collect_block_from_IJ_storage_syhe(
             atbasis.get_local_index(i_gl, I_loc, i_ab);
             atbasis.get_local_index(j_gl, J_loc, j_ab);
             Tdst temp;
-            // printf("i_gl I_loc i_ab %d %d %d j_gl J_loc j_ab %d %d %d\n", i_gl, I_loc, i_ab, j_gl, J_loc, j_ab);
+            // LIBRPA::utils::lib_printf("i_gl I_loc i_ab %d %d %d j_gl J_loc j_ab %d %d %d\n", i_gl, I_loc, i_ab, j_gl, J_loc, j_ab);
             if ((I_loc == I) && (J_loc == J))
             {
                 // in the same block
@@ -229,7 +230,7 @@ void collect_block_from_ALL_IJ_Tensor(
 
             atbasis.get_local_index(j_gl, J_loc, j_ab);
             //Tdst temp;
-            // printf("i_gl I_loc i_ab %d %d %d j_gl J_loc j_ab %d %d %d\n", i_gl, I_loc, i_ab, j_gl, J_loc, j_ab);
+            // LIBRPA::utils::lib_printf("i_gl I_loc i_ab %d %d %d j_gl J_loc j_ab %d %d %d\n", i_gl, I_loc, i_ab, j_gl, J_loc, j_ab);
             if(I_loc<=J_loc)
             {
                 tmp_loc_row[jlo]= TMAP.at(I_loc).at({J_loc, cell})(i_ab,j_ab);
@@ -303,7 +304,7 @@ matrix_m<std::complex<T>> power_hemat_blacs(matrix_m<std::complex<T>> &A_local,
         rwork = new T[1];
         // query the optimal lwork and lrwork
         T *Wquery = new T[1];
-        // printf("power_hemat_blacs descA %s\n", ad_A.info_desc().c_str());
+        // LIBRPA::utils::lib_printf("power_hemat_blacs descA %s\n", ad_A.info_desc().c_str());
         ScalapackConnector::pheev_f(jobz, uplo,
                 n, A_local.ptr(), 1, 1, ad_A.desc,
                 Wquery, Z_local.ptr(), 1, 1, ad_Z.desc, work, lwork, rwork, lrwork, info);
@@ -311,7 +312,7 @@ matrix_m<std::complex<T>> power_hemat_blacs(matrix_m<std::complex<T>> &A_local,
         lrwork = int(rwork[0]);
         delete [] work, Wquery, rwork;
     }
-    // printf("lwork %d lrwork %d\n", lwork, lrwork); // debug
+    // LIBRPA::utils::lib_printf("lwork %d lrwork %d\n", lwork, lrwork); // debug
 
     work = new std::complex<T> [lwork];
     rwork = new T [lrwork];
@@ -337,15 +338,15 @@ matrix_m<std::complex<T>> power_hemat_blacs(matrix_m<std::complex<T>> &A_local,
     for (int i = n_filtered; i != n; i++)
     {
         if (W[i] < 0 && !is_int_power)
-            printf("Warning! unfiltered negative eigenvalue with non-integer power: # %d ev = %f , pow = %f\n", i, W[i], power);
+            LIBRPA::utils::lib_printf("Warning! unfiltered negative eigenvalue with non-integer power: # %d ev = %f , pow = %f\n", i, W[i], power);
         if (fabs(W[i]) < 1e-10 && power < 0)
-            printf("Warning! unfiltered nearly-singular eigenvalue with negative power: # %d ev = %f , pow = %f\n", i, W[i], power);
+            LIBRPA::utils::lib_printf("Warning! unfiltered nearly-singular eigenvalue with negative power: # %d ev = %f , pow = %f\n", i, W[i], power);
         W_temp[i] = std::pow(W[i], power);
     }
     // debug print
     // for (int i = 0; i != n; i++)
     // {
-    //     printf("%d %f %f\n", i, W[i], W_temp[i]);
+    //     LIBRPA::utils::lib_printf("%d %f %f\n", i, W[i], W_temp[i]);
     // }
 
     // create scaled eigenvectors
@@ -418,7 +419,7 @@ void invert_scalapack(matrix_m<T> &m_loc, const LIBRPA::Array_Desc &desc_m)
     {
         // NOTE: use local leading dimension desc_m.lld() will lead to invalid pointer error
         int *ipiv = new int [desc_m.m()];
-        // printf("invert_scalpack desc %s\n", desc_m.info_desc().c_str());
+        // LIBRPA::utils::lib_printf("invert_scalpack desc %s\n", desc_m.info_desc().c_str());
         ScalapackConnector::pgetrf_f(desc_m.m(), desc_m.n(), m_loc.ptr(), 1, 1, desc_m.desc, ipiv, info);
         // get optimized work size
         int lwork = -1, liwork = -1;
@@ -428,7 +429,7 @@ void invert_scalapack(matrix_m<T> &m_loc, const LIBRPA::Array_Desc &desc_m)
             ScalapackConnector::pgetri_f(desc_m.m(), m_loc.ptr(), 1, 1, desc_m.desc, ipiv, work, lwork, iwork, liwork, info);
             lwork = int(get_real(work[0]));
             liwork = iwork[0];
-            // printf("lwork %d liwork %d\n", lwork, liwork);
+            // LIBRPA::utils::lib_printf("lwork %d liwork %d\n", lwork, liwork);
             delete [] work;
             delete [] iwork;
         }
@@ -439,7 +440,7 @@ void invert_scalapack(matrix_m<T> &m_loc, const LIBRPA::Array_Desc &desc_m)
         delete [] iwork;
         delete [] work;
         delete [] ipiv;
-        // printf("done free\n");
+        // LIBRPA::utils::lib_printf("done free\n");
     }
     else
     {
