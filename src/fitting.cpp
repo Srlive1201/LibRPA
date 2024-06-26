@@ -63,7 +63,7 @@ static int cholesky_decomp(const int &n,
  * using the Cholesky decomposition A=LL^T.  The matrix L is passed in "l".
  * Elements above the diagonal are ignored.
  */
-void solve_axb_cholesky(int n, const std::vector<std::vector<double>> &l, std::vector<double> &x,
+static void solve_axb_cholesky(int n, const std::vector<std::vector<double>> &l, std::vector<double> &x,
                         const std::vector<double> &b)
 {
     int i, j;
