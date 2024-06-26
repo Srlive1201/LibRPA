@@ -18,7 +18,7 @@ LIBRPA::MPI_COMM_handler mpi_comm_global_h;
 
 LIBRPA::BLACS_CTXT_handler blacs_ctxt_global_h;
 
-std::string procname = "localhost";
+std::string procname = "not-init";
 
 static bool librpa_mpi_initialized = false;
 
@@ -60,6 +60,7 @@ bool is_mpi_initialized()
 
 void finalize_mpi()
 {
+    procname = "not-init";
     librpa_mpi_initialized = false;
 }
 

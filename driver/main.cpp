@@ -85,10 +85,8 @@ int main(int argc, char **argv)
      *       This might subject to performance issue when
      *       the number of processes is not dividable.
      */
-    mpi_comm_global_h.init();
     cout << mpi_comm_global_h.str() << endl;
     mpi_comm_global_h.barrier();
-    blacs_ctxt_global_h.init();
     blacs_ctxt_global_h.set_square_grid();
 
     /*

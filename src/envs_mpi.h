@@ -34,7 +34,7 @@ extern std::string procname;
  */
 void initialize_mpi(const MPI_Comm &mpi_comm_global_in);
 
-//! Check the MPI environment of LibRPA is correctly initialized
+//! Check whether the MPI environment of LibRPA is correctly initialized
 bool is_mpi_initialized();
 
 //! Finalize the MPI environment of LibRPA
