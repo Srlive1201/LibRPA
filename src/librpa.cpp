@@ -78,6 +78,7 @@ void set_wg_ekb_efermi(int nspins, int nkpts, int nstates, double* wg, double* e
         memcpy(eskb[is].c, ekb + length_kb * is, length_kb * sizeof(double));
         memcpy(swg[is].c, wg + length_kb * is, length_kb * sizeof(double));
         eskb[is] *= 2;
+        // wg[is](k_index, i) = stod(ws) / n_kpoints; // different with abacus!
         swg[is] *= (1.0 / nkpts);
     }
     // for(int is=0;is!=nspins;is++)

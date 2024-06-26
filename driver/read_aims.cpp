@@ -19,6 +19,8 @@
 #include "envs_io.h"
 #include "stl_io_helper.h"
 
+#include "librpa.h"
+
 // using std::cout;
 // using std::endl;
 using std::ifstream;
@@ -38,14 +40,16 @@ void READ_AIMS_BAND(const string &file_path, MeanField &mf)
     infile >> n_bands;
     infile >> n_aos;
     infile >> efermi;
-    efermi *= 2;
-    mf.get_efermi() = efermi;   
-    // efermi=0.2;
 
+    // TODO: replace it with set_dimension
     mf.set(n_spins, n_kpoints, n_bands, n_aos);
 
-    auto & eskb = mf.get_eigenvals();
-    auto & wg = mf.get_weight();
+    // Load the file data
+    auto eskb = new double [n_spins * n_kpoints * n_bands];
+    auto wskb = new double [n_spins * n_kpoints * n_bands];
+
+    const int n_kb = n_kpoints * n_bands;
+
     //cout<<"|eskb: "<<endl;
     for (int ik = 0; ik != n_kpoints; ik++)
     {
@@ -58,15 +62,20 @@ void READ_AIMS_BAND(const string &file_path, MeanField &mf)
             for (int i = 0; i != n_bands; i++)
             {
                 infile >> a >> ws >> es >> d;
-                // cout<<a<<b<<c<<d<<endl;
-                wg[is](k_index, i) = stod(ws) / n_kpoints; // different with abacus!
-                eskb[is](k_index, i) = stod(es) * 2;
+                wskb[is * n_kb + k_index * n_bands + i] = stod(ws); // different with abacus!
+                eskb[is * n_kb + k_index * n_bands + i] = stod(es);
                 //cout<<" i_band: "<<i<<"    eskb: "<<eskb[is](k_index, i)<<endl;
             }
         }
     }
     // for (int is = 0; is != n_spins; is++)
     //     print_matrix("eskb_mat",eskb[is]);
+
+    set_wg_ekb_efermi(n_spins, n_kpoints, n_bands, wskb, eskb, efermi);
+
+    // free buffer
+    delete [] eskb;
+    delete [] wskb;
 }
 
 int read_vxc(const string &file_path, std::vector<matrix> &vxc)

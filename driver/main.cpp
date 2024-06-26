@@ -1,19 +1,3 @@
-#include "main.h"
-
-#include "constants.h"
-#include "interpolate.h"
-#include "fitting.h"
-#include "dielecmodel.h"
-#include "inputfile.h"
-#include "stl_io_helper.h"
-#include "task.h"
-#include "analycont.h"
-#include "qpe_solver.h"
-
-#include "envs_io.h"
-#include "envs_mpi.h"
-#include "utils_io.h"
-
 #include <algorithm>
 #if defined(__MACH__)
 #include <malloc/malloc.h> // for malloc_zone_pressure_relief and malloc_default_zone
@@ -21,6 +5,30 @@
 #include <malloc.h>
 #endif
 #include <limits>
+
+#include "analycont.h"
+#include "chi0.h"
+#include "constants.h"
+#include "coulmat.h"
+#include "dielecmodel.h"
+#include "envs_io.h"
+#include "envs_mpi.h"
+#include "epsilon.h"
+#include "exx.h"
+#include "fitting.h"
+#include "gw.h"
+#include "inputfile.h"
+#include "interpolate.h"
+#include "meanfield.h"
+#include "params.h"
+#include "pbc.h"
+#include "profiler.h"
+#include "qpe_solver.h"
+#include "read_aims.h"
+#include "stl_io_helper.h"
+#include "task.h"
+#include "utils_io.h"
+#include "write_aims.h"
 
 static void initialize(int argc, char **argv)
 {
@@ -35,7 +43,7 @@ static void initialize(int argc, char **argv)
     }
 
     initialize_io(false);
-    initialize_mpi(mpi_comm_global);
+    initialize_mpi(MPI_COMM_WORLD);
 
     // Global profiler begins right after MPI is initialized
     Profiler::start("total", "Total");
