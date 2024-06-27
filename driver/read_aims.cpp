@@ -382,11 +382,13 @@ size_t handle_Cs_file(const string &file_path, double threshold, const vector<at
     // map<size_t,map<size_t,map<Vector3_Order<int>,std::shared_ptr<matrix>>>> Cs_m;
     size_t cs_discard = 0;
     string natom_s, ncell_s, ia1_s, ia2_s, ic_1, ic_2, ic_3, i_s, j_s, mu_s, Cs_ele;
+    int R[3];
     ifstream infile;
     infile.open(file_path);
     infile >> natom_s >> ncell_s;
     natom = stoi(natom_s);
     ncell = stoi(ncell_s);
+
     /* cout<<"  Natom  Ncell  "<<natom<<"  "<<ncell<<endl; */
     // for(int loop=0;loop!=natom*natom*ncell;loop++)
     while (infile.peek() != EOF)
@@ -399,18 +401,14 @@ size_t handle_Cs_file(const string &file_path, double threshold, const vector<at
         // cout<<ic_1<<mu_s<<endl;
         int ia1 = stoi(ia1_s) - 1;
         int ia2 = stoi(ia2_s) - 1;
-        int ic1 = stoi(ic_1);
-        int ic2 = stoi(ic_2);
-        int ic3 = stoi(ic_3);
+        R[0] = stoi(ic_1);
+        R[1] = stoi(ic_2);
+        R[2] = stoi(ic_3);
         int n_i = stoi(i_s);
         int n_j = stoi(j_s);
         int n_mu = stoi(mu_s);
 
-        atom_nw.insert(pair<int, int>(ia1, n_i));
-        atom_mu.insert(pair<int, int>(ia1, n_mu));
-        Vector3_Order<int> box(ic1, ic2, ic3);
         // cout<< ia1<<ia2<<box<<endl;
-
         shared_ptr<matrix> cs_ptr = make_shared<matrix>();
         cs_ptr->create(n_i * n_j, n_mu);
         // cout<<cs_ptr->nr<<cs_ptr->nc<<endl;
@@ -429,11 +427,15 @@ size_t handle_Cs_file(const string &file_path, double threshold, const vector<at
         // if(!loc_atp_index.count(ia1))
         //     continue;
         // if (box == Vector3_Order<int>({0, 0, 1}))continue;
-        if (loc_atp_index.count(ia1) && (*cs_ptr).absmax() >= threshold )
-            Cs[ia1][ia2][box] = cs_ptr;
-        else
+        bool insert_index_only = loc_atp_index.count(ia1) && (*cs_ptr).absmax() >= threshold;
+        set_ao_basis_aux(ia1, ia2, n_i, n_j, n_mu, R, cs_ptr->c, int(insert_index_only));
+        // cout<<cs_ptr->nr<<cs_ptr->nc<<endl;
+        if (insert_index_only)
+        {
             cs_discard++;
+        }
     }
+    infile.close();
     return cs_discard;
 }
 
@@ -458,33 +460,33 @@ size_t handle_Cs_file_binary(const string &file_path, double threshold, const ve
     infile.read((char *) &ncell, sizeof(int));
     infile.read((char *) &n_apcell_file, sizeof(int));
 
+    int R[3];
+
     for (int i = 0; i < n_apcell_file; i++)
     {
         infile.read((char *) &dims[0], 8 * sizeof(int));
         // cout<<ic_1<<mu_s<<endl;
         int ia1 = dims[0] - 1;
         int ia2 = dims[1] - 1;
-        int ic1 = dims[2];
-        int ic2 = dims[3];
-        int ic3 = dims[4];
+        R[0] = dims[2];
+        R[1] = dims[3];
+        R[2] = dims[4];
         int n_i = dims[5];
         int n_j = dims[6];
         int n_mu = dims[7];
 
-        atom_nw.insert(pair<int, int>(ia1, n_i));
-        atom_mu.insert(pair<int, int>(ia1, n_mu));
-        Vector3_Order<int> box(ic1, ic2, ic3);
         // cout<< ia1<<ia2<<box<<endl;
 
         shared_ptr<matrix> cs_ptr = make_shared<matrix>();
         cs_ptr->create(n_i * n_j, n_mu);
-        // cout<<cs_ptr->nr<<cs_ptr->nc<<endl;
-
         infile.read((char *) cs_ptr->c, n_i * n_j * n_mu * sizeof(double));
-        if (loc_atp_index.count(ia1) && (*cs_ptr).absmax() >= threshold )
-            Cs[ia1][ia2][box] = cs_ptr;
-        else
+        bool insert_index_only = loc_atp_index.count(ia1) && (*cs_ptr).absmax() >= threshold;
+        set_ao_basis_aux(ia1, ia2, n_i, n_j, n_mu, R, cs_ptr->c, int(insert_index_only));
+        // cout<<cs_ptr->nr<<cs_ptr->nc<<endl;
+        if (insert_index_only)
+        {
             cs_discard++;
+        }
     }
     return cs_discard;
 }
@@ -588,6 +590,8 @@ size_t handle_Cs_file_by_ids(const string &file_path, double threshold, const ve
     /* cout<<"  Natom  Ncell  "<<natom<<"  "<<ncell<<endl; */
     // for(int loop=0;loop!=natom*natom*ncell;loop++)
     size_t id = 0;
+    int R[3];
+
     while (infile.peek() != EOF)
     {
         infile >> ia1_s >> ia2_s >> ic_1 >> ic_2 >> ic_3 >> i_s;
@@ -598,16 +602,12 @@ size_t handle_Cs_file_by_ids(const string &file_path, double threshold, const ve
         // cout<<ic_1<<mu_s<<endl;
         int ia1 = stoi(ia1_s) - 1;
         int ia2 = stoi(ia2_s) - 1;
-        int ic1 = stoi(ic_1);
-        int ic2 = stoi(ic_2);
-        int ic3 = stoi(ic_3);
+        R[0] = stoi(ic_1);
+        R[1] = stoi(ic_2);
+        R[2] = stoi(ic_3);
         int n_i = stoi(i_s);
         int n_j = stoi(j_s);
         int n_mu = stoi(mu_s);
-
-        atom_nw.insert(pair<int, int>(ia1, n_i));
-        atom_mu.insert(pair<int, int>(ia1, n_mu));
-        Vector3_Order<int> box(ic1, ic2, ic3);
 
         if (std::find(ids.cbegin(), ids.cend(), id) != ids.cend())
         {
@@ -621,10 +621,12 @@ size_t handle_Cs_file_by_ids(const string &file_path, double threshold, const ve
                         infile >> Cs_ele;
                         (*cs_ptr)(i * n_j + j, mu) = stod(Cs_ele);
                     }
-            Cs[ia1][ia2][box] = cs_ptr;
+            set_ao_basis_aux(ia1, ia2, n_i, n_j, n_mu, R, cs_ptr->c, 0);
         }
         else
         {
+            set_ao_basis_aux(ia1, ia2, n_i, n_j, n_mu, R, nullptr, 1);
+
             double maxval = -1.0;
             for (int i = 0; i != n_i; i++)
                 for (int j = 0; j != n_j; j++)
@@ -653,32 +655,31 @@ size_t handle_Cs_file_binary_by_ids(const string &file_path, double threshold, c
     infile.read((char *) &n_apcell_file, sizeof(int));
     size_t cs_discard = 0;
 
+    int R[3];
+
     for (int i = 0; i < n_apcell_file; i++)
     {
         infile.read((char *) &dims[0], 8 * sizeof(int));
         // cout<<ic_1<<mu_s<<endl;
         int ia1 = dims[0] - 1;
         int ia2 = dims[1] - 1;
-        int ic1 = dims[2];
-        int ic2 = dims[3];
-        int ic3 = dims[4];
+        R[0] = dims[2];
+        R[1] = dims[3];
+        R[2] = dims[4];
         int n_i = dims[5];
         int n_j = dims[6];
         int n_mu = dims[7];
-
-        atom_nw.insert(pair<int, int>(ia1, n_i));
-        atom_mu.insert(pair<int, int>(ia1, n_mu));
-        Vector3_Order<int> box(ic1, ic2, ic3);
 
         if (std::find(ids.cbegin(), ids.cend(), static_cast<size_t>(i)) != ids.cend())
         {
             shared_ptr<matrix> cs_ptr = make_shared<matrix>();
             cs_ptr->create(n_i * n_j, n_mu);
             infile.read((char *) cs_ptr->c, n_i * n_j * n_mu * sizeof(double));
-            Cs[ia1][ia2][box] = cs_ptr;
+            set_ao_basis_aux(ia1, ia2, n_i, n_j, n_mu, R, cs_ptr->c, 0);
         }
         else
         {
+            set_ao_basis_aux(ia1, ia2, n_i, n_j, n_mu, R, nullptr, 1);
             infile.seekg(n_i * n_j * n_mu * sizeof(double), ios::cur);
             cs_discard++;
         }

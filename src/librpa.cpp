@@ -187,10 +187,16 @@ void set_ibz2bz_index_and_weight(const int nk_irk, const int* ibz2bz_index, cons
    }
 }
 
-void set_ao_basis_aux(int I, int J, int nbasis_i, int nbasis_j, int naux_mu, int* R, double* Cs_in)
+void set_ao_basis_aux(int I, int J, int nbasis_i, int nbasis_j, int naux_mu, int* R, double* Cs_in, int insert_index_only)
 {
     atom_nw.insert(pair<atom_t, int>(I, nbasis_i));
     atom_mu.insert(pair<atom_t, int>(I, naux_mu));
+
+    if (insert_index_only)
+    {
+        return;
+    }
+
     Vector3_Order<int> box(R[0], R[1], R[2]);
     // cout<< ia1<<ia2<<box<<endl;
     // LIBRPA::utils::lib_printf("Cs_in size: %zu",sizeof(Cs_in) / sizeof(Cs_in[0]));
