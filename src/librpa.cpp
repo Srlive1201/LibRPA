@@ -151,14 +151,18 @@ void set_kgrids_kvec_tot(int nk1, int nk2, int nk3, double* kvecs)
     kv_nmp[1] = nk2;
     kv_nmp[2] = nk3;
 
+    kvec_c = new Vector3<double> [nk1 * nk2 * nk3];
+
     for(int ik=0;ik!=meanfield.get_n_kpoints();ik++)
     {
         double kx=kvecs[ik*3];
         double ky=kvecs[ik*3+1];
         double kz=kvecs[ik*3+2];
+
+        kvec_c[ik] = {kx, ky, kz};
+        kvec_c[ik] *= (ANG2BOHR / TWO_PI);
         // LIBRPA::utils::lib_printf("ik: %d, (%f, %f, %f)\n", ik,kx,ky,kz);
-        Vector3_Order<double> kvec_tmp{kx,ky,kz};
-        kvec_tmp*=(ANG2BOHR / TWO_PI);
+        Vector3_Order<double> kvec_tmp(kvec_c[ik]);
         klist.push_back(kvec_tmp);
         kfrac_list.push_back(latvec * kvec_tmp);
     }

@@ -1,5 +1,6 @@
 #include "read_aims.h"
 // #include <iostream>
+#include <cassert>
 #include <fstream>
 #include <string>
 #include <dirent.h>
@@ -12,9 +13,9 @@
 #endif
 #include "atoms.h"
 #include "atomic_basis.h"
+#include "matrix.h"
 #include "ri.h"
 #include "pbc.h"
-#include "constants.h"
 #include "envs_mpi.h"
 #include "envs_io.h"
 #include "utils_io.h"
@@ -157,22 +158,41 @@ void handle_KS_file(const string &file_path, MeanField &mf)
     // int ik;
     string rvalue, ivalue, kstr;
     auto & wfc = mf.get_eigenvectors();
+
+    const auto nspin = mf.get_n_spins();
+    const auto nband = mf.get_n_bands();
+    const auto nao = mf.get_n_aos();
+    const auto n = nband * nao;
+
+    auto re = new double [nspin * nband * nao];
+    auto im = new double [nspin * nband * nao];
+
     while (infile.peek() != EOF)
     {
         infile >> kstr;
+        int ik = stoi(kstr) - 1;
         // cout<<"     ik: "<<ik<<endl;
         if (infile.peek() == EOF)
             break;
         // for aims !!!
-        for (int iw = 0; iw != mf.get_n_aos(); iw++)
-            for (int ib = 0; ib != mf.get_n_bands(); ib++)
-                for (int is = 0; is != mf.get_n_spins(); is++)
+        for (int iw = 0; iw != nao; iw++)
+        {
+            for (int ib = 0; ib != nband; ib++)
+            {
+                for (int is = 0; is != nspin; is++)
                 {
                     // cout<<iw<<ib<<is<<ik;
                     infile >> rvalue >> ivalue;
                     // cout<<rvalue<<ivalue<<endl;
-                    wfc.at(is).at(stoi(kstr) - 1)(ib, iw) = complex<double>(stod(rvalue), stod(ivalue));
+                    re[is * n + ib * nao + iw] = stod(rvalue);
+                    im[is * n + ib * nao + iw] = stod(ivalue);
                 }
+            }
+        }
+        for (int is = 0; is != nspin; is++)
+        {
+            set_ao_basis_wfc(is, ik, re + is * n, im + is * n);
+        }
         // for abacus
         // for (int ib = 0; ib != NBANDS; ib++)
         //     for (int iw = 0; iw != NLOCAL; iw++)
@@ -986,58 +1006,53 @@ void READ_AIMS_STRU(const int& n_kpoints, const std::string &file_path)
     ifstream infile;
     string x, y, z;
     infile.open(file_path);
-    infile >> x >> y >> z;
-    latvec.e11 = stod(x);
-    latvec.e12 = stod(y);
-    latvec.e13 = stod(z);
-    infile >> x >> y >> z;
-    latvec.e21 = stod(x);
-    latvec.e22 = stod(y);
-    latvec.e23 = stod(z);
-    infile >> x >> y >> z;
-    latvec.e31 = stod(x);
-    latvec.e32 = stod(y);
-    latvec.e33 = stod(z);
-    latvec /= ANG2BOHR;
-    // latvec.print();
-    lat_array[0] = {latvec.e11,latvec.e12,latvec.e13};
-    lat_array[1] = {latvec.e21,latvec.e22,latvec.e23};
-    lat_array[2] = {latvec.e31,latvec.e32,latvec.e33};
 
-    infile >> x >> y >> z;
-    G.e11 = stod(x);
-    G.e12 = stod(y);
-    G.e13 = stod(z);
-    infile >> x >> y >> z;
-    G.e21 = stod(x);
-    G.e22 = stod(y);
-    G.e23 = stod(z);
-    infile >> x >> y >> z;
-    G.e31 = stod(x);
-    G.e32 = stod(y);
-    G.e33 = stod(z);
+    auto lat_mat = new double [9];
+    auto G_mat = new double [9];
 
-    G /= TWO_PI;
-    G *= ANG2BOHR;
+    for (int i = 0; i < 3; i++)
+    {
+        infile >> x >> y >> z;
+        lat_mat[i * 3] = stod(x);
+        lat_mat[i * 3 + 1] = stod(y);
+        lat_mat[i * 3 + 2] = stod(z);
+    }
+
+    for (int i = 0; i < 3; i++)
+    {
+        infile >> x >> y >> z;
+        G_mat[i * 3] = stod(x);
+        G_mat[i * 3 + 1] = stod(y);
+        G_mat[i * 3 + 2] = stod(z);
+    }
+
+    set_latvec_and_G(lat_mat, G_mat);
+    delete [] lat_mat;
+    delete [] G_mat;
+
     // G.print();
     // Matrix3 latG = latvec * G.Transpose();
     // cout << " lat * G^T" << endl;
     // latG.print();
-    infile >> x >> y >> z;
-    kv_nmp[0] = stoi(x);
-    kv_nmp[1] = stoi(y);
-    kv_nmp[2] = stoi(z);
-    kvec_c = new Vector3<double>[n_kpoints];
-    for (int i = 0; i != n_kpoints; i++)
+
+    int nk[3];
+    for (int i = 0; i < 3; i++)
     {
-        infile >> x >> y >> z;
-        kvec_c[i] = {stod(x), stod(y), stod(z)};
-        kvec_c[i] *= (ANG2BOHR / TWO_PI);
-        // cout << "kvec [" << i << "]: " << kvec_c[i] << endl;
-        Vector3_Order<double> k(kvec_c[i]);
-        klist.push_back(k);
-        kfrac_list.push_back(latvec * k);
+        infile >> x;
+        nk[i] = stoi(x);
     }
+    assert(n_kpoints == nk[0] * nk[1] * nk[2]);
+    auto kvecs = new double [3 * n_kpoints];
+    // kvec_c = new Vector3<double>[n_kpoints];
+    for (int i = 0; i != 3 * n_kpoints; i++)
+    {
+        infile >> x;
+        kvecs[i] = stod(x);
+    }
+    set_kgrids_kvec_tot(nk[0], nk[1], nk[2], kvecs);
+    delete [] kvecs;
+
+    // TODO: use API for IBZ mapping
     for (int i = 0; i != n_kpoints; i++)
     {
         infile >> x;
