@@ -60,6 +60,7 @@ public:
 	ComplexMatrix& operator+=(const complex<double> &s); // minez add 2022-06-06
 	ComplexMatrix& operator-=(const ComplexMatrix &m);
 	matrix real() const;						// Peize Lin add 2017-03-29
+	matrix imag() const;
 	
 	//==================
 	// member function:

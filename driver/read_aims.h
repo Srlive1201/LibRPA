@@ -48,7 +48,6 @@ int handle_Vq_full_file(const std::string &file_path, double threshold, map<Vect
 int handle_Vq_row_file(const std::string &file_path, double threshold, atpair_k_cplx_mat_t &coulomb, const vector<atpair_t> &local_atpair);
 void erase_Cs_from_local_atp(atpair_R_mat_t &Cs, vector<atpair_t> &local_atpair);
 
-void read_aims(MeanField &mf);
 void get_natom_ncell_from_first_Cs_file(int &n_atom, int &n_cell, const string &dir_path, bool binary = false);
 
 #endif // !READ_AIMS_H

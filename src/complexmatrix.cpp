@@ -364,6 +364,13 @@ matrix ComplexMatrix::real() const
 	return m;
 }
 
+matrix ComplexMatrix::imag() const
+{
+	matrix m(nr,nc,false);
+	for( int i=0; i<this->size; ++i) m.c[i] = c[i].imag();
+	return m;
+}
+
 // Returns trace of ComplexMatrix
 complex<double> trace(const ComplexMatrix &m)
 {

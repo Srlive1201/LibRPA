@@ -705,7 +705,7 @@ size_t READ_Vq_Full(const string &dir_path, const string &vq_fprefix, double thr
             int retcode = handle_Vq_full_file(fm, threshold, Vq_full);
             if (retcode != 0)
             {
-                printf("Error encountered when reading %s, return code %d", fm.c_str(), retcode);
+                LIBRPA::utils::lib_printf("Error encountered when reading %s, return code %d", fm.c_str(), retcode);
             }
         }
     }
@@ -713,41 +713,64 @@ size_t READ_Vq_Full(const string &dir_path, const string &vq_fprefix, double thr
     for (auto &vf_p : Vq_full)
     {
         auto qvec = vf_p.first;
+        int iq = -1;
+        auto ite_q = std::find(klist.cbegin(), klist.cend(), qvec);
+        if (ite_q != klist.cend())
+        {
+            iq = std::distance(klist.cbegin(), ite_q);
+        }
+        else
+        {
+            throw std::runtime_error(
+                std::string(__FILE__) + ":" + std::to_string(__LINE__) + ":" + std::string(__FUNCTION__) + ": "
+                "fail to find qvec in klist, qvec = " + 
+                std::to_string(qvec.x) + " " + std::to_string(qvec.y) + " " + std::to_string(qvec.z));
+        }
+        
         // cout << "Qvec:" << qvec << endl;
         for (int I = 0; I != atom_mu.size(); I++)
+        {
             for (int J = 0; J != atom_mu.size(); J++)
             {
+                // Coulomb is Hermitian, only parse upper half
                 if (I > J)
+                {
                     continue;
-                shared_ptr<ComplexMatrix> vq_ptr = make_shared<ComplexMatrix>();
-                vq_ptr->create(atom_mu[I], atom_mu[J]);
+                }
+
+                // Vq_full stores the full matrix, parse by I-J block
+                // The matrices have to be duplicated ...
+                matrix re(atom_mu[I], atom_mu[J]), im(atom_mu[I], atom_mu[J]);
+
                 // vq_ptr_tran->create(atom_mu[J],atom_mu[I]);
                 // cout << "I J: " << I << "  " << J << "   mu,nu: " << atom_mu[I] << "  " << atom_mu[J] << endl;
                 for (int i_mu = 0; i_mu != atom_mu[I]; i_mu++)
                 {
-
                     for (int i_nu = 0; i_nu != atom_mu[J]; i_nu++)
                     {
                         //(*vq_ptr)(i_mu, i_nu) = vf_p.second(atom_mu_loc2glo(J, i_nu), atom_mu_loc2glo(I, i_mu)); ////for aims
-                        (*vq_ptr)(i_mu, i_nu) = vf_p.second(atom_mu_loc2glo(I, i_mu), atom_mu_loc2glo(J, i_nu)); // for abacus
+                        re(i_mu, i_nu) = vf_p.second(atom_mu_loc2glo(I, i_mu), atom_mu_loc2glo(J, i_nu)).real(); // for abacus
+                        im(i_mu, i_nu) = vf_p.second(atom_mu_loc2glo(I, i_mu), atom_mu_loc2glo(J, i_nu)).imag();
                     }
                 }
 
+                set_aux_coulomb_k_atom_pair(I, J, atom_mu[I], atom_mu[J], iq, re.c, im.c);
                 // if (I == J)
                 // {
                 //     (*vq_ptr).set_as_identity_matrix();
                 // }
 
-                if ((*vq_ptr).real().absmax() >= threshold)
-                {
-                    coulomb_mat[I][J][qvec] = vq_ptr;
-                    vq_save++;
-                }
-                else
-                {
-                    vq_discard++;
-                }
+                // if ((*vq_ptr).real().absmax() >= threshold)
+                // {
+                //     coulomb_mat[I][J][qvec] = vq_ptr;
+                //     vq_save++;
+                // }
+                // else
+                // {
+                //     vq_discard++;
+                // }
             }
+        }
     }
     closedir(dir);
     dir = NULL;
@@ -758,7 +781,6 @@ size_t READ_Vq_Full(const string &dir_path, const string &vq_fprefix, double thr
     // for (auto &irk : irk_weight)
     // {
     //     cout << " irk_vec and weight: " << irk.first << "  " << irk.second << endl;
-    //     Cal_Periodic_Chi0::print_complex_matrix("full_Vq",Vq_full.at(irk.first));
     // }
     // cout << "Finish read aims vq" << endl;
     return vq_discard;
@@ -1058,9 +1080,4 @@ void READ_AIMS_STRU(const int& n_kpoints, const std::string &file_path)
         irk_point_id_mapping.push_back(id_irk);
         map_irk_ks[klist[id_irk]].push_back(klist[i]);
     }
-}
-
-// TODO: implement the wrapper of all input readers
-void read_aims(MeanField &mf)
-{
 }
