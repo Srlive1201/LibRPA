@@ -17,6 +17,7 @@
 #include "envs_io.h"
 #include "utils_io.h"
 
+#include "atoms.h"
 #include "constants.h"
 #include "librpa_main.h"
 #include "meanfield.h"
@@ -214,8 +215,7 @@ void set_ao_basis_aux(int I, int J, int nbasis_i, int nbasis_j, int naux_mu, int
     //     LIBRPA::utils::lib_printf("   %f",(*Cs[I][J][box]).c[i]);
 }
 
-// Row-major
-void set_aux_coulomb_k_atom_pair(int I, int J, int naux_mu, int naux_nu, int ik, double* Vq_real_in, double* Vq_imag_in)
+static void _set_aux_coulomb_k_atom_pair(int ik, int I, int J, int naux_mu, int naux_nu, double* Vq_real_in, double* Vq_imag_in, atpair_k_cplx_mat_t &coulomb_mat)
 {
     // LIBRPA::utils::lib_printf("I,J,mu,nu: %d  %d  %d  %d\n",I,J, naux_mu,naux_nu);
     // LIBRPA::utils::lib_printf("atom_mu nu: %d %d\n",atom_mu[I],atom_mu[J]);
@@ -239,12 +239,24 @@ void set_aux_coulomb_k_atom_pair(int I, int J, int naux_mu, int naux_nu, int ik,
     }
     if ((*vq_ptr).real().absmax() >= Params::vq_threshold)
     {
-        Vq[I][J][qvec] = vq_ptr;
+        coulomb_mat[I][J][qvec] = vq_ptr;
     }
     // print_complex_matrix("Vq",(*Vq[I][J][qvec]));
 }
 
-void set_aux_coulomb_k_2D_block(int ik, int max_naux, int mu_begin, int mu_end, int nu_begin, int nu_end, double* Vq_real_in, double* Vq_imag_in )
+void set_aux_bare_coulomb_k_atom_pair(int ik, int I, int J, int naux_mu, int naux_nu, double* Vq_real_in, double* Vq_imag_in)
+{
+    _set_aux_coulomb_k_atom_pair(ik, I, J, naux_mu, naux_nu,
+            Vq_real_in, Vq_imag_in, Vq);
+}
+
+void set_aux_cut_coulomb_k_atom_pair(int ik, int I, int J, int naux_mu, int naux_nu, double* Vq_real_in, double* Vq_imag_in)
+{
+    _set_aux_coulomb_k_atom_pair(ik, I, J, naux_mu, naux_nu,
+            Vq_real_in, Vq_imag_in, Vq_cut);
+}
+
+void set_aux_bare_coulomb_k_2D_block(int ik, int max_naux, int mu_begin, int mu_end, int nu_begin, int nu_end, double* Vq_real_in, double* Vq_imag_in)
 {
     int brow = mu_begin - 1;
     int erow = mu_end - 1;

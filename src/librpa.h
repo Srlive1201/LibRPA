@@ -10,7 +10,7 @@ extern "C" {
 #endif
 
 /*!
- * \brief C struct to handle input parameters
+ * @brief C struct to handle input parameters
  *
  * The struct should have essentially the same members as the Params C++ struct in params.h.
  * However, not all members are implemented here, because some parameters are used to control
@@ -48,46 +48,52 @@ struct LibRPAParams
 };
 
 /*!
- * \brief set dimension parameters of the system
+ * @brief set dimension parameters of the system
  */
 void set_dimension(int nspins, int nkpts, int nstates, int nbasis, int natoms);
 
 /*!
- * \brief initialize the environment of LibRPA calculation
+ * @brief initialize the environment of LibRPA calculation
  */
 void initialize_librpa_environment(
         MPI_Comm comm_in, int is_fortran_comm,
         int redirect_stdout, const char *output_filename);
 
 /*!
- * \brief finalie the environment of LibRPA calculation
+ * @brief finalie the environment of LibRPA calculation
  */
 void finalize_librpa_environment();
 
 void set_wg_ekb_efermi(int nspins, int nkpts, int nstates, double* wg, double* ekb, double efermi);
 
 /*!
- * \brief set AO basis for wave function expansion
+ * @brief set AO basis for wave function expansion
  */
 void set_ao_basis_wfc(int is, int ik, double* wfc_real, double* wfc_imag);
 
 void set_latvec_and_G(double* lat_mat, double* G_mat);
 /*!
- * \brief set kmesh grids
+ * @brief set kmesh grids
  */
 void set_kgrids_kvec_tot(int nk1, int nk2, int nk3, double* kvecs);
 
 void set_ibz2bz_index_and_weight(const int nk_irk, const int* ibz2bz_index, const double* wk_irk);
 
 /*!
- * \brief set auxiliary AO basis
+ * @brief set auxiliary AO basis
  */
 void set_ao_basis_aux(int I, int J, int nbasis_i, int nbasis_j, int naux_mu, int* R, double* Cs_in, int insert_index_only);
 
-void set_aux_coulomb_k_atom_pair(int I, int J, int naux_mu, int naux_nu, int ik, double* Vq_real_in, double* Vq_imag_in);
-void set_aux_coulomb_k_2D_block(int ik, int max_naux, int mu_begin, int mu_end, int nu_begin, int nu_end, double* Vq_real_in, double* Vq_imag_in );
+void set_aux_bare_coulomb_k_atom_pair(int ik, int I, int J, int naux_mu, int naux_nu, double* Vq_real_in, double* Vq_imag_in);
+
+void set_aux_bare_coulomb_k_2D_block(int ik, int max_naux, int mu_begin, int mu_end, int nu_begin, int nu_end, double* Vq_real_in, double* Vq_imag_in);
+
+void set_aux_cut_coulomb_k_atom_pair(int ik, int I, int J, int naux_mu, int naux_nu, double* Vq_real_in, double* Vq_imag_in);
+
 void set_librpa_params(LibRPAParams *params);
+
 void get_default_librpa_params(LibRPAParams *params);
+
 void run_librpa_main();
 
 #ifdef __cplusplus

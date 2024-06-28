@@ -253,7 +253,7 @@ int main(int argc, char **argv)
         if (mpi_comm_global_h.is_root()) lib_printf("Complete copy of Cs and V on each process\n");
         local_atpair = generate_atom_pair_from_nat(natom, false);
         READ_AIMS_Cs("./", Params::cs_threshold,local_atpair);
-        READ_Vq_Full("./", "coulomb_mat", Params::vq_threshold, Vq);
+        READ_Vq_Full("./", "coulomb_mat", false);
     }
 
     for (int i = 0; i < mpi_comm_global_h.nprocs; i++)
@@ -398,7 +398,7 @@ int main(int argc, char **argv)
         Profiler::start("Wc_Rf", "Build Screened Coulomb: R and freq. space");
 
         Profiler::start("read_vq_cut", "Load truncated Coulomb");
-        READ_Vq_Full("./", "coulomb_cut_", Params::vq_threshold, Vq_cut);
+        READ_Vq_Full("./", "coulomb_cut_", true);
         Profiler::stop("read_vq_cut");
 
         std::vector<double> epsmac_LF_imagfreq_re;
@@ -529,7 +529,7 @@ int main(int argc, char **argv)
         Profiler::start("g0w0", "G0W0 quasi-particle calculation");
 
         Profiler::start("read_vq_cut", "Load truncated Coulomb");
-        READ_Vq_Full("./", "coulomb_cut_", Params::vq_threshold, Vq_cut);
+        READ_Vq_Full("./", "coulomb_cut_", true);
         const auto VR = FT_Vq(Vq_cut, Rlist, true);
         Profiler::stop("read_vq_cut");
 
@@ -808,7 +808,7 @@ int main(int argc, char **argv)
     }
     else if ( task == task_t::EXX )
     {
-        READ_Vq_Full("./", "coulomb_cut_", Params::vq_threshold, Vq_cut);
+        READ_Vq_Full("./", "coulomb_cut_", true);
         const auto VR = FT_Vq(Vq_cut, Rlist, true);
         auto exx = LIBRPA::Exx(meanfield, kfrac_list);
         exx.build_exx_orbital_energy(Cs, Rlist, period, VR);
