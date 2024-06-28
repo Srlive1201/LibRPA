@@ -1,6 +1,7 @@
 #include "get_minimax.h"
 
 #include "envs_dir.h"
+#include "envs_mpi.h"
 #include "parallel_mpi.h"
 
 #include <fstream>
@@ -106,12 +107,12 @@ static void call_local_grid_script(int ngrids, double e_min, double e_max)
 {
     string tmps;
     double erange = e_max / e_min;
-    if(LIBRPA::mpi_comm_world_h.is_root())
+    if(LIBRPA::envs::mpi_comm_global_h.is_root())
     {
         tmps = "python " + GX_path + " " + to_string(ngrids) + " " + to_string(erange);
         system(tmps.c_str());
     }
-    LIBRPA::mpi_comm_world_h.barrier();
+    LIBRPA::envs::mpi_comm_global_h.barrier();
     sleep(1);
 }
 
