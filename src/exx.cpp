@@ -402,7 +402,6 @@ void Exx::build_exx_orbital_energy_LibRI(const atpair_R_mat_t &LRI_Cs,
     //     }
     // }
 #else
-    using LIBRPA::envs::mpi_comm_global_h;
     if (mpi_comm_global_h.is_root())
     {
         utils::lib_printf("Error: trying build EXX orbital energy with LibRI, but the program is not compiled against LibRI\n");
