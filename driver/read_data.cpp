@@ -854,7 +854,9 @@ size_t read_Vq_full(const string &dir_path, const string &vq_fprefix, bool is_cu
 }
 
 
-static int handle_Vq_row_file(const string &file_path, double threshold, atpair_k_cplx_mat_t &coulomb, const vector<atpair_t> &local_atpair)
+static int handle_Vq_row_file(const string &file_path, double threshold,
+        atom_mapping<std::map<int, std::shared_ptr<ComplexMatrix>>>::pair_t_old &coulomb,
+        const vector<atpair_t> &local_atpair)
 {
     // cout << "Begin to read aims vq_real from " << file_path << endl;
     ifstream infile;
@@ -894,12 +896,12 @@ static int handle_Vq_row_file(const string &file_path, double threshold, atpair_
         {
             auto I=ap.first;
             auto J=ap.second;
-            if(!coulomb[I][J].count(qvec))
+            if(!coulomb[I][J].count(iq))
             {
                 shared_ptr<ComplexMatrix> vq_ptr = make_shared<ComplexMatrix>();
                 vq_ptr->create(atom_mu[I], atom_mu[J]);
                 // cout<<"  create  IJ: "<<I<<"  "<<J<<"   "<<atom_mu[I]<<"  "<<atom_mu[J];
-                coulomb[I][J][qvec]=vq_ptr;
+                coulomb[I][J][iq]=vq_ptr;
             }
         }   
 
@@ -941,7 +943,7 @@ static int handle_Vq_row_file(const string &file_path, double threshold, atpair_
                             J_loc=atom_mu_glo2loc(i,nu_loc);
                             //printf("|i: %d   J: %d   J_loc: %d, nu_loc: %d\n",i,J,J_loc,nu_loc);
                             assert(J==J_loc);
-                            (*coulomb[I_loc][J_loc][qvec])(mu_loc,nu_loc)=tmp_row[i-bcol];
+                            (*coulomb[I_loc][J_loc][iq])(mu_loc,nu_loc)=tmp_row[i-bcol];
                         }
                     }
                 }
@@ -952,7 +954,8 @@ static int handle_Vq_row_file(const string &file_path, double threshold, atpair_
 }
 
 
-size_t read_Vq_row(const string &dir_path, const string &vq_fprefix, double threshold, atpair_k_cplx_mat_t &coulomb_mat, const vector<atpair_t> &local_atpair)
+size_t read_Vq_row(const string &dir_path, const string &vq_fprefix, double threshold,
+        const vector<atpair_t> &local_atpair, bool is_cut_coulomb)
 {
     cout<<"Begin READ_Vq_Row"<<endl;
     set<int> local_I_set;
@@ -964,6 +967,7 @@ size_t read_Vq_row(const string &dir_path, const string &vq_fprefix, double thre
 
     size_t vq_save = 0;
     size_t vq_discard = 0;
+    atom_mapping<std::map<int, std::shared_ptr<ComplexMatrix>>>::pair_t_old coulomb;
     struct dirent *ptr;
     DIR *dir;
     dir = opendir(dir_path.c_str());
@@ -975,9 +979,40 @@ size_t read_Vq_row(const string &dir_path, const string &vq_fprefix, double thre
         if (fm.find(vq_fprefix) == 0)
         {
             //handle_Vq_full_file(fm, threshold, Vq_full);
-            handle_Vq_row_file(fm,threshold,coulomb_mat,local_atpair);
+            handle_Vq_row_file(fm,threshold, coulomb, local_atpair);
         }
     }
+    // MYZ: now the map coulomb contains the complete atom-pair matrix.
+    // Call the API to parse the data.
+    // To reduce memory consumption during this process, we erase the data in temporary object once it is parsed.
+    auto it_I = coulomb.begin();
+    while (it_I != coulomb.end())
+    {
+        auto I = it_I->first;
+        auto it_J = it_I->second.begin();
+        while (it_J != it_I->second.end())
+        {
+            auto J = it_J->first;
+            auto it_iq = it_J->second.begin();
+            while (it_iq != it_J->second.end())
+            {
+                auto iq = it_iq->first;
+                auto &vq_ptr = it_iq->second;
+                if (is_cut_coulomb)
+                {
+                    set_aux_cut_coulomb_k_atom_pair(iq, I, J, vq_ptr->nr, vq_ptr->nc, vq_ptr->real().c, vq_ptr->imag().c);
+                }
+                else
+                {
+                    set_aux_bare_coulomb_k_atom_pair(iq, I, J, vq_ptr->nr, vq_ptr->nc, vq_ptr->real().c, vq_ptr->imag().c);
+                }
+                it_iq = it_J->second.erase(it_iq);
+            }
+            it_J = it_I->second.erase(it_J);
+        }
+        it_I = coulomb.erase(it_I);
+    }
+
     // cout << "FINISH coulomb files reading!" << endl;
 
     closedir(dir);

@@ -233,7 +233,7 @@ int main(int argc, char **argv)
         read_Cs("./", Params::cs_threshold,local_atpair, Params::binary_input);
         // for(auto &ap:local_atpair)
         //     printf("   |process %d , local_atom_pair:  %d,  %d\n", mpi_comm_global_h.myid,ap.first,ap.second);
-        read_Vq_row("./", "coulomb_mat", Params::vq_threshold, Vq, local_atpair);
+        read_Vq_row("./", "coulomb_mat", Params::vq_threshold, local_atpair, false);
         test_libcomm_for_system(Vq);
     }
     else if(parallel_routing == ParallelRouting::LIBRI)
@@ -245,7 +245,7 @@ int main(int argc, char **argv)
         auto trangular_loc_atpair= dispatch_upper_trangular_tasks(natom,blacs_ctxt_global_h.myid,blacs_ctxt_global_h.nprows,blacs_ctxt_global_h.npcols,blacs_ctxt_global_h.myprow,blacs_ctxt_global_h.mypcol);
         for(auto &iap:trangular_loc_atpair)
             local_atpair.push_back(iap);
-        read_Vq_row("./", "coulomb_mat", Params::vq_threshold, Vq, local_atpair);
+        read_Vq_row("./", "coulomb_mat", Params::vq_threshold, local_atpair, false);
         test_libcomm_for_system(Vq);
     }
     else

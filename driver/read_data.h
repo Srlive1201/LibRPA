@@ -18,21 +18,31 @@ using std::string;
 
 void read_band(const string &file_path, MeanField &mf);
 
-//! Read exchange-correlation potential
 /*!
+ * @brief Read exchange-correlation potential
+ *
  * @param[in] file_path   data file path
  * @return    status code, 0 for succesful read, 1 with error
  */
 int read_vxc(const string &file_path, std::vector<matrix> &vxc);
 
 void read_eigenvector(const string &dir_path, MeanField &mf);
-size_t read_Cs(const string &dir_path, double threshold,const vector<atpair_t> &local_atpair, bool binary = false);
-size_t read_Cs_evenly_distribute(const string &dir_path, double threshold, int myid, int nprocs, bool binary = false);
+
+size_t read_Cs(const string &dir_path, double threshold, const vector<atpair_t> &local_atpair,
+               bool binary = false);
+
+size_t read_Cs_evenly_distribute(const string &dir_path, double threshold, int myid, int nprocs,
+                                 bool binary = false);
+
 size_t read_Vq_full(const string &dir_path, const string &vq_fprefix, bool is_cut_coulomb);
-size_t read_Vq_row(const string &dir_path, const string &vq_fprefix, double threshold, atpair_k_cplx_mat_t &coulomb, const vector<atpair_t> &local_atpair);
+
+size_t read_Vq_row(const string &dir_path, const string &vq_fprefix, double threshold,
+                   const vector<atpair_t> &local_atpair, bool is_cut_coulomb);
+
 void read_stru(const int& n_kpoints, const std::string &file_path);
 
-void read_dielec_func(const string &file_path, std::vector<double> &omegas, std::vector<double> &dielec_func_imagfreq);
+void read_dielec_func(const string &file_path, std::vector<double> &omegas,
+                      std::vector<double> &dielec_func_imagfreq);
 
 void erase_Cs_from_local_atp(atpair_R_mat_t &Cs, vector<atpair_t> &local_atpair);
 
