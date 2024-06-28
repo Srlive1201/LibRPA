@@ -1,4 +1,4 @@
-#include "read_aims.h"
+#include "read_data.h"
 // #include <iostream>
 #include <cassert>
 #include <fstream>
@@ -29,7 +29,7 @@ using std::ifstream;
 using std::string;
 /* using std::stod; */
 
-void READ_AIMS_BAND(const string &file_path, MeanField &mf)
+void read_band(const string &file_path, MeanField &mf)
 {
     // cout << "Begin to read aims-band_out" << endl;
     ifstream infile;
@@ -180,7 +180,7 @@ static void handle_KS_file(const string &file_path, MeanField &mf)
     }
 }
 
-void READ_AIMS_EIGENVECTOR(const string &dir_path, MeanField &mf)
+void read_eigenvector(const string &dir_path, MeanField &mf)
 {
     // cout<<"Begin to read aims eigenvecor"<<endl;
     //assert(mf.get_n_spins() == 1);
@@ -327,7 +327,8 @@ static size_t handle_Cs_file_binary(const string &file_path, double threshold, c
     }
     return cs_discard;
 }
-size_t READ_AIMS_Cs(const string &dir_path, double threshold,const vector<atpair_t> &local_atpair, bool binary)
+
+size_t read_Cs(const string &dir_path, double threshold,const vector<atpair_t> &local_atpair, bool binary)
 {
     size_t cs_discard = 0;
     // cout << "Begin to read Cs" << endl;
@@ -571,7 +572,7 @@ size_t handle_Cs_file_binary_by_ids(const string &file_path, double threshold, c
 }
 
 
-size_t READ_AIMS_Cs_evenly_distribute(const string &dir_path, double threshold, int myid, int nprocs, bool binary)
+size_t read_Cs_evenly_distribute(const string &dir_path, double threshold, int myid, int nprocs, bool binary)
 {
     size_t cs_discard = 0;
     struct dirent *ptr;
@@ -747,7 +748,7 @@ static int handle_Vq_full_file(const string &file_path, map<Vector3_Order<double
     return 0;
 }
 
-size_t READ_Vq_Full(const string &dir_path, const string &vq_fprefix, bool is_cut_coulomb)
+size_t read_Vq_full(const string &dir_path, const string &vq_fprefix, bool is_cut_coulomb)
 {
     size_t vq_save = 0;
     size_t vq_discard = 0;
@@ -951,7 +952,7 @@ static int handle_Vq_row_file(const string &file_path, double threshold, atpair_
 }
 
 
-size_t READ_Vq_Row(const string &dir_path, const string &vq_fprefix, double threshold, atpair_k_cplx_mat_t &coulomb_mat, const vector<atpair_t> &local_atpair)
+size_t read_Vq_row(const string &dir_path, const string &vq_fprefix, double threshold, atpair_k_cplx_mat_t &coulomb_mat, const vector<atpair_t> &local_atpair)
 {
     cout<<"Begin READ_Vq_Row"<<endl;
     set<int> local_I_set;
@@ -1034,7 +1035,7 @@ void erase_Cs_from_local_atp(atpair_R_mat_t &Cs, vector<atpair_t> &local_atpair)
     LIBRPA::utils::lib_printf("| process %d, size of Cs after erase: %lu\n", LIBRPA::envs::mpi_comm_global_h.myid, Cs.size());
 }
 
-void READ_AIMS_STRU(const int& n_kpoints, const std::string &file_path)
+void read_stru(const int& n_kpoints, const std::string &file_path)
 {
     // cout << "Begin to read aims stru" << endl;
     ifstream infile;

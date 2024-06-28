@@ -24,7 +24,7 @@
 #include "pbc.h"
 #include "profiler.h"
 #include "qpe_solver.h"
-#include "read_aims.h"
+#include "read_data.h"
 #include "stl_io_helper.h"
 #include "task.h"
 #include "utils_io.h"
@@ -129,7 +129,7 @@ int main(int argc, char **argv)
     Profiler::stop("driver_read_params");
 
     Profiler::start("driver_band_out", "Driver Read Meanfield band");
-    READ_AIMS_BAND("band_out", meanfield);
+    read_band("band_out", meanfield);
     if (mpi_comm_global_h.is_root())
     {
         cout << "Information of mean-field starting-point" << endl;
@@ -159,7 +159,7 @@ int main(int argc, char **argv)
     }
 
     Profiler::start("driver_read_common_input_data", "Driver Read Task-Common Input Data");
-    READ_AIMS_STRU(meanfield.get_n_kpoints(), "stru_out");
+    read_stru(meanfield.get_n_kpoints(), "stru_out");
     Vector3_Order<int> period {kv_nmp[0], kv_nmp[1], kv_nmp[2]};
     auto Rlist = construct_R_grid(period);
     const int Rt_num = Rlist.size() * Params::nfreq;
@@ -186,7 +186,7 @@ int main(int argc, char **argv)
     }
     mpi_comm_global_h.barrier();
 
-    READ_AIMS_EIGENVECTOR("./", meanfield);
+    read_eigenvector("./", meanfield);
     get_natom_ncell_from_first_Cs_file(natom, ncell, "./", Params::binary_input);
     tot_atpair = generate_atom_pair_from_nat(natom, false);
     tot_atpair_ordered = generate_atom_pair_from_nat(natom, true);
@@ -230,30 +230,30 @@ int main(int argc, char **argv)
         //local_atpair = dispatch_vector(tot_atpair, mpi_comm_global_h.myid, mpi_comm_global_h.nprocs, true);
         for(auto &iap:trangular_loc_atpair)
             local_atpair.push_back(iap);
-        READ_AIMS_Cs("./", Params::cs_threshold,local_atpair, Params::binary_input);
+        read_Cs("./", Params::cs_threshold,local_atpair, Params::binary_input);
         // for(auto &ap:local_atpair)
         //     printf("   |process %d , local_atom_pair:  %d,  %d\n", mpi_comm_global_h.myid,ap.first,ap.second);
-        READ_Vq_Row("./", "coulomb_mat", Params::vq_threshold, Vq, local_atpair);
+        read_Vq_row("./", "coulomb_mat", Params::vq_threshold, Vq, local_atpair);
         test_libcomm_for_system(Vq);
     }
     else if(parallel_routing == ParallelRouting::LIBRI)
     {
         if (mpi_comm_global_h.is_root()) lib_printf("Evenly distributed Cs and V for LibRI\n");
-        READ_AIMS_Cs_evenly_distribute("./", Params::cs_threshold, mpi_comm_global_h.myid, mpi_comm_global_h.nprocs, Params::binary_input);
+        read_Cs_evenly_distribute("./", Params::cs_threshold, mpi_comm_global_h.myid, mpi_comm_global_h.nprocs, Params::binary_input);
         // Vq distributed using the same strategy
         // There should be no duplicate for V
         auto trangular_loc_atpair= dispatch_upper_trangular_tasks(natom,blacs_ctxt_global_h.myid,blacs_ctxt_global_h.nprows,blacs_ctxt_global_h.npcols,blacs_ctxt_global_h.myprow,blacs_ctxt_global_h.mypcol);
         for(auto &iap:trangular_loc_atpair)
             local_atpair.push_back(iap);
-        READ_Vq_Row("./", "coulomb_mat", Params::vq_threshold, Vq, local_atpair);
+        read_Vq_row("./", "coulomb_mat", Params::vq_threshold, Vq, local_atpair);
         test_libcomm_for_system(Vq);
     }
     else
     {
         if (mpi_comm_global_h.is_root()) lib_printf("Complete copy of Cs and V on each process\n");
         local_atpair = generate_atom_pair_from_nat(natom, false);
-        READ_AIMS_Cs("./", Params::cs_threshold,local_atpair);
-        READ_Vq_Full("./", "coulomb_mat", false);
+        read_Cs("./", Params::cs_threshold,local_atpair);
+        read_Vq_full("./", "coulomb_mat", false);
     }
 
     for (int i = 0; i < mpi_comm_global_h.nprocs; i++)
@@ -398,7 +398,7 @@ int main(int argc, char **argv)
         Profiler::start("Wc_Rf", "Build Screened Coulomb: R and freq. space");
 
         Profiler::start("read_vq_cut", "Load truncated Coulomb");
-        READ_Vq_Full("./", "coulomb_cut_", true);
+        read_Vq_full("./", "coulomb_cut_", true);
         Profiler::stop("read_vq_cut");
 
         std::vector<double> epsmac_LF_imagfreq_re;
@@ -529,7 +529,7 @@ int main(int argc, char **argv)
         Profiler::start("g0w0", "G0W0 quasi-particle calculation");
 
         Profiler::start("read_vq_cut", "Load truncated Coulomb");
-        READ_Vq_Full("./", "coulomb_cut_", true);
+        read_Vq_full("./", "coulomb_cut_", true);
         const auto VR = FT_Vq(Vq_cut, Rlist, true);
         Profiler::stop("read_vq_cut");
 
@@ -808,7 +808,7 @@ int main(int argc, char **argv)
     }
     else if ( task == task_t::EXX )
     {
-        READ_Vq_Full("./", "coulomb_cut_", true);
+        read_Vq_full("./", "coulomb_cut_", true);
         const auto VR = FT_Vq(Vq_cut, Rlist, true);
         auto exx = LIBRPA::Exx(meanfield, kfrac_list);
         exx.build_exx_orbital_energy(Cs, Rlist, period, VR);
