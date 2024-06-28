@@ -26,6 +26,7 @@ atpair_R_mat_t Cs;
 atpair_k_cplx_mat_t Vq;
 atpair_k_cplx_mat_t Vq_cut;
 map<Vector3_Order<double>, ComplexMatrix> Vq_block_loc;
+map<Vector3_Order<double>, ComplexMatrix> Vq_cut_block_loc;
 
 int atom_iw_loc2glo(const int &atom_index, const int &iw_lcoal)
 {

@@ -256,7 +256,8 @@ void set_aux_cut_coulomb_k_atom_pair(int ik, int I, int J, int naux_mu, int naux
             Vq_real_in, Vq_imag_in, Vq_cut);
 }
 
-void set_aux_bare_coulomb_k_2D_block(int ik, int max_naux, int mu_begin, int mu_end, int nu_begin, int nu_end, double* Vq_real_in, double* Vq_imag_in)
+static void _set_aux_coulomb_k_2D_block(int ik, int max_naux, int mu_begin, int mu_end, int nu_begin, int nu_end,
+        double* Vq_real_in, double* Vq_imag_in, map<Vector3_Order<double>, ComplexMatrix> &vq_block)
 {
     int brow = mu_begin - 1;
     int erow = mu_end - 1;
@@ -277,10 +278,22 @@ void set_aux_bare_coulomb_k_2D_block(int ik, int max_naux, int mu_begin, int mu_
     {
         for (int i_nu = bcol; i_nu <= ecol; i_nu++)
         {
-            Vq_block_loc[qvec](i_mu, i_nu) = complex<double>(Vq_real_in[ii], Vq_imag_in[ii]); 
+            vq_block[qvec](i_mu, i_nu) = complex<double>(Vq_real_in[ii], Vq_imag_in[ii]);
             ii+=1;
         }
     }
+}
+
+void set_aux_bare_coulomb_k_2D_block(int ik, int max_naux, int mu_begin, int mu_end, int nu_begin, int nu_end, double* Vq_real_in, double* Vq_imag_in)
+{
+    _set_aux_coulomb_k_2D_block(ik, max_naux, mu_begin, mu_end, nu_begin, nu_end, Vq_real_in, Vq_imag_in,
+            Vq_block_loc);
+}
+
+void set_aux_cut_coulomb_k_2D_block(int ik, int max_naux, int mu_begin, int mu_end, int nu_begin, int nu_end, double* Vq_real_in, double* Vq_imag_in)
+{
+    _set_aux_coulomb_k_2D_block(ik, max_naux, mu_begin, mu_end, nu_begin, nu_end, Vq_real_in, Vq_imag_in,
+            Vq_cut_block_loc);
 }
 
 void set_librpa_params(LibRPAParams *params_c)
