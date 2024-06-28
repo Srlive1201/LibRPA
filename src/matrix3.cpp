@@ -186,7 +186,7 @@ bool operator!=(const Matrix3 &m1, const Matrix3 &m2)
 }
 
 
-void Matrix3::print(void)const
+void Matrix3::print(int width) const
 {
 	cout << setw(10)<< e11 << setw(10) << e12 << setw(10) << e13 << endl ;
 	cout << setw(10)<< e21 << setw(10) << e22 << setw(10) << e23 << endl ;

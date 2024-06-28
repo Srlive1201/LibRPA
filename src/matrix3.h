@@ -31,7 +31,7 @@ public:
 	Matrix3& operator*=(const double &s);
 	Matrix3& operator/=(const double &s);
 
-	void print(void)const;
+	void print(int width = 10)const;
 };
 
 Matrix3 operator +(const Matrix3 &m1, const Matrix3 &m2);	//m1+m2

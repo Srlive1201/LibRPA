@@ -166,14 +166,14 @@ int main(int argc, char **argv)
     if (mpi_comm_global_h.is_root())
     {
         cout << "Lattice vectors (Bohr)" << endl;
-        latvec.print();
+        latvec.print(12);
         cout << "Reciprocal lattice vectors (2PI Bohr^-1)" << endl;
-        G.print();
-        lib_printf("kgrids: %2d %2d %2d\n", kv_nmp[0], kv_nmp[1], kv_nmp[2]);
+        G.print(12);
+        lib_printf("kgrids: %3d %3d %3d\n", kv_nmp[0], kv_nmp[1], kv_nmp[2]);
         cout << "k-points read (Cartisian in 2Pi Bohr^-1 | fractional):" << endl;
         for (int ik = 0; ik != meanfield.get_n_kpoints(); ik++)
         {
-            lib_printf("ik %4d: %10.7f %10.7f %10.7f | %10.7f %10.7f %10.7f\n",
+            lib_printf("ik %4d: %12.7f %12.7f %12.7f | %12.7f %12.7f %12.7f\n",
                    ik+1, kvec_c[ik].x, kvec_c[ik].y, kvec_c[ik].z,
                    kfrac_list[ik].x, kfrac_list[ik].y, kfrac_list[ik].z);
         }

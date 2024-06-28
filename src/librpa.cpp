@@ -117,7 +117,7 @@ void set_latvec_and_G(double* lat_mat, double* G_mat)
     latvec.e32 = lat_mat[7];
     latvec.e33 = lat_mat[8];
     
-    latvec /= ANG2BOHR;
+    // latvec /= ANG2BOHR;
     lat_array[0] = {latvec.e11,latvec.e12,latvec.e13};
     lat_array[1] = {latvec.e21,latvec.e22,latvec.e23};
     lat_array[2] = {latvec.e31,latvec.e32,latvec.e33};
@@ -125,7 +125,7 @@ void set_latvec_and_G(double* lat_mat, double* G_mat)
     G.e11 = G_mat[0];
     G.e12 = G_mat[1];
     G.e13 = G_mat[2];
-   
+
     G.e21 = G_mat[3];
     G.e22 = G_mat[4];
     G.e23 = G_mat[5];
@@ -135,12 +135,12 @@ void set_latvec_and_G(double* lat_mat, double* G_mat)
     G.e33 = G_mat[8];
 
     G /= TWO_PI;
-    G *= ANG2BOHR;
+    // G *= ANG2BOHR;
     
-    if (mpi_comm_global_h.is_root())
-    {
-        LIBRPA::utils::lib_printf(" LibRPA_lat : %f, %f, %f\n",latvec.e11,latvec.e12,latvec.e13);
-    }
+    // if (mpi_comm_global_h.is_root())
+    // {
+    //     LIBRPA::utils::lib_printf(" LibRPA_lat (Bohr) : %f, %f, %f\n",latvec.e11,latvec.e12,latvec.e13);
+    // }
     //latvec.print();
     //G.print();
 }
@@ -160,11 +160,14 @@ void set_kgrids_kvec_tot(int nk1, int nk2, int nk3, double* kvecs)
         double kz=kvecs[ik*3+2];
 
         kvec_c[ik] = {kx, ky, kz};
-        kvec_c[ik] *= (ANG2BOHR / TWO_PI);
-        // LIBRPA::utils::lib_printf("ik: %d, (%f, %f, %f)\n", ik,kx,ky,kz);
+        // kvec_c[ik] *= (ANG2BOHR / TWO_PI);
+        kvec_c[ik] /= TWO_PI;
         Vector3_Order<double> kvec_tmp(kvec_c[ik]);
         klist.push_back(kvec_tmp);
         kfrac_list.push_back(latvec * kvec_tmp);
+        // LIBRPA::utils::lib_printf("ik: %d, (%f, %f, %f), (%f, %f, %f)\n",
+        //         ik, kvec_c[ik].x, kvec_c[ik].y, kvec_c[ik].z,
+        //         kfrac_list[ik].x, kfrac_list[ik].y, kfrac_list[ik].z);
     }
 }
 

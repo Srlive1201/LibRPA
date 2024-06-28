@@ -1008,8 +1008,8 @@ void READ_AIMS_STRU(const int& n_kpoints, const std::string &file_path)
     string x, y, z;
     infile.open(file_path);
 
-    auto lat_mat = new double [9];
-    auto G_mat = new double [9];
+    std::vector<double> lat_mat(9);
+    std::vector<double> G_mat(9);
 
     for (int i = 0; i < 3; i++)
     {
@@ -1027,9 +1027,7 @@ void READ_AIMS_STRU(const int& n_kpoints, const std::string &file_path)
         G_mat[i * 3 + 2] = stod(z);
     }
 
-    set_latvec_and_G(lat_mat, G_mat);
-    delete [] lat_mat;
-    delete [] G_mat;
+    set_latvec_and_G(lat_mat.data(), G_mat.data());
 
     // G.print();
     // Matrix3 latG = latvec * G.Transpose();
@@ -1043,15 +1041,14 @@ void READ_AIMS_STRU(const int& n_kpoints, const std::string &file_path)
         nk[i] = stoi(x);
     }
     assert(n_kpoints == nk[0] * nk[1] * nk[2]);
-    auto kvecs = new double [3 * n_kpoints];
+    std::vector<double> kvecs(3 * n_kpoints);
     // kvec_c = new Vector3<double>[n_kpoints];
     for (int i = 0; i != 3 * n_kpoints; i++)
     {
         infile >> x;
         kvecs[i] = stod(x);
     }
-    set_kgrids_kvec_tot(nk[0], nk[1], nk[2], kvecs);
-    delete [] kvecs;
+    set_kgrids_kvec_tot(nk[0], nk[1], nk[2], kvecs.data());
 
     // TODO: use API for IBZ mapping
     for (int i = 0; i != n_kpoints; i++)
