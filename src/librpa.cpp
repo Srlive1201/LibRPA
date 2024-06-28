@@ -29,17 +29,17 @@
 using LIBRPA::envs::mpi_comm_global_h;
 
 void initialize_librpa_environment(
-        MPI_Comm comm_in, int is_fortran_comm,
+        MPI_Comm comm_global_in, int is_fortran_comm,
         int redirect_stdout, const char *output_filename)
 {
     MPI_Comm comm_global;
     if (is_fortran_comm)
     {
-        comm_global = MPI_Comm_f2c(comm_in);
+        comm_global = MPI_Comm_f2c(comm_global_in);
     }
     else
     {
-        comm_global = comm_in;
+        comm_global = comm_global_in;
     }
 
     LIBRPA::envs::initialize_mpi(comm_global);
@@ -89,7 +89,7 @@ void set_wg_ekb_efermi(int nspins, int nkpts, int nstates, double* wg, double* e
     // }
 }
 
-void set_ao_basis_wfc(int is, int ik, double* wfc_real, double* wfc_imag)
+void set_ao_basis_wfc(int ispin, int ik, double* wfc_real, double* wfc_imag)
 {
     // LIBRPA::utils::lib_printf("is: %d, ik: %d\n",is,ik);
     // int length_ib_iw=meanfield.get_n_bands()*meanfield.get_n_aos();
@@ -99,12 +99,12 @@ void set_ao_basis_wfc(int is, int ik, double* wfc_real, double* wfc_imag)
     for(int i=0;i!=meanfield.get_n_bands()*meanfield.get_n_aos();i++)
     {
         // LIBRPA::utils::lib_printf("In ao wfc: %f, %f\n",wfc_real[i],wfc_imag[i]);
-        wfc.at(is).at(ik).c[i] = complex<double>(wfc_real[i], wfc_imag[i]);
+        wfc.at(ispin).at(ik).c[i] = complex<double>(wfc_real[i], wfc_imag[i]);
     }
     // print_complex_matrix("wfc_isk", wfc.at(is).at(ik));
 }
 
-void set_latvec_and_G(double* lat_mat, double* G_mat)
+void set_latvec_and_G(double lat_mat[9], double G_mat[9])
 {
     latvec.e11 = lat_mat[0];
     latvec.e12 = lat_mat[1];
