@@ -1,8 +1,8 @@
 #include "inputfile.h"
 
 #include <regex>
-#include <iostream>
 #include <fstream>
+#include <sstream>
 
 #include "params.h"
 
