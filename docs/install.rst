@@ -107,4 +107,3 @@ Use GNU make
 
 Compiling LibRPA with GNU make is unfortunately broken now.
 Please use CMake instead.
-

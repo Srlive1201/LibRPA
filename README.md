@@ -69,6 +69,6 @@ If `librpa.in` or the related keyword is not found, the default value will be us
 
 ### Code design
 
-![image](docs/IMG/farmwork.png)
-![image](docs/IMG/FHI-aims_interface.png)
-![image](docs/IMG/parallell-schem.png)
+![image](docs/assets/frarework.png)
+![image](docs/assets/FHI-aims_interface.png)
+![image](docs/assets/rpa-parallel-scheme.png)

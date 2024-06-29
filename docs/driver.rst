@@ -80,6 +80,5 @@ Without an input file ``librpa.in``, the above commands will all run the
 low-scaling RPA calculation.
 To perform other tasks such as exact-exchange or GW calculations, you
 need to specify the ``task`` keyword in ``librpa.in``. Please turn to the
-:doc:`manual page of input parameters <../manual/input_parameters>` for more
+:doc:`manual page of input parameters <user_guide/input_parameters>` for more
 information.
-

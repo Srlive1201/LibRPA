@@ -1,0 +1,9 @@
+sphinx
+sphinx-book-theme
+sphinx-design
+sphinx-copybutton
+# Linking to Doxygen API documentation
+sphinxcontrib-doxylink
+myst-parser
+# doxyphinx is not available on conda, use pip to install
+# doxysphinx

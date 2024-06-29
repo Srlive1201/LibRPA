@@ -5,10 +5,6 @@
  * @date      2024-06-28
  */
 #pragma once
-#include <array>
-#include <complex>
-#include <memory>
-#include <valarray>
 #include <mpi.h>
 
 #ifdef __cplusplus
@@ -140,6 +136,7 @@ void set_ibz2bz_index_and_weight(const int nk_irk, const int* ibz2bz_index, cons
  * @param[in] nbasis_i             Number of basis functions centered at atom I
  * @param[in] nbasis_j             Number of basis functions centered at atom J
  * @param[in] naux_mu              Number of auxliary basis functions centered at atom I
+ * @param[in] R                    Real-space lattice vector where atom J resides, [3]
  * @param[in] Cs_in                Local RI triple coefficients, [nbasis_i][nbasis_j][naux_mu]
  * @param[in] insert_index_only    Only insert the indices of atoms but skip setting Cs_in
  */
@@ -177,9 +174,9 @@ void set_aux_cut_coulomb_k_atom_pair(int ik, int I, int J, int naux_mu, int naux
  * @param[in] ik            Index of k-point of parsed Coulomb matrix
  * @param[in] max_naux      Total number of auxiliary basis functions
  * @param[in] mu_begin      Starting row index
- * @param[in] mu_begin      End row index
+ * @param[in] mu_end        End row index
  * @param[in] nu_begin      Starting column index
- * @param[in] nu_begin      End column index
+ * @param[in] nu_end        End column index
  * @param[in] Vq_real_in    Real part of the Coulomb matrix block
  * @param[in] Vq_imag_in    Imaginary part of the Coulomb matrix block
  */
@@ -191,9 +188,9 @@ void set_aux_bare_coulomb_k_2D_block(int ik, int max_naux, int mu_begin, int mu_
  * @param[in] ik            Index of k-point of parsed Coulomb matrix
  * @param[in] max_naux      Total number of auxiliary basis functions
  * @param[in] mu_begin      Starting row index
- * @param[in] mu_begin      End row index
+ * @param[in] mu_end        End row index
  * @param[in] nu_begin      Starting column index
- * @param[in] nu_begin      End column index
+ * @param[in] nu_end        End column index
  * @param[in] Vq_real_in    Real part of the Coulomb matrix block
  * @param[in] Vq_imag_in    Imaginary part of the Coulomb matrix block
  */

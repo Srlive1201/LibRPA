@@ -3,30 +3,46 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to LibRPA's documentation!
-==================================
+LibRPA
+======
 
 .. toctree::
+   :hidden:
    :maxdepth: 2
    :caption: Get Started
 
    install
-   usage/driver
+   driver
 
 .. toctree::
+   :hidden:
    :maxdepth: 2
-   :caption: Manual
+   :caption: User Guide
 
-   manual/compile
-   manual/input_parameters
+   user_guide/compile_options
+   user_guide/input_parameters
 
 .. toctree::
+   :hidden:
    :maxdepth: 2
    :caption: Tutorial
 
+   tutorial/rpa/index
+   tutorial/gw/index
+
 .. toctree::
+   :hidden:
    :maxdepth: 2
-   :caption: Development
+   :caption: API Documentation
+
+   doxygen/librpa/html/index
+
+.. toctree::
+   :hidden:
+   :maxdepth: 1
+   :caption: Development 
+
+   Code design <design>
 
 ..
    Indices and tables

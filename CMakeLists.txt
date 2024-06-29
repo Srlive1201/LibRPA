@@ -23,7 +23,6 @@ option(USE_LIBRI            "Use LibRI for tensor contraction" OFF)
 option(USE_CMAKE_INC        "Use cmake.inc for configure" OFF)
 option(USE_GREENX_MINIMAX   "Use GreenX library for minimax grids generation" OFF)
 option(USE_EXTERNAL_GREENX  "Use external GreenX library rather than the packaged one" OFF)
-option(ENABLE_DOC           "Flag to build documentation" OFF)
 option(ENABLE_TEST          "Flag to build unit tests" ON)
 option(ENABLE_DRIVER        "Flag to build driver executables" ON)
 # NOTE: static library not tested
@@ -210,8 +209,3 @@ if(ENABLE_DRIVER)
 endif()
 
 add_subdirectory(src)
-
-if(ENABLE_DOC)
-  include(UseDoxygenDoc)
-  add_subdirectory(docs)
-endif()

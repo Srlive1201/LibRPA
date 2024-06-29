@@ -63,14 +63,9 @@ local_*_points.dat
 # cmake build directories
 build*/
 
-# Doxygen build and generated config file
-docs/*/_build
-docs/doxygen/Doxyfile
-
 # Necessary makefiles
-!src/Makefile
-!docs/*/Makefile
-!tests/Makefile
+# !src/Makefile
+# !tests/Makefile
 
 .cache
 
