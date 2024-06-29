@@ -26,7 +26,11 @@
 #endif
 #include <array>
 #include <map>
+#if defined(__MACH__)
+#include <malloc/malloc.h>  // for malloc_zone_pressure_relief and malloc_default_zone
+#else
 #include <malloc.h>
+#endif
 
 using LIBRPA::envs::mpi_comm_global_h;
 using LIBRPA::ParallelRouting;
@@ -264,7 +268,7 @@ void Chi0::build_chi0_q_space_time_LibRI_routing( atpair_R_mat_t &LRI_Cs,
     std::map<int, std::map<std::pair<int,std::array<int,3>>,RI::Tensor<double>>> Cs_libri;
 
     Profiler::start("chi0_libri_routing_init_cs", "Initialize Cs");
-    if(mpi_comm_world_h.is_root())
+    if(mpi_comm_global_h.is_root())
     {
         printf("Begin to Cs_libri !!! \n");
         system("free -m");
@@ -295,8 +299,12 @@ void Chi0::build_chi0_q_space_time_LibRI_routing( atpair_R_mat_t &LRI_Cs,
     // if (Params::debug)
     //     ofs_myid << Cs_libri;
     // cout << "Setting Cs for rpa object" << endl;
+    #ifndef __MACH__
     malloc_trim(0);
-    if(mpi_comm_world_h.is_root())
+    #else
+    malloc_zone_pressure_relief(malloc_default_zone(), 0);
+    #endif
+    if(mpi_comm_global_h.is_root())
     {
         printf("Begin set Cs !!! \n");
         system("free -m");
@@ -305,8 +313,12 @@ void Chi0::build_chi0_q_space_time_LibRI_routing( atpair_R_mat_t &LRI_Cs,
     
     rpa.set_Cs(Cs_libri, Params::libri_chi0_threshold_C);
     Cs_libri.clear();
+    #ifndef __MACH__
     malloc_trim(0);
-    if(mpi_comm_world_h.is_root())
+    #else
+    malloc_zone_pressure_relief(malloc_default_zone(), 0);
+    #endif
+    if(mpi_comm_global_h.is_root())
     {
         printf("After set Cs !!! \n");
         system("free -m");
@@ -352,7 +364,7 @@ void Chi0::build_chi0_q_space_time_LibRI_routing( atpair_R_mat_t &LRI_Cs,
                     if (gf_tau.count(tau) * gf_tau.count(-tau) == 0)
                         continue;
                     // std::valarray<double> mat_po_array(gf_tau.at(tau).c, gf_tau.at(tau).size);
-                    LIBRPA::fout_para << "gf_libri 1,    tau:" << tau << "  I J R: "<<I<<"  "<<J<<"  "<<R<<" size:"<<gf_tau.at(tau).size<<"\n";
+                    ofs_myid << "gf_libri 1,    tau:" << tau << "  I J R: "<<I<<"  "<<J<<"  "<<R<<" size:"<<gf_tau.at(tau).size<<"\n";
                     std::shared_ptr<std::valarray<double>> mat_po_ptr = std::make_shared<std::valarray<double>>(gf_tau.at(tau).c, gf_tau.at(tau).size);
                     // *mat_po_ptr=mat_po_array;
                     gf_po_libri[I][{J, Ra}] = RI::Tensor<double>({size_t(gf_tau.at(tau).nr), size_t(gf_tau.at(tau).nc)}, mat_po_ptr);
