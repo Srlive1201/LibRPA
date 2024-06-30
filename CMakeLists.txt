@@ -22,13 +22,17 @@ set(FORTRAN_LIB_NAME    "rpa_f")
 # options setup
 option(USE_LIBRI            "Use LibRI for tensor contraction" OFF)
 option(USE_CMAKE_INC        "Use cmake.inc for configure" OFF)
-option(USE_GREENX_MINIMAX   "Use GreenX library for minimax grids generation" OFF)
+option(USE_GREENX_API       "Use GreenX API for minimax grids generation" OFF)
 option(USE_EXTERNAL_GREENX  "Use external GreenX library rather than the packaged one" OFF)
 option(ENABLE_TEST          "Flag to build unit tests" ON)
 option(ENABLE_DRIVER        "Flag to build driver executables" ON)
 option(ENABLE_FORTRAN_BIND  "Flag to build Fotran binding" ON)
 # NOTE: static library not tested
 option(BUILD_LIBRPA_SHARED  "Flag to build shared libraries" ON)
+
+if (DEFINED USE_GREENX_MINIMAX)
+  message(FATAL_ERROR "USE_GREENX_MINIMAX is deprecated. Please use USE_GREENX_API")
+endif()
 
 # Add cmake load files
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
@@ -55,7 +59,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 # enable_language later than cmake.inc to take the variables therein into accout
 # require Fortran to compile GreenX for the minimax grids
-if(USE_GREENX_MINIMAX OR ENABLE_FORTRAN_BIND)
+if(USE_GREENX_API OR ENABLE_FORTRAN_BIND)
   enable_language(CXX Fortran)
 else()
   enable_language(CXX)
@@ -182,9 +186,9 @@ if(CMAKE_BUILD_TYPE MATCHES "Debug")
 endif()
 
 # Switch on GreenX
-if(USE_GREENX_MINIMAX)
+if(USE_GREENX_API)
   if(NOT USE_EXTERNAL_GREENX)
-    message(STATUS "Generate MiniMax grids by linking to GreenX library")
+    message(STATUS "Generate MiniMax grids by using API of GreenX library")
     add_subdirectory(./thirdparty/greenX-6ff8a00)
   endif()
 else()

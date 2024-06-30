@@ -69,7 +69,7 @@ jobs:
         run: |
           source /opt/intel/oneapi/setvars.sh
           export BUILDDIR="build_greenx"
-          CXX=mpiicpc cmake -DUSE_LIBRI=OFF -DUSE_GREENX_MINIMAX=ON -B $BUILDDIR -DENABLE_TEST=ON
+          CXX=mpiicpc cmake -DUSE_LIBRI=OFF -DUSE_GREENX_API=ON -B $BUILDDIR -DENABLE_TEST=ON
           cmake --build $BUILDDIR -j 2
           cmake --build $BUILDDIR --target test
       - name: Build/test LibRPA with LibRI and without GreenX TimeFrequency component
@@ -83,7 +83,7 @@ jobs:
         run: |
           source /opt/intel/oneapi/setvars.sh
           export BUILDDIR="build_libri_greenx"
-          CXX=mpiicpc cmake -DUSE_LIBRI=ON -DUSE_GREENX_MINIMAX=ON -B $BUILDDIR -DENABLE_TEST=ON
+          CXX=mpiicpc cmake -DUSE_LIBRI=ON -DUSE_GREENX_API=ON -B $BUILDDIR -DENABLE_TEST=ON
           cmake --build $BUILDDIR -j 2
           cmake --build $BUILDDIR --target test
       - name: Save last test log for check

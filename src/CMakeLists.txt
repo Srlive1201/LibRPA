@@ -53,7 +53,7 @@ list(APPEND lib_sources
         vector3_order.cpp
         )
 
-if(USE_GREENX_MINIMAX)
+if(USE_GREENX_API)
   list(APPEND lib_sources get_minimax_gx.cpp gx_minimax_wrp.f90)
   target_link_libraries(rpa_lib PRIVATE GXCommon LibGXMiniMax)
   target_include_directories(rpa_lib
