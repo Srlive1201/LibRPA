@@ -15,8 +15,9 @@ set(version "${librpa_major_version}.${librpa_minor_version}.${librpa_micro_vers
 
 set(CMAKE_PROJECT_VERSION "${version}")
 
-set(DRIVER_NAME "chi0_main.exe")
-set(LIB_NAME    "rpa")
+set(DRIVER_NAME         "chi0_main.exe")
+set(LIB_NAME            "rpa")
+set(FORTRAN_LIB_NAME    "rpa_f")
 
 # options setup
 option(USE_LIBRI            "Use LibRI for tensor contraction" OFF)
@@ -25,6 +26,7 @@ option(USE_GREENX_MINIMAX   "Use GreenX library for minimax grids generation" OF
 option(USE_EXTERNAL_GREENX  "Use external GreenX library rather than the packaged one" OFF)
 option(ENABLE_TEST          "Flag to build unit tests" ON)
 option(ENABLE_DRIVER        "Flag to build driver executables" ON)
+option(ENABLE_FORTRAN_BIND  "Flag to build Fotran binding" ON)
 # NOTE: static library not tested
 option(BUILD_LIBRPA_SHARED  "Flag to build shared libraries" ON)
 
@@ -53,7 +55,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 # enable_language later than cmake.inc to take the variables therein into accout
 # require Fortran to compile GreenX for the minimax grids
-if(USE_GREENX_MINIMAX)
+if(USE_GREENX_MINIMAX OR ENABLE_FORTRAN_BIND)
   enable_language(CXX Fortran)
 else()
   enable_language(CXX)
@@ -187,6 +189,10 @@ if(USE_GREENX_MINIMAX)
   endif()
 else()
   message(STATUS "Generate MiniMax grids by loading plain data accessed from old GreenX repository")
+endif()
+
+if(ENABLE_FORTRAN_BIND)
+  add_subdirectory(./binding/fortran)
 endif()
 
 if(ENABLE_TEST)
