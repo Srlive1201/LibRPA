@@ -26,6 +26,7 @@ author = 'LibRPA authors'
 master_doc = "index"
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
+extensions = ['.rst', '.md']
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
@@ -42,6 +43,7 @@ extensions = [
     "sphinx.ext.extlinks",
     "sphinx.ext.intersphinx",
     "sphinx.ext.mathjax",
+    "sphinx.ext.todo",
     "sphinx.ext.viewcode",
     # External stuff
     "myst_parser",
@@ -57,6 +59,11 @@ doxylink = {
 }
 
 # -- Options for MyST output -------------------------------------------------
+# myst_heading_anchors = 3
+myst_heading_anchors = True
+
+# -- Options for todo extension -------------------------------------------------
+# todo_include_todos = True
 
 # -- Options for HTML output -------------------------------------------------
 
