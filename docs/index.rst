@@ -6,6 +6,8 @@
 LibRPA
 ======
 
+LibRPA is a library offering access to physical properties computed using many-body perturbation theory.
+
 .. toctree::
    :hidden:
    :maxdepth: 2
