@@ -58,7 +58,7 @@ endif()
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 # enable_language later than cmake.inc to take the variables therein into accout
-# require Fortran to compile GreenX for the minimax grids
+# require Fortran for GreenX library and Fortran binding
 if(USE_GREENX_API OR ENABLE_FORTRAN_BIND)
   enable_language(CXX Fortran)
 else()

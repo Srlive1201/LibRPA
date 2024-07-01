@@ -2,12 +2,18 @@
 
 ## Overview
 
-| Option                                        | Type | Default |
-|-----------------------------------------------|------|---------|
-| [`USE_LIBRI`](#use-libri)                     | Bool | `OFF`   |
-| [`USE_CMAKE_INC`](#use_cmake_inc)             | Bool | `OFF`   |
-| [`USE_GREENX_API`](#use-greenx-api)           | Bool | `OFF`   |
-| [`ENABLE_FORTRAN_BIND`](#enable-fortran-bind) | Bool | `OFF`   |
+| Option                                        | Type   | Default |
+|-----------------------------------------------|--------|---------|
+| [`USE_LIBRI`](#use-libri)                     | Bool   | `OFF`   |
+| [`USE_CMAKE_INC`](#use_cmake_inc)             | Bool   | `OFF`   |
+| [`USE_GREENX_API`](#use-greenx-api)           | Bool   | `OFF`   |
+| [`ENABLE_FORTRAN_BIND`](#enable-fortran-bind) | Bool   | `OFF`   |
+| [`ENABLE_DRIVER`](#enable-driver)             | Bool   | `ON`    |
+| [`ENABLE_TEST`](#enable-test)                 | Bool   | `ON`    |
+| [`LIBRI_INCLUDE_DIR`](#libri-include-dir)     | String | empty   |
+| [`LIBCOMM_INCLUDE_DIR`](#libcomm-include-dir) | String | empty   |
+
+The options should be parsed as cmake command line options, for example, `-DUSE_LIBRI=ON`.
 
 ## `USE_LIBRI`
 
@@ -38,4 +44,31 @@ Thus it is recommended to use the API.
 
 ## `ENABLE_FORTRAN_BIND`
 
-When swicthed on, the Fortran binding of LibRPA will be built.
+When swicthed on, the Fortran binding for LibRPA will be built.
+
+## `ENABLE_DRIVER`
+
+When swicthed on, the driver executable of LibRPA will be built.
+
+## `ENABLE_TEST`
+
+When swicthed on, the unit tests of LibRPA will be built.
+After successful compile of LibRPA, one can issue `make test` under the build directory
+to perform the unit tests.
+
+Note that at present the unit tests do not cover the whole code base.
+We are still working on it.
+
+## `LIBRI_INCLUDE_DIR`
+
+The path to the include directory of LibRI.
+When empty, the internal LibRI will be used.
+Otherwise it will search for `RI/ri/RI_Tools.h` under the specified directory.
+Error will be raised if the search fails.
+
+## `LIBCOMM_INCLUDE_DIR`
+
+The path to the include directory of LibComm.
+When empty, the internal LibComm will be used.
+Otherwise it will search for `Comm/Comm_Tools.h` under the specified directory.
+Error will be raised if the search fails.
