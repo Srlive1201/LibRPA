@@ -90,7 +90,7 @@ the GreenX library, the following cmake command should be used
 
 .. code-block:: bash
 
-   cmake -DUSE_LIBRI=ON -DUSE_GREENX_MINIMAX=ON ..
+   cmake -DUSE_LIBRI=ON -DUSE_GREENX_API=ON ..
 
 Note that for CMake to find the correct ScaLAPACK libraries for linking, you
 may need to add the directory of the libraries to `LIBRARY_PATH` or
@@ -100,7 +100,7 @@ For example, to use the MKL libraries
 .. code-block:: bash
 
    export LD_LIBRARY_PATH="$MKLROOT/lib/intel64:$LD_LIBRARY_PATH"
-   CXX=mpiicpc FC=ifort cmake -DUSE_LIBRI=ON -DUSE_GREENX_MINIMAX=ON ..
+   CXX=mpiicpc FC=ifort cmake -DUSE_LIBRI=ON -DUSE_GREENX_API=ON ..
 
 Use GNU make
 ~~~~~~~~~~~~

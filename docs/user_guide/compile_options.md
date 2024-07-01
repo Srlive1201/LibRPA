@@ -2,11 +2,12 @@
 
 ## Overview
 
-| Option                              | Type | Default |
-|-------------------------------------|------|---------|
-| [`USE_LIBRI`](#use-libri)           | Bool | `OFF`   |
-| [`USE_CMAKE_INC`](#use_cmake_inc)   | Bool | `OFF`   |
-| [`USE_GREENX_API`](#use-greenx-api) | Bool | `OFF`   |
+| Option                                        | Type | Default |
+|-----------------------------------------------|------|---------|
+| [`USE_LIBRI`](#use-libri)                     | Bool | `OFF`   |
+| [`USE_CMAKE_INC`](#use_cmake_inc)             | Bool | `OFF`   |
+| [`USE_GREENX_API`](#use-greenx-api)           | Bool | `OFF`   |
+| [`ENABLE_FORTRAN_BIND`](#enable-fortran-bind) | Bool | `OFF`   |
 
 ## `USE_LIBRI`
 
@@ -34,3 +35,7 @@ In principle these two ways to get the minimax grids should be essentially the s
 However, the plain-text grids were extracted at the early stage of the Green X library,
 and the grids can be missing for certain energy range and number of grid points.
 Thus it is recommended to use the API.
+
+## `ENABLE_FORTRAN_BIND`
+
+When swicthed on, the Fortran binding of LibRPA will be built.
