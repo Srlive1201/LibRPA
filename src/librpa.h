@@ -210,7 +210,33 @@ void set_librpa_params(LibRPAParams *params);
  */
 void get_default_librpa_params(LibRPAParams *params);
 
+/*!
+ * @brief Obtain the frequency grid points
+ *
+ * @param[in] params    Struct containing the control parameters
+ */
+void get_frequency_grids(int ngrid, double *freqeuncy_grids);
+
 void run_librpa_main();
+
+/*!
+ * @brief compute and return the RPA correlation energy
+ *
+ * @param[out] rpa_corr                RPA correlation energy, in Hartree unit. Complex number represented as double array [2].
+ * @param[out] rpa_corr_irk_contrib    Weighted contribution to RPA correlation energy from each irreducible k-point.
+ *                                     Complex array represented as double array [2*n_irk_points]
+ *
+ * @warning
+ * Current implementation will free the RI coefficients array. So this can only be called once.
+ */
+void get_rpa_correlation_energy(double *rpa_corr, double *rpa_corr_irk_contrib);
+
+// /*
+//  * @brief compute the screened Coulomb matrix in auxiliary basis representation
+//  */
+// void compute_screened_coulomb_abf(double _Complex *screened_coul);
+
+// void compute_gw_quasiparticle_energy_kgrid(int n_qp_state_low, int n_qp_state_high, const double *vxc, double _Complex *screened_coul);
 
 #ifdef __cplusplus
 }

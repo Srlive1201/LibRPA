@@ -6,7 +6,6 @@
 #include <vector>
 #include <utility>
 #include <algorithm>
-#include <unistd.h>
 
 #include "mathtools.h"
 #include "parallel_mpi.h"
@@ -63,21 +62,22 @@ void TFGrids::set_time()
     sintrans_t2f.create(n_grids, n_grids);
     costrans_f2t.create(n_grids, n_grids);
     sintrans_f2t.create(n_grids, n_grids);
-    fourier_t2f.create(n_grids, n_grids);
+    // fourier_t2f.create(n_grids, n_grids);
 }
 
 void TFGrids::show()
 {
+    using LIBRPA::utils::lib_printf;
     cout << "Grid type: " << TFGrids::GRID_TYPES_NOTES[grid_type] << endl;
     cout << "Grid size: " << n_grids << endl;
     cout << "Frequency node & weight: " << endl;
     for ( int i = 0; i != n_grids; i++ )
-        LIBRPA::utils::lib_printf("%2d %23.16f %23.16f\n", i, freq_nodes[i], freq_weights[i]);
+        lib_printf("%2d %23.16f %23.16f\n", i, freq_nodes[i], freq_weights[i]);
     if (has_time_grids())
     {
         cout << "Time node & weight: " << endl;
         for ( int i = 0; i != n_grids; i++ )
-            LIBRPA::utils::lib_printf("%2d %23.16f %23.16f\n", i, time_nodes[i], time_weights[i]);
+            lib_printf("%2d %23.16f %23.16f\n", i, time_nodes[i], time_weights[i]);
         cout << "t->f transform: " << endl;
         if (costrans_t2f.size)
         {
@@ -93,7 +93,7 @@ void TFGrids::show()
             print_matrix("Cosine transform matrix", costrans_f2t);
         }
     }
-    LIBRPA::utils::lib_printf("\n");
+    lib_printf("\n");
 }
 
 void TFGrids::unset()
@@ -106,7 +106,7 @@ void TFGrids::unset()
     sintrans_t2f.create(0, 0);
     costrans_f2t.create(0, 0);
     sintrans_f2t.create(0, 0);
-    fourier_t2f.create(0, 0);
+    // fourier_t2f.create(0, 0);
 }
 
 TFGrids::TFGrids(unsigned N)

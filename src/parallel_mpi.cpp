@@ -779,6 +779,3 @@ vector<pair<int, int>> find_duplicate_ordered_pair(int n, const vector<pair<int,
     }
     return pairs_duplicate;
 }
-
-
-Parallel_MPI para_mpi;

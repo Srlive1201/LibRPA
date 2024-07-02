@@ -5,20 +5,17 @@
 #ifndef TIMEFREQ_H
 #define TIMEFREQ_H
 
-#include <map>
 #include <vector>
 #include <string>
+
 #include "complexmatrix.h"
 #include "matrix.h"
 
-// extern const string minimax_grid_path;
-// extern const string GX_path;
-
 //! Object to handle time/frequency grids for quadrature
 /*!
- Not necessay have a time grids, unless the space-time minimax grid is used.
- @note Only pure imaginary grid method is implemented.
- @note The time grids are always generated when available, since they are cheap
+ * Not necessay have a time grids, unless the space-time minimax grid is used.
+ * @note Only pure imaginary grid method is implemented.
+ * @note The time grids are always generated when available, since they are cheap
  */
 class TFGrids
 {
@@ -56,9 +53,9 @@ class TFGrids
         /*! Inverse Cosine transform matrix.
          */
         matrix sintrans_f2t;
-        //! General Fourier transformation matrix.
-        ComplexMatrix fourier_t2f; // FIXME: this is not implemented, please do not use
-        ComplexMatrix fourier_f2t; // FIXME: this is not implemented, please do not use
+        //! General Fourier transformation matrix. Not implemented, maybe needed to for non-minimax grid approach
+        // ComplexMatrix fourier_t2f;
+        // ComplexMatrix fourier_f2t;
         //! allocate the pointers of array, e.g. nodes and weights
         void set_freq();
         void set_time();
@@ -66,6 +63,7 @@ class TFGrids
         void unset();
     public:
         TFGrids::GRID_TYPES get_grid_type() const { return grid_type; }
+        TFGrids(): n_grids(0) {};
         TFGrids(unsigned N);
         // disable copy at present
         TFGrids(const TFGrids &tfg) {};

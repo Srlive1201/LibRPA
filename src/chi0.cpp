@@ -11,6 +11,7 @@
 #include "libri_utils.h"
 #include "stl_io_helper.h"
 #include "utils_io.h"
+#include "utils_mem.h"
 #include "pbc.h"
 #include "ri.h"
 #include <omp.h>
@@ -26,11 +27,6 @@
 #endif
 #include <array>
 #include <map>
-#if defined(__MACH__)
-#include <malloc/malloc.h>  // for malloc_zone_pressure_relief and malloc_default_zone
-#else
-#include <malloc.h>
-#endif
 
 using LIBRPA::envs::mpi_comm_global_h;
 using LIBRPA::ParallelRouting;
@@ -271,7 +267,7 @@ void Chi0::build_chi0_q_space_time_LibRI_routing( atpair_R_mat_t &LRI_Cs,
     if(mpi_comm_global_h.is_root())
     {
         printf("Begin to Cs_libri !!! \n");
-        system("free -m");
+        LIBRPA::utils::display_free_mem();
         // printf("chi0_freq_q size: %d,  freq: %f, q:( %f, %f, %f )\n",chi0_wq.size(),freq, q.x,q.y,q.z );
     }
     for ( auto &I_JRCs: LRI_Cs)
@@ -299,29 +295,22 @@ void Chi0::build_chi0_q_space_time_LibRI_routing( atpair_R_mat_t &LRI_Cs,
     // if (Params::debug)
     //     ofs_myid << Cs_libri;
     // cout << "Setting Cs for rpa object" << endl;
-    #ifndef __MACH__
-    malloc_trim(0);
-    #else
-    malloc_zone_pressure_relief(malloc_default_zone(), 0);
-    #endif
+    LIBRPA::utils::release_free_mem();
     if(mpi_comm_global_h.is_root())
     {
         printf("Begin set Cs !!! \n");
-        system("free -m");
+        LIBRPA::utils::display_free_mem();
         // printf("chi0_freq_q size: %d,  freq: %f, q:( %f, %f, %f )\n",chi0_wq.size(),freq, q.x,q.y,q.z );
     }
     
     rpa.set_Cs(Cs_libri, Params::libri_chi0_threshold_C);
     Cs_libri.clear();
-    #ifndef __MACH__
-    malloc_trim(0);
-    #else
-    malloc_zone_pressure_relief(malloc_default_zone(), 0);
-    #endif
+    LIBRPA::utils::release_free_mem();
+
     if(mpi_comm_global_h.is_root())
     {
         printf("After set Cs !!! \n");
-        system("free -m");
+        LIBRPA::utils::display_free_mem();
         // printf("chi0_freq_q size: %d,  freq: %f, q:( %f, %f, %f )\n",chi0_wq.size(),freq, q.x,q.y,q.z );
     }
     // cout << "Cs of rpa object set" << endl;

@@ -22,6 +22,7 @@ configure_file(envs_dir.cpp.in envs_dir.cpp)
 list(APPEND lib_sources
         # aperiodic_chi0.cpp
         analycont.cpp
+        app_rpa.cpp
         atomic_basis.cpp
         # cal_periodic_chi0.cpp
         chi0.cpp
@@ -50,6 +51,7 @@ list(APPEND lib_sources
         qpe_solver.cpp
         ri.cpp
         timefreq.cpp
+        utils_mem.cpp
         vector3_order.cpp
         )
 

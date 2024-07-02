@@ -26,6 +26,8 @@
 #include "pbc.h"
 #include "ri.h"
 
+#include "app_rpa.h"
+
 using LIBRPA::envs::mpi_comm_global_h;
 
 void initialize_librpa_environment(
@@ -349,4 +351,20 @@ void run_librpa_main()
     
     //std::cout.rdbuf(originalCoutBuffer);
     //outputFile.close();
+}
+
+void get_frequency_grids(int ngrid, double *freqeuncy_grids)
+{}
+
+void get_rpa_correlation_energy(double *rpa_corr, double *rpa_corr_irk_contrib)
+{
+    std::complex<double> rpa_corr_;
+    std::vector<std::complex<double>> rpa_corr_irk_contrib_(n_irk_points);
+
+    LIBRPA::app::get_rpa_correlation_energy_(rpa_corr_, rpa_corr_irk_contrib_);
+
+    auto dp = reinterpret_cast<double*>(rpa_corr_irk_contrib_.data());
+
+    memcpy(rpa_corr, &rpa_corr_, 2 * sizeof(double));
+    memcpy(rpa_corr_irk_contrib, dp, 2 * n_irk_points * sizeof(double));
 }

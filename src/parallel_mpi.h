@@ -243,5 +243,4 @@ vector<pair<T1, T2>> dispatch_vector_prod(vector<T1> vec1, vector<T2> vec2, unsi
     return local_vec;
 }
 
-extern Parallel_MPI para_mpi;
 #endif

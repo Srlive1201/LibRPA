@@ -732,7 +732,10 @@ static int handle_Vq_full_file(const string &file_path, map<Vector3_Order<double
         Vector3_Order<double> qvec(kvec_c[iq]);
         // skip duplicate insert of k weight, since 
         if (irk_weight.count(qvec) == 0)
+        {
+            irk_points.push_back(qvec);
             irk_weight.insert(pair<Vector3_Order<double>, double>(qvec, stod(q_weight)));
+        }
         if (!Vq_full.count(qvec))
         {
             Vq_full[qvec].create(mu, nu);
@@ -890,7 +893,10 @@ static int handle_Vq_row_file(const string &file_path, double threshold,
         Vector3_Order<double> qvec(kvec_c[iq]);
         // skip duplicate insert of k weight, since 
         if (irk_weight.count(qvec) == 0)
+        {
+            irk_points.push_back(qvec);
             irk_weight.insert(pair<Vector3_Order<double>, double>(qvec, stod(q_weight)));
+        }
 
         for(const auto &ap:local_atpair)
         {

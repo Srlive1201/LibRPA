@@ -16,6 +16,7 @@ using std::map;
 extern int n_irk_points;
 extern int natom;
 extern int ncell;
+extern std::vector<Vector3_Order<double>> irk_points;
 extern map<Vector3_Order<double>, double> irk_weight;
 extern map<atom_t, size_t> atom_nw;
 extern map<atom_t, size_t> atom_mu;
