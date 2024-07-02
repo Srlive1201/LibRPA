@@ -59,11 +59,9 @@ The Intel MPI compiler and MKL library from Intel oneAPI tools (both base and
 hpc toolkits) appear to be the most straightforward choice. Alternatively, you
 can use GNU Compiler Collection (GCC) along with open source MPI
 implementation (e.g. `MPICH <https://www.mpich.org>`_) and ScaLAPACK library (`Netlib <https://www.netlib.org/scalapack>`_).
-A Fortran compiler is also needed if you want to use the GreenX library.
+A Fortran compiler is also needed if you want to use the GreenX library API or build the Fortran binding.
 
-Use CMake
-~~~~~~~~~
-
+CMake build system is used to build LibRPA library and driver executable.
 Under the root directory of LibRPA, run the following commands
 
 .. code-block:: bash
@@ -102,8 +100,4 @@ For example, to use the MKL libraries
    export LD_LIBRARY_PATH="$MKLROOT/lib/intel64:$LD_LIBRARY_PATH"
    CXX=mpiicpc FC=ifort cmake -DUSE_LIBRI=ON -DUSE_GREENX_API=ON ..
 
-Use GNU make
-~~~~~~~~~~~~
-
-Compiling LibRPA with GNU make is unfortunately broken now.
-Please use CMake instead.
+For a comprehensive list of compile options, please refer to the :doc:`user guide <user_guide/compile_options>`.

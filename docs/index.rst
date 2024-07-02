@@ -23,6 +23,7 @@ LibRPA is a library offering access to physical properties computed using many-b
 
    user_guide/compile_options
    user_guide/input_parameters
+   user_guide/api_usage
 
 .. toctree::
    :hidden:
@@ -34,17 +35,18 @@ LibRPA is a library offering access to physical properties computed using many-b
 
 .. toctree::
    :hidden:
+   :maxdepth: 1
+   :caption: Development 
+
+   develop/documentation
+   develop/design
+
+.. toctree::
+   :hidden:
    :maxdepth: 2
    :caption: API Documentation
 
    doxygen/librpa/html/index
-
-.. toctree::
-   :hidden:
-   :maxdepth: 1
-   :caption: Development 
-
-   Code design <design>
 
 ..
    Indices and tables

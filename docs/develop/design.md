@@ -1,18 +1,18 @@
-# Design
+# Code Design
 
 Under construction.
 
 ## Framework of RPA calculation
 
-![Framework of RPA calculation](assets/framework.png)
+![Framework of RPA calculation](../assets/framework.png)
 
 ## RPA interface to FHI-aims
 
-![RPA interface to FHI-aims](assets/FHI-aims_interface.png)
+![RPA interface to FHI-aims](../assets/FHI-aims_interface.png)
 
 ## Parallel scheme of RPA calculation
 
-![Parallel scheme of RPA calculation](assets/rpa-parallel-scheme.png)
+![Parallel scheme of RPA calculation](../assets/rpa-parallel-scheme.png)
 
 ## TODO
 
