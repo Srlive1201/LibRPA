@@ -1,4 +1,4 @@
-/**
+/*
  * @file librpa.cpp
  * @author Rong Shi (srlive@mail.ustc.edu.cn)
  * @brief 
@@ -29,12 +29,13 @@
 #include "app_rpa.h"
 #include "app_exx.h"
 
-using LIBRPA::envs::mpi_comm_global_h;
 
 void initialize_librpa_environment(
         MPI_Comm comm_global_in, int is_fortran_comm,
         int redirect_stdout, const char *output_filename)
 {
+    using LIBRPA::envs::mpi_comm_global_h;
+
     MPI_Comm comm_global;
     if (is_fortran_comm)
     {
@@ -60,6 +61,8 @@ void finalize_librpa_environment()
 
 void set_dimension(int nspins, int nkpts, int nstates, int nbasis,int natoms)
 {
+    using LIBRPA::envs::mpi_comm_global_h;
+
     if (mpi_comm_global_h.is_root())
     {
         cout << "In LibRPA nspin: " << nspins << "  nkpt: " << nkpts << endl;

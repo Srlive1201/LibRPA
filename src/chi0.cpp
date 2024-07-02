@@ -1,5 +1,3 @@
-/*! @file: chi0.cpp
- */
 #include <iostream>
 #include <cstring>
 #include <ctime>

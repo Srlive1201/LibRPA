@@ -231,7 +231,7 @@ void run_librpa_main();
  */
 void get_rpa_correlation_energy(double *rpa_corr, double *rpa_corr_irk_contrib);
 
-/*
+/*!
  * @brief Compute the exact exchange (EXX) energy for states at specified k-points
  *
  * @param[in]  i_state_low       The lowest index of state (included) to compute
