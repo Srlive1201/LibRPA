@@ -231,6 +231,26 @@ void run_librpa_main();
  */
 void get_rpa_correlation_energy(double *rpa_corr, double *rpa_corr_irk_contrib);
 
+/*
+ * @brief Compute the exact exchange (EXX) energy for states at specified k-points
+ *
+ * @param[in]  i_state_low       The lowest index of state (included) to compute
+ * @param[in]  i_state_high      The highest index of state (excluded) to compute
+ * @param[in]  n_kpoints_task    The number of k-points to return in the called process.
+ *                               When equal to 0, an empty vector will be returned.
+ *                               When less than 0, all k-points will be computed.
+ *                               Otherwise, the states at k-points whose indices
+ *                               are stored in `i_kpoints_task` will be computed.
+ * @param[in]  i_kpoints_task    The indices of k-points to compute EXX energy.
+ * @param[out] exx               Exchange energy. It should have length of at least
+ *                               `n_spins` * `n_kpoints_task` * (`i_state_high` - `i_state_low`).
+ *                               When `n_kpoints_task` < 0, the length should be at least
+ *                               `n_spins` * `n_kpoints` * (`i_state_high` - `i_state_low`).
+ */
+void compute_exx_orbital_energy(int i_state_low, int i_state_high,
+                                int n_kpoints_task, const int *i_kpoints_task,
+                                double *exx);
+
 // /*
 //  * @brief compute the screened Coulomb matrix in auxiliary basis representation
 //  */

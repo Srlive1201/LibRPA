@@ -27,6 +27,7 @@
 #include "ri.h"
 
 #include "app_rpa.h"
+#include "app_exx.h"
 
 using LIBRPA::envs::mpi_comm_global_h;
 
@@ -367,4 +368,13 @@ void get_rpa_correlation_energy(double *rpa_corr, double *rpa_corr_irk_contrib)
 
     memcpy(rpa_corr, &rpa_corr_, 2 * sizeof(double));
     memcpy(rpa_corr_irk_contrib, dp, 2 * n_irk_points * sizeof(double));
+}
+
+void compute_exx_orbital_energy(int i_state_low, int i_state_high,
+                                int n_kpoints_task, const int *i_kpoints_task,
+                                double *exx)
+{
+    const auto exx_vec = LIBRPA::app::compute_exx_orbital_energy_(i_state_low, i_state_high,
+                                                                  n_kpoints_task, i_kpoints_task);
+    memcpy(exx, exx_vec.data(), sizeof(double) * exx_vec.size());
 }

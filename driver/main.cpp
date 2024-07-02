@@ -28,6 +28,7 @@
 #include "write_aims.h"
 
 #include "task_rpa.h"
+#include "task_exx.h"
 
 static void initialize(int argc, char **argv)
 {
@@ -807,27 +808,7 @@ int main(int argc, char **argv)
     }
     else if ( task == task_t::EXX )
     {
-        read_Vq_full("./", "coulomb_cut_", true);
-        const auto VR = FT_Vq(Vq_cut, Rlist, true);
-        auto exx = LIBRPA::Exx(meanfield, kfrac_list);
-        exx.build_exx_orbital_energy(Cs, Rlist, period, VR);
-        // FIXME: need to reduce first when MPI is used
-        // NOTE: may extract to a common function
-        if (mpi_comm_global_h.is_root())
-        {
-            for (int isp = 0; isp != meanfield.get_n_spins(); isp++)
-            {
-                printf("Spin channel %1d\n", isp+1);
-                for (int ik = 0; ik != meanfield.get_n_kpoints(); ik++)
-                {
-                    cout << "k-point " << ik + 1 << ": " << kvec_c[ik] << endl;
-                    printf("%-4s  %-10s  %-10s\n", "Band", "e_exx (Ha)", "e_exx (eV)");
-                    for (int ib = 0; ib != meanfield.get_n_bands(); ib++)
-                        printf("%4d  %10.5f  %10.5f\n", ib+1, exx.Eexx[isp][ik][ib], HA2EV * exx.Eexx[isp][ik][ib]);
-                    printf("\n");
-                }
-            }
-        }
+        task_exx();
     }
 
     finalize();

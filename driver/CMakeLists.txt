@@ -11,6 +11,7 @@ list(APPEND exe_sources
   write_aims.cpp
   inputfile.cpp
   task_rpa.cpp
+  task_exx.cpp
   )
 
 target_include_directories(rpa_exe

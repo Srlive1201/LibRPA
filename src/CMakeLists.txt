@@ -23,6 +23,7 @@ list(APPEND lib_sources
         # aperiodic_chi0.cpp
         analycont.cpp
         app_rpa.cpp
+        app_exx.cpp
         atomic_basis.cpp
         # cal_periodic_chi0.cpp
         chi0.cpp
