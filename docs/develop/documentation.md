@@ -4,7 +4,8 @@
 
 LibRPA uses [Sphinx](https://www.sphinx-doc.org/en/master/) toolchain to build its user documentation.
 C++ API documentation is generated using [Doxygen](https://www.doxygen.nl)
-and connected to Sphinx using [Doxysphinx](https://github.com/boschglobal/doxysphinx).
+and connected to Sphinx using [Doxysphinx](https://github.com/boschglobal/doxysphinx)
+and [doxylink](https://sphinxcontrib-doxylink.readthedocs.io/en/stable/).
 We also use the following packages to make the writing easier and prettify the documentation
 - [Sphinx book theme](https://github.com/executablebooks/sphinx-book-theme)
 - [Sphinx design](https://github.com/executablebooks/sphinx-design)
