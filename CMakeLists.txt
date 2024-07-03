@@ -15,17 +15,24 @@ set(version "${librpa_major_version}.${librpa_minor_version}.${librpa_micro_vers
 
 set(CMAKE_PROJECT_VERSION "${version}")
 
-set(DRIVER_NAME "chi0_main.exe")
-set(LIB_NAME    "rpa")
+set(DRIVER_NAME         "chi0_main.exe")
+set(LIB_NAME            "rpa")
+set(FORTRAN_LIB_NAME    "rpa_f")
 
 # options setup
-option(USE_LIBRI          "Use LibRI for tensor contraction" OFF)
-option(USE_CMAKE_INC      "Use cmake.inc for configure" OFF)
-option(USE_GREENX_MINIMAX "Use GreenX library for minimax grids generation" OFF)
+option(USE_LIBRI            "Use LibRI for tensor contraction" OFF)
+option(USE_CMAKE_INC        "Use cmake.inc for configure" OFF)
+option(USE_GREENX_API       "Use GreenX API for minimax grids generation" OFF)
+option(USE_EXTERNAL_GREENX  "Use external GreenX library rather than the packaged one" OFF)
+option(ENABLE_TEST          "Flag to build unit tests" ON)
+option(ENABLE_DRIVER        "Flag to build driver executables" ON)
+option(ENABLE_FORTRAN_BIND  "Flag to build Fotran binding" OFF)
+# NOTE: static library not tested
+option(BUILD_LIBRPA_SHARED  "Flag to build shared libraries" ON)
 
-option(ENABLE_DOC    "Flag to build documentation" OFF)
-option(ENABLE_TEST   "Flag to build unit tests" ON)
-option(ENABLE_DRIVER "Flag to build driver executables" ON)
+if (DEFINED USE_GREENX_MINIMAX)
+  message(FATAL_ERROR "USE_GREENX_MINIMAX is deprecated. Please use USE_GREENX_API")
+endif()
 
 # Add cmake load files
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
@@ -51,8 +58,8 @@ endif()
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 # enable_language later than cmake.inc to take the variables therein into accout
-# require Fortran to compile GreenX for the minimax grids
-if(USE_GREENX_MINIMAX)
+# require Fortran for GreenX library and Fortran binding
+if(USE_GREENX_API OR ENABLE_FORTRAN_BIND)
   enable_language(CXX Fortran)
 else()
   enable_language(CXX)
@@ -68,8 +75,15 @@ if(CMAKE_CXX_COMPILER_ID MATCHES Intel)
   endif()
 endif()
 
-# for installation
+# Setup installation paths
 include(GNUInstallDirs)
+if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+  set(default_install_prefix "${CMAKE_BINARY_DIR}/install")
+  set(CMAKE_INSTALL_PREFIX ${default_install_prefix}
+      CACHE STRING "The installation directory is not set, default to ${default_install_prefix}"
+      FORCE)
+endif()
+
 
 if(NOT _loaded_cmake_inc)
   if(DEFINED ENV{MKLROOT} AND NOT DEFINED MKLROOT)
@@ -108,24 +122,61 @@ endif()
 
 include_directories(src)
 
-# use LibRI, which in turn depends on Cereal
+# Switch on LibRI functionalities, which requires Cereal, LibComm and LibRI
+# When USE_LIBRI is switched on but the include direcotires of the required dependenccies are not specified
+# by command line or environment variables, the internal packages are used.
+# If any of the include directory is specified but not found, a fatal error will be raised.
 if(USE_LIBRI)
   message(STATUS "Build with LibRI and dependeicies")
-  find_package(Cereal)
-  if(NOT Cereal_FOUND)
-    message(WARNING "User Cereal not found, use thirdparty/cereal-1.3.0")
+
+  # Check Cereal
+  if(NOT CEREAL_INCLUDE_DIR)
+    set(CEREAL_INCLUDE_DIR $ENV{CEREAL_INCLUDE_DIR})
+  endif()
+  if("${CEREAL_INCLUDE_DIR}" STREQUAL "")
+    message(STATUS "Use internal Cereal  : thirdparty/cereal-1.3.0")
     set(Cereal_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/./thirdparty/cereal-1.3.0/include)
+  else()
+    find_package(Cereal)
+    if(NOT Cereal_FOUND)
+      message(FATAL_ERROR "User Cereal include directory set to ${Cereal_INCLUDE_DIR}, but not found")
+    else()
+      message(STATUS "Use user Cereal include directory  : ${Cereal_INCLUDE_DIR}")
+    endif()
   endif()
-  find_package(LibComm)
-  if(NOT LibComm_FOUND)
-    message(WARNING "User LibComm not found, use thirdparty/LibComm")
+
+  # Check LibComm
+  if(NOT LIBCOMM_INCLUDE_DIR)
+    set(LIBCOMM_INCLUDE_DIR $ENV{LIBCOMM_INCLUDE_DIR})
+  endif()
+  if("${LIBCOMM_INCLUDE_DIR}" STREQUAL "")
+    message(STATUS "Use internal LibComm : thirdparty/LibComm")
     set(LibComm_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/./thirdparty/LibComm/include)
+  else()
+    find_package(LibComm)
+    if(NOT LibComm_FOUND)
+      message(FATAL_ERROR "User LibComm include directory set to ${LIBCOMM_INCLUDE_DIR}, but not found")
+    else()
+      message(STATUS "Use user LibComm include directory : ${LibComm_INCLUDE_DIR}")
+    endif()
   endif()
-  find_package(LibRI)
-  if(NOT LibRI_FOUND)
-    message(WARNING "User LibRI not found, use thirdparty/LibRI")
+
+  # Check LibRI
+  if(NOT LIBRI_INCLUDE_DIR)
+    set(LIBRI_INCLUDE_DIR $ENV{LIBRI_INCLUDE_DIR})
+  endif()
+  if("${LIBRI_INCLUDE_DIR}" STREQUAL "")
+    message(STATUS "Use internal LibRI   : thirdparty/LibRI")
     set(LibRI_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/./thirdparty/LibRI/include)
+  else()
+    find_package(LibRI)
+    if(NOT LibRI_FOUND)
+      message(FATAL_ERROR "User LibRI include directory set to ${LIBRI_INCLUDE_DIR}, but not found")
+    else()
+      message(STATUS "Use user LibRI include directory   : ${LibRI_INCLUDE_DIR}")
+    endif()
   endif()
+
   add_compile_definitions("LIBRPA_USE_LIBRI")
 endif()
 
@@ -134,11 +185,18 @@ if(CMAKE_BUILD_TYPE MATCHES "Debug")
   add_compile_definitions("LIBRPA_DEBUG")
 endif()
 
-if(USE_GREENX_MINIMAX)
-  message(STATUS "Generate MiniMax grids by linking to GreenX library")
-  add_subdirectory(./thirdparty/greenX-6ff8a00)
+# Switch on GreenX
+if(USE_GREENX_API)
+  if(NOT USE_EXTERNAL_GREENX)
+    message(STATUS "Generate MiniMax grids by using API of GreenX library")
+    add_subdirectory(./thirdparty/greenX-6ff8a00)
+  endif()
 else()
   message(STATUS "Generate MiniMax grids by loading plain data accessed from old GreenX repository")
+endif()
+
+if(ENABLE_FORTRAN_BIND)
+  add_subdirectory(./binding/fortran)
 endif()
 
 if(ENABLE_TEST)
@@ -155,12 +213,9 @@ endif()
 
 if(ENABLE_DRIVER)
   message(STATUS "Build driver")
+  list(APPEND CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR})
+  message(STATUS "CMAKE_INSTALL_RPATH: ${CMAKE_INSTALL_RPATH}")
   add_subdirectory(driver)
 endif()
 
 add_subdirectory(src)
-
-if(ENABLE_DOC)
-  include(UseDoxygenDoc)
-  add_subdirectory(docs)
-endif()

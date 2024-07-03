@@ -5,6 +5,7 @@
 
 #include "interface/blacs_scalapack.h"
 #include "scalapack_connector.h"
+#include "utils_io.h"
 
 namespace LIBRPA {
 
@@ -15,8 +16,6 @@ const string parallel_routing_notes[ParallelRouting::COUNT] = {
 };
 
 ParallelRouting parallel_routing = ParallelRouting::ATOM_PAIR;
-
-ofstream fout_para;
 
 void set_parallel_routing(const string &option, const int &atpais_num, const int &Rt_num, ParallelRouting &routing)
 {
@@ -35,51 +34,6 @@ void set_parallel_routing(const string &option, const int &atpais_num, const int
 
 namespace MPI_Wrapper {
 
-bool initialized = false;
-std::string procname;
-int myid_world = -1;
-int nprocs_world = -1;
-
-bool is_root_world() { return 0 == myid_world; }
-
-void init(int argc, char **argv)
-{
-    if (initialized) return;
-    int provided;
-    MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
-    if (MPI_THREAD_MULTIPLE != provided)
-    {
-        printf ("Warning: MPI_Init_thread provide %d != required %d", provided, MPI_THREAD_MULTIPLE);
-    }
-    MPI_Comm_rank(MPI_COMM_WORLD, &myid_world);
-    MPI_Comm_size(MPI_COMM_WORLD, &nprocs_world);
-    char name[MPI_MAX_PROCESSOR_NAME];
-    int length;
-    MPI_Get_processor_name (name, &length);
-    procname = name;
-    initialized = true;
-
-    string pfn = "librpa_para_nprocs_" + std::to_string(nprocs_world) +  "_myid_" + std::to_string(myid_world) + ".out";
-    fout_para.open(pfn);
-}
-
-void init(MPI_Comm comm_in)
-{
-    if (initialized) return;
-    int provided;
-    
-    MPI_Comm_rank(comm_in, &myid_world);
-    MPI_Comm_size(comm_in, &nprocs_world);
-    char name[MPI_MAX_PROCESSOR_NAME];
-    int length;
-    MPI_Get_processor_name (name, &length);
-    procname = name;
-    initialized = true;
-
-    string pfn = "librpa_para_nprocs_" + std::to_string(nprocs_world) +  "_myid_" + std::to_string(myid_world) + ".out";
-    std::cout<<pfn<<std::endl;
-    fout_para.open(pfn);
-}
 void allreduce_matrix(matrix &mat_send, matrix &mat_recv, MPI_Comm mpi_comm)
 {
     assert(mat_send.nr==mat_recv.nr);
@@ -110,25 +64,31 @@ void reduce_ComplexMatrix(ComplexMatrix &cmat_send, ComplexMatrix &cmat_recv, in
     MPI_Reduce(cmat_send.c, cmat_recv.c, cmat_recv.size, MPI_DOUBLE_COMPLEX, MPI_SUM, root, mpi_comm);
 }
 
-void finalize()
-{
-    MPI_Finalize();
-    fout_para.close();
-}
-
-void barrier_world() { MPI_Barrier(MPI_COMM_WORLD); }
-
 }  // namespace MPI_Wraper
+
+MPI_COMM_handler::MPI_COMM_handler()
+{
+    this->comm_set_ = false;
+    this->initialized_ = false; 
+}
 
 MPI_COMM_handler::MPI_COMM_handler(MPI_Comm comm_in)
         : comm(comm_in)
 {
-    this->initialized = false; 
+    this->comm_set_ = true;
+    this->initialized_ = false; 
+}
+
+void MPI_COMM_handler::reset_comm(MPI_Comm comm_in)
+{
+    this->comm = comm_in; 
+    this->comm_set_ = true;
+    this->initialized_ = false; 
 }
 
 void MPI_COMM_handler::check_initialized() const
 {
-    if (!initialized)
+    if (!initialized_)
         throw std::logic_error("MPI_COMM_handler not initialized");
 }
 
@@ -136,7 +96,7 @@ void MPI_COMM_handler::init()
 {
     MPI_Comm_rank(this->comm, &(this->myid));
     MPI_Comm_size(this->comm, &(this->nprocs));
-    this->initialized = true;
+    this->initialized_ = true;
 }
 
 void MPI_COMM_handler::barrier() const
@@ -183,8 +143,6 @@ void MPI_COMM_handler::reduce_ComplexMatrix(ComplexMatrix &cmat_sent,
     MPI_Wrapper::reduce_ComplexMatrix(cmat_sent, cmat_recv, root, this->comm);
 }
 
-MPI_COMM_handler mpi_comm_world_h(MPI_COMM_WORLD);
-
 void CTXT_barrier(int ictxt, CTXT_SCOPE scope)
 {
     char scope_ch;
@@ -206,11 +164,19 @@ void BLACS_CTXT_handler::init()
     this->initialized_ = true;
 }
 
+void BLACS_CTXT_handler::reset_comm(MPI_Comm comm_in)
+{
+    this->mpi_comm_h.reset_comm(comm_in);
+    this->comm_set_ = true;
+    this->pgrid_set_ = false;
+    this->initialized_ = false;
+}
+
 void BLACS_CTXT_handler::set_grid(const int &nprows_in, const int &npcols_in,
                                   CTXT_LAYOUT layout_in)
 {
     // if the grid has been set, exit it first
-    if (pgrid_set) exit();
+    if (pgrid_set_) exit();
     if (nprocs != nprows_in * npcols_in)
         throw std::invalid_argument("nprocs != nprows * npcols");
     layout = layout_in;
@@ -220,7 +186,7 @@ void BLACS_CTXT_handler::set_grid(const int &nprows_in, const int &npcols_in,
         layout_ch = 'R';
     Cblacs_gridinit(&ictxt, &layout_ch, nprows_in, npcols_in);
     Cblacs_gridinfo(ictxt, &nprows, &npcols, &myprow, &mypcol);
-    pgrid_set = true;
+    pgrid_set_ = true;
 }
 
 void BLACS_CTXT_handler::set_square_grid(bool more_rows, CTXT_LAYOUT layout_in)
@@ -248,12 +214,12 @@ void BLACS_CTXT_handler::set_vertical_grid()
 
 void BLACS_CTXT_handler::exit()
 {
-    if (pgrid_set)
+    if (pgrid_set_)
     {
         Cblacs_gridexit(ictxt);
         // recollect the system context
         ictxt = Csys2blacs_handle(mpi_comm_h.comm);
-        pgrid_set = false;
+        pgrid_set_ = false;
     }
 }
 
@@ -284,8 +250,6 @@ void BLACS_CTXT_handler::barrier(CTXT_SCOPE scope) const
     CTXT_barrier(ictxt, scope);
 }
 
-BLACS_CTXT_handler blacs_ctxt_world_h(MPI_COMM_WORLD);
-
 void Array_Desc::set_blacs_params_(int ictxt, int nprocs, int myid, int nprows,
                                   int myprow, int npcols, int mypcol)
 {
@@ -314,11 +278,13 @@ int Array_Desc::set_desc_(const int &m, const int &n, const int &mb, const int &
 
     ScalapackConnector::descinit(this->desc, m, n, mb, nb, irsrc, icsrc, ictxt_, lld_, info);
     if (info)
-        printf(
+    {
+        LIBRPA::utils::lib_printf(
             "ERROR DESCINIT! PROC %d (%d,%d) PARAMS: DESC %d %d %d %d %d %d %d %d\n",
             myid_, myprow_, mypcol_, m, n, mb, nb, irsrc, icsrc, ictxt_, m_local_);
+    }
     // else
-    //     printf("SUCCE DESCINIT! PROC %d (%d,%d) PARAMS: DESC %d %d %d %d %d %d %d %d\n", myid_, myprow_, mypcol_, m, n, mb, nb, irsrc, icsrc, ictxt_, m_local_);
+    //     LIBRPA::utils::lib_printf("SUCCE DESCINIT! PROC %d (%d,%d) PARAMS: DESC %d %d %d %d %d %d %d %d\n", myid_, myprow_, mypcol_, m, n, mb, nb, irsrc, icsrc, ictxt_, m_local_);
     m_ = desc[2];
     n_ = desc[3];
     mb_ = desc[4];
@@ -565,25 +531,25 @@ vector<double> Parallel_MPI::pack_mat(const map<size_t,map<size_t,map<Vector3_Or
 }
 
 
-map<size_t,map<size_t,map<Vector3_Order<int>,shared_ptr<matrix>>>>  Parallel_MPI::unpack_mat(vector<double> &pack)
-{
-    map<size_t,map<size_t,map<Vector3_Order<int>,shared_ptr<matrix>>>> Cs;
-    auto ptr=pack.begin();
-    const size_t pack_size=ptr[0];
-    ptr+=1;
-    auto ptr_end=ptr+pack_size;
-    while(ptr<ptr_end)
-    {
-        const size_t I=ptr[0], J=ptr[1];
-        const Vector3_Order<int> R={ptr[2],ptr[3],ptr[4]};
-        const int nr=ptr[5], nc=ptr[6];
-        matrix &m=*Cs[I][J][R];
-        m.create(nr,nc);
-        copy(ptr+7,ptr+7+nr*nc,m.c);
-        ptr+=7+nr*nc;
-    }
-    return Cs;
-}
+// map<size_t,map<size_t,map<Vector3_Order<int>,shared_ptr<matrix>>>>  Parallel_MPI::unpack_mat(vector<double> &pack)
+// {
+//     map<size_t,map<size_t,map<Vector3_Order<int>,shared_ptr<matrix>>>> Cs;
+//     auto ptr=pack.begin();
+//     const size_t pack_size=ptr[0];
+//     ptr+=1;
+//     auto ptr_end=ptr+pack_size;
+//     while(ptr<ptr_end)
+//     {
+//         const size_t I=ptr[0], J=ptr[1];
+//         const Vector3_Order<int> R={ptr[2],ptr[3],ptr[4]};
+//         const int nr=ptr[5], nc=ptr[6];
+//         matrix &m=*Cs[I][J][R];
+//         m.create(nr,nc);
+//         copy(ptr+7,ptr+7+nr*nc,m.c);
+//         ptr+=7+nr*nc;
+//     }
+//     return Cs;
+// }
 
 int Parallel_MPI::globalIndex(int localIndex, int nblk, int nprocs, int myproc)
 {
@@ -617,7 +583,7 @@ vector<int> dispatcher(int ist, int ied, unsigned myid, unsigned size, bool sequ
     int n = dist / size;
     int extra = dist % size;
     bool has_extra = myid < extra;
-    /* printf("%u %d\n", myid, size); */
+    /* LIBRPA::utils::lib_printf("%u %d\n", myid, size); */
     unsigned id;
     for ( int i = 0; i != n + has_extra; i++)
     {
@@ -643,7 +609,7 @@ vector<pair<int, int>> dispatcher(int i1st, int i1ed, int i2st, int i2ed,
     int n = dist1 * dist2 / size;
     int extra = (dist1 * dist2) % size;
     bool has_extra = myid < extra;
-    /* printf("%u %d\n", myid, size); */
+    /* LIBRPA::utils::lib_printf("%u %d\n", myid, size); */
     unsigned id, id1, id2;
     for ( int i = 0; i != n + has_extra; i++)
     {
@@ -719,7 +685,7 @@ vector<pair<int,int>> dispatch_upper_trangular_tasks(const int &natoms, const in
         final_loc_task.insert(final_loc_task.end(),combine_task.begin()+n_half_task,combine_task.end());
     }
     // for(auto &iap:final_loc_task)
-    //     printf(" loc_task  myid: %d, myprow ,mypcol: %d, %d  task-pair ( %d, %d ) \n",myid, myprow,mypcol, iap.first, iap.second);
+    //     LIBRPA::utils::lib_printf(" loc_task  myid: %d, myprow ,mypcol: %d, %d  task-pair ( %d, %d ) \n",myid, myprow,mypcol, iap.first, iap.second);
     return final_loc_task;
 }
 
@@ -773,7 +739,7 @@ vector<pair<int, int>> find_duplicate_ordered_pair(int n, const vector<pair<int,
                     have_pair_this[ind] = 49;
                 }
             }
-            MPI_Allreduce(have_pair_this.data(), have_pair_all.data(), npairs_batch * nprocs, MPI_UNSIGNED_CHAR, MPI_SUM, MPI_COMM_WORLD);
+            MPI_Allreduce(have_pair_this.data(), have_pair_all.data(), npairs_batch * nprocs, MPI_UNSIGNED_CHAR, MPI_SUM, comm);
         }
         map<size_t, vector<int>> has_copies;
         for (size_t iap = 0; iap < npairs_batch_current; iap++)
@@ -813,6 +779,3 @@ vector<pair<int, int>> find_duplicate_ordered_pair(int n, const vector<pair<int,
     }
     return pairs_duplicate;
 }
-
-
-Parallel_MPI para_mpi;

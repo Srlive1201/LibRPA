@@ -1,15 +1,15 @@
 #include "get_minimax.h"
 
-#include "envs.h"
+#include "envs_dir.h"
+#include "envs_mpi.h"
 #include "parallel_mpi.h"
 
 #include <fstream>
-#include <map>
 #include <unistd.h>
 #include <vector>
 #include <string>
 
-static const std::string minimax_grid_path = string(source_dir) + "/minimax_grid";
+static const std::string minimax_grid_path = string(LIBRPA::envs::source_dir) + "/minimax_grid";
 static const std::string GX_path = minimax_grid_path + "/GreenX/generate_local_grid.py";
 
 //! read the file containing grids points information
@@ -107,12 +107,12 @@ static void call_local_grid_script(int ngrids, double e_min, double e_max)
 {
     string tmps;
     double erange = e_max / e_min;
-    if(LIBRPA::mpi_comm_world_h.is_root())
+    if(LIBRPA::envs::mpi_comm_global_h.is_root())
     {
         tmps = "python " + GX_path + " " + to_string(ngrids) + " " + to_string(erange);
         system(tmps.c_str());
     }
-    LIBRPA::mpi_comm_world_h.barrier();
+    LIBRPA::envs::mpi_comm_global_h.barrier();
     sleep(1);
 }
 

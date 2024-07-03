@@ -1,15 +1,18 @@
 #include "../parallel_mpi.h"
 
+#include "../envs_mpi.h"
+#include "../envs_io.h"
+
 #include "testutils.h"
 #include <mpi.h>
 #include <stdexcept>
 
-using namespace LIBRPA;
+using namespace LIBRPA::envs;
 
 void test_dispatcher_1d()
 {
-    const int myid = mpi_comm_world_h.myid;
-    const int size = mpi_comm_world_h.nprocs;
+    const int myid = mpi_comm_global_h.myid;
+    const int size = mpi_comm_global_h.nprocs;
 
     // single index dispatcher
     // balanced sequential case
@@ -77,8 +80,8 @@ void test_dispatcher_1d()
 
 void test_dispatcher_2d()
 {
-    const int myid = mpi_comm_world_h.myid;
-    const int size = mpi_comm_world_h.nprocs;
+    const int myid = mpi_comm_global_h.myid;
+    const int size = mpi_comm_global_h.nprocs;
 
     // =====================================
     // double index dispatcher
@@ -228,36 +231,40 @@ void test_dispatcher_2d()
 
 void test_arraydesc()
 {
-    blacs_ctxt_world_h.set_square_grid();
-    Array_Desc ad(blacs_ctxt_world_h);
+    using namespace LIBRPA::envs;
+    blacs_ctxt_global_h.set_square_grid();
+    LIBRPA::Array_Desc ad(blacs_ctxt_global_h);
     const int m = 10, n = 10;
     // one-block per process, distribution as even as possible
     ad.init_1b1p(m, n, 0, 0);
     printf("%s\n", ad.info().c_str());
     ad.barrier();
     // check overflow
-    printf("r%1d c%1d row(m)=%d\n",blacs_ctxt_world_h.myprow, blacs_ctxt_world_h.mypcol, ad.indx_g2l_r(m));
-    printf("r%1d c%1d col(n)=%d\n",blacs_ctxt_world_h.myprow, blacs_ctxt_world_h.mypcol, ad.indx_g2l_c(n));
+    printf("r%1d c%1d row(m)=%d\n", blacs_ctxt_global_h.myprow, blacs_ctxt_global_h.mypcol, ad.indx_g2l_r(m));
+    printf("r%1d c%1d col(n)=%d\n", blacs_ctxt_global_h.myprow, blacs_ctxt_global_h.mypcol, ad.indx_g2l_c(n));
     assert(ad.indx_g2l_r(m) < 0);
     assert(ad.indx_g2l_c(n) < 0);
     // printf("r%1d c%1d row(m)=%d\n",blacs_ctxt_world_h.myprow, blacs_ctxt_world_h.mypcol, ad.indx_g2l_r(m-1));
     // printf("r%1d c%1d col(n)=%d\n",blacs_ctxt_world_h.myprow, blacs_ctxt_world_h.mypcol, ad.indx_g2l_c(n-1));
-    blacs_ctxt_world_h.exit();
+    blacs_ctxt_global_h.exit();
 }
 
 int main (int argc, char *argv[])
 {
-    MPI_Wrapper::init(argc, argv);
-    if ( MPI_Wrapper::nprocs_world != 4 )
-        throw invalid_argument("test imposes 4 MPI processes");
-    mpi_comm_world_h.init();
-    blacs_ctxt_world_h.init();
+    int provided;
+    MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
+    initialize_mpi(MPI_COMM_WORLD);
+    initialize_io();
+    if ( size_global != 4 )
+        throw runtime_error("test imposes 4 MPI processes");
 
     test_dispatcher_1d();
     test_dispatcher_2d();
     test_arraydesc();
 
-    MPI_Wrapper::finalize();
+    finalize_io();
+    finalize_mpi();
+    MPI_Finalize();
 
     return 0;
 }

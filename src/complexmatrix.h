@@ -10,6 +10,7 @@
 using namespace std;
 
 #include "matrix.h"
+#include "utils_io.h"
 
 //#ifdef _MCD_CHECK
 //#include "src_parallel/mcd.h"
@@ -41,15 +42,15 @@ public:
 	//============
 	complex<double> &operator()(const int ir,const int ic)
 	{
-        if (ir >= nr) printf("ir %d nr %d\n", ir, nr);
-        if (ic >= nc) printf("ic %d nc %d\n", ic, nc);
+        if (ir >= nr) LIBRPA::utils::lib_printf("ir %d nr %d\n", ir, nr);
+        if (ic >= nc) LIBRPA::utils::lib_printf("ic %d nc %d\n", ic, nc);
 		assert(ir>=0);	assert(ir<nr);	assert(ic>=0);	assert(ic<nc);
 		return c[ir*nc+ic];//mohan modify in-line 2007-10-1
 	}
 	const complex<double> &operator()(const int ir,const int ic)const
 	{
-        if (ir >= nr) printf("ir %d nr %d\n", ir, nr);
-        if (ic >= nc) printf("ic %d nc %d\n", ic, nc);
+        if (ir >= nr) LIBRPA::utils::lib_printf("ir %d nr %d\n", ir, nr);
+        if (ic >= nc) LIBRPA::utils::lib_printf("ic %d nc %d\n", ic, nc);
 		assert(ir>=0);	assert(ir<nr);	assert(ic>=0);	assert(ic<nc);
 		return c[ir*nc+ic];//mohan modify in-line 2007-10-13
 	}
@@ -59,6 +60,7 @@ public:
 	ComplexMatrix& operator+=(const complex<double> &s); // minez add 2022-06-06
 	ComplexMatrix& operator-=(const ComplexMatrix &m);
 	matrix real() const;						// Peize Lin add 2017-03-29
+	matrix imag() const;
 	
 	//==================
 	// member function:
@@ -70,6 +72,7 @@ public:
     double get_max_real(int &ir, int &ic) const; // minyez add 2022-05-05
     //! Get the max imaginary value of matrix element
     double get_max_imag() const; // minyez add 2022-10-18
+    double get_max_abs() const; // minyez add 2024-03-13
     double get_max_abs_imag() const; // minyez add 2022-10-26
     double get_max_abs_offdiag() const;
     bool is_diagonal(const double &thres = 1e-14) const;

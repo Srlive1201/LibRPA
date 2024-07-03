@@ -1,12 +1,16 @@
 #include "ri.h"
+
 #include <memory.h>
-#include "mpi.h"
-#include "parallel_mpi.h"
+
+#include "envs_mpi.h"
+#include "utils_io.h"
 #include "params.h"
 #include "pbc.h"
+
 int n_irk_points;
 int natom;
 int ncell;
+std::vector<Vector3_Order<double>> irk_points;
 map<Vector3_Order<double>, double> irk_weight;
 map<atom_t, size_t> atom_nw;
 map<atom_t, size_t> atom_mu;
@@ -23,7 +27,8 @@ atpair_R_mat_t Cs;
 atpair_k_cplx_mat_t Vq;
 atpair_k_cplx_mat_t Vq_cut;
 map<Vector3_Order<double>, ComplexMatrix> Vq_block_loc;
-using LIBRPA::mpi_comm_world_h;
+map<Vector3_Order<double>, ComplexMatrix> Vq_cut_block_loc;
+
 int atom_iw_loc2glo(const int &atom_index, const int &iw_lcoal)
 {
     int nb = 0;
@@ -109,10 +114,14 @@ matrix reshape_mat_21(const size_t n1, const size_t n2, const size_t n3, const m
 
 void init_N_all_mu()
 {
-    printf("begin init_N_all_mu   atom_mu.size: %d  myid: %d\n",atom_mu.size(),mpi_comm_world_h.myid);
+    using LIBRPA::envs::mpi_comm_global;
+    using LIBRPA::envs::mpi_comm_global_h;
+    using LIBRPA::utils::lib_printf;
+
+    lib_printf("begin init_N_all_mu   atom_mu.size: %d  myid: %d\n",atom_mu.size(), mpi_comm_global_h.myid);
     if(Params::DFT_software == "ABACUS")
     {
-        mpi_comm_world_h.barrier();
+        mpi_comm_global_h.barrier();
         vector<size_t> loc_mu(natom);
         vector<size_t> loc_nw(natom);
         for(const auto &nw_p:atom_mu_loc)
@@ -123,12 +132,12 @@ void init_N_all_mu()
         {
             loc_mu[mu_p.first]=mu_p.second;
         }
-        printf(" mid init_N_all_mu\n");
+        // LIBRPA::utils::lib_printf(" mid init_N_all_mu\n");
         vector<size_t> glo_nw(natom);
         vector<size_t> glo_mu(natom);
-        printf(" mid init_N_all_mu myid: %d\n",mpi_comm_world_h.myid);
-        MPI_Allreduce(loc_nw.data(),glo_nw.data(),natom,MPI_UNSIGNED_LONG_LONG,MPI_MAX,MPI_COMM_WORLD);
-        MPI_Allreduce(loc_mu.data(),glo_mu.data(),natom,MPI_UNSIGNED_LONG_LONG,MPI_MAX,MPI_COMM_WORLD);
+        // LIBRPA::utils::lib_printf(" mid init_N_all_mu myid: %d\n",mpi_comm_global_h.myid);
+        MPI_Allreduce(loc_nw.data(),glo_nw.data(),natom,MPI_UNSIGNED_LONG_LONG,MPI_MAX,mpi_comm_global);
+        MPI_Allreduce(loc_mu.data(),glo_mu.data(),natom,MPI_UNSIGNED_LONG_LONG,MPI_MAX,mpi_comm_global);
 
         atom_nw.clear();
         atom_mu.clear();
@@ -145,12 +154,15 @@ void init_N_all_mu()
         atom_mu_part_range[I]=atom_mu.at(I-1)+atom_mu_part_range[I-1];
     
     N_all_mu=atom_mu_part_range[natom-1]+atom_mu[natom-1];
-    printf("end init_N_all_mu, atom_mu.size: %d\n",atom_mu.size());
-  //  MPI_Barrier(MPI_COMM_WORLD);
+    // LIBRPA::utils::lib_printf("end init_N_all_mu, atom_mu.size: %d\n",atom_mu.size());
+  //  MPI_Barrier(mpi_comm_global);
 }
 
 void allreduce_atp_aux()
 {
+    using LIBRPA::envs::mpi_comm_global;
+    using LIBRPA::envs::mpi_comm_global_h;
+
     for(int I=0;I!=natom;I++)
         for(int J=0;J!=natom;J++)
         {
@@ -163,42 +175,42 @@ void allreduce_atp_aux()
             int loc_count=3* Rsize;
 
             std::vector<int> send_R_data;
-            std::vector<int> all_R_counts(mpi_comm_world_h.nprocs, 0);
+            std::vector<int> all_R_counts(mpi_comm_global_h.nprocs, 0);
 
-            all_R_counts[mpi_comm_world_h.myid] = loc_count;
+            all_R_counts[mpi_comm_global_h.myid] = loc_count;
 
             for (const auto& Rp : Cs[I][J]) 
             {   
                 auto R=Rp.first;
-                if(I==0 && J==0)
-                    printf(" send R  Cs  myid : %d   I: %d, J: %d, R:(%d, %d, %d)\n",mpi_comm_world_h.myid, I,J,R.x,R.y,R.z);
+                // if(I==0 && J==0)
+                //     LIBRPA::utils::lib_printf(" send R  Cs  myid : %d   I: %d, J: %d, R:(%d, %d, %d)\n",mpi_comm_global_h.myid, I,J,R.x,R.y,R.z);
                 send_R_data.push_back(Rp.first.x);
                 send_R_data.push_back(Rp.first.y);
                 send_R_data.push_back(Rp.first.z);
             }
-            MPI_Allgather(&loc_count, 1, MPI_INT, all_R_counts.data(), 1, MPI_INT, MPI_COMM_WORLD);
-            std::vector<int> displs(mpi_comm_world_h.nprocs);
+            MPI_Allgather(&loc_count, 1, MPI_INT, all_R_counts.data(), 1, MPI_INT, mpi_comm_global);
+            std::vector<int> displs(mpi_comm_global_h.nprocs);
             int total_R_count = 0;
-            for (int i = 0; i < mpi_comm_world_h.nprocs; ++i) {
+            for (int i = 0; i < mpi_comm_global_h.nprocs; ++i) {
                 displs[i] = total_R_count;
                 total_R_count +=  all_R_counts[i];
             }
             std::vector<int> all_R_data(total_R_count);
 
-            MPI_Allgatherv(send_R_data.data(), loc_count, MPI_INT, all_R_data.data(), all_R_counts.data(), displs.data(), MPI_INT, MPI_COMM_WORLD);
+            MPI_Allgatherv(send_R_data.data(), loc_count, MPI_INT, all_R_data.data(), all_R_counts.data(), displs.data(), MPI_INT, mpi_comm_global);
             
             int nR=total_R_count/3;
             for(int iR=0;iR!=nR;iR++)
             {
                 Vector3_Order<int> Rv(all_R_data[iR*3],all_R_data[iR*3+1],all_R_data[iR*3+2]);
-                if(I==0 && J==0)
-                    printf(" Rv  Cs  myid : %d   I: %d, J: %d, R:(%d, %d, %d)\n",mpi_comm_world_h.myid, I,J,Rv.x,Rv.y,Rv.z);
+                // if(I==0 && J==0)
+                //     LIBRPA::utils::lib_printf(" Rv  Cs  myid : %d   I: %d, J: %d, R:(%d, %d, %d)\n",mpi_comm_global_h.myid, I,J,Rv.x,Rv.y,Rv.z);
                 shared_ptr<matrix> cs_ptr = make_shared<matrix>();
                 cs_ptr->create(nbasI*nbasJ, nauxI);
                 matrix loc_cs(nbasI*nbasJ, nauxI);
                 if(Cs[I][J].count(Rv))
                     memcpy(loc_cs.c,(*Cs[I][J].at(Rv)).c,sizeof(double)*cs_size);
-                mpi_comm_world_h.allreduce_matrix(loc_cs,(*cs_ptr));
+                mpi_comm_global_h.allreduce_matrix(loc_cs,(*cs_ptr));
                 if(!Cs[I][J].count(Rv))
                     Cs[I][J][Rv] = cs_ptr;
             }
@@ -207,7 +219,11 @@ void allreduce_atp_aux()
 
 void allreduce_2D_coulomb_to_atompair(map<Vector3_Order<double>, ComplexMatrix> &Vq_loc, atpair_k_cplx_mat_t &coulomb_mat,double threshold )
 {
-    printf("Begin allreduce_2D_coulomb_to_atompair!\n");
+    using LIBRPA::envs::mpi_comm_global_h;
+    using LIBRPA::utils::lib_printf;
+
+    lib_printf("Begin allreduce_2D_coulomb_to_atompair!\n");
+
     map<Vector3_Order<double>, ComplexMatrix> Vq_glo;
     for(auto &qvec:klist_ibz)
     {
@@ -217,8 +233,8 @@ void allreduce_2D_coulomb_to_atompair(map<Vector3_Order<double>, ComplexMatrix> 
             Vq_block_loc[qvec].create(N_all_mu, N_all_mu);
         }
         
-        mpi_comm_world_h.allreduce_ComplexMatrix(Vq_block_loc[qvec],Vq_glo[qvec]);
-        print_complex_matrix("vq_glo", Vq_glo[qvec]);
+        mpi_comm_global_h.allreduce_ComplexMatrix(Vq_block_loc[qvec],Vq_glo[qvec]);
+        // print_complex_matrix("vq_glo", Vq_glo[qvec]);
     }
     size_t vq_save = 0;
     size_t vq_discard = 0;
@@ -262,5 +278,6 @@ void allreduce_2D_coulomb_to_atompair(map<Vector3_Order<double>, ComplexMatrix> 
                 }
             }
     }
-    printf("End allreduce_2D_coulomb_to_atompair!\n");
+
+    lib_printf("End allreduce_2D_coulomb_to_atompair!\n");
 }

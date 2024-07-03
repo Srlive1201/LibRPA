@@ -20,10 +20,17 @@ jobs:
         uses: actions/checkout@v3
       - name: Setup Intel oneAPI apt repo
         run: |
-          wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS-2023.PUB
-          sudo apt-key add GPG-PUB-KEY-INTEL-SW-PRODUCTS-2023.PUB
-          echo "deb https://apt.repos.intel.com/oneapi all main" | sudo tee /etc/apt/sources.list.d/oneAPI.list
-          sudo apt-get update -o Dir::Etc::sourcelist="sources.list.d/oneAPI.list" -o APT::Get::List-Cleanup="0"
+          # download the key to system keyring
+          wget -O- https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB \
+            | gpg --dearmor | sudo tee /usr/share/keyrings/oneapi-archive-keyring.gpg > /dev/null
+          # add signed entry to apt sources and configure the APT client to use Intel repository:
+          echo "deb [signed-by=/usr/share/keyrings/oneapi-archive-keyring.gpg] https://apt.repos.intel.com/oneapi all main" \
+            | sudo tee /etc/apt/sources.list.d/oneAPI.list
+          # --allow-unauthenticated to resolve Clearsigned file isn't valid, got 'NOSPLIT' error
+          # when fetching https://packages.microsoft.com/ubuntu/22.04/prod
+          # https://superuser.com/questions/1774745/kali-apt-get-update-fails-with-clearsigned-file-isnt-valid
+          # https://superuser.com/questions/1331936/how-can-i-get-past-a-repository-is-not-signed-message-when-attempting-to-upgr
+          sudo apt-get update --allow-unauthenticated -o Dir::Etc::sourcelist="sources.list.d/oneAPI.list" -o APT::Get::List-Cleanup="0"
       - name: Collect apt dependencies
         run: |
           echo "$LINUX_CPP_COMPONENTS" | sed "s/_/ /g" | xargs -n 1 apt-cache depends | tee depends.txt
@@ -62,7 +69,7 @@ jobs:
         run: |
           source /opt/intel/oneapi/setvars.sh
           export BUILDDIR="build_greenx"
-          CXX=mpiicpc cmake -DUSE_LIBRI=OFF -DUSE_GREENX_MINIMAX=ON -B $BUILDDIR -DENABLE_TEST=ON
+          CXX=mpiicpc cmake -DUSE_LIBRI=OFF -DUSE_GREENX_API=ON -B $BUILDDIR -DENABLE_TEST=ON
           cmake --build $BUILDDIR -j 2
           cmake --build $BUILDDIR --target test
       - name: Build/test LibRPA with LibRI and without GreenX TimeFrequency component
@@ -76,7 +83,7 @@ jobs:
         run: |
           source /opt/intel/oneapi/setvars.sh
           export BUILDDIR="build_libri_greenx"
-          CXX=mpiicpc cmake -DUSE_LIBRI=ON -DUSE_GREENX_MINIMAX=ON -B $BUILDDIR -DENABLE_TEST=ON
+          CXX=mpiicpc cmake -DUSE_LIBRI=ON -DUSE_GREENX_API=ON -B $BUILDDIR -DENABLE_TEST=ON
           cmake --build $BUILDDIR -j 2
           cmake --build $BUILDDIR --target test
       - name: Save last test log for check

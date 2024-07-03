@@ -8,18 +8,24 @@ elseif(CMAKE_Fortran_COMPILER_ID MATCHES "Intel")
   #TODO(Alex) Add minimum version for Intel 
 endif()
 
-# Set default build type if none was specified
-if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
-  message(
-    STATUS "Setting build type to 'RelWithDebInfo' as none was specified.")
-
- # Sets the variable in the CACHE. Can view/modify with ccmake
- # FORCE will overwrite if variable is already in the CACHE
- set(CMAKE_BUILD_TYPE
-      RelWithDebInfo
-      CACHE STRING "Choose the type of build." FORCE)
-
-  # Set the possible values of build type
-  set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release" "MinSizeRel"
-  "RelWithDebInfo")
-endif()
+# MYZ: disable modifying CMAKE_BUILD_TYPE at sub-project level.
+# Otherwise segment fault is observed for test_complexmatrix.
+# Also the default build type to RelWithDebInfo will remove all asserts,
+# making current unit tests not working at all.
+# Note:
+#     RelWithDebInfo will remove all asserts
+# # Set default build type if none was specified
+# if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+#   message(
+#     STATUS "Setting build type to 'RelWithDebInfo' as none was specified.")
+#
+#  # Sets the variable in the CACHE. Can view/modify with ccmake
+#  # FORCE will overwrite if variable is already in the CACHE
+#  set(CMAKE_BUILD_TYPE
+#       RelWithDebInfo
+#       CACHE STRING "Choose the type of build." FORCE)
+#
+#   # Set the possible values of build type
+#   set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release" "MinSizeRel"
+#   "RelWithDebInfo")
+# endif()

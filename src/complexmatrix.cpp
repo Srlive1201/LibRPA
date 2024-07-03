@@ -9,6 +9,7 @@
 #include <cstring>
 #include <iostream>
 #include <iomanip>
+#include "utils_io.h"
 #include "complexmatrix.h"
 #include "lapack_connector.h"
 
@@ -168,6 +169,16 @@ double ComplexMatrix::get_max_imag() const
     for (int i = 1; i != this->size; i++)
         if (c[i].imag() > iv)
             iv = c[i].imag();
+    return iv;
+}
+
+double ComplexMatrix::get_max_abs() const
+{
+    double iv = abs(this->c[0]);
+    for (int i = 1; i != this->size; i++)
+    {
+        iv = max(iv, abs(this->c[i]));
+    }
     return iv;
 }
 
@@ -353,6 +364,13 @@ matrix ComplexMatrix::real() const
 	return m;
 }
 
+matrix ComplexMatrix::imag() const
+{
+	matrix m(nr,nc,false);
+	for( int i=0; i<this->size; ++i) m.c[i] = c[i].imag();
+	return m;
+}
+
 // Returns trace of ComplexMatrix
 complex<double> trace(const ComplexMatrix &m)
 {
@@ -517,11 +535,15 @@ ComplexMatrix power_hemat(ComplexMatrix &cmat, double power, bool keep_ev, bool 
     for ( int i = 0; i != cmat.nc; i++ )
     {
         w[i] = -w[i];
-        // printf("%3d%22.12f\n", i+1, w[i]);
+        // lib_printf("%3d%22.12f\n", i+1, w[i]);
         if (w[i] < 0 && w[i] > threshold && !is_int_power)
-            printf("Warning! kept negative eigenvalue with non-integer power: # %d ev = %f , pow = %f\n", i, w[i], power);
+	{
+	    LIBRPA::utils::lib_printf("Warning! kept negative eigenvalue with non-integer power: # %d ev = %f , pow = %f\n", i, w[i], power);
+	}
         if (fabs(w[i]) < 1e-10 && power < 0)
-            printf("Warning! nearly-zero eigenvalue with negative power: # %d ev = %f , pow = %f\n", i, w[i], power);
+	{
+            LIBRPA::utils::lib_printf("Warning! nearly-zero eigenvalue with negative power: # %d ev = %f , pow = %f\n", i, w[i], power);
+	}
         if (w[i] < threshold)
         {
             wpow[i] = 0;
@@ -529,7 +551,9 @@ ComplexMatrix power_hemat(ComplexMatrix &cmat, double power, bool keep_ev, bool 
                 w[i] = 0;
         }
         else
+	{
             wpow[i] = w[i];
+	}
         wpow[i] = pow(wpow[i], power);
     }
     ComplexMatrix evconj = transpose(cmat, true);
@@ -569,9 +593,9 @@ void power_hemat_onsite(ComplexMatrix &cmat, double power, double threshold)
     for ( int i = 0; i != cmat.nc; i++ )
     {
         if (w[i] < 0 && w[i] > threshold && !is_int_power)
-            printf("Warning! kept negative eigenvalue with non-integer power: # %d ev = %f , pow = %f\n", i, w[i], power);
+            LIBRPA::utils::lib_printf("Warning! kept negative eigenvalue with non-integer power: # %d ev = %f , pow = %f\n", i, w[i], power);
         if (fabs(w[i]) < 1e-10 && power < 0)
-            printf("Warning! nearly-zero eigenvalue with negative power: # %d ev = %f , pow = %f\n", i, w[i], power);
+            LIBRPA::utils::lib_printf("Warning! nearly-zero eigenvalue with negative power: # %d ev = %f , pow = %f\n", i, w[i], power);
         if (w[i] < threshold)
             w[i] = 0;
         else
@@ -593,13 +617,13 @@ void print_complex_matrix(const char *desc, const ComplexMatrix &mat)
 {
     int nr = mat.nr;
     int nc = mat.nc;
-    printf("\n %s\n", desc);
-    printf("nr = %d, nc = %d\n", nr, nc);
+    LIBRPA::utils::lib_printf("\n %s\n", desc);
+    LIBRPA::utils::lib_printf("nr = %d, nc = %d\n", nr, nc);
     for (int i = 0; i < nr; i++)
     {
         for (int j = 0; j < nc; j++)
-            printf("%10.6e,%9.6e ", mat.c[i * nc + j].real(), mat.c[i * nc + j].imag());
-        printf("\n");
+            LIBRPA::utils::lib_printf("%10.6e,%9.6e ", mat.c[i * nc + j].real(), mat.c[i * nc + j].imag());
+        LIBRPA::utils::lib_printf("\n");
     }
 }
 
@@ -689,12 +713,12 @@ void print_complex_real_matrix(const char *desc, const ComplexMatrix &mat)
 {
     int nr = mat.nr;
     int nc = mat.nc;
-    printf("\n %s\n", desc);
+    LIBRPA::utils::lib_printf("\n %s\n", desc);
     for (int i = 0; i < nr; i++)
     {
         for (int j = 0; j < nc; j++)
-            printf(" %10.6f", mat.c[i * nc + j].real());
-        printf("\n");
+            LIBRPA::utils::lib_printf(" %10.6f", mat.c[i * nc + j].real());
+        LIBRPA::utils::lib_printf("\n");
     }
 }
 

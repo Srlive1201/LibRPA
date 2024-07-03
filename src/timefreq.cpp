@@ -1,16 +1,17 @@
 #include "timefreq.h"
-#include "envs.h"
-#include "mathtools.h"
-#include "parallel_mpi.h"
-#include "get_minimax.h"
-#include "params.h"
+
 #include <omp.h>
 #include <iostream>
 #include <fstream>
 #include <vector>
 #include <utility>
 #include <algorithm>
-#include <unistd.h>
+
+#include "mathtools.h"
+#include "parallel_mpi.h"
+#include "utils_io.h"
+#include "get_minimax.h"
+
 using std::pair;
 using std::string;
 using std::ifstream;
@@ -61,21 +62,22 @@ void TFGrids::set_time()
     sintrans_t2f.create(n_grids, n_grids);
     costrans_f2t.create(n_grids, n_grids);
     sintrans_f2t.create(n_grids, n_grids);
-    fourier_t2f.create(n_grids, n_grids);
+    // fourier_t2f.create(n_grids, n_grids);
 }
 
 void TFGrids::show()
 {
+    using LIBRPA::utils::lib_printf;
     cout << "Grid type: " << TFGrids::GRID_TYPES_NOTES[grid_type] << endl;
     cout << "Grid size: " << n_grids << endl;
     cout << "Frequency node & weight: " << endl;
     for ( int i = 0; i != n_grids; i++ )
-        printf("%2d %23.16f %23.16f\n", i, freq_nodes[i], freq_weights[i]);
+        lib_printf("%2d %23.16f %23.16f\n", i, freq_nodes[i], freq_weights[i]);
     if (has_time_grids())
     {
         cout << "Time node & weight: " << endl;
         for ( int i = 0; i != n_grids; i++ )
-            printf("%2d %23.16f %23.16f\n", i, time_nodes[i], time_weights[i]);
+            lib_printf("%2d %23.16f %23.16f\n", i, time_nodes[i], time_weights[i]);
         cout << "t->f transform: " << endl;
         if (costrans_t2f.size)
         {
@@ -91,7 +93,7 @@ void TFGrids::show()
             print_matrix("Cosine transform matrix", costrans_f2t);
         }
     }
-    printf("\n");
+    lib_printf("\n");
 }
 
 void TFGrids::unset()
@@ -104,7 +106,7 @@ void TFGrids::unset()
     sintrans_t2f.create(0, 0);
     costrans_f2t.create(0, 0);
     sintrans_f2t.create(0, 0);
-    fourier_t2f.create(0, 0);
+    // fourier_t2f.create(0, 0);
 }
 
 TFGrids::TFGrids(unsigned N)
@@ -180,7 +182,7 @@ void TFGrids::generate_minimax(double emin, double emax)
 
     if (ierr != 0)
         throw invalid_argument(string("minimax grids failed, return code: ") + to_string(ierr));
-    printf("Cosine transform duality error: %20.12f\n", cosft_duality_error);
+    LIBRPA::utils::lib_printf("Cosine transform duality error: %20.12f\n", cosft_duality_error);
 
     for (int ig = 0; ig != n_grids; ig++)
     {

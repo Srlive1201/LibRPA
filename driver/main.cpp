@@ -1,60 +1,90 @@
-#include "main.h"
+#include <algorithm>
+#include <limits>
+
+#include "analycont.h"
+#include "chi0.h"
 #include "constants.h"
-#include "interpolate.h"
-#include "fitting.h"
+#include "coulmat.h"
 #include "dielecmodel.h"
+#include "envs_io.h"
+#include "envs_mpi.h"
+#include "epsilon.h"
+#include "exx.h"
+#include "fitting.h"
+#include "librpa.h"
+#include "gw.h"
 #include "inputfile.h"
+#include "interpolate.h"
+#include "meanfield.h"
+#include "params.h"
+#include "pbc.h"
+#include "profiler.h"
+#include "qpe_solver.h"
+#include "read_data.h"
 #include "stl_io_helper.h"
 #include "task.h"
+#include "utils_io.h"
+#include "utils_mem.h"
+#include "write_aims.h"
 
-#include <algorithm>
-#if defined(__MACH__)
-#include <malloc/malloc.h> // for malloc_zone_pressure_relief and malloc_default_zone
-#else
-#include <malloc.h>
-#endif
+#include "task_rpa.h"
+#include "task_exx.h"
 
-void initialize(int argc, char **argv)
+static void initialize(int argc, char **argv)
 {
+    using namespace LIBRPA::envs;
+    using LIBRPA::utils::lib_printf;
     // MPI Initialization
-    LIBRPA::MPI_Wrapper::init(argc, argv);
+    int provided;
+    MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
+    if (MPI_THREAD_MULTIPLE != provided)
+    {
+        lib_printf("Warning: MPI_Init_thread provide %d != required %d", provided, MPI_THREAD_MULTIPLE);
+    }
+
+    initialize_librpa_environment(MPI_COMM_WORLD, 0, 0, "");
 
     // Global profiler begins right after MPI is initialized
     Profiler::start("total", "Total");
 }
 
-void finalize()
+static void finalize()
 {
-    if(LIBRPA::mpi_comm_world_h.is_root())
+    using namespace LIBRPA::envs;
+    using LIBRPA::utils::lib_printf;
+
+    Profiler::stop("total");
+    if (mpi_comm_global_h.is_root())
     {
         Profiler::display();
-        printf("libRPA finished\n");
+        lib_printf("libRPA finished\n");
     }
-    Profiler::stop("total");
-    LIBRPA::MPI_Wrapper::finalize();
+
+    finalize_librpa_environment();
+
+    MPI_Finalize();
 }
 
 int main(int argc, char **argv)
 {
-    using LIBRPA::mpi_comm_world_h;
-    using LIBRPA::blacs_ctxt_world_h;
+    using LIBRPA::envs::mpi_comm_global_h;
+    using LIBRPA::envs::blacs_ctxt_global_h;
     using LIBRPA::ParallelRouting;
     using LIBRPA::parallel_routing;
     using LIBRPA::task_t;
+    using LIBRPA::envs::ofs_myid;
+    using LIBRPA::utils::lib_printf;
 
     initialize(argc, argv);
+    cout << mpi_comm_global_h.str() << endl;
+    mpi_comm_global_h.barrier();
 
     /*
-     * Initialize the global MPI communicator and BLACS context
      * HACK: A close-to-square process grid is imposed.
      *       This might subject to performance issue when
      *       the number of processes is not dividable.
      */
-    mpi_comm_world_h.init();
-    cout << mpi_comm_world_h.str() << endl;
-    mpi_comm_world_h.barrier();
-    blacs_ctxt_world_h.init();
-    blacs_ctxt_world_h.set_square_grid();
+    blacs_ctxt_global_h.set_square_grid();
 
     /*
      * Load computational parameters from input file
@@ -87,17 +117,17 @@ int main(int argc, char **argv)
         throw std::logic_error("Unknown task (" + Params::task + "). Please check your input");
 
 
-    if (mpi_comm_world_h.is_root())
+    if (mpi_comm_global_h.is_root())
     {
         system(("mkdir -p " + Params::output_dir).c_str());
         Params::print();
     }
-    mpi_comm_world_h.barrier();
+    mpi_comm_global_h.barrier();
     Profiler::stop("driver_read_params");
 
     Profiler::start("driver_band_out", "Driver Read Meanfield band");
-    READ_AIMS_BAND("band_out", meanfield);
-    if (mpi_comm_world_h.is_root())
+    read_band("band_out", meanfield);
+    if (mpi_comm_global_h.is_root())
     {
         cout << "Information of mean-field starting-point" << endl;
         cout << "| number of spins: " << meanfield.get_n_spins() << endl
@@ -119,45 +149,45 @@ int main(int argc, char **argv)
         meanfield.get_E_min_max(emin, emax);
         TFGrids tfg(Params::nfreq);
         tfg.generate_minimax(emin, emax);
-        if (mpi_comm_world_h.is_root())
+        if (mpi_comm_global_h.is_root())
             tfg.show();
         finalize();
         return 0;
     }
 
     Profiler::start("driver_read_common_input_data", "Driver Read Task-Common Input Data");
-    READ_AIMS_STRU(meanfield.get_n_kpoints(), "stru_out");
+    read_stru(meanfield.get_n_kpoints(), "stru_out");
     Vector3_Order<int> period {kv_nmp[0], kv_nmp[1], kv_nmp[2]};
     auto Rlist = construct_R_grid(period);
     const int Rt_num = Rlist.size() * Params::nfreq;
-    if (mpi_comm_world_h.is_root())
+    if (mpi_comm_global_h.is_root())
     {
         cout << "Lattice vectors (Bohr)" << endl;
-        latvec.print();
+        latvec.print(16);
         cout << "Reciprocal lattice vectors (2PI Bohr^-1)" << endl;
-        G.print();
-        printf("kgrids: %2d %2d %2d\n", kv_nmp[0], kv_nmp[1], kv_nmp[2]);
+        G.print(16);
+        lib_printf("kgrids: %3d %3d %3d\n", kv_nmp[0], kv_nmp[1], kv_nmp[2]);
         cout << "k-points read (Cartisian in 2Pi Bohr^-1 | fractional):" << endl;
         for (int ik = 0; ik != meanfield.get_n_kpoints(); ik++)
         {
-            printf("ik %4d: %10.7f %10.7f %10.7f | %10.7f %10.7f %10.7f\n",
+            lib_printf("ik %4d: %12.7f %12.7f %12.7f | %12.7f %12.7f %12.7f\n",
                    ik+1, kvec_c[ik].x, kvec_c[ik].y, kvec_c[ik].z,
                    kfrac_list[ik].x, kfrac_list[ik].y, kfrac_list[ik].z);
         }
         cout << "R-points to compute:" << endl;
         for (int iR = 0; iR != Rlist.size(); iR++)
         {
-            printf("%4d: %3d %3d %3d\n", iR+1, Rlist[iR].x, Rlist[iR].y, Rlist[iR].z);
+            lib_printf("%4d: %3d %3d %3d\n", iR+1, Rlist[iR].x, Rlist[iR].y, Rlist[iR].z);
         }
         cout << endl;
     }
-    mpi_comm_world_h.barrier();
+    mpi_comm_global_h.barrier();
 
-    READ_AIMS_EIGENVECTOR("./", meanfield);
+    read_eigenvector("./", meanfield);
     get_natom_ncell_from_first_Cs_file(natom, ncell, "./", Params::binary_input);
     tot_atpair = generate_atom_pair_from_nat(natom, false);
     tot_atpair_ordered = generate_atom_pair_from_nat(natom, true);
-    if (mpi_comm_world_h.is_root())
+    if (mpi_comm_global_h.is_root())
     {
         cout << "| Number of atoms: " << natom << endl;
         cout << "| Total atom pairs (unordered): " << tot_atpair.size() << endl;
@@ -168,7 +198,7 @@ int main(int argc, char **argv)
     set_parallel_routing(Params::parallel_routing, tot_atpair.size(), Rt_num, parallel_routing);
 
     // barrier to wait for information print on master process
-    mpi_comm_world_h.barrier();
+    mpi_comm_global_h.barrier();
 
     //para_mpi.chi_parallel_type=Parallel_MPI::parallel_type::ATOM_PAIR;
     // vector<atpair_t> local_atpair;
@@ -179,65 +209,65 @@ int main(int argc, char **argv)
         //     atoms_list[iat]=iat;
         // std::array<int,3> period_arr{kv_nmp[0], kv_nmp[1], kv_nmp[2]};
         // std::pair<std::vector<int>, std::vector<std::vector<std::pair<int, std::array<int, 3>>>>> list_loc_atp
-        // = RI::Distribute_Equally::distribute_atoms(mpi_comm_world_h.comm, atoms_list, period_arr, 2, false);
+        // = RI::Distribute_Equally::distribute_atoms(mpi_comm_global_h.comm, atoms_list, period_arr, 2, false);
         // // for(auto &atp:list_loc_atp.first)
-        // //     printf("| myid: %d   atp.first: %d\n",mpi_comm_world_h.myid,atp);
+        // //     printf("| myid: %d   atp.first: %d\n",mpi_comm_global_h.myid,atp);
         // // for(auto &atps:list_loc_atp.second)
-        // //     printf("| myid: %d   atp.second: %d\n",mpi_comm_world_h.myid,atps);
-        // std::ofstream ofs("out."+std::to_string(RI::MPI_Wrapper::mpi_get_rank(MPI_COMM_WORLD)));
+        // //     printf("| myid: %d   atp.second: %d\n",mpi_comm_global_h.myid,atps);
+        // std::ofstream ofs("out."+std::to_string(RI::MPI_Wrapper::mpi_get_rank(mpi_comm_global)));
         // for(auto &af:list_loc_atp.first)
 		//     ofs<<af<<"  ";
 		// ofs<<endl;
         // for( auto &a1 : list_loc_atp.second)
         //     for(auto &a2:a1)
         //         ofs<<a2.first<<"  ("<<a2.second[0]<<", "<<a2.second[1]<<", "<<a2.second[2]<<" )"<<endl;
-        if (LIBRPA::mpi_comm_world_h.is_root())
-            printf("Triangular dispatching of atom pairs\n");
-        auto trangular_loc_atpair= dispatch_upper_trangular_tasks(natom,blacs_ctxt_world_h.myid,blacs_ctxt_world_h.nprows,blacs_ctxt_world_h.npcols,blacs_ctxt_world_h.myprow,blacs_ctxt_world_h.mypcol);
-        //local_atpair = dispatch_vector(tot_atpair, mpi_comm_world_h.myid, mpi_comm_world_h.nprocs, true);
+        if (mpi_comm_global_h.is_root())
+            lib_printf("Triangular dispatching of atom pairs\n");
+        auto trangular_loc_atpair= dispatch_upper_trangular_tasks(natom,blacs_ctxt_global_h.myid,blacs_ctxt_global_h.nprows,blacs_ctxt_global_h.npcols,blacs_ctxt_global_h.myprow,blacs_ctxt_global_h.mypcol);
+        //local_atpair = dispatch_vector(tot_atpair, mpi_comm_global_h.myid, mpi_comm_global_h.nprocs, true);
         for(auto &iap:trangular_loc_atpair)
             local_atpair.push_back(iap);
-        READ_AIMS_Cs("./", Params::cs_threshold,local_atpair, Params::binary_input);
+        read_Cs("./", Params::cs_threshold,local_atpair, Params::binary_input);
         // for(auto &ap:local_atpair)
-        //     printf("   |process %d , local_atom_pair:  %d,  %d\n", mpi_comm_world_h.myid,ap.first,ap.second);
-        READ_Vq_Row("./", "coulomb_mat", Params::vq_threshold, Vq, local_atpair);
+        //     printf("   |process %d , local_atom_pair:  %d,  %d\n", mpi_comm_global_h.myid,ap.first,ap.second);
+        read_Vq_row("./", "coulomb_mat", Params::vq_threshold, local_atpair, false);
         test_libcomm_for_system(Vq);
     }
     else if(parallel_routing == ParallelRouting::LIBRI)
     {
-        if (LIBRPA::mpi_comm_world_h.is_root()) printf("Evenly distributed Cs and V for LibRI\n");
-        READ_AIMS_Cs_evenly_distribute("./", Params::cs_threshold, mpi_comm_world_h.myid, mpi_comm_world_h.nprocs, Params::binary_input);
+        if (mpi_comm_global_h.is_root()) lib_printf("Evenly distributed Cs and V for LibRI\n");
+        read_Cs_evenly_distribute("./", Params::cs_threshold, mpi_comm_global_h.myid, mpi_comm_global_h.nprocs, Params::binary_input);
         // Vq distributed using the same strategy
         // There should be no duplicate for V
-        auto trangular_loc_atpair= dispatch_upper_trangular_tasks(natom,blacs_ctxt_world_h.myid,blacs_ctxt_world_h.nprows,blacs_ctxt_world_h.npcols,blacs_ctxt_world_h.myprow,blacs_ctxt_world_h.mypcol);
+        auto trangular_loc_atpair= dispatch_upper_trangular_tasks(natom,blacs_ctxt_global_h.myid,blacs_ctxt_global_h.nprows,blacs_ctxt_global_h.npcols,blacs_ctxt_global_h.myprow,blacs_ctxt_global_h.mypcol);
         for(auto &iap:trangular_loc_atpair)
             local_atpair.push_back(iap);
-        READ_Vq_Row("./", "coulomb_mat", Params::vq_threshold, Vq, local_atpair);
+        read_Vq_row("./", "coulomb_mat", Params::vq_threshold, local_atpair, false);
         test_libcomm_for_system(Vq);
     }
     else
     {
-        if (LIBRPA::mpi_comm_world_h.is_root()) printf("Complete copy of Cs and V on each process\n");
+        if (mpi_comm_global_h.is_root()) lib_printf("Complete copy of Cs and V on each process\n");
         local_atpair = generate_atom_pair_from_nat(natom, false);
-        READ_AIMS_Cs("./", Params::cs_threshold,local_atpair);
-        READ_Vq_Full("./", "coulomb_mat", Params::vq_threshold, Vq);
+        read_Cs("./", Params::cs_threshold,local_atpair);
+        read_Vq_full("./", "coulomb_mat", false);
     }
 
-    for (int i = 0; i < mpi_comm_world_h.nprocs; i++)
+    for (int i = 0; i < mpi_comm_global_h.nprocs; i++)
     {
-        if (i == mpi_comm_world_h.myid)
+        if (i == mpi_comm_global_h.myid)
         {
-            printf("| process %d: Cs size %d from local atpair size %d\n",
-                    LIBRPA::mpi_comm_world_h.myid, get_num_keys(Cs), local_atpair.size());
+            lib_printf("| process %d: Cs size %d from local atpair size %zu\n",
+                    mpi_comm_global_h.myid, get_num_keys(Cs), local_atpair.size());
         }
-        mpi_comm_world_h.barrier();
+        mpi_comm_global_h.barrier();
     }
-    LIBRPA::fout_para << "Cs size: " << get_num_keys(Cs) << ", with keys:\n";
-    print_keys(LIBRPA::fout_para, Cs);
-    std::flush(LIBRPA::fout_para);
+    ofs_myid << "Cs size: " << get_num_keys(Cs) << ", with keys:\n";
+    print_keys(ofs_myid, Cs);
+    std::flush(ofs_myid);
 
     // debug, check available Coulomb blocks on each process
-    // LIBRPA::fout_para << "Read Coulomb blocks in process\n";
+    // ofs_myid << "Read Coulomb blocks in process\n";
     // for (const auto& IJqcoul: Vq)
     // {
     //     const auto& I = IJqcoul.first;
@@ -246,12 +276,12 @@ int main(int argc, char **argv)
     //         const auto& J = Jqcoul.first;
     //         for (const auto& qcoul: Jqcoul.second)
     //         {
-    //             LIBRPA::fout_para << I << " " << J << " " << qcoul.first << "\n";
+    //             ofs_myid << I << " " << J << " " << qcoul.first << "\n";
     //         }
     //     }
     // }
-    // std::flush(LIBRPA::fout_para);
-    // mpi_comm_world_h.barrier();
+    // std::flush(ofs_myid);
+    // mpi_comm_global_h.barrier();
     Profiler::stop("driver_read_common_input_data");
 
     // malloc_trim(0);
@@ -275,10 +305,18 @@ int main(int argc, char **argv)
         qlist.push_back(q_weight.first);
     }
 
-    mpi_comm_world_h.barrier(); // FIXME: barrier seems not work here...
-    // cout << endl;
-    if (mpi_comm_world_h.myid == 0)
+    mpi_comm_global_h.barrier(); // FIXME: barrier seems not work here...
+    if (mpi_comm_global_h.myid == 0)
+    {
         cout << "Initialization finished, start task job from myid\n";
+    }
+
+    if (task == task_t::RPA)
+    {
+        task_rpa();
+        finalize();
+        return 0;
+    }
 
     if ( task != task_t::EXX )
     {
@@ -302,7 +340,7 @@ int main(int argc, char **argv)
                     for (const auto &J_chi0: I_Jchi0.second)
                     {
                         const auto &J = J_chi0.first;
-                        sprintf(fn, "chi0fq_ifreq_%d_iq_%d_I_%zu_J_%zu_id_%d.mtx", ifreq, iq, I, J, mpi_comm_world_h.myid);
+                        sprintf(fn, "chi0fq_ifreq_%d_iq_%d_I_%zu_J_%zu_id_%d.mtx", ifreq, iq, I, J, mpi_comm_global_h.myid);
                         print_complex_matrix_mm(J_chi0.second, Params::output_dir + "/" + fn, 1e-15);
                     }
                 }
@@ -323,16 +361,12 @@ int main(int argc, char **argv)
         Cs.clear();
     }
 
-    #ifndef __MACH__
-    malloc_trim(0);
-    #else
-    malloc_zone_pressure_relief(malloc_default_zone(), 0);
-    #endif
+    LIBRPA::utils::release_free_mem();
 
     // RPA total energy
     if (task == task_t::RPA)
     {
-        mpi_comm_world_h.barrier();
+        mpi_comm_global_h.barrier();
         Profiler::start("EcRPA", "Compute RPA correlation Energy");
         CorrEnergy corr;
         if (Params::use_scalapack_ecrpa && (LIBRPA::parallel_routing == LIBRPA::ParallelRouting::ATOM_PAIR || LIBRPA::parallel_routing == LIBRPA::ParallelRouting::LIBRI))
@@ -345,17 +379,17 @@ int main(int argc, char **argv)
         else
             corr = compute_RPA_correlation(chi0, Vq);
 
-        if (mpi_comm_world_h.is_root())
+        if (mpi_comm_global_h.is_root())
         {
-            printf("RPA correlation energy (Hartree)\n");
-            printf("| Weighted contribution from each k:\n");
+            lib_printf("RPA correlation energy (Hartree)\n");
+            lib_printf("| Weighted contribution from each k:\n");
             for (const auto& q_ecrpa: corr.qcontrib)
             {
                 cout << "| " << q_ecrpa.first << ": " << q_ecrpa.second << endl;
             }
-            printf("| Total EcRPA: %18.9f\n", corr.value.real());
+            lib_printf("| Total EcRPA: %18.9f\n", corr.value.real());
             if (std::abs(corr.value.imag()) > 1.e-3)
-                printf("Warning: considerable imaginary part of EcRPA = %f\n", corr.value.imag());
+                lib_printf("Warning: considerable imaginary part of EcRPA = %f\n", corr.value.imag());
         }
         Profiler::stop("EcRPA");
     }
@@ -364,7 +398,7 @@ int main(int argc, char **argv)
         Profiler::start("Wc_Rf", "Build Screened Coulomb: R and freq. space");
 
         Profiler::start("read_vq_cut", "Load truncated Coulomb");
-        READ_Vq_Full("./", "coulomb_cut_", Params::vq_threshold, Vq_cut);
+        read_Vq_full("./", "coulomb_cut_", true);
         Profiler::stop("read_vq_cut");
 
         std::vector<double> epsmac_LF_imagfreq_re;
@@ -385,13 +419,13 @@ int main(int argc, char **argv)
                     }
                 case 1:
                     {
-                        epsmac_LF_imagfreq_re = LIBRPA::UTILS::interp_cubic_spline(omegas_dielect, dielect_func,
+                        epsmac_LF_imagfreq_re = LIBRPA::utils::interp_cubic_spline(omegas_dielect, dielect_func,
                                                                            chi0.tfg.get_freq_nodes());
                         break;
                     }
                 case 2:
                     {
-                        LIBRPA::UTILS::LevMarqFitting levmarq;
+                        LIBRPA::utils::LevMarqFitting levmarq;
                         // use double-dispersion Havriliak-Negami model
                         // initialize the parameters as 1.0
                         std::vector<double> pars(DoubleHavriliakNegami::d_npar, 1);
@@ -408,13 +442,13 @@ int main(int argc, char **argv)
 
             if (Params::debug)
             {
-                if (mpi_comm_world_h.is_root())
+                if (mpi_comm_global_h.is_root())
                 {
-                    printf("Dielection function parsed:\n");
+                    lib_printf("Dielection function parsed:\n");
                     for (int i = 0; i < chi0.tfg.get_freq_nodes().size(); i++)
-                        printf("%d %f %f\n", i+1, chi0.tfg.get_freq_nodes()[i], epsmac_LF_imagfreq_re[i]);
+                        lib_printf("%d %f %f\n", i+1, chi0.tfg.get_freq_nodes()[i], epsmac_LF_imagfreq_re[i]);
                 }
-                mpi_comm_world_h.barrier();
+                mpi_comm_global_h.barrier();
             }
         }
 
@@ -495,9 +529,25 @@ int main(int argc, char **argv)
         Profiler::start("g0w0", "G0W0 quasi-particle calculation");
 
         Profiler::start("read_vq_cut", "Load truncated Coulomb");
-        READ_Vq_Full("./", "coulomb_cut_", Params::vq_threshold, Vq_cut);
+        read_Vq_full("./", "coulomb_cut_", true);
         const auto VR = FT_Vq(Vq_cut, Rlist, true);
         Profiler::stop("read_vq_cut");
+
+        Profiler::start("read_vxc", "Load DFT xc potential");
+        std::vector<matrix> vxc;
+        int flag_read_vxc = read_vxc("./vxc_out", vxc);
+        if (mpi_comm_global_h.myid == 0)
+        {
+            if (flag_read_vxc == 0)
+            {
+                cout << "* Success: Read DFT xc potential, will solve quasi-particle equation\n";
+            }
+            else
+            {
+                cout << "*   Error: Read DFT xc potential, switch off solving quasi-particle equation\n";
+            }
+        }
+        Profiler::stop("read_vxc");
 
         std::vector<double> epsmac_LF_imagfreq_re;
 
@@ -518,13 +568,13 @@ int main(int argc, char **argv)
                     }
                 case 1:
                     {
-                        epsmac_LF_imagfreq_re = LIBRPA::UTILS::interp_cubic_spline(omegas_dielect, dielect_func,
+                        epsmac_LF_imagfreq_re = LIBRPA::utils::interp_cubic_spline(omegas_dielect, dielect_func,
                                                                            chi0.tfg.get_freq_nodes());
                         break;
                     }
                 case 2:
                     {
-                        LIBRPA::UTILS::LevMarqFitting levmarq;
+                        LIBRPA::utils::LevMarqFitting levmarq;
                         // use double-dispersion Havriliak-Negami model
                         // initialize the parameters as 1.0
                         std::vector<double> pars(DoubleHavriliakNegami::d_npar, 1);
@@ -541,13 +591,13 @@ int main(int argc, char **argv)
 
             if (Params::debug)
             {
-                if (mpi_comm_world_h.is_root())
+                if (mpi_comm_global_h.is_root())
                 {
-                    printf("Dielection function parsed:\n");
+                    lib_printf("Dielectric function parsed:\n");
                     for (int i = 0; i < chi0.tfg.get_freq_nodes().size(); i++)
-                        printf("%d %f %f\n", i+1, chi0.tfg.get_freq_nodes()[i], epsmac_LF_imagfreq_re[i]);
+                        lib_printf("%d %f %f\n", i+1, chi0.tfg.get_freq_nodes()[i], epsmac_LF_imagfreq_re[i]);
                 }
-                mpi_comm_world_h.barrier();
+                mpi_comm_global_h.barrier();
             }
         }
 
@@ -555,22 +605,22 @@ int main(int argc, char **argv)
         auto exx = LIBRPA::Exx(meanfield, kfrac_list);
         exx.build_exx_orbital_energy(Cs, Rlist, period, VR);
         Profiler::stop("g0w0_exx");
-        if (mpi_comm_world_h.is_root())
+        if (mpi_comm_global_h.is_root())
         {
             for (int isp = 0; isp != meanfield.get_n_spins(); isp++)
             {
-                printf("Spin channel %1d\n", isp+1);
+                lib_printf("Spin channel %1d\n", isp+1);
                 for (int ik = 0; ik != meanfield.get_n_kpoints(); ik++)
                 {
                     cout << "k-point " << ik + 1 << ": " << kvec_c[ik] << endl;
-                    printf("%-4s  %-10s  %-10s\n", "Band", "e_exx (Ha)", "e_exx (eV)");
+                    lib_printf("%-4s  %-10s  %-10s\n", "Band", "e_exx (Ha)", "e_exx (eV)");
                     for (int ib = 0; ib != meanfield.get_n_bands(); ib++)
-                        printf("%4d  %10.5f  %10.5f\n", ib+1, exx.Eexx[isp][ik][ib], HA2EV * exx.Eexx[isp][ik][ib]);
-                    printf("\n");
+                        lib_printf("%4d  %10.5f  %10.5f\n", ib+1, exx.Eexx[isp][ik][ib], HA2EV * exx.Eexx[isp][ik][ib]);
+                    lib_printf("\n");
                 }
             }
         }
-        mpi_comm_world_h.barrier();
+        mpi_comm_global_h.barrier();
 
         Profiler::start("g0w0_wc", "Build screened interaction");
         vector<std::complex<double>> epsmac_LF_imagfreq(epsmac_LF_imagfreq_re.cbegin(), epsmac_LF_imagfreq_re.cend());
@@ -596,7 +646,7 @@ int main(int argc, char **argv)
                         for (const auto &q_Wc: J_qWc.second)
                         {
                             const int iq = std::distance(klist.begin(), std::find(klist.begin(), klist.end(), q_Wc.first));
-                            sprintf(fn, "Wcfq_ifreq_%d_iq_%d_I_%zu_J_%zu_id_%d.mtx", ifreq, iq, I, J, mpi_comm_world_h.myid);
+                            sprintf(fn, "Wcfq_ifreq_%d_iq_%d_I_%zu_J_%zu_id_%d.mtx", ifreq, iq, I, J, mpi_comm_global_h.myid);
                             print_matrix_mm_file(q_Wc.second, Params::output_dir + "/" + fn, 1e-15);
                         }
                     }
@@ -612,7 +662,7 @@ int main(int argc, char **argv)
         if (Params::debug)
         { // debug, check sigc_ij
             char fn[80];
-            // LIBRPA::fout_para << "s_g0w0.sigc_is_f_k_IJ:\n" << s_g0w0.sigc_is_f_k_IJ << "\n";
+            // ofs_myid << "s_g0w0.sigc_is_f_k_IJ:\n" << s_g0w0.sigc_is_f_k_IJ << "\n";
             for (const auto &is_sigc: s_g0w0.sigc_is_f_k_IJ)
             {
                 const int ispin = is_sigc.first;
@@ -630,7 +680,7 @@ int main(int argc, char **argv)
                             {
                                 const auto &J = J_sigc.first;
                                 sprintf(fn, "Sigcfq_ispin_%d_ifreq_%d_ik_%d_I_%zu_J_%zu_id_%d.mtx",
-                                        ispin, ifreq, ik, I, J, mpi_comm_world_h.myid);
+                                        ispin, ifreq, ik, I, J, mpi_comm_global_h.myid);
                                 print_matrix_mm_file(J_sigc.second, Params::output_dir + "/" + fn, 1e-15);
                             }
                         }
@@ -643,9 +693,97 @@ int main(int argc, char **argv)
         s_g0w0.build_sigc_matrix_KS();
         Profiler::stop("g0w0_sigc_rotate_KS");
 
+        // Solve QPE only when Vxc is successfully parsed
+        if (flag_read_vxc == 0)
+        {
+            Profiler::start("g0w0_solve_qpe", "Solve quasi-particle equation");
+            if (mpi_comm_global_h.is_root())
+            {
+                std::cout << "Solving quasi-particle equation\n";
+            }
+            std::vector<cplxdb> imagfreqs;
+            for (const auto &freq: chi0.tfg.get_freq_nodes())
+            {
+                imagfreqs.push_back(cplxdb{0.0, freq});
+            }
+
+            // TODO: parallelize analytic continuation and QPE solver among tasks
+            if (mpi_comm_global_h.is_root())
+            {
+                map<int, map<int, map<int, double>>> e_qp_all;
+                map<int, map<int, map<int, cplxdb>>> sigc_all;
+                const auto efermi = meanfield.get_efermi() * 0.5;
+                for (int i_spin = 0; i_spin < meanfield.get_n_spins(); i_spin++)
+                {
+                    for (int i_kpoint = 0; i_kpoint < meanfield.get_n_kpoints(); i_kpoint++)
+                    {
+                        const auto &sigc_sk = s_g0w0.sigc_is_ik_f_KS[i_spin][i_kpoint];
+                        for (int i_state = 0; i_state < meanfield.get_n_bands(); i_state++)
+                        {
+                            // convert Ry to Ha
+                            // FIXME: we should use a consistent internal unit!
+                            const auto &eks_state = meanfield.get_eigenvals()[i_spin](i_kpoint, i_state) * 0.5;
+                            const auto &exx_state = exx.Eexx[i_spin][i_kpoint][i_state];
+                            const auto &vxc_state = vxc[i_spin](i_kpoint, i_state);
+                            std::vector<cplxdb> sigc_state;
+                            for (const auto &freq: chi0.tfg.get_freq_nodes())
+                            {
+                                sigc_state.push_back(sigc_sk.at(freq)(i_state, i_state));
+                            }
+                            LIBRPA::AnalyContPade pade(Params::n_params_anacon, imagfreqs, sigc_state);
+                            double e_qp;
+                            cplxdb sigc;
+                            int flag_qpe_solver = LIBRPA::qpe_solver_pade_self_consistent(
+                                pade, eks_state, efermi, vxc_state, exx_state, e_qp, sigc);
+                            if (flag_qpe_solver == 0)
+                            {
+                                e_qp_all[i_spin][i_kpoint][i_state] = e_qp;
+                                sigc_all[i_spin][i_kpoint][i_state] = sigc;
+                            }
+                            else
+                            {
+                                printf("Warning! QPE solver failed for spin %d, kpoint %d, state %d\n",
+                                        i_spin+1, i_kpoint+1, i_state+1);
+                                e_qp_all[i_spin][i_kpoint][i_state] = std::numeric_limits<double>::quiet_NaN();
+                                sigc_all[i_spin][i_kpoint][i_state] = std::numeric_limits<cplxdb>::quiet_NaN();
+                            }
+                        }
+                    }
+                }
+
+                // display results
+                const std::string banner(90, '-');
+                printf("Printing quasi-particle energy [unit: eV]\n\n");
+                for (int i_spin = 0; i_spin < meanfield.get_n_spins(); i_spin++)
+                {
+                    for (int i_kpoint = 0; i_kpoint < meanfield.get_n_kpoints(); i_kpoint++)
+                    {
+                        const auto &k = kfrac_list[i_kpoint];
+                        printf("spin %2d, k-point %4d: (%.5f, %.5f, %.5f) \n",
+                                i_spin+1, i_kpoint+1, k.x, k.y, k.z);
+                        printf("%60s\n", banner.c_str());
+                        printf("%5s %16s %16s %16s %16s %16s\n", "State", "e_mf", "v_xc", "v_exx", "ReSigc", "e_qp");
+                        printf("%60s\n", banner.c_str());
+                        for (int i_state = 0; i_state < meanfield.get_n_bands(); i_state++)
+                        {
+                            const auto &eks_state = meanfield.get_eigenvals()[i_spin](i_kpoint, i_state) * RY2EV;
+                            const auto &exx_state = exx.Eexx[i_spin][i_kpoint][i_state] * HA2EV;
+                            const auto &vxc_state = vxc[i_spin](i_kpoint, i_state) * HA2EV;
+                            const auto &resigc = sigc_all[i_spin][i_kpoint][i_state].real() * HA2EV;
+                            const auto &eqp = e_qp_all[i_spin][i_kpoint][i_state] * HA2EV;
+                            printf("%5d %16.5f %16.5f %16.5f %16.5f %16.5f\n",
+                                   i_state+1, eks_state, vxc_state, exx_state, resigc, eqp);
+                        }
+                        printf("\n");
+                    }
+                }
+            }
+            Profiler::stop("g0w0_solve_qpe");
+        }
+
         Profiler::start("g0w0_export_sigc_KS", "Export self-energy in KS basis");
-        mpi_comm_world_h.barrier();
-        if (mpi_comm_world_h.is_root())
+        mpi_comm_global_h.barrier();
+        if (mpi_comm_global_h.is_root())
         {
             char fn[100];
             for (const auto &ispin_sigc: s_g0w0.sigc_is_ik_f_KS)
@@ -670,27 +808,7 @@ int main(int argc, char **argv)
     }
     else if ( task == task_t::EXX )
     {
-        READ_Vq_Full("./", "coulomb_cut_", Params::vq_threshold, Vq_cut);
-        const auto VR = FT_Vq(Vq_cut, Rlist, true);
-        auto exx = LIBRPA::Exx(meanfield, kfrac_list);
-        exx.build_exx_orbital_energy(Cs, Rlist, period, VR);
-        // FIXME: need to reduce first when MPI is used
-        // NOTE: may extract to a common function
-        if (LIBRPA::mpi_comm_world_h.is_root())
-        {
-            for (int isp = 0; isp != meanfield.get_n_spins(); isp++)
-            {
-                printf("Spin channel %1d\n", isp+1);
-                for (int ik = 0; ik != meanfield.get_n_kpoints(); ik++)
-                {
-                    cout << "k-point " << ik + 1 << ": " << kvec_c[ik] << endl;
-                    printf("%-4s  %-10s  %-10s\n", "Band", "e_exx (Ha)", "e_exx (eV)");
-                    for (int ib = 0; ib != meanfield.get_n_bands(); ib++)
-                        printf("%4d  %10.5f  %10.5f\n", ib+1, exx.Eexx[isp][ik][ib], HA2EV * exx.Eexx[isp][ik][ib]);
-                    printf("\n");
-                }
-            }
-        }
+        task_exx();
     }
 
     finalize();

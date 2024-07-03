@@ -60,7 +60,9 @@ if (${ENABLE_UNITTESTS})
 endif()
 
 # Our library directories
-option(BUILD_SHARED_LIBS "Build using shared libraries" ON)
+# MYZ: swicth off GreenX shared library such that librpa.so in install/lib directory
+# can work without GreenX libs at runtime
+option(BUILD_SHARED_LIBS "Build using shared libraries" OFF)
 add_subdirectory(GX-AnalyticContinuation)
 add_subdirectory(GX-common)
 add_subdirectory(GX-TimeFrequency)
@@ -76,9 +78,9 @@ if (${ENABLE_DOCS})
 endif ()
 
 # Set installation location
-if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
-    set(default_install_prefix "${PROJECT_SOURCE_DIR}/install")
-    set(CMAKE_INSTALL_PREFIX ${default_install_prefix}
-            CACHE STRING "Choose the installation directory. Default location is ${default_install_prefix}"
-            FORCE)
-endif()
+# if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+#     set(default_install_prefix "${PROJECT_SOURCE_DIR}/install")
+#     set(CMAKE_INSTALL_PREFIX ${default_install_prefix}
+#             CACHE STRING "Choose the installation directory. Default location is ${default_install_prefix}"
+#             FORCE)
+# endif()

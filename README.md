@@ -4,28 +4,21 @@ LibRPA is a standalone software aiming to calculate independent response functio
 
 ## How to compile?
 
-### With GNU make directly
+LibRPA uses cmake to build the project.
+You can run the following cmake commands to build LibRPA
 
-1. modify 'make.inc' according to your environment, e.g. `CPPFLAGS`,
-2. issue `make`
-
-### Using `cmake`
-
-1. modify 'cmake.inc' according to your environment, .e.g. `USE_LIBRI`
-2. running the following cmake commands
-
-    ```shell
-    # build under `build` directory
-    # with LibRI switched off
-    cmake -B build
-    # with LibRI switched on
-    cmake -B build \
-        -DCEREAL_INCLUDE_DIR=/path/to/cereal/include \
-        -DLIBRI_INCLUDE_DIR=/path/to/libRI/include \
-        -DLIBCOMM_INCLUDE_DIR=/path/to/LibComm/include
-    # start the make jobs
-    cmake --build build
-    ```
+```shell
+# build under `build` directory
+# with LibRI switched off
+cmake -B build
+# with LibRI switched on
+cmake -B build -DUSE_LIBRI=ON \
+    -DCEREAL_INCLUDE_DIR=/path/to/cereal/include \
+    -DLIBRI_INCLUDE_DIR=/path/to/libRI/include \
+    -DLIBCOMM_INCLUDE_DIR=/path/to/LibComm/include
+# start the make jobs
+cmake --build build -j 4
+```
 
 ## Interfaced with FHI-aims
 
@@ -76,6 +69,6 @@ If `librpa.in` or the related keyword is not found, the default value will be us
 
 ### Code design
 
-![image](docs/IMG/farmwork.png)
-![image](docs/IMG/FHI-aims_interface.png)
-![image](docs/IMG/parallell-schem.png)
+![image](docs/assets/frarework.png)
+![image](docs/assets/FHI-aims_interface.png)
+![image](docs/assets/rpa-parallel-scheme.png)

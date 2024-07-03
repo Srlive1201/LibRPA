@@ -4,10 +4,10 @@
  */
 #ifndef PROFILER_H
 #define PROFILER_H
-#include "parallel_mpi.h"
 #include <vector>
 #include <ctime>
 #include <string>
+#include <map>
 
 double cpu_time_from_clocks_diff(const std::clock_t& ct_start,
                                  const std::clock_t& ct_end);

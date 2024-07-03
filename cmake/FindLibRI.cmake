@@ -5,12 +5,6 @@
 #
 #   LibRI_FOUND - True if LibRI is found
 #   LibRI_INCLUDE_DIR - Where to find the LibRI headers
-
-# check environment variable if cmake definition is not set
-if(NOT LIBRI_INCLUDE_DIR)
-  set(LIBRI_INCLUDE_DIR $ENV{LIBRI_INCLUDE_DIR})
-endif()
-
 find_path(LibRI_INCLUDE_DIR
   RI/ri/RI_Tools.h
   HINTS ${LIBRI_INCLUDE_DIR}

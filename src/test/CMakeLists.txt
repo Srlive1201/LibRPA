@@ -31,9 +31,11 @@ endmacro()
 
 # add serial tests
 foreach(target
+    test_analycont
     test_atoms
     test_atomic_basis
     test_timefreq 
+    test_librpa
     test_matrix
     test_matrix_m
     test_meanfield

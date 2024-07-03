@@ -3,6 +3,8 @@
 
 constexpr static const double DOUBLE_EQUAL_THRES = 1e-10;
 
+typedef std::complex<double> cplxdb;
+
 // check if passed template type argument is a complex value
 // from https://stackoverflow.com/questions/41438493/how-to-identifying-whether-a-template-argument-is-stdcomplex
 template <typename T>

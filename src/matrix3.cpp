@@ -186,10 +186,10 @@ bool operator!=(const Matrix3 &m1, const Matrix3 &m2)
 }
 
 
-void Matrix3::print(void)const
+void Matrix3::print(int width) const
 {
-	cout << setw(10)<< e11 << setw(10) << e12 << setw(10) << e13 << endl ;
-	cout << setw(10)<< e21 << setw(10) << e22 << setw(10) << e23 << endl ;
-	cout << setw(10)<< e31 << setw(10) << e32 << setw(10) << e33 << endl ;
+	cout << setw(width) << e11 << setw(width) << e12 << setw(width) << e13 << endl ;
+	cout << setw(width) << e21 << setw(width) << e22 << setw(width) << e23 << endl ;
+	cout << setw(width) << e31 << setw(width) << e32 << setw(width) << e33 << endl ;
 	return;
 }

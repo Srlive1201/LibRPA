@@ -6,7 +6,6 @@
 #define PARAMS_H
 #include <iostream>
 #include <cstdarg>
-#include <fstream>
 
 #pragma once
 #include <string>
@@ -29,6 +28,9 @@ struct Params
 
     //! the type of time-frequency grids
     static std::string tfgrids_type;
+
+    //! the number of parameters for analytic continuation
+    static int n_params_anacon;
 
     //! type of parallel routing
     static std::string parallel_routing;
@@ -95,26 +97,5 @@ struct Params
     static void check_consistency();
     static void print();
 };
-
-
-// NOTE:(MYZ) Can we move customPrint to other file?
-
-static void customPrint(const char* format, ...) {
-    va_list args;
-    va_start(args, format);
-    const bool output_stdout = Params::output_file == "stdout";
-
-    char buffer[1024];
-    vsnprintf(buffer, sizeof(buffer), format, args);
-
-    static std::ofstream outputFile;
-    std::ostream &os = output_stdout ? std::cout : outputFile;
-    if (!output_stdout) outputFile.open(Params::output_file, std::ios_base::app);
-    os << buffer;
-    os.flush();
-    va_end(args);
-}
-
-// #define printf customPrint
 
 #endif

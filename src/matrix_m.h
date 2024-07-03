@@ -15,9 +15,11 @@
 #include <functional>
 #include <utility>
 #include <ostream>
+
 #include "base_utility.h"
 #include "lapack_connector.h"
 #include "vec.h"
+#include "utils_io.h"
 
 //! type alias for functors to map 2D array index to flatten array index
 typedef std::function<int(const int& nr, const int& ir, const int& nc, const int& ic)> Indx_picker_2d;
@@ -924,6 +926,8 @@ matrix_m<std::complex<T>> power_hemat(matrix_m<std::complex<T>> &mat,
                                       T power, bool filter_original,
                                       const T &threshold = -1.e5)
 {
+    using LIBRPA::utils::lib_printf;
+
     assert (mat.nr() == mat.nc());
     const char jobz = 'V';
     const char uplo = 'U';
@@ -954,9 +958,9 @@ matrix_m<std::complex<T>> power_hemat(matrix_m<std::complex<T>> &mat,
     for ( int i = 0; i != n; i++ )
     {
         if (w[i] < 0 && w[i] > threshold && !is_int_power)
-            printf("Warning! kept negative eigenvalue with non-integer power: # %d ev = %f , pow = %f\n", i, w[i], power);
+            lib_printf("Warning! kept negative eigenvalue with non-integer power: # %d ev = %f , pow = %f\n", i, w[i], power);
         if (fabs(w[i]) < 1e-10 && power < 0)
-            printf("Warning! nearly-zero eigenvalue with negative power: # %d ev = %f , pow = %f\n", i, w[i], power);
+            lib_printf("Warning! nearly-zero eigenvalue with negative power: # %d ev = %f , pow = %f\n", i, w[i], power);
         if (w[i] < threshold)
         {
             wpow[i] = 0;
@@ -1133,17 +1137,19 @@ void print_matrix_mm(const matrix_m<T> &mat, ostream &os, Treal threshold = 1e-1
 template <typename T, typename Treal = typename to_real<T>::type>
 void print_whole_matrix(const char *desc, const matrix_m<T> &mat)
 {
+    using LIBRPA::utils::lib_printf;
+
     int nr = mat.nr();
     int nc = mat.nc();
-    printf("\n %s\n", desc);
-    printf("nr = %d, nc = %d\n", nr, nc);
+    lib_printf("\n %s\n", desc);
+    lib_printf("nr = %d, nc = %d\n", nr, nc);
     if(is_complex<T>())
     {
         for (int i = 0; i < nr; i++)
         {
             for (int j = 0; j < nc; j++)
-                printf("%10.6f,%9.6f ", mat.c[i * nc + j].real(), mat.c[i * nc + j].imag());
-            printf("\n");
+                lib_printf("%10.6f,%9.6f ", mat.c[i * nc + j].real(), mat.c[i * nc + j].imag());
+            lib_printf("\n");
         }
     }
     else
@@ -1151,8 +1157,8 @@ void print_whole_matrix(const char *desc, const matrix_m<T> &mat)
         for (int i = 0; i < nr; i++)
         {
             for (int j = 0; j < nc; j++)
-                printf("%10.6f", mat.c[i * nc + j].real());
-            printf("\n");
+                lib_printf("%10.6f", mat.c[i * nc + j].real());
+            lib_printf("\n");
         }
     }
 }

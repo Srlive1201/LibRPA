@@ -21,15 +21,15 @@ target_sources(GXCommon PRIVATE
         src/error_handling.f90
         )
 
-# Install library
-# Destination relative to ${CMAKE_INSTALL_PREFIX}, defined in the top-level
-# CMakeLists.txt
-install(TARGETS GXCommon
-        ARCHIVE DESTINATION lib
-        LIBRARY DESTINATION lib)
+# # Install library
+# # Destination relative to ${CMAKE_INSTALL_PREFIX}, defined in the top-level
+# # CMakeLists.txt
+# install(TARGETS GXCommon
+#         ARCHIVE DESTINATION lib
+#         LIBRARY DESTINATION lib)
 
-# Install modules
-# Destination relative to ${CMAKE_INSTALL_PREFIX}, defined in the top-level
-## CMakeLists.txt
-install(DIRECTORY ${CMAKE_Fortran_MODULE_DIRECTORY}
-        DESTINATION include)
+# # Install modules
+# # Destination relative to ${CMAKE_INSTALL_PREFIX}, defined in the top-level
+# ## CMakeLists.txt
+# install(DIRECTORY ${CMAKE_Fortran_MODULE_DIRECTORY}
+#         DESTINATION include)

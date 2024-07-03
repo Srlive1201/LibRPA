@@ -1,0 +1,37 @@
+name: Documentation
+on: push
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v4
+      - name: Install documentation dependencies
+        run: |
+          pip3 install -r docs/requirements.txt
+          pip3 install doxysphinx
+          sudo apt-get install doxygen -y
+      - name: Build documentation
+        run: cd docs && make html
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v3
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v1
+        with:
+          path: ./docs/_build/html/
+
+  deploy:
+    runs-on: ubuntu-latest
+    # Deploy only when building on the master branch
+    if: success() && github.ref == 'refs/heads/master'
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    needs: build
+    permissions:
+      pages: write
+      id-token: write
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v2

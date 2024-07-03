@@ -1,7 +1,12 @@
 #include "params.h"
+
 #include <string>
 #include <utility>
 #include <vector>
+
+#include "utils_io.h"
+
+// default setting
 
 std::string Params::task = "rpa";
 std::string Params::output_file="stdout";
@@ -11,6 +16,7 @@ std::string Params::DFT_software =  "auto";
 std::string Params::parallel_routing = "auto";
 
 int Params::nfreq = 0;
+int Params::n_params_anacon = -1;
 
 double Params::gf_R_threshold = 1e-4;
 double Params::cs_threshold = 1e-4;
@@ -35,6 +41,10 @@ int Params::option_dielect_func = 2;
 
 void Params::check_consistency()
 {
+    if (n_params_anacon < 0)
+    {
+        n_params_anacon = nfreq;
+    }
 }
 
 void Params::print()
@@ -57,6 +67,7 @@ void Params::print()
     const std::vector<std::pair<std::string, int>> int_params
         {
             {"nfreq", nfreq},
+            {"n_params_anacon", n_params_anacon},
             {"option_dielect_func", option_dielect_func},
         };
 
@@ -64,6 +75,7 @@ void Params::print()
         {
             {"task", task},
             {"output_dir", output_dir},
+            {"output_file", output_file},
             {"tfgrids_type", tfgrids_type},
             {"parallel_routing", parallel_routing},
         };
@@ -79,16 +91,16 @@ void Params::print()
         };
 
     for (const auto &param: str_params)
-        printf("%s = %s\n", param.first.c_str(), param.second.c_str());
+        LIBRPA::utils::lib_printf("%s = %s\n", param.first.c_str(), param.second.c_str());
 
     for (const auto &param: int_params)
-        printf("%s = %d\n", param.first.c_str(), param.second);
+        LIBRPA::utils::lib_printf("%s = %d\n", param.first.c_str(), param.second);
 
     for (const auto &param: double_params)
-        printf("%s = %f\n", param.first.c_str(), param.second);
+        LIBRPA::utils::lib_printf("%s = %f\n", param.first.c_str(), param.second);
 
     for (const auto &param: bool_params)
-        printf("%s = %s\n", param.first.c_str(), param.second? "T": "F");
+        LIBRPA::utils::lib_printf("%s = %s\n", param.first.c_str(), param.second? "T": "F");
 }
 
 Params params;

@@ -1,0 +1,6 @@
+_build
+doxygen/Doxyfile
+!doxygen/Makefile
+doxygen/doxygen-awesome-css*
+doxygen/librpa
+!Makefile

@@ -3,7 +3,7 @@
 #include "constants.h"
 #include <stdexcept>
 #include <iostream>
-#include "parallel_mpi.h"
+#include "envs_mpi.h"
 
 void MeanField::resize(int ns, int nk, int nb, int nao)
 {
@@ -206,9 +206,10 @@ std::map<double, std::map<Vector3_Order<int>, matrix>> MeanField::get_gf_real_im
     return gf_tau_R;
 }
 
-using LIBRPA::mpi_comm_world_h;
 void MeanField::allredue_wfc_isk()
 {
+    using LIBRPA::envs::mpi_comm_global_h;
+
     for(int is=0;is!=n_spins;is++)
         for(int ik=0;ik!=n_kpoints;ik++)
             {
@@ -223,9 +224,8 @@ void MeanField::allredue_wfc_isk()
                 // {
                 //     wfc[is][ik]=glo_wfc;
                 // }
-                mpi_comm_world_h.allreduce_ComplexMatrix(wfc[is][ik],glo_wfc);
+                mpi_comm_global_h.allreduce_ComplexMatrix(wfc[is][ik],glo_wfc);
                 wfc[is][ik]=glo_wfc;
             }
-        
 }
 MeanField meanfield = MeanField();

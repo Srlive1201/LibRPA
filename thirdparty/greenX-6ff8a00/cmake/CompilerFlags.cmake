@@ -7,7 +7,12 @@ set(GCC_BASE
     -std='f2008'            # Fortran standard set to 2008
     -fimplicit-none         # Specify that no implicit typing is allowed
     -ffree-line-length-0    # No fixed line length
+    # -fPIC               # Needed when build greenx as static library with librpa
    )
+
+if (NOT BUILD_SHARED_LIBS)
+  list(APPEND GCC_BASE -fPIC)
+endif()
 set(GCC_DEBUG 
      -g               # Generate symbols
      -fbacktrace      # symbolic stack traceback
@@ -25,6 +30,9 @@ set(INTEL_BASE
     -free               # Specify free-fortmat
     # -fPIC               # Needed when build greenx as static library with librpa
    )
+if (NOT BUILD_SHARED_LIBS)
+  list(APPEND INTEL_BASE -fPIC)
+endif()
 set(INTEL_DEBUG 
     -g           # Generate symbols
     -traceback   # symbolic stack traceback
@@ -68,3 +76,5 @@ string(REPLACE ";" " " FF_RELEASE "${FF_RELEASE}")
 set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} ${FF_BASE}")
 set(CMAKE_Fortran_FLAGS_DEBUG "${FF_DEBUG}")
 set(CMAKE_Fortran_FLAGS_RELEASE "${FF_RELEASE}")
+
+message(STATUS "CMAKE_Fortran_FLAGS: ${CMAKE_Fortran_FLAGS}")

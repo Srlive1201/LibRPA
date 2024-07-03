@@ -9,7 +9,7 @@
 namespace LIBRPA
 {
 
-namespace UTILS
+namespace utils
 {
 
 //! Non-linear fitting using the Levenberg-Marquardt algorithm
@@ -59,7 +59,7 @@ struct LevMarqFitting
                   const std::vector<double> &xs_eval);
 };
 
-} /* end of namespace UTILS */
+} /* end of namespace utils */
 
 } /* end of namespace LIBRPA */
 
