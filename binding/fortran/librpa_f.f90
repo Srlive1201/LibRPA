@@ -1,6 +1,6 @@
 module librpa
 
-   use iso_c_binding
+   use iso_c_binding, only: c_char, c_int, c_double
    implicit none
 
    public
@@ -13,19 +13,23 @@ module librpa
       character(kind=c_char, len=1) :: output_dir(100)
 
       integer(c_int) :: nfreq
-      ! integer(c_int) :: debug
-      ! integer(c_int) :: use_scalapack_ecrpa
 
-      ! real(c_double) :: gf_R_threshold
-      ! real(c_double) :: cs_threshold
-      ! real(c_double) :: vq_threshold
-      ! real(c_double) :: sqrt_coulomb_threshold
-      ! real(c_double) :: libri_chi0_threshold_C
-      ! real(c_double) :: libri_chi0_threshold_G
-      ! real(c_double) :: libri_exx_threshold_CSM
-      ! real(c_double) :: libri_exx_threshold_C
-      ! real(c_double) :: libri_exx_threshold_D
-      ! real(c_double) :: libri_exx_threshold_V
+      integer(c_int) :: debug
+      integer(c_int) :: use_scalapack_ecrpa
+
+      real(c_double) :: gf_R_threshold
+      real(c_double) :: cs_threshold
+      real(c_double) :: vq_threshold
+      real(c_double) :: sqrt_coulomb_threshold
+      real(c_double) :: libri_chi0_threshold_C
+      real(c_double) :: libri_chi0_threshold_G
+      real(c_double) :: libri_exx_threshold_CSM
+      real(c_double) :: libri_exx_threshold_C
+      real(c_double) :: libri_exx_threshold_D
+      real(c_double) :: libri_exx_threshold_V
+      real(c_double) :: libri_gw_threshold_C
+      real(c_double) :: libri_gw_threshold_G
+      real(c_double) :: libri_gw_threshold_W
    end type LibRPAParams
 
    interface
@@ -162,6 +166,14 @@ module librpa
          use, intrinsic :: iso_c_binding
          import :: LibRPAParams
          type(LibRPAParams), intent(inout) :: params
+      end subroutine
+   end interface
+
+   interface
+      subroutine get_rpa_correlation_energy(rpa_corr, rpa_corr_irk_contrib) bind(c, name="get_rpa_correlation_energy")
+         import :: c_double
+         real(c_double), dimension(2), intent(out) :: rpa_corr
+         real(c_double), dimension(*), intent(out) :: rpa_corr_irk_contrib
       end subroutine
    end interface
 

@@ -307,19 +307,23 @@ void set_librpa_params(LibRPAParams *params_c)
     Params::task = params_c->task;
     Params::output_file = params_c->output_file;
     Params::output_dir = params_c->output_dir;
-    // Params::tfgrids_type = params_c->tfgrids_type;
-    // Params::parallel_routing = params_c->parallel_routing;
+    Params::tfgrids_type = params_c->tfgrids_type;
+    Params::parallel_routing = params_c->parallel_routing;
 
     Params::nfreq = params_c->nfreq;
 
-    // Params::debug = params_c->debug;
-    // Params::use_scalapack_ecrpa = params_c->use_scalapack_ecrpa;
+    Params::debug = params_c->debug;
+    Params::use_scalapack_ecrpa = params_c->use_scalapack_ecrpa;
 
-    // Params::gf_R_threshold = params_c->gf_R_threshold;
-    // Params::cs_threshold = params_c->cs_threshold;
-    // Params::vq_threshold = params_c->vq_threshold;
-    // Params::libri_chi0_threshold_C = params_c->libri_chi0_threshold_C;
-    // Params::libri_chi0_threshold_G = params_c->libri_chi0_threshold_G;
+    Params::gf_R_threshold = params_c->gf_R_threshold;
+    Params::cs_threshold = params_c->cs_threshold;
+    Params::vq_threshold = params_c->vq_threshold;
+    Params::libri_chi0_threshold_C = params_c->libri_chi0_threshold_C;
+    Params::libri_chi0_threshold_G = params_c->libri_chi0_threshold_G;
+    Params::libri_exx_threshold_CSM = params_c->libri_exx_threshold_CSM = 0.0e0;
+    Params::libri_exx_threshold_C = params_c->libri_exx_threshold_C;
+    Params::libri_exx_threshold_D = params_c->libri_exx_threshold_D;
+    Params::libri_exx_threshold_V = params_c->libri_exx_threshold_V;
 }
 
 
@@ -329,19 +333,26 @@ void get_default_librpa_params(LibRPAParams *params_c)
     strcpy(params_c->task,             "rpa");
     strcpy(params_c->output_file,      "stdout");
     strcpy(params_c->output_dir,       "librpa.d");
-    // strcpy(params_c->parallel_routing, "auto");
-    // strcpy(params_c->tfgrids_type,     "minimax");
+    strcpy(params_c->parallel_routing, "auto");
+    strcpy(params_c->tfgrids_type,     "minimax");
 
     params_c->nfreq = 6;
 
-    // params_c->debug = 0;
-    // params_c->use_scalapack_ecrpa = 0;
-    //
-    // params_c->gf_R_threshold = 0.0e0;
-    // params_c->cs_threshold = 0.0e0;
-    // params_c->vq_threshold = 0.0e0;
-    // params_c->libri_chi0_threshold_C = 0.0e0;
-    // params_c->libri_chi0_threshold_G = 0.0e0;
+    params_c->debug = 0;
+    params_c->use_scalapack_ecrpa = 0;
+
+    params_c->gf_R_threshold = 0.0e0;
+    params_c->cs_threshold = 0.0e0;
+    params_c->vq_threshold = 0.0e0;
+    params_c->libri_chi0_threshold_C = 0.0e0;
+    params_c->libri_chi0_threshold_G = 0.0e0;
+    params_c->libri_exx_threshold_CSM = 0.0e0;
+    params_c->libri_exx_threshold_C = 0.0e0;
+    params_c->libri_exx_threshold_D = 0.0e0;
+    params_c->libri_exx_threshold_V = 0.0e0;
+    params_c->libri_gw_threshold_C = 0.0e0;
+    params_c->libri_gw_threshold_G = 0.0e0;
+    params_c->libri_gw_threshold_W = 0.0e0;
 }
 
 

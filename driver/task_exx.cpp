@@ -12,8 +12,7 @@
 #include "pbc.h"
 
 // debug headers
-#include "stl_io_helper.h"
-
+// #include "stl_io_helper.h"
 
 void task_exx()
 {
@@ -29,9 +28,8 @@ void task_exx()
     const int n_kpoints = meanfield.get_n_kpoints();
     const int i_state_high = meanfield.get_n_bands();
     const int n_states_calc = i_state_high - i_state_low;
-    auto exx_ks = LIBRPA::app::compute_exx_orbital_energy_(i_state_low, i_state_high, -1, nullptr);
 
-    cout << exx_ks;
+    auto exx_ks = LIBRPA::app::compute_exx_orbital_energy_(i_state_low, i_state_high, -1, nullptr);
 
     if (exx_ks.size() > 0 && mpi_comm_global_h.is_root())
     {

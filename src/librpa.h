@@ -27,27 +27,30 @@ struct LibRPAParams
     char task[20];
     char output_file[100];
     char output_dir[100];
-    // char parallel_routing[20];
-    // char tfgrids_type[20];
+    char parallel_routing[20];
+    char tfgrids_type[20];
 
     // integer types
     int nfreq;
 
     // integer types, but correspondent to bool in Params
-    // int debug;
-    // int use_scalapack_ecrpa;
+    int debug;
+    int use_scalapack_ecrpa;
 
     // double types
-    // double gf_R_threshold;
-    // double cs_threshold;
-    // double vq_threshold;
-    // double sqrt_coulomb_threshold;
-    // double libri_chi0_threshold_C;
-    // double libri_chi0_threshold_G;
-    // double libri_exx_threshold_CSM;
-    // double libri_exx_threshold_C;
-    // double libri_exx_threshold_D;
-    // double libri_exx_threshold_V;
+    double gf_R_threshold;
+    double cs_threshold;
+    double vq_threshold;
+    double sqrt_coulomb_threshold;
+    double libri_chi0_threshold_C;
+    double libri_chi0_threshold_G;
+    double libri_exx_threshold_CSM;
+    double libri_exx_threshold_C;
+    double libri_exx_threshold_D;
+    double libri_exx_threshold_V;
+    double libri_gw_threshold_C;
+    double libri_gw_threshold_G;
+    double libri_gw_threshold_W;
 };
 
 /*!

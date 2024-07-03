@@ -1,8 +1,18 @@
+/*!
+ * @file      envs_mpi.h
+ * @brief     Environment setup regarding MPI.
+ * @author    Min-Ye Zhang
+ * @date      2024-07-02
+ */
 #pragma once
 #include <string>
 #include <mpi.h>
 
 #include "parallel_mpi.h"
+
+//! @namespace LIBRPA           Global namespace for LibRPA functions and classes
+//! @namespace LIBRPA::envs     Facilities regarding computation envrionment
+//! @namespace LIBRPA::utils    Utilities functions
 
 namespace LIBRPA
 {
