@@ -7,8 +7,8 @@ module librpa
 
    type, bind(c) :: LibRPAParams
       character(kind=c_char, len=1) :: task(20)
-      ! character(kind=c_char, len=1)  :: parallel_routing(20)
-      ! character(kind=c_char, len=1)  :: tfgrids_type(20)
+      character(kind=c_char, len=1) :: parallel_routing(20)
+      character(kind=c_char, len=1) :: tfgrids_type(20)
       character(kind=c_char, len=1) :: output_file(100)
       character(kind=c_char, len=1) :: output_dir(100)
 
