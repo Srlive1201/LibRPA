@@ -1,7 +1,7 @@
 #include <algorithm>
 #include "constants.h"
 #include "coulmat.h"
-#include "input.h"
+#include "pbc.h"
 
 atpair_R_mat_t
 FT_Vq(const atpair_k_cplx_mat_t &coulmat_k, vector<Vector3_Order<int>> Rlist, bool return_ordered_atom_pair)

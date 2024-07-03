@@ -64,12 +64,12 @@ local_*_points.dat
 build*/
 
 # Doxygen build and generated config file
-docs/_build
-docs/Doxyfile
+docs/*/_build
+docs/doxygen/Doxyfile
 
 # Necessary makefiles
 !src/Makefile
-!docs/Makefile
+!docs/*/Makefile
 !tests/Makefile
 
 .cache
@@ -77,3 +77,5 @@ docs/Doxyfile
 # environment config
 .envrc
 .clangd
+# personal build script
+mybuild*.sh

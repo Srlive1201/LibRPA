@@ -41,11 +41,15 @@ public:
 	//============
 	complex<double> &operator()(const int ir,const int ic)
 	{
+        if (ir >= nr) printf("ir %d nr %d\n", ir, nr);
+        if (ic >= nc) printf("ic %d nc %d\n", ic, nc);
 		assert(ir>=0);	assert(ir<nr);	assert(ic>=0);	assert(ic<nc);
 		return c[ir*nc+ic];//mohan modify in-line 2007-10-1
 	}
 	const complex<double> &operator()(const int ir,const int ic)const
 	{
+        if (ir >= nr) printf("ir %d nr %d\n", ir, nr);
+        if (ic >= nc) printf("ic %d nc %d\n", ic, nc);
 		assert(ir>=0);	assert(ir<nr);	assert(ic>=0);	assert(ic<nc);
 		return c[ir*nc+ic];//mohan modify in-line 2007-10-13
 	}
@@ -67,6 +71,8 @@ public:
     //! Get the max imaginary value of matrix element
     double get_max_imag() const; // minyez add 2022-10-18
     double get_max_abs_imag() const; // minyez add 2022-10-26
+    double get_max_abs_offdiag() const;
+    bool is_diagonal(const double &thres = 1e-14) const;
 };
 
 ComplexMatrix operator+(const ComplexMatrix &m1,  const ComplexMatrix &m2);
@@ -119,10 +125,11 @@ void scaled_sum(
 /*
  * @param cmat: the complex matrix to compute power
  * @param power: the power to compute
+ * @param keep_ev: whether to keep the eigenvectors in cmat
  * @param filter_original: whether to filter the small values when recovering the original matrix
  * @param threshold: eigenvalue threshold to filter out in computing the power matrix
  */
-ComplexMatrix power_hemat(ComplexMatrix &cmat, double power, bool filter_original = false,
+ComplexMatrix power_hemat(ComplexMatrix &cmat, double power, bool keep_ev = false, bool filter_original = false,
                           double threshold = -1e16); // Minye Zhang add 2022-06-04
 
 //! Does the same as power_hemat, but save the powered matrix in the original matrix

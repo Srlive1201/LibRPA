@@ -181,6 +181,30 @@ double ComplexMatrix::get_max_abs_imag() const
     return iv;
 }
 
+double ComplexMatrix::get_max_abs_offdiag() const
+{
+    double maxabs = 0.;
+    for (int i = 0; i != nr; i++)
+        for (int j = 0; j != nc; j++)
+        {
+            if (i == j) continue;
+            maxabs = std::max(std::abs(c[i*nr+j]), maxabs);
+        }
+    return maxabs;
+}
+
+bool ComplexMatrix::is_diagonal(const double &thres) const
+{
+    for (int i = 0; i != nr; i++)
+        for (int j = 0; j != nc; j++)
+        {
+            if (i == j) continue;
+            if (std::abs(c[i*nr+j]) > thres)
+                return false;
+        }
+    return true;
+}
+
 // Adding matrices, as a friend
 ComplexMatrix operator+(const ComplexMatrix &m1, const ComplexMatrix &m2)
 {
@@ -473,7 +497,7 @@ ComplexMatrix conj(const ComplexMatrix &m)
 	return cm;
 }
 
-ComplexMatrix power_hemat(ComplexMatrix &cmat, double power, bool filter_original, double threshold)
+ComplexMatrix power_hemat(ComplexMatrix &cmat, double power, bool keep_ev, bool filter_original, double threshold)
 {
     assert (cmat.nr == cmat.nc);
     const char jobz = 'V';
@@ -485,11 +509,15 @@ ComplexMatrix power_hemat(ComplexMatrix &cmat, double power, bool filter_origina
     double w[cmat.nc], wpow[cmat.nc];
     double rwork[3*cmat.nc-2];
     complex<double> work[lwork];
+    // make the final eigenvalues in the descending order
+    cmat *= -1.0;
     LapackConnector::zheev(jobz, uplo, cmat.nc, cmat, cmat.nc,
                            w, work, lwork, rwork, &info);
     bool is_int_power = fabs(power - int(power)) < 1e-8;
     for ( int i = 0; i != cmat.nc; i++ )
     {
+        w[i] = -w[i];
+        // printf("%3d%22.12f\n", i+1, w[i]);
         if (w[i] < 0 && w[i] > threshold && !is_int_power)
             printf("Warning! kept negative eigenvalue with non-integer power: # %d ev = %f , pow = %f\n", i, w[i], power);
         if (fabs(w[i]) < 1e-10 && power < 0)
@@ -510,8 +538,11 @@ ComplexMatrix power_hemat(ComplexMatrix &cmat, double power, bool filter_origina
             evconj.c[i*cmat.nc+j] *= wpow[i];
     auto pmat = cmat * evconj;
 
-    evconj = transpose(cmat, true);
     // recover the original matrix here
+    // if eigenvectors are requested, return now
+    if (keep_ev)
+        return pmat;
+    evconj = transpose(cmat, true);
     // NOTE: may need a ComplexMatrix object to back up the matrix when the original matrix is required to save a second matmul
     for ( int i = 0; i != cmat.nr; i++ )
         for ( int j = 0; j != cmat.nc; j++ )
@@ -567,7 +598,7 @@ void print_complex_matrix(const char *desc, const ComplexMatrix &mat)
     for (int i = 0; i < nr; i++)
     {
         for (int j = 0; j < nc; j++)
-            printf("%10.6f,%9.6f ", mat.c[i * nc + j].real(), mat.c[i * nc + j].imag());
+            printf("%10.6e,%9.6e ", mat.c[i * nc + j].real(), mat.c[i * nc + j].imag());
         printf("\n");
     }
 }

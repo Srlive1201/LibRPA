@@ -69,7 +69,7 @@ as it is an experimental feature and prone to show some bugs.
 You can switch on it by setting in `librpa.in`
 
 ```
-use_libri_chi0 = true
+parallel_routing = libri
 ```
 
 If `librpa.in` or the related keyword is not found, the default value will be used.

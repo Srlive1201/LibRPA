@@ -1,0 +1,9 @@
+#
+# C1, NA, Diamond#C(cF8)#α−Sn type
+# reference: Acta Crystallographica, Section B: Structural Science vol 52, pp 232
+#
+atom_frac     0.250000000     0.250000000     0.250000000 C
+atom_frac     0.000000000     0.000000000     0.000000000 C
+lattice_vector     0.000000000     1.783560000     1.783560000
+lattice_vector     1.783560000     0.000000000     1.783560000
+lattice_vector     1.783560000     1.783560000     0.000000000

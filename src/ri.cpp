@@ -1,22 +1,29 @@
 #include "ri.h"
 #include <memory.h>
-
+#include "mpi.h"
+#include "parallel_mpi.h"
+#include "params.h"
+#include "pbc.h"
 int n_irk_points;
 int natom;
 int ncell;
 map<Vector3_Order<double>, double> irk_weight;
 map<atom_t, size_t> atom_nw;
 map<atom_t, size_t> atom_mu;
+map<atom_t, size_t> atom_nw_loc;
+map<atom_t, size_t> atom_mu_loc;
 vector<size_t> atom_mu_part_range;
 int N_all_mu;
 
 vector<atpair_t> tot_atpair;
 vector<atpair_t> local_atpair;
+vector<atpair_t> tot_atpair_ordered;
 
 atpair_R_mat_t Cs;
 atpair_k_cplx_mat_t Vq;
 atpair_k_cplx_mat_t Vq_cut;
-
+map<Vector3_Order<double>, ComplexMatrix> Vq_block_loc;
+using LIBRPA::mpi_comm_world_h;
 int atom_iw_loc2glo(const int &atom_index, const int &iw_lcoal)
 {
     int nb = 0;
@@ -100,3 +107,160 @@ matrix reshape_mat_21(const size_t n1, const size_t n2, const size_t n3, const m
     return m_new;
 }
 
+void init_N_all_mu()
+{
+    printf("begin init_N_all_mu   atom_mu.size: %d  myid: %d\n",atom_mu.size(),mpi_comm_world_h.myid);
+    if(Params::DFT_software == "ABACUS")
+    {
+        mpi_comm_world_h.barrier();
+        vector<size_t> loc_mu(natom);
+        vector<size_t> loc_nw(natom);
+        for(const auto &nw_p:atom_mu_loc)
+        {
+            loc_nw[nw_p.first]=nw_p.second;
+        }
+        for(const auto &mu_p:atom_mu_loc)
+        {
+            loc_mu[mu_p.first]=mu_p.second;
+        }
+        printf(" mid init_N_all_mu\n");
+        vector<size_t> glo_nw(natom);
+        vector<size_t> glo_mu(natom);
+        printf(" mid init_N_all_mu myid: %d\n",mpi_comm_world_h.myid);
+        MPI_Allreduce(loc_nw.data(),glo_nw.data(),natom,MPI_UNSIGNED_LONG_LONG,MPI_MAX,MPI_COMM_WORLD);
+        MPI_Allreduce(loc_mu.data(),glo_mu.data(),natom,MPI_UNSIGNED_LONG_LONG,MPI_MAX,MPI_COMM_WORLD);
+
+        atom_nw.clear();
+        atom_mu.clear();
+        for(int i =0; i!=natom;i++ )
+        {
+            atom_nw.insert(pair<atom_t,size_t>(i,glo_nw[i]));
+            atom_mu.insert(pair<atom_t,size_t>(i,glo_mu[i]));
+        }
+    }
+    
+    atom_mu_part_range.resize(atom_mu.size());
+    atom_mu_part_range[0]=0;
+    for(int I=1;I!=atom_mu.size();I++)
+        atom_mu_part_range[I]=atom_mu.at(I-1)+atom_mu_part_range[I-1];
+    
+    N_all_mu=atom_mu_part_range[natom-1]+atom_mu[natom-1];
+    printf("end init_N_all_mu, atom_mu.size: %d\n",atom_mu.size());
+  //  MPI_Barrier(MPI_COMM_WORLD);
+}
+
+void allreduce_atp_aux()
+{
+    for(int I=0;I!=natom;I++)
+        for(int J=0;J!=natom;J++)
+        {
+            auto nbasI=atom_nw[I];
+            auto nbasJ=atom_nw[J];
+            auto nauxI=atom_mu[I];
+            int cs_size=nbasI*nbasJ*nauxI;
+
+            int Rsize=Cs[I][J].size();
+            int loc_count=3* Rsize;
+
+            std::vector<int> send_R_data;
+            std::vector<int> all_R_counts(mpi_comm_world_h.nprocs, 0);
+
+            all_R_counts[mpi_comm_world_h.myid] = loc_count;
+
+            for (const auto& Rp : Cs[I][J]) 
+            {   
+                auto R=Rp.first;
+                if(I==0 && J==0)
+                    printf(" send R  Cs  myid : %d   I: %d, J: %d, R:(%d, %d, %d)\n",mpi_comm_world_h.myid, I,J,R.x,R.y,R.z);
+                send_R_data.push_back(Rp.first.x);
+                send_R_data.push_back(Rp.first.y);
+                send_R_data.push_back(Rp.first.z);
+            }
+            MPI_Allgather(&loc_count, 1, MPI_INT, all_R_counts.data(), 1, MPI_INT, MPI_COMM_WORLD);
+            std::vector<int> displs(mpi_comm_world_h.nprocs);
+            int total_R_count = 0;
+            for (int i = 0; i < mpi_comm_world_h.nprocs; ++i) {
+                displs[i] = total_R_count;
+                total_R_count +=  all_R_counts[i];
+            }
+            std::vector<int> all_R_data(total_R_count);
+
+            MPI_Allgatherv(send_R_data.data(), loc_count, MPI_INT, all_R_data.data(), all_R_counts.data(), displs.data(), MPI_INT, MPI_COMM_WORLD);
+            
+            int nR=total_R_count/3;
+            for(int iR=0;iR!=nR;iR++)
+            {
+                Vector3_Order<int> Rv(all_R_data[iR*3],all_R_data[iR*3+1],all_R_data[iR*3+2]);
+                if(I==0 && J==0)
+                    printf(" Rv  Cs  myid : %d   I: %d, J: %d, R:(%d, %d, %d)\n",mpi_comm_world_h.myid, I,J,Rv.x,Rv.y,Rv.z);
+                shared_ptr<matrix> cs_ptr = make_shared<matrix>();
+                cs_ptr->create(nbasI*nbasJ, nauxI);
+                matrix loc_cs(nbasI*nbasJ, nauxI);
+                if(Cs[I][J].count(Rv))
+                    memcpy(loc_cs.c,(*Cs[I][J].at(Rv)).c,sizeof(double)*cs_size);
+                mpi_comm_world_h.allreduce_matrix(loc_cs,(*cs_ptr));
+                if(!Cs[I][J].count(Rv))
+                    Cs[I][J][Rv] = cs_ptr;
+            }
+        }
+}
+
+void allreduce_2D_coulomb_to_atompair(map<Vector3_Order<double>, ComplexMatrix> &Vq_loc, atpair_k_cplx_mat_t &coulomb_mat,double threshold )
+{
+    printf("Begin allreduce_2D_coulomb_to_atompair!\n");
+    map<Vector3_Order<double>, ComplexMatrix> Vq_glo;
+    for(auto &qvec:klist_ibz)
+    {
+        Vq_glo[qvec].create(N_all_mu,N_all_mu);
+        if(!Vq_block_loc.count(qvec))
+        {
+            Vq_block_loc[qvec].create(N_all_mu, N_all_mu);
+        }
+        
+        mpi_comm_world_h.allreduce_ComplexMatrix(Vq_block_loc[qvec],Vq_glo[qvec]);
+        print_complex_matrix("vq_glo", Vq_glo[qvec]);
+    }
+    size_t vq_save = 0;
+    size_t vq_discard = 0;
+    for (auto &vf_p : Vq_glo)
+    {
+        auto qvec = vf_p.first;
+        // cout << "Qvec:" << qvec << endl;
+        
+        for (int I = 0; I != atom_mu.size(); I++)
+            for (int J = 0; J != atom_mu.size(); J++)
+            {
+                if (I > J)
+                    continue;
+                shared_ptr<ComplexMatrix> vq_ptr = make_shared<ComplexMatrix>();
+                vq_ptr->create(atom_mu[I], atom_mu[J]);
+                // vq_ptr_tran->create(atom_mu[J],atom_mu[I]);
+                // cout << "I J: " << I << "  " << J << "   mu,nu: " << atom_mu[I] << "  " << atom_mu[J] << endl;
+                for (int i_mu = 0; i_mu != atom_mu[I]; i_mu++)
+                {
+
+                    for (int i_nu = 0; i_nu != atom_mu[J]; i_nu++)
+                    {
+                        //(*vq_ptr)(i_mu, i_nu) = vf_p.second(atom_mu_loc2glo(J, i_nu), atom_mu_loc2glo(I, i_mu)); ////for aims
+                        (*vq_ptr)(i_mu, i_nu) = vf_p.second(atom_mu_loc2glo(I, i_mu), atom_mu_loc2glo(J, i_nu)); // for abacus
+                    }
+                }
+
+                // if (I == J)
+                // {
+                //     (*vq_ptr).set_as_identity_matrix();
+                // }
+
+                if ((*vq_ptr).real().absmax() >= threshold)
+                {
+                    coulomb_mat[I][J][qvec] = vq_ptr;
+                    vq_save++;
+                }
+                else
+                {
+                    vq_discard++;
+                }
+            }
+    }
+    printf("End allreduce_2D_coulomb_to_atompair!\n");
+}

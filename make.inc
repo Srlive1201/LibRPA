@@ -21,7 +21,7 @@ CXXFLAGS = -g -O2 -std=c++11 -qopenmp
 
 # LAPACK library
 #LAPACK_LIBRARIES = -L$(MKLROOT)/lib/intel64 -lmkl_intel_lp64 -lmkl_sequential -lmkl_core
-LAPACK_LIBRARIES = -L$(MKLROOT)/lib/intel64 -lmkl_scalapack_lp64 -lmkl_intel_lp64 -lmkl_core -lmkl_sequential -lmkl_blacs_intelmpi_lp64 -lpthread -lm -ldl
+LAPACK_LIBRARIES = -L$(MKLROOT)/lib/intel64 -lmkl_scalapack_lp64 -lmkl_intel_lp64 -lmkl_core -lmkl_intel_thread -lmkl_blacs_intelmpi_lp64 -lpthread -lm -ldl
 
 # # GNU
 # CXX = mpicxx

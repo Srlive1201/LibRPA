@@ -1,7 +1,13 @@
-/*
+/*!
  * @file params.h
  * @brief parameters for controlling LibRPA calculation
  */
+#ifndef PARAMS_H
+#define PARAMS_H
+#include <iostream>
+#include <cstdarg>
+#include <fstream>
+
 #pragma once
 #include <string>
 
@@ -9,58 +15,106 @@
 struct Params
 {
     //! the task to perform in LibRPA.
-    std::string task = "rpa";
+    static std::string task;
+
+    static std::string DFT_software;
+    //! the path of file to store librpa mainly output
+    static std::string output_file;
+
+    //! the path of directory to store librpa output files
+    static std::string output_dir;
 
     //! the number of frequency grid points
-    int nfreq = 0;
+    static int nfreq;
 
     //! the type of time-frequency grids
-    std::string tfgrids_type = "minimax";
+    static std::string tfgrids_type;
+
+    //! type of parallel routing
+    static std::string parallel_routing;
 
     //! threshold of R-space Green's function when construcing.
-    double gf_R_threshold = 1e-4;
+    static double gf_R_threshold;
 
     //! threshold of RI coefficient when parsing. The atomic block with maximal element smaller than it will be filtered.
-    double cs_threshold = 1e-6;
+    static double cs_threshold;
 
     //! threshold of Coulomb matrix when parsing. The atom-pair block of Coulomb matrix with maximal element smaller than it will be filtered
-    double vq_threshold = 0;
+    static double vq_threshold;
 
     //! threshold to filter when computing the square root of Coulomb matrix
-    double sqrt_coulomb_threshold = 0;
+    static double sqrt_coulomb_threshold;
 
-    //! switch of using LibRI for chi0 calculation
-    bool use_libri_chi0 = false;
+    static bool binary_input;
 
-    //! switch of using LibRI for EXX calculation
-    bool use_libri_exx = false;
+    //! CS-matrix threshold parsed to RPA object of LibRI.
+    static double libri_chi0_threshold_CSM;
 
-    //! CS-matrix threshold parsed to RPA object of LibRI. 
-    double libri_chi0_threshold_CSM = 0.0;
+    //! Cs threshold parsed to RPA object of LibRI.
+    static double libri_chi0_threshold_C;
 
-    //! Cs threshold parsed to RPA object of LibRI. 
-    double libri_chi0_threshold_C = 0.0;
-
-    //! Green's function threshold parsed to RPA object of LibRI. 
-    double libri_chi0_threshold_G = 0.0;
+    //! Green's function threshold parsed to RPA object of LibRI.
+    static double libri_chi0_threshold_G;
 
     //! switch of using ScaLAPACK for EcRPA calculation
-    bool use_scalapack_ecrpa = false;
+    static bool use_scalapack_ecrpa;
 
-    //! CS-matrix threshold parsed to EXX object of LibRI. 
-    double libri_exx_threshold_CSM = 0.0;
+    //! CS-matrix threshold parsed to EXX object of LibRI.
+    static double libri_exx_threshold_CSM;
 
-    //! Cs threshold parsed to EXX object of LibRI. 
-    double libri_exx_threshold_C = 0.0;
+    //! Cs threshold parsed to EXX object of LibRI.
+    static double libri_exx_threshold_C;
 
-    //! Density matrix threshold parsed to EXX object of LibRI. 
-    double libri_exx_threshold_D = 0.0;
+    //! Density matrix threshold parsed to EXX object of LibRI.
+    static double libri_exx_threshold_D;
 
-    //! Coulomb matrix threshold parsed to EXX object of LibRI. 
-    double libri_exx_threshold_V = 0.0;
+    //! Coulomb matrix threshold parsed to EXX object of LibRI.
+    static double libri_exx_threshold_V;
 
-    void check_consistency();
-    void print();
+    //! switch of using ScaLAPACK for computing Wc from chi0
+    static bool use_scalapack_gw_wc;
+
+    //! switch of run-time debug mode
+    static bool debug;
+
+    //! switch of output correlation self-energy matrix
+    static bool output_gw_sigc_mat;
+
+    //! switch of replacing head of screened interaction by macroscopic dielectric function
+    static bool replace_w_head;
+
+    //! option of computing dielectric function on imaginary axis
+    /*!
+     * Available values:
+     * - 0: direct read from input
+     * - 1: dielectric model fitting
+     * - 2: cubic-spline interpolation
+     */
+    static int option_dielect_func;
+
+    static void check_consistency();
+    static void print();
 };
 
-extern Params params;
+
+// NOTE:(MYZ) Can we move customPrint to other file?
+
+static void customPrint(const char* format, ...) {
+    va_list args;
+    va_start(args, format);
+    const bool output_stdout = Params::output_file == "stdout";
+
+    char buffer[1024];
+    vsnprintf(buffer, sizeof(buffer), format, args);
+
+    static std::ofstream outputFile;
+    std::ostream &os = output_stdout ? std::cout : outputFile;
+    if (!output_stdout) outputFile.open(Params::output_file, std::ios_base::app);
+    os << buffer;
+    os.flush();
+    va_end(args);
+}
+
+// #define printf customPrint
+
+#endif

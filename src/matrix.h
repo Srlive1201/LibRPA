@@ -63,8 +63,8 @@ public:
 	void operator-=(const matrix &m);
 	bool operator==(const matrix &m);
 
-    matrix operator+(double s);
-    matrix operator-(double s);
+    matrix operator+(double s) const;
+    matrix operator-(double s) const;
 
 	/* member function: */
 	matrix Inverse(void);

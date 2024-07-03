@@ -1,7 +1,6 @@
 /*!
  @file chi0.h
  @brief Utlities to compute the independent response function
- @warning Not work now
  */
 #pragma once
 #include <vector>
@@ -26,6 +25,7 @@ class Chi0
          * @note: May need to use ComplexMatrix for GF.
          */
         map<int, atom_mapping<map<Vector3_Order<int>, map<double, matrix>>>::pair_t_old> gf_is_R_tau;
+
         //! R on which the space-time GF are created.
         vector<Vector3_Order<int>> Rlist_gf;
         //! chi0 data in frequency domain and reciprocal space, [omega][q]
@@ -35,7 +35,7 @@ class Chi0
         /*
          @todo add threshold parameter. Maybe in the class level?
          */
-        void build_chi0_q_space_time(const atpair_R_mat_t &LRI_Cs,
+        void build_chi0_q_space_time( atpair_R_mat_t &LRI_Cs,
                                      const Vector3_Order<int> &R_period,
                                      const vector<atpair_t> &atpairs_ABF,
                                      const vector<Vector3_Order<double>> &qlist);
@@ -47,7 +47,7 @@ class Chi0
                                                    const Vector3_Order<int> &R_period,
                                                    const vector<atpair_t> &atpairs_ABF,
                                                    const vector<Vector3_Order<double>> &qlist);
-        void build_chi0_q_space_time_LibRI_routing(const atpair_R_mat_t &LRI_Cs,
+        void build_chi0_q_space_time_LibRI_routing( atpair_R_mat_t &LRI_Cs,
                                                    const Vector3_Order<int> &R_period,
                                                    const vector<atpair_t> &atpairs_ABF,
                                                    const vector<Vector3_Order<double>> &qlist);
@@ -82,13 +82,14 @@ class Chi0
             mf(mf_in), klist(klist_in), tfg(n_tf_grids) { gf_R_threshold = 1e-9; }
         ~Chi0() {};
         //! Build the independent response function in q-omega domain for ABFs on the atom pairs atpair_ABF and q-vectors in qlist
-        void build(const atpair_R_mat_t &LRI_Cs,
+        void build( atpair_R_mat_t &LRI_Cs,
                    const vector<Vector3_Order<int>> &Rlist,
                    const Vector3_Order<int> &R_period,
                    const vector<atpair_t> &atpair_ABF,
                    const vector<Vector3_Order<double>> &qlist,
                    TFGrids::GRID_TYPES gt, bool use_space_time);
         const map<double, map<Vector3_Order<double>, atom_mapping<ComplexMatrix>::pair_t_old>> & get_chi0_q() const { return chi0_q; }
+        void free_chi0_q(const double freq, const Vector3_Order<double> q);
         
 };
 
