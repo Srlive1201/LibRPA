@@ -5,5 +5,6 @@ sphinx-copybutton
 # Linking to Doxygen API documentation
 sphinxcontrib-doxylink
 myst-parser
+sphinx_rtd_theme
 # doxyphinx is not available on conda, use pip to install
 # doxysphinx
