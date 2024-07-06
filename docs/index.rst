@@ -6,7 +6,23 @@
 LibRPA
 ======
 
-LibRPA is a library offering access to physical properties computed using many-body perturbation theory.
+**LibRPA** is a comprehensive library designed for efficient and accurate first-principles calculations of random-phase approximation (RPA) correlation energies using numerical atomic orbitals (NAOs). It leverages the Localized Resolution of Identity (LRI) technique to achieve :math:`O(N^2)` scaling behavior, making it highly suitable for large-scale periodic systems. Implemented in C++ and Python with MPI/OpenMP parallelism, LibRPA integrates seamlessly with various density functional theory (DFT) packages through flexible file-based and API-based interfaces.
+
+**Key Features:**
+
+- Accurate computation of physical properties using many-body perturbation theory.
+- Efficient handling of large-scale periodic systems with :math:`O(N^2)` scaling.
+- Hybrid parallelism (MPI/OpenMP) to enhance scalability and performance.
+- Seamless integration with various DFT packages through flexible interfaces.
+
+
+
+**Quick Links:**
+
+- `Installation Guide <install.html>`_
+- `Driver Usage <driver.html>`_
+- `Compile Options <user_guide/compile_options.html>`_
+- `Input Parameters <user_guide/input_parameters.html>`_
 
 .. toctree::
    :hidden:

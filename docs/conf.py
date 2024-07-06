@@ -12,6 +12,7 @@
 #
 import os
 import sys
+import sphinx_rtd_theme
 sys.path.insert(0, os.path.abspath('.'))
 
 
@@ -51,6 +52,7 @@ extensions = [
     "sphinx_design",
     "sphinx_copybutton",
     "sphinxcontrib.doxylink",
+    'sphinx_rtd_theme',
 ]
 
 # -- Options for Doxylink -------------------------------------------------
@@ -71,7 +73,7 @@ myst_heading_anchors = True
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = 'sphinx_book_theme'
+html_theme = 'sphinx_rtd_theme'
 
 html_title = "LibRPA Documentation"
 
