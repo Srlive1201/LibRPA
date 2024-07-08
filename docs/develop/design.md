@@ -1,18 +1,18 @@
 # Code Design
 
-Under construction.
+LibRPA is designed to provide efficient and scalable implementations of various beyond-DFT methods, including but not limited to random-phase approximation (RPA) correlation energies. The library is developed in C++ and Python, utilizing a hybrid parallelism model with MPI and OpenMP to maximize performance on modern high-performance computing systems.
 
 ## Framework of RPA calculation
 
-![Framework of RPA calculation](../assets/framework.png)
+![Framework of RPA calculation](../assets/librpa_flowchat.jpg)
 
 ## RPA interface to FHI-aims
 
-![RPA interface to FHI-aims](../assets/FHI-aims_interface.png)
+![RPA interface to FHI-aims](../assets/aims_interface.drawio.jpg)
 
-## Parallel scheme of RPA calculation
+## RPA interface to ABACUS
 
-![Parallel scheme of RPA calculation](../assets/rpa-parallel-scheme.png)
+![RPA interface to ABACUS](../assets/abacus_interface.drawio.jpg)
 
 ## TODO
 
