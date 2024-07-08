@@ -1,6 +1,6 @@
 # LibRPA
 
-LibRPA is a standalone software aiming to calculate independent response function by space-time algorithm.
+LibRPA is a library offering access to physical properties computed using many-body perturbation theory.
 
 ## How to compile?
 
@@ -67,8 +67,11 @@ parallel_routing = libri
 
 If `librpa.in` or the related keyword is not found, the default value will be used.
 
-### Code design
+<!-- ### Code design
 
 ![image](docs/assets/frarework.png)
 ![image](docs/assets/FHI-aims_interface.png)
-![image](docs/assets/rpa-parallel-scheme.png)
+![image](docs/assets/rpa-parallel-scheme.png) -->
+
+## Documentation
+Comprehensive documentation, including installation guides, user guides, and tutorials, can be found [here](https://srlive1201.github.io/LibRPA/).
