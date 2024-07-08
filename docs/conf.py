@@ -12,7 +12,6 @@
 #
 import os
 import sys
-import sphinx_rtd_theme
 sys.path.insert(0, os.path.abspath('.'))
 
 
@@ -52,7 +51,6 @@ extensions = [
     "sphinx_design",
     "sphinx_copybutton",
     "sphinxcontrib.doxylink",
-    'sphinx_rtd_theme',
 ]
 
 # -- Options for Doxylink -------------------------------------------------
