@@ -24,7 +24,7 @@ void librpa_main()
     using LIBRPA::envs::mpi_comm_global_h;
     using LIBRPA::envs::blacs_ctxt_global_h;
     using LIBRPA::utils::lib_printf;
-
+    using LIBRPA::envs::ofs_myid;
     //printf("AFTER init MPI  myid: %d\n",mpi_comm_global_h.myid);
     // mpi_comm_global_h.barrier();
 
@@ -33,9 +33,16 @@ void librpa_main()
         LIBRPA::utils::lib_printf("LibRPA control parameters:\n");
         Params::print();
     }
-
+    for(auto &p:atom_nw)
+        ofs_myid<<"atom_nw I nw:"<<p.first<<" "<<p.second<<endl;
+    for(auto &p:atom_mu)
+        ofs_myid<<"atom_mu I mu:"<<p.first<<" "<<p.second<<endl;
     init_N_all_mu();
-
+    ofs_myid<<"after init_N_all_mu"<<endl;
+    for(auto &p:atom_nw)
+        ofs_myid<<"atom_nw I nw:"<<p.first<<" "<<p.second<<endl;
+    for(auto &p:atom_mu)
+        ofs_myid<<"atom_mu I mu:"<<p.first<<" "<<p.second<<endl;
     LIBRPA::atomic_basis_wfc.set(atom_nw);
     LIBRPA::atomic_basis_abf.set(atom_mu);
    
@@ -188,6 +195,8 @@ void librpa_main()
     else
     {
         local_atpair = generate_atom_pair_from_nat(natom, false);
+        if(Params::DFT_software == "ABACUS")
+            allreduce_atp_coulomb(Vq);
     }
     // debug, check available Coulomb blocks on each process
     LIBRPA::envs::ofs_myid << "Read Coulomb blocks in process\n";

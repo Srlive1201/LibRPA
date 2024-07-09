@@ -30,6 +30,7 @@ struct LibRPAParams
     char parallel_routing[20];
     char tfgrids_type[20];
 
+    char DFT_software[20];
     // integer types
     int nfreq;
 

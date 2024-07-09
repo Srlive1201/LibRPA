@@ -47,6 +47,8 @@ extern map<Vector3_Order<double>, ComplexMatrix> Vq_block_loc;
 extern map<Vector3_Order<double>, ComplexMatrix> Vq_cut_block_loc;
 
 void allreduce_2D_coulomb_to_atompair(map<Vector3_Order<double>, ComplexMatrix> &Vq_loc, atpair_k_cplx_mat_t &coulomb_mat, double threshold );
+void allreduce_atp_coulomb( atpair_k_cplx_mat_t &coulomb_mat );
+
 int atom_iw_loc2glo(const int &atom_index, const int &iw_lcoal);
 int atom_mu_loc2glo(const int &atom_index, const int &mu_lcoal);
 int atom_mu_glo2loc(const int &glo_index, int &mu_index); //in-out mu_index, return atom_index;

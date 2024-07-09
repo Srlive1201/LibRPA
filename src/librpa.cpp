@@ -309,6 +309,7 @@ void set_librpa_params(LibRPAParams *params_c)
     Params::output_dir = params_c->output_dir;
     Params::tfgrids_type = params_c->tfgrids_type;
     Params::parallel_routing = params_c->parallel_routing;
+    Params::DFT_software = params_c->DFT_software;
 
     Params::nfreq = params_c->nfreq;
 
@@ -335,6 +336,7 @@ void get_default_librpa_params(LibRPAParams *params_c)
     strcpy(params_c->output_dir,       "librpa.d");
     strcpy(params_c->parallel_routing, "auto");
     strcpy(params_c->tfgrids_type,     "minimax");
+    strcpy(params_c->DFT_software,     "auto");
 
     params_c->nfreq = 6;
 
