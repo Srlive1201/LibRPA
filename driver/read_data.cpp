@@ -318,6 +318,7 @@ static size_t handle_Cs_file_binary(const string &file_path, double threshold, c
         cs_ptr->create(n_i * n_j, n_mu);
         infile.read((char *) cs_ptr->c, n_i * n_j * n_mu * sizeof(double));
         bool insert_index_only = loc_atp_index.count(ia1) && (*cs_ptr).absmax() >= threshold;
+        // cout << (*cs_ptr).absmax() << "\n";
         set_ao_basis_aux(ia1, ia2, n_i, n_j, n_mu, R, cs_ptr->c, int(insert_index_only));
         // cout<<cs_ptr->nr<<cs_ptr->nc<<endl;
         if (insert_index_only)

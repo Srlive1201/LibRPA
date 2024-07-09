@@ -7,6 +7,7 @@
 #include <set>
 #include "meanfield.h"
 #include "timefreq.h"
+#include "atoms.h"
 #include "ri.h"
 #include "vector3_order.h"
 
@@ -35,26 +36,26 @@ class Chi0
         /*
          @todo add threshold parameter. Maybe in the class level?
          */
-        void build_chi0_q_space_time( atpair_R_mat_t &LRI_Cs,
+        void build_chi0_q_space_time(const Cs_LRI &Cs,
                                      const Vector3_Order<int> &R_period,
                                      const vector<atpair_t> &atpairs_ABF,
                                      const vector<Vector3_Order<double>> &qlist);
-        void build_chi0_q_space_time_atom_pair_routing(const atpair_R_mat_t &LRI_Cs,
+        void build_chi0_q_space_time_atom_pair_routing(const Cs_LRI &Cs,
                                                        const Vector3_Order<int> &R_period,
                                                        const vector<atpair_t> &atpairs_ABF,
                                                        const vector<Vector3_Order<double>> &qlist);
-        void build_chi0_q_space_time_R_tau_routing(const atpair_R_mat_t &LRI_Cs,
+        void build_chi0_q_space_time_R_tau_routing(const Cs_LRI &Cs,
                                                    const Vector3_Order<int> &R_period,
                                                    const vector<atpair_t> &atpairs_ABF,
                                                    const vector<Vector3_Order<double>> &qlist);
-        void build_chi0_q_space_time_LibRI_routing( atpair_R_mat_t &LRI_Cs,
+        void build_chi0_q_space_time_LibRI_routing(const Cs_LRI &Cs,
                                                    const Vector3_Order<int> &R_period,
                                                    const vector<atpair_t> &atpairs_ABF,
                                                    const vector<Vector3_Order<double>> &qlist);
 
         //! Internal procedure to compute chi0_q in the conventional method, i.e. in frequency domain and reciprocal space
         // TODO: implement the conventional method
-        void build_chi0_q_conventional(const atpair_R_mat_t &LRI_Cs,
+        void build_chi0_q_conventional(const Cs_LRI &Cs,
                                        const Vector3_Order<int> &R_period,
                                        const vector<atpair_t> &atpairs_ABF,
                                        const vector<Vector3_Order<double>> &qlist);
@@ -62,10 +63,10 @@ class Chi0
          * s_alpha and s_beta are the spin component of unoccupied Green's function, G_{alpha, beta}(tau)
          * correspondingly, occupied GF G_{beta, alpha}(-tau) will be used. itau must be positive.
          */
-        matrix compute_chi0_s_munu_tau_R(const atpair_R_mat_t &LRI_Cs,
-                                          const Vector3_Order<int> &R_period, 
-                                          int spin_channel,
-                                          atom_t mu, atom_t nu, double tau, Vector3_Order<int> R);
+        matrix compute_chi0_s_munu_tau_R(const atpair_R_mat_t &Cs_IJR,
+                                         const Vector3_Order<int> &R_period, 
+                                         int spin_channel,
+                                         atom_t mu, atom_t nu, double tau, Vector3_Order<int> R);
         // copy some reshape method inside chi0, test performance
         /* matrix reshape_Cs(const size_t n1, const size_t n2, const size_t n3, const std::shared_ptr<matrix> &Cs); */
         /* matrix reshape_dim_Cs(const size_t n1, const size_t n2, const size_t n3, const std::shared_ptr<matrix> &Cs);//(n1*n2,n3) -> (n1,n2*n3) */
@@ -82,7 +83,7 @@ class Chi0
             mf(mf_in), klist(klist_in), tfg(n_tf_grids) { gf_R_threshold = 1e-9; }
         ~Chi0() {};
         //! Build the independent response function in q-omega domain for ABFs on the atom pairs atpair_ABF and q-vectors in qlist
-        void build( atpair_R_mat_t &LRI_Cs,
+        void build(const Cs_LRI &Cs,
                    const vector<Vector3_Order<int>> &Rlist,
                    const Vector3_Order<int> &R_period,
                    const vector<atpair_t> &atpair_ABF,

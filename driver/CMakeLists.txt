@@ -20,6 +20,14 @@ target_include_directories(rpa_exe
   )
 
 target_sources(rpa_exe PRIVATE ${exe_sources})
+if(USE_LIBRI)
+  target_include_directories(rpa_exe
+    PRIVATE
+      ${Cereal_INCLUDE_DIR}
+      ${LibComm_INCLUDE_DIR}
+      ${LibRI_INCLUDE_DIR}
+    )
+endif()
 
 target_link_libraries(rpa_exe PRIVATE rpa_lib ${math_libs} ${parallel_libs})
 

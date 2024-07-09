@@ -249,7 +249,7 @@ int main(int argc, char **argv)
     {
         if (mpi_comm_global_h.is_root()) lib_printf("Complete copy of Cs and V on each process\n");
         local_atpair = generate_atom_pair_from_nat(natom, false);
-        read_Cs("./", Params::cs_threshold,local_atpair);
+        read_Cs("./", Params::cs_threshold, local_atpair, Params::binary_input);
         read_Vq_full("./", "coulomb_mat", false);
     }
 
@@ -257,13 +257,23 @@ int main(int argc, char **argv)
     {
         if (i == mpi_comm_global_h.myid)
         {
-            lib_printf("| process %d: Cs size %d from local atpair size %zu\n",
-                    mpi_comm_global_h.myid, get_num_keys(Cs), local_atpair.size());
+            if (Cs_data.use_libri)
+            {
+                lib_printf("| process %d: Cs size %d from local atpair size %zu\n",
+                        mpi_comm_global_h.myid, get_num_keys(Cs_data.data_libri), local_atpair.size());
+                ofs_myid << "Cs size: " << get_num_keys(Cs_data.data_libri) << ", with keys:\n";
+                print_keys(ofs_myid, Cs_data.data_libri);
+            }
+            else
+            {
+                lib_printf("| process %d: Cs size %d from local atpair size %zu\n",
+                        mpi_comm_global_h.myid, get_num_keys(Cs_data.data_IJR), local_atpair.size());
+                ofs_myid << "Cs size: " << get_num_keys(Cs_data.data_IJR) << ", with keys:\n";
+                print_keys(ofs_myid, Cs_data.data_IJR);
+            }
         }
         mpi_comm_global_h.barrier();
     }
-    ofs_myid << "Cs size: " << get_num_keys(Cs) << ", with keys:\n";
-    print_keys(ofs_myid, Cs);
     std::flush(ofs_myid);
 
     // debug, check available Coulomb blocks on each process
@@ -321,7 +331,7 @@ int main(int argc, char **argv)
     if ( task != task_t::EXX )
     {
         Profiler::start("chi0_build", "Build response function chi0");
-        chi0.build(Cs, Rlist, period, local_atpair, qlist,
+        chi0.build(Cs_data, Rlist, period, local_atpair, qlist,
                    TFGrids::get_grid_type(Params::tfgrids_type), true);
         Profiler::stop("chi0_build");
     }
@@ -358,7 +368,7 @@ int main(int argc, char **argv)
     // Cs is not required after chi0 is computed in rpa task
     if (task == task_t::RPA)
     {
-        Cs.clear();
+        Cs_data.clear();
     }
 
     LIBRPA::utils::release_free_mem();
@@ -603,7 +613,7 @@ int main(int argc, char **argv)
 
         Profiler::start("g0w0_exx", "Build exchange self-energy");
         auto exx = LIBRPA::Exx(meanfield, kfrac_list);
-        exx.build_exx_orbital_energy(Cs, Rlist, period, VR);
+        exx.build_exx_orbital_energy(Cs_data, Rlist, period, VR);
         Profiler::stop("g0w0_exx");
         if (mpi_comm_global_h.is_root())
         {
@@ -656,7 +666,7 @@ int main(int argc, char **argv)
 
         LIBRPA::G0W0 s_g0w0(meanfield, kfrac_list, chi0.tfg);
         Profiler::start("g0w0_sigc_IJ", "Build correlation self-energy");
-        s_g0w0.build_spacetime_LibRI(Cs, Wc_freq_q, Rlist, period);
+        s_g0w0.build_spacetime_LibRI(Cs_data, Wc_freq_q, Rlist, period);
         Profiler::stop("g0w0_sigc_IJ");
 
         if (Params::debug)

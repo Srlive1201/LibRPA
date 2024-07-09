@@ -14,6 +14,7 @@ target_sources(rpa_f_lib
   PRIVATE
   librpa_f.f90
 )
+target_link_libraries(rpa_f_lib PRIVATE rpa_lib)
 
 install(TARGETS rpa_f_lib
         ARCHIVE

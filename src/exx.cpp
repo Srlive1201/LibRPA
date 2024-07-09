@@ -84,7 +84,7 @@ void Exx::warn_dmat_IJR_nonzero_imag(const ComplexMatrix& dmat_cplx, const int& 
         utils::lib_printf("Warning: complex-valued density matrix, spin %d IJR %zu %zu (%d, %d, %d)\n", ispin, I, J, R.x, R.y, R.z);
 }
 
-void Exx::build_exx_orbital_energy(const atpair_R_mat_t &LRI_Cs,
+void Exx::build_exx_orbital_energy(const Cs_LRI &Cs,
                                    const vector<Vector3_Order<int>> &Rlist,
                                    const Vector3_Order<int> &R_period,
                                    const atpair_R_mat_t &coul_mat)
@@ -107,7 +107,7 @@ void Exx::build_exx_orbital_energy(const atpair_R_mat_t &LRI_Cs,
     // }
     if (parallel_routing == ParallelRouting::LIBRI)
     {
-        this->build_exx_orbital_energy_LibRI(LRI_Cs, Rlist, R_period, coul_mat);
+        this->build_exx_orbital_energy_LibRI(Cs, Rlist, R_period, coul_mat);
     }
     else
     {
@@ -118,7 +118,7 @@ void Exx::build_exx_orbital_energy(const atpair_R_mat_t &LRI_Cs,
     }
 }
 
-void Exx::build_exx_orbital_energy_LibRI(const atpair_R_mat_t &LRI_Cs,
+void Exx::build_exx_orbital_energy_LibRI(const Cs_LRI &Cs,
                                          const vector<Vector3_Order<int>> &Rlist,
                                          const Vector3_Order<int> &R_period,
                                          const atpair_R_mat_t &coul_mat)
@@ -126,6 +126,8 @@ void Exx::build_exx_orbital_energy_LibRI(const atpair_R_mat_t &LRI_Cs,
     using LIBRPA::envs::mpi_comm_global;
     using LIBRPA::envs::mpi_comm_global_h;
     using LIBRPA::envs::blacs_ctxt_global_h;
+
+    assert (parallel_routing == ParallelRouting::LIBRI);
 
     const auto& n_aos = this->mf_.get_n_aos();
     const auto& n_spins = this->mf_.get_n_spins();
@@ -156,41 +158,11 @@ void Exx::build_exx_orbital_energy_LibRI(const atpair_R_mat_t &LRI_Cs,
     //     atom-pair routing:
     //         Cs is already distributed across all processes.
     //         Pass the all Cs to libRI container.
-    std::map<int, std::map<std::pair<int,std::array<int,3>>,RI::Tensor<double>>> Cs_libri;
 
     Profiler::start("build_exx_orbital_energy_1", "Prepare C libRI object");
-    if(parallel_routing == ParallelRouting::LIBRI)
-    {
-        for (auto &I_JRCs: LRI_Cs)
-        {
-            const auto &I = I_JRCs.first;
-            for (auto &J_RCs: I_JRCs.second)
-            {
-                const auto &J = J_RCs.first;
-                for (auto &R_Cs: J_RCs.second)
-                {
-                    const auto &R = R_Cs.first;
-                    const std::array<int,3> Ra{R.x,R.y,R.z};
-                    // debug
-                    // printf("I J R %zu %zu %d %d %d, max(Cs) %f\n", I, J, R.x, R.y, R.z, (R_Cs.second)->max());
-                    const auto mat = transpose(*R_Cs.second);
-                    std::valarray<double> mat_array(mat.c, mat.size);
-                    std::shared_ptr<std::valarray<double>> mat_ptr = std::make_shared<std::valarray<double>>();
-                    *mat_ptr=mat_array;
-                    Cs_libri[I][{J, Ra}] = RI::Tensor<double>({atom_mu[I], atom_nw[I], atom_nw[J]}, mat_ptr);
-                }
-            }
-        }
-    }
-    else
-    {
-        // Not implemented
-        mpi_comm_global_h.barrier();
-        throw std::logic_error("not implemented");
-    }
-    envs::ofs_myid << "Number of Cs keys: " << get_num_keys(Cs_libri) << "\n";
-    print_keys(envs::ofs_myid, Cs_libri);
-    exx_libri.set_Cs(Cs_libri, Params::libri_exx_threshold_C);
+    envs::ofs_myid << "Number of Cs keys: " << get_num_keys(Cs.data_libri) << "\n";
+    print_keys(envs::ofs_myid, Cs.data_libri);
+    exx_libri.set_Cs(Cs.data_libri, Params::libri_exx_threshold_C);
     Profiler::stop("build_exx_orbital_energy_1");
     utils::lib_printf("Task %4d: C setup for EXX\n", mpi_comm_global_h.myid);
 

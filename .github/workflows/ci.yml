@@ -86,6 +86,12 @@ jobs:
           CXX=mpiicpc cmake -DUSE_LIBRI=ON -DUSE_GREENX_API=ON -B $BUILDDIR -DENABLE_TEST=ON
           cmake --build $BUILDDIR -j 2
           cmake --build $BUILDDIR --target test
+      - name: Build Fortran binding
+        run: |
+          source /opt/intel/oneapi/setvars.sh
+          export BUILDDIR="build_fortran_bind"
+          CXX=mpiicpc cmake -DUSE_LIBRI=OFF -DUSE_GREENX_API=OFF -DENABLE_FORTRAN_BIND=ON -B $BUILDDIR -DENABLE_TEST=OFF
+          cmake --build $BUILDDIR -j 2
       - name: Save last test log for check
         if: always()
         uses: actions/upload-artifact@v3

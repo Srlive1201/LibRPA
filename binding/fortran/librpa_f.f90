@@ -3,14 +3,65 @@ module librpa
    use iso_c_binding, only: c_char, c_int, c_double
    implicit none
 
-   public
+   private
+   public :: LibRPAParams
+   public :: initialize_librpa_environment
+   public :: finalize_librpa_environment
+   public :: get_rpa_correlation_energy
+   public :: set_dimension
+   public :: set_wg_ekb_efermi
+   public :: set_ao_basis_wfc
+   public :: set_latvec_and_G
+   public :: set_kgrids_kvec_tot
+   public :: set_ibz2bz_index_and_weight
+   public :: set_ao_basis_aux
+   public :: set_aux_bare_coulomb_k_2D_block
+   public :: set_aux_cut_coulomb_k_atom_pair
+   public :: set_aux_bare_coulomb_k_atom_pair
+   public :: set_aux_cut_coulomb_k_2D_block
+   public :: set_librpa_params
+   public :: get_default_librpa_params
+   public :: run_librpa_main
 
-   type, bind(c) :: LibRPAParams
+   !!! Interface declaration
+
+   !> @brief User interface for control parameters in LibRPA
+   type :: LibRPAParams
+      character(len=20)  :: task
+      character(len=100) :: output_file
+      character(len=100) :: output_dir
+      character(len=20)  :: parallel_routing
+      character(len=20)  :: tfgrids_type
+      character(len=20)  :: DFT_software
+
+      integer :: nfreq
+
+      logical :: debug
+      logical :: use_scalapack_ecrpa
+
+      real*8 :: gf_R_threshold
+      real*8 :: cs_threshold
+      real*8 :: vq_threshold
+      real*8 :: sqrt_coulomb_threshold
+      real*8 :: libri_chi0_threshold_C
+      real*8 :: libri_chi0_threshold_G
+      real*8 :: libri_exx_threshold_CSM
+      real*8 :: libri_exx_threshold_C
+      real*8 :: libri_exx_threshold_D
+      real*8 :: libri_exx_threshold_V
+      real*8 :: libri_gw_threshold_C
+      real*8 :: libri_gw_threshold_G
+      real*8 :: libri_gw_threshold_W
+   end type LibRPAParams
+
+   !> @brief C interface to the LibRPAParams struct
+   type, bind(c) :: LibRPAParams_c
       character(kind=c_char, len=1) :: task(20)
-      character(kind=c_char, len=1) :: parallel_routing(20)
-      character(kind=c_char, len=1) :: tfgrids_type(20)
       character(kind=c_char, len=1) :: output_file(100)
       character(kind=c_char, len=1) :: output_dir(100)
+      character(kind=c_char, len=1) :: parallel_routing(20)
+      character(kind=c_char, len=1) :: tfgrids_type(20)
+      character(kind=c_char, len=1) :: DFT_software(20)
 
       integer(c_int) :: nfreq
 
@@ -30,7 +81,7 @@ module librpa
       real(c_double) :: libri_gw_threshold_C
       real(c_double) :: libri_gw_threshold_G
       real(c_double) :: libri_gw_threshold_W
-   end type LibRPAParams
+   end type LibRPAParams_c
 
    interface
       subroutine initialize_librpa_environment( &
@@ -154,18 +205,18 @@ module librpa
    end interface
 
    interface
-      subroutine set_librpa_params(params) bind(c, name="set_librpa_params")
+      subroutine set_librpa_params_c(params_c) bind(c, name="set_librpa_params")
          use, intrinsic :: iso_c_binding
-         import :: LibRPAParams
-         type(LibRPAParams), intent(in) :: params
+         import :: LibRPAParams_c
+         type(LibRPAParams_c), intent(in) :: params_c
       end subroutine
    end interface
 
    interface
-      subroutine get_default_librpa_params(params) bind(c, name="get_default_librpa_params")
+      subroutine get_default_librpa_params_c(params_c) bind(c, name="get_default_librpa_params")
          use, intrinsic :: iso_c_binding
-         import :: LibRPAParams
-         type(LibRPAParams), intent(inout) :: params
+         import :: LibRPAParams_c
+         type(LibRPAParams_c), intent(inout) :: params_c
       end subroutine
    end interface
 
@@ -178,5 +229,174 @@ module librpa
    end interface
 
 contains
+
+   !> @brief Copy a Fortran character varaible to C char array
+   !!
+   !> adapted from https://fortranwiki.org/fortran/show/c_interface_module
+   subroutine f_c_string_chars(f_string, c_string, c_string_len)
+      use iso_c_binding, only: c_null_char
+      implicit none
+
+      character(len=*), intent(in) :: f_string
+      character(len=1, kind=c_char), dimension(*), intent(out) :: c_string
+      ! Max string length, INCLUDING THE TERMINAL NUL
+      integer, intent(in), optional :: c_string_len
+
+      integer :: i, strlen
+
+      strlen = len(f_string)
+      ! print*, "strlen ", strlen
+      if (present(c_string_len)) then
+         if (c_string_len <= 0) return
+         strlen = min(strlen, c_string_len - 1)
+      end if
+
+      do i = 1, strlen
+         c_string(i) = f_string(i:i)
+      end do
+
+      c_string(strlen + 1) = c_null_char
+   end subroutine f_c_string_chars
+
+
+   !> @brief Copy a C string, passed as a char-array reference, to a Fortran string.
+   !!
+   !> copied from https://fortranwiki.org/fortran/show/c_interface_module
+   subroutine c_f_string_chars(c_string, f_string)
+      use iso_c_binding, only: c_null_char
+      implicit none
+
+      character(len=1, kind=c_char), intent(in) :: c_string(*)
+      character(len=*), intent(out) :: f_string
+      integer :: i
+      i=1
+      do while (c_string(i) /= c_null_char .and. i <= len(f_string))
+         f_string(i:i) = c_string(i)
+         i = i + 1
+      end do
+      if (i < len(f_string)) f_string(i:) = ' '
+   end subroutine c_f_string_chars
+
+
+   !> @brief Convert Fortran logical to C integer as boolean
+   subroutine f_c_bool(f_logical, c_bi)
+      implicit none
+
+      logical, intent(in) :: f_logical
+      integer(kind=c_int), intent(out) :: c_bi
+
+      if (f_logical) then
+         c_bi = 1
+      else
+         c_bi = 0
+      endif
+
+   end subroutine f_c_bool
+
+
+   !> @brief Convert C integer as boolean to Fortran logical
+   subroutine c_f_bool(c_bi, f_logical)
+      implicit none
+
+      integer(kind=c_int), intent(in) :: c_bi
+      logical, intent(out) :: f_logical
+
+      f_logical = (c_bi .ne. 0)
+
+   end subroutine c_f_bool
+
+
+   !> @brief helper function to convert data between Fortran and C derived type
+   subroutine communicate_librpa_params(params, params_c, f2c)
+      implicit none
+
+      type(LibRPAParams), intent(inout)   :: params
+      type(LibRPAParams_c), intent(inout) :: params_c
+      logical, intent(in) :: f2c
+
+      if (f2c) then
+         ! Copy Fortran parameters to C
+         call f_c_string_chars(params%task             , params_c%task)
+         call f_c_string_chars(params%output_file      , params_c%output_file)
+         call f_c_string_chars(params%output_dir       , params_c%output_dir)
+         call f_c_string_chars(params%parallel_routing , params_c%parallel_routing)
+         call f_c_string_chars(params%tfgrids_type     , params_c%tfgrids_type)
+         call f_c_string_chars(params%DFT_software     , params_c%DFT_software)
+
+         params_c%nfreq = params%nfreq
+
+         call f_c_bool(params%debug,               params_c%debug)
+         call f_c_bool(params%use_scalapack_ecrpa, params_c%use_scalapack_ecrpa)
+
+         params_c%gf_R_threshold           = params%gf_R_threshold
+         params_c%cs_threshold             = params%cs_threshold
+         params_c%vq_threshold             = params%vq_threshold
+         params_c%sqrt_coulomb_threshold   = params%sqrt_coulomb_threshold
+         params_c%libri_chi0_threshold_C   = params%libri_chi0_threshold_C
+         params_c%libri_chi0_threshold_G   = params%libri_chi0_threshold_G
+         params_c%libri_exx_threshold_CSM  = params%libri_exx_threshold_CSM
+         params_c%libri_exx_threshold_C    = params%libri_exx_threshold_C
+         params_c%libri_exx_threshold_D    = params%libri_exx_threshold_D
+         params_c%libri_exx_threshold_V    = params%libri_exx_threshold_V
+         params_c%libri_gw_threshold_C     = params%libri_gw_threshold_C
+         params_c%libri_gw_threshold_G     = params%libri_gw_threshold_G
+         params_c%libri_gw_threshold_W     = params%libri_gw_threshold_W
+      else
+         ! Copy C parameters to Fortran
+         call c_f_string_chars(params_c%task             , params%task)
+         call c_f_string_chars(params_c%output_file      , params%output_file)
+         call c_f_string_chars(params_c%output_dir       , params%output_dir)
+         call c_f_string_chars(params_c%parallel_routing , params%parallel_routing)
+         call c_f_string_chars(params_c%tfgrids_type     , params%tfgrids_type)
+         call c_f_string_chars(params_c%DFT_software     , params%DFT_software)
+
+         params%nfreq = params_c%nfreq
+
+         call c_f_bool(params_c%debug,               params%debug)
+         call c_f_bool(params_c%use_scalapack_ecrpa, params%use_scalapack_ecrpa)
+
+         params%gf_R_threshold           = params_c%gf_R_threshold
+         params%cs_threshold             = params_c%cs_threshold
+         params%vq_threshold             = params_c%vq_threshold
+         params%sqrt_coulomb_threshold   = params_c%sqrt_coulomb_threshold
+         params%libri_chi0_threshold_C   = params_c%libri_chi0_threshold_C
+         params%libri_chi0_threshold_G   = params_c%libri_chi0_threshold_G
+         params%libri_exx_threshold_CSM  = params_c%libri_exx_threshold_CSM
+         params%libri_exx_threshold_C    = params_c%libri_exx_threshold_C
+         params%libri_exx_threshold_D    = params_c%libri_exx_threshold_D
+         params%libri_exx_threshold_V    = params_c%libri_exx_threshold_V
+         params%libri_gw_threshold_C     = params_c%libri_gw_threshold_C
+         params%libri_gw_threshold_G     = params_c%libri_gw_threshold_G
+         params%libri_gw_threshold_W     = params_c%libri_gw_threshold_W
+      endif
+
+   end subroutine communicate_librpa_params
+
+
+   subroutine set_librpa_params(params)
+
+      implicit none
+      type(LibRPAParams), intent(inout) :: params
+
+      type(LibRPAParams_c) :: params_c
+
+      call communicate_librpa_params(params, params_c, .true.)
+      call set_librpa_params_c(params_c)
+
+   end subroutine set_librpa_params
+
+
+   subroutine get_default_librpa_params(params)
+
+      implicit none
+      type(LibRPAParams), intent(inout) :: params
+
+      type(LibRPAParams_c) :: params_c
+
+      call get_default_librpa_params_c(params_c)
+      call communicate_librpa_params(params, params_c, .false.)
+
+   end subroutine get_default_librpa_params
+
 
 end module

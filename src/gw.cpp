@@ -29,13 +29,19 @@ G0W0::G0W0(const MeanField &mf,
 }
 
 void G0W0::build_spacetime_LibRI(
-    const atpair_R_mat_t &LRI_Cs,
+    const Cs_LRI &LRI_Cs,
     const map<double,
               atom_mapping<std::map<Vector3_Order<double>, matrix_m<complex<double>>>>::pair_t_old>
         &Wc_freq_q,
     const vector<Vector3_Order<int>> &Rlist, const Vector3_Order<int> &R_period)
 {
     using LIBRPA::envs::mpi_comm_global_h;
+
+    if(parallel_routing != ParallelRouting::LIBRI)
+    {
+        mpi_comm_global_h.barrier();
+        throw std::logic_error("not implemented");
+    }
 
     if (mpi_comm_global_h.myid == 0)
     {
@@ -71,37 +77,7 @@ void G0W0::build_spacetime_LibRI(
     g0w0_libri.set_parallel(mpi_comm_global_h.comm, atoms_pos, lat_array, period_array);
 
     Profiler::start("g0w0_build_spacetime_2", "Prepare libRI C object");
-
-    std::map<int, std::map<std::pair<int,std::array<int,3>>,RI::Tensor<double>>> Cs_libri;
-    // FIXME: duplicate codes to prepare LibRI objects from chi0
-    if(parallel_routing == ParallelRouting::LIBRI)
-    {
-        for (auto &I_JRCs: LRI_Cs)
-        {
-            const auto &I = I_JRCs.first;
-            for (auto &J_RCs: I_JRCs.second)
-            {
-                const auto &J = J_RCs.first;
-                for (auto &R_Cs: J_RCs.second)
-                {
-                    const auto &R = R_Cs.first;
-                    const std::array<int,3> Ra{R.x,R.y,R.z};
-                    const auto mat = transpose(*R_Cs.second);
-                    std::valarray<double> mat_array(mat.c, mat.size);
-                    std::shared_ptr<std::valarray<double>> mat_ptr = std::make_shared<std::valarray<double>>();
-                    *mat_ptr=mat_array;
-                    Cs_libri[I][{J, Ra}] = RI::Tensor<double>({atom_mu[I], atom_nw[I], atom_nw[J]}, mat_ptr);
-                }
-            }
-        }
-    }
-    else
-    {
-        // Not implemented
-        mpi_comm_global_h.barrier();
-        throw std::logic_error("not implemented");
-    }
-    g0w0_libri.set_Cs(Cs_libri, 0.0);
+    g0w0_libri.set_Cs(Cs_data.data_libri, 0.0);
     Profiler::stop("g0w0_build_spacetime_2");
 
     auto IJR_local_gf = dispatch_vector_prod(tot_atpair_ordered, Rlist, mpi_comm_global_h.myid, mpi_comm_global_h.nprocs, true, false);
@@ -138,7 +114,7 @@ void G0W0::build_spacetime_LibRI(
                         {
                             const auto &R = R_Wc.first;
                             // handle the <IJ(R)> block
-                            Wc_libri[I][{J, {R.x, R.y, R.z}}] = RI::Tensor<double>({nabf_I, nabf_J}, R_Wc.second.get_real().sptr());
+                            Wc_libri[static_cast<int>(I)][{static_cast<int>(J), {R.x, R.y, R.z}}] = RI::Tensor<double>({nabf_I, nabf_J}, R_Wc.second.get_real().sptr());
                             // cout << "I " << I << " J " << J <<  " R " << R << " tau " << tau << endl ;
                             // cout << Wc_libri[I][{J, {R.x, R.y, R.z}}] << endl;
                             // handle the <JI(R)> block
@@ -148,7 +124,7 @@ void G0W0::build_spacetime_LibRI(
                             const auto Wc_IJmR = J_RWc.second.at(minusR).get_real().get_transpose();
                             // cout << R_Wc.second << endl;
                             // cout << Wc_IJmR << endl;
-                            Wc_libri[J][{I, {R.x, R.y, R.z}}] = RI::Tensor<double>({nabf_J, nabf_I}, Wc_IJmR.sptr());
+                            Wc_libri[static_cast<int>(J)][{static_cast<int>(I), {R.x, R.y, R.z}}] = RI::Tensor<double>({nabf_J, nabf_I}, Wc_IJmR.sptr());
                         }
                     }
                 }
@@ -188,7 +164,7 @@ void G0W0::build_spacetime_LibRI(
                                                               atomic_basis_wfc.get_global_index(J, j));
                             }
                         std::shared_ptr<std::valarray<double>> mat_ptr = std::make_shared<std::valarray<double>>(gf_IJ_block.c, gf_IJ_block.size);
-                        gf_libri[I][{J, {R.x, R.y, R.z}}] = RI::Tensor<double>({n_I, n_J}, mat_ptr);
+                        gf_libri[static_cast<int>(I)][{static_cast<int>(J), {R.x, R.y, R.z}}] = RI::Tensor<double>({n_I, n_J}, mat_ptr);
                     }
                 }
                 size_t n_obj_gf_libri = 0;
