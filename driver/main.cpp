@@ -249,7 +249,7 @@ int main(int argc, char **argv)
     {
         if (mpi_comm_global_h.is_root()) lib_printf("Complete copy of Cs and V on each process\n");
         local_atpair = generate_atom_pair_from_nat(natom, false);
-        read_Cs("./", Params::cs_threshold,local_atpair);
+        read_Cs("./", Params::cs_threshold, local_atpair, Params::binary_input);
         read_Vq_full("./", "coulomb_mat", false);
     }
 

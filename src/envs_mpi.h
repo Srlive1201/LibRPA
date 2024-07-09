@@ -13,6 +13,7 @@
 //! @namespace LIBRPA           Global namespace for LibRPA functions and classes
 //! @namespace LIBRPA::envs     Facilities regarding computation envrionment
 //! @namespace LIBRPA::utils    Utilities functions
+//! @namespace LIBRPA::app      Functions for applications, e.g. RPA correlation, exact-exchange matrix
 
 namespace LIBRPA
 {

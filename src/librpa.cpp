@@ -12,7 +12,6 @@
 
 #include <stdlib.h>
 #include <cstring>
-#include <valarray>
 
 #include "envs_mpi.h"
 #include "envs_io.h"
@@ -29,6 +28,7 @@
 #include "ri.h"
 
 #ifdef LIBRPA_USE_LIBRI
+#include <initializer_list>
 #include <RI/global/Tensor.h>
 #else
 #include "libri_stub.h"
@@ -207,8 +207,8 @@ void set_ibz2bz_index_and_weight(const int nk_irk, const int* ibz2bz_index, cons
 
 void set_ao_basis_aux(int I, int J, int nbasis_i, int nbasis_j, int naux_mu, int* R, double* Cs_in, int insert_index_only)
 {
-    atom_nw.insert(pair<atom_t, int>(I, nbasis_i));
-    atom_mu.insert(pair<atom_t, int>(I, naux_mu));
+    atom_nw.insert(pair<atom_t, size_t>(I, nbasis_i));
+    atom_mu.insert(pair<atom_t, size_t>(I, naux_mu));
 
     if (insert_index_only)
     {
@@ -225,10 +225,12 @@ void set_ao_basis_aux(int I, int J, int nbasis_i, int nbasis_j, int naux_mu, int
     if (Cs_data.use_libri)
     {
         const std::array<int, 3> Ra{R[0], R[1], R[2]};
-        // RI tensor uses ABF as slowest index, so we need transpose first with the help of matrix object
-        matrix_m<double> mat(nbasis_i * nbasis_j, naux_mu, Cs_in, MAJOR::ROW);
-        mat.transpose();
-        Cs_data.data_libri[I][{J, Ra}] = RI::Tensor<double>({naux_mu, nbasis_i, nbasis_j}, mat.dataobj.data);
+        // RI tensor uses ABF as slowest index, so we need transpose first with the help of matrix object.
+        // This is equivalent to convert the data layout from original row-major to column-major.
+        matrix_m<double> mat(nbasis_i * nbasis_j, naux_mu, Cs_in, MAJOR::ROW, MAJOR::COL);
+        const std::initializer_list<std::size_t>
+            shape{static_cast<std::size_t>(naux_mu), static_cast<std::size_t>(nbasis_i), static_cast<std::size_t>(nbasis_j)};
+        Cs_data.data_libri[I][{J, Ra}] = RI::Tensor<double>(shape, mat.dataobj.data);
     }
     else
     {

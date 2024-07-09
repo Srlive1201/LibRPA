@@ -277,7 +277,7 @@ void map_block_to_IJ_storage(map<int, map<int, matrix_m<T>>> &IJmap,
             atbasis_row.get_local_index(i_glo, I, iI);
             atbasis_col.get_local_index(j_glo, J, jJ);
             if (IJmap.count(I) == 0 || IJmap.at(I).count(J) == 0 || IJmap.at(I).at(J).size() == 0)
-                IJmap[I][J] = matrix_m<T>{atbasis_row.get_atom_nb(I), atbasis_col.get_atom_nb(J), major_map};
+                IJmap[I][J] = matrix_m<T>{static_cast<int>(atbasis_row.get_atom_nb(I)), static_cast<int>(atbasis_col.get_atom_nb(J)), major_map};
             IJmap[I][J](iI, jJ) = mat_lo(i_lo, j_lo);
         }
 }

@@ -114,7 +114,7 @@ void G0W0::build_spacetime_LibRI(
                         {
                             const auto &R = R_Wc.first;
                             // handle the <IJ(R)> block
-                            Wc_libri[I][{J, {R.x, R.y, R.z}}] = RI::Tensor<double>({nabf_I, nabf_J}, R_Wc.second.get_real().sptr());
+                            Wc_libri[static_cast<int>(I)][{static_cast<int>(J), {R.x, R.y, R.z}}] = RI::Tensor<double>({nabf_I, nabf_J}, R_Wc.second.get_real().sptr());
                             // cout << "I " << I << " J " << J <<  " R " << R << " tau " << tau << endl ;
                             // cout << Wc_libri[I][{J, {R.x, R.y, R.z}}] << endl;
                             // handle the <JI(R)> block
@@ -124,7 +124,7 @@ void G0W0::build_spacetime_LibRI(
                             const auto Wc_IJmR = J_RWc.second.at(minusR).get_real().get_transpose();
                             // cout << R_Wc.second << endl;
                             // cout << Wc_IJmR << endl;
-                            Wc_libri[J][{I, {R.x, R.y, R.z}}] = RI::Tensor<double>({nabf_J, nabf_I}, Wc_IJmR.sptr());
+                            Wc_libri[static_cast<int>(J)][{static_cast<int>(I), {R.x, R.y, R.z}}] = RI::Tensor<double>({nabf_J, nabf_I}, Wc_IJmR.sptr());
                         }
                     }
                 }
@@ -164,7 +164,7 @@ void G0W0::build_spacetime_LibRI(
                                                               atomic_basis_wfc.get_global_index(J, j));
                             }
                         std::shared_ptr<std::valarray<double>> mat_ptr = std::make_shared<std::valarray<double>>(gf_IJ_block.c, gf_IJ_block.size);
-                        gf_libri[I][{J, {R.x, R.y, R.z}}] = RI::Tensor<double>({n_I, n_J}, mat_ptr);
+                        gf_libri[static_cast<int>(I)][{static_cast<int>(J), {R.x, R.y, R.z}}] = RI::Tensor<double>({n_I, n_J}, mat_ptr);
                     }
                 }
                 size_t n_obj_gf_libri = 0;
