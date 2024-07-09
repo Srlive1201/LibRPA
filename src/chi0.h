@@ -7,6 +7,7 @@
 #include <set>
 #include "meanfield.h"
 #include "timefreq.h"
+#include "atoms.h"
 #include "ri.h"
 #include "vector3_order.h"
 
