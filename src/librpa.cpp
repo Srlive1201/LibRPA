@@ -220,7 +220,13 @@ void set_ao_basis_aux(int I, int J, int nbasis_i, int nbasis_j, int naux_mu, int
     int cs_size = nbasis_i * nbasis_j * naux_mu;
     //(*cs_ptr).c=Cs_in;
 
-    Cs_data.use_libri = LIBRPA::parallel_routing == LIBRPA::ParallelRouting::LIBRI;
+    /*
+     * LIBRPA::parallel_routing may not be properly set when parsing to set_ao_basis_aux.
+     * Therefore using Params::parallel_routing string to check, because
+     * Params are required to set up after the environment initialization and before data transfer.
+     * */
+    // Cs_data.use_libri = LIBRPA::parallel_routing == LIBRPA::ParallelRouting::LIBRI;
+    Cs_data.use_libri = Params::parallel_routing == "libri";
 
     if (Cs_data.use_libri)
     {

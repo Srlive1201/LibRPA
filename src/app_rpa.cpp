@@ -42,10 +42,6 @@ void get_rpa_correlation_energy_(std::complex<double> &rpa_corr,
     }
 
     mpi_comm_global_h.barrier();
-    if (mpi_comm_global_h.myid == 0)
-    {
-        cout << "Initialization finished, start task job from myid\n";
-    }
 
     Profiler::start("chi0_build", "Build response function chi0");
     chi0.build(Cs_data, Rlist, period, local_atpair, qlist, TFGrids::get_grid_type(Params::tfgrids_type), true);
