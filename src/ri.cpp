@@ -23,7 +23,14 @@ vector<atpair_t> tot_atpair;
 vector<atpair_t> local_atpair;
 vector<atpair_t> tot_atpair_ordered;
 
-atpair_R_mat_t Cs;
+void Cs_LRI::clear()
+{
+    this->data_IJR.clear();
+    this->data_libri.clear();
+}
+
+Cs_LRI Cs_data;
+
 atpair_k_cplx_mat_t Vq;
 atpair_k_cplx_mat_t Vq_cut;
 map<Vector3_Order<double>, ComplexMatrix> Vq_block_loc;
@@ -165,6 +172,13 @@ void allreduce_atp_aux()
 {
     using LIBRPA::envs::mpi_comm_global;
     using LIBRPA::envs::mpi_comm_global_h;
+
+    if (Cs_data.use_libri)
+    {
+        return;
+    }
+
+    auto & Cs= Cs_data.data_IJR;
 
     for(int I=0;I!=natom;I++)
         for(int J=0;J!=natom;J++)

@@ -7,6 +7,8 @@
 #include "vector3_order.h"
 #ifdef LIBRPA_USE_LIBRI
 #include <RI/global/Tensor.h>
+#else
+#include "libri_stub.h"
 #endif
 
 template <typename TA, typename Tcell>

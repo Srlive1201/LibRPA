@@ -46,7 +46,7 @@ public:
 
     //! using LibRI
     void build_spacetime_LibRI(
-        const atpair_R_mat_t &LRI_Cs,
+        const Cs_LRI &LRI_Cs,
         const map<double, atom_mapping<std::map<Vector3_Order<double>,
                                                 matrix_m<complex<double>>>>::pair_t_old> &Wc_freq_q,
         const vector<Vector3_Order<int>> &Rlist,

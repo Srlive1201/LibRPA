@@ -32,13 +32,13 @@ using LIBRPA::parallel_routing;
 using LIBRPA::envs::ofs_myid;
 using LIBRPA::utils::lib_printf;
 
-void Chi0::build( atpair_R_mat_t &LRI_Cs,
-                   const vector<Vector3_Order<int>> &Rlist,
-                   const Vector3_Order<int> &R_period,
-                   const vector<atpair_t> &atpairs_ABF,
-                   const vector<Vector3_Order<double>> &qlist,
-                   TFGrids::GRID_TYPES gt, bool use_space_time)
-{   
+void Chi0::build(const Cs_LRI &Cs,
+                 const vector<Vector3_Order<int>> &Rlist,
+                 const Vector3_Order<int> &R_period,
+                 const vector<atpair_t> &atpairs_ABF,
+                 const vector<Vector3_Order<double>> &qlist,
+                 TFGrids::GRID_TYPES gt, bool use_space_time)
+{
     gf_save = gf_discard = 0;
     // reset chi0_q in case the method was called before
     chi0_q.clear();
@@ -90,12 +90,12 @@ void Chi0::build( atpair_R_mat_t &LRI_Cs,
             LIBRPA::utils::lib_printf("| Saved Green's function:     %zu\n", gf_save);
             LIBRPA::utils::lib_printf("| Discarded Green's function: %zu\n\n", gf_discard);
         }
-        build_chi0_q_space_time(LRI_Cs, R_period, atpairs_ABF, qlist);
+        build_chi0_q_space_time(Cs, R_period, atpairs_ABF, qlist);
     }
     else
     {
         // conventional method does not need to build Green's function explicitly
-        build_chi0_q_conventional(LRI_Cs, R_period, atpairs_ABF, qlist);
+        build_chi0_q_conventional(Cs, R_period, atpairs_ABF, qlist);
     }
 }
 
@@ -191,7 +191,7 @@ void Chi0::build_gf_Rt(Vector3_Order<int> R, double tau)
     Profiler::stop("cal_Green_func");
 }
 
-void Chi0::build_chi0_q_space_time( atpair_R_mat_t &LRI_Cs,
+void Chi0::build_chi0_q_space_time(const Cs_LRI &Cs,
                                    const Vector3_Order<int> &R_period,
                                    const vector<atpair_t> &atpairs_ABF,
                                    const vector<Vector3_Order<double>> &qlist)
@@ -201,24 +201,24 @@ void Chi0::build_chi0_q_space_time( atpair_R_mat_t &LRI_Cs,
     {
         if (mpi_comm_global_h.is_root())
             cout<<"Use LibRI for chi0"<<endl;
-        build_chi0_q_space_time_LibRI_routing(LRI_Cs, R_period, atpairs_ABF, qlist);
+        build_chi0_q_space_time_LibRI_routing(Cs, R_period, atpairs_ABF, qlist);
 
     }
     else if (parallel_routing == ParallelRouting::R_TAU)
     {
         // if (para_mpi.is_master())
         //     cout << "R_tau_routing" << endl;
-        build_chi0_q_space_time_R_tau_routing(LRI_Cs, R_period, atpairs_ABF, qlist);
+        build_chi0_q_space_time_R_tau_routing(Cs, R_period, atpairs_ABF, qlist);
     }
     else
     {
         // if (para_mpi.is_master())
         //     cout << "atom_pair_routing" << endl;
-        build_chi0_q_space_time_atom_pair_routing(LRI_Cs, R_period, atpairs_ABF, qlist);
+        build_chi0_q_space_time_atom_pair_routing(Cs, R_period, atpairs_ABF, qlist);
     }
 }
 
-void Chi0::build_chi0_q_space_time_LibRI_routing( atpair_R_mat_t &LRI_Cs,
+void Chi0::build_chi0_q_space_time_LibRI_routing(const Cs_LRI &Cs,
                                                  const Vector3_Order<int> &R_period,
                                                  const vector<atpair_t> &atpairs_ABF,
                                                  const vector<Vector3_Order<double>> &qlist)
@@ -259,58 +259,29 @@ void Chi0::build_chi0_q_space_time_LibRI_routing( atpair_R_mat_t &LRI_Cs,
     auto Rlist_local = dispatch_vector(Rlist_gf, mpi_comm_global_h.myid, mpi_comm_global_h.nprocs, true);
     auto s0_s1 = get_s0_s1_for_comm_map2_first<atom_t, int>(atpairs_ABF);
 
-    std::map<int, std::map<std::pair<int,std::array<int,3>>,RI::Tensor<double>>> Cs_libri;
-
-    Profiler::start("chi0_libri_routing_init_cs", "Initialize Cs");
-    if(mpi_comm_global_h.is_root())
-    {
-        printf("Begin to Cs_libri !!! \n");
-        LIBRPA::utils::display_free_mem();
-        // printf("chi0_freq_q size: %d,  freq: %f, q:( %f, %f, %f )\n",chi0_wq.size(),freq, q.x,q.y,q.z );
-    }
-    for ( auto &I_JRCs: LRI_Cs)
-    {
-        const auto &I = I_JRCs.first;
-        for ( auto &J_RCs: I_JRCs.second)
-        {
-            const auto &J = J_RCs.first;
-            for ( auto &R_Cs: J_RCs.second)
-            {
-                const auto &R = R_Cs.first;
-                auto &C = R_Cs.second;
-                const std::array<int,3> Ra{R.x,R.y,R.z};
-                const auto mat = transpose(*C);
-                std::valarray<double> mat_array(mat.c, mat.size);
-                std::shared_ptr<std::valarray<double>> mat_ptr = std::make_shared<std::valarray<double>>();
-                *mat_ptr=mat_array;
-                Cs_libri[I][{J, Ra}] = RI::Tensor<double>({atom_mu[I], atom_nw[I], atom_nw[J]}, mat_ptr);
-                C.reset();
-            }
-        }
-    }
-    Profiler::stop("chi0_libri_routing_init_cs");
     Profiler::start("chi0_libri_routing_set_cs", "Set Cs");
     // if (Params::debug)
     //     ofs_myid << Cs_libri;
     // cout << "Setting Cs for rpa object" << endl;
-    LIBRPA::utils::release_free_mem();
-    if(mpi_comm_global_h.is_root())
-    {
-        printf("Begin set Cs !!! \n");
-        LIBRPA::utils::display_free_mem();
-        // printf("chi0_freq_q size: %d,  freq: %f, q:( %f, %f, %f )\n",chi0_wq.size(),freq, q.x,q.y,q.z );
-    }
-    
-    rpa.set_Cs(Cs_libri, Params::libri_chi0_threshold_C);
-    Cs_libri.clear();
-    LIBRPA::utils::release_free_mem();
+    // LIBRPA::utils::release_free_mem();
+    // if(mpi_comm_global_h.is_root())
+    // {
+    //     printf("Begin set Cs !!! \n");
+    //     LIBRPA::utils::display_free_mem();
+    //     // printf("chi0_freq_q size: %d,  freq: %f, q:( %f, %f, %f )\n",chi0_wq.size(),freq, q.x,q.y,q.z );
+    // }
 
-    if(mpi_comm_global_h.is_root())
-    {
-        printf("After set Cs !!! \n");
-        LIBRPA::utils::display_free_mem();
-        // printf("chi0_freq_q size: %d,  freq: %f, q:( %f, %f, %f )\n",chi0_wq.size(),freq, q.x,q.y,q.z );
-    }
+    rpa.set_Cs(Cs.data_libri, Params::libri_chi0_threshold_C);
+
+    // Cs_libri.clear();
+    // LIBRPA::utils::release_free_mem();
+    //
+    // if(mpi_comm_global_h.is_root())
+    // {
+    //     printf("After set Cs !!! \n");
+    //     LIBRPA::utils::display_free_mem();
+    //     // printf("chi0_freq_q size: %d,  freq: %f, q:( %f, %f, %f )\n",chi0_wq.size(),freq, q.x,q.y,q.z );
+    // }
     // cout << "Cs of rpa object set" << endl;
     Profiler::stop("chi0_libri_routing_set_cs");
 
@@ -457,11 +428,14 @@ void Chi0::build_chi0_q_space_time_LibRI_routing( atpair_R_mat_t &LRI_Cs,
 }
 
 
-void Chi0::build_chi0_q_space_time_R_tau_routing(const atpair_R_mat_t &LRI_Cs,
+void Chi0::build_chi0_q_space_time_R_tau_routing(const Cs_LRI &Cs,
                                                  const Vector3_Order<int> &R_period,
                                                  const vector<atpair_t> &atpairs_ABF,
                                                  const vector<Vector3_Order<double>> &qlist)
 {
+    assert (!Cs.use_libri);
+    const auto &LRI_Cs = Cs.data_IJR;
+
     Profiler::start("R_tau_routing", "Loop over R-tau");
     // taus and Rs to compute on MPI task
     // tend to calculate more Rs on one process
@@ -577,10 +551,10 @@ void Chi0::build_chi0_q_space_time_R_tau_routing(const atpair_R_mat_t &LRI_Cs,
     Profiler::stop("R_tau_routing");
 }
 
-void Chi0::build_chi0_q_space_time_atom_pair_routing(const atpair_R_mat_t &LRI_Cs,
-                                                 const Vector3_Order<int> &R_period,
-                                                 const vector<atpair_t> &atpairs_ABF,
-                                                 const vector<Vector3_Order<double>> &qlist)
+void Chi0::build_chi0_q_space_time_atom_pair_routing(const Cs_LRI &Cs,
+                                                     const Vector3_Order<int> &R_period,
+                                                     const vector<atpair_t> &atpairs_ABF,
+                                                     const vector<Vector3_Order<double>> &qlist)
 {
     Profiler::start("atom_pair_routing", "Loop over atom pairs");
     //auto tot_pair = dispatch_vector(atpairs_ABF, LIBRPA::mpi_comm_global_h.myid, para_mpi.get_size(), false);
@@ -589,6 +563,10 @@ void Chi0::build_chi0_q_space_time_atom_pair_routing(const atpair_R_mat_t &LRI_C
     omp_lock_t chi0_lock;
     omp_init_lock(&chi0_lock);
     double t_chi0_begin = omp_get_wtime();
+
+    assert (!Cs.use_libri);
+    const auto &LRI_Cs = Cs.data_IJR;
+
 #pragma omp parallel
     {
 #pragma omp for schedule(dynamic)
@@ -654,7 +632,7 @@ void Chi0::build_chi0_q_space_time_atom_pair_routing(const atpair_R_mat_t &LRI_C
         lib_printf("| total chi0 time: %f\n",t_chi0_end-t_chi0_begin);
 }
 
-matrix Chi0::compute_chi0_s_munu_tau_R(const atpair_R_mat_t &LRI_Cs,
+matrix Chi0::compute_chi0_s_munu_tau_R(const atpair_R_mat_t &Cs_IJR,
                                        const Vector3_Order<int> &R_period, 
                                        int spin_channel,
                                        atom_t Mu, atom_t Nu, double tau, Vector3_Order<int> R)
@@ -692,7 +670,7 @@ matrix Chi0::compute_chi0_s_munu_tau_R(const atpair_R_mat_t &LRI_Cs,
     matrix X_R2(i_num, j_num * nu_num);
     matrix X_conj_R2(i_num, j_num * nu_num);
 
-    for (const auto &L_pair : Cs[J_index])
+    for (const auto &L_pair : Cs_IJR.at(J_index))
     {
         const auto L_index = L_pair.first;
         const size_t l_num = atom_nw[L_index];
@@ -736,7 +714,7 @@ matrix Chi0::compute_chi0_s_munu_tau_R(const atpair_R_mat_t &LRI_Cs,
     matrix X_conj_R2_rs(reshape_mat(i_num, j_num, nu_num, X_conj_R2));
     
     matrix O_sum(mu_num, nu_num);
-    for (const auto &K_pair : Cs[I_index])
+    for (const auto &K_pair : Cs_IJR.at(I_index))
     {
         const auto K_index = K_pair.first;
         const size_t k_num = atom_nw[K_index];
@@ -755,7 +733,7 @@ matrix Chi0::compute_chi0_s_munu_tau_R(const atpair_R_mat_t &LRI_Cs,
                 {
                     matrix N_R2(k_num, j_num * nu_num);
                     matrix N_conj_R2(k_num, j_num * nu_num);
-                    for (const auto &L_pair : Cs[J_index])
+                    for (const auto &L_pair : Cs_IJR.at(J_index))
                     {
                         const auto L_index = L_pair.first;
                         const size_t l_num = atom_nw[L_index];
@@ -855,7 +833,7 @@ matrix Chi0::compute_chi0_s_munu_tau_R(const atpair_R_mat_t &LRI_Cs,
     return O_sum;
 }
 
-void Chi0::build_chi0_q_conventional(const atpair_R_mat_t &LRI_Cs,
+void Chi0::build_chi0_q_conventional(const Cs_LRI &Cs,
                                      const Vector3_Order<int> &R_period,
                                      const vector<atpair_t> &atpair_ABF,
                                      const vector<Vector3_Order<double>> &qlist)

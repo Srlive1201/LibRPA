@@ -188,7 +188,7 @@ void librpa_main()
             local_atpair.push_back(iap);
         LIBRPA::utils::lib_printf("| process %d , local_atom_pair size:  %zu\n", mpi_comm_global_h.myid, local_atpair.size());
 
-        LIBRPA::utils::lib_printf("| process %d, size of Cs from local_atpair: %lu\n", mpi_comm_global_h.myid, Cs.size());
+        LIBRPA::utils::lib_printf("| process %d, size of Cs from local_atpair: %lu\n", mpi_comm_global_h.myid, Cs_data.data_IJR.size());
         // for(auto &ap:local_atpair)
         //     LIBRPA::utils::lib_printf("   |process %d , local_atom_pair:  %d,  %d\n", mpi_comm_global_h.myid,ap.first,ap.second);
     }
@@ -253,7 +253,7 @@ void librpa_main()
     if ( Params::task != "exx" )
     {
         Profiler::start("chi0_build", "Build response function chi0");
-        chi0.build(Cs, Rlist, period, local_atpair, qlist,
+        chi0.build(Cs_data, Rlist, period, local_atpair, qlist,
                    TFGrids::get_grid_type(Params::tfgrids_type), true);
         Profiler::stop("chi0_build");
     }
@@ -292,7 +292,7 @@ void librpa_main()
         // {
         //     Cs.erase(Cp.first);
         // }
-        Cs.clear();
+        Cs_data.clear();
         LIBRPA::utils::lib_printf("Cs have been cleaned!\n");
     }
 

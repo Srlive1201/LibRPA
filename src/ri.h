@@ -11,7 +11,13 @@
 #include "vector3_order.h"
 #include "atoms.h"
 #include "complexmatrix.h"
-using std::map;
+
+#ifdef LIBRPA_USE_LIBRI
+#include <RI/global/Tensor.h>
+#else
+#include "libri_stub.h"
+#endif
+#include "libri_utils.h"
 
 extern int n_irk_points;
 extern int natom;
@@ -36,8 +42,20 @@ typedef atom_mapping< map<Vector3_Order<int>, std::shared_ptr<ComplexMatrix>> >:
 //! type alias of atom-pair mapping to complex matrix indexed by reciprocal vector
 typedef atom_mapping< map<Vector3_Order<double>, std::shared_ptr<ComplexMatrix>> >::pair_t_old atpair_k_cplx_mat_t;
 
-//! Tri-coefficient of localized RI (LRI) in real space. ABF on the first atom of the atom pair
-extern atpair_R_mat_t Cs;
+struct Cs_LRI
+{
+public:
+    bool use_libri;
+    // Tri-coefficient of localized RI (LRI) in real space. ABF on the first atom of the atom pair
+    atpair_R_mat_t data_IJR;
+    // Tri-coefficient of localized RI (LRI) in real space, represented using LibRI tensor class
+    std::map<int, std::map<libri_types<int, int>::TAC, RI::Tensor<double>>> data_libri;
+
+    void clear();
+};
+
+extern Cs_LRI Cs_data;
+
 //! Coulomb matrix in ABF, represented in the reciprocal space.
 extern atpair_k_cplx_mat_t Vq;
 //! Truncated Coulomb matrix in ABF, represented in the reciprocal space.

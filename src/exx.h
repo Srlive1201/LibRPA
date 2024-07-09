@@ -24,7 +24,7 @@ class Exx
         void warn_dmat_IJR_nonzero_imag(const ComplexMatrix& dmat_cplx,
                                         const int& ispin, const atom_t& I, const atom_t& J,
                                         const Vector3_Order<int> R);
-        void build_exx_orbital_energy_LibRI(const atpair_R_mat_t& LRI_Cs,
+        void build_exx_orbital_energy_LibRI(const Cs_LRI &Cs,
                                             const vector<Vector3_Order<int>> &Rlist,
                                             const Vector3_Order<int> &R_period,
                                             const atpair_R_mat_t& coul_mat);
@@ -42,7 +42,7 @@ class Exx
 
         Exx(const MeanField& mf, const vector<Vector3_Order<double>> &kfrac_list): mf_(mf), kfrac_list_(kfrac_list) {};
         //! Build and store the density matrix from the meanfield object
-        void build_exx_orbital_energy(const atpair_R_mat_t& LRI_Cs,
+        void build_exx_orbital_energy(const Cs_LRI &Cs,
                                       const vector<Vector3_Order<int>> &Rlist,
                                       const Vector3_Order<int> &R_period,
                                       const atpair_R_mat_t& coul_mat);

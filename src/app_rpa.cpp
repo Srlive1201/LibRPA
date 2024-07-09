@@ -48,7 +48,7 @@ void get_rpa_correlation_energy_(std::complex<double> &rpa_corr,
     }
 
     Profiler::start("chi0_build", "Build response function chi0");
-    chi0.build(Cs, Rlist, period, local_atpair, qlist, TFGrids::get_grid_type(Params::tfgrids_type), true);
+    chi0.build(Cs_data, Rlist, period, local_atpair, qlist, TFGrids::get_grid_type(Params::tfgrids_type), true);
     Profiler::stop("chi0_build");
 
     if (Params::debug)
@@ -76,7 +76,7 @@ void get_rpa_correlation_energy_(std::complex<double> &rpa_corr,
 
     // NOTE: Cs is cleaned up.
     // This means that the behavior will be undefined if this function is called again
-    Cs.clear();
+    Cs_data.clear();
     LIBRPA::utils::release_free_mem();
 
     mpi_comm_global_h.barrier();

@@ -61,7 +61,7 @@ std::vector<double> compute_exx_orbital_energy_(int i_state_low, int i_state_hig
     const auto VR = FT_Vq(Vq_cut, Rlist, true);
     // TODO: kfrac_list should depend on i_kpoints_compute
     auto exx = LIBRPA::Exx(meanfield, kfrac_list);
-    exx.build_exx_orbital_energy(Cs, Rlist, period, VR);
+    exx.build_exx_orbital_energy(Cs_data, Rlist, period, VR);
 
     for (int isp = 0; isp != meanfield.get_n_spins(); isp++)
     {

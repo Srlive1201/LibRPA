@@ -19,8 +19,8 @@
 #include "parallel_mpi.h"
 #include "params.h"
 #include "pbc.h"
+#include "atoms.h"
 #include "profiler.h"
-#include "ri.h"
 #include "scalapack_connector.h"
 #include <omp.h>
 #if defined(__MACH__)
