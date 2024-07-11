@@ -6,11 +6,6 @@
 #include <dirent.h>
 #include <algorithm>
 #include <unordered_map>
-#if defined(__MACH__)
-#include <malloc/malloc.h> // for malloc_zone_pressure_relief and malloc_default_zone
-#else
-#include <malloc.h>
-#endif
 #include "atoms.h"
 #include "atomic_basis.h"
 #include "matrix.h"
@@ -22,6 +17,7 @@
 #include "stl_io_helper.h"
 
 #include "librpa.h"
+#include "utils_mem.h"
 
 // using std::cout;
 // using std::endl;
@@ -82,7 +78,6 @@ void read_band(const string &file_path, MeanField &mf)
 
 int read_vxc(const string &file_path, std::vector<matrix> &vxc)
 {
-    // cout << "Begin to read aims-band_out" << endl;
     ifstream infile;
     infile.open(file_path);
     double ha, ev;
@@ -1069,11 +1064,7 @@ void erase_Cs_from_local_atp(atpair_R_mat_t &Cs, vector<atpair_t> &local_atpair)
     //     {
     //         Cs.erase(Ip.first);
     //     }
-    #ifndef __MACH__
-    malloc_trim(0);
-    #else
-    malloc_zone_pressure_relief(malloc_default_zone(), 0);
-    #endif
+    LIBRPA::utils::release_free_mem();
     LIBRPA::utils::lib_printf("| process %d, size of Cs after erase: %lu\n", LIBRPA::envs::mpi_comm_global_h.myid, Cs.size());
 }
 

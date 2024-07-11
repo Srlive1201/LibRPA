@@ -4,8 +4,6 @@
 #ifndef READ_DATA_H
 #define READ_DATA_H
 
-#include <map>
-#include <set>
 #include <string>
 
 #include "matrix.h"
@@ -13,7 +11,6 @@
 #include "ri.h"
 #include "vector3_order.h"
 
-using std::map;
 using std::string;
 
 void read_band(const string &file_path, MeanField &mf);
