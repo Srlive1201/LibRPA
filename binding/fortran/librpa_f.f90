@@ -233,7 +233,7 @@ contains
    !> @brief Copy a Fortran character varaible to C char array
    !!
    !> adapted from https://fortranwiki.org/fortran/show/c_interface_module
-   subroutine f_c_string_chars(f_string, c_string, c_string_len)
+   subroutine f_c_string_chars(f_string, c_string, c_string_len, trim_f)
       use iso_c_binding, only: c_null_char
       implicit none
 
@@ -241,10 +241,15 @@ contains
       character(len=1, kind=c_char), dimension(*), intent(out) :: c_string
       ! Max string length, INCLUDING THE TERMINAL NUL
       integer, intent(in), optional :: c_string_len
+      logical, intent(in), optional :: trim_f
 
       integer :: i, strlen
 
-      strlen = len(f_string)
+      if (present(trim_f) .and. trim_f) then
+         strlen = len(trim(f_string))
+      else
+         strlen = len(f_string)
+      end if
       ! print*, "strlen ", strlen
       if (present(c_string_len)) then
          if (c_string_len <= 0) return
@@ -316,12 +321,12 @@ contains
 
       if (f2c) then
          ! Copy Fortran parameters to C
-         call f_c_string_chars(params%task             , params_c%task)
-         call f_c_string_chars(params%output_file      , params_c%output_file)
-         call f_c_string_chars(params%output_dir       , params_c%output_dir)
-         call f_c_string_chars(params%parallel_routing , params_c%parallel_routing)
-         call f_c_string_chars(params%tfgrids_type     , params_c%tfgrids_type)
-         call f_c_string_chars(params%DFT_software     , params_c%DFT_software)
+         call f_c_string_chars(params%task             , params_c%task            , trim_f=.true.)
+         call f_c_string_chars(params%output_file      , params_c%output_file     , trim_f=.true.)
+         call f_c_string_chars(params%output_dir       , params_c%output_dir      , trim_f=.true.)
+         call f_c_string_chars(params%parallel_routing , params_c%parallel_routing, trim_f=.true.)
+         call f_c_string_chars(params%tfgrids_type     , params_c%tfgrids_type    , trim_f=.true.)
+         call f_c_string_chars(params%DFT_software     , params_c%DFT_software    , trim_f=.true.)
 
          params_c%nfreq = params%nfreq
 
