@@ -13,7 +13,7 @@ template <typename... Args>
 void lib_printf(const char* format, Args&&... args)
 {
     envs::redirect_stdout ?
-        fprintf(envs::pfile_redirect, format, std::forward<Args>(args)...) :
+        (fprintf(envs::pfile_redirect, format, std::forward<Args>(args)...), fflush(envs::pfile_redirect)):
         printf(format, std::forward<Args>(args)...);
 }
 
