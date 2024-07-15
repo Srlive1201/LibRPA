@@ -16,13 +16,12 @@ LibRPA
 - Seamless integration with various DFT packages through flexible interfaces.
 
 
-
 **Quick Links:**
 
-- `Installation Guide <install.html>`_
-- `Driver Usage <driver.html>`_
-- `Compile Options <user_guide/compile_options.html>`_
-- `Input Parameters <user_guide/input_parameters.html>`_
+- :doc:`Installation Guide <install>`
+- :doc:`Driver Usage <driver>`
+- :doc:`Compile Options <user_guide/compile_options>`
+- :doc:`Input Parameters <user_guide/input_parameters>`
 
 .. toctree::
    :hidden:
@@ -52,7 +51,7 @@ LibRPA
 .. toctree::
    :hidden:
    :maxdepth: 1
-   :caption: Development 
+   :caption: Developer Zone
 
    develop/documentation
    develop/design
