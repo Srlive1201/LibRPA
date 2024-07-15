@@ -3,6 +3,7 @@
 #include <regex>
 #include <fstream>
 #include <sstream>
+#include <iostream>
 
 #include "params.h"
 
