@@ -57,12 +57,16 @@ extensions = [
 doxygen_build_dir = "doxygen/librpa"
 doxylink = {
     "librpa": (f"{doxygen_build_dir}/html/tagfile.xml", f"{doxygen_build_dir}/html"),
-    "params": (f"{doxygen_build_dir}/html/tagfile.xml", f"{doxygen_build_dir}/html"),
 }
 
 # -- Options for MyST output -------------------------------------------------
 # myst_heading_anchors = 3
 myst_heading_anchors = True
+# Making Sphinx Support Markdown Math Formulas
+myst_enable_extensions = [
+    "dollarmath",  # Enable $ symbol for inline math
+    "amsmath",     # Enable $$ symbol for display math
+]
 
 # -- Options for todo extension -------------------------------------------------
 # todo_include_todos = True
@@ -80,13 +84,6 @@ html_title = "LibRPA Documentation"
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
-
-
-# Making Sphinx Support Markdown Math Formulas
-myst_enable_extensions = [
-    "dollarmath",  # Enable $ symbol for inline math
-    "amsmath",     # Enable $$ symbol for display math
-]
 
 # Configure MathJax
 mathjax3_config = {

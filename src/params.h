@@ -4,10 +4,7 @@
  */
 #ifndef PARAMS_H
 #define PARAMS_H
-#include <iostream>
-#include <cstdarg>
 
-#pragma once
 #include <string>
 
 //! a simple struct to collect all runtime parameters
