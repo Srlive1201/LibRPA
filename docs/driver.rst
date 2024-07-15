@@ -4,7 +4,7 @@ Driver Usage
 Data preparation
 ----------------
 
-To run the LibRPA driver for RPA/GW calculation, you need to export necessary
+To run the LibRPA driver for RPA/*GW* calculation, you need to export necessary
 data from atomic-basis first-principles code.
 The data include
 
@@ -17,12 +17,15 @@ The data include
 FHI-aims
 ~~~~~~~~
 
-Export of data required by LibRPA from FHI-aims is supported in the latest
-master branch. You can switch it on by adding to your ``control.in`` file:
+Export of data required by LibRPA from FHI-aims is supported since the release version
+231212 and also in the latest master branch. You can switch it on by adding to your ``control.in`` file:
 
 .. code-block:: text
 
-   print_input_librpa .true.
+   # since 231212
+   print_librpa_input .true.
+   # since 240507
+   output librpa
 
 For RPA calculation (``total_energy_method rpa`` in ``control.in``), this will dump a few text files:
 
@@ -56,7 +59,7 @@ The LibRPA driver can be called using the following syntax:
 
 .. code-block:: bash
 
-   /path/to/LibRPA/build/librpa_driver.exe <ngrids> <green-func-thres>
+   /path/to/LibRPA/build/chi0_main.exe <ngrids> <green-func-thres>
 
 where ``<ngrids>`` is the number of time/frequency grids to use and
 ``<green-func-thres>`` is the threshold to prune the Green's function in
@@ -65,7 +68,7 @@ for example
 
 .. code-block:: bash
 
-   mpirun -np <nprocs> /path/to/LibRPA/build/librpa_driver.exe <ngrids> <green-func-thres>
+   mpirun -np <nprocs> /path/to/LibRPA/build/chi0_main.exe <ngrids> <green-func-thres>
 
 where ``<nprocs>`` is the number of MPI processes.
 If additionaly you want to run with multiple threads, you need to specify the
@@ -74,7 +77,7 @@ environment variable ``OMP_NUM_THREADS``. For example
 .. code-block:: bash
 
    export OMP_NUM_THREADS=4
-   mpirun -np 4 /path/to/LibRPA/build/librpa_driver.exe 16 1e-12
+   mpirun -np 4 /path/to/LibRPA/build/chi0_main.exe 16 1e-12
 
 This will run the LibRPA RPA calculation with 16 time/frequency grids using
 4 MPI processes, each with 4 OpenMP threads.
@@ -82,7 +85,7 @@ This will run the LibRPA RPA calculation with 16 time/frequency grids using
 
 Without an input file ``librpa.in``, the above commands will all run the
 low-scaling RPA calculation.
-To perform other tasks such as exact-exchange or GW calculations, you
-need to specify the ``task`` keyword in ``librpa.in``. Please turn to the
+To perform other tasks such as exact-exchange or GW calculations or specify other parameters, you
+need an input file ``librpa.in``. Please refer to the
 :doc:`manual page of input parameters <user_guide/input_parameters>` for more
 information.
