@@ -43,7 +43,11 @@ For *periodic* GW calculation (``qpe_calc gw_expt`` in ``control.in``), addition
 ABACUS
 ~~~~~~
 
-TBA
+Similar to the case with FHI-aims, the latest master branch of ABACUS supports the export of files required by LibRPA. You only need to add the following line to the ``INPUT`` file of ABACUS:
+
+.. code-block:: text
+
+   rpa 1
 
 LibRPA run
 ----------
