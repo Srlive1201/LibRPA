@@ -1,6 +1,5 @@
 #include "task_rpa.h"
 
-#include "librpa.h"
 #include "app_rpa.h"
 #include "envs_mpi.h"
 #include "ri.h"
