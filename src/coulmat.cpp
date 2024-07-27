@@ -8,7 +8,6 @@ FT_Vq(const atpair_k_cplx_mat_t &coulmat_k, vector<Vector3_Order<int>> Rlist, bo
 {
     atpair_R_mat_t coulmat_R;
 
-    char fn[80];
     for (auto R: Rlist)
     {
         auto iteR = std::find(Rlist.cbegin(), Rlist.cend(), R);
@@ -87,6 +86,7 @@ FT_Vq(const atpair_k_cplx_mat_t &coulmat_k, vector<Vector3_Order<int>> Rlist, bo
         }
     }
     // myz debug: check the imaginary part of the coulomb matrix
+    // char fn[80];
     /* for (const auto & Mu_NuRV: VR) */
     /* { */
     /*     auto Mu = Mu_NuRV.first; */

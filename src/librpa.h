@@ -255,12 +255,35 @@ void compute_exx_orbital_energy(int i_state_low, int i_state_high,
                                 int n_kpoints_task, const int *i_kpoints_task,
                                 double *exx);
 
-// /*
-//  * @brief compute the screened Coulomb matrix in auxiliary basis representation
-//  */
-// void compute_screened_coulomb_abf(double _Complex *screened_coul);
+/*
+ * @brief Compute the real-space, imaginary-frequency screened Coulomb matrix in auxiliary basis representation
+ *
+ * @warning
+ * Not implemented yet.
+ */
+void compute_screened_coulomb_abf_realspace_imagfreq(int n_rvecs_task, const int *i_rvecs_task,
+                                                     int n_freqs_task, const int *i_freqs_task,
+                                                     double *screened_coul);
 
-// void compute_gw_quasiparticle_energy_kgrid(int n_qp_state_low, int n_qp_state_high, const double *vxc, double _Complex *screened_coul);
+/*
+ * @brief Compute the reciprocal-space, imaginary-frequency screened Coulomb matrix in auxiliary basis representation
+ *
+ * @warning
+ * Not implemented yet.
+ */
+void compute_screened_coulomb_abf_recpspace_imagfreq(int n_qpoints_task, const int *i_qpoints_task,
+                                                     int n_freqs_task, const int *i_freqs_task,
+                                                     double *screened_coul);
+
+/*
+ * @brief Compute the GW correlation self-energy for states at k-points on the k-grid
+ *
+ * @warning
+ * Not implemented yet.
+ */
+void compute_gw_quasiparticle_energy_kgrid(int n_qp_state_low, int n_qp_state_high,
+                                           int n_kpoints_task, const int *i_kpoints_task,
+                                           const double *vxc, double *sigma_c);
 
 #ifdef __cplusplus
 }
