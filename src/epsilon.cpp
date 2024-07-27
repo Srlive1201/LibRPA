@@ -1783,29 +1783,8 @@ compute_Wc_freq_q_blacs(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps
             ofs_myid << "Start construct couleps 2D block\n";
             std::flush(ofs_myid);
             mpi_comm_global_h.barrier();
-            for (const auto &IJ: set_IJ_nabf_nabf)
-            {
-                const auto &I = IJ.first;
-                const auto &J = IJ.second;
-                try
-                {
-                    IJq_coul.at(I).at({J, qa});
-                }
-                catch (const std::out_of_range& e)
-                {
-                    ofs_myid << "Fail to find " << I << " " << J << " " << qa << ": " << e.what() << "\n";
-                    std::flush(ofs_myid);
-                }
-                // collect_block_from_IJ_storage_syhe(
-                //     coul_block, desc_nabf_nabf, LIBRPA::atomic_basis_abf, IJ.first,
-                //     IJ.second, true, CONE, IJq_coul.at(I).at({J, qa}).ptr(), MAJOR::ROW);
-                collect_block_from_ALL_IJ_Tensor(coul_block, desc_nabf_nabf, LIBRPA::atomic_basis_abf,
-                                                 qa, true, CONE, IJq_coul, MAJOR::ROW);
-                // lib_printf("myid %d I %d J %d nr %d nc %d\n%s",
-                //        blacs_ctxt_global_h.myid, I, J,
-                //        coul_block.nr(), coul_block.nc(),
-                //        str(coul_block).c_str());
-            }
+            collect_block_from_ALL_IJ_Tensor(coul_block, desc_nabf_nabf, LIBRPA::atomic_basis_abf,
+                                             qa, true, CONE, IJq_coul, MAJOR::ROW);
             ofs_myid << "Done construct couleps 2D block\n";
             std::flush(ofs_myid);
             mpi_comm_global_h.barrier();
