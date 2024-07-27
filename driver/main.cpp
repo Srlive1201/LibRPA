@@ -3,6 +3,7 @@
 #include "envs_io.h"
 #include "envs_mpi.h"
 #include "epsilon.h"
+#include "timefreq.h"
 #include "librpa.h"
 #include "inputfile.h"
 #include "meanfield.h"

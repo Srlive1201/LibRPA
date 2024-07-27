@@ -8,6 +8,7 @@
 #include "ri.h"
 #include "pbc.h"
 #include "coulmat.h"
+#include "profiler.h"
 #include "meanfield.h"
 #include "exx.h"
 
@@ -52,7 +53,7 @@ std::vector<double> compute_exx_orbital_energy_(int i_state_low, int i_state_hig
         throw std::runtime_error(
             std::string(__FILE__) + ":" + std::to_string(__LINE__) + ":" + std::string(__FUNCTION__) + ": " +
             "i_state_low should be no larger than n_bands = " + std::to_string(meanfield.get_n_bands()) +
-            ", got " + std::to_string(i_state_low ));
+            ", got " + std::to_string(i_state_low));
     }
 
     Vector3_Order<int> period {kv_nmp[0], kv_nmp[1], kv_nmp[2]};

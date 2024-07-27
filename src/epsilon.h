@@ -1,3 +1,4 @@
+#pragma once
 #include "chi0.h"
 #include "ri.h"
 #include "atoms.h"
