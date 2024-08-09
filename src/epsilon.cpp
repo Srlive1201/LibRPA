@@ -1735,7 +1735,7 @@ compute_Wc_freq_q_blacs(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps
             Profiler::stop("epsilon_prepare_coulwc_sqrt_4");
         }
         Profiler::stop("epsilon_prepare_coulwc_sqrt");
-        lib_printf("Task %d: done coulwc sqrt\n", mpi_comm_global_h.myid);
+        ofs_myid << "Done coulwc sqrt\n";
 
         Profiler::start("epsilon_prepare_couleps_sqrt", "Prepare sqrt of bare Coulomb");
         // collect the block elements of coulomb matrices
@@ -1797,16 +1797,16 @@ compute_Wc_freq_q_blacs(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps
         // lib_printf("coul_block\n%s", str(coul_block).c_str());
 
         size_t n_singular;
-        lib_printf("Task %d: start power hemat couleps\n", mpi_comm_global_h.myid);
+        ofs_myid << "Start power hemat couleps\n";
         auto sqrtveig_blacs = power_hemat_blacs(coul_block, desc_nabf_nabf, coul_eigen_block, desc_nabf_nabf, n_singular, eigenvalues.c, 0.5, Params::sqrt_coulomb_threshold);
-        lib_printf("Task %d: done power hemat couleps\n", mpi_comm_global_h.myid);
+        ofs_myid << "Done power hemat couleps\n";
         // lib_printf("nabf %d nsingu %lu\n", n_abf, n_singular);
         // release sqrtv when the q-point is not Gamma, or macroscopic dielectric constant at imaginary frequency is not prepared
         if (epsmac_LF_imagfreq.empty() || !is_gamma_point(q))
             sqrtveig_blacs.clear();
         const size_t n_nonsingular = n_abf - n_singular;
         Profiler::stop("epsilon_prepare_couleps_sqrt");
-        lib_printf("Task %d: done couleps sqrt\n", mpi_comm_global_h.myid);
+        ofs_myid << "Done couleps sqrt\n";
 
         for (const auto &freq: chi0.tfg.get_freq_nodes())
         {
@@ -1857,10 +1857,6 @@ compute_Wc_freq_q_blacs(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps
             if (epsmac_LF_imagfreq.size() > 0 && is_gamma_point(q))
             {
                 ofs_myid << "Entering dielectric matrix head overwrite\n";
-                if (Params::debug)
-                {
-                    lib_printf("Task %4d: Entering dielectric matrix head overwrite\n", mpi_comm_global_h.myid);
-                }
                 // rotate to Coulomb-eigenvector basis
                 ScalapackConnector::pgemm_f('N', 'N', n_abf, n_nonsingular, n_abf, 1.0,
                         chi0_block.ptr(), 1, 1, desc_nabf_nabf.desc,
@@ -1874,10 +1870,7 @@ compute_Wc_freq_q_blacs(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps
                 const int jlo = desc_nabf_nabf.indx_g2l_c(n_nonsingular - 1);
                 if (ilo >= 0 && jlo >= 0)
                 {
-                    if (Params::debug)
-                    {
-                        lib_printf("Task %4d: perform the head element overwrite\n", mpi_comm_global_h.myid);
-                    }
+                    ofs_myid << "Perform the head element overwrite\n";
                     chi0_block(ilo, jlo) = 1.0 - epsmac_LF_imagfreq[ifreq];
                 }
                 // rotate back to ABF
@@ -2084,7 +2077,9 @@ FT_Wc_freq_q(const map<double, atom_mapping<std::map<Vector3_Order<double>, matr
     }
 
     if (mpi_comm_global_h.is_root())
+    {
         lib_printf("Done converting Wc(q,w) -> Wc(R,w)\n");
+    }
     mpi_comm_global_h.barrier();
 
     return Wc_freq_R;
