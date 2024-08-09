@@ -69,7 +69,6 @@ void task_g0w0()
 
     Profiler::start("read_vq_cut", "Load truncated Coulomb");
     read_Vq_full("./", "coulomb_cut_", true);
-    const auto VR = FT_Vq(Vq_cut, Rlist, true);
     Profiler::stop("read_vq_cut");
 
     Profiler::start("read_vxc", "Load DFT xc potential");
@@ -142,7 +141,15 @@ void task_g0w0()
 
     Profiler::start("g0w0_exx", "Build exchange self-energy");
     auto exx = LIBRPA::Exx(meanfield, kfrac_list);
-    exx.build_exx_orbital_energy(Cs_data, Rlist, period, VR);
+    {
+        Profiler::start("ft_vq_cut", "Fourier transform truncated Coulomb");
+        const auto VR = FT_Vq(Vq_cut, Rlist, true);
+        Profiler::stop("ft_vq_cut");
+
+        Profiler::start("g0w0_exx_real_work");
+        exx.build_exx_orbital_energy(Cs_data, Rlist, period, VR);
+        Profiler::stop("g0w0_exx_real_work");
+    }
     Profiler::stop("g0w0_exx");
     if (mpi_comm_global_h.is_root())
     {

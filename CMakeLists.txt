@@ -219,3 +219,5 @@ if(ENABLE_DRIVER)
 endif()
 
 add_subdirectory(src)
+
+message(STATUS "CMAKE_CXX_FLAGS: ${CMAKE_CXX_FLAGS}")
