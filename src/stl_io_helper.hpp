@@ -74,19 +74,23 @@ std::ostream& operator<<(std::ostream& os, const std::map<Tkey, Tval> &map_objs)
 template <typename Tkey1, typename Tkey2, typename Tval>
 void print_keys(std::ostream& os, const std::map<Tkey1, std::map<Tkey2, Tval>> &nested_map)
 {
+    os << "{";
     for (const auto& k1k2v: nested_map)
         for (const auto& k2v: k1k2v.second)
             os << k1k2v.first << " " << k2v.first << "\n";
+    os << "}";
 }
 
 //! Get total number of elements
 template <typename Tkey1, typename Tkey2, typename Tkey3, typename Tval>
 void print_keys(std::ostream& os, const std::map<Tkey1, std::map<Tkey2, std::map<Tkey3, Tval>>> &nested_map)
 {
+    os << "{";
     for (const auto& k1k2k3v: nested_map)
         for (const auto& k2k3v: k1k2k3v.second)
             for (const auto& k3v: k2k3v.second)
                 os << k1k2k3v.first << " " << k2k3v.first << " " << k3v.first << "\n";
+    os << "}";
 }
 
 //! Get total number of elements

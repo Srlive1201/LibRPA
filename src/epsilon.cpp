@@ -1660,7 +1660,8 @@ compute_Wc_freq_q_blacs(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps
         natom, blacs_ctxt_global_h.myid, blacs_ctxt_global_h.nprows,
         blacs_ctxt_global_h.npcols, blacs_ctxt_global_h.myprow,
         blacs_ctxt_global_h.mypcol);
-    ofs_myid << "atpair_local " << blacs_ctxt_global_h.myid << " " << atpair_local << endl;
+    ofs_myid << "atpair_local " << atpair_local << endl;
+    ofs_myid << "s0_s1 " << s0_s1 << endl;
     std::flush(ofs_myid);
 
     // IJ pair of Wc to be returned
@@ -1672,8 +1673,8 @@ compute_Wc_freq_q_blacs(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps
     }
 
     vector<Vector3_Order<double>> qpts;
-    for (const auto &qMuNuchi: chi0.get_chi0_q().at(chi0.tfg.get_freq_nodes()[0]))
-        qpts.push_back(qMuNuchi.first);
+    for (const auto &q_weight: irk_weight)
+        qpts.push_back(q_weight.first);
 
     vec<double> eigenvalues(n_abf);
 
@@ -1814,20 +1815,23 @@ compute_Wc_freq_q_blacs(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps
             chi0_block.zero_out();
             {
                 std::map<int, std::map<std::pair<int, std::array<double, 3>>, RI::Tensor<complex<double>>>> chi0_libri;
-                const auto &chi0_wq = chi0.get_chi0_q().at(freq).at(q);
-                for (const auto &M_Nchi: chi0_wq)
+                if (chi0.get_chi0_q().count(freq) > 0 && chi0.get_chi0_q().at(freq).count(q) > 0)
                 {
-                    const auto &M = M_Nchi.first;
-                    const auto n_mu = LIBRPA::atomic_basis_abf.get_atom_nb(M);
-                    for (const auto &N_chi: M_Nchi.second)
+                    const auto &chi0_wq = chi0.get_chi0_q().at(freq).at(q);
+                    for (const auto &M_Nchi: chi0_wq)
                     {
-                        const auto &N = N_chi.first;
-                        const auto n_nu = LIBRPA::atomic_basis_abf.get_atom_nb(N);
-                        const auto &chi = N_chi.second;
-                        std::valarray<complex<double>> chi_va(chi.c, chi.size);
-                        auto pchi = std::make_shared<std::valarray<complex<double>>>();
-                        *pchi = chi_va;
-                        chi0_libri[M][{N, qa}] = RI::Tensor<complex<double>>({n_mu, n_nu}, pchi);
+                        const auto &M = M_Nchi.first;
+                        const auto n_mu = LIBRPA::atomic_basis_abf.get_atom_nb(M);
+                        for (const auto &N_chi: M_Nchi.second)
+                        {
+                            const auto &N = N_chi.first;
+                            const auto n_nu = LIBRPA::atomic_basis_abf.get_atom_nb(N);
+                            const auto &chi = N_chi.second;
+                            std::valarray<complex<double>> chi_va(chi.c, chi.size);
+                            auto pchi = std::make_shared<std::valarray<complex<double>>>();
+                            *pchi = chi_va;
+                            chi0_libri[M][{N, qa}] = RI::Tensor<complex<double>>({n_mu, n_nu}, pchi);
+                        }
                     }
                 }
                 // ofs_myid << "chi0_libri" << endl << chi0_libri;
