@@ -296,7 +296,7 @@ void task_g0w0()
             }
 
             // display results
-            const std::string banner(90, '-');
+            const std::string banner(107, '-');
             printf("Printing quasi-particle energy [unit: eV]\n\n");
             for (int i_spin = 0; i_spin < meanfield.get_n_spins(); i_spin++)
             {
@@ -305,9 +305,9 @@ void task_g0w0()
                     const auto &k = kfrac_list[i_kpoint];
                     printf("spin %2d, k-point %4d: (%.5f, %.5f, %.5f) \n",
                             i_spin+1, i_kpoint+1, k.x, k.y, k.z);
-                    printf("%77s\n", banner.c_str());
+                    printf("%107s\n", banner.c_str());
                     printf("%5s %16s %16s %16s %16s %16s %16s\n", "State", "e_mf", "v_xc", "v_exx", "ReSigc", "ImSigc", "e_qp");
-                    printf("%77s\n", banner.c_str());
+                    printf("%107s\n", banner.c_str());
                     for (int i_state = 0; i_state < meanfield.get_n_bands(); i_state++)
                     {
                         const auto &eks_state = meanfield.get_eigenvals()[i_spin](i_kpoint, i_state) * RY2EV;

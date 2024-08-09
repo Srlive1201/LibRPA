@@ -66,7 +66,7 @@ int main(int argc, char **argv)
     using LIBRPA::utils::lib_printf;
 
     initialize(argc, argv);
-    cout << mpi_comm_global_h.str() << endl;
+    lib_printf("%s\n", mpi_comm_global_h.str().c_str());
     mpi_comm_global_h.barrier();
 
     /*
