@@ -172,9 +172,13 @@ void task_g0w0()
     vector<std::complex<double>> epsmac_LF_imagfreq(epsmac_LF_imagfreq_re.cbegin(), epsmac_LF_imagfreq_re.cend());
     map<double, atom_mapping<std::map<Vector3_Order<double>, matrix_m<complex<double>>>>::pair_t_old> Wc_freq_q;
     if (Params::use_scalapack_gw_wc)
+    {
         Wc_freq_q = compute_Wc_freq_q_blacs(chi0, Vq, Vq_cut, epsmac_LF_imagfreq);
+    }
     else
+    {
         Wc_freq_q = compute_Wc_freq_q(chi0, Vq, Vq_cut, epsmac_LF_imagfreq);
+    }
     Profiler::stop("g0w0_wc");
     if (Params::debug)
     { // debug, check Wc

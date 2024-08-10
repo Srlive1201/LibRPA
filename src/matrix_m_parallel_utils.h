@@ -291,6 +291,8 @@ matrix_m<std::complex<T>> power_hemat_blacs(matrix_m<std::complex<T>> &A_local,
                                             size_t &n_filtered, T *W, T power,
                                             const T &threshold = -1.e5)
 {
+    using LIBRPA::envs::ofs_myid;
+
     assert (A_local.is_col_major() && Z_local.is_col_major());
     const bool is_int_power = fabs(power - int(power)) < 1e-4;
     const int n = ad_A.m();
@@ -301,11 +303,23 @@ matrix_m<std::complex<T>> power_hemat_blacs(matrix_m<std::complex<T>> &A_local,
     const int blocksize_row_opt = min(ad_A.mb(), 128);
     const int blocksize_col_opt = min(ad_A.nb(), 128);
 
-    LIBRPA::Array_Desc ad_opt(ad_A.ictxt());
-    ad_opt.init(n, n, blocksize_row_opt, blocksize_col_opt, 0, 0);
-    auto A_local_opt = init_local_mat<std::complex<T>>(ad_opt, MAJOR::COL);
+    // initialize descriptor of array A for optimized block size
+    LIBRPA::Array_Desc ad_A_opt(ad_A.ictxt());
+    ad_A_opt.init(n, n, blocksize_row_opt, blocksize_col_opt, 0, 0);
+    auto A_local_opt = init_local_mat<std::complex<T>>(ad_A_opt, MAJOR::COL);
+    // NOTE: imply A and Z should be in the same context
     ScalapackConnector::pgemr2d_f(n, n, A_local.ptr(), 1, 1, ad_A.desc,
-                                  A_local_opt.ptr(), 1, 1, ad_opt.desc, ad_A.ictxt());
+                                  A_local_opt.ptr(), 1, 1, ad_A_opt.desc, ad_A.ictxt());
+
+    // initialize descriptor of array Z for optimized block size
+    if (ad_A.ictxt() != ad_Z.ictxt())
+    {
+        ofs_myid << "Warning(power_hemat_blacs): input contexts of A and Z are different!\n";
+    }
+    LIBRPA::Array_Desc ad_Z_opt(ad_Z.ictxt());
+    ad_Z_opt.init(n, n, blocksize_row_opt, blocksize_col_opt, 0, 0);
+    auto Z_local_opt = init_local_mat<std::complex<T>>(ad_Z_opt, MAJOR::COL);
+    // printf("Z_local_opt size: %d\n", Z_local_opt.size());
 
     Profiler::start("power_hemat_blacs_1");
     int lwork = -1, lrwork = -1, info = 0;
@@ -318,8 +332,8 @@ matrix_m<std::complex<T>> power_hemat_blacs(matrix_m<std::complex<T>> &A_local,
         T *Wquery = new T[1];
         // LIBRPA::utils::lib_printf("power_hemat_blacs descA %s\n", ad_A.info_desc().c_str());
         ScalapackConnector::pheev_f(jobz, uplo,
-                n, A_local_opt.ptr(), 1, 1, ad_opt.desc,
-                Wquery, Z_local.ptr(), 1, 1, ad_Z.desc, work, lwork, rwork, lrwork, info);
+                n, A_local_opt.ptr(), 1, 1, ad_A_opt.desc,
+                Wquery, Z_local_opt.ptr(), 1, 1, ad_A_opt.desc, work, lwork, rwork, lrwork, info);
         lwork = int(work[0].real());
         lrwork = int(rwork[0]);
         delete [] work, Wquery, rwork;
@@ -330,9 +344,13 @@ matrix_m<std::complex<T>> power_hemat_blacs(matrix_m<std::complex<T>> &A_local,
     work = new std::complex<T> [lwork];
     rwork = new T [lrwork];
     ScalapackConnector::pheev_f(jobz, uplo,
-            n, A_local_opt.ptr(), 1, 1, ad_opt.desc,
-            W, Z_local.ptr(), 1, 1, ad_Z.desc, work, lwork, rwork, lrwork, info);
+            n, A_local_opt.ptr(), 1, 1, ad_A_opt.desc,
+            W, Z_local_opt.ptr(), 1, 1, ad_Z_opt.desc, work, lwork, rwork, lrwork, info);
     delete [] work, rwork;
+    // Optimized A no longer used
+    A_local_opt.clear();
+    ScalapackConnector::pgemr2d_f(n, n, Z_local_opt.ptr(), 1, 1, ad_Z_opt.desc,
+                                  Z_local.ptr(), 1, 1, ad_Z.desc, ad_Z.ictxt());
     Profiler::stop("power_hemat_blacs_2");
 
     // check the number of non-singular eigenvalues,
@@ -353,9 +371,13 @@ matrix_m<std::complex<T>> power_hemat_blacs(matrix_m<std::complex<T>> &A_local,
     for (int i = n_filtered; i != n; i++)
     {
         if (W[i] < 0 && !is_int_power)
+        {
             LIBRPA::utils::lib_printf("Warning! unfiltered negative eigenvalue with non-integer power: # %d ev = %f , pow = %f\n", i, W[i], power);
+        }
         if (fabs(W[i]) < 1e-10 && power < 0)
+        {
             LIBRPA::utils::lib_printf("Warning! unfiltered nearly-singular eigenvalue with negative power: # %d ev = %f , pow = %f\n", i, W[i], power);
+        }
         W_temp[i] = std::pow(W[i], power);
     }
     Profiler::stop("power_hemat_blacs_3");
@@ -367,12 +389,14 @@ matrix_m<std::complex<T>> power_hemat_blacs(matrix_m<std::complex<T>> &A_local,
 
     Profiler::start("power_hemat_blacs_4");
     // create scaled eigenvectors
-    auto scaled_Z_local = Z_local.copy();
+    auto scaled = Z_local_opt.copy();
     for (int i = 0; i != n; i++)
-        ScalapackConnector::pscal_f(n, W_temp[i], scaled_Z_local.ptr(), 1, 1+i, ad_Z.desc, 1);
-    ScalapackConnector::pgemm_f('N', 'C', n, n, n, 1.0, Z_local.ptr(), 1, 1, ad_Z.desc, scaled_Z_local.ptr(), 1, 1, ad_Z.desc, 0.0, A_local.ptr(), 1, 1, ad_A.desc);
+    {
+        ScalapackConnector::pscal_f(n, W_temp[i], scaled.ptr(), 1, 1+i, ad_Z_opt.desc, 1);
+    }
+    ScalapackConnector::pgemm_f('N', 'C', n, n, n, 1.0, Z_local_opt.ptr(), 1, 1, ad_Z_opt.desc, scaled.ptr(), 1, 1, ad_Z_opt.desc, 0.0, A_local.ptr(), 1, 1, ad_A.desc);
     Profiler::stop("power_hemat_blacs_4");
-    return scaled_Z_local;
+    return scaled;
 }
 
 template <typename T, typename Treal = typename to_real<T>::type>
