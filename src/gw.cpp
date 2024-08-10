@@ -76,7 +76,7 @@ void G0W0::build_spacetime_LibRI(
     std::array<int,3> period_array{R_period.x,R_period.y,R_period.z};
     g0w0_libri.set_parallel(mpi_comm_global_h.comm, atoms_pos, lat_array, period_array);
 
-    Profiler::start("g0w0_build_spacetime_2", "Prepare libRI C object");
+    Profiler::start("g0w0_build_spacetime_2", "Setup LibRI C data");
     g0w0_libri.set_Cs(Cs_data.data_libri, 0.0);
     Profiler::stop("g0w0_build_spacetime_2");
 
@@ -91,7 +91,7 @@ void G0W0::build_spacetime_LibRI(
     {
         for (auto itau = 0; itau != tfg.get_n_grids(); itau++)
         {
-            Profiler::start("g0w0_build_spacetime_3", "Prepare libRI Wc object");
+            Profiler::start("g0w0_build_spacetime_3", "Prepare LibRI Wc object");
             // LIBRPA::utils::lib_printf("task %d itau %d start\n", mpi_comm_global_h.myid, itau);
             const auto tau = tfg.get_time_nodes()[itau];
             // build the Wc LibRI object. Note <JI> has to be converted from <IJ>
