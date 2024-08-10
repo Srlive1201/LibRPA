@@ -1662,7 +1662,6 @@ compute_Wc_freq_q_blacs(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps
         blacs_ctxt_global_h.mypcol);
     ofs_myid << "atpair_local " << atpair_local << endl;
     ofs_myid << "s0_s1 " << s0_s1 << endl;
-    std::flush(ofs_myid);
 
     // IJ pair of Wc to be returned
     pair<set<int>, set<int>> Iset_Jset_Wc;
