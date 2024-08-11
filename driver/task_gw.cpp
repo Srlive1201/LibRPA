@@ -334,7 +334,7 @@ void task_g0w0()
 
     Profiler::start("g0w0_export_sigc_KS", "Export self-energy in KS basis");
     mpi_comm_global_h.barrier();
-    if (mpi_comm_global_h.is_root())
+    if (Params::output_gw_sigc_mat && mpi_comm_global_h.is_root())
     {
         char fn[100];
         for (const auto &ispin_sigc: s_g0w0.sigc_is_ik_f_KS)
