@@ -151,7 +151,9 @@ void task_g0w0()
         Profiler::stop("g0w0_exx_real_work");
     }
     Profiler::stop("g0w0_exx");
-    if (mpi_comm_global_h.is_root())
+    // Since EXX contribution will be printed along with sigma_c when Vxc is read
+    // we print it here when Vxc read failed
+    if (flag_read_vxc != 0 && mpi_comm_global_h.is_root())
     {
         for (int isp = 0; isp != meanfield.get_n_spins(); isp++)
         {
