@@ -65,6 +65,9 @@ void Params::print()
             {"libri_exx_threshold_D", libri_exx_threshold_D},
             {"libri_exx_threshold_V", libri_exx_threshold_V},
             {"libri_exx_threshold_CSM", libri_exx_threshold_CSM},
+            {"libri_g0w0_threshold_C", libri_g0w0_threshold_C},
+            {"libri_g0w0_threshold_G", libri_g0w0_threshold_G},
+            {"libri_g0w0_threshold_Wc", libri_g0w0_threshold_Wc},
         };
 
     const std::vector<std::pair<std::string, int>> int_params
