@@ -3,6 +3,7 @@
 #include "atomic_basis.h"
 #include "matrix_m_parallel_utils.h"
 #include "profiler.h"
+#include "params.h"
 #include "epsilon.h"
 #include "pbc.h"
 #include "libri_utils.h"
@@ -77,7 +78,7 @@ void G0W0::build_spacetime_LibRI(
     g0w0_libri.set_parallel(mpi_comm_global_h.comm, atoms_pos, lat_array, period_array);
 
     Profiler::start("g0w0_build_spacetime_2", "Setup LibRI C data");
-    g0w0_libri.set_Cs(Cs_data.data_libri, 0.0);
+    g0w0_libri.set_Cs(Cs_data.data_libri, Params::libri_g0w0_threshold_C);
     Profiler::stop("g0w0_build_spacetime_2");
 
     auto IJR_local_gf = dispatch_vector_prod(tot_atpair_ordered, Rlist, mpi_comm_global_h.myid, mpi_comm_global_h.nprocs, true, false);
@@ -173,7 +174,7 @@ void G0W0::build_spacetime_LibRI(
 
                 double wtime_g0w0_cal_sigc = omp_get_wtime();
                 Profiler::start("g0w0_build_spacetime_5", "Call libRI cal_Sigc");
-                g0w0_libri.cal_Sigc(gf_libri, 0.0, Wc_libri, 0.0);
+                g0w0_libri.cal_Sigc(gf_libri, Params::libri_g0w0_threshold_G, Wc_libri, Params::libri_g0w0_threshold_Wc);
                 Profiler::stop("g0w0_build_spacetime_5");
                 if (t > 0)
                     sigc_posi_tau = std::move(g0w0_libri.Sigc_tau);

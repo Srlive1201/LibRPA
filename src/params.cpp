@@ -29,6 +29,9 @@ double Params::libri_exx_threshold_CSM = 0.0;
 double Params::libri_exx_threshold_C = 0.0;
 double Params::libri_exx_threshold_D = 0.0;
 double Params::libri_exx_threshold_V = 0.0;
+double Params::libri_g0w0_threshold_C  = 0.0;
+double Params::libri_g0w0_threshold_G  = 0.0;
+double Params::libri_g0w0_threshold_Wc = 0.0;
 
 bool Params::binary_input = false;
 bool Params::use_scalapack_ecrpa = true;
