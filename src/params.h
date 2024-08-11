@@ -70,6 +70,15 @@ struct Params
     //! Coulomb matrix threshold parsed to EXX object of LibRI.
     static double libri_exx_threshold_V;
 
+    //! Cs threshold parsed to G0W0 object of LibRI.
+    static double libri_g0w0_threshold_C;
+
+    //! Green's function threshold parsed to G0W0 object of LibRI.
+    static double libri_g0w0_threshold_G;
+
+    //! Screened Coulomb matrix threshold parsed to EXX object of LibRI.
+    static double libri_g0w0_threshold_Wc;
+
     //! switch of using ScaLAPACK for computing Wc from chi0
     static bool use_scalapack_gw_wc;
 

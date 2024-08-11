@@ -159,6 +159,11 @@ void parse_inputfile_to_params(const std::string& fn)
     parser.parse_double("libri_exx_threshold_V", Params::libri_exx_threshold_V, 0.0, flag);
 
     // gw related
+    // exx related
+    parser.parse_double("libri_g0w0_threshold_C", Params::libri_g0w0_threshold_C, 0.0, flag);
+    parser.parse_double("libri_g0w0_threshold_G", Params::libri_g0w0_threshold_G, 0.0, flag);
+    parser.parse_double("libri_g0w0_threshold_Wc", Params::libri_g0w0_threshold_Wc, 0.0, flag);
+
     parser.parse_bool("output_gw_sigc_mat", Params::output_gw_sigc_mat, true, flag);
     parser.parse_bool("replace_w_head", Params::replace_w_head, true, flag);
     parser.parse_int("option_dielect_func", Params::option_dielect_func, 2, flag);
