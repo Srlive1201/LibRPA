@@ -5,6 +5,9 @@
 #include <cstring>
 // #include <iostream>
 #include <omp.h>
+#include <chrono>
+#include <sstream>
+#include <iomanip>
 
 #include "utils_io.h"
 
@@ -18,6 +21,18 @@ std::map<std::string, Profiler::Timer> Profiler::sd_map_timer;
 std::map<std::string, int> Profiler::sd_map_level;
 std::map<std::string, std::string> Profiler::sd_map_note;
 std::vector<std::string> Profiler::sd_order;
+
+static std::string get_timestamp()
+{
+    auto now = std::chrono::system_clock::now();
+    auto in_time_t = std::chrono::system_clock::to_time_t(now);
+    auto milliseconds =
+        std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()) % 1000;
+    std::stringstream ss;
+    ss << "[" <<std::put_time(std::localtime(&in_time_t), "%Y-%m-%d %H:%M:%S")
+       << '.' << std::setfill('0') << std::setw(3) << milliseconds.count() << "]";
+    return ss.str();
+}
 
 void Profiler::Timer::start() noexcept
 {
@@ -77,7 +92,7 @@ void Profiler::start(const char *tname, const char *tnote, int level) noexcept
         add(tname, tnote, level);
     }
 #ifdef LIBRPA_DEBUG
-    LIBRPA::envs::ofs_myid << "Timer start: " << tname << "\n";
+    LIBRPA::envs::ofs_myid << get_timestamp() <<" Timer start: " << tname << "\n";
 #endif
     sd_map_timer.at(tname).start();
 }
@@ -88,7 +103,7 @@ void Profiler::stop(const char *tname) noexcept
     if (sd_map_timer.count(tname))
     {
 #ifdef LIBRPA_DEBUG
-        LIBRPA::envs::ofs_myid << "Timer stop : " << tname << "\n";
+        LIBRPA::envs::ofs_myid << get_timestamp() << " Timer stop : " << tname << "\n";
 #endif
         sd_map_timer.at(tname).stop();
     }
