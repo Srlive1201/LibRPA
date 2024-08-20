@@ -136,12 +136,16 @@ void Exx::build_exx_orbital_energy_LibRI(const Cs_LRI &Cs,
 
 #ifdef LIBRPA_USE_LIBRI
     if (mpi_comm_global_h.is_root())
+    {
         utils::lib_printf("Computing EXX orbital energy using LibRI\n");
+    }
     mpi_comm_global_h.barrier();
+
     RI::Exx<int, int, 3, double> exx_libri;
     map<int,std::array<double,3>> atoms_pos;
     for(int i=0;i!=atom_mu.size();i++)
         atoms_pos.insert(pair<int,std::array<double,3>>{i,{0,0,0}});
+
     std::array<double,3> xa{latvec.e11,latvec.e12,latvec.e13};
     std::array<double,3> ya{latvec.e21,latvec.e22,latvec.e23};
     std::array<double,3> za{latvec.e31,latvec.e32,latvec.e33};
@@ -161,10 +165,11 @@ void Exx::build_exx_orbital_energy_LibRI(const Cs_LRI &Cs,
 
     Profiler::start("build_exx_orbital_energy_1", "Prepare C libRI object");
     envs::ofs_myid << "Number of Cs keys: " << get_num_keys(Cs.data_libri) << "\n";
-    print_keys(envs::ofs_myid, Cs.data_libri);
+    // print_keys(envs::ofs_myid, Cs.data_libri);
     exx_libri.set_Cs(Cs.data_libri, Params::libri_exx_threshold_C);
     Profiler::stop("build_exx_orbital_energy_1");
-    utils::lib_printf("Task %4d: C setup for EXX\n", mpi_comm_global_h.myid);
+    envs::ofs_myid << "Finished setup Cs for EXX\n";
+    std::flush(envs::ofs_myid);
 
     // initialize Coulomb matrix
     Profiler::start("build_exx_orbital_energy_2", "Prepare V libRI object");

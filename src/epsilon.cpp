@@ -89,7 +89,7 @@ CorrEnergy compute_RPA_correlation_blacs_2d_gamma_only( Chi0 &chi0, atpair_k_cpl
             {
                 const auto Mu = Mu_Nu.first;
                 const auto Nu = Mu_Nu.second;
-                ofs_myid << "myid " << blacs_ctxt_global_h.myid << "Mu " << Mu << " Nu " << Nu << endl;
+                // ofs_myid << "myid " << blacs_ctxt_global_h.myid << "Mu " << Mu << " Nu " << Nu << endl;
                 if (coulmat.count(Mu) == 0 ||
                     coulmat.at(Mu).count(Nu) == 0 ||
                     coulmat.at(Mu).at(Nu).count(q) == 0) continue;
@@ -317,7 +317,7 @@ CorrEnergy compute_RPA_correlation_blacs_2d( Chi0 &chi0,  atpair_k_cplx_mat_t &c
             {
                 const auto Mu = Mu_Nu.first;
                 const auto Nu = Mu_Nu.second;
-                ofs_myid << "myid " << blacs_ctxt_global_h.myid << "Mu " << Mu << " Nu " << Nu << endl;
+                // ofs_myid << "myid " << blacs_ctxt_global_h.myid << "Mu " << Mu << " Nu " << Nu << endl;
                 if (coulmat.count(Mu) == 0 ||
                     coulmat.at(Mu).count(Nu) == 0 ||
                     coulmat.at(Mu).at(Nu).count(q) == 0) continue;
@@ -1699,7 +1699,7 @@ compute_Wc_freq_q_blacs(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps
             {
                 const auto Mu = Mu_Nu.first;
                 const auto Nu = Mu_Nu.second;
-                ofs_myid << "Mu " << Mu << " Nu " << Nu << endl;
+                // ofs_myid << "Mu " << Mu << " Nu " << Nu << endl;
                 if (coulmat_wc.count(Mu) == 0 ||
                     coulmat_wc.at(Mu).count(Nu) == 0 ||
                     coulmat_wc.at(Mu).at(Nu).count(q) == 0) continue;
@@ -1769,25 +1769,17 @@ compute_Wc_freq_q_blacs(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps
             ofs_myid << "Extended blocks\n";
             ofs_myid << "atom 1: " << s0_s1.first << "\n";
             ofs_myid << "atom 2: " << s0_s1.second << "\n";
-            ofs_myid << "Owned blocks\n";
-            print_keys(ofs_myid, couleps_libri);
+            // ofs_myid << "Owned blocks\n";
+            // print_keys(ofs_myid, couleps_libri);
             std::flush(ofs_myid);
-            mpi_comm_global_h.barrier();
+            // mpi_comm_global_h.barrier();
             const auto IJq_coul = RI::Communicate_Tensors_Map_Judge::comm_map2_first(mpi_comm_global_h.comm, couleps_libri, s0_s1.first, s0_s1.second);
             ofs_myid << "Done collect couleps_libri, collected blocks\n";
-            print_keys(ofs_myid, IJq_coul);
-            std::flush(ofs_myid);
-            mpi_comm_global_h.barrier();
-            // ofs_myid << "IJq_coul" << endl << IJq_coul;
 
             ofs_myid << "Start construct couleps 2D block\n";
-            std::flush(ofs_myid);
-            mpi_comm_global_h.barrier();
             collect_block_from_ALL_IJ_Tensor(coul_block, desc_nabf_nabf, LIBRPA::atomic_basis_abf,
                                              qa, true, CONE, IJq_coul, MAJOR::ROW);
             ofs_myid << "Done construct couleps 2D block\n";
-            std::flush(ofs_myid);
-            mpi_comm_global_h.barrier();
         }
         // char fn[100];
         // sprintf(fn, "couleps_iq_%d.mtx", iq);
@@ -1806,6 +1798,7 @@ compute_Wc_freq_q_blacs(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps
         const size_t n_nonsingular = n_abf - n_singular;
         Profiler::stop("epsilon_prepare_couleps_sqrt");
         ofs_myid << "Done couleps sqrt\n";
+        std::flush(ofs_myid);
 
         for (const auto &freq: chi0.tfg.get_freq_nodes())
         {
