@@ -1,6 +1,7 @@
 #include "task_gw.h"
 
 #include "envs_mpi.h"
+#include "envs_io.h"
 #include "fitting.h"
 #include "meanfield.h"
 #include "params.h"
@@ -23,6 +24,7 @@
 void task_g0w0()
 {
     using LIBRPA::envs::mpi_comm_global_h;
+    using LIBRPA::envs::ofs_myid;
     using LIBRPA::utils::lib_printf;
 
     Profiler::start("g0w0", "G0W0 quasi-particle calculation");
@@ -43,6 +45,9 @@ void task_g0w0()
     chi0.build(Cs_data, Rlist, period, local_atpair, qlist,
                TFGrids::get_grid_type(Params::tfgrids_type), true);
     Profiler::stop("chi0_build");
+
+    std::flush(ofs_myid);
+    mpi_comm_global_h.barrier();
 
     if (Params::debug)
     { // debug, check chi0
@@ -86,6 +91,7 @@ void task_g0w0()
         }
     }
     Profiler::stop("read_vxc");
+    std::flush(ofs_myid);
 
     std::vector<double> epsmac_LF_imagfreq_re;
 
@@ -151,6 +157,8 @@ void task_g0w0()
         Profiler::stop("g0w0_exx_real_work");
     }
     Profiler::stop("g0w0_exx");
+    std::flush(ofs_myid);
+
     // Since EXX contribution will be printed along with sigma_c when Vxc is read
     // we print it here when Vxc read failed
     if (flag_read_vxc != 0 && mpi_comm_global_h.is_root())

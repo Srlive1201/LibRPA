@@ -414,6 +414,7 @@ std::vector<size_t> handle_Cs_file_binary_dry(const string &file_path, double th
     ifstream infile;
     int dims[8];
     int n_apcell_file;
+    int n_processed = 0;
 
     infile.open(file_path, std::ios::in | std::ios::binary);
     infile.read((char *) &natom, sizeof(int));
@@ -447,11 +448,19 @@ std::vector<size_t> handle_Cs_file_binary_dry(const string &file_path, double th
                 }
             }
         }
-        LIBRPA::envs::ofs_myid << i_file << " (" << ic1 << "," << ic2 << "," << ic3 << ") " << maxval << " keep? " << (maxval >= threshold) << endl;
+        n_processed++;
         if (maxval >= threshold)
+        {
             Cs_ids_keep.push_back(i_file);
+#ifdef LIBRPA_DEBUG
+            // LIBRPA::envs::ofs_myid << i_file << " (" << ic1 << "," << ic2 << "," << ic3 << ") " << maxval << " kept, maxval: " << maxval << endl;
+#endif
+        }
     }
-    LIBRPA::envs::ofs_myid << file_path << ": " << Cs_ids_keep << endl;
+    // LIBRPA::envs::ofs_myid << file_path << ": kept " << Cs_ids_keep.size() << " of " << n_processed << endl;
+#ifdef LIBRPA_DEBUG
+    // LIBRPA::envs::ofs_myid << Cs_ids_keep << endl;
+#endif
     infile.close();
     return Cs_ids_keep;
 }

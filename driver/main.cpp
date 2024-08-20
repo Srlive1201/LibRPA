@@ -222,7 +222,7 @@ int main(int argc, char **argv)
         // for(auto &ap:local_atpair)
         //     printf("   |process %d , local_atom_pair:  %d,  %d\n", mpi_comm_global_h.myid,ap.first,ap.second);
         read_Vq_row("./", "coulomb_mat", Params::vq_threshold, local_atpair, false);
-        test_libcomm_for_system(Vq);
+        // test_libcomm_for_system(Vq);
     }
     else if(parallel_routing == ParallelRouting::LIBRI)
     {
@@ -234,7 +234,7 @@ int main(int argc, char **argv)
         for(auto &iap:trangular_loc_atpair)
             local_atpair.push_back(iap);
         read_Vq_row("./", "coulomb_mat", Params::vq_threshold, local_atpair, false);
-        test_libcomm_for_system(Vq);
+        // test_libcomm_for_system(Vq);
     }
     else
     {
@@ -252,15 +252,15 @@ int main(int argc, char **argv)
             {
                 lib_printf("| process %d: Cs size %d from local atpair size %zu\n",
                         mpi_comm_global_h.myid, get_num_keys(Cs_data.data_libri), local_atpair.size());
-                ofs_myid << "Cs size: " << get_num_keys(Cs_data.data_libri) << ", with keys:\n";
-                print_keys(ofs_myid, Cs_data.data_libri);
+                // ofs_myid << "Cs size: " << get_num_keys(Cs_data.data_libri) << ", with keys:\n";
+                // print_keys(ofs_myid, Cs_data.data_libri);
             }
             else
             {
                 lib_printf("| process %d: Cs size %d from local atpair size %zu\n",
                         mpi_comm_global_h.myid, get_num_keys(Cs_data.data_IJR), local_atpair.size());
-                ofs_myid << "Cs size: " << get_num_keys(Cs_data.data_IJR) << ", with keys:\n";
-                print_keys(ofs_myid, Cs_data.data_IJR);
+                // ofs_myid << "Cs size: " << get_num_keys(Cs_data.data_IJR) << ", with keys:\n";
+                // print_keys(ofs_myid, Cs_data.data_IJR);
             }
         }
         mpi_comm_global_h.barrier();
@@ -296,7 +296,7 @@ int main(int argc, char **argv)
     //     system("free -m");
     // build ABF IJ and qlist from Vq
 
-    mpi_comm_global_h.barrier(); // FIXME: barrier seems not work here...
+    mpi_comm_global_h.barrier();
     if (mpi_comm_global_h.myid == 0)
     {
         cout << "Initialization finished, start task job from myid\n";
