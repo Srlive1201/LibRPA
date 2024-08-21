@@ -97,6 +97,9 @@ void Chi0::build(const Cs_LRI &Cs,
         // conventional method does not need to build Green's function explicitly
         build_chi0_q_conventional(Cs, R_period, atpairs_ABF, qlist);
     }
+
+    // Free the intermediate Green's functions to lower memory load
+    this->free_gf_Rt();
 }
 
 void Chi0::build_gf_Rt(Vector3_Order<int> R, double tau)
@@ -190,6 +193,13 @@ void Chi0::build_gf_Rt(Vector3_Order<int> R, double tau)
     }
     Profiler::stop("cal_Green_func");
 }
+
+
+void Chi0::free_gf_Rt()
+{
+    this->gf_is_R_tau.clear();
+}
+
 
 void Chi0::build_chi0_q_space_time(const Cs_LRI &Cs,
                                    const Vector3_Order<int> &R_period,
