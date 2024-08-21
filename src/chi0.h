@@ -31,7 +31,12 @@ class Chi0
         vector<Vector3_Order<int>> Rlist_gf;
         //! chi0 data in frequency domain and reciprocal space, [omega][q]
         map<double, map<Vector3_Order<double>, atom_mapping<ComplexMatrix>::pair_t_old>> chi0_q;
+
         void build_gf_Rt(Vector3_Order<int> R, double tau);
+
+        // Free the intermeidate Green's functions
+        void free_gf_Rt();
+
         //! Internal procedure to compute chi0_q by space-time method
         /*
          @todo add threshold parameter. Maybe in the class level?
