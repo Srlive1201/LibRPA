@@ -21,9 +21,16 @@ public:
     const vector<Vector3_Order<double>>& kfrac_list;
     const TFGrids &tfg;
     //! frequency-domain reciprocal-space correlation self-energy, indices [ispin][freq][k][I][J](n_I, n_J)
-    std::map<int, std::map<double, std::map<Vector3_Order<double>, atom_mapping<Matz>::pair_t_old>>> sigc_is_f_k_IJ;
+    // std::map<int, std::map<double, std::map<Vector3_Order<double>, atom_mapping<Matz>::pair_t_old>>> sigc_is_f_k_IJ;
+
+    //! frequency-domain reciprocal-space correlation self-energy, indices [ispin][freq][R][I][J](n_I, n_J)
+    std::map<int, std::map<double, std::map<Vector3_Order<int>, atom_mapping<Matz>::pair_t_old>>> sigc_is_f_R_IJ;
+
     //! correlation self-energy matrix in the basis of KS states, indices [ispin][ik][freq](n_bands, n_bands)
     std::map<int, std::map<int, std::map<double, Matz>>> sigc_is_ik_f_KS;
+
+    void build_sigc_matrix_KS(const std::vector<std::vector<ComplexMatrix>> &wfc_target,
+                              const std::vector<Vector3_Order<double>> &kfrac_target);
 public:
     G0W0(const MeanField &mf,
          const vector<Vector3_Order<double>>& kfrac_list,
@@ -44,7 +51,7 @@ public:
     //     const vector<Vector3_Order<int>> &Rlist,
     //     const Vector3_Order<int> &R_period);
 
-    //! using LibRI
+    //! Build the real-space correlation self-energy matrix on imaginary frequencies with space-time method using LibRI
     void build_spacetime_LibRI(
         const Cs_LRI &LRI_Cs,
         const map<double, atom_mapping<std::map<Vector3_Order<double>,
@@ -52,8 +59,12 @@ public:
         const vector<Vector3_Order<int>> &Rlist,
         const Vector3_Order<int> &R_period);
 
-    //! build the correlation self-energy matrix in Kohn-Sham basis
-    void build_sigc_matrix_KS();
+    //! build the correlation self-energy matrix in Kohn-Sham basis at the SCF k-points
+    void build_sigc_matrix_KS_kgrid();
+
+    //! build the correlation self-energy matrix in Kohn-Sham basis at the SCF k-points
+    void build_sigc_matrix_KS_band(const std::vector<std::vector<ComplexMatrix>> &wfc,
+                                   const std::vector<Vector3_Order<double>> &kfrac_band);
 };
 
 }

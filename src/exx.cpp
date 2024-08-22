@@ -84,10 +84,10 @@ void Exx::warn_dmat_IJR_nonzero_imag(const ComplexMatrix& dmat_cplx, const int& 
         utils::lib_printf("Warning: complex-valued density matrix, spin %d IJR %zu %zu (%d, %d, %d)\n", ispin, I, J, R.x, R.y, R.z);
 }
 
-void Exx::build_exx_orbital_energy(const Cs_LRI &Cs,
-                                   const vector<Vector3_Order<int>> &Rlist,
-                                   const Vector3_Order<int> &R_period,
-                                   const atpair_R_mat_t &coul_mat)
+void Exx::build_exx_matrix(const Cs_LRI &Cs,
+                           const vector<Vector3_Order<int>> &Rlist,
+                           const Vector3_Order<int> &R_period,
+                           const atpair_R_mat_t &coul_mat)
 {
     using LIBRPA::envs::mpi_comm_global_h;
     // debug: check coeff and coulomb in different parallel routings
@@ -107,7 +107,7 @@ void Exx::build_exx_orbital_energy(const Cs_LRI &Cs,
     // }
     if (parallel_routing == ParallelRouting::LIBRI)
     {
-        this->build_exx_orbital_energy_LibRI(Cs, Rlist, R_period, coul_mat);
+        this->build_exx_matrix_LibRI(Cs, Rlist, R_period, coul_mat);
     }
     else
     {
@@ -118,10 +118,10 @@ void Exx::build_exx_orbital_energy(const Cs_LRI &Cs,
     }
 }
 
-void Exx::build_exx_orbital_energy_LibRI(const Cs_LRI &Cs,
-                                         const vector<Vector3_Order<int>> &Rlist,
-                                         const Vector3_Order<int> &R_period,
-                                         const atpair_R_mat_t &coul_mat)
+void Exx::build_exx_matrix_LibRI(const Cs_LRI &Cs,
+                                 const vector<Vector3_Order<int>> &Rlist,
+                                 const Vector3_Order<int> &R_period,
+                                 const atpair_R_mat_t &coul_mat)
 {
     using LIBRPA::envs::mpi_comm_global;
     using LIBRPA::envs::mpi_comm_global_h;

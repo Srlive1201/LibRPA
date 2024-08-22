@@ -11,6 +11,7 @@
 #include "utils_io.h"
 
 #include <map>
+#include <functional>
 #ifdef LIBRPA_USE_LIBRI
 #include <RI/global/Tensor.h>
 #include <RI/physics/GW.h>
@@ -186,7 +187,7 @@ void G0W0::build_spacetime_LibRI(
             }
 
             // symmetrize and perform transformation
-            Profiler::start("g0w0_build_spacetime_6", "Transform Sigc (R,t) -> (q,w)");
+            Profiler::start("g0w0_build_spacetime_6", "Transform Sigc (R,t) -> (R,w)");
             for (const auto &I_JR_sigc_posi: sigc_posi_tau)
             {
                 const auto &I = I_JR_sigc_posi.first;
@@ -200,41 +201,32 @@ void G0W0::build_spacetime_LibRI(
                     const auto &sigc_nega_block = sigc_nega_tau.at(I).at(JR_sigc_posi.first);
                     auto iR = std::distance(Rlist.cbegin(), std::find(Rlist.cbegin(), Rlist.cend(), Vector3_Order<int>{Ra[0], Ra[1], Ra[2]}));
 
-                    // FIXME: I don't know why 0.5 is required here to get correct result as in FHI-aims
-                    // will figure out later
                     auto sigc_cos = 0.5 * (sigc_posi_block + sigc_nega_block);
                     auto sigc_sin = 0.5 * (sigc_posi_block - sigc_nega_block);
-                    for (int ik = 0; ik != mf.get_n_kpoints(); ik++)
+                    for (int iomega = 0; iomega != tfg.get_n_grids(); iomega++)
                     {
-                        const auto &kfrac = kfrac_list[ik];
-                        const auto ang = (kfrac * Vector3_Order<double>(Ra[0], Ra[1], Ra[2])) * TWO_PI;
-                        const auto kphase = complex<double>{std::cos(ang), std::sin(ang)} / double(mf.get_n_kpoints());
-
-                        for (int iomega = 0; iomega != tfg.get_n_grids(); iomega++)
+                        const auto omega = tfg.get_freq_nodes()[iomega];
+                        const auto t2f_sin = tfg.get_sintrans_t2f()(iomega, itau);
+                        const auto t2f_cos = tfg.get_costrans_t2f()(iomega, itau);
+                        const auto R = Vector3_Order<int>(Ra[0], Ra[1], Ra[2]);
+                        // row-major used here for libRI communication when building sigc_KS
+                        matrix_m<complex<double>> sigc_temp(n_I, n_J, MAJOR::ROW);
+                        for (int i = 0; i != n_I; i++)
+                            for (int j = 0; j != n_J; j++)
+                            {
+                                sigc_temp(i, j) = std::complex<double>{sigc_cos(i, j) * t2f_cos, sigc_sin(i, j) * t2f_sin};
+                            }
+                        if (sigc_is_f_R_IJ.count(ispin) == 0 ||
+                            sigc_is_f_R_IJ.at(ispin).count(omega) == 0 ||
+                            sigc_is_f_R_IJ.at(ispin).at(omega).count(R) == 0 ||
+                            sigc_is_f_R_IJ.at(ispin).at(omega).at(R).count(I) == 0 ||
+                            sigc_is_f_R_IJ.at(ispin).at(omega).at(R).at(I).count(J) == 0)
                         {
-                            const auto omega = tfg.get_freq_nodes()[iomega];
-                            const auto t2f_sin = tfg.get_sintrans_t2f()(iomega, itau);
-                            const auto t2f_cos = tfg.get_costrans_t2f()(iomega, itau);
-                            // row-major used here for libRI communication when building sigc_KS
-                            matrix_m<complex<double>> sigc_temp(n_I, n_J, MAJOR::ROW);
-                            for (int i = 0; i != n_I; i++)
-                                for (int j = 0; j != n_J; j++)
-                                {
-                                    sigc_temp(i, j) = std::complex<double>{sigc_cos(i, j) * t2f_cos, sigc_sin(i, j) * t2f_sin};
-                                }
-                            sigc_temp *= kphase;
-                            if (sigc_is_f_k_IJ.count(ispin) == 0 ||
-                                sigc_is_f_k_IJ.at(ispin).count(omega) == 0 ||
-                                sigc_is_f_k_IJ.at(ispin).at(omega).count(kfrac) == 0 ||
-                                sigc_is_f_k_IJ.at(ispin).at(omega).at(kfrac).count(I) == 0 ||
-                                sigc_is_f_k_IJ.at(ispin).at(omega).at(kfrac).at(I).count(J) == 0)
-                            {
-                                sigc_is_f_k_IJ[ispin][omega][kfrac][I][J] = std::move(sigc_temp);
-                            }
-                            else
-                            {
-                                sigc_is_f_k_IJ[ispin][omega][kfrac][I][J] += sigc_temp;
-                            }
+                            sigc_is_f_R_IJ[ispin][omega][R][I][J] = std::move(sigc_temp);
+                        }
+                        else
+                        {
+                            sigc_is_f_R_IJ[ispin][omega][R][I][J] += sigc_temp;
                         }
                     }
                 }
@@ -246,12 +238,12 @@ void G0W0::build_spacetime_LibRI(
 #endif
 }
 
-void G0W0::build_sigc_matrix_KS()
+void G0W0::build_sigc_matrix_KS(const std::vector<std::vector<ComplexMatrix>> &wfc_target,
+                                const std::vector<Vector3_Order<double>> &kfrac_target)
 {
     using LIBRPA::envs::mpi_comm_global_h;
     using LIBRPA::envs::blacs_ctxt_global_h;
 
-    const complex<double> CONE{1.0, 0.0};
     const int n_aos = mf.get_n_aos();
     const int n_bands = mf.get_n_bands();
 
@@ -289,35 +281,48 @@ void G0W0::build_sigc_matrix_KS()
     {
         for (const auto& freq: this->tfg.get_freq_nodes())
         {
-            const auto& sigc_is_freq = this->sigc_is_f_k_IJ.at(ispin).at(freq);
-            for (int ik = 0; ik < this->mf.get_n_kpoints(); ik++)
+            const auto& sigc_is_freq = this->sigc_is_f_R_IJ.at(ispin).at(freq);
+            // Communicate to obtain sub-matrices for necessary I-J pairs at all Rs
+            std::map<int, std::map<std::pair<int, std::array<int, 3>>, Tensor<complex<double>>>>
+                sigc_I_JR_local;
+            for (const auto &R_IJ_sigc: sigc_is_freq)
             {
-                const auto kfrac = this->kfrac_list[ik];
-                const std::array<double, 3> ka{kfrac.x, kfrac.y, kfrac.z};
-                // build a libRI object to collect all k
-                std::map<int, std::map<std::pair<int, std::array<double, 3>>, Tensor<complex<double>>>>
-                    sigc_I_Jk;
-                sigc_nao_nao.zero_out();
-                if (sigc_is_freq.count(kfrac))
+                const auto R = R_IJ_sigc.first;
+                for (const auto &I_J_sigc: R_IJ_sigc.second)
                 {
-                    for (const auto& I_Jsigc: sigc_is_freq.at(kfrac))
+                    const auto I = I_J_sigc.first;
+                    const auto &n_I = atomic_basis_wfc.get_atom_nb(I);
+                    for (const auto &J_sigc: I_J_sigc.second)
                     {
-                        const auto &I = I_Jsigc.first;
-                        const auto &n_I = atomic_basis_wfc.get_atom_nb(I);
-                        for (const auto& J_sigc: I_Jsigc.second)
-                        {
-                            const auto &J = J_sigc.first;
-                            const auto &n_J = atomic_basis_wfc.get_atom_nb(J);
-                            sigc_I_Jk[I][{J, ka}] = Tensor<complex<double>>({n_I, n_J}, J_sigc.second.sptr());
-                        }
+                        const auto J = J_sigc.first;
+                        const auto &n_J = atomic_basis_wfc.get_atom_nb(J);
+                        const std::array<int, 3> Ra{R.x, R.y, R.z};
+                        sigc_I_JR_local[I][{J, Ra}] = Tensor<complex<double>>({n_I, n_J}, J_sigc.second.sptr());
                     }
-                    const auto sigc_src = comm_map2_first(
-                        mpi_comm_global_h.comm, sigc_I_Jk, s0_s1.first, s0_s1.second);
-                    collect_block_from_IJ_storage_tensor(sigc_nao_nao, desc_nao_nao, atomic_basis_wfc, atomic_basis_wfc,
-                                                         ka, CONE, sigc_src);
                 }
+            }
+            const auto sigc_I_JR = comm_map2_first(mpi_comm_global_h.comm, sigc_I_JR_local, s0_s1.first, s0_s1.second);
+            sigc_I_JR_local.clear();
+            
+            // Perform Fourier transform
+            for (int ik = 0; ik < kfrac_target.size(); ik++)
+            {
+                const auto kfrac = kfrac_target[ik];
+                const auto n_kpoints = this->mf.get_n_kpoints();
+
+                const std::function<complex<double>(const int &, const std::pair<int, std::array<int, 3>> &)>
+                    fourier = [kfrac, n_kpoints](const int &I, const std::pair<int, std::array<int, 3>> &J_Ra)
+                    {
+                        const auto ang = (kfrac * Vector3_Order<double>(J_Ra.second[0], J_Ra.second[1], J_Ra.second[2])) * TWO_PI;
+                        return complex<double>{std::cos(ang), std::sin(ang)} / double(n_kpoints);
+                    };
+
+                sigc_nao_nao.zero_out();
+                collect_block_from_IJ_storage_tensor_transform(sigc_nao_nao, desc_nao_nao, 
+                        atomic_basis_wfc, atomic_basis_wfc,
+                        fourier, sigc_I_JR);
                 // prepare wave function BLACS
-                const auto &wfc_isp_k = this->mf.get_eigenvectors()[ispin][ik];
+                const auto &wfc_isp_k = wfc_target[ispin][ik];
                 blacs_ctxt_global_h.barrier();
                 const auto wfc_block = get_local_mat(wfc_isp_k.c, MAJOR::ROW, desc_nband_nao, MAJOR::COL).conj();
                 auto temp_nband_nao = multiply_scalapack(wfc_block, desc_nband_nao, sigc_nao_nao, desc_nao_nao, desc_nband_nao);
@@ -336,6 +341,17 @@ void G0W0::build_sigc_matrix_KS()
         }
     }
 #endif
+}
+
+void G0W0::build_sigc_matrix_KS_kgrid()
+{
+    this->build_sigc_matrix_KS(this->mf.get_eigenvectors(), this->kfrac_list);
+}
+
+void G0W0::build_sigc_matrix_KS_band(const std::vector<std::vector<ComplexMatrix>> &wfc,
+                                     const std::vector<Vector3_Order<double>> &kfrac_band)
+{
+    this->build_sigc_matrix_KS(wfc, kfrac_band);
 }
 
 } // namespace LIBRPA
