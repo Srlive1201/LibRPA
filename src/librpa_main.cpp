@@ -9,7 +9,6 @@
 
 #include "chi0.h"
 #include "epsilon.h"
-#include "exx.h"
 #include "meanfield.h"
 #include "parallel_mpi.h"
 #include "params.h"

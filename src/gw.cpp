@@ -30,7 +30,7 @@ G0W0::G0W0(const MeanField &mf,
     d_sigc_built = false;
 }
 
-void G0W0::build_spacetime_LibRI(
+void G0W0::build_spacetime(
     const Cs_LRI &LRI_Cs,
     const map<double,
               atom_mapping<std::map<Vector3_Order<double>, matrix_m<complex<double>>>>::pair_t_old>
@@ -59,6 +59,7 @@ void G0W0::build_spacetime_LibRI(
         throw std::logic_error("no time grids");
     }
     mpi_comm_global_h.barrier();
+
 #ifndef LIBRPA_USE_LIBRI
     if (mpi_comm_global_h.myid == 0)
     {
@@ -330,7 +331,8 @@ void G0W0::build_sigc_matrix_KS(const std::vector<std::vector<ComplexMatrix>> &w
                                             temp_nband_nao.ptr(), 1, 1, desc_nao_nao.desc,
                                             wfc_block.ptr(), 1, 1, desc_nband_nao.desc, 0.0,
                                             sigc_nband_nband.ptr(), 1, 1, desc_nband_nband.desc);
-                // collect to master
+                // collect the full matrix to master
+                // TODO: would need a different strategy for large system
                 auto sigc_nband_nband_fb = init_local_mat<complex<double>>(desc_nband_nband_fb, MAJOR::COL);
                 ScalapackConnector::pgemr2d_f(n_bands, n_bands,
                                               sigc_nband_nband.ptr(), 1, 1, desc_nband_nband.desc,
