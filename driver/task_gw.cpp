@@ -153,7 +153,7 @@ void task_g0w0()
         Profiler::stop("ft_vq_cut");
 
         Profiler::start("g0w0_exx_real_work");
-        exx.build_exx_orbital_energy(Cs_data, Rlist, period, VR);
+        exx.build_exx_matrix(Cs_data, Rlist, period, VR);
         Profiler::stop("g0w0_exx_real_work");
     }
     Profiler::stop("g0w0_exx");
@@ -214,42 +214,42 @@ void task_g0w0()
     }
 
     LIBRPA::G0W0 s_g0w0(meanfield, kfrac_list, chi0.tfg);
-    Profiler::start("g0w0_sigc_IJ", "Build correlation self-energy");
+    Profiler::start("g0w0_sigc_IJ", "Build real-space correlation self-energy");
     s_g0w0.build_spacetime_LibRI(Cs_data, Wc_freq_q, Rlist, period);
     Profiler::stop("g0w0_sigc_IJ");
 
-    if (Params::debug)
-    { // debug, check sigc_ij
-        char fn[80];
-        // ofs_myid << "s_g0w0.sigc_is_f_k_IJ:\n" << s_g0w0.sigc_is_f_k_IJ << "\n";
-        for (const auto &is_sigc: s_g0w0.sigc_is_f_k_IJ)
-        {
-            const int ispin = is_sigc.first;
-            for (const auto &f_sigc: is_sigc.second)
-            {
-                const auto ifreq = chi0.tfg.get_freq_index(f_sigc.first);
-                for (const auto &k_sigc: f_sigc.second)
-                {
-                    const auto &k = k_sigc.first;
-                    const int ik = std::distance(klist.begin(), std::find(klist.begin(), klist.end(), k));
-                    for (const auto &I_sigc: k_sigc.second)
-                    {
-                        const auto &I = I_sigc.first;
-                        for (const auto &J_sigc: I_sigc.second)
-                        {
-                            const auto &J = J_sigc.first;
-                            sprintf(fn, "Sigcfq_ispin_%d_ifreq_%d_ik_%d_I_%zu_J_%zu_id_%d.mtx",
-                                    ispin, ifreq, ik, I, J, mpi_comm_global_h.myid);
-                            print_matrix_mm_file(J_sigc.second, Params::output_dir + "/" + fn, 1e-15);
-                        }
-                    }
-                }
-            }
-        }
-    }
+    // if (Params::debug)
+    // { // debug, check sigc_ij
+    //     char fn[80];
+    //     // ofs_myid << "s_g0w0.sigc_is_f_k_IJ:\n" << s_g0w0.sigc_is_f_k_IJ << "\n";
+    //     for (const auto &is_sigc: s_g0w0.sigc_is_f_k_IJ)
+    //     {
+    //         const int ispin = is_sigc.first;
+    //         for (const auto &f_sigc: is_sigc.second)
+    //         {
+    //             const auto ifreq = chi0.tfg.get_freq_index(f_sigc.first);
+    //             for (const auto &k_sigc: f_sigc.second)
+    //             {
+    //                 const auto &k = k_sigc.first;
+    //                 const int ik = std::distance(klist.begin(), std::find(klist.begin(), klist.end(), k));
+    //                 for (const auto &I_sigc: k_sigc.second)
+    //                 {
+    //                     const auto &I = I_sigc.first;
+    //                     for (const auto &J_sigc: I_sigc.second)
+    //                     {
+    //                         const auto &J = J_sigc.first;
+    //                         sprintf(fn, "Sigcfq_ispin_%d_ifreq_%d_ik_%d_I_%zu_J_%zu_id_%d.mtx",
+    //                                 ispin, ifreq, ik, I, J, mpi_comm_global_h.myid);
+    //                         print_matrix_mm_file(J_sigc.second, Params::output_dir + "/" + fn, 1e-15);
+    //                     }
+    //                 }
+    //             }
+    //         }
+    //     }
+    // }
 
-    Profiler::start("g0w0_sigc_rotate_KS", "Rotate self-energy, IJ -> ij -> KS");
-    s_g0w0.build_sigc_matrix_KS();
+    Profiler::start("g0w0_sigc_rotate_KS", "Construct self-energy in Kohn-Sham space");
+    s_g0w0.build_sigc_matrix_KS_kgrid();
     Profiler::stop("g0w0_sigc_rotate_KS");
 
     if (flag_read_vxc == 0)
