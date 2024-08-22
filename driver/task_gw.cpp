@@ -153,7 +153,8 @@ void task_g0w0()
         Profiler::stop("ft_vq_cut");
 
         Profiler::start("g0w0_exx_real_work");
-        exx.build_exx_matrix(Cs_data, Rlist, period, VR);
+        exx.build(Cs_data, Rlist, period, VR);
+        exx.build_KS_kgrid();
         Profiler::stop("g0w0_exx_real_work");
     }
     Profiler::stop("g0w0_exx");
@@ -215,7 +216,7 @@ void task_g0w0()
 
     LIBRPA::G0W0 s_g0w0(meanfield, kfrac_list, chi0.tfg);
     Profiler::start("g0w0_sigc_IJ", "Build real-space correlation self-energy");
-    s_g0w0.build_spacetime_LibRI(Cs_data, Wc_freq_q, Rlist, period);
+    s_g0w0.build_spacetime(Cs_data, Wc_freq_q, Rlist, period);
     Profiler::stop("g0w0_sigc_IJ");
 
     // if (Params::debug)
