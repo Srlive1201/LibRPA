@@ -9,10 +9,8 @@
 #include "utils_io.h"
 #ifdef LIBRPA_USE_LIBRI
 #include <RI/global/Tensor.h>
-using RI::Tensor;
 #else
-template <typename T>
-class Tensor;
+#include "libri_stub.h"
 #endif
 
 template <typename T>
@@ -110,7 +108,7 @@ void collect_block_from_IJ_storage_tensor(
     const LIBRPA::AtomicBasis &atbasis_row,
     const LIBRPA::AtomicBasis &atbasis_col,
     const TC &cell,
-    Tdst alpha, const std::map<TA,std::map<TAC,Tensor<Tsrc>>> &TMAP)
+    Tdst alpha, const std::map<TA,std::map<TAC, RI::Tensor<Tsrc>>> &TMAP)
 {
     // assert(mat_lo.nr() == ad.m_loc() && mat_lo.nc() == ad.n_loc());
     assert(ad.m() == atbasis_row.nb_total && ad.n() == atbasis_col.nb_total );
@@ -157,7 +155,7 @@ void collect_block_from_IJ_storage_tensor_transform(
     const LIBRPA::AtomicBasis &atbasis_row,
     const LIBRPA::AtomicBasis &atbasis_col,
     const std::function<Tdst(const TA &, const TAC &)> &transform,
-    const std::map<TA,std::map<TAC,Tensor<Tsrc>>> &TMAP)
+    const std::map<TA,std::map<TAC, RI::Tensor<Tsrc>>> &TMAP)
 {
     // assert(mat_lo.nr() == ad.m_loc() && mat_lo.nc() == ad.n_loc());
     assert(ad.m() == atbasis_row.nb_total && ad.n() == atbasis_col.nb_total );
@@ -262,7 +260,7 @@ void collect_block_from_ALL_IJ_Tensor(
     const LIBRPA::AtomicBasis &atbasis,
     const TC &cell,
     bool conjugate,
-    Tdst alpha, const std::map<TA,std::map<TAC,Tensor<Tdst>>> TMAP, MAJOR major_pv)
+    Tdst alpha, const std::map<TA,std::map<TAC, RI::Tensor<Tdst>>> TMAP, MAJOR major_pv)
 {
     // assert(mat_lo.nr() == ad.m_loc() && mat_lo.nc() == ad.n_loc());
     assert(ad.m() == atbasis.nb_total && ad.n() == atbasis.nb_total);
