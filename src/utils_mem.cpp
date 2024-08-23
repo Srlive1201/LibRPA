@@ -82,7 +82,7 @@ int get_node_free_mem(double &free_mem)
         {
             if (sscanf(line, "MemAvailable: %d kB", &value) == 1)
             {
-                retcode = 0
+                retcode = 0;
                 break;
             }
         }
