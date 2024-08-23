@@ -131,7 +131,7 @@ void Chi0::build_gf_Rt(Vector3_Order<int> R, double tau)
         }
         matrix scale(nkpts, nbands);
         // tau-energy phase
-        scale = - 0.5 * tau * (mf.get_eigenvals()[is] - mf.get_efermi());
+        scale = - tau * (mf.get_eigenvals()[is] - mf.get_efermi());
         /* print_matrix("-(e-ef)*tau", scale); */
         for (int ie = 0; ie != scale.size; ie++)
         {

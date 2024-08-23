@@ -71,7 +71,7 @@ double MeanField::get_E_min_max(double &emin, double &emax)
             ub = (ub < eskb[is](ik, n_bands-1)) ? eskb[is](ik, n_bands-1) : ub;
         }
     double gap = get_band_gap();
-    emax = 0.5 * (ub - lb);
+    emax = ub - lb;
     emin = gap;
     return emin;
 }
@@ -103,7 +103,7 @@ double MeanField::get_band_gap()
             //cout<<"   homo: "<<homo<<"  lumo: "<<lumo<<endl;
         }
     }
-    gap = 0.5 * (lumo - homo);
+    gap = lumo - homo;
     return gap;
 }
 
@@ -152,7 +152,7 @@ std::map<double, std::map<Vector3_Order<int>, ComplexMatrix>> MeanField::get_gf_
         // cout << "tau " << tau << endl;
         const auto &prefac_occ = tau > 0 ? wg_empty : wg_occ;
         // cout << "prefac_occ " << prefac_occ << endl;
-        const auto scale = -0.5 * tau * (eskb[ispin] - efermi);
+        const auto scale = -tau * (eskb[ispin] - efermi);
         for (int ie = 0; ie != scale.size; ie++)
         {
             if (scale.c[ie] > 0) scale.c[ie] = 0;

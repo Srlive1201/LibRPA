@@ -84,7 +84,7 @@ void set_dimension(int nspins, int nkpts, int nstates, int nbasis,int natoms)
 
 void set_wg_ekb_efermi(int nspins, int nkpts, int nstates, double* wg, double* ekb, double efermi)
 {
-    meanfield.get_efermi() = efermi * 2.0;
+    meanfield.get_efermi() = efermi;
     auto& eskb = meanfield.get_eigenvals();
     auto& swg = meanfield.get_weight();
     int length_kb = nkpts * nstates;
@@ -92,7 +92,6 @@ void set_wg_ekb_efermi(int nspins, int nkpts, int nstates, double* wg, double* e
     {
         memcpy(eskb[is].c, ekb + length_kb * is, length_kb * sizeof(double));
         memcpy(swg[is].c, wg + length_kb * is, length_kb * sizeof(double));
-        eskb[is] *= 2;
         // wg[is](k_index, i) = stod(ws) / n_kpoints; // different with abacus!
         swg[is] *= (1.0 / nkpts);
     }
