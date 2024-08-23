@@ -13,6 +13,7 @@
 #include "envs_io.h"
 #include "envs_mpi.h"
 #include "utils_io.h"
+#include "utils_mem.h"
 #include "stl_io_helper.h"
 #include "libri_utils.h"
 #include "matrix_m_parallel_utils.h"
@@ -23,11 +24,6 @@
 #include "profiler.h"
 #include "scalapack_connector.h"
 #include <omp.h>
-#if defined(__MACH__)
-#include <malloc/malloc.h> // for malloc_zone_pressure_relief and malloc_default_zone
-#else
-#include <malloc.h>
-#endif
 
 #ifdef LIBRPA_USE_LIBRI
 #include <RI/comm/mix/Communicate_Tensors_Map_Judge.h>
@@ -103,11 +99,9 @@ CorrEnergy compute_RPA_correlation_blacs_2d_gamma_only( Chi0 &chi0, atpair_k_cpl
                 coul_libri[Mu][{Nu, std::array<double, 3>{0,0,0}}] = Tensor<double>({n_mu, n_nu}, pvq);
                 coulmat.at(Mu).at(Nu).at(q).reset();
             }
-            #ifndef __MACH__
-            malloc_trim(0);
-            #else
-            malloc_zone_pressure_relief(malloc_default_zone(), 0);
-            #endif
+
+            LIBRPA::utils::release_free_mem();
+
             //printf("Finish RPA blacs 2d  vq arr\n");
             double arr_end = omp_get_wtime();
             mpi_comm_global_h.barrier();
@@ -168,11 +162,8 @@ CorrEnergy compute_RPA_correlation_blacs_2d_gamma_only( Chi0 &chi0, atpair_k_cpl
                 // }
 
                 chi0.free_chi0_q(freq,q);
-                #ifndef __MACH__
-                malloc_trim(0);
-                #else
-                malloc_zone_pressure_relief(malloc_default_zone(), 0);
-                #endif
+
+                LIBRPA::utils::release_free_mem();
 
                 // if(mpi_comm_global_h.is_root())
                 // {
@@ -405,15 +396,12 @@ CorrEnergy compute_RPA_correlation_blacs_2d( Chi0 &chi0,  atpair_k_cplx_mat_t &c
                 if(mpi_comm_global_h.is_root())
                 {
                     lib_printf("Begin to clean chi0 !!! \n");
-                    system("free -m");
+                    LIBRPA::utils::display_free_mem();
                     lib_printf("chi0_freq_q size: %d,  freq: %f, q:( %f, %f, %f )\n",chi0_wq.size(),freq, q.x,q.y,q.z );
                 }
                 chi0.free_chi0_q(freq,q);
-                #ifndef __MACH__
-                malloc_trim(0);
-                #else
-                malloc_zone_pressure_relief(malloc_default_zone(), 0);
-                #endif
+
+                LIBRPA::utils::release_free_mem();
                 // if(mpi_comm_global_h.is_root())
                 // {
                 //     lib_printf("After clean chi0 !!! \n");
