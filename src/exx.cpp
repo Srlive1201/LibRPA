@@ -1,10 +1,11 @@
+#include "exx.h"
+
 #include "envs_io.h"
 #include "envs_mpi.h"
 #include "profiler.h"
 #include "matrix_m_parallel_utils.h"
 #include "params.h"
 #include "constants.h"
-#include "exx.h"
 #include "pbc.h"
 #include "lapack_connector.h"
 #include "vector3_order.h"
@@ -12,8 +13,8 @@
 #include "stl_io_helper.h"
 #ifdef LIBRPA_USE_LIBRI
 #include <RI/physics/Exx.h>
-using RI::Tensor;
-using RI::Communicate_Tensors_Map_Judge::comm_map2_first;
+#else
+#include "libri_stub.h"
 #endif
 #include "utils_io.h"
 
@@ -111,10 +112,7 @@ void Exx::build(const Cs_LRI &Cs,
         return;
     }
 
-    const auto& n_aos = this->mf_.get_n_aos();
     const auto& n_spins = this->mf_.get_n_spins();
-    const auto& n_kpts = this->mf_.get_n_kpoints();
-    const auto& n_bands = this->mf_.get_n_bands();
 
 #ifdef LIBRPA_USE_LIBRI
     if (mpi_comm_global_h.is_root())
@@ -155,7 +153,7 @@ void Exx::build(const Cs_LRI &Cs,
 
     // initialize Coulomb matrix
     Profiler::start("build_real_space_exx_2", "Prepare V libRI object");
-    std::map<int, std::map<std::pair<int,std::array<int,3>>,RI::Tensor<double>>> V_libri;
+    std::map<int, std::map<std::pair<int,std::array<int,3>>, RI::Tensor<double>>> V_libri;
     for (auto IJR: dispatch_vector_prod(get_atom_pair(coul_mat), Rlist, mpi_comm_global_h.myid, mpi_comm_global_h.nprocs, true, true))
     {
         const auto I = IJR.first.first;
@@ -273,6 +271,7 @@ void Exx::build_KS(const std::vector<std::vector<ComplexMatrix>> &wfc_target,
 {
     using LIBRPA::envs::mpi_comm_global_h;
     using LIBRPA::envs::blacs_ctxt_global_h;
+    using RI::Communicate_Tensors_Map_Judge::comm_map2_first;
 
     assert(this->is_real_space_mat_built_);
 
@@ -303,12 +302,12 @@ void Exx::build_KS(const std::vector<std::vector<ComplexMatrix>> &wfc_target,
                                                               desc_nao_nao);
     const auto Iset_Jset = convert_IJset_to_Iset_Jset(set_IJ_naonao);
 
-    for (int isp = 0; isp < this->mf_.get_n_spins(); isp++)
+    for (int isp = 0; isp < n_spins; isp++)
     {
         // collect necessary data
         Profiler::start("build_real_space_exx_5", "Collect Hexx IJ from world");
         const auto &exx_is = this->exx.at(isp);
-        std::map<int, std::map<std::pair<int, std::array<int, 3>>, Tensor<double>>> exx_I_JR_local;
+        std::map<int, std::map<std::pair<int, std::array<int, 3>>, RI::Tensor<double>>> exx_I_JR_local;
 
         for (const auto &R_IJ_exx: exx_is)
         {
@@ -322,7 +321,7 @@ void Exx::build_KS(const std::vector<std::vector<ComplexMatrix>> &wfc_target,
                     const auto J = J_exx.first;
                     const auto &n_J = atomic_basis_wfc.get_atom_nb(J);
                     const std::array<int, 3> Ra{R.x, R.y, R.z};
-                    exx_I_JR_local[I][{J, Ra}] = Tensor<double>({n_I, n_J}, J_exx.second.sptr());
+                    exx_I_JR_local[I][{J, Ra}] = RI::Tensor<double>({n_I, n_J}, J_exx.second.sptr());
                 }
             }
         }
