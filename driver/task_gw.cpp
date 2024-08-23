@@ -271,7 +271,7 @@ void task_g0w0()
         {
             map<int, map<int, map<int, double>>> e_qp_all;
             map<int, map<int, map<int, cplxdb>>> sigc_all;
-            const auto efermi = meanfield.get_efermi() * 0.5;
+            const auto efermi = meanfield.get_efermi();
             for (int i_spin = 0; i_spin < meanfield.get_n_spins(); i_spin++)
             {
                 for (int i_kpoint = 0; i_kpoint < meanfield.get_n_kpoints(); i_kpoint++)
@@ -279,9 +279,7 @@ void task_g0w0()
                     const auto &sigc_sk = s_g0w0.sigc_is_ik_f_KS[i_spin][i_kpoint];
                     for (int i_state = 0; i_state < meanfield.get_n_bands(); i_state++)
                     {
-                        // convert Ry to Ha
-                        // FIXME: we should use a consistent internal unit!
-                        const auto &eks_state = meanfield.get_eigenvals()[i_spin](i_kpoint, i_state) * 0.5;
+                        const auto &eks_state = meanfield.get_eigenvals()[i_spin](i_kpoint, i_state);
                         const auto &exx_state = exx.Eexx[i_spin][i_kpoint][i_state];
                         const auto &vxc_state = vxc[i_spin](i_kpoint, i_state);
                         std::vector<cplxdb> sigc_state;
@@ -325,7 +323,7 @@ void task_g0w0()
                     printf("%107s\n", banner.c_str());
                     for (int i_state = 0; i_state < meanfield.get_n_bands(); i_state++)
                     {
-                        const auto &eks_state = meanfield.get_eigenvals()[i_spin](i_kpoint, i_state) * RY2EV;
+                        const auto &eks_state = meanfield.get_eigenvals()[i_spin](i_kpoint, i_state) * HA2EV;
                         const auto &exx_state = exx.Eexx[i_spin][i_kpoint][i_state] * HA2EV;
                         const auto &vxc_state = vxc[i_spin](i_kpoint, i_state) * HA2EV;
                         const auto &resigc = sigc_all[i_spin][i_kpoint][i_state].real() * HA2EV;
