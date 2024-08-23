@@ -97,6 +97,8 @@ int main(int argc, char **argv)
         task = task_t::RPA;
     else if (task_lower == "g0w0")
         task = task_t::G0W0;
+    else if (task_lower == "g0w0_band")
+        task = task_t::G0W0_band;
     else if (task_lower == "exx")
         task = task_t::EXX;
     else if (task_lower == "wc_rf")

@@ -27,7 +27,7 @@ G0W0::G0W0(const MeanField &mf,
            const TFGrids &tfg)
     : mf(mf), kfrac_list(kfrac_list), tfg(tfg)
 {
-    d_sigc_built = false;
+    is_real_space_mat_built_ = false;
 }
 
 void G0W0::build_spacetime(
@@ -235,7 +235,7 @@ void G0W0::build_spacetime(
             Profiler::stop("g0w0_build_spacetime_6");
         }
     }
-    d_sigc_built = true;
+    is_real_space_mat_built_ = true;
 #endif
 }
 
@@ -244,6 +244,8 @@ void G0W0::build_sigc_matrix_KS(const std::vector<std::vector<ComplexMatrix>> &w
 {
     using LIBRPA::envs::mpi_comm_global_h;
     using LIBRPA::envs::blacs_ctxt_global_h;
+
+    assert(this->is_real_space_mat_built_);
 
     const int n_aos = mf.get_n_aos();
     const int n_bands = mf.get_n_bands();
