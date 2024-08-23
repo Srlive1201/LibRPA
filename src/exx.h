@@ -48,7 +48,7 @@ class Exx
         //! exact-exchange energy of each state, dimension (nspins, n_kpoints, n_bands). This is actually the diagonal elements of Heex_KS.
         map<int, map<int, map<int, double>>> Eexx;
 
-        Exx(const MeanField& mf, const vector<Vector3_Order<double>> &kfrac_list): mf_(mf), kfrac_list_(kfrac_list) {};
+        Exx(const MeanField& mf, const vector<Vector3_Order<double>> &kfrac_list);
         //! Build and store the real-space exchange matrix
         void build(const Cs_LRI &Cs,
                    const vector<Vector3_Order<int>> &Rlist,

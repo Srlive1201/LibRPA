@@ -15,7 +15,8 @@ namespace LIBRPA
 class G0W0
 {
 private:
-    bool d_sigc_built;
+    bool is_real_space_mat_built_;
+
 public:
     const MeanField &mf;
     const vector<Vector3_Order<double>>& kfrac_list;

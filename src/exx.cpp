@@ -20,6 +20,11 @@ using RI::Communicate_Tensors_Map_Judge::comm_map2_first;
 namespace LIBRPA
 {
 
+Exx::Exx(const MeanField& mf, const vector<Vector3_Order<double>> &kfrac_list): mf_(mf), kfrac_list_(kfrac_list)
+{
+    is_real_space_mat_built_ = false;
+};
+
 ComplexMatrix Exx::get_dmat_cplx_R_global(const int& ispin, const Vector3_Order<int>& R)
 {
     const auto nspins = this->mf_.get_n_spins();
@@ -28,6 +33,7 @@ ComplexMatrix Exx::get_dmat_cplx_R_global(const int& ispin, const Vector3_Order<
     dmat_cplx *= 0.5 * nspins;
     return dmat_cplx;
 }
+
 
 ComplexMatrix Exx::extract_dmat_cplx_R_IJblock(const ComplexMatrix& dmat_cplx, const atom_t& I, const atom_t& J)
 {
@@ -45,6 +51,7 @@ ComplexMatrix Exx::extract_dmat_cplx_R_IJblock(const ComplexMatrix& dmat_cplx, c
     }
     return dmat_cplx_IJR;
 }
+
 
 void Exx::build_dmat_R(const Vector3_Order<int> &R)
 {
@@ -98,6 +105,11 @@ void Exx::build(const Cs_LRI &Cs,
     using LIBRPA::envs::mpi_comm_global_h;
 
     assert (parallel_routing == ParallelRouting::LIBRI);
+
+    if (this->is_real_space_mat_built_)
+    {
+        return;
+    }
 
     const auto& n_aos = this->mf_.get_n_aos();
     const auto& n_spins = this->mf_.get_n_spins();
@@ -251,6 +263,8 @@ void Exx::build(const Cs_LRI &Cs,
     throw std::logic_error("compilation");
     mpi_comm_global_h.barrier();
 #endif
+
+    is_real_space_mat_built_= true;
 }
 
 
@@ -259,6 +273,8 @@ void Exx::build_KS(const std::vector<std::vector<ComplexMatrix>> &wfc_target,
 {
     using LIBRPA::envs::mpi_comm_global_h;
     using LIBRPA::envs::blacs_ctxt_global_h;
+
+    assert(this->is_real_space_mat_built_);
 
     const auto& n_aos = this->mf_.get_n_aos();
     const auto& n_spins = this->mf_.get_n_spins();
