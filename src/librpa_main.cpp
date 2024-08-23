@@ -1,11 +1,6 @@
 #include "librpa_main.h"
 
 #include <algorithm>
-#if defined(__MACH__)
-#include <malloc/malloc.h>  // for malloc_zone_pressure_relief and malloc_default_zone
-#else
-#include <malloc.h>
-#endif
 
 #include "chi0.h"
 #include "epsilon.h"
@@ -17,6 +12,7 @@
 #include "envs_io.h"
 #include "envs_mpi.h"
 #include "utils_io.h"
+#include "utils_mem.h"
 
 void librpa_main()
 {
@@ -295,11 +291,8 @@ void librpa_main()
         LIBRPA::utils::lib_printf("Cs have been cleaned!\n");
     }
 
-    #ifndef __MACH__
-    malloc_trim(0);
-    #else
-    malloc_zone_pressure_relief(malloc_default_zone(), 0);
-    #endif
+    LIBRPA::utils::release_free_mem();
+
     // RPA total energy
     if ( Params::task == "rpa" )
     {
