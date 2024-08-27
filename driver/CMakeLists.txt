@@ -13,6 +13,7 @@ list(APPEND exe_sources
   task_rpa.cpp
   task_exx.cpp
   task_gw.cpp
+  task_gw_band.cpp
   task_screened_coulomb.cpp
   )
 

@@ -1,11 +1,15 @@
 #include "read_data.h"
-// #include <iostream>
+
+#include <iostream>
+#include <iomanip>
 #include <cassert>
 #include <fstream>
+#include <sstream>
 #include <string>
 #include <dirent.h>
 #include <algorithm>
 #include <unordered_map>
+
 #include "atoms.h"
 #include "atomic_basis.h"
 #include "matrix.h"
@@ -19,13 +23,10 @@
 #include "librpa.h"
 #include "utils_mem.h"
 
-// using std::cout;
-// using std::endl;
 using std::ifstream;
 using std::string;
-/* using std::stod; */
 
-void read_band(const string &file_path, MeanField &mf)
+void read_scf_occ_eigenvalues(const string &file_path, MeanField &mf)
 {
     // cout << "Begin to read aims-band_out" << endl;
     ifstream infile;
@@ -1134,4 +1135,79 @@ void read_stru(const int& n_kpoints, const std::string &file_path)
         irk_point_id_mapping.push_back(id_irk);
         map_irk_ks[klist[id_irk]].push_back(klist[i]);
     }
+}
+
+
+std::vector<Vector3_Order<double>> read_band_kpath_info(int &n_basis, int &n_states, int &n_spin)
+{
+    std::vector<Vector3_Order<double>> kfrac_band;
+
+    ifstream infile;
+    infile.open("band_kpath_info");
+
+    string x, y, z;
+    int n_kpoints_band;
+
+    // Read dimensions in the first row
+    infile >> x;
+    n_basis = stoi(x);
+    infile >> x;
+    n_states = stoi(x);
+    infile >> x;
+    n_spin = stoi(x);
+    infile >> x;
+    n_kpoints_band = stoi(x);
+
+    for (int i = 0; i < n_kpoints_band; i++)
+    {
+        infile >> x >> y >> z;
+        kfrac_band.push_back({stod(x), stod(y), stod(z)});
+    }
+
+    infile.close();
+
+    return kfrac_band;
+}
+
+MeanField read_meanfield_band(int n_basis, int n_states, int n_spin, int n_kpoints_band)
+{
+    MeanField mf_band(n_spin, n_kpoints_band, n_states, n_basis);
+    std::string s1, s2, s3, s4, s5;
+
+    for (int ik = 0; ik < n_kpoints_band; ik++)
+    {
+        // Load occupation weights and eigenvalues
+        std::stringstream ss;
+        ss << "band_KS_eigenvalue_k_" << std::setfill('0') << std::setw(5) << ik + 1 << ".txt";
+        ifstream infile;
+        infile.open(ss.str());
+        ss.clear();
+
+        for (int i_spin = 0; i_spin < n_spin; i_spin++)
+        {
+            for (int i_state = 0; i_state < n_spin; i_state++)
+            {
+                infile >> s1 >> s2 >> s3 >> s4 >> s5;
+                mf_band.get_weight()[i_spin](n_kpoints_band, n_states) = stod(s3);
+                mf_band.get_eigenvals()[i_spin](n_kpoints_band, n_states) = stod(s4);
+            }
+        }
+
+        infile.close();
+
+        // Load eigenvectors
+        ss << "band_KS_eigenvector_k_" << std::setfill('0') << std::setw(5) << ik + 1 << ".txt";
+        infile.open(ss.str(), std::ios::in | std::ios::binary);
+
+        for (int i_spin = 0; i_spin < n_spin; i_spin++)
+        {
+            infile.read((char *) mf_band.get_eigenvectors()[i_spin][ik].c, n_basis * n_states * sizeof(std::complex<double>));
+        }
+
+        infile.close();
+    }
+
+    // TODO: Fermi energy is not set
+
+    return mf_band;
 }
