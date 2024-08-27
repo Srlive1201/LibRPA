@@ -2,7 +2,6 @@
 
 #include "envs_io.h"
 #include "envs_mpi.h"
-#include "epsilon.h"
 #include "timefreq.h"
 #include "librpa.h"
 #include "inputfile.h"
@@ -18,6 +17,7 @@
 #include "task_rpa.h"
 #include "task_exx.h"
 #include "task_gw.h"
+#include "task_gw_band.h"
 #include "task_screened_coulomb.h"
 
 static void initialize(int argc, char **argv)
@@ -118,7 +118,7 @@ int main(int argc, char **argv)
     Profiler::stop("driver_read_params");
 
     Profiler::start("driver_band_out", "Driver Read Meanfield band");
-    read_band("band_out", meanfield);
+    read_scf_occ_eigenvalues("band_out", meanfield);
     if (mpi_comm_global_h.is_root())
     {
         cout << "Information of mean-field starting-point" << endl;
@@ -287,17 +287,6 @@ int main(int argc, char **argv)
     // mpi_comm_global_h.barrier();
     Profiler::stop("driver_read_common_input_data");
 
-    // malloc_trim(0);
-    // para_mpi.mpi_barrier();
-    // if(para_mpi.is_master())
-    //     system("free -m");
-    //erase_Cs_from_local_atp(Cs,local_atpair);
-    // malloc_trim(0);
-    // para_mpi.mpi_barrier();
-    // if(para_mpi.is_master())
-    //     system("free -m");
-    // build ABF IJ and qlist from Vq
-
     mpi_comm_global_h.barrier();
     if (mpi_comm_global_h.myid == 0)
     {
@@ -315,6 +304,10 @@ int main(int argc, char **argv)
     else if (task == task_t::G0W0)
     {
         task_g0w0();
+    }
+    else if (task == task_t::G0W0_band)
+    {
+        task_g0w0_band();
     }
     else if (task == task_t::EXX)
     {
