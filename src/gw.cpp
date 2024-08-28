@@ -250,6 +250,8 @@ void G0W0::build_sigc_matrix_KS(const std::vector<std::vector<ComplexMatrix>> &w
     const int n_aos = mf.get_n_aos();
     const int n_bands = mf.get_n_bands();
 
+   Profiler::start("g0w0_build_sigc_KS");
+
 #ifndef LIBRPA_USE_LIBRI
     if (mpi_comm_global_h.myid == 0)
     {
@@ -345,6 +347,8 @@ void G0W0::build_sigc_matrix_KS(const std::vector<std::vector<ComplexMatrix>> &w
         }
     }
 #endif
+
+   Profiler::stop("g0w0_build_sigc_KS");
 }
 
 void G0W0::build_sigc_matrix_KS_kgrid()

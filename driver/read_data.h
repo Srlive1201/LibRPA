@@ -53,4 +53,6 @@ std::vector<Vector3_Order<double>> read_band_kpath_info(int &n_basis, int &n_sta
 
 MeanField read_meanfield_band(int n_basis, int n_states, int n_spin, int n_kpoints_band);
 
+std::vector<matrix> read_vxc_band(int n_states, int n_spin, int n_kpoints_band);
+
 #endif // !READ_DATA_H

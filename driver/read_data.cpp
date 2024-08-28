@@ -1185,11 +1185,11 @@ MeanField read_meanfield_band(int n_basis, int n_states, int n_spin, int n_kpoin
 
         for (int i_spin = 0; i_spin < n_spin; i_spin++)
         {
-            for (int i_state = 0; i_state < n_spin; i_state++)
+            for (int i_state = 0; i_state < n_states; i_state++)
             {
                 infile >> s1 >> s2 >> s3 >> s4 >> s5;
-                mf_band.get_weight()[i_spin](n_kpoints_band, n_states) = stod(s3);
-                mf_band.get_eigenvals()[i_spin](n_kpoints_band, n_states) = stod(s4);
+                mf_band.get_weight()[i_spin](ik, i_state) = stod(s3);
+                mf_band.get_eigenvals()[i_spin](ik, i_state) = stod(s4);
             }
         }
 
@@ -1210,4 +1210,36 @@ MeanField read_meanfield_band(int n_basis, int n_states, int n_spin, int n_kpoin
     // TODO: Fermi energy is not set
 
     return mf_band;
+}
+
+std::vector<matrix> read_vxc_band(int n_states, int n_spin, int n_kpoints_band)
+{
+    std::vector<matrix> vxc_band(n_spin);
+    for (int i_spin = 0; i_spin < n_spin; i_spin++)
+    {
+        vxc_band[i_spin].create(n_kpoints_band, n_states);
+    }
+    std::string s1, s2, s3;
+
+    for (int ik = 0; ik < n_kpoints_band; ik++)
+    {
+        // Load occupation weights and eigenvalues
+        std::stringstream ss;
+        ss << "band_vxc_k_" << std::setfill('0') << std::setw(5) << ik + 1 << ".txt";
+        ifstream infile;
+        infile.open(ss.str());
+        ss.clear();
+
+        for (int i_spin = 0; i_spin < n_spin; i_spin++)
+        {
+            for (int i_state = 0; i_state < n_states; i_state++)
+            {
+                infile >> s1 >> s2 >> s3;
+                vxc_band[i_spin](ik, i_state) = stod(s3);
+            }
+        }
+
+        infile.close();
+    }
+    return vxc_band;
 }
