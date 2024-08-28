@@ -1,7 +1,7 @@
 /*!
- * \file interpolate.h
- * \brief Component to perform interpolation
- * \details This component includes basic functions to interpolate values from
+ * @file interpolate.h
+ * @brief Component to perform interpolation
+ * @details This component includes basic functions to interpolate values from
  *          available grid data. The implementation is probably naive. For better
  *          performance and validity, it should be replaced by GSL or other GPL-licensed
  *          library when license issue is resolved.
@@ -43,11 +43,11 @@ public:
 }; /* end of class CubicSpline */
 
 /*!
- * \brief Helper function to performance cubic spline interpolation
- * \param[in] x values of avaiable data points
- * \param[in] y values of avaiable data points
- * \param[in] x values of points to interpolate
- * \return y values of points to interpolate
+ * @brief Helper function to performance cubic spline interpolation
+ * @param[in] x values of avaiable data points
+ * @param[in] y values of avaiable data points
+ * @param[in] x values of points to interpolate
+ * @return y values of points to interpolate
  */
 std::vector<double> interp_cubic_spline(const std::vector<double> &xs,
                                         const std::vector<double> &ys,

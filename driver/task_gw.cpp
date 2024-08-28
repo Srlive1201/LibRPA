@@ -2,7 +2,6 @@
 
 #include "envs_mpi.h"
 #include "envs_io.h"
-#include "fitting.h"
 #include "meanfield.h"
 #include "params.h"
 #include "pbc.h"
@@ -18,8 +17,7 @@
 #include "ri.h"
 #include "read_data.h"
 #include "write_aims.h"
-#include "interpolate.h"
-#include "dielecmodel.h"
+#include "driver_utils.h"
 
 void task_g0w0()
 {
@@ -101,37 +99,9 @@ void task_g0w0()
         std::vector<double> dielect_func;
         read_dielec_func("dielecfunc_out", omegas_dielect, dielect_func);
 
-        switch(Params::option_dielect_func)
-        {
-            case 0:
-                {
-                    assert(omegas_dielect.size() == chi0.tfg.size());
-                    // TODO: check if frequencies and close
-                    epsmac_LF_imagfreq_re = dielect_func;
-                    break;
-                }
-            case 1:
-                {
-                    epsmac_LF_imagfreq_re = LIBRPA::utils::interp_cubic_spline(omegas_dielect, dielect_func,
-                                                                       chi0.tfg.get_freq_nodes());
-                    break;
-                }
-            case 2:
-                {
-                    LIBRPA::utils::LevMarqFitting levmarq;
-                    // use double-dispersion Havriliak-Negami model
-                    // initialize the parameters as 1.0
-                    std::vector<double> pars(DoubleHavriliakNegami::d_npar, 1);
-                    pars[0] = pars[4] = dielect_func[0];
-                    epsmac_LF_imagfreq_re = levmarq.fit_eval(pars, omegas_dielect, dielect_func,
-                                                             DoubleHavriliakNegami::func_imfreq,
-                                                             DoubleHavriliakNegami::grad_imfreq,
-                                                             chi0.tfg.get_freq_nodes());
-                    break;
-                }
-            default:
-                throw std::logic_error("Unsupported value for option_dielect_func");
-        }
+        epsmac_LF_imagfreq_re = interpolate_dielec_func(
+                Params::option_dielect_func, omegas_dielect, dielect_func,
+                chi0.tfg.get_freq_nodes());
 
         if (Params::debug)
         {

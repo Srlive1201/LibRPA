@@ -1,8 +1,10 @@
 #include "task_gw_band.h"
 
+#include <sstream>
+#include <fstream>
+
 #include "envs_mpi.h"
 #include "envs_io.h"
-#include "fitting.h"
 #include "meanfield.h"
 #include "params.h"
 #include "pbc.h"
@@ -18,8 +20,7 @@
 #include "ri.h"
 #include "read_data.h"
 #include "write_aims.h"
-#include "interpolate.h"
-#include "dielecmodel.h"
+#include "driver_utils.h"
 
 void task_g0w0_band()
 {
@@ -27,7 +28,7 @@ void task_g0w0_band()
     using LIBRPA::envs::ofs_myid;
     using LIBRPA::utils::lib_printf;
 
-    Profiler::start("g0w0", "G0W0 quasi-particle calculation");
+    Profiler::start("g0w0_band", "G0W0 quasi-particle band structure calculation");
 
     Vector3_Order<int> period {kv_nmp[0], kv_nmp[1], kv_nmp[2]};
     auto Rlist = construct_R_grid(period);
@@ -84,48 +85,9 @@ void task_g0w0_band()
         std::vector<double> dielect_func;
         read_dielec_func("dielecfunc_out", omegas_dielect, dielect_func);
 
-        switch(Params::option_dielect_func)
-        {
-            case 0:
-                {
-                    assert(omegas_dielect.size() == chi0.tfg.size());
-                    // TODO: check if frequencies and close
-                    epsmac_LF_imagfreq_re = dielect_func;
-                    break;
-                }
-            case 1:
-                {
-                    epsmac_LF_imagfreq_re = LIBRPA::utils::interp_cubic_spline(omegas_dielect, dielect_func,
-                                                                       chi0.tfg.get_freq_nodes());
-                    break;
-                }
-            case 2:
-                {
-                    LIBRPA::utils::LevMarqFitting levmarq;
-                    // use double-dispersion Havriliak-Negami model
-                    // initialize the parameters as 1.0
-                    std::vector<double> pars(DoubleHavriliakNegami::d_npar, 1);
-                    pars[0] = pars[4] = dielect_func[0];
-                    epsmac_LF_imagfreq_re = levmarq.fit_eval(pars, omegas_dielect, dielect_func,
-                                                             DoubleHavriliakNegami::func_imfreq,
-                                                             DoubleHavriliakNegami::grad_imfreq,
-                                                             chi0.tfg.get_freq_nodes());
-                    break;
-                }
-            default:
-                throw std::logic_error("Unsupported value for option_dielect_func");
-        }
-
-        if (Params::debug)
-        {
-            if (mpi_comm_global_h.is_root())
-            {
-                lib_printf("Dielectric function parsed:\n");
-                for (int i = 0; i < chi0.tfg.get_freq_nodes().size(); i++)
-                    lib_printf("%d %f %f\n", i+1, chi0.tfg.get_freq_nodes()[i], epsmac_LF_imagfreq_re[i]);
-            }
-            mpi_comm_global_h.barrier();
-        }
+        epsmac_LF_imagfreq_re = interpolate_dielec_func(
+                Params::option_dielect_func, omegas_dielect, dielect_func,
+                chi0.tfg.get_freq_nodes());
     }
 
     Profiler::start("g0w0_exx", "Build exchange self-energy");
@@ -181,6 +143,7 @@ void task_g0w0_band()
     Profiler::start("g0w0_sigc_IJ", "Build real-space correlation self-energy");
     s_g0w0.build_spacetime(Cs_data, Wc_freq_q, Rlist, period);
     Profiler::stop("g0w0_sigc_IJ");
+    std::flush(ofs_myid);
 
     /* Below we handle the band k-points data
      * First load the information of k-points along the k-path */
@@ -188,139 +151,135 @@ void task_g0w0_band()
     int n_basis_band, n_states_band, n_spin_band;
     std::vector<Vector3_Order<double>> kfrac_band =
         read_band_kpath_info(n_basis_band, n_states_band, n_spin_band);
+    if (mpi_comm_global_h.is_root())
+    {
+        std::cout << "Band k-points to compute:\n";
+        for (int ik = 0; ik < kfrac_band.size(); ik++)
+        {
+            const auto &k = kfrac_band[ik];
+            lib_printf("%5d %12.7f %12.7f %12.7f\n", ik + 1, k.x, k.y, k.z);
+        }
+    }
+    mpi_comm_global_h.barrier();
+
     auto meanfield_band = read_meanfield_band(
             n_basis_band, n_states_band, n_spin_band, kfrac_band.size());
+
+    /* Set the same Fermi energy as in SCF */
+    meanfield_band.get_efermi() = meanfield.get_efermi();
     Profiler::stop("g0w0_band_load_band_mf");
 
-    Profiler::start("g0w0_sigc_rotate_KS", "Construct self-energy in Kohn-Sham space");
-    s_g0w0.build_sigc_matrix_KS_kgrid();
+    Profiler::start("g0w0_sigx_rotate_KS");
+    exx.build_KS_band(meanfield_band.get_eigenvectors(), kfrac_band);
+    Profiler::stop("g0w0_sigx_rotate_KS");
+    std::flush(ofs_myid);
+
+    Profiler::start("g0w0_sigc_rotate_KS");
+    s_g0w0.build_sigc_matrix_KS_band(meanfield_band.get_eigenvectors(), kfrac_band);
     Profiler::stop("g0w0_sigc_rotate_KS");
+    std::flush(ofs_myid);
 
     Profiler::start("read_vxc", "Load DFT xc potential");
-    std::vector<matrix> vxc;
-    int flag_read_vxc = read_vxc("./vxc_out", vxc);
-    if (mpi_comm_global_h.myid == 0)
-    {
-        if (flag_read_vxc == 0)
-        {
-            cout << "* Success: Read DFT xc potential, will solve quasi-particle equation\n";
-        }
-        else
-        {
-            cout << "*   Error: Read DFT xc potential, switch off solving quasi-particle equation\n";
-        }
-    }
+    auto vxc_band = read_vxc_band(n_states_band, n_spin_band, kfrac_band.size());
     Profiler::stop("read_vxc");
     std::flush(ofs_myid);
-    if (flag_read_vxc == 0)
-    {
-        Profiler::start("g0w0_solve_qpe", "Solve quasi-particle equation");
-        if (mpi_comm_global_h.is_root())
-        {
-            std::cout << "Solving quasi-particle equation\n";
-        }
-        std::vector<cplxdb> imagfreqs;
-        for (const auto &freq: chi0.tfg.get_freq_nodes())
-        {
-            imagfreqs.push_back(cplxdb{0.0, freq});
-        }
 
-        // TODO: parallelize analytic continuation and QPE solver among tasks
-        if (mpi_comm_global_h.is_root())
+    std::vector<cplxdb> imagfreqs;
+    for (const auto &freq: chi0.tfg.get_freq_nodes())
+    {
+        imagfreqs.push_back(cplxdb{0.0, freq});
+    }
+
+    Profiler::start("g0w0_solve_qpe", "Solve quasi-particle equation");
+    if (mpi_comm_global_h.is_root())
+    {
+        std::cout << "Solving quasi-particle equation\n";
+    }
+
+    // TODO: parallelize analytic continuation and QPE solver among tasks
+    if (mpi_comm_global_h.is_root())
+    {
+        const auto &mf = meanfield_band;
+        map<int, map<int, map<int, double>>> e_qp_all;
+        map<int, map<int, map<int, cplxdb>>> sigc_all;
+        const auto efermi = mf.get_efermi();
+        for (int i_spin = 0; i_spin < mf.get_n_spins(); i_spin++)
         {
-            map<int, map<int, map<int, double>>> e_qp_all;
-            map<int, map<int, map<int, cplxdb>>> sigc_all;
-            const auto efermi = meanfield.get_efermi();
-            for (int i_spin = 0; i_spin < meanfield.get_n_spins(); i_spin++)
+            for (int i_kpoint = 0; i_kpoint < mf.get_n_kpoints(); i_kpoint++)
             {
-                for (int i_kpoint = 0; i_kpoint < meanfield.get_n_kpoints(); i_kpoint++)
+                const auto &sigc_sk = s_g0w0.sigc_is_ik_f_KS[i_spin][i_kpoint];
+                for (int i_state = 0; i_state < mf.get_n_bands(); i_state++)
                 {
-                    const auto &sigc_sk = s_g0w0.sigc_is_ik_f_KS[i_spin][i_kpoint];
-                    for (int i_state = 0; i_state < meanfield.get_n_bands(); i_state++)
+                    const auto &eks_state = mf.get_eigenvals()[i_spin](i_kpoint, i_state);
+                    const auto &exx_state = exx.Eexx[i_spin][i_kpoint][i_state];
+                    const auto &vxc_state = vxc_band[i_spin](i_kpoint, i_state);
+                    std::vector<cplxdb> sigc_state;
+                    for (const auto &freq: chi0.tfg.get_freq_nodes())
                     {
-                        const auto &eks_state = meanfield.get_eigenvals()[i_spin](i_kpoint, i_state);
-                        const auto &exx_state = exx.Eexx[i_spin][i_kpoint][i_state];
-                        const auto &vxc_state = vxc[i_spin](i_kpoint, i_state);
-                        std::vector<cplxdb> sigc_state;
-                        for (const auto &freq: chi0.tfg.get_freq_nodes())
-                        {
-                            sigc_state.push_back(sigc_sk.at(freq)(i_state, i_state));
-                        }
-                        LIBRPA::AnalyContPade pade(Params::n_params_anacon, imagfreqs, sigc_state);
-                        double e_qp;
-                        cplxdb sigc;
-                        int flag_qpe_solver = LIBRPA::qpe_solver_pade_self_consistent(
-                            pade, eks_state, efermi, vxc_state, exx_state, e_qp, sigc);
-                        if (flag_qpe_solver == 0)
-                        {
-                            e_qp_all[i_spin][i_kpoint][i_state] = e_qp;
-                            sigc_all[i_spin][i_kpoint][i_state] = sigc;
-                        }
-                        else
-                        {
-                            printf("Warning! QPE solver failed for spin %d, kpoint %d, state %d\n",
-                                    i_spin+1, i_kpoint+1, i_state+1);
-                            e_qp_all[i_spin][i_kpoint][i_state] = std::numeric_limits<double>::quiet_NaN();
-                            sigc_all[i_spin][i_kpoint][i_state] = std::numeric_limits<cplxdb>::quiet_NaN();
-                        }
+                        sigc_state.push_back(sigc_sk.at(freq)(i_state, i_state));
+                    }
+                    LIBRPA::AnalyContPade pade(Params::n_params_anacon, imagfreqs, sigc_state);
+                    double e_qp;
+                    cplxdb sigc;
+                    int flag_qpe_solver = LIBRPA::qpe_solver_pade_self_consistent(
+                        pade, eks_state, efermi, vxc_state, exx_state, e_qp, sigc);
+                    if (flag_qpe_solver == 0)
+                    {
+                        e_qp_all[i_spin][i_kpoint][i_state] = e_qp;
+                        sigc_all[i_spin][i_kpoint][i_state] = sigc;
+                    }
+                    else
+                    {
+                        printf("Warning! QPE solver failed for spin %d, kpoint %d, state %d\n",
+                                i_spin+1, i_kpoint+1, i_state+1);
+                        e_qp_all[i_spin][i_kpoint][i_state] = std::numeric_limits<double>::quiet_NaN();
+                        sigc_all[i_spin][i_kpoint][i_state] = std::numeric_limits<cplxdb>::quiet_NaN();
                     }
                 }
             }
-
-            // display results
-            const std::string banner(107, '-');
-            printf("Printing quasi-particle energy [unit: eV]\n\n");
-            for (int i_spin = 0; i_spin < meanfield.get_n_spins(); i_spin++)
-            {
-                for (int i_kpoint = 0; i_kpoint < meanfield.get_n_kpoints(); i_kpoint++)
-                {
-                    const auto &k = kfrac_list[i_kpoint];
-                    printf("spin %2d, k-point %4d: (%.5f, %.5f, %.5f) \n",
-                            i_spin+1, i_kpoint+1, k.x, k.y, k.z);
-                    printf("%107s\n", banner.c_str());
-                    printf("%5s %16s %16s %16s %16s %16s %16s\n", "State", "e_mf", "v_xc", "v_exx", "ReSigc", "ImSigc", "e_qp");
-                    printf("%107s\n", banner.c_str());
-                    for (int i_state = 0; i_state < meanfield.get_n_bands(); i_state++)
-                    {
-                        const auto &eks_state = meanfield.get_eigenvals()[i_spin](i_kpoint, i_state) * HA2EV;
-                        const auto &exx_state = exx.Eexx[i_spin][i_kpoint][i_state] * HA2EV;
-                        const auto &vxc_state = vxc[i_spin](i_kpoint, i_state) * HA2EV;
-                        const auto &resigc = sigc_all[i_spin][i_kpoint][i_state].real() * HA2EV;
-                        const auto &imsigc = sigc_all[i_spin][i_kpoint][i_state].imag() * HA2EV;
-                        const auto &eqp = e_qp_all[i_spin][i_kpoint][i_state] * HA2EV;
-                        printf("%5d %16.5f %16.5f %16.5f %16.5f %16.5f %16.5f\n",
-                               i_state+1, eks_state, vxc_state, exx_state, resigc, imsigc, eqp);
-                    }
-                    printf("\n");
-                }
-            }
         }
-        Profiler::stop("g0w0_solve_qpe");
-    }
 
-    Profiler::start("g0w0_export_sigc_KS", "Export self-energy in KS basis");
-    mpi_comm_global_h.barrier();
-    if (Params::output_gw_sigc_mat && mpi_comm_global_h.is_root())
-    {
-        char fn[100];
-        for (const auto &ispin_sigc: s_g0w0.sigc_is_ik_f_KS)
+        // display results
+        for (int i_spin = 0; i_spin < meanfield.get_n_spins(); i_spin++)
         {
-            const auto &ispin = ispin_sigc.first;
-            for (const auto &ik_sigc: ispin_sigc.second)
+            std::ofstream ofs_hf;
+            std::ofstream ofs_gw;
+            std::stringstream fn;
+            fn << "GW_band_spin_" << i_spin + 1 << ".dat";
+            ofs_gw.open(fn.str());
+            fn.str("");
+            fn.clear();
+
+            fn << "EXX_band_spin_" << i_spin + 1 << ".dat";
+            ofs_hf.open(fn.str());
+
+            ofs_gw << std::fixed;
+            ofs_hf << std::fixed;
+
+            for (int i_kpoint = 0; i_kpoint < mf.get_n_kpoints(); i_kpoint++)
             {
-                const auto &ik = ik_sigc.first;
-                for (const auto &freq_sigc: ik_sigc.second)
+                const auto &k = kfrac_band[i_kpoint];
+                ofs_gw << std::setw(5) << i_kpoint + 1 << std::setw(15) << std::setprecision(7) << k.x << std::setw(15) << std::setprecision(7) << k.y << std::setw(15) << std::setprecision(7) << k.z;
+                ofs_hf << std::setw(5) << i_kpoint + 1 << std::setw(15) << std::setprecision(7) << k.x << std::setw(15) << std::setprecision(7) << k.y << std::setw(15) << std::setprecision(7) << k.z;
+                for (int i_state = 0; i_state < meanfield.get_n_bands(); i_state++)
                 {
-                    const auto ifreq = s_g0w0.tfg.get_freq_index(freq_sigc.first);
-                    sprintf(fn, "Sigc_fk_mn_ispin_%d_ik_%d_ifreq_%d.mtx", ispin, ik, ifreq);
-                    print_matrix_mm_file(freq_sigc.second, Params::output_dir + "/" + fn, 1e-10);
+                    const auto &occ_state = mf.get_weight()[i_spin](i_kpoint, i_state);
+                    const auto &eks_state = mf.get_eigenvals()[i_spin](i_kpoint, i_state) * HA2EV;
+                    const auto &exx_state = exx.Eexx[i_spin][i_kpoint][i_state] * HA2EV;
+                    const auto &vxc_state = vxc_band[i_spin](i_kpoint, i_state) * HA2EV;
+                    // const auto &resigc = sigc_all[i_spin][i_kpoint][i_state].real() * HA2EV;
+                    // const auto &imsigc = sigc_all[i_spin][i_kpoint][i_state].imag() * HA2EV;
+                    const auto &eqp = e_qp_all[i_spin][i_kpoint][i_state] * HA2EV;
+                    ofs_gw << std::setw(15) << std::setprecision(5) << occ_state << std::setw(15) << std::setprecision(5) << eqp;
+                    ofs_hf << std::setw(15) << std::setprecision(5) << occ_state << std::setw(15) << std::setprecision(5) << eks_state - vxc_state + exx_state;
                 }
+                ofs_gw << "\n";
+                ofs_hf << "\n";
             }
         }
-        // for aims analytic continuation reader
-        write_self_energy_omega("self_energy_omega.dat", s_g0w0);
     }
-    Profiler::stop("g0w0_export_sigc_KS");
+    Profiler::stop("g0w0_solve_qpe");
 
-    Profiler::stop("g0w0");
+
+    Profiler::stop("g0w0_band");
 }
