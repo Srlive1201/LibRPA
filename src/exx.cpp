@@ -338,7 +338,7 @@ void Exx::build_KS(const std::vector<std::vector<ComplexMatrix>> &wfc_target,
         {
             Hexx_nao_nao.zero_out();
             Profiler::start("build_real_space_exx_6", "Hexx IJ -> 2D block");
-            const auto& kfrac = this->kfrac_list_[ik];
+            const auto& kfrac = kfrac_target[ik];
             const std::function<complex<double>(const int &, const std::pair<int, std::array<int, 3>> &)>
                 fourier = [kfrac, n_kpts](const int &I, const std::pair<int, std::array<int, 3>> &J_Ra)
                 {
