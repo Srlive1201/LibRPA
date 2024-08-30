@@ -1181,7 +1181,6 @@ MeanField read_meanfield_band(int n_basis, int n_states, int n_spin, int n_kpoin
         ss << "band_KS_eigenvalue_k_" << std::setfill('0') << std::setw(5) << ik + 1 << ".txt";
         ifstream infile;
         infile.open(ss.str());
-        ss.clear();
 
         for (int i_spin = 0; i_spin < n_spin; i_spin++)
         {
@@ -1196,12 +1195,15 @@ MeanField read_meanfield_band(int n_basis, int n_states, int n_spin, int n_kpoin
         infile.close();
 
         // Load eigenvectors
+        ss.str("");
+        ss.clear();
         ss << "band_KS_eigenvector_k_" << std::setfill('0') << std::setw(5) << ik + 1 << ".txt";
         infile.open(ss.str(), std::ios::in | std::ios::binary);
 
         for (int i_spin = 0; i_spin < n_spin; i_spin++)
         {
-            infile.read((char *) mf_band.get_eigenvectors()[i_spin][ik].c, n_basis * n_states * sizeof(std::complex<double>));
+            const size_t nbytes = n_basis * n_states * sizeof(std::complex<double>);
+            infile.read((char *) mf_band.get_eigenvectors()[i_spin][ik].c, nbytes);
         }
 
         infile.close();
