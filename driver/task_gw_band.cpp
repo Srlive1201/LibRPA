@@ -240,7 +240,7 @@ void task_g0w0_band()
         }
 
         // display results
-        for (int i_spin = 0; i_spin < meanfield.get_n_spins(); i_spin++)
+        for (int i_spin = 0; i_spin < mf.get_n_spins(); i_spin++)
         {
             std::ofstream ofs_hf;
             std::ofstream ofs_gw;
