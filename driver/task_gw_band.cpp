@@ -242,19 +242,27 @@ void task_g0w0_band()
         // display results
         for (int i_spin = 0; i_spin < mf.get_n_spins(); i_spin++)
         {
+            std::ofstream ofs_ks;
             std::ofstream ofs_hf;
             std::ofstream ofs_gw;
             std::stringstream fn;
+
             fn << "GW_band_spin_" << i_spin + 1 << ".dat";
             ofs_gw.open(fn.str());
+
             fn.str("");
             fn.clear();
-
             fn << "EXX_band_spin_" << i_spin + 1 << ".dat";
             ofs_hf.open(fn.str());
 
+            fn.str("");
+            fn.clear();
+            fn << "KS_band_spin_" << i_spin + 1 << ".dat";
+            ofs_ks.open(fn.str());
+
             ofs_gw << std::fixed;
             ofs_hf << std::fixed;
+            ofs_ks << std::fixed;
 
             for (int i_kpoint = 0; i_kpoint < mf.get_n_kpoints(); i_kpoint++)
             {
@@ -270,11 +278,13 @@ void task_g0w0_band()
                     // const auto &resigc = sigc_all[i_spin][i_kpoint][i_state].real() * HA2EV;
                     // const auto &imsigc = sigc_all[i_spin][i_kpoint][i_state].imag() * HA2EV;
                     const auto &eqp = e_qp_all[i_spin][i_kpoint][i_state] * HA2EV;
+                    ofs_ks << std::setw(15) << std::setprecision(5) << occ_state << std::setw(15) << std::setprecision(5) << eks_state;
                     ofs_gw << std::setw(15) << std::setprecision(5) << occ_state << std::setw(15) << std::setprecision(5) << eqp;
                     ofs_hf << std::setw(15) << std::setprecision(5) << occ_state << std::setw(15) << std::setprecision(5) << eks_state - vxc_state + exx_state;
                 }
                 ofs_gw << "\n";
                 ofs_hf << "\n";
+                ofs_ks << "\n";
             }
         }
     }
