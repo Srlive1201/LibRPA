@@ -1,5 +1,7 @@
 #pragma once
 
+#include "utils_io.h"
+
 #include "envs_io.h"
 #include "envs_mpi.h"
 
@@ -15,9 +17,7 @@ void lib_printf_root(const char* format, Args&&... args)
 {
     if (envs::myid_global == 0)
     {
-        envs::redirect_stdout ?
-            fprintf(envs::pfile_redirect, format, std::forward<Args>(args)...) :
-            printf(format, std::forward<Args>(args)...);
+        lib_printf(format, std::forward<Args>(args)...);
     }
 }
 
@@ -29,9 +29,7 @@ void lib_printf_coll(const char* format, Args&&... args)
     {
         if (envs::myid_global == i)
         {
-            envs::redirect_stdout ?
-                fprintf(envs::pfile_redirect, format, std::forward<Args>(args)...) :
-                printf(format, std::forward<Args>(args)...);
+            lib_printf(format, std::forward<Args>(args)...);
         }
         MPI_Barrier(envs::mpi_comm_global);
     }
