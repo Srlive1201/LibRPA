@@ -89,6 +89,10 @@ class TFGrids
         // NOTE:(ZMY) attempt to use a map<double, double> to store,
         //      but will lead to a segfault in chi0tauR calculation, not knowing why
         double find_freq_weight(const double &freq) const;
+        //! A wrapper around all grids generators
+        void generate(TFGrids::GRID_TYPES gtype,
+                      double emin = -1, double eintveral = -1,
+                      double emax = -1, double tmin = -1, double tinterval = -1);
         //! Generate the even-spaced frequency grid
         void generate_evenspaced(double emin, double interval);
         //! Generate the even-spaced time-frequency grid. @note Currently only for debug use

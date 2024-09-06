@@ -127,6 +127,42 @@ TFGrids::~TFGrids()
     /* unset(); */
 }
 
+void TFGrids::generate(TFGrids::GRID_TYPES gtype, double emin, double eintveral, double emax, double tmin, double tinterval)
+{
+    switch (gtype)
+    {
+        case (TFGrids::GRID_TYPES::GaussLegendre):
+        {
+            this->generate_GaussLegendre();
+        }
+        case (TFGrids::GRID_TYPES::GaussChebyshevI):
+        {
+            this->generate_GaussChebyshevI();
+        }
+        case (TFGrids::GRID_TYPES::GaussChebyshevII):
+        {
+            this->generate_GaussChebyshevII();
+        }
+        case (TFGrids::GRID_TYPES::Minimax):
+        {
+            this->generate_minimax(emin, emax);
+            break;
+        }
+        case (TFGrids::GRID_TYPES::EvenSpaced):
+        {
+            this->generate_evenspaced(emin, eintveral);
+            break;
+        }
+        case (TFGrids::GRID_TYPES::EvenSpaced_TF):
+        {
+            this->generate_evenspaced_tf(emin, eintveral, tmin, tinterval);
+            break;
+        }
+        default:
+            throw invalid_argument("requested time-frequency grid is not implemented");
+    }
+}
+
 void TFGrids::generate_evenspaced(double emin, double interval)
 {
     if ( emin <= 0 )

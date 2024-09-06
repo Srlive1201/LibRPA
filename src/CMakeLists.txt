@@ -53,6 +53,7 @@ list(APPEND lib_sources
         ri.cpp
         timefreq.cpp
         utils_mem.cpp
+        utils_timefreq.cpp
         vector3_order.cpp
         )
 
