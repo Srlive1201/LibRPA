@@ -1,14 +1,16 @@
 #include "task_screened_coulomb.h"
 
-#include "envs_mpi.h"
-#include "utils_io.h"
-
-#include "read_data.h"
 #include "profiler.h"
 #include "params.h"
 #include "chi0.h"
 #include "epsilon.h"
 #include "pbc.h"
+
+#include "envs_mpi.h"
+#include "utils_io.h"
+#include "utils_timefreq.h"
+
+#include "read_data.h"
 #include "driver_utils.h"
 
 void task_screened_coulomb_real_freq()
@@ -27,26 +29,8 @@ void task_screened_coulomb_real_freq()
         qlist.push_back(q_weight.first);
     }
 
-    TFGrids tfg(Params::nfreq);
-    // prepare the time-freq grids
-    switch (TFGrids::get_grid_type(Params::tfgrids_type))
-    {
-        case (TFGrids::GRID_TYPES::Minimax):
-        {
-            double emin, emax;
-            meanfield.get_E_min_max(emin, emax);
-            tfg.generate_minimax(emin, emax);
-            break;
-        }
-        case (TFGrids::GRID_TYPES::EvenSpaced_TF):
-        {
-            // WARN: only used to debug, adjust emin and interval manually
-            tfg.generate_evenspaced_tf(0.005, 0.0, 0.005, 0.0);
-            break;
-        }
-        default:
-            throw invalid_argument("requested time-frequency grid is not implemented");
-    }
+    // Prepare time-frequency grids
+    auto tfg = LIBRPA::utils::generate_timefreq_grids(Params::nfreq, Params::tfgrids_type, meanfield);
 
     Chi0 chi0(meanfield, klist, tfg);
     chi0.gf_R_threshold = Params::gf_R_threshold;
