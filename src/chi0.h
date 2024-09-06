@@ -39,12 +39,14 @@ class Chi0
 
         //! Internal procedure to compute chi0_q by space-time method
         /*
-         @todo add threshold parameter. Maybe in the class level?
+         * @todo add threshold parameter. Maybe in the class level?
          */
         void build_chi0_q_space_time(const Cs_LRI &Cs,
                                      const Vector3_Order<int> &R_period,
                                      const vector<atpair_t> &atpairs_ABF,
                                      const vector<Vector3_Order<double>> &qlist);
+
+        // NOTE: the following three methods could be converted to static functions in chi0.cpp
         void build_chi0_q_space_time_atom_pair_routing(const Cs_LRI &Cs,
                                                        const Vector3_Order<int> &R_period,
                                                        const vector<atpair_t> &atpairs_ABF,
@@ -78,42 +80,20 @@ class Chi0
         /* matrix reshape_mat(const size_t n1, const size_t n2, const size_t n3, const matrix &mat); */
         /* matrix reshape_mat_21(const size_t n1, const size_t n2, const size_t n3, const matrix &mat); //(n1,n2*n3) -> (n1*n2,n3) */
     public:
-        double gf_R_threshold;
-        MeanField mf;
+        const MeanField &mf;
         const vector<Vector3_Order<double>> &klist;
-        TFGrids tfg;
-        Chi0(const MeanField &mf_in,
-             const vector<Vector3_Order<double>> &klist_in,
-             unsigned n_tf_grids):
-            mf(mf_in), klist(klist_in), tfg(n_tf_grids) { gf_R_threshold = 1e-9; }
+        const TFGrids &tfg;
+
+        double gf_R_threshold;
+
+        Chi0(const MeanField &mf_in, const vector<Vector3_Order<double>> &klist_in, const TFGrids &tfg_in);
         ~Chi0() {};
         //! Build the independent response function in q-omega domain for ABFs on the atom pairs atpair_ABF and q-vectors in qlist
         void build(const Cs_LRI &Cs,
                    const vector<Vector3_Order<int>> &Rlist,
                    const Vector3_Order<int> &R_period,
                    const vector<atpair_t> &atpair_ABF,
-                   const vector<Vector3_Order<double>> &qlist,
-                   TFGrids::GRID_TYPES gt, bool use_space_time);
+                   const vector<Vector3_Order<double>> &qlist);
         const map<double, map<Vector3_Order<double>, atom_mapping<ComplexMatrix>::pair_t_old>> & get_chi0_q() const { return chi0_q; }
         void free_chi0_q(const double freq, const Vector3_Order<double> q);
-        
 };
-
-//! Compute the real-space independent reponse function in space-time method on a particular time
-/*!
- @param[in] gf_occ_ab_t: occupied Green's function at time tau in a particular spin alpha-beta channel
- @param[in] gf_unocc_ab_t: same as above, but for unoccupied Green's function
- @param[in] LRI_Cs: LRI coefficients
- @param[in] Rlist: the integer list of unit cell coordinates
- @param[in] R_period: the periodicity of super cell
- @param[in] iRs: indices of R to compute
- @param[in] mu, nu: indices of atoms with ABF
- @retval mapping from unit cell index to matrix
- */
-map<size_t, matrix> compute_chi0_munu_tau_LRI_saveN_noreshape(const map<size_t, atom_mapping<matrix>::pair_t_old> &gf_occ_ab_t,
-                                                              const map<size_t, atom_mapping<matrix>::pair_t_old> &gf_unocc_ab_t,
-                                                              const atpair_R_mat_t &LRI_Cs,
-                                                              const vector<Vector3_Order<int>> &Rlist, const Vector3_Order<int> &R_period, 
-                                                              const vector<int> iRs,
-                                                              atom_t mu, atom_t nu);
-

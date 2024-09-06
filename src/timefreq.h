@@ -68,7 +68,7 @@ class TFGrids
         // disable copy at present
         TFGrids(const TFGrids &tfg) {};
         void reset(unsigned N);
-        void show();
+        void show() const;
         //! get the number of grid points
         size_t get_n_grids() const { return n_grids; }
         //! alias to get_n_grids

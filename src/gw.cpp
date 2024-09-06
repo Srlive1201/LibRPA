@@ -24,10 +24,22 @@ namespace LIBRPA
 
 G0W0::G0W0(const MeanField &mf,
            const vector<Vector3_Order<double>>& kfrac_list,
-           const TFGrids &tfg)
-    : mf(mf), kfrac_list(kfrac_list), tfg(tfg)
+           const TFGrids &tfg_in)
+    : mf(mf), kfrac_list(kfrac_list), tfg(tfg_in)
 {
-    is_real_space_mat_built_ = false;
+    is_rspace_built_ = false;
+}
+
+void G0W0::reset_rspace()
+{
+    sigc_is_f_R_IJ.clear();
+    is_rspace_built_ = false;
+}
+
+void G0W0::reset_kspace()
+{
+    sigc_is_ik_f_KS.clear();
+    is_kspace_built_ = false;
 }
 
 void G0W0::build_spacetime(
@@ -235,7 +247,7 @@ void G0W0::build_spacetime(
             Profiler::stop("g0w0_build_spacetime_6");
         }
     }
-    is_real_space_mat_built_ = true;
+    is_rspace_built_ = true;
 #endif
 }
 
@@ -245,7 +257,11 @@ void G0W0::build_sigc_matrix_KS(const std::vector<std::vector<ComplexMatrix>> &w
     using LIBRPA::envs::mpi_comm_global_h;
     using LIBRPA::envs::blacs_ctxt_global_h;
 
-    assert(this->is_real_space_mat_built_);
+    assert(this->is_rspace_built_);
+    if (this->is_kspace_built_)
+    {
+        this->reset_kspace();
+    }
 
     const int n_aos = mf.get_n_aos();
     const int n_bands = mf.get_n_bands();
