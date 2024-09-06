@@ -215,10 +215,10 @@ void TFGrids::generate_minimax(double emin, double emax)
 void TFGrids::generate_GaussChebyshevI()
 {
     grid_type = TFGrids::GRID_TYPES::GaussChebyshevI;
-    double nodes[n_grids], weights[n_grids];
-    GaussChebyshevI_unit(n_grids, nodes, weights);
+    std::vector<double> nodes(n_grids), weights(n_grids);
+    GaussChebyshevI_unit(n_grids, nodes.data(), weights.data());
     // transform from [-1,1] to [0, infinity]
-    transform_GaussQuad_unit2x0inf(0.0, n_grids, nodes, weights);
+    transform_GaussQuad_unit2x0inf(0.0, n_grids, nodes.data(), weights.data());
     for ( int i = 0; i != n_grids; i++ )
     {
         freq_nodes[i] = nodes[i];
@@ -229,10 +229,10 @@ void TFGrids::generate_GaussChebyshevI()
 void TFGrids::generate_GaussChebyshevII()
 {
     grid_type = TFGrids::GRID_TYPES::GaussChebyshevII;
-    double nodes[n_grids], weights[n_grids];
-    GaussChebyshevII_unit(n_grids, nodes, weights);
+    std::vector<double> nodes(n_grids), weights(n_grids);
+    GaussChebyshevII_unit(n_grids, nodes.data(), weights.data());
     // transform from [-1,1] to [0, infinity]
-    transform_GaussQuad_unit2x0inf(0.0, n_grids, nodes, weights);
+    transform_GaussQuad_unit2x0inf(0.0, n_grids, nodes.data(), weights.data());
     for ( int i = 0; i != n_grids; i++ )
     {
         freq_nodes[i] = nodes[i];
@@ -243,10 +243,10 @@ void TFGrids::generate_GaussChebyshevII()
 void TFGrids::generate_GaussLegendre()
 {
     grid_type = TFGrids::GRID_TYPES::GaussLegendre;
-    double nodes[n_grids], weights[n_grids];
-    GaussLegendre_unit(n_grids, nodes, weights);
+    std::vector<double> nodes(n_grids), weights(n_grids);
+    GaussLegendre_unit(n_grids, nodes.data(), weights.data());
     // transform from [-1,1] to [0, infinity]
-    transform_GaussQuad_unit2x0inf(0.0, n_grids, nodes, weights);
+    transform_GaussQuad_unit2x0inf(0.0, n_grids, nodes.data(), weights.data());
     for ( int i = 0; i != n_grids; i++ )
     {
         freq_nodes[i] = nodes[i];
