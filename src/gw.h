@@ -15,12 +15,14 @@ namespace LIBRPA
 class G0W0
 {
 private:
-    bool is_real_space_mat_built_;
+    bool is_rspace_built_;
+    bool is_kspace_built_;
 
 public:
     const MeanField &mf;
     const vector<Vector3_Order<double>>& kfrac_list;
     const TFGrids &tfg;
+
     //! frequency-domain reciprocal-space correlation self-energy, indices [ispin][freq][k][I][J](n_I, n_J)
     // std::map<int, std::map<double, std::map<Vector3_Order<double>, atom_mapping<Matz>::pair_t_old>>> sigc_is_f_k_IJ;
 
@@ -33,9 +35,10 @@ public:
     void build_sigc_matrix_KS(const std::vector<std::vector<ComplexMatrix>> &wfc_target,
                               const std::vector<Vector3_Order<double>> &kfrac_target);
 public:
+    // Constructors
     G0W0(const MeanField &mf,
          const vector<Vector3_Order<double>>& kfrac_list,
-         const TFGrids &tfg);
+         const TFGrids &tfg_in);
     // delete copy/move constructors
     G0W0(const G0W0 &s_g0w0) = delete;
     G0W0(G0W0 &&s_g0w0) = delete;
@@ -44,13 +47,11 @@ public:
     G0W0 operator=(const G0W0 &s_g0w0) const = delete;
     G0W0 operator=(G0W0 &&s_g0w0) = delete;
 
-    //! using native tensor contraction
-    // void build_spacetime(
-    //     const atpair_R_mat_t &LRI_Cs,
-    //     const map<double, atom_mapping<std::map<Vector3_Order<double>,
-    //                                             matrix_m<complex<double>>>>::pair_t_old> &Wc_freq_q,
-    //     const vector<Vector3_Order<int>> &Rlist,
-    //     const Vector3_Order<int> &R_period);
+    //! Reset the real-space matrices
+    void reset_rspace();
+
+    //! Reset the k-space matrices
+    void reset_kspace();
 
     //! Build the real-space correlation self-energy matrix on imaginary frequencies with space-time method using LibRI
     void build_spacetime(

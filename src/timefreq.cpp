@@ -65,7 +65,7 @@ void TFGrids::set_time()
     // fourier_t2f.create(n_grids, n_grids);
 }
 
-void TFGrids::show()
+void TFGrids::show() const
 {
     using LIBRPA::utils::lib_printf;
     cout << "Grid type: " << TFGrids::GRID_TYPES_NOTES[grid_type] << endl;

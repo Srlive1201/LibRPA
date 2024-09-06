@@ -36,12 +36,33 @@ void task_g0w0()
         qlist.push_back(q_weight.first);
     }
 
-    Chi0 chi0(meanfield, klist, Params::nfreq);
+    // Initialize time-frequency grids for space-time method
+    TFGrids tfg(Params::nfreq);
+    // prepare the time-freq grids
+    switch (TFGrids::get_grid_type(Params::tfgrids_type))
+    {
+        case (TFGrids::GRID_TYPES::Minimax):
+        {
+            double emin, emax;
+            meanfield.get_E_min_max(emin, emax);
+            tfg.generate_minimax(emin, emax);
+            break;
+        }
+        case (TFGrids::GRID_TYPES::EvenSpaced_TF):
+        {
+            // WARN: only used to debug, adjust emin and interval manually
+            tfg.generate_evenspaced_tf(0.005, 0.0, 0.005, 0.0);
+            break;
+        }
+        default:
+            throw invalid_argument("requested time-frequency grid is not implemented");
+    }
+
+    Chi0 chi0(meanfield, klist, tfg);
     chi0.gf_R_threshold = Params::gf_R_threshold;
 
     Profiler::start("chi0_build", "Build response function chi0");
-    chi0.build(Cs_data, Rlist, period, local_atpair, qlist,
-               TFGrids::get_grid_type(Params::tfgrids_type), true);
+    chi0.build(Cs_data, Rlist, period, local_atpair, qlist);
     Profiler::stop("chi0_build");
 
     std::flush(ofs_myid);

@@ -13,7 +13,7 @@
 
 //! Object of the meanfield input of Green's function
 /*!
-  \note Energies are saved in Rydberg unit.
+  @note Energies are saved in Rydberg unit.
         Currently only n_spins = 1 is implemented.
  */
 class MeanField
@@ -59,8 +59,8 @@ class MeanField
         ComplexMatrix get_dmat_cplx_R(int ispin, const std::vector<Vector3_Order<double>>& kfrac_list, const Vector3_Order<int>& R) const;
         std::vector<std::vector<ComplexMatrix>> & get_eigenvectors() { return wfc; }
         const std::vector<std::vector<ComplexMatrix>> & get_eigenvectors() const { return wfc; }
-        double get_E_min_max(double &emin, double &emax);
-        double get_band_gap();
+        double get_E_min_max(double &emin, double &emax) const;
+        double get_band_gap() const;
         std::map<double, std::map<Vector3_Order<int>, ComplexMatrix>> get_gf_cplx_imagtimes_Rs(int ispin, const std::vector<Vector3_Order<double>>& kfrac_list, std::vector<double> imagtimes, const std::vector<Vector3_Order<int>>& Rs) const;
         std::map<double, std::map<Vector3_Order<int>, matrix>> get_gf_real_imagtimes_Rs(int ispin, const std::vector<Vector3_Order<double>>& kfrac_list, std::vector<double> imagtimes, const std::vector<Vector3_Order<int>>& Rs) const;
         void allredue_wfc_isk();
