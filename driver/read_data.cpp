@@ -31,6 +31,11 @@ void read_scf_occ_eigenvalues(const string &file_path, MeanField &mf)
     // cout << "Begin to read aims-band_out" << endl;
     ifstream infile;
     infile.open(file_path);
+    if (!infile.good())
+    {
+        throw std::logic_error("Failed to open " + file_path);
+    }
+
     string ks, ss, a, ws, es, d;
     int n_kpoints, n_spins, n_bands, n_aos;
     double efermi;
@@ -49,18 +54,32 @@ void read_scf_occ_eigenvalues(const string &file_path, MeanField &mf)
 
     const int n_kb = n_kpoints * n_bands;
 
+    int iline = 6;
+
     //cout<<"|eskb: "<<endl;
     for (int ik = 0; ik != n_kpoints; ik++)
     {
         for (int is = 0; is != n_spins; is++)
         {
             infile >> ks >> ss;
+            if (!infile.good())
+            {
+                throw std::logic_error("Error in reading k- and spin- index: line " + to_string(iline) +
+                                       ", file: " + file_path);
+            }
+            iline++;
             //cout<<ik<<is<<endl;
             int k_index = stoi(ks) - 1;
             // int s_index = stoi(ss) - 1;
             for (int i = 0; i != n_bands; i++)
             {
                 infile >> a >> ws >> es >> d;
+                if (!infile.good())
+                {
+                    throw std::logic_error("Error in reading band energy and occupation: line " + to_string(iline) +
+                                           ", file: " + file_path);
+                }
+            iline++;
                 wskb[is * n_kb + k_index * n_bands + i] = stod(ws); // different with abacus!
                 eskb[is * n_kb + k_index * n_bands + i] = stod(es);
                 //cout<<" i_band: "<<i<<"    eskb: "<<eskb[is](k_index, i)<<endl;
