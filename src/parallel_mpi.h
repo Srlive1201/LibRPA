@@ -50,6 +50,7 @@ public:
     MPI_Comm comm;
     int myid;
     int nprocs;
+    std::string procname;
 public:
     MPI_COMM_handler();
     MPI_COMM_handler(MPI_Comm comm_in);
