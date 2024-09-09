@@ -89,14 +89,28 @@ void MPI_COMM_handler::reset_comm(MPI_Comm comm_in)
 void MPI_COMM_handler::check_initialized() const
 {
     if (!initialized_)
+    {
         throw std::logic_error("MPI_COMM_handler not initialized");
+    }
 }
 
 void MPI_COMM_handler::init()
 {
-    MPI_Comm_rank(this->comm, &(this->myid));
-    MPI_Comm_size(this->comm, &(this->nprocs));
-    this->initialized_ = true;
+    if (this->comm_set_)
+    {
+        MPI_Comm_rank(this->comm, &(this->myid));
+        MPI_Comm_size(this->comm, &(this->nprocs));
+
+        char name[MPI_MAX_PROCESSOR_NAME];
+        int length;
+        MPI_Get_processor_name(name, &length);
+        this->procname = name;
+        this->initialized_ = true;
+    }
+    else
+    {
+        throw std::logic_error("Communicator of MPI_COMM_handler is not set");
+    }
 }
 
 void MPI_COMM_handler::barrier() const
@@ -110,7 +124,7 @@ void MPI_COMM_handler::barrier() const
 string MPI_COMM_handler::str() const
 {
     char s[80];
-    sprintf(s, "Proc %4d of Size %4d", this->myid, this->nprocs);
+    sprintf(s, "Proc %4d of Size %4d: %s", this->myid, this->nprocs, this->procname.c_str());
     return string(s);
 }
 
