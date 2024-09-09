@@ -64,7 +64,7 @@ void test_power_hemat()
     power_hemat(a, 2, true);
     // confirm a is unitary after solving and keep_ev set True
     const ComplexMatrix aconja = a * transpose(a, true);
-    is_mat_A_equal_B(10, 10, aconja.c, iden.c, false, false, {1e-14, 0.0});
+    is_mat_A_equal_B(10, 10, aconja.c, iden.c, false, print_mat_equal, {1e-14, 0.0});
 }
 
 int main (int argc, char *argv[])

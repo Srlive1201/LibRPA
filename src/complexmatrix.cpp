@@ -524,13 +524,12 @@ ComplexMatrix power_hemat(ComplexMatrix &cmat, double power, bool keep_ev, bool 
     int nb = LapackConnector::ilaenv(1, "zheev", "VU", cmat.nc, -1, -1, -1);
     int lwork = cmat.nc * (nb+1);
     int info = 0;
-    double w[cmat.nc], wpow[cmat.nc];
-    double rwork[3*cmat.nc-2];
-    complex<double> work[lwork];
+    std::vector<double> w(cmat.nc), wpow(cmat.nc), rwork(3*cmat.nc-2);
+    std::vector<complex<double>> work(lwork);
     // make the final eigenvalues in the descending order
     cmat *= -1.0;
     LapackConnector::zheev(jobz, uplo, cmat.nc, cmat, cmat.nc,
-                           w, work, lwork, rwork, &info);
+                           w.data(), work.data(), lwork, rwork.data(), &info);
     bool is_int_power = fabs(power - int(power)) < 1e-8;
     for ( int i = 0; i != cmat.nc; i++ )
     {

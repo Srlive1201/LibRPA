@@ -2,6 +2,13 @@
 #include <ostream>
 #include <vector>
 
+
+#ifdef LIBRPA_DEBUG
+constexpr bool print_mat_equal = true;
+#else
+constexpr bool print_mat_equal = false;
+#endif
+
 template <typename T>
 std::ostream& operator<<(std::ostream &os, const std::vector<T> &vec)
 {
