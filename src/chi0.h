@@ -27,8 +27,12 @@ class Chi0
          */
         map<int, atom_mapping<map<Vector3_Order<int>, map<double, matrix>>>::pair_t_old> gf_is_R_tau;
 
-        //! R on which the space-time GF are created.
+        //! R on which the space-time GF are created, used for atom-pair and rtau routings
         vector<Vector3_Order<int>> Rlist_gf;
+
+        //! Indices of G_{IJ}(R) to build, local to process, used for LibRI routing
+        std::vector<std::pair<atpair_t, Vector3_Order<int>>> IJRs_gf_local;
+
         //! chi0 data in frequency domain and reciprocal space, [omega][q]
         map<double, map<Vector3_Order<double>, atom_mapping<ComplexMatrix>::pair_t_old>> chi0_q;
 
