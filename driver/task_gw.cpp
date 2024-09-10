@@ -284,7 +284,7 @@ void task_g0w0()
             }
 
             // display results
-            const std::string banner(107, '-');
+            const std::string banner(124, '-');
             printf("Printing quasi-particle energy [unit: eV]\n\n");
             for (int i_spin = 0; i_spin < meanfield.get_n_spins(); i_spin++)
             {
@@ -293,19 +293,20 @@ void task_g0w0()
                     const auto &k = kfrac_list[i_kpoint];
                     printf("spin %2d, k-point %4d: (%.5f, %.5f, %.5f) \n",
                             i_spin+1, i_kpoint+1, k.x, k.y, k.z);
-                    printf("%107s\n", banner.c_str());
-                    printf("%5s %16s %16s %16s %16s %16s %16s\n", "State", "e_mf", "v_xc", "v_exx", "ReSigc", "ImSigc", "e_qp");
-                    printf("%107s\n", banner.c_str());
+                    printf("%124s\n", banner.c_str());
+                    printf("%5s %16s %16s %16s %16s %16s %16s %16s\n", "State", "occ", "e_mf", "v_xc", "v_exx", "ReSigc", "ImSigc", "e_qp");
+                    printf("%124s\n", banner.c_str());
                     for (int i_state = 0; i_state < meanfield.get_n_bands(); i_state++)
                     {
+                        const auto &occ_state = meanfield.get_weight()[i_spin](i_kpoint, i_state) * meanfield.get_n_kpoints();
                         const auto &eks_state = meanfield.get_eigenvals()[i_spin](i_kpoint, i_state) * HA2EV;
                         const auto &exx_state = exx.Eexx[i_spin][i_kpoint][i_state] * HA2EV;
                         const auto &vxc_state = vxc[i_spin](i_kpoint, i_state) * HA2EV;
                         const auto &resigc = sigc_all[i_spin][i_kpoint][i_state].real() * HA2EV;
                         const auto &imsigc = sigc_all[i_spin][i_kpoint][i_state].imag() * HA2EV;
                         const auto &eqp = e_qp_all[i_spin][i_kpoint][i_state] * HA2EV;
-                        printf("%5d %16.5f %16.5f %16.5f %16.5f %16.5f %16.5f\n",
-                               i_state+1, eks_state, vxc_state, exx_state, resigc, imsigc, eqp);
+                        printf("%5d %16.5f %16.5f %16.5f %16.5f %16.5f %16.5f %16.5f\n",
+                               i_state+1, occ_state, eks_state, vxc_state, exx_state, resigc, imsigc, eqp);
                     }
                     printf("\n");
                 }
