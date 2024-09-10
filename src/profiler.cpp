@@ -103,7 +103,7 @@ void Profiler::stop(const char *tname) noexcept
     if (sd_map_timer.count(tname))
     {
 #ifdef LIBRPA_DEBUG
-        LIBRPA::envs::ofs_myid << get_timestamp() << " Timer stop : " << tname << "\n";
+        LIBRPA::envs::ofs_myid << get_timestamp() << " Timer stop:  " << tname << "\n";
 #endif
         sd_map_timer.at(tname).stop();
     }
