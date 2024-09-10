@@ -1,0 +1,3525 @@
+------------------------------------------------------------
+          Invoking FHI-aims ...
+
+          When using FHI-aims, please cite the following reference:
+
+            Volker Blum, Ralf Gehrke, Felix Hanke, Paula Havu,
+            Ville Havu, Xinguo Ren, Karsten Reuter, and Matthias Scheffler,
+            'Ab Initio Molecular Simulations with Numeric Atom-Centered Orbitals',
+            Computer Physics Communications 180, 2175-2196 (2009)
+
+          In addition, many other developments in FHI-aims are likely important for
+          your particular application. If so, please cite them. A partial list of references
+          is written at the end of this file. Thank you for giving credit to the authors
+          of these developments.
+
+          For general information about FHI-aims please find us at
+
+            https://fhi-aims.org
+
+          Online tutorials can be found at
+
+            https://fhi-aims-club.gitlab.io/tutorials/tutorials-overview/
+
+          For any questions about FHI-aims, please visit our slack channel at
+
+            https://fhi-aims.slack.com
+
+          and our main development and support site at
+
+            https://aims-git.rz-berlin.mpg.de .
+
+          The latter site, in particular, has a wiki to collect information, as well
+          as an issue tracker to log discussions, suggest improvements, and report issues
+          or bugs. https://aims-git.rz-berlin.mpg.de is also the main development site
+          of the project and all new and updated code versions can be obtained there.
+          Please send an email to aims-coordinators@fhi-berlin.mpg.de and we will add
+          you to these sites. They are for you and everyone is welcome there.
+
+------------------------------------------------------------
+
+
+
+  Date     :  20240910, Time     :  140757.294
+  Time zero on CPU 1             :   0.319260000000000E-01  s.
+  Internal wall clock time zero  :           495209277.294  s.
+
+  FHI-aims created a unique identifier for this run for later identification
+  aims_uuid : 88434FA4-773E-4F06-A07C-74324D875769
+
+  Build configuration of the current instance of FHI-aims
+  -------------------------------------------------------
+  FHI-aims version      : 240828
+  Commit number         : 2e03122ef
+  CMake host system     : Darwin-23.4.0
+  CMake version         : 3.30.2
+  Fortran compiler      : /opt/homebrew/bin/mpifort (GNU) version 13.2.0
+  Fortran compiler flags: -O3 -fallow-argument-mismatch -ffree-line-length-none -Wl,-ld_classic -Wl,-lstdc++ -O2 -g
+  C compiler            : /opt/homebrew/bin/mpicc (GNU) version 13.2.0
+  C compiler flags      : -cc=gcc-13 -O3 -Wl,-ld_classic -O2 -g -DNDEBUG
+  C++ compiler          : /opt/homebrew/bin/mpicxx (GNU) version 13.2.0
+  C++ compiler flags    : -cxx=g++-13 -O3 -Wl,-ld_classic -O2 -g -DNDEBUG
+  HIP compiler          :
+  HIP compiler flags    :
+  HIP GPU arch          :
+  Using MPI
+  Using ScaLAPACK
+  Using LibXC
+  Using i-PI
+  Using RLSY
+  Using GREENX
+  Linking against: /opt/packages/scalapack/2.2.0/gcc-13.2.0-mpich-4.1.2-openblas/libscalapack.a
+                   /opt/homebrew/Cellar/openblas/0.3.26/lib/libopenblas.dylib
+
+  Using        1 parallel tasks.
+  Task        0 on host taiyi reporting.
+
+  Memory overcommitment: We could not find /proc/sys/vm/overcommit_memory on your system.
+
+  Obtaining array dimensions for all initial allocations:
+  
+  -----------------------------------------------------------------------
+  Parsing control.in (first pass over file, find array dimensions only).
+  The contents of control.in will be repeated verbatim below
+  unless switched off by setting 'verbatim_writeout .false.' .
+  in the first line of control.in .
+  -----------------------------------------------------------------------
+  
+  #%FHI-aims
+  
+  # General setting
+  xc               pbe
+  relativistic     atomic_zora scalar
+  occupation_type  gaussian 0.001
+  basis_threshold  1.e-5
+  
+  # Use periodic GW
+  qpe_calc         gw_expt
+  freq_grid_type   minimax
+  frequency_points 6
+  anacon_type      0
+  
+  # Kgrids
+  k_grid 3 3 3
+  
+  # # Compute QPE for all states
+  # state_upper_limit 100000
+  
+  output librpa binary
+  
+  # insert species below
+  ################################################################################
+  #
+  #  FHI-aims code project
+  #  VB, Fritz-Haber Institut, 2009
+  #
+  #  Suggested "light" defaults for Si atom (to be pasted into control.in file)
+  #  Be sure to double-check any results obtained with these settings for post-processing,
+  #  e.g., with the "tight" defaults and larger basis sets.
+  #
+  #  2020/09/08 Added f function to "light" after reinspection of Delta test outcomes.
+  #             This was done for all of Al-Cl and is a tricky decision since it makes
+  #             "light" calculations measurably more expensive for these elements.
+  #             Nevertheless, outcomes for P, S, Cl (and to some extent, Si) appear
+  #             to justify this choice.
+  #
+  ################################################################################
+    species        Si
+  #     global species definitions
+      nucleus             14
+      mass                28.0855
+  #
+      l_hartree           4
+  #
+      cut_pot             3.5          1.5  1.0
+      basis_dep_cutoff    1e-4
+  #
+      radial_base         42 5.0
+      radial_multiplier   1
+      angular_grids       specified
+        division   0.5866   50
+        division   0.9616  110
+        division   1.2249  194
+        division   1.3795  302
+  #      division   1.4810  434
+  #      division   1.5529  590
+  #      division   1.6284  770
+  #      division   1.7077  974
+  #      division   2.4068 1202
+  #      outer_grid   974
+        outer_grid 302
+  ################################################################################
+  #
+  #  Definition of "minimal" basis
+  #
+  ################################################################################
+  #     valence basis states
+      valence      3  s   2.
+      valence      3  p   2.
+  #     ion occupancy
+      ion_occ      3  s   1.
+      ion_occ      3  p   1.
+  ################################################################################
+  #
+  #  Suggested additional basis functions. For production calculations,
+  #  uncomment them one after another (the most important basis functions are
+  #  listed first).
+  #
+  #  Constructed for dimers: 1.75 A, 2.0 A, 2.25 A, 2.75 A, 3.75 A
+  #
+  ################################################################################
+  #  "First tier" - improvements: -571.96 meV to -37.03 meV
+  #     hydro 3 d 4.2
+  #     hydro 2 p 1.4
+  #     hydro 4 f 6.2
+  #     ionic 3 s auto
+  #  "Second tier" - improvements: -16.76 meV to -3.03 meV
+  #     hydro 3 d 9
+  #     hydro 5 g 9.4
+  #     hydro 4 p 4
+  #     hydro 1 s 0.65
+  #  "Third tier" - improvements: -3.89 meV to -0.60 meV
+  #     ionic 3 d auto
+  #     hydro 3 s 2.6
+  #     hydro 4 f 8.4
+  #     hydro 3 d 3.4
+  #     hydro 3 p 7.8
+  #  "Fourth tier" - improvements: -0.33 meV to -0.11 meV
+  #     hydro 2 p 1.6
+  #     hydro 5 g 10.8
+  #     hydro 5 f 11.2
+  #     hydro 3 d 1
+  #     hydro 4 s 4.5
+  #  Further basis functions that fell out of the optimization - noise
+  #  level... < -0.08 meV
+  #     hydro 4 d 6.6
+  #     hydro 5 g 16.4
+  #     hydro 4 d 9
+  
+  
+  
+  -----------------------------------------------------------------------
+  Completed first pass over input file control.in .
+  -----------------------------------------------------------------------
+  
+  
+  -----------------------------------------------------------------------
+  Parsing geometry.in (first pass over file, find array dimensions only).
+  The contents of geometry.in will be repeated verbatim below
+  unless switched off by setting 'verbatim_writeout .false.' .
+  in the first line of geometry.in .
+  -----------------------------------------------------------------------
+  
+  lattice_vector   3.8301668167   0.0000000000   0.0000000000
+  lattice_vector   1.9150834084   3.3170217640   0.0000000000
+  lattice_vector   1.9150834084   1.1056739213   3.1273181102
+  atom_frac        0.0000000000   0.0000000000   0.0000000000  Si
+  atom_frac        0.2500000000   0.2500000000   0.2500000000  Si
+  
+  -----------------------------------------------------------------------
+  Completed first pass over input file geometry.in .
+  -----------------------------------------------------------------------
+  
+
+  Basic array size parameters:
+  | Number of species                 :        1
+  | Number of atoms                   :        2
+  | Number of lattice vectors         :        3
+  | Max. basis fn. angular momentum   :        1
+  | Max. atomic/ionic basis occupied n:        3
+  | Max. number of basis fn. types    :        1
+  | Max. radial fns per species/type  :        5
+  | Max. logarithmic grid size        :     1346
+  | Max. radial integration grid size :       42
+  | Max. angular integration grid size:      302
+  | Max. angular grid division number :        8
+  | Radial grid for Hartree potential :     1346
+  | Number of spin channels           :        1
+
+------------------------------------------------------------
+          Reading file control.in.
+------------------------------------------------------------
+  XC: Using PBE gradient-corrected functionals.
+  Scalar relativistic treatment of kinetic energy: on-site free-atom approximation to ZORA.
+  Occupation type: Gaussian broadening, width =   0.100000E-02 eV.
+  Threshold for basis singularities:  0.1000E-04
+  Periodic GW calculations will be started if finite k point sampling is also set. Please be warned that periodic GW is only at the experimental stage and is still under testing. Be cautious about your results.
+  Using minimax frequency grid.
+  Number of frequency points used for the self-energy calculation:      6
+  Using two-pole fitting for analytical continuation.
+  Found k-point grid:         3         3         3
+  Arrays for subsequent LibRPA calculation will be written.
+  * Large arrays will be written in binary format: triple coefficients (Cs)
+
+  Reading configuration options for species Si                  .
+  | Found nuclear charge :  14.0000
+  | Found atomic mass :    28.085500000000000      amu
+  | Found l_max for Hartree potential  :   4
+  | Found cutoff potl. onset [A], width [A], scale factor :    3.50000    1.50000    1.00000
+  | Threshold for basis-dependent cutoff potential is   0.100000E-03
+  | Found data for basic radial integration grid :    42 points, outermost radius =    5.000 A
+  | Found multiplier for basic radial grid :   1
+  | Found angular grid specification: user-specified.
+  | Specified grid contains     5 separate shells.
+  | Check grid settings after all constraints further below.
+  | Found free-atom valence shell :  3 s   2.000
+  | Found free-atom valence shell :  3 p   2.000
+  | No ionic wave fns used. Skipping ion_occ.
+  | No ionic wave fns used. Skipping ion_occ.
+  Species Si                  : Missing cutoff potential type.
+  Defaulting to exp(1/x)/(1-x)^2 type cutoff potential.
+  Species Si: No 'logarithmic' tag. Using default grid for free atom:
+  | Default logarithmic grid data [bohr] : 0.1000E-03 0.1000E+03 0.1012E+01
+  Species Si: On-site basis accuracy parameter (for Gram-Schmidt orthonormalisation) not specified.
+  Using default value basis_acc =  0.1000000E-03.
+  Species Si                  : Using default innermost maximum threshold i_radial=  2 for radial functions.
+  Species Si                  : Default cutoff onset for free atom density etc. : 0.35000000E+01 AA.
+  Species Si                  : Basic radial grid will be enhanced according to radial_multiplier =   1, to contain    42 grid points.
+
+  Finished reading input file 'control.in'.
+
+------------------------------------------------------------
+
+
+------------------------------------------------------------
+          Reading geometry description geometry.in.
+------------------------------------------------------------
+  | The smallest distance between any two atoms is         2.34548858 AA.
+  | The first atom of this pair is atom number                      1 .
+  | The second atom of this pair is atom number                     2 .
+  | Wigner-Seitz cell of the first atom image           1     0     0 .
+  | (The Wigner-Seitz cell of the second atom is 0 0 0  by definition.)
+
+  Symmetry information by spglib:
+  | Precision set to  0.1E-04
+  | Number of Operations  : 48
+  | Space group           : 227
+  | International         : Fd-3m
+  | Schoenflies           : Oh^7
+  Input structure read successfully.
+  The structure contains        2 atoms,  and a total of         28.000 electrons.
+
+  Input geometry:
+  | Unit cell:
+  |        3.83016682        0.00000000        0.00000000
+  |        1.91508341        3.31702176        0.00000000
+  |        1.91508341        1.10567392        3.12731811
+  | Atomic structure:
+  |       Atom                x [A]            y [A]            z [A]
+  |    1: Species Si            0.00000000        0.00000000        0.00000000
+  |    2: Species Si            1.91508341        1.10567392        0.78182953
+
+  Lattice parameters for 3D lattice (in Angstroms) :     3.830167    3.830167    3.830167
+  Angle(s) between unit vectors (in degrees)       :    60.000000   60.000000   60.000000
+
+
+  Quantities derived from the lattice vectors (in Angstrom^-1):
+  | Reciprocal lattice vector 1:  1.640447 -0.947112 -0.669710
+  | Reciprocal lattice vector 2: -0.000000  1.894225 -0.669710
+  | Reciprocal lattice vector 3:  0.000000 -0.000000  2.009129
+  | Unit cell volume                               :   0.397318E+02  Angstrom^3
+
+  Fractional coordinates:
+                         L1                L2                L3
+       atom_frac         0.00000000        0.00000000        0.00000000  Si
+       atom_frac         0.25000000        0.25000000        0.25000000  Si
+
+  Slab Identifier: This seems to be a bulk system.
+
+  Finished reading input file 'geometry.in'.
+
+
+
+  Consistency checks for stacksize environment parameter are next.
+
+  | Maximum stacksize for task 0: 63 [Mb]
+   *** Stacksize is not set to unlimited. This might cause problems...
+  | Current stacksize for task 0: 63 [Mb]
+
+  Consistency checks for the contents of control.in are next.
+
+  MPI_IN_PLACE appears to work with this MPI implementation.
+  | Keeping use_mpi_in_place .true. (see manual).
+  Explicit treatment of the Coulomb operator is needed, but the RI method is not specified.
+  Coulomb operator: Defaulting to 'LVL fast' resolution of identity - RI_type = LVL_fast
+  Species Si: Using default value for prodbas_acc =   1.000000E-04.
+  Species Si: Using default value max_l_prodbas =    20.
+  Target number of points in a grid batch is not set. Defaulting to  100
+  Method for grid partitioning is not set. Defaulting to parallel hash+maxmin partitioning.
+  Batch size limit is not set. Defaulting to    200
+  By default, will store active basis functions for each batch.
+  If in need of memory, prune_basis_once .false. can be used to disable this option.
+  communication_type for Hartree potential was not specified.
+  Defaulting to calc_hartree .
+  Defaulting to Pulay charge density mixer.
+  Pulay mixer: Number of relevant iterations not set.
+  Defaulting to    8 iterations.
+  Pulay mixer: Number of initial linear mixing iterations not set.
+  Defaulting to    0 iterations.
+  Work space size for distributed Hartree potential not set.
+  Defaulting to   0.200000E+03 MB.
+  Mixing parameter for charge density mixing has not been set.
+  Using default: charge_mix_param =     0.0500.
+  The mixing parameter will be adjusted in iteration number     2 of each s.c.f. cycle (i.e., each geometry step).
+  Algorithm-dependent basis array size parameters:
+  | n_max_pulay                         :        8
+  Maximum number of self-consistency iterations not provided.
+  Presetting  1000 iterations.
+  Presetting      1001 iterations before the initial mixing cycle
+  is restarted anyway using the sc_init_iter criterion / keyword.
+  Presetting a factor      1.000 between actual scf density residual
+  and density convergence criterion sc_accuracy_rho below which sc_init_iter
+  takes no effect.
+ * No s.c.f. convergence criteria (sc_accuracy_*) were provided in control.in.
+ * The run will proceed with a reasonable default guess, but please check whether.
+ * the s.c.f. cycles seem to take too much or too little time.
+  Calculation of forces was not defined in control.in. No forces will be calculated.
+  Geometry relaxation not requested: no relaxation will be performed.
+ * Notice: The s.c.f. convergence criterion sc_accuracy_rho was not provided.
+ * We used to stop in this case, and ask the user to provide reasonable
+ * scf convergence criteria. However, this led some users to employ criteria
+ * that led to extremely long run times, e.g., for simple relaxation.
+ * We now preset a default value for sc_accuracy_rho if it is not set.
+ * You may still wish to check if this setting is too tight or too loose for your needs.
+ * Based on n_atoms and forces and force-correction status, FHI-aims chose sc_accuracy_rho =  0.100000E-05 .
+  No accuracy limit for integral partition fn. given. Defaulting to  0.1000E-14.
+  No threshold value for u(r) in integrations given. Defaulting to  0.1000E-05.
+  No accuracy for occupation numbers given. Defaulting to  0.1000E-12.
+  No threshold value for occupation numbers given. Defaulting to  0.0000E+00.
+  No accuracy for fermi level given. Defaulting to  0.1000E-19.
+  Maximum # of iterations to find E_F not set. Defaulting to  200.
+  Preferred method for the eigenvalue solver ('KS_method') not specified in 'control.in'.
+  Defaulting to serial version LAPACK (via ELSI).
+  Will not use alltoall communication since running on < 1024 CPUs.
+  partition_type (choice of integration weights) for integrals was not specified.
+  | Using a version of the partition function of Stratmann and coworkers ('stratmann_sparse').
+  | At each grid point, the set of atoms used to build the partition table is smoothly restricted to
+  | only those atoms whose free-atom density would be non-zero at that grid point.
+  Partitioning for Hartree potential was not defined. Using partition_type for integrals.
+  | Adjusted default value of keyword multip_moments_threshold to:       0.10000000E-11
+  | This value may affect high angular momentum components of the Hartree potential in periodic systems.
+  Spin handling was not defined in control.in. Defaulting to unpolarized case.
+  Threshold for auxiliary basis singularities not set.
+  Default threshold for auxiliary basis singularities:  0.1000E-04
+  * Periodic GW calculations will start ......
+  * Setting default energy window for Kohn-Sham states to calculate QPE to [VBM - 20 eV, CBM + 10 eV].
+  Eigen-decomposition algorithm is used to invert dielectric matrix in periodic GW.
+  No q(lm)/r^(l+1) cutoff set for long-range Hartree potential.
+  | Using default value of  0.100000E-09 .
+  | Verify using the multipole_threshold keyword.
+  Defaulting to new monopole extrapolation.
+  Density update method: automatic selection selected.
+  Using density matrix based charge density update.
+  Using density matrix based charge density update.
+  Using packed matrix style: index .
+ * WARNING: This is an experimental version of the periodic GW implemenation.
+ * We are still actively working on it to improve the efficiency and reliability. 
+ * Do not rely on any results you obtained from periodic GW calculation.
+  Defaulting to use full k-point grid (no symmetry reduction).
+  Charge integration errors on the 3D integration grid will be compensated
+  by explicit normalization and distribution of residual charges.
+  Use the "compensate_multipole_errors" flag to change this behaviour.
+  Default to 1D ("use_logsbt") integrations for auxiliary 2-center integrals.
+  Default onset of logarithmic r-grid for SBT is -38.000000000000
+  Default onset of logarithmic k-grid for SBT is -25.000000000000
+  Default range of logarithmic r- and k-grid for SBT is  45.000000000000
+  Default number of logarithmic r- and k-grid for SBT is   4096
+  Set 'collect_eigenvectors' to be '.true.' for all serial calculations. This is mandatory.
+  Set 'collect_eigenvectors' to be '.true.' for GW/RPA/MP2, SCREX/COHSEX cluster calculations
+  Set 'collect_eigenvectors' to be '.true.' for qpe_calc (quasiparticle energy).
+  Set 'collect_eigenvectors' to be '.true.' for KS_method lapack_fast and serial.
+  Found potential conflicts with setting 'use_local_index' for this calculation. Will not set it.
+
+  Consistency checks for the contents of geometry.in are next.
+
+
+  Range separation radius for Ewald summation (hartree_convergence_parameter):      3.87766534 bohr.
+  Number of empty states per atom not set in control.in .
+  | Since you are using a method that relies on the unoccupied spectrum
+  | (MP2,GW,RPA et al.), will use the full Hamiltonian size (see below)
+  | as the max. possible number of states (occupied plus empty).
+
+  Structure-dependent array size parameters: 
+  | Maximum number of distinct radial functions  :        5
+  | Maximum number of basis functions            :       18
+  | Number of Kohn-Sham states (occupied + empty):       18
+------------------------------------------------------------
+  Setting Coulomb cut-width to  1.091868692359 * rcut.
+  Setting Coulomb cutting radius rcut to  5.745250224976 A.
+
+  Checking k-grid inconsistencies now:
+  | Checks passed.
+
+  Performing system and environment tests:
+  | Environment variable OMP_NUM_THREADS correctly set to 1.
+  | Checking for ScaLAPACK...
+  | Testing pdtran()...
+  | All pdtran() tests passed.
+
+------------------------------------------------------------
+          Preparing all fixed parts of the calculation.
+------------------------------------------------------------
+  Determining machine precision:
+     2.2250738585072014E-308
+  Setting up grids for atomic and cluster calculations.
+
+  Creating wave function, potential, and density for free atoms.
+  Runtime choices for atomic solver:
+  | atomic solver xc        : PBE
+  | compute density gradient: 1
+  | compute kinetic density : F
+
+  Species: Si
+
+  List of occupied orbitals and eigenvalues:
+    n    l              occ      energy [Ha]    energy [eV]
+    1    0           2.0000       -65.767597     -1789.6274
+    2    0           2.0000        -5.115610      -139.2028
+    3    0           2.0000        -0.388877       -10.5819
+    2    1           6.0000        -3.500197       -95.2452
+    3    1           2.0000        -0.140803        -3.8315
+
+
+  Adding cutoff potential to free-atom effective potential.
+  Creating fixed part of basis set: Ionic, confined, hydrogenic.
+  Creating atomic-like basis functions for current effective potential.
+
+  Species Si                  :
+
+  List of atomic basis orbitals and eigenvalues:
+    n    l      energy [Ha]    energy [eV]    outer radius [A]
+    1    0       -65.767597     -1789.6274       0.789468
+    2    0        -5.115610      -139.2028       2.815114
+    3    0        -0.388877       -10.5819       4.534782
+    2    1        -3.500197       -95.2452       3.259919
+    3    1        -0.140803        -3.8315       4.590560
+
+  Assembling full basis from fixed parts.
+  | Species Si :   atomic orbital   1 s accepted.
+  | Species Si :   atomic orbital   2 s accepted.
+  | Species Si :   atomic orbital   3 s accepted.
+  | Species Si :   atomic orbital   2 p accepted.
+  | Species Si :   atomic orbital   3 p accepted.
+
+  Basis size parameters after reduction:
+  | Total number of radial functions:        5
+  | Total number of basis functions :       18
+
+  Per-task memory consumption for arrays in subroutine allocate_ext:
+  |           1.723584MB.
+  Testing on-site integration grid accuracy.
+  |  Species  Function  <phi|h_atom|phi> (log., in eV)  <phi|h_atom|phi> (rad., in eV)
+           1        1              -1789.6273740966              -1789.6266345813
+           1        2               -139.2028173376               -139.2028132357
+           1        3                -10.5827646566                -10.5840329934
+           1        4                -95.2452114632                -95.2452114537
+           1        5                 -3.8413965043                 -3.8571292824
+
+  Preparing densities etc. for the partition functions (integrals / Hartree potential).
+
+  Preparations completed.
+  max(cpu_time)          :      0.042 s.
+  Wall clock time (cpu1) :      0.046 s.
+------------------------------------------------------------
+
+  Initializing index lists of integration centers etc. from given atomic structure:
+  Mapping all atomic coordinates to central unit cell.
+
+  Initializing the k-points
+  | Number of k-points                             :        27
+  The eigenvectors in the calculations are COMPLEX.
+  | K-points in task   0:        27
+  | Consuming         11 KiB for k_phase_exx.
+  | Number of basis functions in the Hamiltonian integrals :       589
+  | Number of basis functions in a single unit cell        :        18
+  | Number of centers in hartree potential         :       732
+  | Number of centers in hartree multipole         :       318
+  | Number of centers in electron density summation:       198
+  | Number of centers in basis integrals           :       228
+  | Number of centers in integrals                 :       101
+  | Number of centers in hamiltonian               :       198
+  | Consuming         47 KiB for k_phase.
+  | Number of super-cells (origin) [n_cells]                     :        2197
+  | Number of super-cells (after PM_index) [n_cells]             :         112
+  | Number of super-cells in hamiltonian [n_cells_in_hamiltonian]:         112
+  | Size of matrix packed + index [n_hamiltonian_matrix_size] :        8371
+
+------------------------------------------------------------
+          Begin self-consistency loop: Initialization.
+
+          Date     :  20240910, Time     :  140757.413
+------------------------------------------------------------
+  | Estimated reciprocal-space cutoff momentum G_max:         2.40777785 bohr^-1 .
+  | Reciprocal lattice points for long-range Hartree potential:      58
+  Partitioning the integration grid into batches with parallel hashing+maxmin method.
+  | Number of batches:      128
+  | Maximal batch size:      90
+  | Minimal batch size:      85
+  | Average batch size:      87.562
+  | Standard deviation of batch sizes:       1.493
+
+  Integration load balanced across     1 MPI tasks.
+  Work distribution over tasks is as follows:
+  Task     0 has      11208 integration points.
+  Initializing partition tables, free-atom densities, potentials, etc. across the integration grid (initialize_grid_storage).
+  | initialize_grid_storage: Actual outermost partition radius vs. multipole_radius_free
+  | (-- VB: in principle, multipole_radius_free should be larger, hence this output)
+  | Species        1: Confinement radius =              4.999999999999999 AA, multipole_radius_free =              5.000694715736543 AA.
+  | Species        1: outer_partition_radius set to              5.000694715736543 AA .
+  | The sparse table of interatomic distances needs        255.65 kbyte instead of       415.87 kbyte of memory.
+  | Net number of integration points:    11208
+  | of which are non-zero points    :     9628
+  | Numerical average free-atom electrostatic potential    :    -13.22843826 eV
+  Renormalizing the initial density to the exact electron count on the 3D integration grid.
+  | Initial density: Formal number of electrons (from input files) :      28.0000000000
+  | Integrated number of electrons on 3D grid     :      27.9998537362
+  | Charge integration error                      :      -0.0001462638
+  | Normalization factor for density and gradient :       1.0000052237
+  Renormalizing the free-atom superposition density to the exact electron count on the 3D integration grid.
+  | Formal number of electrons (from input files) :      28.0000000000
+  | Integrated number of electrons on 3D grid     :      27.9998537362
+  | Charge integration error                      :      -0.0001462638
+  | Normalization factor for density and gradient :       1.0000052237
+  Obtaining max. number of non-zero basis functions in each batch (get_n_compute_maxes).
+  | Maximal number of non-zero basis functions:      181 in task     0
+  Allocating        0.133 MB for KS_eigenvector_complex
+  Integrating Hamiltonian matrix: batch-based integration.
+  Time summed over all CPUs for integration: real work        0.068 s, elapsed        0.068 s
+  Integrating overlap matrix.
+  Time summed over all CPUs for integration: real work        0.039 s, elapsed        0.039 s
+
+  Updating Kohn-Sham eigenvalues and eigenvectors using ELSI and the (modified) LAPACK eigensolver.
+  Singularity check in k-point 1, task 0 (analysis for other k-points/tasks may follow below):
+  Overlap matrix is not singular
+  | Lowest and highest eigenvalues :  0.2629E+00,  0.2600E+01
+  Finished singularity check of overlap matrix
+  | Time :     0.002 s
+  Starting LAPACK eigensolver
+  Finished Cholesky decomposition
+  | Time :     0.000 s
+  Finished transformation to standard eigenproblem
+  | Time :     0.000 s
+  Finished solving standard eigenproblem
+  | Time :     0.001 s
+  Finished back-transformation of eigenvectors
+  | Time :     0.000 s
+
+  Obtaining occupation numbers and electronic chemical potential using ELSI.
+  | Note that, for insulating systems, the printed 'chemical potential' value is not uniquely defined.
+  | It can be anywhere in the energy gap, as long as it correctly separates occupied and unoccupied states.
+  | In systems with a gap, the physically relevant chemical potential is the VBM or HOMO.
+
+  Residual electron error for mid-point Fermi level : 0.0000000000000000E+000
+  ELSI found chemical potential half-way between HOMO and LUMO.
+  | Chemical potential (Fermi level):    -4.62589918 eV
+  Writing Kohn-Sham eigenvalues.
+  K-point:       1 at    0.000000    0.000000    0.000000 (in units of recip. lattice)
+
+  State    Occupation    Eigenvalue [Ha]    Eigenvalue [eV]
+      1       2.00000         -65.789855        -1790.23305
+      2       2.00000         -65.789855        -1790.23305
+      3       2.00000          -5.142381         -139.93131
+      4       2.00000          -5.142087         -139.92330
+      5       2.00000          -3.526987          -95.97420
+      6       2.00000          -3.526987          -95.97419
+      7       2.00000          -3.526986          -95.97418
+      8       2.00000          -3.526343          -95.95668
+      9       2.00000          -3.526343          -95.95668
+     10       2.00000          -3.526343          -95.95667
+     11       2.00000          -0.660150          -17.96360
+     12       2.00000          -0.204632           -5.56831
+     13       2.00000          -0.204573           -5.56671
+     14       2.00000          -0.204545           -5.56595
+     15       0.00000          -0.094596           -2.57410
+     16       0.00000          -0.092883           -2.52747
+     17       0.00000          -0.092844           -2.52641
+     18       0.00000          -0.092798           -2.52517
+
+  What follows are estimated values for band gap, HOMO, LUMO, etc.
+  | They are estimated on a discrete k-point grid and not necessarily exact.
+  | For converged numbers, create a DOS and/or band structure plot on a denser k-grid.
+
+  Highest occupied state (VBM) at     -5.56595220 eV (relative to internal zero)
+  | Occupation number:      2.00000000
+  | K-point:       1 at    0.000000    0.000000    0.000000 (in units of recip. lattice)
+
+  Lowest unoccupied state (CBM) at    -3.68584616 eV (relative to internal zero)
+  | Occupation number:      0.00000000
+  | K-point:       5 at    0.000000    0.333333    0.333333 (in units of recip. lattice)
+
+  The gap value is above 0.2 eV. Unless you are using a very sparse k-point grid,
+  this system is most likely an insulator or a semiconductor.
+  ESTIMATED overall HOMO-LUMO gap:      1.88010604 eV between HOMO at k-point 1 and LUMO at k-point 5
+  | This appears to be an indirect band gap.
+  | Smallest direct gap :      2.99185086 eV for k_point 1 at    0.000000    0.000000    0.000000 (in units of recip. lattice)
+  Calculating total energy contributions from superposition of free atom densities.
+
+  Total energy components:
+  | Sum of eigenvalues            :        -329.24430585 Ha       -8959.19340085 eV
+  | XC energy correction          :         -41.73635419 Ha       -1135.70398151 eV
+  | XC potential correction       :          53.90087762 Ha        1466.71750590 eV
+  | Free-atom electrostatic energy:        -263.57320776 Ha       -7172.19190016 eV
+  | Hartree energy correction     :          -0.00000000 Ha          -0.00000000 eV
+  | Entropy correction            :          -0.00000000 Ha          -0.00000000 eV
+  | ---------------------------
+  | Total energy                  :        -580.65299017 Ha      -15800.37177662 eV
+  | Total energy, T -> 0          :        -580.65299017 Ha      -15800.37177662 eV  <-- do not rely on this value for anything but (periodic) metals
+  | Electronic free energy        :        -580.65299017 Ha      -15800.37177662 eV
+
+  Derived energy quantities:
+  | Kinetic energy                :         582.41935204 Ha       15848.43692867 eV
+  | Electrostatic energy          :       -1121.33598802 Ha      -30513.10472378 eV
+  | Energy correction for multipole
+  | error in Hartree potential    :           0.00000000 Ha           0.00000000 eV
+  | Sum of eigenvalues per atom                           :       -4479.59670042 eV
+  | Total energy (T->0) per atom                          :       -7900.18588831 eV  <-- do not rely on this value for anything but (periodic) metals
+  | Electronic free energy per atom                       :       -7900.18588831 eV
+  Initialize hartree_potential_storage
+  Max. number of atoms included in rho_multipole:            2
+
+  End scf initialization - timings             :  max(cpu_time)    wall_clock(cpu1)
+  | Time for scf. initialization                :        0.233 s           0.244 s
+  | Boundary condition initialization           :        0.040 s           0.042 s
+  | Integration                                 :        0.105 s           0.109 s
+  | Solution of K.-S. eqns.                     :        0.004 s           0.007 s
+  | Grid partitioning                           :        0.018 s           0.019 s
+  | Preloading free-atom quantities on grid     :        0.088 s           0.089 s
+  | Free-atom superposition energy              :        0.016 s           0.017 s
+  | Total energy evaluation                     :        0.000 s           0.000 s
+
+  Partial memory accounting:
+  | Current value for overall tracked memory usage:
+  |   Minimum:        0.327 MB (on task 0)
+  |   Maximum:        0.327 MB (on task 0)
+  |   Average:        0.327 MB
+  | Peak value for overall tracked memory usage:
+  |   Minimum:        0.954 MB (on task 0 after allocating wave)
+  |   Maximum:        0.954 MB (on task 0 after allocating wave)
+  |   Average:        0.954 MB
+  | Largest tracked array allocation so far:
+  |   Minimum:        0.257 MB (all_coords on task 0)
+  |   Maximum:        0.257 MB (all_coords on task 0)
+  |   Average:        0.257 MB
+  Note:  These values currently only include a subset of arrays which are explicitly tracked.
+  The "true" memory usage will be greater.
+------------------------------------------------------------
+  Evaluating new KS density using the density matrix
+  Evaluating density matrix
+  Time summed over all CPUs for getting density from density matrix: real work        0.094 s, elapsed        0.094 s
+  Integration grid: deviation in total charge (<rho> - N_e) =  -3.197442E-14
+
+  Time for density update prior                :  max(cpu_time)    wall_clock(cpu1)
+  | self-consistency iterative process          :        0.094 s           0.096 s
+
+------------------------------------------------------------
+          Begin self-consistency iteration #    1
+
+  Date     :  20240910, Time     :  140757.753
+------------------------------------------------------------
+  Pulay mixing of updated and previous charge densities.
+  Renormalizing the density to the exact electron count on the 3D integration grid.
+  | Formal number of electrons (from input files) :      28.0000000000
+  | Integrated number of electrons on 3D grid     :      28.0000000000
+  | Charge integration error                      :       0.0000000000
+  | Normalization factor for density and gradient :       1.0000000000
+
+  Evaluating partitioned Hartree potential by multipole expansion.
+  | Original multipole sum: apparent total charge =   0.194814E-12
+  | Sum of charges compensated after spline to logarithmic grids =  -0.247821E-05
+  | Analytical far-field extrapolation by fixed multipoles:
+  | Hartree multipole sum: apparent total charge =  -0.000000E+00
+  Summing up the Hartree potential.
+  Time summed over all CPUs for potential: real work        0.094 s, elapsed        0.094 s
+  | RMS charge density error from multipole expansion :   0.348746E-03
+  | Average real-space part of the electrostatic potential :     -0.00429487 eV
+
+  Integrating Hamiltonian matrix: batch-based integration.
+  Time summed over all CPUs for integration: real work        0.067 s, elapsed        0.067 s
+
+  Updating Kohn-Sham eigenvalues and eigenvectors using ELSI and the (modified) LAPACK eigensolver.
+  Starting LAPACK eigensolver
+  Finished Cholesky decomposition
+  | Time :     0.000 s
+  Finished transformation to standard eigenproblem
+  | Time :     0.000 s
+  Finished solving standard eigenproblem
+  | Time :     0.000 s
+  Finished back-transformation of eigenvectors
+  | Time :     0.000 s
+
+  Obtaining occupation numbers and electronic chemical potential using ELSI.
+  | Note that, for insulating systems, the printed 'chemical potential' value is not uniquely defined.
+  | It can be anywhere in the energy gap, as long as it correctly separates occupied and unoccupied states.
+  | In systems with a gap, the physically relevant chemical potential is the VBM or HOMO.
+
+  Residual electron error for mid-point Fermi level : 0.0000000000000000E+000
+  ELSI found chemical potential half-way between HOMO and LUMO.
+  | Chemical potential (Fermi level):    -4.62667739 eV
+  Writing Kohn-Sham eigenvalues.
+  K-point:       1 at    0.000000    0.000000    0.000000 (in units of recip. lattice)
+
+  State    Occupation    Eigenvalue [Ha]    Eigenvalue [eV]
+      1       2.00000         -65.791012        -1790.26451
+      2       2.00000         -65.791012        -1790.26451
+      3       2.00000          -5.143578         -139.96387
+      4       2.00000          -5.143284         -139.95587
+      5       2.00000          -3.528157          -96.00605
+      6       2.00000          -3.528157          -96.00605
+      7       2.00000          -3.528157          -96.00604
+      8       2.00000          -3.527515          -95.98856
+      9       2.00000          -3.527515          -95.98856
+     10       2.00000          -3.527514          -95.98855
+     11       2.00000          -0.660169          -17.96411
+     12       2.00000          -0.204693           -5.56997
+     13       2.00000          -0.204634           -5.56836
+     14       2.00000          -0.204606           -5.56760
+     15       0.00000          -0.094677           -2.57629
+     16       0.00000          -0.092944           -2.52915
+     17       0.00000          -0.092905           -2.52808
+     18       0.00000          -0.092860           -2.52684
+
+  What follows are estimated values for band gap, HOMO, LUMO, etc.
+  | They are estimated on a discrete k-point grid and not necessarily exact.
+  | For converged numbers, create a DOS and/or band structure plot on a denser k-grid.
+
+  Highest occupied state (VBM) at     -5.56760266 eV (relative to internal zero)
+  | Occupation number:      2.00000000
+  | K-point:       1 at    0.000000    0.000000    0.000000 (in units of recip. lattice)
+
+  Lowest unoccupied state (CBM) at    -3.68575211 eV (relative to internal zero)
+  | Occupation number:      0.00000000
+  | K-point:       9 at    0.000000    0.666667    0.666667 (in units of recip. lattice)
+
+  The gap value is above 0.2 eV. Unless you are using a very sparse k-point grid,
+  this system is most likely an insulator or a semiconductor.
+  ESTIMATED overall HOMO-LUMO gap:      1.88185055 eV between HOMO at k-point 1 and LUMO at k-point 9
+  | This appears to be an indirect band gap.
+  | Smallest direct gap :      2.99131246 eV for k_point 1 at    0.000000    0.000000    0.000000 (in units of recip. lattice)
+
+  Total energy components:
+  | Sum of eigenvalues            :        -329.26805930 Ha       -8959.83976518 eV
+  | XC energy correction          :         -41.73507618 Ha       -1135.66920497 eV
+  | XC potential correction       :          53.89914642 Ha        1466.67039759 eV
+  | Free-atom electrostatic energy:        -263.57320776 Ha       -7172.19190016 eV
+  | Hartree energy correction     :           0.02420327 Ha           0.65860454 eV
+  | Entropy correction            :          -0.00000000 Ha          -0.00000000 eV
+  | ---------------------------
+  | Total energy                  :        -580.65299354 Ha      -15800.37186817 eV
+  | Total energy, T -> 0          :        -580.65299354 Ha      -15800.37186817 eV  <-- do not rely on this value for anything but (periodic) metals
+  | Electronic free energy        :        -580.65299354 Ha      -15800.37186817 eV
+
+  Derived energy quantities:
+  | Kinetic energy                :         582.39125753 Ha       15847.67243813 eV
+  | Electrostatic energy          :       -1121.30917489 Ha      -30512.37510133 eV
+  | Energy correction for multipole
+  | error in Hartree potential    :           0.00032529 Ha           0.00885157 eV
+  | Sum of eigenvalues per atom                           :       -4479.91988259 eV
+  | Total energy (T->0) per atom                          :       -7900.18593408 eV  <-- do not rely on this value for anything but (periodic) metals
+  | Electronic free energy per atom                       :       -7900.18593408 eV
+  Evaluating new KS density using the density matrix
+  Evaluating density matrix
+  Time summed over all CPUs for getting density from density matrix: real work        0.094 s, elapsed        0.094 s
+  Integration grid: deviation in total charge (<rho> - N_e) =  -3.552714E-15
+
+  Self-consistency convergence accuracy:
+  | Change of charge density      :  0.7278E-01
+  | Change of unmixed KS density  :  0.3261E+02
+  | Change of sum of eigenvalues  : -0.6464E+00 eV
+  | Change of total energy        : -0.9155E-04 eV
+
+
+------------------------------------------------------------
+  End self-consistency iteration #     1       :  max(cpu_time)    wall_clock(cpu1)
+  | Time for this iteration                     :        0.258 s           0.262 s
+  | Charge density update                       :        0.094 s           0.094 s
+  | Density mixing                              :        0.000 s           0.001 s
+  | Hartree multipole update                    :        0.001 s           0.001 s
+  | Hartree multipole summation                 :        0.094 s           0.096 s
+  | Integration                                 :        0.066 s           0.067 s
+  | Solution of K.-S. eqns.                     :        0.003 s           0.003 s
+  | Total energy evaluation                     :        0.000 s           0.000 s
+
+  Partial memory accounting:
+  | Current value for overall tracked memory usage:
+  |   Minimum:        6.569 MB (on task 0)
+  |   Maximum:        6.569 MB (on task 0)
+  |   Average:        6.569 MB
+  | Peak value for overall tracked memory usage:
+  |   Minimum:        7.565 MB (on task 0 after allocating gradient_basis_wave)
+  |   Maximum:        7.565 MB (on task 0 after allocating gradient_basis_wave)
+  |   Average:        7.565 MB
+  | Largest tracked array allocation so far:
+  |   Minimum:        2.052 MB (previous_rho_gradient_diff on task 0)
+  |   Maximum:        2.052 MB (previous_rho_gradient_diff on task 0)
+  |   Average:        2.052 MB
+  Note:  These values currently only include a subset of arrays which are explicitly tracked.
+  The "true" memory usage will be greater.
+------------------------------------------------------------
+
+------------------------------------------------------------
+          Begin self-consistency iteration #    2
+
+  Date     :  20240910, Time     :  140758.016
+------------------------------------------------------------
+  Pulay mixing of updated and previous charge densities.
+  Renormalizing the density to the exact electron count on the 3D integration grid.
+  | Formal number of electrons (from input files) :      28.0000000000
+  | Integrated number of electrons on 3D grid     :      28.0000000000
+  | Charge integration error                      :       0.0000000000
+  | Normalization factor for density and gradient :       1.0000000000
+
+  Evaluating partitioned Hartree potential by multipole expansion.
+  | Original multipole sum: apparent total charge =   0.259674E-12
+  | Sum of charges compensated after spline to logarithmic grids =  -0.496101E-04
+  | Analytical far-field extrapolation by fixed multipoles:
+  | Hartree multipole sum: apparent total charge =  -0.000000E+00
+  Summing up the Hartree potential.
+  Time summed over all CPUs for potential: real work        0.116 s, elapsed        0.116 s
+  | RMS charge density error from multipole expansion :   0.697979E-02
+  | Average real-space part of the electrostatic potential :     -0.08573558 eV
+
+  Integrating Hamiltonian matrix: batch-based integration.
+  Time summed over all CPUs for integration: real work        0.067 s, elapsed        0.067 s
+
+  Updating Kohn-Sham eigenvalues and eigenvectors using ELSI and the (modified) LAPACK eigensolver.
+  Starting LAPACK eigensolver
+  Finished Cholesky decomposition
+  | Time :     0.000 s
+  Finished transformation to standard eigenproblem
+  | Time :     0.000 s
+  Finished solving standard eigenproblem
+  | Time :     0.000 s
+  Finished back-transformation of eigenvectors
+  | Time :     0.000 s
+
+  Obtaining occupation numbers and electronic chemical potential using ELSI.
+  | Note that, for insulating systems, the printed 'chemical potential' value is not uniquely defined.
+  | It can be anywhere in the energy gap, as long as it correctly separates occupied and unoccupied states.
+  | In systems with a gap, the physically relevant chemical potential is the VBM or HOMO.
+
+  Residual electron error for mid-point Fermi level : 0.0000000000000000E+000
+  ELSI found chemical potential half-way between HOMO and LUMO.
+  | Chemical potential (Fermi level):    -4.62933532 eV
+  What follows are estimated values for band gap, HOMO, LUMO, etc.
+  | They are estimated on a discrete k-point grid and not necessarily exact.
+  | For converged numbers, create a DOS and/or band structure plot on a denser k-grid.
+
+  Highest occupied state (VBM) at     -5.58491781 eV (relative to internal zero)
+  | Occupation number:      2.00000000
+  | K-point:       1 at    0.000000    0.000000    0.000000 (in units of recip. lattice)
+
+  Lowest unoccupied state (CBM) at    -3.67375283 eV (relative to internal zero)
+  | Occupation number:      0.00000000
+  | K-point:       9 at    0.000000    0.666667    0.666667 (in units of recip. lattice)
+
+  The gap value is above 0.2 eV. Unless you are using a very sparse k-point grid,
+  this system is most likely an insulator or a semiconductor.
+  ESTIMATED overall HOMO-LUMO gap:      1.91116497 eV between HOMO at k-point 1 and LUMO at k-point 9
+  | This appears to be an indirect band gap.
+  | Smallest direct gap :      2.96822627 eV for k_point 1 at    0.000000    0.000000    0.000000 (in units of recip. lattice)
+
+  Checking to see if s.c.f. parameters should be adjusted.
+  The system likely has a gap. Increased the default Pulay mixing parameter (charge_mix_param). Value:   0.200000 .
+
+  Total energy components:
+  | Sum of eigenvalues            :        -329.71369342 Ha       -8971.96608649 eV
+  | XC energy correction          :         -41.71569627 Ha       -1135.14185101 eV
+  | XC potential correction       :          53.87233425 Ha        1465.94080108 eV
+  | Free-atom electrostatic energy:        -263.57320776 Ha       -7172.19190016 eV
+  | Hartree energy correction     :           0.47745447 Ha          12.99219724 eV
+  | Entropy correction            :          -0.00000000 Ha          -0.00000000 eV
+  | ---------------------------
+  | Total energy                  :        -580.65280873 Ha      -15800.36683935 eV
+  | Total energy, T -> 0          :        -580.65280873 Ha      -15800.36683935 eV  <-- do not rely on this value for anything but (periodic) metals
+  | Electronic free energy        :        -580.65280873 Ha      -15800.36683935 eV
+
+  Derived energy quantities:
+  | Kinetic energy                :         581.86050552 Ha       15833.22994117 eV
+  | Electrostatic energy          :       -1120.79761798 Ha      -30498.45492951 eV
+  | Energy correction for multipole
+  | error in Hartree potential    :           0.00666065 Ha           0.18124546 eV
+  | Sum of eigenvalues per atom                           :       -4485.98304325 eV
+  | Total energy (T->0) per atom                          :       -7900.18341967 eV  <-- do not rely on this value for anything but (periodic) metals
+  | Electronic free energy per atom                       :       -7900.18341967 eV
+  Evaluating new KS density using the density matrix
+  Evaluating density matrix
+  Time summed over all CPUs for getting density from density matrix: real work        0.094 s, elapsed        0.094 s
+  Integration grid: deviation in total charge (<rho> - N_e) =  -2.131628E-14
+
+  Self-consistency convergence accuracy:
+  | Change of charge density      :  0.6915E-01
+  | Change of unmixed KS density  :  0.1297E-03
+  | Change of sum of eigenvalues  : -0.1213E+02 eV
+  | Change of total energy        :  0.5029E-02 eV
+
+
+------------------------------------------------------------
+  End self-consistency iteration #     2       :  max(cpu_time)    wall_clock(cpu1)
+  | Time for this iteration                     :        0.282 s           0.284 s
+  | Charge density update                       :        0.094 s           0.094 s
+  | Density mixing                              :        0.001 s           0.001 s
+  | Hartree multipole update                    :        0.001 s           0.001 s
+  | Hartree multipole summation                 :        0.118 s           0.118 s
+  | Integration                                 :        0.066 s           0.067 s
+  | Solution of K.-S. eqns.                     :        0.003 s           0.003 s
+  | Total energy evaluation                     :        0.000 s           0.000 s
+
+  Partial memory accounting:
+  | Current value for overall tracked memory usage:
+  |   Minimum:        6.570 MB (on task 0)
+  |   Maximum:        6.570 MB (on task 0)
+  |   Average:        6.570 MB
+  | Peak value for overall tracked memory usage:
+  |   Minimum:        7.566 MB (on task 0 after allocating gradient_basis_wave)
+  |   Maximum:        7.566 MB (on task 0 after allocating gradient_basis_wave)
+  |   Average:        7.566 MB
+  | Largest tracked array allocation so far:
+  |   Minimum:        2.052 MB (previous_rho_gradient_diff on task 0)
+  |   Maximum:        2.052 MB (previous_rho_gradient_diff on task 0)
+  |   Average:        2.052 MB
+  Note:  These values currently only include a subset of arrays which are explicitly tracked.
+  The "true" memory usage will be greater.
+------------------------------------------------------------
+
+------------------------------------------------------------
+          Begin self-consistency iteration #    3
+
+  Date     :  20240910, Time     :  140758.300
+------------------------------------------------------------
+  Pulay mixing of updated and previous charge densities.
+  Renormalizing the density to the exact electron count on the 3D integration grid.
+  | Formal number of electrons (from input files) :      28.0000000000
+  | Integrated number of electrons on 3D grid     :      28.0000000000
+  | Charge integration error                      :      -0.0000000000
+  | Normalization factor for density and gradient :       1.0000000000
+
+  Evaluating partitioned Hartree potential by multipole expansion.
+  | Original multipole sum: apparent total charge =   0.168400E-12
+  | Sum of charges compensated after spline to logarithmic grids =  -0.494425E-04
+  | Analytical far-field extrapolation by fixed multipoles:
+  | Hartree multipole sum: apparent total charge =  -0.000000E+00
+  Summing up the Hartree potential.
+  Time summed over all CPUs for potential: real work        0.116 s, elapsed        0.116 s
+  | RMS charge density error from multipole expansion :   0.691184E-02
+  | Average real-space part of the electrostatic potential :     -0.07942022 eV
+
+  Integrating Hamiltonian matrix: batch-based integration.
+  Time summed over all CPUs for integration: real work        0.067 s, elapsed        0.067 s
+
+  Updating Kohn-Sham eigenvalues and eigenvectors using ELSI and the (modified) LAPACK eigensolver.
+  Starting LAPACK eigensolver
+  Finished Cholesky decomposition
+  | Time :     0.000 s
+  Finished transformation to standard eigenproblem
+  | Time :     0.000 s
+  Finished solving standard eigenproblem
+  | Time :     0.000 s
+  Finished back-transformation of eigenvectors
+  | Time :     0.000 s
+
+  Obtaining occupation numbers and electronic chemical potential using ELSI.
+  | Note that, for insulating systems, the printed 'chemical potential' value is not uniquely defined.
+  | It can be anywhere in the energy gap, as long as it correctly separates occupied and unoccupied states.
+  | In systems with a gap, the physically relevant chemical potential is the VBM or HOMO.
+
+  Residual electron error for mid-point Fermi level : 0.0000000000000000E+000
+  ELSI found chemical potential half-way between HOMO and LUMO.
+  | Chemical potential (Fermi level):    -4.62425710 eV
+  What follows are estimated values for band gap, HOMO, LUMO, etc.
+  | They are estimated on a discrete k-point grid and not necessarily exact.
+  | For converged numbers, create a DOS and/or band structure plot on a denser k-grid.
+
+  Highest occupied state (VBM) at     -5.57885130 eV (relative to internal zero)
+  | Occupation number:      2.00000000
+  | K-point:       1 at    0.000000    0.000000    0.000000 (in units of recip. lattice)
+
+  Lowest unoccupied state (CBM) at    -3.66966289 eV (relative to internal zero)
+  | Occupation number:      0.00000000
+  | K-point:       9 at    0.000000    0.666667    0.666667 (in units of recip. lattice)
+
+  The gap value is above 0.2 eV. Unless you are using a very sparse k-point grid,
+  this system is most likely an insulator or a semiconductor.
+  ESTIMATED overall HOMO-LUMO gap:      1.90918841 eV between HOMO at k-point 1 and LUMO at k-point 9
+  | This appears to be an indirect band gap.
+  | Smallest direct gap :      2.97183580 eV for k_point 1 at    0.000000    0.000000    0.000000 (in units of recip. lattice)
+
+  Total energy components:
+  | Sum of eigenvalues            :        -329.66952878 Ha       -8970.76430555 eV
+  | XC energy correction          :         -41.72016534 Ha       -1135.26346048 eV
+  | XC potential correction       :          53.87821084 Ha        1466.10071138 eV
+  | Free-atom electrostatic energy:        -263.57320776 Ha       -7172.19190016 eV
+  | Hartree energy correction     :           0.43187856 Ha          11.75201346 eV
+  | Entropy correction            :          -0.00000000 Ha          -0.00000000 eV
+  | ---------------------------
+  | Total energy                  :        -580.65281248 Ha      -15800.36694136 eV
+  | Total energy, T -> 0          :        -580.65281248 Ha      -15800.36694136 eV  <-- do not rely on this value for anything but (periodic) metals
+  | Electronic free energy        :        -580.65281248 Ha      -15800.36694136 eV
+
+  Derived energy quantities:
+  | Kinetic energy                :         581.92331718 Ha       15834.93913336 eV
+  | Electrostatic energy          :       -1120.85596432 Ha      -30500.04261423 eV
+  | Energy correction for multipole
+  | error in Hartree potential    :           0.00665655 Ha           0.18113387 eV
+  | Sum of eigenvalues per atom                           :       -4485.38215278 eV
+  | Total energy (T->0) per atom                          :       -7900.18347068 eV  <-- do not rely on this value for anything but (periodic) metals
+  | Electronic free energy per atom                       :       -7900.18347068 eV
+  Evaluating new KS density using the density matrix
+  Evaluating density matrix
+  Time summed over all CPUs for getting density from density matrix: real work        0.094 s, elapsed        0.094 s
+  Integration grid: deviation in total charge (<rho> - N_e) =   3.552714E-14
+
+  Self-consistency convergence accuracy:
+  | Change of charge density      :  0.2454E-02
+  | Change of unmixed KS density  :  0.2455E-02
+  | Change of sum of eigenvalues  :  0.1202E+01 eV
+  | Change of total energy        : -0.1020E-03 eV
+
+
+------------------------------------------------------------
+  End self-consistency iteration #     3       :  max(cpu_time)    wall_clock(cpu1)
+  | Time for this iteration                     :        0.283 s           0.285 s
+  | Charge density update                       :        0.094 s           0.095 s
+  | Density mixing                              :        0.000 s           0.001 s
+  | Hartree multipole update                    :        0.001 s           0.000 s
+  | Hartree multipole summation                 :        0.118 s           0.119 s
+  | Integration                                 :        0.067 s           0.067 s
+  | Solution of K.-S. eqns.                     :        0.002 s           0.003 s
+  | Total energy evaluation                     :        0.000 s           0.000 s
+
+  Partial memory accounting:
+  | Current value for overall tracked memory usage:
+  |   Minimum:        6.570 MB (on task 0)
+  |   Maximum:        6.570 MB (on task 0)
+  |   Average:        6.570 MB
+  | Peak value for overall tracked memory usage:
+  |   Minimum:        7.566 MB (on task 0 after allocating gradient_basis_wave)
+  |   Maximum:        7.566 MB (on task 0 after allocating gradient_basis_wave)
+  |   Average:        7.566 MB
+  | Largest tracked array allocation so far:
+  |   Minimum:        2.052 MB (previous_rho_gradient_diff on task 0)
+  |   Maximum:        2.052 MB (previous_rho_gradient_diff on task 0)
+  |   Average:        2.052 MB
+  Note:  These values currently only include a subset of arrays which are explicitly tracked.
+  The "true" memory usage will be greater.
+------------------------------------------------------------
+
+------------------------------------------------------------
+          Begin self-consistency iteration #    4
+
+  Date     :  20240910, Time     :  140758.585
+------------------------------------------------------------
+  Pulay mixing of updated and previous charge densities.
+  Renormalizing the density to the exact electron count on the 3D integration grid.
+  | Formal number of electrons (from input files) :      28.0000000000
+  | Integrated number of electrons on 3D grid     :      28.0000000000
+  | Charge integration error                      :      -0.0000000000
+  | Normalization factor for density and gradient :       1.0000000000
+
+  Evaluating partitioned Hartree potential by multipole expansion.
+  | Original multipole sum: apparent total charge =   0.101011E-12
+  | Sum of charges compensated after spline to logarithmic grids =  -0.499914E-04
+  | Analytical far-field extrapolation by fixed multipoles:
+  | Hartree multipole sum: apparent total charge =  -0.000000E+00
+  Summing up the Hartree potential.
+  Time summed over all CPUs for potential: real work        0.115 s, elapsed        0.115 s
+  | RMS charge density error from multipole expansion :   0.698839E-02
+  | Average real-space part of the electrostatic potential :     -0.08021715 eV
+
+  Integrating Hamiltonian matrix: batch-based integration.
+  Time summed over all CPUs for integration: real work        0.067 s, elapsed        0.067 s
+
+  Updating Kohn-Sham eigenvalues and eigenvectors using ELSI and the (modified) LAPACK eigensolver.
+  Starting LAPACK eigensolver
+  Finished Cholesky decomposition
+  | Time :     0.000 s
+  Finished transformation to standard eigenproblem
+  | Time :     0.000 s
+  Finished solving standard eigenproblem
+  | Time :     0.000 s
+  Finished back-transformation of eigenvectors
+  | Time :     0.000 s
+
+  Obtaining occupation numbers and electronic chemical potential using ELSI.
+  | Note that, for insulating systems, the printed 'chemical potential' value is not uniquely defined.
+  | It can be anywhere in the energy gap, as long as it correctly separates occupied and unoccupied states.
+  | In systems with a gap, the physically relevant chemical potential is the VBM or HOMO.
+
+  Residual electron error for mid-point Fermi level : 0.0000000000000000E+000
+  ELSI found chemical potential half-way between HOMO and LUMO.
+  | Chemical potential (Fermi level):    -4.62394754 eV
+  What follows are estimated values for band gap, HOMO, LUMO, etc.
+  | They are estimated on a discrete k-point grid and not necessarily exact.
+  | For converged numbers, create a DOS and/or band structure plot on a denser k-grid.
+
+  Highest occupied state (VBM) at     -5.57868514 eV (relative to internal zero)
+  | Occupation number:      2.00000000
+  | K-point:       1 at    0.000000    0.000000    0.000000 (in units of recip. lattice)
+
+  Lowest unoccupied state (CBM) at    -3.66920995 eV (relative to internal zero)
+  | Occupation number:      0.00000000
+  | K-point:       5 at    0.000000    0.333333    0.333333 (in units of recip. lattice)
+
+  The gap value is above 0.2 eV. Unless you are using a very sparse k-point grid,
+  this system is most likely an insulator or a semiconductor.
+  ESTIMATED overall HOMO-LUMO gap:      1.90947519 eV between HOMO at k-point 1 and LUMO at k-point 5
+  | This appears to be an indirect band gap.
+  | Smallest direct gap :      2.97164518 eV for k_point 1 at    0.000000    0.000000    0.000000 (in units of recip. lattice)
+
+  Total energy components:
+  | Sum of eigenvalues            :        -329.67223523 Ha       -8970.83795194 eV
+  | XC energy correction          :         -41.72028546 Ha       -1135.26672912 eV
+  | XC potential correction       :          53.87834901 Ha        1466.10447111 eV
+  | Free-atom electrostatic energy:        -263.57320776 Ha       -7172.19190016 eV
+  | Hartree energy correction     :           0.43456974 Ha          11.82524437 eV
+  | Entropy correction            :          -0.00000000 Ha          -0.00000000 eV
+  | ---------------------------
+  | Total energy                  :        -580.65280970 Ha      -15800.36686573 eV
+  | Total energy, T -> 0          :        -580.65280970 Ha      -15800.36686573 eV  <-- do not rely on this value for anything but (periodic) metals
+  | Electronic free energy        :        -580.65280970 Ha      -15800.36686573 eV
+
+  Derived energy quantities:
+  | Kinetic energy                :         581.92107146 Ha       15834.87802416 eV
+  | Electrostatic energy          :       -1120.85359570 Ha      -30499.97816078 eV
+  | Energy correction for multipole
+  | error in Hartree potential    :           0.00673213 Ha           0.18319065 eV
+  | Sum of eigenvalues per atom                           :       -4485.41897597 eV
+  | Total energy (T->0) per atom                          :       -7900.18343287 eV  <-- do not rely on this value for anything but (periodic) metals
+  | Electronic free energy per atom                       :       -7900.18343287 eV
+  Evaluating new KS density using the density matrix
+  Evaluating density matrix
+  Time summed over all CPUs for getting density from density matrix: real work        0.094 s, elapsed        0.094 s
+  Integration grid: deviation in total charge (<rho> - N_e) =   3.907985E-14
+
+  Self-consistency convergence accuracy:
+  | Change of charge density      :  0.9651E-03
+  | Change of unmixed KS density  :  0.2601E-03
+  | Change of sum of eigenvalues  : -0.7365E-01 eV
+  | Change of total energy        :  0.7562E-04 eV
+
+
+------------------------------------------------------------
+  End self-consistency iteration #     4       :  max(cpu_time)    wall_clock(cpu1)
+  | Time for this iteration                     :        0.281 s           0.282 s
+  | Charge density update                       :        0.095 s           0.095 s
+  | Density mixing                              :        0.000 s           0.000 s
+  | Hartree multipole update                    :        0.001 s           0.001 s
+  | Hartree multipole summation                 :        0.116 s           0.117 s
+  | Integration                                 :        0.067 s           0.067 s
+  | Solution of K.-S. eqns.                     :        0.002 s           0.002 s
+  | Total energy evaluation                     :        0.000 s           0.000 s
+
+  Partial memory accounting:
+  | Current value for overall tracked memory usage:
+  |   Minimum:        6.571 MB (on task 0)
+  |   Maximum:        6.571 MB (on task 0)
+  |   Average:        6.571 MB
+  | Peak value for overall tracked memory usage:
+  |   Minimum:        7.566 MB (on task 0 after allocating gradient_basis_wave)
+  |   Maximum:        7.566 MB (on task 0 after allocating gradient_basis_wave)
+  |   Average:        7.566 MB
+  | Largest tracked array allocation so far:
+  |   Minimum:        2.052 MB (previous_rho_gradient_diff on task 0)
+  |   Maximum:        2.052 MB (previous_rho_gradient_diff on task 0)
+  |   Average:        2.052 MB
+  Note:  These values currently only include a subset of arrays which are explicitly tracked.
+  The "true" memory usage will be greater.
+------------------------------------------------------------
+
+------------------------------------------------------------
+          Begin self-consistency iteration #    5
+
+  Date     :  20240910, Time     :  140758.867
+------------------------------------------------------------
+  Pulay mixing of updated and previous charge densities.
+  Renormalizing the density to the exact electron count on the 3D integration grid.
+  | Formal number of electrons (from input files) :      28.0000000000
+  | Integrated number of electrons on 3D grid     :      28.0000000000
+  | Charge integration error                      :      -0.0000000000
+  | Normalization factor for density and gradient :       1.0000000000
+
+  Evaluating partitioned Hartree potential by multipole expansion.
+  | Original multipole sum: apparent total charge =   0.144010E-12
+  | Sum of charges compensated after spline to logarithmic grids =  -0.499300E-04
+  | Analytical far-field extrapolation by fixed multipoles:
+  | Hartree multipole sum: apparent total charge =  -0.000000E+00
+  Summing up the Hartree potential.
+  Time summed over all CPUs for potential: real work        0.120 s, elapsed        0.120 s
+  | RMS charge density error from multipole expansion :   0.698844E-02
+  | Average real-space part of the electrostatic potential :     -0.08109097 eV
+
+  Integrating Hamiltonian matrix: batch-based integration.
+  Time summed over all CPUs for integration: real work        0.067 s, elapsed        0.067 s
+
+  Updating Kohn-Sham eigenvalues and eigenvectors using ELSI and the (modified) LAPACK eigensolver.
+  Starting LAPACK eigensolver
+  Finished Cholesky decomposition
+  | Time :     0.000 s
+  Finished transformation to standard eigenproblem
+  | Time :     0.000 s
+  Finished solving standard eigenproblem
+  | Time :     0.000 s
+  Finished back-transformation of eigenvectors
+  | Time :     0.000 s
+
+  Obtaining occupation numbers and electronic chemical potential using ELSI.
+  | Note that, for insulating systems, the printed 'chemical potential' value is not uniquely defined.
+  | It can be anywhere in the energy gap, as long as it correctly separates occupied and unoccupied states.
+  | In systems with a gap, the physically relevant chemical potential is the VBM or HOMO.
+
+  Residual electron error for mid-point Fermi level : 0.0000000000000000E+000
+  ELSI found chemical potential half-way between HOMO and LUMO.
+  | Chemical potential (Fermi level):    -4.62450830 eV
+  What follows are estimated values for band gap, HOMO, LUMO, etc.
+  | They are estimated on a discrete k-point grid and not necessarily exact.
+  | For converged numbers, create a DOS and/or band structure plot on a denser k-grid.
+
+  Highest occupied state (VBM) at     -5.57937760 eV (relative to internal zero)
+  | Occupation number:      2.00000000
+  | K-point:       1 at    0.000000    0.000000    0.000000 (in units of recip. lattice)
+
+  Lowest unoccupied state (CBM) at    -3.66963900 eV (relative to internal zero)
+  | Occupation number:      0.00000000
+  | K-point:       9 at    0.000000    0.666667    0.666667 (in units of recip. lattice)
+
+  The gap value is above 0.2 eV. Unless you are using a very sparse k-point grid,
+  this system is most likely an insulator or a semiconductor.
+  ESTIMATED overall HOMO-LUMO gap:      1.90973859 eV between HOMO at k-point 1 and LUMO at k-point 9
+  | This appears to be an indirect band gap.
+  | Smallest direct gap :      2.97146311 eV for k_point 1 at    0.000000    0.000000    0.000000 (in units of recip. lattice)
+
+  Total energy components:
+  | Sum of eigenvalues            :        -329.67403570 Ha       -8970.88694514 eV
+  | XC energy correction          :         -41.72019919 Ha       -1135.26438168 eV
+  | XC potential correction       :          53.87823608 Ha        1466.10139825 eV
+  | Free-atom electrostatic energy:        -263.57320776 Ha       -7172.19190016 eV
+  | Hartree energy correction     :           0.43639736 Ha          11.87497644 eV
+  | Entropy correction            :          -0.00000000 Ha          -0.00000000 eV
+  | ---------------------------
+  | Total energy                  :        -580.65280921 Ha      -15800.36685229 eV
+  | Total energy, T -> 0          :        -580.65280921 Ha      -15800.36685229 eV  <-- do not rely on this value for anything but (periodic) metals
+  | Electronic free energy        :        -580.65280921 Ha      -15800.36685229 eV
+
+  Derived energy quantities:
+  | Kinetic energy                :         581.91982017 Ha       15834.84397469 eV
+  | Electrostatic energy          :       -1120.85243018 Ha      -30499.94644530 eV
+  | Energy correction for multipole
+  | error in Hartree potential    :           0.00671970 Ha           0.18285246 eV
+  | Sum of eigenvalues per atom                           :       -4485.44347257 eV
+  | Total energy (T->0) per atom                          :       -7900.18342615 eV  <-- do not rely on this value for anything but (periodic) metals
+  | Electronic free energy per atom                       :       -7900.18342615 eV
+  Evaluating new KS density using the density matrix
+  Evaluating density matrix
+  Time summed over all CPUs for getting density from density matrix: real work        0.094 s, elapsed        0.094 s
+  Integration grid: deviation in total charge (<rho> - N_e) =   6.039613E-14
+
+  Self-consistency convergence accuracy:
+  | Change of charge density      :  0.1752E-03
+  | Change of unmixed KS density  :  0.1279E-04
+  | Change of sum of eigenvalues  : -0.4899E-01 eV
+  | Change of total energy        :  0.1344E-04 eV
+
+
+------------------------------------------------------------
+  End self-consistency iteration #     5       :  max(cpu_time)    wall_clock(cpu1)
+  | Time for this iteration                     :        0.287 s           0.288 s
+  | Charge density update                       :        0.094 s           0.095 s
+  | Density mixing                              :        0.001 s           0.001 s
+  | Hartree multipole update                    :        0.001 s           0.001 s
+  | Hartree multipole summation                 :        0.122 s           0.122 s
+  | Integration                                 :        0.067 s           0.067 s
+  | Solution of K.-S. eqns.                     :        0.003 s           0.002 s
+  | Total energy evaluation                     :        0.000 s           0.000 s
+
+  Partial memory accounting:
+  | Current value for overall tracked memory usage:
+  |   Minimum:        6.571 MB (on task 0)
+  |   Maximum:        6.571 MB (on task 0)
+  |   Average:        6.571 MB
+  | Peak value for overall tracked memory usage:
+  |   Minimum:        7.567 MB (on task 0 after allocating gradient_basis_wave)
+  |   Maximum:        7.567 MB (on task 0 after allocating gradient_basis_wave)
+  |   Average:        7.567 MB
+  | Largest tracked array allocation so far:
+  |   Minimum:        2.052 MB (previous_rho_gradient_diff on task 0)
+  |   Maximum:        2.052 MB (previous_rho_gradient_diff on task 0)
+  |   Average:        2.052 MB
+  Note:  These values currently only include a subset of arrays which are explicitly tracked.
+  The "true" memory usage will be greater.
+------------------------------------------------------------
+
+------------------------------------------------------------
+          Begin self-consistency iteration #    6
+
+  Date     :  20240910, Time     :  140759.155
+------------------------------------------------------------
+  Pulay mixing of updated and previous charge densities.
+  Renormalizing the density to the exact electron count on the 3D integration grid.
+  | Formal number of electrons (from input files) :      28.0000000000
+  | Integrated number of electrons on 3D grid     :      28.0000000000
+  | Charge integration error                      :       0.0000000000
+  | Normalization factor for density and gradient :       1.0000000000
+
+  Evaluating partitioned Hartree potential by multipole expansion.
+  | Original multipole sum: apparent total charge =   0.216239E-12
+  | Sum of charges compensated after spline to logarithmic grids =  -0.499096E-04
+  | Analytical far-field extrapolation by fixed multipoles:
+  | Hartree multipole sum: apparent total charge =  -0.000000E+00
+  Summing up the Hartree potential.
+  Time summed over all CPUs for potential: real work        0.114 s, elapsed        0.114 s
+  | RMS charge density error from multipole expansion :   0.698833E-02
+  | Average real-space part of the electrostatic potential :     -0.08136220 eV
+
+  Integrating Hamiltonian matrix: batch-based integration.
+  Time summed over all CPUs for integration: real work        0.067 s, elapsed        0.067 s
+
+  Updating Kohn-Sham eigenvalues and eigenvectors using ELSI and the (modified) LAPACK eigensolver.
+  Starting LAPACK eigensolver
+  Finished Cholesky decomposition
+  | Time :     0.000 s
+  Finished transformation to standard eigenproblem
+  | Time :     0.000 s
+  Finished solving standard eigenproblem
+  | Time :     0.000 s
+  Finished back-transformation of eigenvectors
+  | Time :     0.000 s
+
+  Obtaining occupation numbers and electronic chemical potential using ELSI.
+  | Note that, for insulating systems, the printed 'chemical potential' value is not uniquely defined.
+  | It can be anywhere in the energy gap, as long as it correctly separates occupied and unoccupied states.
+  | In systems with a gap, the physically relevant chemical potential is the VBM or HOMO.
+
+  Residual electron error for mid-point Fermi level : 0.0000000000000000E+000
+  ELSI found chemical potential half-way between HOMO and LUMO.
+  | Chemical potential (Fermi level):    -4.62468316 eV
+  What follows are estimated values for band gap, HOMO, LUMO, etc.
+  | They are estimated on a discrete k-point grid and not necessarily exact.
+  | For converged numbers, create a DOS and/or band structure plot on a denser k-grid.
+
+  Highest occupied state (VBM) at     -5.57959299 eV (relative to internal zero)
+  | Occupation number:      2.00000000
+  | K-point:       1 at    0.000000    0.000000    0.000000 (in units of recip. lattice)
+
+  Lowest unoccupied state (CBM) at    -3.66977334 eV (relative to internal zero)
+  | Occupation number:      0.00000000
+  | K-point:       9 at    0.000000    0.666667    0.666667 (in units of recip. lattice)
+
+  The gap value is above 0.2 eV. Unless you are using a very sparse k-point grid,
+  this system is most likely an insulator or a semiconductor.
+  ESTIMATED overall HOMO-LUMO gap:      1.90981966 eV between HOMO at k-point 1 and LUMO at k-point 9
+  | This appears to be an indirect band gap.
+  | Smallest direct gap :      2.97140673 eV for k_point 1 at    0.000000    0.000000    0.000000 (in units of recip. lattice)
+
+  Total energy components:
+  | Sum of eigenvalues            :        -329.67459454 Ha       -8970.90215189 eV
+  | XC energy correction          :         -41.72017170 Ha       -1135.26363357 eV
+  | XC potential correction       :          53.87820013 Ha        1466.10041992 eV
+  | Free-atom electrostatic energy:        -263.57320776 Ha       -7172.19190016 eV
+  | Hartree energy correction     :           0.43696480 Ha          11.89041732 eV
+  | Entropy correction            :          -0.00000000 Ha          -0.00000000 eV
+  | ---------------------------
+  | Total energy                  :        -580.65280906 Ha      -15800.36684838 eV
+  | Total energy, T -> 0          :        -580.65280906 Ha      -15800.36684838 eV  <-- do not rely on this value for anything but (periodic) metals
+  | Electronic free energy        :        -580.65280906 Ha      -15800.36684838 eV
+
+  Derived energy quantities:
+  | Kinetic energy                :         581.91942499 Ha       15834.83322142 eV
+  | Electrostatic energy          :       -1120.85206235 Ha      -30499.93643623 eV
+  | Energy correction for multipole
+  | error in Hartree potential    :           0.00671568 Ha           0.18274302 eV
+  | Sum of eigenvalues per atom                           :       -4485.45107595 eV
+  | Total energy (T->0) per atom                          :       -7900.18342419 eV  <-- do not rely on this value for anything but (periodic) metals
+  | Electronic free energy per atom                       :       -7900.18342419 eV
+  Evaluating new KS density using the density matrix
+  Evaluating density matrix
+  Time summed over all CPUs for getting density from density matrix: real work        0.094 s, elapsed        0.094 s
+  Integration grid: deviation in total charge (<rho> - N_e) =   3.552714E-14
+
+  Self-consistency convergence accuracy:
+  | Change of charge density      :  0.5039E-04
+  | Change of unmixed KS density  :  0.6637E-05
+  | Change of sum of eigenvalues  : -0.1521E-01 eV
+  | Change of total energy        :  0.3911E-05 eV
+
+
+------------------------------------------------------------
+  End self-consistency iteration #     6       :  max(cpu_time)    wall_clock(cpu1)
+  | Time for this iteration                     :        0.280 s           0.281 s
+  | Charge density update                       :        0.094 s           0.094 s
+  | Density mixing                              :        0.001 s           0.001 s
+  | Hartree multipole update                    :        0.001 s           0.000 s
+  | Hartree multipole summation                 :        0.116 s           0.116 s
+  | Integration                                 :        0.067 s           0.067 s
+  | Solution of K.-S. eqns.                     :        0.002 s           0.003 s
+  | Total energy evaluation                     :        0.000 s           0.000 s
+
+  Partial memory accounting:
+  | Current value for overall tracked memory usage:
+  |   Minimum:        6.571 MB (on task 0)
+  |   Maximum:        6.571 MB (on task 0)
+  |   Average:        6.571 MB
+  | Peak value for overall tracked memory usage:
+  |   Minimum:        7.567 MB (on task 0 after allocating gradient_basis_wave)
+  |   Maximum:        7.567 MB (on task 0 after allocating gradient_basis_wave)
+  |   Average:        7.567 MB
+  | Largest tracked array allocation so far:
+  |   Minimum:        2.052 MB (previous_rho_gradient_diff on task 0)
+  |   Maximum:        2.052 MB (previous_rho_gradient_diff on task 0)
+  |   Average:        2.052 MB
+  Note:  These values currently only include a subset of arrays which are explicitly tracked.
+  The "true" memory usage will be greater.
+------------------------------------------------------------
+
+------------------------------------------------------------
+          Begin self-consistency iteration #    7
+
+  Date     :  20240910, Time     :  140759.436
+------------------------------------------------------------
+  Pulay mixing of updated and previous charge densities.
+  Renormalizing the density to the exact electron count on the 3D integration grid.
+  | Formal number of electrons (from input files) :      28.0000000000
+  | Integrated number of electrons on 3D grid     :      28.0000000000
+  | Charge integration error                      :      -0.0000000000
+  | Normalization factor for density and gradient :       1.0000000000
+
+  Evaluating partitioned Hartree potential by multipole expansion.
+  | Original multipole sum: apparent total charge =   0.150848E-12
+  | Sum of charges compensated after spline to logarithmic grids =  -0.499037E-04
+  | Analytical far-field extrapolation by fixed multipoles:
+  | Hartree multipole sum: apparent total charge =  -0.000000E+00
+  Summing up the Hartree potential.
+  Time summed over all CPUs for potential: real work        0.117 s, elapsed        0.117 s
+  | RMS charge density error from multipole expansion :   0.698837E-02
+  | Average real-space part of the electrostatic potential :     -0.08144376 eV
+
+  Integrating Hamiltonian matrix: batch-based integration.
+  Time summed over all CPUs for integration: real work        0.068 s, elapsed        0.068 s
+
+  Updating Kohn-Sham eigenvalues and eigenvectors using ELSI and the (modified) LAPACK eigensolver.
+  Starting LAPACK eigensolver
+  Finished Cholesky decomposition
+  | Time :     0.000 s
+  Finished transformation to standard eigenproblem
+  | Time :     0.000 s
+  Finished solving standard eigenproblem
+  | Time :     0.000 s
+  Finished back-transformation of eigenvectors
+  | Time :     0.000 s
+
+  Obtaining occupation numbers and electronic chemical potential using ELSI.
+  | Note that, for insulating systems, the printed 'chemical potential' value is not uniquely defined.
+  | It can be anywhere in the energy gap, as long as it correctly separates occupied and unoccupied states.
+  | In systems with a gap, the physically relevant chemical potential is the VBM or HOMO.
+
+  Residual electron error for mid-point Fermi level : 0.0000000000000000E+000
+  ELSI found chemical potential half-way between HOMO and LUMO.
+  | Chemical potential (Fermi level):    -4.62473420 eV
+  What follows are estimated values for band gap, HOMO, LUMO, etc.
+  | They are estimated on a discrete k-point grid and not necessarily exact.
+  | For converged numbers, create a DOS and/or band structure plot on a denser k-grid.
+
+  Highest occupied state (VBM) at     -5.57965603 eV (relative to internal zero)
+  | Occupation number:      2.00000000
+  | K-point:       1 at    0.000000    0.000000    0.000000 (in units of recip. lattice)
+
+  Lowest unoccupied state (CBM) at    -3.66981237 eV (relative to internal zero)
+  | Occupation number:      0.00000000
+  | K-point:       9 at    0.000000    0.666667    0.666667 (in units of recip. lattice)
+
+  The gap value is above 0.2 eV. Unless you are using a very sparse k-point grid,
+  this system is most likely an insulator or a semiconductor.
+  ESTIMATED overall HOMO-LUMO gap:      1.90984366 eV between HOMO at k-point 1 and LUMO at k-point 9
+  | This appears to be an indirect band gap.
+  | Smallest direct gap :      2.97139039 eV for k_point 1 at    0.000000    0.000000    0.000000 (in units of recip. lattice)
+
+  Total energy components:
+  | Sum of eigenvalues            :        -329.67475698 Ha       -8970.90657223 eV
+  | XC energy correction          :         -41.72016439 Ha       -1135.26343457 eV
+  | XC potential correction       :          53.87819056 Ha        1466.10015938 eV
+  | Free-atom electrostatic energy:        -263.57320776 Ha       -7172.19190016 eV
+  | Hartree energy correction     :           0.43712955 Ha          11.89490039 eV
+  | Entropy correction            :          -0.00000000 Ha          -0.00000000 eV
+  | ---------------------------
+  | Total energy                  :        -580.65280902 Ha      -15800.36684719 eV
+  | Total energy, T -> 0          :        -580.65280902 Ha      -15800.36684719 eV  <-- do not rely on this value for anything but (periodic) metals
+  | Electronic free energy        :        -580.65280902 Ha      -15800.36684719 eV
+
+  Derived energy quantities:
+  | Kinetic energy                :         581.91931308 Ha       15834.83017624 eV
+  | Electrostatic energy          :       -1120.85195771 Ha      -30499.93358885 eV
+  | Energy correction for multipole
+  | error in Hartree potential    :           0.00671454 Ha           0.18271180 eV
+  | Sum of eigenvalues per atom                           :       -4485.45328611 eV
+  | Total energy (T->0) per atom                          :       -7900.18342359 eV  <-- do not rely on this value for anything but (periodic) metals
+  | Electronic free energy per atom                       :       -7900.18342359 eV
+  Evaluating new KS density using the density matrix
+  Evaluating density matrix
+  Time summed over all CPUs for getting density from density matrix: real work        0.094 s, elapsed        0.094 s
+  Integration grid: deviation in total charge (<rho> - N_e) =   2.842171E-14
+
+  Self-consistency convergence accuracy:
+  | Change of charge density      :  0.1238E-04
+  | Change of unmixed KS density  :  0.2061E-05
+  | Change of sum of eigenvalues  : -0.4420E-02 eV
+  | Change of total energy        :  0.1196E-05 eV
+
+
+------------------------------------------------------------
+  End self-consistency iteration #     7       :  max(cpu_time)    wall_clock(cpu1)
+  | Time for this iteration                     :        0.284 s           0.285 s
+  | Charge density update                       :        0.094 s           0.094 s
+  | Density mixing                              :        0.001 s           0.001 s
+  | Hartree multipole update                    :        0.001 s           0.001 s
+  | Hartree multipole summation                 :        0.118 s           0.118 s
+  | Integration                                 :        0.068 s           0.068 s
+  | Solution of K.-S. eqns.                     :        0.002 s           0.003 s
+  | Total energy evaluation                     :        0.000 s           0.000 s
+
+  Partial memory accounting:
+  | Current value for overall tracked memory usage:
+  |   Minimum:        6.572 MB (on task 0)
+  |   Maximum:        6.572 MB (on task 0)
+  |   Average:        6.572 MB
+  | Peak value for overall tracked memory usage:
+  |   Minimum:        7.567 MB (on task 0 after allocating gradient_basis_wave)
+  |   Maximum:        7.567 MB (on task 0 after allocating gradient_basis_wave)
+  |   Average:        7.567 MB
+  | Largest tracked array allocation so far:
+  |   Minimum:        2.052 MB (previous_rho_gradient_diff on task 0)
+  |   Maximum:        2.052 MB (previous_rho_gradient_diff on task 0)
+  |   Average:        2.052 MB
+  Note:  These values currently only include a subset of arrays which are explicitly tracked.
+  The "true" memory usage will be greater.
+------------------------------------------------------------
+
+------------------------------------------------------------
+          Begin self-consistency iteration #    8
+
+  Date     :  20240910, Time     :  140759.722
+------------------------------------------------------------
+  Pulay mixing of updated and previous charge densities.
+  Renormalizing the density to the exact electron count on the 3D integration grid.
+  | Formal number of electrons (from input files) :      28.0000000000
+  | Integrated number of electrons on 3D grid     :      28.0000000000
+  | Charge integration error                      :       0.0000000000
+  | Normalization factor for density and gradient :       1.0000000000
+
+  Evaluating partitioned Hartree potential by multipole expansion.
+  | Original multipole sum: apparent total charge =   0.188516E-12
+  | Sum of charges compensated after spline to logarithmic grids =  -0.499036E-04
+  | Analytical far-field extrapolation by fixed multipoles:
+  | Hartree multipole sum: apparent total charge =  -0.000000E+00
+  Summing up the Hartree potential.
+  Time summed over all CPUs for potential: real work        0.116 s, elapsed        0.116 s
+  | RMS charge density error from multipole expansion :   0.698837E-02
+  | Average real-space part of the electrostatic potential :     -0.08144561 eV
+
+  Integrating Hamiltonian matrix: batch-based integration.
+  Time summed over all CPUs for integration: real work        0.066 s, elapsed        0.066 s
+
+  Updating Kohn-Sham eigenvalues and eigenvectors using ELSI and the (modified) LAPACK eigensolver.
+  Starting LAPACK eigensolver
+  Finished Cholesky decomposition
+  | Time :     0.000 s
+  Finished transformation to standard eigenproblem
+  | Time :     0.000 s
+  Finished solving standard eigenproblem
+  | Time :     0.000 s
+  Finished back-transformation of eigenvectors
+  | Time :     0.000 s
+
+  Obtaining occupation numbers and electronic chemical potential using ELSI.
+  | Note that, for insulating systems, the printed 'chemical potential' value is not uniquely defined.
+  | It can be anywhere in the energy gap, as long as it correctly separates occupied and unoccupied states.
+  | In systems with a gap, the physically relevant chemical potential is the VBM or HOMO.
+
+  Residual electron error for mid-point Fermi level : 0.0000000000000000E+000
+  ELSI found chemical potential half-way between HOMO and LUMO.
+  | Chemical potential (Fermi level):    -4.62473536 eV
+  What follows are estimated values for band gap, HOMO, LUMO, etc.
+  | They are estimated on a discrete k-point grid and not necessarily exact.
+  | For converged numbers, create a DOS and/or band structure plot on a denser k-grid.
+
+  Highest occupied state (VBM) at     -5.57965746 eV (relative to internal zero)
+  | Occupation number:      2.00000000
+  | K-point:       1 at    0.000000    0.000000    0.000000 (in units of recip. lattice)
+
+  Lowest unoccupied state (CBM) at    -3.66981326 eV (relative to internal zero)
+  | Occupation number:      0.00000000
+  | K-point:       9 at    0.000000    0.666667    0.666667 (in units of recip. lattice)
+
+  The gap value is above 0.2 eV. Unless you are using a very sparse k-point grid,
+  this system is most likely an insulator or a semiconductor.
+  ESTIMATED overall HOMO-LUMO gap:      1.90984420 eV between HOMO at k-point 1 and LUMO at k-point 9
+  | This appears to be an indirect band gap.
+  | Smallest direct gap :      2.97139001 eV for k_point 1 at    0.000000    0.000000    0.000000 (in units of recip. lattice)
+
+  Total energy components:
+  | Sum of eigenvalues            :        -329.67476069 Ha       -8970.90667321 eV
+  | XC energy correction          :         -41.72016422 Ha       -1135.26342999 eV
+  | XC potential correction       :          53.87819034 Ha        1466.10015339 eV
+  | Free-atom electrostatic energy:        -263.57320776 Ha       -7172.19190016 eV
+  | Hartree energy correction     :           0.43713332 Ha          11.89500281 eV
+  | Entropy correction            :          -0.00000000 Ha          -0.00000000 eV
+  | ---------------------------
+  | Total energy                  :        -580.65280902 Ha      -15800.36684716 eV
+  | Total energy, T -> 0          :        -580.65280902 Ha      -15800.36684716 eV  <-- do not rely on this value for anything but (periodic) metals
+  | Electronic free energy        :        -580.65280902 Ha      -15800.36684716 eV
+
+  Derived energy quantities:
+  | Kinetic energy                :         581.91931052 Ha       15834.83010651 eV
+  | Electrostatic energy          :       -1120.85195532 Ha      -30499.93352368 eV
+  | Energy correction for multipole
+  | error in Hartree potential    :           0.00671451 Ha           0.18271109 eV
+  | Sum of eigenvalues per atom                           :       -4485.45333660 eV
+  | Total energy (T->0) per atom                          :       -7900.18342358 eV  <-- do not rely on this value for anything but (periodic) metals
+  | Electronic free energy per atom                       :       -7900.18342358 eV
+
+  Self-consistency convergence accuracy:
+  | Change of charge density      :  0.2759E-06
+  | Change of unmixed KS density  :  0.5871E-06
+  | Change of sum of eigenvalues  : -0.1010E-03 eV
+  | Change of total energy        :  0.2709E-07 eV
+
+  Writing Kohn-Sham eigenvalues.
+  K-point:       1 at    0.000000    0.000000    0.000000 (in units of recip. lattice)
+
+  State    Occupation    Eigenvalue [Ha]    Eigenvalue [eV]
+      1       2.00000         -65.809777        -1790.77515
+      2       2.00000         -65.809777        -1790.77515
+      3       2.00000          -5.164716         -140.53906
+      4       2.00000          -5.164427         -140.53120
+      5       2.00000          -3.548684          -96.56459
+      6       2.00000          -3.548683          -96.56457
+      7       2.00000          -3.548682          -96.56456
+      8       2.00000          -3.548057          -96.54754
+      9       2.00000          -3.548056          -96.54752
+     10       2.00000          -3.548056          -96.54751
+     11       2.00000          -0.659940          -17.95787
+     12       2.00000          -0.205138           -5.58210
+     13       2.00000          -0.205077           -5.58042
+     14       2.00000          -0.205049           -5.57966
+     15       0.00000          -0.095852           -2.60827
+     16       0.00000          -0.093723           -2.55034
+     17       0.00000          -0.093680           -2.54917
+     18       0.00000          -0.093634           -2.54792
+
+  What follows are estimated values for band gap, HOMO, LUMO, etc.
+  | They are estimated on a discrete k-point grid and not necessarily exact.
+  | For converged numbers, create a DOS and/or band structure plot on a denser k-grid.
+
+  Highest occupied state (VBM) at     -5.57965746 eV (relative to internal zero)
+  | Occupation number:      2.00000000
+  | K-point:       1 at    0.000000    0.000000    0.000000 (in units of recip. lattice)
+
+  Lowest unoccupied state (CBM) at    -3.66981326 eV (relative to internal zero)
+  | Occupation number:      0.00000000
+  | K-point:       9 at    0.000000    0.666667    0.666667 (in units of recip. lattice)
+
+  The gap value is above 0.2 eV. Unless you are using a very sparse k-point grid,
+  this system is most likely an insulator or a semiconductor.
+  ESTIMATED overall HOMO-LUMO gap:      1.90984420 eV between HOMO at k-point 1 and LUMO at k-point 9
+  | This appears to be an indirect band gap.
+  | Smallest direct gap :      2.97139001 eV for k_point 1 at    0.000000    0.000000    0.000000 (in units of recip. lattice)
+
+  | Chemical Potential                          :    -4.62473536 eV
+  | Note that, for insulating systems, the printed 'chemical potential' value is not uniquely defined.
+  | It can be anywhere in the energy gap, as long as it correctly separates occupied and unoccupied states.
+  | In systems with a gap, the physically relevant chemical potential is the VBM or HOMO.
+
+  Self-consistency cycle converged.
+
+
+------------------------------------------------------------
+  End self-consistency iteration #     8       :  max(cpu_time)    wall_clock(cpu1)
+  | Time for this iteration                     :        0.187 s           0.188 s
+  | Charge density update                       :        0.000 s           0.000 s
+  | Density mixing                              :        0.001 s           0.000 s
+  | Hartree multipole update                    :        0.001 s           0.001 s
+  | Hartree multipole summation                 :        0.118 s           0.118 s
+  | Integration                                 :        0.066 s           0.066 s
+  | Solution of K.-S. eqns.                     :        0.002 s           0.002 s
+  | Total energy evaluation                     :        0.000 s           0.001 s
+
+  Partial memory accounting:
+  | Current value for overall tracked memory usage:
+  |   Minimum:        6.572 MB (on task 0)
+  |   Maximum:        6.572 MB (on task 0)
+  |   Average:        6.572 MB
+  | Peak value for overall tracked memory usage:
+  |   Minimum:        7.567 MB (on task 0 after allocating gradient_basis_wave)
+  |   Maximum:        7.567 MB (on task 0 after allocating gradient_basis_wave)
+  |   Average:        7.567 MB
+  | Largest tracked array allocation so far:
+  |   Minimum:        2.052 MB (previous_rho_gradient_diff on task 0)
+  |   Maximum:        2.052 MB (previous_rho_gradient_diff on task 0)
+  |   Average:        2.052 MB
+  Note:  These values currently only include a subset of arrays which are explicitly tracked.
+  The "true" memory usage will be greater.
+------------------------------------------------------------
+
+  Energy and forces in a compact form:
+  | Total energy uncorrected      :         -0.158003668471584E+05 eV
+  | Total energy corrected        :         -0.158003668471584E+05 eV  <-- do not rely on this value for anything but (periodic) metals
+  | Electronic free energy        :         -0.158003668471584E+05 eV
+
+  ------------------------------------ 
+  Start decomposition of the XC Energy 
+  ------------------------------------ 
+  X and C from original XC functional choice 
+  Hartree-Fock Energy :          0.000000000 Ha              0.000000000 eV
+  X Energy            :        -40.618482409 Ha          -1105.285142648 eV
+  C Energy            :         -1.101681811 Ha            -29.978287344 eV
+  XC Energy w/o HF    :        -41.720164220 Ha          -1135.263429992 eV
+  Total XC Energy     :        -41.720164220 Ha          -1135.263429992 eV
+  ------------------------------------ 
+  LDA X and C from self-consistent density 
+  X Energy LDA        :        -37.576144690 Ha          -1022.498921175 eV
+  C Energy LDA        :         -2.143047732 Ha            -58.315295826 eV
+  ------------------------------------ 
+  End decomposition of the XC Energy 
+  ------------------------------------ 
+
+------------------------------------------------------------
+  Memory usage across processes on post_scf_correlation_treatment_p0 entry
+  Partial memory accounting:
+  | Current value for overall tracked memory usage:
+  |   Minimum:        6.572 MB (on task 0)
+  |   Maximum:        6.572 MB (on task 0)
+  |   Average:        6.572 MB
+  | Peak value for overall tracked memory usage:
+  |   Minimum:        7.567 MB (on task 0 after allocating gradient_basis_wave)
+  |   Maximum:        7.567 MB (on task 0 after allocating gradient_basis_wave)
+  |   Average:        7.567 MB
+  | Largest tracked array allocation so far:
+  |   Minimum:        2.052 MB (previous_rho_gradient_diff on task 0)
+  |   Maximum:        2.052 MB (previous_rho_gradient_diff on task 0)
+  |   Average:        2.052 MB
+  Note:  These values currently only include a subset of arrays which are explicitly tracked.
+  The "true" memory usage will be greater.
+          Checking for symmetries
+  Found symmetry 1.00 0.00 0.00  0.00 1.00 0.00  0.00 0.00 1.00  around 0.00 0.00 0.00
+  Found symmetry-1.00 0.00 0.00  0.00 1.00 0.00  0.00 0.00 1.00  around 0.00 0.00 0.00
+  Found symmetry-1.00 0.00 0.00  0.00-1.00 0.00  0.00 0.00-1.00  around 1.81 1.04 0.74
+  Found symmetry-0.50 0.87 0.00 -0.87-0.50 0.00  0.00 0.00 1.00  around 0.00 0.00 0.00
+  Found symmetry-0.50-0.87 0.00  0.87-0.50 0.00  0.00 0.00 1.00  around 0.00 0.00 0.00
+  Found  5 symmetry operations for current configuration
+  Irreducible k points #           14
+
+ --------------------------------------------
+  Constructing auxiliary basis (full product) ...
+
+  Product basis:
+  | charge radius: extent of product basis function
+  | field radius: extent of its Coulomb potential
+  | Species   l  charge radius    field radius  multipol momen
+  |    Si     0     1.125389 A      1.125389 A       -1.017768E-17 a.u.
+  |    Si     0     2.584230 A      2.584230 A       -5.995148E-17 a.u.
+  |    Si     0     3.964192 A      3.964192 A       -9.252707E-17 a.u.
+  |    Si     0     4.479682 A      4.534782 A        3.857285E-16 a.u.
+  |    Si     0     4.534782 A      4.534782 A        3.966538E-16 a.u.
+  |    Si     0     4.590560 A      4.647024 A        3.429231E-16 a.u.
+  |    Si     0     4.590560 A  3.902421E+12 A            0.586845 a.u.
+  |    Si     1     2.680766 A      2.680766 A        3.647478E-17 a.u.
+  |    Si     1     4.112278 A      4.112278 A        7.826687E-17 a.u.
+  |    Si     1     4.062311 A      4.062311 A       -1.070898E-17 a.u.
+  |    Si     1     4.265895 A      4.265895 A       -1.708976E-16 a.u.
+  |    Si     1     4.534782 A      4.534782 A       -3.178150E-16 a.u.
+  |    Si     1     4.590560 A      4.590560 A       -9.787347E-17 a.u.
+  |    Si     1     4.590560 A  2.406367E+06 A            1.645551 a.u.
+  |    Si     2     4.162859 A      4.162859 A       -6.648362E-18 a.u.
+  |    Si     2     4.534782 A      4.534782 A        2.903465E-17 a.u.
+  |    Si     2     4.534782 A  1.758395E+04 A            2.919687 a.u.
+
+  | Shrink_full_auxil_basis : there are       17  radial auxiliary wave functions
+                            accepted and       4 rejected.
+  | Shrink_full_auxil_basis : there are totally                  86 partial auxiliary wave functions.
+  | Largest number of auxiliary wave functions per atom:         43
+
+  | Number of product basis functions per thread :    86
+  | Minimal requirement for computer memory :           0.000 Gbs
+
+  Basis pair condensation :       171  -->        170
+          Checking for symmetries
+  Found symmetry 1.00 0.00 0.00  0.00 1.00 0.00  0.00 0.00 1.00  around 0.00 0.00 0.00
+  Found symmetry-1.00 0.00 0.00  0.00 1.00 0.00  0.00 0.00 1.00  around 0.00 0.00 0.00
+  Found symmetry-1.00 0.00 0.00  0.00-1.00 0.00  0.00 0.00-1.00  around 1.81 1.04 0.74
+  Found symmetry-0.50 0.87 0.00 -0.87-0.50 0.00  0.00 0.00 1.00  around 0.00 0.00 0.00
+  Found symmetry-0.50-0.87 0.00  0.87-0.50 0.00  0.00 0.00 1.00  around 0.00 0.00 0.00
+  Found  5 symmetry operations for current configuration
+  Irreducible k points #           14
+  -----------------------------------------
+  --- Initializing Fock matrix calculations
+  -----------------------------------------
+  screening_threshold (crit_val) =  0.000000100000
+  coul_mat_threshold =  0.000000000100
+  No atoms are split internally
+  Number of super-cells in X Y Z:       6       6       6
+  Number of atoms pairs total:          334
+  sparsity of pfbvk:   1.00000000
+  Number of atoms pairs in BvK cells:          108
+  Max. memory consumption per node for Pulay mixing [GB]:      0.00
+  Free memory not available on this platform
+  --- Initializing LVL triples, type COULOMB
+  | Storage requirements for basis-basbas products (processor-local):
+  |   Species Si: n_prodsfn:   105; storage:        3.28 MiB.
+
+  --- Initializing Coulomb matrix calculations, type CUT
+  Preparing TB like auxiliary 2-center cutCoul matrix
+  SBT integration errors (all should be 'small'):
+  large logFT aliasing -> increase N/lnrange
+  large SBT aliasing -> decrease lnk0 & increase lnk0+lnrange
+  large SBT ringing -> decrease lnr0 & increase lnr0+lnrange
+  |            El't  L: logFT-al.   small-k   large-k   small-r   large-r
+  Initializing cut Coulomb operator.
+  | Cut [erfc(-/+1)/2] from    5.2619 A to    6.2731 A within   15 sbt_grid points.
+
+  | Need to store   214 splines of   194 points taking        328 KiB.
+  | Spline reduction from  4096 to   194 points by (cutting and)     1 x coarsening gives error:  0.00E+00
+  | Maximum value outside interaction range:  4.96E-16
+  Finished with initialize_tb_auxmat/lvl_triples, time:        0.044
+  --- Calculating Coulomb matrices
+  Upper limit for memory consumption per node [GB] for Coulomb matrices if no compression occurs:       0.000
+  Upper limit for temporary arrays in Coulomb matrix initalization [GB]:      0.30
+  Time for Coulomb matrix computation [s]:      0.04
+  Max. memory consumption per node for global Coulomb matrix [GB]:      0.00
+  Time to calculate Coulomb Matrices   :        0.045
+  Atomic logSBT for 2-center cutCoul matrix    :  max(cpu_time)    wall_clock(cpu1)
+  | TB initialization                           :        0.034 s           0.034 s
+  | TB usage                                    :        0.034 s           0.032 s
+
+  --- Initializing Coulomb matrix calculations, type COULOMB
+  Preparing TB like auxiliary 2-center Coulomb matrix
+  SBT integration errors (all should be 'small'):
+  large logFT aliasing -> increase N/lnrange
+  large SBT aliasing -> decrease lnk0 & increase lnk0+lnrange
+  large SBT ringing -> decrease lnr0 & increase lnr0+lnrange
+  |            El't  L: logFT-al.   small-k   large-k   small-r   large-r
+  | Need to store   214 splines of   128 points taking        224 KiB.
+  | Spline reduction from  4096 to   128 points by (cutting and)     1 x coarsening gives error:  0.00E+00
+  Finished with initialize_tb_auxmat/lvl_triples, time:        0.032
+  Max. memory consumption per node for uncompressed ovlp3fn matrix [GB]:       0.003
+  --- Calculating OVLP3FN
+  --- Done calculating OVLP3FN, time:        1.435
+  Max. memory consumption per node for compressed global ovlp3fn matrix [GB]:       0.006
+  Atomic logSBT for 2-center Coulomb matrix    :  max(cpu_time)    wall_clock(cpu1)
+  | TB initialization                           :        0.032 s           0.032 s
+  | TB usage                                    :        0.008 s           0.010 s
+
+  Atomic logSBT for LVL-triples                :  max(cpu_time)    wall_clock(cpu1)
+  | Multiplication with kernel                  :        0.020 s           0.014 s
+  | Main matrix multiplication                  :        1.170 s           1.190 s
+  | Analytic angular integration                :        0.021 s           0.011 s
+  | Kernel construction                         :        0.014 s           0.013 s
+  | Overall 2-center overlap time               :        1.282 s           1.289 s
+  | 3-center preparation multiplications        :        0.001 s           0.001 s
+  | 3-center preparation SBTs                   :        0.020 s           0.020 s
+  | 3-center combinations                       :        1.312 s           1.314 s
+  | Overal 3-center time                        :        1.333 s           1.335 s
+  | LVL initialization                          :        0.009 s           0.010 s
+  | Whole LVL-triples                           :        0.009 s           0.010 s
+
+  Number of nodes, tasks per node     1     1
+  Number of instances:    1
+  -----------------------------------------------------
+  Dividing atoms among tasks for exact exchange energy:
+  Atom:     1 Weight:  0.18808E+06
+  Atom:     2 Weight:  0.18808E+06
+
+  Average weight per task:  0.37616E+06
+
+  Number of "big" (above average) atoms  :     0
+  Number of "small" (below average) atoms:     2
+
+  All atoms have below average work per task
+  No atom will be divided among tasks, atoms will be sorted to get best load distribution
+
+  Atom division among tasks:
+  Atom     1: (initial) task:     0, # of tasks:     1
+  Atom     2: (initial) task:     0, # of tasks:     1
+
+  -----------------------------------------------------
+  Task      0: my_n_atoms2:      2 my_atom_list:      1     2
+  Task      0: my_n_atom_pairs:    108
+  Transferring Coulomb matrix to final data layout
+  Coulomb matrix communicaton time [s]    0.00
+  Max. memory per node for ovlp3fn matrices:        0.003 GB
+  Total memory for ovlp3fn matrices:        0.003 GB
+  --- Done getting norm of OVLP3FN, time:        0.000
+  Total memory for ovlp3fn matrices:        0.003 GB
+  --- time for get_ovlp3fn:        0.001
+  Max. memory consumption per node for Hartree Fock matrix [GB]      0.00
+  Blocksize for Fock matrix computation:     1
+  Max. memory consumption per node for dm_cols [GB]:      0.00
+  Max. memory consumption per node for fock_matrix [GB]:      0.00
+  Calculating non-local Hartree-Fock exchange by two-center RI (RI-LVL).
+  screening_threshold (crit_val) =  0.000000100000
+  Max. allocated memory per node for ovlp3fn_rcv [GB]:      0.00
+  Max. allocated memory per node for fock_matrix_row [GB]:      0.00
+  Max. memory consumption per node for m_ovlp_fact11 [GB]:      0.00
+  Max. memory consumption per node for d_aux_mem [GB]:      0.00
+  Max. memory consumption per node for dm_x_o3fn_aux [GB]:      0.00
+  Max. allocated memory per node for tmp1/tmp2 [GB]:      0.00
+   final impselect vector           2           3           2           1
+   Time for autotuning:    1.3448000000039428E-002
+  Exact exchange progress report - outermost block loop i_block: 1 ..      18
+  |        1         2         3         4         5         6         7         8         9        10
+  |       11        12        13        14        15        16        17        18  
+ Total ovlp3fn data transfer [GB]   3.6691039567813277E-003
+  Average sparsity of tmp1/20.50000000
+  Average sparsity of fock_matrix_row0.98353910
+  Full exact exchange energy:    1109.765019977697 eV.
+  Detailed communication and barrier times:
+  | Comm    0:        0.000       0.000       0.000       0.000       0.000       0.000       0.000       0.000       0.000       0.000
+  | Imbalance    0:        0.000       0.000       0.000       0.000       0.000       0.000       0.000       0.000       0.000       0.000
+  Times            DM_x_o3fn   CM_prod_1   CM_prod_2   tmp2_prod        Sync   Imbalance       Other  Total calc
+  | Times    0:        0.022       0.042       0.012       0.022       0.000       0.000       0.004       0.102
+  | Times  sum:        0.022       0.042       0.012       0.022       0.000       0.000       0.004       0.102
+
+  Decomposition of Other based on code block (only on MPI task 0):
+  Times             Block #1    Block #2    Block #3    Block #4    Block #5    Block #6    Block #7    Block #8
+  | Times    0:        0.000       0.000       0.000       0.000       0.000       0.000       0.001       0.000
+
+  Times             Block #9   Block #10   Block #11   Block #12   Block #13   Block #14   Block #15   Block #16
+  | Times    0:        0.000       0.000       0.000       0.000       0.000       0.000       0.000       0.000
+
+  Times            Block Sum    Expected
+  | Times    0:        0.002       0.004
+
+  ------------------------------------------------------------------
+
+  Post-SCF correlation calculation starts ...
+
+ communicator split irkq, row, col:            1           1           1
+ reso: n_basbas,n_basis,n_states          86          18          18
+ reso: n_basis_soc,n_saved_states_soc           0           0
+ reso: n_k_points,n_irk_points,max_n_basbas_sp          27          14          43
+ reso: max_n_basis_sp,n_cells,n_full_freq           9         112           6
+  Calculating macroscopic dielectric function along the imaginary frequency axis ...
+  Recalculating HOMO and LUMO levels to determine eigenstates needed for dielectric calculations...
+
+
+  Index of the first state to include in the calculations of the dielectric function along the imaginary axis :         1
+  Index of the last state to include in the calculations of the dielectric function along the imaginary axis :        18
+
+  Allocating        0.064 MB for mommat_full_x_up
+  Allocating        0.064 MB for mommat_full_x_low
+  Allocating        0.064 MB for mommat_full_y_up
+  Allocating        0.064 MB for mommat_full_y_low
+  Allocating        0.064 MB for mommat_full_z_up
+  Allocating        0.064 MB for mommat_full_z_low
+  Allocating        0.008 MB for moment_TZ
+
+  Calculating p_x matrix elements...
+  Integrating real-space momentum matrix: batch-based integration.
+  Time summed over all CPUs for integration: real work        0.081 s, elapsed        0.081 s
+
+  Calculating p_y matrix elements...
+  Integrating real-space momentum matrix: batch-based integration.
+  Time summed over all CPUs for integration: real work        0.079 s, elapsed        0.079 s
+
+  Calculating p_z matrix elements...
+  Integrating real-space momentum matrix: batch-based integration.
+  Time summed over all CPUs for integration: real work        0.078 s, elapsed        0.078 s
+
+  Calculating dielectric tensor elements...
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  | Storage requirements for basis-basbas products (processor-local):
+  |   Species Si: n_prodsfn:   105; storage:        3.28 MiB.
+
+
+  Finished with initialization of triples (Coulomb norm) ...
+  Preparing TB like auxiliary 2-center Coulomb matrix
+  SBT integration errors (all should be 'small'):
+  large logFT aliasing -> increase N/lnrange
+  large SBT aliasing -> decrease lnk0 & increase lnk0+lnrange
+  large SBT ringing -> decrease lnr0 & increase lnr0+lnrange
+  |            El't  L: logFT-al.   small-k   large-k   small-r   large-r
+  | Need to store   214 splines of   128 points taking        224 KiB.
+  | Spline reduction from  4096 to   128 points by (cutting and)     1 x coarsening gives error:  0.00E+00
+
+  Finished with initialization of Coulomb interaction matrix ...
+
+  Integrating local/semilocal matrix: batch-based integration.
+  Time summed over all CPUs for integration: real work        0.067 s, elapsed        0.067 s
+
+------------------------------------------------------------------------------
+  Start to calculate DFT xc contribution for each single-particle level ...
+  Compute and write real-space triple LVL expansion coefficents in real space for LibRPA ...
+                    ap_begin      ap_end  cell_begin    cell_end
+  Task         0           1           4           1         112
+  Distributed                  448 (atom pair,cell) tasks
+  Initializing LVL tricoefficents in reciprocal space for GW ...
+  Partial memory accounting:
+  | Current value for overall tracked memory usage:
+  |   Minimum:       15.488 MB (on task 0)
+  |   Maximum:       15.488 MB (on task 0)
+  |   Average:       15.488 MB
+  | Peak value for overall tracked memory usage:
+  |   Minimum:       21.442 MB (on task 0 after allocating coeff_3fn)
+  |   Maximum:       21.442 MB (on task 0 after allocating coeff_3fn)
+  |   Average:       21.442 MB
+  | Largest tracked array allocation so far:
+  |   Minimum:        5.952 MB (coeff_3fn on task 0)
+  |   Maximum:        5.952 MB (coeff_3fn on task 0)
+  |   Average:        5.952 MB
+  Note:  These values currently only include a subset of arrays which are explicitly tracked.
+  The "true" memory usage will be greater.
+  Max./Min. memory consumption per node for coeff_3fn + trico_cell/k [GB]:       0.013       0.013
+  Time for gw_init_lvl_tricoeff_recip [s]:      8.84
+
+  Finished with initialization of the periodic LVL triple coefficients ...
+  CPU/Clock time:      13.290      13.324
+
+  Atomic logSBT for LVL-triples                :  max(cpu_time)    wall_clock(cpu1)
+  | Multiplication with kernel                  :        0.042 s           0.035 s
+  | Main matrix multiplication                  :        2.361 s           2.387 s
+  | Analytic angular integration                :        0.050 s           0.052 s
+  | Kernel construction                         :        0.033 s           0.032 s
+  | Overall 2-center overlap time               :        2.624 s           2.627 s
+  | 3-center preparation multiplications        :        0.200 s           0.190 s
+  | 3-center preparation SBTs                   :        6.565 s           6.593 s
+  | 3-center combinations                       :        2.698 s           2.694 s
+  | Overal 3-center time                        :        9.488 s           9.496 s
+  | LVL initialization                          :        0.003 s           0.003 s
+  | Whole LVL-triples                           :        0.003 s           0.003 s
+
+  Partial memory accounting:
+  | Current value for overall tracked memory usage:
+  |   Minimum:       27.499 MB (on task 0)
+  |   Maximum:       27.499 MB (on task 0)
+  |   Average:       27.499 MB
+  | Peak value for overall tracked memory usage:
+  |   Minimum:       39.540 MB (on task 0 after allocating bcell_fac)
+  |   Maximum:       39.540 MB (on task 0 after allocating bcell_fac)
+  |   Average:       39.540 MB
+  | Largest tracked array allocation so far:
+  |   Minimum:       12.011 MB (trico_cell on task 0)
+  |   Maximum:       12.011 MB (trico_cell on task 0)
+  |   Average:       12.011 MB
+  Note:  These values currently only include a subset of arrays which are explicitly tracked.
+  The "true" memory usage will be greater.
+  irkblacs member count =       1
+  Max./Min. memory consumption per node for lvl_tricoeff_tmp + trico [GB]:       0.003       0.003
+  Partial memory accounting:
+  | Current value for overall tracked memory usage:
+  |   Minimum:       33.238 MB (on task 0)
+  |   Maximum:       33.238 MB (on task 0)
+  |   Average:       33.238 MB
+  | Peak value for overall tracked memory usage:
+  |   Minimum:       39.540 MB (on task 0 after allocating bcell_fac)
+  |   Maximum:       39.540 MB (on task 0 after allocating bcell_fac)
+  |   Average:       39.540 MB
+  | Largest tracked array allocation so far:
+  |   Minimum:       12.011 MB (trico_cell on task 0)
+  |   Maximum:       12.011 MB (trico_cell on task 0)
+  |   Average:       12.011 MB
+  Note:  These values currently only include a subset of arrays which are explicitly tracked.
+  The "true" memory usage will be greater.
+  Time for gw_get_lvl_tricoeff_recip [s]:      0.03
+
+  Finishing computation of the periodic LVL triple coefficients ...
+
+  Atomic logSBT for 2-center Coulomb matrix    :  max(cpu_time)    wall_clock(cpu1)
+  | TB initialization                           :        0.032 s           0.032 s
+  | TB usage                                    :        0.024 s           0.026 s
+
+  Preparing TB like auxiliary 2-center cutCoul matrix
+  SBT integration errors (all should be 'small'):
+  large logFT aliasing -> increase N/lnrange
+  large SBT aliasing -> decrease lnk0 & increase lnk0+lnrange
+  large SBT ringing -> decrease lnr0 & increase lnr0+lnrange
+  |            El't  L: logFT-al.   small-k   large-k   small-r   large-r
+  Initializing cut Coulomb operator.
+  | Cut [erfc(-/+1)/2] from    5.2619 A to    6.2731 A within   15 sbt_grid points.
+
+  | Need to store   214 splines of   194 points taking        328 KiB.
+  | Spline reduction from  4096 to   194 points by (cutting and)     1 x coarsening gives error:  0.00E+00
+  | Maximum value outside interaction range:  4.96E-16
+  Calculating the Coulomb matrix in reciprocal space ...
+  Atomic logSBT for 2-center cutCoul matrix    :  max(cpu_time)    wall_clock(cpu1)
+  | TB initialization                           :        0.035 s           0.035 s
+  | TB usage                                    :        0.026 s           0.024 s
+
+  Atomic logSBT for 2-center cutCoul matrix    :  max(cpu_time)    wall_clock(cpu1)
+  | TB initialization                           :        0.035 s           0.035 s
+  | TB usage                                    :        0.026 s           0.024 s
+
+  Preparing TB like auxiliary 2-center Coulomb matrix
+  SBT integration errors (all should be 'small'):
+  large logFT aliasing -> increase N/lnrange
+  large SBT aliasing -> decrease lnk0 & increase lnk0+lnrange
+  large SBT ringing -> decrease lnr0 & increase lnr0+lnrange
+  |            El't  L: logFT-al.   small-k   large-k   small-r   large-r
+  | Need to store   214 splines of   128 points taking        224 KiB.
+  | Spline reduction from  4096 to   128 points by (cutting and)     1 x coarsening gives error:  0.00E+00
+  | Gaussian spline reduction from  4096 to   128 points by (cutting and)     1 x coarsening gives error:  0.00E+00
+  | Maximum value outside interaction range:  3.76E-09
+  Calculating singularity lifting chi
+  | Gamma:  1.00E+00; chi:     85.0125928016126551
+  | Gamma:  5.00E-01; chi:     85.5125928016125982; extra:     86.0125928016125414
+  | Gamma:  2.50E-01; chi:     85.7625928016126693; extra:     86.0125928016127403
+  | Using chi:     86.0125928016127403; last diff:  1.99E-13
+  Calculating the Coulomb matrix in reciprocal space ...
+EXCLUDING GAMMA-POINT IN COULOMB POTENTIAL !!!
+NOT EXCLUDING GAMMA-POINT IN COULOMB POTENTIAL !!!
+NOT EXCLUDING GAMMA-POINT IN COULOMB POTENTIAL !!!
+NOT EXCLUDING GAMMA-POINT IN COULOMB POTENTIAL !!!
+NOT EXCLUDING GAMMA-POINT IN COULOMB POTENTIAL !!!
+NOT EXCLUDING GAMMA-POINT IN COULOMB POTENTIAL !!!
+NOT EXCLUDING GAMMA-POINT IN COULOMB POTENTIAL !!!
+NOT EXCLUDING GAMMA-POINT IN COULOMB POTENTIAL !!!
+NOT EXCLUDING GAMMA-POINT IN COULOMB POTENTIAL !!!
+NOT EXCLUDING GAMMA-POINT IN COULOMB POTENTIAL !!!
+NOT EXCLUDING GAMMA-POINT IN COULOMB POTENTIAL !!!
+NOT EXCLUDING GAMMA-POINT IN COULOMB POTENTIAL !!!
+NOT EXCLUDING GAMMA-POINT IN COULOMB POTENTIAL !!!
+NOT EXCLUDING GAMMA-POINT IN COULOMB POTENTIAL !!!
+NOT EXCLUDING GAMMA-POINT IN COULOMB POTENTIAL !!!
+NOT EXCLUDING GAMMA-POINT IN COULOMB POTENTIAL !!!
+NOT EXCLUDING GAMMA-POINT IN COULOMB POTENTIAL !!!
+NOT EXCLUDING GAMMA-POINT IN COULOMB POTENTIAL !!!
+NOT EXCLUDING GAMMA-POINT IN COULOMB POTENTIAL !!!
+NOT EXCLUDING GAMMA-POINT IN COULOMB POTENTIAL !!!
+NOT EXCLUDING GAMMA-POINT IN COULOMB POTENTIAL !!!
+NOT EXCLUDING GAMMA-POINT IN COULOMB POTENTIAL !!!
+NOT EXCLUDING GAMMA-POINT IN COULOMB POTENTIAL !!!
+NOT EXCLUDING GAMMA-POINT IN COULOMB POTENTIAL !!!
+NOT EXCLUDING GAMMA-POINT IN COULOMB POTENTIAL !!!
+NOT EXCLUDING GAMMA-POINT IN COULOMB POTENTIAL !!!
+NOT EXCLUDING GAMMA-POINT IN COULOMB POTENTIAL !!!
+NOT EXCLUDING GAMMA-POINT IN COULOMB POTENTIAL !!!
+NOT EXCLUDING GAMMA-POINT IN COULOMB POTENTIAL !!!
+NOT EXCLUDING GAMMA-POINT IN COULOMB POTENTIAL !!!
+NOT EXCLUDING GAMMA-POINT IN COULOMB POTENTIAL !!!
+NOT EXCLUDING GAMMA-POINT IN COULOMB POTENTIAL !!!
+NOT EXCLUDING GAMMA-POINT IN COULOMB POTENTIAL !!!
+NOT EXCLUDING GAMMA-POINT IN COULOMB POTENTIAL !!!
+NOT EXCLUDING GAMMA-POINT IN COULOMB POTENTIAL !!!
+NOT EXCLUDING GAMMA-POINT IN COULOMB POTENTIAL !!!
+NOT EXCLUDING GAMMA-POINT IN COULOMB POTENTIAL !!!
+NOT EXCLUDING GAMMA-POINT IN COULOMB POTENTIAL !!!
+NOT EXCLUDING GAMMA-POINT IN COULOMB POTENTIAL !!!
+NOT EXCLUDING GAMMA-POINT IN COULOMB POTENTIAL !!!
+NOT EXCLUDING GAMMA-POINT IN COULOMB POTENTIAL !!!
+NOT EXCLUDING GAMMA-POINT IN COULOMB POTENTIAL !!!
+  Atomic logSBT for 2-center Coulomb matrix    :  max(cpu_time)    wall_clock(cpu1)
+  | TB initialization                           :        0.032 s           0.032 s
+  | TB usage                                    :        0.005 s           0.003 s
+
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+  Calculating macroscopic dielectric function along the imaginary frequency axis ...
+  Recalculating HOMO and LUMO levels to determine eigenstates needed for dielectric calculations...
+
+
+  Index of the first state to include in the calculations of the dielectric function along the imaginary axis :         1
+  Index of the last state to include in the calculations of the dielectric function along the imaginary axis :        18
+
+  Allocating        0.064 MB for mommat_full_x_up
+  Allocating        0.064 MB for mommat_full_x_low
+  Allocating        0.064 MB for mommat_full_y_up
+  Allocating        0.064 MB for mommat_full_y_low
+  Allocating        0.064 MB for mommat_full_z_up
+  Allocating        0.064 MB for mommat_full_z_low
+  Allocating        0.008 MB for moment_TZ
+
+  Calculating p_x matrix elements...
+  Integrating real-space momentum matrix: batch-based integration.
+  Time summed over all CPUs for integration: real work        0.078 s, elapsed        0.078 s
+
+  Calculating p_y matrix elements...
+  Integrating real-space momentum matrix: batch-based integration.
+  Time summed over all CPUs for integration: real work        0.079 s, elapsed        0.079 s
+
+  Calculating p_z matrix elements...
+  Integrating real-space momentum matrix: batch-based integration.
+  Time summed over all CPUs for integration: real work        0.078 s, elapsed        0.078 s
+
+  Calculating dielectric tensor elements...
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+  Initialising minimax time and frequency grids
+  
+  Mininum transition energy.....................:         0.070
+  Maximum transition energy.....................:        65.965
+  Transition energy range.......................:       939.867
+  
+
+
+------------------------------------------------------------------------------
+  Final output of selected total energy values:
+
+  The following output summarizes some interesting total energy values
+  at the end of a run (AFTER all relaxation, molecular dynamics, etc.).
+
+  | Total energy of the DFT / Hartree-Fock s.c.f. calculation      :         -15800.366847158 eV
+  | Final zero-broadening corrected energy (caution - metals only) :         -15800.366847158 eV
+  | For reference only, the value of 1 Hartree used in FHI-aims is :             27.211384500 eV
+  | For reference only, the overall average (free atom contribution
+  | + realspace contribution) of the electrostatic potential after
+  | s.c.f. convergence is                                          :            -13.309883868 eV
+
+  Before relying on these values, please be sure to understand exactly which
+  total energy value is referred to by a given number. Different objects may
+  all carry the same name 'total energy'. Definitions:
+
+  Total energy of the DFT / Hartree-Fock s.c.f. calculation:
+  | Note that this energy does not include ANY quantities calculated after the
+  | s.c.f. cycle, in particular not ANY RPA, MP2, etc. many-body perturbation terms.
+
+  Final zero-broadening corrected energy:
+  | For metallic systems only, a broadening of the occupation numbers at the Fermi
+  | level can be extrapolated back to zero broadening by an electron-gas inspired
+  | formula. For all systems that are not real metals, this value can be
+  | meaningless and should be avoided.
+
+------------------------------------------------------------------------------
+  Methods described in the following list of references were used in this FHI-aims run.
+  If you publish the results, please make sure to cite these reference if they apply.
+  FHI-aims is an academic code, and for our developers (often, Ph.D. students
+  and postdocs), scientific credit in the community is essential.
+  Thank you for helping us!
+
+  For any use of FHI-aims, please cite:
+
+    Volker Blum, Ralf Gehrke, Felix Hanke, Paula Havu, Ville Havu,
+    Xinguo Ren, Karsten Reuter, and Matthias Scheffler
+    'Ab initio molecular simulations with numeric atom-centered orbitals'
+    Computer Physics Communications 180, 2175-2196 (2009)
+    http://doi.org/10.1016/j.cpc.2009.06.022
+
+
+  For Hartree-Fock, hybrid functionals, or many-body perturbation theory used in your run, please cite:
+
+    Xinguo Ren, Patrick Rinke, Volker Blum, Juergen Wieferink, Alex Tkatchenko,
+    Andrea Sanfilippo, Karsten Reuter, and Matthias Scheffler,
+    'Resolution-of-identity approach to Hartree-Fock, hybrid density functionals,
+    RPA, MP2, and GW with numeric atom-centered orbital basis functions'
+    New Journal of Physics 14, 053020 (2012).
+    http://doi.org/10.1088/1367-2630/14/5/053020
+
+
+  The provided symmetry information was generated with SPGlib:
+
+    Atsushi Togo, Yusuke Seto, Dimitar Pashov
+    SPGlib 1.7.3 obtained from http://spglib.sourceforge.net
+    Licence: New BSD license
+    Copyright (C) 2008 Atsushi Togo
+
+
+  The ELSI infrastructure was used in your run to solve the Kohn-Sham electronic structure.
+  Please check out https://wordpress.elsi-interchange.org to learn more.
+  If scalability is important for your project, please acknowledge ELSI by citing:
+
+    V. W-z. Yu, F. Corsetti, A. Garcia, W. P. Huhn, M. Jacquelin, W. Jia,
+    B. Lange, L. Lin, J. Lu, W. Mi, A. Seifitokaldani, A. Vazquez-Mayagoitia,
+    C. Yang, H. Yang, and V. Blum
+    'ELSI: A unified software interface for Kohn-Sham electronic structure solvers'
+    Computer Physics Communications 222, 267-285 (2018).
+    http://doi.org/10.1016/j.cpc.2017.09.007
+
+
+  For the real-space grid partitioning and parallelization used in this calculation, please cite:
+
+    Ville Havu, Volker Blum, Paula Havu, and Matthias Scheffler,
+    'Efficient O(N) integration for all-electron electronic structure calculation'
+    'using numerically tabulated basis functions'
+    Journal of Computational Physics 228, 8367-8379 (2009).
+    http://doi.org/10.1016/j.jcp.2009.08.008
+
+
+  The high-level electronic structure method used in your calculation
+  employed our efficient localized resolution of identity for the Coulomb operator.
+  Some calculations, especially large-scale hybrid density functional theory,
+  are only possible thanks to this development. For this feature, please cite:
+
+    Arvid Ihrig, Juergen Wieferink, Igor Ying Zhang, Matti Ropo, Xinguo Ren,
+    Patrick Rinke, Matthias Scheffler, and Volker Blum,
+    'Accurate localized resolution of identity approach for linear-scaling
+    hybrid density functionals and for many-body perturbation theory'
+    New Journal of Physics 117, 093020 (2015).
+    http://doi.org/10.1088/1367-2630/17/9/093020
+
+  Of course, there are many other important community references, e.g., those cited in the
+  above references. Our list is limited to references that describe implementations in the
+  FHI-aims code. The reason is purely practical (length of this list) - please credit others as well.
+
+------------------------------------------------------------
+          Leaving FHI-aims.
+          Date     :  20240910, Time     :  140813.823
+
+          Computational steps:
+          | Number of self-consistency cycles          :            8
+          | Number of SCF (re)initializations          :            1
+
+          Detailed time accounting                     :  max(cpu_time)    wall_clock(cpu1)
+          | Total time                                  :       16.434 s          16.529 s
+          | Preparation time                            :        0.042 s           0.046 s
+          | Boundary condition initalization            :        0.040 s           0.042 s
+          | Grid partitioning                           :        0.018 s           0.019 s
+          | Preloading free-atom quantities on grid     :        0.088 s           0.089 s
+          | Free-atom superposition energy              :        0.016 s           0.017 s
+          | Total time for integrations                 :        0.638 s           0.645 s
+          | Product basis setup: Total time             :        0.000 s           0.000 s
+          | Product basis: | 2-center integrations     :(       0.000 s)  (       0.000 s)
+          | Product basis: | LVL 3-center & coefficient:(       0.000 s)  (       0.000 s)
+          | Initialization for periodic correlated calc :       13.290 s          13.324 s
+          | Transforming LVL triples to recip. space    :        0.028 s           0.028 s
+          | The exact-exchange part of GW calc.         :        0.187 s           0.189 s
+          | Total time for polarizability calc.         :        0.000 s           0.000 s
+          | Total time for polarizability of k space    :        0.000 s           0.000 s
+          | Aanalytic contiuation time                  :        0.000 s           0.000 s
+          | Total time for solution of K.-S. equations  :        0.024 s           0.028 s
+          | Total time for density update               :        0.754 s           0.757 s
+          | Total time for mixing                       :        0.004 s           0.006 s
+          | Total time for Hartree multipole update     :        0.005 s           0.006 s
+          | Total time for Hartree multipole sum        :        0.919 s           0.924 s
+          | Total time for total energy evaluation      :        0.001 s           0.001 s
+          | Total time for scaled ZORA corrections      :        0.000 s           0.000 s
+
+          Partial memory accounting:
+          | Residual value for overall tracked memory usage across tasks:     0.000000 MB (should be 0.000000 MB)
+          | Peak values for overall tracked memory usage:
+          |   Minimum:       39.540 MB (on task 0 after allocating bcell_fac)
+          |   Maximum:       39.540 MB (on task 0 after allocating bcell_fac)
+          |   Average:       39.540 MB
+          | Largest tracked array allocation:
+          |   Minimum:       12.011 MB (trico_cell on task 0)
+          |   Maximum:       12.011 MB (trico_cell on task 0)
+          |   Average:       12.011 MB
+          Note:  These values currently only include a subset of arrays which are explicitly tracked.
+          The "true" memory usage will be greater.
+
+          Have a nice day.
+------------------------------------------------------------
