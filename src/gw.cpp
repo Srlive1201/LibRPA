@@ -358,6 +358,7 @@ void G0W0::build_sigc_matrix_KS(const std::vector<std::vector<ComplexMatrix>> &w
                                               sigc_nband_nband.ptr(), 1, 1, desc_nband_nband.desc,
                                               sigc_nband_nband_fb.ptr(), 1, 1, desc_nband_nband_fb.desc,
                                               desc_nband_nband_fb.ictxt());
+                // NOTE: only the matrices at master process is meaningful
                 sigc_is_ik_f_KS[ispin][ik][freq] = sigc_nband_nband_fb;
             }
         }

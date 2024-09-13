@@ -30,11 +30,10 @@ void write_self_energy_omega(const char *fn, const LIBRPA::G0W0 &s_g0w0)
             {
                 for (const auto& freq: freqs)
                 {
-                    const auto sigc = s_g0w0.sigc_is_ik_f_KS.at(ispin).at(ik).at(freq)(ib, ib);
-                    char s[100];
-                    sprintf(s, "%23.16f%23.16f", sigc.real(), sigc.imag());
-                    // ofs << fixed << setw(23) << setprecision(16) << sigc.real() << setw(23) << setprecision(16) << sigc.imag() << "\n";
-                    ofs << s << "\n";
+                    const auto &sigc_mat = s_g0w0.sigc_is_ik_f_KS.at(ispin).at(ik).at(freq);
+                    const auto sigc = sigc_mat(ib, ib);
+                    // NOTE: sprintf in GCC 14 somehow may lead to segfault. Use ofstream instead.
+                    ofs << fixed << setw(23) << setprecision(16) << sigc.real() << setw(23) << setprecision(16) << sigc.imag() << "\n";
                 }
             }
         }
