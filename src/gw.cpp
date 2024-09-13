@@ -279,7 +279,7 @@ void G0W0::build_sigc_matrix_KS(const std::vector<std::vector<ComplexMatrix>> &w
 #else
     // char fn[80];
     Array_Desc desc_nband_nao(blacs_ctxt_global_h);
-    desc_nband_nao.init_1b1p(n_aos, n_bands, 0, 0);
+    desc_nband_nao.init_1b1p(n_bands, n_aos, 0, 0);
     Array_Desc desc_nao_nao(blacs_ctxt_global_h);
     desc_nao_nao.init_1b1p(n_aos, n_aos, 0, 0);
     Array_Desc desc_nband_nband(blacs_ctxt_global_h);
