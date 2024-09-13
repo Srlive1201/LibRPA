@@ -108,11 +108,12 @@ void set_ao_basis_wfc(int ispin, int ik, double* wfc_real, double* wfc_imag)
     // int length_ib_iw=meanfield.get_n_bands()*meanfield.get_n_aos();
     // vector<double> vec_wfc_real(wfc_real,wfc_real+length_ib_iw);
     // vector<double> vec_wfc_imag(wfc_imag,wfc_imag+length_ib_iw);
-    auto & wfc = meanfield.get_eigenvectors();
-    for(int i=0;i!=meanfield.get_n_bands()*meanfield.get_n_aos();i++)
+    auto& wfc = meanfield.get_eigenvectors().at(ispin).at(ik);
+    const auto n = meanfield.get_n_bands() * meanfield.get_n_aos();
+    for (int i = 0; i != n; i++)
     {
         // LIBRPA::utils::lib_printf("In ao wfc: %f, %f\n",wfc_real[i],wfc_imag[i]);
-        wfc.at(ispin).at(ik).c[i] = complex<double>(wfc_real[i], wfc_imag[i]);
+        wfc.c[i] = complex<double>(wfc_real[i], wfc_imag[i]);
     }
     // print_complex_matrix("wfc_isk", wfc.at(is).at(ik));
 }

@@ -348,7 +348,7 @@ void G0W0::build_sigc_matrix_KS(const std::vector<std::vector<ComplexMatrix>> &w
                 const auto wfc_block = get_local_mat(wfc_isp_k.c, MAJOR::ROW, desc_nband_nao, MAJOR::COL).conj();
                 auto temp_nband_nao = multiply_scalapack(wfc_block, desc_nband_nao, sigc_nao_nao, desc_nao_nao, desc_nband_nao);
                 ScalapackConnector::pgemm_f('N', 'C', n_bands, n_bands, n_aos, 1.0,
-                                            temp_nband_nao.ptr(), 1, 1, desc_nao_nao.desc,
+                                            temp_nband_nao.ptr(), 1, 1, desc_nband_nao.desc,
                                             wfc_block.ptr(), 1, 1, desc_nband_nao.desc, 0.0,
                                             sigc_nband_nband.ptr(), 1, 1, desc_nband_nband.desc);
                 // collect the full matrix to master

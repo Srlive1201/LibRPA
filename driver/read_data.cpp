@@ -146,15 +146,14 @@ static void handle_KS_file(const string &file_path, MeanField &mf)
     infile.open(file_path);
     // int ik;
     string rvalue, ivalue, kstr;
-    auto & wfc = mf.get_eigenvectors();
 
     const auto nspin = mf.get_n_spins();
     const auto nband = mf.get_n_bands();
     const auto nao = mf.get_n_aos();
     const auto n = nband * nao;
 
-    auto re = new double [nspin * nband * nao];
-    auto im = new double [nspin * nband * nao];
+    std::vector<double> re(nspin * nband * nao);
+    std::vector<double> im(nspin * nband * nao);
 
     while (infile.peek() != EOF)
     {
@@ -180,7 +179,7 @@ static void handle_KS_file(const string &file_path, MeanField &mf)
         }
         for (int is = 0; is != nspin; is++)
         {
-            set_ao_basis_wfc(is, ik, re + is * n, im + is * n);
+            set_ao_basis_wfc(is, ik, re.data() + is * n, im.data() + is * n);
         }
         // for abacus
         // for (int ib = 0; ib != NBANDS; ib++)
