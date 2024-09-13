@@ -483,12 +483,20 @@ matrix_m<T> multiply_scalapack(const matrix_m<T> &m1_loc, const LIBRPA::Array_De
                                const LIBRPA::Array_Desc &desc_prod)
 {
     if (m1_loc.major() != m2_loc.major())
+    {
         throw std::invalid_argument("m1 and m2 in different major");
-    if (desc_m1.n() != desc_m2.m())
-        throw std::invalid_argument("m1.col != m2.row");
+    }
+
     const int m = desc_m1.m();
     const int n = desc_m2.n();
     const int k = desc_m1.n();
+
+    const int m2 = desc_m2.m();
+    if (k != m2)
+    {
+        throw std::invalid_argument("m1.col != m2.row: " + std::to_string(k) + " != " + std::to_string(m2));
+    }
+
     matrix_m<T> prod_loc = init_local_mat<T>(desc_prod, m1_loc.major());
     if (m1_loc.is_col_major())
     {
