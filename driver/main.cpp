@@ -72,11 +72,11 @@ static void finalize(bool success)
     driver::h.free();
     profiler.stop("driver_total");
 
-    int is_root = mpi_comm_global_h.myid;
+    bool is_root = mpi_comm_global_h.myid == 0;
     mpi_comm_global_h.barrier();
     librpa::finalize_global();
 
-    if (is_root == 0)
+    if (is_root)
     {
         librpa::print_profile();
         if (success)
@@ -185,7 +185,7 @@ int main(int argc, char **argv)
         if (use_shrink_abfs)
         {
             // backup large atom_mu
-            atom_mu_l = atom_mu;
+            // atom_mu_l = atom_mu;  // TODO: replace with the actual shrinked ABFs
             read_Cs_evenly_distribute(driver_params.input_dir, driver_params.cs_threshold,
                                       mpi_comm_global_h.myid, mpi_comm_global_h.nprocs,
                                       "Cs_shrinked_data");
@@ -198,7 +198,6 @@ int main(int argc, char **argv)
         }
         // Vq distributed using the same strategy
         // There should be no duplicate for V
-
     }
 
     mpi_comm_global_h.barrier();

@@ -78,4 +78,7 @@ void read_band_meanfield_data(const string &dir_path);
 std::vector<matrix> read_vxc_band(const string &dir_path, int n_states, int n_spin,
                                   int n_kpoints_band);
 
+void read_elsi_csc(const std::string &file_path, bool save_row_major, std::vector<double> &mat,
+                   int &n_basis, bool &is_real);
+
 #endif  // !READ_DATA_H

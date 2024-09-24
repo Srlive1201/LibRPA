@@ -201,8 +201,12 @@ extern "C"
      * The array `Cs_in` must be stored in C-style row-major order.
      */
     void set_ao_basis_aux(int I, int J, int nbasis_i, int nbasis_j, int naux_mu, int* R,
+<<<<<<< HEAD
                           double* Cs_in, int insert_index_only,
                           const std::string keyword = "Cs_data");
+=======
+                          double* Cs_in, int insert_index_only);
+>>>>>>> b1f933c (construct head)
 
     /*!
      * @brief Set the atom-pair block of bare Coulomb matrix in auxiliary basis
@@ -302,6 +306,7 @@ extern "C"
 
     void run_librpa_main();
 
+<<<<<<< HEAD
     /*!
      * @brief compute and return the RPA correlation energy
      *
@@ -317,6 +322,21 @@ extern "C"
     void get_rpa_correlation_energy(double* rpa_corr, double* rpa_corr_irk_contrib,
                                     std::map<Vector3_Order<double>, ComplexMatrix> &sinvS, const std::string& input_dir,
                                     const bool use_shrink_abfs);
+=======
+/*!
+ * @brief compute and return the RPA correlation energy
+ *
+ * @param[out] rpa_corr                RPA correlation energy, in Hartree unit. Complex number
+ * represented as double array [2].
+ * @param[out] rpa_corr_irk_contrib    Weighted contribution to RPA correlation energy from each
+ * irreducible k-point. Complex array represented as double array [2*n_irk_points]
+ *
+ * @warning
+ * Current implementation will free the internal copy of LRI coefficients array. So this can
+ * only be called once.
+ */
+void get_rpa_correlation_energy(double* rpa_corr, double* rpa_corr_irk_contrib);
+>>>>>>> b1f933c (construct head)
 
     /*!
      * @brief Compute the exact exchange (EXX) energy for states at specified k-points

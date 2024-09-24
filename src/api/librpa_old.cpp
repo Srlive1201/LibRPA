@@ -1,16 +1,17 @@
 /*
  * @file librpa.cpp
  * @author Rong Shi (srlive@mail.ustc.edu.cn)
- * @brief 
+ * @brief
  * @version 0.1
  * @date 2023-08-18
- * 
+ *
  * @copyright Copyright (c) 2023
- * 
+ *
  */
 #include "librpa.h"
 
 #include <stdlib.h>
+<<<<<<< HEAD:src/api/librpa_old.cpp
 
 #include <cstring>
 
@@ -25,20 +26,47 @@
 #include "../utils/constants.h"
 #include "../io/global_io.h"
 #include "librpa_main.h"
+=======
+
+#include "envs_mpi.h"
+#include "envs_blacs.h"
+#include "envs_io.h"
+#include "utils_io.h"
+#include <cstring>
+
+#include "atoms.h"
+#include "constants.h"
+#include "envs_io.h"
+#include "envs_mpi.h"
+#include "librpa_main.h"
+#include "matrix_m.h"
+#include "meanfield.h"
+#include "parallel_mpi.h"
+#include "params.h"
+#include "pbc.h"
+#include "ri.h"
+#include "utils_io.h"
+>>>>>>> b1f933c (construct head):src/librpa.cpp
 
 #ifdef LIBRPA_USE_LIBRI
-#include <initializer_list>
 #include <RI/global/Tensor.h>
+
+#include <initializer_list>
 #else
 #include "../utils/libri_stub.h"
 #endif
 
-#include "app_rpa.h"
 #include "app_exx.h"
+#include "app_rpa.h"
 
+<<<<<<< HEAD:src/api/librpa_old.cpp
 
 void initialize_librpa_environment(
         int redirect_stdout, const char *output_filename)
+=======
+void initialize_librpa_environment(MPI_Comm comm_global_in, int is_fortran_comm,
+                                   int redirect_stdout, const char* output_filename)
+>>>>>>> b1f933c (construct head):src/librpa.cpp
 {
     librpa_int::global::init_global_mpi();
     librpa_int::envs::initialize_blacs(librpa_int::global::mpi_comm_global);
@@ -54,7 +82,7 @@ void finalize_librpa_environment()
     librpa_int::global::finalize_global_mpi();
 }
 
-void set_dimension(int nspins, int nkpts, int nstates, int nbasis,int natoms)
+void set_dimension(int nspins, int nkpts, int nstates, int nbasis, int natoms)
 {
     using namespace librpa_int;
     using librpa_int::global::mpi_comm_global_h;
@@ -62,21 +90,49 @@ void set_dimension(int nspins, int nkpts, int nstates, int nbasis,int natoms)
     if (mpi_comm_global_h.is_root())
     {
         cout << "In LibRPA nspin: " << nspins << "  nkpt: " << nkpts << endl;
+<<<<<<< HEAD:src/api/librpa_old.cpp
         global::lib_printf("In LibRPA nspin: %d,  nkpts: %d nstate: %d, nbasis: %d, natom: %d\n",
                 nspins, nkpts, nstates, nbasis, natoms);
+=======
+        LIBRPA::utils::lib_printf(
+            "In LibRPA nspin: %d,  nkpts: %d nstate: %d, nbasis: %d, natom: %d\n", nspins, nkpts,
+            nstates, nbasis, natoms);
+>>>>>>> b1f933c (construct head):src/librpa.cpp
     }
     meanfield.set(nspins, nkpts, nstates, nbasis);
-    natom=natoms;
-    
+    natom = natoms;
 }
 
-void set_wg_ekb_efermi(int nspins, int nkpts, int nstates, double* wg, double* ekb, double efermi)
+void set_ao_basis_wfc(int ispin, int ik, double* wfc_real, double* wfc_imag, MeanField& mf)
 {
+<<<<<<< HEAD:src/api/librpa_old.cpp
     using namespace librpa_int;
 
     meanfield.get_efermi() = efermi;
     auto& eskb = meanfield.get_eigenvals();
     auto& swg = meanfield.get_weight();
+=======
+    // LIBRPA::utils::lib_printf("is: %d, ik: %d\n",is,ik);
+    // int length_ib_iw=meanfield.get_n_bands()*meanfield.get_n_aos();
+    // vector<double> vec_wfc_real(wfc_real,wfc_real+length_ib_iw);
+    // vector<double> vec_wfc_imag(wfc_imag,wfc_imag+length_ib_iw);
+    auto& wfc = mf.get_eigenvectors().at(ispin).at(ik);
+    const auto n = mf.get_n_bands() * mf.get_n_aos();
+    for (int i = 0; i != n; i++)
+    {
+        // LIBRPA::utils::lib_printf("In ao wfc: %f, %f\n",wfc_real[i],wfc_imag[i]);
+        wfc.c[i] = complex<double>(wfc_real[i], wfc_imag[i]);
+    }
+    // print_complex_matrix("wfc_isk", wfc.at(is).at(ik));
+}
+
+void set_wg_ekb_efermi(int nspins, int nkpts, int nstates, double* wg, double* ekb, double efermi,
+                       MeanField& mf)
+{
+    mf.get_efermi() = efermi;
+    auto& eskb = mf.get_eigenvals();
+    auto& swg = mf.get_weight();
+>>>>>>> b1f933c (construct head):src/librpa.cpp
     int length_kb = nkpts * nstates;
     for (int is = 0; is != nspins; is++)
     {
@@ -85,6 +141,7 @@ void set_wg_ekb_efermi(int nspins, int nkpts, int nstates, double* wg, double* e
         // wg[is](k_index, i) = stod(ws) / n_kpoints; // different with abacus!
         swg[is] *= (1.0 / nkpts);
     }
+<<<<<<< HEAD:src/api/librpa_old.cpp
     // for(int is=0;is!=nspins;is++)
     // {
     //     print_matrix(" eskb",eskb[is]);
@@ -107,6 +164,8 @@ void set_ao_basis_wfc(int ispin, int ik, double* wfc_real, double* wfc_imag)
         wfc.c[i] = complex<double>(wfc_real[i], wfc_imag[i]);
     }
     // print_complex_matrix("wfc_isk", wfc.at(is).at(ik));
+=======
+>>>>>>> b1f933c (construct head):src/librpa.cpp
 }
 
 void set_latvec_and_G(double lat_mat[9], double G_mat[9])
@@ -124,11 +183,11 @@ void set_latvec_and_G(double lat_mat[9], double G_mat[9])
     latvec.e31 = lat_mat[6];
     latvec.e32 = lat_mat[7];
     latvec.e33 = lat_mat[8];
-    
+
     // latvec /= ANG2BOHR;
-    lat_array[0] = {latvec.e11,latvec.e12,latvec.e13};
-    lat_array[1] = {latvec.e21,latvec.e22,latvec.e23};
-    lat_array[2] = {latvec.e31,latvec.e32,latvec.e33};
+    lat_array[0] = {latvec.e11, latvec.e12, latvec.e13};
+    lat_array[1] = {latvec.e21, latvec.e22, latvec.e23};
+    lat_array[2] = {latvec.e31, latvec.e32, latvec.e33};
 
     G.e11 = G_mat[0];
     G.e12 = G_mat[1];
@@ -137,20 +196,25 @@ void set_latvec_and_G(double lat_mat[9], double G_mat[9])
     G.e21 = G_mat[3];
     G.e22 = G_mat[4];
     G.e23 = G_mat[5];
- 
+
     G.e31 = G_mat[6];
     G.e32 = G_mat[7];
     G.e33 = G_mat[8];
 
     G /= TWO_PI;
     // G *= ANG2BOHR;
-    
+
     // if (mpi_comm_global_h.is_root())
     // {
+<<<<<<< HEAD:src/api/librpa_old.cpp
     //     librpa_int::global::lib_printf(" LibRPA_lat (Bohr) : %f, %f, %f\n",latvec.e11,latvec.e12,latvec.e13);
+=======
+    //     LIBRPA::utils::lib_printf(" LibRPA_lat (Bohr) : %f, %f,
+    //     %f\n",latvec.e11,latvec.e12,latvec.e13);
+>>>>>>> b1f933c (construct head):src/librpa.cpp
     // }
-    //latvec.print();
-    //G.print();
+    // latvec.print();
+    // G.print();
 }
 
 void set_kgrids_kvec_tot(int nk1, int nk2, int nk3, double* kvecs)
@@ -161,13 +225,13 @@ void set_kgrids_kvec_tot(int nk1, int nk2, int nk3, double* kvecs)
     kv_nmp[1] = nk2;
     kv_nmp[2] = nk3;
 
-    kvec_c = new Vector3<double> [nk1 * nk2 * nk3];
+    kvec_c = new Vector3<double>[nk1 * nk2 * nk3];
 
-    for(int ik=0;ik!=meanfield.get_n_kpoints();ik++)
+    for (int ik = 0; ik != meanfield.get_n_kpoints(); ik++)
     {
-        double kx=kvecs[ik*3];
-        double ky=kvecs[ik*3+1];
-        double kz=kvecs[ik*3+2];
+        double kx = kvecs[ik * 3];
+        double ky = kvecs[ik * 3 + 1];
+        double kz = kvecs[ik * 3 + 2];
 
         kvec_c[ik] = {kx, ky, kz};
         // kvec_c[ik] *= (ANG2BOHR / TWO_PI);
@@ -183,6 +247,7 @@ void set_kgrids_kvec_tot(int nk1, int nk2, int nk3, double* kvecs)
 
 void set_ibz2bz_index_and_weight(const int nk_irk, const int* ibz2bz_index, const double* wk_irk)
 {
+<<<<<<< HEAD:src/api/librpa_old.cpp
     using namespace librpa_int;
 
    // librpa_int::global::lib_printf(" nks_irk: %d\n",nk_irk);
@@ -204,6 +269,27 @@ void set_ibz2bz_index_and_weight(const int nk_irk, const int* ibz2bz_index, cons
 
 <<<<<<< HEAD:src/api/librpa_old.cpp
 void set_ao_basis_aux(int I, int J, int nbasis_i, int nbasis_j, int naux_mu, int* R, double* Cs_in, int insert_index_only)
+=======
+    // LIBRPA::utils::lib_printf(" nks_irk: %d\n",nk_irk);
+    for (int ik_ibz = 0; ik_ibz != nk_irk; ik_ibz++)
+    {
+        Vector3_Order<double> kvec_ibz = klist[ibz2bz_index[ik_ibz]];
+        klist_ibz.push_back(kvec_ibz);
+        irk_weight.insert(pair<Vector3_Order<double>, double>(kvec_ibz, wk_irk[ik_ibz]));
+        // LIBRPA::utils::lib_printf("ibz2bz:  %d   kvec_ibz:( %f, %f,
+        // %f)\n",ibz2bz_index[ik_ibz],kvec_ibz.x,kvec_ibz.y,kvec_ibz.z);
+        // LIBRPA::utils::lib_printf("irk_weight: %f\n",irk_weight[kvec_ibz]);
+        // for (int ik = 0; ik != meanfield.get_n_kpoints(); ik++)
+        // {
+        //     if(klist[ik]==kvec_ibz)
+        //         map_irk_ks[kvec_ibz].push_back(klist[ik]);
+        // }
+    }
+}
+
+void set_ao_basis_aux(int I, int J, int nbasis_i, int nbasis_j, int naux_mu, int* R, double* Cs_in,
+                      int insert_index_only)
+>>>>>>> b1f933c (construct head):src/librpa.cpp
 {
     using namespace librpa_int;
 
@@ -290,8 +376,14 @@ void set_ao_basis_aux(int I, int J, int nbasis_i, int nbasis_j, int naux_mu, int
     }
 }
 
+<<<<<<< HEAD:src/api/librpa_old.cpp
 static void _set_aux_coulomb_k_atom_pair(int ik, int I, int J, int naux_mu, int naux_nu, double* Vq_real_in, double* Vq_imag_in,
                                          librpa_int::atpair_k_cplx_mat_t &coulomb_mat)
+=======
+static void _set_aux_coulomb_k_atom_pair(int ik, int I, int J, int naux_mu, int naux_nu,
+                                         double* Vq_real_in, double* Vq_imag_in,
+                                         atpair_k_cplx_mat_t& coulomb_mat)
+>>>>>>> b1f933c (construct head):src/librpa.cpp
 {
     using namespace librpa_int;
 
@@ -322,16 +414,23 @@ static void _set_aux_coulomb_k_atom_pair(int ik, int I, int J, int naux_mu, int 
     // print_complex_matrix("Vq",(*Vq[I][J][qvec]));
 }
 
-void set_aux_bare_coulomb_k_atom_pair(int ik, int I, int J, int naux_mu, int naux_nu, double* Vq_real_in, double* Vq_imag_in)
+void set_aux_bare_coulomb_k_atom_pair(int ik, int I, int J, int naux_mu, int naux_nu,
+                                      double* Vq_real_in, double* Vq_imag_in)
 {
+<<<<<<< HEAD:src/api/librpa_old.cpp
     using namespace librpa_int;
 
     _set_aux_coulomb_k_atom_pair(ik, I, J, naux_mu, naux_nu,
             Vq_real_in, Vq_imag_in, Vq);
+=======
+    _set_aux_coulomb_k_atom_pair(ik, I, J, naux_mu, naux_nu, Vq_real_in, Vq_imag_in, Vq);
+>>>>>>> b1f933c (construct head):src/librpa.cpp
 }
 
-void set_aux_cut_coulomb_k_atom_pair(int ik, int I, int J, int naux_mu, int naux_nu, double* Vq_real_in, double* Vq_imag_in)
+void set_aux_cut_coulomb_k_atom_pair(int ik, int I, int J, int naux_mu, int naux_nu,
+                                     double* Vq_real_in, double* Vq_imag_in)
 {
+<<<<<<< HEAD:src/api/librpa_old.cpp
     using namespace librpa_int;
 
     _set_aux_coulomb_k_atom_pair(ik, I, J, naux_mu, naux_nu,
@@ -340,6 +439,15 @@ void set_aux_cut_coulomb_k_atom_pair(int ik, int I, int J, int naux_mu, int naux
 
 static void _set_aux_coulomb_k_2D_block(int ik, int max_naux, int mu_begin, int mu_end, int nu_begin, int nu_end,
         double* Vq_real_in, double* Vq_imag_in, std::map<librpa_int::Vector3_Order<double>, librpa_int::ComplexMatrix> &vq_block)
+=======
+    _set_aux_coulomb_k_atom_pair(ik, I, J, naux_mu, naux_nu, Vq_real_in, Vq_imag_in, Vq_cut);
+}
+
+static void _set_aux_coulomb_k_2D_block(int ik, int max_naux, int mu_begin, int mu_end,
+                                        int nu_begin, int nu_end, double* Vq_real_in,
+                                        double* Vq_imag_in,
+                                        map<Vector3_Order<double>, ComplexMatrix>& vq_block)
+>>>>>>> b1f933c (construct head):src/librpa.cpp
 {
     using namespace librpa_int;
 
@@ -347,7 +455,7 @@ static void _set_aux_coulomb_k_2D_block(int ik, int max_naux, int mu_begin, int 
     int erow = mu_end - 1;
     int bcol = nu_begin - 1;
     int ecol = nu_end - 1;
-      
+
     Vector3_Order<double> qvec(klist[ik]);
     // librpa_int::global::lib_printf("qvec: %f,%f,%f\n",qvec.x,qvec.y,qvec.z);
     shared_ptr<ComplexMatrix> vq_ptr = make_shared<ComplexMatrix>();
@@ -357,34 +465,46 @@ static void _set_aux_coulomb_k_2D_block(int ik, int max_naux, int mu_begin, int 
     {
         Vq_block_loc[qvec].create(max_naux, max_naux);
     }
-    int ii=0;
+    int ii = 0;
     for (int i_mu = brow; i_mu <= erow; i_mu++)
     {
         for (int i_nu = bcol; i_nu <= ecol; i_nu++)
         {
             vq_block[qvec](i_mu, i_nu) = complex<double>(Vq_real_in[ii], Vq_imag_in[ii]);
-            ii+=1;
+            ii += 1;
         }
     }
 }
 
-void set_aux_bare_coulomb_k_2D_block(int ik, int max_naux, int mu_begin, int mu_end, int nu_begin, int nu_end, double* Vq_real_in, double* Vq_imag_in)
+void set_aux_bare_coulomb_k_2D_block(int ik, int max_naux, int mu_begin, int mu_end, int nu_begin,
+                                     int nu_end, double* Vq_real_in, double* Vq_imag_in)
 {
+<<<<<<< HEAD:src/api/librpa_old.cpp
     using namespace librpa_int;
 
     _set_aux_coulomb_k_2D_block(ik, max_naux, mu_begin, mu_end, nu_begin, nu_end, Vq_real_in, Vq_imag_in,
             Vq_block_loc);
+=======
+    _set_aux_coulomb_k_2D_block(ik, max_naux, mu_begin, mu_end, nu_begin, nu_end, Vq_real_in,
+                                Vq_imag_in, Vq_block_loc);
+>>>>>>> b1f933c (construct head):src/librpa.cpp
 }
 
-void set_aux_cut_coulomb_k_2D_block(int ik, int max_naux, int mu_begin, int mu_end, int nu_begin, int nu_end, double* Vq_real_in, double* Vq_imag_in)
+void set_aux_cut_coulomb_k_2D_block(int ik, int max_naux, int mu_begin, int mu_end, int nu_begin,
+                                    int nu_end, double* Vq_real_in, double* Vq_imag_in)
 {
+<<<<<<< HEAD:src/api/librpa_old.cpp
     using namespace librpa_int;
 
     _set_aux_coulomb_k_2D_block(ik, max_naux, mu_begin, mu_end, nu_begin, nu_end, Vq_real_in, Vq_imag_in,
             Vq_cut_block_loc);
+=======
+    _set_aux_coulomb_k_2D_block(ik, max_naux, mu_begin, mu_end, nu_begin, nu_end, Vq_real_in,
+                                Vq_imag_in, Vq_cut_block_loc);
+>>>>>>> b1f933c (construct head):src/librpa.cpp
 }
 
-void set_librpa_params(LibRPAParams *params_c)
+void set_librpa_params(LibRPAParams* params_c)
 {
     using namespace librpa_int;
 
@@ -409,15 +529,14 @@ void set_librpa_params(LibRPAParams *params_c)
     Params::libri_exx_threshold_V = params_c->libri_exx_threshold_V;
 }
 
-
-void get_default_librpa_params(LibRPAParams *params_c)
+void get_default_librpa_params(LibRPAParams* params_c)
 {
     // All member of LibRPAParams must be set.
     strcpy(params_c->output_file, "stdout");
     strcpy(params_c->output_dir, "librpa.d");
     strcpy(params_c->parallel_routing, "auto");
-    strcpy(params_c->tfgrids_type,     "minimax");
-    strcpy(params_c->DFT_software,     "auto");
+    strcpy(params_c->tfgrids_type, "minimax");
+    strcpy(params_c->DFT_software, "auto");
 
     params_c->nfreq = 6;
 
@@ -437,6 +556,7 @@ void get_default_librpa_params(LibRPAParams *params_c)
     params_c->libri_gw_threshold_W = 0.0e0;
 }
 
+<<<<<<< HEAD:src/api/librpa_old.cpp
 
 // void run_librpa_main()
 // {
@@ -449,11 +569,23 @@ void get_default_librpa_params(LibRPAParams *params_c)
 //     //std::cout.rdbuf(originalCoutBuffer);
 //     //outputFile.close();
 // }
+=======
+void run_librpa_main()
+{
+    LIBRPA::utils::lib_printf("Begin run LibRPA\n");
+    // std::ofstream outputFile("LibRPA_cout.txt");
+    // std::streambuf* originalCoutBuffer = std::cout.rdbuf();
+    // std::cout.rdbuf(outputFile.rdbuf());
+    librpa_main();
 
-void get_frequency_grids(int ngrid, double *freqeuncy_grids)
-{}
+    // std::cout.rdbuf(originalCoutBuffer);
+    // outputFile.close();
+}
+>>>>>>> b1f933c (construct head):src/librpa.cpp
 
-void get_rpa_correlation_energy(double *rpa_corr, double *rpa_corr_irk_contrib)
+void get_frequency_grids(int ngrid, double* freqeuncy_grids) {}
+
+void get_rpa_correlation_energy(double* rpa_corr, double* rpa_corr_irk_contrib)
 {
     using namespace librpa_int;
 
@@ -486,9 +618,8 @@ void get_rpa_correlation_energy(double* rpa_corr, double* rpa_corr_irk_contrib,
     memcpy(rpa_corr_irk_contrib, dp, 2 * n_irk_points * sizeof(double));
 }
 
-void compute_exx_orbital_energy(int i_state_low, int i_state_high,
-                                int n_kpoints_task, const int *i_kpoints_task,
-                                double *exx)
+void compute_exx_orbital_energy(int i_state_low, int i_state_high, int n_kpoints_task,
+                                const int* i_kpoints_task, double* exx)
 {
     const auto exx_vec = librpa_int::app::compute_exx_orbital_energy_(i_state_low, i_state_high,
                                                                   n_kpoints_task, i_kpoints_task);

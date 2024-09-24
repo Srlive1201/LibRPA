@@ -504,6 +504,7 @@ void task_g0w0_band()
                            << std::setprecision(5) << eqp;
                     ofs_hf << std::setw(15) << std::setprecision(5) << occ_state << std::setw(15)
                            << std::setprecision(5) << eks_state - vxc_state + exx_state;
+<<<<<<< HEAD
 
                     // output bandgap
                     if (i_state == nocc - 1 && eqp > valence)  // HOMO
@@ -516,6 +517,8 @@ void task_g0w0_band()
                         conduct = eqp;
                         ik_cond = i_kpoint;
                     }
+=======
+>>>>>>> b1f933c (construct head)
                 }
                 ofs_gw << "\n";
                 ofs_hf << "\n";

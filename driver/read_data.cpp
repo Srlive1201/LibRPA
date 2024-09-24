@@ -798,8 +798,7 @@ std::vector<size_t> handle_Cs_file_dry(const string &file_path, double threshold
                     maxval = std::max(maxval, std::abs(stod(Cs_ele)));
                 }
         librpa_int::global::ofs_myid << id << " (" << ic_1 << "," << ic_2 << "," << ic_3 << ") " << maxval << " keep? " << (maxval >= threshold) << endl;
-        if (maxval >= threshold)
-            Cs_ids_keep.push_back(id);
+        if (maxval >= threshold) Cs_ids_keep.push_back(id);
         id++;
     }
     librpa_int::global::ofs_myid << file_path << ": " << Cs_ids_keep << endl;
@@ -844,11 +843,13 @@ std::vector<size_t> handle_Cs_file_binary_dry(const string &file_path, double th
         {
             Cs_ids_keep.push_back(i_file);
 #ifdef LIBRPA_DEBUG
-            // librpa_int::envs::ofs_myid << i_file << " (" << ic1 << "," << ic2 << "," << ic3 << ") " << maxval << " kept, maxval: " << maxval << endl;
+            // LIBRPA::envs::ofs_myid << i_file << " (" << ic1 << "," << ic2 << "," << ic3 << ") "
+            // << maxval << " kept, maxval: " << maxval << endl;
 #endif
         }
     }
-    // librpa_int::envs::ofs_myid << file_path << ": kept " << Cs_ids_keep.size() << " of " << n_processed << endl;
+    // LIBRPA::envs::ofs_myid << file_path << ": kept " << Cs_ids_keep.size() << " of " <<
+    // n_processed << endl;
 #ifdef LIBRPA_DEBUG
     // librpa_int::envs::ofs_myid << Cs_ids_keep << endl;
 #endif
@@ -1049,7 +1050,7 @@ size_t read_Cs_evenly_distribute(const string &dir_path, double threshold, int m
     profiler.start("handle_Cs_file");
     // cout << files_Cs_ids_this_proc.size() << "\n";
     ofs_myid << "Number of Cs files to process: " << files_Cs_ids_this_proc.size() << "\n";
-    for (const auto& fn_ids: files_Cs_ids_this_proc)
+    for (const auto &fn_ids: files_Cs_ids_this_proc)
     {
         ofs_myid << fn_ids.first << " " << fn_ids.second << endl;
         if (binary)
@@ -1527,7 +1528,7 @@ static int handle_Vq_row_file(const string &file_path, double threshold,
             //skip empty coulumb_file
             if ((erow - brow < 0) || (ecol - bcol < 0) || iq < 0) return 4;
 
-            for(const auto &ap:local_atpair)
+            for (const auto &ap : local_atpair)
             {
                 auto I = ap.first;
                 auto J = ap.second;
@@ -1593,7 +1594,6 @@ static int handle_Vq_row_file(const string &file_path, double threshold,
     return 0;
 }
 
-
 size_t read_Vq_row(const string &dir_path, const string &vq_fprefix, double threshold,
                    const std::vector<atpair_t> &local_atpair, bool is_cut_coulomb)
 {
@@ -1652,8 +1652,8 @@ size_t read_Vq_row(const string &dir_path, const string &vq_fprefix, double thre
 
     // MYZ: now the map coulomb contains the complete atom-pair matrix.
     // Call the API to parse the data.
-    // To reduce memory consumption during this process, we erase the data in temporary object
-    // once it is parsed.
+    // To reduce memory consumption during this process, we erase the data in temporary object once
+    // it is parsed.
     auto it_I = coulomb.begin();
     profiler.start("set_aux_coulomb_k_atom_pair_out");
     while (it_I != coulomb.end())
@@ -2170,7 +2170,8 @@ void read_band_meanfield_data(const string &dir_path)
     for (int ik = 0; ik < n_kpoints_band; ik++)
     {
         std::stringstream ss;
-        ss << dir_path << "band_KS_eigenvalue_k_" << std::setfill('0') << std::setw(5) << ik + 1 << ".txt";
+        ss << dir_path << "band_KS_eigenvalue_k_" << std::setfill('0') << std::setw(5) << ik + 1
+           << ".txt";
         ifstream infile;
         infile.open(ss.str());
         for (int i_spin = 0; i_spin < n_spins; i_spin++)
