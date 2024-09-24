@@ -190,7 +190,6 @@ int main(int argc, char **argv)
             const auto cputime = profiler.get_cpu_time_last("driver_read_common_input_data") / 60.0;
             const auto walltime = profiler.get_wall_time_last("driver_read_common_input_data") / 60.0;
             lib_printf("Initialization finished, Wall/CPU time [min]: %12.4f %12.4f\n", walltime, cputime);
-
         }
         double freemem;
         auto flag = get_node_free_mem(freemem);
