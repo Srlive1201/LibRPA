@@ -53,9 +53,16 @@ std::vector<double> interpolate_dielec_func(int option, const std::vector<double
             mpi_comm_global_h.barrier();
             read_velocity("./pyatb_librpa_df/velocity_matrix", pyatb_meanfield);
             mpi_comm_global_h.barrier();
-            diele_func df(pyatb_meanfield, frequencies_target);
+            int n_basis, n_states, n_spin;
+            std::vector<Vector3_Order<double>> kfrac_band;
+            kfrac_band =
+                read_band_kpath_info(n_basis, n_states, n_spin, "./pyatb_librpa_df/k_path_info");
+            diele_func df(pyatb_meanfield, kfrac_band, frequencies_target, n_basis, n_states,
+                          n_spin);
             df.cal_head();
             df.test_head();
+            df.cal_wing();
+            df.test_wing();
         }
         default:
             throw std::logic_error("Unsupported value for option");

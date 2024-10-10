@@ -38,15 +38,17 @@ namespace librpa_int {
 // extern vector<atpair_t> local_atpair;
 
 //! type alias of atom-pair mapping to real matrix indexed by unit-cell vector
-typedef atom_mapping< map<Vector3_Order<int>, std::shared_ptr<matrix>> >::pair_t_old atpair_R_mat_t;
+typedef atom_mapping<map<Vector3_Order<int>, std::shared_ptr<matrix>>>::pair_t_old atpair_R_mat_t;
 //! type alias of atom-pair mapping to complex matrix indexed by unit-cell vector
-typedef atom_mapping< map<Vector3_Order<int>, std::shared_ptr<ComplexMatrix>> >::pair_t_old atpair_R_cplx_mat_t;
+typedef atom_mapping<map<Vector3_Order<int>, std::shared_ptr<ComplexMatrix>>>::pair_t_old
+    atpair_R_cplx_mat_t;
 //! type alias of atom-pair mapping to complex matrix indexed by reciprocal vector
-typedef atom_mapping< map<Vector3_Order<double>, std::shared_ptr<ComplexMatrix>> >::pair_t_old atpair_k_cplx_mat_t;
+typedef atom_mapping<map<Vector3_Order<double>, std::shared_ptr<ComplexMatrix>>>::pair_t_old
+    atpair_k_cplx_mat_t;
 
 struct Cs_LRI
 {
-public:
+   public:
     bool use_libri;
     // Tri-coefficient of localized RI (LRI) in real space. ABF on the first atom of the atom pair
     atpair_R_mat_t data_IJR;
@@ -63,6 +65,19 @@ public:
 };
 
 // extern Cs_LRI Cs_data;
+struct Cs_LRI_clx
+{
+   public:
+    bool use_libri;
+    // Tri-coefficient of localized RI (LRI) in real space. ABF on the first atom of the atom pair
+    atpair_R_mat_t data_IJR;
+    // Tri-coefficient of localized RI (LRI) in real space, represented using LibRI tensor class
+    std::map<int, std::map<libri_types<int, int>::TAC, RI::Tensor<std::complex<double>>>>
+        data_libri;
+
+    void clear();
+};
+
 
 // //! Coulomb matrix in ABF, represented in the reciprocal space.
 // extern atpair_k_cplx_mat_t Vq;
@@ -72,8 +87,9 @@ public:
 // extern map<Vector3_Order<double>, ComplexMatrix> Vq_block_loc;
 // extern map<Vector3_Order<double>, ComplexMatrix> Vq_cut_block_loc;
 
-void allreduce_2D_coulomb_to_atompair(map<Vector3_Order<double>, ComplexMatrix> &Vq_loc, atpair_k_cplx_mat_t &coulomb_mat, double threshold );
-void allreduce_atp_coulomb( atpair_k_cplx_mat_t &coulomb_mat );
+void allreduce_2D_coulomb_to_atompair(map<Vector3_Order<double>, ComplexMatrix> &Vq_loc,
+                                      atpair_k_cplx_mat_t &coulomb_mat, double threshold);
+void allreduce_atp_coulomb(atpair_k_cplx_mat_t &coulomb_mat);
 
 // int atom_iw_loc2glo(const int &atom_index, const int &iw_lcoal);
 // int atom_mu_loc2glo(const int &atom_index, const int &mu_lcoal);
