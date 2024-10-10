@@ -63,6 +63,11 @@ LibRPA
 
    doxygen/librpa/html/index
 
+
+**How to Cite:**
+
+- Shi R, Lin P, Zhang M Y, et al. Subquadratic-scaling real-space random phase approximation correlation energy calculations for periodic systems with numerical atomic orbitals[J]. Physical Review B, 2024, 109(3): 035103.
+
 ..
    Indices and tables
    ==================
