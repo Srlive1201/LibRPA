@@ -586,13 +586,24 @@ void diele_func::get_Xv(double vq_threshold, const librpa_int::atpair_k_cplx_mat
 void diele_func::test_wing()
 {
     std::cout << "BEGIN test wing !!!!!!!!!!" << std::endl;
+    std::cout << "wing(z, l=-1) vs omega" << std::endl;
     for (int iomega = 0; iomega != this->omega.size(); iomega++)
     {
         std::complex<double> df = 0;
         // z direction and the last lambda
-        df += this->wing.at(2).at(n_nonsingular - 2).at(iomega);
+        df = this->wing.at(2).at(n_nonsingular - 2).at(iomega);
 
-        std::cout << this->omega[iomega] << " " << df.real() << " " << df.imag() << std::endl;
+        std::cout << this->omega[iomega] * HA2EV << " " << df.real() << " " << df.imag()
+                  << std::endl;
+    }
+    std::cout << "wing(z, iomega=0) vs lambda" << std::endl;
+    for (int il = 0; il != n_nonsingular - 1; il++)
+    {
+        std::complex<double> df = 0;
+        // z direction and the last lambda
+        df = this->wing.at(2).at(il).at(0);
+
+        std::cout << il << " " << df.real() << " " << df.imag() << std::endl;
     }
     std::cout << "END test wing !!!!!!!!!!" << std::endl;
     std::exit(0);
