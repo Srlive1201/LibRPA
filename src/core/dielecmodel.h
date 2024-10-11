@@ -46,10 +46,14 @@ class diele_func
     const std::vector<Vector3_Order<double>> &kfrac_band;
     const int n_basis, n_states, n_spin, n_abf;
     const librpa_int::Matrix3 &latvec_;
+    const librpa_int::AtomicBasis &atomic_basis_wfc_;
+    const librpa_int::AtomicBasis &atomic_basis_abf_;
     size_t n_nonsingular;
 
    public:
     diele_func(const MeanField &mf, const std::vector<Vector3_Order<double>> &kfrac,
+               const librpa_int::AtomicBasis &atomic_basis_wfc,
+               const librpa_int::AtomicBasis &atomic_basis_abf,
                const std::vector<double> &frequencies_target, const int nbasis, const int nstates,
                const int nspin, const int nabf, const librpa_int::Matrix3 &latvec)
         : meanfield_df(mf),
@@ -59,10 +63,12 @@ class diele_func
           n_states(nstates),
           n_spin(nspin),
           n_abf(nabf),
-          latvec_(latvec)
+          latvec_(latvec),
+          atomic_basis_wfc_(atomic_basis_wfc),
+          atomic_basis_abf_(atomic_basis_abf)
     {};
     ~diele_func() {};
-    void init_headwing(const librpa_int::AtomicBasis &atomic_basis_abf, double vq_threshold,
+    void init_headwing(double vq_threshold,
                        const librpa_int::atpair_k_cplx_mat_t &Vq_cut);
     void init_Cs(const librpa_int::Cs_LRI &Cs_data);
     // All calculation in unit: Ang and eV.
@@ -70,11 +76,14 @@ class diele_func
     double cal_factor(std::string name);
     void test_head();
 
-    void cal_wing(const librpa_int::Cs_LRI &Cs_data, const librpa_int::AtomicBasis &atomic_basis_wfc);  // atpair_k_cplx_mat_t &Vq_cut, Cs_LRI &Cs_data
+    void cal_wing(const librpa_int::Cs_LRI &Cs_data);  // atpair_k_cplx_mat_t &Vq_cut, Cs_LRI &Cs_data
     // tranform Cs_ij(R) to Cs_ij(k)
     void FT_R2k(const librpa_int::Cs_LRI &Cs_data);
-    void Cs_ij2mn(const librpa_int::AtomicBasis &atomic_basis_wfc);
-    void get_Xv(const librpa_int::AtomicBasis &atomic_basis_abf, double vq_threshold,
+    void Cs_ij2mn();
+    void get_Xv(double vq_threshold,
                 const librpa_int::atpair_k_cplx_mat_t &Vq_cut);  // diagonalize Vq_cut(q=0)
+    std::complex<double> compute_wing(int alpha,int lambda,int iomega);
+    // tranform Cs_ij(R) to Cs_ij(k)
+    std::complex<double> compute_Cs_ij2mn(int mu, int m, int n, int ik);
     void test_wing();
 };

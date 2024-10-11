@@ -410,8 +410,8 @@ static bool check_coulomb_file_binary(const string &file_path)
 
 void read_velocity(const string &file_path, MeanField &mf)
 {
-    const double h_divide_e2 = 25812.80745;
-    const double hbar = 1.05457182e-34;
+    // const double h_divide_e2 = 25812.80745;
+    // const double hbar = 1.05457182e-34;
     const double A_to_m = 1.0e-10;
     ifstream infile;
     infile.open(file_path);
@@ -438,8 +438,7 @@ void read_velocity(const string &file_path, MeanField &mf)
                 {
                     infile >> single_re >> single_im;
                     velocity.at(is).at(ik).at(ia).c[i] =
-                        A_to_m * sqrt(hbar / h_divide_e2 / 2) *
-                        std::complex<double>(stod(single_re), stod(single_im));
+                        A_to_m * std::complex<double>(stod(single_re), stod(single_im));
                 }
             }
         }

@@ -42,7 +42,7 @@ private:
     //! eigenvector, (n_spins, n_kpoint, n_bands, n_aos)
     std::vector<std::vector<ComplexMatrix>> wfc;
     std::vector<std::vector<ComplexMatrix>> wfc0;
-    //! velocity_matrix, (n_spins, n_kpoint, n_alpha, n_bands, n_aos)
+    //! unit: eV*m , velocity_matrix, (n_spins, n_kpoint, n_alpha, n_bands, n_aos)
     std::vector<std::vector<std::vector<ComplexMatrix>>> velocity;
     //! Fermi energy
     double efermi;
