@@ -72,7 +72,7 @@ struct Cs_LRI_clx
     // Tri-coefficient of localized RI (LRI) in real space. ABF on the first atom of the atom pair
     atpair_R_mat_t data_IJR;
     // Tri-coefficient of localized RI (LRI) in real space, represented using LibRI tensor class
-    std::map<int, std::map<libri_types<int, int>::TAC, RI::Tensor<std::complex<double>>>>
+    std::map<int, std::map<libri_types<int, double>::TAC, RI::Tensor<std::complex<double>>>>
         data_libri;
 
     void clear();

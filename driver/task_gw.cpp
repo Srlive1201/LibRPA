@@ -48,7 +48,7 @@ void task_g0w0()
     chi0.gf_R_threshold = Params::gf_R_threshold;
 
     Profiler::start("chi0_build", "Build response function chi0");
-    // chi0.build(Cs_data, Rlist, period, local_atpair, qlist);
+    chi0.build(Cs_data, Rlist, period, local_atpair, qlist);
     Profiler::stop("chi0_build");
 
     std::flush(ofs_myid);

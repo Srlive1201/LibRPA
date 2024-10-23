@@ -41,6 +41,7 @@ void read_ri(const string &dir_path, librpa::ParallelRouting &routing);
 size_t read_Cs(const string &dir_path, double threshold, const std::vector<atpair_t> &local_atpair);
 
 void read_velocity(const string &file_path, MeanField &mf);
+void read_velocity_aims(MeanField &mf, const string &file_path);
 
 size_t read_Cs_evenly_distribute(const string &dir_path, double threshold, int myid, int nprocs);
 

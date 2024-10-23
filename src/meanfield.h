@@ -75,7 +75,7 @@ public:
     const std::vector<std::vector<ComplexMatrix>>& get_eigenvectors() const { return wfc; }
     std::vector<std::vector<ComplexMatrix>> & get_eigenvectors0() { return wfc0; }
     const std::vector<std::vector<ComplexMatrix>> & get_eigenvectors0() const { return wfc0; }
-    const std::vector<std::vector<std::vector<ComplexMatrix>>>& get_velocity() const
+    std::vector<std::vector<std::vector<ComplexMatrix>>>& get_velocity()
     {
         return velocity;
     }
