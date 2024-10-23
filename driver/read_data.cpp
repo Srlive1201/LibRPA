@@ -843,7 +843,8 @@ std::vector<size_t> handle_Cs_file_binary_dry(const string &file_path, double th
         {
             Cs_ids_keep.push_back(i_file);
 #ifdef LIBRPA_DEBUG
-            // LIBRPA::envs::ofs_myid << i_file << " (" << ic1 << "," << ic2 << "," << ic3 << ") "
+            // LIBRPA::envs::ofs_myid << i_file << " (" << ic1 << "," << ic2 << "," << ic3 << ")
+            // "
             // << maxval << " kept, maxval: " << maxval << endl;
 #endif
         }
@@ -1652,8 +1653,8 @@ size_t read_Vq_row(const string &dir_path, const string &vq_fprefix, double thre
 
     // MYZ: now the map coulomb contains the complete atom-pair matrix.
     // Call the API to parse the data.
-    // To reduce memory consumption during this process, we erase the data in temporary object once
-    // it is parsed.
+    // To reduce memory consumption during this process, we erase the data in temporary object
+    // once it is parsed.
     auto it_I = coulomb.begin();
     profiler.start("set_aux_coulomb_k_atom_pair_out");
     while (it_I != coulomb.end())
