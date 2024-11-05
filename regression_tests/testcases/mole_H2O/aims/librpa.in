@@ -1,0 +1,4 @@
+task = rpa
+nfreq = 16
+binary_input = t
+use_scalapack_ecrpa = t
