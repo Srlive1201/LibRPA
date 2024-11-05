@@ -14,7 +14,7 @@
 #include "atomic_basis.h"
 #include "pbc.h"
 #include "ri.h"
-#include "utils_atomic_basis_blacs.h"
+// #include "utils_atomic_basis_blacs.h"
 
 #ifdef LIBRPA_USE_LIBRI
 #include <RI/comm/mix/Communicate_Tensors_Map_Judge.h>
@@ -97,18 +97,49 @@ std::vector<double> interpolate_dielec_func(int option, const std::vector<double
     return df_target;
 }
 
-}
+// void diele_func::set(MeanField &mf, std::vector<Vector3_Order<double>> &kfrac,
+//                      std::vector<double> frequencies_target, int nbasis, int nstates, int nspin)
+// {
+//     meanfield_df = mf;
+//     kfrac_band = kfrac;
+//     omega = frequencies_target;
+//     n_basis = nbasis;
+//     n_states = nstates;
+//     n_spin = nspin;
+//     init();
+// };
+
+void diele_func::init(double vq_threshold, const librpa_int::atpair_k_cplx_mat_t &Vq)
+{
+    this->n_abf = atomic_basis_abf_.nb_total;
+    this->nk = this->kfrac_band.size();
+    int n_omega = this->omega.size();
+    get_Xv(vq_threshold, Vq);
+    this->head.clear();
+    this->head.resize(n_omega);
+    this->wing_mu.clear();
+    this->wing_mu.resize(n_omega);
+    this->wing.clear();
+    this->wing.resize(n_omega);
+    this->Lind.resize(3, 3, MAJOR::COL);
+    for (int iomega = 0; iomega != n_omega; iomega++)
+    {
+        head[iomega].resize(3, 3, MAJOR::COL);
+        wing_mu[iomega].resize(n_abf, 3, MAJOR::COL);
+        wing[iomega].resize(n_nonsingular - 1, 3, MAJOR::COL);
+    }
+    get_Leb_points();
+    get_g_enclosing_gamma();
+    calculate_q_gamma();
+    std::cout << "* Success: initalize and calculate lebdev points and q_gamma.\n";
+};
 
 void diele_func::cal_head()
 {
-    using librpa_int::HA2EV;
-
-    int nk = this->meanfield_df.get_n_kpoints();
-    int nbands = this->meanfield_df.get_n_bands();
-    int nspin = this->meanfield_df.get_n_spins();  //! spin = 1 only
-    auto &wg = this->meanfield_df.get_weight()[nspin - 1];
-    auto &eigenvalues = this->meanfield_df.get_eigenvals()[nspin - 1];
-    auto &velocity = this->meanfield_df.get_velocity()[nspin - 1];
+    //! spin = 1 only
+    auto &wg = this->meanfield_df.get_weight()[n_spin - 1];
+    auto &eigenvalues = this->meanfield_df.get_eigenvals()[n_spin - 1];
+    auto &velocity = this->meanfield_df.get_velocity()[n_spin - 1];
     std::complex<double> tmp;
     int nocc = 0;
 
@@ -125,7 +156,7 @@ void diele_func::cal_head()
     {
         for (int iocc = 0; iocc != nocc; iocc++)
         {
-            for (int iunocc = nocc; iunocc != nbands; iunocc++)
+            for (int iunocc = nocc; iunocc != n_states; iunocc++)
             {
                 double egap = (eigenvalues(ik, iocc) - eigenvalues(ik, iunocc));  // * HA2EV;
                 for (int alpha = 0; alpha != 3; alpha++)
@@ -138,7 +169,7 @@ void diele_func::cal_head()
                             tmp = 2.0 * velocity[ik][alpha](iunocc, iocc) *
                                   velocity[ik][beta](iocc, iunocc) /
                                   (egap * egap + omega_ev * omega_ev) / egap;
-                            this->head.at(alpha).at(beta).at(iomega) -= tmp;
+                            this->head.at(iomega)(alpha, beta) -= tmp;
                         }
                     }
                 }
@@ -151,15 +182,15 @@ void diele_func::cal_head()
         {
             for (int iomega = 0; iomega != this->omega.size(); iomega++)
             {
-                if (nspin == 1)
+                if (n_spin == 1)
                 {
-                    this->head.at(alpha).at(beta).at(iomega) *= dielectric_unit * 2;
+                    this->head.at(iomega)(alpha, beta) *= dielectric_unit * 2;
                 }
-                else if (nspin == 4)
-                    this->head.at(alpha).at(beta).at(iomega) *= dielectric_unit;
+                else if (n_spin == 4)
+                    this->head.at(iomega)(alpha, beta) *= dielectric_unit;
                 if (alpha == beta)
                 {
-                    this->head.at(alpha).at(beta).at(iomega) += std::complex<double>(1.0, 0.0);
+                    this->head.at(iomega)(alpha, beta) += std::complex<double>(1.0, 0.0);
                 }
             }
         }
@@ -172,13 +203,9 @@ double diele_func::cal_factor(std::string name)
     using librpa_int::TWO_PI;
     using librpa_int::BOHR2ANG;
 
-    const double h_divide_e2 = 25812.80745;
-    const double epsilon0 = 8.854187817e-12;
-    const double hbar = 1.05457182e-34;
-    const double eV = 1.60217662e-19;
     double dielectric_unit;
     //! Bohr to A
-    const double primitive_cell_volume = latvec_.Det() * BOHR2ANG * BOHR2ANG * BOHR2ANG;
+    const double primitive_cell_volume = pbc_.latvec.Det() * BOHR2ANG * BOHR2ANG * BOHR2ANG;
     // latvec.print();
     if (name == "head")
     {
@@ -202,66 +229,6 @@ double diele_func::cal_factor(std::string name)
     return dielectric_unit;
 };
 
-void diele_func::init_headwing(double vq_threshold,
-                               const librpa_int::atpair_k_cplx_mat_t &Vq)
-{
-    // const int n_abf = LIBRPA::atomic_basis_abf.nb_total;
-    get_Xv(vq_threshold, Vq);
-    head.clear();
-    wing.clear();
-    wing_mu.clear();
-    head.resize(3);
-    wing.resize(3);
-    wing_mu.resize(3);
-    for (int alpha = 0; alpha < 3; alpha++)
-    {
-        head[alpha].resize(3);
-        wing[alpha].resize(n_nonsingular - 1);
-        wing_mu[alpha].resize(n_abf);
-        for (int beta = 0; beta < 3; beta++)
-        {
-            head[alpha][beta].resize(this->omega.size());
-            for (int iomega = 0; iomega != this->omega.size(); iomega++)
-            {
-                this->head.at(alpha).at(beta).at(iomega) = std::complex<double>(0.0, 0.0);
-            }
-        }
-        for (int mu = 0; mu < n_abf; mu++)
-        {
-            wing_mu[alpha][mu].resize(this->omega.size());
-            for (int iomega = 0; iomega != this->omega.size(); iomega++)
-            {
-                this->wing_mu.at(alpha).at(mu).at(iomega) = std::complex<double>(0.0, 0.0);
-            }
-        }
-        for (int lambda = 0; lambda < n_nonsingular - 1; lambda++)
-        {
-            wing[alpha][lambda].resize(this->omega.size());
-            for (int iomega = 0; iomega != this->omega.size(); iomega++)
-            {
-                this->wing.at(alpha).at(lambda).at(iomega) = std::complex<double>(0.0, 0.0);
-            }
-        }
-    }
-};
-
-void diele_func::test_head()
-{
-    std::cout << "BEGIN test head !!!!!!!!!!" << std::endl;
-    for (int iomega = 0; iomega != this->omega.size(); iomega++)
-    {
-        std::complex<double> df = 0;
-        for (int alpha = 0; alpha != 3; alpha++)
-        {
-            df += this->head.at(alpha).at(alpha).at(iomega);
-            // std::cout << alpha << ", " << this->head.at(alpha).at(alpha).at(iomega) << std::endl;
-        }
-        std::cout << this->omega[iomega] << " " << df.real() / 3.0 << " " << df.imag() / 3.0
-                  << std::endl;
-    }
-    std::cout << "END test head !!!!!!!!!!" << std::endl;
-    // std::exit(0);
-};
 
 void diele_func::cal_wing(const librpa_int::Cs_LRI &Cs_data)
 {
@@ -277,7 +244,7 @@ void diele_func::cal_wing(const librpa_int::Cs_LRI &Cs_data)
         {
             for (int mu = 0; mu != n_abf; mu++)
             {
-                this->wing_mu.at(alpha).at(mu).at(iomega) = compute_wing(alpha, iomega, mu);
+                this->wing_mu.at(iomega)(mu, alpha) = compute_wing(alpha, iomega, mu);
             }
         }
     }
@@ -291,10 +258,10 @@ void diele_func::cal_wing(const librpa_int::Cs_LRI &Cs_data)
             {
                 if (n_spin == 1)
                 {
-                    this->wing_mu.at(alpha).at(mu).at(iomega) *= -dielectric_unit * 2.0;
+                    this->wing_mu.at(iomega)(mu, alpha) *= -dielectric_unit * 2.0;
                 }
                 else if (n_spin == 4)
-                    this->wing_mu.at(alpha).at(mu).at(iomega) *= -dielectric_unit;
+                    this->wing_mu.at(iomega)(mu, alpha) *= -dielectric_unit;
             }
         }
     }
@@ -313,11 +280,11 @@ void diele_func::tranform_mu_to_lambda()
             {
                 for (int mu = 0; mu != n_abf; mu++)
                 {
-                    this->wing.at(alpha).at(lambda).at(iomega) +=
+                    this->wing.at(iomega)(lambda, alpha) +=
                         conj(this->Coul_vector.at(lambda).at(mu)) *
-                        wing_mu.at(alpha).at(mu).at(iomega);
+                        this->wing_mu.at(iomega)(mu, alpha);
                 }
-                this->wing.at(alpha).at(lambda).at(iomega) *= sqrt(this->Coul_value.at(lambda));
+                this->wing.at(iomega)(lambda, alpha) *= sqrt(this->Coul_value.at(lambda));
             }
         }
     }
@@ -325,10 +292,6 @@ void diele_func::tranform_mu_to_lambda()
 
 std::complex<double> diele_func::compute_wing(int alpha, int iomega, int mu)
 {
-    using librpa_int::HA2EV;
-
-    const int nk = this->meanfield_df.get_n_kpoints();
-    const int nbands = this->meanfield_df.get_n_bands();
     auto &wg = this->meanfield_df.get_weight()[n_spin - 1];
     auto &velocity = this->meanfield_df.get_velocity();
     auto &eigenvalues = this->meanfield_df.get_eigenvals();
@@ -349,9 +312,9 @@ std::complex<double> diele_func::compute_wing(int alpha, int iomega, int mu)
     {
         for (int ik = 0; ik != nk; ik++)
         {
-            for (int iocc = 0; iocc != nbands; iocc++)
+            for (int iocc = 0; iocc != n_states; iocc++)
             {
-                for (int iunocc = iocc; iunocc != nbands; iunocc++)
+                for (int iunocc = iocc; iunocc != n_states; iunocc++)
                 {
                     double egap = (eigenvalues[ispin](ik, iunocc) -
                                    eigenvalues[ispin](ik, iocc));  // * HA2EV;
@@ -413,8 +376,6 @@ void diele_func::init_Cs(const librpa_int::Cs_LRI &Cs_data)
     using librpa_int::matrix_m;
     using librpa_int::MAJOR;
     using RI::Tensor;
-
-    int nk = this->kfrac_band.size();
     const int n_atom = Cs_data.data_libri.size();
 
     for (int ik = 0; ik != nk; ik++)
@@ -443,15 +404,14 @@ void diele_func::init_Cs(const librpa_int::Cs_LRI &Cs_data)
         }
     }
 
-    int nbands = this->meanfield_df.get_n_bands();
     this->Ctri_mn.resize(n_abf);
     for (int mu = 0; mu != n_abf; mu++)
     {
-        this->Ctri_mn.at(mu).resize(nbands);
-        for (int m = 0; m != nbands; m++)
+        this->Ctri_mn.at(mu).resize(n_states);
+        for (int m = 0; m != n_states; m++)
         {
-            this->Ctri_mn.at(mu).at(m).resize(nbands);
-            for (int n = 0; n != nbands; n++)
+            this->Ctri_mn.at(mu).at(m).resize(n_states);
+            for (int n = 0; n != n_states; n++)
             {
                 for (int ik = 0; ik != nk; ik++)
                 {
@@ -465,7 +425,6 @@ void diele_func::init_Cs(const librpa_int::Cs_LRI &Cs_data)
 
 void diele_func::FT_R2k(const librpa_int::Cs_LRI &Cs_data)
 {
-    int nk = this->kfrac_band.size();
     const int n_atom = Cs_data.data_libri.size();
     // std::cout << "Number of atom: " << n_atom << std::endl;
 
@@ -534,15 +493,12 @@ std::complex<double> diele_func::compute_Cijk(const librpa_int::Cs_LRI &Cs_data,
 
 void diele_func::Cs_ij2mn()
 {
-    int nk = this->kfrac_band.size();
-    int nbands = this->meanfield_df.get_n_bands();
-
 #pragma omp parallel for schedule(dynamic) collapse(4)
     for (int ik = 0; ik != nk; ik++)
     {
-        for (int m = 0; m != nbands; m++)
+        for (int m = 0; m != n_states; m++)
         {
-            for (int n = 0; n != nbands; n++)
+            for (int n = 0; n != n_states; n++)
             {
                 for (int mu = 0; mu != n_abf; mu++)
                 {
@@ -597,6 +553,8 @@ std::complex<double> diele_func::compute_Cs_ij2mn(int mu, int m, int n, int ik)
 };
 
 void diele_func::get_Xv(double vq_threshold, const librpa_int::atpair_k_cplx_mat_t &Vq)
+// real double diagonalization
+// Note complex diagonalization conserves symmetry much better
 {
     using namespace librpa_int;
     using RI::Tensor;
@@ -605,7 +563,101 @@ void diele_func::get_Xv(double vq_threshold, const librpa_int::atpair_k_cplx_mat
 
     this->Coul_vector.clear();
     this->Coul_value.clear();
-    const std::complex<double> CONE{1.0, 0.0};
+    const double CONE = 1.0;
+    std::array<double, 3> qa = {0.0, 0.0, 0.0};
+    Vector3_Order<double> q = {0.0, 0.0, 0.0};
+    size_t n_singular;
+    vec<double> eigenvalues(n_abf);
+
+    const auto &comm_h = mpi_comm_global_h;
+
+    comm_h.barrier();
+    BlacsCtxtHandler blacs_h(comm_h.comm);
+
+    ArrayDesc desc_nabf_nabf(blacs_h);
+    desc_nabf_nabf.init_square_blk(n_abf, n_abf, 0, 0);
+    const auto set_IJ_nabf_nabf =
+        get_necessary_IJ_from_block_2D_sy('U', atomic_basis_abf_, desc_nabf_nabf);
+    const auto s0_s1 = get_s0_s1_for_comm_map2_first(set_IJ_nabf_nabf);
+    auto coul_eigen_block = init_local_mat<double>(desc_nabf_nabf, MAJOR::COL);
+    auto coulwc_block = init_local_mat<double>(desc_nabf_nabf, MAJOR::COL);
+    coulwc_block.zero_out();
+    std::map<int, std::map<std::pair<int, std::array<double, 3>>, RI::Tensor<double>>>
+        couleps_libri;
+    const int natom = atomic_basis_abf_.n_atoms;
+    const auto atpair_local = dispatch_upper_triangular_tasks(
+        natom, blacs_h.myid, blacs_h.nprows, blacs_h.npcols,
+        blacs_h.myprow, blacs_h.mypcol);
+    for (const auto &Mu_Nu : atpair_local)
+    {
+        const auto Mu = Mu_Nu.first;
+        const auto Nu = Mu_Nu.second;
+        // ofs_myid << "Mu " << Mu << " Nu " << Nu << endl;
+        if (Vq.count(Mu) == 0 || Vq.at(Mu).count(Nu) == 0 || Vq.at(Mu).at(Nu).count(q) == 0)
+            continue;
+        auto Vq_cpl = *(Vq.at(Mu).at(Nu).at(q));
+        const auto &Vq0 = std::make_shared<matrix>(Vq_cpl.real());
+        // const auto &Vq0 = Vq.at(Mu).at(Nu).at(q);
+        const auto n_mu = atomic_basis_abf_.get_atom_nb(Mu);
+        const auto n_nu = atomic_basis_abf_.get_atom_nb(Nu);
+        std::valarray<double> Vq_va(Vq0->c, Vq0->size);
+        auto pvq = std::make_shared<std::valarray<double>>();
+        *pvq = Vq_va;
+        couleps_libri[Mu][{Nu, qa}] = RI::Tensor<double>({n_mu, n_nu}, pvq);
+    }
+    const auto IJq_coul = RI::Communicate_Tensors_Map_Judge::comm_map2_first(
+        mpi_comm_global_h.comm, couleps_libri, s0_s1.first, s0_s1.second);
+    collect_block_from_ALL_IJ_Tensor(coulwc_block, desc_nabf_nabf, atomic_basis_abf_, qa,
+                                     true, CONE, IJq_coul, MAJOR::ROW);
+    power_hemat_blacs_real(coulwc_block, desc_nabf_nabf, coul_eigen_block, desc_nabf_nabf,
+                           n_singular, eigenvalues.c, 1.0, vq_threshold);
+    this->n_nonsingular = n_abf - n_singular;
+    for (int iv = 1; iv != n_nonsingular; iv++)
+    {
+        // Here eigen solved by Scalapack is ascending order,
+        // however, what we want is descending order.
+        this->Coul_value.push_back(eigenvalues.c[iv] + 0.0);  // throw away the largest one
+        std::vector<std::complex<double>> newRow;
+
+        for (int jabf = 0; jabf != n_abf; jabf++)
+        {
+            newRow.push_back(coul_eigen_block(jabf, iv));
+        }
+        this->Coul_vector.push_back(newRow);
+    }
+
+    std::cout << "The largest/smallest eigenvalue of Coulomb matrix(non-singular): "
+              << this->Coul_value.front() << ", " << this->Coul_value.back() << std::endl;
+    std::cout << "The 1st/2nd/3rd/-1th eigenvalue of Coulomb matrix(Full): " << eigenvalues.c[0]
+              << ", " << eigenvalues.c[1] << ", " << eigenvalues.c[2] << ", "
+              << eigenvalues.c[n_abf - 1] << std::endl;
+    std::cout << "Dim of eigenvectors: " << coul_eigen_block.nr() << ", "
+              << coul_eigen_block.nc() << std::endl;
+    /*std::cout << "Coulomb vector: lambda=-1" << std::endl;
+    for (int j = 0; j != n_abf; j++)
+    {
+        std::cout << j << "," << coul_eigen_block(j, 0) << std::endl;
+    }
+    std::cout << "Coulomb vector: lambda=0" << std::endl;
+    for (int j = 0; j != n_abf; j++)
+    {
+        std::cout << j << "," << Coul_vector[0][j] << std::endl;
+    }
+    std::cout << "Coulomb vector: lambda=1" << std::endl;
+    for (int j = 0; j != n_abf; j++)
+    {
+        std::cout << j << "," << Coul_vector[1][j] << std::endl;
+    }*/
+    std::cout << "* Success: diagonalize Coulomb matrix in the ABFs repre.\n";
+};
+
+// complex diagonalization
+/*void diele_func::get_Xv()
+{
+    this->Coul_vector.clear();
+    this->Coul_value.clear();
+    const complex<double> CONE{1.0, 0.0};
+>>>>>>> efab3ee (Fix bugs: descending order of diagonalization):src/dielecmodel.cpp
     std::array<double, 3> qa = {0.0, 0.0, 0.0};
     Vector3_Order<double> q = {0.0, 0.0, 0.0};
     size_t n_singular;
@@ -648,33 +700,41 @@ void diele_func::get_Xv(double vq_threshold, const librpa_int::atpair_k_cplx_mat
         mpi_comm_global_h.comm, couleps_libri, s0_s1.first, s0_s1.second);
     collect_block_from_ALL_IJ_Tensor(coulwc_block, desc_nabf_nabf, atomic_basis_abf_, qa,
                                      true, CONE, IJq_coul, MAJOR::ROW);
+<<<<<<< HEAD:src/core/dielecmodel.cpp
     power_hemat_blacs(coulwc_block, desc_nabf_nabf, coul_eigen_block, desc_nabf_nabf, n_singular,
                       eigenvalues.c, 1.0, vq_threshold);
+=======
+    power_hemat_blacs_desc(coulwc_block, desc_nabf_nabf, coul_eigen_block, desc_nabf_nabf,
+                           n_singular, eigenvalues.c, 1.0, Params::vq_threshold);
+>>>>>>> efab3ee (Fix bugs: descending order of diagonalization):src/dielecmodel.cpp
     this->n_nonsingular = n_abf - n_singular;
-    for (int iv = n_abf - 2; iv != n_abf - n_nonsingular - 1; iv--)
+    std::cout << "n_singular: " << n_singular << std::endl;
+    for (int iv = 1; iv != n_nonsingular; iv++)
     {
         // Here eigen solved by Scalapack is ascending order,
         // however, what we want is descending order.
         this->Coul_value.push_back(eigenvalues.c[iv]);  // throw away the largest one
         std::vector<std::complex<double>> newRow;
 
-        // for (int jabf = n_abf - 1; jabf != -1; jabf--)
         for (int jabf = 0; jabf != n_abf; jabf++)
         {
+<<<<<<< HEAD:src/core/dielecmodel.cpp
             // newRow.push_back(coul_eigen_block.dataobj[jabf * n_abf + iv]);
             newRow.push_back(coul_eigen_block.ptr()[iv * n_abf + jabf]);
             //  if (coul_eigen_block.dataobj[iv * n_abf + jabf].imag() != 0.0)
             //      std::cout << "Imagine of Coulomb vector: " << iv << ", " << jabf << ", "
             //                << coul_eigen_block.dataobj[iv * n_abf + jabf] << std::endl;
             //   newRow.push_back(coul_eigen_block.dataobj[jabf * n_abf + iv]);
+=======
+            newRow.push_back(coul_eigen_block(jabf, iv));
+>>>>>>> efab3ee (Fix bugs: descending order of diagonalization):src/dielecmodel.cpp
         }
         this->Coul_vector.push_back(newRow);
     }
-    // std::reverse(this->Coul_value.begin(), this->Coul_value.end());
-    // std::reverse(this->Coul_vector.begin(), this->Coul_vector.end());
 
     std::cout << "The largest/smallest eigenvalue of Coulomb matrix(non-singular): "
               << this->Coul_value.front() << ", " << this->Coul_value.back() << std::endl;
+<<<<<<< HEAD:src/core/dielecmodel.cpp
     std::cout << "The 1st/2nd/3rd/-1th eigenvalue of Coulomb matrix(Full): "
               << eigenvalues.c[n_abf - 1] << ", " << eigenvalues.c[n_abf - 2] << ", "
               << eigenvalues.c[n_abf - 3] << ", " << eigenvalues.c[0] << std::endl;
@@ -684,13 +744,50 @@ void diele_func::get_Xv(double vq_threshold, const librpa_int::atpair_k_cplx_mat
     for (int j = 0; j != n_abf; j++)
     {
         std::cout << j << "," << coul_eigen_block.ptr()[(n_abf - 1) * n_abf + j] << std::endl;
+=======
+    std::cout << "The 1st/2nd/3rd/-1th eigenvalue of Coulomb matrix(Full): " << eigenvalues.c[0]
+              << ", " << eigenvalues.c[1] << ", " << eigenvalues.c[2] << ", "
+              << eigenvalues.c[n_abf - 1] << std::endl;
+    std::cout << "Dim of eigenvectors: " << coul_eigen_block.dataobj.nr() << ", "
+              << coul_eigen_block.dataobj.nc() << std::endl;
+    std::cout << "Coulomb vector: lambda=-1" << std::endl;
+    for (int j = 0; j != n_abf; j++)
+    {
+        std::cout << j << "," << coul_eigen_block(j, 0) << std::endl;
+    }
+    std::cout << "Coulomb vector: lambda=0" << std::endl;
+    for (int j = 0; j != n_abf; j++)
+    {
+        std::cout << j << "," << Coul_vector[0][j] << std::endl;
+>>>>>>> efab3ee (Fix bugs: descending order of diagonalization):src/dielecmodel.cpp
     }
     std::cout << "Coulomb vector: lambda=1" << std::endl;
     for (int j = 0; j != n_abf; j++)
     {
+<<<<<<< HEAD:src/core/dielecmodel.cpp
         std::cout << j << "," << coul_eigen_block.ptr()[(n_abf - 2) * n_abf + j] << std::endl;
+=======
+        std::cout << j << "," << Coul_vector[1][j] << std::endl;
+>>>>>>> efab3ee (Fix bugs: descending order of diagonalization):src/dielecmodel.cpp
     }
     std::cout << "* Success: diagonalize Coulomb matrix in the ABFs repre.\n";
+};*/
+
+void diele_func::test_head()
+{
+    std::cout << "BEGIN test head !!!!!!!!!!" << std::endl;
+    for (int iomega = 0; iomega != this->omega.size(); iomega++)
+    {
+        std::complex<double> df = 0;
+        for (int alpha = 0; alpha != 3; alpha++)
+        {
+            df += this->head.at(iomega)(alpha, alpha);
+        }
+        std::cout << this->omega[iomega] << " " << df.real() / 3.0 << " " << df.imag() / 3.0
+                  << std::endl;
+    }
+    std::cout << "END test head !!!!!!!!!!" << std::endl;
+    // std::exit(0);
 };
 
 void diele_func::test_wing()
@@ -710,19 +807,264 @@ void diele_func::test_wing()
     {
         std::complex<double> df = 0;
         // z direction
-        df = this->wing_mu.at(2).at(mu).at(0);
+        df = this->wing_mu.at(0)(mu, 2);
 
         std::cout << mu << " " << df.real() << " " << df.imag() << std::endl;
     }
-    std::cout << "wing_lambda(z, iomega=0) vs lambda" << std::endl;
+    /*std::cout << "wing_lambda(z, iomega=0) vs lambda" << std::endl;
     for (int lambda = 0; lambda != n_nonsingular - 1; lambda++)
     {
         std::complex<double> df = 0;
         // z direction
-        df = this->wing.at(2).at(lambda).at(0);
+        df = this->wing.at(0)(lambda, 2);
 
         std::cout << lambda << " " << df.real() << " " << df.imag() << std::endl;
     }
+<<<<<<< HEAD:src/core/dielecmodel.cpp
     std::cout << "END test wing !!!!!!!!!!" << std::endl;
     std::exit(0);
+}
+=======
+    std::cout << "END test wing !!!!!!!!!!" << std::endl;*/
+    // std::exit(0);
+};
+
+void diele_func::get_body_inv(matrix_m<std::complex<double>> &chi0_block)
+{
+    using librpa_int::ArrayDesc;
+    using librpa_int::global::mpi_comm_global_h;
+
+    mpi_comm_global_h.barrier();
+    BlacsCtxtHandler blacs_h(mpi_comm_global_h.comm);
+    ArrayDesc desc_nabf_nabf(blacs_h);
+    desc_nabf_nabf.init_square_blk(n_nonsingular - 1, n_nonsingular - 1, 0, 0);
+    this->body_inv = init_local_mat<complex<double>>(desc_nabf_nabf, MAJOR::COL);
+
+    for (int ilambda = 0; ilambda < n_nonsingular - 1; ilambda++)
+    {
+        for (int jlambda = 0; jlambda < n_nonsingular - 1; jlambda++)
+        {
+            body_inv(ilambda, jlambda) = chi0_block(1 + ilambda, 1 + jlambda);
+        }
+    }
+    /*std::cout << "Here body: " << std::endl;
+    for (int i = 0; i < 5; i++)
+    {
+        std::cout << i << "," << body_inv(i, i) << std::endl;
+    }*/
+    invert_scalapack(body_inv, desc_nabf_nabf);
+    /*std::cout << "Here binv: " << std::endl;
+    for (int i = 0; i < 5; i++)
+    {
+        std::cout << i << "," << body_inv(i, i) << std::endl;
+    }*/
+
+    // test invert
+    /*matrix_m<std::complex<double>> test(2, 2, MAJOR::COL);
+    Array_Desc desc_2_2(blacs_ctxt_global_h);
+    desc_2_2.init_square_blk(2, 2, 0, 0);
+    test = init_local_mat<complex<double>>(desc_2_2, MAJOR::COL);
+    test(0, 0) = 1;
+    test(0, 1) = 2;
+    test(1, 0) = 3;
+    test(1, 1) = 4;
+    invert_scalapack(test, desc_2_2);
+    std::cout << test(0, 0) << "," << test(0, 1) << "," << test(1, 0) << "," << test(1, 1)
+              << std::endl;*/
+    // test invert
+
+    // std::cout << "* Success: get inverse body of chi0.\n";
+};
+
+void diele_func::construct_L(const int ifreq)
+{
+    matrix_m<std::complex<double>> tmp(3, 3, MAJOR::COL);
+    tmp = head.at(ifreq) - transpose(wing.at(ifreq), true) * body_inv * wing.at(ifreq);
+    this->Lind = tmp;
+};
+
+void diele_func::get_Leb_points()
+{
+    auto quad_order = lebedev::QuadratureOrder::order_590;
+    auto quad_points = lebedev::QuadraturePoints(quad_order);
+    qx_leb = quad_points.get_x();
+    qy_leb = quad_points.get_y();
+    qz_leb = quad_points.get_z();
+    qw_leb = quad_points.get_weights();
+    for (int ileb = 0; ileb != qw_leb.size(); ileb++)
+    {
+        qw_leb[ileb] *= 2 * TWO_PI;
+    }
+};
+
+void diele_func::get_g_enclosing_gamma()
+{
+    g_enclosing_gamma.clear();
+    g_enclosing_gamma.resize(26);
+    const auto &kv_nmp = pbc_.period_array;
+    const auto &G = pbc_.G;
+    int ik = 0;
+    for (int a = -1; a != 2; a++)
+    {
+        for (int b = -1; b != 2; b++)
+        {
+            for (int c = -1; c != 2; c++)
+            {
+                if (a == 0 && b == 0 && c == 0) continue;
+                g_enclosing_gamma.at(ik) = {
+                    G.e11 * a / kv_nmp[0] + G.e12 * b / kv_nmp[1] + G.e13 * c / kv_nmp[2],
+                    G.e21 * a / kv_nmp[0] + G.e22 * b / kv_nmp[1] + G.e23 * c / kv_nmp[2],
+                    G.e31 * a / kv_nmp[0] + G.e32 * b / kv_nmp[1] + G.e33 * c / kv_nmp[2]};
+
+                ik++;
+            }
+        }
+    }
+};
+
+void diele_func::calculate_q_gamma()
+{
+    q_gamma.clear();
+    q_gamma.resize(qw_leb.size());
+#pragma omp parallel for schedule(dynamic)
+    for (int ileb = 0; ileb != qw_leb.size(); ileb++)
+    {
+        double qmax = 1.0e10;
+        Vector3_Order<double> q_quta = {qx_leb[ileb], qy_leb[ileb], qz_leb[ileb]};
+        for (int ik = 0; ik != 26; ik++)
+        {
+            double denominator = q_quta * g_enclosing_gamma[ik];
+            if (denominator > 1.0e-10)
+            {
+                double numerator = 0.5 * g_enclosing_gamma[ik] * g_enclosing_gamma[ik];
+                double temp = numerator / denominator;
+                qmax = std::min(qmax, temp);
+            }
+        }
+        q_gamma[ileb] = qmax;
+    }
+};
+
+void diele_func::cal_eps(const int ifreq)
+{
+    using librpa_int::ArrayDesc;
+    using librpa_int::global::mpi_comm_global_h;
+
+    const auto &comm_h = mpi_comm_global_h;
+    comm_h.barrier();
+
+    BlacsCtxtHandler blacs_h(comm_h.comm);
+
+    ArrayDesc desc_nabf_nabf(blacs_h);
+    desc_nabf_nabf.init_square_blk(n_abf, n_abf, 0, 0);
+    this->chi0 = init_local_mat<complex<double>>(desc_nabf_nabf, MAJOR::COL);
+
+    const double k_volume = pbc_.G.Det();
+    this->vol_gamma = k_volume / nk;
+    double vol_gamma_numeric = 0.0;
+    if (ifreq == 0)
+    {
+        for (int ileb = 0; ileb != qw_leb.size(); ileb++)
+        {
+            vol_gamma_numeric += qw_leb[ileb] * std::pow(q_gamma[ileb], 3) / 3.0;
+        }
+        std::cout << "Number of angular grids for average inverse dielectric matrix: "
+                  << qw_leb.size() << std::endl;
+        std::cout << "vol_gamma_numeric/vol_gamma: " << vol_gamma_numeric << ", " << vol_gamma
+                  << std::endl;
+        std::cout << "Angular quadrature accuracy for volume: " << vol_gamma_numeric / vol_gamma
+                  << " (should be close to 1)" << std::endl;
+    }
+    /*std::cout << "major of Matz: " << wing[0].is_row_major() << "," << body_inv.is_row_major()
+              << "," << transpose(wing.at(0), true).is_row_major() << "," << Lind.is_row_major()
+              << std::endl;*/
+    construct_L(ifreq);
+
+#pragma omp parallel for schedule(dynamic) collapse(2)
+    for (int i = 0; i != n_nonsingular; i++)
+    {
+        for (int j = 0; j != n_nonsingular; j++)
+        {
+            if (i == 0 || j == 0)
+            {
+                if (i == 0 && j == 0)
+                {
+                    chi0(i, j) = compute_chi0_inv_00(ifreq);
+                }
+                else
+                    chi0(i, j) = 0.0;
+            }
+            else
+                chi0(i, j) = compute_chi0_inv_ij(ifreq, i - 1, j - 1);
+            /*if (i == j)
+            {
+                chi0(i, j) -= 1.0;
+            }*/
+        }
+    }
+    std::cout << "* Success: calculate average inverse dielectric matrix no." << ifreq + 1 << ".\n";
+};
+
+std::complex<double> diele_func::compute_chi0_inv_00(const int ifreq)
+{
+    std::complex<double> total = 0.0;
+    for (int ileb = 0; ileb != qw_leb.size(); ileb++)
+    {
+        matrix_m<std::complex<double>> q_unit(3, 1, MAJOR::COL);
+        q_unit(0, 0) = qx_leb[ileb];
+        q_unit(1, 0) = qy_leb[ileb];
+        q_unit(2, 0) = qz_leb[ileb];
+
+        /*auto a = transpose(q_unit, false) * q_unit;
+        if (ifreq == 0)
+        {
+            std::cout << "L: " << Lind(0, 0) << std::endl;
+            std::cout << "qTq: " << a(0, 0) << std::endl;
+        }*/
+
+        auto den = transpose(q_unit, false) * Lind * q_unit;
+        total += qw_leb[ileb] * std::pow(q_gamma[ileb], 3) / den(0, 0);
+    }
+    total *= 1.0 / 3.0 / vol_gamma;
+    // if (ifreq == 0) std::cout << "* Success: calculate epsilon_00.\n";
+    return total;
+};
+
+std::complex<double> diele_func::compute_chi0_inv_ij(const int ifreq, int i, int j)
+{
+    std::complex<double> total = 0.0;
+    matrix_m<std::complex<double>> body_inv_i(1, n_nonsingular - 1, MAJOR::COL);
+    matrix_m<std::complex<double>> body_inv_j(n_nonsingular - 1, 1, MAJOR::COL);
+    for (int ii = 0; ii != n_nonsingular - 1; ii++)
+    {
+        body_inv_i(0, ii) = body_inv(i, ii);
+        body_inv_j(ii, 0) = body_inv(ii, j);
+    }
+    for (int ileb = 0; ileb != qw_leb.size(); ileb++)
+    {
+        matrix_m<std::complex<double>> q_unit(3, 1, MAJOR::COL);
+        q_unit(0, 0) = qx_leb[ileb];
+        q_unit(1, 0) = qy_leb[ileb];
+        q_unit(2, 0) = qz_leb[ileb];
+        auto den = transpose(q_unit, false) * Lind * q_unit;
+        auto bwq_i = body_inv_i * wing.at(ifreq) * q_unit;
+        auto qwb_j = transpose(q_unit, false) * transpose(wing.at(ifreq), true) * body_inv_j;
+        total += qw_leb[ileb] * std::pow(q_gamma[ileb], 3) * bwq_i(0, 0) * qwb_j(0, 0) / den(0, 0);
+    }
+    total *= 1.0 / 3.0 / vol_gamma;
+    total += body_inv(i, j);
+
+    // if (ifreq == 0 && i == 1 && j == 1) std::cout << "* Success: calculate epsilon_11.\n";
+    return total;
+};
+
+void diele_func::rewrite_eps(matrix_m<std::complex<double>> &chi0_block, const int ifreq)
+{
+    get_body_inv(chi0_block);
+    cal_eps(ifreq);
+    chi0_block = this->chi0;
+    /*if (ifreq == 0)
+        std::cout << "* Success: replace average inverse dielectric matrix with head and wing.\n";*/
+};
+
 }

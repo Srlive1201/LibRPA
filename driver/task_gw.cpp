@@ -4,7 +4,11 @@
 #include "chi0.h"
 #include "constants.h"
 #include "coulmat.h"
+<<<<<<< HEAD
 #include "driver_params.h"
+=======
+#include "dielecmodel.h"
+>>>>>>> Fix bugs: descending order of diagonalization
 #include "driver_utils.h"
 #include "envs_blacs.h"
 #include "envs_io.h"
@@ -181,7 +185,10 @@ void task_g0w0()
         Wc_freq_q;
     if (Params::use_scalapack_gw_wc)
     {
-        Wc_freq_q = compute_Wc_freq_q_blacs(chi0, Vq, Vq_cut, epsmac_LF_imagfreq);
+        if (Params::option_dielect_func == 3)
+            Wc_freq_q = compute_Wc_freq_q_blacs_wing(chi0, Vq, Vq_cut, epsmac_LF_imagfreq);
+        else
+            Wc_freq_q = compute_Wc_freq_q_blacs(chi0, Vq, Vq_cut, epsmac_LF_imagfreq);
     }
     else
     {

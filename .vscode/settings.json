@@ -55,7 +55,22 @@
         "typeindex": "cpp",
         "valarray": "cpp",
         "string": "cpp",
-        "random": "cpp"
+        "random": "cpp",
+        "cassert": "cpp",
+        "cerrno": "cpp",
+        "cfloat": "cpp",
+        "ciso646": "cpp",
+        "climits": "cpp",
+        "cstddef": "cpp",
+        "map": "cpp",
+        "set": "cpp",
+        "iterator": "cpp",
+        "memory": "cpp",
+        "ios": "cpp",
+        "locale": "cpp",
+        "queue": "cpp",
+        "stack": "cpp",
+        "cstdbool": "cpp"
     },
     "C_Cpp.errorSquiggles": "disabled"
 }

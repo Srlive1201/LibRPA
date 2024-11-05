@@ -97,7 +97,6 @@ void task_g0w0_band()
     Profiler::cease("read_vq_cut");
 
     std::vector<double> epsmac_LF_imagfreq_re;
-
     if (Params::replace_w_head)
     {
         std::vector<double> omegas_dielect;
@@ -122,19 +121,6 @@ void task_g0w0_band()
     Profiler::stop("g0w0_exx");
     std::flush(ofs_myid);
 
-    //----------test wing------------------------------
-    std::vector<double> test;
-    if (Params::replace_w_head)
-    {
-        std::vector<double> omegas_dielect_test;
-        std::vector<double> dielect_func_test;
-        read_dielec_func("dielecfunc_out", omegas_dielect_test, dielect_func_test);
-
-        test = interpolate_dielec_func(Params::option_dielect_func, omegas_dielect_test,
-                                       dielect_func_test, tfg.get_freq_nodes());
-    }
-    //----------test wing------------------------------
-
     Profiler::start("g0w0_wc", "Build screened interaction");
     vector<std::complex<double>> epsmac_LF_imagfreq(epsmac_LF_imagfreq_re.cbegin(),
                                                     epsmac_LF_imagfreq_re.cend());
@@ -143,7 +129,10 @@ void task_g0w0_band()
         Wc_freq_q;
     if (Params::use_scalapack_gw_wc)
     {
-        Wc_freq_q = compute_Wc_freq_q_blacs(chi0, Vq, Vq_cut, epsmac_LF_imagfreq);
+        if (Params::option_dielect_func == 3)
+            Wc_freq_q = compute_Wc_freq_q_blacs_wing(chi0, Vq, Vq_cut, epsmac_LF_imagfreq);
+        else
+            Wc_freq_q = compute_Wc_freq_q_blacs(chi0, Vq, Vq_cut, epsmac_LF_imagfreq);
     }
     else
     {

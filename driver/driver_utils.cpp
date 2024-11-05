@@ -45,32 +45,31 @@ std::vector<double> interpolate_dielec_func(int option, const std::vector<double
         }
         case 3: /* Read velocity matrix and calculate head and wing */
         {
+            // TODO: converge abacus and aims read_velocity to use on both abacus and aims
             int n_basis, n_states, n_spin;
-            /*using LIBRPA::envs::mpi_comm_global_h;
-            mpi_comm_global_h.barrier();
+            // using LIBRPA::envs::mpi_comm_global_h;
             read_scf_occ_eigenvalues("./pyatb_librpa_df/band_out", pyatb_meanfield);
-            mpi_comm_global_h.barrier();
             read_eigenvector("./pyatb_librpa_df/", pyatb_meanfield);
-            mpi_comm_global_h.barrier();
             read_velocity("./pyatb_librpa_df/velocity_matrix", pyatb_meanfield);
-            mpi_comm_global_h.barrier();
             std::vector<Vector3_Order<double>> kfrac_band;
             kfrac_band =
                 read_band_kpath_info(n_basis, n_states, n_spin, "./pyatb_librpa_df/k_path_info");
 
-            diele_func df(pyatb_meanfield, kfrac_band, frequencies_target, n_basis, n_states,
-                          n_spin);*/
+            df_headwing.set(pyatb_meanfield, kfrac_band, frequencies_target, n_basis, n_states,
+                            n_spin);
 
-            n_basis = meanfield.get_n_aos();
+            /*n_basis = meanfield.get_n_aos();
             n_states = meanfield.get_n_bands();
             n_spin = meanfield.get_n_spins();
             read_velocity_aims(meanfield, "./");
-            diele_func df(meanfield, kfrac_list, frequencies_in, n_basis, n_states, n_spin);
+            df_headwing.set(meanfield, kfrac_list, frequencies_in, n_basis, n_states, n_spin);*/
 
-            df.cal_head();
-            df.test_head();
-            df.cal_wing();
-            df.test_wing();
+            df_headwing.cal_head();
+            df_headwing.test_head();
+            df_headwing.cal_wing();
+            df_headwing.test_wing();
+
+            assert(frequencies_in.size() == frequencies_target.size());
             df_target = df_in;
             break;
         }
