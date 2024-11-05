@@ -6,6 +6,22 @@
 #include "coulmat.h"
 #include "dielecmodel.h"
 #include "driver_params.h"
+#include "driver_utils.h"
+#include "envs_blacs.h"
+#include "envs_io.h"
+#include "envs_mpi.h"
+#include "epsilon.h"
+#include "exx.h"
+#include "gw.h"
+#include "meanfield.h"
+#include "params.h"
+#include "pbc.h"
+#include "profiler.h"
+#include "qpe_solver.h"
+#include "read_data.h"
+#include "ri.h"
+#include "utils_timefreq.h"
+>>>>>>> 3a50eb7 (Fix bugs: descending order of diagonalization)
 #include "write_aims.h"
 
 void task_g0w0()
@@ -169,7 +185,10 @@ void task_g0w0()
         Wc_freq_q;
     if (Params::use_scalapack_gw_wc)
     {
-        Wc_freq_q = compute_Wc_freq_q_blacs(chi0, Vq, Vq_cut, epsmac_LF_imagfreq);
+        if (Params::option_dielect_func == 3)
+            Wc_freq_q = compute_Wc_freq_q_blacs_wing(chi0, Vq, Vq_cut, epsmac_LF_imagfreq);
+        else
+            Wc_freq_q = compute_Wc_freq_q_blacs(chi0, Vq, Vq_cut, epsmac_LF_imagfreq);
     }
     else
     {
