@@ -434,15 +434,19 @@ void read_velocity(const string &file_path, MeanField &mf)
                 int a_index = stoi(alpha) - 1;
                 assert(k_index == ik);
                 assert(a_index == ia);
-                for (int i = 0; i != n_bands * n_aos; i++)
+                for (int i = 0; i != n_bands; i++)
                 {
-                    infile >> single_re >> single_im;
-                    velocity.at(is).at(ik).at(ia).c[i] =
-                        ANG2BOHR * std::complex<double>(stod(single_re), stod(single_im)) / HA2EV;
+                    for (int j = 0; j != n_aos; j++)
+                    {
+                        infile >> single_re >> single_im;
+                        velocity.at(is).at(ik).at(ia)(i, j) =
+                            ANG2BOHR * std::complex<double>(stod(single_re), stod(single_im)) / HA2EV;
+                    }
                 }
             }
         }
     }
+    std::cout << "* Success: read velocity from pyatb_librpa_df(ABACUS)." << std::endl;
 }
 
 void read_velocity_aims(MeanField &mf, const string &file_path)
@@ -554,7 +558,7 @@ void read_velocity_aims(MeanField &mf, const string &file_path)
     }*/
     // std::cout << "px(k=26, m=5, n=40): " << velocity.at(0).at(26).at(0)(5, 40) << std::endl;
     // std::cout << "px(k=26, m=40, n=5): " << velocity.at(0).at(26).at(0)(40, 5) << std::endl;
-    std::cout << "* Success: read the pk matrix of aims." << std::endl;
+    std::cout << "* Success: read moment from moment_KS_spin_01_kpt_*.dat(FHI-aims)." << std::endl;
 }
 
 static size_t handle_Cs_file(const string &file_path, double threshold, const std::vector<atpair_t> &local_atpair)

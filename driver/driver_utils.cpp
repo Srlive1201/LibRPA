@@ -45,10 +45,9 @@ std::vector<double> interpolate_dielec_func(int option, const std::vector<double
         }
         case 3: /* Read velocity matrix and calculate head and wing */
         {
-            // TODO: converge abacus and aims read_velocity to use on both abacus and aims
             int n_basis, n_states, n_spin;
             // using LIBRPA::envs::mpi_comm_global_h;
-            read_scf_occ_eigenvalues("./pyatb_librpa_df/band_out", pyatb_meanfield);
+            /*read_scf_occ_eigenvalues("./pyatb_librpa_df/band_out", pyatb_meanfield);
             read_eigenvector("./pyatb_librpa_df/", pyatb_meanfield);
             read_velocity("./pyatb_librpa_df/velocity_matrix", pyatb_meanfield);
             std::vector<Vector3_Order<double>> kfrac_band;
@@ -56,21 +55,40 @@ std::vector<double> interpolate_dielec_func(int option, const std::vector<double
                 read_band_kpath_info(n_basis, n_states, n_spin, "./pyatb_librpa_df/k_path_info");
 
             df_headwing.set(pyatb_meanfield, kfrac_band, frequencies_target, n_basis, n_states,
-                            n_spin);
+                            n_spin);*/
 
-            /*n_basis = meanfield.get_n_aos();
+            std::string file_abacus = "./pyatb_librpa_df/velocity_matrix";
+            std::string file_aims = "./moment_KS_spin_01_kpt_000001.dat";
+            ifstream infile_abacus;
+            ifstream infile_aims;
+            infile_abacus.open(file_abacus);
+            infile_aims.open(file_aims);
+            if (infile_abacus.is_open())
+            {
+                read_velocity(file_abacus, meanfield);
+            }
+            else if (infile_aims.is_open())
+            {
+                read_velocity_aims(meanfield, "./");
+            }
+            else
+            {
+                throw std::runtime_error("Cannot find moment files for head/wing!");
+            }
+            infile_abacus.close();
+            infile_aims.close();
+
+            n_basis = meanfield.get_n_aos();
             n_states = meanfield.get_n_bands();
             n_spin = meanfield.get_n_spins();
-            read_velocity_aims(meanfield, "./");
-            df_headwing.set(meanfield, kfrac_list, frequencies_in, n_basis, n_states, n_spin);*/
+            df_headwing.set(meanfield, kfrac_list, frequencies_in, n_basis, n_states, n_spin);
 
             df_headwing.cal_head();
             df_headwing.test_head();
             df_headwing.cal_wing();
             df_headwing.test_wing();
 
-            assert(frequencies_in.size() == frequencies_target.size());
-            df_target = df_in;
+            df_target = frequencies_target;
             break;
         }
         default:
