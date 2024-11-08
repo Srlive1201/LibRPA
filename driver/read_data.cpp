@@ -259,10 +259,10 @@ static size_t handle_Cs_file(const string &file_path, double threshold, const ve
         // if(!loc_atp_index.count(ia1))
         //     continue;
         // if (box == Vector3_Order<int>({0, 0, 1}))continue;
-        bool insert_index_only = loc_atp_index.count(ia1) && (*cs_ptr).absmax() >= threshold;
-        set_ao_basis_aux(ia1, ia2, n_i, n_j, n_mu, R, cs_ptr->c, int(insert_index_only));
+        bool keep = loc_atp_index.count(ia1) && (*cs_ptr).absmax() >= threshold;
+        set_ao_basis_aux(ia1, ia2, n_i, n_j, n_mu, R, cs_ptr->c, int(!keep));
         // cout<<cs_ptr->nr<<cs_ptr->nc<<endl;
-        if (insert_index_only)
+        if (!keep)
         {
             cs_discard++;
         }
@@ -312,11 +312,11 @@ static size_t handle_Cs_file_binary(const string &file_path, double threshold, c
         shared_ptr<matrix> cs_ptr = make_shared<matrix>();
         cs_ptr->create(n_i * n_j, n_mu);
         infile.read((char *) cs_ptr->c, n_i * n_j * n_mu * sizeof(double));
-        bool insert_index_only = loc_atp_index.count(ia1) && (*cs_ptr).absmax() >= threshold;
+        bool keep = loc_atp_index.count(ia1) && (*cs_ptr).absmax() >= threshold;
         // cout << (*cs_ptr).absmax() << "\n";
-        set_ao_basis_aux(ia1, ia2, n_i, n_j, n_mu, R, cs_ptr->c, int(insert_index_only));
+        set_ao_basis_aux(ia1, ia2, n_i, n_j, n_mu, R, cs_ptr->c, int(!keep));
         // cout<<cs_ptr->nr<<cs_ptr->nc<<endl;
-        if (insert_index_only)
+        if (!keep)
         {
             cs_discard++;
         }
