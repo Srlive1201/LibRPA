@@ -55,6 +55,7 @@ LibRPA
 
    develop/documentation
    develop/design
+   develop/dataset_format
 
 .. toctree::
    :hidden:
