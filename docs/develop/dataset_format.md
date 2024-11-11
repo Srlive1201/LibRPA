@@ -103,8 +103,8 @@ c(i,n,s)_real c(i,n,s)_imag
 ...
 ```
 The first line contains single integer, the index of the k-point of following data.
-The remaining lines store the data with running index $i$, $n$, $\sigma$ in C order,
-i. e., spin index runs fastest, then state index and basis index finally.
+The remaining lines store the data with running index $i$, $n$, $\sigma$ in C-style row-major order,
+i. e., spin index runs fastest, then state index and finally basis index.
 Each line has two float numbers, which are the real and imaginary part of $c^i_{n,k\sigma}$.
 
 ## `coulomb_mat_xxx.txt`
@@ -130,4 +130,4 @@ where
 
 After the block header, there should be `(row_end-row_start+1)` times `(col_end-col_start+1)` lines
 for the actual matrix element data. Each line contains two float numbers, which are the real and imaginary
-parts of the element. The data is ordered in C-style column major.
+parts of the element. The data is ordered in C-style row major.
