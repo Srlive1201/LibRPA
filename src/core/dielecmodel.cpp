@@ -338,7 +338,9 @@ std::complex<double> diele_func::compute_wing(int alpha, int iomega, int mu)
     {
         for (int ik = 0; ik != nk; ik++)
         {
+#ifdef LIBRPA_DEBUG
             std::complex<double> test_tot = 0.0;
+#endif
             for (int iocc = 0; iocc != n_states; iocc++)
             {
                 for (int iunocc = iocc; iunocc != n_states; iunocc++)
@@ -355,7 +357,28 @@ std::complex<double> diele_func::compute_wing(int alpha, int iomega, int mu)
                                           velocity[ispin][ik][alpha](iunocc, iocc)) /
                                      (omega_ev * omega_ev + egap * egap);
 
-                        /*if (iocc == 5 && iunocc == 40 && alpha == 0 && mu == 0 && iomega == 0)
+/*if (iocc == 5 && iunocc == 40 && alpha == 0 && mu == 0 && iomega == 0)
+{
+    std::cout << "mu, ik: " << mu << "," << ik << std::endl;
+    std::cout << "C: " << std::scientific << std::setprecision(8)
+              << conj(this->Ctri_mn[mu][iocc][iunocc][kfrac_band[ik]])
+              << std::endl;
+    std::cout << "p: " << std::scientific << std::setprecision(8)
+              << conj(velocity[ispin][ik][alpha](iunocc, iocc))
+              << std::endl;
+    std::cout << "E_m, E_n: " << std::scientific << std::setprecision(8)
+              << eigenvalues[ispin](ik, iunocc) << "," << std::scientific
+              << std::setprecision(8) << eigenvalues[ispin](ik, iocc)
+              << std::endl;
+    std::cout << "C*p: "
+              << conj(
+                      this->Ctri_mn[mu][iocc][iunocc][kfrac_band[ik]] *
+                      velocity[ispin][ik][alpha](iunocc, iocc)) /
+                     (omega_ev * omega_ev + egap * egap)
+              << std::endl;
+}*/
+#ifdef LIBRPA_DEBUG
+                        if (alpha == 0 && iomega == 0 && mu == 0)
                         {
                             std::cout << "mu, ik: " << mu << "," << ik << std::endl;
                             std::cout << "C: " << std::scientific << std::setprecision(8)
@@ -374,7 +397,7 @@ std::complex<double> diele_func::compute_wing(int alpha, int iomega, int mu)
                                               velocity[ispin][ik][alpha](iunocc, iocc)) /
                                              (omega_ev * omega_ev + egap * egap)
                                       << std::endl;
-                        }*/
+                        }
                         if (debug)
                         {
                             if (alpha == 0 && iomega == 0 && mu == 0)
@@ -393,6 +416,7 @@ std::complex<double> diele_func::compute_wing(int alpha, int iomega, int mu)
                                 test_tot += test;
                             }
                         }
+#endif
                     }
                     else if (iunocc < nocc && iocc >= nocc)
                     {
