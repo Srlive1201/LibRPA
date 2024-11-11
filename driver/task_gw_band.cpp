@@ -444,7 +444,7 @@ void task_g0w0_band()
         int ik_val = 0;
         int ik_cond = 0;
         int nocc = 0;
-        auto &wg = meanfield.get_weight()[0];
+        auto &wg = mf.get_weight()[0];
         for (int i = 0; i != wg.size; i++)
         {
             if (wg.c[i] == 0.)
@@ -507,7 +507,6 @@ void task_g0w0_band()
                            << std::setprecision(5) << eqp;
                     ofs_hf << std::setw(15) << std::setprecision(5) << occ_state << std::setw(15)
                            << std::setprecision(5) << eks_state - vxc_state + exx_state;
-<<<<<<< HEAD
 
                     // output bandgap
                     if (i_state == nocc - 1 && eqp > valence)  // HOMO
@@ -520,8 +519,6 @@ void task_g0w0_band()
                         conduct = eqp;
                         ik_cond = i_kpoint;
                     }
-=======
->>>>>>> b1f933c (construct head)
                 }
                 ofs_gw << "\n";
                 ofs_hf << "\n";
