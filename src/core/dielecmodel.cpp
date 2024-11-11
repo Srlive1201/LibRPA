@@ -244,7 +244,7 @@ void diele_func::cal_wing(const librpa_int::Cs_LRI &Cs_data)
         {
             for (int mu = 0; mu != n_abf; mu++)
             {
-                this->wing_mu.at(iomega)(mu, alpha) = compute_wing(alpha, iomega, mu) * 1.0I;
+                this->wing_mu.at(iomega)(mu, alpha) = compute_wing(alpha, iomega, mu);
             }
         }
     }
