@@ -20,6 +20,7 @@ k-point in the full set.
 ## `Cs_data_xxx.txt`
 
 These files contain the localized RI triple coefficients.
+
 In plain text format, each file has a header with two integers:
 total number of atoms and number of periodic unit cells.
 Then till the end of file, the data is formatted as blocks of RI coefficient $C$ on each pair of atoms and unit cell
@@ -30,10 +31,32 @@ C(1, 1, 1)
 C(n_aux_basis_1, n_basis_2, n_basis_1)
 ```
 Here `C` is the RI coefficients between the atom `i_atom_1` and `i_atom_2` in unit cells separated by
-$\mathbf{R} = n_1 \mathbf{a}_1 + n_2 \mathbf{a}_2 + n_3 \mathbf{a}_3$.
+lattice vector $\mathbf{R} = n_1 \mathbf{a}_1 + n_2 \mathbf{a}_2 + n_3 \mathbf{a}_3$.
 The auxiliary basis is located on `i_atom_1`. The number of basis functions on `i_atom_1` and `i_atom_2` 
 are `n_basis_1` and `n_basis_2`, respectively. The number of auxiliary functions is `n_aux_basis_1`.
 The indices of `C` runs in the Fortran order, i. e. the first index runs the fastest.
+
+In binary format, the data is organized similarly in the plain text format, except for an extra integer
+is included in the header, which is the number of atom pairs and lattice vectors included in the file.
+The coefficients are saved in double precision. To better illustrate the format of binary file, the
+following Python snippet could be helpful
+```python
+import struct
+import numpy as np
+
+# ensure that "Cs_data_0" exists and was generated with binary output mode in DFT code
+cfile_path = "Cs_data_0.txt"
+
+with open(cfile_path, 'rb') as h:
+    n_atoms, n_cells, n_apcell_file = struct.unpack('iii', h.read(12))
+    for _ in range(n_apcell_file):
+        a1, a2, r1, r2, r3, nb1, nb2, nbb1 = struct.unpack('i' * 8, h.read(4 * 8))
+        apcell = (a1, a2, r1, r2, r3)
+        array_size = nb1 * nb2 * nbb1
+        array = np.array(struct.unpack('d' * array_size, h.read(8 * array_size)))
+        array = np.reshape(array, (nb1, nb2, nbb1))
+        apcells[apcell] = array
+```
 
 ## `band_out`
 
