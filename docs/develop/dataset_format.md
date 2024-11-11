@@ -85,4 +85,26 @@ i. e., spin index runs fastest, then state index and basis index finally.
 Each line has two float numbers, which are the real and imaginary part of $c^i_{n,k\sigma}$.
 
 ## `coulomb_mat_xxx.txt`
-This file contains the Coulomb matrices in auxiliary basis.
+
+These files contains the Coulomb matrices in auxiliary basis.
+A single header line contains an integer, the number of irreducible k-point at
+which the Coulomb matrices are computed.
+The remaining part of the file is organized in blocks
+```
+n_aux_basis    row_start    row_end    col_start    col_end
+i_k_point      k_weight
+v(row_start, col_start  )_real       v(row_start, col_start  )_imag
+v(row_start, col_start+1)_real       v(row_start, col_start+1)_imag
+...
+v(row_end, col_end)_real             v(row_end, col_end)_imag
+```
+where
+- integer `n_aux_basis` is the total number of auxiliary basis functions.
+- integer `row_start`, `row_end`, `col_start` and `col_end` mark the submatrix of the full Coulomb matrix
+  that this block contain.
+- integer `i_k_point` is the index of k-point of the current Coulomb matrix, in the full k-point list.
+- float number `k_weight` is the weight of the irreducible k-points.
+
+After the block header, there should be `(row_end-row_start+1)` times `(col_end-col_start+1)` lines
+for the actual matrix element data. Each line contains two float numbers, which are the real and imaginary
+parts of the element. The data is ordered in C-style column major.
