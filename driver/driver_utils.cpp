@@ -66,10 +66,19 @@ std::vector<double> interpolate_dielec_func(int option, const std::vector<double
             if (infile_abacus.is_open())
             {
                 read_velocity(file_abacus, meanfield);
+                std::vector<Vector3_Order<double>> kfrac_band = read_band_kpath_info(
+                    n_basis, n_states, n_spin, "./pyatb_librpa_df/k_path_info");
+                df_headwing.set(meanfield, kfrac_band, frequencies_target, n_basis, n_states,
+                                n_spin);
             }
             else if (infile_aims.is_open())
             {
                 read_velocity_aims(meanfield, "./");
+                n_basis = meanfield.get_n_aos();
+                n_states = meanfield.get_n_bands();
+                n_spin = meanfield.get_n_spins();
+                df_headwing.set(meanfield, kfrac_list, frequencies_target, n_basis, n_states,
+                                n_spin);
             }
             else
             {
@@ -77,11 +86,6 @@ std::vector<double> interpolate_dielec_func(int option, const std::vector<double
             }
             infile_abacus.close();
             infile_aims.close();
-
-            n_basis = meanfield.get_n_aos();
-            n_states = meanfield.get_n_bands();
-            n_spin = meanfield.get_n_spins();
-            df_headwing.set(meanfield, kfrac_list, frequencies_in, n_basis, n_states, n_spin);
 
             df_headwing.cal_head();
             df_headwing.test_head();
