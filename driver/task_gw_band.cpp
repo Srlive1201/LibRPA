@@ -383,6 +383,21 @@ void task_g0w0_band()
                 }
             }
         }
+        // output bandgap
+        double bandgap = 0.0;
+        double valence = -1.e10;
+        double conduct = 1.e10;
+        int nocc = 0;
+        auto &wg = mf.get_weight()[0];
+        for (int i = 0; i != wg.size; i++)
+        {
+            if (wg.c[i] == 0.)
+            {
+                nocc = i;
+                break;
+            }
+        }
+        lib_printf("Bands of occupation: %4d \n", nocc);
 
         // display results
         for (int i_spin = 0; i_spin < mf.get_n_spins(); i_spin++)
@@ -436,12 +451,24 @@ void task_g0w0_band()
                            << std::setprecision(5) << eqp;
                     ofs_hf << std::setw(15) << std::setprecision(5) << occ_state << std::setw(15)
                            << std::setprecision(5) << eks_state - vxc_state + exx_state;
+
+                    // output bandgap
+                    if (i_state == nocc - 1 && eqp > valence)  // HOMO
+                    {
+                        valence = eqp;
+                    }
+                    else if (i_state == nocc && eqp < conduct)  // LUMO
+                    {
+                        conduct = eqp;
+                    }
                 }
                 ofs_gw << "\n";
                 ofs_hf << "\n";
                 ofs_ks << "\n";
             }
         }
+        bandgap = conduct - valence;
+        lib_printf("Bandgap(eV): %12.7f \n", bandgap);
     }
     Profiler::stop("g0w0_solve_qpe");
 

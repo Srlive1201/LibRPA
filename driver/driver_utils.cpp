@@ -88,9 +88,11 @@ std::vector<double> interpolate_dielec_func(int option, const std::vector<double
             infile_aims.close();
 
             df_headwing.cal_head();
-            df_headwing.test_head();
             df_headwing.cal_wing();
+#ifdef LIBRPA_DEBUG
+            df_headwing.test_head();
             df_headwing.test_wing();
+#endif
 
             df_target = frequencies_target;
             break;
