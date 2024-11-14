@@ -444,7 +444,7 @@ void task_g0w0_band()
         int ik_val = 0;
         int ik_cond = 0;
         int nocc = 0;
-        auto &wg = mf.get_weight()[0];
+        auto &wg = meanfield.get_weight()[0];
         for (int i = 0; i != wg.size; i++)
         {
             if (wg.c[i] == 0.)
