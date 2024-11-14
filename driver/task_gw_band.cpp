@@ -388,7 +388,7 @@ void task_g0w0_band()
         double valence = -1.e10;
         double conduct = 1.e10;
         int nocc = 0;
-        auto &wg = mf.get_weight()[0];
+        auto &wg = meanfield.get_weight()[0];
         for (int i = 0; i != wg.size; i++)
         {
             if (wg.c[i] == 0.)

@@ -205,7 +205,7 @@ double diele_func::cal_factor(std::string name)
 
     double dielectric_unit;
     //! Bohr to A
-    const double primitive_cell_volume = pbc_.latvec.Det() * BOHR2ANG * BOHR2ANG * BOHR2ANG;
+    const double primitive_cell_volume = std::abs(pbc_.latvec.Det());
     // latvec.print();
     if (name == "head")
     {
@@ -292,6 +292,7 @@ void diele_func::tranform_mu_to_lambda()
 
 std::complex<double> diele_func::compute_wing(int alpha, int iomega, int mu)
 {
+    const bool debug = false;
     auto &wg = this->meanfield_df.get_weight()[n_spin - 1];
     auto &velocity = this->meanfield_df.get_velocity();
     auto &eigenvalues = this->meanfield_df.get_eigenvals();
@@ -312,9 +313,7 @@ std::complex<double> diele_func::compute_wing(int alpha, int iomega, int mu)
     {
         for (int ik = 0; ik != nk; ik++)
         {
-#ifdef LIBRPA_DEBUG
             std::complex<double> test_tot = 0.0;
-#endif
             for (int iocc = 0; iocc != n_states; iocc++)
             {
                 for (int iunocc = iocc; iunocc != n_states; iunocc++)
@@ -332,42 +331,44 @@ std::complex<double> diele_func::compute_wing(int alpha, int iomega, int mu)
                                           velocity[ispin][ik][alpha](iunocc, iocc)) /
                                      (omega_ev * omega_ev + egap * egap);
 
-/*if (iocc == 5 && iunocc == 40 && alpha == 0 && mu == 0 && iomega == 0)
-{
-    std::cout << "mu, ik: " << mu << "," << ik << std::endl;
-    std::cout << "C: " << std::scientific << std::setprecision(8)
-              << conj(this->Ctri_mn[mu][iocc][iunocc][kfrac_band[ik]])
-              << std::endl;
-    std::cout << "p: " << std::scientific << std::setprecision(8)
-              << conj(velocity[ispin][ik][alpha](iunocc, iocc))
-              << std::endl;
-    std::cout << "E_m, E_n: " << std::scientific << std::setprecision(8)
-              << eigenvalues[ispin](ik, iunocc) << "," << std::scientific
-              << std::setprecision(8) << eigenvalues[ispin](ik, iocc)
-              << std::endl;
-    std::cout << "C*p: "
-              << conj(
-                      this->Ctri_mn[mu][iocc][iunocc][kfrac_band[ik]] *
-                      velocity[ispin][ik][alpha](iunocc, iocc)) /
-                     (omega_ev * omega_ev + egap * egap)
-              << std::endl;
-}*/
-#ifdef LIBRPA_DEBUG
-                        if (alpha == 0 && iomega == 0 && mu == 0)
+                        /*if (iocc == 5 && iunocc == 40 && alpha == 0 && mu == 0 && iomega == 0)
                         {
-                            std::complex<double> test =
-                                conj(Ctri_mn[mu][iocc][iunocc][kfrac_band[ik]] *
-                                     velocity[ispin][ik][alpha](iunocc, iocc)) /
-                                (omega_ev * omega_ev + egap * egap);
-                            if (iocc == 0 && iunocc == 10)
+                            std::cout << "mu, ik: " << mu << "," << ik << std::endl;
+                            std::cout << "C: " << std::scientific << std::setprecision(8)
+                                      << conj(this->Ctri_mn[mu][iocc][iunocc][kfrac_band[ik]])
+                                      << std::endl;
+                            std::cout << "p: " << std::scientific << std::setprecision(8)
+                                      << conj(velocity[ispin][ik][alpha](iunocc, iocc))
+                                      << std::endl;
+                            std::cout << "E_m, E_n: " << std::scientific << std::setprecision(8)
+                                      << eigenvalues[ispin](ik, iunocc) << "," << std::scientific
+                                      << std::setprecision(8) << eigenvalues[ispin](ik, iocc)
+                                      << std::endl;
+                            std::cout << "C*p: "
+                                      << conj(
+                                              this->Ctri_mn[mu][iocc][iunocc][kfrac_band[ik]] *
+                                              velocity[ispin][ik][alpha](iunocc, iocc)) /
+                                             (omega_ev * omega_ev + egap * egap)
+                                      << std::endl;
+                        }*/
+                        if (debug)
+                        {
+                            if (alpha == 0 && iomega == 0 && mu == 0)
                             {
-                                std::cout << "C,p: " << Ctri_mn[mu][iocc][iunocc][kfrac_band[ik]]
-                                          << "," << velocity[ispin][ik][alpha](iunocc, iocc)
-                                          << std::endl;
+                                std::complex<double> test =
+                                    conj(Ctri_mn[mu][iocc][iunocc][kfrac_band[ik]] *
+                                         velocity[ispin][ik][alpha](iunocc, iocc)) /
+                                    (omega_ev * omega_ev + egap * egap);
+                                if (iocc == 0 && iunocc == 10)
+                                {
+                                    std::cout
+                                        << "C,p: " << Ctri_mn[mu][iocc][iunocc][kfrac_band[ik]]
+                                        << "," << velocity[ispin][ik][alpha](iunocc, iocc)
+                                        << std::endl;
+                                }
+                                test_tot += test;
                             }
-                            test_tot += test;
                         }
-#endif
                     }
                     else if (iunocc < nocc && iocc >= nocc)
                     {
@@ -379,12 +380,13 @@ std::complex<double> diele_func::compute_wing(int alpha, int iomega, int mu)
                     }
                 }
             }
-#ifdef LIBRPA_DEBUG
-            if (alpha == 0 && iomega == 0 && mu == 0)
+            if (debug)
             {
-                std::cout << "sum over mn: " << ik << "," << test_tot << std::endl;
+                if (alpha == 0 && iomega == 0 && mu == 0)
+                {
+                    std::cout << "sum over mn: " << ik << "," << test_tot << std::endl;
+                }
             }
-#endif
         }
 
         /*if (alpha == 0 && lambda == 0 && iomega == 0)
@@ -984,7 +986,7 @@ void diele_func::cal_eps(const int ifreq)
     desc_nabf_nabf.init_square_blk(n_abf, n_abf, 0, 0);
     this->chi0 = init_local_mat<complex<double>>(desc_nabf_nabf, MAJOR::COL);
 
-    const double k_volume = pbc_.G.Det();
+    const double k_volume = std::abs(pbc_.G.Det());
     this->vol_gamma = k_volume / nk;
     double vol_gamma_numeric = 0.0;
     if (ifreq == 0)
@@ -1033,6 +1035,7 @@ void diele_func::cal_eps(const int ifreq)
 std::complex<double> diele_func::compute_chi0_inv_00(const int ifreq)
 {
     std::complex<double> total = 0.0;
+
     for (int ileb = 0; ileb != qw_leb.size(); ileb++)
     {
         matrix_m<std::complex<double>> q_unit(3, 1, MAJOR::COL);
@@ -1040,24 +1043,18 @@ std::complex<double> diele_func::compute_chi0_inv_00(const int ifreq)
         q_unit(1, 0) = qy_leb[ileb];
         q_unit(2, 0) = qz_leb[ileb];
 
-        /*auto a = transpose(q_unit, false) * q_unit;
-        if (ifreq == 0)
-        {
-            std::cout << "L: " << Lind(0, 0) << std::endl;
-            std::cout << "qTq: " << a(0, 0) << std::endl;
-        }*/
-
         auto den = transpose(q_unit, false) * Lind * q_unit;
         total += qw_leb[ileb] * std::pow(q_gamma[ileb], 3) / den(0, 0);
     }
     total *= 1.0 / 3.0 / vol_gamma;
-    // if (ifreq == 0) std::cout << "* Success: calculate epsilon_00.\n";
+
     return total;
 };
 
 std::complex<double> diele_func::compute_chi0_inv_ij(const int ifreq, int i, int j)
 {
     std::complex<double> total = 0.0;
+    std::vector<std::complex<double>> partial_sum(qw_leb.size(), 0.0);
     matrix_m<std::complex<double>> body_inv_i(1, n_nonsingular - 1, MAJOR::COL);
     matrix_m<std::complex<double>> body_inv_j(n_nonsingular - 1, 1, MAJOR::COL);
     for (int ii = 0; ii != n_nonsingular - 1; ii++)
@@ -1065,6 +1062,7 @@ std::complex<double> diele_func::compute_chi0_inv_ij(const int ifreq, int i, int
         body_inv_i(0, ii) = body_inv(i, ii);
         body_inv_j(ii, 0) = body_inv(ii, j);
     }
+#pragma omp parallel for schedule(dynamic)
     for (int ileb = 0; ileb != qw_leb.size(); ileb++)
     {
         matrix_m<std::complex<double>> q_unit(3, 1, MAJOR::COL);
@@ -1074,8 +1072,11 @@ std::complex<double> diele_func::compute_chi0_inv_ij(const int ifreq, int i, int
         auto den = transpose(q_unit, false) * Lind * q_unit;
         auto bwq_i = body_inv_i * wing.at(ifreq) * q_unit;
         auto qwb_j = transpose(q_unit, false) * transpose(wing.at(ifreq), true) * body_inv_j;
-        total += qw_leb[ileb] * std::pow(q_gamma[ileb], 3) * bwq_i(0, 0) * qwb_j(0, 0) / den(0, 0);
+
+        partial_sum.push_back(qw_leb[ileb] * std::pow(q_gamma[ileb], 3) * bwq_i(0, 0) *
+                              qwb_j(0, 0) / den(0, 0));
     }
+    total = std::accumulate(partial_sum.begin(), partial_sum.end(), std::complex<double>(0.0, 0.0));
     total *= 1.0 / 3.0 / vol_gamma;
     total += body_inv(i, j);
 
