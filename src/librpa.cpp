@@ -334,7 +334,6 @@ void set_aux_cut_coulomb_k_2D_block(int ik, int max_naux, int mu_begin, int mu_e
 
 void set_librpa_params(LibRPAParams *params_c)
 {
-    Params::task = params_c->task;
     Params::output_file = params_c->output_file;
     Params::output_dir = params_c->output_dir;
     Params::tfgrids_type = params_c->tfgrids_type;
@@ -361,7 +360,6 @@ void set_librpa_params(LibRPAParams *params_c)
 void get_default_librpa_params(LibRPAParams *params_c)
 {
     // All member of LibRPAParams must be set.
-    strcpy(params_c->task,             "rpa");
     strcpy(params_c->output_file,      "stdout");
     strcpy(params_c->output_dir,       "librpa.d");
     strcpy(params_c->parallel_routing, "auto");

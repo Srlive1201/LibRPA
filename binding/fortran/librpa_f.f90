@@ -27,7 +27,6 @@ module librpa
 
    !> @brief User interface for control parameters in LibRPA
    type :: LibRPAParams
-      character(len=20)  :: task
       character(len=100) :: output_file
       character(len=100) :: output_dir
       character(len=20)  :: parallel_routing
@@ -56,7 +55,6 @@ module librpa
 
    !> @brief C interface to the LibRPAParams struct
    type, bind(c) :: LibRPAParams_c
-      character(kind=c_char, len=1) :: task(20)
       character(kind=c_char, len=1) :: output_file(100)
       character(kind=c_char, len=1) :: output_dir(100)
       character(kind=c_char, len=1) :: parallel_routing(20)
@@ -321,7 +319,6 @@ contains
 
       if (f2c) then
          ! Copy Fortran parameters to C
-         call f_c_string_chars(params%task             , params_c%task            , trim_f=.true.)
          call f_c_string_chars(params%output_file      , params_c%output_file     , trim_f=.true.)
          call f_c_string_chars(params%output_dir       , params_c%output_dir      , trim_f=.true.)
          call f_c_string_chars(params%parallel_routing , params_c%parallel_routing, trim_f=.true.)
@@ -348,7 +345,6 @@ contains
          params_c%libri_gw_threshold_W     = params%libri_gw_threshold_W
       else
          ! Copy C parameters to Fortran
-         call c_f_string_chars(params_c%task             , params%task)
          call c_f_string_chars(params_c%output_file      , params%output_file)
          call c_f_string_chars(params_c%output_dir       , params%output_dir)
          call c_f_string_chars(params_c%parallel_routing , params%parallel_routing)

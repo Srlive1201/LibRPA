@@ -24,7 +24,6 @@ extern "C" {
 struct LibRPAParams
 {
     // char array types
-    char task[20];
     char output_file[100];
     char output_dir[100];
     char parallel_routing[20];
