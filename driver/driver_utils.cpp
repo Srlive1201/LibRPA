@@ -65,6 +65,14 @@ std::vector<double> interpolate_dielec_func(int option, const std::vector<double
             infile_aims.open(file_aims);
             if (infile_abacus.is_open())
             {
+                /*read_velocity(file_abacus, meanfield);
+                std::vector<Vector3_Order<double>> kfrac_band = read_band_kpath_info(
+                    n_basis, n_states, n_spin, "./pyatb_librpa_df/k_path_info");
+                df_headwing.set(meanfield, kfrac_band, frequencies_target, n_basis, n_states,
+                                n_spin);*/
+                // read_scf_occ_eigenvalues("./pyatb_librpa_df/band_out", pyatb_meanfield);
+                // read_eigenvector("./pyatb_librpa_df/", pyatb_meanfield);
+
                 read_velocity(file_abacus, meanfield);
                 std::vector<Vector3_Order<double>> kfrac_band = read_band_kpath_info(
                     n_basis, n_states, n_spin, "./pyatb_librpa_df/k_path_info");
@@ -89,11 +97,6 @@ std::vector<double> interpolate_dielec_func(int option, const std::vector<double
 
             df_headwing.cal_head();
             df_headwing.cal_wing();
-            if (Params::debug)
-            {
-                df_headwing.test_head();
-                df_headwing.test_wing();
-            }
 
             df_target = frequencies_target;
             break;
