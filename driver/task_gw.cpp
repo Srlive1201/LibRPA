@@ -21,7 +21,6 @@
 #include "read_data.h"
 #include "ri.h"
 #include "utils_timefreq.h"
->>>>>>> 3a50eb7 (Fix bugs: descending order of diagonalization)
 #include "write_aims.h"
 
 void task_g0w0()

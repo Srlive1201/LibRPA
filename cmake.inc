@@ -10,7 +10,8 @@ endif()
 
 set(CEREAL_INCLUDE_DIR "/home/linpz/software/cereal/cereal-1.3.0/include")
 set(LIBRI_INCLUDE_DIR "/home/ghj/abacus/GW_240302/LibRI-loop3/include")
-set(LIBCOMM_INCLUDE_DIR "/home/ghj/abacus/GW_240302/LibComm/include")
+# set(LIBRI_INCLUDE_DIR "/home/ghj/abacus/LibRI_time-out/include")
+set(LIBCOMM_INCLUDE_DIR "/home/ghj/abacus/241111_librpa/LibComm/include")
 
 
 set(CEREAL_INCLUDE_DIR "/home/elhacedor/LibRPA/thirdparty/cereal-1.3.0/include")
