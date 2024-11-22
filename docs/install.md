@@ -85,4 +85,7 @@ CXX=mpiicpc FC=ifort cmake -DUSE_GREENX_API=ON ..
 ```
 Note that Fortran compiler is required when compiling the GreenX library.
 
-For a comprehensive list of compile options, please refer to the [user guide](user_guide/compile_options).
+Several build scripts are provided in the [`platforms`](https://github.com/Srlive1201/LibRPA/tree/master/platforms) folder to help users
+build LibRPA. You may find and adapt them to build on your platform.
+For a comprehensive list of compile options, please refer to [this page](user_guide/compile_options)
+in the user guide.
