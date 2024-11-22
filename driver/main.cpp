@@ -80,13 +80,6 @@ int main(int argc, char **argv)
     mpi_comm_global_h.barrier();
 
     /*
-     * HACK: A close-to-square process grid is imposed.
-     *       This might subject to performance issue when
-     *       the number of processes is not dividable.
-     */
-    blacs_ctxt_global_h.set_square_grid();
-
-    /*
      * Load computational parameters from input file
      */
     Profiler::start("driver_read_params", "Driver Read Input Parameters");

@@ -50,6 +50,13 @@ void initialize_mpi(const MPI_Comm &mpi_comm_global_in)
     blacs_ctxt_global_h.reset_comm(mpi_comm_global);
     blacs_ctxt_global_h.init();
 
+    /*
+     * HACK: A close-to-square process grid is imposed.
+     *       This might subject to performance issue when
+     *       the number of processes is not dividable.
+     */
+    blacs_ctxt_global_h.set_square_grid();
+
     librpa_mpi_initialized = true;
 }
 
