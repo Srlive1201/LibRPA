@@ -1081,11 +1081,19 @@ std::complex<double> diele_func::compute_chi0_inv_ij(const int ifreq, int i, int
         q_unit(1, 0) = qy_leb[ileb];
         q_unit(2, 0) = qz_leb[ileb];
         auto den = transpose(q_unit, false) * Lind * q_unit;
+        /*std::complex<double> den = 0.0;
+        for (int ii = 0; ii != 3; ii++)
+        {
+            for (int jj = 0; jj != 3; jj++)
+            {
+                den += q_unit(ii, 0) * Lind(ii, jj) * q_unit(jj, 0);
+            }
+        }*/
         auto bwq_i = body_inv_i * wing.at(ifreq) * q_unit;
         auto qwb_j = transpose(q_unit, false) * transpose(wing.at(ifreq), true) * body_inv_j;
 
-        partial_sum.push_back(qw_leb[ileb] * std::pow(q_gamma[ileb], 3) * bwq_i(0, 0) *
-                              qwb_j(0, 0) / den(0, 0));
+        partial_sum[ileb] =
+            qw_leb[ileb] * std::pow(q_gamma[ileb], 3) * bwq_i(0, 0) * qwb_j(0, 0) / den(0, 0);
     }
     total = std::accumulate(partial_sum.begin(), partial_sum.end(), std::complex<double>(0.0, 0.0));
     total *= 1.0 / 3.0 / vol_gamma;
