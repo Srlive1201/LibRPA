@@ -268,11 +268,11 @@ void diele_func::cal_wing(const librpa_int::Cs_LRI &Cs_data)
     tranform_mu_to_lambda();
     std::cout << "* Success: calculate wing term.\n";
 
-    if (Params::debug)
-    {
-        df_headwing.test_head();
-        df_headwing.test_wing();
-    }
+    // if (Params::debug)
+    // {
+    //     df_headwing.test_head();
+    //     df_headwing.test_wing();
+    // }
     this->wing_mu.clear();
     this->Coul_vector.clear();
     this->Coul_value.clear();
@@ -699,7 +699,11 @@ void diele_func::get_Xv(double vq_threshold, const librpa_int::atpair_k_cplx_mat
     std::array<double, 3> qa = {0.0, 0.0, 0.0};
     Vector3_Order<double> q = {0.0, 0.0, 0.0};
     size_t n_singular;
+<<<<<<< HEAD:src/core/dielecmodel.cpp
     librpa_int::vec<double> eigenvalues(n_abf);
+=======
+    vec<double> eigenvalues(n_abf);
+>>>>>>> dc03e65 (Fix: inconsistence after rebase):src/dielecmodel.cpp
 
     mpi_comm_global_h.barrier();
 
@@ -708,6 +712,7 @@ void diele_func::get_Xv(double vq_threshold, const librpa_int::atpair_k_cplx_mat
     ArrayDesc desc_nabf_nabf(blacs_ctxt_global_h);
     desc_nabf_nabf.init_square_blk(n_abf, n_abf, 0, 0);
     const auto set_IJ_nabf_nabf =
+<<<<<<< HEAD:src/core/dielecmodel.cpp
         get_necessary_IJ_from_block_2D_sy('U', atomic_basis_abf_, desc_nabf_nabf);
     const auto s0_s1 = get_s0_s1_for_comm_map2_first(set_IJ_nabf_nabf);
     auto coul_eigen_block = init_local_mat<complex<double>>(desc_nabf_nabf, MAJOR::COL);
@@ -720,6 +725,16 @@ void diele_func::get_Xv(double vq_threshold, const librpa_int::atpair_k_cplx_mat
         natom, blacs_ctxt_global_h.myid, blacs_ctxt_global_h.nprows, blacs_ctxt_global_h.npcols,
         blacs_ctxt_global_h.myprow, blacs_ctxt_global_h.mypcol);
     for (const auto &Mu_Nu : atpair_local)
+=======
+        LIBRPA::utils::get_necessary_IJ_from_block_2D_sy('U', LIBRPA::atomic_basis_abf,
+desc_nabf_nabf); const auto s0_s1 = get_s0_s1_for_comm_map2_first(set_IJ_nabf_nabf); auto
+coul_eigen_block = init_local_mat<complex<double>>(desc_nabf_nabf, MAJOR::COL); auto coulwc_block =
+init_local_mat<complex<double>>(desc_nabf_nabf, MAJOR::COL); coulwc_block.zero_out(); std::map<int,
+std::map<std::pair<int, std::array<double, 3>>, RI::Tensor<complex<double>>>> couleps_libri; const
+auto atpair_local = dispatch_upper_trangular_tasks( natom, blacs_ctxt_global_h.myid,
+blacs_ctxt_global_h.nprows, blacs_ctxt_global_h.npcols, blacs_ctxt_global_h.myprow,
+blacs_ctxt_global_h.mypcol); for (const auto &Mu_Nu : atpair_local)
+>>>>>>> dc03e65 (Fix: inconsistence after rebase):src/dielecmodel.cpp
     {
         const auto Mu = Mu_Nu.first;
         const auto Nu = Mu_Nu.second;
