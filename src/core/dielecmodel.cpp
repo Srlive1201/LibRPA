@@ -827,6 +827,21 @@ std::vector<double> diele_func::get_head_vec()
     return head_vec;
 };
 
+std::vector<double> diele_func::get_head_vec()
+{
+    std::vector<double> head_vec(this->omega.size(), 0.0);
+    for (int iomega = 0; iomega != this->omega.size(); iomega++)
+    {
+        std::complex<double> df = 0;
+        for (int alpha = 0; alpha != 3; alpha++)
+        {
+            df += this->head.at(iomega)(alpha, alpha);
+        }
+        head_vec[iomega] = df.real() / 3.0;
+    }
+    return head_vec;
+};
+
 void diele_func::test_head()
 {
     std::cout << "BEGIN test head !!!!!!!!!!" << std::endl;
