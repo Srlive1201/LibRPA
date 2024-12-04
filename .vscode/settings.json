@@ -72,5 +72,6 @@
         "stack": "cpp",
         "cstdbool": "cpp"
     },
-    "C_Cpp.errorSquiggles": "disabled"
+    "C_Cpp.errorSquiggles": "disabled",
+    "vscode-office.editorTheme": "Auto"
 }

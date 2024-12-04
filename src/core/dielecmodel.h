@@ -95,6 +95,7 @@ class diele_func
     void cal_head();
     double cal_factor(std::string name);
     void test_head();
+    std::vector<double> get_head_vec();
 
     void cal_wing(const librpa_int::Cs_LRI &Cs_data);  // atpair_k_cplx_mat_t &Vq, Cs_LRI &Cs_data
     // tranform Cs_ij(R) to Cs_ij(k)
