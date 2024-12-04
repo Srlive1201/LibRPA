@@ -131,7 +131,7 @@ void diele_func::init(double vq_threshold, const librpa_int::atpair_k_cplx_mat_t
     get_Leb_points();
     get_g_enclosing_gamma();
     calculate_q_gamma();
-    std::cout << "* Success: initalize and calculate lebdev points and q_gamma.\n";
+    std::cout << "* Success: initalize and calculate lebdev points and q_gamma." << std::endl;
 };
 
 void diele_func::cal_head()
@@ -195,7 +195,7 @@ void diele_func::cal_head()
             }
         }
     }
-    std::cout << "* Success: calculate head term.\n";
+    std::cout << "* Success: calculate head term." << std::endl;
 };
 
 double diele_func::cal_factor(std::string name)
@@ -266,7 +266,7 @@ void diele_func::cal_wing(const librpa_int::Cs_LRI &Cs_data)
         }
     }
     tranform_mu_to_lambda();
-    std::cout << "* Success: calculate wing term.\n";
+    std::cout << "* Success: calculate wing term." << std::endl;
 
     // if (Params::debug)
     // {
@@ -501,7 +501,7 @@ void diele_func::FT_R2k(const librpa_int::Cs_LRI &Cs_data)
     /* Vector3_Order<int> period{kv_nmp[0], kv_nmp[1], kv_nmp[2]};
     auto Rlist = construct_R_grid(period);
     std::cout << "Number of Bvk cell: " << Rlist.size() << std::endl; */
-    std::cout << "* Success: Fourier transform from Cs(R) to Cs(k).\n";
+    std::cout << "* Success: Fourier transform from Cs(R) to Cs(k)." << std::endl;
 };
 
 std::complex<double> diele_func::compute_Cijk(const librpa_int::Cs_LRI &Cs_data, int mu, int I, int i, int J, int j, int ik)
@@ -553,7 +553,7 @@ void diele_func::Cs_ij2mn()
         }
     }
 
-    std::cout << "* Success: transform of Cs^mu_ij(k) to Cs^mu_mn(k).\n";
+    std::cout << "* Success: transform of Cs^mu_ij(k) to Cs^mu_mn(k)." << std::endl;
 };
 
 std::complex<double> diele_func::compute_Cs_ij2mn(int mu, int m, int n, int ik)
@@ -686,7 +686,7 @@ void diele_func::get_Xv(double vq_threshold, const librpa_int::atpair_k_cplx_mat
     {
         std::cout << j << "," << Coul_vector[1][j] << std::endl;
     }*/
-    std::cout << "* Success: diagonalize Coulomb matrix in the ABFs repre.\n";
+    std::cout << "* Success: diagonalize Coulomb matrix in the ABFs repre." << std::endl;
 };
 
 // complex diagonalization
@@ -1070,7 +1070,8 @@ void diele_func::cal_eps(const int ifreq)
             }*/
         }
     }
-    std::cout << "* Success: calculate average inverse dielectric matrix no." << ifreq + 1 << ".\n";
+    std::cout << "* Success: calculate average inverse dielectric matrix no." << ifreq + 1 << "."
+              << std::endl;
 };
 
 std::complex<double> diele_func::compute_chi0_inv_00(const int ifreq)
