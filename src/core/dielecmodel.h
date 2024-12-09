@@ -5,10 +5,8 @@
 #include "../math/matrix3.h"
 #include "../math/matrix_m.h"
 #include "../meanfield.h"
-#include "../lebedev-quadrature/lebedev_quadrature.hpp"
 #include "pbc.h"
 #include "ri.h"
-
 
 namespace librpa_int {
 

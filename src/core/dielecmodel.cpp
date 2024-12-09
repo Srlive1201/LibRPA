@@ -15,6 +15,7 @@
 #include "pbc.h"
 #include "ri.h"
 // #include "utils_atomic_basis_blacs.h"
+#include "../lebedev-quadrature/lebedev_quadrature.hpp"
 
 #ifdef LIBRPA_USE_LIBRI
 #include <RI/comm/mix/Communicate_Tensors_Map_Judge.h>
