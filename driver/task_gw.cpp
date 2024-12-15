@@ -381,11 +381,9 @@ void task_g0w0()
             bandgap = conduct - valence;
             lib_printf("Bands of occupation: %4d \n", nocc);
             const auto &k_val = kfrac_list[ik_val];
-            printf("VBM: k-point %4d: (%.5f, %.5f, %.5f) \n", ik_val + 1, k_val.x, k_val.y,
-                   k_val.z);
+            printf("VBM: k-point %4d: (%.5f, %.5f, %.5f) \n", ik_val + 1, k_val.x, k_val.y, k_val.z);
             const auto &k_cond = kfrac_list[ik_cond];
-            printf("CBM: k-point %4d: (%.5f, %.5f, %.5f) \n", ik_cond + 1, k_cond.x, k_cond.y,
-                   k_cond.z);
+            printf("CBM: k-point %4d: (%.5f, %.5f, %.5f) \n", ik_cond + 1, k_cond.x, k_cond.y, k_cond.z);
             lib_printf("Bandgap(eV): %12.7f \n", bandgap);
         }
         Profiler::stop("g0w0_solve_qpe");
