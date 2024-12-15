@@ -319,6 +319,8 @@ void task_g0w0()
             double bandgap = 0.0;
             double valence = -1.e10;
             double conduct = 1.e10;
+            int ik_val = 0;
+            int ik_cond = 0;
             int nocc = 0;
             auto &wg = meanfield.get_weight()[0];
             for (int i = 0; i != wg.size; i++)
@@ -363,10 +365,12 @@ void task_g0w0()
                         if (i_state == nocc - 1 && eqp > valence)  // HOMO
                         {
                             valence = eqp;
+                            ik_val = i_kpoint;
                         }
                         else if (i_state == nocc && eqp < conduct)  // LUMO
                         {
                             conduct = eqp;
+                            ik_cond = i_kpoint;
                         }
                     }
                     printf("\n");
@@ -374,6 +378,10 @@ void task_g0w0()
             }
             bandgap = conduct - valence;
             lib_printf("Bands of occupation: %4d \n", nocc);
+            const auto &k_val = kfrac_list[ik_val];
+            printf("VBM: k-point %4d: (%.5f, %.5f, %.5f) \n", ik_val + 1, k_val.x, k_val.y, k_val.z);
+            const auto &k_cond = kfrac_list[ik_cond];
+            printf("CBM: k-point %4d: (%.5f, %.5f, %.5f) \n", ik_cond + 1, k_cond.x, k_cond.y, k_cond.z);
             lib_printf("Bandgap(eV): %12.7f \n", bandgap);
         }
         Profiler::stop("g0w0_solve_qpe");
