@@ -5,6 +5,7 @@ namespace LIBRPA
 
 enum class task_t {
     RPA,
+    Conventional_RPA,
     EXX,
     G0W0,
     Wc_Rf,

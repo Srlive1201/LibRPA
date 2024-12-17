@@ -30,6 +30,8 @@
 #include "task_rpa.h"
 #include "task_exx.h"
 
+#include "conventional_chi0.h"
+
 static void initialize(int argc, char **argv)
 {
     using namespace LIBRPA::envs;
@@ -98,6 +100,8 @@ int main(int argc, char **argv)
     transform(task_lower.begin(), task_lower.end(), task_lower.begin(), ::tolower);
     if (task_lower == "rpa")
         task = task_t::RPA;
+    else if(task_lower=="rpa_k")
+        task = task_t::Conventional_RPA;
     else if (task_lower == "g0w0")
         task = task_t::G0W0;
     else if (task_lower == "exx")
@@ -320,7 +324,12 @@ int main(int argc, char **argv)
         finalize();
         return 0;
     }
-
+    if(task == task_t::Conventional_RPA )
+    {
+        Conventional_Chi0 conventioal_chi0(meanfield, klist, Params::nfreq);
+        conventioal_chi0.build(Cs_data, Rlist, period, local_atpair, qlist,
+                   TFGrids::get_grid_type(Params::tfgrids_type));
+    }
     if ( task != task_t::EXX )
     {
         Profiler::start("chi0_build", "Build response function chi0");
