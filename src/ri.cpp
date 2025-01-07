@@ -6,6 +6,7 @@
 #include "utils_io.h"
 #include "params.h"
 #include "pbc.h"
+#include "constants.h"
 
 int n_irk_points;
 int natom;
@@ -28,6 +29,38 @@ void Cs_LRI::clear()
     this->data_IJR.clear();
     this->data_libri.clear();
 }
+
+void Cs_LRI::get_recip_LRI_Cs_IJk(const vector<Vector3_Order<double>> &qlist)
+{
+    const auto &Cs_real_space=this->data_IJR;
+
+    for(auto &Ip:Cs_real_space)
+    {
+        const auto I=Ip.first; 
+        for(auto &Jp:Ip.second)
+        {
+            const auto J=Jp.first;
+            for(auto &q:qlist)
+            {
+
+                shared_ptr<ComplexMatrix> cs_k_ptr = make_shared<ComplexMatrix>();
+
+                cs_k_ptr->create(atom_nw[I]*atom_nw[J],atom_mu[I]);
+                for(auto &Rp:Jp.second)
+                {
+                    auto R=Rp.first;
+                    const double arg = (q * (R * latvec)) * TWO_PI;
+                    const complex<double> kphase = complex<double>(cos(arg), sin(arg));
+                    *cs_k_ptr+=ComplexMatrix(*Rp.second)*kphase;
+                }
+                this->data_IJk[I][J][q]=cs_k_ptr;
+            }
+            
+        }
+    }
+    cout<<"finish get_recip_LRI_Cs_IJk"<<endl;
+}
+
 
 Cs_LRI Cs_data;
 

@@ -20,7 +20,7 @@ set_target_properties(rpa_lib PROPERTIES
 
 configure_file(envs_dir.cpp.in envs_dir.cpp)
 list(APPEND lib_sources
-        # aperiodic_chi0.cpp
+        conventional_chi0.cpp
         analycont.cpp
         app_rpa.cpp
         app_exx.cpp

@@ -51,6 +51,10 @@ public:
     // Tri-coefficient of localized RI (LRI) in real space, represented using LibRI tensor class
     std::map<int, std::map<libri_types<int, int>::TAC, RI::Tensor<double>>> data_libri;
 
+    atpair_k_cplx_mat_t data_IJk;
+
+    void get_recip_LRI_Cs_IJk(const vector<Vector3_Order<double>> &qlist);
+
     void clear();
 };
 

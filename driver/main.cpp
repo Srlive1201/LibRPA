@@ -326,6 +326,7 @@ int main(int argc, char **argv)
     }
     if(task == task_t::Conventional_RPA )
     {
+        Cs_data.get_recip_LRI_Cs_IJk(qlist);   
         Conventional_Chi0 conventioal_chi0(meanfield, klist, Params::nfreq);
         conventioal_chi0.build(Cs_data, Rlist, period, local_atpair, qlist,
                    TFGrids::get_grid_type(Params::tfgrids_type));

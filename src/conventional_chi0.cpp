@@ -12,6 +12,7 @@
 #include "envs_mpi.h"
 #include "pbc.h"
 #include "constants.h"
+#include "params.h"
 using LIBRPA::envs::mpi_comm_global_h;
 using LIBRPA::ParallelRouting;
 using LIBRPA::parallel_routing;
@@ -80,6 +81,7 @@ void Conventional_Chi0::build(const Cs_LRI &Cs,
     
     auto part_range=LIBRPA::atomic_basis_abf.get_part_range();
     
+    char fn[80];
     for(int ifreq=0;ifreq!=tfg.size();ifreq++)
     {
         double freq=tfg.get_freq_nodes()[ifreq];
@@ -91,9 +93,24 @@ void Conventional_Chi0::build(const Cs_LRI &Cs,
             auto Nu = atpair_ABF[atom_pair].second;
            
             map<size_t,ComplexMatrix> chi_omega_mat_tmp(cal_ap_chi0_mat(freq,Mu,Nu,qlist));
-            chi_omega_mat[0][Mu][Nu]=std::move(chi_omega_mat_tmp[0]);
+            for (auto &pair : chi_omega_mat_tmp) {
+                chi_omega_mat[pair.first][Mu][Nu] = std::move(pair.second);
+            }
         }
-     
+        for(const auto &ikp:chi_omega_mat)
+        {
+            const auto ik=ikp.first;
+            for(auto &I_p:ikp.second)
+            {
+                const auto I=I_p.first;
+                for(auto &J_p:I_p.second)
+                {
+                    const auto J=J_p.first;
+                    sprintf(fn, "chi0fq_ifreq_%d_iq_%d_I_%zu_J_%zu_id_%d.mtx", ifreq, ik, I, J, mpi_comm_global_h.myid);
+                    print_complex_matrix_mm(J_p.second, Params::output_dir + "/" + fn, 1e-15);
+                }
+            }
+        }
         map<size_t,map<size_t,ComplexMatrix>> pi_mat=cal_pi_mat(chi_omega_mat[0],freq);
      
         complex<double> part_cRPA=cal_cRPA_omega(pi_mat,freq,part_range);
@@ -262,12 +279,16 @@ map<size_t,ComplexMatrix> Conventional_Chi0::cal_ap_chi0_mat(const double &freq 
                 if(ik==iq)
                 {
                     ComplexMatrix C_omega=(transpose(C_tilde_map.at(is).at(ik).at(iq).at(Mu),false)) * cx_omega_band_mat;
-                    chi0_k_mat.at(ik)+=conj(C_omega)*C_tilde_map.at(is).at(iq).at(ik).at(Nu);
+                    chi0_k_mat.at(ik)+=2*conj(C_omega)*C_tilde_map.at(is).at(iq).at(ik).at(Nu);
                     //chi0_mat[I][J]+=C_omega*reshape_complexmat(occ_num[is],unocc_num[is],atom_mu[J],C_tilde_map.at(is).at(J));//
                    // cout<<"  Cs_step: I J: "<<I<<J<<endl;
                     //chi0_mat[I][J]=C_omega*reshape_complexmat(unocc_num,occ_num,C_tilde_map.at(J).nc,C_tilde_map.at(J));  //careabout second C_tilde_map (mn,mu)  band_index !!!
                           
                 }    
+                // else{
+                //     ComplexMatrix C_omega=(transpose(C_tilde_map.at(is).at(ik).at(iq).at(Mu),false)) * cx_omega_band_mat;
+                //     chi0_k_mat.at(ik)+=conj(C_omega)*C_tilde_map.at(is).at(iq).at(ik).at(Nu);
+                // }
             }
         }
     }
