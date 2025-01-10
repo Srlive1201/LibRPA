@@ -2393,6 +2393,9 @@ compute_Wc_freq_q_blacs_wing(Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps,
                                 RI::Tensor<complex<double>>({n_mu, n_nu}, pchi);
                         }
                     }
+                    // Release the chi0 block for this frequency and q to reduce memory load,
+                    // as they will not be used again
+                    chi0.free_chi0_q(freq, q);
                 }
                 // ofs_myid << "chi0_libri" << endl << chi0_libri;
                 const auto IJq_chi0 = RI::Communicate_Tensors_Map_Judge::comm_map2_first(

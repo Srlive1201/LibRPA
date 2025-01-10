@@ -1,9 +1,9 @@
 #pragma once
 #include "atoms.h"
+#include "base_blacs.h"
 #include "chi0.h"
 #include "dielecmodel.h"
 #include "matrix_m.h"
-#include "base_blacs.h"
 #include "parallel_mpi.h"
 #include "ri.h"
 struct CorrEnergy
@@ -39,16 +39,13 @@ compute_Wc_freq_q(Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps,
                   const vector<std::complex<double>> &epsmac_LF_imagfreq);
 
 map<double, atom_mapping<std::map<Vector3_Order<double>, matrix_m<complex<double>>>>::pair_t_old>
-<<<<<<< HEAD
-compute_Wc_freq_q_blacs(Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps,
-=======
-compute_Wc_freq_q_blacs_wing(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps,
+
+compute_Wc_freq_q_blacs_wing(Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps,
                              atpair_k_cplx_mat_t &coulmat_wc,
                              const vector<std::complex<double>> &epsilon_mac_imagfreq);
 
 map<double, atom_mapping<std::map<Vector3_Order<double>, matrix_m<complex<double>>>>::pair_t_old>
-compute_Wc_freq_q_blacs(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps,
->>>>>>> Fix bugs: descending order of diagonalization
+compute_Wc_freq_q_blacs(Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps,
                         atpair_k_cplx_mat_t &coulmat_wc,
                         const vector<std::complex<double>> &epsilon_mac_imagfreq);
 
