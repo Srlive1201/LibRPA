@@ -121,7 +121,7 @@ void task_g0w0()
     {
         std::vector<double> omegas_dielect;
         std::vector<double> dielect_func;
-        if (Params::option_dielect_func != 3 || Params::option_dielect_func != 4)
+        if (Params::option_dielect_func != 3 && Params::option_dielect_func != 4)
             read_dielec_func(driver_params.input_dir + "dielecfunc_out", omegas_dielect,
                              dielect_func);
 
