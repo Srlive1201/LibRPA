@@ -121,7 +121,9 @@ void task_g0w0()
     {
         std::vector<double> omegas_dielect;
         std::vector<double> dielect_func;
-        read_dielec_func(driver_params.input_dir + "dielecfunc_out", omegas_dielect, dielect_func);
+        if (Params::option_dielect_func != 3 || Params::option_dielect_func != 4)
+            read_dielec_func(driver_params.input_dir + "dielecfunc_out", omegas_dielect,
+                             dielect_func);
 
         epsmac_LF_imagfreq_re = interpolate_dielec_func(Params::option_dielect_func, omegas_dielect,
                                                         dielect_func, chi0.tfg.get_freq_nodes());
@@ -379,9 +381,11 @@ void task_g0w0()
             bandgap = conduct - valence;
             lib_printf("Bands of occupation: %4d \n", nocc);
             const auto &k_val = kfrac_list[ik_val];
-            printf("VBM: k-point %4d: (%.5f, %.5f, %.5f) \n", ik_val + 1, k_val.x, k_val.y, k_val.z);
+            printf("VBM: k-point %4d: (%.5f, %.5f, %.5f) \n", ik_val + 1, k_val.x, k_val.y,
+                   k_val.z);
             const auto &k_cond = kfrac_list[ik_cond];
-            printf("CBM: k-point %4d: (%.5f, %.5f, %.5f) \n", ik_cond + 1, k_cond.x, k_cond.y, k_cond.z);
+            printf("CBM: k-point %4d: (%.5f, %.5f, %.5f) \n", ik_cond + 1, k_cond.x, k_cond.y,
+                   k_cond.z);
             lib_printf("Bandgap(eV): %12.7f \n", bandgap);
         }
         Profiler::stop("g0w0_solve_qpe");
