@@ -132,11 +132,12 @@ void Chi0::build_gf_Rt(Vector3_Order<int> R, double tau)
     const auto naos = mf.get_n_aos();
     const int natom = atbasis_abf.n_atoms;
 
-    assert (tau != 0);
+    const int nbands_G = 0; // TODO: replace with a runtime optino
+
     assert(tau != 0);
-    assert(Params::nbands_G < nbands);
-    if (Params::nbands_G >= 0)
-        std::cout << "Note: Green's Function sums over " << Params::nbands_G << " states."
+    assert(nbands_G < nbands);
+    if (nbands_G >= 0)
+        std::cout << "Note: Green's Function sums over " << nbands_G << " states."
                   << std::endl;
     else
         std::cout << "Green's Function sums over all states." << std::endl;
@@ -203,21 +204,21 @@ void Chi0::build_gf_Rt(Vector3_Order<int> R, double tau)
         /* print_matrix("exp(-dE*tau)", scale); */
         for (int ik = 0; ik != nkpts; ik++)
         {
-            double ang = -klist[ik] * (R * latvec) * TWO_PI;
+            double ang = -pbc.klist[ik] * (R * pbc.latvec) * TWO_PI;
             complex<double> kphase = complex<double>(cos(ang), sin(ang));
             /* LIBRPA::utils::lib_printf("kphase %f %fj\n", kphase.real(), kphase.imag()); */
-            auto scaled_wfc_conj = conj(mf.get_eigenvectors()[is][ik]);
+            auto scaled_wfc_conj = conj(mf.get_eigenvectors().at(is).at(ik));
             for (int ib = 0; ib != nbands; ib++)
                 LapackConnector::scal(naos, scale(ik, ib), scaled_wfc_conj.c + naos * ib, 1);
-            if (Params::nbands_G >= 0)
+            if (nbands_G >= 0)
             {
-                for (int ib = Params::nbands_G; ib != nbands; ib++)
+                for (int ib = nbands_G; ib != nbands; ib++)
                 {
                     for (int inaos = 0; inaos != naos; inaos++) scaled_wfc_conj(ib, inaos) = 0.0;
                 }
             }
             gf_Rt_is_global +=
-                (kphase * transpose(mf.get_eigenvectors()[is][ik], false) * scaled_wfc_conj).real();
+                (kphase * transpose(mf.get_eigenvectors().at(is).at(ik), false) * scaled_wfc_conj).real();
         }
         if (tau < 0) gf_Rt_is_global *= -1.;
         omp_lock_t gf_lock;
@@ -315,7 +316,15 @@ static void build_gf_Rt_libri_serial(
     const auto nbands = mf.get_n_bands();
     const auto naos = mf.get_n_aos();
 
+    const int nbands_G = 0; // TODO: replace with a runtime optino
+                            //
     assert(kfrac_list.size() == as_size(nkpts));
+    assert(nbands_G < nbands);
+    if (nbands_G >= 0)
+        std::cout << "Note: Green's Function sums over " << nbands_G << " states."
+                  << std::endl;
+    else
+        std::cout << "Green's Function sums over all states." << std::endl;
 
     std::map<Vector3_Order<int>, std::vector<atpair_t>> map_R_IJs;
     for (const auto &IJR : IJRs)
@@ -355,6 +364,8 @@ static void build_gf_Rt_libri_serial(
         const std::array<int,3> Ra{R.x,R.y,R.z};
         global::ofs_myid << "Chi0 Handling IJs: " << IJs << " - R " << Ra << std::endl;
 
+        const int nbands_G = 0;
+
         // Compute the full G(R, tau) matrix
 #pragma omp parallel for schedule(dynamic)
         for (int ik = 0; ik != nkpts; ik++)
@@ -365,7 +376,16 @@ static void build_gf_Rt_libri_serial(
             auto scaled_wfc_conj = conj(ev);
             for (int ib = 0; ib != nbands; ib++)
                 LapackConnector::scal(naos, scale(ik, ib), scaled_wfc_conj.c + naos * ib, 1);
-            auto mat = (kphase * transpose(ev, false) * scaled_wfc_conj).real();
+            if (nbands_G >= 0)
+            {
+                for (int ib = nbands_G; ib != nbands; ib++)
+                {
+                    for (int inaos = 0; inaos != naos; inaos++) scaled_wfc_conj(ib, inaos) = 0.0;
+                }
+            }
+            auto mat =
+                (kphase * transpose(mf.get_eigenvectors().at(ispin).at(ik), false) * scaled_wfc_conj)
+                    .real();
 #pragma omp critical
             {
                 gf_global += mat;
