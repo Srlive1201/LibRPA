@@ -2,7 +2,6 @@
 
 #include <regex>
 #include <fstream>
-#include <sstream>
 #include <iostream>
 #include <stdexcept>
 
@@ -10,22 +9,23 @@
 
 #include "librpa_enums.h"
 #include "../src/utils/constants.h"
+#include <regex>
+#include <sstream>
+
+#include "driver.h"
 
 static const std::string SPACE_SEP = "[ \r\f\t]*";
 
 const std::string InputParser::KV_SEP = "=";
 const std::string InputParser::COMMENTS_IDEN = "[#!]";
 
-static std::string get_last_matched(const std::string &s,
-                                    const std::string &key,
-                                    const std::string &vregex,
-                                    int igroup)
+static std::string get_last_matched(const std::string &s, const std::string &key,
+                                    const std::string &vregex, int igroup)
 {
     std::string sout = "";
     // a leading group to get rid of keys in comments
     std::regex r(key + SPACE_SEP + InputParser::KV_SEP + SPACE_SEP + vregex,
-                 std::regex_constants::ECMAScript |
-                 std::regex_constants::icase);
+                 std::regex_constants::ECMAScript | std::regex_constants::icase);
     std::sregex_iterator si(s.begin(), s.end(), r);
     auto ei = std::sregex_iterator();
     for (auto i = si; i != ei; i++)
@@ -40,9 +40,7 @@ static std::string get_last_matched(const std::string &s,
 void InputParser::parse_double(const std::string &vname, double &var, int &flag) const
 {
     flag = 0;
-    std::string s = get_last_matched(params, vname,
-                                     "(-?[\\d]+\\.?([\\d]+)?([ed]-?[\\d]+)?)",
-                                     1);
+    std::string s = get_last_matched(params, vname, "(-?[\\d]+\\.?([\\d]+)?([ed]-?[\\d]+)?)", 1);
     if (s != "")
     {
         try
@@ -129,7 +127,7 @@ InputParser InputFile::load(const std::string &fn, bool error_if_fail_open)
 {
     std::ifstream t(fn);
     std::string params;
-    if(t.is_open())
+    if (t.is_open())
     {
         filename = fn;
         std::stringstream buffer;
@@ -170,7 +168,7 @@ static std::string check_dirpath(const std::string &dirpath)
 #define _parse_switch(obj, name) parser.parse_bool(#name, btmp, flag); if (flag == 0) obj.name = get_switch(btmp);
 #define _parse_string_post(obj, name, post) parser.parse_string(#name, stmp, flag); if (flag == 0) obj.name = post(stmp);
 
-void parse_inputfile_to_params(const std::string& fn)
+void parse_inputfile_to_params(const std::string &fn)
 {
     using namespace driver;
 
@@ -251,6 +249,8 @@ void parse_inputfile_to_params(const std::string& fn)
     _parse_switch(opts, output_gw_sigc_mat);
     _parse_switch(opts, output_gw_sigc_mat_rt);
     _parse_switch(opts, output_gw_sigc_mat_rf);
+
+    parser.parse_int("nbands_G", Params::nbands_G, -1, flag);
 }
 
 #undef _parse_int

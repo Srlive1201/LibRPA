@@ -35,10 +35,12 @@ struct Params
     //! threshold of R-space Green's function when construcing.
     static double gf_R_threshold;
 
-    //! threshold of RI coefficient when parsing. The atomic block with maximal element smaller than it will be filtered.
+    //! threshold of RI coefficient when parsing. The atomic block with maximal element smaller than
+    //! it will be filtered.
     static double cs_threshold;
 
-    //! threshold of Coulomb matrix when parsing. The atom-pair block of Coulomb matrix with maximal element smaller than it will be filtered
+    //! threshold of Coulomb matrix when parsing. The atom-pair block of Coulomb matrix with maximal
+    //! element smaller than it will be filtered
     static double vq_threshold;
 
     //! threshold to filter when computing the square root of Coulomb matrix
@@ -100,6 +102,8 @@ struct Params
 
     //! output correlation self-energy matrix in NAO (real space, imaginary frequency domain)
     static bool output_gw_sigc_mat_rf;
+    //! sum of nbands in Green's function. nbands < 0 meanns sum over all states.
+    static int nbands_G;
 
     static void check_consistency();
     static void print();

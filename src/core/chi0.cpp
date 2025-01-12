@@ -133,6 +133,13 @@ void Chi0::build_gf_Rt(Vector3_Order<int> R, double tau)
     const int natom = atbasis_abf.n_atoms;
 
     assert (tau != 0);
+    assert(tau != 0);
+    assert(Params::nbands_G < nbands);
+    if (Params::nbands_G >= 0)
+        std::cout << "Note: Green's Function sums over " << Params::nbands_G << " states."
+                  << std::endl;
+    else
+        std::cout << "Green's Function sums over all states." << std::endl;
 
     // temporary Green's function
     matrix gf_Rt_is_global(naos, naos);
@@ -183,7 +190,36 @@ void Chi0::build_gf_Rt(Vector3_Order<int> R, double tau)
             }
             if ( tau < 0 ) gf_Rt_is_global *= -1.;
         }
-
+        matrix scale(nkpts, nbands);
+        // tau-energy phase
+        scale = -tau * (mf.get_eigenvals()[is] - mf.get_efermi());
+        /* print_matrix("-(e-ef)*tau", scale); */
+        for (int ie = 0; ie != scale.size; ie++)
+        {
+            // NOTE: enforce non-positive phase
+            if (scale.c[ie] > 0) scale.c[ie] = 0;
+            scale.c[ie] = std::exp(scale.c[ie]) * wg.c[ie];
+        }
+        /* print_matrix("exp(-dE*tau)", scale); */
+        for (int ik = 0; ik != nkpts; ik++)
+        {
+            double ang = -klist[ik] * (R * latvec) * TWO_PI;
+            complex<double> kphase = complex<double>(cos(ang), sin(ang));
+            /* LIBRPA::utils::lib_printf("kphase %f %fj\n", kphase.real(), kphase.imag()); */
+            auto scaled_wfc_conj = conj(mf.get_eigenvectors()[is][ik]);
+            for (int ib = 0; ib != nbands; ib++)
+                LapackConnector::scal(naos, scale(ik, ib), scaled_wfc_conj.c + naos * ib, 1);
+            if (Params::nbands_G >= 0)
+            {
+                for (int ib = Params::nbands_G; ib != nbands; ib++)
+                {
+                    for (int inaos = 0; inaos != naos; inaos++) scaled_wfc_conj(ib, inaos) = 0.0;
+                }
+            }
+            gf_Rt_is_global +=
+                (kphase * transpose(mf.get_eigenvectors()[is][ik], false) * scaled_wfc_conj).real();
+        }
+        if (tau < 0) gf_Rt_is_global *= -1.;
         omp_lock_t gf_lock;
         omp_init_lock(&gf_lock);
 #pragma omp parallel for schedule(dynamic)
