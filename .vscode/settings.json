@@ -73,5 +73,6 @@
         "cstdbool": "cpp"
     },
     "C_Cpp.errorSquiggles": "disabled",
-    "vscode-office.editorTheme": "Auto"
+    "vscode-office.editorTheme": "Auto",
+    "C_Cpp.dimInactiveRegions": false
 }
