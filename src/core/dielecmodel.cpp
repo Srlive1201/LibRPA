@@ -874,11 +874,9 @@ void diele_func::test_wing()
 
         std::cout << lambda << " " << df.real() << " " << df.imag() << std::endl;
     }
-<<<<<<< HEAD:src/core/dielecmodel.cpp
     std::cout << "END test wing !!!!!!!!!!" << std::endl;
     std::exit(0);
 }
-=======
     std::cout << "END test wing !!!!!!!!!!" << std::endl;*/
     // std::exit(0);
 };
