@@ -636,6 +636,9 @@ void diele_func::get_Xv(double vq_threshold, const librpa_int::atpair_k_cplx_mat
             Vq_cut.at(Mu).at(Nu).count(q) == 0)
             continue;
         auto Vq_cpl = *(Vq_cut.at(Mu).at(Nu).at(q));
+        // if (Vq.count(Mu) == 0 || Vq.at(Mu).count(Nu) == 0 || Vq.at(Mu).at(Nu).count(q) == 0)
+        //     continue;
+        // auto Vq_cpl = *(Vq.at(Mu).at(Nu).at(q));
         const auto &Vq0 = std::make_shared<matrix>(Vq_cpl.real());
         // const auto &Vq0 = Vq.at(Mu).at(Nu).at(q);
         const auto n_mu = atomic_basis_abf_.get_atom_nb(Mu);
