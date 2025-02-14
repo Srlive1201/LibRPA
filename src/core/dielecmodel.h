@@ -107,8 +107,15 @@ class diele_func
     std::complex<double> compute_Cijk(const librpa_int::Cs_LRI &Cs_data, int mu, int I, int i, int J, int j, int ik);
     // compute wing in ABF representation
     // transform wing from ABF to Coulomb representation
-    void tranform_mu_to_lambda();
+    void wing_mu_to_lambda(matrix_m<std::complex<double>> &sqrtveig_blacs);
+    // tranform Cs_ij(R) to Cs_ij(k)
+    // diagonalize real Vq_cut(q=0)
+    void get_Xv_real(double vq_threshold, const librpa_int::atpair_k_cplx_mat_t &Vq);
+    // diagonalize complex Vq_cut(q=0)
+    void get_Xv_cpl(double vq_threshold, const librpa_int::atpair_k_cplx_mat_t &Vq);
     void test_wing();
+    // set wing=0 for debug
+    void set_0_wing();
 
     void get_body_inv(matrix_m<std::complex<double>> &chi0_block);
     void construct_L(const int ifreq);
