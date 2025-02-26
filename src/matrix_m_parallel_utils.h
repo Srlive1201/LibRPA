@@ -364,36 +364,31 @@ void map_block_to_IJ_storage_new(map<int, map<int, matrix_m<T>>> &IJmap,
     }
     for (const auto &J_js : map_loc_J_js)
     {
-        Js.push_back(J_js.first);
-    }
-    const auto n_pairs_total = Is.size() * Js.size();
-
-    // Create necessay atom-pair blocks
-#pragma omp parallel for collapse(2) schedule(dynamic)
-    for (int i_I = 0; i_I != Is.size(); i_I++)
-    {
-        for (int j_J = 0; j_J != Js.size(); j_J++)
+        int I = I_is.first;
+        for (const auto &J_js : map_loc_J_js)
         {
-            const auto &I = Is[i_I];
-            const auto &J = Js[j_J];
-            const auto n_i = static_cast<int>(atbasis.get_atom_nb(I));
-            const auto n_j = static_cast<int>(atbasis.get_atom_nb(J));
-            auto mat = matrix_m<T>(n_i, n_j, major_map);
-#pragma omp critical
-            {
-                // IJmap_local[I][J] = std::move(mat);
-                IJmap[I][J] = std::move(mat);
-            }
+            int J = J_js.first;
+            IJmap_local[I][J];
         }
     }
 
-    int subdiv = max_threads / n_pairs_total;
-    if (subdiv * n_pairs_total < max_threads)
+    // pre-distribute
+#pragma omp parallel for collapse(2) schedule(dynamic)
+    for (int i_I = 0; i_I < map_lor_I_is.size(); i_I++)
     {
-        subdiv += 1;
+        for (int j_J = 0; j_J < map_loc_J_js.size(); j_J++)
+        {
+            auto I = next(map_lor_I_is.begin(), i_I)->first;
+            auto J = next(map_loc_J_js.begin(), j_J)->first;
+            int n_i = atbasis.get_atom_nb(I);
+            int n_j = atbasis.get_atom_nb(J);
+            IJmap_local[I][J] = matrix_m<T>(n_i, n_j, major_map);
+        }
     }
 
-    // Compute starting and ending j indices
+    int subdiv =
+        std::max(1, max_threads / static_cast<int>(map_lor_I_is.size() * map_loc_J_js.size()));
+
     std::vector<std::array<int, 4>> blocks;
     for (const auto &I : Is)
     {
@@ -413,13 +408,14 @@ void map_block_to_IJ_storage_new(map<int, map<int, matrix_m<T>>> &IJmap,
     }
 
 #pragma omp parallel for schedule(dynamic)
-    for (int i_block = 0; i_block != blocks.size(); i_block++)
+    for (size_t i_block = 0; i_block < blocks.size(); i_block++)
     {
         const auto &index = blocks[i_block];
-        const auto &I = index[0];
-        const auto &J = index[1];
+        int I = index[0], J = index[1];
+        int j_st = index[2], j_ed = index[3];
         const auto &i_indices = map_lor_I_is.at(I);
         const auto &j_indices = map_loc_J_js.at(J);
+        auto &mat = IJmap_local[I][J];
 
         // auto mat = IJmap_local[I][J];
         auto &mat = IJmap[I][J];
@@ -439,8 +435,13 @@ void map_block_to_IJ_storage_new(map<int, map<int, matrix_m<T>>> &IJmap,
         }
     }
 
-    // Merge local map into the global map
-    // IJmap.merge(IJmap_local);
+    for (auto &I_entry : IJmap_local)
+    {
+        for (auto &J_entry : I_entry.second)
+        {
+            IJmap[I_entry.first][J_entry.first] = std::move(J_entry.second);
+        }
+    }
 }
 
 /*!
