@@ -317,14 +317,14 @@ static void build_gf_Rt_libri_serial(
     const auto naos = mf.get_n_aos();
 
     const int nbands_G = 0; // TODO: replace with a runtime optino
-                            //
+
     assert(kfrac_list.size() == as_size(nkpts));
     assert(nbands_G < nbands);
     if (nbands_G >= 0)
-        std::cout << "Note: Green's Function sums over " << nbands_G << " states."
-                  << std::endl;
+        global::ofs_myid << "Note: Green's Function sums over " << nbands_G << " states."
+                         << std::endl;
     else
-        std::cout << "Green's Function sums over all states." << std::endl;
+        global::ofs_myid << "Green's Function sums over all states." << std::endl;
 
     std::map<Vector3_Order<int>, std::vector<atpair_t>> map_R_IJs;
     for (const auto &IJR : IJRs)
