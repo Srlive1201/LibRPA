@@ -12,6 +12,12 @@ enum class task_t {
     G0W0_band,
     Wc_Rf,
     print_minimax,
+    QSGW,
+    QSGWA,
+    QSGW_band,
+    HF_band,
+    scRPA,
+    scRPA_band,
     test,  // a task for convenience of test
 };
 

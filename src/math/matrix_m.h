@@ -884,6 +884,34 @@ T get_determinant(const matrix_m<T> &m)
     return det;
 }
 
+template <typename T>
+void eigsh(const matrix_m<std::complex<T>> &mat, std::vector<T> &w, matrix_m<std::complex<T>> &v)
+{
+    assert (mat.nr() == mat.nc());
+    const char jobz = 'V';
+    const char uplo = 'U';
+    const int n = mat.nr();
+    int nb;
+    if (matrix_m<T>::is_double)
+        nb = LapackConnector::ilaenv(1, "zheev", "VU", n, -1, -1, -1);
+    else
+        nb = LapackConnector::ilaenv(1, "cheev", "VU", n, -1, -1, -1);
+
+    // Copy matrix data to output
+    v = mat.copy();
+
+    int lwork = mat.nc() * (nb+1);
+    int info = 0;
+    w.resize(n);
+    T wpow[n];
+    T rwork[3*n-2];
+    std::complex<T> work[lwork];
+    if (v.is_row_major())
+        LapackConnector::heev(jobz, uplo, n, v.ptr(), n, w.data(), work, lwork, rwork, info);
+    else
+        LapackConnector::heev_f(jobz, uplo, n, v.ptr(), n, w.data(), work, lwork, rwork, info);
+}
+
 template <typename T> matrix_m<std::complex<T>>
 power_hemat(matrix_m<std::complex<T>> &mat,
             T power, bool keep_ev, bool filter_original,

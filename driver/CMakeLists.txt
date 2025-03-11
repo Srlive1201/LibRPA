@@ -20,12 +20,18 @@ list(APPEND exe_sources
   # task/screened_coulomb.cpp
   task/print_minimax.cpp
   # task/test.cpp
+  task_qsgw.cpp
+  task_qsgwA.cpp
+  task_qsgw_band.cpp
+  task_hf_band.cpp
+  task_scRPA.cpp
+  task_scRPA_band.cpp
 )
 
-target_include_directories(rpa_exe PRIVATE rpa_lib)
+target_include_directories(rpa_exe PRIVATE rpa_lib qsgw_lib)
 target_sources(rpa_exe PRIVATE ${exe_sources})
 
-target_link_libraries(rpa_exe PRIVATE rpa_lib)
+target_link_libraries(rpa_exe PRIVATE rpa_lib qsgw_lib)
 if(BUILD_SHARED_LIBS)
   target_link_libraries(rpa_exe PRIVATE ${math_libs} ${parallel_libs})
 endif()

@@ -247,6 +247,7 @@ if(LIBRPA_ENABLE_DRIVER)
 endif()
 
 add_subdirectory(src)
+add_subdirectory(qsgw)
 
 install(FILES
   ${CMAKE_CURRENT_SOURCE_DIR}/include/librpa_compute.h

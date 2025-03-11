@@ -1,7 +1,7 @@
 #include "qpe_solver.h"
 
 #include <cmath>
-// #include <iostream>
+#include <iostream>
 // #include <iomanip>
 
 namespace librpa_int
@@ -19,7 +19,7 @@ int qpe_solver_pade_self_consistent(
 {
     int info = 0;
     const double escale = 0.1;
-    const int n_iter_max = 200;
+    const int n_iter_max = 10000;
     int n_iter = 0;
 
 
@@ -27,7 +27,7 @@ int qpe_solver_pade_self_consistent(
     double e_qp_last = e_mf, e_qp_this;
     cplxdb sigc_this, sigc_last;
 
-    double diff = 1e-3;
+    double diff = 1.0;
 
     // std::cout << "QPE: " << e_mf << " " << e_fermi << " " << vxc << " " << sigma_x << "\n";
     while (n_iter++ < n_iter_max)
@@ -37,8 +37,12 @@ int qpe_solver_pade_self_consistent(
         diff = e_mf - vxc + sigma_x + sigc_this.real() - e_qp_this;
         e_qp_last = e_mf - vxc + sigma_x + sigc_this.real();
         sigc_last = sigc_this;
-        if (std::abs(diff) < thres)
+        if (std::abs(diff) < thres || n_iter == n_iter_max - 1)
         {
+            std::cout << "Iteration " << n_iter << ": "
+                    << "e_qp = " << e_qp_last << ", "
+                    << "sigc = " << sigc_last << ", "
+                    << "diff = " << diff << std::endl;
             break;
         }
     }

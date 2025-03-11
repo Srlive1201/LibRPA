@@ -16,6 +16,12 @@ static std::map<std::string, task_t> map_lowstr_task{
     {"exx_band",      task_t::EXX_band},
     {"wc_rf",         task_t::Wc_Rf},
     {"print_minimax", task_t::print_minimax},
+    {"qsgw", task_t::QSGW},
+    {"qsgwa", task_t::QSGWA},
+    {"qsgw_band", task_t::QSGW_band},
+    {"hf_band", task_t::HF_band},
+    {"scrpa", task_t::scRPA},
+    {"scrpa_band", task_t::scRPA_band},
     {"test",          task_t::test},
 };
 
@@ -27,6 +33,12 @@ static std::map<task_t, std::string> map_task_lowstr{
     {task_t::EXX_band,      "Non-self-consistent exact-exchange (EXX) calculation for band structure"},
     {task_t::Wc_Rf,         "Real-space frequency-domain screened Coulomb (correlation part)"},
     {task_t::print_minimax, "Printing minimax time-frequency grids"},
+    {task_t::QSGW,          "QSGW"},
+    {task_t::QSGWA,         "QSGW, mode A"},
+    {task_t::QSGW_band,     "QSGW band structure"},
+    {task_t::HF_band,       "HF band structure"},
+    {task_t::scRPA,         "SCRPA"},
+    {task_t::scRPA_band,    "SCRPA band structure"},
     {task_t::test,          "Test task"},
 };
 
