@@ -1542,3 +1542,77 @@ void Chi0::shrink_abfs_chi0(map<Vector3_Order<double>, ComplexMatrix> &sinvS,
 }
 
 }
+
+void Chi0::shrink_abfs_chi0(map<Vector3_Order<double>, ComplexMatrix> &sinvS,
+                            const vector<Vector3_Order<double>> &qlist,
+                            map<atom_t, size_t> &atom_mu_large)
+{
+    // before reset atom_mu: large abfs
+    int all_mu = 0;
+    vector<int> mu_shift(atom_mu_large.size());
+    for (int I = 0; I != atom_mu_large.size(); I++)
+    {
+        mu_shift[I] = all_mu;
+        all_mu += atom_mu_large[I];
+    }
+
+    // after reset atom_mu: small abfs
+    int all_mu_s = 0;
+    vector<int> mu_s_shift(atom_mu.size());
+    for (int I = 0; I != atom_mu.size(); I++)
+    {
+        mu_s_shift[I] = all_mu_s;
+        all_mu_s += atom_mu[I];
+    }
+    for (int ifreq = 0; ifreq < this->tfg.get_n_grids(); ++ifreq)
+    {
+        for (int iq = 0; iq < qlist.size(); iq++)
+        {
+            const auto &q = qlist[iq];
+            const double freq = this->tfg.get_freq_nodes()[ifreq];
+            const auto &U = sinvS[q];
+            ComplexMatrix shrinked_chi0(all_mu_s, all_mu_s);
+            ComplexMatrix large_chi0(all_mu, all_mu);
+
+            for (auto &Ip : chi0_q[freq][q])
+            {
+                auto I = Ip.first;
+                for (auto &Jm : Ip.second)
+                {
+                    auto J = Jm.first;
+                    auto mu_I = Jm.second.nr;
+                    auto mu_J = Jm.second.nc;
+                    for (int ir = 0; ir < mu_I; ir++)
+                    {
+                        for (int ic = 0; ic < mu_J; ic++)
+                            large_chi0(mu_shift[I] + ir, mu_shift[J] + ic) = Jm.second(ir, ic);
+                    }
+                }
+            }
+            if (ifreq == 0 && iq == 0)
+            {
+                print_complex_matrix_mm(large_chi0, "large_chi0", 0.);
+                print_complex_matrix_mm(U, "unitary", 0.);
+            }
+            shrinked_chi0 = U * large_chi0 * transpose(U, true);
+            // debug
+            // shrinked_chi0 = transpose(U, true) * shrinked_chi0 * U;
+            if (ifreq == 0 && iq == 0) print_complex_matrix_mm(shrinked_chi0, "small_chi0", 0.);
+            for (auto &Ip : chi0_q[freq][q])
+            {
+                auto I = Ip.first;
+                for (auto &Jm : Ip.second)
+                {
+                    auto J = Jm.first;
+                    ComplexMatrix cm_chi0(atom_mu[I], atom_mu[J]);
+                    for (int ir = 0; ir < atom_mu[I]; ir++)
+                    {
+                        for (int ic = 0; ic < atom_mu[J]; ic++)
+                            cm_chi0(ir, ic) = shrinked_chi0(mu_s_shift[I] + ir, mu_s_shift[J] + ic);
+                    }
+                    Jm.second = cm_chi0;
+                }
+            }
+        }
+    }
+}

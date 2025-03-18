@@ -28,14 +28,11 @@
 #include "librpa_main.h"
 =======
 
-#include "envs_mpi.h"
-#include "envs_blacs.h"
-#include "envs_io.h"
-#include "utils_io.h"
 #include <cstring>
 
 #include "atoms.h"
 #include "constants.h"
+#include "envs_blacs.h"
 #include "envs_io.h"
 #include "envs_mpi.h"
 #include "librpa_main.h"
@@ -288,6 +285,7 @@ void set_ao_basis_aux(int I, int J, int nbasis_i, int nbasis_j, int naux_mu, int
 }
 
 void set_ao_basis_aux(int I, int J, int nbasis_i, int nbasis_j, int naux_mu, int* R, double* Cs_in,
+<<<<<<< HEAD:src/api/librpa_old.cpp
                       int insert_index_only)
 >>>>>>> b1f933c (construct head):src/librpa.cpp
 {
@@ -299,12 +297,19 @@ void set_ao_basis_aux(int I, int J, int nbasis_i, int nbasis_j, int naux_mu, int
 void set_ao_basis_aux(int I, int J, int nbasis_i, int nbasis_j, int naux_mu, int* R, double* Cs_in,
                       int insert_index_only, const std::string keyword)
 {
+=======
+                      int insert_index_only, const std::string keyword)
+{
+>>>>>>> b005208 (enable shrink abfs):src/librpa.cpp
     if (keyword == "Cs_data")
     {
         atom_nw.insert(pair<atom_t, size_t>(I, nbasis_i));
         atom_mu.insert(pair<atom_t, size_t>(I, naux_mu));
     }
+<<<<<<< HEAD:src/api/librpa_old.cpp
 >>>>>>> 7242b2c (enable shrink abfs):src/librpa.cpp
+=======
+>>>>>>> b005208 (enable shrink abfs):src/librpa.cpp
 
     if (insert_index_only)
     {
@@ -358,9 +363,12 @@ void set_ao_basis_aux(int I, int J, int nbasis_i, int nbasis_j, int naux_mu, int
         cs_ptr->create(nbasis_i * nbasis_j, naux_mu);
         memcpy((*cs_ptr).c, Cs_in, sizeof(double) * cs_size);
 <<<<<<< HEAD:src/api/librpa_old.cpp
+<<<<<<< HEAD:src/api/librpa_old.cpp
         Cs_data.data_IJR[I][J][box] = cs_ptr;
         // librpa_int::global::lib_printf("Cs out:\n");
 =======
+=======
+>>>>>>> b005208 (enable shrink abfs):src/librpa.cpp
         if (keyword == "Cs_data")
         {
             Cs_data.data_IJR[I][J][box] = cs_ptr;
@@ -585,7 +593,9 @@ void run_librpa_main()
 
 void get_frequency_grids(int ngrid, double* freqeuncy_grids) {}
 
-void get_rpa_correlation_energy(double* rpa_corr, double* rpa_corr_irk_contrib)
+void get_rpa_correlation_energy(double* rpa_corr, double* rpa_corr_irk_contrib,
+                                std::map<Vector3_Order<double>, ComplexMatrix>& sinvS,
+                                const std::string& input_dir, const bool use_shrink_abfs)
 {
     using namespace librpa_int;
 
@@ -593,6 +603,7 @@ void get_rpa_correlation_energy(double* rpa_corr, double* rpa_corr_irk_contrib)
     std::complex<double> rpa_corr_;
     std::vector<std::complex<double>> rpa_corr_irk_contrib_(n_irk_points);
 
+<<<<<<< HEAD:src/api/librpa_old.cpp
     librpa_int::app::get_rpa_correlation_energy_(rpa_corr_, rpa_corr_irk_contrib_);
 =======
     // std::cout.rdbuf(originalCoutBuffer);
@@ -611,6 +622,10 @@ void get_rpa_correlation_energy(double* rpa_corr, double* rpa_corr_irk_contrib,
     LIBRPA::app::get_rpa_correlation_energy_(rpa_corr_, rpa_corr_irk_contrib_, sinvS, input_dir,
                                              use_shrink_abfs);
 >>>>>>> 7242b2c (enable shrink abfs):src/librpa.cpp
+=======
+    LIBRPA::app::get_rpa_correlation_energy_(rpa_corr_, rpa_corr_irk_contrib_, sinvS, input_dir,
+                                             use_shrink_abfs);
+>>>>>>> b005208 (enable shrink abfs):src/librpa.cpp
 
     auto dp = reinterpret_cast<double*>(rpa_corr_irk_contrib_.data());
 

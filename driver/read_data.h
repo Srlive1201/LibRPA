@@ -51,7 +51,7 @@ size_t read_Vq_full(const string &dir_path, const string &vq_fprefix, bool is_cu
 size_t read_shrink_sinvS(const string &dir_path, const string &vq_fprefix,
                          std::map<Vector3_Order<double>, ComplexMatrix> &sinvS);
 
-size_t read_Vq_row(const string &dir_path, const string &vq_fprefix, double threshold,
+size_t read_Vq_row(const std::string &dir_path, const std::string &vq_fprefix, double threshold,
                    const std::vector<atpair_t> &local_atpair, bool is_cut_coulomb);
 
 void read_stru(const std::string &file_path);
