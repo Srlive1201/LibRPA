@@ -41,11 +41,15 @@ void read_ri(const string &dir_path, librpa::ParallelRouting &routing);
 size_t read_Cs(const string &dir_path, double threshold, const std::vector<atpair_t> &local_atpair);
 
 void read_velocity(const string &file_path, MeanField &mf);
-void read_velocity_aims(MeanField &mf, const string &file_path);
+void read_velocity_aims(MeanField &mf, const std::string &file_path);
 
-size_t read_Cs_evenly_distribute(const string &dir_path, double threshold, int myid, int nprocs);
+size_t read_Cs_evenly_distribute(const std::string &dir_path, double threshold, int myid, int nprocs,
+                                 const std::string keyword = "Cs_data");
 
 size_t read_Vq_full(const string &dir_path, const string &vq_fprefix, bool is_cut_coulomb);
+
+size_t read_shrink_sinvS(const string &dir_path, const string &vq_fprefix,
+                         std::map<Vector3_Order<double>, ComplexMatrix> &sinvS);
 
 size_t read_Vq_row(const string &dir_path, const string &vq_fprefix, double threshold,
                    const std::vector<atpair_t> &local_atpair, bool is_cut_coulomb);

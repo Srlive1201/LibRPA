@@ -81,6 +81,8 @@ struct Params
 
     //! switch of replacing head of screened interaction by macroscopic dielectric function
     static bool replace_w_head;
+    //! switch of shrinking number of auxiliary basis by reading shrink_sinvS_0.txt
+    static bool use_shrink_abfs;
 
     //! option of computing dielectric function on imaginary axis
     /*!

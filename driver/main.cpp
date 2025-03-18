@@ -180,6 +180,25 @@ int main(int argc, char **argv)
         read_ri(driver_params.input_dir, driver::opts.parallel_routing);
         lib_printf_root("Actual parallel routing used: %s\n", get_routing_string(driver::opts.parallel_routing).c_str());
         profiler.stop("driver_read_ri");
+
+        const bool use_shrink_abfs = false;
+        if (use_shrink_abfs)
+        {
+            // backup large atom_mu
+            atom_mu_l = atom_mu;
+            read_Cs_evenly_distribute(driver_params.input_dir, driver_params.cs_threshold,
+                                      mpi_comm_global_h.myid, mpi_comm_global_h.nprocs,
+                                      "Cs_shrinked_data");
+            std::map<Vector3_Order<double>, ComplexMatrix> sinvS;
+            profiler.start("read_shrink_sinvS", "Load shrink transformation");
+            // change atom_mu: number of {Mu,mu} in the later calculations
+            read_shrink_sinvS(driver_params.input_dir, "shrink_sinvS_", sinvS);
+            sinvS.clear();
+            profiler.stop("read_shrink_sinvS");
+        }
+        // Vq distributed using the same strategy
+        // There should be no duplicate for V
+
     }
 
     mpi_comm_global_h.barrier();

@@ -476,6 +476,7 @@ void diele_func::init_Cs(const librpa_int::Cs_LRI &Cs_data)
 void diele_func::FT_R2k(const librpa_int::Cs_LRI &Cs_data)
 {
     const int n_atom = Cs_data.data_libri.size();
+    const bool use_shrink_abfs = false;  // TODO: replace with the actual shrink tag
     // std::cout << "Number of atom: " << n_atom << std::endl;
 
     for (int ik = 0; ik != nk; ik++)
@@ -496,8 +497,17 @@ void diele_func::FT_R2k(const librpa_int::Cs_LRI &Cs_data)
                         {
                             Vector3_Order<double> k_frac = kfrac_band[ik];
                             const std::array<double, 3> k_array = {k_frac.x, k_frac.y, k_frac.z};
-                            this->Ctri_ij.data_libri[I][{J, k_array}](mu, i, j) =
-                                this->compute_Cijk(Cs_data, mu, I, i, J, j, ik);
+                            if (use_shrink_abfs)
+                            {
+                                this->Ctri_ij.data_libri[I][{J, k_array}](mu, i, j) =
+                                    compute_Cijk(Cs_data, mu, I, i, J, j, ik);
+                            }
+                            else
+                            {
+                                this->Ctri_ij.data_libri[I][{J, k_array}](mu, i, j) =
+                                    compute_Cijk(Cs_data, mu, I, i, J, j, ik);
+                            }
+
                             /*if (ik == 19 && I == 1 && J == 0 && i == 0 && j == 1)
                             {
                                 std::cout << "Cij: " << mu << ", "

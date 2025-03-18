@@ -49,6 +49,18 @@ void task_g0w0_band()
     chi0.gf_R_threshold = Params::gf_R_threshold;
 
     Profiler::start("chi0_build", "Build response function chi0");
+    if (Params::use_shrink_abfs)
+    {
+        // replace atom_mu by atom_mu_l to construct chi0 due to LRI error
+        atom_mu = atom_mu_l;
+        LIBRPA::atomic_basis_abf.set(atom_mu);
+        atom_mu_part_range.resize(atom_mu.size());
+        atom_mu_part_range[0] = 0;
+        for (int I = 1; I != atom_mu.size(); I++)
+            atom_mu_part_range[I] = atom_mu.at(I - 1) + atom_mu_part_range[I - 1];
+
+        N_all_mu = atom_mu_part_range[natom - 1] + atom_mu[natom - 1];
+    }
     chi0.build(Cs_data, Rlist, period, local_atpair, qlist);
     Profiler::stop("chi0_build");
 
@@ -79,6 +91,19 @@ void task_g0w0_band()
                 }
             }
         }
+    }
+
+    if (Params::use_shrink_abfs)
+    {
+        std::map<Vector3_Order<double>, ComplexMatrix> sinvS;
+        Profiler::start("read_shrink_sinvS", "Load shrink transformation");
+        // change atom_mu: number of {Mu,mu} in the later calculations
+        read_shrink_sinvS(driver_params.input_dir, "shrink_sinvS_", sinvS);
+        Profiler::stop("read_shrink_sinvS");
+        Profiler::start("shrink_chi0_abfs", "Do shrink transformation");
+        chi0.shrink_abfs_chi0(sinvS, qlist, atom_mu_l);
+        Profiler::stop("shrink_chi0_abfs");
+        sinvS.clear();
     }
 
     Profiler::start("read_vq_cut", "Load truncated Coulomb");
@@ -117,7 +142,14 @@ void task_g0w0_band()
         Profiler::stop("ft_vq_cut");
 
         Profiler::start("g0w0_exx_real_work");
-        exx.build(Cs_data, Rlist, VR);
+        if (Params::use_shrink_abfs)
+        {
+            exx.build(Cs_shrinked_data, Rlist, VR);
+        }
+        else
+        {
+            exx.build(Cs_data, Rlist, VR);
+        }
         Profiler::stop("g0w0_exx_real_work");
     }
     Profiler::stop("g0w0_exx");
@@ -168,7 +200,15 @@ void task_g0w0_band()
 
     LIBRPA::G0W0 s_g0w0(meanfield, kfrac_list, chi0.tfg, period);
     Profiler::start("g0w0_sigc_IJ", "Build real-space correlation self-energy");
-    s_g0w0.build_spacetime(Cs_data, Wc_freq_q, Rlist);
+    if (Params::use_shrink_abfs)
+    {
+        s_g0w0.build_spacetime(Cs_shrinked_data, Wc_freq_q, Rlist);
+    }
+    else
+    {
+        s_g0w0.build_spacetime(Cs_data, Wc_freq_q, Rlist);
+    }
+
     Profiler::stop("g0w0_sigc_IJ");
     std::flush(ofs_myid);
 

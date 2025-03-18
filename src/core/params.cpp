@@ -37,6 +37,7 @@ bool Params::use_scalapack_ecrpa = true;
 bool Params::use_scalapack_gw_wc = false;
 bool Params::debug = false;
 bool Params::replace_w_head = true;
+bool Params::use_shrink_abfs = false;
 
 /* ==========================================================
  * output options begin
@@ -95,6 +96,7 @@ void Params::print()
         {"use_scalapack_gw_wc", use_scalapack_gw_wc},
         {"output_gw_sigc_mat", output_gw_sigc_mat},
         {"replace_w_head", replace_w_head},
+        {"use_shrink_abfs", use_shrink_abfs},
     };
 
     for (const auto &param: str_params)

@@ -202,12 +202,23 @@ void set_ibz2bz_index_and_weight(const int nk_irk, const int* ibz2bz_index, cons
    }
 }
 
+<<<<<<< HEAD:src/api/librpa_old.cpp
 void set_ao_basis_aux(int I, int J, int nbasis_i, int nbasis_j, int naux_mu, int* R, double* Cs_in, int insert_index_only)
 {
     using namespace librpa_int;
 
     atom_nw.insert(pair<atom_t, size_t>(I, nbasis_i));
     atom_mu.insert(pair<atom_t, size_t>(I, naux_mu));
+=======
+void set_ao_basis_aux(int I, int J, int nbasis_i, int nbasis_j, int naux_mu, int* R, double* Cs_in,
+                      int insert_index_only, const std::string keyword)
+{
+    if (keyword == "Cs_data")
+    {
+        atom_nw.insert(pair<atom_t, size_t>(I, nbasis_i));
+        atom_mu.insert(pair<atom_t, size_t>(I, naux_mu));
+    }
+>>>>>>> 7242b2c (enable shrink abfs):src/librpa.cpp
 
     if (insert_index_only)
     {
@@ -241,9 +252,17 @@ void set_ao_basis_aux(int I, int J, int nbasis_i, int nbasis_j, int naux_mu, int
                 (*data)[i_col * n_ij + i_row] = Cs_in[i_row * naux_mu + i_col];
             }
         }
-        const std::initializer_list<std::size_t>
-            shape{static_cast<std::size_t>(naux_mu), static_cast<std::size_t>(nbasis_i), static_cast<std::size_t>(nbasis_j)};
-        Cs_data.data_libri[I][{J, Ra}] = RI::Tensor<double>(shape, data);
+        const std::initializer_list<std::size_t> shape{static_cast<std::size_t>(naux_mu),
+                                                       static_cast<std::size_t>(nbasis_i),
+                                                       static_cast<std::size_t>(nbasis_j)};
+        if (keyword == "Cs_data")
+        {
+            Cs_data.data_libri[I][{J, Ra}] = RI::Tensor<double>(shape, data);
+        }
+        else if (keyword == "Cs_shrinked_data")
+        {
+            Cs_shrinked_data.data_libri[I][{J, Ra}] = RI::Tensor<double>(shape, data);
+        }
     }
     else
     {
@@ -251,8 +270,20 @@ void set_ao_basis_aux(int I, int J, int nbasis_i, int nbasis_j, int naux_mu, int
         shared_ptr<matrix> cs_ptr = make_shared<matrix>();
         cs_ptr->create(nbasis_i * nbasis_j, naux_mu);
         memcpy((*cs_ptr).c, Cs_in, sizeof(double) * cs_size);
+<<<<<<< HEAD:src/api/librpa_old.cpp
         Cs_data.data_IJR[I][J][box] = cs_ptr;
         // librpa_int::global::lib_printf("Cs out:\n");
+=======
+        if (keyword == "Cs_data")
+        {
+            Cs_data.data_IJR[I][J][box] = cs_ptr;
+        }
+        else if (keyword == "Cs_shrinked_data")
+        {
+            Cs_shrinked_data.data_IJR[I][J][box] = cs_ptr;
+        }
+        // LIBRPA::utils::lib_printf("Cs out:\n");
+>>>>>>> 7242b2c (enable shrink abfs):src/librpa.cpp
         // for(int i=0;i!=cs_size;i++)
         //     librpa_int::global::lib_printf("   %f",(*Cs[I][J][box]).c[i]);
     }
@@ -381,8 +412,8 @@ void set_librpa_params(LibRPAParams *params_c)
 void get_default_librpa_params(LibRPAParams *params_c)
 {
     // All member of LibRPAParams must be set.
-    strcpy(params_c->output_file,      "stdout");
-    strcpy(params_c->output_dir,       "librpa.d");
+    strcpy(params_c->output_file, "stdout");
+    strcpy(params_c->output_dir, "librpa.d");
     strcpy(params_c->parallel_routing, "auto");
     strcpy(params_c->tfgrids_type,     "minimax");
     strcpy(params_c->DFT_software,     "auto");
@@ -425,10 +456,28 @@ void get_rpa_correlation_energy(double *rpa_corr, double *rpa_corr_irk_contrib)
 {
     using namespace librpa_int;
 
+<<<<<<< HEAD:src/api/librpa_old.cpp
     std::complex<double> rpa_corr_;
     std::vector<std::complex<double>> rpa_corr_irk_contrib_(n_irk_points);
 
     librpa_int::app::get_rpa_correlation_energy_(rpa_corr_, rpa_corr_irk_contrib_);
+=======
+    // std::cout.rdbuf(originalCoutBuffer);
+    // outputFile.close();
+}
+
+void get_frequency_grids(int ngrid, double* freqeuncy_grids) {}
+
+void get_rpa_correlation_energy(double* rpa_corr, double* rpa_corr_irk_contrib,
+                                std::map<Vector3_Order<double>, ComplexMatrix>& sinvS,
+                                const std::string& input_dir, const bool use_shrink_abfs)
+{
+    std::complex<double> rpa_corr_;
+    std::vector<std::complex<double>> rpa_corr_irk_contrib_(n_irk_points);
+
+    LIBRPA::app::get_rpa_correlation_energy_(rpa_corr_, rpa_corr_irk_contrib_, sinvS, input_dir,
+                                             use_shrink_abfs);
+>>>>>>> 7242b2c (enable shrink abfs):src/librpa.cpp
 
     auto dp = reinterpret_cast<double*>(rpa_corr_irk_contrib_.data());
 

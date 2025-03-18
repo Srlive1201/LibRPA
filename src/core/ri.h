@@ -78,6 +78,7 @@ struct Cs_LRI_clx
     void clear();
 };
 
+extern Cs_LRI Cs_shrinked_data;
 
 // //! Coulomb matrix in ABF, represented in the reciprocal space.
 // extern atpair_k_cplx_mat_t Vq;

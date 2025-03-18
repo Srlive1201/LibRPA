@@ -856,7 +856,8 @@ std::vector<size_t> handle_Cs_file_binary_dry(const string &file_path, double th
     return Cs_ids_keep;
 }
 
-static size_t handle_Cs_file_by_ids(const string &file_path, double threshold, const std::vector<size_t> &ids)
+static size_t handle_Cs_file_by_ids(const std::string &file_path, double threshold,
+                                    const std::vector<size_t> &ids, const std::string keyword)
 {
     using namespace std;
     size_t cs_discard = 0;
@@ -904,7 +905,7 @@ static size_t handle_Cs_file_by_ids(const string &file_path, double threshold, c
         }
         else
         {
-            // set_ao_basis_aux(ia1, ia2, n_i, n_j, n_mu, R, nullptr, 1);
+            // set_ao_basis_aux(ia1, ia2, n_i, n_j, n_mu, R, nullptr, 1, keyword);
 
             double maxval = -1.0;
             for (int i = 0; i != n_i; i++)
@@ -970,7 +971,8 @@ static size_t handle_Cs_file_binary_by_ids(const string &file_path, double thres
     return cs_discard;
 }
 
-size_t read_Cs_evenly_distribute(const string &dir_path, double threshold, int myid, int nprocs)
+size_t read_Cs_evenly_distribute(const string &dir_path, double threshold, int myid, int nprocs,
+                                 const string keyword)
 {
     using namespace std;
     using namespace librpa_int;
@@ -990,7 +992,7 @@ size_t read_Cs_evenly_distribute(const string &dir_path, double threshold, int m
     while ((ptr = readdir(dir)) != NULL)
     {
         string fn(ptr->d_name);
-        if (fn.find("Cs_data") == 0)
+        if (fn.find(keyword) == 0)
         {
             files.push_back(dir_path + fn);
             if (!binary_checked)
@@ -1056,7 +1058,7 @@ size_t read_Cs_evenly_distribute(const string &dir_path, double threshold, int m
         }
         else
         {
-            cs_discard += handle_Cs_file_by_ids(fn_ids.first, threshold, fn_ids.second);
+            cs_discard += handle_Cs_file_by_ids(fn_ids.first, threshold, fn_ids.second, keyword);
         }
     }
     librpa_int::global::profiler.stop("handle_Cs_file");
@@ -2317,4 +2319,209 @@ void read_elsi_csc(const string &file_path, bool save_row_major, std::vector<dou
             }
         }
     }
+}
+
+static int handle_sinvS_file(const std::string &file_path,
+                             std::map<Vector3_Order<double>, ComplexMatrix> &sinvS, bool binary)
+{
+    std::vector<size_t> shrinked_mu;
+    ifstream infile;
+    int n_irk_points_local;
+    // TODO: variables that needs to be adapted into pbc object
+    std::map<Vector3_Order<double>, double> irk_weight;
+    int n_irk_points;
+
+    if (binary)
+    {
+        infile.open(file_path, std::ios::in | std::ios::binary);
+        infile.read((char *) &n_irk_points, sizeof(int));
+        infile.read((char *)&n_irk_points_local, sizeof(int));
+    }
+    else
+    {
+        infile.open(file_path);
+        infile >> n_irk_points;
+    }
+
+    if (!infile.good()) return 1;
+
+    if (binary)
+    {
+        int nbasbas_s, nbasbas, brow, erow, bcol, ecol, iq;
+        double q_weight;
+
+        for (int i_irk = 0; i_irk < n_irk_points_local; i_irk++)
+        {
+            infile.read((char *)&nbasbas_s, sizeof(int));
+            infile.read((char *)&nbasbas, sizeof(int));
+            infile.read((char *)&brow, sizeof(int));
+            infile.read((char *)&erow, sizeof(int));
+            infile.read((char *)&bcol, sizeof(int));
+            infile.read((char *)&ecol, sizeof(int));
+            infile.read((char *)&iq, sizeof(int));
+            infile.read((char *)&q_weight, sizeof(double));
+
+            brow--;
+            erow--;
+            bcol--;
+            ecol--;
+            iq--;
+            if (iq == 0)
+            {
+                shrinked_mu.emplace_back(erow - brow + 1);
+            }
+            Vector3_Order<double> qvec(kvec_c[iq]);
+
+            if (irk_weight.count(qvec) == 0)
+            {
+                irk_points.push_back(qvec);
+                irk_weight.insert(pair<Vector3_Order<double>, double>(qvec, q_weight));
+            }
+            if (!sinvS.count(qvec))
+            {
+                sinvS[qvec].create(nbasbas_s, nbasbas);
+            }
+
+            const int nrow = erow - brow + 1;
+            const int ncol = ecol - bcol + 1;
+            const size_t n = nrow * ncol;
+            std::vector<std::complex<double>> tmp(n);
+            infile.read((char *)tmp.data(), 2 * n * sizeof(double));
+            for (int i = 0; i < nrow; i++)
+            {
+                for (int j = 0; j < ncol; j++)
+                {
+                    const auto i_mu = i + brow;
+                    const auto i_nu = j + bcol;
+                    sinvS[qvec](i_mu, i_nu) = tmp[i * ncol + j];  // for abacus
+                }
+            }
+        }
+    }
+    else
+    {
+        string nbasbas_s, nbasbas, begin_row, end_row, begin_col, end_col, q1, q2, q3, vq_r, vq_i,
+            q_num, q_weight;
+        while (infile.peek() != EOF)
+        {
+            // row is mu_s, col is mu
+            infile >> nbasbas_s >> nbasbas >> begin_row >> end_row >> begin_col >> end_col;
+            if (infile.peek() == EOF) break;
+            if (!infile.good()) return 2;
+
+            infile >> q_num >> q_weight;
+            if (!infile.good()) return 3;
+            int mu = stoi(nbasbas_s);
+            int nu = stoi(nbasbas);
+            int brow = stoi(begin_row) - 1;
+            int erow = stoi(end_row) - 1;
+            int bcol = stoi(begin_col) - 1;
+            int ecol = stoi(end_col) - 1;
+            int iq = stoi(q_num) - 1;
+            if (iq == 0)
+            {
+                shrinked_mu.emplace_back(erow - brow + 1);
+            }
+
+            // skip empty coulumb_file
+            if ((erow - brow <= 0) || (ecol - bcol <= 0) || iq < 0 || iq > klist.size()) return 4;
+            Vector3_Order<double> qvec(kvec_c[iq]);
+            // skip duplicate insert of k weight, since
+            if (irk_weight.count(qvec) == 0)
+            {
+                irk_points.push_back(qvec);
+                irk_weight.insert(std::pair<Vector3_Order<double>, double>(qvec, stod(q_weight)));
+            }
+            if (!sinvS.count(qvec))
+            {
+                sinvS[qvec].create(mu, nu);
+            }
+            for (int i_mu = brow; i_mu <= erow; i_mu++)
+            {
+                for (int i_nu = bcol; i_nu <= ecol; i_nu++)
+                {
+                    infile >> vq_r >> vq_i;
+                    // Vq_full[qvec](i_nu, i_mu) = complex<double>(stod(vq_r), stod(vq_i)); // for
+                    // FHI-aims
+                    sinvS[qvec](i_mu, i_nu) =
+                        std::complex<double>(stod(vq_r), stod(vq_i));  // for abacus
+                }
+            }
+        }
+    }
+    // shrinked_mu: {59, 59, 80, 80}
+    for (auto &Imu : atom_mu)
+    {
+        const auto I = Imu.first;
+        size_t mu_mod = 0;
+        for (int imu = I * atom_mu.size(); imu < (I + 1) * atom_mu.size(); imu++)
+        {
+            mu_mod += shrinked_mu[imu];
+        }
+        mu_mod = mu_mod / atom_mu.size();
+        // we can also use larger abfs for test or interested
+        // assert(mu_mod <= Imu.second);
+        atom_mu[I] = mu_mod;
+    }
+    // reset
+    LIBRPA::atomic_basis_abf.set(atom_mu);
+    atom_mu_part_range.resize(atom_mu.size());
+    atom_mu_part_range[0] = 0;
+    for (int I = 1; I != atom_mu.size(); I++)
+        atom_mu_part_range[I] = atom_mu.at(I - 1) + atom_mu_part_range[I - 1];
+
+    N_all_mu = atom_mu_part_range[natom - 1] + atom_mu[natom - 1];
+
+    return 0;
+}
+
+size_t read_shrink_sinvS(const string &dir_path, const string &vq_fprefix,
+                         map<Vector3_Order<double>, ComplexMatrix> &sinvS)
+{
+    size_t vq_save = 0;
+    size_t vq_discard = 0;
+    struct dirent *ptr;
+    DIR *dir;
+    dir = opendir(dir_path.c_str());
+    vector<string> files;
+
+    bool binary;
+    bool binary_checked = false;
+
+    profiler.start("handle_sinvS_file");
+    while ((ptr = readdir(dir)) != NULL)
+    {
+        string fm(ptr->d_name);
+        if (fm.find(vq_fprefix) == 0)
+        {
+            string file_path = dir_path + fm;
+            if (!binary_checked)
+            {
+                binary = check_coulomb_file_binary(file_path);
+                binary_checked = true;
+                if (LIBRPA::envs::myid_global == 0)
+                {
+                    if (binary)
+                    {
+                        cout << "sinvS: Unformatted binary V files detected" << endl;
+                    }
+                    else
+                    {
+                        cout << "sinvS: ASCII format V files detected" << endl;
+                    }
+                }
+            }
+            int retcode = handle_sinvS_file(file_path, sinvS, binary);
+            if (retcode != 0)
+            {
+                LIBRPA::utils::lib_printf("Error encountered when reading %s, return code %d",
+                                          fm.c_str(), retcode);
+            }
+        }
+    }
+    profiler.stop("handle_sinvS_file");
+
+    closedir(dir);
+    dir = NULL;
+    return vq_discard;
 }
