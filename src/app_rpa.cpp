@@ -66,6 +66,7 @@ void get_rpa_correlation_energy_(std::complex<double> &rpa_corr,
     chi0.build(Cs_data, Rlist, period, local_atpair, qlist);
     Profiler::stop("chi0_build");
 <<<<<<< HEAD
+<<<<<<< HEAD
     std::cout << "large atom_mu: " << atom_mu[0] << atom_mu[1] << std::endl;
     auto &chi0_q = chi0.get_chi0_q();
     int all_mu = 0;
@@ -114,16 +115,22 @@ void get_rpa_correlation_energy_(std::complex<double> &rpa_corr,
     if (use_shrink_abfs)
     {
 =======
+=======
+    std::cout << "atom_mu: " << atom_mu[0] << atom_mu[1] << std::endl;
+>>>>>>> 3205165 (feature: enable shrink abfs)
     auto &chi0_q = chi0.get_chi0_q();
-    print_complex_matrix_mm(chi0_q.at(tfg.get_freq_nodes()[0]).at(qlist[0]).at(0).at(0), "chi0",
+    print_complex_matrix_mm(chi0_q.at(tfg.get_freq_nodes()[10]).at(qlist[0]).at(0).at(0), "chi0",
                             0.);
 
     if (use_shrink_abfs)
     {
         print_complex_matrix_mm(sinvS.at(qlist[0]), "sinvS", 0.);
+<<<<<<< HEAD
         auto identity = sinvS.at(qlist[0]) * transpose(sinvS.at(qlist[0]), true);
         print_complex_matrix_mm(identity, "sinvS_Ssinv", 0.);
 >>>>>>> b005208 (enable shrink abfs)
+=======
+>>>>>>> 3205165 (feature: enable shrink abfs)
         //  change atom_mu: number of {Mu,mu} in the later calculations
         atom_mu = atom_mu_s;
         LIBRPA::atomic_basis_abf.set(atom_mu);
@@ -134,9 +141,13 @@ void get_rpa_correlation_energy_(std::complex<double> &rpa_corr,
 
         N_all_mu = atom_mu_part_range[natom - 1] + atom_mu[natom - 1];
 <<<<<<< HEAD
+<<<<<<< HEAD
         std::cout << "small atom_mu: " << atom_mu[0] << atom_mu[1] << std::endl;
 =======
 >>>>>>> b005208 (enable shrink abfs)
+=======
+        std::cout << "atom_mu: " << atom_mu[0] << atom_mu[1] << std::endl;
+>>>>>>> 3205165 (feature: enable shrink abfs)
         Profiler::start("shrink_chi0_abfs", "Do shrink transformation");
         chi0.shrink_abfs_chi0(sinvS, qlist, atom_mu_l);
         Profiler::stop("shrink_chi0_abfs");
@@ -185,9 +196,15 @@ void get_rpa_correlation_energy_(std::complex<double> &rpa_corr,
         if (meanfield.get_n_kpoints() == 1)
         {
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
             print_complex_matrix_mm(*Vq.at(0).at(0).at(qlist[0]), "coulmat", 0.);
 >>>>>>> b005208 (enable shrink abfs)
+=======
+            print_complex_matrix_mm(*Vq.at(0).at(0).at(qlist[0]), "coulmat00", 0.);
+            print_complex_matrix_mm(*Vq.at(0).at(1).at(qlist[0]), "coulmat01", 0.);
+            print_complex_matrix_mm(*Vq.at(1).at(1).at(qlist[0]), "coulmat11", 0.);
+>>>>>>> 3205165 (feature: enable shrink abfs)
             corr = compute_RPA_correlation_blacs_2d_gamma_only(chi0, Vq);
         }
         else
