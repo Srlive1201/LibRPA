@@ -1245,7 +1245,7 @@ static int handle_Vq_full_file(const string &file_path, std::map<int, librpa_int
             int iq = stoi(q_num) - 1;
 
             //skip empty coulumb_file
-            if ((erow - brow <= 0) || (ecol - bcol <= 0) || iq < 0) return 4;
+            if ((erow - brow < 0) || (ecol - bcol < 0) || iq < 0) return 4;
 
             if (!Vq_full.count(iq))
             {
@@ -1525,7 +1525,7 @@ static int handle_Vq_row_file(const string &file_path, double threshold,
             // cout<<file_path<<" iq:"<<iq<<"  qweight:"<<stod(q_weight)<<endl;
 
             //skip empty coulumb_file
-            if ((erow - brow <= 0) || (ecol - bcol <= 0) || iq < 0) return 4;
+            if ((erow - brow < 0) || (ecol - bcol < 0) || iq < 0) return 4;
 
             for(const auto &ap:local_atpair)
             {
@@ -1572,7 +1572,7 @@ static int handle_Vq_row_file(const string &file_path, double threshold,
                         int Jb = atom_mu_part_range[J];
                         int Je = atom_mu_part_range[J] + basis_aux[J] - 1;
 
-                        if (ecol >= Jb && bcol < Je)
+                        if (ecol >= Jb && bcol <= Je)
                         {
                             int start_point = (bcol <= Jb ? Jb : bcol);
                             int end_point = (ecol <= Je ? ecol : Je);
@@ -2424,7 +2424,7 @@ static int handle_sinvS_file(const std::string &file_path,
             }
 
             // skip empty coulumb_file
-            if ((erow - brow <= 0) || (ecol - bcol <= 0) || iq < 0 || iq > klist.size()) return 4;
+            if ((erow - brow < 0) || (ecol - bcol < 0) || iq < 0 || iq > klist.size()) return 4;
             Vector3_Order<double> qvec(kvec_c[iq]);
             // skip duplicate insert of k weight, since
             if (irk_weight.count(qvec) == 0)

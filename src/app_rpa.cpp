@@ -65,15 +65,14 @@ void get_rpa_correlation_energy_(std::complex<double> &rpa_corr,
     Profiler::start("chi0_build", "Build response function chi0");
     chi0.build(Cs_data, Rlist, period, local_atpair, qlist);
     Profiler::stop("chi0_build");
+    std::cout << "atom_mu: " << atom_mu[0] << atom_mu[1] << std::endl;
     auto &chi0_q = chi0.get_chi0_q();
-    print_complex_matrix_mm(chi0_q.at(tfg.get_freq_nodes()[0]).at(qlist[0]).at(0).at(0), "chi0",
+    print_complex_matrix_mm(chi0_q.at(tfg.get_freq_nodes()[10]).at(qlist[0]).at(0).at(0), "chi0",
                             0.);
 
     if (use_shrink_abfs)
     {
         print_complex_matrix_mm(sinvS.at(qlist[0]), "sinvS", 0.);
-        auto identity = sinvS.at(qlist[0]) * transpose(sinvS.at(qlist[0]), true);
-        print_complex_matrix_mm(identity, "sinvS_Ssinv", 0.);
         //  change atom_mu: number of {Mu,mu} in the later calculations
         atom_mu = atom_mu_s;
         LIBRPA::atomic_basis_abf.set(atom_mu);
@@ -83,6 +82,7 @@ void get_rpa_correlation_energy_(std::complex<double> &rpa_corr,
             atom_mu_part_range[I] = atom_mu.at(I - 1) + atom_mu_part_range[I - 1];
 
         N_all_mu = atom_mu_part_range[natom - 1] + atom_mu[natom - 1];
+        std::cout << "atom_mu: " << atom_mu[0] << atom_mu[1] << std::endl;
         Profiler::start("shrink_chi0_abfs", "Do shrink transformation");
         chi0.shrink_abfs_chi0(sinvS, qlist, atom_mu_l);
         Profiler::stop("shrink_chi0_abfs");
@@ -116,7 +116,8 @@ void get_rpa_correlation_energy_(std::complex<double> &rpa_corr,
     }
 
     // NOTE: Cs is cleaned up.
-    // This means that the behavior will be undefined if this function is called again
+    // This means that the behavior will be undefined if this function is
+    // called again
     Cs_data.clear();
     LIBRPA::utils::release_free_mem();
 
@@ -129,7 +130,9 @@ void get_rpa_correlation_energy_(std::complex<double> &rpa_corr,
     {
         if (meanfield.get_n_kpoints() == 1)
         {
-            print_complex_matrix_mm(*Vq.at(0).at(0).at(qlist[0]), "coulmat", 0.);
+            print_complex_matrix_mm(*Vq.at(0).at(0).at(qlist[0]), "coulmat00", 0.);
+            print_complex_matrix_mm(*Vq.at(0).at(1).at(qlist[0]), "coulmat01", 0.);
+            print_complex_matrix_mm(*Vq.at(1).at(1).at(qlist[0]), "coulmat11", 0.);
             corr = compute_RPA_correlation_blacs_2d_gamma_only(chi0, Vq);
         }
         else

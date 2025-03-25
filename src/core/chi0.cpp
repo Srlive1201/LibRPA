@@ -601,6 +601,7 @@ void Chi0::build_chi0_q_space_time_LibRI_routing(const Cs_LRI &Cs,
 
     // Preapre relevant ComplexMatrix objects
     for (auto freq : tfg.get_freq_nodes())
+    {
         for (auto q : qlist)
         {
             for (auto atpair : atpairs_ABF)
@@ -610,6 +611,7 @@ void Chi0::build_chi0_q_space_time_LibRI_routing(const Cs_LRI &Cs,
                 chi0_q[freq][q][Mu][Nu].create(atbasis_abf[Mu], atbasis_abf[Nu]);
             }
         }
+    }
     const auto &lat_array = this->pbc.latvec_array;
 
     const auto &period_array = this->pbc.period_array;
@@ -1456,8 +1458,6 @@ void Chi0::free_chi0_q(const double freq, const Vector3_Order<double> q)
     ap_n_map<ComplexMatrix>().swap(chi0_for_free);
 }
 
-}
-
 void Chi0::shrink_abfs_chi0(map<Vector3_Order<double>, ComplexMatrix> &sinvS,
                             const vector<Vector3_Order<double>> &qlist,
                             map<atom_t, size_t> &atom_mu_large)
@@ -1504,15 +1504,20 @@ void Chi0::shrink_abfs_chi0(map<Vector3_Order<double>, ComplexMatrix> &sinvS,
                     }
                 }
             }
-            if (ifreq == 0 && iq == 0)
+            for (int ir = 0; ir < all_mu; ir++)
+            {
+                for (int ic = ir; ic < all_mu; ic++)
+                {
+                    large_chi0(ic, ir) = conj(large_chi0(ir, ic));
+                }
+            }
+            if (ifreq == 10 && iq == 0)
             {
                 print_complex_matrix_mm(large_chi0, "large_chi0", 0.);
                 print_complex_matrix_mm(U, "unitary", 0.);
             }
-            shrinked_chi0 = U * large_chi0 * transpose(U, true);
-            // debug
-            // shrinked_chi0 = transpose(U, true) * shrinked_chi0 * U;
-            if (ifreq == 0 && iq == 0) print_complex_matrix_mm(shrinked_chi0, "small_chi0", 0.);
+            shrinked_chi0 = U * large_chi0 * transpose(U, false);
+
             for (auto &Ip : chi0_q[freq][q])
             {
                 auto I = Ip.first;
@@ -1528,6 +1533,15 @@ void Chi0::shrink_abfs_chi0(map<Vector3_Order<double>, ComplexMatrix> &sinvS,
                     Jm.second = cm_chi0;
                 }
             }
+            if (ifreq == 10 && iq == 0)
+            {
+                print_complex_matrix_mm(chi0_q[freq][q][0][0], "small_chi0_00", 0.);
+                print_complex_matrix_mm(chi0_q[freq][q][0][1], "small_chi0_01", 0.);
+                // print_complex_matrix_mm(chi0_q[freq][q][1][0], "small_chi0_10", 0.);
+                print_complex_matrix_mm(chi0_q[freq][q][1][1], "small_chi0_11", 0.);
+            }
         }
     }
+}
+
 }

@@ -58,6 +58,11 @@ CorrEnergy compute_RPA_correlation_blacs_2d_gamma_only(Chi0 &chi0, atpair_k_cplx
     const double CONE = 1.0;
     const int n_abf = chi0.atbasis_abf.nb_total;
     const auto part_range = chi0.atbasis_abf.get_part_range();
+    auto nbs_ = chi0.atbasis_abf.get_atom_nbs();
+    std::cout << "n_abf " << n_abf << std::endl;
+    std::cout << "n_atoms " << chi0.atbasis_abf.n_atoms << std::endl;
+    std::cout << "part_range " << part_range[0] << " " << part_range[1] << std::endl;
+    std::cout << "nbs_ " << nbs_[0] << " " << nbs_[1] << std::endl;
 
     const auto &comm_h = blacs_h.comm_h();
     comm_h.barrier();
@@ -504,8 +509,7 @@ CorrEnergy compute_RPA_correlation_blacs_2d(Chi0 &chi0, atpair_k_cplx_mat_t &cou
             {
                 const int ilo = desc_nabf_nabf.indx_g2l_r(i);
                 const int jlo = desc_nabf_nabf.indx_g2l_c(i);
-                if (ilo >= 0 && jlo >= 0)
-                    coul_chi0_block(ilo,jlo)+=C_ONE;
+                if (ilo >= 0 && jlo >= 0) coul_chi0_block(ilo, jlo) += C_ONE;
             }
             // if( ifreq== 0 && comm_h.is_root() )
             //     print_whole_matrix("pi-2D-loc", coul_chi0_block);
