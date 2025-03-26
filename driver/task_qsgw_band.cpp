@@ -31,14 +31,15 @@
 #include "utils_timefreq.h"
 #include "mpi.h"
 #include "read_data.h"       
-#include "write_aims.h"         
+#include "write_aims.h"    
+#include "driver_params.h"  
+#include "driver_utils.h"     
 #include "matrix.h"
-#include "read_data.h"    
-#include "driver_utils.h"        
+#include "read_data.h"     
 #include "fermi_energy_occupation.h"// 费米能和占据数计算相关
 #include "convert_csc.h"
 #include "Hamiltonian.h"            // 哈密顿量相关
-#include "driver_params.h"
+
 
 
 
@@ -625,8 +626,10 @@ void task_qsgw_band()
     // 定义存储前一轮的本征值以检查收敛性
     std::vector<matrix> previous_eigenvalues(n_spins);
     mpi_comm_global_h.barrier();
-    std::ofstream file("homo_lumo_vs_iterations.dat", std::ios::trunc);
-    file.close();
+    if (mpi_comm_global_h.is_root()) {
+        std::ofstream file("homo_lumo_vs_iterations.dat", std::ios::trunc);
+        file.close();
+    }
     meanfield_band.get_efermi() = meanfield.get_efermi();
     // 初始化完毕，开始循环
     while (!converged && iteration < max_iterations) {
@@ -1333,43 +1336,43 @@ void task_qsgw_band()
         meanfield.broadcast(mpi_comm_global_h, 0);
         mpi_comm_global_h.barrier();
         
-        {
-            int my_rank, world_size;
-            MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
-            MPI_Comm_size(MPI_COMM_WORLD, &world_size);
-            const int n_spins = meanfield.get_n_spins();
-            const int n_kpoints = meanfield.get_n_kpoints();
+        // {
+        //     int my_rank, world_size;
+        //     MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
+        //     MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+        //     const int n_spins = meanfield.get_n_spins();
+        //     const int n_kpoints = meanfield.get_n_kpoints();
             
-            for (int irank = 0; irank < world_size; ++irank) {
-                mpi_comm_global_h.barrier();
-                if (my_rank != irank) continue;
+        //     for (int irank = 0; irank < world_size; ++irank) {
+        //         mpi_comm_global_h.barrier();
+        //         if (my_rank != irank) continue;
                 
-                std::cout << "\nRank " << my_rank << " eigenvector data:\n";
-                for (int ispin = 0; ispin < 1; ++ispin) {
-                    for (int ikpt = 0; ikpt < 1; ++ikpt) {
-                        std::cout << "Spin " << ispin << " Kpoint " << ikpt << ":\n";
-                        const auto& mat = meanfield.get_eigenvectors()[ispin][ikpt];
+        //         std::cout << "\nRank " << my_rank << " eigenvector data:\n";
+        //         for (int ispin = 0; ispin < 1; ++ispin) {
+        //             for (int ikpt = 0; ikpt < 1; ++ikpt) {
+        //                 std::cout << "Spin " << ispin << " Kpoint " << ikpt << ":\n";
+        //                 const auto& mat = meanfield.get_eigenvectors()[ispin][ikpt];
                         
-                        std::cout << "Matrix " << mat.nr << "x" << mat.nc << "\n";
+        //                 std::cout << "Matrix " << mat.nr << "x" << mat.nc << "\n";
                         
-                        const int max_rows = std::max(5, mat.nr);
-                        const int max_cols = std::max(5, mat.nc);
-                        for (int i = 0; i < max_rows; ++i) {
-                            for (int j = 0; j < max_cols; ++j) {
-                                std::cout << std::fixed << std::setprecision(6) 
-                                        << std::setw(12)
-                                        << "(" << std::setw(8) << mat(i,j).real()
-                                        << "," << std::setw(8) << mat(i,j).imag() << ") ";
-                            }
-                            std::cout << "\n"; // 行尾换行
-                        }
-                        std::cout << "\n"; // 矩阵后空行
-                    }
-                }
-                std::cout.flush();
-            }
-            mpi_comm_global_h.barrier();
-        }
+        //                 const int max_rows = std::max(5, mat.nr);
+        //                 const int max_cols = std::max(5, mat.nc);
+        //                 for (int i = 0; i < max_rows; ++i) {
+        //                     for (int j = 0; j < max_cols; ++j) {
+        //                         std::cout << std::fixed << std::setprecision(6) 
+        //                                 << std::setw(12)
+        //                                 << "(" << std::setw(8) << mat(i,j).real()
+        //                                 << "," << std::setw(8) << mat(i,j).imag() << ") ";
+        //                     }
+        //                     std::cout << "\n"; // 行尾换行
+        //                 }
+        //                 std::cout << "\n"; // 矩阵后空行
+        //             }
+        //         }
+        //         std::cout.flush();
+        //     }
+        //     mpi_comm_global_h.barrier();
+        // }
 
         //QSGW_band iteration
         /*
@@ -1411,8 +1414,8 @@ void task_qsgw_band()
                     );
                     const auto &sigc_sk = s_g0w0.sigc_is_ik_f_KS[i_spin][i_kpoint];
                     const auto &k = kfrac_band[i_kpoint];
-                    printf("spin %2d, k-point %4d: (%.5f, %.5f, %.5f) \n",
-                        i_spin + 1, i_kpoint + 1, k.x, k.y, k.z);
+                    // printf("spin %2d, k-point %4d: (%.5f, %.5f, %.5f) \n",
+                    //     i_spin + 1, i_kpoint + 1, k.x, k.y, k.z);
                     for (int i_state_row = 0; i_state_row < meanfield_band.get_n_bands(); i_state_row++) 
                     {
                         for (int i_state_col = 0; i_state_col < meanfield_band.get_n_bands(); i_state_col++) {

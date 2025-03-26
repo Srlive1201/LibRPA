@@ -135,60 +135,83 @@ Matz calculate_scRPA_exchange_correlation(
         double efermi = meanfield.get_efermi();
         for (int m = 0; m < n_states; ++m) {
             cplxdb V_nm = 0.0;
-            
-            if (n == m) {
-                // // 计算 δfn / δεn
 
-                // double df_n_depsilon_n = 1/ (sqrt(2.0 * PI ) * sigma) * exp(-pow((energy_n - efermi),2)/(2 * sigma));
+            //test
+            // 获取填充因子 fm
+            double energy_m = meanfield.get_eigenvals()[ispin](ikpt, m);
+            // double f_m = fermi_dirac(energy_m, mu, temperature) * 2.0 / meanfield.get_n_spins();
+            // // double delta_nm = (f_n - f_m)/(energy_n - energy_m);
+            // double delta_nm = f_n - f_m;
+            // // 如果 f_n - f_m 太小，则跳过该计算
+            // if (std::abs(delta_nm) < threshold) {
+            //     V_rpa_ks(n, m) = 0.0;
+            //     continue;  // 跳过这个循环的进一步计算
+            // }
 
-                // // 如果 df_n_depsilon_n 太小，则跳过该计算
-                // if (std::abs(df_n_depsilon_n) < threshold) {
-                //     V_rpa_ks(n, n) = 0.0;
-                //     continue;  // 跳过这个循环的进一步计算
-                // }
+            // 累加交换-关联项
+            for (size_t w = 0; w < freq_weights.size(); ++w) {
+                cplxdb sigc_nm_iw = sigc_spin_k.at(freq_nodes[w])(n, m);
+                V_nm += freq_weights[w] * sigc_nm_iw * G0[n][w] * G0[m][w];
+            }
 
-                // if(energy_n > efermi){
-                //     V_rpa_ks(n, n) = 0.0;
-                //     continue;
-                // }
+            // 归一化并存储
+            V_rpa_ks(n, m) = V_nm ;
+
+
+            // if (n == m) {
+            //     // // 计算 δfn / δεn
+
+            //     // double df_n_depsilon_n = 1/ (sqrt(2.0 * PI ) * sigma) * exp(-pow((energy_n - efermi),2)/(2 * sigma));
+
+            //     // // 如果 df_n_depsilon_n 太小，则跳过该计算
+            //     // if (std::abs(df_n_depsilon_n) < threshold) {
+            //     //     V_rpa_ks(n, n) = 0.0;
+            //     //     continue;  // 跳过这个循环的进一步计算
+            //     // }
+
+            //     // if(energy_n > efermi){
+            //     //     V_rpa_ks(n, n) = 0.0;
+            //     //     continue;
+            //     // }
                 
-                // 累加自能项
-                for (size_t w = 0; w < freq_weights.size(); ++w) {
-                    cplxdb sigc_nn_iw = sigc_spin_k.at(freq_nodes[w])(n, n);
+            //     // 累加自能项
+            //     for (size_t w = 0; w < freq_weights.size(); ++w) {
+            //         cplxdb sigc_nn_iw = sigc_spin_k.at(freq_nodes[w])(n, n);
                     
-                    // n = m 的对角元计算
-                    // V_nm += freq_weights[w] * sigc_nn_iw * G0[n][w] * G0[n][w];
-                    V_nm += freq_weights[w] * sigc_nn_iw * G0[n][w];
-                }
+            //         // n = m 的对角元计算
+            //         // V_nm += freq_weights[w] * sigc_nn_iw * G0[n][w] * G0[n][w];
+            //         V_nm += freq_weights[w] * sigc_nn_iw * G0[n][w];
+            //     }
 
-                // 对 δfn / δεn 进行归一化处理
-                // V_rpa_ks(n, n) = V_nm / df_n_depsilon_n;
-                V_rpa_ks(n, n) = V_nm;
-            } 
-            else {
-                // 获取填充因子 fm
-                double energy_m = meanfield.get_eigenvals()[ispin](ikpt, m);
-                double f_m = fermi_dirac(energy_m, mu, temperature) * 2.0 / meanfield.get_n_spins();
-                // double delta_nm = (f_n - f_m)/(energy_n - energy_m);
-                double delta_nm = f_n - f_m;
-                // 如果 f_n - f_m 太小，则跳过该计算
-                if (std::abs(delta_nm) < threshold) {
-                    V_rpa_ks(n, m) = 0.0;
-                    continue;  // 跳过这个循环的进一步计算
-                }
+            //     // 对 δfn / δεn 进行归一化处理
+            //     // V_rpa_ks(n, n) = V_nm / df_n_depsilon_n;
+            //     V_rpa_ks(n, n) = V_nm;
+            // } 
+            // else {
+            //     // 获取填充因子 fm
+            //     double energy_m = meanfield.get_eigenvals()[ispin](ikpt, m);
+            //     // double f_m = fermi_dirac(energy_m, mu, temperature) * 2.0 / meanfield.get_n_spins();
+            //     // // double delta_nm = (f_n - f_m)/(energy_n - energy_m);
+            //     // double delta_nm = f_n - f_m;
+            //     // // 如果 f_n - f_m 太小，则跳过该计算
+            //     // if (std::abs(delta_nm) < threshold) {
+            //     //     V_rpa_ks(n, m) = 0.0;
+            //     //     continue;  // 跳过这个循环的进一步计算
+            //     // }
 
-                // 累加交换-关联项
-                for (size_t w = 0; w < freq_weights.size(); ++w) {
-                    cplxdb sigc_nm_iw = sigc_spin_k.at(freq_nodes[w])(n, m);
-                    V_nm += freq_weights[w] * sigc_nm_iw * G0[n][w] * G0[m][w];
-                }
+            //     // 累加交换-关联项
+            //     for (size_t w = 0; w < freq_weights.size(); ++w) {
+            //         cplxdb sigc_nm_iw = sigc_spin_k.at(freq_nodes[w])(n, m);
+            //         V_nm += freq_weights[w] * sigc_nm_iw * G0[n][w] * G0[m][w];
+            //     }
 
-                // 归一化并存储
-                V_rpa_ks(n, m) = V_nm * (energy_n - energy_m) / delta_nm;
-            }  
+            //     // 归一化并存储
+            //     // V_rpa_ks(n, m) = V_nm * (energy_n - energy_m) / delta_nm;
+                
+            // } 
         }
     }
-    V_rpa_ks = 0.5 * (V_rpa_ks + transpose(V_rpa_ks,true));
+    // V_rpa_ks = 0.5 * (V_rpa_ks + transpose(V_rpa_ks,true));
 
     return V_rpa_ks;
 }
