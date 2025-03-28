@@ -1535,10 +1535,17 @@ void Chi0::shrink_abfs_chi0(map<Vector3_Order<double>, ComplexMatrix> &sinvS,
             }
             if (ifreq == 10 && iq == 0)
             {
-                print_complex_matrix_mm(chi0_q[freq][q][0][0], "small_chi0_00", 0.);
-                print_complex_matrix_mm(chi0_q[freq][q][0][1], "small_chi0_01", 0.);
-                // print_complex_matrix_mm(chi0_q[freq][q][1][0], "small_chi0_10", 0.);
-                print_complex_matrix_mm(chi0_q[freq][q][1][1], "small_chi0_11", 0.);
+                for (auto &Ip : chi0_q[freq][q])
+                {
+                    auto I = Ip.first;
+                    for (auto &Jm : Ip.second)
+                    {
+                        auto J = Jm.first;
+                        print_complex_matrix_mm(
+                            Jm.second, "small_chi0_" + std::to_string(I) + "_" + std::to_string(J),
+                            0.);
+                    }
+                }
             }
         }
     }

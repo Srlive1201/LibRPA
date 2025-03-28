@@ -67,7 +67,11 @@ void get_rpa_correlation_energy_(std::complex<double> &rpa_corr,
     Profiler::stop("chi0_build");
     std::cout << "atom_mu: " << atom_mu[0] << atom_mu[1] << std::endl;
     auto &chi0_q = chi0.get_chi0_q();
-    print_complex_matrix_mm(chi0_q.at(tfg.get_freq_nodes()[10]).at(qlist[0]).at(0).at(0), "chi0",
+    print_complex_matrix_mm(chi0_q.at(tfg.get_freq_nodes()[10]).at(qlist[0]).at(0).at(0), "chi0_00",
+                            0.);
+    print_complex_matrix_mm(chi0_q.at(tfg.get_freq_nodes()[10]).at(qlist[0]).at(0).at(1), "chi0_01",
+                            0.);
+    print_complex_matrix_mm(chi0_q.at(tfg.get_freq_nodes()[10]).at(qlist[0]).at(1).at(1), "chi0_11",
                             0.);
 
     if (use_shrink_abfs)
