@@ -2372,11 +2372,6 @@ static int handle_sinvS_file(const std::string &file_path,
             }
             Vector3_Order<double> qvec(kvec_c[iq]);
 
-            if (irk_weight.count(qvec) == 0)
-            {
-                irk_points.push_back(qvec);
-                irk_weight.insert(pair<Vector3_Order<double>, double>(qvec, q_weight));
-            }
             if (!sinvS.count(qvec))
             {
                 sinvS[qvec].create(nbasbas_s, nbasbas);
@@ -2426,12 +2421,6 @@ static int handle_sinvS_file(const std::string &file_path,
             // skip empty coulumb_file
             if ((erow - brow < 0) || (ecol - bcol < 0) || iq < 0 || iq > klist.size()) return 4;
             Vector3_Order<double> qvec(kvec_c[iq]);
-            // skip duplicate insert of k weight, since
-            if (irk_weight.count(qvec) == 0)
-            {
-                irk_points.push_back(qvec);
-                irk_weight.insert(std::pair<Vector3_Order<double>, double>(qvec, stod(q_weight)));
-            }
             if (!sinvS.count(qvec))
             {
                 sinvS[qvec].create(mu, nu);
