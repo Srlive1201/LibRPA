@@ -64,16 +64,16 @@ void task_g0w0_band()
     chi0.build(Cs_data, Rlist, period, local_atpair, qlist);
     Profiler::stop("chi0_build");
 
-    for (auto &Ip : chi0.get_chi0_q().at(tfg.get_freq_nodes()[10]).at(qlist[0]))
-    {
-        auto I = Ip.first;
-        for (auto &Jm : Ip.second)
-        {
-            auto J = Jm.first;
-            print_complex_matrix_mm(Jm.second,
-                                    "chi0_" + std::to_string(I) + "_" + std::to_string(J), 0.);
-        }
-    }
+    // for (auto &Ip : chi0.get_chi0_q().at(tfg.get_freq_nodes()[10]).at(qlist[0]))
+    // {
+    //     auto I = Ip.first;
+    //     for (auto &Jm : Ip.second)
+    //     {
+    //         auto J = Jm.first;
+    //         print_complex_matrix_mm(Jm.second,
+    //                                 "chi0_" + std::to_string(I) + "_" + std::to_string(J), 0.);
+    //     }
+    // }
 
     std::flush(ofs_myid);
     mpi_comm_global_h.barrier();

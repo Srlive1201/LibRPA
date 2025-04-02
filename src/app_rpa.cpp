@@ -105,7 +105,7 @@ void get_rpa_correlation_energy_(std::complex<double> &rpa_corr,
                         large_chi0(ic, ir) = conj(large_chi0(ir, ic));
                     }
                 }
-                print_complex_matrix_mm(large_chi0, "chi0_gamma", 0.);
+                // print_complex_matrix_mm(large_chi0, "chi0_gamma", 0.);
             }
         }
     }

@@ -1511,11 +1511,11 @@ void Chi0::shrink_abfs_chi0(map<Vector3_Order<double>, ComplexMatrix> &sinvS,
                     large_chi0(ic, ir) = conj(large_chi0(ir, ic));
                 }
             }
-            if (ifreq == 10 && iq == 0)
-            {
-                print_complex_matrix_mm(large_chi0, "large_chi0", 0.);
-                print_complex_matrix_mm(U, "unitary", 0.);
-            }
+            // if (ifreq == 10 && iq == 0)
+            // {
+            //     print_complex_matrix_mm(large_chi0, "large_chi0", 0.);
+            //     print_complex_matrix_mm(U, "unitary", 0.);
+            // }
             shrinked_chi0 = U * large_chi0 * transpose(U, true);
 
             for (auto &Ip : chi0_q[freq][q])
@@ -1533,21 +1533,10 @@ void Chi0::shrink_abfs_chi0(map<Vector3_Order<double>, ComplexMatrix> &sinvS,
                     Jm.second = cm_chi0;
                 }
             }
-            if (ifreq == 10 && iq == 0)
-            {
-                print_complex_matrix_mm(shrinked_chi0, "small_chi0", 0.);
-                /* for (auto &Ip : chi0_q[freq][q])
-                {
-                    auto I = Ip.first;
-                    for (auto &Jm : Ip.second)
-                    {
-                        auto J = Jm.first;
-                        print_complex_matrix_mm(
-                            Jm.second, "small_chi0_" + std::to_string(I) + "_" + std::to_string(J),
-                            0.);
-                    }
-                } */
-            }
+            // if (ifreq == 10 && iq == 0)
+            // {
+            //     print_complex_matrix_mm(shrinked_chi0, "small_chi0", 0.);
+            // }
         }
     }
 }
