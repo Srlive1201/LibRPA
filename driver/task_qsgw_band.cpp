@@ -1178,10 +1178,6 @@ void task_qsgw_band()
                 //将占据数和费米能级更新到 MeanField 对象中
                 update_fermi_energy_and_occupations(meanfield, temperature, efermi);
                 efermi_values.push_back(efermi * HA2EV);  
-
-                
-                
-
                 
                 // const std::string final_banner(90, '-');
                 lib_printf("Final Quasi-Particle Energy after QSGW Iterations [unit: eV]\n\n");
