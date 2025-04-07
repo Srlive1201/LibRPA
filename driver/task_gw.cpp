@@ -184,10 +184,7 @@ void task_g0w0()
         Wc_freq_q;
     if (Params::use_scalapack_gw_wc)
     {
-        if (Params::option_dielect_func == 3)
-            Wc_freq_q = compute_Wc_freq_q_blacs_wing(chi0, Vq, Vq_cut, epsmac_LF_imagfreq);
-        else
-            Wc_freq_q = compute_Wc_freq_q_blacs(chi0, Vq, Vq_cut, epsmac_LF_imagfreq);
+        Wc_freq_q = compute_Wc_freq_q_blacs(chi0, Vq, Vq_cut, epsmac_LF_imagfreq);
     }
     else
     {

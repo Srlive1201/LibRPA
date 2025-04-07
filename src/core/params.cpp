@@ -45,10 +45,10 @@ bool Params::use_shrink_abfs = false;
 bool Params::output_gw_sigc_mat = false;
 bool Params::output_gw_sigc_mat_rt = false;
 bool Params::output_gw_sigc_mat_rf = false;
+int Params::nbands_G = -1;
 /* ==========================================================
  * output options end
  * ========================================================== */
-int Params::nbands_G = -1;
 
 void Params::check_consistency()
 {

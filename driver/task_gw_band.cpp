@@ -128,7 +128,8 @@ void task_g0w0_band()
         //       It can consists of distributed atom pairs of only upper half.
         //       Setup of local_atpair may be better to extracted as some util function,
         //       instead of in the main driver.
-        read_Vq_row(driver_params.input_dir, "coulomb_cut_", Params::vq_threshold, local_atpair, true);
+        read_Vq_row(driver_params.input_dir, "coulomb_cut_", Params::vq_threshold, local_atpair,
+                    true);
     }
     Profiler::cease("read_vq_cut");
 
@@ -174,10 +175,7 @@ void task_g0w0_band()
         Wc_freq_q;
     if (Params::use_scalapack_gw_wc)
     {
-        if (Params::option_dielect_func == 3)
-            Wc_freq_q = compute_Wc_freq_q_blacs_wing(chi0, Vq, Vq_cut, epsmac_LF_imagfreq);
-        else
-            Wc_freq_q = compute_Wc_freq_q_blacs(chi0, Vq, Vq_cut, epsmac_LF_imagfreq);
+        Wc_freq_q = compute_Wc_freq_q_blacs(chi0, Vq, Vq_cut, epsmac_LF_imagfreq);
     }
     else
     {
