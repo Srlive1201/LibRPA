@@ -1485,7 +1485,7 @@ static int handle_Vq_row_file(const string &file_path, double threshold,
                         int Jb = atom_mu_part_range[J];
                         int Je = atom_mu_part_range[J] + basis_aux[J] - 1;
 
-                        if (ecol >= Jb && bcol < Je)
+                        if (ecol >= Jb && bcol <= Je)
                         {
                             int start_point = (bcol <= Jb ? Jb : bcol);
                             int end_point = (ecol <= Je ? ecol : Je);

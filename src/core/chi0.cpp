@@ -1460,8 +1460,20 @@ void Chi0::free_chi0_q(const double freq, const Vector3_Order<double> q)
 
 void Chi0::shrink_abfs_chi0(map<Vector3_Order<double>, ComplexMatrix> &sinvS,
                             const vector<Vector3_Order<double>> &qlist,
-                            map<atom_t, size_t> &atom_mu_large)
+                            map<atom_t, size_t> &atom_mu_large, map<atom_t, size_t> &atom_mu_small)
 {
+    using LIBRPA::Array_Desc;
+    using LIBRPA::AtomicBasis;
+    using LIBRPA::envs::blacs_ctxt_global_h;
+    using LIBRPA::envs::mpi_comm_global_h;
+
+    LIBRPA::atomic_basis_abf.set(atom_mu_large);
+    atom_mu_part_range.resize(atom_mu_large.size());
+    atom_mu_part_range[0] = 0;
+    for (int I = 1; I != atom_mu_large.size(); I++)
+        atom_mu_part_range[I] = atom_mu_large.at(I - 1) + atom_mu_part_range[I - 1];
+    N_all_mu = atom_mu_part_range[natom - 1] + atom_mu_large[natom - 1];
+
     // before reset atom_mu: large abfs
     int all_mu = 0;
     vector<int> mu_shift(atom_mu_large.size());
@@ -1473,155 +1485,216 @@ void Chi0::shrink_abfs_chi0(map<Vector3_Order<double>, ComplexMatrix> &sinvS,
 
     // after reset atom_mu: small abfs
     int all_mu_s = 0;
-    vector<int> mu_s_shift(atom_mu.size());
-    for (int I = 0; I != atom_mu.size(); I++)
+    vector<int> mu_s_shift(atom_mu_small.size());
+    for (int I = 0; I != atom_mu_small.size(); I++)
     {
         mu_s_shift[I] = all_mu_s;
-        all_mu_s += atom_mu[I];
+        all_mu_s += atom_mu_small[I];
     }
+    AtomicBasis atomic_basis_abf_s;
+    atomic_basis_abf_s.set(atom_mu_small);
+
+    const complex<double> CONE{1.0, 0.0};
+    Array_Desc desc_nabf_nabf_ll(blacs_ctxt_global_h);
+    Array_Desc desc_nabf_nabf_sl(blacs_ctxt_global_h);
+    Array_Desc desc_nabf_nabf_ss(blacs_ctxt_global_h);
+    desc_nabf_nabf_ll.init_square_blk(all_mu, all_mu, 0, 0);
+    desc_nabf_nabf_sl.init_square_blk(all_mu_s, all_mu, 0, 0);
+    desc_nabf_nabf_ss.init_square_blk(all_mu_s, all_mu_s, 0, 0);
+    const auto set_IJ_nabf_nabf = LIBRPA::utils::get_necessary_IJ_from_block_2D_sy(
+        'U', LIBRPA::atomic_basis_abf, desc_nabf_nabf_ll);
+    const auto s0_s1 = get_s0_s1_for_comm_map2_first(set_IJ_nabf_nabf);
+    auto chi0_block = init_local_mat<complex<double>>(desc_nabf_nabf_ll, MAJOR::COL);
+    auto chi0ss_block = init_local_mat<complex<double>>(desc_nabf_nabf_ss, MAJOR::COL);
+    auto u_block = init_local_mat<complex<double>>(desc_nabf_nabf_sl, MAJOR::COL);
+    auto u_chi0 = init_local_mat<complex<double>>(desc_nabf_nabf_sl, MAJOR::COL);
+    // for 2D->IJ
+    int I, iI;
+    map<int, vector<int>> map_lor_v;
+    map<int, vector<int>> map_loc_v;
+    for (int i_lo = 0; i_lo != desc_nabf_nabf_ss.m_loc(); i_lo++)
+    {
+        int i_glo = desc_nabf_nabf_ss.indx_l2g_r(i_lo);
+        atomic_basis_abf_s.get_local_index(i_glo, I, iI);
+        map_lor_v[I].push_back(iI);
+    }
+    for (int i_lo = 0; i_lo != desc_nabf_nabf_ss.n_loc(); i_lo++)
+    {
+        int i_glo = desc_nabf_nabf_ss.indx_l2g_c(i_lo);
+        atomic_basis_abf_s.get_local_index(i_glo, I, iI);
+        map_loc_v[I].push_back(iI);
+    }
+
+    // IJ pair of shrinked chi0 to be returned
+    pair<set<int>, set<int>> Iset_Jset_c;
+    const auto atpair_local = dispatch_upper_trangular_tasks(
+        natom, blacs_ctxt_global_h.myid, blacs_ctxt_global_h.nprows, blacs_ctxt_global_h.npcols,
+        blacs_ctxt_global_h.myprow, blacs_ctxt_global_h.mypcol);
+    for (const auto &ap : atpair_local)
+    {
+        Iset_Jset_c.first.insert(ap.first);
+        Iset_Jset_c.second.insert(ap.second);
+    }
+
     for (int ifreq = 0; ifreq < this->tfg.get_n_grids(); ++ifreq)
     {
         for (int iq = 0; iq < qlist.size(); iq++)
         {
             const auto &q = qlist[iq];
-            const double freq = this->tfg.get_freq_nodes()[ifreq];
-            const auto &U = sinvS[q];
-            ComplexMatrix shrinked_chi0(all_mu_s, all_mu_s);
-            ComplexMatrix large_chi0(all_mu, all_mu);
-
-            for (auto &Ip : chi0_q[freq][q])
+            std::array<double, 3> qa = {q.x, q.y, q.z};
+            const double freq = this->tfg.get_freq_nodes().at(ifreq);
+            const auto &U = sinvS.at(q);
+            if (Params::debug && iq == 10 && ifreq == 10)
             {
-                auto I = Ip.first;
-                for (auto &Jm : Ip.second)
+                print_complex_matrix_mm(U, ofs_myid);
+            }
+            Profiler::start("shrink_prepare_chi0_2d", "Prepare Chi0 2D block for shrink");
+            chi0_block.zero_out();
+            chi0ss_block.zero_out();
+            u_block.zero_out();
+            u_chi0.zero_out();
+            {
+                std::map<int, std::map<std::pair<int, std::array<double, 3>>,
+                                       RI::Tensor<complex<double>>>>
+                    chi0_libri;
+
+                if (chi0_q.count(freq) > 0 && chi0_q.at(freq).count(q) > 0)
                 {
-                    auto J = Jm.first;
-                    auto mu_I = Jm.second.nr;
-                    auto mu_J = Jm.second.nc;
-                    for (int ir = 0; ir < mu_I; ir++)
+                    const auto &chi0_wq = chi0_q.at(freq).at(q);
+                    for (const auto &M_Nchi : chi0_wq)
                     {
-                        for (int ic = 0; ic < mu_J; ic++)
-                            large_chi0(mu_shift[I] + ir, mu_shift[J] + ic) = Jm.second(ir, ic);
+                        const auto &M = M_Nchi.first;
+                        const auto n_mu = LIBRPA::atomic_basis_abf.get_atom_nb(M);
+                        for (const auto &N_chi : M_Nchi.second)
+                        {
+                            const auto &N = N_chi.first;
+                            const auto n_nu = LIBRPA::atomic_basis_abf.get_atom_nb(N);
+                            const auto &chi = N_chi.second;
+                            if (Params::debug && iq == 10 && ifreq == 10)
+                            {
+                                ofs_myid << "M=" << M << " N=" << N << std::endl;
+                                print_complex_matrix_mm(chi, ofs_myid);
+                            }
+                            std::valarray<complex<double>> chi_va(chi.c, chi.size);
+                            auto pchi = std::make_shared<std::valarray<complex<double>>>();
+                            *pchi = chi_va;
+                            chi0_libri[M][{N, qa}] =
+                                RI::Tensor<complex<double>>({n_mu, n_nu}, pchi);
+                        }
+                    }
+                }
+                // wait for all mpi to calculate chi0_libri
+                // then collect chi0_libri to chi0_block
+                mpi_comm_global_h.barrier();
+                Profiler::start("shrink_prepare_chi0_2d_comm_map2");
+                const auto IJq_chi0 = RI::Communicate_Tensors_Map_Judge::comm_map2_first(
+                    mpi_comm_global_h.comm, chi0_libri, s0_s1.first, s0_s1.second);
+                Profiler::stop("shrink_prepare_chi0_2d_comm_map2");
+                Profiler::start("shrink_prepare_chi0_2d_collect_block");
+                collect_block_from_ALL_IJ_Tensor(chi0_block, desc_nabf_nabf_ll,
+                                                 LIBRPA::atomic_basis_abf, qa, true, CONE, IJq_chi0,
+                                                 MAJOR::ROW);
+                Profiler::stop("shrink_prepare_chi0_2d_collect_block");
+            }
+            Profiler::stop("shrink_prepare_chi0_2d");
+            for (int ir = 0; ir < U.nr; ir++)
+            {
+                const int ilo = desc_nabf_nabf_sl.indx_g2l_r(ir);
+                if (ilo < 0) continue;
+                for (int ic = 0; ic < U.nc; ic++)
+                {
+                    const int jlo = desc_nabf_nabf_sl.indx_g2l_c(ic);
+                    if (jlo < 0) continue;
+                    u_block(ilo, jlo) = U(ir, ic);
+                }
+            }
+            if (iq == 10 && ifreq == 10)
+            {
+                char fn[100];
+                sprintf(fn, "sinvS_id_%zu.dat", mpi_comm_global_h.myid);
+                print_matrix_mm_file(u_block, Params::output_dir + "/" + fn);
+            }
+            // Shape of u_block is N_small x N_large
+            ScalapackConnector::pgemm_f('N', 'N', all_mu_s, all_mu, all_mu, 1.0, u_block.ptr(), 1,
+                                        1, desc_nabf_nabf_sl.desc, chi0_block.ptr(), 1, 1,
+                                        desc_nabf_nabf_ll.desc, 0.0, u_chi0.ptr(), 1, 1,
+                                        desc_nabf_nabf_sl.desc);
+            ScalapackConnector::pgemm_f('N', 'C', all_mu_s, all_mu_s, all_mu, 1.0, u_chi0.ptr(), 1,
+                                        1, desc_nabf_nabf_sl.desc, u_block.ptr(), 1, 1,
+                                        desc_nabf_nabf_sl.desc, 0.0, chi0ss_block.ptr(), 1, 1,
+                                        desc_nabf_nabf_ss.desc);
+
+            // shrinked_chi0 = U * large_chi0 * transpose(U, true);
+
+            map<int, map<int, matrix_m<complex<double>>>> chi0s_MNmap;
+            map_block_to_IJ_storage_new(chi0s_MNmap, atomic_basis_abf_s, map_lor_v, map_loc_v,
+                                        chi0ss_block, desc_nabf_nabf_ss, MAJOR::ROW);
+
+            std::map<int,
+                     std::map<std::pair<int, std::array<double, 3>>, RI::Tensor<complex<double>>>>
+                shrinked_chi0_libri;
+            for (const auto &M_Nc : chi0s_MNmap)
+            {
+                const auto &M = M_Nc.first;
+                const auto n_mu = atom_mu_small[M];
+                for (const auto &N_c : M_Nc.second)
+                {
+                    const auto &N = N_c.first;
+                    const auto n_nu = atom_mu_small[N];
+                    const auto &c = N_c.second;
+                    shrinked_chi0_libri[M][{N, qa}] =
+                        RI::Tensor<complex<double>>({n_mu, n_nu}, c.sptr());
+                }
+            }
+            const auto IJq_chi = RI::Communicate_Tensors_Map_Judge::comm_map2_first(
+                mpi_comm_global_h.comm, shrinked_chi0_libri, Iset_Jset_c.first, Iset_Jset_c.second);
+            if (Params::debug)
+            {
+                for (auto &IJqc : IJq_chi)
+                {
+                    auto &I = IJqc.first;
+                    for (auto &Jqc : IJqc.second)
+                    {
+                        auto &J = Jqc.first.first;
+                        auto &c = Jqc.second;
+                        ofs_myid << "chi0ss I " << I << " J " << J << std::endl;
                     }
                 }
             }
-            for (int ir = 0; ir < all_mu; ir++)
+            if (chi0_q.count(freq) > 0 && chi0_q.at(freq).count(q) > 0)
             {
-                for (int ic = ir; ic < all_mu; ic++)
+                for (auto &Ip : chi0_q[freq][q])
                 {
-                    large_chi0(ic, ir) = conj(large_chi0(ir, ic));
-                }
-            }
-            // if (ifreq == 10 && iq == 0)
-            // {
-            //     print_complex_matrix_mm(large_chi0, "large_chi0", 0.);
-            //     print_complex_matrix_mm(U, "unitary", 0.);
-            // }
-            shrinked_chi0 = U * large_chi0 * transpose(U, true);
-
-            for (auto &Ip : chi0_q[freq][q])
-            {
-                auto I = Ip.first;
-                for (auto &Jm : Ip.second)
-                {
-                    auto J = Jm.first;
-                    ComplexMatrix cm_chi0(atom_mu[I], atom_mu[J]);
-                    for (int ir = 0; ir < atom_mu[I]; ir++)
+                    auto I = Ip.first;
+                    for (auto &Jm : Ip.second)
                     {
-                        for (int ic = 0; ic < atom_mu[J]; ic++)
-                            cm_chi0(ir, ic) = shrinked_chi0(mu_s_shift[I] + ir, mu_s_shift[J] + ic);
+                        auto J = Jm.first;
+                        // ofs_myid << "IJ=" << I << J << std::endl;
+                        ComplexMatrix cm_chi0(atom_mu_small[I], atom_mu_small[J]);
+                        for (int ir = 0; ir < atom_mu_small[I]; ir++)
+                        {
+                            for (int ic = 0; ic < atom_mu_small[J]; ic++)
+                            {
+                                cm_chi0(ir, ic) = IJq_chi.at(I).at({J, qa})(ir, ic);
+                            }
+                        }
+                        if (Params::debug && iq == 10 && ifreq == 10)
+                        {
+                            ofs_myid << "I=" << I << " J=" << J << std::endl;
+                            print_complex_matrix_mm(cm_chi0, ofs_myid);
+                        }
+                        Jm.second = cm_chi0;
                     }
-                    Jm.second = cm_chi0;
                 }
             }
-            // if (ifreq == 10 && iq == 0)
-            // {
-            //     print_complex_matrix_mm(shrinked_chi0, "small_chi0", 0.);
-            // }
         }
     }
+    LIBRPA::atomic_basis_abf.set(atom_mu_small);
+    atom_mu_part_range.resize(atom_mu_small.size());
+    atom_mu_part_range[0] = 0;
+    for (int I = 1; I != atom_mu_small.size(); I++)
+        atom_mu_part_range[I] = atom_mu_small.at(I - 1) + atom_mu_part_range[I - 1];
+    N_all_mu = atom_mu_part_range[natom - 1] + atom_mu_small[natom - 1];
 }
 
-}
-
-void Chi0::shrink_abfs_chi0(map<Vector3_Order<double>, ComplexMatrix> &sinvS,
-                            const vector<Vector3_Order<double>> &qlist,
-                            map<atom_t, size_t> &atom_mu_large)
-{
-    // before reset atom_mu: large abfs
-    int all_mu = 0;
-    vector<int> mu_shift(atom_mu_large.size());
-    for (int I = 0; I != atom_mu_large.size(); I++)
-    {
-        mu_shift[I] = all_mu;
-        all_mu += atom_mu_large[I];
-    }
-
-    // after reset atom_mu: small abfs
-    int all_mu_s = 0;
-    vector<int> mu_s_shift(atom_mu.size());
-    for (int I = 0; I != atom_mu.size(); I++)
-    {
-        mu_s_shift[I] = all_mu_s;
-        all_mu_s += atom_mu[I];
-    }
-    for (int ifreq = 0; ifreq < this->tfg.get_n_grids(); ++ifreq)
-    {
-        for (int iq = 0; iq < qlist.size(); iq++)
-        {
-            const auto &q = qlist[iq];
-            const double freq = this->tfg.get_freq_nodes()[ifreq];
-            const auto &U = sinvS[q];
-            ComplexMatrix shrinked_chi0(all_mu_s, all_mu_s);
-            ComplexMatrix large_chi0(all_mu, all_mu);
-
-            for (auto &Ip : chi0_q[freq][q])
-            {
-                auto I = Ip.first;
-                for (auto &Jm : Ip.second)
-                {
-                    auto J = Jm.first;
-                    auto mu_I = Jm.second.nr;
-                    auto mu_J = Jm.second.nc;
-                    for (int ir = 0; ir < mu_I; ir++)
-                    {
-                        for (int ic = 0; ic < mu_J; ic++)
-                            large_chi0(mu_shift[I] + ir, mu_shift[J] + ic) = Jm.second(ir, ic);
-                    }
-                }
-            }
-            for (int ir = 0; ir < all_mu; ir++)
-            {
-                for (int ic = ir; ic < all_mu; ic++)
-                {
-                    large_chi0(ic, ir) = conj(large_chi0(ir, ic));
-                }
-            }
-            // if (ifreq == 10 && iq == 0)
-            // {
-            //     print_complex_matrix_mm(large_chi0, "large_chi0", 0.);
-            //     print_complex_matrix_mm(U, "unitary", 0.);
-            // }
-            shrinked_chi0 = U * large_chi0 * transpose(U, true);
-
-            for (auto &Ip : chi0_q[freq][q])
-            {
-                auto I = Ip.first;
-                for (auto &Jm : Ip.second)
-                {
-                    auto J = Jm.first;
-                    ComplexMatrix cm_chi0(atom_mu[I], atom_mu[J]);
-                    for (int ir = 0; ir < atom_mu[I]; ir++)
-                    {
-                        for (int ic = 0; ic < atom_mu[J]; ic++)
-                            cm_chi0(ir, ic) = shrinked_chi0(mu_s_shift[I] + ir, mu_s_shift[J] + ic);
-                    }
-                    Jm.second = cm_chi0;
-                }
-            }
-            // if (ifreq == 10 && iq == 0)
-            // {
-            //     print_complex_matrix_mm(shrinked_chi0, "small_chi0", 0.);
-            // }
-        }
-    }
 }

@@ -112,9 +112,27 @@ void task_g0w0_band()
         read_shrink_sinvS(driver_params.input_dir, "shrink_sinvS_", sinvS);
         Profiler::stop("read_shrink_sinvS");
         Profiler::start("shrink_chi0_abfs", "Do shrink transformation");
-        chi0.shrink_abfs_chi0(sinvS, qlist, atom_mu_l);
+        chi0.shrink_abfs_chi0(sinvS, qlist, atom_mu_l, atom_mu);
         Profiler::stop("shrink_chi0_abfs");
         sinvS.clear();
+        /* auto freq = tfg.get_freq_nodes().at(10);
+        auto q = qlist.at(10);
+        if (chi0.get_chi0_q().count(freq) > 0 && chi0.get_chi0_q().at(freq).count(q) > 0)
+        {
+            auto chis = chi0.get_chi0_q().at(freq).at(q);
+            ofs_myid << "shrinked chi0: " << std::endl;
+            for (const auto &I_Jchi0 : chis)
+            {
+                const auto &I = I_Jchi0.first;
+                for (const auto &J_chi0 : I_Jchi0.second)
+                {
+                    const auto &J = J_chi0.first;
+                    const auto &chiIJ = J_chi0.second;
+                    ofs_myid << "I: " << I << ", J: " << J << std::endl;
+                    print_complex_matrix_mm(chiIJ, ofs_myid);
+                }
+            }
+        } */
     }
 
     Profiler::start("read_vq_cut", "Load truncated Coulomb");

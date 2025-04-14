@@ -102,7 +102,7 @@ public:
     const map<double, map<Vector3_Order<double>, atom_mapping<ComplexMatrix>::pair_t_old>> & get_chi0_q() const { return chi0_q; }
     void shrink_abfs_chi0(map<Vector3_Order<double>, ComplexMatrix> &sinvS,
                           const vector<Vector3_Order<double>> &qlist,
-                          map<atom_t, size_t> &atom_mu_large);
+                          map<atom_t, size_t> &atom_mu_large, map<atom_t, size_t> &atom_mu_small);
     void free_chi0_q(const double freq, const Vector3_Order<double> q);
 };
 
