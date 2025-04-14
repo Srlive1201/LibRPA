@@ -252,7 +252,7 @@ CorrEnergy compute_RPA_correlation_blacs_2d_gamma_only(Chi0 &chi0, atpair_k_cplx
             if(comm_h.myid==0)
             {
                 lib_printf("| TIME of DET-freq-q:  %f,  q: ( %f, %f, %f)  TOT: %f  CHI_arr: %f  CHI_comm: %f, CHI_2d: %f, Pi: %f, Det: %f\n",freq, q.x,q.y,q.z,pi_freq_end-pi_freq_begin, chi_arr_time,chi_comm_time,chi_2d_time,pi_end-pi_begin,det_end-pi_end);
-                complex<double> rpa_for_omega_q=complex<double>(trace_pi+ln_det);
+                complex<double> rpa_for_omega_q = complex<double>(trace_pi + ln_det);
                 cRPA_q[q] += rpa_for_omega_q * freq_weight * map_ibzk_weight.at(q) / TWO_PI;//!check
                 tot_RPA_energy += rpa_for_omega_q * freq_weight * map_ibzk_weight.at(q) / TWO_PI;
             }

@@ -69,6 +69,7 @@ void get_rpa_correlation_energy_(std::complex<double> &rpa_corr,
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
     std::cout << "large atom_mu: " << atom_mu[0] << atom_mu[1] << std::endl;
 =======
 >>>>>>> f0b703b (fix: multi-mpi read sinvS)
@@ -116,6 +117,8 @@ void get_rpa_correlation_energy_(std::complex<double> &rpa_corr,
             }
         }
     }
+=======
+>>>>>>> 49a7c4b (update rpa shrink)
 
     if (use_shrink_abfs)
     {
