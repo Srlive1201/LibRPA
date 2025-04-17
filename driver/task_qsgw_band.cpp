@@ -652,6 +652,7 @@ void task_qsgw_band()
         Chi0 chi0(meanfield, klist, tfg);
         chi0.gf_R_threshold = Params::gf_R_threshold;
 
+        
         Profiler::start("chi0_build", "Build response function chi0");
         chi0.build(Cs_data, Rlist, period, local_atpair, qlist);
         Profiler::stop("chi0_build"); 
@@ -659,10 +660,42 @@ void task_qsgw_band()
         std::flush(ofs_myid);
         mpi_comm_global_h.barrier();
 
-        // 读取库伦相互作用
+        if (Params::debug)
+        { // debug, check chi0
+            char fn[80];
+            for (const auto &chi0q: chi0.get_chi0_q())
+            {
+                const int ifreq = chi0.tfg.get_freq_index(chi0q.first);
+                for (const auto &q_IJchi0: chi0q.second)
+                {
+                    const int iq = std::distance(klist.begin(), std::find(klist.begin(), klist.end(), q_IJchi0.first));
+                    for (const auto &I_Jchi0: q_IJchi0.second)
+                    {
+                        const auto &I = I_Jchi0.first;
+                        for (const auto &J_chi0: I_Jchi0.second)
+                        {
+                            const auto &J = J_chi0.first;
+                            sprintf(fn, "chi0fq_ifreq_%d_iq_%d_I_%zu_J_%zu_id_%d.mtx", ifreq, iq, I, J, mpi_comm_global_h.myid);
+                            print_complex_matrix_mm(J_chi0.second, Params::output_dir + "/" + fn, 1e-15);
+                        }
+                    }
+                }
+            }
+        }
         Profiler::start("read_vq_cut", "Load truncated Coulomb");
-        read_Vq_full(driver_params.input_dir, "coulomb_cut_", true);
-        Profiler::stop("read_vq_cut");
+        if (LIBRPA::parallel_routing == LIBRPA::ParallelRouting::R_TAU)
+        {
+            read_Vq_full(driver_params.input_dir, "coulomb_cut_", true);
+        }
+        else
+        {
+            // NOTE: local_atpair already set in the main.cpp.
+            //       It can consists of distributed atom pairs of only upper half.
+            //       Setup of local_atpair may be better to extracted as some util function,
+            //       instead of in the main driver.
+            read_Vq_row(driver_params.input_dir, "coulomb_cut_", Params::vq_threshold, local_atpair, true);
+        }
+        Profiler::cease("read_vq_cut");
 
         // 读取和处理介电函数
         std::vector<double> epsmac_LF_imagfreq_re;
@@ -753,14 +786,39 @@ void task_qsgw_band()
         Profiler::start("qsgw_wc", "Build screened interaction");
         vector<std::complex<double>> epsmac_LF_imagfreq(epsmac_LF_imagfreq_re.cbegin(), epsmac_LF_imagfreq_re.cend());
         map<double, atom_mapping<std::map<Vector3_Order<double>, matrix_m<complex<double>>>>::pair_t_old> Wc_freq_q;
-        if (Params::use_scalapack_gw_wc) {
+        if (Params::use_scalapack_gw_wc) 
+        {
             Wc_freq_q = compute_Wc_freq_q_blacs(chi0, Vq, Vq_cut, epsmac_LF_imagfreq);
-        } else {
+        } 
+        else 
+        {
             Wc_freq_q = compute_Wc_freq_q(chi0, Vq, Vq_cut, epsmac_LF_imagfreq);
         }
         Profiler::stop("qsgw_wc");
 
-
+        if (Params::debug)
+        { // debug, check Wc
+            char fn[80];
+            for (const auto &Wc: Wc_freq_q)
+            {
+                const int ifreq = chi0.tfg.get_freq_index(Wc.first);
+                for (const auto &I_JqWc: Wc.second)
+                {
+                    const auto &I = I_JqWc.first;
+                    for (const auto &J_qWc: I_JqWc.second)
+                    {
+                        const auto &J = J_qWc.first;
+                        for (const auto &q_Wc: J_qWc.second)
+                        {
+                            const int iq = std::distance(klist.begin(), std::find(klist.begin(), klist.end(), q_Wc.first));
+                            sprintf(fn, "Wcfq_ifreq_%d_iq_%d_I_%zu_J_%zu_id_%d.mtx", ifreq, iq, I, J, mpi_comm_global_h.myid);
+                            print_matrix_mm_file(q_Wc.second, Params::output_dir + "/" + fn, 1e-15);
+                        }
+                    }
+                }
+            }
+        }
+        
         LIBRPA::G0W0 s_g0w0(meanfield, kfrac_list, chi0.tfg, period);
         Profiler::start("g0w0_sigc_IJ", "Build correlation self-energy");
         s_g0w0.build_spacetime(Cs_data, Wc_freq_q, Rlist);
