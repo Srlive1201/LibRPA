@@ -8,13 +8,13 @@ namespace envs
 
 const char * source_dir = "/home/bhjia/LibRPA-develop/src";
 
-const char * git_hash = "beca100c4462d6dd7a447d8ff0ac52c0ad208845";
+const char * git_hash = "06e230a4270bcc45d16b2e64407dabc994042f77";
 
 const char * git_ref = "refs/heads/qsgw";
 
-const char * cxx_compiler = "/home/apps/intel20u4/compilers_and_libraries_2020.4.304/linux/mpi/intel64/bin/mpiicpc";
+const char * cxx_compiler = "/home/zhangmy/intel/oneapi/mpi/2021.6.0/bin/mpiicpc";
 
-const char * fortran_compiler = "/home/apps/intel20u4/compilers_and_libraries_2020.4.304/linux/bin/intel64/ifort";
+const char * fortran_compiler = "/home/zhangmy/intel/oneapi/compiler/2022.1.0/linux/bin/intel64/ifort";
 
 const char * cxx_compiler_flags = "-g -O2 -fopenmp";
 

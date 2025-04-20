@@ -109,31 +109,7 @@ void task_qsgw_band()
                     
                 }
             }
-            //check 正交性
-            // Matz wfc7(n_bands, n_aos, MAJOR::COL);
-            // wfc7 = transpose(wfc1,false) ;
-            // Matz wfc8(n_bands, n_aos, MAJOR::COL);
-            // wfc8 = conj(wfc1);
-            // Matz wfc0(n_bands, n_aos, MAJOR::COL);
-            // wfc0 = wfc8 * wfc7 ;
-            // printf("wfc0_real:\n");
-            // for (int i = 0; i < meanfield.get_n_bands(); i++) {
-            //     for (int j = 0; j < meanfield.get_n_bands(); j++) {
-            //         const auto &wfc0_value = wfc0(i,j) ;
-            //         printf("%16.6f ", wfc0_value.real()); 
-            //     }
-            //     printf("\n");
-            // }
-            // printf("wfc0_imag:\n");
-            // printf("\n");
-            // for (int i = 0; i < meanfield.get_n_bands(); i++) {
-            //     for (int j = 0; j < meanfield.get_n_bands(); j++) {
-            //         const auto &wfc0_value = wfc0(i,j) ;
-            //         printf("%16.6f ", wfc0_value.imag()); 
-            //     }
-            //     printf("\n");
-            // }
-            // printf("\n"); // 换行
+        
 
             hf_nao[ispin][ikpt] = Matz(n_aos, n_aos, MAJOR::COL);  
             vxc0[ispin][ikpt] = Matz(n_aos, n_aos, MAJOR::COL);     
@@ -194,28 +170,7 @@ void task_qsgw_band()
             
             vxc[ispin][ikpt] = vxc0[ispin][ikpt] + hf[ispin][ikpt];
             vxc0[ispin][ikpt] = vxc[ispin][ikpt];
-            // vxc1[ispin][ikpt] = Matz(n_aos, n_aos, MAJOR::COL);    
-            // vxc1[ispin][ikpt] = transpose(wfc1) * vxc[ispin][ikpt] * conj(wfc1);//for check
-            // vxc1[ispin][ikpt] = conj(wfc1) * vxc1[ispin][ikpt] * transpose(wfc1);
-            
-            // printf("vxc_diff:\n");
-            // for (int i = 0; i < meanfield.get_n_bands(); i++) {
-            //     for (int j = 0; j < meanfield.get_n_bands(); j++) {
-            //         const auto &vxc_value = vxc[ispin][ikpt](i,j) ;
-            //         const auto &vxc_trans_value = vxc1[ispin][ikpt](i,j) ;
-            //         printf("%16.6f ", vxc_value.real()-vxc_trans_value.real()); 
-            //     }
-            //     printf("\n");
-            // }
-            // printf("\n"); // 换行
-            // for (int i = 0; i < meanfield.get_n_bands(); i++) {
-            //     for (int j = 0; j < meanfield.get_n_bands(); j++) {
-            //         const auto &vxc_value = vxc[ispin][ikpt](i,j) ;
-            //         printf("%16.6f ", vxc_value.imag()); 
-            //     }
-            //     printf("\n");
-            // }
-            // printf("\n"); // 换行
+   
             // 构建 H_KS 矩阵，使用哈密顿量中的本征值
             H_KS[ispin][ikpt] = Matz(n_bands, n_bands, MAJOR::COL);
             H_KS0[ispin][ikpt] = Matz(n_bands, n_bands, MAJOR::COL);
@@ -223,211 +178,12 @@ void task_qsgw_band()
                 H_KS[ispin][ikpt](i_band, i_band) = meanfield.get_eigenvals()[ispin](ikpt, i_band);
                 H_KS0[ispin][ikpt](i_band, i_band) = meanfield.get_eigenvals()[ispin](ikpt, i_band);
             }
-            // H_KS[ispin][ikpt]= transpose(wfc1) * H_KS[ispin][ikpt] * conj(wfc1);//construct H 
-            // H_KS0[ispin][ikpt] = H_KS[ispin][ikpt];
-            // const auto &h = H_KS0.at(ispin).at(ikpt).copy();
-            // std::vector<double> v;
-            // Matz eigvec_H;
-            // eigsh(h, v, eigvec_H);
-            // // 打印本征值 w
-            // printf("Eigenvalues (v):\n");
-            // for (int i = 0; i < n_bands ; ++i) {
-            //     printf("%20.16f\n", v[i]);
-            // }
-            // printf("%77s\n", final_banner.c_str());
-            // printf("Eigenvalues before:\n");
-            // for (int i = 0; i < n_bands ; ++i) {
-            //     printf("%20.16f\n", meanfield.get_eigenvals()[ispin](ikpt, i));
-            // }
-            // printf("%77s\n", final_banner.c_str());
+
         }
-        // check Hamiltonian real-space
-        // std::map<int, Matz> HKS_IR = FT_K_TO_R(meanfield, H_KS[ispin], Rlist);
-        // printf("%77s\n", final_banner.c_str());
-        // printf("HKS_IR_imag:\n");
-        // for (auto R : Rlist) {
-        //     // if(R.x==0&R.y==0&R.z==0)
-        //     // {
-        //     //     auto iteR = std::find(Rlist.cbegin(), Rlist.cend(), R);
-        //     //     auto iR = std::distance(Rlist.cbegin(), iteR);   
-        //     //     printf("Rlist %d: (%3d %3d %3d)\n", iR, R.x, R.y, R.z);
-        //     //     for (int i = 0; i < meanfield.get_n_bands(); i++) {
-        //     //         for (int j = 0; j < meanfield.get_n_bands(); j++) {
-        //     //             const auto &vxc_IR_value = vxc_IR[iR](i,j) ;
-        //     //             printf("%16.6f ", vxc_IR_value.real()); 
-        //     //         }
-        //     //     }
-        //     // printf("\n"); // 换行
-        //     // }
-        //     auto iteR = std::find(Rlist.cbegin(), Rlist.cend(), R);
-        //     auto iR = std::distance(Rlist.cbegin(), iteR);   
-        //     printf("Rlist %d: (%3d %3d %3d)\n", iR, R.x, R.y, R.z);
-        //     for (int i = 0; i < meanfield.get_n_bands(); i++) {
-        //         for (int j = 0; j < meanfield.get_n_bands(); j++) {
-        //             const auto &HKS_IR_value = HKS_IR[iR](i,j) ;
-        //             printf("%16.6f ", HKS_IR_value.imag()); 
-        //         }
-        //         printf("\n");
-        //     }
-        //     printf("\n"); // 换行
-        // }
-        // printf("\n");
-        // printf("HKS_IR_real:\n");
-        // for (auto R : Rlist) {
-        //     auto iteR = std::find(Rlist.cbegin(), Rlist.cend(), R);
-        //     auto iR = std::distance(Rlist.cbegin(), iteR);   
-        //     printf("Rlist %d: (%3d %3d %3d)\n", iR, R.x, R.y, R.z);
-        //     for (int i = 0; i < meanfield.get_n_bands(); i++) {
-        //         for (int j = 0; j < meanfield.get_n_bands(); j++) {
-        //             const auto &HKS_IR_value = HKS_IR[iR](i,j) ;
-        //             printf("%16.6f ", HKS_IR_value.real()); 
-        //         }
-        //         printf("\n");
-        //     }
-        //     printf("\n"); // 换行
-        // }
-
-        // vxc FT real-space check
-        // std::map<int, Matz> vxc_IR = FT_K_TO_R(meanfield, vxc1[ispin], Rlist);
-        // for (auto R : Rlist) {
-        //     auto iteR = std::find(Rlist.cbegin(), Rlist.cend(), R);
-        //     auto iR = std::distance(Rlist.cbegin(), iteR);   
-        //     for (int i = 0; i < meanfield.get_n_bands(); i++) {
-        //         for (int j = 0; j < meanfield.get_n_bands(); j++) {
-        //             vxc_IR[iR](i,j)=std::real(vxc_IR[iR](i,j));   
-        //         }
-        //     }
-        // }
-        // printf("%77s\n", final_banner.c_str());
-        // printf("vxc_IR_imag:\n");
-        // for (auto R : Rlist) {
-        //     // if(R.x==0&R.y==0&R.z==0)
-        //     // {
-        //     //     auto iteR = std::find(Rlist.cbegin(), Rlist.cend(), R);
-        //     //     auto iR = std::distance(Rlist.cbegin(), iteR);   
-        //     //     printf("Rlist %d: (%3d %3d %3d)\n", iR, R.x, R.y, R.z);
-        //     //     for (int i = 0; i < meanfield.get_n_bands(); i++) {
-        //     //         for (int j = 0; j < meanfield.get_n_bands(); j++) {
-        //     //             const auto &vxc_IR_value = vxc_IR[iR](i,j) ;
-        //     //             printf("%16.6f ", vxc_IR_value.real()); 
-        //     //         }
-        //     //     }
-        //     // printf("\n"); // 换行
-        //     // }
-        //     auto iteR = std::find(Rlist.cbegin(), Rlist.cend(), R);
-        //     auto iR = std::distance(Rlist.cbegin(), iteR);   
-        //     printf("Rlist %d: (%3d %3d %3d)\n", iR, R.x, R.y, R.z);
-        //     for (int i = 0; i < meanfield.get_n_bands(); i++) {
-        //         for (int j = 0; j < meanfield.get_n_bands(); j++) {
-        //             const auto &vxc_IR_value = vxc_IR[iR](i,j) ;
-        //             printf("%16.6f ", vxc_IR_value.imag()); 
-        //         }
-        //         printf("\n");
-        //     }
-        //     printf("\n"); // 换行
-        // }
-        // printf("\n");
-        // printf("vxc_IR_real:\n");
-        // for (auto R : Rlist) {
-        //     auto iteR = std::find(Rlist.cbegin(), Rlist.cend(), R);
-        //     auto iR = std::distance(Rlist.cbegin(), iteR);   
-        //     printf("Rlist %d: (%3d %3d %3d)\n", iR, R.x, R.y, R.z);
-        //     for (int i = 0; i < meanfield.get_n_bands(); i++) {
-        //         for (int j = 0; j < meanfield.get_n_bands(); j++) {
-        //             const auto &vxc_IR_value = vxc_IR[iR](i,j) ;
-        //             printf("%16.6f ", vxc_IR_value.real()); 
-        //         }
-        //         printf("\n");
-        //     }
-        //     printf("\n"); // 换行
-        // }
-
-        // std::map<int, Matz> vxc_IK = FT_R_TO_K(meanfield, vxc_IR, Rlist);
-
-        // printf("%77s\n", final_banner.c_str());
-        // printf("vxc_IK_REAL:\n");
-        // for (int r = 0; r < meanfield.get_n_kpoints(); r++){
-        //     printf("Ik: %d\n",r);
-        //     for (int i = 0; i < meanfield.get_n_bands(); i++) {
-        //         for (int j = 0; j < meanfield.get_n_bands(); j++) {
-        //             const auto &vxc_IK_value = vxc_IK[r](i,j) ;
-        //             const auto &vxc_value = vxc[ispin][r](i,j);
-        //             printf("%16.6f ", vxc_IK_value.real()); 
-                    
-        //         }
-        //         printf("\n");
-        //     }
-        //     printf("\n"); // 换行
-        // }
-        // printf("%77s\n", final_banner.c_str());
-        // printf("\n");
-
-        // printf("%77s\n", final_banner.c_str());
-        // printf("vxc_IK_IMAG:\n");
-        // for (int r = 0; r < meanfield.get_n_kpoints(); r++){
-        //     printf("Ik: %d\n",r);
-        //     for (int i = 0; i < meanfield.get_n_bands(); i++) {
-        //         for (int j = 0; j < meanfield.get_n_bands(); j++) {
-        //             const auto &vxc_IK_value = vxc_IK[r](i,j) ;
-        //             const auto &vxc_value = vxc[ispin][r](i,j);
-        //             printf("%16.6f ", vxc_IK_value.imag()); 
-        //         }
-        //         printf("\n");
-        //     }
-        //     printf("\n"); // 换行
-        // }
-        // printf("%77s\n", final_banner.c_str());
-        // printf("\n");
-
-        // printf("%77s\n", final_banner.c_str());
-        // printf("vxc_REAL:\n");
-        // for (int r = 0; r < meanfield.get_n_kpoints(); r++){
-        //     printf("Ik: %d\n",r);
-        //     for (int i = 0; i < meanfield.get_n_bands(); i++) {
-        //         for (int j = 0; j < meanfield.get_n_bands(); j++) {
-        //             const auto &vxc_IK_value = vxc_IK[r](i,j) ;
-        //             const auto &vxc_value = vxc[ispin][r](i,j);
-        //             printf("%16.6f ", vxc_value.real()-vxc_IK_value.real()); 
-                    
-        //         }
-        //         printf("\n");
-        //     }
-        //     printf("\n"); // 换行
-        // }
-        // printf("%77s\n", final_banner.c_str());
-        // printf("\n");
-
-        // printf("%77s\n", final_banner.c_str());
-        // printf("vxc_IMAG:\n");
-        // for (int r = 0; r < meanfield.get_n_kpoints(); r++){
-        //     printf("Ik: %d\n",r);
-        //     for (int i = 0; i < meanfield.get_n_bands(); i++) {
-        //         for (int j = 0; j < meanfield.get_n_bands(); j++) {
-        //             const auto &vxc_IK_value = vxc_IK[r](i,j) ;
-        //             const auto &vxc_value = vxc[ispin][r](i,j);
-        //             printf("%16.6f ", vxc_value.imag()-vxc_IK_value.imag()); 
-        //         }
-        //         printf("\n");
-        //     }
-        //     printf("\n"); // 换行
-        // }
-        // printf("%77s\n", final_banner.c_str());
-        // printf("\n");
-
-        // vxc[ispin] = vxc_IK;//realize
-        //这里
+    
     }
     
 
-
-    // // 判断是否所有文件都成功处理
-    // if (mpi_comm_global_h.myid == 0) {
-    //     if (all_files_processed_successfully) {
-    //         std::cout << "* Success: Read DFT xc potential, will solve quasi-particle equation\n";
-    //     } else {
-    //         std::cout << "* Error: Some files failed to process, switch off solving quasi-particle equation\n";
-    //     }
-    // }
 
     Profiler::stop("read_vxc_HKS");
     mpi_comm_global_h.barrier();
@@ -496,29 +252,6 @@ void task_qsgw_band()
                 std::cerr << "VXC_band file not found: " << vxcFilePath_band << std::endl;
             }
 
-            // printf("%77s\n", final_banner.c_str());
-            // printf("vxc Matrix_real:\n");
-            // for (int i = 0; i < meanfield_band.get_n_bands(); i++) {
-            //     for (int j = 0; j < meanfield_band.get_n_bands(); j++) {
-            //         const auto &vxc_value = vxc_band[i_spin][i_kpoint](i, j) ;
-            //         printf("%16.6f ", vxc_value.real()); 
-            //     }
-            //     printf("\n"); // 换行
-            // }
-            // printf("%77s\n", final_banner.c_str());
-            // printf("\n");
-
-            // printf("%77s\n", final_banner.c_str());
-            // printf("vxc Matrix_imag:\n");
-            // for (int i = 0; i < meanfield_band.get_n_bands(); i++) {
-            //     for (int j = 0; j < meanfield_band.get_n_bands(); j++) {
-            //         const auto &vxc_value = vxc_band[i_spin][i_kpoint](i, j) ;
-            //         printf("%16.6f ", vxc_value.imag()); 
-            //     }
-            //     printf("\n"); // 换行
-            // }
-            // printf("%77s\n", final_banner.c_str());
-            // printf("\n");
 
             H_KS0_band[i_spin][i_kpoint] = Matz(n_bands, n_bands, MAJOR::COL);
             for (int i_band = 0; i_band < n_bands; ++i_band) {
@@ -582,41 +315,8 @@ void task_qsgw_band()
     printf("%5f\n",total_electrons);
     
 
-    // // //check input eigenvector
-    
-    // for (int i_spin = 0; i_spin < meanfield.get_n_spins(); i_spin++)
-    // {
-    //     for (int i_kpoint = 0; i_kpoint < meanfield.get_n_kpoints(); i_kpoint++)
-    //     {
-    //         const auto &k = kfrac_list[i_kpoint];
-
-    //         // Output the k-point vector components
-    //         printf("k-point %d: (%20.15f, %20.15f, %20.15f)\n", i_kpoint, k.x, k.y, k.z);
-    //         printf("%77s\n", final_banner.c_str());
-    //         printf("eigenvectors_real:\n");
-    //         for (int i = 0; i < meanfield.get_n_bands(); i++) {
-    //             for (int j = 0; j < meanfield.get_n_bands(); j++) {
-    //                 const auto &eigenvectors = meanfield.get_eigenvectors()[i_spin][i_kpoint](i, j) ;
-    //                 printf("%20.15f ", eigenvectors.real()); 
-    //             }
-    //             printf("\n"); // 换行
-    //         }
-    //         printf("%77s\n", final_banner.c_str());
-    //         printf("\n");
-    //         printf("eigenvectors_imag:\n");
-    //         for (int i = 0; i < meanfield.get_n_bands(); i++) {
-    //             for (int j = 0; j < meanfield.get_n_bands(); j++) {
-    //                 const auto &eigenvectors = meanfield.get_eigenvectors()[i_spin][i_kpoint](i, j) ;
-    //                 printf("%20.15f ", eigenvectors.imag()); 
-    //             }
-    //             printf("\n"); // 换行
-    //         }
-    //         printf("%77s\n", final_banner.c_str());
-    //         printf("\n");
-    //     }
-    // }
     // 设置收敛条件
-    double eigenvalue_tolerance = 1e-4; // 设置一个适当的小值，作为本征值收敛的判断标准
+    double eigenvalue_tolerance = 1e-5; // 设置一个适当的小值，作为本征值收敛的判断标准
     int max_iterations = 10 ;           // 最大迭代次数
     int iteration = 0;
     const double temperature = 0.0001;
@@ -723,65 +423,14 @@ void task_qsgw_band()
             exx.build(Cs_data, Rlist, VR);
             exx.build_KS_kgrid0();//rotate  
             Profiler::stop("g0w0_exx_real_work");
-            // for (int ispin = 0; ispin < meanfield.get_n_spins(); ++ispin) {
-            //     for (int ikpt = 0; ikpt < meanfield.get_n_kpoints(); ++ikpt) {
-            //         exx0[ispin][ikpt] = Matz(n_bands, n_aos, MAJOR::COL);
-            //         exx0[ispin][ikpt] = exx.exx_is_ik_KS[ispin][ikpt];
-            //         Matz wfc2(n_bands, n_aos, MAJOR::COL);
-            //         for (int ib = 0; ib < n_bands; ++ib) {
-            //             for (int iao = 0; iao < n_aos; iao++) {
-            //                 wfc2(ib, iao) = meanfield.get_eigenvectors0()[ispin][ikpt](ib, iao); 
-            //             }
-            //         }
-            //         exx0[ispin][ikpt] = transpose(wfc2) * exx0[ispin][ikpt] * conj(wfc2);//for check
-            //     }
-            // }
-            // //exx FT real-space check
-            // for (int i_spin = 0; i_spin < meanfield.get_n_spins(); i_spin++)
-            // {
-            //     std::map<int, Matz> exx_IR = FT_K_TO_R(meanfield, exx0[i_spin], Rlist);
-            //     printf("%77s\n", final_banner.c_str());
-            //     printf("exx_IR_imag:\n");
-            //     for (auto R : Rlist) {
-            //         // if(R.x==0&R.y==0&R.z==0)
-            //         // {
-            //         //     auto iteR = std::find(Rlist.cbegin(), Rlist.cend(), R);
-            //         //     auto iR = std::distance(Rlist.cbegin(), iteR);   
-            //         //     printf("Rlist %d: (%3d %3d %3d)\n", iR, R.x, R.y, R.z);
-            //         //     for (int i = 0; i < meanfield.get_n_bands(); i++) {
-            //         //         for (int j = 0; j < meanfield.get_n_bands(); j++) {
-            //         //             const auto &vxc_IR_value = vxc_IR[iR](i,j) ;
-            //         //             printf("%16.6f ", vxc_IR_value.real()); 
-            //         //         }
-            //         //     }
-            //         // printf("\n"); // 换行
-            //         // }
-            //         auto iteR = std::find(Rlist.cbegin(), Rlist.cend(), R);
-            //         auto iR = std::distance(Rlist.cbegin(), iteR);   
-            //         printf("Rlist %d: (%3d %3d %3d)\n", iR, R.x, R.y, R.z);
-            //         for (int i = 0; i < meanfield.get_n_bands(); i++) {
-            //             for (int j = 0; j < meanfield.get_n_bands(); j++) {
-            //                 const auto &exx_IR_value = exx_IR[iR](i,j) ;
-            //                 printf("%16.6f ", exx_IR_value.imag()); 
-            //                 // exx_IR[iR](i,j)=std::real(exx_IR[iR](i,j));//realize
-            //             }
-            //             printf("\n");
-            //         }
-            //         printf("\n"); // 换行
-            //     }
-            //     // std::map<int, Matz> exx_IK = FT_R_TO_K(meanfield, exx_IR, Rlist);
-            //     // exx.exx_is_ik_KS[i_spin] = exx_IK;
-            // }
+        
         }
         Profiler::stop("qsgw_exx");
         std::flush(ofs_myid);
         
 
         mpi_comm_global_h.barrier();
-
-        
-        
-        
+  
         // Build screened interaction
         Profiler::start("qsgw_wc", "Build screened interaction");
         vector<std::complex<double>> epsmac_LF_imagfreq(epsmac_LF_imagfreq_re.cbegin(), epsmac_LF_imagfreq_re.cend());
@@ -861,12 +510,7 @@ void task_qsgw_band()
                                 std::vector<cplxdb> sigc_mn;
                                 for (const auto &freq : chi0.tfg.get_freq_nodes()) {
                                     sigc_mn.push_back(sigc_sk.at(freq)(i_state_row, i_state_col));
-                                    // if (std::abs(sigc_mn.real()) < threshold) {
-                                    //     sigc_mn.real(0.0);
-                                    // }
-                                    // if (std::abs(sigc_mn.imag()) < threshold) {
-                                    //     sigc_mn.imag(0.0);
-                                    // }
+       
                                 }    
                                 LIBRPA::AnalyContPade pade(Params::n_params_anacon, imagfreqs, sigc_mn);
                                 auto energy0 = meanfield.get_eigenvals()[i_spin](i_kpoint, i_state_row); 
@@ -877,203 +521,19 @@ void task_qsgw_band()
                                 // 存储值到 sigcmat
                                 sigcmat[i_state_row][i_state_col][i_state_row] = result;
                                 sigcmat[i_state_row][i_state_col][n_bands] = result1;
-                                
-                                // // 输出当前计算结果
-                                // std::cout << "sigcmat[" << i_state_row << "][" << i_state_col << "][" << i_state_row 
-                                //         << "] = " << result << std::endl;
+                          
                             }
                         }
 
                         Vc_all[i_spin][i_kpoint] = build_correlation_potential_spin_k(sigcmat,n_bands);
-                        // Matz wfc3(n_bands, n_aos, MAJOR::COL);
-                        // std::cout << "VC_KS_1_real " << std::endl;
-                        // for (int ib = 0; ib < n_bands; ++ib) {
-                        //     for (int iao = 0; iao < n_aos; iao++) {
-                        //         wfc3(ib, iao) = meanfield.get_eigenvectors0()[i_spin][i_kpoint](ib, iao); 
-                        //         const auto &Vc_k_ks_value = Vc_all[i_spin][i_kpoint](ib,iao) ;
-                        //         printf("%16.6f ", Vc_k_ks_value.real()* HA2EV); 
-                        //     }
-                        //     printf("\n");
-                        // }
-                        // printf("\n");
-                        // std::cout << "VC_KS_1_imag " << std::endl;
-                        // for (int ib = 0; ib < n_bands; ++ib) {
-                        //     for (int iao = 0; iao < n_aos; iao++) {
-                        //         wfc3(ib, iao) = meanfield.get_eigenvectors0()[i_spin][i_kpoint](ib, iao); 
-                        //         const auto &Vc_k_ks_value = Vc_all[i_spin][i_kpoint](ib,iao) ;
-                        //         printf("%16.6f ", Vc_k_ks_value.imag()* HA2EV); 
-                        //     }
-                        //     printf("\n");
-                        // }
-                        // printf("\n");
-                        // Vc_all[i_spin][i_kpoint] = transpose(wfc3) * Vc_all[i_spin][i_kpoint] * conj(wfc3);//to NAO 
-                        // std::cout << "VC_NAO_1 " << std::endl;
-                        // for (int ib = 0; ib < n_bands; ++ib) {
-                        //     for (int iao = 0; iao < n_aos; iao++) {
-                        //         const auto &Vc_k_NAO_value = Vc_all[i_spin][i_kpoint](ib,iao);
-                        //         printf("%16.6f ", Vc_k_NAO_value.real()* HA2EV); 
-                        //     }
-                        //     printf("\n");
-                        // }
-                        // printf("\n");
-                        // // FT
+                     
                     }
 
-                    // //Vc FT real-space check
-
-                    // std::map<int, Matz> Vc_IR = FT_K_TO_R(meanfield, Vc_all[i_spin], Rlist);
-                    // // printf("%77s\n", final_banner.c_str());
-                    // // printf("Vc_IR_imag:\n");
-                    // for (auto R : Rlist) {
-                    //     // if(R.x==0&R.y==0&R.z==0)
-                    //     // {
-                    //     //     auto iteR = std::find(Rlist.cbegin(), Rlist.cend(), R);
-                    //     //     auto iR = std::distance(Rlist.cbegin(), iteR);   
-                    //     //     printf("Rlist %d: (%3d %3d %3d)\n", iR, R.x, R.y, R.z);
-                    //     //     for (int i = 0; i < meanfield.get_n_bands(); i++) {
-                    //     //         for (int j = 0; j < meanfield.get_n_bands(); j++) {
-                    //     //             const auto &vxc_IR_value = vxc_IR[iR](i,j) ;
-                    //     //             printf("%16.6f ", vxc_IR_value.real()); 
-                    //     //         }
-                    //     //     }
-                    //     // printf("\n"); // 换行
-                    //     // }
-                    //     auto iteR = std::find(Rlist.cbegin(), Rlist.cend(), R);
-                    //     auto iR = std::distance(Rlist.cbegin(), iteR);   
-                    //     for (int i = 0; i < meanfield.get_n_bands(); i++) {
-                    //         for (int j = 0; j < meanfield.get_n_bands(); j++) {
-                    //             const auto &Vc_IR_value = Vc_IR[iR](i,j) ;
-                    //             // printf("%16.6f ", Vc_IR_value.imag()); 
-                    //             // Vc_IR[iR](i,j)=std::real(Vc_IR_value);//realize
-                    //         }
-                    //         // printf("\n");
-                    //     }
-                    //     // printf("\n"); // 换行
-                    // }
-                    // std::map<int, Matz> Vc_IK = FT_R_TO_K(meanfield, Vc_IR, Rlist);
-                    // std::cout << "VC_NAO_2 " << std::endl;
-                    // Vc_all[i_spin] = Vc_IK;
-                    // for (int ikpt = 0; ikpt < n_kpoints; ikpt++) {
-                    //     Matz wfc4(n_bands, n_aos, MAJOR::COL);
-                    //     for (int ib = 0; ib < n_bands; ++ib) {
-                    //         for (int iao = 0; iao < n_aos; iao++) {
-                    //             wfc4(ib, iao) = meanfield.get_eigenvectors0()[i_spin][ikpt](ib, iao); 
-                    //             const auto &Vc_k2_nao_value = Vc_all[i_spin][ikpt](ib,iao) ;
-                    //             printf("%16.6f ", Vc_k2_nao_value.real()* HA2EV); 
-                    //         }
-                    //         printf("\n");
-                    //     }
-                    //     printf("\n");
-                    //     std::cout << "VC_KS_2 " << std::endl;
-                    //     Matz Vc_temp = Vc_all[i_spin][ikpt];
-                    //     Vc_all[i_spin][ikpt] = conj(wfc4) * Vc_temp * transpose(wfc4);
-                    //     for (int ib = 0; ib < n_bands; ++ib) {
-                    //         for (int iao = 0; iao < n_aos; iao++) {
-                    //             const auto &Vc_k2_ks_value = Vc_all[i_spin][ikpt](ib,iao) ;
-                    //             printf("%16.6f ", Vc_k2_ks_value.real()* HA2EV); 
-                    //         }
-                    //         printf("\n");
-                    //     }
-                    //     printf("\n");
-                    //     std::cout << "check112 " << std::endl;
-                    // }
-                    // //FT
+               
                 }
                 Profiler::stop("qsgw_solve_qpe");
 
-                //检查输入
-        
-                // for (int i_spin = 0; i_spin < meanfield.get_n_spins(); i_spin++)
-                // {
-                //     for (int i_kpoint = 0; i_kpoint < meanfield.get_n_kpoints(); i_kpoint++)
-                //     {
-                //         const auto &k = kfrac_list[i_kpoint];
-                //         printf("spin %2d, k-point %4d: (%.5f, %.5f, %.5f) \n",
-                //                 i_spin + 1, i_kpoint + 1, k.x, k.y, k.z);
-                //         printf("%77s\n", final_banner.c_str());
-                //         printf("%5s %16s %16s\n", "State", "e_mf", "v_xc");
-                //         printf("%77s\n", final_banner.c_str());
-                //         for (int i_state = 0; i_state < meanfield.get_n_bands(); i_state++)
-                //         {
-                //             const auto &eks_state = meanfield.get_eigenvals()[i_spin](i_kpoint, i_state) * HA2EV;
-                            
-                //             const auto &vxc_state = vxc[i_spin][i_kpoint](i_state, i_state) * HA2EV;
-                                
-                //             printf("%5d %20.15f %20.15f\n",
-                //                 i_state + 1, eks_state, vxc_state.real());
-                //         }
-                //         printf("%77s\n", final_banner.c_str());
-                //         printf("H Matrix_real:\n");
-                //         for (int i = 0; i < meanfield.get_n_bands(); i++) {
-                //             for (int j = 0; j < meanfield.get_n_bands(); j++) {
-                //                 const auto &H_value = H_KS[i_spin][i_kpoint](i, j) ;
-                //                 printf("%16.6f ", H_value.real()); 
-                //             }
-                //             printf("\n"); // 换行
-                //         }
-                //         printf("%77s\n", final_banner.c_str());
-                //         printf("\n");
-                //         printf("%77s\n", final_banner.c_str());
-                //         printf("H Matrix_image:\n");
-                //         for (int i = 0; i < meanfield.get_n_bands(); i++) {
-                //             for (int j = 0; j < meanfield.get_n_bands(); j++) {
-                //                 const auto &H_value = H_KS[i_spin][i_kpoint](i, j) ;
-                //                 printf("%16.6f ", H_value.imag()); 
-                //             }
-                //             printf("\n"); // 换行
-                //         }
-                //         printf("%77s\n", final_banner.c_str());
-                //         printf("\n");
-                        // // 输出 exx_is_ik_KS 矩阵
-                        // printf("%77s\n", final_banner.c_str());
-                        // printf("exx Matrix:\n");
-                        // for (int i = 0; i < meanfield.get_n_bands(); i++) {
-                        //     for (int j = 0; j < meanfield.get_n_bands(); j++) {
-                        //         const auto &exx_value = exx.exx_is_ik_KS[i_spin][i_kpoint](i, j) ;
-                        //         printf("%16.6f ", exx_value.real()); 
-                        //     }
-                        //     printf("\n"); // 换行
-                        // }
-                        // printf("%77s\n", final_banner.c_str());
-                        // printf("\n");
-
-                        // printf("%77s\n", final_banner.c_str());
-                        // printf("exx Matrix:\n");
-                        // for (int i = 0; i < meanfield.get_n_bands(); i++) {
-                        //     for (int j = 0; j < meanfield.get_n_bands(); j++) {
-                        //         const auto &exx_value = exx.exx_is_ik_KS[i_spin][i_kpoint](i, j) ;
-                        //         printf("%16.6f ", exx_value.imag()); 
-                        //     }
-                        //     printf("\n"); // 换行
-                        // }
-                        // printf("%77s\n", final_banner.c_str());
-                        // printf("\n");
-                //         printf("%77s\n", final_banner.c_str());
-                //         printf("vxc Matrix:\n");
-                //         for (int i = 0; i < meanfield.get_n_bands(); i++) {
-                //             for (int j = 0; j < meanfield.get_n_bands(); j++) {
-                //                 const auto &vxc_value = vxc[i_spin][i_kpoint](i, j) ;
-                //                 printf("%16.6f ", vxc_value.real()); 
-                //             }
-                //             printf("\n"); // 换行
-                //         }
-                //         printf("%77s\n", final_banner.c_str());
-                //         printf("\n");
-                //         printf("%77s\n", final_banner.c_str());
-                //         printf("Vc_all\n");
-                //         for (int i = 0; i < meanfield.get_n_bands(); i++) {
-                //             for (int j = 0; j < meanfield.get_n_bands(); j++) {
-                //                 const auto &Vc_value = Vc_all[i_spin][i_kpoint](i, j)* HA2EV ;
-                //                 printf("%16.6f ", Vc_value.real()); 
-                //             }
-                //             printf("\n"); 
-                //         }
-                //         printf("%77s\n", final_banner.c_str());
-                //         printf("\n");
-                //     }
-                // }
-                
-                
+           
                 
                 auto H0_GW_all = construct_H0_GW(meanfield, H_KS0, vxc0, exx.exx_is_ik_KS, Vc_all, n_spins, n_kpoints, n_bands);
                 
@@ -1086,142 +546,10 @@ void task_qsgw_band()
                 //         }
                 //     }
                 // }
-                //检查输入
-                
-                // for (int i_spin = 0; i_spin < meanfield.get_n_spins(); i_spin++)
-                // {
-                //     for (int i_kpoint = 0; i_kpoint < meanfield.get_n_kpoints(); i_kpoint++)
-                //     {
-                //         const auto &k = kfrac_list[i_kpoint];
-                //         printf("spin %2d, k-point %4d: (%.5f, %.5f, %.5f) \n",
-                //                 i_spin + 1, i_kpoint + 1, k.x, k.y, k.z);
-                //         printf("%77s\n", final_banner.c_str());
-                //         printf("H Matrix_real:\n");
-                //         for (int i = 0; i < meanfield.get_n_bands(); i++) {
-                //             for (int j = 0; j < meanfield.get_n_bands(); j++) {
-                //                 const auto &H_value = H0_GW_all[i_spin][i_kpoint](i, j) ;
-                //                 printf("%20.15f ", H_value.real()); 
-                //             }
-                //             printf("\n"); // 换行
-                //         }
-                //         printf("%77s\n", final_banner.c_str());
-                //         printf("\n");
-                //         printf("%77s\n", final_banner.c_str());
-                //         printf("H Matrix_image:\n");
-                //         for (int i = 0; i < meanfield.get_n_bands(); i++) {
-                //             for (int j = 0; j < meanfield.get_n_bands(); j++) {
-                //                 const auto &H_value = H0_GW_all[i_spin][i_kpoint](i, j) ;
-                //                 printf("%16.6f ", H_value.imag()); 
-                //             }
-                //             printf("\n"); // 换行
-                //         }
-                //         printf("%77s\n", final_banner.c_str());
-                //         printf("\n");
-                        
-                //     }
-                // }
-
+     
                 // 第三步：对 Hamiltonian 进行对角化并存储本征值
                 diagonalize_and_store(meanfield, H0_GW_all, n_spins, n_kpoints, n_bands);
-                
-                // for (int i_spin = 0; i_spin < meanfield.get_n_spins(); i_spin++)
-                // {
-                //     for (int i_kpoint = 0; i_kpoint < meanfield.get_n_kpoints(); i_kpoint++)
-                //     {
-                //         const auto &k = kfrac_list[i_kpoint];
-                //         printf("spin %2d, k-point %4d: (%.5f, %.5f, %.5f) \n",
-                //                 i_spin + 1, i_kpoint + 1, k.x, k.y, k.z);
-                //         printf("%77s\n", final_banner.c_str());
-        
-                //         // 输出 exx_is_ik_KS 矩阵
-                //         printf("%77s\n", final_banner.c_str());
-                //         printf("exx Matrix_real:\n");
-                //         for (int i = 0; i < meanfield.get_n_bands(); i++) {
-                //             for (int j = 0; j < meanfield.get_n_bands(); j++) {
-                //                 const auto &exx_value = exx.exx_is_ik_KS[i_spin][i_kpoint](i, j) ;
-                //                 printf("%16.6f ", exx_value.real()); 
-                //             }
-                //             printf("\n"); // 换行
-                //         }
-                //         printf("%77s\n", final_banner.c_str());
-                //         printf("\n");
-
-                //         printf("%77s\n", final_banner.c_str());
-                //         printf("exx Matrix_imag:\n");
-                //         for (int i = 0; i < meanfield.get_n_bands(); i++) {
-                //             for (int j = 0; j < meanfield.get_n_bands(); j++) {
-                //                 const auto &exx_value = exx.exx_is_ik_KS[i_spin][i_kpoint](i, j) ;
-                //                 printf("%16.6f ", exx_value.imag()); 
-                //             }
-                //             printf("\n"); // 换行
-                //         }
-                //         printf("%77s\n", final_banner.c_str());
-                //         printf("\n");
-                //         printf("%77s\n", final_banner.c_str());
-                //         printf("vxc Matrix_real:\n");
-                //         for (int i = 0; i < meanfield.get_n_bands(); i++) {
-                //             for (int j = 0; j < meanfield.get_n_bands(); j++) {
-                //                 const auto &exx_value = exx.exx_is_ik_KS[i_spin][i_kpoint](i, j)* HA2EV ;
-                //                 const auto &vxc_value = vxc[i_spin][i_kpoint](i, j) ;
-                //                 printf("%20.15f ", vxc_value.real()); 
-                //             }
-                //             printf("\n"); // 换行
-                //         }
-                //         printf("%77s\n", final_banner.c_str());
-                //         printf("\n");
-
-                //         printf("%77s\n", final_banner.c_str());
-                //         printf("vxc Matrix_imag:\n");
-                //         for (int i = 0; i < meanfield.get_n_bands(); i++) {
-                //             for (int j = 0; j < meanfield.get_n_bands(); j++) {
-                //                 const auto &exx_value = exx.exx_is_ik_KS[i_spin][i_kpoint](i, j)* HA2EV ;
-                //                 const auto &vxc_value = vxc[i_spin][i_kpoint](i, j) * HA2EV;
-                //                 printf("%20.15f ", vxc_value.imag()); 
-                //             }
-                //             printf("\n"); // 换行
-                //         }
-                //         printf("%77s\n", final_banner.c_str());
-                //         printf("\n");
-
-                //         printf("%77s\n", final_banner.c_str());
-                //         printf("Vc Matrix_real:\n");
-                //         for (int i = 0; i < meanfield.get_n_bands(); i++) {
-                //             for (int j = 0; j < meanfield.get_n_bands(); j++) {
-                //                 const auto &Vc_value = Vc_all[i_spin][i_kpoint](i, j)* HA2EV ;
-                //                 printf("%20.15f ", Vc_value.real()); 
-                //             }
-                //             printf("\n"); 
-                //         }
-                //         printf("%77s\n", final_banner.c_str());
-                //         printf("\n");
-
-                //         printf("%77s\n", final_banner.c_str());
-                //         printf("Vc Matrix_imag:\n");
-                //         for (int i = 0; i < meanfield.get_n_bands(); i++) {
-                //             for (int j = 0; j < meanfield.get_n_bands(); j++) {
-                //                 const auto &Vc_value = Vc_all[i_spin][i_kpoint](i, j)* HA2EV ;
-                //                 printf("%20.15f ", Vc_value.imag()); 
-                //             }
-                //             printf("\n"); 
-                //         }
-                //         printf("%77s\n", final_banner.c_str());
-                //         printf("\n");
-
-                        // printf("%77s\n", final_banner.c_str());
-                        // printf("Vc+exx Matrix-vxc Matrix:\n");
-                        // for (int i = 0; i < meanfield.get_n_bands(); i++) {
-                        //     for (int j = 0; j < meanfield.get_n_bands(); j++) {
-                        //         const auto &exx_value = exx.exx_is_ik_KS[i_spin][i_kpoint](i, j)* HA2EV ;
-                        //         const auto &vxc_value = vxc1[i_spin][i_kpoint](i, j)* HA2EV ;
-                        //         const auto &Vc_value = Vc_all[i_spin][i_kpoint](i, j)* HA2EV ;
-                        //         printf("%20.15f ", Vc_value.real() + exx_value.real() - vxc_value.real()); 
-                        //     }
-                        //     printf("\n"); 
-                        // }
-                        // printf("%77s\n", final_banner.c_str());
-                        // printf("\n");
-                    // }
-                // }
+          
 
                 // 计算全局费米能和占据数
                 const auto &Efermi0 = meanfield.get_efermi() ;
@@ -1304,63 +632,7 @@ void task_qsgw_band()
                 << ": HOMO = " << homo * HA2EV << " eV, "
                 << "LUMO = " << lumo * HA2EV << " eV, "
                 << "Efermi = " << efermi * HA2EV << " eV\n";
-                
-                // for (int i_spin = 0; i_spin < meanfield.get_n_spins(); i_spin++)
-                // {
-                //     for (int i_kpoint = 0; i_kpoint < meanfield.get_n_kpoints(); i_kpoint++)
-                //     {
-                //         const auto &k = kfrac_list[i_kpoint];
-                //         printf("spin %2d, k-point %4d: (%.5f, %.5f, %.5f) \n",
-                //                 i_spin + 1, i_kpoint + 1, k.x, k.y, k.z);
-                //         printf("%77s\n", final_banner.c_str());
-                //         printf("%5s %16s %16s\n", "State", "e_mf", "v_xc");
-                //         printf("%77s\n", final_banner.c_str());
-                //         for (int i_state = 0; i_state < meanfield.get_n_bands(); i_state++)
-                //         {
-                //             const auto &eks_state = meanfield.get_eigenvals()[i_spin](i_kpoint, i_state) * HA2EV;
-                            
-                //             const auto &vxc_state = vxc[i_spin][i_kpoint](i_state, i_state) * HA2EV;
-                                
-                //             printf("%5d %16.5f %16.5f\n",
-                //                 i_state + 1, eks_state, vxc_state.real());
-                //         }
-                //         // 输出 exx_is_ik_KS 矩阵
-                //         printf("%77s\n", final_banner.c_str());
-                //         printf("exx Matrix5:\n");
-                //         for (int i = 0; i < meanfield.get_n_bands(); i++) {
-                //             for (int j = 0; j < meanfield.get_n_bands(); j++) {
-                //                 const auto &exx_value = exx.exx_is_ik_KS[i_spin][i_kpoint](i, j) ;
-                //                 printf("%16.6f ", exx_value.real()); 
-                //             }
-                //             printf("\n"); // 换行
-                //         }
-                //         printf("%77s\n", final_banner.c_str());
-                //         printf("\n");
-                //         printf("%77s\n", final_banner.c_str());
-                //         printf("vxc Matrix5:\n");
-                //         for (int i = 0; i < meanfield.get_n_bands(); i++) {
-                //             for (int j = 0; j < meanfield.get_n_bands(); j++) {
-                //                 const auto &vxc_value = vxc0[i_spin][i_kpoint](i, j) ;
-                //                 printf("%16.6f ", vxc_value.real()); 
-                //             }
-                //             printf("\n"); // 换行
-                //         }
-                //         printf("%77s\n", final_banner.c_str());
-                //         printf("\n");
-                //         printf("%77s\n", final_banner.c_str());
-                //         printf("exx Matrix-vxc Matrix5:\n");
-                //         for (int i = 0; i < meanfield.get_n_bands(); i++) {
-                //             for (int j = 0; j < meanfield.get_n_bands(); j++) {
-                //                 const auto &exx_value = exx.exx_is_ik_KS[i_spin][i_kpoint](i, j)* HA2EV ;
-                //                 const auto &vxc_value = vxc0[i_spin][i_kpoint](i, j)* HA2EV ;
-                //                 printf("%16.6f ", exx_value.real()-vxc_value.real()); 
-                //             }
-                //             printf("\n"); 
-                //         }
-                //         printf("%77s\n", final_banner.c_str());
-                //         printf("\n");
-                //     }
-                // }
+      
                 // 保存 HOMO、LUMO 和费米能级数据
                 {
                     std::ofstream file("homo_lumo_vs_iterations.dat", std::ios::app); // 使用 std::ios::app 以追加模式打开文件
@@ -1390,44 +662,7 @@ void task_qsgw_band()
         meanfield.broadcast(mpi_comm_global_h, 0);
         mpi_comm_global_h.barrier();
         
-        // {
-        //     int my_rank, world_size;
-        //     MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
-        //     MPI_Comm_size(MPI_COMM_WORLD, &world_size);
-        //     const int n_spins = meanfield.get_n_spins();
-        //     const int n_kpoints = meanfield.get_n_kpoints();
-            
-        //     for (int irank = 0; irank < world_size; ++irank) {
-        //         mpi_comm_global_h.barrier();
-        //         if (my_rank != irank) continue;
-                
-        //         std::cout << "\nRank " << my_rank << " eigenvector data:\n";
-        //         for (int ispin = 0; ispin < 1; ++ispin) {
-        //             for (int ikpt = 0; ikpt < 1; ++ikpt) {
-        //                 std::cout << "Spin " << ispin << " Kpoint " << ikpt << ":\n";
-        //                 const auto& mat = meanfield.get_eigenvectors()[ispin][ikpt];
-                        
-        //                 std::cout << "Matrix " << mat.nr << "x" << mat.nc << "\n";
-                        
-        //                 const int max_rows = std::max(5, mat.nr);
-        //                 const int max_cols = std::max(5, mat.nc);
-        //                 for (int i = 0; i < max_rows; ++i) {
-        //                     for (int j = 0; j < max_cols; ++j) {
-        //                         std::cout << std::fixed << std::setprecision(6) 
-        //                                 << std::setw(12)
-        //                                 << "(" << std::setw(8) << mat(i,j).real()
-        //                                 << "," << std::setw(8) << mat(i,j).imag() << ") ";
-        //                     }
-        //                     std::cout << "\n"; // 行尾换行
-        //                 }
-        //                 std::cout << "\n"; // 矩阵后空行
-        //             }
-        //         }
-        //         std::cout.flush();
-        //     }
-        //     mpi_comm_global_h.barrier();
-        // }
-
+    
         //QSGW_band iteration
         /*
         * Compute the QP energies on band k-paths
@@ -1477,12 +712,7 @@ void task_qsgw_band()
                             std::vector<cplxdb> sigc_mn;
                             for (const auto &freq : chi0.tfg.get_freq_nodes()) {
                                 sigc_mn.push_back(sigc_sk.at(freq)(i_state_row, i_state_col));
-                                // if (std::abs(sigc_mn.real()) < threshold) {
-                                //     sigc_mn.real(0.0);
-                                // }
-                                // if (std::abs(sigc_mn.imag()) < threshold) {
-                                //     sigc_mn.imag(0.0);
-                                // }
+                              
                             }    
                             LIBRPA::AnalyContPade pade(Params::n_params_anacon, imagfreqs, sigc_mn);
                             auto energy0 = meanfield_band.get_eigenvals()[i_spin](i_kpoint, i_state_row); 
@@ -1494,9 +724,7 @@ void task_qsgw_band()
                             sigcmat[i_state_row][i_state_col][i_state_row] = result;
                             sigcmat[i_state_row][i_state_col][n_bands] = result1;
                             
-                            // // 输出当前计算结果
-                            // std::cout << "sigcmat[" << i_state_row << "][" << i_state_col << "][" << i_state_row 
-                            //         << "] = " << result << std::endl;
+                    
                         }
                     }
                     Vc_all[i_spin][i_kpoint] = build_correlation_potential_spin_k(sigcmat,n_bands);
@@ -1586,19 +814,9 @@ void task_qsgw_band()
         }
 
         mpi_comm_global_h.barrier();
-        
-        
-        
+   
     }
-    
-    
-
-
-    
-
-
-
-    Profiler::stop("qsgw_band");
+        Profiler::stop("qsgw_band");
 }
 
 
