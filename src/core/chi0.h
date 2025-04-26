@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "../math/vector3_order.h"
+#include "../math/matrix_m.h"
 #include "atom.h"
 #include "atomic_basis.h"
 #include "meanfield.h"
@@ -104,6 +105,13 @@ public:
                           const vector<Vector3_Order<double>> &qlist,
                           map<atom_t, size_t> &atom_mu_large, map<atom_t, size_t> &atom_mu_small);
     void free_chi0_q(const double freq, const Vector3_Order<double> q);
+    void unfold_abfs_Wc(
+        map<Vector3_Order<double>, ComplexMatrix> &sinvS,
+        map<double,
+            atom_mapping<std::map<Vector3_Order<double>, matrix_m<complex<double>>>>::pair_t_old>
+            &Wc,
+        const vector<Vector3_Order<double>> &qlist, map<atom_t, size_t> &atom_mu_large,
+        map<atom_t, size_t> &atom_mu_small);
 };
 
 }

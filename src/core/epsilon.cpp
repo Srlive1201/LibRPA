@@ -2150,6 +2150,22 @@ std::map<double, std::map<Vector3_Order<double>, Matz>> compute_Wc_freq_q_blacs(
                 }
                 profiler.stop("epsilon_invert_eps");
             }
+            // debug for unfold shrink Wc
+            // for (int i = 0; i != n_abf; i++)
+            //{
+            //     const int ilo = desc_nabf_nabf_opt.indx_g2l_r(i);
+            //     if (ilo < 0) continue;
+            //     for (int j = 0; j != n_abf; j++)
+            //     {
+            //         const int jlo = desc_nabf_nabf_opt.indx_g2l_c(j);
+            //         if (jlo < 0) continue;
+            //         if (i == j)
+            //             chi0_block(ilo, jlo) = 1.0;
+            //         else
+            //             chi0_block(ilo, jlo) = 0.0;
+            //     }
+            // }
+            // debug end
 
             global::profiler.start("epsilon_multiply_coulwc", "Multiply truncated Coulomb");
             ScalapackConnector::pgemm_f('N', 'N', n_abf, n_abf, n_abf, 1.0, coulwc_block.ptr(), 1,

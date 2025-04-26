@@ -78,6 +78,18 @@ void task_g0w0_band()
     std::flush(ofs_myid);
     mpi_comm_global_h.barrier();
 
+    std::map<Vector3_Order<double>, ComplexMatrix> sinvS;
+    if (Params::use_shrink_abfs)
+    {
+        Profiler::start("read_shrink_sinvS_fold", "Load shrink transformation");
+        // change atom_mu: number of {Mu,mu} in the later calculations
+        read_shrink_sinvS(driver_params.input_dir, "shrink_sinvS_", sinvS);
+        Profiler::stop("read_shrink_sinvS_fold");
+        Profiler::start("shrink_chi0_abfs", "Do shrink transformation");
+        chi0.shrink_abfs_chi0(sinvS, qlist, atom_mu_l, atom_mu);
+        Profiler::stop("shrink_chi0_abfs");
+    }
+
     if (Params::debug)
     {  // debug, check chi0
         char fn[80];
@@ -102,37 +114,6 @@ void task_g0w0_band()
                 }
             }
         }
-    }
-
-    if (Params::use_shrink_abfs)
-    {
-        std::map<Vector3_Order<double>, ComplexMatrix> sinvS;
-        Profiler::start("read_shrink_sinvS", "Load shrink transformation");
-        // change atom_mu: number of {Mu,mu} in the later calculations
-        read_shrink_sinvS(driver_params.input_dir, "shrink_sinvS_", sinvS);
-        Profiler::stop("read_shrink_sinvS");
-        Profiler::start("shrink_chi0_abfs", "Do shrink transformation");
-        chi0.shrink_abfs_chi0(sinvS, qlist, atom_mu_l, atom_mu);
-        Profiler::stop("shrink_chi0_abfs");
-        sinvS.clear();
-        /* auto freq = tfg.get_freq_nodes().at(10);
-        auto q = qlist.at(10);
-        if (chi0.get_chi0_q().count(freq) > 0 && chi0.get_chi0_q().at(freq).count(q) > 0)
-        {
-            auto chis = chi0.get_chi0_q().at(freq).at(q);
-            ofs_myid << "shrinked chi0: " << std::endl;
-            for (const auto &I_Jchi0 : chis)
-            {
-                const auto &I = I_Jchi0.first;
-                for (const auto &J_chi0 : I_Jchi0.second)
-                {
-                    const auto &J = J_chi0.first;
-                    const auto &chiIJ = J_chi0.second;
-                    ofs_myid << "I: " << I << ", J: " << J << std::endl;
-                    print_complex_matrix_mm(chiIJ, ofs_myid);
-                }
-            }
-        } */
     }
 
     Profiler::start("read_vq_cut", "Load truncated Coulomb");
@@ -225,16 +206,27 @@ void task_g0w0_band()
         }
     }
 
-    LIBRPA::G0W0 s_g0w0(meanfield, kfrac_list, chi0.tfg, period);
-    Profiler::start("g0w0_sigc_IJ", "Build real-space correlation self-energy");
     if (Params::use_shrink_abfs)
     {
-        s_g0w0.build_spacetime(Cs_shrinked_data, Wc_freq_q, Rlist);
+        auto atom_mu_s = atom_mu;
+        atom_mu = atom_mu_l;
+        LIBRPA::atomic_basis_abf.set(atom_mu);
+        atom_mu_part_range.resize(atom_mu.size());
+        atom_mu_part_range[0] = 0;
+        for (int I = 1; I != atom_mu.size(); I++)
+            atom_mu_part_range[I] = atom_mu.at(I - 1) + atom_mu_part_range[I - 1];
+
+        N_all_mu = atom_mu_part_range[natom - 1] + atom_mu[natom - 1];
+        Profiler::start("unfold_Wc_abfs", "Do shrink transformation");
+        chi0.unfold_abfs_Wc(sinvS, Wc_freq_q, qlist, atom_mu, atom_mu_s);
+        Profiler::stop("unfold_Wc_abfs");
+        sinvS.clear();
     }
-    else
-    {
-        s_g0w0.build_spacetime(Cs_data, Wc_freq_q, Rlist);
-    }
+
+    LIBRPA::G0W0 s_g0w0(meanfield, kfrac_list, chi0.tfg, period);
+    Profiler::start("g0w0_sigc_IJ", "Build real-space correlation self-energy");
+
+    s_g0w0.build_spacetime(Cs_data, Wc_freq_q, Rlist);
 
     Profiler::stop("g0w0_sigc_IJ");
     std::flush(ofs_myid);
