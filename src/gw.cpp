@@ -106,10 +106,17 @@ void G0W0::build_spacetime(
         atoms_pos.insert(pair<int, std::array<double, 3>>{i, {0, 0, 0}});
     std::array<int, 3> period_array{this->period_.x, this->period_.y, this->period_.z};
 
+<<<<<<< HEAD
     profiler.start("g0w0_build_spacetime_2", "Setup LibRI G0W0 object and C data");
     g0w0_libri.set_parallel(mpi_comm_global_h.comm, atoms_pos, lat_array, period_array);
     g0w0_libri.set_Cs(Cs_data.data_libri, Params::libri_g0w0_threshold_C);
     profiler.stop("g0w0_build_spacetime_2");
+=======
+    Profiler::start("g0w0_build_spacetime_2", "Setup LibRI G0W0 object and C data");
+    gw_libri.set_parallel(mpi_comm_global_h.comm, atoms_pos, lat_array, period_array);
+    gw_libri.set_Cs(LRI_Cs.data_libri, Params::libri_g0w0_threshold_C);
+    Profiler::stop("g0w0_build_spacetime_2");
+>>>>>>> eb660e0 (fix: new LibRI gw_libri)
     LIBRPA::utils::lib_printf_root("Time for LibRI G0W0 setup (seconds, Wall/CPU): %f %f\n",
                                    profiler.get_wall_time_last("g0w0_build_spacetime_2"),
                                    profiler.get_cpu_time_last("g0w0_build_spacetime_2"));
