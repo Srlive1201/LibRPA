@@ -451,7 +451,7 @@ std::map<int, Matz> FT_R_TO_K(MeanField& meanfield, const std::map<int, Matz>& V
                     auto Vr_element = Vr_ispin.at(iR)(i,j);
                     double ang =  k * R * TWO_PI ;
                     complex<double> kphase = complex<double>(cos(ang), sin(ang));
-                    element += Vr_element * kphase / meanfield.get_n_kpoints() ;
+                    element += Vr_element * kphase / static_cast<double>(meanfield.get_n_kpoints()); 
                     // element += 1.0 * kphase;
                 }
                 Vk_ispin[i_kpoint](i,j)=element;

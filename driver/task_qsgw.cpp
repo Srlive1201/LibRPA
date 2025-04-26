@@ -504,7 +504,7 @@ void task_qsgw()
     // }
     // 设置收敛条件
     double eigenvalue_tolerance = 1e-4; // 设置一个适当的小值，作为本征值收敛的判断标准
-    int max_iterations =20;           // 最大迭代次数
+    int max_iterations =1;           // 最大迭代次数
     int iteration = 0;
     const double temperature = 0.0001;
     bool converged = false;
