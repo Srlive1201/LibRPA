@@ -91,7 +91,7 @@ public:
     std::shared_ptr<std::valarray<T>> data = nullptr;
 
 private:
-    int size_;
+    size_t size_;
     int mrank_;
     void set_size_mrank()
     {
@@ -103,13 +103,14 @@ public:
     matrix_data()
     {
         dim = std::make_shared<std::array<int, 2>>();
-        mrank_ = size_ = 0;
+        mrank_ = 0;
+        size_ = 0;
     }
     matrix_data(const std::array<int, 2> &dim_in)
     {
         dim = std::make_shared<std::array<int, 2>>(dim_in);
         set_size_mrank();
-        if (size())
+        if (size() > 0)
             data = std::make_shared<std::valarray<T>>(size());
     }
     matrix_data(const std::array<int, 2> &dim_in, const std::valarray<T> &data_in)
@@ -141,7 +142,7 @@ public:
 
     inline int nr() const { return (*dim)[0]; }
     inline int nc() const { return (*dim)[1]; }
-    inline int size() const { return size_; }
+    inline size_t size() const { return size_; }
     inline int mrank() const { return mrank_; }
 
     // data access
@@ -404,7 +405,7 @@ public:
     // leading dimension
     int ld() const { return ld_; }
     MAJOR major() const { return major_; }
-    int size() const { return dataobj.size(); }
+    size_t size() const { return dataobj.size(); }
     int mrank() const { return dataobj.mrank(); }
 
     bool is_row_major() const { return major_ == MAJOR::ROW; }
