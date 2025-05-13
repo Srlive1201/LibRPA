@@ -9,7 +9,7 @@
 #include <vector>
 #include <cmath>
 // 自定义头文件     
- 
+
 #include "utils_io.h"
 #include "meanfield.h"              // MeanField类相关
 #include "params.h"                 // 参数设置相关
@@ -28,13 +28,15 @@
 #include "envs_mpi.h"
 #include "envs_io.h"
 #include "utils_timefreq.h"
+
 #include "mpi.h"
+
 #include "read_data.h"       
 #include "write_aims.h"    
 #include "driver_params.h"      
 #include "driver_utils.h"
-#include "matrix.h"     
-#include "read_data.h"     
+
+#include "matrix.h"      
 #include "fermi_energy_occupation.h"// 费米能和占据数计算相关
 #include "convert_csc.h"
 #include "Hamiltonian.h"            // 哈密顿量相关
@@ -51,6 +53,7 @@ std::vector<int> iteration_numbers;
 void task_qsgw()
 {
     using LIBRPA::envs::mpi_comm_global_h;
+    using LIBRPA::envs::blacs_ctxt_global_h;
     using LIBRPA::envs::ofs_myid;
     using LIBRPA::utils::lib_printf;
  
@@ -541,9 +544,43 @@ void task_qsgw()
         std::flush(ofs_myid);
         mpi_comm_global_h.barrier();
 
+        if (Params::debug)
+        { // debug, check chi0
+            char fn[80];
+            for (const auto &chi0q: chi0.get_chi0_q())
+            {
+                const int ifreq = chi0.tfg.get_freq_index(chi0q.first);
+                for (const auto &q_IJchi0: chi0q.second)
+                {
+                    const int iq = std::distance(klist.begin(), std::find(klist.begin(), klist.end(), q_IJchi0.first));
+                    for (const auto &I_Jchi0: q_IJchi0.second)
+                    {
+                        const auto &I = I_Jchi0.first;
+                        for (const auto &J_chi0: I_Jchi0.second)
+                        {
+                            const auto &J = J_chi0.first;
+                            sprintf(fn, "chi0fq_ifreq_%d_iq_%d_I_%d_J_%d_id_%d.mtx", ifreq, iq, I, J, mpi_comm_global_h.myid);
+                            print_complex_matrix_mm(J_chi0.second, Params::output_dir + "/" + fn, 1e-15);
+                        }
+                    }
+                }
+            }
+        }
+
         // 读取库伦相互作用
         Profiler::start("read_vq_cut", "Load truncated Coulomb");
-        read_Vq_full(driver_params.input_dir, "coulomb_cut_", true);
+        if (LIBRPA::parallel_routing == LIBRPA::ParallelRouting::R_TAU)
+        {
+            read_Vq_full(driver_params.input_dir, "coulomb_cut_", true);
+        }
+        else
+        {
+            // NOTE: local_atpair already set in the main.cpp.
+            //       It can consists of distributed atom pairs of only upper half.
+            //       Setup of local_atpair may be better to extracted as some util function,
+            //       instead of in the main driver.
+            read_Vq_row(driver_params.input_dir, "coulomb_cut_", Params::vq_threshold, local_atpair, true);
+        }
         Profiler::stop("read_vq_cut");
 
         // 读取和处理介电函数
@@ -557,6 +594,16 @@ void task_qsgw()
             epsmac_LF_imagfreq_re = interpolate_dielec_func(
                     Params::option_dielect_func, omegas_dielect, dielect_func,
                     chi0.tfg.get_freq_nodes());
+            if (Params::debug)
+            {
+                if (mpi_comm_global_h.is_root())
+                {
+                    lib_printf("Dielectric function parsed:\n");
+                    for (int i = 0; i < chi0.tfg.get_freq_nodes().size(); i++)
+                        lib_printf("%d %f %f\n", i+1, chi0.tfg.get_freq_nodes()[i], epsmac_LF_imagfreq_re[i]);
+                }
+                mpi_comm_global_h.barrier();
+            }
         }
 
         // 构建V^{exx}矩阵,得到Hexx_nband_nband: exx.exx_is_ik_KS

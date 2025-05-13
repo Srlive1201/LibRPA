@@ -24,13 +24,16 @@ std::vector<std::vector<cplxdb>> build_G0(
     }
 
     // 创建 G0 矩阵，大小为 n_states x freq_nodes.size()
-    std::vector<std::vector<cplxdb>> G0(n_states, std::vector<cplxdb>(freq_nodes.size()));
+    std::vector<std::vector<cplxdb>> G0(n_states, std::vector<cplxdb>(2*freq_nodes.size()));
 
     for (int n = 0; n < n_states; ++n) {
         for (size_t w = 0; w < freq_nodes.size(); ++w) {
             // 计算 G_n^0(iω) = 1 / (iω - ε_n)
             cplxdb iw(0.0, freq_nodes[w]);  // 虚频 iω
             G0[n][w] = 1.0 / (iw - eigenvals[n]);
+ 
+            G0[n][w+freq_nodes.size()] = 1.0 / (-iw - eigenvals[n]);
+
         }
     }
     return G0;
@@ -39,11 +42,11 @@ std::vector<std::vector<cplxdb>> build_G0(
 Matz build_correlation_potential_spin_k_modeA(
     const std::vector<std::vector<std::vector<cplxdb>>>& sigc_spin_k,
     int n_states) {
-    std::cout << "QSGW: mode A" << std::endl;
+    // std::cout << "QSGW: mode A" << std::endl;
     Matz Vc_spin_k(n_states, n_states, MAJOR::COL);
     std::map<int, Matz> Re_sigma;
     std::map<int, Matz> sigma;
-    std::cout << "check112 " << std::endl;
+    // std::cout << "check112 " << std::endl;
     for (int k = 0 ; k < n_states; ++k)
     {
         Re_sigma[k] = Matz(n_states, n_states, MAJOR::COL);
@@ -57,11 +60,12 @@ Matz build_correlation_potential_spin_k_modeA(
         }
         Re_sigma[k] = 0.5 * (sigma[k] + transpose(sigma[k],true));
     }
-    std::cout << "check113 " << std::endl;
+    // std::cout << "check113 " << std::endl;
     for (int i = 0; i < n_states; ++i)
     {
         for (int j = 0; j < n_states; ++j)
         { 
+            
             // 构建关联势矩阵
             std::complex<double> Vc_ij = 0.5 * (Re_sigma[i](i,j) + Re_sigma[j](i,j));
             Vc_spin_k(i, j) = Vc_ij;  
@@ -117,101 +121,78 @@ Matz calculate_scRPA_exchange_correlation(
     const std::vector<double>& freq_nodes,
     const std::vector<double>& freq_weights,
     const std::map<double, Matz>& sigc_spin_k, 
+    const std::vector<std::vector<std::vector<cplxdb>>>& sigc_sk_mat,
     const std::vector<std::vector<cplxdb>>& G0, 
     int ispin,
     int ikpt,
     int n_states, 
-    double mu, 
     double temperature) 
 {
     Matz V_rpa_ks(n_states, n_states, MAJOR::COL); // 交换-关联能量矩阵，列优先存储
     const double K_B = 3.16681e-6;  // Hartree/K
-    const double threshold = 1e-5;  // 设定一个阈值，如果差值太小就不进行除法计算
-    const double sigma = 0.0001;  // 用于计算 δfn / δεn 的高斯展宽
+    std::map<int, Matz> Re_sigma;
+    std::map<int, Matz> sigma;
+    double mu = meanfield.get_efermi();
+    std::cout << "scrpa00" << std::endl;
+    for (int k = 0 ; k < n_states; ++k)
+    {
+        Re_sigma[k] = Matz(n_states, n_states, MAJOR::COL);
+        sigma[k] = Matz(n_states, n_states, MAJOR::COL);
+        std::cout << "scrpa01" << std::endl;
+        for (int i = 0; i < n_states; ++i)
+        {
+            for (int j = 0; j < n_states; ++j)
+            {              
+                std::cout << "scrpa02" << std::endl;
+                sigma[k](i,j) = sigc_sk_mat[i][j][k] ;    
+                std::cout << "scrpa1" << std::endl;
+            }
+        }
+        Re_sigma[k] = 0.5 * (sigma[k] + transpose(sigma[k],true));
+    }
+    std::cout << "scrpa2" << std::endl;
     for (int n = 0; n < n_states; ++n) {
         // 获取填充因子 fn
         double energy_n = meanfield.get_eigenvals()[ispin](ikpt, n);
         double f_n = fermi_dirac(energy_n, mu, temperature) * 2.0 / meanfield.get_n_spins();
-        double efermi = meanfield.get_efermi();
+
         for (int m = 0; m < n_states; ++m) {
             cplxdb V_nm = 0.0;
-
-            //test
             // 获取填充因子 fm
             double energy_m = meanfield.get_eigenvals()[ispin](ikpt, m);
-            // double f_m = fermi_dirac(energy_m, mu, temperature) * 2.0 / meanfield.get_n_spins();
-            // // double delta_nm = (f_n - f_m)/(energy_n - energy_m);
-            // double delta_nm = f_n - f_m;
-            // // 如果 f_n - f_m 太小，则跳过该计算
-            // if (std::abs(delta_nm) < threshold) {
-            //     V_rpa_ks(n, m) = 0.0;
-            //     continue;  // 跳过这个循环的进一步计算
-            // }
+            double f_m = fermi_dirac(energy_m, mu, temperature) * 2.0 / meanfield.get_n_spins();
 
-            // 累加交换-关联项
-            for (size_t w = 0; w < freq_weights.size(); ++w) {
-                cplxdb sigc_nm_iw = sigc_spin_k.at(freq_nodes[w])(n, m);
-                V_nm += freq_weights[w] * sigc_nm_iw * G0[n][w] * G0[m][w];
+            // 构建关联势矩阵
+            std::complex<double> Vc_nm = 0.5 * (Re_sigma[n](n,m) + Re_sigma[m](n,m));
+           
+            std::cout << "scrpa3" << std::endl;
+            if ( (energy_n - mu) * (energy_m - mu) < 0){
+                // double delta_nm = (f_n - f_m)/(energy_n - energy_m);
+                double delta_nm = f_n - f_m;
+                // // 如果 f_n - f_m 太小，则跳过该计算
+                // if (std::abs(delta_nm) < threshold) {
+                //     V_rpa_ks(n, m) = 0.0;
+                //     continue;  // 跳过这个循环的进一步计算
+                // }
+                std::cout << "scrpa4" << std::endl;
+                // 累加交换-关联项
+                for (size_t w = 0; w < freq_weights.size(); ++w) {
+                    cplxdb sigc_nm_iw = sigc_spin_k.at(freq_nodes[w])(n, m);
+                    cplxdb sigc_nm_minus_iw = sigc_spin_k.at(-freq_nodes[w])(n, m);
+                    V_nm += freq_weights[w] * (sigc_nm_iw * (G0[n][w] - G0[m][w]) + sigc_nm_minus_iw * (G0[n][w+freq_weights.size()] - G0[m][w+freq_weights.size()]));
+                }
+
+                // 归一化并存储
+                V_rpa_ks(n, m) = V_nm / delta_nm;
             }
-
-            // 归一化并存储
-            V_rpa_ks(n, m) = V_nm ;
-
-
-            // if (n == m) {
-            //     // // 计算 δfn / δεn
-
-            //     // double df_n_depsilon_n = 1/ (sqrt(2.0 * PI ) * sigma) * exp(-pow((energy_n - efermi),2)/(2 * sigma));
-
-            //     // // 如果 df_n_depsilon_n 太小，则跳过该计算
-            //     // if (std::abs(df_n_depsilon_n) < threshold) {
-            //     //     V_rpa_ks(n, n) = 0.0;
-            //     //     continue;  // 跳过这个循环的进一步计算
-            //     // }
-
-            //     // if(energy_n > efermi){
-            //     //     V_rpa_ks(n, n) = 0.0;
-            //     //     continue;
-            //     // }
+            else{
+                V_rpa_ks(n, m) = Vc_nm;  
+            }
+            
                 
-            //     // 累加自能项
-            //     for (size_t w = 0; w < freq_weights.size(); ++w) {
-            //         cplxdb sigc_nn_iw = sigc_spin_k.at(freq_nodes[w])(n, n);
-                    
-            //         // n = m 的对角元计算
-            //         // V_nm += freq_weights[w] * sigc_nn_iw * G0[n][w] * G0[n][w];
-            //         V_nm += freq_weights[w] * sigc_nn_iw * G0[n][w];
-            //     }
-
-            //     // 对 δfn / δεn 进行归一化处理
-            //     // V_rpa_ks(n, n) = V_nm / df_n_depsilon_n;
-            //     V_rpa_ks(n, n) = V_nm;
-            // } 
-            // else {
-            //     // 获取填充因子 fm
-            //     double energy_m = meanfield.get_eigenvals()[ispin](ikpt, m);
-            //     // double f_m = fermi_dirac(energy_m, mu, temperature) * 2.0 / meanfield.get_n_spins();
-            //     // // double delta_nm = (f_n - f_m)/(energy_n - energy_m);
-            //     // double delta_nm = f_n - f_m;
-            //     // // 如果 f_n - f_m 太小，则跳过该计算
-            //     // if (std::abs(delta_nm) < threshold) {
-            //     //     V_rpa_ks(n, m) = 0.0;
-            //     //     continue;  // 跳过这个循环的进一步计算
-            //     // }
-
-            //     // 累加交换-关联项
-            //     for (size_t w = 0; w < freq_weights.size(); ++w) {
-            //         cplxdb sigc_nm_iw = sigc_spin_k.at(freq_nodes[w])(n, m);
-            //         V_nm += freq_weights[w] * sigc_nm_iw * G0[n][w] * G0[m][w];
-            //     }
-
-            //     // 归一化并存储
-            //     // V_rpa_ks(n, m) = V_nm * (energy_n - energy_m) / delta_nm;
-                
-            // } 
+            
         }
     }
-    // V_rpa_ks = 0.5 * (V_rpa_ks + transpose(V_rpa_ks,true));
 
     return V_rpa_ks;
 }

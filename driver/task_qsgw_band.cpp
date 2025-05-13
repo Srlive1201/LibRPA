@@ -11,7 +11,6 @@
 #include <cmath>
 // 自定义头文件
      
-#include "utils_io.h"
 #include "meanfield.h"              // MeanField类相关
 #include "params.h"                 // 参数设置相关
 #include "pbc.h"                    // 周期性边界条件相关
@@ -29,11 +28,12 @@
 #include "envs_mpi.h"
 #include "envs_io.h"
 #include "utils_timefreq.h"
-#include "mpi.h"
+
 #include "read_data.h"       
 #include "write_aims.h"    
 #include "driver_params.h"  
-#include "driver_utils.h"     
+#include "driver_utils.h"  
+
 #include "matrix.h"
 #include "read_data.h"     
 #include "fermi_energy_occupation.h"// 费米能和占据数计算相关

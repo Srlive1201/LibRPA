@@ -29,13 +29,13 @@ Matz calculate_scRPA_exchange_correlation(
     const std::vector<double>& freq_nodes,
     const std::vector<double>& freq_weights,
     const std::map<double, Matz>& sigc_spin_k, 
-    const std::vector<std::vector<cplxdb>>& G0,
+    const std::vector<std::vector<std::vector<cplxdb>>>& sigc_sk_mat,
+    const std::vector<std::vector<cplxdb>>& G0, 
     int ispin,
-    int ikpt, 
+    int ikpt,
     int n_states, 
-    double mu, 
-    double temperature);
-
+    double temperature) ;
+    
 // 构建哈密顿量函数
 std::map<int, std::map<int, Matz>> construct_H0_GW(
     MeanField& meanfield,
