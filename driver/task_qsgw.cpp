@@ -9,7 +9,7 @@
 #include <vector>
 #include <cmath>
 // 自定义头文件     
-    
+ 
 #include "utils_io.h"
 #include "meanfield.h"              // MeanField类相关
 #include "params.h"                 // 参数设置相关
