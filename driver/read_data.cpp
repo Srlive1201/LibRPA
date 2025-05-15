@@ -175,12 +175,15 @@ static int handle_KS_file(const string &file_path)
     string rvalue, ivalue, kstr;
 
     const auto nspin = driver::n_spins;
+    const auto nsoc = driver::nsoc;
     const auto nband = driver::n_states;
     const auto nao = driver::n_basis_wfc;
-    const auto n = nband * nao;
+    const auto nbao = nband * nao;
+    const auto nbs = nband * nsoc;
+    const auto n = nsoc * nbao;
 
-    std::vector<double> re(nspin * nband * nao);
-    std::vector<double> im(nspin * nband * nao);
+    std::vector<double> re(nspin * n);
+    std::vector<double> im(nspin * n);
 
     while (infile.peek() != EOF)
     {
@@ -198,22 +201,33 @@ static int handle_KS_file(const string &file_path)
         }
         for (int iw = 0; iw != nao; iw++)
         {
-            for (int ib = 0; ib != nband; ib++)
+            for (int isoc = 0; isoc != nsoc; isoc++)
             {
-                for (int is = 0; is != nspin; is++)
+                for (int ib = 0; ib != nband; ib++)
                 {
-                    // cout<<iw<<ib<<is<<ik;
-                    infile >> rvalue >> ivalue;
-                    if (infile.bad())
+                    for (int is = 0; is != nspin; is++)
                     {
-                        ret = 1;
-                        break;
-                    }
-                    if (!skip_this_ik)
-                    {
+                        // cout<<iw<<ib<<is<<ik;
+                        infile >> rvalue >> ivalue;
+                        if (infile.bad())
+                        {
+                            ret = 1;
+                            break;
+                        }
                         // cout<<rvalue<<ivalue<<endl;
-                        re[is * n + ib * nao + iw] = stod(rvalue);
-                        im[is * n + ib * nao + iw] = stod(ivalue);
+                        if (skip_this_ik) continue;
+                        if (driver::opts.use_soc)
+                        {
+                            // re[is * n + isoc * nbao + iw * nband + ib] = stod(rvalue);
+                            // im[is * n + isoc * nbao + iw * nband + ib] = stod(ivalue);
+                            re[is * n + iw * nbs + isoc * nband + ib] = stod(rvalue);
+                            im[is * n + iw * nbs + isoc * nband + ib] = stod(ivalue);
+                        }
+                        else
+                        {
+                            re[is * n + isoc * nbao + ib * nao + iw] = stod(rvalue);
+                            im[is * n + isoc * nbao + ib * nao + iw] = stod(ivalue);
+                        }
                     }
                 }
             }
@@ -436,7 +450,7 @@ void read_velocity(const string &file_path, MeanField &mf)
                 assert(a_index == ia);
                 for (int i = 0; i != n_bands; i++)
                 {
-                    for (int j = 0; j != n_aos; j++)
+                    for (int j = 0; j != n_bands; j++)
                     {
                         infile >> single_re >> single_im;
                         velocity.at(is).at(ik).at(ia)(i, j) =
@@ -2166,6 +2180,12 @@ void read_band_meanfield_data(const string &dir_path)
 
     const int n_kb = n_kpoints_band * n_states;
     std::string s1, s2, s3, s4, s5;
+    int n_basis = n_basis_wfc;
+    if (driver::opts.use_soc)
+    {
+        assert(n_basis % 2 == 0 && "Error: nbasis is not even when SOC!");
+        n_basis = n_basis / 2;
+    }
 
     // Load occupation weights and eigenvalues
     for (int ik = 0; ik < n_kpoints_band; ik++)
@@ -2210,13 +2230,56 @@ void read_band_meanfield_data(const string &dir_path)
             throw LIBRPA_RUNTIME_ERROR("Fail to open band eigenvector file " + ss.str());
         else
             ofs_myid << "Loading band eigenvector file " + ss.str() << endl;
+
         std::vector<std::complex<double>> wfc(n_states * n_basis_wfc);
         for (int i_spin = 0; i_spin < n_spins; i_spin++)
         {
             const size_t nbytes = n_basis_wfc * n_states * sizeof(std::complex<double>);
             infile.read((char *) wfc.data(), nbytes);
+            // TODO: adapt to SOC case
             driver::h.set_wfc_band_packed(i_spin, ik, n_states, n_basis_wfc, wfc.data());
         }
+
+        size_t total_complex = static_cast<size_t>(n_states) * static_cast<size_t>(n_basis_wfc);
+        size_t total_doubles = total_complex * 2;
+
+        std::vector<double> double_buffer(total_doubles);
+        infile.read(reinterpret_cast<char *>(double_buffer.data()), total_doubles * sizeof(double));
+        if (!infile || infile.gcount() != static_cast<ptrdiff_t>(total_doubles * sizeof(double)))
+        {
+            throw std::runtime_error("Error: failed to read " + ss.str());
+        }
+
+        std::vector<std::complex<double>> vecs(total_complex);
+        for (size_t i = 0; i < total_complex; ++i)
+        {
+            vecs[i] = std::complex<double>(double_buffer[2 * i], double_buffer[2 * i + 1]);
+        }
+
+        int n_soc = driver::opts.use_soc ? 2 : 1;
+        for (int i_spin = 0; i_spin < n_spins; ++i_spin)
+        {
+            for (int ib = 0; ib < n_states; ++ib)
+            {
+                for (int iw = 0; iw < n_basis; ++iw)
+                {
+                    for (int i_soc = 0; i_soc < n_soc; ++i_soc)
+                    {
+                        size_t index;
+                        if (driver::opts.use_soc)
+                        {
+                            index = ib * n_basis * n_soc + iw * n_soc + i_soc;
+                        }
+                        else
+                        {
+                            index = ib * n_basis + iw;
+                        }
+                        // mf_band.get_eigenvectors()[i_spin][i_soc][ik](ib, iw) = vecs[index];
+                    }
+                }
+            }
+        }
+
         infile.close();
     }
 }
@@ -2468,14 +2531,20 @@ static int handle_sinvS_file(const std::string &file_path,
 }
 
 size_t read_shrink_sinvS(const string &dir_path, const string &vq_fprefix,
-                         map<Vector3_Order<double>, ComplexMatrix> &sinvS)
+                         std::map<Vector3_Order<double>, ComplexMatrix> &sinvS)
 {
+    using std::cout;
+    using std::endl;
+    using librpa_int::global::profiler;
+    using librpa_int::global::myid_global;
+    using librpa_int::global::lib_printf;
+
     size_t vq_save = 0;
     size_t vq_discard = 0;
     struct dirent *ptr;
     DIR *dir;
     dir = opendir(dir_path.c_str());
-    vector<string> files;
+    std::vector<std::string> files;
 
     bool binary;
     bool binary_checked = false;
@@ -2491,7 +2560,7 @@ size_t read_shrink_sinvS(const string &dir_path, const string &vq_fprefix,
             {
                 binary = check_coulomb_file_binary(file_path);
                 binary_checked = true;
-                if (LIBRPA::envs::myid_global == 0)
+                if (myid_global == 0)
                 {
                     if (binary)
                     {
@@ -2506,8 +2575,8 @@ size_t read_shrink_sinvS(const string &dir_path, const string &vq_fprefix,
             int retcode = handle_sinvS_file(file_path, sinvS, binary);
             if (retcode != 0)
             {
-                LIBRPA::utils::lib_printf("Error encountered when reading %s, return code %d",
-                                          fm.c_str(), retcode);
+                lib_printf("Error encountered when reading %s, return code %d",
+                           fm.c_str(), retcode);
             }
         }
     }

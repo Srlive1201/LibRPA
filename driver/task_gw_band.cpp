@@ -155,11 +155,17 @@ void task_g0w0_band()
         Profiler::start("g0w0_exx_real_work");
         if (Params::use_shrink_abfs)
         {
-            exx.build(Cs_shrinked_data, Rlist, VR);
+            if (Params::use_soc)
+                exx.build<std::complex<double>>(Cs_shrinked_data, Rlist, VR);
+            else
+                exx.build<double>(Cs_shrinked_data, Rlist, VR);
         }
         else
         {
-            exx.build(Cs_data, Rlist, VR);
+            if (Params::use_soc)
+                exx.build<std::complex<double>>(Cs_data, Rlist, VR);
+            else
+                exx.build<double>(Cs_data, Rlist, VR);
         }
         Profiler::stop("g0w0_exx_real_work");
     }
@@ -226,7 +232,10 @@ void task_g0w0_band()
     LIBRPA::G0W0 s_g0w0(meanfield, kfrac_list, chi0.tfg, period);
     Profiler::start("g0w0_sigc_IJ", "Build real-space correlation self-energy");
 
-    s_g0w0.build_spacetime(Cs_data, Wc_freq_q, Rlist);
+    if (Params::use_soc)
+        s_g0w0.build_spacetime<std::complex<double>>(Cs_data, Wc_freq_q, Rlist);
+    else
+        s_g0w0.build_spacetime<double>(Cs_data, Wc_freq_q, Rlist);
 
     Profiler::stop("g0w0_sigc_IJ");
     std::flush(ofs_myid);

@@ -65,11 +65,17 @@ std::vector<double> compute_exx_orbital_energy_(int i_state_low, int i_state_hig
     auto exx = LIBRPA::Exx(meanfield, kfrac_list, period);
     if (Params::use_shrink_abfs)
     {
-        exx.build(Cs_shrinked_data, Rlist, VR);
+        if (Params::use_soc)
+            exx.build<std::complex<double>>(Cs_shrinked_data, Rlist, VR);
+        else
+            exx.build<double>(Cs_shrinked_data, Rlist, VR);
     }
     else
     {
-        exx.build(Cs_data, Rlist, VR);
+        if (Params::use_soc)
+            exx.build<std::complex<double>>(Cs_data, Rlist, VR);
+        else
+            exx.build<double>(Cs_data, Rlist, VR);
     }
     exx.build_KS_kgrid();
 

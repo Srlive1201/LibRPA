@@ -227,6 +227,7 @@ void parse_inputfile_to_params(const std::string &fn)
     _parse_int(opts, nfreq);
     // chi0 related
     parser.parse_bool("use_shrink_abfs", Params::use_shrink_abfs, false, flag);
+    parser.parse_bool("use_soc", Params::use_soc, false, flag);
 
     // RPA specific
     parser.parse_double("gf_R_threshold", opts.gf_threshold, flag); // backward compatible

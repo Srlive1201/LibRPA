@@ -113,13 +113,60 @@ void set_ao_basis_wfc(int ispin, int ik, double* wfc_real, double* wfc_imag, Mea
     // int length_ib_iw=meanfield.get_n_bands()*meanfield.get_n_aos();
     // vector<double> vec_wfc_real(wfc_real,wfc_real+length_ib_iw);
     // vector<double> vec_wfc_imag(wfc_imag,wfc_imag+length_ib_iw);
-    auto& wfc = mf.get_eigenvectors().at(ispin).at(ik);
-    const auto n = mf.get_n_bands() * mf.get_n_aos();
-    for (int i = 0; i != n; i++)
+    if (Params::use_soc)
     {
-        // LIBRPA::utils::lib_printf("In ao wfc: %f, %f\n",wfc_real[i],wfc_imag[i]);
-        wfc.c[i] = complex<double>(wfc_real[i], wfc_imag[i]);
+        auto& wfc1 = mf.get_eigenvectors().at(ispin).at(0).at(ik);
+        auto& wfc2 = mf.get_eigenvectors().at(ispin).at(1).at(ik);
+        const auto nbands = mf.get_n_bands();
+        const auto naos = mf.get_n_aos();
+        const auto nsoc = mf.get_n_soc();
+        const auto nbasis = naos * nsoc;
+        const auto ntot = naos * nbands;
+        const auto nbs = nbands * nsoc;
+
+        /*for (int isoc = 0; isoc != nsoc; isoc++)
+        {
+            for (int i = 0; i != naos; i++)
+            {
+                for (int j = 0; j != nbands; j++)
+                {
+                    if (isoc == 0)
+                        wfc1(j, i) = complex<double>(wfc_real[isoc * ntot + i * nbands + j],
+                                                     wfc_imag[isoc * ntot + i * nbands + j]);
+                    else if (isoc == 1)
+                        wfc2(j, i) = complex<double>(wfc_real[isoc * ntot + i * nbands + j],
+                                                     wfc_imag[isoc * ntot + i * nbands + j]);
+                }
+            }
+        }*/
+
+        for (int i = 0; i != naos; i++)
+        {
+            for (int isoc = 0; isoc != nsoc; isoc++)
+            {
+                for (int j = 0; j != nbands; j++)
+                {
+                    if (isoc == 0)
+                        wfc1(j, i) = complex<double>(wfc_real[i * nbs + isoc * nbands + j],
+                                                     wfc_imag[i * nbs + isoc * nbands + j]);
+                    else if (isoc == 1)
+                        wfc2(j, i) = complex<double>(wfc_real[i * nbs + isoc * nbands + j],
+                                                     wfc_imag[i * nbs + isoc * nbands + j]);
+                }
+            }
+        }
     }
+    else
+    {
+        auto& wfc = mf.get_eigenvectors().at(ispin).at(0).at(ik);
+        const auto n = mf.get_n_bands() * mf.get_n_aos();
+        for (int i = 0; i != n; i++)
+        {
+            // LIBRPA::utils::lib_printf("In ao wfc: %f, %f\n",wfc_real[i],wfc_imag[i]);
+            wfc.c[i] = complex<double>(wfc_real[i], wfc_imag[i]);
+        }
+    }
+
     // print_complex_matrix("wfc_isk", wfc.at(is).at(ik));
 }
 
@@ -325,7 +372,8 @@ void set_ao_basis_aux(int I, int J, int nbasis_i, int nbasis_j, int naux_mu, int
     /*
      * librpa_int::parallel_routing may not be properly set when parsing to set_ao_basis_aux.
      * Therefore using Params::parallel_routing string to check, because
-     * Params are required to set up after the environment initialization and before data transfer.
+     * Params are required to set up after the environment initialization and before data
+     * transfer.
      * */
     // Cs_data.use_libri = librpa_int::parallel_routing == librpa_int::ParallelRouting::LIBRI;
     Cs_data.use_libri = Params::parallel_routing == "libri";

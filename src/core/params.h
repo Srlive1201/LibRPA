@@ -83,6 +83,8 @@ struct Params
     static bool replace_w_head;
     //! switch of shrinking number of auxiliary basis by reading shrink_sinvS_0.txt
     static bool use_shrink_abfs;
+    //! switch of using spin-orbit coupling correction
+    static bool use_soc;
 
     //! option of computing dielectric function on imaginary axis
     /*!

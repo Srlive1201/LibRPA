@@ -1,6 +1,7 @@
 #include "../core/meanfield.h"
-#include <utility>
 #include <map>
+
+#include "../meanfield.h"
 #include "testutils.h"
 
 void test_BCC_He_gamma_minimal_basis_aims()
@@ -38,10 +39,10 @@ void test_BCC_He_gamma_minimal_basis_aims()
         mf.get_eigenvals()[0](0, ib) = eig[ib];
     for (int iw = 0; iw < 8; iw++)
         for (int ib = 0; ib < 8; ib++)
-            mf.get_eigenvectors()[0][0](ib, iw) = wkc_gamma_T[iw*8+ib];
+            mf.get_eigenvectors()[0][0][0](ib, iw) = wkc_gamma_T[iw * 8 + ib];
 
     // test density matrix
-    const auto dmat_gamma = mf.get_dmat_cplx(0, 0);
+    const auto dmat_gamma = mf.get_dmat_cplx(0, 0, 0, 0);
     const complex<double> thres = 1e-10;
     assert(fequal(dmat_gamma(0, 0), { 0.962374022009208e-00, 0}, thres));
     assert(fequal(dmat_gamma(4, 0), {-1.549199411968699e-01, 0}, thres));
@@ -56,7 +57,7 @@ void test_BCC_He_gamma_minimal_basis_aims()
     assert(fequal(gf_gamma(4, 4), {-0.962374022009208e+00, 0}, thres));
 }
 
-int main (int argc, char *argv[])
+int main(int argc, char *argv[])
 {
     test_BCC_He_gamma_minimal_basis_aims();
     return 0;

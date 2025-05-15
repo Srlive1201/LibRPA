@@ -185,7 +185,10 @@ void diele_func::cal_head()
             {
                 if (n_spin == 1)
                 {
-                    this->head.at(iomega)(alpha, beta) *= dielectric_unit * 2;
+                    if (Params::use_soc)
+                        this->head.at(iomega)(alpha, beta) *= dielectric_unit;
+                    else
+                        this->head.at(iomega)(alpha, beta) *= dielectric_unit * 2;
                 }
                 else if (n_spin == 4)
                     this->head.at(iomega)(alpha, beta) *= dielectric_unit;
@@ -273,7 +276,10 @@ void diele_func::cal_wing(const librpa_int::Cs_LRI &Cs_data)
             {
                 if (n_spin == 1)
                 {
-                    this->wing_mu.at(iomega)(mu, alpha) *= -dielectric_unit * 2.0;
+                    if (Params::use_soc)
+                        this->wing_mu.at(iomega)(mu, alpha) *= -dielectric_unit;
+                    else
+                        this->wing_mu.at(iomega)(mu, alpha) *= -dielectric_unit * 2.0;
                 }
                 else if (n_spin == 4)
                     this->wing_mu.at(iomega)(mu, alpha) *= -dielectric_unit;
@@ -586,25 +592,38 @@ std::complex<double> diele_func::compute_Cs_ij2mn(int mu, int m, int n, int ik)
     std::complex<double> total = 0.0;
     const int n_atom = Ctri_ij.data_libri.size();
     const int n_ao_Mu = atomic_basis_wfc_.get_atom_nb(Mu);
-    const ComplexMatrix eigenvectors = meanfield_df.get_eigenvectors()[0][ik];  // spin=1 only
+    const int n_spins = meanfield_df.get_n_spins();
+    const int n_soc = meanfield_df.get_n_soc();
+
     // #pragma omp parallel for schedule(dynamic) collapse(2)
-    for (int i = 0; i != n_ao_Mu; i++)
+    for (int isp = 0; isp != n_spins; isp++)
     {
-        for (int J = 0; J != n_atom; J++)
+        for (int is1 = 0; is1 != n_soc; is1++)
         {
-            int n_ao_J = atomic_basis_wfc_.get_atom_nb(J);
-            for (int j = 0; j != n_ao_J; j++)
+            const ComplexMatrix eigenvectors1 = meanfield_df.get_eigenvectors()[isp][is1][ik];
+            for (int is2 = 0; is2 != n_soc; is2++)
             {
-                std::complex<double> term1 =
-                    conj(eigenvectors(m, atomic_basis_wfc_.get_global_index(Mu, i))) *
-                    Ctri_ij.data_libri[Mu][{J, k_array}](mu_local, i, j) *
-                    eigenvectors(n, atomic_basis_wfc_.get_global_index(J, j));
-                std::complex<double> term2 =
-                    eigenvectors(n, atomic_basis_wfc_.get_global_index(Mu, i)) *
-                    conj(Ctri_ij.data_libri[Mu][{J, k_array}](mu_local, i, j)) *
-                    conj(eigenvectors(m, atomic_basis_wfc_.get_global_index(J, j)));
-                // #pragma omp critical
-                total += term1 + term2;
+                const ComplexMatrix eigenvectors2 = meanfield_df.get_eigenvectors()[isp][is2][ik];
+                for (int i = 0; i != n_ao_Mu; i++)
+                {
+                    for (int J = 0; J != n_atom; J++)
+                    {
+                        int n_ao_J = atomic_basis_wfc_.get_atom_nb(J);
+                        for (int j = 0; j != n_ao_J; j++)
+                        {
+                            std::complex<double> term1 =
+                                conj(eigenvectors1(m, atomic_basis_wfc_.get_global_index(Mu, i))) *
+                                Ctri_ij.data_libri[Mu][{J, k_array}](mu_local, i, j) *
+                                eigenvectors2(n, atomic_basis_wfc_.get_global_index(J, j));
+                            std::complex<double> term2 =
+                                eigenvectors1(n, atomic_basis_wfc_.get_global_index(Mu, i)) *
+                                conj(Ctri_ij.data_libri[Mu][{J, k_array}](mu_local, i, j)) *
+                                conj(eigenvectors2(m, atomic_basis_wfc_.get_global_index(J, j)));
+                            // #pragma omp critical
+                            total += term1 + term2;
+                        }
+                    }
+                }
             }
         }
     }

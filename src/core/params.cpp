@@ -38,6 +38,7 @@ bool Params::use_scalapack_gw_wc = false;
 bool Params::debug = false;
 bool Params::replace_w_head = true;
 bool Params::use_shrink_abfs = false;
+bool Params::use_soc = false;
 
 /* ==========================================================
  * output options begin
@@ -97,6 +98,7 @@ void Params::print()
         {"output_gw_sigc_mat", output_gw_sigc_mat},
         {"replace_w_head", replace_w_head},
         {"use_shrink_abfs", use_shrink_abfs},
+        {"use_soc", use_soc},
     };
 
     for (const auto &param: str_params)
