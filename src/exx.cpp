@@ -346,22 +346,25 @@ void Exx::build_KS(const std::vector<std::vector<ComplexMatrix>> &wfc_target,
     {
         // collect necessary data
         Profiler::start("build_real_space_exx_5", "Collect Hexx IJ from world");
-        const auto &exx_is = this->exx.at(isp);
         std::map<int, std::map<std::pair<int, std::array<int, 3>>, RI::Tensor<double>>> exx_I_JR_local;
 
-        for (const auto &R_IJ_exx: exx_is)
+        if (this->exx.count(isp))
         {
-            const auto R = R_IJ_exx.first;
-            for (const auto &I_J_exx: R_IJ_exx.second)
+            const auto &exx_is = this->exx.at(isp);
+            for (const auto &R_IJ_exx: exx_is)
             {
-                const auto I = I_J_exx.first;
-                const auto &n_I = atomic_basis_wfc.get_atom_nb(I);
-                for (const auto &J_exx: I_J_exx.second)
+                const auto R = R_IJ_exx.first;
+                for (const auto &I_J_exx: R_IJ_exx.second)
                 {
-                    const auto J = J_exx.first;
-                    const auto &n_J = atomic_basis_wfc.get_atom_nb(J);
-                    const std::array<int, 3> Ra{R.x, R.y, R.z};
-                    exx_I_JR_local[I][{J, Ra}] = RI::Tensor<double>({n_I, n_J}, J_exx.second.sptr());
+                    const auto I = I_J_exx.first;
+                    const auto &n_I = atomic_basis_wfc.get_atom_nb(I);
+                    for (const auto &J_exx: I_J_exx.second)
+                    {
+                        const auto J = J_exx.first;
+                        const auto &n_J = atomic_basis_wfc.get_atom_nb(J);
+                        const std::array<int, 3> Ra{R.x, R.y, R.z};
+                        exx_I_JR_local[I][{J, Ra}] = RI::Tensor<double>({n_I, n_J}, J_exx.second.sptr());
+                    }
                 }
             }
         }
