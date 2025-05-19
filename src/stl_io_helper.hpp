@@ -94,7 +94,7 @@ void print_keys(std::ostream& os, const std::map<Tkey1, std::map<Tkey2, Tval>> &
     os << "}";
 }
 
-//! Get total number of elements
+//! Print a the keys of a nested map
 template <typename Tkey1, typename Tkey2, typename Tkey3, typename Tval>
 void print_keys(std::ostream& os, const std::map<Tkey1, std::map<Tkey2, std::map<Tkey3, Tval>>> &nested_map)
 {
@@ -103,6 +103,19 @@ void print_keys(std::ostream& os, const std::map<Tkey1, std::map<Tkey2, std::map
         for (const auto& k2k3v: k1k2k3v.second)
             for (const auto& k3v: k2k3v.second)
                 os << k1k2k3v.first << " " << k2k3v.first << " " << k3v.first << "\n";
+    os << "}";
+}
+
+//! Print a the keys of a nested map
+template <typename Tkey1, typename Tkey2, typename Tkey3, typename Tkey4, typename Tval>
+void print_keys(std::ostream& os, const std::map<Tkey1, std::map<Tkey2, std::map<Tkey3, std::map<Tkey4, Tval>>>> &nested_map)
+{
+    os << "{";
+    for (const auto& k1k2k3k4v: nested_map)
+        for (const auto& k2k3k4v: k1k2k3k4v.second)
+            for (const auto& k3k4v: k2k3k4v.second)
+                for (const auto& k4v: k3k4v.second)
+                    os << k1k2k3k4v.first << " " << k2k3k4v.first << " " << k3k4v.first << " " << k4v.first << "\n";
     os << "}";
 }
 

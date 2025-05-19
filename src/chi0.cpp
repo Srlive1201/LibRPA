@@ -345,7 +345,7 @@ static void chi_libri_ft_ct(
     const int &nspins,
     const int &it,
     const TFGrids &tfg,
-    std::map<int, std::map<libri_types<int, int>::TAC, RI::Tensor<double>>> chi0s_IJR,
+    const std::map<int, std::map<libri_types<int, int>::TAC, RI::Tensor<double>>> &chi0s_IJR,
     const vector<Vector3_Order<double>> &qlist, const vector<atpair_t> &atpairs_ABF,
     map<double, map<Vector3_Order<double>, atom_mapping<ComplexMatrix>::pair_t_old>> &chi0_q)
 {
@@ -375,10 +375,15 @@ static void chi_libri_ft_ct(
         }
     }
 
-    cout << "is: " << isp << " tau: " << tau << "  qifreq_atpair_all.size()" << ifreq_iq_mu_nu_to_Rs.size() << endl;
+    ofs_myid << "is: " << isp << " tau: " << tau << "  qifreq_atpair_all.size()" << ifreq_iq_mu_nu_to_Rs.size() << endl;
+    // ofs_myid << "qifreq_atpair_all: " << ifreq_iq_mu_nu_to_Rs << endl;
+    ofs_myid << "available chi0s_IJR: " << chi0s_IJR.size() << " , keys:" << endl;
+    print_keys(ofs_myid, chi0s_IJR);
+    ofs_myid << endl;
 #pragma omp parallel for schedule(dynamic)
     for (const auto &index_Rs: ifreq_iq_mu_nu_to_Rs)
     {
+        ofs_myid << index_Rs.first << endl;
         const auto &ifreq = index_Rs.first[0];
         const auto &iq = index_Rs.first[1];
         const auto &q = qlist[iq];
@@ -388,8 +393,11 @@ static void chi_libri_ft_ct(
         const auto &n_nu = LIBRPA::atomic_basis_abf.get_atom_nb(Nu);
         const double freq = tfg.get_freq_nodes()[ifreq];
         const double trans = tfg.get_costrans_t2f()(ifreq, it);
-        auto &chi = chi0_q[freq][q][Mu][Nu];
+        // ofs_myid << "Locating chi" << endl;
+        const auto &chi = chi0_q[freq][q][static_cast<atom_t>(Mu)][static_cast<atom_t>(Nu)];
+        // ofs_myid << n_mu << " " << n_nu << endl;
         ComplexMatrix cm_chi0(n_mu, n_nu);
+        // ofs_myid << "created cm_chi0" << endl;
         for (const auto &R: index_Rs.second)
         {
             const auto &chi_tensor = chi0s_IJR.at(Mu).at({Nu, R});
@@ -1278,5 +1286,5 @@ void Chi0::free_chi0_q(const double freq, const Vector3_Order<double> q)
 {
     auto &chi0_for_free = chi0_q.at(freq).at(q);
     chi0_for_free.clear();
-    map<size_t, map<size_t,ComplexMatrix>>().swap(chi0_for_free);
+    map<atom_t, map<atom_t,ComplexMatrix>>().swap(chi0_for_free);
 }

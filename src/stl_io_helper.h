@@ -39,6 +39,9 @@ void print_keys(std::ostream& os, const std::map<Tkey1, std::map<Tkey2, Tval>> &
 template <typename Tkey1, typename Tkey2, typename Tkey3, typename Tval>
 void print_keys(std::ostream& os, const std::map<Tkey1, std::map<Tkey2, std::map<Tkey3, Tval>>> &nested_map);
 
+template <typename Tkey1, typename Tkey2, typename Tkey3, typename Tkey4, typename Tval>
+void print_keys(std::ostream& os, const std::map<Tkey1, std::map<Tkey2, std::map<Tkey3, std::map<Tkey4, Tval>>>> &nested_map);
+
 //! Get total number of elements
 template <typename Tkey1, typename Tkey2, typename Tval>
 int get_num_keys(const std::map<Tkey1, std::map<Tkey2, Tval>> &nested_map);
