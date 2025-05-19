@@ -252,9 +252,6 @@ void G0W0::build_spacetime(
                 LIBRPA::utils::lib_printf("Task %4d. libRI G0W0, spin %1d, time grid %12.6f. Wc size %zu, GF size %zu. Wall time %f\n",
                        mpi_comm_global_h.myid, ispin, t, n_obj_wc_libri, n_obj_gf_libri, wtime_g0w0_cal_sigc);
             }
-            Profiler::start("g0w0_build_spacetime_free_Ws");
-            gw_libri.free_Ws();
-            Profiler::stop("g0w0_build_spacetime_free_Ws");
 
             size_t n_IJR_myid = 0; // for sigcmat output
 
@@ -349,6 +346,9 @@ void G0W0::build_spacetime(
                 ofs_sigmac_r.close();
             }
         }
+        Profiler::start("g0w0_build_spacetime_free_Ws");
+        gw_libri.free_Ws();
+        Profiler::stop("g0w0_build_spacetime_free_Ws");
     }
     is_rspace_built_ = true;
 #endif
