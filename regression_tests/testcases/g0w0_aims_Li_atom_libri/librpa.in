@@ -1,0 +1,5 @@
+task = g0w0
+nfreq = 16
+replace_w_head = f
+use_scalapack_gw_wc = t
+parallel_routing = libri

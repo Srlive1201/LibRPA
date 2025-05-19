@@ -1,0 +1,100 @@
+#%FHI-aims
+# General setting
+xc               pbe
+relativistic     atomic_zora scalar
+occupation_type  gaussian 0.0001
+basis_threshold  0.e-5
+qpe_calc         gw_expt  
+# freq_grid_type minimax
+spin collinear
+freq_grid_type mod-GL
+frequency_points 16
+n_anacon_par 16
+anacon_type pade
+k_grid 1 1 1  
+state_upper_limit 100000
+
+# print_input_librpa .true.
+output librpa binary develop
+symmetry_reduced_k_grid .false.  
+
+output gw_regular_kgrid
+# output self_energy
+
+
+################################################################################
+#
+#  FHI-aims code project
+#  VB, Fritz-Haber Institut, 2009
+#
+#  Suggested "light" defaults for Li atom (to be pasted into control.in file)
+#  Be sure to double-check any results obtained with these settings for post-processing,
+#  e.g., with the "tight" defaults and larger basis sets.
+#
+################################################################################
+  species        Li
+#     global species definitions
+    nucleus             3
+    mass                6.941
+#
+    l_hartree           4
+#
+    cut_pot             3.5  1.5  1.0
+    basis_dep_cutoff    1e-4
+#     
+    radial_base         29 5.0
+    radial_multiplier   1
+    angular_grids       specified
+      division   0.4484  110
+      division   0.5659  194
+      division   0.6315  302
+#      division   0.6662  434
+#      division   0.8186  590
+#      division   0.9037  770
+#      division   6.2760  974
+#      outer_grid   974
+      outer_grid   302
+################################################################################
+#
+#  Definition of "minimal" basis
+#
+################################################################################
+#     valence basis states
+    valence      2  s   1.
+#     ion occupancy
+    ion_occ      1  s   2.
+################################################################################
+#
+#  Suggested additional basis functions. For production calculations, 
+#  uncomment them one after another (the most important basis functions are
+#  listed first).
+#
+#  Constructed for dimers: 1.80 A, 2.25 A, 2.75 A, 3.50 A, 4.50 A
+#
+################################################################################
+#  "First tier" - improvements: -189.23 meV to -6.35 meV
+     hydro 2 p 1.6
+#     hydro 2 s 2
+#     hydro 3 d 2.6
+#  "Second tier" - improvements: -4.69 meV to -0.41 meV
+#     hydro 3 p 4.6
+#     hydro 2 p 1.8
+#     hydro 3 s 6.2
+#     hydro 4 d 4.7
+#     hydro 4 f 4.1
+#  "Third tier" - improvements: -0.20 meV to -0.15 meV
+#     hydro 4 d 0.95
+#     hydro 3 p 6.2
+#     hydro 3 s 1.7
+#  Further functions, listed for completeness
+#     VB: The following functions are only listed for completeness; test very
+#         carefully before any kind of production use. From the point of view 
+#         of the basis construction, their main role is to fill up space, 
+#         and they are solely determined by the location of the cutoff potential.
+#     hydro 3 p 0.1  # -0.15 meV
+#     hydro 4 d 5    # -0.12 meV
+#     hydro 4 f 0.1  # -0.14 meV
+#     hydro 5 g 0.1  # -0.06 meV
+
+
+
