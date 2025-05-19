@@ -616,6 +616,20 @@ static size_t handle_Cs_file_by_ids(const string &file_path, double threshold, c
                     }
             set_ao_basis_aux(ia1, ia2, n_i, n_j, n_mu, R, cs_ptr->c, 0);
         }
+        else
+        {
+            set_ao_basis_aux(ia1, ia2, n_i, n_j, n_mu, R, nullptr, 1);
+
+            double maxval = -1.0;
+            for (int i = 0; i != n_i; i++)
+                for (int j = 0; j != n_j; j++)
+                    for (int mu = 0; mu != n_mu; mu++)
+                    {
+                        infile >> Cs_ele;
+                        maxval = std::max(maxval, abs(stod(Cs_ele)));
+                    }
+            if (maxval < threshold) cs_discard++;
+        }
         id++;
     }
     infile.close();
@@ -656,6 +670,11 @@ static size_t handle_Cs_file_binary_by_ids(const string &file_path, double thres
             cs_ptr->create(n_i * n_j, n_mu);
             infile.read((char *) cs_ptr->c, n_i * n_j * n_mu * sizeof(double));
             set_ao_basis_aux(ia1, ia2, n_i, n_j, n_mu, R, cs_ptr->c, 0);
+        }
+        else
+        {
+            infile.seekg(n_i * n_j * n_mu * sizeof(double), ios::cur);
+            cs_discard++;
         }
     }
     infile.close();
