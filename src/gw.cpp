@@ -15,6 +15,7 @@
 #include "utils_mem.h"
 #include "utils_mpi_io.h"
 #include "utils_blacs.h"
+#include "stl_io_helper.h"
 
 #include <map>
 #include <functional>
@@ -112,6 +113,7 @@ void G0W0::build_spacetime(
             Profiler::get_cpu_time_last("g0w0_build_spacetime_2"));
 
     auto IJR_local_gf = dispatch_vector_prod(tot_atpair_ordered, Rlist, mpi_comm_global_h.myid, mpi_comm_global_h.nprocs, true, false);
+    envs::ofs_myid << "IJR_local_gf: " << IJR_local_gf << endl;
     std::set<Vector3_Order<int>> Rs_local;
     for (const auto &IJR: IJR_local_gf)
     {
@@ -181,7 +183,13 @@ void G0W0::build_spacetime(
 
             Profiler::start("g0w0_build_spacetime_4", "Compute G(R,t) and G(R,-t)");
             auto gf = mf.get_gf_real_imagtimes_Rs(ispin, kfrac_list, {tau, -tau}, {Rs_local.cbegin(), Rs_local.cend()});
+            // envs::ofs_myid << "gf size " << gf.size() << endl;
+            // envs::ofs_myid << "t " << gf[tau].size() << " ; -t " << gf[-tau].size() << endl;
             std::map<double, std::map<int, std::map<std::pair<int, std::array<int, 3>>, RI::Tensor<double>>>> tau_gf_libri;
+            for (auto t: {tau, -tau})
+            {
+                tau_gf_libri[t] = {};
+            }
             for (const auto &IJR: IJR_local_gf)
             {
                 const auto &I = IJR.first.first;
@@ -191,6 +199,8 @@ void G0W0::build_spacetime(
                 const auto &R = IJR.second;
                 for (auto t: {tau, -tau})
                 {
+                    // skip when this process does not have any local GF data, i.e. Rs_local is empty
+                    if (gf.count(t) == 0 || gf.at(t).count(R) == 0) continue;
                     const auto &gf_global = gf.at(t).at(R);
                     matrix gf_IJ_block(n_I, n_J);
                     {
@@ -446,23 +456,26 @@ void G0W0::build_sigc_matrix_KS(const std::vector<std::vector<ComplexMatrix>> &w
     {
         for (const auto& freq: this->tfg.get_freq_nodes())
         {
-            const auto& sigc_is_freq = this->sigc_is_f_R_IJ.at(ispin).at(freq);
             // Communicate to obtain sub-matrices for necessary I-J pairs at all Rs
             std::map<int, std::map<std::pair<int, std::array<int, 3>>, Tensor<complex<double>>>>
                 sigc_I_JR_local;
-            for (const auto &R_IJ_sigc: sigc_is_freq)
+            if (this->sigc_is_f_R_IJ.count(ispin))
             {
-                const auto R = R_IJ_sigc.first;
-                for (const auto &I_J_sigc: R_IJ_sigc.second)
+                const auto& sigc_is_freq = this->sigc_is_f_R_IJ.at(ispin).at(freq);
+                for (const auto &R_IJ_sigc: sigc_is_freq)
                 {
-                    const auto I = I_J_sigc.first;
-                    const auto &n_I = atomic_basis_wfc.get_atom_nb(I);
-                    for (const auto &J_sigc: I_J_sigc.second)
+                    const auto R = R_IJ_sigc.first;
+                    for (const auto &I_J_sigc: R_IJ_sigc.second)
                     {
-                        const auto J = J_sigc.first;
-                        const auto &n_J = atomic_basis_wfc.get_atom_nb(J);
-                        const std::array<int, 3> Ra{R.x, R.y, R.z};
-                        sigc_I_JR_local[I][{J, Ra}] = Tensor<complex<double>>({n_I, n_J}, J_sigc.second.sptr());
+                        const auto I = I_J_sigc.first;
+                        const auto &n_I = atomic_basis_wfc.get_atom_nb(I);
+                        for (const auto &J_sigc: I_J_sigc.second)
+                        {
+                            const auto J = J_sigc.first;
+                            const auto &n_J = atomic_basis_wfc.get_atom_nb(J);
+                            const std::array<int, 3> Ra{R.x, R.y, R.z};
+                            sigc_I_JR_local[I][{J, Ra}] = Tensor<complex<double>>({n_I, n_J}, J_sigc.second.sptr());
+                        }
                     }
                 }
             }

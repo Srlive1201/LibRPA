@@ -149,7 +149,10 @@ std::map<double, std::map<Vector3_Order<int>, ComplexMatrix>> MeanField::get_gf_
     // cout << "wg_occ " << wg_occ << endl;
     for (const auto &tau : imagtimes)
     {
+        gf_tau_R[tau] = {};
         // cout << "tau " << tau << endl;
+        // Empty local R, cycle after initialize the tau container
+        if (Rs.size() == 0) continue;
         const auto &prefac_occ = tau > 0 ? wg_empty : wg_occ;
         // cout << "prefac_occ " << prefac_occ << endl;
         const auto scale = -tau * (eskb[ispin] - efermi);
@@ -158,7 +161,7 @@ std::map<double, std::map<Vector3_Order<int>, ComplexMatrix>> MeanField::get_gf_
             if (scale.c[ie] > 0) scale.c[ie] = 0;
             scale.c[ie] = std::exp(scale.c[ie]) * prefac_occ.c[ie];
         }
-        // cout << "tau " << tau << endl << scale << endl;
+        // ofs_myid cout << "tau " << tau << endl << scale << endl;
         for (int ik = 0; ik != n_kpoints; ik++)
         {
             auto scaled_wfc_conj = conj(wfc[ispin][ik]);
@@ -195,6 +198,7 @@ std::map<double, std::map<Vector3_Order<int>, matrix>> MeanField::get_gf_real_im
     for (const auto &tau_gf_cplx_R: this->get_gf_cplx_imagtimes_Rs(ispin, kfrac_list, imagtimes, Rs))
     {
         const auto &tau = tau_gf_cplx_R.first;
+        gf_tau_R[tau] = {};
         for (const auto &R_gf_cplx: tau_gf_cplx_R.second)
         {
             const auto &R = R_gf_cplx.first;
