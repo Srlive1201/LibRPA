@@ -457,8 +457,8 @@ void G0W0::build_spacetime(
                                     {
                                         for (int j = 0; j != n_J; j++)
                                         {
-                                            sigc_temp(i, j) =
-                                                sigc_cos(i, j) * t2f_cos + sigc_sin(i, j) * t2f_sin;
+                                            sigc_temp(i, j) = sigc_cos(i, j) * t2f_cos +
+                                                              sigc_sin(i, j) * t2f_sin * 1.0i;
                                         }
                                     }
                                     else
