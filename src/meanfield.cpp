@@ -351,23 +351,27 @@ void MeanField::broadcast(const MpiCommHandler& comm_hdl, int root) {
 
     // 保持原有波函数广播逻辑（broadcast_ComplexMatrix已含维度同步）
     for (auto& spin_wfc : wfc) {
-        for (auto& k_wfc : spin_wfc) {
-            ComplexMatrix temp_wfc;
-            if (comm_hdl.is_root()) {
-                temp_wfc = k_wfc;
+        for (auto& soc_wfc : spin_wfc) {
+            for (auto& k_wfc : soc_wfc) {
+                ComplexMatrix temp_wfc;
+                if (comm_hdl.is_root()) {
+                    temp_wfc = k_wfc;
+                }
+                comm_hdl.broadcast_ComplexMatrix(temp_wfc, root);
+                k_wfc = temp_wfc;  // Now k_wfc is a ComplexMatrix, not a container
             }
-            comm_hdl.broadcast_ComplexMatrix(temp_wfc, root);
-            k_wfc = temp_wfc;
         }
     }
     for (auto& spin_wfc : wfc0) {
-        for (auto& k_wfc : spin_wfc) {
-            ComplexMatrix temp_wfc;
-            if (comm_hdl.is_root()) {
-                temp_wfc = k_wfc;
+        for (auto& soc_wfc : spin_wfc) {
+            for (auto& k_wfc : soc_wfc) {
+                ComplexMatrix temp_wfc;
+                if (comm_hdl.is_root()) {
+                    temp_wfc = k_wfc;
+                }
+                comm_hdl.broadcast_ComplexMatrix(temp_wfc, root);
+                k_wfc = temp_wfc;  // Now k_wfc is a ComplexMatrix, not a container
             }
-            comm_hdl.broadcast_ComplexMatrix(temp_wfc, root);
-            k_wfc = temp_wfc;
         }
     }
 }

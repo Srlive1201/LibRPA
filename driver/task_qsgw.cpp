@@ -71,13 +71,14 @@ void task_qsgw()
 
     
 
-    
+    // 读取 meanfield 数据 
     const auto n_spins = meanfield.get_n_spins();
     const auto n_bands = meanfield.get_n_bands();
     const auto n_kpoints = meanfield.get_n_kpoints();
     const auto n_aos = meanfield.get_n_aos();
+    const auto n_soc = meanfield.get_n_soc();
 
-    using cplxdb = std::complex<double>;
+
     // 初始化
     Profiler::start("read_vxc_HKS");
     std::map<int, std::map<int, Matz>> hf_nao;  
@@ -85,12 +86,13 @@ void task_qsgw()
     std::map<int, std::map<int, Matz>> hf;
     std::map<int, std::map<int, Matz>> vxc0;
     std::map<int, std::map<int, Matz>> vxc1;
+    std::map<int, std::map<int, Matz>> vxc_band;
     std::map<int, std::map<int, Matz>> exx0;
+    std::map<int,std::map<int, std::map<int, Matz>>> Hexx_matrix_temp;
     std::map<int, std::map<int, Matz>> H_KS; // H_KS矩阵
     std::map<int, std::map<int, Matz>> H_KS0;
+    std::map<int, std::map<int, Matz>> H_KS0_band;
     std::map<int, std::map<int, Matz>> H_KS1;//用于混合迭代
-    std::map<int,std::map<int, std::map<int, std::vector<cplxdb>>>> Omega_total; 
-    std::map<int,std::map<int,std::map<int, std::map<int, std::map<int, cplxdb>>>>> Sigma_iskwnn; 
     bool all_files_processed_successfully = true;
     const std::string final_banner(90, '-');
 
@@ -108,14 +110,18 @@ void task_qsgw()
             std::string hfFilePath = oss_hf.str();
             std::string vxcFilePath = oss_vxc.str();
             
-            Matz wfc1(n_bands, n_aos, MAJOR::COL);
-            for (int ib = 0; ib < n_bands; ++ib) {
-                for (int iao = 0; iao < n_aos; iao++) {
-                    wfc1(ib, iao) = meanfield.get_eigenvectors()[ispin][ikpt](ib, iao);
-                    meanfield.get_eigenvectors0()[ispin][ikpt](ib, iao) = wfc1(ib, iao);
-                    
+            Matz wfc1(n_bands, n_aos * n_soc, MAJOR::COL);
+            for (int ib1 = 0; ib1 < n_bands; ++ib1) {
+                for (int isoc = 0; isoc < n_soc; isoc++) 
+                {
+                    for (int iao = 0; iao < n_aos; iao++) {
+                        int ib2 = iao * n_soc + isoc;
+                        wfc1(ib1, ib2) = meanfield.get_eigenvectors()[ispin][isoc][ikpt](ib1, iao);
+                        meanfield.get_eigenvectors0()[ispin][isoc][ikpt](ib1, iao) = wfc1(ib1, ib2);                        
+                    }
                 }
             }
+             
             //check 正交性
             // Matz wfc7(n_bands, n_aos, MAJOR::COL);
             // wfc7 = transpose(wfc1,false) ;
@@ -616,7 +622,10 @@ void task_qsgw()
             Profiler::stop("ft_vq_cut");
 
             Profiler::start("g0w0_exx_real_work");
-            exx.build(Cs_data, Rlist, VR);
+            if (Params::use_soc)
+                exx.build<std::complex<double>>(Cs_data, Rlist, VR);
+            else
+                exx.build<double>(Cs_data, Rlist, VR);
             exx.build_KS_kgrid0();//rotate  
             Profiler::stop("g0w0_exx_real_work");
             // for (int ispin = 0; ispin < meanfield.get_n_spins(); ++ispin) {
@@ -747,7 +756,10 @@ void task_qsgw()
 
         LIBRPA::G0W0 s_g0w0(meanfield, kfrac_list, chi0.tfg, period);
         Profiler::start("g0w0_sigc_IJ", "Build correlation self-energy");
-        s_g0w0.build_spacetime(Cs_data, Wc_freq_q, Rlist);
+        if (Params::use_soc)
+            s_g0w0.build_spacetime<std::complex<double>>(Cs_data, Wc_freq_q, Rlist);
+        else
+            s_g0w0.build_spacetime<double>(Cs_data, Wc_freq_q, Rlist);
         Profiler::stop("g0w0_sigc_IJ");
         std::flush(ofs_myid);
         Profiler::start("g0w0_sigc_rotate_KS", "Rotate self-energy, IJ -> ij -> KS");

@@ -63,11 +63,12 @@ void task_qsgw_band()
 
     
 
-    
+    // 读取 meanfield 数据 
     const auto n_spins = meanfield.get_n_spins();
     const auto n_bands = meanfield.get_n_bands();
     const auto n_kpoints = meanfield.get_n_kpoints();
     const auto n_aos = meanfield.get_n_aos();
+    const auto n_soc = meanfield.get_n_soc();
 
 
     // 初始化
@@ -101,15 +102,18 @@ void task_qsgw_band()
             std::string hfFilePath = oss_hf.str();
             std::string vxcFilePath = oss_vxc.str();
             
-            Matz wfc1(n_bands, n_aos, MAJOR::COL);
-            for (int ib = 0; ib < n_bands; ++ib) {
-                for (int iao = 0; iao < n_aos; iao++) {
-                    wfc1(ib, iao) = meanfield.get_eigenvectors()[ispin][ikpt](ib, iao);
-                    meanfield.get_eigenvectors0()[ispin][ikpt](ib, iao) = wfc1(ib, iao);
-                    
+            Matz wfc1(n_bands, n_aos * n_soc, MAJOR::COL);
+            for (int ib1 = 0; ib1 < n_bands; ++ib1) {
+                for (int isoc = 0; isoc < n_soc; isoc++) 
+                {
+                    for (int iao = 0; iao < n_aos; iao++) {
+                        int ib2 = iao * n_soc + isoc;
+                        wfc1(ib1, ib2) = meanfield.get_eigenvectors()[ispin][isoc][ikpt](ib1, iao);
+                        meanfield.get_eigenvectors0()[ispin][isoc][ikpt](ib1, iao) = wfc1(ib1, ib2);                        
+                    }
                 }
             }
-        
+            
 
             hf_nao[ispin][ikpt] = Matz(n_aos, n_aos, MAJOR::COL);  
             vxc0[ispin][ikpt] = Matz(n_aos, n_aos, MAJOR::COL);     
@@ -257,15 +261,19 @@ void task_qsgw_band()
             for (int i_band = 0; i_band < n_bands; ++i_band) {
                 H_KS0_band[i_spin][i_kpoint](i_band, i_band) = meanfield_band.get_eigenvals()[i_spin](i_kpoint, i_band);
             }
-            Matz wfc5(n_bands, n_aos, MAJOR::COL);
-            for (int ib = 0; ib < n_bands; ++ib) {
-                meanfield_band.get_weight0()[i_spin](i_kpoint, ib) = meanfield_band.get_weight()[i_spin](i_kpoint, ib);
-                for (int iao = 0; iao < n_aos; iao++) {
-                    wfc5(ib, iao) = meanfield_band.get_eigenvectors()[i_spin][i_kpoint](ib, iao);
-                    meanfield_band.get_eigenvectors0()[i_spin][i_kpoint](ib, iao) = wfc5(ib, iao);        
-                }
-            }
             
+            Matz wfc5(n_bands, n_aos * n_soc, MAJOR::COL);
+            for (int ib1 = 0; ib1 < n_bands; ++ib1) {
+                meanfield_band.get_weight0()[i_spin](i_kpoint, ib1) = meanfield_band.get_weight()[i_spin](i_kpoint, ib1);
+                for (int isoc = 0; isoc < n_soc; isoc++) 
+                {
+                    for (int iao = 0; iao < n_aos; iao++) {
+                        int ib2 = iao * n_soc + isoc;
+                        wfc5(ib1, ib2) = meanfield_band.get_eigenvectors()[i_spin][isoc][i_kpoint](ib1, iao);
+                        meanfield_band.get_eigenvectors0()[i_spin][isoc][i_kpoint](ib1, iao) = wfc5(ib1, ib2);                        
+                    }
+                }
+            } 
 
         }
     }
@@ -420,7 +428,10 @@ void task_qsgw_band()
             Profiler::stop("ft_vq_cut");
 
             Profiler::start("g0w0_exx_real_work");
-            exx.build(Cs_data, Rlist, VR);
+            if (Params::use_soc)
+                exx.build<std::complex<double>>(Cs_data, Rlist, VR);
+            else
+                exx.build<double>(Cs_data, Rlist, VR); 
             exx.build_KS_kgrid0();//rotate  
             Profiler::stop("g0w0_exx_real_work");
         
@@ -470,7 +481,10 @@ void task_qsgw_band()
         
         LIBRPA::G0W0 s_g0w0(meanfield, kfrac_list, chi0.tfg, period);
         Profiler::start("g0w0_sigc_IJ", "Build correlation self-energy");
-        s_g0w0.build_spacetime(Cs_data, Wc_freq_q, Rlist);
+        if (Params::use_soc)
+            s_g0w0.build_spacetime<std::complex<double>>(Cs_data, Wc_freq_q, Rlist);
+        else
+            s_g0w0.build_spacetime<double>(Cs_data, Wc_freq_q, Rlist);
         Profiler::stop("g0w0_sigc_IJ");
         std::flush(ofs_myid);
 

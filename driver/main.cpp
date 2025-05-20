@@ -16,11 +16,11 @@
 #include "../src/utils/utils_mem.h"
 #include "../src/io/fs.h"
 #include "task_qsgw.h"
-#include "task_qsgwA.h"
+// #include "task_qsgwA.h"
 #include "task_qsgw_band.h"
-#include "task_hf_band.h"
-#include "task_scRPA.h"
-#include "task_scRPA_band.h"
+// #include "task_hf_band.h"
+// #include "task_scRPA.h"
+// #include "task_scRPA_band.h"
 
 static void initialize(int argc, char **argv)
 {
