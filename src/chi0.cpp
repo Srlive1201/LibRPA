@@ -377,13 +377,14 @@ static void chi_libri_ft_ct(
 
     ofs_myid << "is: " << isp << " tau: " << tau << "  qifreq_atpair_all.size()" << ifreq_iq_mu_nu_to_Rs.size() << endl;
     // ofs_myid << "qifreq_atpair_all: " << ifreq_iq_mu_nu_to_Rs << endl;
-    ofs_myid << "available chi0s_IJR: " << chi0s_IJR.size() << " , keys:" << endl;
-    print_keys(ofs_myid, chi0s_IJR);
-    ofs_myid << endl;
+    ofs_myid << "available chi0s_IJR: " << chi0s_IJR.size() << endl;
+    // ofs_myid << "Keys:" << endl;
+    // print_keys(ofs_myid, chi0s_IJR);
+    // ofs_myid << endl;
 #pragma omp parallel for schedule(dynamic)
     for (const auto &index_Rs: ifreq_iq_mu_nu_to_Rs)
     {
-        ofs_myid << index_Rs.first << endl;
+        // ofs_myid << index_Rs.first << endl;
         const auto &ifreq = index_Rs.first[0];
         const auto &iq = index_Rs.first[1];
         const auto &q = qlist[iq];
