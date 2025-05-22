@@ -12,7 +12,7 @@
 #include "utils_io.h"
 #include "utils_timefreq.h"
 
-void task_screened_coulomb_real_freq()
+void task_screened_coulomb_real_freq(std::map<Vector3_Order<double>, ComplexMatrix> &sinvS)
 {
     using LIBRPA::envs::mpi_comm_global_h;
     using LIBRPA::utils::lib_printf;
@@ -36,7 +36,7 @@ void task_screened_coulomb_real_freq()
     chi0.gf_R_threshold = Params::gf_R_threshold;
 
     Profiler::start("chi0_build", "Build response function chi0");
-    chi0.build(Cs_data, Rlist, period, local_atpair, qlist);
+    chi0.build(Cs_data, Rlist, period, local_atpair, qlist, sinvS);
     Profiler::stop("chi0_build");
 
     Profiler::start("read_vq_cut", "Load truncated Coulomb");

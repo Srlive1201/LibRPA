@@ -48,22 +48,8 @@ void get_rpa_correlation_energy_(std::complex<double> &rpa_corr,
 
     mpi_comm_global_h.barrier();
 
-    auto atom_mu_s = atom_mu;
-    if (use_shrink_abfs)
-    {
-        // replace atom_mu by atom_mu_l to construct chi0 due to LRI error
-        atom_mu = atom_mu_l;
-        LIBRPA::atomic_basis_abf.set(atom_mu);
-        atom_mu_part_range.resize(atom_mu.size());
-        atom_mu_part_range[0] = 0;
-        for (int I = 1; I != atom_mu.size(); I++)
-            atom_mu_part_range[I] = atom_mu.at(I - 1) + atom_mu_part_range[I - 1];
-
-        N_all_mu = atom_mu_part_range[natom - 1] + atom_mu[natom - 1];
-    }
-
     Profiler::start("chi0_build", "Build response function chi0");
-    chi0.build(Cs_data, Rlist, period, local_atpair, qlist);
+    chi0.build(Cs_data, Rlist, period, local_atpair, qlist, sinvS);
     Profiler::stop("chi0_build");
 <<<<<<< HEAD
 <<<<<<< HEAD
@@ -120,6 +106,7 @@ void get_rpa_correlation_energy_(std::complex<double> &rpa_corr,
 =======
 >>>>>>> 49a7c4b (update rpa shrink)
 
+<<<<<<< HEAD
     if (use_shrink_abfs)
     {
 =======
@@ -217,6 +204,8 @@ void get_rpa_correlation_energy_(std::complex<double> &rpa_corr,
         sinvS.clear();
     }
 
+=======
+>>>>>>> 64b95f1 (refactor: shrink chi0)
     if (Params::debug)
     {  // debug, check chi0
         char fn[80];

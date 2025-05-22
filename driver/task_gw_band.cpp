@@ -24,7 +24,7 @@
 #include "utils_timefreq.h"
 #include "write_aims.h"
 
-void task_g0w0_band()
+void task_g0w0_band(std::map<Vector3_Order<double>, ComplexMatrix> &sinvS)
 {
     using LIBRPA::envs::mpi_comm_global_h;
     using LIBRPA::envs::ofs_myid;
@@ -48,47 +48,13 @@ void task_g0w0_band()
     Chi0 chi0(meanfield, klist, tfg);
     chi0.gf_R_threshold = Params::gf_R_threshold;
 
+    chi0.set_input_dir(driver_params.input_dir);
     Profiler::start("chi0_build", "Build response function chi0");
-    if (Params::use_shrink_abfs)
-    {
-        // replace atom_mu by atom_mu_l to construct chi0 due to LRI error
-        atom_mu = atom_mu_l;
-        LIBRPA::atomic_basis_abf.set(atom_mu);
-        atom_mu_part_range.resize(atom_mu.size());
-        atom_mu_part_range[0] = 0;
-        for (int I = 1; I != atom_mu.size(); I++)
-            atom_mu_part_range[I] = atom_mu.at(I - 1) + atom_mu_part_range[I - 1];
-
-        N_all_mu = atom_mu_part_range[natom - 1] + atom_mu[natom - 1];
-    }
-    chi0.build(Cs_data, Rlist, period, local_atpair, qlist);
+    chi0.build(Cs_data, Rlist, period, local_atpair, qlist, sinvS);
     Profiler::stop("chi0_build");
-
-    // for (auto &Ip : chi0.get_chi0_q().at(tfg.get_freq_nodes()[10]).at(qlist[0]))
-    // {
-    //     auto I = Ip.first;
-    //     for (auto &Jm : Ip.second)
-    //     {
-    //         auto J = Jm.first;
-    //         print_complex_matrix_mm(Jm.second,
-    //                                 "chi0_" + std::to_string(I) + "_" + std::to_string(J), 0.);
-    //     }
-    // }
 
     std::flush(ofs_myid);
     mpi_comm_global_h.barrier();
-
-    std::map<Vector3_Order<double>, ComplexMatrix> sinvS;
-    if (Params::use_shrink_abfs)
-    {
-        Profiler::start("read_shrink_sinvS_fold", "Load shrink transformation");
-        // change atom_mu: number of {Mu,mu} in the later calculations
-        read_shrink_sinvS(driver_params.input_dir, "shrink_sinvS_", sinvS);
-        Profiler::stop("read_shrink_sinvS_fold");
-        Profiler::start("shrink_chi0_abfs", "Do shrink transformation");
-        chi0.shrink_abfs_chi0(sinvS, qlist, atom_mu_l, atom_mu);
-        Profiler::stop("shrink_chi0_abfs");
-    }
 
     if (Params::debug)
     {  // debug, check chi0
@@ -214,7 +180,11 @@ void task_g0w0_band()
 
     if (Params::use_shrink_abfs)
     {
-        auto atom_mu_s = atom_mu;
+        std::map<Vector3_Order<double>, ComplexMatrix> sinvS;
+        Profiler::start("read_shrink_sinvS_fold", "Load shrink transformation");
+        // change atom_mu: number of {Mu,mu} in the later calculations
+        read_shrink_sinvS(driver_params.input_dir, "shrink_sinvS_", sinvS);
+        Profiler::stop("read_shrink_sinvS_fold");
         atom_mu = atom_mu_l;
         LIBRPA::atomic_basis_abf.set(atom_mu);
         atom_mu_part_range.resize(atom_mu.size());
@@ -224,7 +194,7 @@ void task_g0w0_band()
 
         N_all_mu = atom_mu_part_range[natom - 1] + atom_mu[natom - 1];
         Profiler::start("unfold_Wc_abfs", "Do shrink transformation");
-        chi0.unfold_abfs_Wc(sinvS, Wc_freq_q, qlist, atom_mu, atom_mu_s);
+        chi0.unfold_abfs_Wc(sinvS, Wc_freq_q, qlist, atom_mu_l, atom_mu_s);
         Profiler::stop("unfold_Wc_abfs");
         sinvS.clear();
     }

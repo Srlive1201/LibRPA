@@ -55,7 +55,8 @@ private:
      * @todo add threshold parameter. Maybe in the class level?
      */
     void build_chi0_q_space_time(const LibrpaParallelRouting routing, const Cs_LRI &Cs,
-                                 const vector<atpair_t> &atpairs_ABF);
+                                 const vector<atpair_t> &atpairs_ABF,
+                                 std::map<Vector3_Order<double>, ComplexMatrix> &sinvS);
 
     // NOTE: the following three methods could be converted to static functions in chi0.cpp
     void build_chi0_q_space_time_atom_pair_routing(const Cs_LRI &Cs,
@@ -64,7 +65,8 @@ private:
                                                const vector<atpair_t> &atpairs_ABF);
     template <typename Tdata>
     void build_chi0_q_space_time_LibRI_routing(const Cs_LRI &Cs,
-                                               const vector<atpair_t> &atpairs_ABF);
+                                               const vector<atpair_t> &atpairs_ABF,
+                                               std::map<Vector3_Order<double>, ComplexMatrix> &sinvS);
 
     //! Internal procedure to compute chi0_q in the conventional method, i.e. in frequency domain and reciprocal space
     // TODO: implement the conventional method
@@ -101,8 +103,9 @@ public:
     ~Chi0() {};
     //! Build the independent response function in q-omega domain for ABFs on the atom pairs atpair_ABF and q-vectors in qlist
     void build(LibrpaParallelRouting routing,
-                const Cs_LRI &Cs,
-                const vector<atpair_t> &atpair_ABF);
+               const Cs_LRI &Cs,
+               const vector<atpair_t> &atpair_ABF,
+               std::map<Vector3_Order<double>, ComplexMatrix> &sinvS);
     const map<double, map<Vector3_Order<double>, atom_mapping<ComplexMatrix>::pair_t_old>> & get_chi0_q() const { return chi0_q; }
     void shrink_abfs_chi0(map<Vector3_Order<double>, ComplexMatrix> &sinvS,
                           const vector<Vector3_Order<double>> &qlist,

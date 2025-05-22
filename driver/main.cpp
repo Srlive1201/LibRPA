@@ -15,9 +15,9 @@
 #include "../src/utils/profiler.h"
 #include "../src/utils/utils_mem.h"
 #include "../src/io/fs.h"
-#include "task_qsgw.h"
+// #include "task_qsgw.h"
 // #include "task_qsgwA.h"
-#include "task_qsgw_band.h"
+// #include "task_qsgw_band.h"
 // #include "task_hf_band.h"
 // #include "task_scRPA.h"
 // #include "task_scRPA_band.h"
@@ -128,7 +128,8 @@ int main(int argc, char **argv)
 
     task_t task = get_task(driver_params.task);
 
-    // Parse strucutre, RI, Coulomb data if the task is going beyond just print minimax grids
+    std::map<Vector3_Order<double>, ComplexMatrix> sinvS;
+
     if (task != task_t::print_minimax)
     {
         profiler.start("driver_struct", "Structure");
@@ -182,6 +183,7 @@ int main(int argc, char **argv)
         profiler.stop("driver_read_ri");
 
         const bool use_shrink_abfs = false;
+        // TODO: need to include the shrinked basis information in another AtomicBasis object
         if (use_shrink_abfs)
         {
             if (mpi_comm_global_h.is_root())
@@ -199,11 +201,11 @@ int main(int argc, char **argv)
             read_Cs_evenly_distribute(driver_params.input_dir, driver_params.cs_threshold,
                                       mpi_comm_global_h.myid, mpi_comm_global_h.nprocs,
                                       "Cs_shrinked_data");
-            std::map<Vector3_Order<double>, ComplexMatrix> sinvS;
-            profiler.start("read_shrink_sinvS", "Load shrink transformation");
+
+            profiler.start("read_shrink_sinvS_fold", "Load shrink transformation");
             // change atom_mu: number of {Mu,mu} in the later calculations
             read_shrink_sinvS(driver_params.input_dir, "shrink_sinvS_", sinvS);
-            sinvS.clear();
+            atom_mu_s = atom_mu;
             if (mpi_comm_global_h.is_root())
             {
                 std::cout << "iatom & small Nabfs: " << std::endl;
