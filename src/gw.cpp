@@ -1056,7 +1056,7 @@ void G0W0::build_sigc_matrix_KS(
                             sigc_is_ik_f_KS.at(ispin).at(ik).count(freq) == 0)
                         {
                             sigc_is_ik_f_KS[ispin][ik][freq] =
-                                matrix_m<std::complex<double>>(n_bands, n_bands, MAJOR::COL);
+                                init_local_mat<complex<double>>(desc_nband_nband_fb, MAJOR::COL);
                         }
                         sigc_is_ik_f_KS[ispin][ik][freq] += sigc_nband_nband_fb;
                     }

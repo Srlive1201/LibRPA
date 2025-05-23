@@ -798,7 +798,7 @@ void Exx::build_KS(const std::vector<std::vector<std::vector<ComplexMatrix>>> &w
                         this->exx_is_ik_KS[isp].count(ik) == 0)
                     {
                         this->exx_is_ik_KS[isp][ik] =
-                            matrix_m<std::complex<double>>(n_bands, n_bands, MAJOR::COL);
+                            init_local_mat<complex<double>>(desc_nband_nband_fb, MAJOR::COL);
                     }
                     this->exx_is_ik_KS[isp][ik] += Hexx_nband_nband_fb;
                     // cout << "Hexx_nband_nband_fb isp " << isp  << " ik " << ik << endl <<
