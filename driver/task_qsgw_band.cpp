@@ -514,9 +514,9 @@ void task_qsgw_band(std::map<Vector3_Order<double>, ComplexMatrix> &sinvS)
         LIBRPA::G0W0 s_g0w0(meanfield, kfrac_list, chi0.tfg, period);
         Profiler::start("g0w0_sigc_IJ", "Build correlation self-energy");
         if (Params::use_soc)
-            s_g0w0.build_spacetime<std::complex<double>>(Cs_data, Wc_freq_q, Rlist);
+            s_g0w0.build_spacetime<std::complex<double>>(Cs_data, Wc_freq_q, Rlist, qlist, sinvS);
         else
-            s_g0w0.build_spacetime<double>(Cs_data, Wc_freq_q, Rlist);
+            s_g0w0.build_spacetime<double>(Cs_data, Wc_freq_q, Rlist, qlist, sinvS);
         Profiler::stop("g0w0_sigc_IJ");
         std::flush(ofs_myid);
 

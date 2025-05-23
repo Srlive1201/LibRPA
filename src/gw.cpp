@@ -51,13 +51,240 @@ void G0W0::reset_kspace()
     is_kspace_built_ = false;
 }
 
+void static unfold_abfs_Wc(
+    map<Vector3_Order<double>, ComplexMatrix> &sinvS,
+    atom_mapping<std::map<Vector3_Order<double>, matrix_m<complex<double>>>>::pair_t_old &Wc,
+    const vector<Vector3_Order<double>> &qlist, map<atom_t, size_t> &atom_mu_large,
+    map<atom_t, size_t> &atom_mu_small)
+{
+    using LIBRPA::Array_Desc;
+    using LIBRPA::AtomicBasis;
+    using LIBRPA::envs::blacs_ctxt_global_h;
+    using LIBRPA::envs::mpi_comm_global_h;
+
+    LIBRPA::atomic_basis_abf.set(atom_mu_small);
+    atom_mu_part_range.resize(atom_mu_small.size());
+    atom_mu_part_range[0] = 0;
+    for (int I = 1; I != atom_mu_small.size(); I++)
+        atom_mu_part_range[I] = atom_mu_small.at(I - 1) + atom_mu_part_range[I - 1];
+    N_all_mu = atom_mu_part_range[natom - 1] + atom_mu_small[natom - 1];
+
+    // before reset atom_mu: large abfs
+    int all_mu = 0;
+    vector<int> mu_shift(atom_mu_large.size());
+    for (int I = 0; I != atom_mu_large.size(); I++)
+    {
+        mu_shift[I] = all_mu;
+        all_mu += atom_mu_large[I];
+    }
+
+    // after reset atom_mu: small abfs
+    int all_mu_s = 0;
+    vector<int> mu_s_shift(atom_mu_small.size());
+    for (int I = 0; I != atom_mu_small.size(); I++)
+    {
+        mu_s_shift[I] = all_mu_s;
+        all_mu_s += atom_mu_small[I];
+    }
+    AtomicBasis atomic_basis_abf_l;
+    atomic_basis_abf_l.set(atom_mu_large);
+
+    const complex<double> CONE{1.0, 0.0};
+    Array_Desc desc_nabf_nabf_ll(blacs_ctxt_global_h);
+    Array_Desc desc_nabf_nabf_ss(blacs_ctxt_global_h);
+    Array_Desc desc_nabf_nabf_sl(blacs_ctxt_global_h);
+    desc_nabf_nabf_ll.init_square_blk(all_mu, all_mu, 0, 0);
+    desc_nabf_nabf_ss.init_square_blk(all_mu_s, all_mu_s, 0, 0);
+    desc_nabf_nabf_sl.init_square_blk(all_mu_s, all_mu, 0, 0);
+    const auto set_IJ_nabf_nabf = LIBRPA::utils::get_necessary_IJ_from_block_2D_sy(
+        'U', LIBRPA::atomic_basis_abf, desc_nabf_nabf_ss);
+    const auto s0_s1 = get_s0_s1_for_comm_map2_first(set_IJ_nabf_nabf);
+    auto Wc_block = init_local_mat<complex<double>>(desc_nabf_nabf_ss, MAJOR::COL);
+    auto Wcll_block = init_local_mat<complex<double>>(desc_nabf_nabf_ll, MAJOR::COL);
+    auto u_block = init_local_mat<complex<double>>(desc_nabf_nabf_sl, MAJOR::COL);
+    auto Wc_u = init_local_mat<complex<double>>(desc_nabf_nabf_sl, MAJOR::COL);
+    // for 2D->IJ
+    int I, iI;
+    map<int, vector<int>> map_lor_v;
+    map<int, vector<int>> map_loc_v;
+    for (int i_lo = 0; i_lo != desc_nabf_nabf_ll.m_loc(); i_lo++)
+    {
+        int i_glo = desc_nabf_nabf_ll.indx_l2g_r(i_lo);
+        atomic_basis_abf_l.get_local_index(i_glo, I, iI);
+        map_lor_v[I].push_back(iI);
+    }
+    for (int i_lo = 0; i_lo != desc_nabf_nabf_ll.n_loc(); i_lo++)
+    {
+        int i_glo = desc_nabf_nabf_ll.indx_l2g_c(i_lo);
+        atomic_basis_abf_l.get_local_index(i_glo, I, iI);
+        map_loc_v[I].push_back(iI);
+    }
+
+    // IJ pair of shrinked chi0 to be returned
+    pair<set<int>, set<int>> Iset_Jset_c;
+    const auto atpair_local = dispatch_upper_trangular_tasks(
+        natom, blacs_ctxt_global_h.myid, blacs_ctxt_global_h.nprows, blacs_ctxt_global_h.npcols,
+        blacs_ctxt_global_h.myprow, blacs_ctxt_global_h.mypcol);
+    for (const auto &ap : atpair_local)
+    {
+        Iset_Jset_c.first.insert(ap.first);
+        Iset_Jset_c.second.insert(ap.second);
+    }
+
+    for (int iq = 0; iq < qlist.size(); iq++)
+    {
+        const auto &q = qlist[iq];
+        std::array<double, 3> qa = {q.x, q.y, q.z};
+        const auto &U = sinvS.at(q);
+        Profiler::start("unfold_prepare_Wc_2d", "Prepare Wc 2D block for unfold");
+        Wc_block.zero_out();
+        Wcll_block.zero_out();
+        u_block.zero_out();
+        Wc_u.zero_out();
+        {
+            std::map<int,
+                     std::map<std::pair<int, std::array<double, 3>>, RI::Tensor<complex<double>>>>
+                wc_libri;
+            atom_mapping<ComplexMatrix>::pair_t_old Wc_IJ;
+
+            for (const auto &IJqc : Wc)
+            {
+                const auto &I = IJqc.first;
+                for (const auto &Jqc : IJqc.second)
+                {
+                    const auto &J = Jqc.first;
+                    if (!Wc_IJ[I].count(J))
+                    {
+                        Wc_IJ[I][J].create(atom_mu_small[I], atom_mu_small[J]);
+                    }
+                    for (const auto &qc : Jqc.second)
+                    {
+                        const auto &qq = qc.first;
+                        if (qq == q)
+                        {
+                            const auto &c = qc.second;
+                            for (int ir = 0; ir < c.nr(); ir++)
+                            {
+                                for (int ic = 0; ic < c.nc(); ic++)
+                                {
+                                    Wc_IJ[I][J](ir, ic) = c(ir, ic);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            for (const auto &M_Nchi : Wc_IJ)
+            {
+                const auto &M = M_Nchi.first;
+                const auto n_mu = LIBRPA::atomic_basis_abf.get_atom_nb(M);
+                for (const auto &N_chi : M_Nchi.second)
+                {
+                    const auto &N = N_chi.first;
+                    const auto n_nu = LIBRPA::atomic_basis_abf.get_atom_nb(N);
+                    const auto &chi = N_chi.second;
+                    std::valarray<complex<double>> chi_va(chi.c, chi.size);
+                    auto pchi = std::make_shared<std::valarray<complex<double>>>();
+                    *pchi = chi_va;
+                    wc_libri[M][{N, qa}] = RI::Tensor<complex<double>>({n_mu, n_nu}, pchi);
+                }
+            }
+
+            // wait for all mpi to calculate chi0_libri
+            // then collect chi0_libri to chi0_block
+            mpi_comm_global_h.barrier();
+            Profiler::start("unfold_prepare_Wc_2d_comm_map2");
+            const auto IJq_wc = RI::Communicate_Tensors_Map_Judge::comm_map2_first(
+                mpi_comm_global_h.comm, wc_libri, s0_s1.first, s0_s1.second);
+            Profiler::stop("unfold_prepare_Wc_2d_comm_map2");
+            Profiler::start("unfold_prepare_Wc_2d_collect_block");
+            collect_block_from_ALL_IJ_Tensor(Wc_block, desc_nabf_nabf_ss, LIBRPA::atomic_basis_abf,
+                                             qa, true, CONE, IJq_wc, MAJOR::ROW);
+            Profiler::stop("unfold_prepare_Wc_2d_collect_block");
+        }
+        Profiler::stop("unfold_prepare_Wc_2d");
+        for (int ir = 0; ir < U.nr; ir++)
+        {
+            const int ilo = desc_nabf_nabf_sl.indx_g2l_r(ir);
+            if (ilo < 0) continue;
+            for (int ic = 0; ic < U.nc; ic++)
+            {
+                const int jlo = desc_nabf_nabf_sl.indx_g2l_c(ic);
+                if (jlo < 0) continue;
+                u_block(ilo, jlo) = U(ir, ic);
+            }
+        }
+        // Shape of u_block is N_small x N_large
+        ScalapackConnector::pgemm_f('N', 'N', all_mu_s, all_mu, all_mu_s, 1.0, Wc_block.ptr(), 1, 1,
+                                    desc_nabf_nabf_ss.desc, u_block.ptr(), 1, 1,
+                                    desc_nabf_nabf_sl.desc, 0.0, Wc_u.ptr(), 1, 1,
+                                    desc_nabf_nabf_sl.desc);
+        ScalapackConnector::pgemm_f('C', 'N', all_mu, all_mu, all_mu_s, 1.0, u_block.ptr(), 1, 1,
+                                    desc_nabf_nabf_sl.desc, Wc_u.ptr(), 1, 1,
+                                    desc_nabf_nabf_sl.desc, 0.0, Wcll_block.ptr(), 1, 1,
+                                    desc_nabf_nabf_ll.desc);
+
+        map<int, map<int, matrix_m<complex<double>>>> chi0s_MNmap;
+        map_block_to_IJ_storage_new(chi0s_MNmap, atomic_basis_abf_l, map_lor_v, map_loc_v,
+                                    Wcll_block, desc_nabf_nabf_ll, MAJOR::ROW);
+
+        std::map<int, std::map<std::pair<int, std::array<double, 3>>, RI::Tensor<complex<double>>>>
+            unfold_Wc_libri;
+        for (const auto &M_Nc : chi0s_MNmap)
+        {
+            const auto &M = M_Nc.first;
+            const auto n_mu = atom_mu_large[M];
+            for (const auto &N_c : M_Nc.second)
+            {
+                const auto &N = N_c.first;
+                const auto n_nu = atom_mu_large[N];
+                const auto &c = N_c.second;
+                unfold_Wc_libri[M][{N, qa}] = RI::Tensor<complex<double>>({n_mu, n_nu}, c.sptr());
+            }
+        }
+        const auto IJq_chi = RI::Communicate_Tensors_Map_Judge::comm_map2_first(
+            mpi_comm_global_h.comm, unfold_Wc_libri, Iset_Jset_c.first, Iset_Jset_c.second);
+        for (auto &IJqc : Wc)
+        {
+            auto I = IJqc.first;
+            for (auto &Jqc : IJqc.second)
+            {
+                auto J = Jqc.first;
+                for (auto &qc : Jqc.second)
+                {
+                    auto qq = qc.first;
+                    if (qq != q) continue;
+                    Matz matz_Wc(atom_mu_large[I], atom_mu_large[J]);
+                    for (int ir = 0; ir < atom_mu_large[I]; ir++)
+                    {
+                        for (int ic = 0; ic < atom_mu_large[J]; ic++)
+                        {
+                            matz_Wc(ir, ic) = IJq_chi.at(I).at({J, qa})(ir, ic);
+                        }
+                    }
+                    qc.second = matz_Wc;
+                }
+            }
+        }
+    }
+
+    LIBRPA::atomic_basis_abf.set(atom_mu_large);
+    atom_mu_part_range.resize(atom_mu_large.size());
+    atom_mu_part_range[0] = 0;
+    for (int I = 1; I != atom_mu_large.size(); I++)
+        atom_mu_part_range[I] = atom_mu_large.at(I - 1) + atom_mu_part_range[I - 1];
+    N_all_mu = atom_mu_part_range[natom - 1] + atom_mu_large[natom - 1];
+}
+
 template <typename Tdata>
 void G0W0::build_spacetime(
     const Cs_LRI &LRI_Cs,
     map<double,
         atom_mapping<std::map<Vector3_Order<double>, matrix_m<complex<double>>>>::pair_t_old>
         &Wc_freq_q,
-    const vector<Vector3_Order<int>> &Rlist)
+    const vector<Vector3_Order<int>> &Rlist, const vector<Vector3_Order<double>> &qlist,
+    std::map<Vector3_Order<double>, ComplexMatrix> &sinvS)
 {
     using LIBRPA::envs::mpi_comm_global_h;
 
@@ -88,18 +315,40 @@ void G0W0::build_spacetime(
     mpi_comm_global_h.barrier();
     throw std::logic_error("compilation");
 #else
+    map<double, atom_mapping<std::map<Vector3_Order<int>, matrix_m<complex<double>>>>::pair_t_old>
+        Wc_tau_R;
+    map<double,
+        atom_mapping<std::map<Vector3_Order<double>, matrix_m<complex<double>>>>::pair_t_old>
+        Wc_tau_q;
     // Transform
-    profiler.start("g0w0_build_spacetime_ct_ft_wc", "Tranform Wc (q,w) -> (R,t)");
-    auto Wc_tau_R = CT_FT_Wc_freq_q(Wc_freq_q, tfg, meanfield.get_n_kpoints(), Rlist);
-    // HACK: Free up Wc_freq_q to save memory, especially for large Coulomb matrix case and many
-    // minimax grids
-    Wc_freq_q.clear();
-    utils::release_free_mem();
-    profiler.stop("g0w0_build_spacetime_ct_ft_wc");
-    LIBRPA::utils::lib_printf_root(
-        "Time for Fourier transform of Wc in GW (seconds, Wall/CPU): %f %f\n",
-        profiler.get_wall_time_last("g0w0_build_spacetime_ct_ft_wc"),
-        profiler.get_cpu_time_last("g0w0_build_spacetime_ct_ft_wc"));
+    if (Params::use_shrink_abfs)
+    {
+        Profiler::start("g0w0_build_spacetime_wt_ft_wc", "Tranform Wc (q,w) -> (q,t)");
+        Wc_tau_q = CT_FT_Wc_freq2time_q(Wc_freq_q, tfg, meanfield.get_n_kpoints(), Rlist, qlist);
+        // HACK: Free up Wc_freq_q to save memory, especially for large Coulomb matrix case and many
+        // minimax grids
+        Wc_freq_q.clear();
+        utils::release_free_mem();
+        Profiler::stop("g0w0_build_spacetime_wt_ft_wc");
+        LIBRPA::utils::lib_printf_root(
+            "Time for Fourier transform of Wc in GW (seconds, Wall/CPU): %f %f\n",
+            Profiler::get_wall_time_last("g0w0_build_spacetime_ct_ft_wc"),
+            Profiler::get_cpu_time_last("g0w0_build_spacetime_ct_ft_wc"));
+    }
+    else
+    {
+        Profiler::start("g0w0_build_spacetime_ct_ft_wc", "Tranform Wc (q,w) -> (R,t)");
+        Wc_tau_R = CT_FT_Wc_freq_q(Wc_freq_q, tfg, meanfield.get_n_kpoints(), Rlist);
+        // HACK: Free up Wc_freq_q to save memory, especially for large Coulomb matrix case and many
+        // minimax grids
+        Wc_freq_q.clear();
+        utils::release_free_mem();
+        Profiler::stop("g0w0_build_spacetime_ct_ft_wc");
+        LIBRPA::utils::lib_printf_root(
+            "Time for Fourier transform of Wc in GW (seconds, Wall/CPU): %f %f\n",
+            Profiler::get_wall_time_last("g0w0_build_spacetime_ct_ft_wc"),
+            Profiler::get_cpu_time_last("g0w0_build_spacetime_ct_ft_wc"));
+    }
 
     RI::GW<int, int, 3, Tdata> gw_libri;
     map<int, std::array<double, 3>> atoms_pos;
@@ -145,9 +394,28 @@ void G0W0::build_spacetime(
 
     for (auto itau = 0; itau != tfg.get_n_grids(); itau++)
     {
-        profiler.start("g0w0_build_spacetime_3", "Prepare LibRI Wc object");
-        // LIBRPA::utils::lib_printf("task %d itau %d start\n", mpi_comm_global_h.myid, itau);
         const auto tau = tfg.get_time_nodes()[itau];
+        if (Params::use_shrink_abfs && Wc_tau_q.count(tau))
+        {
+            Profiler::start("unfold_Wc_abfs", "Do shrink transformation");
+            unfold_abfs_Wc(sinvS, Wc_tau_q[tau], qlist, atom_mu_l, atom_mu_s);
+            Profiler::stop("unfold_Wc_abfs");
+            Profiler::start("g0w0_build_spacetime_Rq_ft_wc", "Tranform Wc (q,t) -> (R,t)");
+            Wc_tau_R[tau] =
+                CT_FT_Wc_tau_R2q(Wc_tau_q[tau], tfg, meanfield.get_n_kpoints(), Rlist, itau);
+            Profiler::stop("g0w0_build_spacetime_Rq_ft_wc");
+            Wc_tau_q[tau].clear();
+            atom_mu = atom_mu_l;
+            LIBRPA::atomic_basis_abf.set(atom_mu);
+            atom_mu_part_range.resize(atom_mu.size());
+            atom_mu_part_range[0] = 0;
+            for (int I = 1; I != atom_mu.size(); I++)
+                atom_mu_part_range[I] = atom_mu.at(I - 1) + atom_mu_part_range[I - 1];
+
+            N_all_mu = atom_mu_part_range[natom - 1] + atom_mu[natom - 1];
+        }
+        Profiler::start("g0w0_build_spacetime_3", "Prepare LibRI Wc object");
+        // LIBRPA::utils::lib_printf("task %d itau %d start\n", mpi_comm_global_h.myid, itau);
         // build the Wc LibRI object. Note <JI> has to be converted from <IJ>
         // by W_IJ(R) = W^*_JI(-R)
         std::map<int, std::map<std::pair<int, std::array<int, 3>>, RI::Tensor<Tdata>>> Wc_libri;
@@ -536,6 +804,10 @@ void G0W0::build_spacetime(
         }
     }
     is_rspace_built_ = true;
+    if (Params::use_shrink_abfs)
+    {
+        sinvS.clear();
+    }
 #endif
 
     // Export real-space imaginary-frequency NAO sigma_c matrices
@@ -945,10 +1217,13 @@ template void G0W0::build_spacetime<double>(
     const Cs_LRI &,
     map<double,
         atom_mapping<std::map<Vector3_Order<double>, matrix_m<complex<double>>>>::pair_t_old> &,
-    const vector<Vector3_Order<int>> &);
+    const vector<Vector3_Order<int>> &, const vector<Vector3_Order<double>> &,
+    std::map<Vector3_Order<double>, ComplexMatrix> &);
 template void G0W0::build_spacetime<std::complex<double>>(
     const Cs_LRI &,
     map<double,
         atom_mapping<std::map<Vector3_Order<double>, matrix_m<complex<double>>>>::pair_t_old> &,
-    const vector<Vector3_Order<int>> &);
+    const vector<Vector3_Order<int>> &, const vector<Vector3_Order<double>> &,
+    std::map<Vector3_Order<double>, ComplexMatrix> &);
+
 }  // namespace LIBRPA

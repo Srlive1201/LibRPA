@@ -2652,4 +2652,200 @@ std::map<double, std::map<Vector3_Order<int>, Matz>> CT_FT_Wc_freq_q(
 // #endif
 // }
 
+map<double, atom_mapping<std::map<Vector3_Order<double>, matrix_m<complex<double>>>>::pair_t_old>
+CT_FT_Wc_freq2time_q(
+    const map<double,
+              atom_mapping<std::map<Vector3_Order<double>, matrix_m<complex<double>>>>::pair_t_old>
+        &Wc_freq_q,
+    const TFGrids &tfg, const int &n_k_points, const vector<Vector3_Order<int>> &Rlist,
+    const vector<Vector3_Order<double>> &qlist)
+{
+    // major of Wc_freq_q input and Wc_tau_R output
+    const MAJOR major_Wc = MAJOR::ROW;
+
+    map<double,
+        atom_mapping<std::map<Vector3_Order<double>, matrix_m<complex<double>>>>::pair_t_old>
+        Wc_tau_q;
+    if (!tfg.has_time_grids()) throw logic_error("TFGrids object does not have time grids");
+    const int ngrids = tfg.get_n_grids();
+
+    LIBRPA::utils::lib_printf_root("Converting Wc(q,w) -> W(q,t)\n");
+    mpi_comm_global_h.barrier();
+
+    set<pair<atom_t, atom_t>> atpairs_unique;
+    for (const auto &freq_MuNuqWc : Wc_freq_q)
+    {
+        for (const auto &Mu_NuqWc : freq_MuNuqWc.second)
+        {
+            const auto Mu = Mu_NuqWc.first;
+            for (const auto &Nu_qWc : Mu_NuqWc.second)
+            {
+                const auto Nu = Nu_qWc.first;
+                atpairs_unique.insert({Mu, Nu});
+                for (const auto &q_Wc : Nu_qWc.second)
+                {
+                    assert(q_Wc.second.major() == major_Wc);
+                }
+            }
+        }
+    }
+    vector<pair<int, pair<atom_t, atom_t>>> itau_atpair_all;
+    // allocate space before hand
+
+    for (int itau = 0; itau != ngrids; itau++)
+    {
+        auto tau = tfg.get_time_nodes()[itau];
+        for (auto atpair_unique : atpairs_unique)
+        {
+            const auto Mu = atpair_unique.first;
+            const int n_mu = atom_mu_s[Mu];
+            const auto Nu = atpair_unique.second;
+            const int n_nu = atom_mu_s[Nu];
+            for (auto q : qlist)
+                Wc_tau_q[tau][Mu][Nu][q] = matrix_m<complex<double>>(n_mu, n_nu, major_Wc);
+            itau_atpair_all.push_back({itau, atpair_unique});
+        }
+    }
+
+    LIBRPA::utils::lib_printf_coll("Task %4d: distributing %d {I, J, R, tau} on %d threads\n",
+                                   LIBRPA::envs::myid_global, itau_atpair_all.size(),
+                                   omp_get_max_threads());
+
+#pragma omp parallel for schedule(dynamic)
+    for (auto itau_atpair : itau_atpair_all)
+    {
+        const auto itau = itau_atpair.first;
+        const auto tau = tfg.get_time_nodes()[itau];
+        const auto Mu = itau_atpair.second.first;
+        const auto Nu = itau_atpair.second.second;
+        const int n_mu = atom_mu_s[Mu];
+        const int n_nu = atom_mu_s[Nu];
+
+        // thread local temporary matrix
+        matrix_m<complex<double>> Wtq_temp(n_mu, n_nu, major_Wc);
+
+        for (int ifreq = 0; ifreq < ngrids; ifreq++)
+        {
+            const auto freq = tfg.get_freq_nodes()[ifreq];
+            const auto f2t = tfg.get_costrans_f2t()(itau, ifreq);
+            // ofs_myid << "f2t cos eff for freq " << freq << " -> tau " << tau  << ": " << f2t <<
+            // "\n";
+            if (Wc_freq_q.count(freq) == 0) continue;
+            if (Wc_freq_q.at(freq).count(Mu) == 0) continue;
+            if (Wc_freq_q.at(freq).at(Mu).count(Nu) == 0) continue;
+            // cout << "freq: " << freq << "\n";
+
+            const auto &Wc_q_all = Wc_freq_q.at(freq).at(Mu).at(Nu);
+            for (auto &Wc_q : Wc_q_all)
+            {
+                const auto q = Wc_q.first;
+                const auto &Wc = Wc_q.second;
+                const double weight = f2t;
+                Wtq_temp = Wc * weight;
+                // omp_set_lock(&lock_Wc);
+                Wc_tau_q[tau][Mu][Nu][q] += Wtq_temp;
+                // omp_unset_lock(&lock_Wc);
+            }
+        }
+    }
+
+    LIBRPA::utils::lib_printf_root("Done converting Wc q,w -> q,t\n");
+    mpi_comm_global_h.barrier();
+
+    return Wc_tau_q;
+}
+
+atom_mapping<std::map<Vector3_Order<int>, matrix_m<complex<double>>>>::pair_t_old CT_FT_Wc_tau_R2q(
+    const atom_mapping<std::map<Vector3_Order<double>, matrix_m<complex<double>>>>::pair_t_old
+        &Wc_tau_q,
+    const TFGrids &tfg, const int &n_kpoints, const vector<Vector3_Order<int>> &Rlist,
+    const int &itau)
+{
+    const int tau = tfg.get_time_nodes()[itau];
+    // major of Wc_freq_q input and Wc_tau_R output
+    const MAJOR major_Wc = MAJOR::ROW;
+
+    atom_mapping<std::map<Vector3_Order<int>, matrix_m<complex<double>>>>::pair_t_old Wc_tau_R;
+    if (!tfg.has_time_grids()) throw logic_error("TFGrids object does not have time grids");
+    const int ngrids = tfg.get_n_grids();
+
+    LIBRPA::utils::lib_printf_root("Converting Wc(q,t) -> W(R,t)\n");
+    mpi_comm_global_h.barrier();
+
+    set<pair<atom_t, atom_t>> atpairs_unique;
+    for (const auto &MuNuqWc : Wc_tau_q)
+    {
+        const auto Mu = MuNuqWc.first;
+        for (const auto &Nu_qWc : MuNuqWc.second)
+        {
+            const auto Nu = Nu_qWc.first;
+            atpairs_unique.insert({Mu, Nu});
+            for (const auto &q_Wc : Nu_qWc.second)
+            {
+                assert(q_Wc.second.major() == major_Wc);
+            }
+        }
+    }
+
+    vector<pair<Vector3_Order<int>, pair<atom_t, atom_t>>> iR_atpair_all;
+    // allocate space before hand
+    for (auto R : Rlist)
+    {
+        for (auto atpair_unique : atpairs_unique)
+        {
+            const auto Mu = atpair_unique.first;
+            const int n_mu = atom_mu_l[Mu];
+            const auto Nu = atpair_unique.second;
+            const int n_nu = atom_mu_l[Nu];
+            Wc_tau_R[Mu][Nu][R] = matrix_m<complex<double>>(n_mu, n_nu, major_Wc);
+            iR_atpair_all.push_back({R, atpair_unique});
+        }
+    }
+
+    LIBRPA::utils::lib_printf_coll("Task %4d: distributing %d {I, J, R, tau} on %d threads\n",
+                                   LIBRPA::envs::myid_global, iR_atpair_all.size(),
+                                   omp_get_max_threads());
+
+#pragma omp parallel for schedule(dynamic)
+    for (auto iR_atpair : iR_atpair_all)
+    {
+        const auto R = iR_atpair.first;
+        const auto Mu = iR_atpair.second.first;
+        const auto Nu = iR_atpair.second.second;
+        const int n_mu = atom_mu_l[Mu];
+        const int n_nu = atom_mu_l[Nu];
+
+        // thread local temporary matrix
+        matrix_m<complex<double>> WtR_temp(n_mu, n_nu, major_Wc);
+
+        if (Wc_tau_q.count(Mu) == 0) continue;
+        if (Wc_tau_q.at(Mu).count(Nu) == 0) continue;
+        // cout << "freq: " << freq << "\n";
+
+        const auto &Wc_q_all = Wc_tau_q.at(Mu).at(Nu);
+        for (auto &Wc_q : Wc_q_all)
+        {
+            const auto q = Wc_q.first;
+            const auto &Wc = Wc_q.second;
+            for (auto q_bz : map_irk_ks[q])
+            {
+                const double ang = -q_bz * (R * latvec) * TWO_PI;
+                const complex<double> weight =
+                    complex<double>(cos(ang), sin(ang)) / double(n_kpoints);
+                if (q == q_bz)
+                    WtR_temp += Wc * weight;
+                else
+                    WtR_temp += conj(Wc) * weight;
+            }
+        }
+        // omp_set_lock(&lock_Wc);
+        Wc_tau_R[Mu][Nu][R] += WtR_temp;
+        // omp_unset_lock(&lock_Wc);
+    }
+
+    LIBRPA::utils::lib_printf_root("Done converting Wc q,t -> R,t\n");
+    mpi_comm_global_h.barrier();
+    return Wc_tau_R;
+}
+
 }

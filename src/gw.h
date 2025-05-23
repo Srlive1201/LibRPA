@@ -71,7 +71,8 @@ class G0W0
         map<double,
             atom_mapping<std::map<Vector3_Order<double>, matrix_m<complex<double>>>>::pair_t_old>
             &Wc_freq_q,
-        const vector<Vector3_Order<int>> &Rlist);
+        const vector<Vector3_Order<int>> &Rlist, const vector<Vector3_Order<double>> &qlist,
+        std::map<Vector3_Order<double>, ComplexMatrix> &sinvS);
 
     //! build the correlation self-energy matrix in Kohn-Sham basis at the SCF k-points
     void build_sigc_matrix_KS_kgrid();

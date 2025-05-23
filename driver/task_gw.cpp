@@ -222,32 +222,18 @@ void task_g0w0(std::map<Vector3_Order<double>, ComplexMatrix> &sinvS)
 
     if (Params::use_shrink_abfs)
     {
-        std::map<Vector3_Order<double>, ComplexMatrix> sinvS;
         Profiler::start("read_shrink_sinvS_fold", "Load shrink transformation");
         // change atom_mu: number of {Mu,mu} in the later calculations
         read_shrink_sinvS(driver_params.input_dir, "shrink_sinvS_", sinvS);
         Profiler::stop("read_shrink_sinvS_fold");
-        auto atom_mu_s = atom_mu;
-        atom_mu = atom_mu_l;
-        LIBRPA::atomic_basis_abf.set(atom_mu);
-        atom_mu_part_range.resize(atom_mu.size());
-        atom_mu_part_range[0] = 0;
-        for (int I = 1; I != atom_mu.size(); I++)
-            atom_mu_part_range[I] = atom_mu.at(I - 1) + atom_mu_part_range[I - 1];
-
-        N_all_mu = atom_mu_part_range[natom - 1] + atom_mu[natom - 1];
-        Profiler::start("unfold_Wc_abfs", "Do shrink transformation");
-        chi0.unfold_abfs_Wc(sinvS, Wc_freq_q, qlist, atom_mu, atom_mu_s);
-        Profiler::stop("unfold_Wc_abfs");
-        sinvS.clear();
     }
 
     LIBRPA::G0W0 s_g0w0(meanfield, kfrac_list, chi0.tfg, period);
     Profiler::start("g0w0_sigc_IJ", "Build real-space correlation self-energy");
     if (Params::use_soc)
-        s_g0w0.build_spacetime<std::complex<double>>(Cs_data, Wc_freq_q, Rlist);
+        s_g0w0.build_spacetime<std::complex<double>>(Cs_data, Wc_freq_q, Rlist, qlist, sinvS);
     else
-        s_g0w0.build_spacetime<double>(Cs_data, Wc_freq_q, Rlist);
+        s_g0w0.build_spacetime<double>(Cs_data, Wc_freq_q, Rlist, qlist, sinvS);
     Profiler::stop("g0w0_sigc_IJ");
 
     // if (Params::debug)
