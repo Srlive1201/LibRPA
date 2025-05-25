@@ -29,6 +29,7 @@ target_include_directories(rpa_lib
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../thirdparty/lebedev-quadrature>
   )
 configure_file(utils/envs_cmake.cpp.in ${CMAKE_CURRENT_BINARY_DIR}/envs_cmake.cpp)
 configure_file(utils/envs_cmake.h ${CMAKE_CURRENT_BINARY_DIR}/envs_cmake.h)  # only to make the configured envs_cmake.cpp compile
