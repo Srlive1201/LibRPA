@@ -489,6 +489,7 @@ void G0W0::build_spacetime(
                         sigc_nega_tau;
 
                     Profiler::start("g0w0_build_spacetime_4", "Compute G(R,t) and G(R,-t)");
+                    // NOTE: ``if constexpr`` needs C++-17
                     if constexpr (std::is_same<Tdata, std::complex<double>>::value)
                     {
                         auto gf = mf.get_gf_cplx_imagtimes_Rs(ispin, isoc1, isoc2, kfrac_list,
@@ -570,7 +571,7 @@ void G0W0::build_spacetime(
                                 wtime_g0w0_cal_sigc);
                         }
                     }
-                    else
+                    else // Non-SOC
                     {
                         auto gf = mf.get_gf_real_imagtimes_Rs(ispin, isoc1, isoc2, kfrac_list,
                                                               {tau, -tau},
@@ -578,6 +579,10 @@ void G0W0::build_spacetime(
                         std::map<double, std::map<int, std::map<std::pair<int, std::array<int, 3>>,
                                                                 RI::Tensor<Tdata>>>>
                             tau_gf_libri;
+                        for (auto t: {tau, -tau})
+                        {
+                            tau_gf_libri[t] = {};
+                        }
                         for (const auto &IJR : IJR_local_gf)
                         {
                             const auto &I = IJR.first.first;
@@ -587,22 +592,25 @@ void G0W0::build_spacetime(
                             const auto &R = IJR.second;
                             for (auto t : {tau, -tau})
                             {
-                                const auto &gf_global = gf.at(t).at(R);
-                                matrix gf_IJ_block(n_I, n_J);
+                                if (gf.count(t) && gf.at(t).count(R))
                                 {
-                                    for (int i = 0; i != n_I; i++)
-                                        for (int j = 0; j != n_J; j++)
-                                        {
-                                            gf_IJ_block(i, j) =
-                                                gf_global(atomic_basis_wfc.get_global_index(I, i),
-                                                          atomic_basis_wfc.get_global_index(J, j));
-                                        }
-                                    std::shared_ptr<std::valarray<Tdata>> mat_ptr =
-                                        std::make_shared<std::valarray<Tdata>>(gf_IJ_block.c,
-                                                                               gf_IJ_block.size);
-                                    tau_gf_libri[t][static_cast<int>(I)]
-                                                [{static_cast<int>(J), {R.x, R.y, R.z}}] =
-                                                    RI::Tensor<Tdata>({n_I, n_J}, mat_ptr);
+                                    const auto &gf_global = gf.at(t).at(R);
+                                    matrix gf_IJ_block(n_I, n_J);
+                                    {
+                                        for (int i = 0; i != n_I; i++)
+                                            for (int j = 0; j != n_J; j++)
+                                            {
+                                                gf_IJ_block(i, j) =
+                                                    gf_global(atomic_basis_wfc.get_global_index(I, i),
+                                                              atomic_basis_wfc.get_global_index(J, j));
+                                            }
+                                        std::shared_ptr<std::valarray<Tdata>> mat_ptr =
+                                            std::make_shared<std::valarray<Tdata>>(gf_IJ_block.c,
+                                                                                   gf_IJ_block.size);
+                                        tau_gf_libri[t][static_cast<int>(I)]
+                                                    [{static_cast<int>(J), {R.x, R.y, R.z}}] =
+                                                        RI::Tensor<Tdata>({n_I, n_J}, mat_ptr);
+                                    }
                                 }
                             }
                         }

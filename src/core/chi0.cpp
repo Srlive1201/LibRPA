@@ -656,6 +656,7 @@ static void chi_libri_ft_ct(
             const auto &chi_tensor = chi0s_IJR.at(Mu).at({Nu, R});
             Vector3_Order<int> Rint(R[0], R[1], R[2]);
             // profiler.start("chi0_libri_routing_ft_ct_1");
+            // NOTE: ``if constexpr`` needs C++-17
             if constexpr (std::is_same<Tdata, std::complex<double>>::value)
             {
                 LapackConnector::copy(cm_chi0.size, chi_tensor.ptr(), 1,
