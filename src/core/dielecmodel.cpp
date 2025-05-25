@@ -11,12 +11,12 @@
 #include "../mpi/base_blacs.h"
 #include "../utils/error.h"
 #include "../utils/constants.h"
+#include "../utils/profiler.h"
 #include "atomic_basis.h"
 #include "pbc.h"
 #include "ri.h"
 // #include "utils_atomic_basis_blacs.h"
 #include "../lebedev-quadrature/lebedev_quadrature.hpp"
-
 #ifdef LIBRPA_USE_LIBRI
 #include <RI/comm/mix/Communicate_Tensors_Map_Judge.h>
 #include <RI/global/Tensor.h>
@@ -116,8 +116,20 @@ void diele_func::init(double vq_threshold, const librpa_int::atpair_k_cplx_mat_t
     this->nk = this->kfrac_band.size();
     int n_omega = this->omega.size();
     get_Xv_cpl(vq_threshold, Vq);
+
     this->head.clear();
     this->head.resize(n_omega);
+    for (int iomega = 0; iomega != n_omega; iomega++)
+    {
+        head[iomega].resize(3, 3, MAJOR::COL);
+    }
+};
+
+void diele_func::init_wing()
+{
+    int n_omega = this->omega.size();
+    this->n_abf = atomic_basis_abf_.nb_total;
+    get_Xv_cpl();
     this->wing_mu.clear();
     this->wing_mu.resize(n_omega);
     this->wing.clear();
@@ -125,7 +137,6 @@ void diele_func::init(double vq_threshold, const librpa_int::atpair_k_cplx_mat_t
     this->Lind.resize(3, 3, MAJOR::COL);
     for (int iomega = 0; iomega != n_omega; iomega++)
     {
-        head[iomega].resize(3, 3, MAJOR::COL);
         wing_mu[iomega].resize(n_abf, 3, MAJOR::COL);
         wing[iomega].resize(n_nonsingular - 1, 3, MAJOR::COL);
     }
@@ -133,10 +144,13 @@ void diele_func::init(double vq_threshold, const librpa_int::atpair_k_cplx_mat_t
     get_g_enclosing_gamma();
     calculate_q_gamma();
     std::cout << "* Success: initalize and calculate lebdev points and q_gamma." << std::endl;
-};
+}
 
 void diele_func::cal_head()
 {
+    using global::profiler;
+
+    profiler.start("cal_head");
     //! spin = 1 only
     auto &wg = this->meanfield_df.get_weight()[n_spin - 1];
     auto &eigenvalues = this->meanfield_df.get_eigenvals()[n_spin - 1];
@@ -200,6 +214,7 @@ void diele_func::cal_head()
         }
     }
     std::cout << "* Success: calculate head term." << std::endl;
+    profiler.start("cal_head");
 };
 
 double diele_func::cal_factor(std::string name)
@@ -250,6 +265,8 @@ void diele_func::set_0_wing()
 
 void diele_func::cal_wing(const librpa_int::Cs_LRI &Cs_data)
 {
+    profiler.start("cal_wing_mu");
+    init_wing();
     int n_lambda = this->n_nonsingular - 1;
     init_Cs(Cs_data);
     FT_R2k(Cs_data);
@@ -299,6 +316,7 @@ void diele_func::cal_wing(const librpa_int::Cs_LRI &Cs_data)
     this->Coul_value.clear();
     this->Ctri_mn.clear();
     this->Ctri_ij.clear();
+    profiler.stop("cal_wing_mu");
 };
 
 void diele_func::wing_mu_to_lambda(matrix_m<std::complex<double>> &sqrtveig_blacs)
@@ -429,8 +447,9 @@ std::complex<double> diele_func::compute_wing(int alpha, int iomega, int mu)
 
 void diele_func::init_Cs(const librpa_int::Cs_LRI &Cs_data)
 {
-    using librpa_int::matrix_m;
-    using librpa_int::MAJOR;
+    using global::profiler;
+
+    profiler.start("init_Cs");
     using RI::Tensor;
     const int n_atom = Cs_data.data_libri.size();
 
@@ -477,10 +496,14 @@ void diele_func::init_Cs(const librpa_int::Cs_LRI &Cs_data)
         }
     }
     // std::cout << "* Success: Initialize Ctri_ij and Ctri_mn.\n";
+    profiler.stop("init_Cs");
 };
 
 void diele_func::FT_R2k(const librpa_int::Cs_LRI &Cs_data)
 {
+    using global::profiler;
+
+    profiler.start("fourier_r2k");
     const int n_atom = Cs_data.data_libri.size();
     const bool use_shrink_abfs = false;  // TODO: replace with the actual shrink tag
     // std::cout << "Number of atom: " << n_atom << std::endl;
@@ -530,6 +553,7 @@ void diele_func::FT_R2k(const librpa_int::Cs_LRI &Cs_data)
     auto Rlist = construct_R_grid(period);
     std::cout << "Number of Bvk cell: " << Rlist.size() << std::endl; */
     std::cout << "* Success: Fourier transform from Cs(R) to Cs(k)." << std::endl;
+    profiler.stop("fourier_r2k");
 };
 
 std::complex<double> diele_func::compute_Cijk(const librpa_int::Cs_LRI &Cs_data, int mu, int I, int i, int J, int j, int ik)
@@ -559,6 +583,7 @@ std::complex<double> diele_func::compute_Cijk(const librpa_int::Cs_LRI &Cs_data,
 
 void diele_func::Cs_ij2mn()
 {
+    profiler.start("transform_Cs_NAO_to_KS");
 #pragma omp parallel for schedule(dynamic) collapse(4)
     for (int ik = 0; ik != nk; ik++)
     {
@@ -581,7 +606,8 @@ void diele_func::Cs_ij2mn()
         }
     }
 
-    std::cout << "* Success: transform of Cs^mu_ij(k) to Cs^mu_mn(k)." << std::endl;
+    std::cout << "* Success: transform of Cs from NAO to KS." << std::endl;
+    profiler.stop("transform_Cs_NAO_to_KS");
 };
 
 std::complex<double> diele_func::compute_Cs_ij2mn(int mu, int m, int n, int ik)
@@ -737,6 +763,7 @@ void diele_func::get_Xv_real(double vq_threshold, const librpa_int::atpair_k_cpl
 // complex diagonalization
 void diele_func::get_Xv_cpl(double vq_threshold, const librpa_int::atpair_k_cplx_mat_t &Vq)
 {
+    profiler.start("get_eigenvector_of_Coulomb_matrix");
     this->Coul_vector.clear();
     this->Coul_value.clear();
     const complex<double> CONE{1.0, 0.0};
@@ -829,6 +856,7 @@ void diele_func::get_Xv_cpl(double vq_threshold, const librpa_int::atpair_k_cplx
     }
 
     std::cout << "* Success: diagonalize Coulomb matrix in the ABFs repre.\n";
+    profiler.stop("get_eigenvector_of_Coulomb_matrix");
 };
 
 std::vector<double> diele_func::get_head_vec()
@@ -950,9 +978,11 @@ void diele_func::get_body_inv(matrix_m<std::complex<double>> &chi0_block)
 
 void diele_func::construct_L(const int ifreq)
 {
+    profiler.start("cal_L");
     matrix_m<std::complex<double>> tmp(3, 3, MAJOR::COL);
     tmp = head.at(ifreq) - transpose(wing.at(ifreq), true) * body_inv * wing.at(ifreq);
     this->Lind = tmp;
+    profiler.stop("cal_L");
 };
 
 void diele_func::get_Leb_points()
@@ -1019,9 +1049,10 @@ void diele_func::calculate_q_gamma()
 
 void diele_func::cal_eps(const int ifreq)
 {
-    using librpa_int::ArrayDesc;
-    using librpa_int::global::mpi_comm_global_h;
+    using global::mpi_comm_global_h;
+    using global::profiler;
 
+    profiler.start("cal_inverse_dielectric_matrix");
     const auto &comm_h = mpi_comm_global_h;
     comm_h.barrier();
 
@@ -1051,7 +1082,7 @@ void diele_func::cal_eps(const int ifreq)
               << "," << transpose(wing.at(0), true).is_row_major() << "," << Lind.is_row_major()
               << std::endl;*/
     construct_L(ifreq);
-
+    profiler.start("cal_inverse_dielectric_matrix_ij");
 #pragma omp parallel for schedule(dynamic) collapse(2)
     for (int i = 0; i != n_nonsingular; i++)
     {
@@ -1074,8 +1105,10 @@ void diele_func::cal_eps(const int ifreq)
             }*/
         }
     }
+    profiler.stop("cal_inverse_dielectric_matrix_ij");
     std::cout << "* Success: calculate average inverse dielectric matrix no." << ifreq + 1 << "."
               << std::endl;
+    profiler.stop("cal_inverse_dielectric_matrix");
 };
 
 std::complex<double> diele_func::compute_chi0_inv_00(const int ifreq)
@@ -1116,17 +1149,8 @@ std::complex<double> diele_func::compute_chi0_inv_ij(const int ifreq, int i, int
         q_unit(1, 0) = qy_leb[ileb];
         q_unit(2, 0) = qz_leb[ileb];
         auto den = transpose(q_unit, false) * Lind * q_unit;
-        /*std::complex<double> den = 0.0;
-        for (int ii = 0; ii != 3; ii++)
-        {
-            for (int jj = 0; jj != 3; jj++)
-            {
-                den += q_unit(ii, 0) * Lind(ii, jj) * q_unit(jj, 0);
-            }
-        }*/
         auto bwq_i = body_inv_i * wing.at(ifreq) * q_unit;
         auto qwb_j = transpose(q_unit, false) * transpose(wing.at(ifreq), true) * body_inv_j;
-
         partial_sum[ileb] =
             qw_leb[ileb] * std::pow(q_gamma[ileb], 3) * bwq_i(0, 0) * qwb_j(0, 0) / den(0, 0);
     }

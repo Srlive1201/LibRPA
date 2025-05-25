@@ -87,9 +87,11 @@ class diele_func
     ~diele_func() {};
     void init(double vq_threshold, const librpa_int::atpair_k_cplx_mat_t &Vq);
     void init_Cs(const librpa_int::Cs_LRI &Cs_data);
+    void init_wing();
     // All calculation in unit: Ang and eV.
     // void set(MeanField &mf, std::vector<Vector3_Order<double>> &kfrac,
     //          std::vector<double> frequencies_target, int nbasis, int nstates, int nspin);
+
     void cal_head();
     double cal_factor(std::string name);
     void test_head();
