@@ -666,9 +666,10 @@ void G0W0::build_spacetime(
                     {
                         std::stringstream ss;
                         ss << Params::output_dir << "SigcRT"
-                           << "_ispin_" << std::setfill('0') << std::setw(5) << ispin << "_itau_"
-                           << std::setfill('0') << std::setw(5) << itau << "_myid_"
-                           << std::setfill('0') << std::setw(5) << envs::myid_global << ".dat";
+                           << "_ispin_" << std::setfill('0') << std::setw(2) << ispin
+                           << "_s_" << std::setw(1) << isoc1 << std::setw(1) << isoc2
+                           << "_itau_" << std::setfill('0') << std::setw(3) << itau
+                           << "_myid_" << std::setfill('0') << std::setw(5) << envs::myid_global << ".dat";
                         ofs_sigmac_r.open(ss.str(), std::ios::out | std::ios::binary);
                         ofs_sigmac_r.write((char *)&n_IJR_myid, sizeof(size_t));  // placeholder
                     }
@@ -832,9 +833,10 @@ void G0W0::build_spacetime(
                         size_t n_IJR_myid = 0;
                         std::stringstream ss;
                         ss << Params::output_dir << "SigcRF"
-                           << "_ispin_" << std::setfill('0') << std::setw(5) << ispin << "_iomega_"
-                           << std::setfill('0') << std::setw(5) << iomega << "_myid_"
-                           << std::setfill('0') << std::setw(5) << envs::myid_global << ".dat";
+                           << "_ispin_" << std::setfill('0') << std::setw(2) << ispin
+                           << "_s_" << std::setw(1) << isoc1 << std::setw(1) << isoc2
+                           << "_iomega_" << std::setfill('0') << std::setw(3) << iomega
+                           << "_myid_" << std::setfill('0') << std::setw(5) << envs::myid_global << ".dat";
                         ofs_sigmac_r.open(ss.str(), std::ios::out | std::ios::binary);
                         ofs_sigmac_r.write((char *)&n_IJR_myid, sizeof(size_t));  // placeholder
 
