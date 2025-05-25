@@ -17,6 +17,9 @@
 #else
 #include "libri_stub.h"
 #endif
+#ifdef LIBRPA_DEBUG
+#include "stl_io_helper.h"
+#endif
 
 template <typename T>
 matrix_m<T> init_local_mat(const LIBRPA::Array_Desc &ad, MAJOR major)
