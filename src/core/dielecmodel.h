@@ -4,6 +4,7 @@
 #include "atomic_basis.h"
 #include "../math/matrix3.h"
 #include "../math/matrix_m.h"
+#include "../mpi/base_blacs.h"
 #include "../meanfield.h"
 #include "pbc.h"
 #include "ri.h"
@@ -109,7 +110,8 @@ class diele_func
     std::complex<double> compute_Cijk(const librpa_int::Cs_LRI &Cs_data, int mu, int I, int i, int J, int j, int ik);
     // compute wing in ABF representation
     // transform wing from ABF to Coulomb representation
-    void wing_mu_to_lambda(matrix_m<std::complex<double>> &sqrtveig_blacs);
+    void wing_mu_to_lambda(matrix_m<std::complex<double>> &sqrtveig_blacs,
+                           ArrayDesc &desc_nabf_nabf_opt);
     // tranform Cs_ij(R) to Cs_ij(k)
     // diagonalize real Vq_cut(q=0)
     void get_Xv_real(double vq_threshold, const librpa_int::atpair_k_cplx_mat_t &Vq);
@@ -119,16 +121,20 @@ class diele_func
     // set wing=0 for debug
     void set_0_wing();
 
-    void get_body_inv(matrix_m<std::complex<double>> &chi0_block);
-    void construct_L(const int ifreq);
+    ArrayDesc get_body_inv(matrix_m<std::complex<double>> &chi0_block,
+                            ArrayDesc &desc_nabf_nabf_opt);
+    ArrayDesc construct_L(const int ifreq, ArrayDesc &desc_body);
     // Lebedev-Laikov quadrature
     void get_Leb_points();
     void get_g_enclosing_gamma();
     void calculate_q_gamma();
-    void cal_eps(const int ifreq);
-    std::complex<double> compute_chi0_inv_00(const int ifreq);
-    std::complex<double> compute_chi0_inv_ij(const int ifreq, int i, int j);
-    void rewrite_eps(matrix_m<std::complex<double>> &chi0_block, const int ifreq);
+    void cal_eps(const int ifreq, ArrayDesc &desc_nabf_nabf_opt, ArrayDesc &desc_body);
+    std::complex<double> compute_chi0_inv_00(const int ifreq, ArrayDesc &desc_L);
+    std::complex<double> compute_chi0_inv_ij(const int ifreq, int i, int j, ArrayDesc &desc_body,
+                                             ArrayDesc &desc_L);
+    void rewrite_eps(matrix_m<std::complex<double>> &chi0_block, const int ifreq,
+                     ArrayDesc &desc_nabf_nabf_opt);
+    void assign_chi0(matrix_m<std::complex<double>> &chi0_block, ArrayDesc &desc_nabf_nabf_opt);
 };
 
 }

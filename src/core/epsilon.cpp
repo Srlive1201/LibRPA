@@ -1952,7 +1952,7 @@ std::map<double, std::map<Vector3_Order<double>, Matz>> compute_Wc_freq_q_blacs(
                 eigenvalues.c, 0.5, sqrt_coulomb_threshold);
             if (option_dielect_func == 3)
             {
-                df_headwing.wing_mu_to_lambda(sqrtveig_blacs);
+                df_headwing.wing_mu_to_lambda(sqrtveig_blacs, desc_nabf_nabf_opt);
             }
         }
         else
@@ -2061,7 +2061,7 @@ std::map<double, std::map<Vector3_Order<double>, Matz>> compute_Wc_freq_q_blacs(
                     }
                     ofs_myid << get_timestamp() << "Perform the head & wing element overwrite"
                              << endl;
-                    df_headwing.rewrite_eps(chi0_block, ifreq);
+                    df_headwing.rewrite_eps(chi0_block, ifreq, desc_nabf_nabf_opt);
                 }
                 else
                 {

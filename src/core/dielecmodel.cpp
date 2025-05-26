@@ -143,12 +143,15 @@ void diele_func::init_wing()
     get_Leb_points();
     get_g_enclosing_gamma();
     calculate_q_gamma();
-    std::cout << "* Success: initalize and calculate lebdev points and q_gamma." << std::endl;
+    if (mpi_comm_global_h.is_root())
+        std::cout << "* Success: initalize and calculate lebdev points and q_gamma." << std::endl;
 }
 
 void diele_func::cal_head()
 {
     using global::profiler;
+
+    const bool use_soc = false;
 
     profiler.start("cal_head");
     //! spin = 1 only
@@ -199,7 +202,7 @@ void diele_func::cal_head()
             {
                 if (n_spin == 1)
                 {
-                    if (Params::use_soc)
+                    if (use_soc)
                         this->head.at(iomega)(alpha, beta) *= dielectric_unit;
                     else
                         this->head.at(iomega)(alpha, beta) *= dielectric_unit * 2;
@@ -213,7 +216,7 @@ void diele_func::cal_head()
             }
         }
     }
-    std::cout << "* Success: calculate head term." << std::endl;
+    global::ofs_myid << "* Success: calculate head term." << std::endl;
     profiler.start("cal_head");
 };
 
@@ -304,7 +307,7 @@ void diele_func::cal_wing(const librpa_int::Cs_LRI &Cs_data)
         }
     }
     // transform_mu_to_lambda();
-    std::cout << "* Success: calculate wing term." << std::endl;
+    if (mpi_comm_global_h.is_root()) std::cout << "* Success: calculate wing term." << std::endl;
 
     // if (Params::debug)
     // {
@@ -319,24 +322,42 @@ void diele_func::cal_wing(const librpa_int::Cs_LRI &Cs_data)
     profiler.stop("cal_wing_mu");
 };
 
-void diele_func::wing_mu_to_lambda(matrix_m<std::complex<double>> &sqrtveig_blacs)
+void diele_func::wing_mu_to_lambda(matrix_m<std::complex<double>> &sqrtveig_blacs,
+                                   ArrayDesc &desc_nabf_nabf_opt)
 {
+    Profiler::start("cal_wing");
     int n_lambda = this->n_nonsingular - 1;
-    for (int alpha = 0; alpha != 3; alpha++)
+    ArrayDesc desc_wing_mu(blacs_ctxt_global_h);
+    desc_wing_mu.init_square_blk(n_abf, 3, 0, 0);
+    ArrayDesc desc_wing(blacs_ctxt_global_h);
+    desc_wing.init_square_blk(n_nonsingular - 1, 3, 0, 0);
+    for (int iomega = 0; iomega != this->omega.size(); iomega++)
     {
-        for (int iomega = 0; iomega != this->omega.size(); iomega++)
+        auto &wing_tmp = this->wing.at(iomega);
+        wing_tmp = init_local_mat<complex<double>>(desc_wing, MAJOR::COL);
+        // TODO: reconstruct wing_mu
+        auto wing_mu_tmp = init_local_mat<complex<double>>(desc_wing_mu, MAJOR::COL);
+        for (int alpha = 0; alpha != 3; alpha++)
         {
-            for (int lambda = 0; lambda != n_lambda; lambda++)
+            auto loc_alpha = desc_wing_mu.indx_g2l_c(alpha);
+            if (loc_alpha < 0) continue;
+            for (int mu = 0; mu != n_abf; mu++)
             {
-                for (int mu = 0; mu != n_abf; mu++)
-                {
-                    this->wing.at(iomega)(lambda, alpha) +=
-                        conj(sqrtveig_blacs(mu, lambda)) * this->wing_mu.at(iomega)(mu, alpha);
-                }
+                auto loc_mu = desc_wing_mu.indx_g2l_r(mu);
+                if (loc_mu < 0) continue;
+                wing_mu_tmp(loc_mu, loc_alpha) = this->wing_mu.at(iomega)(mu, alpha);
             }
         }
+        // this->wing.at(iomega)(lambda, alpha) +=
+        // conj(sqrtveig_blacs(mu, lambda)) * this->wing_mu.at(iomega)(mu, alpha);
+        // drop the first column of sqrtveig_blacs, the largest eigenvalue
+        ScalapackConnector::pgemm_f('C', 'N', n_lambda, 3, n_abf, 1.0, sqrtveig_blacs.ptr(), 1, 2,
+                                    desc_nabf_nabf_opt.desc, wing_mu_tmp.ptr(), 1, 1,
+                                    desc_wing_mu.desc, 0.0, wing_tmp.ptr(), 1, 1, desc_wing.desc);
     }
+
     this->wing_mu.clear();
+    Profiler::stop("cal_wing");
 };
 
 std::complex<double> diele_func::compute_wing(int alpha, int iomega, int mu)
@@ -552,7 +573,7 @@ void diele_func::FT_R2k(const librpa_int::Cs_LRI &Cs_data)
     /* Vector3_Order<int> period{kv_nmp[0], kv_nmp[1], kv_nmp[2]};
     auto Rlist = construct_R_grid(period);
     std::cout << "Number of Bvk cell: " << Rlist.size() << std::endl; */
-    std::cout << "* Success: Fourier transform from Cs(R) to Cs(k)." << std::endl;
+    global::ofs_myid << "* Success: Fourier transform from Cs(R) to Cs(k)." << std::endl;
     profiler.stop("fourier_r2k");
 };
 
@@ -606,8 +627,8 @@ void diele_func::Cs_ij2mn()
         }
     }
 
-    std::cout << "* Success: transform of Cs from NAO to KS." << std::endl;
-    profiler.stop("transform_Cs_NAO_to_KS");
+    global::ofs_myid << "* Success: transform of Cs from NAO to KS." << std::endl;
+    global::profiler.stop("transform_Cs_NAO_to_KS");
 };
 
 std::complex<double> diele_func::compute_Cs_ij2mn(int mu, int m, int n, int ik)
@@ -735,13 +756,16 @@ void diele_func::get_Xv_real(double vq_threshold, const librpa_int::atpair_k_cpl
         this->Coul_vector.push_back(newRow);
     }
 
-    std::cout << "The largest/smallest eigenvalue of Coulomb matrix(non-singular): "
-              << this->Coul_value.front() << ", " << this->Coul_value.back() << std::endl;
-    std::cout << "The 1st/2nd/3rd/-1th eigenvalue of Coulomb matrix(Full): " << eigenvalues.c[0]
-              << ", " << eigenvalues.c[1] << ", " << eigenvalues.c[2] << ", "
-              << eigenvalues.c[n_abf - 1] << std::endl;
-    std::cout << "Dim of eigenvectors: " << coul_eigen_block.nr() << ", "
-              << coul_eigen_block.nc() << std::endl;
+    if (mpi_comm_global_h.is_root())
+    {
+        std::cout << "The largest/smallest eigenvalue of Coulomb matrix(non-singular): "
+                  << this->Coul_value.front() << ", " << this->Coul_value.back() << std::endl;
+        std::cout << "The 1st/2nd/3rd/-1th eigenvalue of Coulomb matrix(Full): " << eigenvalues.c[0]
+                  << ", " << eigenvalues.c[1] << ", " << eigenvalues.c[2] << ", "
+                  << eigenvalues.c[n_abf - 1] << std::endl;
+        std::cout << "Dim of eigenvectors: " << coul_eigen_block.nr() << ", "
+                  << coul_eigen_block.nc() << std::endl;
+    }
     /*std::cout << "Coulomb vector: lambda=-1" << std::endl;
     for (int j = 0; j != n_abf; j++)
     {
@@ -757,12 +781,14 @@ void diele_func::get_Xv_real(double vq_threshold, const librpa_int::atpair_k_cpl
     {
         std::cout << j << "," << Coul_vector[1][j] << std::endl;
     }*/
-    std::cout << "* Success: diagonalize Coulomb matrix in the ABFs repre." << std::endl;
+    if (mpi_comm_global_h.is_root())
+        std::cout << "* Success: diagonalize Coulomb matrix in the ABFs repre." << std::endl;
 };
 
-// complex diagonalization
 void diele_func::get_Xv_cpl(double vq_threshold, const librpa_int::atpair_k_cplx_mat_t &Vq)
 {
+    using global::profiler;
+
     profiler.start("get_eigenvector_of_Coulomb_matrix");
     this->Coul_vector.clear();
     this->Coul_value.clear();
@@ -876,18 +902,22 @@ std::vector<double> diele_func::get_head_vec()
 
 void diele_func::test_head()
 {
-    std::cout << "BEGIN test head !!!!!!!!!!" << std::endl;
-    for (int iomega = 0; iomega != this->omega.size(); iomega++)
+    using LIBRPA::utils::lib_printf;
+    if (mpi_comm_global_h.is_root())
     {
-        std::complex<double> df = 0;
-        for (int alpha = 0; alpha != 3; alpha++)
+        std::cout << "Freqency node & Head of dielectric function(Re, Im): " << std::endl;
+        for (int iomega = 0; iomega != this->omega.size(); iomega++)
         {
-            df += this->head.at(iomega)(alpha, alpha);
+            std::complex<double> df = 0;
+            for (int alpha = 0; alpha != 3; alpha++)
+            {
+                df += this->head.at(iomega)(alpha, alpha);
+            }
+            lib_printf("%2d %15.8f %15.8f %15.8f\n", iomega, this->omega[iomega], df.real() / 3.0,
+                       df.imag() / 3.0);
         }
-        std::cout << this->omega[iomega] << " " << df.real() / 3.0 << " " << df.imag() / 3.0
-                  << std::endl;
+        // std::cout << "END test head !!!!!!!!!!" << std::endl;
     }
-    std::cout << "END test head !!!!!!!!!!" << std::endl;
     // std::exit(0);
 };
 
@@ -928,61 +958,75 @@ void diele_func::test_wing()
     // std::exit(0);
 };
 
-// M
-void diele_func::get_body_inv(matrix_m<std::complex<double>> &chi0_block)
+ArrayDesc diele_func::get_body_inv(matrix_m<std::complex<double>> &chi0_block,
+                                    ArrayDesc &desc_nabf_nabf_opt)
 {
-    using librpa_int::ArrayDesc;
-    using librpa_int::global::mpi_comm_global_h;
+    using global::profiler;
+    using global::mpi_comm_global_h;
 
     mpi_comm_global_h.barrier();
     BlacsCtxtHandler blacs_h(mpi_comm_global_h.comm);
     ArrayDesc desc_nabf_nabf(blacs_h);
     desc_nabf_nabf.init_square_blk(n_nonsingular - 1, n_nonsingular - 1, 0, 0);
     this->body_inv = init_local_mat<complex<double>>(desc_nabf_nabf, MAJOR::COL);
+    profiler.start("get_inverse_body_of_chi0");
+    mpi_comm_global_h.barrier();
 
-    for (int ilambda = 0; ilambda < n_nonsingular - 1; ilambda++)
+    ArrayDesc desc_body(blacs_ctxt_global_h);
+    desc_body.init_square_blk(n_nonsingular - 1, n_nonsingular - 1, 0, 0);
+    this->body_inv = init_local_mat<complex<double>>(desc_body, MAJOR::COL);
+
+    /* for (int ilambda = 0; ilambda < n_nonsingular - 1; ilambda++)
     {
         for (int jlambda = 0; jlambda < n_nonsingular - 1; jlambda++)
         {
             body_inv(ilambda, jlambda) = chi0_block(1 + ilambda, 1 + jlambda);
         }
-    }
-    /*std::cout << "Here body: " << std::endl;
-    for (int i = 0; i < 5; i++)
-    {
-        std::cout << i << "," << body_inv(i, i) << std::endl;
-    }*/
-    invert_scalapack(body_inv, desc_nabf_nabf);
-    /*std::cout << "Here binv: " << std::endl;
-    for (int i = 0; i < 5; i++)
-    {
-        std::cout << i << "," << body_inv(i, i) << std::endl;
-    }*/
+    } */
+    ScalapackConnector::pgemr2d_f(n_nonsingular - 1, n_nonsingular - 1, chi0_block.ptr(), 2, 2,
+                                  desc_nabf_nabf_opt.desc, this->body_inv.ptr(), 1, 1,
+                                  desc_body.desc, blacs_ctxt_global_h.ictxt);
 
-    // test invert
-    /*matrix_m<std::complex<double>> test(2, 2, MAJOR::COL);
-    Array_Desc desc_2_2(blacs_ctxt_global_h);
-    desc_2_2.init_square_blk(2, 2, 0, 0);
-    test = init_local_mat<complex<double>>(desc_2_2, MAJOR::COL);
-    test(0, 0) = 1;
-    test(0, 1) = 2;
-    test(1, 0) = 3;
-    test(1, 1) = 4;
-    invert_scalapack(test, desc_2_2);
-    std::cout << test(0, 0) << "," << test(0, 1) << "," << test(1, 0) << "," << test(1, 1)
-              << std::endl;*/
-    // test invert
+    invert_scalapack(this->body_inv, desc_body);
 
     // std::cout << "* Success: get inverse body of chi0.\n";
+    Profiler::stop("get_inverse_body_of_chi0");
+    return desc_body;
 };
 
-void diele_func::construct_L(const int ifreq)
+ArrayDesc diele_func::construct_L(const int ifreq, ArrayDesc &desc_body)
 {
     profiler.start("cal_L");
-    matrix_m<std::complex<double>> tmp(3, 3, MAJOR::COL);
-    tmp = head.at(ifreq) - transpose(wing.at(ifreq), true) * body_inv * wing.at(ifreq);
-    this->Lind = tmp;
+    ArrayDesc desc_wing(blacs_ctxt_global_h);
+    desc_wing.init_square_blk(n_nonsingular - 1, 3, 0, 0);
+    ArrayDesc desc_lam_3(blacs_ctxt_global_h);
+    desc_lam_3.init_square_blk(n_nonsingular - 1, 3, 0, 0);
+    ArrayDesc desc_3_3(blacs_ctxt_global_h);
+    desc_3_3.init_square_blk(3, 3, 0, 0);
+    auto lam_3 = init_local_mat<complex<double>>(desc_lam_3, MAJOR::COL);
+    auto tmp_L = init_local_mat<complex<double>>(desc_3_3, MAJOR::COL);
+    this->Lind = init_local_mat<complex<double>>(desc_3_3, MAJOR::COL);
+    // tmp = head.at(ifreq) - transpose(wing.at(ifreq), true) * body_inv * wing.at(ifreq);
+    ScalapackConnector::pgemm_f('N', 'N', n_nonsingular - 1, 3, n_nonsingular - 1, 1.0,
+                                body_inv.ptr(), 1, 1, desc_body.desc, wing.at(ifreq).ptr(), 1, 1,
+                                desc_wing.desc, 0.0, lam_3.ptr(), 1, 1, desc_lam_3.desc);
+    ScalapackConnector::pgemm_f('C', 'N', 3, 3, n_nonsingular - 1, 1.0, wing.at(ifreq).ptr(), 1, 1,
+                                desc_wing.desc, lam_3.ptr(), 1, 1, desc_lam_3.desc, 0.0,
+                                tmp_L.ptr(), 1, 1, desc_3_3.desc);
+    for (int i = 0; i != 3; i++)
+    {
+        auto loc_i = desc_3_3.indx_g2l_r(i);
+        if (loc_i < 0) continue;
+        for (int j = 0; j != 3; j++)
+        {
+            auto loc_j = desc_3_3.indx_g2l_c(i);
+            if (loc_j < 0) continue;
+            tmp_L(loc_i, loc_i) = head.at(ifreq)(i, j) - tmp_L(loc_i, loc_i);
+        }
+    }
+    this->Lind = std::move(tmp_L);
     profiler.stop("cal_L");
+    return desc_3_3;
 };
 
 void diele_func::get_Leb_points()
@@ -1047,25 +1091,18 @@ void diele_func::calculate_q_gamma()
     }
 };
 
-void diele_func::cal_eps(const int ifreq)
+void diele_func::cal_eps(const int ifreq, ArrayDesc &desc_nabf_nabf_opt, ArrayDesc &desc_body)
 {
     using global::mpi_comm_global_h;
     using global::profiler;
 
     profiler.start("cal_inverse_dielectric_matrix");
-    const auto &comm_h = mpi_comm_global_h;
-    comm_h.barrier();
-
-    BlacsCtxtHandler blacs_h(comm_h.comm);
-
-    ArrayDesc desc_nabf_nabf(blacs_h);
-    desc_nabf_nabf.init_square_blk(n_abf, n_abf, 0, 0);
-    this->chi0 = init_local_mat<complex<double>>(desc_nabf_nabf, MAJOR::COL);
+    this->chi0 = init_local_mat<complex<double>>(desc_nabf_nabf_opt, MAJOR::COL);
 
     const double k_volume = std::abs(pbc_.G.Det());
     this->vol_gamma = k_volume / nk;
     double vol_gamma_numeric = 0.0;
-    if (ifreq == 0)
+    if (ifreq == 0 && mpi_comm_global_h.is_root())
     {
         for (int ileb = 0; ileb != qw_leb.size(); ileb++)
         {
@@ -1081,24 +1118,33 @@ void diele_func::cal_eps(const int ifreq)
     /*std::cout << "major of Matz: " << wing[0].is_row_major() << "," << body_inv.is_row_major()
               << "," << transpose(wing.at(0), true).is_row_major() << "," << Lind.is_row_major()
               << std::endl;*/
-    construct_L(ifreq);
+    auto desc_L = construct_L(ifreq, desc_body);
     profiler.start("cal_inverse_dielectric_matrix_ij");
 #pragma omp parallel for schedule(dynamic) collapse(2)
     for (int i = 0; i != n_nonsingular; i++)
     {
+        const int ilo = desc_nabf_nabf_opt.indx_g2l_r(i);
+        if (ilo < 0) continue;
         for (int j = 0; j != n_nonsingular; j++)
         {
+            const int jlo = desc_nabf_nabf_opt.indx_g2l_c(j);
+            if (jlo < 0) continue;
             if (i == 0 || j == 0)
             {
                 if (i == 0 && j == 0)
                 {
-                    chi0(i, j) = compute_chi0_inv_00(ifreq);
+                    chi0(ilo, jlo) = compute_chi0_inv_00(ifreq, desc_L);
                 }
                 else
-                    chi0(i, j) = 0.0;
+                    chi0(ilo, jlo) = 0.0;
             }
             else
-                chi0(i, j) = compute_chi0_inv_ij(ifreq, i - 1, j - 1);
+            {
+                auto locbr_i = desc_body.indx_g2l_r(i - 1);
+                auto locbc_j = desc_body.indx_g2l_c(j - 1);
+                if (locbr_i < 0 || locbc_j < 0) continue;
+                chi0(ilo, jlo) = compute_chi0_inv_ij(ifreq, i - 1, j - 1, desc_body, desc_L);
+            }
             /*if (i == j)
             {
                 chi0(i, j) -= 1.0;
@@ -1106,73 +1152,181 @@ void diele_func::cal_eps(const int ifreq)
         }
     }
     profiler.stop("cal_inverse_dielectric_matrix_ij");
-    std::cout << "* Success: calculate average inverse dielectric matrix no." << ifreq + 1 << "."
-              << std::endl;
+    global::ofs_myid << "* Success: calculate average inverse dielectric matrix no." << ifreq + 1
+                << "." << std::endl;
     profiler.stop("cal_inverse_dielectric_matrix");
 };
 
-std::complex<double> diele_func::compute_chi0_inv_00(const int ifreq)
+std::complex<double> diele_func::compute_chi0_inv_00(const int ifreq, ArrayDesc &desc_L)
 {
     std::complex<double> total = 0.0;
+    ArrayDesc desc_q(blacs_ctxt_global_h);
+    desc_q.init_square_blk(3, 1, 0, 0);
+    // matrix_m<std::complex<double>> q_unit(3, 1, MAJOR::COL);
+    auto q_unit = init_local_mat<complex<double>>(desc_q, MAJOR::COL);
+    ArrayDesc desc_31(blacs_ctxt_global_h);
+    desc_31.init_square_blk(3, 1, 0, 0);
+    auto tmp = init_local_mat<complex<double>>(desc_31, MAJOR::COL);
+    ArrayDesc desc_11(blacs_ctxt_global_h);
+    desc_11.init_square_blk(1, 1, 0, 0);
+    auto den = init_local_mat<complex<double>>(desc_11, MAJOR::COL);
 
     for (int ileb = 0; ileb != qw_leb.size(); ileb++)
     {
-        matrix_m<std::complex<double>> q_unit(3, 1, MAJOR::COL);
-        q_unit(0, 0) = qx_leb[ileb];
-        q_unit(1, 0) = qy_leb[ileb];
-        q_unit(2, 0) = qz_leb[ileb];
+        auto loc_0c = desc_q.indx_g2l_c(0);
+        auto loc_0r = desc_q.indx_g2l_r(0);
+        auto loc_1r = desc_q.indx_g2l_r(1);
+        auto loc_2r = desc_q.indx_g2l_r(2);
+        auto den_loc_0c = desc_11.indx_g2l_c(0);
+        auto den_loc_0r = desc_11.indx_g2l_r(0);
+        if (loc_0c < 0 || loc_0r < 0 || loc_1r < 0 || loc_2r < 0 || den_loc_0r < 0 ||
+            den_loc_0c < 0)
+            continue;
+        q_unit(loc_0r, loc_0c) = qx_leb[ileb];
+        q_unit(loc_1r, loc_0c) = qy_leb[ileb];
+        q_unit(loc_2r, loc_0c) = qz_leb[ileb];
+        // auto den = transpose(q_unit, false) * Lind * q_unit;
+        ScalapackConnector::pgemm_f('N', 'N', 3, 1, 3, 1.0, Lind.ptr(), 1, 1, desc_L.desc,
+                                    q_unit.ptr(), 1, 1, desc_q.desc, 0.0, tmp.ptr(), 1, 1,
+                                    desc_31.desc);
+        ScalapackConnector::pgemm_f('T', 'N', 1, 1, 3, 1.0, q_unit.ptr(), 1, 1, desc_q.desc,
+                                    tmp.ptr(), 1, 1, desc_31.desc, 0.0, den.ptr(), 1, 1,
+                                    desc_11.desc);
 
-        auto den = transpose(q_unit, false) * Lind * q_unit;
-        total += qw_leb[ileb] * std::pow(q_gamma[ileb], 3) / den(0, 0);
+        total += qw_leb[ileb] * std::pow(q_gamma[ileb], 3) / den(den_loc_0r, den_loc_0c);
     }
     total *= 1.0 / 3.0 / vol_gamma;
 
     return total;
 };
 
-std::complex<double> diele_func::compute_chi0_inv_ij(const int ifreq, int i, int j)
+std::complex<double> diele_func::compute_chi0_inv_ij(const int ifreq, int i, int j,
+                                                     ArrayDesc &desc_body, ArrayDesc &desc_L)
 {
+    ArrayDesc desc_wing(blacs_ctxt_global_h);
+    desc_wing.init_square_blk(n_nonsingular - 1, 3, 0, 0);
+    ArrayDesc desc_i(blacs_ctxt_global_h);
+    desc_i.init_square_blk(1, n_nonsingular - 1, 0, 0);
+    auto body_inv_i = init_local_mat<complex<double>>(desc_i, MAJOR::COL);
+    ArrayDesc desc_j(blacs_ctxt_global_h);
+    desc_j.init_square_blk(n_nonsingular - 1, 1, 0, 0);
+    auto body_inv_j = init_local_mat<complex<double>>(desc_j, MAJOR::COL);
+    ArrayDesc desc_q(blacs_ctxt_global_h);
+    desc_q.init_square_blk(3, 1, 0, 0);
+    auto q_unit = init_local_mat<complex<double>>(desc_q, MAJOR::COL);
+    ArrayDesc desc_31(blacs_ctxt_global_h);
+    desc_31.init_square_blk(3, 1, 0, 0);
+    auto tmp = init_local_mat<complex<double>>(desc_31, MAJOR::COL);
+    ArrayDesc desc_11(blacs_ctxt_global_h);
+    desc_11.init_square_blk(1, 1, 0, 0);
+    auto den = init_local_mat<complex<double>>(desc_11, MAJOR::COL);
+    auto bwq_i = init_local_mat<complex<double>>(desc_11, MAJOR::COL);
+    auto qwb_j = init_local_mat<complex<double>>(desc_11, MAJOR::COL);
+    ArrayDesc desc_lam1(blacs_ctxt_global_h);
+    desc_lam1.init_square_blk(n_nonsingular - 1, 1, 0, 0);
+    auto tmp_lam1 = init_local_mat<complex<double>>(desc_lam1, MAJOR::COL);
+
     std::complex<double> total = 0.0;
     std::vector<std::complex<double>> partial_sum(qw_leb.size(), 0.0);
-    matrix_m<std::complex<double>> body_inv_i(1, n_nonsingular - 1, MAJOR::COL);
-    matrix_m<std::complex<double>> body_inv_j(n_nonsingular - 1, 1, MAJOR::COL);
+    auto locbr_i = desc_body.indx_g2l_r(i);
+    auto locbc_j = desc_body.indx_g2l_c(j);
     for (int ii = 0; ii != n_nonsingular - 1; ii++)
     {
-        body_inv_i(0, ii) = body_inv(i, ii);
-        body_inv_j(ii, 0) = body_inv(ii, j);
+        auto loci_0 = desc_i.indx_g2l_r(0);
+        auto loci_ii = desc_i.indx_g2l_c(ii);
+        auto locj_ii = desc_j.indx_g2l_r(ii);
+        auto locj_0 = desc_j.indx_g2l_c(0);
+
+        auto locbc_ii = desc_body.indx_g2l_c(ii);
+        auto locbr_ii = desc_body.indx_g2l_r(ii);
+
+        if (loci_0 < 0 || loci_ii < 0 || locj_ii < 0 || locj_0 < 0 || locbc_ii < 0 || locbr_ii < 0)
+            continue;
+        body_inv_i(loci_0, loci_ii) = body_inv(locbr_i, locbc_ii);
+        body_inv_j(locj_ii, locj_0) = body_inv(locbr_ii, locbc_j);
     }
 #pragma omp parallel for schedule(dynamic)
     for (int ileb = 0; ileb != qw_leb.size(); ileb++)
     {
-        matrix_m<std::complex<double>> q_unit(3, 1, MAJOR::COL);
-        q_unit(0, 0) = qx_leb[ileb];
-        q_unit(1, 0) = qy_leb[ileb];
-        q_unit(2, 0) = qz_leb[ileb];
-        auto den = transpose(q_unit, false) * Lind * q_unit;
-        auto bwq_i = body_inv_i * wing.at(ifreq) * q_unit;
-        auto qwb_j = transpose(q_unit, false) * transpose(wing.at(ifreq), true) * body_inv_j;
-        partial_sum[ileb] =
-            qw_leb[ileb] * std::pow(q_gamma[ileb], 3) * bwq_i(0, 0) * qwb_j(0, 0) / den(0, 0);
+        auto loc_0c = desc_q.indx_g2l_c(0);
+        auto loc_0r = desc_q.indx_g2l_r(0);
+        auto loc_1r = desc_q.indx_g2l_r(1);
+        auto loc_2r = desc_q.indx_g2l_r(2);
+        auto den_loc_0c = desc_11.indx_g2l_c(0);
+        auto den_loc_0r = desc_11.indx_g2l_r(0);
+        if (loc_0c < 0 || loc_0r < 0 || loc_1r < 0 || loc_2r < 0 || den_loc_0r < 0 ||
+            den_loc_0c < 0)
+            continue;
+        q_unit(loc_0r, loc_0c) = qx_leb[ileb];
+        q_unit(loc_1r, loc_0c) = qy_leb[ileb];
+        q_unit(loc_2r, loc_0c) = qz_leb[ileb];
+        // auto den = transpose(q_unit, false) * Lind * q_unit;
+        ScalapackConnector::pgemm_f('N', 'N', 3, 1, 3, 1.0, Lind.ptr(), 1, 1, desc_L.desc,
+                                    q_unit.ptr(), 1, 1, desc_q.desc, 0.0, tmp.ptr(), 1, 1,
+                                    desc_31.desc);
+        ScalapackConnector::pgemm_f('T', 'N', 1, 1, 3, 1.0, q_unit.ptr(), 1, 1, desc_q.desc,
+                                    tmp.ptr(), 1, 1, desc_31.desc, 0.0, den.ptr(), 1, 1,
+                                    desc_11.desc);
+        // auto bwq_i = body_inv_i * wing.at(ifreq) * q_unit;
+        ScalapackConnector::pgemm_f('N', 'N', n_nonsingular - 1, 1, 3, 1.0, wing.at(ifreq).ptr(), 1,
+                                    1, desc_wing.desc, q_unit.ptr(), 1, 1, desc_q.desc, 0.0,
+                                    tmp_lam1.ptr(), 1, 1, desc_lam1.desc);
+        ScalapackConnector::pgemm_f('N', 'N', 1, 1, n_nonsingular - 1, 1.0, body_inv_i.ptr(), 1, 1,
+                                    desc_i.desc, tmp_lam1.ptr(), 1, 1, desc_lam1.desc, 0.0,
+                                    bwq_i.ptr(), 1, 1, desc_11.desc);
+
+        // auto qwb_j = transpose(q_unit, false) * transpose(wing.at(ifreq), true) * body_inv_j;
+        ScalapackConnector::pgemm_f('C', 'N', 3, 1, n_nonsingular - 1, 1.0, wing.at(ifreq).ptr(), 1,
+                                    1, desc_wing.desc, body_inv_j.ptr(), 1, 1, desc_j.desc, 0.0,
+                                    tmp.ptr(), 1, 1, desc_31.desc);
+        ScalapackConnector::pgemm_f('T', 'N', 1, 1, 3, 1.0, q_unit.ptr(), 1, 1, desc_q.desc,
+                                    tmp.ptr(), 1, 1, desc_31.desc, 0.0, qwb_j.ptr(), 1, 1,
+                                    desc_11.desc);
+        auto loc_00r = desc_11.indx_g2l_r(0);
+        auto loc_00c = desc_11.indx_g2l_c(0);
+        if (loc_00r < 0 || loc_00c < 0) continue;
+        partial_sum[ileb] = qw_leb[ileb] * std::pow(q_gamma[ileb], 3) * bwq_i(loc_00r, loc_00c) *
+                            qwb_j(loc_00r, loc_00c) / den(loc_00r, loc_00c);
     }
     total = std::accumulate(partial_sum.begin(), partial_sum.end(), std::complex<double>(0.0, 0.0));
     total *= 1.0 / 3.0 / vol_gamma;
-    total += body_inv(i, j);
+    total += body_inv(locbr_i, locbc_j);
 
     // if (ifreq == 0 && i == 1 && j == 1) std::cout << "* Success: calculate epsilon_11.\n";
     return total;
 };
 
-void diele_func::rewrite_eps(matrix_m<std::complex<double>> &chi0_block, const int ifreq)
+void diele_func::assign_chi0(matrix_m<std::complex<double>> &chi0_block,
+                             ArrayDesc &desc_nabf_nabf_opt)
 {
-    get_body_inv(chi0_block);
-    cal_eps(ifreq);
-    chi0_block = this->chi0;
+    Profiler::start("assign_chi0");
+    // mpi_comm_global_h.barrier();
 
-    // this->chi0.clear(); // quote by chi0_block, should not be clear
-    this->body_inv.clear();
-    this->Lind.clear();
+    ScalapackConnector::pgemr2d_f(n_abf, n_abf, this->chi0.ptr(), 1, 1, desc_nabf_nabf_opt.desc,
+                                  chi0_block.ptr(), 1, 1, desc_nabf_nabf_opt.desc,
+                                  blacs_ctxt_global_h.ictxt);
+
+    // std::cout << "* Success: get inverse body of chi0.\n";
+    Profiler::stop("assign_chi0");
+}
+
+void diele_func::rewrite_eps(matrix_m<std::complex<double>> &chi0_block, const int ifreq,
+                             ArrayDesc &desc_nabf_nabf_opt)
+{
+    for (int i = 0; i < 3; i++)
+        std::cout << "before: "
+                  << chi0_block(desc_nabf_nabf_opt.indx_g2l_r(i), desc_nabf_nabf_opt.indx_g2l_c(i))
+                  << std::endl;
+    auto desc_body = get_body_inv(chi0_block, desc_nabf_nabf_opt);
+    cal_eps(ifreq, desc_nabf_nabf_opt, desc_body);
+    assign_chi0(chi0_block, desc_nabf_nabf_opt);
+    for (int i = 0; i < 3; i++)
+        std::cout << "after: "
+                  << chi0_block(desc_nabf_nabf_opt.indx_g2l_r(i), desc_nabf_nabf_opt.indx_g2l_c(i))
+                  << std::endl;
     /*if (ifreq == 0)
-        std::cout << "* Success: replace average inverse dielectric matrix with head and wing.\n";*/
+        std::cout << "* Success: replace average inverse dielectric matrix with head and
+       wing.\n";*/
 };
 
 }
