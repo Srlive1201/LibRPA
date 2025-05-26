@@ -645,7 +645,9 @@ matrix_m<std::complex<T>> power_hemat_blacs_desc(matrix_m<std::complex<T>> &A_lo
                                     lrwork, info);
         lwork = int(work[0].real());
         lrwork = int(rwork[0]);
-        delete[] work, Wquery, rwork;
+        delete[] work;
+        delete[] Wquery;
+        delete[] rwork;
     }
     Profiler::stop("power_hemat_blacs_1");
 
@@ -655,7 +657,8 @@ matrix_m<std::complex<T>> power_hemat_blacs_desc(matrix_m<std::complex<T>> &A_lo
     ScalapackConnector::pheev_f(jobz, uplo, n, A_local_opt.ptr(), 1, 1, ad_A_opt.desc, W,
                                 Z_local_opt.ptr(), 1, 1, ad_Z_opt.desc, work, lwork, rwork, lrwork,
                                 info);
-    delete[] work, rwork;
+    delete[] work;
+    delete[] rwork;
     for (int i = 0; i != n; i++)
     {
         W[i] *= -1.0;
@@ -776,9 +779,30 @@ matrix_m<std::complex<T>> power_hemat_blacs_real(matrix_m<std::complex<T>> &A_lo
 
     Profiler::start("power_hemat_blacs_1");
     int lwork = -1, lrwork = -1, info = 0;
+<<<<<<< HEAD
     T *work = nullptr;
     T *rwork = nullptr;    // rwork is required by the provided psyev_f interface
     T *Wquery = new T[1];  // Temporary array for size query
+=======
+    double *work;
+    double *rwork;
+    {
+        work = new double[1];
+        rwork = new double[1];
+        // query the optimal lwork and lrwork
+        double *Wquery = new double[1];
+        // LIBRPA::utils::lib_printf("power_hemat_blacs descA %s\n", ad_A.info_desc().c_str());
+        ScalapackConnector::psyev_f(jobz, uplo, n, A_local_opt.ptr(), 1, 1, ad_A_opt.desc, Wquery,
+                                    Z_local_opt.ptr(), 1, 1, ad_A_opt.desc, work, lwork, rwork,
+                                    lrwork, info);
+        lwork = int(work[0]);
+        lrwork = int(rwork[0]);
+        delete[] work;
+        delete[] Wquery;
+        delete[] rwork;
+    }
+    Profiler::stop("power_hemat_blacs_real_1");
+>>>>>>> 9399e0c (fix: memory leak in solving matrix eigenproblem)
 
     // Query optimal workspace using the provided psyev_f interface
     double work_query, rwork_query;
@@ -800,6 +824,7 @@ matrix_m<std::complex<T>> power_hemat_blacs_real(matrix_m<std::complex<T>> &A_lo
     ScalapackConnector::psyev_f(jobz, uplo, n, A_local_opt.ptr(), 1, 1, ad_A_opt.desc, W,
                                 Z_local_opt.ptr(), 1, 1, ad_Z_opt.desc, work, lwork, rwork, lrwork,
                                 info);
+<<<<<<< HEAD
 
     // Cleanup workspace
     delete[] work;
@@ -807,6 +832,11 @@ matrix_m<std::complex<T>> power_hemat_blacs_real(matrix_m<std::complex<T>> &A_lo
 
     // Eigenvalues need sign flip due to initial negation
     for (int i = 0; i < n; i++)
+=======
+    delete[] work;
+    delete[] rwork;
+    for (int i = 0; i != n; i++)
+>>>>>>> 9399e0c (fix: memory leak in solving matrix eigenproblem)
     {
         W[i] *= -1.0;
     }
