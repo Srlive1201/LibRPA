@@ -19,20 +19,29 @@ namespace RI
 template <typename Tdata>
 class Tensor
 {
+private:
+    Tdata dummy_val;
+
 public:
     // dummy, should never be used
     std::shared_ptr<std::valarray<Tdata>> data;
 
-    Tensor()
+    Tensor(): dummy_val(0)
     {};
 
-    Tensor(const std::vector<int> &dimension, std::shared_ptr<std::valarray<Tdata>> data_in)
+    Tensor(const std::vector<int> &dimension, std::shared_ptr<std::valarray<Tdata>> data_in): dummy_val(0)
     {};
 
-    Tensor(const std::initializer_list<std::size_t> &dimension, std::shared_ptr<std::valarray<Tdata>> data_in)
+    Tensor(const std::initializer_list<std::size_t> &dimension, std::shared_ptr<std::valarray<Tdata>> data_in): dummy_val(0), data(data_in)
     {};
 
     inline Tdata operator() (const std::size_t i0, const std::size_t i1) const { return static_cast<Tdata>(0); };
+
+    inline Tdata operator() (const std::size_t i0, const std::size_t i1, const std::size_t i2) const { return static_cast<Tdata>(0); };
+
+    inline Tdata& operator() (const std::size_t i0, const std::size_t i1) { return this->dummy_val; };
+
+    inline Tdata& operator() (const std::size_t i0, const std::size_t i1, const std::size_t i2) { return this->dummy_val; };
 
     inline std::size_t get_shape_all() const { return 0; };
 
