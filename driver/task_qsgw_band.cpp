@@ -201,10 +201,10 @@ void task_qsgw_band(std::map<Vector3_Order<double>, ComplexMatrix> &sinvS)
     // initialize the QSGW_band object
     /* Below we handle the band k-points data
      * First load the information of k-points along the k-path */
-    Profiler::start("g0w0_band_load_band_mf", "Read eigen solutions at band kpoints");
     int n_basis_band, n_states_band, n_spin_band;
+    int flag;
     std::vector<Vector3_Order<double>> kfrac_band = read_band_kpath_info(
-        driver_params.input_dir + "band_kpath_info", n_basis_band, n_states_band, n_spin_band);
+        driver_params.input_dir + "band_kpath_info", n_basis_band, n_states_band, n_spin_band, flag);
     if (mpi_comm_global_h.is_root())
     {
         std::cout << "Band k-points to compute:\n";
@@ -216,6 +216,7 @@ void task_qsgw_band(std::map<Vector3_Order<double>, ComplexMatrix> &sinvS)
     }
     mpi_comm_global_h.barrier();
 
+    Profiler::start("g0w0_band_load_band_mf", "Read eigen solutions at band kpoints");
     auto meanfield_band = read_meanfield_band(driver_params.input_dir, n_basis_band, n_states_band,
                                               n_spin_band, kfrac_band.size());
 

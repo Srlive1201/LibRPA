@@ -322,21 +322,41 @@ void task_g0w0_band(std::map<Vector3_Order<double>, ComplexMatrix> &sinvS)
 
     /* Below we handle the band k-points data
      * First load the information of k-points along the k-path */
-    Profiler::start("g0w0_band_load_band_mf", "Read eigen solutions at band kpoints");
+    Profiler::start("g0w0_band_load_kpath");
     int n_basis_band, n_states_band, n_spin_band;
+    int flag;
     std::vector<Vector3_Order<double>> kfrac_band = read_band_kpath_info(
-        driver_params.input_dir + "band_kpath_info", n_basis_band, n_states_band, n_spin_band);
-    if (mpi_comm_global_h.is_root())
-    {
-        std::cout << "Band k-points to compute:\n";
-        for (int ik = 0; ik < kfrac_band.size(); ik++)
-        {
-            const auto &k = kfrac_band[ik];
-            lib_printf("%5d %12.7f %12.7f %12.7f\n", ik + 1, k.x, k.y, k.z);
-        }
-    }
-    mpi_comm_global_h.barrier();
+        driver_params.input_dir + "band_kpath_info", n_basis_band, n_states_band, n_spin_band, flag);
+    Profiler::stop("g0w0_band_load_kpath");
 
+    if (flag == 0)
+    {
+        // Success
+        if (mpi_comm_global_h.is_root())
+        {
+            std::cout << "Band k-points to compute:" << std::endl;
+            for (int ik = 0; ik < kfrac_band.size(); ik++)
+            {
+                const auto &k = kfrac_band[ik];
+                lib_printf("%5d %12.7f %12.7f %12.7f\n", ik + 1, k.x, k.y, k.z);
+            }
+        }
+        mpi_comm_global_h.barrier();
+    }
+    else
+    {
+        if (mpi_comm_global_h.is_root())
+        {
+            const auto fn = driver_params.input_dir + "band_kpath_info";
+            std::cout << "Warning! Failed to read " << fn
+                      << " , skip band structure" << std::endl << std::endl;
+        }
+        mpi_comm_global_h.barrier();
+        Profiler::stop("g0w0_band");
+        return;
+    }
+
+    Profiler::start("g0w0_band_load_band_mf", "Read eigen solutions at band kpoints");
     auto meanfield_band = read_meanfield_band(driver_params.input_dir, n_basis_band, n_states_band,
                                               n_spin_band, kfrac_band.size());
 
@@ -360,7 +380,7 @@ void task_g0w0_band(std::map<Vector3_Order<double>, ComplexMatrix> &sinvS)
     Profiler::stop("read_vxc");
     std::flush(ofs_myid);
 
-    Profiler::start("g0w0_solve_qpe", "Solve quasi-particle equation");
+    Profiler::start("g0w0_solve_band_qpe", "Solve quasi-particle equation");
     if (mpi_comm_global_h.is_root())
     {
         std::cout << "Solving quasi-particle equation\n";
@@ -506,7 +526,7 @@ void task_g0w0_band(std::map<Vector3_Order<double>, ComplexMatrix> &sinvS)
                k_cond.z);
         lib_printf("Bandgap(eV): %12.7f \n", bandgap);
     }
-    Profiler::stop("g0w0_solve_qpe");
+    Profiler::stop("g0w0_solve_band_qpe");
 
     Profiler::stop("g0w0_band");
 }

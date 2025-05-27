@@ -12,6 +12,7 @@
 #include "../src/math/vector3_order.h"
 #include "librpa.hpp"
 
+// TODO: remove this include
 #include "../src/meanfield.h"
 
 using std::string;
@@ -80,5 +81,4 @@ std::vector<matrix> read_vxc_band(const string &dir_path, int n_states, int n_sp
 
 void read_elsi_csc(const std::string &file_path, bool save_row_major, std::vector<double> &mat,
                    int &n_basis, bool &is_real);
-
 #endif  // !READ_DATA_H

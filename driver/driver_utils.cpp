@@ -68,9 +68,10 @@ std::vector<double> interpolate_dielec_func(int option, const std::vector<double
                 // read_eigenvector("./pyatb_librpa_df/", pyatb_meanfield);
 
                 read_velocity(file_abacus, meanfield);
+                int flag;
                 std::vector<Vector3_Order<double>> kfrac_band =
                     read_band_kpath_info(driver_params.input_dir + "pyatb_librpa_df/k_path_info",
-                                         n_basis, n_states, n_spin);
+                                         n_basis, n_states, n_spin, flag);
                 df_headwing.set(meanfield, kfrac_band, frequencies_target, n_basis, n_states,
                                 n_spin);
             }
@@ -213,9 +214,10 @@ std::vector<double> interpolate_dielec_func(int option, const std::vector<double
             if (infile_abacus.is_open())
             {
                 read_velocity(file_abacus, meanfield);
+                int flag;
                 std::vector<Vector3_Order<double>> kfrac_band =
                     read_band_kpath_info(driver_params.input_dir + "pyatb_librpa_df/k_path_info",
-                                         n_basis, n_states, n_spin);
+                                         n_basis, n_states, n_spin, flag);
                 df_headwing.set(meanfield, kfrac_band, frequencies_target, n_basis, n_states,
                                 n_spin);
             }
