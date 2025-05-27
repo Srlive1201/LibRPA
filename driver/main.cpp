@@ -216,7 +216,7 @@ int main(int argc, char **argv)
                     std::cout << I << "," << mu << std::endl;
                 }
             }
-            profiler.stop("read_shrink_sinvS");
+            profiler.stop("read_shrink_sinvS_fold");
         }
         // Vq distributed using the same strategy
         // There should be no duplicate for V
