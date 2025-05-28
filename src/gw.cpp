@@ -333,8 +333,8 @@ void G0W0::build_spacetime(
         Profiler::stop("g0w0_build_spacetime_wt_ft_wc");
         LIBRPA::utils::lib_printf_root(
             "Time for Fourier transform of Wc in GW (seconds, Wall/CPU): %f %f\n",
-            Profiler::get_wall_time_last("g0w0_build_spacetime_ct_ft_wc"),
-            Profiler::get_cpu_time_last("g0w0_build_spacetime_ct_ft_wc"));
+            Profiler::get_wall_time_last("g0w0_build_spacetime_wt_ft_wc"),
+            Profiler::get_cpu_time_last("g0w0_build_spacetime_wt_ft_wc"));
     }
     else
     {
