@@ -1,0 +1,12 @@
+task = g0w0_band
+# task = g0w0
+nfreq = 16
+option_dielect_func = 3
+replace_w_head = f
+use_scalapack_gw_wc = t
+parallel_routing = libri
+vq_threshold = 0
+sqrt_coulomb_threshold = 1e-8
+use_shrink_abfs = t
+
+#debug = t
