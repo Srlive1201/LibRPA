@@ -16,6 +16,7 @@
 #include "params.h"
 #include "pbc.h"
 #include "profiler.h"
+#include "stl_io_helper.h"
 #include "utils_blacs.h"
 #include "utils_io.h"
 #include "utils_mem.h"
@@ -386,6 +387,7 @@ void G0W0::build_spacetime(
 
     auto IJR_local_gf = dispatch_vector_prod(tot_atpair_ordered, Rlist, mpi_comm_global_h.myid,
                                              mpi_comm_global_h.nprocs, true, false);
+    envs::ofs_myid << "IJR_local_gf: " << IJR_local_gf << endl;
     std::set<Vector3_Order<int>> Rs_local;
     for (const auto &IJR : IJR_local_gf)
     {
@@ -395,7 +397,7 @@ void G0W0::build_spacetime(
     for (auto itau = 0; itau != tfg.get_n_grids(); itau++)
     {
         const auto tau = tfg.get_time_nodes()[itau];
-        if (Params::use_shrink_abfs && Wc_tau_q.count(tau))
+        if (Params::use_shrink_abfs)
         {
             Profiler::start("unfold_Wc_abfs", "Do shrink transformation");
             unfold_abfs_Wc(sinvS, Wc_tau_q[tau], qlist, atom_mu_l, atom_mu_s);
@@ -498,6 +500,10 @@ void G0W0::build_spacetime(
                         std::map<double, std::map<int, std::map<std::pair<int, std::array<int, 3>>,
                                                                 RI::Tensor<Tdata>>>>
                             tau_gf_libri;
+                        for (auto t : {tau, -tau})
+                        {
+                            tau_gf_libri[t] = {};
+                        }
                         for (const auto &IJR : IJR_local_gf)
                         {
                             const auto &I = IJR.first.first;
@@ -571,7 +577,7 @@ void G0W0::build_spacetime(
                                 wtime_g0w0_cal_sigc);
                         }
                     }
-                    else // Non-SOC
+                    else  // Non-SOC
                     {
                         auto gf = mf.get_gf_real_imagtimes_Rs(ispin, isoc1, isoc2, kfrac_list,
                                                               {tau, -tau},
@@ -579,7 +585,7 @@ void G0W0::build_spacetime(
                         std::map<double, std::map<int, std::map<std::pair<int, std::array<int, 3>>,
                                                                 RI::Tensor<Tdata>>>>
                             tau_gf_libri;
-                        for (auto t: {tau, -tau})
+                        for (auto t : {tau, -tau})
                         {
                             tau_gf_libri[t] = {};
                         }
@@ -600,13 +606,13 @@ void G0W0::build_spacetime(
                                         for (int i = 0; i != n_I; i++)
                                             for (int j = 0; j != n_J; j++)
                                             {
-                                                gf_IJ_block(i, j) =
-                                                    gf_global(atomic_basis_wfc.get_global_index(I, i),
-                                                              atomic_basis_wfc.get_global_index(J, j));
+                                                gf_IJ_block(i, j) = gf_global(
+                                                    atomic_basis_wfc.get_global_index(I, i),
+                                                    atomic_basis_wfc.get_global_index(J, j));
                                             }
                                         std::shared_ptr<std::valarray<Tdata>> mat_ptr =
-                                            std::make_shared<std::valarray<Tdata>>(gf_IJ_block.c,
-                                                                                   gf_IJ_block.size);
+                                            std::make_shared<std::valarray<Tdata>>(
+                                                gf_IJ_block.c, gf_IJ_block.size);
                                         tau_gf_libri[t][static_cast<int>(I)]
                                                     [{static_cast<int>(J), {R.x, R.y, R.z}}] =
                                                         RI::Tensor<Tdata>({n_I, n_J}, mat_ptr);
@@ -666,10 +672,10 @@ void G0W0::build_spacetime(
                     {
                         std::stringstream ss;
                         ss << Params::output_dir << "SigcRT"
-                           << "_ispin_" << std::setfill('0') << std::setw(2) << ispin
-                           << "_s_" << std::setw(1) << isoc1 << std::setw(1) << isoc2
-                           << "_itau_" << std::setfill('0') << std::setw(3) << itau
-                           << "_myid_" << std::setfill('0') << std::setw(5) << envs::myid_global << ".dat";
+                           << "_ispin_" << std::setfill('0') << std::setw(2) << ispin << "_s_"
+                           << std::setw(1) << isoc1 << std::setw(1) << isoc2 << "_itau_"
+                           << std::setfill('0') << std::setw(3) << itau << "_myid_"
+                           << std::setfill('0') << std::setw(5) << envs::myid_global << ".dat";
                         ofs_sigmac_r.open(ss.str(), std::ios::out | std::ios::binary);
                         ofs_sigmac_r.write((char *)&n_IJR_myid, sizeof(size_t));  // placeholder
                     }
@@ -805,12 +811,12 @@ void G0W0::build_spacetime(
                         ofs_sigmac_r.write((char *)&n_IJR_myid, sizeof(size_t));  // placeholder
                         ofs_sigmac_r.close();
                     }
-                }
-            }
-            Profiler::start("g0w0_build_spacetime_free_Ws");
-            gw_libri.free_Ws();
-            Profiler::stop("g0w0_build_spacetime_free_Ws");
-        }
+                }  // isoc2
+            }  // isoc1
+        }  // ispin
+        Profiler::start("g0w0_build_spacetime_free_Ws");
+        gw_libri.free_Ws();
+        Profiler::stop("g0w0_build_spacetime_free_Ws");
     }
     is_rspace_built_ = true;
     if (Params::use_shrink_abfs)
@@ -833,10 +839,10 @@ void G0W0::build_spacetime(
                         size_t n_IJR_myid = 0;
                         std::stringstream ss;
                         ss << Params::output_dir << "SigcRF"
-                           << "_ispin_" << std::setfill('0') << std::setw(2) << ispin
-                           << "_s_" << std::setw(1) << isoc1 << std::setw(1) << isoc2
-                           << "_iomega_" << std::setfill('0') << std::setw(3) << iomega
-                           << "_myid_" << std::setfill('0') << std::setw(5) << envs::myid_global << ".dat";
+                           << "_ispin_" << std::setfill('0') << std::setw(2) << ispin << "_s_"
+                           << std::setw(1) << isoc1 << std::setw(1) << isoc2 << "_iomega_"
+                           << std::setfill('0') << std::setw(3) << iomega << "_myid_"
+                           << std::setfill('0') << std::setw(5) << envs::myid_global << ".dat";
                         ofs_sigmac_r.open(ss.str(), std::ios::out | std::ios::binary);
                         ofs_sigmac_r.write((char *)&n_IJR_myid, sizeof(size_t));  // placeholder
 
@@ -943,7 +949,9 @@ void G0W0::build_sigc_matrix_KS(
                     std::map<int,
                              std::map<std::pair<int, std::array<int, 3>>, Tensor<complex<double>>>>
                         sigc_I_JR_local;
-                    for (const auto &R_IJ_sigc : sigc_is_freq)
+                    if (this->sigc_is_f_R_IJ.count(ispin) &&
+                        this->sigc_is_f_R_IJ.at(ispin).count(isoc1) &&
+                        this->sigc_is_f_R_IJ.at(ispin).at(isoc1).count(isoc2))
                     {
                         const auto R = R_IJ_sigc.first;
                         for (const auto &I_J_sigc : R_IJ_sigc.second)
