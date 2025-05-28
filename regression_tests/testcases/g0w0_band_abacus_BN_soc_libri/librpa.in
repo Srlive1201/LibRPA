@@ -1,3 +1,4 @@
+input_dir = ./input_librpa/
 task = g0w0_band
 nfreq = 6
 option_dielect_func = 3
