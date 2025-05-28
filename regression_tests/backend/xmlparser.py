@@ -24,12 +24,12 @@ def _process_run_parameters(node_testcase):
     r = node_testcase.find('run')
     ret = {}
 
-    pars_intrange = ["ntasks_disable", "nthreads_disable"]
-    for p in pars_intrange:
+    pars_exclud_intrange = ["ntasks_disable", "nthreads_disable"]
+    for p in pars_exclud_intrange:
         try:
             value = r.get(p, None)
-            if value.lower() == "none":
-                value = None
+            if value.lower() in ["none", "false"]:
+                value = tuple()
             else:
                 value = tuple(int(x) for x in value.replace(',', ' ').split())
         except (KeyError, ValueError):
@@ -70,6 +70,6 @@ class XMLParser:
                 validates = []
                 for v in tc.findall('validate'):
                     validates.append(_process_validate_parameters(v))
-                groups[gname].append((name, directory, build, run, validates))
-        self._groups = groups
+                groups[gname].append(dict(name=name, directory=directory, build=build, run=run, validates=validates))
+        self.groups = groups
 
