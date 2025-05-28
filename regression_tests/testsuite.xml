@@ -1,0 +1,16 @@
+<regressionsuite>
+
+  <group name="RPA correlation energy">
+    <testcase name="Water molecules in box (aims input)" directory="rpa_aims_mole_H2O_libri">
+      <build require_libri="true"
+             require_greenx_api="true"
+      />
+      <run ntasks_disable="none"
+           nthreads_disable="none"
+      />
+      <validate name="Correlation energy"
+      />
+    </testcase>
+  </group>
+
+</regressionsuite>
