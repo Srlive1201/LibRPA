@@ -1,0 +1,25 @@
+INPUT_PARAMETERS
+#Parameters	(General)
+pseudo_dir		./
+orbital_dir		./
+init_chg		file
+out_eband_terms		1
+out_mat_xc		    1
+out_wfc_lcao		1
+
+noncolin	0 
+lspinorb	1 
+
+calculation	    nscf
+ntype			2	
+nbands			52
+#Parameters (Accuracy)
+ecutwfc			100
+
+smearing_method 	gaussian
+smearing_sigma		1e-4
+basis_type		lcao
+ks_solver  genelpa
+dft_functional			pbe
+#rpa				1
+symmetry			-1

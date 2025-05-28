@@ -1,0 +1,9 @@
+task = g0w0_band
+nfreq = 6
+option_dielect_func = 3
+replace_w_head = f
+use_scalapack_gw_wc = t
+parallel_routing = libri
+vq_threshold = 0
+sqrt_coulomb_threshold = 1e-8
+use_soc = t
