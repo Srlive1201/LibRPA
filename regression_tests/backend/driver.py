@@ -1,7 +1,10 @@
+import os
 import pathlib
 import shutil
 import tarfile
 from collections import OrderedDict
+
+from .utils import run_librpa
 
 
 class Driver:
@@ -10,6 +13,7 @@ class Driver:
         self._dir_input = pathlib.Path(dir_input)
         self._dir_ref = pathlib.Path(dir_ref)
         self._workspace = pathlib.Path(workspace)
+        self._force = force
 
         # Check
         if not self._dir_input.exists():
@@ -18,15 +22,18 @@ class Driver:
             raise FileNotFoundError("Reference directory does not exist")
         if self._workspace.exists() and not force:
             raise FileExistsError("Workspace directory exists, please remove")
-        else:
-            self._workspace.mkdir(parents=True, exist_ok=True)
+        self._workspace.mkdir(parents=True, exist_ok=True)
 
         self._groups = groups
+        self._ntasks = None
+        self._nthreads = None
         # Testcases that are qualified after initialized with build and runtime conditions
         self._testcases_run = None
 
     def initialize(self, ntasks: int, nthreads: int, use_libri: bool, use_greenx_api: bool):
         self._testcases_run = []
+        self._ntasks = ntasks
+        self._nthreads = nthreads
 
         print("Initializing workspace targeting:")
         print("- MPI tasks :", ntasks)
@@ -40,10 +47,7 @@ class Driver:
 
         for g, gtcs in self._groups.items():
             for tc in gtcs:
-                name = tc["name"]
-                directory = tc["directory"]
                 build = tc["build"]
-
                 if build["require_libri"] and not use_libri:
                     skip_due_to_build.append(tc)
                     continue
@@ -79,11 +83,31 @@ class Driver:
             dname = tc["directory"]
             src = self._dir_input / dname
             dst = self._workspace / dname
-            dst.mkdir()
+            dst.mkdir(parents=True, exist_ok=True)
             shutil.copy2(src / "librpa.in", dst)
             with tarfile.open(src / "input_librpa.tar.gz", "r:gz") as tar:
                 tar.extractall(path=dst)
 
-    def run(self, exec: str, mpiexec: str, ):
+    def run(self, exec: str, mpiexec: str):
         if self._testcases_run is None:
             raise ValueError("initialize() needs to be called before running")
+
+        # Resolve the absolute path of executable to test
+        exec = pathlib.Path(exec).resolve()
+
+        os.environ["OMP_NUM_THREADS"] = str(self._nthreads)
+        args = []
+        if mpiexec == "srun":
+            args = [mpiexec, exec]
+        elif mpiexec in ["mpirun", "mpiexec"]:
+            args = [mpiexec, "-np", str(self._ntasks), exec]
+
+        print()
+        if not self._testcases_run:
+            print("No test case to run")
+            return
+        for tc in self._testcases_run:
+            dname = tc["directory"]
+            d = self._workspace / dname
+            print("Running {} [{}]".format(tc["name"], dname))
+            run_librpa(args, d)
