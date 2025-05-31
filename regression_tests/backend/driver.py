@@ -135,6 +135,8 @@ class Driver:
             # prepare inputs
             print("Running {} [{}]".format(tc["name"], dname))
             run_librpa(args, dst)
+        print("Finished test calculations")
+        print()
 
     def analyze(self):
         status = 0
@@ -163,6 +165,7 @@ class Driver:
             return 1
         return status
 
+    # TODO: make output work
     def print(self, output):
         for g, gtcs in self._groups.items():
             print("Test group: {}".format(g))
