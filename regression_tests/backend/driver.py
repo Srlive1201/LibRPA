@@ -171,7 +171,7 @@ class Driver:
             print("Test group: {}".format(g))
             print()
             for tc in gtcs:
-                results = tc["results"]
+                results = tc.get("results", None)
                 if results:
                     s = "Validate results for {} [directory: {}]: {}"
                     good_all = PASS_FAIL.get(all(x[0] for x in results))
