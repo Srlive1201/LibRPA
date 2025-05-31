@@ -8,6 +8,12 @@ from backend.driver import Driver
 
 def _parser():
     p = ArgumentParser(description=__doc__, formatter_class=RawDescriptionHelpFormatter)
+
+    subp = p.add_subparsers(dest="mode")
+    subp.add_parser("full", help="Run the regression tests and perform diff analysise")
+    subp.add_parser("run", help="Run the regression tests")
+    subp.add_parser("analyze", help="Perform diff analysis")
+
     p.add_argument("librpa_exec", help="Path to LibRPA executable for test")
     p.add_argument("--xml", type=str, default="testsuite.xml",
                    help="XML file containing test case configurations, default: testsuite.xml")
@@ -35,8 +41,13 @@ if __name__ == '__main__':
     suite = XMLParser(args.xml)
 
     # Create the test driver
-    driver = Driver(args.dir_input, args.dir_ref, args.workspace, suite.groups, args.force)
+    driver = Driver(args.dir_input, args.dir_ref, args.workspace, suite.groups)
 
     # Initialize workspace and run the tests
     driver.initialize(args.ntasks, args.nthreads, args.use_libri, args.use_greenx_api)
-    driver.run(args.librpa_exec, args.mpiexec)
+
+    if args.mode in ["run", "full"]:
+        driver.run(args.librpa_exec, args.mpiexec, args.force)
+
+    if args.mode in ["analyze", "full"]:
+        raise NotImplementedError

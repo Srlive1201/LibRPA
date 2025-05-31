@@ -24,8 +24,8 @@ def _process_run_parameters(node_testcase):
     r = node_testcase.find('run')
     ret = {}
 
-    pars_exclud_intrange = ["ntasks_disable", "nthreads_disable"]
-    for p in pars_exclud_intrange:
+    pars_intrange = ["ntasks_disable", "nthreads_disable", "ntasks_enable", "nthreads_enable"]
+    for p in pars_intrange:
         try:
             value = r.get(p, None)
             if value.lower() in ["none", "false"]:

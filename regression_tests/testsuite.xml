@@ -7,6 +7,8 @@
       />
       <run ntasks_disable="none"
            nthreads_disable="none"
+           ntasks_enable="none"
+           nthreads_enable="none"
       />
       <validate name="Correlation energy"
       />
@@ -20,6 +22,8 @@
       />
       <run ntasks_disable="none"
            nthreads_disable="none"
+           ntasks_enable="none"
+           nthreads_enable="none"
       />
       <validate name="QPE on k-grid"
       />
