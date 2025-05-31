@@ -136,4 +136,5 @@ class Validate():
             test = self._binary_extract(dir_test, self._file)
             refr = self._binary_extract(dir_refr, self._file)
 
+        # print(dir_test, dir_refr)
         return self._comparison(test, refr)

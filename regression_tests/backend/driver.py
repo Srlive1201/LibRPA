@@ -71,6 +71,7 @@ class Driver:
         print("- threads   :", nthreads)
         print("- LibRI     ?", use_libri)
         print("- GreenX API?", use_greenx_api)
+        print()
 
         # Filter test cases
         skip_due_to_build = []
@@ -136,6 +137,8 @@ class Driver:
             run_librpa(args, dst)
 
     def analyze(self):
+        status = 0
+        good_all = []
         for tc in self._testcases_filtered:
             name = tc["name"]
             dname = tc["directory"]
@@ -153,22 +156,27 @@ class Driver:
                                  v["binary_extract"],
                                  )
                 good, msg = entry.evaluate(refr, test)
+                good_all.append(good)
                 results.append([good, msg])
             tc["results"] = results
+        if not all(good_all):
+            return 1
+        return status
 
     def print(self, output):
         for g, gtcs in self._groups.items():
             print("Test group: {}".format(g))
-            print("")
+            print()
             for tc in gtcs:
-                if "results" in tc:
+                results = tc["results"]
+                if results:
                     s = "Validate results for {} [directory: {}]: {}"
-                    good_all = PASS_FAIL.get(all(x[0] for x in tc["results"]))
+                    good_all = PASS_FAIL.get(all(x[0] for x in results))
                     print(s.format(tc["name"], tc["directory"], good_all))
-                    for v, e in zip(tc["validates"], tc["results"]):
-                        print("- {:4s}: {:20s}, {:20s} |".format(PASS_FAIL[e[0]], v["name"].strip(), e[1]))
+                    for v, e in zip(tc["validates"], results):
+                        print("- {:4s}: {:s}, {:s}".format(PASS_FAIL[e[0]], v["name"].strip(), e[1]))
                 else:
                     s = "No results to validate for {} [directory: {}]"
                     print(s.format(tc["name"], tc["directory"]))
-                print("")
+                print()
 
