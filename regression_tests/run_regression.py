@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Driver for running regression test for LibRPA
 """
+import sys
 from argparse import ArgumentParser, RawDescriptionHelpFormatter
 from backend.xmlparser import XMLParser
 from backend.driver import Driver
@@ -31,6 +32,7 @@ def _parser():
                    help="Flag that the test executable is built with GreenX API")
     p.add_argument("--dir-input", type=str, default="testcases/", help="Directory that contain input data for testcases")
     p.add_argument("--dir-ref", type=str, default="refs/", help="Directory that contain reference results")
+    p.add_argument("-o", "--output", default="regression.log", help="output file of regression test")
     return p
 
 
@@ -49,5 +51,8 @@ if __name__ == '__main__':
     if args.mode in ["run", "full"]:
         driver.run(args.librpa_exec, args.mpiexec, args.force)
 
+    status = 0
     if args.mode in ["analyze", "full"]:
-        raise NotImplementedError
+        status = driver.analyze()
+        driver.print(args.output)
+    sys.exit(status)

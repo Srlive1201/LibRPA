@@ -11,6 +11,8 @@
            nthreads_enable="none"
       />
       <validate name="Correlation energy"
+                regex="Total EcRPA: \s+([-+]?\d*\.\d+)"
+                comparison="cmp_float.abs_diff(1e-4)"
       />
     </testcase>
   </group>
@@ -24,8 +26,6 @@
            nthreads_disable="none"
            ntasks_enable="none"
            nthreads_enable="none"
-      />
-      <validate name="QPE on k-grid"
       />
     </testcase>
   </group>

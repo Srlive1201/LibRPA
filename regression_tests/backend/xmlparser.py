@@ -44,7 +44,7 @@ def _process_validate_parameters(node_validate):
     name = nv.get('name')
     file = nv.get('file', 'librpa.out')
 
-    pars = ["regex", "occurence", "tablerows", "comparison", "binary"]
+    pars = ["regex", "occurences", "headers", "rows", "comparison", "binary_extract"]
     ret = dict(name=name, file=file)
     for p in pars:
         ret[p] = nv.get(p, None)
