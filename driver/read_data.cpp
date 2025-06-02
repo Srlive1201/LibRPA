@@ -460,7 +460,8 @@ void read_velocity(const string &file_path, MeanField &mf)
             }
         }
     }
-    std::cout << "* Success: read velocity from pyatb_librpa_df(ABACUS)." << std::endl;
+    if (mpi_comm_global_h.is_root())
+        std::cout << "* Success: read velocity from pyatb_librpa_df(ABACUS)." << std::endl;
 }
 
 void read_velocity_aims(MeanField &mf, const string &file_path)
@@ -572,7 +573,9 @@ void read_velocity_aims(MeanField &mf, const string &file_path)
     }*/
     // std::cout << "px(k=26, m=5, n=40): " << velocity.at(0).at(26).at(0)(5, 40) << std::endl;
     // std::cout << "px(k=26, m=40, n=5): " << velocity.at(0).at(26).at(0)(40, 5) << std::endl;
-    std::cout << "* Success: read moment from moment_KS_spin_01_kpt_*.dat(FHI-aims)." << std::endl;
+    if (mpi_comm_global_h.is_root())
+        std::cout << "* Success: read moment from moment_KS_spin_01_kpt_*.dat(FHI-aims)."
+                  << std::endl;
 }
 
 static size_t handle_Cs_file(const string &file_path, double threshold, const std::vector<atpair_t> &local_atpair)

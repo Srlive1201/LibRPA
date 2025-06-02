@@ -97,6 +97,8 @@ std::vector<double> interpolate_dielec_func(int option, const std::vector<double
 
             df_target = df_headwing.get_head_vec();
             df_headwing.test_head();
+            df_headwing.test_wing();
+            if (Params::debug) df_headwing.test_wing();
             break;
         }
         case 4: /* Read velocity matrix and calculate head only */

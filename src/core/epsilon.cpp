@@ -1961,6 +1961,16 @@ std::map<double, std::map<Vector3_Order<double>, Matz>> compute_Wc_freq_q_blacs(
                                                desc_nabf_nabf_opt, n_singular, eigenvalues.c, 0.5,
                                                sqrt_coulomb_threshold);
         }
+        ofs_myid << "eigenvalues: " << eigenvalues[0] << eigenvalues[1] << eigenvalues[2]
+                 << eigenvalues[-1] << std::endl;
+        auto a1 = desc_nabf_nabf_opt.indx_g2l_r(10);
+        auto ac1 = desc_nabf_nabf_opt.indx_g2l_c(10);
+        auto a2 = desc_nabf_nabf_opt.indx_g2l_c(20);
+        auto a3 = desc_nabf_nabf_opt.indx_g2l_c(30);
+        ofs_myid << "chi0,y: " << chi0_block(a1, ac1) << chi0_block(a1, a2) << chi0_block(a1, a3)
+                 << std::endl;
+        ofs_myid << "sqrtveig_blacs,y: " << sqrtveig_blacs(a1, ac1) << sqrtveig_blacs(a1, a2)
+                 << sqrtveig_blacs(a1, a3) << std::endl;
         ofs_myid << get_timestamp() << " Done power hemat couleps\n";
         // lib_printf("nabf %d nsingu %lu\n", n_abf, n_singular);
         // release sqrtv when the q-point is not Gamma, or macroscopic dielectric constant at
@@ -2033,6 +2043,7 @@ std::map<double, std::map<Vector3_Order<double>, Matz>> compute_Wc_freq_q_blacs(
             global::profiler.stop("epsilon_prepare_chi0_2d");
 
             global::profiler.start("epsilon_compute_eps", "Compute dielectric matrix");
+
             // for Gamma point, overwrite the head term
             if (epsmac_LF_imagfreq.size() > 0 && is_gamma_point(q))
             {
@@ -2061,6 +2072,12 @@ std::map<double, std::map<Vector3_Order<double>, Matz>> compute_Wc_freq_q_blacs(
                     }
                     ofs_myid << get_timestamp() << "Perform the head & wing element overwrite"
                              << endl;
+                    auto a1 = desc_nabf_nabf_opt.indx_g2l_r(1);
+                    auto ac1 = desc_nabf_nabf_opt.indx_g2l_c(1);
+                    auto a2 = desc_nabf_nabf_opt.indx_g2l_c(2);
+                    auto a3 = desc_nabf_nabf_opt.indx_g2l_c(3);
+                    ofs_myid << "chi0,z: " << chi0_block(a1, ac1) << chi0_block(a1, a2)
+                             << chi0_block(a1, a3) << std::endl;
                     df_headwing.rewrite_eps(chi0_block, ifreq, desc_nabf_nabf_opt);
                 }
                 else
