@@ -138,8 +138,9 @@ class diele_func
     void get_g_enclosing_gamma();
     void calculate_q_gamma();
     void cal_eps(const int ifreq, ArrayDesc &desc_nabf_nabf_opt, ArrayDesc &desc_body);
-    std::complex<double> compute_chi0_inv_00(const int ifreq);
-    std::complex<double> compute_chi0_inv_ij(const int ifreq, int i, int j);
+    // not used now due to performance optimization
+    // std::complex<double> compute_chi0_inv_00(const int ifreq);
+    // std::complex<double> compute_chi0_inv_ij(const int ifreq, int i, int j);
     void rewrite_eps(matrix_m<std::complex<double>> &chi0_block, const int ifreq,
                      ArrayDesc &desc_nabf_nabf_opt);
     void assign_chi0(matrix_m<std::complex<double>> &chi0_block, ArrayDesc &desc_nabf_nabf_opt);

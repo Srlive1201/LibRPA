@@ -138,12 +138,6 @@ void Chi0::build_gf_Rt(Vector3_Order<int> R, double tau)
     const bool use_soc = false;     // TODO replace with meanfield member variable
 
     assert(tau != 0);
-    assert(nbands_G < nbands);
-    if (nbands_G >= 0)
-        std::cout << "Note: Green's Function sums over " << nbands_G << " states."
-                  << std::endl;
-    else
-        std::cout << "Green's Function sums over all states." << std::endl;
 
     // temporary Green's function
     matrix gf_Rt_is_global(naos, naos);
@@ -312,11 +306,6 @@ static void build_gf_Rt_libri_serial(
 
     assert(kfrac_list.size() == as_size(nkpts));
     assert(nbands_G < nbands);
-    if (nbands_G >= 0)
-        global::ofs_myid << "Note: Green's Function sums over " << nbands_G << " states."
-                         << std::endl;
-    else
-        global::ofs_myid << "Green's Function sums over all states." << std::endl;
 
     std::map<Vector3_Order<int>, std::vector<atpair_t>> map_R_IJs;
     for (const auto &IJR : IJRs)
@@ -501,15 +490,6 @@ static void build_gf_Rt_libri_cplx(
     const bool use_soc = false;
 
     assert(klist.size() == nkpts);
-    assert(nbands_G < nbands);
-    if (mpi_comm_global_h.is_root())
-    {
-        if (nbands_G >= 0)
-            std::cout << "Note: Green's Function sums over " << nbands_G << " states."
-                      << std::endl;
-        else
-            std::cout << "Green's Function sums over all states." << std::endl;
-    }
 
     std::map<Vector3_Order<int>, std::vector<atpair_t>> map_R_IJs;
     for (const auto &IJR : IJRs)
@@ -559,9 +539,9 @@ static void build_gf_Rt_libri_cplx(
             auto scaled_wfc_conj = conj(mf.get_eigenvectors()[ispin][isoc2][ik]);
             for (int ib = 0; ib != nbands; ib++)
                 LapackConnector::scal(naos, scale(ik, ib), scaled_wfc_conj.c + naos * ib, 1);
-            if (Params::nbands_G >= 0)
+            if (nbands_G >= 0)
             {
-                for (int ib = Params::nbands_G; ib != nbands; ib++)
+                for (int ib = nbands_G; ib != nbands; ib++)
                 {
                     for (int inaos = 0; inaos != naos; inaos++) scaled_wfc_conj(ib, inaos) = 0.0;
                 }
@@ -968,7 +948,7 @@ static void shrink_abfs_chi0(
         }
         const auto IJq_chi = RI::Communicate_Tensors_Map_Judge::comm_map2_first(
             mpi_comm_global_h.comm, shrinked_chi0_libri, Iset_Jset_c.first, Iset_Jset_c.second);
-        if (Params::debug)
+        if (debug)
         {
             for (auto &IJqc : IJq_chi)
             {
@@ -1150,7 +1130,17 @@ void Chi0::build_chi0_q_space_time_LibRI_routing(const Cs_LRI &Cs,
                     std::map<int, std::map<std::pair<int, std::array<int, 3>>, RI::Tensor<Tdata>>> gf_po_libri;
                     std::map<int, std::map<std::pair<int, std::array<int, 3>>, RI::Tensor<Tdata>>> gf_ne_libri;
 
-                    // On-the-fly build of Green's function at specific spin channel and imaginary time
+                    // On-the-fly build of Green's function at specific spin channel and imaginary
+                    // time
+                    assert(nbands_G < nbands);
+                    if (mpi_comm_global_h.is_root())
+                    {
+                        if (nbands_G >= 0)
+                            std::cout << "Green's Function sums over " << nbands_G
+                                      << " states." << std::endl;
+                        else
+                            std::cout << "Green's Function sums over all states." << std::endl;
+                    }
                     if constexpr (std::is_same<Tdata, std::complex<double>>::value)
                     {
                         build_gf_Rt_libri_cplx(this->mf, isp, is1, is2, this->pbc.klist,

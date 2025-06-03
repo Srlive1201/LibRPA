@@ -450,13 +450,6 @@ std::complex<double> diele_func::compute_wing(int alpha, int iomega, int mu)
                     }
                 }
             }
-            if (debug)
-            {
-                if (alpha == 0 && iomega == 0 && mu == 0)
-                {
-                    std::cout << "sum over mn: " << ik << "," << test_tot << std::endl;
-                }
-            }
         }
 
         /*if (alpha == 0 && lambda == 0 && iomega == 0)
@@ -728,112 +721,112 @@ std::complex<double> diele_func::compute_Cs_ij2mn(int mu, int m, int n, int ik)
     return total;
 };
 
-// real double diagonalization
-// Note complex diagonalization conserves symmetry much better
-void diele_func::get_Xv_real(double vq_threshold, const librpa_int::atpair_k_cplx_mat_t &Vq)
-{
-    using namespace librpa_int;
-    using RI::Tensor;
-    using RI::Communicate_Tensors_Map_Judge::comm_map2_first;
-    using librpa_int::global::mpi_comm_global_h;
-
-    this->Coul_vector.clear();
-    this->Coul_value.clear();
-    const double CONE = 1.0;
-    std::array<double, 3> qa = {0.0, 0.0, 0.0};
-    Vector3_Order<double> q = {0.0, 0.0, 0.0};
-    size_t n_singular;
-    vec<double> eigenvalues(n_abf);
-
-    const auto &comm_h = mpi_comm_global_h;
-
-    comm_h.barrier();
-    BlacsCtxtHandler blacs_h(comm_h.comm);
-
-    ArrayDesc desc_nabf_nabf(blacs_h);
-    desc_nabf_nabf.init_square_blk(n_abf, n_abf, 0, 0);
-    const auto set_IJ_nabf_nabf =
-        get_necessary_IJ_from_block_2D_sy('U', atomic_basis_abf_, desc_nabf_nabf);
-    const auto s0_s1 = get_s0_s1_for_comm_map2_first(set_IJ_nabf_nabf);
-    auto coul_eigen_block = init_local_mat<double>(desc_nabf_nabf, MAJOR::COL);
-    auto coulwc_block = init_local_mat<double>(desc_nabf_nabf, MAJOR::COL);
-    coulwc_block.zero_out();
-    std::map<int, std::map<std::pair<int, std::array<double, 3>>, RI::Tensor<double>>>
-        couleps_libri;
-    const int natom = atomic_basis_abf_.n_atoms;
-    const auto atpair_local = dispatch_upper_triangular_tasks(
-        natom, blacs_h.myid, blacs_h.nprows, blacs_h.npcols,
-        blacs_h.myprow, blacs_h.mypcol);
-    for (const auto &Mu_Nu : atpair_local)
-    {
-        const auto Mu = Mu_Nu.first;
-        const auto Nu = Mu_Nu.second;
-        // ofs_myid << "Mu " << Mu << " Nu " << Nu << endl;
-        if (Vq.count(Mu) == 0 || Vq.at(Mu).count(Nu) == 0 ||
-            Vq.at(Mu).at(Nu).count(q) == 0)
-            continue;
-        auto Vq_cpl = *(Vq.at(Mu).at(Nu).at(q));
-        // if (Vq.count(Mu) == 0 || Vq.at(Mu).count(Nu) == 0 || Vq.at(Mu).at(Nu).count(q) == 0)
-        //     continue;
-        // auto Vq_cpl = *(Vq.at(Mu).at(Nu).at(q));
-        const auto &Vq0 = std::make_shared<matrix>(Vq_cpl.real());
-        // const auto &Vq0 = Vq.at(Mu).at(Nu).at(q);
-        const auto n_mu = atomic_basis_abf_.get_atom_nb(Mu);
-        const auto n_nu = atomic_basis_abf_.get_atom_nb(Nu);
-        std::valarray<double> Vq_va(Vq0->c, Vq0->size);
-        auto pvq = std::make_shared<std::valarray<double>>();
-        *pvq = Vq_va;
-        couleps_libri[Mu][{Nu, qa}] = RI::Tensor<double>({n_mu, n_nu}, pvq);
-    }
-    const auto IJq_coul = RI::Communicate_Tensors_Map_Judge::comm_map2_first(
-        mpi_comm_global_h.comm, couleps_libri, s0_s1.first, s0_s1.second);
-    collect_block_from_ALL_IJ_Tensor(coulwc_block, desc_nabf_nabf, atomic_basis_abf_, qa,
-                                     true, CONE, IJq_coul, MAJOR::ROW);
-    power_hemat_blacs_real(coulwc_block, desc_nabf_nabf, coul_eigen_block, desc_nabf_nabf,
-                           n_singular, eigenvalues.c, 1.0, vq_threshold);
-    this->n_nonsingular = n_abf - n_singular;
-    for (int iv = 1; iv != n_nonsingular; iv++)
-    {
-        // Here eigen solved by Scalapack is ascending order,
-        // however, what we want is descending order.
-        this->Coul_value.push_back(eigenvalues.c[iv] + 0.0);  // throw away the largest one
-        std::vector<std::complex<double>> newRow;
-
-        for (int jabf = 0; jabf != n_abf; jabf++)
-        {
-            newRow.push_back(coul_eigen_block(jabf, iv));
-        }
-        this->Coul_vector.push_back(newRow);
-    }
-
-    if (mpi_comm_global_h.is_root())
-    {
-        std::cout << "The largest/smallest eigenvalue of Coulomb matrix(non-singular): "
-                  << this->Coul_value.front() << ", " << this->Coul_value.back() << std::endl;
-        std::cout << "The 1st/2nd/3rd/-1th eigenvalue of Coulomb matrix(Full): " << eigenvalues.c[0]
-                  << ", " << eigenvalues.c[1] << ", " << eigenvalues.c[2] << ", "
-                  << eigenvalues.c[n_abf - 1] << std::endl;
-        std::cout << "Dim of eigenvectors: " << coul_eigen_block.nr() << ", "
-                  << coul_eigen_block.nc() << std::endl;
-    }
-    /*std::cout << "Coulomb vector: lambda=-1" << std::endl;
-    for (int j = 0; j != n_abf; j++)
-    {
-        std::cout << j << "," << coul_eigen_block(j, 0) << std::endl;
-    }
-    std::cout << "Coulomb vector: lambda=0" << std::endl;
-    for (int j = 0; j != n_abf; j++)
-    {
-        std::cout << j << "," << Coul_vector[0][j] << std::endl;
-    }
-    std::cout << "Coulomb vector: lambda=1" << std::endl;
-    for (int j = 0; j != n_abf; j++)
-    {
-        std::cout << j << "," << Coul_vector[1][j] << std::endl;
-    }*/
-    if (mpi_comm_global_h.is_root())
-        std::cout << "* Success: diagonalize Coulomb matrix in the ABFs repre." << std::endl;
-};
+// // real double diagonalization
+// // Note complex diagonalization conserves symmetry much better
+// void diele_func::get_Xv_real(double vq_threshold, const librpa_int::atpair_k_cplx_mat_t &Vq)
+// {
+//     using namespace librpa_int;
+//     using RI::Tensor;
+//     using RI::Communicate_Tensors_Map_Judge::comm_map2_first;
+//     using librpa_int::global::mpi_comm_global_h;
+// 
+//     this->Coul_vector.clear();
+//     this->Coul_value.clear();
+//     const double CONE = 1.0;
+//     std::array<double, 3> qa = {0.0, 0.0, 0.0};
+//     Vector3_Order<double> q = {0.0, 0.0, 0.0};
+//     size_t n_singular;
+//     vec<double> eigenvalues(n_abf);
+// 
+//     const auto &comm_h = mpi_comm_global_h;
+// 
+//     comm_h.barrier();
+//     BlacsCtxtHandler blacs_h(comm_h.comm);
+// 
+//     ArrayDesc desc_nabf_nabf(blacs_h);
+//     desc_nabf_nabf.init_square_blk(n_abf, n_abf, 0, 0);
+//     const auto set_IJ_nabf_nabf =
+//         get_necessary_IJ_from_block_2D_sy('U', atomic_basis_abf_, desc_nabf_nabf);
+//     const auto s0_s1 = get_s0_s1_for_comm_map2_first(set_IJ_nabf_nabf);
+//     auto coul_eigen_block = init_local_mat<double>(desc_nabf_nabf, MAJOR::COL);
+//     auto coulwc_block = init_local_mat<double>(desc_nabf_nabf, MAJOR::COL);
+//     coulwc_block.zero_out();
+//     std::map<int, std::map<std::pair<int, std::array<double, 3>>, RI::Tensor<double>>>
+//         couleps_libri;
+//     const int natom = atomic_basis_abf_.n_atoms;
+//     const auto atpair_local = dispatch_upper_triangular_tasks(
+//         natom, blacs_h.myid, blacs_h.nprows, blacs_h.npcols,
+//         blacs_h.myprow, blacs_h.mypcol);
+//     for (const auto &Mu_Nu : atpair_local)
+//     {
+//         const auto Mu = Mu_Nu.first;
+//         const auto Nu = Mu_Nu.second;
+//         // ofs_myid << "Mu " << Mu << " Nu " << Nu << endl;
+//         if (Vq.count(Mu) == 0 || Vq.at(Mu).count(Nu) == 0 ||
+//             Vq.at(Mu).at(Nu).count(q) == 0)
+//             continue;
+//         auto Vq_cpl = *(Vq.at(Mu).at(Nu).at(q));
+//         // if (Vq.count(Mu) == 0 || Vq.at(Mu).count(Nu) == 0 || Vq.at(Mu).at(Nu).count(q) == 0)
+//         //     continue;
+//         // auto Vq_cpl = *(Vq.at(Mu).at(Nu).at(q));
+//         const auto &Vq0 = std::make_shared<matrix>(Vq_cpl.real());
+//         // const auto &Vq0 = Vq.at(Mu).at(Nu).at(q);
+//         const auto n_mu = atomic_basis_abf_.get_atom_nb(Mu);
+//         const auto n_nu = atomic_basis_abf_.get_atom_nb(Nu);
+//         std::valarray<double> Vq_va(Vq0->c, Vq0->size);
+//         auto pvq = std::make_shared<std::valarray<double>>();
+//         *pvq = Vq_va;
+//         couleps_libri[Mu][{Nu, qa}] = RI::Tensor<double>({n_mu, n_nu}, pvq);
+//     }
+//     const auto IJq_coul = RI::Communicate_Tensors_Map_Judge::comm_map2_first(
+//         mpi_comm_global_h.comm, couleps_libri, s0_s1.first, s0_s1.second);
+//     collect_block_from_ALL_IJ_Tensor(coulwc_block, desc_nabf_nabf, atomic_basis_abf_, qa,
+//                                      true, CONE, IJq_coul, MAJOR::ROW);
+//     power_hemat_blacs_real(coulwc_block, desc_nabf_nabf, coul_eigen_block, desc_nabf_nabf,
+//                            n_singular, eigenvalues.c, 1.0, vq_threshold);
+//     this->n_nonsingular = n_abf - n_singular;
+//     for (int iv = 1; iv != n_nonsingular; iv++)
+//     {
+//         // Here eigen solved by Scalapack is ascending order,
+//         // however, what we want is descending order.
+//         this->Coul_value.push_back(eigenvalues.c[iv] + 0.0);  // throw away the largest one
+//         std::vector<std::complex<double>> newRow;
+// 
+//         for (int jabf = 0; jabf != n_abf; jabf++)
+//         {
+//             newRow.push_back(coul_eigen_block(jabf, iv));
+//         }
+//         this->Coul_vector.push_back(newRow);
+//     }
+// 
+//     if (mpi_comm_global_h.is_root())
+//     {
+//         std::cout << "The largest/smallest eigenvalue of Coulomb matrix(non-singular): "
+//                   << this->Coul_value.front() << ", " << this->Coul_value.back() << std::endl;
+//         std::cout << "The 1st/2nd/3rd/-1th eigenvalue of Coulomb matrix(Full): " << eigenvalues.c[0]
+//                   << ", " << eigenvalues.c[1] << ", " << eigenvalues.c[2] << ", "
+//                   << eigenvalues.c[n_abf - 1] << std::endl;
+//         std::cout << "Dim of eigenvectors: " << coul_eigen_block.nr() << ", "
+//                   << coul_eigen_block.nc() << std::endl;
+//     }
+//     /*std::cout << "Coulomb vector: lambda=-1" << std::endl;
+//     for (int j = 0; j != n_abf; j++)
+//     {
+//         std::cout << j << "," << coul_eigen_block(j, 0) << std::endl;
+//     }
+//     std::cout << "Coulomb vector: lambda=0" << std::endl;
+//     for (int j = 0; j != n_abf; j++)
+//     {
+//         std::cout << j << "," << Coul_vector[0][j] << std::endl;
+//     }
+//     std::cout << "Coulomb vector: lambda=1" << std::endl;
+//     for (int j = 0; j != n_abf; j++)
+//     {
+//         std::cout << j << "," << Coul_vector[1][j] << std::endl;
+//     }*/
+//     if (mpi_comm_global_h.is_root())
+//         std::cout << "* Success: diagonalize Coulomb matrix in the ABFs repre." << std::endl;
+// };
 
 void diele_func::get_Xv_cpl(double vq_threshold, const librpa_int::atpair_k_cplx_mat_t &Vq)
 {
@@ -914,8 +907,8 @@ void diele_func::get_Xv_cpl(double vq_threshold, const librpa_int::atpair_k_cplx
         std::cout << "The 1st/2nd/3rd/-1th eigenvalue of Coulomb matrix(Full): " << eigenvalues.c[0]
                   << ", " << eigenvalues.c[1] << ", " << eigenvalues.c[2] << ", "
                   << eigenvalues.c[n_abf - 1] << std::endl;
-        std::cout << "Dim of eigenvectors: " << coul_eigen_block.dataobj.nr() << ", "
-                  << coul_eigen_block.dataobj.nc() << std::endl;
+        // std::cout << "Dim of eigenvectors: " << coul_eigen_block.dataobj.nr() << ", "
+        //           << coul_eigen_block.dataobj.nc() << std::endl;
 
         std::cout << "* Success: diagonalize Coulomb matrix in the ABFs repre.\n";
     }
@@ -1079,7 +1072,8 @@ void diele_func::construct_L(const int ifreq, ArrayDesc &desc_body)
 
 void diele_func::get_Leb_points()
 {
-    auto quad_order = lebedev::QuadratureOrder::order_590;
+    auto quad_order = lebedev::QuadratureOrder::order_5810;
+    // lebedev::QuadratureOrder::order_590;
     auto quad_points = lebedev::QuadraturePoints(quad_order);
     qx_leb = quad_points.get_x();
     qy_leb = quad_points.get_y();
@@ -1168,32 +1162,93 @@ void diele_func::cal_eps(const int ifreq, ArrayDesc &desc_nabf_nabf_opt, ArrayDe
               << std::endl;*/
     construct_L(ifreq, desc_body);
 
-    profiler.start("cal_inverse_dielectric_matrix_ij");
-    profiler.start("cal_inverse_dielectric_matrix_ij");
-    // #pragma omp parallel for schedule(dynamic) collapse(2)
-    for (int i = 0; i != n_nonsingular; i++)
+    profiler.start("precompute_q_data");
+
+    const size_t nleb = qw_leb.size();
+    std::vector<std::complex<double>> weights(nleb);
+    std::vector<std::array<double, 3>> q_vectors(nleb);
+
+    const auto L00 = Lind(0, 0), L01 = Lind(0, 1), L02 = Lind(0, 2);
+    const auto L10 = Lind(1, 0), L11 = Lind(1, 1), L12 = Lind(1, 2);
+    const auto L20 = Lind(2, 0), L21 = Lind(2, 1), L22 = Lind(2, 2);
+
+#pragma omp parallel for schedule(static)
+    for (int ileb = 0; ileb < nleb; ++ileb)
     {
-        const int ilo = desc_nabf_nabf_opt.indx_g2l_r(i);
-        if (ilo < 0) continue;
-        for (int j = 0; j != n_nonsingular; j++)
+        const double qx = qx_leb[ileb];
+        const double qy = qy_leb[ileb];
+        const double qz = qz_leb[ileb];
+
+        q_vectors[ileb] = {qx, qy, qz};
+
+        const auto qLq = qx * (qx * L00 + qy * L01 + qz * L02) +
+                         qy * (qx * L10 + qy * L11 + qz * L12) +
+                         qz * (qx * L20 + qy * L21 + qz * L22);
+
+        weights[ileb] = qw_leb[ileb] * std::pow(q_gamma[ileb], 3) / (3.0 * vol_gamma) / qLq;
+    }
+    Profiler::stop("precompute_q_data");
+
+    Profiler::start("cal_inverse_dielectric_matrix_ij");
+    int i_start = 0, i_end = n_nonsingular;
+    int j_start = 0, j_end = n_nonsingular;
+#pragma omp parallel for schedule(dynamic, 4) collapse(2)
+    for (int i = i_start; i != i_end; i++)
+    {
+        for (int j = j_start; j != j_end; j++)
         {
+            const int ilo = desc_nabf_nabf_opt.indx_g2l_r(i);
+            if (ilo < 0) continue;
             const int jlo = desc_nabf_nabf_opt.indx_g2l_c(j);
             if (jlo < 0) continue;
-            if (i == 0 || j == 0)
+
+            complex<double> result = 0.0;
+
+            if (i == 0 && j == 0)
             {
-                if (i == 0 && j == 0)
-                    chi0(ilo, jlo) = compute_chi0_inv_00(ifreq);
-                else
-                    chi0(ilo, jlo) = 0.0;
+                for (int ileb = 0; ileb < nleb; ++ileb)
+                {
+                    result += weights[ileb];
+                }
+            }
+            else if (i == 0 || j == 0)
+            {
+                result = 0.0;
             }
             else
             {
-                chi0(ilo, jlo) = compute_chi0_inv_ij(ifreq, i - 1, j - 1);
+                const int idx_i = i - 1, idx_j = j - 1;
+
+                const auto bw_i0 = bw(idx_i, 0), bw_i1 = bw(idx_i, 1), bw_i2 = bw(idx_i, 2);
+                const auto wb_j0 = wb(0, idx_j), wb_j1 = wb(1, idx_j), wb_j2 = wb(2, idx_j);
+
+                for (int ileb = 0; ileb < nleb; ++ileb)
+                {
+                    const auto &[qx, qy, qz] = q_vectors[ileb];
+                    const auto bwq = bw_i0 * qx + bw_i1 * qy + bw_i2 * qz;
+                    const auto qwb = qx * wb_j0 + qy * wb_j1 + qz * wb_j2;
+
+                    result += weights[ileb] * bwq * qwb;
+                }
             }
+            chi0(ilo, jlo) = result;
         }
     }
     auto identity = init_local_mat<complex<double>>(desc_body, MAJOR::COL);
-    identity.set_diag(1.0);
+    for (int i = 0; i < n_nonsingular - 1; i++)
+    {
+        const int ilo = desc_body.indx_g2l_r(i);
+        if (ilo < 0) continue;
+        for (int j = 0; j < n_nonsingular - 1; j++)
+        {
+            const int jlo = desc_body.indx_g2l_c(j);
+            if (jlo < 0) continue;
+            if (i == j)
+                identity(ilo, jlo) = 1.0;
+            else
+                identity(ilo, jlo) = 0.0;
+        }
+    }
     ScalapackConnector::pgemm_f('N', 'N', n_nonsingular - 1, n_nonsingular - 1, n_nonsingular - 1,
                                 1.0, body_inv.ptr(), 1, 1, desc_body.desc, identity.ptr(), 1, 1,
                                 desc_body.desc, 1.0, chi0.ptr(), 2, 2, desc_nabf_nabf_opt.desc);
@@ -1204,7 +1259,7 @@ void diele_func::cal_eps(const int ifreq, ArrayDesc &desc_nabf_nabf_opt, ArrayDe
     profiler.stop("cal_inverse_dielectric_matrix");
 };
 
-std::complex<double> diele_func::compute_chi0_inv_00(const int ifreq)
+/*std::complex<double> diele_func::compute_chi0_inv_00(const int ifreq)
 {
     std::complex<double> total = 0.0;
     std::vector<std::complex<double>> partial_sum(qw_leb.size(), 0.0);
@@ -1267,7 +1322,7 @@ std::complex<double> diele_func::compute_chi0_inv_ij(const int ifreq, int i, int
     }
 
     return total * (1.0 / (3.0 * vol_gamma));
-}
+}*/
 
 void diele_func::assign_chi0(matrix_m<std::complex<double>> &chi0_block,
                              ArrayDesc &desc_nabf_nabf_opt)
