@@ -150,10 +150,20 @@ void task_g0w0(std::map<Vector3_Order<double>, ComplexMatrix> &sinvS)
         Profiler::stop("ft_vq_cut");
 
         Profiler::start("g0w0_exx_real_work");
-        if (Params::use_soc)
-            exx.build<std::complex<double>>(Cs_data, Rlist, VR);
+        if (Params::use_shrink_abfs)
+        {
+            if (Params::use_soc)
+                exx.build<std::complex<double>>(Cs_shrinked_data, Rlist, VR);
+            else
+                exx.build<double>(Cs_shrinked_data, Rlist, VR);
+        }
         else
-            exx.build<double>(Cs_data, Rlist, VR);
+        {
+            if (Params::use_soc)
+                exx.build<std::complex<double>>(Cs_data, Rlist, VR);
+            else
+                exx.build<double>(Cs_data, Rlist, VR);
+        }
         exx.build_KS_kgrid();
         Profiler::stop("g0w0_exx_real_work");
     }

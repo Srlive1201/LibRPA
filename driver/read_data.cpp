@@ -460,7 +460,7 @@ void read_velocity(const string &file_path, MeanField &mf)
             }
         }
     }
-    if (mpi_comm_global_h.is_root())
+    if (LIBRPA::envs::mpi_comm_global_h.is_root())
         std::cout << "* Success: read velocity from pyatb_librpa_df(ABACUS)." << std::endl;
 }
 
@@ -573,7 +573,7 @@ void read_velocity_aims(MeanField &mf, const string &file_path)
     }*/
     // std::cout << "px(k=26, m=5, n=40): " << velocity.at(0).at(26).at(0)(5, 40) << std::endl;
     // std::cout << "px(k=26, m=40, n=5): " << velocity.at(0).at(26).at(0)(40, 5) << std::endl;
-    if (mpi_comm_global_h.is_root())
+    if (LIBRPA::envs::mpi_comm_global_h.is_root())
         std::cout << "* Success: read moment from moment_KS_spin_01_kpt_*.dat(FHI-aims)."
                   << std::endl;
 }
@@ -816,8 +816,9 @@ std::vector<size_t> handle_Cs_file_dry(const string &file_path, double threshold
                     infile >> Cs_ele;
                     maxval = std::max(maxval, std::abs(stod(Cs_ele)));
                 }
-        librpa_int::global::ofs_myid << " " << ia1 << " " << ia2 << " (" << ic_1 << "," << ic_2 << "," << ic_3 << ") " << maxval
-                               << " keep? " << (maxval >= threshold) << endl;
+        librpa_int::global::ofs_myid << id << " " << ia1 << " " << ia2 << " (" << ic_1 << ","
+                                     << ic_2 << "," << ic_3 << ") " << maxval << " keep? "
+                                     << (maxval >= threshold) << endl;
         if (maxval >= threshold) Cs_ids_keep.push_back(id);
         id++;
     }
