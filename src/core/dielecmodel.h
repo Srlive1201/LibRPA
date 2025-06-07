@@ -122,7 +122,7 @@ class diele_func
                            ArrayDesc &desc_nabf_nabf_opt);
     // tranform Cs_ij(R) to Cs_ij(k)
     // diagonalize real Vq_cut(q=0)
-    void get_Xv_real(double vq_threshold, const librpa_int::atpair_k_cplx_mat_t &Vq);
+    // void get_Xv_real(double vq_threshold, const librpa_int::atpair_k_cplx_mat_t &Vq);
     // diagonalize complex Vq_cut(q=0)
     void get_Xv_cpl(double vq_threshold, const librpa_int::atpair_k_cplx_mat_t &Vq);
     void test_wing();
