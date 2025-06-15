@@ -12,11 +12,11 @@
 #include "../utils/error.h"
 #include "../utils/constants.h"
 #include "../utils/profiler.h"
+#include "../utils/utils_mem.h"
 #include "atomic_basis.h"
 #include "pbc.h"
 #include "ri.h"
-// #include "utils_atomic_basis_blacs.h"
-#include "../lebedev-quadrature/lebedev_quadrature.hpp"
+#include <lebedev_quadrature.hpp>
 #ifdef LIBRPA_USE_LIBRI
 #include <RI/comm/mix/Communicate_Tensors_Map_Judge.h>
 #include <RI/global/Tensor.h>
@@ -270,6 +270,10 @@ void diele_func::set_0_wing()
 
 void diele_func::cal_wing(const librpa_int::Cs_LRI &Cs_data)
 {
+    using global::profiler;
+
+    const bool use_soc = false;
+
     profiler.start("cal_wing_mu");
     init_wing();
     int n_lambda = this->n_nonsingular - 1;
@@ -298,7 +302,7 @@ void diele_func::cal_wing(const librpa_int::Cs_LRI &Cs_data)
             {
                 if (n_spin == 1)
                 {
-                    if (Params::use_soc)
+                    if (use_soc)
                         this->wing_mu.at(iomega)(mu, alpha) *= -dielectric_unit;
                     else
                         this->wing_mu.at(iomega)(mu, alpha) *= -dielectric_unit * 2.0;
@@ -321,12 +325,15 @@ void diele_func::cal_wing(const librpa_int::Cs_LRI &Cs_data)
     this->Coul_value.clear();
     this->Ctri_mn.clear();
     this->Ctri_ij.clear();
+    release_free_mem();
     profiler.stop("cal_wing_mu");
 };
 
 void diele_func::wing_mu_to_lambda(matrix_m<std::complex<double>> &sqrtveig_blacs,
                                    ArrayDesc &desc_nabf_nabf_opt)
 {
+    using global::profiler;
+
     profiler.start("cal_wing");
     int n_lambda = this->n_nonsingular - 1;
     ArrayDesc desc_wing_mu(blacs_ctxt_global_h);

@@ -48,6 +48,35 @@ void task_g0w0_band(std::map<Vector3_Order<double>, ComplexMatrix> &sinvS)
     Chi0 chi0(meanfield, klist, tfg);
     chi0.gf_R_threshold = Params::gf_R_threshold;
 
+    Profiler::start("read_vq_cut", "Load truncated Coulomb");
+    if (LIBRPA::parallel_routing == LIBRPA::ParallelRouting::R_TAU)
+    {
+        read_Vq_full(driver_params.input_dir, "coulomb_cut_", true);
+    }
+    else
+    {
+        // NOTE: local_atpair already set in the main.cpp.
+        //       It can consists of distributed atom pairs of only upper half.
+        //       Setup of local_atpair may be better to extracted as some util function,
+        //       instead of in the main driver.
+        read_Vq_row(driver_params.input_dir, "coulomb_cut_", Params::vq_threshold, local_atpair,
+                    true);
+    }
+    Profiler::cease("read_vq_cut");
+
+    std::vector<double> epsmac_LF_imagfreq_re;
+    if (Params::replace_w_head)
+    {
+        std::vector<double> omegas_dielect;
+        std::vector<double> dielect_func;
+        if (Params::option_dielect_func != 3 && Params::option_dielect_func != 4)
+            read_dielec_func(driver_params.input_dir + "dielecfunc_out", omegas_dielect,
+                             dielect_func);
+
+        epsmac_LF_imagfreq_re = interpolate_dielec_func(Params::option_dielect_func, omegas_dielect,
+                                                        dielect_func, chi0.tfg.get_freq_nodes());
+    }
+
     chi0.set_input_dir(driver_params.input_dir);
     Profiler::start("chi0_build", "Build response function chi0");
     chi0.build(Cs_data, Rlist, period, local_atpair, qlist, sinvS);
@@ -80,35 +109,6 @@ void task_g0w0_band(std::map<Vector3_Order<double>, ComplexMatrix> &sinvS)
                 }
             }
         }
-    }
-
-    Profiler::start("read_vq_cut", "Load truncated Coulomb");
-    if (LIBRPA::parallel_routing == LIBRPA::ParallelRouting::R_TAU)
-    {
-        read_Vq_full(driver_params.input_dir, "coulomb_cut_", true);
-    }
-    else
-    {
-        // NOTE: local_atpair already set in the main.cpp.
-        //       It can consists of distributed atom pairs of only upper half.
-        //       Setup of local_atpair may be better to extracted as some util function,
-        //       instead of in the main driver.
-        read_Vq_row(driver_params.input_dir, "coulomb_cut_", Params::vq_threshold, local_atpair,
-                    true);
-    }
-    Profiler::cease("read_vq_cut");
-
-    std::vector<double> epsmac_LF_imagfreq_re;
-    if (Params::replace_w_head)
-    {
-        std::vector<double> omegas_dielect;
-        std::vector<double> dielect_func;
-        if (Params::option_dielect_func != 3 && Params::option_dielect_func != 4)
-            read_dielec_func(driver_params.input_dir + "dielecfunc_out", omegas_dielect,
-                             dielect_func);
-
-        epsmac_LF_imagfreq_re = interpolate_dielec_func(Params::option_dielect_func, omegas_dielect,
-                                                        dielect_func, chi0.tfg.get_freq_nodes());
     }
 
     Profiler::start("g0w0_exx", "Build exchange self-energy");
@@ -325,8 +325,9 @@ void task_g0w0_band(std::map<Vector3_Order<double>, ComplexMatrix> &sinvS)
     Profiler::start("g0w0_band_load_kpath");
     int n_basis_band, n_states_band, n_spin_band;
     int flag;
-    std::vector<Vector3_Order<double>> kfrac_band = read_band_kpath_info(
-        driver_params.input_dir + "band_kpath_info", n_basis_band, n_states_band, n_spin_band, flag);
+    std::vector<Vector3_Order<double>> kfrac_band =
+        read_band_kpath_info(driver_params.input_dir + "band_kpath_info", n_basis_band,
+                             n_states_band, n_spin_band, flag);
     Profiler::stop("g0w0_band_load_kpath");
 
     if (flag == 0)
@@ -348,8 +349,8 @@ void task_g0w0_band(std::map<Vector3_Order<double>, ComplexMatrix> &sinvS)
         if (mpi_comm_global_h.is_root())
         {
             const auto fn = driver_params.input_dir + "band_kpath_info";
-            std::cout << "Warning! Failed to read " << fn
-                      << " , skip band structure" << std::endl << std::endl;
+            std::cout << "Warning! Failed to read " << fn << " , skip band structure" << std::endl
+                      << std::endl;
         }
         mpi_comm_global_h.barrier();
         Profiler::stop("g0w0_band");
