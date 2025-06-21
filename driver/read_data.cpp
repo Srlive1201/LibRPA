@@ -2247,7 +2247,8 @@ void read_band_meanfield_data(const string &dir_path)
             driver::h.set_wfc_band_packed(i_spin, ik, n_states, n_basis_wfc, wfc.data());
         }
 
-        size_t total_complex = static_cast<size_t>(n_states) * static_cast<size_t>(n_basis_wfc);
+        // TODO: decide which basis to use
+        size_t total_complex = static_cast<size_t>(n_states) * static_cast<size_t>(n_basis_wfc) * n_spins;
         size_t total_doubles = total_complex * 2;
 
         std::vector<double> double_buffer(total_doubles);
