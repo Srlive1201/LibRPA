@@ -3,6 +3,7 @@
  * @date      2024-04-25
  */
 #include "analycont.h"
+#include "constants.h"
 
 #include <cassert>
 // #include <iostream>
@@ -16,7 +17,7 @@ namespace LIBRPA
 AnalyContPade::AnalyContPade(int n_pars_in, const std::vector<cplxdb> &xs, const std::vector<cplxdb> &data)
     : n_pars(n_pars_in)
 {
-    int n_data = data.size();
+    const int n_data = data.size();
     std::vector<cplxdb> data_npar;
 
     assert (n_pars > 0);
@@ -75,6 +76,21 @@ AnalyContPade::get(const cplxdb &x) const
         tmp = 1.0 + par_y[i_par] * (x - par_x[i_par-1]) / tmp;
     }
     return par_y[0] / tmp;
+}
+
+const std::vector<double> get_specfunc(const AnalyCont &ac, const std::vector<cplxdb> omegas,
+                                       const double &ref, const double &e_ks, const double &v_xc,
+                                       const double &v_exx)
+{
+    const int n_freq = omegas.size();
+    std::vector<double> sf(n_freq, 0.0);
+    for (int i = 0; i < n_freq; i++)
+    {
+        const auto &f = omegas[i];
+        cplxdb sf_c = f - e_ks + v_xc - v_exx - ac.get(f - ref);
+        sf[i] = - ((1.0 / PI) / sf_c).imag();
+    }
+    return sf;
 }
 
 }

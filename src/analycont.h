@@ -12,7 +12,13 @@
 namespace LIBRPA
 {
 
-class AnalyContPade
+class AnalyCont
+{
+public:
+    virtual cplxdb get(const cplxdb &x) const = 0;
+};
+
+class AnalyContPade: public AnalyCont
 {
 private:
     int n_pars;
@@ -34,4 +40,10 @@ public:
     cplxdb get(const cplxdb &x) const;
 };
 
+/*!
+ * @brief get the spectral function from Pade approximant
+ */
+const std::vector<double> get_specfunc(const AnalyCont &ac, const std::vector<cplxdb> omegas,
+                                       const double &ref, const double &e_ks, const double &v_xc,
+                                       const double &v_exx);
 }
