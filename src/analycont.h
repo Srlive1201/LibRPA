@@ -41,7 +41,7 @@ public:
 };
 
 /*!
- * @brief get the spectral function from Pade approximant
+ * @brief get the spectral function from Pade approximant, based on diagonal approximation
  */
 const std::vector<double> get_specfunc(const AnalyCont &ac, const std::vector<cplxdb> omegas,
                                        const double &ref, const double &e_ks, const double &v_xc,
