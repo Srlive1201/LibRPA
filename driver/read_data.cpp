@@ -2284,7 +2284,6 @@ void read_band_meanfield_data(const string &dir_path)
                         {
                             index = i_spin * n_basis * n_states + ib * n_basis + iw;
                         }
-                        if (ik == 0) std::cout << index << endl;
                         // mf_band.get_eigenvectors()[i_spin][i_soc][ik](ib, iw) = vecs[index];
                     }
                 }
