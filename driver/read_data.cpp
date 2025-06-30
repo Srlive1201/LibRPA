@@ -2276,12 +2276,15 @@ void read_band_meanfield_data(const string &dir_path)
                         size_t index;
                         if (driver::opts.use_soc)
                         {
+                            // NOTE: i_spin should be 0 for spinor-form wavefunction
+                            assert (i_spin < 1);
                             index = ib * n_basis * n_soc + iw * n_soc + i_soc;
                         }
                         else
                         {
-                            index = ib * n_basis + iw;
+                            index = i_spin * n_basis * n_states + ib * n_basis + iw;
                         }
+                        if (ik == 0) std::cout << index << endl;
                         // mf_band.get_eigenvectors()[i_spin][i_soc][ik](ib, iw) = vecs[index];
                     }
                 }
