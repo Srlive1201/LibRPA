@@ -92,12 +92,12 @@ std::vector<double> interpolate_dielec_func(int option, const std::vector<double
             infile_aims.close();
 
             df_headwing.cal_head();
+            df_target = df_headwing.get_head_vec();
+            df_headwing.test_head();
             df_headwing.cal_wing();
             // for debug
             // df_headwing.set_0_wing();
 
-            df_target = df_headwing.get_head_vec();
-            df_headwing.test_head();
             if (Params::debug) df_headwing.test_wing();
             break;
         }
