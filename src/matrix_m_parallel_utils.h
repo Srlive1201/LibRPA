@@ -205,6 +205,63 @@ void collect_block_from_IJ_storage_tensor_transform(
     mat_lo = tmp_loc;
 }
 
+template <typename Tdst, typename Tsrc, typename TA, typename TAC>
+void collect_block_from_IJ_storage_tensor_transform_triple(
+    matrix_m<Tdst> &mat_lo, const LIBRPA::Array_Desc &ad, const LIBRPA::AtomicBasis &atbasis_row,
+    const LIBRPA::AtomicBasis &atbasis_col,
+    const std::function<Tdst(const TA &, const TAC &)> &transform,
+    const std::map<TA, std::map<TAC, RI::Tensor<Tsrc>>> &TMAP, const int &Mu)
+{
+    // assert(mat_lo.nr() == ad.m_loc() && mat_lo.nc() == ad.n_loc());
+    assert(ad.m() == atbasis_row.nb_total && ad.n() == atbasis_col.nb_total);
+
+    matrix_m<Tdst> tmp_loc(mat_lo.nr(), mat_lo.nc(), MAJOR::ROW);
+    size_t cp_size = ad.n_loc() * sizeof(Tdst);
+
+    omp_lock_t mat_lock;
+    omp_init_lock(&mat_lock);
+
+    // #pragma omp parallel for
+    for (int ilo = 0; ilo != ad.m_loc(); ilo++)
+    {
+        int I_loc, J_loc, i_ab, j_ab;
+        int i_gl = ad.indx_l2g_r(ilo);
+        atbasis_row.get_local_index(i_gl, I_loc, i_ab);
+        // I_loc = Mu;
+        // i_ab = i_gl;
+        vector<Tdst> tmp_loc_row(ad.n_loc(), 0);
+        for (int jlo = 0; jlo != ad.n_loc(); jlo++)
+        {
+            int j_gl = ad.indx_l2g_c(jlo);
+            atbasis_col.get_local_index(j_gl, J_loc, j_ab);
+            if (TMAP.count(I_loc) > 0)
+            {
+                for (const auto &acell_mat : TMAP.at(I_loc))
+                {
+                    const auto &acell = acell_mat.first;
+                    const auto &mat = acell_mat.second;
+                    if (acell.first != J_loc)
+                    {
+                        continue;
+                    }
+                    tmp_loc_row[jlo] += mat(i_ab, j_ab) * transform(I_loc, acell);
+                }
+            }
+        }
+        Tdst *row_ptr = tmp_loc.ptr() + ilo * ad.n_loc();
+        omp_set_lock(&mat_lock);
+        memcpy(row_ptr, &tmp_loc_row[0], cp_size);
+        omp_unset_lock(&mat_lock);
+    }
+#pragma omp barrier
+    omp_destroy_lock(&mat_lock);
+    if (mat_lo.is_col_major())
+    {
+        tmp_loc.swap_to_col_major();
+    }
+    mat_lo = tmp_loc;
+}
+
 //! collect 2D block from a IJ-pair storage exploiting its symmetric/Hermitian property
 template <typename Tdst, typename Tsrc>
 void collect_block_from_IJ_storage_syhe(matrix_m<Tdst> &mat_lo, const LIBRPA::Array_Desc &ad,

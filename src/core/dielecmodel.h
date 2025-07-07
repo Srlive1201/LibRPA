@@ -51,15 +51,15 @@ class diele_func
     // ( lambda: n_nonsingular-1 )
     std::vector<std::complex<double>> Coul_value;
     // ( mu: n_abfs, m: n_bands, n: n_bands, k )
-    std::vector<std::vector<std::vector<std::map<Vector3_Order<double>, std::complex<double>>>>>
-        Ctri_mn;
+    // std::vector<std::vector<std::vector<std::map<Vector3_Order<double>, std::complex<double>>>>>
+    //    Ctri_mn;
     // ( mu: n_abfs@I, i: i atom basis, j: j atom basis, k, I atom, J atom, q cell  )
     // Ctri_ij.data_libri[I][{J, k_array}](mu, i, j)
-    Cs_LRI_clx Ctri_ij;
+    // Cs_LRI_clx Ctri_ij;
     // ( mu: n_abfs@I, i: i atom basis, j: j atom basis, k, I atom, J atom, R cell  )
     // Ctri_ij.data_libri[I][{J, R}](mu, i, j)
     // used for reduce all mpi Cs_data to Cs_IJR
-    Cs_LRI Cs_IJR;
+    // Cs_LRI Cs_IJR;
 
     MeanField &meanfield_df;
     const std::vector<double> &omega;
@@ -95,11 +95,9 @@ class diele_func
     {};
     ~diele_func() {};
     void init(double vq_threshold, const librpa_int::atpair_k_cplx_mat_t &Vq);
-    void init_Cs(const librpa_int::Cs_LRI &Cs_data);
     void init_wing();
-    // All calculation in unit: Ang and eV.
-    // void set(MeanField &mf, std::vector<Vector3_Order<double>> &kfrac,
-    //          std::vector<double> frequencies_target, int nbasis, int nstates, int nspin);
+    void set(MeanField &mf, std::vector<Vector3_Order<double>> &kfrac,
+             std::vector<double> frequencies_target, int nbasis, int nstates, int nspin);
 
     void cal_head();
     double cal_factor(std::string name);
@@ -108,15 +106,16 @@ class diele_func
 
     void cal_wing(const librpa_int::Cs_LRI &Cs_data);  // atpair_k_cplx_mat_t &Vq, Cs_LRI &Cs_data
     // tranform Cs_ij(R) to Cs_ij(k)
-    void FT_R2k(const librpa_int::Cs_LRI &Cs_data);
-    void Cs_ij2mn();
+    // void FT_R2k(const librpa_int::Cs_LRI &Cs_data);
+    // void Cs_ij2mn();
     // diagonalize Vq(q=0)
     void get_Xv(double vq_threshold,
                 const librpa_int::atpair_k_cplx_mat_t &Vq);  // diagonalize Vq(q=0)
-    std::complex<double> compute_wing(int alpha, int iomega, int mu);
-    std::complex<double> compute_Cs_ij2mn(int mu, int m, int n, int ik);
-    std::complex<double> compute_Cijk(const librpa_int::Cs_LRI &Cs_data, int mu, int I, int i, int J, int j, int ik);
-    // compute wing in ABF representation
+    std::complex<double> compute_wing(const int alpha, const int iomega, const int mu, const int ik,
+                                      const int ispin, const ArrayDesc &desc_nband_nband,
+                                      const matrix_m<complex<double>> &C_nband_nband);
+    // std::complex<double> compute_Cs_ij2mn(int mu, int m, int n, int ik);
+    // std::complex<double> compute_Cijk(const librpa_int::Cs_LRI &Cs_data, int mu, int I, int i, int J, int j, int ik);
     // transform wing from ABF to Coulomb representation
     void wing_mu_to_lambda(matrix_m<std::complex<double>> &sqrtveig_blacs,
                            ArrayDesc &desc_nabf_nabf_opt);
@@ -125,6 +124,8 @@ class diele_func
     // void get_Xv_real(double vq_threshold, const librpa_int::atpair_k_cplx_mat_t &Vq);
     // diagonalize complex Vq_cut(q=0)
     void get_Xv_cpl(double vq_threshold, const librpa_int::atpair_k_cplx_mat_t &Vq);
+    std::pair<ArrayDesc, matrix_m<complex<double>>> transform_Cs2mnk(const int ik, const int ispin,
+                                                                     const int mu);
     void test_wing();
     // set wing=0 for debug
     void set_0_wing();
