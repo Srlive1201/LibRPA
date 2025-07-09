@@ -284,40 +284,50 @@ void diele_func::cal_wing(const librpa_int::Cs_LRI &Cs_data)
     profiler.start("cal_wing_mu");
     init_wing();
     int n_lambda = this->n_nonsingular - 1;
+    std::vector<std::complex<double>> local_wing_mu;
+    local_wing_mu.resize(this->omega.size() * 3 * n_abf, 0.0);
 
-    // #pragma omp parallel for schedule(dynamic) collapse(3)
-
-    for (int mu = 0; mu != n_abf; mu++)
+    // #pragma omp parallel for schedule(dynamic) collapse(2)
+    for (int mu = 0; mu < n_abf; ++mu)
     {
         for (int ik = 0; ik != nk; ik++)
         {
-            for (int isp = 0; isp != n_spin; isp++)
-            {
-                auto desc_C_mnk = transform_Cs2mnk(ik, isp, mu);
-                auto &desc_nband_nband = desc_C_mnk.first;
-                auto &C_mnk = desc_C_mnk.second;
-                // if (mu == 0 && mpi_comm_global_h.is_root())
-                // {
-                //     auto &velocity = this->meanfield_df.get_velocity();
-                //     auto i_3 = desc_nband_nband.indx_g2l_r(3);
-                //     auto j_4 = desc_nband_nband.indx_g2l_c(4);
+            // mpi_comm_global_h.barrier();
+            // profiler.start("transform_Cs2mnk");
+            auto desc_C_mnk = transform_Cs2mnk(ik, mu);
+            // profiler.stop("transform_Cs2mnk");
+            auto &desc_nband_nband = desc_C_mnk.first;
+            auto &C_mnk = desc_C_mnk.second;
+            // if (mu == 0 && mpi_comm_global_h.is_root())
+            // {
+            //     auto &velocity = this->meanfield_df.get_velocity();
+            //     auto i_3 = desc_nband_nband.indx_g2l_r(3);
+            //     auto j_4 = desc_nband_nband.indx_g2l_c(4);
 
-                //     std::cout << "C,p: " << C_mnk(i_3, j_4) << "," << velocity[isp][ik][0](4, 3)
-                //               << std::endl;
-                // }
-                for (int iomega = 0; iomega != this->omega.size(); iomega++)
+            //     std::cout << "C,p: " << C_mnk(i_3, j_4) << "," << velocity[isp][ik][0](4, 3)
+            //               << std::endl;
+            // }
+            // profiler.start("compute_wing");
+            for (int iomega = 0; iomega != this->omega.size(); iomega++)
+            {
+                for (int alpha = 0; alpha != 3; alpha++)
                 {
-                    for (int alpha = 0; alpha != 3; alpha++)
+                    for (int isp = 0; isp != n_spin; isp++)
                     {
-                        auto tmp =
+                        std::complex<double> tmp =
                             compute_wing(alpha, iomega, mu, ik, isp, desc_nband_nband, C_mnk);
-                        MPI_Bcast(&tmp, 1, MPI_DOUBLE_COMPLEX, 0, MPI_COMM_WORLD);
-                        this->wing_mu.at(iomega)(mu, alpha) += tmp;
+                        const int index = mu * this->omega.size() * 3 + iomega * 3 + alpha;
+                        local_wing_mu[index] += tmp;
                     }
                 }
             }
+            // profiler.stop("compute_wing");
         }
     }
+    profiler.start("Comm_wing");
+    MPI_Allreduce(MPI_IN_PLACE, local_wing_mu.data(), static_cast<int>(local_wing_mu.size()),
+                  MPI_CXX_DOUBLE_COMPLEX, MPI_SUM, MPI_COMM_WORLD);
+    profiler.stop("Comm_wing");
     double dielectric_unit = cal_factor("wing");
 
     for (int alpha = 0; alpha != 3; alpha++)
@@ -326,6 +336,8 @@ void diele_func::cal_wing(const librpa_int::Cs_LRI &Cs_data)
         {
             for (int iomega = 0; iomega != this->omega.size(); iomega++)
             {
+                const int index = mu * this->omega.size() * 3 + iomega * 3 + alpha;
+                this->wing_mu.at(iomega)(mu, alpha) = local_wing_mu[index];
                 if (use_soc)
                     this->wing_mu.at(iomega)(mu, alpha) *= -dielectric_unit;
                 else
@@ -345,13 +357,12 @@ void diele_func::cal_wing(const librpa_int::Cs_LRI &Cs_data)
 };
 
 std::pair<ArrayDesc, matrix_m<complex<double>>> diele_func::transform_Cs2mnk(const int ik,
-                                                                             const int ispin,
                                                                              const int mu)
 {
     const bool use_shrink_abfs = false;
     const int n_soc = meanfield_df.get_n_soc();
-    int Mu = atomic_basis_abf_.get_i_atom(mu);
-    int mu_local = atomic_basis_abf_.get_local_index(mu, Mu);
+    const int Mu = atomic_basis_abf_.get_i_atom(mu);
+    const int mu_local = atomic_basis_abf_.get_local_index(mu, Mu);
     const int n_ao_Mu = atomic_basis_wfc_.get_atom_nb(Mu);
 
     ArrayDesc desc_nband_nao(blacs_ctxt_global_h);
@@ -416,7 +427,6 @@ std::pair<ArrayDesc, matrix_m<complex<double>>> diele_func::transform_Cs2mnk(con
             }
         }
     }
-
     auto Cs_I_JR =
         comm_map2_first(mpi_comm_global_h.comm, Cs_I_JR_local, s0_s1.first, s0_s1.second);
     Cs_I_JR_local.clear();
@@ -445,83 +455,88 @@ std::pair<ArrayDesc, matrix_m<complex<double>>> diele_func::transform_Cs2mnk(con
     //     }
     // }
     // prepare wave function BLACS
-    for (int is1 = 0; is1 != n_soc; is1++)
+    for (int ispin = 0; ispin != n_spin; ispin++)
     {
-        for (int is2 = 0; is2 != n_soc; is2++)
+        for (int is1 = 0; is1 != n_soc; is1++)
         {
-            const auto &wfc_isp1_k = meanfield_df.get_eigenvectors()[ispin][is1][ik];
-            ComplexMatrix wfc_Mu = ComplexMatrix(n_states, n_ao_Mu);
-            // #pragma omp parallel for schedule collapse(2)
-            for (int n = 0; n < n_states; n++)
+            for (int is2 = 0; is2 != n_soc; is2++)
             {
-                for (int i = 0; i < n_ao_Mu; i++)
+                const auto &wfc_isp1_k = meanfield_df.get_eigenvectors()[ispin][is1][ik];
+                ComplexMatrix wfc_Mu = ComplexMatrix(n_states, n_ao_Mu);
+                // #pragma omp parallel for schedule collapse(2)
+                for (int n = 0; n < n_states; n++)
                 {
-                    const auto i_Mu = atomic_basis_wfc.get_global_index(Mu, i);
-                    wfc_Mu(n, i) = wfc_isp1_k(n, i_Mu);
+                    for (int i = 0; i < n_ao_Mu; i++)
+                    {
+                        const auto i_Mu = atomic_basis_wfc.get_global_index(Mu, i);
+                        wfc_Mu(n, i) = wfc_isp1_k(n, i_Mu);
+                    }
                 }
-            }
-            const auto &wfc_isp2_k = meanfield_df.get_eigenvectors()[ispin][is2][ik];
-            blacs_ctxt_global_h.barrier();
-            auto wfc1_block = get_local_mat(conj(wfc_Mu).c, MAJOR::ROW, desc_nband_Mu, MAJOR::COL);
-            auto wfc2_block = get_local_mat(wfc_isp2_k.c, MAJOR::ROW, desc_nband_nao, MAJOR::COL);
-            // if (ik == 0 && mu == 1)
-            // {
-            //     for (int i = 0; i < n_ao_Mu; i++)
-            //     {
-            //         auto ii_loc = desc_nband_Mu.indx_g2l_r(3);
-            //         auto jj_loc = desc_nband_Mu.indx_g2l_c(i);
-            //         if (ii_loc >= 0 && jj_loc >= 0)
-            //             ofs_myid << "wfc1_block: " << i << ", " << wfc1_block(ii_loc, jj_loc)
-            //                      << std::endl;
-            //     }
-            // }
-            auto temp_nband_nao = multiply_scalapack(wfc1_block, desc_nband_Mu, C_nao_nao,
-                                                     desc_Mu_nao, desc_nband_nao);
-            // if (ik == 0 && mu == 1)
-            // {
-            //     auto i_3 = desc_nband_nao.indx_g2l_r(3);
-            //     auto j_4 = desc_nband_nao.indx_g2l_c(4);
-            //     if (i_3 >= 0 && j_4 >= 0)
-            //         ofs_myid << "Cmn0: " << temp_nband_nao(i_3, j_4) << std::endl;
-            // }
-            ScalapackConnector::pgemm_f('N', 'T', n_states, n_states, n_basis, 1.0,
-                                        temp_nband_nao.ptr(), 1, 1, desc_nband_nao.desc,
-                                        wfc2_block.ptr(), 1, 1, desc_nband_nao.desc, 1.0,
-                                        C_nband_nband.ptr(), 1, 1, desc_nband_nband.desc);
-            // if (ik == 0 && mu == 1)
-            // {
-            //     auto i_3 = desc_nband_nband.indx_g2l_r(3);
-            //     auto j_4 = desc_nband_nband.indx_g2l_c(4);
-            //     if (i_3 >= 0 && j_4 >= 0)
-            //         ofs_myid << "Cmn1: " << C_nband_nband(i_3, j_4) << std::endl;
-            // }
-            // term2
-            wfc1_block = get_local_mat(wfc_Mu.c, MAJOR::ROW, desc_nband_Mu, MAJOR::COL);
-            wfc2_block = get_local_mat(conj(wfc_isp2_k).c, MAJOR::ROW, desc_nband_nao, MAJOR::COL);
-            auto tmp_band_Mu = init_local_mat<complex<double>>(desc_nband_Mu, MAJOR::COL);
+                const auto &wfc_isp2_k = meanfield_df.get_eigenvectors()[ispin][is2][ik];
+                // blacs_ctxt_global_h.barrier();
+                auto wfc1_block =
+                    get_local_mat(conj(wfc_Mu).c, MAJOR::ROW, desc_nband_Mu, MAJOR::COL);
+                auto wfc2_block =
+                    get_local_mat(wfc_isp2_k.c, MAJOR::ROW, desc_nband_nao, MAJOR::COL);
+                // if (ik == 0 && mu == 1)
+                // {
+                //     for (int i = 0; i < n_ao_Mu; i++)
+                //     {
+                //         auto ii_loc = desc_nband_Mu.indx_g2l_r(3);
+                //         auto jj_loc = desc_nband_Mu.indx_g2l_c(i);
+                //         if (ii_loc >= 0 && jj_loc >= 0)
+                //             ofs_myid << "wfc1_block: " << i << ", " << wfc1_block(ii_loc, jj_loc)
+                //                      << std::endl;
+                //     }
+                // }
+                auto temp_nband_nao = multiply_scalapack(wfc1_block, desc_nband_Mu, C_nao_nao,
+                                                         desc_Mu_nao, desc_nband_nao);
+                // if (ik == 0 && mu == 1)
+                // {
+                //     auto i_3 = desc_nband_nao.indx_g2l_r(3);
+                //     auto j_4 = desc_nband_nao.indx_g2l_c(4);
+                //     if (i_3 >= 0 && j_4 >= 0)
+                //         ofs_myid << "Cmn0: " << temp_nband_nao(i_3, j_4) << std::endl;
+                // }
+                ScalapackConnector::pgemm_f('N', 'T', n_states, n_states, n_basis, 1.0,
+                                            temp_nband_nao.ptr(), 1, 1, desc_nband_nao.desc,
+                                            wfc2_block.ptr(), 1, 1, desc_nband_nao.desc, 1.0,
+                                            C_nband_nband.ptr(), 1, 1, desc_nband_nband.desc);
+                // if (ik == 0 && mu == 1)
+                // {
+                //     auto i_3 = desc_nband_nband.indx_g2l_r(3);
+                //     auto j_4 = desc_nband_nband.indx_g2l_c(4);
+                //     if (i_3 >= 0 && j_4 >= 0)
+                //         ofs_myid << "Cmn1: " << C_nband_nband(i_3, j_4) << std::endl;
+                // }
+                // term2
+                wfc1_block = get_local_mat(wfc_Mu.c, MAJOR::ROW, desc_nband_Mu, MAJOR::COL);
+                wfc2_block =
+                    get_local_mat(conj(wfc_isp2_k).c, MAJOR::ROW, desc_nband_nao, MAJOR::COL);
+                auto tmp_band_Mu = init_local_mat<complex<double>>(desc_nband_Mu, MAJOR::COL);
 
-            ScalapackConnector::pgemm_f('N', 'C', n_states, n_ao_Mu, n_basis, 1.0, wfc2_block.ptr(),
-                                        1, 1, desc_nband_nao.desc, C_nao_nao.ptr(), 1, 1,
-                                        desc_Mu_nao.desc, 0.0, tmp_band_Mu.ptr(), 1, 1,
-                                        desc_nband_Mu.desc);
-            ScalapackConnector::pgemm_f('N', 'T', n_states, n_states, n_ao_Mu, 1.0,
-                                        tmp_band_Mu.ptr(), 1, 1, desc_nband_Mu.desc,
-                                        wfc1_block.ptr(), 1, 1, desc_nband_Mu.desc, 1.0,
-                                        C_nband_nband.ptr(), 1, 1, desc_nband_nband.desc);
-            // if (ik == 0 && mu == 1)
-            // {
-            //     auto i_3 = desc_nband_nband.indx_g2l_r(3);
-            //     auto j_4 = desc_nband_nband.indx_g2l_c(4);
-            //     if (i_3 >= 0 && j_4 >= 0)
-            //         ofs_myid << "Cmn2: " << C_nband_nband(i_3, j_4) << std::endl;
-            // }
+                ScalapackConnector::pgemm_f('N', 'C', n_states, n_ao_Mu, n_basis, 1.0,
+                                            wfc2_block.ptr(), 1, 1, desc_nband_nao.desc,
+                                            C_nao_nao.ptr(), 1, 1, desc_Mu_nao.desc, 0.0,
+                                            tmp_band_Mu.ptr(), 1, 1, desc_nband_Mu.desc);
+                ScalapackConnector::pgemm_f('N', 'T', n_states, n_states, n_ao_Mu, 1.0,
+                                            tmp_band_Mu.ptr(), 1, 1, desc_nband_Mu.desc,
+                                            wfc1_block.ptr(), 1, 1, desc_nband_Mu.desc, 1.0,
+                                            C_nband_nband.ptr(), 1, 1, desc_nband_nband.desc);
+                // if (ik == 0 && mu == 1)
+                // {
+                //     auto i_3 = desc_nband_nband.indx_g2l_r(3);
+                //     auto j_4 = desc_nband_nband.indx_g2l_c(4);
+                //     if (i_3 >= 0 && j_4 >= 0)
+                //         ofs_myid << "Cmn2: " << C_nband_nband(i_3, j_4) << std::endl;
+                // }
+            }
         }
     }
     auto C_nband_nband_fb = init_local_mat<complex<double>>(desc_nband_nband_fb, MAJOR::COL);
     ScalapackConnector::pgemr2d_f(n_states, n_states, C_nband_nband.ptr(), 1, 1,
                                   desc_nband_nband.desc, C_nband_nband_fb.ptr(), 1, 1,
                                   desc_nband_nband_fb.desc, desc_nband_nband_fb.ictxt());
-
     return std::make_pair(desc_nband_nband_fb, C_nband_nband_fb);
 };
 
@@ -1120,9 +1135,9 @@ void diele_func::cal_eps(const int ifreq, ArrayDesc &desc_nabf_nabf_opt, ArrayDe
 
         weights[ileb] = qw_leb[ileb] * std::pow(q_gamma[ileb], 3) / (3.0 * vol_gamma) / qLq;
     }
-    Profiler::stop("precompute_q_data");
+    profiler.stop("precompute_q_data");
 
-    Profiler::start("cal_inverse_dielectric_matrix_ij");
+    profiler.start("cal_inverse_dielectric_matrix_ij");
     int i_start = 0, i_end = n_nonsingular;
     int j_start = 0, j_end = n_nonsingular;
 #pragma omp parallel for schedule(dynamic, 4) collapse(2)

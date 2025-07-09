@@ -124,8 +124,7 @@ class diele_func
     // void get_Xv_real(double vq_threshold, const librpa_int::atpair_k_cplx_mat_t &Vq);
     // diagonalize complex Vq_cut(q=0)
     void get_Xv_cpl(double vq_threshold, const librpa_int::atpair_k_cplx_mat_t &Vq);
-    std::pair<ArrayDesc, matrix_m<complex<double>>> transform_Cs2mnk(const int ik, const int ispin,
-                                                                     const int mu);
+    std::pair<ArrayDesc, matrix_m<complex<double>>> transform_Cs2mnk(const int ik, const int mu);
     void test_wing();
     // set wing=0 for debug
     void set_0_wing();
