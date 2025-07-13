@@ -349,8 +349,6 @@ void diele_func::cal_wing(const librpa_int::Cs_LRI &Cs_data)
     if (mpi_comm_global_h.is_root()) std::cout << "* Success: calculate wing term." << std::endl;
 
     // this->wing_mu.clear();
-    this->Coul_vector.clear();
-    this->Coul_value.clear();
     this->meanfield_df.get_velocity().clear();
     release_free_mem();
     profiler.stop("cal_wing_mu");
@@ -781,8 +779,6 @@ void diele_func::get_Xv_cpl(double vq_threshold, const librpa_int::atpair_k_cplx
     using global::profiler;
 
     profiler.start("get_eigenvector_of_Coulomb_matrix");
-    this->Coul_vector.clear();
-    this->Coul_value.clear();
     const complex<double> CONE{1.0, 0.0};
     std::array<double, 3> qa = {0.0, 0.0, 0.0};
     Vector3_Order<double> q = {0.0, 0.0, 0.0};
@@ -833,25 +829,24 @@ void diele_func::get_Xv_cpl(double vq_threshold, const librpa_int::atpair_k_cplx
                            n_singular, eigenvalues.c, 1.0, vq_threshold);
     this->n_nonsingular = n_abf - n_singular;
 
-    for (int iv = 1; iv != n_nonsingular; iv++)
-    {
-        // Here eigen solved by Scalapack is ascending order,
-        // however, what we want is descending order.
-        this->Coul_value.push_back(eigenvalues.c[iv]);  // throw away the largest one
-        std::vector<std::complex<double>> newRow;
+    // for (int iv = 1; iv != n_nonsingular; iv++)
+    //{
+    //  Here eigen solved by Scalapack is ascending order,
+    //  however, what we want is descending order.
+    //  this->Coul_value.push_back(eigenvalues.c[iv]);  // throw away the largest one
+    //    std::vector<std::complex<double>> newRow;
 
-        for (int jabf = 0; jabf != n_abf; jabf++)
-        {
-            newRow.push_back(coul_eigen_block(jabf, iv));
-        }
-        this->Coul_vector.push_back(newRow);
-        newRow.clear();
-    }
+    //    for (int jabf = 0; jabf != n_abf; jabf++)
+    //   {
+    //     newRow.push_back(coul_eigen_block(jabf, iv));
+    //}
+    // newRow.clear();
+    //}
     if (mpi_comm_global_h.is_root())
     {
         std::cout << "n_singular: " << n_singular << std::endl;
         std::cout << "The largest/smallest eigenvalue of Coulomb matrix(non-singular): "
-                  << this->Coul_value.front() << ", " << this->Coul_value.back() << std::endl;
+                  << eigenvalues.c[1] << ", " << eigenvalues.c[n_nonsingular - 1] << std::endl;
         std::cout << "The 1st/2nd/3rd/-1th eigenvalue of Coulomb matrix(Full): " << eigenvalues.c[0]
                   << ", " << eigenvalues.c[1] << ", " << eigenvalues.c[2] << ", "
                   << eigenvalues.c[n_abf - 1] << std::endl;

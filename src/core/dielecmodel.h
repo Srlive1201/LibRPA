@@ -47,9 +47,9 @@ class diele_func
     // ( i:n_lambda, j:n_lambda )
     matrix_m<std::complex<double>> chi0;
     // ( lambda: n_nonsingular-1, mu: n_abfs)
-    std::vector<std::vector<std::complex<double>>> Coul_vector;
+    // std::vector<std::vector<std::complex<double>>> Coul_vector;
     // ( lambda: n_nonsingular-1 )
-    std::vector<std::complex<double>> Coul_value;
+    // std::vector<std::complex<double>> Coul_value;
     // ( mu: n_abfs, m: n_bands, n: n_bands, k )
     // std::vector<std::vector<std::vector<std::map<Vector3_Order<double>, std::complex<double>>>>>
     //    Ctri_mn;
