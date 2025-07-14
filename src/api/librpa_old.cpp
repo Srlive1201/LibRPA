@@ -354,9 +354,16 @@ void set_ao_basis_aux(int I, int J, int nbasis_i, int nbasis_j, int naux_mu, int
         atom_mu.insert(pair<atom_t, size_t>(I, naux_mu));
     }
 <<<<<<< HEAD:src/api/librpa_old.cpp
+<<<<<<< HEAD:src/api/librpa_old.cpp
 >>>>>>> 7242b2c (enable shrink abfs):src/librpa.cpp
 =======
 >>>>>>> b005208 (enable shrink abfs):src/librpa.cpp
+=======
+    else if (keyword == "Cs_shrinked_data")
+    {
+        atom_mu_s.insert(pair<atom_t, size_t>(I, naux_mu));
+    }
+>>>>>>> 5b31a70 (fix: read sinvS for multi-mpi):src/librpa.cpp
 
     if (insert_index_only)
     {

@@ -205,7 +205,7 @@ int main(int argc, char **argv)
             profiler.start("read_shrink_sinvS_fold", "Load shrink transformation");
             // change atom_mu: number of {Mu,mu} in the later calculations
             read_shrink_sinvS(driver_params.input_dir, "shrink_sinvS_", sinvS);
-            atom_mu_s = atom_mu;
+
             if (mpi_comm_global_h.is_root())
             {
                 std::cout << "iatom & small Nabfs: " << std::endl;

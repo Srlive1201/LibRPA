@@ -2401,7 +2401,6 @@ void read_elsi_csc(const string &file_path, bool save_row_major, std::vector<dou
 static int handle_sinvS_file(const std::string &file_path,
                              std::map<Vector3_Order<double>, ComplexMatrix> &sinvS, bool binary)
 {
-    std::vector<size_t> shrinked_mu;
     ifstream infile;
     int n_irk_points_local;
     // TODO: variables that needs to be adapted into pbc object
@@ -2443,10 +2442,6 @@ static int handle_sinvS_file(const std::string &file_path,
             bcol--;
             ecol--;
             iq--;
-            if (iq == 0)
-            {
-                shrinked_mu.emplace_back(erow - brow + 1);
-            }
             Vector3_Order<double> qvec(kvec_c[iq]);
 
             if (!sinvS.count(qvec))
@@ -2490,10 +2485,6 @@ static int handle_sinvS_file(const std::string &file_path,
             int bcol = stoi(begin_col) - 1;
             int ecol = stoi(end_col) - 1;
             int iq = stoi(q_num) - 1;
-            if (iq == 0)
-            {
-                shrinked_mu.emplace_back(erow - brow + 1);
-            }
 
             // skip empty coulumb_file
             if ((erow - brow < 0) || (ecol - bcol < 0) || iq < 0 || iq > klist.size()) return 4;
@@ -2515,29 +2506,15 @@ static int handle_sinvS_file(const std::string &file_path,
             }
         }
     }
-    // shrinked_mu: {59, 59, 80, 80}
-    size_t n = shrinked_mu.size() / atom_mu.size();
-    for (auto &Imu : atom_mu)
-    {
-        const auto I = Imu.first;
-        size_t mu_mod = 0;
-        for (int imu = I * n; imu < (I + 1) * n; imu++)
-        {
-            mu_mod += shrinked_mu.at(imu);
-        }
-        mu_mod = mu_mod / n;
-        // we can also use larger abfs for test or interested
-        // assert(mu_mod <= Imu.second);
-        atom_mu[I] = mu_mod;
-    }
     // reset
-    LIBRPA::atomic_basis_abf.set(atom_mu);
-    atom_mu_part_range.resize(atom_mu.size());
+    atom_mu = atom_mu_s;
+    LIBRPA::atomic_basis_abf.set(atom_mu_s);
+    atom_mu_part_range.resize(atom_mu_s.size());
     atom_mu_part_range[0] = 0;
-    for (int I = 1; I != atom_mu.size(); I++)
-        atom_mu_part_range[I] = atom_mu.at(I - 1) + atom_mu_part_range[I - 1];
+    for (int I = 1; I != atom_mu_s.size(); I++)
+        atom_mu_part_range[I] = atom_mu_s.at(I - 1) + atom_mu_part_range[I - 1];
 
-    N_all_mu = atom_mu_part_range[natom - 1] + atom_mu[natom - 1];
+    N_all_mu = atom_mu_part_range[natom - 1] + atom_mu_s[natom - 1];
 
     return 0;
 }
