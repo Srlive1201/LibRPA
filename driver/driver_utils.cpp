@@ -72,6 +72,11 @@ std::vector<double> interpolate_dielec_func(int option, const std::vector<double
                 std::vector<Vector3_Order<double>> kfrac_band =
                     read_band_kpath_info(driver_params.input_dir + "pyatb_librpa_df/k_path_info",
                                          n_basis, n_states, n_spin, flag);
+                if (Params::use_soc)
+                {
+                    assert(n_basis % 2 == 0 && "Error: nbasis is not even when SOC!");
+                    n_basis = n_basis / 2;
+                }
                 df_headwing.set(meanfield, kfrac_band, frequencies_target, n_basis, n_states,
                                 n_spin);
             }
