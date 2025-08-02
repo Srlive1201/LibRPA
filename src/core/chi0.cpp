@@ -862,7 +862,7 @@ static void shrink_abfs_chi0(
         const auto &q = qlist[iq];
         std::array<double, 3> qa = {q.x, q.y, q.z};
         const auto &U = sinvS.at(q);
-        profiler.start("shrink_prepare_chi0_2d", "Prepare Chi0 2D block for shrink");
+        // profiler.start("shrink_prepare_chi0_2d", "Prepare Chi0 2D block for shrink");
         chi0_block.zero_out();
         chi0ss_block.zero_out();
         u_block.zero_out();
@@ -894,17 +894,17 @@ static void shrink_abfs_chi0(
             // wait for all mpi to calculate chi0_libri
             // then collect chi0_libri to chi0_block
             mpi_comm_global_h.barrier();
-            profiler.start("shrink_prepare_chi0_2d_comm_map2");
+            // profiler.start("shrink_prepare_chi0_2d_comm_map2");
             const auto IJq_chi0 = RI::Communicate_Tensors_Map_Judge::comm_map2_first(
                 mpi_comm_global_h.comm, chi0_libri, s0_s1.first, s0_s1.second);
-            profiler.stop("shrink_prepare_chi0_2d_comm_map2");
-            profiler.start("shrink_prepare_chi0_2d_collect_block");
+            // profiler.stop("shrink_prepare_chi0_2d_comm_map2");
+            // profiler.start("shrink_prepare_chi0_2d_collect_block");
             collect_block_from_ALL_IJ_Tensor(chi0_block, desc_nabf_nabf_ll,
                                              LIBRPA::atomic_basis_abf, qa, true, CONE, IJq_chi0,
                                              MAJOR::ROW);
-            profiler.stop("shrink_prepare_chi0_2d_collect_block");
+            // profiler.stop("shrink_prepare_chi0_2d_collect_block");
         }
-        profiler.stop("shrink_prepare_chi0_2d");
+        // profiler.stop("shrink_prepare_chi0_2d");
         for (int ir = 0; ir < U.nr; ir++)
         {
             const int ilo = desc_nabf_nabf_sl.indx_g2l_r(ir);
