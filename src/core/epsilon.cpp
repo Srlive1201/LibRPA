@@ -1,5 +1,5 @@
 #include "epsilon.h"
-
+#define OPEN_TEST_FOR_LU_DECOMPOSITION
 #include <math.h>
 #include <omp.h>
 
@@ -328,6 +328,7 @@ CorrEnergy compute_RPA_correlation_blacs_2d(Chi0 &chi0, atpair_k_cplx_mat_t &cou
     // atpair_unordered_local << endl;
 
 #ifdef LIBRPA_USE_LIBRI
+    
     for (const auto &q : qpts)
     {
         coul_block.zero_out();
@@ -347,9 +348,15 @@ CorrEnergy compute_RPA_correlation_blacs_2d(Chi0 &chi0, atpair_k_cplx_mat_t &cou
                 const auto Mu = Mu_Nu.first;
                 const auto Nu = Mu_Nu.second;
                 // ofs_myid << "myid " << blacs_h.myid << "Mu " << Mu << " Nu " << Nu << endl;
+                #ifdef OPEN_TEST_FOR_LU_DECOMPOSITION
+                // printf("success before if coulmat.count:%d\n", mpi_comm_global_h.myid);
+                #endif
                 if (coulmat.count(Mu) == 0 ||
                     coulmat.at(Mu).count(Nu) == 0 ||
                     coulmat.at(Mu).at(Nu).count(q) == 0) continue;
+                #ifdef OPEN_TEST_FOR_LU_DECOMPOSITION
+                // printf("success after if coulmat.count:%d\n", mpi_comm_global_h.myid);
+                #endif
                 const auto &Vq = coulmat.at(Mu).at(Nu).at(q);
                 const auto n_mu = chi0.atbasis_abf.get_atom_nb(Mu);
                 const auto n_nu = chi0.atbasis_abf.get_atom_nb(Nu);
@@ -608,6 +615,10 @@ complex<double> compute_pi_det_blacs_2d(Matz &loc_piT, const ArrayDesc &arrdesc_
     //     print_complex_real_matrix("first_pi",pi_freq_q.at(0).at(0));
     //     print_complex_real_matrix("first_loc_piT_mat",loc_piT);
     // }
+    #ifdef OPEN_TEST_FOR_LU_DECOMPOSITION
+    printf("success before pzgetrf_ processid:%d,range_all: %d, loc_piT.nr(): %d, loc_piT.nc(): %d\n",
+           mpi_comm_global_h.myid, range_all, loc_piT.nr(), loc_piT.nc());
+    #endif
     double det_begin = omp_get_wtime();
     // ScalapackConnector::transpose_desc(DESCPI_T, arrdesc_pi.desc);
     pzgetrf_(&range_all, &range_all, loc_piT.ptr(), &one, &one, arrdesc_pi.desc, ipiv, &info);
@@ -1010,20 +1021,29 @@ CorrEnergy compute_RPA_correlation(LibrpaParallelRouting routing, const Chi0 &ch
 
     // pi_freq_q contains all atoms
     map<double, map<Vector3_Order<double>, ComplexMatrix>> pi_freq_q;
-
-    for (const auto &freq_q_MuNupi : pi_freq_q_Mu_Nu)
+    #ifdef OPEN_TEST_FOR_LU_DECOMPOSITION
+    // printf("| process %d, qpts.size(): %zu,freq.size():%zu\n", mpi_comm_global_h.myid, chi0.klist.size(),chi0.tfg.get_freq_nodes().size());
+    #endif
+    for(const auto &freq : chi0.tfg.get_freq_nodes())
     {
-        const auto freq = freq_q_MuNupi.first;
-
-        for (const auto &q_MuNupi : freq_q_MuNupi.second)
-        {
-            const auto q = q_MuNupi.first;
-            const auto MuNupi = q_MuNupi.second;
+        // printf("| process %d, freq: %f\n", mpi_comm_global_h.myid, freq);
+        map<Vector3_Order<double>, atom_mapping<ComplexMatrix>::pair_t_old> freq_q_MuNupi;
+        if(!chi0.get_chi0_q().empty())
+            freq_q_MuNupi=pi_freq_q_Mu_Nu.at(freq);
+        #ifdef OPEN_TEST_FOR_LU_DECOMPOSITION
+        // printf("success before freq_q_MuNupi processid:%d, freq_q_MuNupi.size(): %zu\n",
+        //        mpi_comm_global_h.myid, freq_q_MuNupi.size());
+        #endif
+        for(const auto &q:chi0.klist){
+            atom_mapping<ComplexMatrix>::pair_t_old q_MuNupi;
+            if(!chi0.get_chi0_q().empty())
+                q_MuNupi = freq_q_MuNupi.at(q);
+            const auto MuNupi = q_MuNupi;
             pi_freq_q[freq][q].create(range_all, range_all);
 
             ComplexMatrix pi_munu_tmp(range_all, range_all);
             pi_munu_tmp.zero_out();
-
+            if(!chi0.get_chi0_q().empty())
             for (const auto &Mu_Nupi : MuNupi)
             {
                 const auto Mu = Mu_Nupi.first;
@@ -1060,6 +1080,9 @@ CorrEnergy compute_RPA_correlation(LibrpaParallelRouting routing, const Chi0 &ch
     {
         complex<double> tot_RPA_energy(0.0, 0.0);
         map<Vector3_Order<double>, complex<double>> cRPA_q;
+        #ifdef OPEN_TEST_FOR_LU_DECOMPOSITION
+        int num_iteration = 0;
+        #endif
         for (const auto &freq_qpi : pi_freq_q)
         {
             const auto freq = freq_qpi.first;
@@ -1073,6 +1096,21 @@ CorrEnergy compute_RPA_correlation(LibrpaParallelRouting routing, const Chi0 &ch
                 ComplexMatrix identity_minus_pi(range_all, range_all);
                 identity.set_as_identity_matrix();
                 identity_minus_pi = identity - pi_freq_q[freq][q];
+                #ifdef OPEN_TEST_FOR_LU_DECOMPOSITION
+                // if(num_iteration==0)
+                // if(mpi_comm_global_h.myid == 1)
+                // {
+                //     complex<double>* test_c= identity_minus_pi.c;
+                //     for(int i=0;i<range_all;i++){
+                //         for(int j=0;j<range_all;j++){
+                //             printf("%f+%fi ",
+                //                    test_c[i*range_all+j].real(), test_c[i*range_all+j].imag());
+                //         }
+                //         printf("\n");
+                //     }
+                // }
+                num_iteration++;
+                #endif
                 complex<double> det_for_rpa(1.0, 0.0);
                 int info_LU = 0;
                 int *ipiv = new int[range_all];
@@ -1299,12 +1337,21 @@ map<double, map<Vector3_Order<double>, atom_mapping<ComplexMatrix>::pair_t_old>>
     // fp.open(ss.str());
     const auto &irk_weight = chi0.pbc.map_ibzk_weight;
     const auto &comm_h = chi0.comm_h;
+    #ifdef OPEN_TEST_FOR_LU_DECOMPOSITION
+    // printf("success before irk_weight, pid: %d\n", mpi_comm_global_h.myid);
+    #endif
     for (auto &k_pair : irk_weight)
     {
         Vector3_Order<double> ik_vec = k_pair.first;
         for (int I = 0; I != as_int(chi0.atbasis_abf.n_atoms); I++)
         {
+            #ifdef OPEN_TEST_FOR_LU_DECOMPOSITION
+            // printf("success before gather_vp_row_q irk_weight, pid: %d\n", mpi_comm_global_h.myid);
+            #endif
             atom_mapping<ComplexMatrix>::pair_t_old Vq_row = gather_vq_row_q(chi0.atbasis_abf, comm_h, I, coulmat, ik_vec);
+            #ifdef OPEN_TEST_FOR_LU_DECOMPOSITION
+            // printf("success after gather_vp_row_q irk_weight, pid: %d\n", mpi_comm_global_h.myid);
+            #endif
             for (auto &freq_p : chi0.get_chi0_q())
             {
                 const double freq = freq_p.first;
