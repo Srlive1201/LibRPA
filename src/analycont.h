@@ -45,5 +45,7 @@ public:
  */
 const std::vector<double> get_specfunc(const AnalyCont &ac, const std::vector<cplxdb> omegas,
                                        const double &ref, const double &e_ks, const double &v_xc,
-                                       const double &v_exx);
+                                       const double &v_exx,
+                                       const double &sigc_omega_imag_shift,
+                                       const double &gf_omega_imag_shift);
 }

@@ -80,14 +80,17 @@ AnalyContPade::get(const cplxdb &x) const
 
 const std::vector<double> get_specfunc(const AnalyCont &ac, const std::vector<cplxdb> omegas,
                                        const double &ref, const double &e_ks, const double &v_xc,
-                                       const double &v_exx)
+                                       const double &v_exx,
+                                       const double &sigc_omega_imag_shift,
+                                       const double &gf_omega_imag_shift)
 {
     const int n_freq = omegas.size();
     std::vector<double> sf(n_freq, 0.0);
     for (int i = 0; i < n_freq; i++)
     {
-        const auto &f = omegas[i];
-        cplxdb sf_c = f - e_ks + v_xc - v_exx - ac.get(f - ref);
+        const auto omega_gf = omegas[i] + cplxdb(0.0, gf_omega_imag_shift);
+        const auto omega_sigc = omegas[i] + cplxdb(0.0, sigc_omega_imag_shift);
+        cplxdb sf_c = omega_gf - e_ks + v_xc - v_exx - ac.get(omega_sigc - ref);
         sf[i] = - ((1.0 / PI) / sf_c).imag();
     }
     return sf;
