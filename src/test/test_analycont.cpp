@@ -65,17 +65,17 @@ void test_get_spectfunc_acpade()
     ref_sf[0] = 2.0 / PI;
     ref_sf[1] = 0.25 / PI;
 
-    auto sf = LIBRPA::get_specfunc(pade, omegas, 0.0, 0.0, 0.0, 0.0);
+    auto sf = LIBRPA::get_specfunc(pade, omegas, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
     assert(fequal_array(2, sf.data(), ref_sf.data(), false));
 
     // same results if we have v_xc cancels e_ks and v_exx
-    sf = LIBRPA::get_specfunc(pade, omegas, 0.0, 1.0, 2.0, 1.0);
+    sf = LIBRPA::get_specfunc(pade, omegas, 0.0, 1.0, 2.0, 1.0, 0.0, 0.0);
     assert(fequal_array(2, sf.data(), ref_sf.data(), false));
 
     // same results if we shift the omegas and e_ks by reference (2.0)
-    omegas[0] = {2.0, 0.0};
-    omegas[1] = {4.0, 3.0};
-    sf = LIBRPA::get_specfunc(pade, omegas, 2.0, 1.0 + 2.0, 2.0, 1.0);
+    omegas[0] = {2.0, -1.0};
+    omegas[1] = {4.0, 2.0};
+    sf = LIBRPA::get_specfunc(pade, omegas, 2.0, 1.0 + 2.0, 2.0, 1.0, 1.0, 1.0);
     assert(fequal_array(2, sf.data(), ref_sf.data(), false));
 }
 
