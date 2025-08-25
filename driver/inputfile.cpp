@@ -150,6 +150,15 @@ void parse_inputfile_to_params(const std::string& fn)
     // driver parameters
     parser.parse_string("input_dir", driver_params.input_dir, "./", flag);
     driver_params.input_dir = check_dirpath(driver_params.input_dir);
+    parser.parse_bool("output_gw_spec_func", driver_params.output_gw_spec_func, false, flag);
+
+    // TODO: implement a function to read multiple double values in one line
+    if (driver_params.output_gw_spec_func)
+    {
+        parser.parse_double("omega_sf_start", driver_params.omega_sf_start, -10.0, flag);
+        parser.parse_double("omega_sf_end", driver_params.omega_sf_end, 10.0, flag);
+        parser.parse_double("omega_sf_step", driver_params.omega_sf_step, 0.001, flag);
+    }
 
     // general parameters
     parser.parse_string("task", Params::task, "rpa", flag);
