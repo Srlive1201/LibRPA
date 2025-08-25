@@ -155,9 +155,13 @@ void parse_inputfile_to_params(const std::string& fn)
     // TODO: implement a function to read multiple double values in one line
     if (driver_params.output_gw_spec_func)
     {
-        parser.parse_double("omega_sf_start", driver_params.omega_sf_start, -10.0, flag);
-        parser.parse_double("omega_sf_end", driver_params.omega_sf_end, 10.0, flag);
-        parser.parse_double("omega_sf_step", driver_params.omega_sf_step, 0.001, flag);
+        parser.parse_double("sf_omega_start", driver_params.sf_omega_start, -10.0, flag);
+        parser.parse_double("sf_omega_end", driver_params.sf_omega_end, 0.0, flag);
+        parser.parse_double("sf_omega_step", driver_params.sf_omega_step, 0.005, flag);
+        parser.parse_int("sf_state_start", driver_params.sf_state_start, 0, flag);
+        parser.parse_int("sf_state_end", driver_params.sf_state_end, 10000, flag);
+        parser.parse_double("sf_gf_omega_shift", driver_params.sf_gf_omega_shift, 0.01, flag);
+        parser.parse_double("sf_sigc_omega_shift", driver_params.sf_sigc_omega_shift, 0.01, flag);
     }
 
     // general parameters

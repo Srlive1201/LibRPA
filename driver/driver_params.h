@@ -6,9 +6,14 @@ struct DriverParams
     std::string input_dir;
 
     bool output_gw_spec_func;
-    double omega_sf_start;
-    double omega_sf_end;
-    double omega_sf_step;
+    double sf_omega_start;
+    double sf_omega_end;
+    double sf_omega_step;
+    double sf_gf_omega_shift;
+    double sf_sigc_omega_shift;
+
+    int sf_state_start;
+    int sf_state_end;
 
     void print();
 

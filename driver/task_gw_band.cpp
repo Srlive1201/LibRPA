@@ -329,12 +329,58 @@ void task_g0w0_band()
     if (mpi_comm_global_h.is_root())
     {
         const auto &mf = meanfield_band;
+        const auto n_spin = mf.get_n_spins();
+        const auto n_kpt = mf.get_n_kpoints();
         map<int, map<int, map<int, double>>> e_qp_all;
         map<int, map<int, map<int, cplxdb>>> sigc_all;
         const auto efermi = mf.get_efermi();
-        for (int i_spin = 0; i_spin < mf.get_n_spins(); i_spin++)
+
+        // Spectral function IO handler
+        std::ofstream wf_sf;
+        std::vector<cplxdb> omegas;
+        // FIXME: should check negative n_omegas_sf beforehand for safety and clarity
+        int n_omegas_sf = (driver_params.sf_omega_end - driver_params.sf_omega_start) / driver_params.sf_omega_step + 1;
+
+        if (driver_params.output_gw_spec_func && n_omegas_sf > 0)
         {
-            for (int i_kpoint = 0; i_kpoint < mf.get_n_kpoints(); i_kpoint++)
+            wf_sf.open("spectral_function_band.dat", std::ios::out | std::ios::binary);
+
+            // Initialize the real frequencies
+            std::vector<double> omegas_db(n_omegas_sf, 0.0);
+            const double start = driver_params.sf_omega_start;
+            const double step = driver_params.sf_omega_step;
+            std::generate(omegas_db.begin(), omegas_db.end(),
+                          [i = 0, start, step]() mutable
+                          {
+                              return start + (i++) * step;
+                          });
+            // Output frequency setup
+            wf_sf.write((char *) &driver_params.sf_omega_start, sizeof(double));
+            wf_sf.write((char *) &driver_params.sf_omega_end, sizeof(double));
+            wf_sf.write((char *) &driver_params.sf_omega_step, sizeof(double));
+            wf_sf.write((char *) &driver_params.sf_gf_omega_shift, sizeof(double));
+            wf_sf.write((char *) &driver_params.sf_sigc_omega_shift, sizeof(double));
+            // Output dimension information and Fermi level
+            wf_sf.write((char *) &n_omegas_sf, sizeof(int));
+            wf_sf.write((char *) &n_spin, sizeof(int));
+            wf_sf.write((char *) &n_kpt, sizeof(int));
+            // Check actual start and end indices of band
+            int sf_state_start = max(driver_params.sf_state_start, 0);
+            int sf_state_end = min(driver_params.sf_state_end, mf.get_n_bands() - 1);
+            wf_sf.write((char *) &sf_state_start, sizeof(int));
+            wf_sf.write((char *) &sf_state_end, sizeof(int));
+            wf_sf.write((char *) &efermi, sizeof(double));
+            // Output the frequencies
+            wf_sf.write((char *) omegas_db.data(), sizeof(double) * n_omegas_sf);
+
+            omegas.resize(n_omegas_sf);
+            std::transform(omegas_db.cbegin(), omegas_db.cend(), omegas.begin(),
+                   [](double x) { return std::complex<double>(x / HA2EV, 0.0); });
+        }
+
+        for (int i_spin = 0; i_spin < n_spin; i_spin++)
+        {
+            for (int i_kpoint = 0; i_kpoint < n_kpt; i_kpoint++)
             {
                 const auto &sigc_sk = s_g0w0.sigc_is_ik_f_KS[i_spin][i_kpoint];
                 for (int i_state = 0; i_state < mf.get_n_bands(); i_state++)
@@ -348,6 +394,22 @@ void task_g0w0_band()
                         sigc_state.push_back(sigc_sk.at(freq)(i_state, i_state));
                     }
                     LIBRPA::AnalyContPade pade(Params::n_params_anacon, imagfreqs, sigc_state);
+                    
+                    if (driver_params.output_gw_spec_func && n_omegas_sf > 0)
+                    {
+                        if (i_state >= driver_params.sf_state_start &&
+                            i_state <= driver_params.sf_state_end)
+                        {
+                            const auto sf = LIBRPA::get_specfunc(
+                                pade, omegas, efermi, eks_state, vxc_state, exx_state,
+                                driver_params.sf_sigc_omega_shift, driver_params.sf_gf_omega_shift);
+                            wf_sf.write((char *) &eks_state, sizeof(double));
+                            wf_sf.write((char *) &exx_state, sizeof(double));
+                            wf_sf.write((char *) &vxc_state, sizeof(double));
+                            wf_sf.write((char *) sf.data(), sizeof(double) * 2 * n_omegas_sf);
+                        }
+                    }
+
                     double e_qp;
                     cplxdb sigc;
                     int flag_qpe_solver = LIBRPA::qpe_solver_pade_self_consistent(
@@ -366,6 +428,11 @@ void task_g0w0_band()
                     }
                 }
             }
+        }
+
+        if (driver_params.output_gw_spec_func)
+        {
+            wf_sf.close();
         }
 
         // display results
