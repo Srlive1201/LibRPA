@@ -350,7 +350,11 @@ void task_g0w0()
         }
         // for aims analytic continuation reader
     }
-    write_self_energy_omega("self_energy_omega.dat", s_g0w0);
+    // Limit writing of file to the master process (it has all the data)
+    if (LIBRPA::envs::myid_global == 0)
+    {
+        write_self_energy_omega("self_energy_omega.dat", s_g0w0);
+    }
     Profiler::stop("g0w0_export_sigc_KS");
 
     Profiler::stop("g0w0");
