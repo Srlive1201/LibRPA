@@ -340,6 +340,8 @@ void task_g0w0_band()
         std::vector<cplxdb> omegas;
         // FIXME: should check negative n_omegas_sf beforehand for safety and clarity
         int n_omegas_sf = (driver_params.sf_omega_end - driver_params.sf_omega_start) / driver_params.sf_omega_step + 1;
+        const double gf_shift_ha = driver_params.sf_gf_omega_shift / HA2EV;
+        const double sigc_shift_ha = driver_params.sf_sigc_omega_shift / HA2EV;
 
         if (driver_params.output_gw_spec_func && n_omegas_sf > 0)
         {
@@ -402,11 +404,11 @@ void task_g0w0_band()
                         {
                             const auto sf = LIBRPA::get_specfunc(
                                 pade, omegas, efermi, eks_state, vxc_state, exx_state,
-                                driver_params.sf_sigc_omega_shift, driver_params.sf_gf_omega_shift);
+                                sigc_shift_ha, gf_shift_ha);
                             wf_sf.write((char *) &eks_state, sizeof(double));
                             wf_sf.write((char *) &exx_state, sizeof(double));
                             wf_sf.write((char *) &vxc_state, sizeof(double));
-                            wf_sf.write((char *) sf.data(), sizeof(double) * 2 * n_omegas_sf);
+                            wf_sf.write((char *) sf.data(), sizeof(double) * n_omegas_sf);
                         }
                     }
 
