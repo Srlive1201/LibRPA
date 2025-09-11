@@ -478,6 +478,62 @@ void read_velocity_aims(MeanField &mf, const string &file_path)
     int nbands = mf.get_n_bands();
     auto &velocity = mf.get_velocity();
 
+    for (int ik = 0; ik < nk; ik++)
+    {
+        std::stringstream ss;
+        ss << file_path << "mommat_ks_kpt_" << std::setfill('0') << std::setw(6) << ik + 1
+           << ".dat";
+
+        std::ifstream infile(ss.str(), std::ios::binary);
+        if (!infile.is_open())
+        {
+            std::cerr << "Failed to open file: " << ss.str() << std::endl;
+            continue;
+        }
+
+        int i_k_point, n_state_min, n_state_max, ld, n_spin_in, n_pol_dir;
+        infile.read(reinterpret_cast<char *>(&i_k_point), sizeof(int));
+        infile.read(reinterpret_cast<char *>(&n_state_min), sizeof(int));
+        infile.read(reinterpret_cast<char *>(&n_state_max), sizeof(int));
+        infile.read(reinterpret_cast<char *>(&ld), sizeof(int));
+        infile.read(reinterpret_cast<char *>(&n_spin_in), sizeof(int));
+        infile.read(reinterpret_cast<char *>(&n_pol_dir), sizeof(int));
+
+        int n_pairs = ld * n_spin_in * n_pol_dir;
+        std::vector<std::complex<double>> mommat(n_pairs);
+        infile.read(reinterpret_cast<char *>(mommat.data()),
+                    n_pairs * sizeof(std::complex<double>));
+        infile.close();
+
+        int iline = 0;
+        for (int ipol = 0; ipol < n_pol_dir; ipol++)
+        {
+            for (int is = 0; is < n_spins; is++)
+            {
+                for (int im = 0; im < nbands; im++)
+                {
+                    for (int in = im; in < nbands; in++)
+                    {
+                        velocity.at(is).at(ik).at(ipol)(in, im) = mommat[iline];
+                        velocity.at(is).at(ik).at(ipol)(im, in) = std::conj(mommat[iline]);
+                        iline++;
+                    }
+                }
+            }
+        }
+    }
+
+    if (LIBRPA::envs::mpi_comm_global_h.is_root())
+        std::cout << "* Success: read moment from mommat_ks_kpt_*.dat (FHI-aims)." << std::endl;
+}
+
+/* void read_velocity_aims(MeanField &mf, const string &file_path)
+{
+    int nk = mf.get_n_kpoints();
+    int n_spins = mf.get_n_spins();
+    int nbands = mf.get_n_bands();
+    auto &velocity = mf.get_velocity();
+
     ifstream infile;
     for (int ik = 0; ik != nk; ik++)
     {
@@ -485,7 +541,7 @@ void read_velocity_aims(MeanField &mf, const string &file_path)
             pz(n_spins * nbands * nbands);
         // Load momentum matrix
         std::stringstream ss;
-        ss << file_path << "moment_KS_spin_01_kpt_" << std::setfill('0') << std::setw(6) << ik + 1
+        ss << file_path << "mommat_ks_kpt_" << std::setfill('0') << std::setw(6) << ik + 1
            << ".dat";
         infile.open(ss.str());
         if (!infile.is_open())
@@ -518,67 +574,13 @@ void read_velocity_aims(MeanField &mf, const string &file_path)
                     velocity.at(is).at(ik).at(1)(im, in) = conj(py[iline]);
                     velocity.at(is).at(ik).at(2)(im, in) = conj(pz[iline]);
                     iline++;
-                    /*if (in == im)
-                    {
-                        std::cout << velocity.at(is).at(ik).at(0)(in, im).imag() << std::endl;
-                    }*/
                 }
             }
         }
     }
-    /*while (infile.peek() != EOF)
-    {
-        infile >> px_re >> px_im >> py_re >> py_im >> pz_re >> pz_im;
-        if (infile.peek() == EOF) break;
-        for (int is = 0; is != n_spins; is++)
-        {
-            velocity.at(is).at(ik).at(0).c[m * nbands + n] =
-                complex<double>(stod(px_re), stod(px_im));
-            velocity.at(is).at(ik).at(1).c[m * nbands + n] =
-                complex<double>(stod(py_re), stod(py_im));
-            velocity.at(is).at(ik).at(2).c[m * nbands + n] =
-                complex<double>(stod(pz_re), stod(pz_im));
-        }
-        n++;
-        if (n % nbands == 0)
-        {
-            m++;
-            n = m;
-        }
-    }
-    for (int im = 0; im != nbands; im++)
-    {
-        for (int in = 0; in != nbands; in++)
-        {
-            for (int is = 0; is != n_spins; is++)
-            {
-                if (im > in)
-                {
-                    velocity.at(is).at(ik).at(0).c[im * nbands + in] =
-                        velocity.at(is).at(ik).at(0).c[in * nbands + im];
-                    velocity.at(is).at(ik).at(1).c[im * nbands + in] =
-                        velocity.at(is).at(ik).at(1).c[in * nbands + im];
-                    velocity.at(is).at(ik).at(2).c[im * nbands + in] =
-                        velocity.at(is).at(ik).at(2).c[in * nbands + im];
-                }
-            }
-        }
-    }
-}*/
-    /*std::cout << "velocity k=26,px: " << std::endl;
-    for (int m = 0; m != nbands; m++)
-    {
-        for (int n = m; n != nbands; n++)
-        {
-            std::cout << velocity[0][26][0](n, m) << std::endl;
-        }
-    }*/
-    // std::cout << "px(k=26, m=5, n=40): " << velocity.at(0).at(26).at(0)(5, 40) << std::endl;
-    // std::cout << "px(k=26, m=40, n=5): " << velocity.at(0).at(26).at(0)(40, 5) << std::endl;
     if (LIBRPA::envs::mpi_comm_global_h.is_root())
-        std::cout << "* Success: read moment from moment_KS_spin_01_kpt_*.dat(FHI-aims)."
-                  << std::endl;
-}
+        std::cout << "* Success: read moment from mommat_ks_kpt_*.dat(FHI-aims)." << std::endl;
+} */
 
 static size_t handle_Cs_file(const string &file_path, double threshold, const std::vector<atpair_t> &local_atpair)
 {
