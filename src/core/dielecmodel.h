@@ -93,6 +93,7 @@ class diele_func
           atomic_basis_wfc_(atomic_basis_wfc),
           atomic_basis_abf_(atomic_basis_abf)
     {};
+    diele_func() : meanfield_df(pyatb_meanfield), kfrac_band(kfrac_list) {};
     ~diele_func() {};
     void init(double vq_threshold, const librpa_int::atpair_k_cplx_mat_t &Vq);
     void init_wing();
