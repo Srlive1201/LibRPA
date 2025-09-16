@@ -32,6 +32,7 @@ double Params::libri_exx_threshold_V = 0.0;
 double Params::libri_g0w0_threshold_C = 0.0;
 double Params::libri_g0w0_threshold_G = 0.0;
 double Params::libri_g0w0_threshold_Wc = 0.0;
+double Params::minimax_min_gap = -1.0;
 
 bool Params::use_scalapack_ecrpa = true;
 bool Params::use_scalapack_gw_wc = false;
@@ -74,6 +75,7 @@ void Params::print()
         {"libri_g0w0_threshold_C", libri_g0w0_threshold_C},
         {"libri_g0w0_threshold_G", libri_g0w0_threshold_G},
         {"libri_g0w0_threshold_Wc", libri_g0w0_threshold_Wc},
+        {"minimax_min_gap", minimax_min_gap},
     };
 
     const std::vector<std::pair<std::string, int>> int_params{

@@ -252,6 +252,7 @@ void parse_inputfile_to_params(const std::string &fn)
     _parse_switch(opts, output_gw_sigc_mat);
     _parse_switch(opts, output_gw_sigc_mat_rt);
     _parse_switch(opts, output_gw_sigc_mat_rf);
+    parser.parse_double("minimax_min_gap", Params::minimax_min_gap, -1.0, flag);
 
     parser.parse_int("nbands_G", Params::nbands_G, -1, flag);
 }
