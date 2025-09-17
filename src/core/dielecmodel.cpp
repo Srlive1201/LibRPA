@@ -400,11 +400,12 @@ std::pair<ArrayDesc, matrix_m<complex<double>>> diele_func::transform_Cs2mnk(con
     // profiler.start("fourier_assign");
     if (use_shrink_abfs)
     {
-        data_libri = Cs_shrinked_data.data_libri.at(Mu);
+        if (Cs_shrinked_data.data_libri.count(Mu) > 0)
+            data_libri = Cs_shrinked_data.data_libri.at(Mu);
     }
     else
     {
-        data_libri = Cs_data.data_libri.at(Mu);
+        if (Cs_data.data_libri.count(Mu) > 0) data_libri = Cs_data.data_libri.at(Mu);
     }
     const auto &n_Mu = atomic_basis_wfc_.get_atom_nb(Mu);
     for (const auto &JR_C : data_libri)
