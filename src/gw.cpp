@@ -137,7 +137,7 @@ void static unfold_abfs_Wc(
         const auto &q = qlist[iq];
         std::array<double, 3> qa = {q.x, q.y, q.z};
         const auto &U = sinvS.at(q);
-        Profiler::start("unfold_prepare_Wc_2d", "Prepare Wc 2D block for unfold");
+        // Profiler::start("unfold_prepare_Wc_2d", "Prepare Wc 2D block for unfold");
         Wc_block.zero_out();
         Wcll_block.zero_out();
         u_block.zero_out();
@@ -195,16 +195,16 @@ void static unfold_abfs_Wc(
             // wait for all mpi to calculate chi0_libri
             // then collect chi0_libri to chi0_block
             mpi_comm_global_h.barrier();
-            Profiler::start("unfold_prepare_Wc_2d_comm_map2");
+            // Profiler::start("unfold_prepare_Wc_2d_comm_map2");
             const auto IJq_wc = RI::Communicate_Tensors_Map_Judge::comm_map2_first(
                 mpi_comm_global_h.comm, wc_libri, s0_s1.first, s0_s1.second);
-            Profiler::stop("unfold_prepare_Wc_2d_comm_map2");
-            Profiler::start("unfold_prepare_Wc_2d_collect_block");
+            // Profiler::stop("unfold_prepare_Wc_2d_comm_map2");
+            // Profiler::start("unfold_prepare_Wc_2d_collect_block");
             collect_block_from_ALL_IJ_Tensor(Wc_block, desc_nabf_nabf_ss, LIBRPA::atomic_basis_abf,
                                              qa, true, CONE, IJq_wc, MAJOR::ROW);
-            Profiler::stop("unfold_prepare_Wc_2d_collect_block");
+            // Profiler::stop("unfold_prepare_Wc_2d_collect_block");
         }
-        Profiler::stop("unfold_prepare_Wc_2d");
+        // Profiler::stop("unfold_prepare_Wc_2d");
         for (int ir = 0; ir < U.nr; ir++)
         {
             const int ilo = desc_nabf_nabf_sl.indx_g2l_r(ir);
