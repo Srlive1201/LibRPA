@@ -520,9 +520,9 @@ void task_g0w0_band(std::map<Vector3_Order<double>, ComplexMatrix> &sinvS)
             }
         }
         bandgap = conduct - valence;
-        const auto &k_val = kfrac_list[ik_val];
+        const auto &k_val = kfrac_band[ik_val];
         printf("VBM: k-point %4d: (%.5f, %.5f, %.5f) \n", ik_val + 1, k_val.x, k_val.y, k_val.z);
-        const auto &k_cond = kfrac_list[ik_cond];
+        const auto &k_cond = kfrac_band[ik_cond];
         printf("CBM: k-point %4d: (%.5f, %.5f, %.5f) \n", ik_cond + 1, k_cond.x, k_cond.y,
                k_cond.z);
         lib_printf("Bandgap(eV): %12.7f \n", bandgap);
