@@ -205,12 +205,14 @@ void collect_block_from_IJ_storage_tensor_transform(
     mat_lo = tmp_loc;
 }
 
+// Used for tranformation from Cs[I][{J, R}](i,j,mu)
+// to 2d-block Cs[I][{J,k}](i,j)
 template <typename Tdst, typename Tsrc, typename TA, typename TAC>
 void collect_block_from_IJ_storage_tensor_transform_triple(
     matrix_m<Tdst> &mat_lo, const LIBRPA::Array_Desc &ad, const LIBRPA::AtomicBasis &atbasis_row,
     const LIBRPA::AtomicBasis &atbasis_col,
     const std::function<Tdst(const TA &, const TAC &)> &transform,
-    const std::map<TA, std::map<TAC, RI::Tensor<Tsrc>>> &TMAP, const int &Mu)
+    const std::map<TA, std::map<TAC, RI::Tensor<Tsrc>>> &TMAP, const TA &Mu, const int &mu_local)
 {
     // assert(mat_lo.nr() == ad.m_loc() && mat_lo.nc() == ad.n_loc());
     assert(ad.m() == atbasis_row.nb_total && ad.n() == atbasis_col.nb_total);
@@ -221,20 +223,18 @@ void collect_block_from_IJ_storage_tensor_transform_triple(
     omp_lock_t mat_lock;
     omp_init_lock(&mat_lock);
 
-    // #pragma omp parallel for
+#pragma omp parallel for
     for (int ilo = 0; ilo != ad.m_loc(); ilo++)
     {
         int I_loc, J_loc, i_ab, j_ab;
         int i_gl = ad.indx_l2g_r(ilo);
         atbasis_row.get_local_index(i_gl, I_loc, i_ab);
-        // I_loc = Mu;
-        // i_ab = i_gl;
         vector<Tdst> tmp_loc_row(ad.n_loc(), 0);
         for (int jlo = 0; jlo != ad.n_loc(); jlo++)
         {
             int j_gl = ad.indx_l2g_c(jlo);
             atbasis_col.get_local_index(j_gl, J_loc, j_ab);
-            if (TMAP.count(I_loc) > 0)
+            if (TMAP.count(I_loc) > 0 && I_loc == Mu)
             {
                 for (const auto &acell_mat : TMAP.at(I_loc))
                 {
@@ -244,7 +244,7 @@ void collect_block_from_IJ_storage_tensor_transform_triple(
                     {
                         continue;
                     }
-                    tmp_loc_row[jlo] += mat(i_ab, j_ab) * transform(I_loc, acell);
+                    tmp_loc_row[jlo] += mat(mu_local, i_ab, j_ab) * transform(Mu, acell);
                 }
             }
         }
