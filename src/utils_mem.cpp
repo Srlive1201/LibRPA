@@ -16,6 +16,10 @@
 #include <sys/sysctl.h>
 #endif
 
+#if defined(__GLIBC__) && (__GLIBC__ * 1000 + __GLIBC_MINOR__ >= 2033)
+#define USE_MALLINFO2 1
+#endif
+
 namespace LIBRPA
 {
 
@@ -92,6 +96,31 @@ int get_node_free_mem(double &free_mem)
 
     free_mem = value * 1.e-6;
     return retcode;
+}
+
+void report_virtual_pages(std::ostream &os)
+{
+#ifndef __linux__
+    os << "report_virtual_pages only available on Linux, skip" << std::endl;
+#else
+#ifdef USE_MALLINFO2
+    struct mallinfo2 mi = mallinfo2();  // field as size_t
+#else
+    struct mallinfo mi = mallinfo();    // field as int, may overflow
+#endif
+    std::ifstream ifs("/proc/self/status");
+    std::string line;
+    std::string vmrss, vmdata;
+    while (std::getline(ifs, line)) {
+        if (line.rfind("VmRSS:", 0) == 0) vmrss = line;
+        if (line.rfind("VmData:", 0) == 0) vmdata = line;
+    }
+    os << vmrss << std::endl << vmdata << std::endl
+       << "Heap arena: " << mi.arena / (1024.0*1024)
+       << " MB, Free: " << mi.fordblks / (1024.0*1024)
+       << " MB, Mmap space: " << mi.hblkhd / (1024.0*1024)
+       << " MB" << std::endl;
+#endif
 }
 
 } /* end of namespace utils */

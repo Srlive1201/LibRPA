@@ -1,5 +1,7 @@
 #pragma once
 
+#include <ostream>
+
 namespace LIBRPA
 {
 
@@ -42,6 +44,18 @@ int get_node_total_mem(double &total_mem_gb);
  *   Currently only works with Linux operating system.
  */
 int get_node_free_mem(double &free_mem_gb);
+
+
+/*!
+ * @brief Report virtual page usage per process
+ *
+ * @param os ostream handler that the output should be directed,
+ *           favorably each process have its own .
+ *
+ * @note
+ *   Currently only works with Linux operating system.
+ */
+void report_virtual_pages(std::ostream &os);
 
 
 } /* end of namespace utils */
