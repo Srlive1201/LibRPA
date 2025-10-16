@@ -11,6 +11,7 @@
 // For memory query
 #if defined(__linux__)
 #include <sys/sysinfo.h>
+#define PROC_DIR_AVAILABLE
 #elif defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__)
 #include <sys/types.h>
 #include <sys/sysctl.h>
@@ -18,6 +19,10 @@
 
 #if defined(__GLIBC__) && (__GLIBC__ * 1000 + __GLIBC_MINOR__ >= 2033)
 #define USE_MALLINFO2 1
+#endif
+
+#ifdef PROC_DIR_AVAILABLE
+#include <fstream>
 #endif
 
 namespace LIBRPA
