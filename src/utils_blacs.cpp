@@ -1,4 +1,5 @@
 #include "utils_blacs.h"
+#include <stdexcept>
 
 namespace LIBRPA
 {

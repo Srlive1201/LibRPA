@@ -5,7 +5,6 @@
 #include "chi0.h"
 #include "epsilon.h"
 #include "envs_mpi.h"
-#include "parallel_mpi.h"
 #include "params.h"
 #include "pbc.h"
 #include "profiler.h"

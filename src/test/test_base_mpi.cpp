@@ -1,18 +1,17 @@
-#include "../parallel_mpi.h"
-
 #include "../envs_mpi.h"
 #include "../envs_io.h"
 
 #include "testutils.h"
-#include <mpi.h>
-#include <stdexcept>
 
-using namespace LIBRPA::envs;
+#include <stdexcept>
+#include <cassert>
+
+using namespace LIBRPA;
 
 void test_dispatcher_1d()
 {
-    const int myid = mpi_comm_global_h.myid;
-    const int size = mpi_comm_global_h.nprocs;
+    const int myid = get_mpi_rank(MPI_COMM_WORLD);
+    const int size = get_mpi_size(MPI_COMM_WORLD);
 
     // single index dispatcher
     // balanced sequential case
@@ -80,8 +79,8 @@ void test_dispatcher_1d()
 
 void test_dispatcher_2d()
 {
-    const int myid = mpi_comm_global_h.myid;
-    const int size = mpi_comm_global_h.nprocs;
+    const int myid = get_mpi_rank(MPI_COMM_WORLD);
+    const int size = get_mpi_size(MPI_COMM_WORLD);
 
     // =====================================
     // double index dispatcher
@@ -233,16 +232,15 @@ int main (int argc, char *argv[])
 {
     int provided;
     MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
-    initialize_mpi(MPI_COMM_WORLD);
-    initialize_io();
+
+    int size_global = get_mpi_size(MPI_COMM_WORLD);
+
     if ( size_global != 4 )
-        throw runtime_error("test imposes 4 MPI processes");
+        throw std::runtime_error("test imposes 4 MPI processes");
 
     test_dispatcher_1d();
     test_dispatcher_2d();
 
-    finalize_io();
-    finalize_mpi();
     MPI_Finalize();
 
     return 0;

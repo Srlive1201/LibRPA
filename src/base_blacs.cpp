@@ -296,4 +296,25 @@ int Array_Desc::indx_l2g_c(int lindx) const
 	// return gIndex;
 }
 
+int get_globalIndex(int localIndex, int nblk, int nprocs, int myproc)
+{
+    int iblock, gIndex;
+    iblock = localIndex / nblk;
+    gIndex = (iblock * nprocs + myproc) * nblk + localIndex % nblk;
+    return gIndex;
+}
+
+int get_localIndex(int globalIndex, int nblk, int nprocs, int myproc)
+{
+    int inproc = int((globalIndex % (nblk * nprocs)) / nblk);
+    if (myproc == inproc)
+    {
+        return int(globalIndex / (nblk * nprocs)) * nblk + globalIndex % nblk;
+    }
+    else
+    {
+        return -1;
+    }
+}
+
 } /* end of namespace LIBRPA */

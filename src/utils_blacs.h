@@ -3,6 +3,8 @@
 #include "base_blacs.h"
 #include "atomic_basis.h"
 
+#include <set>
+
 namespace LIBRPA
 {
 

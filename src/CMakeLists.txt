@@ -26,6 +26,7 @@ list(APPEND lib_sources
         app_exx.cpp
         atomic_basis.cpp
         base_blacs.cpp
+        base_mpi.cpp
         # cal_periodic_chi0.cpp
         chi0.cpp
         complexmatrix.cpp
@@ -59,6 +60,7 @@ list(APPEND lib_sources
         utils_mem.cpp
         utils_blacs.cpp
         utils_timefreq.cpp
+        utils_matrix_mpi.cpp
         vector3_order.cpp
         )
 

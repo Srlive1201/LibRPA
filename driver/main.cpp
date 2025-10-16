@@ -282,7 +282,9 @@ int main(int argc, char **argv)
         //         ofs<<a2.first<<"  ("<<a2.second[0]<<", "<<a2.second[1]<<", "<<a2.second[2]<<" )"<<endl;
         if (mpi_comm_global_h.is_root())
             lib_printf("Triangular dispatching of atom pairs\n");
-        auto trangular_loc_atpair= dispatch_upper_trangular_tasks(natom,blacs_ctxt_global_h.myid,blacs_ctxt_global_h.nprows,blacs_ctxt_global_h.npcols,blacs_ctxt_global_h.myprow,blacs_ctxt_global_h.mypcol);
+        auto trangular_loc_atpair = LIBRPA::dispatch_upper_trangular_tasks(
+            natom, blacs_ctxt_global_h.myid, blacs_ctxt_global_h.nprows, blacs_ctxt_global_h.npcols,
+            blacs_ctxt_global_h.myprow, blacs_ctxt_global_h.mypcol);
         //local_atpair = dispatch_vector(tot_atpair, mpi_comm_global_h.myid, mpi_comm_global_h.nprocs, true);
         for(auto &iap:trangular_loc_atpair)
             local_atpair.push_back(iap);
@@ -315,7 +317,9 @@ int main(int argc, char **argv)
         // There should be no duplicate for V
 
         Profiler::start("driver_read_Vq");
-        auto trangular_loc_atpair= dispatch_upper_trangular_tasks(natom,blacs_ctxt_global_h.myid,blacs_ctxt_global_h.nprows,blacs_ctxt_global_h.npcols,blacs_ctxt_global_h.myprow,blacs_ctxt_global_h.mypcol);
+        auto trangular_loc_atpair = LIBRPA::dispatch_upper_trangular_tasks(
+            natom, blacs_ctxt_global_h.myid, blacs_ctxt_global_h.nprows, blacs_ctxt_global_h.npcols,
+            blacs_ctxt_global_h.myprow, blacs_ctxt_global_h.mypcol);
         for(auto &iap:trangular_loc_atpair)
             local_atpair.push_back(iap);
         read_Vq_row(driver_params.input_dir, "coulomb_mat", Params::vq_threshold, local_atpair, false);

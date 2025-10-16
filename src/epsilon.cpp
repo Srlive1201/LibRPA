@@ -19,7 +19,7 @@
 #include "stl_io_helper.h"
 #include "libri_utils.h"
 #include "matrix_m_parallel_utils.h"
-#include "parallel_mpi.h"
+#include "utils_matrix_mpi.h"
 #include "envs_blacs.h"
 #include "utils_blacs.h"
 #include "params.h"
@@ -836,7 +836,7 @@ CorrEnergy compute_RPA_correlation_blacs(const Chi0 &chi0, const atpair_k_cplx_m
                 //printf("   |process %d,   compute_pi\n",para_mpi.get_myid());
                 ComplexMatrix glo_pi_row( n_mu,N_all_mu);
                 mpi_comm_global_h.barrier();
-                mpi_comm_global_h.allreduce_ComplexMatrix(loc_pi_row,glo_pi_row);
+                LIBRPA::allreduce_ComplexMatrix(loc_pi_row,glo_pi_row,mpi_comm_global_h.comm);
                 double Mu_after_pi_loc=omp_get_wtime();
                 //cout<<"  glo_pi_rowT nr,nc: "<<glo_pi_row.nr<<" "<<glo_pi_row.nc<<endl;
 
@@ -984,7 +984,7 @@ CorrEnergy compute_RPA_correlation(const Chi0 &chi0, const atpair_k_cplx_mat_t &
             }
             if (LIBRPA::parallel_routing == LIBRPA::ParallelRouting::ATOM_PAIR || LIBRPA::parallel_routing == LIBRPA::ParallelRouting::LIBRI)
             {
-                mpi_comm_global_h.reduce_ComplexMatrix(pi_munu_tmp, pi_freq_q.at(freq).at(q), 0);
+                LIBRPA::reduce_ComplexMatrix(pi_munu_tmp, pi_freq_q.at(freq).at(q), 0, mpi_comm_global_h.comm);
             }
             else
             {
@@ -1429,7 +1429,7 @@ atom_mapping<ComplexMatrix>::pair_t_old gather_vq_row_q(const int &I, const atpa
                     loc_vq=transpose(*Vq.at(J_tmp).at(I).at(ik_vec), 1);
 
         }
-        mpi_comm_global_h.allreduce_ComplexMatrix(loc_vq,Vq_row[I][J_tmp]);
+        LIBRPA::allreduce_ComplexMatrix(loc_vq,Vq_row[I][J_tmp], mpi_comm_global_h.comm);
     }
     return Vq_row;
 }
@@ -1661,10 +1661,9 @@ compute_Wc_freq_q_blacs(Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, atpa
                                coul_chi0_block.size() + coulwc_block.size()) * 16.0e-6;
     ofs_myid << get_timestamp() << " Memory consumption of task-local blocks for screened Coulomb [MB]: " << mem_blocks << endl;
 
-    const auto atpair_local = dispatch_upper_trangular_tasks(
-        natom, blacs_ctxt_global_h.myid, blacs_ctxt_global_h.nprows,
-        blacs_ctxt_global_h.npcols, blacs_ctxt_global_h.myprow,
-        blacs_ctxt_global_h.mypcol);
+    const auto atpair_local = LIBRPA::dispatch_upper_trangular_tasks(
+        natom, blacs_ctxt_global_h.myid, blacs_ctxt_global_h.nprows, blacs_ctxt_global_h.npcols,
+        blacs_ctxt_global_h.myprow, blacs_ctxt_global_h.mypcol);
 #ifdef LIBRPA_DEBUG
     ofs_myid << get_timestamp() << " atpair_local " << atpair_local << endl;
     ofs_myid << get_timestamp() << " s0_s1 " << s0_s1 << endl;

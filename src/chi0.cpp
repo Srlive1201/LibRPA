@@ -2,7 +2,7 @@
 #include <cstring>
 #include <ctime>
 #include "envs_io.h"
-#include "parallel_mpi.h"
+#include "utils_matrix_mpi.h"
 #include "envs_mpi.h"
 #include "profiler.h"
 #include "chi0.h"
@@ -73,8 +73,8 @@ void Chi0::build(const Cs_LRI &Cs,
             const auto atpairs_gf = generate_atom_pair_from_nat(natom, true);
             if (mpi_comm_global_h.is_root())
                 LIBRPA::utils::lib_printf("Total count of GFs IJR: %zu\n", atpairs_gf.size() * Rlist_gf.size());
-            this->IJRs_gf_local = dispatch_vector_prod(atpairs_gf, Rlist_gf,
-                                                       mpi_comm_global_h.myid, mpi_comm_global_h.nprocs, true, true);
+            this->IJRs_gf_local = LIBRPA::dispatch_vector_prod(
+                atpairs_gf, Rlist_gf, mpi_comm_global_h.myid, mpi_comm_global_h.nprocs, true, true);
             LIBRPA::utils::lib_printf("| Number of GFs IJR on Proc %4d: %zu\n",
                                       mpi_comm_global_h.myid, this->IJRs_gf_local.size());
         }
@@ -586,13 +586,14 @@ void Chi0::build_chi0_q_space_time_R_tau_routing(const Cs_LRI &Cs,
     Profiler::start("R_tau_routing", "Loop over R-tau");
     // taus and Rs to compute on MPI task
     // tend to calculate more Rs on one process
-    vector<pair<int, int>> itauiRs_local = dispatcher(0, tfg.size(), 0, Rlist_gf.size(),
-                                                      mpi_comm_global_h.myid, mpi_comm_global_h.nprocs, true, false);
+    vector<pair<int, int>> itauiRs_local =
+        LIBRPA::dispatcher(0, tfg.size(), 0, Rlist_gf.size(), mpi_comm_global_h.myid,
+                           mpi_comm_global_h.nprocs, true, false);
     map<Vector3_Order<double>,int> qlist2myid;
-    auto loc_qlist = dispatch_vector(qlist , mpi_comm_global_h.myid, mpi_comm_global_h.nprocs, true);
+    auto loc_qlist = LIBRPA::dispatch_vector(qlist , mpi_comm_global_h.myid, mpi_comm_global_h.nprocs, true);
     for(int id=0;id!=mpi_comm_global_h.nprocs;id++)
     {
-        auto id_qlist=dispatch_vector(qlist , id, mpi_comm_global_h.nprocs, true);
+        auto id_qlist = LIBRPA::dispatch_vector(qlist, id, mpi_comm_global_h.nprocs, true);
         for(auto &id_q:id_qlist)
             qlist2myid.insert(std::make_pair(id_q,id));
     }
@@ -680,7 +681,7 @@ void Chi0::build_chi0_q_space_time_R_tau_routing(const Cs_LRI &Cs,
                 mpi_comm_global_h.barrier();
                 /* cout << "nr/nc chi0_q_tmp: " << chi0_q_tmp[ifreq][iq][Mu][Nu].nr << ", "<< chi0_q_tmp[ifreq][iq][Mu][Nu].nc << endl; */
                 /* cout << "nr/nc chi0_q: " << chi0_q[ifreq][iq][Mu][Nu].nr << ", "<< chi0_q[ifreq][iq][Mu][Nu].nc << endl; */
-                mpi_comm_global_h.reduce_ComplexMatrix(chi0_q_tmp[freq][q][Mu][Nu], tmp_chi0_recv, id_contain_q);
+                LIBRPA::reduce_ComplexMatrix(chi0_q_tmp[freq][q][Mu][Nu], tmp_chi0_recv, id_contain_q, mpi_comm_global_h.comm);
                 if(id_contain_q == mpi_comm_global_h.myid )
                     chi0_q[freq][q][Mu][Nu]=std::move(tmp_chi0_recv);
                 /* if (LIBRPA::mpi_comm_global_h.myid==0 && Mu == 0 && Nu == 0 && ifreq == 0 && q == Vector3_Order<double>{0, 0, 0}) */

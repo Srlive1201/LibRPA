@@ -2,7 +2,7 @@
 
 #include <string>
 
-#include "parallel_mpi.h"
+#include "base_mpi.h"
 
 namespace LIBRPA
 {
@@ -116,5 +116,8 @@ public:
     bool is_src() const;
     void barrier(CTXT_SCOPE scope = CTXT_SCOPE::A);
 };
+
+int get_globalIndex(int localIndex, int nblk, int nprocs, int myproc);
+int get_localIndex(int globalIndex, int nblk, int nprocs, int myproc);
 
 } /* end of namespace LIBRPA */

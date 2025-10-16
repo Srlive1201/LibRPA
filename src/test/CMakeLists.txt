@@ -49,7 +49,7 @@ endforeach()
 
 # add 4-process tests
 foreach(target
-  test_parallel_mpi
+  test_base_mpi
   test_blacs
   test_matrix_m_parallel_utils
   )

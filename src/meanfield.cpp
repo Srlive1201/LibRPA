@@ -4,6 +4,7 @@
 #include <stdexcept>
 #include <iostream>
 #include "envs_mpi.h"
+#include "utils_matrix_mpi.h"
 
 void MeanField::resize(int ns, int nk, int nb, int nao)
 {
@@ -228,7 +229,7 @@ void MeanField::allredue_wfc_isk()
                 // {
                 //     wfc[is][ik]=glo_wfc;
                 // }
-                mpi_comm_global_h.allreduce_ComplexMatrix(wfc[is][ik],glo_wfc);
+                LIBRPA::allreduce_ComplexMatrix(wfc[is][ik],glo_wfc,mpi_comm_global_h.comm);
                 wfc[is][ik]=glo_wfc;
             }
 }

@@ -8,7 +8,7 @@
 #include <string>
 #include <mpi.h>
 
-#include "parallel_mpi.h"
+#include "base_mpi.h"
 
 //! @namespace LIBRPA           Global namespace for LibRPA functions and classes
 //! @namespace LIBRPA::envs     Facilities regarding computation envrionment

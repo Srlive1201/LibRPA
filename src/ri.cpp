@@ -5,6 +5,7 @@
 #include "envs_mpi.h"
 #include "utils_io.h"
 #include "params.h"
+#include "utils_matrix_mpi.h"
 #include "pbc.h"
 
 int n_irk_points;
@@ -279,7 +280,7 @@ void allreduce_atp_aux()
                 matrix loc_cs(nbasI*nbasJ, nauxI);
                 if(Cs[I][J].count(Rv))
                     memcpy(loc_cs.c,(*Cs[I][J].at(Rv)).c,sizeof(double)*cs_size);
-                mpi_comm_global_h.allreduce_matrix(loc_cs,(*cs_ptr));
+                LIBRPA::allreduce_matrix(loc_cs,(*cs_ptr),mpi_comm_global_h.comm);
                 if(!Cs[I][J].count(Rv))
                     Cs[I][J][Rv] = cs_ptr;
             }
@@ -302,7 +303,7 @@ void allreduce_2D_coulomb_to_atompair(map<Vector3_Order<double>, ComplexMatrix> 
             Vq_block_loc[qvec].create(N_all_mu, N_all_mu);
         }
         
-        mpi_comm_global_h.allreduce_ComplexMatrix(Vq_block_loc[qvec],Vq_glo[qvec]);
+        LIBRPA::allreduce_ComplexMatrix(Vq_block_loc[qvec],Vq_glo[qvec],mpi_comm_global_h.comm);
         // print_complex_matrix("vq_glo", Vq_glo[qvec]);
     }
     size_t vq_save = 0;
@@ -374,7 +375,7 @@ void allreduce_atp_coulomb( atpair_k_cplx_mat_t &coulomb_mat )
                     tmp_send=*coulomb_mat.at(I).at(J).at(qvec);
                     
                 printf("I: %d, J: %d, mu:%d, nu:%d, myid: %d\n",I,J,atom_mu[I], atom_mu[J],mpi_comm_global_h.myid);
-                mpi_comm_global_h.allreduce_ComplexMatrix(tmp_send,*vq_recv_ptr);
+                LIBRPA::allreduce_ComplexMatrix(tmp_send,*vq_recv_ptr,mpi_comm_global_h.comm);
                 if(coulomb_mat[I][J].count(qvec)==0)
                     coulomb_mat[I][J][qvec]=vq_recv_ptr;
                 printf("end I: %d, J: %d,  myid: %d\n",I,J,mpi_comm_global_h.myid);

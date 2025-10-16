@@ -3,6 +3,9 @@
 
 #include "../envs_mpi.h"
 
+#include <cassert>
+#include <stdexcept>
+
 void test_arraydesc()
 {
     using namespace LIBRPA::envs;
@@ -28,15 +31,15 @@ int main (int argc, char *argv[])
     using namespace LIBRPA::envs;
     int provided;
     MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
+
     initialize_mpi(MPI_COMM_WORLD);
     initialize_blacs(MPI_COMM_WORLD);
-    initialize_io();
+
     if ( size_global != 4 )
-        throw runtime_error("test imposes 4 MPI processes");
+        throw std::runtime_error("test imposes 4 MPI processes");
 
     test_arraydesc();
 
-    finalize_io();
     finalize_blacs();
     finalize_mpi();
     MPI_Finalize();
