@@ -8,6 +8,7 @@
 #ifndef LIBRPA_USE_LIBRI
 #include <vector>
 #include <memory>
+#include <set>
 #include <valarray>
 #include <mpi.h>
 
