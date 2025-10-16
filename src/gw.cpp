@@ -9,7 +9,6 @@
 #include "epsilon.h"
 #include "pbc.h"
 #include "libri_utils.h"
-#include "parallel_mpi.h"
 #include "envs_mpi.h"
 #include "envs_blacs.h"
 #include "utils_io.h"

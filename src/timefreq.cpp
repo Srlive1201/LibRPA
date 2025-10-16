@@ -8,7 +8,6 @@
 #include <algorithm>
 
 #include "mathtools.h"
-#include "parallel_mpi.h"
 #include "utils_io.h"
 #include "get_minimax.h"
 

@@ -2,14 +2,15 @@
 
 #include "envs_cmake.h"
 #include "envs_mpi.h"
-#include "parallel_mpi.h"
 
 #include <fstream>
 #include <unistd.h>
 #include <vector>
 #include <string>
+#include <sstream>
 
-static const std::string minimax_grid_path = string(LIBRPA::envs::source_dir) + "/minimax_grid";
+static const std::string minimax_grid_path =
+    std::string(LIBRPA::envs::source_dir) + "/minimax_grid";
 static const std::string GX_path = minimax_grid_path + "/GreenX/generate_local_grid.py";
 
 //! read the file containing grids points information
@@ -19,7 +20,7 @@ static const std::string GX_path = minimax_grid_path + "/GreenX/generate_local_g
  @param[in] type: the type of grid, either time ('T') or frequency ('F')
  @param[in] scale: scaling parameter
  */
-static std::vector<std::pair<double, double>> read_local_grid(int n_grids, const string &file_path, const char type, double scale)
+static std::vector<std::pair<double, double>> read_local_grid(int n_grids, const std::string &file_path, const char type, double scale)
 {
     std::ifstream infile;
     std::vector<std::pair<double, double>> grid;
@@ -73,7 +74,7 @@ static std::vector<std::pair<double, double>> read_local_grid(int n_grids, const
 }
 
 //! read the file containing transformation matrix from time to frequency domain
-static std::vector<double> read_trans_matrix(const string &file_path, double inverse_scale)
+static std::vector<double> read_trans_matrix(const std::string &file_path, double inverse_scale)
 {
     std::ifstream infile;
     infile.open(file_path);
@@ -88,7 +89,7 @@ static std::vector<double> read_trans_matrix(const string &file_path, double inv
             continue;
         else
         {
-            stringstream ss(s);
+            std::stringstream ss(s);
             double ss_d;
             ss >> ss_d;
             tran.push_back(ss_d);
@@ -105,11 +106,11 @@ static std::vector<double> read_trans_matrix(const string &file_path, double inv
 
 static void call_local_grid_script(int ngrids, double e_min, double e_max)
 {
-    string tmps;
+    std::string tmps;
     double erange = e_max / e_min;
     if(LIBRPA::envs::mpi_comm_global_h.is_root())
     {
-        tmps = "python " + GX_path + " " + to_string(ngrids) + " " + to_string(erange);
+        tmps = "python " + GX_path + " " + std::to_string(ngrids) + " " + std::to_string(erange);
         system(tmps.c_str());
     }
     LIBRPA::envs::mpi_comm_global_h.barrier();
@@ -128,7 +129,7 @@ void get_minimax_grid_frequency(int ngrids, double e_min, double e_max, double *
     if (ierr != 0)
         return;
     call_local_grid_script(ngrids, e_min, e_max);
-    auto freq_grids = read_local_grid(ngrids, "local_" + to_string(ngrids) + "_freq_points.dat", 'F', e_min);
+    auto freq_grids = read_local_grid(ngrids, "local_" + std::to_string(ngrids) + "_freq_points.dat", 'F', e_min);
     for (int i = 0; i < ngrids; i++)
     {
         omega_points[i] = freq_grids[i].first;
@@ -147,8 +148,8 @@ void get_minimax_grid(int ngrids, double e_min, double e_max,
     if (ierr != 0)
         return;
     call_local_grid_script(ngrids, e_min, e_max);
-    auto freq_grids = read_local_grid(ngrids, "local_" + to_string(ngrids) + "_freq_points.dat", 'F', e_min);
-    auto time_grids = read_local_grid(ngrids, "local_" + to_string(ngrids) + "_time_points.dat", 'T', e_min);
+    auto freq_grids = read_local_grid(ngrids, "local_" + std::to_string(ngrids) + "_freq_points.dat", 'F', e_min);
+    auto time_grids = read_local_grid(ngrids, "local_" + std::to_string(ngrids) + "_time_points.dat", 'T', e_min);
     for (int i = 0; i < ngrids; i++)
     {
         omega_points[i] = freq_grids[i].first;
@@ -157,14 +158,14 @@ void get_minimax_grid(int ngrids, double e_min, double e_max,
         tau_weights[i] = time_grids[i].second;
     }
 
-    vector<double> trans;
-    trans = read_trans_matrix(to_string(ngrids) + "_time2freq_grid_cos.txt", e_min);
+    std::vector<double> trans;
+    trans = read_trans_matrix(std::to_string(ngrids) + "_time2freq_grid_cos.txt", e_min);
     for (int i = 0; i < ngrids * ngrids; i++)
         cosft_wt[i] = trans[i];
-    trans = read_trans_matrix(to_string(ngrids) + "_freq2time_grid_cos.txt", 1/e_min);
+    trans = read_trans_matrix(std::to_string(ngrids) + "_freq2time_grid_cos.txt", 1/e_min);
     for (int i = 0; i < ngrids * ngrids; i++)
         cosft_tw[i] = trans[i];
-    trans = read_trans_matrix(to_string(ngrids) + "_time2freq_grid_sin.txt", e_min);
+    trans = read_trans_matrix(std::to_string(ngrids) + "_time2freq_grid_sin.txt", e_min);
     for (int i = 0; i < ngrids * ngrids; i++)
         sinft_wt[i] = trans[i];
 

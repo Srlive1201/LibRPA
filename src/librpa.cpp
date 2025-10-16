@@ -23,7 +23,6 @@
 #include "matrix_m.h"
 #include "librpa_main.h"
 #include "meanfield.h"
-#include "parallel_mpi.h"
 #include "params.h"
 #include "pbc.h"
 #include "ri.h"

@@ -49,7 +49,6 @@ list(APPEND lib_sources
         matrix.cpp
         matrix3.cpp
         meanfield.cpp
-        parallel_mpi.cpp
         params.cpp
         pbc.cpp
         profiler.cpp
