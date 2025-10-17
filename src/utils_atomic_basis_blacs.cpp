@@ -9,6 +9,8 @@
 #include "base_utility.h"
 #include "scalapack_connector.h"
 
+#include "stl_io_helper.h"
+
 namespace LIBRPA
 {
 
@@ -84,10 +86,13 @@ get_communicate_ids_list_ap_to_blacs(const int &myid,
     // basis indices availble at myid in the atom-pair distribution
     const std::vector<atpair_t> &IJs =
         map_proc_IJs_avail.count(myid) ? map_proc_IJs_avail.at(myid) : std::vector<atpair_t>();
+    // if (myid == 0) std::cout << "IJs " << IJs << std::endl;
     const auto ids_ap = get_2d_mat_indices_atpair(atbasis_r, atbasis_c, IJs, row_fast);
 
     // basis indices required by BLACS
     const auto ids_blacs = get_2d_mat_indices_blacs(ad, myid, row_fast);
+    // if (myid == 0) std::cout << "ids_blacs " << ids_blacs << std::endl;
+    // if (myid == 0) std::cout << "ids_ap " << ids_ap << std::endl;
 
     // process ID -> list of basis indices, sending from myid to others
     std::map<int, std::vector<std::pair<size_t, size_t>>> map_proc_id2d_send;
@@ -99,7 +104,7 @@ get_communicate_ids_list_ap_to_blacs(const int &myid,
         myprow = ScalapackConnector::indxg2p(i, ad.mb(), dummy, ad.irsrc(), ad.nprows());
         mypcol = ScalapackConnector::indxg2p(j, ad.nb(), dummy, ad.icsrc(), ad.npcols());
         const auto target = Cblacs_pnum(ad.ictxt(), myprow, mypcol);
-
+        // if (myid == 0) std::cout << "id/target " << id << " " << target << std::endl;
         if (myid != target)
         {
             map_proc_id2d_send[target].emplace_back(id);
@@ -126,6 +131,8 @@ get_communicate_ids_list_ap_to_blacs(const int &myid,
         if (map_IJs_proc.count(IJ))
         {
             const auto &source = map_IJs_proc[IJ];
+            // exclude self
+            if (source == myid) continue;
             map_proc_id2d_recv[source].emplace_back(id);
         }
     }

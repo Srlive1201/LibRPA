@@ -22,7 +22,9 @@ void test_ap_to_2d_indices_communicate()
     assert(ad.nb() == 2);
 
     const auto proc2idlist = LIBRPA::utils::get_communicate_ids_list_ap_to_blacs(
-        myid_global, {}, ab, ab, ad, true, false);
+        myid_global,
+        {{0, {{0, 0}}}, {1, {{0, 1}}}, {2, {{1, 0}}}, {3, {{1, 1}}}},
+        ab, ab, ad, true, false);
     const std::vector<std::map<int, std::vector<size_t>>> sendlist_ref_all(
         {
             {},
@@ -42,20 +44,20 @@ void test_ap_to_2d_indices_communicate()
     );
     const auto &recvlist_ref = recvlist_ref_all[myid_global];
 
-    for (int i = 0; i < 4; i++)
-    {
-        if (myid_global == i)
-        {
-            // std::cout << "myid " << i << std::endl;
-            // std::cout << "Recv Ref:" << std::endl << recvlist_ref << std::endl;
-            // std::cout << "Recv Test:" << std::endl << proc2idlist.second << std::endl;
-            // std::cout << "Send Ref:" << std::endl << sendlist_ref << std::endl;
-            // std::cout << "Send Test:" << std::endl << proc2idlist.first << std::endl;
-        }
-        blacs_ctxt_global_h.barrier();
-    }
-    // assert(equal_map_vector(sendlist_ref, proc2idlist.first));
-    // assert(equal_map_vector(recvlist_ref, proc2idlist.second));
+    // for (int i = 0; i < 4; i++)
+    // {
+    //     blacs_ctxt_global_h.barrier();
+    //     if (myid_global == i)
+    //     {
+    //         std::cout << "myid " << i << std::endl;
+    //         std::cout << "Recv Ref:" << std::endl << recvlist_ref << std::endl;
+    //         std::cout << "Recv Test:" << std::endl << proc2idlist.second << std::endl;
+    //         std::cout << "Send Ref:" << std::endl << sendlist_ref << std::endl;
+    //         std::cout << "Send Test:" << std::endl << proc2idlist.first << std::endl;
+    //     }
+    // }
+    assert(equal_map_vector(sendlist_ref, proc2idlist.first));
+    assert(equal_map_vector(recvlist_ref, proc2idlist.second));
 
     blacs_ctxt_global_h.exit();
 }
