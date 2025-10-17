@@ -5,8 +5,9 @@
 
 #include <stdexcept>
 #include <cassert>
+#include <unordered_set>
 
-void test_ap_2d_indices_communicate()
+void test_ap_to_2d_indices_communicate()
 {
     using namespace LIBRPA::envs;
 
@@ -30,6 +31,43 @@ void test_ap_2d_indices_communicate()
             });
     assert(pids.size() == pids_ref.size());
     assert(equal_array(pids.size(), pids.data(), pids_ref.data()));
+    // assign atom-pairs to each process
+    const std::vector<std::vector<atpair_t>> atpairs_all(
+        {
+            {{0, 0}}, // proc 0
+            {{0, 1}}, // proc 1
+            {{1, 0}}, // proc 2
+            {{1, 1}}, // proc 3
+        }
+    );
+    const auto atpairs = atpairs_all[myid_global];
+    // compute task-local basis indices in atom-pair format
+    const auto id_ap = LIBRPA::get_1d_indices_in_atpair_blocks(ab, ab, atpairs, true, false);
+    const std::vector<std::vector<size_t>> id_ap_ref_all( // reference for column-major
+        {
+            {0,}, // proc 0
+            {4, 8, 12}, // proc 1
+            {1, 2, 3}, // proc 2
+            {5, 6, 7, 9, 10, 11, 13, 14, 15}, // proc 3
+        }
+    );
+    const auto id_ap_ref = id_ap_ref_all[myid_global];
+    assert(id_ap_ref.size() == id_ap.size());
+    assert(equal_array(id_ap_ref.size(), id_ap.data(), id_ap_ref.data()));
+
+    // compute task-local basis indices in 2D format
+    const auto id_2d = LIBRPA::get_1d_indices_blacs(ad, true, false);
+    const std::vector<std::vector<size_t>> id_2d_ref_all( // reference for column-major
+        {
+            {0, 1, 4, 5}, // proc 0
+            {8, 9, 12, 13}, // proc 1
+            {2, 3, 6, 7}, // proc 2
+            {10, 11, 14, 15}, // proc 3
+        }
+    );
+    const auto id_2d_ref = id_2d_ref_all[myid_global];
+    assert(id_2d_ref.size() == id_2d.size());
+    assert(equal_array(id_2d_ref.size(), id_2d.data(), id_2d_ref.data()));
 
     blacs_ctxt_global_h.exit();
 }
@@ -47,7 +85,7 @@ int main (int argc, char *argv[])
         throw std::runtime_error("test imposes 4 MPI processes");
 
     // test functions begin
-    test_ap_2d_indices_communicate();
+    test_ap_to_2d_indices_communicate();
     // test functions end
 
     finalize_blacs();

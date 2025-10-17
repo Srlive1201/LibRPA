@@ -53,3 +53,26 @@ TR norm(const T v[], const T1 &n, const T2 &power)
     return std::pow(norm, 1./power);
 }
 
+template <typename TI>
+std::vector<TI> flatten_2d_indices(const std::vector<std::pair<TI, TI>> &indices_2d,
+                                   const TI &rows, const TI &cols, bool row_major)
+{
+    std::vector<TI> indices_1d;
+    indices_1d.reserve(indices_2d.size());
+
+    if (row_major)
+    {
+        for (const auto &index_2d: indices_2d)
+        {
+            indices_1d.push_back(index_2d.first * cols + index_2d.second);
+        }
+    }
+    else // column major
+    {
+        for (const auto &index_2d: indices_2d)
+        {
+            indices_1d.push_back(index_2d.first + index_2d.second * rows);
+        }
+    }
+    return indices_1d;
+}

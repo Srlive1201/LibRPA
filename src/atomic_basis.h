@@ -128,7 +128,7 @@ std::vector<std::pair<size_t, size_t>> get_2d_indices_in_atpair_blocks(const Ato
  * @param  [in]  atbasis_c  AtomicBasis object for column
  * @param  [in]  IJs        Atomic pairs to request
  * @param  [in]  row_fast   Flag to set the row basis index faster
- * @param  [in]  row_major  Flag to set 1D indices in row major (C-style)
+ * @param  [in]  row_major  Flag to compute 1D indices in row major (C-style)
  *
  * @retval       indices    1D indices of elements
  */

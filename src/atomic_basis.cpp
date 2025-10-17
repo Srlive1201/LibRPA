@@ -1,11 +1,13 @@
 #include "atomic_basis.h"
 
 #include <algorithm>
-#include <numeric>
 #include <cassert>
 #include <functional>
+#include <numeric>
 #include <stdexcept>
 #include <string>
+
+#include "base_utility.h"
 
 namespace LIBRPA {
 
@@ -166,25 +168,8 @@ std::vector<size_t> get_1d_indices_in_atpair_blocks(const AtomicBasis &atbasis_r
                                                     bool row_fast,
                                                     bool row_major)
 {
-    std::vector<size_t> indices_1d;
     const auto indices_2d = get_2d_indices_in_atpair_blocks(atbasis_r, atbasis_c, IJs, row_fast);
-    indices_1d.reserve(indices_2d.size());
-
-    if (row_major)
-    {
-        for (const auto &index_2d: indices_2d)
-        {
-            indices_1d.push_back(index_2d.first * atbasis_c.nb_total + index_2d.second);
-        }
-    }
-    else // column major
-    {
-        for (const auto &index_2d: indices_2d)
-        {
-            indices_1d.push_back(index_2d.first + index_2d.second * atbasis_r.nb_total);
-        }
-    }
-
+    const auto indices_1d = flatten_2d_indices(indices_2d, atbasis_r.nb_total, atbasis_c.nb_total, row_major);
     return indices_1d;
 }
 

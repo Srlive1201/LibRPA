@@ -179,4 +179,39 @@ get_2d_indices_blacs(const int &m, const int &n,
 std::vector<std::pair<size_t, size_t>>
 get_2d_indices_blacs(const Array_Desc &ad, bool row_fast);
 
+/*!
+ * @brief Get 1D indices of elements of submatrix in BLACS 2D block-cyclic format
+ *
+ * @param  [in]  m, n            Size of rows and columns.
+ * @param  [in]  mb, nb          Block size along row and column direction.
+ * @param  [in]  irsrc, icsrc    Source process along row and column.
+ * @param  [in]  nprows, npcols  Number of processes along row and column,
+ *                               i.e. the shape of proccess grid.
+ * @param  [in]  myprow, mypcol  Coordinate of current process in a process grid.
+ * @param  [in]  row_fast        Flag to set the row basis index faster.
+ * @param  [in]  row_major       Flag to compute the 1D indices in row-major (C-style)
+ *
+ * @retval       indices
+ */
+std::vector<size_t>
+get_1d_indices_blacs(const int &m, const int &n,
+                     const int &mb, const int &nb,
+                     const int &irsrc, const int &icsrc,
+                     const int &nprows, const int &npcols,
+                     const int &myprow, const int &mypcol,
+                     bool row_fast, bool row_major);
+
+/*!
+ * @brief Get 1D indices of elements of submatrix in BLACS 2D block-cyclic format
+ *        from the Array_Desc object.
+ *
+ * @param  [in]  ad         Array_Desc object, must be initialized before parsing
+ * @param  [in]  row_fast   Flag to set the row basis index faster.
+ * @param  [in]  row_major  Flag to compute the 1D indices in row-major (C-style)
+ *
+ * @retval indices
+ */
+std::vector<size_t>
+get_1d_indices_blacs(const Array_Desc &ad, bool row_fast, bool row_major);
+
 } /* end of namespace LIBRPA */
