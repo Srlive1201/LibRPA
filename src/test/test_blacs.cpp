@@ -21,7 +21,7 @@ void test_proc_indices()
     //  2 3
     blacs_ctxt_global_h.set_square_grid(true, LIBRPA::CTXT_LAYOUT::R);
     {
-        const auto pids_rr = LIBRPA::get_proc_indices_blacs(m, n, mb, nb, irsrc, icsrc, blacs_ctxt_global_h, true);
+        const auto pids_rr = LIBRPA::get_proc_indices_blacs(m, n, mb, nb, irsrc, icsrc, blacs_ctxt_global_h.ictxt, true);
         assert(pids_rr.size() == m * n);
         const std::vector<int> pids_rr_ref(
                 {0, 0, 2, 2,
@@ -39,7 +39,7 @@ void test_proc_indices()
     //  1 3
     blacs_ctxt_global_h.set_square_grid(true, LIBRPA::CTXT_LAYOUT::C);
     {
-        const auto pids_cc = LIBRPA::get_proc_indices_blacs(m, n, mb, nb, irsrc, icsrc, blacs_ctxt_global_h, false);
+        const auto pids_cc = LIBRPA::get_proc_indices_blacs(m, n, mb, nb, irsrc, icsrc, blacs_ctxt_global_h.ictxt, false);
         assert(pids_cc.size() == m * n);
         const std::vector<int> pids_cc_ref(
                 {0, 0, 0, 1, 1, 1,
@@ -59,6 +59,7 @@ void test_arraydesc()
     const int m = 10, n = 10;
     // one-block per process, distribution as even as possible
     ad.init_1b1p(m, n, 0, 0);
+    assert(ad.initialized());
     printf("%s\n", ad.info().c_str());
     ad.barrier();
     // check overflow
@@ -83,8 +84,8 @@ int main (int argc, char *argv[])
     if ( size_global != 4 )
         throw std::runtime_error("test imposes 4 MPI processes");
 
-    test_arraydesc();
     test_proc_indices();
+    test_arraydesc();
 
     finalize_blacs();
     finalize_mpi();

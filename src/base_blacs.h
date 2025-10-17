@@ -55,14 +55,14 @@ public:
  * @param  [in]  m, n            Number of rows and columns of the global matrix
  * @param  [in]  mb, nb          Block size along row and column direction.
  * @param  [in]  irsrc, icsrc    Source process along row and column.
- * @param  [in]  ctxt_h          BLACS context handler, must be initialized first
+ * @param  [in]  ictxt           BLACS context, must be initialized
  * @param  [in]  row_fast        Flag to set the row basis index goes faster.
  *
  * @retval       indices         List of process indices (size m * n)
  */
 std::vector<int> get_proc_indices_blacs(const int &m, const int &n, const int &mb, const int &nb,
                                         const int &irsrc, const int &icsrc,
-                                        const BLACS_CTXT_handler &ctxt_h, bool row_fast);
+                                        const int &ictxt, bool row_fast);
 
 class Array_Desc
 {

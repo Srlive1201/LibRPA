@@ -117,17 +117,13 @@ void BLACS_CTXT_handler::barrier(CTXT_SCOPE scope) const
 
 std::vector<int> get_proc_indices_blacs(const int &m, const int &n, const int &mb, const int &nb,
                                         const int &irsrc, const int &icsrc,
-                                        const BLACS_CTXT_handler &ctxt_h, bool row_fast)
+                                        const int &ictxt, bool row_fast)
 {
-    assert(ctxt_h.initialized());
-
     std::vector<int> procids;
     procids.reserve(static_cast<size_t>(m * n));
-    const int nprows = ctxt_h.nprows;
-    const int npcols = ctxt_h.npcols;
     // myprow/mypcol are not used here, declared for indxg2p interface
-    int myprow = -1;
-    int mypcol = -1;
+    int nprows, npcols, myprow, mypcol;
+    Cblacs_gridinfo(ictxt, &nprows, &npcols, &myprow, &mypcol);
 
     if (row_fast)
     {
@@ -137,7 +133,7 @@ std::vector<int> get_proc_indices_blacs(const int &m, const int &n, const int &m
             for (auto i = 0; i < m; i++)
             {
                 int prow = ScalapackConnector::indxg2p(i, mb, myprow, irsrc, nprows);
-                int rank = ctxt_h.get_pnum(prow, pcol);
+                int rank = Cblacs_pnum(ictxt, prow, pcol);
                 procids.push_back(rank);
             }
         }
@@ -150,7 +146,7 @@ std::vector<int> get_proc_indices_blacs(const int &m, const int &n, const int &m
             for (auto j = 0; j < n; j++)
             {
                 int pcol = ScalapackConnector::indxg2p(j, nb, mypcol, icsrc, npcols);
-                int rank = ctxt_h.get_pnum(prow, pcol);
+                int rank = Cblacs_pnum(ictxt, prow, pcol);
                 procids.push_back(rank);
             }
         }
