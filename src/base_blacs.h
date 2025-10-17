@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <vector>
 
 #include "base_mpi.h"
 
@@ -47,6 +48,21 @@ public:
     void exit();
     bool initialized() const { return initialized_; }
 };
+
+/*!
+ * @brief Get indices of process to which the distributed elements of global matrix belong
+ *
+ * @param  [in]  m, n            Number of rows and columns of the global matrix
+ * @param  [in]  mb, nb          Block size along row and column direction.
+ * @param  [in]  irsrc, icsrc    Source process along row and column.
+ * @param  [in]  ctxt_h          BLACS context handler, must be initialized first
+ * @param  [in]  row_fast        Flag to set the row basis index goes faster.
+ *
+ * @retval       indices         List of process indices (size m * n)
+ */
+std::vector<int> get_proc_indices_blacs(const int &m, const int &n, const int &mb, const int &nb,
+                                        const int &irsrc, const int &icsrc,
+                                        const BLACS_CTXT_handler &ctxt_h, bool row_fast);
 
 class Array_Desc
 {
@@ -114,10 +130,53 @@ public:
     std::string info() const;
     std::string info_desc() const;
     bool is_src() const;
+    bool initialized() const { return this->initialized_; };
     void barrier(CTXT_SCOPE scope = CTXT_SCOPE::A);
 };
 
 int get_globalIndex(int localIndex, int nblk, int nprocs, int myproc);
 int get_localIndex(int globalIndex, int nblk, int nprocs, int myproc);
+
+/*!
+ * @brief Get indices of process to which the distributed elements of global matrix belong
+ *
+ * @param  [in]  ad              Array_Desc object, must be initialized beforehand.
+ * @param  [in]  row_fast        Flag to set the row basis index goes faster.
+ *
+ * @retval       indices         List of process indices (size m * n)
+ */
+std::vector<int> get_proc_indices_blacs(const Array_Desc &ad, bool row_fast);
+
+/*!
+ * @brief Get 2D indices of elements of submatrix in BLACS 2D block-cyclic format
+ *
+ * @param  [in]  m, n            Size of rows and columns.
+ * @param  [in]  mb, nb          Block size along row and column direction.
+ * @param  [in]  irsrc, icsrc    Source process along row and column.
+ * @param  [in]  nprows, npcols  Number of processes along row and column,
+ *                               i.e. the shape of proccess grid.
+ * @param  [in]  myprow, mypcol  Coordinate of current process in a process grid.
+ * @param  [in]  row_fast        Flag to set the row basis index faster.
+ *
+ * @retval       indices
+ */
+std::vector<std::pair<size_t, size_t>>
+get_2d_indices_blacs(const int &m, const int &n,
+                     const int &mb, const int &nb,
+                     const int &irsrc, const int &icsrc,
+                     const int &nprows, const int &npcols,
+                     const int &myprow, const int &mypcol, bool row_fast);
+
+/*!
+ * @brief Get 2D indices of elements of submatrix in BLACS 2D block-cyclic format
+ *        from the Array_Desc object.
+ *
+ * @param  [in]  ad         Array_Desc object, must be initialized before parsing
+ * @param  [in]  row_fast   Flag to set the row basis index faster.
+ *
+ * @retval indices
+ */
+std::vector<std::pair<size_t, size_t>>
+get_2d_indices_blacs(const Array_Desc &ad, bool row_fast);
 
 } /* end of namespace LIBRPA */

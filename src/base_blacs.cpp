@@ -115,6 +115,50 @@ void BLACS_CTXT_handler::barrier(CTXT_SCOPE scope) const
     CTXT_barrier(ictxt, scope);
 }
 
+std::vector<int> get_proc_indices_blacs(const int &m, const int &n, const int &mb, const int &nb,
+                                        const int &irsrc, const int &icsrc,
+                                        const BLACS_CTXT_handler &ctxt_h, bool row_fast)
+{
+    assert(ctxt_h.initialized());
+
+    std::vector<int> procids;
+    procids.reserve(static_cast<size_t>(m * n));
+    const int nprows = ctxt_h.nprows;
+    const int npcols = ctxt_h.npcols;
+    // myprow/mypcol are not used here, declared for indxg2p interface
+    int myprow = -1;
+    int mypcol = -1;
+
+    if (row_fast)
+    {
+        for (auto j = 0; j < n; j++)
+        {
+            int pcol = ScalapackConnector::indxg2p(j, nb, mypcol, icsrc, npcols);
+            for (auto i = 0; i < m; i++)
+            {
+                int prow = ScalapackConnector::indxg2p(i, mb, myprow, irsrc, nprows);
+                int rank = ctxt_h.get_pnum(prow, pcol);
+                procids.push_back(rank);
+            }
+        }
+    }
+    else
+    {
+        for (auto i = 0; i < m; i++)
+        {
+            int prow = ScalapackConnector::indxg2p(i, mb, myprow, irsrc, nprows);
+            for (auto j = 0; j < n; j++)
+            {
+                int pcol = ScalapackConnector::indxg2p(j, nb, mypcol, icsrc, npcols);
+                int rank = ctxt_h.get_pnum(prow, pcol);
+                procids.push_back(rank);
+            }
+        }
+    }
+
+    return procids;
+}
+
 void Array_Desc::set_blacs_params_(int ictxt, int nprocs, int myid, int nprows,
                                   int myprow, int npcols, int mypcol)
 {
@@ -182,6 +226,7 @@ Array_Desc::Array_Desc(const int &ictxt)
       lld_(0), m_local_(0), n_local_(0),
       empty_local_mat_(false), initialized_(false)
 {
+    // TODO: how to check if ictxt is a valid context?
     int nprocs, myid, nprows, npcols, myprow, mypcol;
     Cblacs_gridinfo(ictxt, &nprows, &npcols, &myprow, &mypcol);
     myid = Cblacs_pnum(ictxt, myprow, mypcol);
@@ -315,6 +360,71 @@ int get_localIndex(int globalIndex, int nblk, int nprocs, int myproc)
     {
         return -1;
     }
+}
+
+std::vector<int> get_proc_indices_blacs(const Array_Desc &ad, bool row_fast)
+{
+    assert(ad.initialized());
+    return get_proc_indices_blacs(ad.m(), ad.n(), ad.mb(), ad.nb(), ad.irsrc(), ad.icsrc(),
+                                  ad.ictxt(), row_fast);
+}
+
+std::vector<std::pair<size_t, size_t>>
+get_2d_indices_blacs(const int &m, const int &n,
+                     const int &mb, const int &nb,
+                     const int &irsrc, const int &icsrc,
+                     const int &nprows, const int &npcols,
+                     const int &myprow, const int &mypcol, bool row_fast)
+{
+    std::vector<std::pair<size_t, size_t>> indices;
+
+    std::vector<size_t> row_ids;
+    std::vector<size_t> col_ids;
+
+    for (auto i = 0; i < m; i++)
+    {
+        if (myprow == ScalapackConnector::indxg2p(i, mb, myprow, irsrc, nprows))
+        {
+            row_ids.push_back(static_cast<size_t>(i));
+        }
+    }
+    for (auto i = 0; i < n; i++)
+    {
+        if (mypcol == ScalapackConnector::indxg2p(i, nb, mypcol, icsrc, npcols))
+        {
+            col_ids.push_back(static_cast<size_t>(i));
+        }
+    }
+
+    if (row_fast)
+    {
+        for (const auto &c: col_ids)
+        {
+            for (const auto &r: row_ids)
+            {
+                indices.push_back({r, c});
+            }
+        }
+    }
+    else
+    {
+        for (const auto &r: row_ids)
+        {
+            for (const auto &c: col_ids)
+            {
+                indices.push_back({r, c});
+            }
+        }
+    }
+
+    return indices;
+}
+
+std::vector<std::pair<size_t, size_t>> get_2d_indices_blacs(const Array_Desc &ad, bool row_fast)
+{
+    assert(ad.initialized());
+    return get_2d_indices_blacs(ad.m(), ad.n(), ad.mb(), ad.nb(), ad.irsrc(), ad.icsrc(),
+                                ad.nprows(), ad.npcols(), ad.myprow(), ad.mypcol(), row_fast);
 }
 
 } /* end of namespace LIBRPA */

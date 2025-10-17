@@ -3,8 +3,53 @@
 
 #include "../envs_mpi.h"
 
+#include "testutils.h"
+
 #include <cassert>
 #include <stdexcept>
+
+void test_proc_indices()
+{
+    using namespace LIBRPA::envs;
+
+    const int m = 4, n = 6;
+    const int mb = m / 2, nb = n / 2;
+    const int irsrc = 0, icsrc = 0;
+
+    // row-major 2x2 process grid:
+    //  0 1
+    //  2 3
+    blacs_ctxt_global_h.set_square_grid(true, LIBRPA::CTXT_LAYOUT::R);
+    {
+        const auto pids_rr = LIBRPA::get_proc_indices_blacs(m, n, mb, nb, irsrc, icsrc, blacs_ctxt_global_h, true);
+        assert(pids_rr.size() == m * n);
+        const std::vector<int> pids_rr_ref(
+                {0, 0, 2, 2,
+                 0, 0, 2, 2,
+                 0, 0, 2, 2,
+                 1, 1, 3, 3,
+                 1, 1, 3, 3,
+                 1, 1, 3, 3,});
+        assert(equal_array(m * n, pids_rr.data(), pids_rr_ref.data())); // add myid_global == 0 to print
+    }
+    blacs_ctxt_global_h.exit();
+
+    // col-major 2x2 process grid:
+    //  0 2
+    //  1 3
+    blacs_ctxt_global_h.set_square_grid(true, LIBRPA::CTXT_LAYOUT::C);
+    {
+        const auto pids_cc = LIBRPA::get_proc_indices_blacs(m, n, mb, nb, irsrc, icsrc, blacs_ctxt_global_h, false);
+        assert(pids_cc.size() == m * n);
+        const std::vector<int> pids_cc_ref(
+                {0, 0, 0, 1, 1, 1,
+                 0, 0, 0, 1, 1, 1,
+                 2, 2, 2, 3, 3, 3,
+                 2, 2, 2, 3, 3, 3});
+        assert(equal_array(m * n, pids_cc.data(), pids_cc_ref.data())); // add myid_global == 0 to print
+    }
+    blacs_ctxt_global_h.exit();
+}
 
 void test_arraydesc()
 {
@@ -39,6 +84,7 @@ int main (int argc, char *argv[])
         throw std::runtime_error("test imposes 4 MPI processes");
 
     test_arraydesc();
+    test_proc_indices();
 
     finalize_blacs();
     finalize_mpi();
