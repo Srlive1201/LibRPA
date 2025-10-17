@@ -7,6 +7,8 @@
 #include <utility>
 #include <vector>
 
+#include "atoms.h"
+
 namespace LIBRPA {
 
 /*! @enum
@@ -50,6 +52,15 @@ public:
     //! Get the global index of a certain basis function of an atom
     std::size_t get_global_index(const int& i_atom, const std::size_t& i_loc_b) const;
 
+    //! Get the size of submatrix corresponding to atom pair i and j
+    std::size_t get_pair_matrix_size(const int& i_atom, const int& j_atom) const
+    {
+        return nbs_[i_atom] * nbs_[j_atom];
+    };
+
+    //! Get the global indices of all basis functions on an atom
+    std::vector<std::size_t> get_global_indices(const int& i_atom) const;
+
     //! Get the index of atom on which a certain basis function is located
     int get_i_atom(const std::size_t& i_glo_b) const;
 
@@ -62,6 +73,70 @@ public:
     std::vector<std::size_t> get_atom_nbs() const { return nbs_; }
     const std::vector<std::size_t>& get_part_range() const { return part_range; }
 };
+
+/*!
+ * @brief Get the size of matrix block corresponding to an atom pair.
+ *
+ * @param  [in]  atbasis_r  AtomicBasis object for row
+ * @param  [in]  at_r       Index of atomic for row
+ * @param  [in]  atbasis_c  AtomicBasis object for column
+ * @param  [in]  at_c       Index of atomic for column
+ *
+ * @retval       size       Number of elements in the atom-pair matrix block.
+ */
+inline std::size_t get_pair_matrix_size(const AtomicBasis& atbasis_r, const int& at_r,
+                                        const AtomicBasis& atbasis_c, const int& at_c)
+{
+    return atbasis_r.get_atom_nb(at_r) * atbasis_c.get_atom_nb(at_c);
+}
+
+/*!
+ * @brief Get the size of matrix block corresponding to an atom pair.
+ *
+ * @param  [in]  atbasis    AtomicBasis object for both row and columns
+ * @param  [in]  at_r       Index of atomic for row
+ * @param  [in]  at_c       Index of atomic for column
+ *
+ * @retval       size       Number of elements in the atom-pair matrix block.
+ */
+inline std::size_t get_pair_matrix_size(const AtomicBasis& atbasis, const int& at_r, const int& at_c)
+{
+    return get_pair_matrix_size(atbasis, at_r, atbasis, at_c);
+}
+
+/*!
+ * @brief Get the 2D indices for elements in the atom-pair blocks
+ *        corresponding to requested atom pairs.
+ *
+ * @param  [in]  atbasis_r  AtomicBasis object for row
+ * @param  [in]  atbasis_c  AtomicBasis object for column
+ * @param  [in]  IJs        Atomic pairs to request
+ * @param  [in]  row_fast   Flag to set the row basis index faster
+ *
+ * @retval       indices    2D indices of elements in the request atom-pair blocks
+ */
+std::vector<std::pair<size_t, size_t>> get_2d_indices_in_atpair_blocks(const AtomicBasis &atbasis_r,
+                                                                       const AtomicBasis &atbasis_c,
+                                                                       const std::vector<atpair_t> &IJs,
+                                                                       bool row_fast);
+
+/*!
+ * @brief Get the 1D indices for elements in the atom-pair blocks
+ *        corresponding to requested atom pairs.
+ *
+ * @param  [in]  atbasis_r  AtomicBasis object for row
+ * @param  [in]  atbasis_c  AtomicBasis object for column
+ * @param  [in]  IJs        Atomic pairs to request
+ * @param  [in]  row_fast   Flag to set the row basis index faster
+ * @param  [in]  row_major  Flag to set 1D indices in row major (C-style)
+ *
+ * @retval       indices    1D indices of elements
+ */
+std::vector<size_t> get_1d_indices_in_atpair_blocks(const AtomicBasis &atbasis_r,
+                                                    const AtomicBasis &atbasis_c,
+                                                    const std::vector<atpair_t> &IJs,
+                                                    bool row_fast,
+                                                    bool row_major);
 
 extern AtomicBasis atomic_basis_wfc;
 extern AtomicBasis atomic_basis_abf;

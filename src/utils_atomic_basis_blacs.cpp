@@ -1,4 +1,4 @@
-#include "utils_atomic_basis.h"
+#include "utils_atomic_basis_blacs.h"
 
 #include <stdexcept>
 
@@ -60,7 +60,6 @@ std::set<std::pair<int, int>> get_necessary_IJ_from_block_2D_sy(const char &uplo
         }
     return IJs;
 }
-
 
 } /* end of namespace utils */
 

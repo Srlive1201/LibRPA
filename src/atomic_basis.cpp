@@ -1,6 +1,7 @@
 #include "atomic_basis.h"
 
 #include <algorithm>
+#include <numeric>
 #include <cassert>
 #include <functional>
 #include <stdexcept>
@@ -80,6 +81,13 @@ std::size_t AtomicBasis::get_global_index(const int& i_atom, const std::size_t& 
     return part_range[i_atom] + i_loc_b;
 }
 
+std::vector<std::size_t> AtomicBasis::get_global_indices(const int& i_atom) const
+{
+    std::vector<std::size_t> indices(this->nbs_[i_atom]);
+    std::iota(indices.begin(), indices.end(), part_range[i_atom]);
+    return indices;
+}
+
 int AtomicBasis::get_i_atom(const std::size_t& i_glo_b) const
 {
     if (i_glo_b >= nb_total)
@@ -107,6 +115,77 @@ std::pair<int, int> AtomicBasis::get_local_index(const std::size_t& i_glo_b) con
     int i_atom, i_loc_b;
     this->get_local_index(i_glo_b, i_atom, i_loc_b);
     return {i_atom, i_loc_b};
+}
+
+std::vector<std::pair<size_t, size_t>>
+get_2d_indices_in_atpair_blocks(const AtomicBasis &atbasis_r,
+                                const AtomicBasis &atbasis_c,
+                                const std::vector<atpair_t> &IJs,
+                                bool row_fast)
+{
+    std::vector<std::pair<size_t, size_t>> indices;
+    size_t nelems = 0;
+    for (const auto &IJ: IJs)
+    {
+        nelems += get_pair_matrix_size(atbasis_r, IJ.first, atbasis_c, IJ.second);
+    }
+    indices.reserve(nelems);
+
+    for (const auto &IJ: IJs)
+    {
+        const auto row_ids = atbasis_r.get_global_indices(IJ.first);
+        const auto col_ids = atbasis_c.get_global_indices(IJ.second);
+        if (row_fast)
+        {
+            for (const auto &c: col_ids)
+            {
+                for (const auto &r: row_ids)
+                {
+                    indices.push_back({r, c});
+                }
+            }
+        }
+        else
+        {
+            for (const auto &r: row_ids)
+            {
+                for (const auto &c: col_ids)
+                {
+                    indices.push_back({r, c});
+                }
+            }
+        }
+    }
+
+    return indices;
+}
+
+std::vector<size_t> get_1d_indices_in_atpair_blocks(const AtomicBasis &atbasis_r,
+                                                    const AtomicBasis &atbasis_c,
+                                                    const std::vector<atpair_t> &IJs,
+                                                    bool row_fast,
+                                                    bool row_major)
+{
+    std::vector<size_t> indices_1d;
+    const auto indices_2d = get_2d_indices_in_atpair_blocks(atbasis_r, atbasis_c, IJs, row_fast);
+    indices_1d.reserve(indices_2d.size());
+
+    if (row_major)
+    {
+        for (const auto &index_2d: indices_2d)
+        {
+            indices_1d.push_back(index_2d.first * atbasis_c.nb_total + index_2d.second);
+        }
+    }
+    else // column major
+    {
+        for (const auto &index_2d: indices_2d)
+        {
+            indices_1d.push_back(index_2d.first + index_2d.second * atbasis_r.nb_total);
+        }
+    }
+
+    return indices_1d;
 }
 
 AtomicBasis atomic_basis_wfc;

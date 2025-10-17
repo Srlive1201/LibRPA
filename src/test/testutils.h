@@ -1,6 +1,7 @@
 #include <complex>
-#include <ostream>
+#include <iostream>
 #include <vector>
+#include <utility>
 
 
 #ifdef LIBRPA_DEBUG
@@ -41,6 +42,26 @@ bool fequal_array(int n, const std::complex<T> *a,
                                                      (*(b+i)).real(),
                                                      (*(b+i)).imag());
         if ( !fequal(*(a+i), *(b+i), thres) )
+        {
+            ndiff++;
+            if (!print)
+                return false;
+        }
+    }
+    return ndiff == 0;
+}
+
+template <typename T>
+bool equal_array(int n, const T *a, const T *b, bool print = false)
+{
+    int ndiff = 0;
+    for ( int i = 0; i != n; i++ )
+    {
+        if (print)
+        {
+            std::cout << i << " : a " << *(a+i) << " , " << *(b+i) << std::endl;
+        }
+        if ( *(a+i) != *(b+i) )
         {
             ndiff++;
             if (!print)
@@ -144,3 +165,15 @@ bool is_matmul_AB_equal_C(const int m, const int n, const int k,
     return is_mat_A_equal_B(m, n, *AB, C, transpose_C, print, thres, "AB", "C");
 }
 
+template <typename T1, typename T2>
+bool fequal_pair(const std::pair<T1, T2> &p1, const std::pair<T1, T2> &p2,
+                 const T1 &thres1 = 1e-14, const T1 &thres2 = 1e-14)
+{
+    return fequal(p1.first, p2.first, thres1) && fequal(p1.second, p2.second, thres2);
+}
+
+template <typename T1, typename T2>
+bool equal_pair(const std::pair<T1, T2> &p1, const std::pair<T1, T2> &p2)
+{
+    return p1.first == p2.first && p1.second == p2.second;
+}
