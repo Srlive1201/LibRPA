@@ -51,6 +51,7 @@ endforeach()
 foreach(target
   test_base_mpi
   test_blacs
+  test_atomic_basis_blacs
   test_matrix_m_parallel_utils
   )
   config_test(${target} 4)
