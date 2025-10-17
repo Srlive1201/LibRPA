@@ -179,7 +179,7 @@ get_2d_mat_indices_blacs(const int &m, const int &n,
  * @retval indices
  */
 std::vector<std::pair<size_t, size_t>>
-get_2d_mat_indices_blacs(const Array_Desc &ad, bool row_fast);
+get_2d_mat_indices_blacs(const Array_Desc &ad, const int &myid, bool row_fast);
 
 /*!
  * @brief Get 1D indices of elements of submatrix in BLACS 2D block-cyclic format
@@ -214,6 +214,6 @@ get_1d_mat_indices_blacs(const int &m, const int &n,
  * @retval indices
  */
 std::vector<size_t>
-get_1d_mat_indices_blacs(const Array_Desc &ad, bool row_fast, bool row_major);
+get_1d_mat_indices_blacs(const Array_Desc &ad, const int &myid, bool row_fast, bool row_major);
 
 } /* end of namespace LIBRPA */

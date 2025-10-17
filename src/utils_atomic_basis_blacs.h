@@ -23,10 +23,11 @@ std::set<std::pair<int, int>> get_necessary_IJ_from_block_2D_sy(const char &uplo
  * @retval       map_send, map_receive
  */
 std::pair<std::map<int, std::vector<size_t>>, std::map<int, std::vector<size_t>>>
-get_communicate_ids_list_ap_to_blacs(int myid,
-                                     const std::vector<size_t> & ids_ap,
-                                     const std::vector<size_t> & ids_blacs,
-                                     const std::vector<int> &proc_ids);
+get_communicate_ids_list_ap_to_blacs(const int &myid,
+                                     const std::map<int, std::vector<atpair_t>> &map_proc_IJs_avail,
+                                     const AtomicBasis &atbasis_r,
+                                     const AtomicBasis &atbasis_c,
+                                     const Array_Desc &ad, bool row_fast, bool row_major);
 
 } /* end of namespace utils */
 

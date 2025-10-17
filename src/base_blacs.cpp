@@ -417,20 +417,24 @@ get_2d_mat_indices_blacs(const int &m, const int &n,
     return indices;
 }
 
-std::vector<std::pair<size_t, size_t>> get_2d_mat_indices_blacs(const Array_Desc &ad, bool row_fast)
+std::vector<std::pair<size_t, size_t>> get_2d_mat_indices_blacs(const Array_Desc &ad, const int &myid, bool row_fast)
 {
     assert(ad.initialized());
+
+    int myprow, mypcol;
+    Cblacs_pcoord(ad.ictxt(), myid, &myprow, &mypcol);
+
     return get_2d_mat_indices_blacs(ad.m(), ad.n(), ad.mb(), ad.nb(), ad.irsrc(), ad.icsrc(),
-                                    ad.nprows(), ad.npcols(), ad.myprow(), ad.mypcol(), row_fast);
+                                    ad.nprows(), ad.npcols(), myprow, mypcol, row_fast);
 }
 
 std::vector<size_t>
 get_1d_mat_indices_blacs(const int &m, const int &n,
-                     const int &mb, const int &nb,
-                     const int &irsrc, const int &icsrc,
-                     const int &nprows, const int &npcols,
-                     const int &myprow, const int &mypcol,
-                     bool row_fast, bool row_major)
+                         const int &mb, const int &nb,
+                         const int &irsrc, const int &icsrc,
+                         const int &nprows, const int &npcols,
+                         const int &myprow, const int &mypcol,
+                         bool row_fast, bool row_major)
 {
     const auto indices_2d = get_2d_mat_indices_blacs(m, n, mb, nb, irsrc, icsrc, nprows, npcols, myprow, mypcol, row_fast);
     return flatten_2d_indices(indices_2d, static_cast<size_t>(m), static_cast<size_t>(n),
@@ -438,9 +442,9 @@ get_1d_mat_indices_blacs(const int &m, const int &n,
 }
 
 std::vector<size_t>
-get_1d_mat_indices_blacs(const Array_Desc &ad, bool row_fast, bool row_major)
+get_1d_mat_indices_blacs(const Array_Desc &ad, const int &myid, bool row_fast, bool row_major)
 {
-    const auto indices_2d = get_2d_mat_indices_blacs(ad, row_fast);
+    const auto indices_2d = get_2d_mat_indices_blacs(ad, myid, row_fast);
     return flatten_2d_indices(indices_2d, static_cast<size_t>(ad.m()), static_cast<size_t>(ad.n()),
                               row_major);
 }

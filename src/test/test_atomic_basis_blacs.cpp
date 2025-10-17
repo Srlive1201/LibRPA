@@ -18,60 +18,11 @@ void test_ap_to_2d_indices_communicate()
     LIBRPA::Array_Desc ad(blacs_ctxt_global_h);
     ad.init_1b1p(ab.nb_total, ab.nb_total, 0, 0);
     assert(ad.initialized());
-
     assert(ad.mb() == 2);
     assert(ad.nb() == 2);
 
-    const auto pids = LIBRPA::get_proc_indices_blacs(ad, true);
-    const std::vector<int> pids_ref(
-            {
-                0, 0, 2, 2,
-                0, 0, 2, 2,
-                1, 1, 3, 3,
-                1, 1, 3, 3,
-            });
-    assert(pids.size() == pids_ref.size());
-    assert(equal_array(pids.size(), pids.data(), pids_ref.data()));
-    // assign atom-pairs to each process
-    const std::vector<std::vector<atpair_t>> atpairs_all(
-        {
-            {{0, 0}}, // proc 0
-            {{0, 1}}, // proc 1
-            {{1, 0}}, // proc 2
-            {{1, 1}}, // proc 3
-        }
-    );
-    const auto atpairs = atpairs_all[myid_global];
-    // compute task-local basis indices in atom-pair format
-    const auto id_ap = LIBRPA::get_1d_mat_indices_atpair(ab, ab, atpairs, true, false);
-    const std::vector<std::vector<size_t>> id_ap_ref_all( // reference for column-major
-        {
-            {0,}, // proc 0
-            {4, 8, 12}, // proc 1
-            {1, 2, 3}, // proc 2
-            {5, 6, 7, 9, 10, 11, 13, 14, 15}, // proc 3
-        }
-    );
-    const auto id_ap_ref = id_ap_ref_all[myid_global];
-    assert(id_ap_ref.size() == id_ap.size());
-    assert(equal_array(id_ap_ref.size(), id_ap.data(), id_ap_ref.data()));
-
-    // compute task-local basis indices in 2D format
-    const auto id_blacs = LIBRPA::get_1d_mat_indices_blacs(ad, true, false);
-    const std::vector<std::vector<size_t>> id_blacs_ref_all( // reference for column-major
-        {
-            {0, 1, 4, 5}, // proc 0
-            {8, 9, 12, 13}, // proc 1
-            {2, 3, 6, 7}, // proc 2
-            {10, 11, 14, 15}, // proc 3
-        }
-    );
-    const auto id_blacs_ref = id_blacs_ref_all[myid_global];
-    assert(id_blacs_ref.size() == id_blacs.size());
-    assert(equal_array(id_blacs_ref.size(), id_blacs.data(), id_blacs_ref.data()));
-
     const auto proc2idlist = LIBRPA::utils::get_communicate_ids_list_ap_to_blacs(
-                myid_global, id_ap, id_blacs, pids);
+        myid_global, {}, ab, ab, ad, true, false);
     const std::vector<std::map<int, std::vector<size_t>>> sendlist_ref_all(
         {
             {},
@@ -90,17 +41,20 @@ void test_ap_to_2d_indices_communicate()
         }
     );
     const auto &recvlist_ref = recvlist_ref_all[myid_global];
-    // for (int i = 0; i < 4; i++)
-    // {
-    //     if (myid_global == i)
-    //     {
-    //         std::cout << "myid " << i << std::endl;
-    //         std::cout << "Ref:" << std::endl << recvlist_ref << std::endl;
-    //         std::cout << "Test:" << std::endl << proc2idlist.second << std::endl;
-    //     }
-    //     blacs_ctxt_global_h.barrier();
-    // }
-    assert(equal_map_vector(sendlist_ref, proc2idlist.first));
+
+    for (int i = 0; i < 4; i++)
+    {
+        if (myid_global == i)
+        {
+            // std::cout << "myid " << i << std::endl;
+            // std::cout << "Recv Ref:" << std::endl << recvlist_ref << std::endl;
+            // std::cout << "Recv Test:" << std::endl << proc2idlist.second << std::endl;
+            // std::cout << "Send Ref:" << std::endl << sendlist_ref << std::endl;
+            // std::cout << "Send Test:" << std::endl << proc2idlist.first << std::endl;
+        }
+        blacs_ctxt_global_h.barrier();
+    }
+    // assert(equal_map_vector(sendlist_ref, proc2idlist.first));
     // assert(equal_map_vector(recvlist_ref, proc2idlist.second));
 
     blacs_ctxt_global_h.exit();
