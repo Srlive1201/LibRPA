@@ -1,6 +1,9 @@
 #include "utils_atomic_basis_blacs.h"
 
+#include <algorithm>
 #include <stdexcept>
+#include <map>
+#include <iostream>
 
 namespace LIBRPA
 {
@@ -59,6 +62,39 @@ std::set<std::pair<int, int>> get_necessary_IJ_from_block_2D_sy(const char &uplo
                 I > J? IJs.insert({J, I}): IJs.insert({I, J});
         }
     return IJs;
+}
+
+std::pair<std::map<int, std::vector<size_t>>, std::map<int, std::vector<size_t>>>
+get_communicate_ids_list_ap_to_blacs(int myid,
+                                     const std::vector<size_t> & ids_ap,
+                                     const std::vector<size_t> & ids_blacs,
+                                     const std::vector<int> &proc_ids)
+{
+    // process ID -> list of basis indices
+    std::map<int, std::vector<size_t>> proc2idlist_send;
+    std::map<int, std::vector<size_t>> proc2idlist_recv;
+
+    // build receive list from desired indices
+    // std::cout << myid << std::endl;
+    for (const auto &i_blacs: ids_blacs)
+    {
+        const auto &proc = proc_ids[i_blacs];
+        // if (myid == 0) std::cout << proc << " i_blacs " << i_blacs << std::endl;
+        if (proc == myid) continue;
+        // if (myid == 0) std::cout << proc << " i_blacs " << i_blacs << " recv accepted" << std::endl;
+        proc2idlist_recv[proc].push_back(i_blacs);
+    }
+
+    // build send list from owned indices
+    for (const auto &i_ap: ids_ap)
+    {
+        // if (myid == 0) std::cout << "i_ap " << i_ap << std::endl;
+        const auto &proc = proc_ids[i_ap];
+        if (proc == myid) continue;
+        proc2idlist_send[proc].push_back(i_ap);
+    }
+
+    return {proc2idlist_send, proc2idlist_recv};
 }
 
 } /* end of namespace utils */

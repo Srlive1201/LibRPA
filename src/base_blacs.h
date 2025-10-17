@@ -143,6 +143,8 @@ int get_localIndex(int globalIndex, int nblk, int nprocs, int myproc);
  * @param  [in]  ad              Array_Desc object, must be initialized beforehand.
  * @param  [in]  row_fast        Flag to set the row basis index goes faster.
  *
+ * @warning      Memory intensive for large system
+ *
  * @retval       indices         List of process indices (size m * n)
  */
 std::vector<int> get_proc_indices_blacs(const Array_Desc &ad, bool row_fast);
@@ -161,11 +163,11 @@ std::vector<int> get_proc_indices_blacs(const Array_Desc &ad, bool row_fast);
  * @retval       indices
  */
 std::vector<std::pair<size_t, size_t>>
-get_2d_indices_blacs(const int &m, const int &n,
-                     const int &mb, const int &nb,
-                     const int &irsrc, const int &icsrc,
-                     const int &nprows, const int &npcols,
-                     const int &myprow, const int &mypcol, bool row_fast);
+get_2d_mat_indices_blacs(const int &m, const int &n,
+                         const int &mb, const int &nb,
+                         const int &irsrc, const int &icsrc,
+                         const int &nprows, const int &npcols,
+                         const int &myprow, const int &mypcol, bool row_fast);
 
 /*!
  * @brief Get 2D indices of elements of submatrix in BLACS 2D block-cyclic format
@@ -177,7 +179,7 @@ get_2d_indices_blacs(const int &m, const int &n,
  * @retval indices
  */
 std::vector<std::pair<size_t, size_t>>
-get_2d_indices_blacs(const Array_Desc &ad, bool row_fast);
+get_2d_mat_indices_blacs(const Array_Desc &ad, bool row_fast);
 
 /*!
  * @brief Get 1D indices of elements of submatrix in BLACS 2D block-cyclic format
@@ -194,12 +196,12 @@ get_2d_indices_blacs(const Array_Desc &ad, bool row_fast);
  * @retval       indices
  */
 std::vector<size_t>
-get_1d_indices_blacs(const int &m, const int &n,
-                     const int &mb, const int &nb,
-                     const int &irsrc, const int &icsrc,
-                     const int &nprows, const int &npcols,
-                     const int &myprow, const int &mypcol,
-                     bool row_fast, bool row_major);
+get_1d_mat_indices_blacs(const int &m, const int &n,
+                         const int &mb, const int &nb,
+                         const int &irsrc, const int &icsrc,
+                         const int &nprows, const int &npcols,
+                         const int &myprow, const int &mypcol,
+                         bool row_fast, bool row_major);
 
 /*!
  * @brief Get 1D indices of elements of submatrix in BLACS 2D block-cyclic format
@@ -212,6 +214,6 @@ get_1d_indices_blacs(const int &m, const int &n,
  * @retval indices
  */
 std::vector<size_t>
-get_1d_indices_blacs(const Array_Desc &ad, bool row_fast, bool row_major);
+get_1d_mat_indices_blacs(const Array_Desc &ad, bool row_fast, bool row_major);
 
 } /* end of namespace LIBRPA */

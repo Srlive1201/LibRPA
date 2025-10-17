@@ -2,6 +2,7 @@
 #include "../envs_mpi.h"
 #include "../utils_atomic_basis_blacs.h"
 #include "testutils.h"
+#include "../stl_io_helper.h"
 
 #include <stdexcept>
 #include <cassert>
@@ -42,7 +43,7 @@ void test_ap_to_2d_indices_communicate()
     );
     const auto atpairs = atpairs_all[myid_global];
     // compute task-local basis indices in atom-pair format
-    const auto id_ap = LIBRPA::get_1d_indices_in_atpair_blocks(ab, ab, atpairs, true, false);
+    const auto id_ap = LIBRPA::get_1d_mat_indices_atpair(ab, ab, atpairs, true, false);
     const std::vector<std::vector<size_t>> id_ap_ref_all( // reference for column-major
         {
             {0,}, // proc 0
@@ -56,8 +57,8 @@ void test_ap_to_2d_indices_communicate()
     assert(equal_array(id_ap_ref.size(), id_ap.data(), id_ap_ref.data()));
 
     // compute task-local basis indices in 2D format
-    const auto id_2d = LIBRPA::get_1d_indices_blacs(ad, true, false);
-    const std::vector<std::vector<size_t>> id_2d_ref_all( // reference for column-major
+    const auto id_blacs = LIBRPA::get_1d_mat_indices_blacs(ad, true, false);
+    const std::vector<std::vector<size_t>> id_blacs_ref_all( // reference for column-major
         {
             {0, 1, 4, 5}, // proc 0
             {8, 9, 12, 13}, // proc 1
@@ -65,9 +66,42 @@ void test_ap_to_2d_indices_communicate()
             {10, 11, 14, 15}, // proc 3
         }
     );
-    const auto id_2d_ref = id_2d_ref_all[myid_global];
-    assert(id_2d_ref.size() == id_2d.size());
-    assert(equal_array(id_2d_ref.size(), id_2d.data(), id_2d_ref.data()));
+    const auto id_blacs_ref = id_blacs_ref_all[myid_global];
+    assert(id_blacs_ref.size() == id_blacs.size());
+    assert(equal_array(id_blacs_ref.size(), id_blacs.data(), id_blacs_ref.data()));
+
+    const auto proc2idlist = LIBRPA::utils::get_communicate_ids_list_ap_to_blacs(
+                myid_global, id_ap, id_blacs, pids);
+    const std::vector<std::map<int, std::vector<size_t>>> sendlist_ref_all(
+        {
+            {},
+            {{0, {4}}},
+            {{0, {1}}},
+            {{0, {5}}, {1, {9, 13}}, {2, {6, 7}}},
+        }
+    );
+    const auto &sendlist_ref = sendlist_ref_all[myid_global];
+    const std::vector<std::map<int, std::vector<size_t>>> recvlist_ref_all(
+        {
+            {{1, {4}}, {2, {1}}, {3, {5}}},
+            {{3, {9, 13}}},
+            {{3, {6, 7}}},
+            {}
+        }
+    );
+    const auto &recvlist_ref = recvlist_ref_all[myid_global];
+    // for (int i = 0; i < 4; i++)
+    // {
+    //     if (myid_global == i)
+    //     {
+    //         std::cout << "myid " << i << std::endl;
+    //         std::cout << "Ref:" << std::endl << recvlist_ref << std::endl;
+    //         std::cout << "Test:" << std::endl << proc2idlist.second << std::endl;
+    //     }
+    //     blacs_ctxt_global_h.barrier();
+    // }
+    assert(equal_map_vector(sendlist_ref, proc2idlist.first));
+    // assert(equal_map_vector(recvlist_ref, proc2idlist.second));
 
     blacs_ctxt_global_h.exit();
 }

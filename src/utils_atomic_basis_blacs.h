@@ -16,6 +16,18 @@ std::set<std::pair<int, int>> get_necessary_IJ_from_block_2D(const AtomicBasis &
 
 std::set<std::pair<int, int>> get_necessary_IJ_from_block_2D_sy(const char &uplo, const AtomicBasis &atbasis, const Array_Desc& arrdesc);
 
+/*!
+ * @brief Get the list of matrix indices (1D) to communicate during
+ *        conversion between atom-pair and BLACS block-cyclic distributions
+ *
+ * @retval       map_send, map_receive
+ */
+std::pair<std::map<int, std::vector<size_t>>, std::map<int, std::vector<size_t>>>
+get_communicate_ids_list_ap_to_blacs(int myid,
+                                     const std::vector<size_t> & ids_ap,
+                                     const std::vector<size_t> & ids_blacs,
+                                     const std::vector<int> &proc_ids);
+
 } /* end of namespace utils */
 
 } /* end of namespace LIBRPA */

@@ -120,10 +120,10 @@ std::pair<int, int> AtomicBasis::get_local_index(const std::size_t& i_glo_b) con
 }
 
 std::vector<std::pair<size_t, size_t>>
-get_2d_indices_in_atpair_blocks(const AtomicBasis &atbasis_r,
-                                const AtomicBasis &atbasis_c,
-                                const std::vector<atpair_t> &IJs,
-                                bool row_fast)
+get_2d_mat_indices_atpair(const AtomicBasis &atbasis_r,
+                          const AtomicBasis &atbasis_c,
+                          const std::vector<atpair_t> &IJs,
+                          bool row_fast)
 {
     std::vector<std::pair<size_t, size_t>> indices;
     size_t nelems = 0;
@@ -162,13 +162,13 @@ get_2d_indices_in_atpair_blocks(const AtomicBasis &atbasis_r,
     return indices;
 }
 
-std::vector<size_t> get_1d_indices_in_atpair_blocks(const AtomicBasis &atbasis_r,
-                                                    const AtomicBasis &atbasis_c,
-                                                    const std::vector<atpair_t> &IJs,
-                                                    bool row_fast,
-                                                    bool row_major)
+std::vector<size_t> get_1d_mat_indices_atpair(const AtomicBasis &atbasis_r,
+                                              const AtomicBasis &atbasis_c,
+                                              const std::vector<atpair_t> &IJs,
+                                              bool row_fast,
+                                              bool row_major)
 {
-    const auto indices_2d = get_2d_indices_in_atpair_blocks(atbasis_r, atbasis_c, IJs, row_fast);
+    const auto indices_2d = get_2d_mat_indices_atpair(atbasis_r, atbasis_c, IJs, row_fast);
     const auto indices_1d = flatten_2d_indices(indices_2d, atbasis_r.nb_total, atbasis_c.nb_total, row_major);
     return indices_1d;
 }

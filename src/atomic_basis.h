@@ -105,7 +105,7 @@ inline std::size_t get_pair_matrix_size(const AtomicBasis& atbasis, const int& a
 }
 
 /*!
- * @brief Get the 2D indices for elements in the atom-pair blocks
+ * @brief Get the 2D indices for matrix elements in the atom-pair blocks
  *        corresponding to requested atom pairs.
  *
  * @param  [in]  atbasis_r  AtomicBasis object for row
@@ -115,13 +115,13 @@ inline std::size_t get_pair_matrix_size(const AtomicBasis& atbasis, const int& a
  *
  * @retval       indices    2D indices of elements in the request atom-pair blocks
  */
-std::vector<std::pair<size_t, size_t>> get_2d_indices_in_atpair_blocks(const AtomicBasis &atbasis_r,
-                                                                       const AtomicBasis &atbasis_c,
-                                                                       const std::vector<atpair_t> &IJs,
-                                                                       bool row_fast);
+std::vector<std::pair<size_t, size_t>> get_2d_mat_indices_atpair(const AtomicBasis &atbasis_r,
+                                                                 const AtomicBasis &atbasis_c,
+                                                                 const std::vector<atpair_t> &IJs,
+                                                                 bool row_fast);
 
 /*!
- * @brief Get the 1D indices for elements in the atom-pair blocks
+ * @brief Get the 1D indices for matrix elements in the atom-pair blocks
  *        corresponding to requested atom pairs.
  *
  * @param  [in]  atbasis_r  AtomicBasis object for row
@@ -132,11 +132,11 @@ std::vector<std::pair<size_t, size_t>> get_2d_indices_in_atpair_blocks(const Ato
  *
  * @retval       indices    1D indices of elements
  */
-std::vector<size_t> get_1d_indices_in_atpair_blocks(const AtomicBasis &atbasis_r,
-                                                    const AtomicBasis &atbasis_c,
-                                                    const std::vector<atpair_t> &IJs,
-                                                    bool row_fast,
-                                                    bool row_major);
+std::vector<size_t> get_1d_mat_indices_atpair(const AtomicBasis &atbasis_r,
+                                              const AtomicBasis &atbasis_c,
+                                              const std::vector<atpair_t> &IJs,
+                                              bool row_fast,
+                                              bool row_major);
 
 extern AtomicBasis atomic_basis_wfc;
 extern AtomicBasis atomic_basis_abf;

@@ -1,6 +1,7 @@
 #include <complex>
 #include <iostream>
 #include <vector>
+#include <map>
 #include <utility>
 
 
@@ -9,19 +10,6 @@ constexpr bool print_mat_equal = true;
 #else
 constexpr bool print_mat_equal = false;
 #endif
-
-template <typename T>
-std::ostream& operator<<(std::ostream &os, const std::vector<T> &vec)
-{
-    if (!vec.empty())
-    {
-        int i;
-        for (i = 0; i < vec.size() - 1; i++)
-            os << vec[i] << " ";
-        os << vec[i];
-    }
-    return os;
-}
 
 template <typename T>
 inline bool fequal(const T &a, const T &b, const T &thres = 1e-14)
@@ -69,6 +57,35 @@ bool equal_array(int n, const T *a, const T *b, bool print = false)
         }
     }
     return ndiff == 0;
+}
+
+template <typename Tk, typename Tv>
+bool equal_map_vector(const std::map<Tk, std::vector<Tv>> &mv1,
+                      const std::map<Tk, std::vector<Tv>> &mv2,
+                      bool print = false)
+{
+    if (mv1.size() != mv2.size())
+    {
+        if (print) std::cout << "Map size differ: "
+                             << mv1.size() << " != " << mv2.size() << std::endl;
+        return false;
+    }
+    bool flag = true;
+    for (const auto &kv1: mv1)
+    {
+        const auto &key = kv1.first;
+        const auto &v1 = kv1.second;
+        if (mv2.count(kv1.first) == 0)
+        {
+            if (print) std::cout << "Missing key in map2: " << key << std::endl;
+            return false;
+        }
+        const auto &v2 = mv2.at(key);
+        if (v1.size() != v2.size()) return false;
+        if (print) std::cout << "Key " << key << std::endl;
+        flag = flag && equal_array(v1.size(), v1.data(), v2.data(), print);
+    }
+    return flag;
 }
 
 template <typename T>
