@@ -21,7 +21,7 @@
 #include "matrix_m_parallel_utils.h"
 #include "utils_matrix_mpi.h"
 #include "envs_blacs.h"
-#include "utils_blacs.h"
+#include "utils_atomic_basis.h"
 #include "params.h"
 #include "pbc.h"
 #include "atoms.h"

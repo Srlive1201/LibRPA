@@ -14,7 +14,7 @@
 #include "utils_io.h"
 #include "utils_mem.h"
 #include "utils_mpi_io.h"
-#include "utils_blacs.h"
+#include "utils_atomic_basis.h"
 #include "stl_io_helper.h"
 
 #include <map>

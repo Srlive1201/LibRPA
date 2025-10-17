@@ -55,6 +55,7 @@ list(APPEND lib_sources
         qpe_solver.cpp
         ri.cpp
         timefreq.cpp
+        utils_atomic_basis.cpp
         utils_cmake.cpp
         utils_mem.cpp
         utils_blacs.cpp
