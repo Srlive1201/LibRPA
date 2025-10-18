@@ -1,6 +1,6 @@
 task = g0w0_band
+input_dir = ./input_librpa/
 nfreq = 6
-input_dir = ./
 option_dielect_func = 3
 replace_w_head = t
 use_scalapack_gw_wc = t
@@ -8,4 +8,4 @@ parallel_routing = libri
 vq_threshold = 0
 sqrt_coulomb_threshold = 0
 
-#debug = t
+debug = t

@@ -1,6 +1,5 @@
-input_dir = ./input_librpa/
 task = g0w0_band
-# task = g0w0
+input_dir = ./input_librpa/
 nfreq = 16
 option_dielect_func = 3
 replace_w_head = f
@@ -10,4 +9,3 @@ vq_threshold = 0
 sqrt_coulomb_threshold = 1e-8
 use_shrink_abfs = t
 
-#debug = t

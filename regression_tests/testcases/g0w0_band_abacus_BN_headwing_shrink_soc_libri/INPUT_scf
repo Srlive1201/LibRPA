@@ -1,0 +1,41 @@
+INPUT_PARAMETERS
+#Parameters	(General)
+pseudo_dir		./
+orbital_dir		./
+out_mat_xc      1
+out_chg		1
+out_mat_hs2           1
+out_mat_r             1
+
+noncolin	0 
+lspinorb	1 
+
+calculation	scf
+ntype			2	
+nbands			76
+#Parameters (Accuracy)
+ecutwfc			100
+
+smearing_method 	gaussian
+smearing_sigma		1e-4
+basis_type		lcao
+ks_solver  genelpa
+dft_functional			pbe
+rpa				1
+symmetry			-1
+exx_separate_loop		1
+exx_pca_threshold		1e-2
+
+#exx_v_threshold			0
+#exx_c_threshold			0	
+#exx_dm_threshold		0	
+#exx_schwarz_threshold	0	
+#exx_cauchy_threshold	1E-7
+
+exx_use_ewald           1
+exx_ccp_rmesh_times		1
+rpa_ccp_rmesh_times	    1
+exx_real_number         1
+
+shrink_abfs_pca_thr     1e-1
+shrink_lu_inv_thr       1e-4
