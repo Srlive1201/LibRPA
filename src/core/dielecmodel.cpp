@@ -295,11 +295,11 @@ void diele_func::cal_wing(const librpa_int::Cs_LRI &Cs_data)
     auto s0_s1 = get_s0_s1_for_comm_map2_first(set_IJ_nao_nao);
     std::map<int, std::map<libri_types<int, int>::TAC, RI::Tensor<double>>> Cs_IJ;
     if (Params::use_shrink_abfs)
-        Cs_IJ = comm_map2_first(mpi_comm_global_h.comm, Cs_shrinked_data.data_libri, s0_s1.first,
-                                s0_s1.second);
+        Cs_IJ = RI::Communicate_Tensors_Map_Judge::comm_map2_first(
+            mpi_comm_global_h.comm, Cs_shrinked_data.data_libri, s0_s1.first, s0_s1.second);
     else
-        Cs_IJ =
-            comm_map2_first(mpi_comm_global_h.comm, Cs_data.data_libri, s0_s1.first, s0_s1.second);
+        Cs_IJ = RI::Communicate_Tensors_Map_Judge::comm_map2_first(
+            mpi_comm_global_h.comm, Cs_data.data_libri, s0_s1.first, s0_s1.second);
     // #pragma omp parallel for schedule(dynamic) collapse(2)
     for (int mu = 0; mu < n_abf; ++mu)
     {
