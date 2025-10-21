@@ -2,7 +2,6 @@
 #include "base_utility.h"
 
 #include "interface/blacs_scalapack.h"
-#include "scalapack_connector.h"
 #include "utils_io.h"
 
 
@@ -281,61 +280,9 @@ std::string Array_Desc::info_desc() const
     return std::string(s);
 }
 
-bool Array_Desc::is_src() const { return myprow_ == irsrc_ && mypcol_ == icsrc_; }
-
 void Array_Desc::barrier(CTXT_SCOPE scope)
 {
     CTXT_barrier(ictxt_, scope);
-}
-
-int Array_Desc::indx_g2l_r(int gindx) const
-{
-    return myprow_ != ScalapackConnector::indxg2p(gindx, mb_, myprow_, irsrc_, nprows_) || gindx >= m_
-               ? -1
-               : ScalapackConnector::indxg2l(gindx, mb_, myprow_, irsrc_, nprows_);
-	// int inproc = int((gindx % (mb_*nprows_)) / mb_);
-	// if(myprow_==inproc)
-	// {
-	// 	return int(gindx / (mb_*nprows_))*mb_ + gindx % mb_;
-	// }
-	// else
-	// {
-	// 	return -1;
-	// }
-}
-
-int Array_Desc::indx_g2l_c(int gindx) const
-{
-    return mypcol_ != ScalapackConnector::indxg2p(gindx, nb_, mypcol_, icsrc_, npcols_) || gindx >= n_
-               ? -1
-               : ScalapackConnector::indxg2l(gindx, nb_, mypcol_, icsrc_, npcols_);
-	// int inproc = int((gindx % (nb_*npcols_)) / mb_);
-	// if(mypcol_==inproc)
-	// {
-	// 	return int(gindx / (nb_*npcols_))*nb_ + gindx % nb_;
-	// }
-	// else
-	// {
-	// 	return -1;
-	// }
-}
-
-int Array_Desc::indx_l2g_r(int lindx) const
-{
-    return ScalapackConnector::indxl2g(lindx, mb_, myprow_, irsrc_, nprows_);
-	// int iblock, gIndex;
-	// iblock = lindx / mb_;
-	// gIndex = (iblock*nprows_ + myprow_)* mb_ + lindx % mb_;
-	// return gIndex;
-}
-
-int Array_Desc::indx_l2g_c(int lindx) const
-{
-    return ScalapackConnector::indxl2g(lindx, nb_, mypcol_, icsrc_, npcols_);
-	// int iblock, gIndex;
-	// iblock = lindx / nb_;
-	// gIndex = (iblock*npcols_ + mypcol_)* nb_ + lindx % nb_;
-	// return gIndex;
 }
 
 int get_globalIndex(int localIndex, int nblk, int nprocs, int myproc)

@@ -30,7 +30,7 @@ void test_ap_to_2d_indices_communicate()
     ab.set(std::vector<size_t>{1, 3});
     assert(ab.nb_total == m);
     {
-        const auto proc2idlist = LIBRPA::utils::get_communicate_ids_list_ap_to_blacs(
+        const auto proc2idlist = LIBRPA::utils::get_communicate_global_ids_list_ap_to_blacs(
             myid_global,
             {{0, {{0, 0}}}, {1, {{0, 1}}}, {2, {{1, 0}}}, {3, {{1, 1}}}},
             ab, ab, ad, true, false);
@@ -61,7 +61,7 @@ void test_ap_to_2d_indices_communicate()
     ab.set(std::vector<size_t>{2, 2});
     assert(ab.nb_total == m);
     {
-        const auto proc2idlist = LIBRPA::utils::get_communicate_ids_list_ap_to_blacs(
+        const auto proc2idlist = LIBRPA::utils::get_communicate_global_ids_list_ap_to_blacs(
             myid_global,
             {{0, {{0, 0}}}, {1, {{0, 1}}}, {2, {{1, 0}}}, {3, {{1, 1}}}},
             ab, ab, ad, true, false);
@@ -88,7 +88,7 @@ void test_ap_to_2d_indices_communicate()
     ab.set(std::vector<size_t>{3, 1});
     assert(ab.nb_total == m);
     {
-        const auto proc2idlist = LIBRPA::utils::get_communicate_ids_list_ap_to_blacs(
+        const auto proc2idlist = LIBRPA::utils::get_communicate_global_ids_list_ap_to_blacs(
             myid_global,
             {{0, {{0, 0}}}, {1, {{0, 1}}}, {2, {{1, 0}}}, {3, {{1, 1}}}},
             ab, ab, ad, true, false);
@@ -120,7 +120,7 @@ void test_ap_to_2d_indices_communicate()
     ab.set(std::vector<size_t>{1, 2, 1});
     assert(ab.nb_total == m);
     {
-        const auto proc2idlist = LIBRPA::utils::get_communicate_ids_list_ap_to_blacs(
+        const auto proc2idlist = LIBRPA::utils::get_communicate_global_ids_list_ap_to_blacs(
             myid_global,
             {
              {0, {{0, 0}, {1, 0}, {0, 1}}},

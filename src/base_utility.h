@@ -55,7 +55,8 @@ TR norm(const T v[], const T1 &n, const T2 &power)
 
 template <typename TI>
 std::vector<TI> flatten_2d_indices(const std::vector<std::pair<TI, TI>> &indices_2d,
-                                   const TI &rows, const TI &cols, bool row_major)
+                                   const TI &rows, const TI &cols,
+                                   bool row_major)
 {
     std::vector<TI> indices_1d;
     indices_1d.reserve(indices_2d.size());

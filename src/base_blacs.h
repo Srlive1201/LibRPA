@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "base_mpi.h"
+#include "scalapack_connector.h"
 
 namespace LIBRPA
 {
@@ -109,10 +110,10 @@ public:
                   const int &irsrc, const int &icsrc);
     int init_square_blk(const int &m, const int &n,
                         const int &irsrc, const int &icsrc);
-    int indx_g2l_r(int gindx) const;
-    int indx_g2l_c(int gindx) const;
-    int indx_l2g_r(int lindx) const;
-    int indx_l2g_c(int lindx) const;
+    inline int indx_g2l_r(int gindx) const;
+    inline int indx_g2l_c(int gindx) const;
+    inline int indx_l2g_r(int lindx) const;
+    inline int indx_l2g_c(int lindx) const;
     const int& ictxt() const { return ictxt_; }
     const int& m() const { return m_; }
     const int& n() const { return n_; }
@@ -133,6 +134,31 @@ public:
     bool initialized() const { return this->initialized_; };
     void barrier(CTXT_SCOPE scope = CTXT_SCOPE::A);
 };
+
+inline int Array_Desc::indx_g2l_r(int gindx) const
+{
+    return myprow_ != ScalapackConnector::indxg2p(gindx, mb_, myprow_, irsrc_, nprows_) || gindx >= m_
+               ? -1
+               : ScalapackConnector::indxg2l(gindx, mb_, myprow_, irsrc_, nprows_);
+}
+
+inline int Array_Desc::indx_g2l_c(int gindx) const
+{
+    return mypcol_ != ScalapackConnector::indxg2p(gindx, nb_, mypcol_, icsrc_, npcols_) || gindx >= n_
+               ? -1
+               : ScalapackConnector::indxg2l(gindx, nb_, mypcol_, icsrc_, npcols_);
+}
+
+inline int Array_Desc::indx_l2g_r(int lindx) const
+{
+    return ScalapackConnector::indxl2g(lindx, mb_, myprow_, irsrc_, nprows_);
+}
+
+inline int Array_Desc::indx_l2g_c(int lindx) const
+{
+    return ScalapackConnector::indxl2g(lindx, nb_, mypcol_, icsrc_, npcols_);
+}
+
 
 int get_globalIndex(int localIndex, int nblk, int nprocs, int myproc);
 int get_localIndex(int globalIndex, int nblk, int nprocs, int myproc);
