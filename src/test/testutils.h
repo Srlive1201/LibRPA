@@ -59,6 +59,74 @@ bool equal_array(int n, const T *a, const T *b, bool print = false)
     return ndiff == 0;
 }
 
+template <typename T>
+bool equal_vector(const std::vector<T> &v1, const std::vector<T> &v2, bool print = false)
+{
+    if (v1.size() != v2.size()) return false;
+    return equal_array(v1.size(), v1.data(), v2.data(), print);
+}
+
+template <typename T1, typename T2>
+bool fequal_pair(const std::pair<T1, T2> &p1, const std::pair<T1, T2> &p2,
+                 const T1 &thres1 = 1e-14, const T1 &thres2 = 1e-14)
+{
+    return fequal(p1.first, p2.first, thres1) && fequal(p1.second, p2.second, thres2);
+}
+
+template <typename T1, typename T2>
+bool equal_pair(const std::pair<T1, T2> &p1, const std::pair<T1, T2> &p2)
+{
+    return p1.first == p2.first && p1.second == p2.second;
+}
+
+template <typename Tk, typename Tv1, typename Tv2>
+bool equal_map_vector_pv(const std::map<Tk, std::vector<std::pair<Tv1, std::vector<Tv2>>>> &mvpv1,
+                         const std::map<Tk, std::vector<std::pair<Tv1, std::vector<Tv2>>>> &mvpv2,
+                         bool print = false)
+{
+    if (mvpv1.size() != mvpv2.size())
+    {
+        if (print) std::cout << "Map size differ: "
+                             << mvpv1.size() << " != " << mvpv2.size() << std::endl;
+        return false;
+    }
+
+    bool flag = true;
+    for (const auto &kv1: mvpv1)
+    {
+        const auto &key = kv1.first;
+        const auto &v1 = kv1.second;
+        if (mvpv2.count(kv1.first) == 0)
+        {
+            if (print) std::cout << "Missing key in map2: " << key << std::endl;
+            return false;
+        }
+        const auto &v2 = mvpv2.at(key);
+        if (v1.size() != v2.size()) return false;
+        if (print) std::cout << "Key " << key << std::endl;
+        for (int i = 0; i < v1.size(); i++)
+        {
+            const auto &v1p = v1[i].first;
+            const auto &v2p = v2[i].first;
+            const auto &v1v = v1[i].second;
+            const auto &v2v = v2[i].second;
+            if (!equal_pair(v1p, v2p))
+            {
+                if (print) std::cout << "Pair identifier differ at vector index " << i << " : " << v1p << " != " << v2p << std::endl;
+                return false;
+            }
+            if (v1v.size() != v2v.size())
+            {
+                if (print) std::cout << "Vector for the pair differ in size: " << v1v.size() << " != " << v2v.size() << std::endl;
+                return false;
+            }
+            if (print) std::cout << "Vector for the pair: " << v1v.size() << " != " << v2v.size() << std::endl;
+            flag = flag && equal_array(v1v.size(), v1v.data(), v2v.data(), print);
+        }
+    }
+    return flag;
+}
+
 template <typename Tk, typename Tv>
 bool equal_map_vector(const std::map<Tk, std::vector<Tv>> &mv1,
                       const std::map<Tk, std::vector<Tv>> &mv2,
@@ -180,17 +248,4 @@ bool is_matmul_AB_equal_C(const int m, const int n, const int k,
                 AB[im][in] += A[im*k+ik] * B[ik*n+in];
         }
     return is_mat_A_equal_B(m, n, *AB, C, transpose_C, print, thres, "AB", "C");
-}
-
-template <typename T1, typename T2>
-bool fequal_pair(const std::pair<T1, T2> &p1, const std::pair<T1, T2> &p2,
-                 const T1 &thres1 = 1e-14, const T1 &thres2 = 1e-14)
-{
-    return fequal(p1.first, p2.first, thres1) && fequal(p1.second, p2.second, thres2);
-}
-
-template <typename T1, typename T2>
-bool equal_pair(const std::pair<T1, T2> &p1, const std::pair<T1, T2> &p2)
-{
-    return p1.first == p2.first && p1.second == p2.second;
 }
