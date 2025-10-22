@@ -203,7 +203,7 @@ bool operator==(const matrix_data<T> &mdata1, const matrix_data<T> &mdata2)
     const bool is_double = std::is_same<T, double>::value;
     const real_t thres = is_double ? 1e-14 : 1e-6;
     auto diff = std::abs(*(mdata1.data) - *(mdata2.data));
-    for (int i = 0; i < mdata1.size(); i++)
+    for (size_t i = 0; i < mdata1.size(); i++)
         if (::get_real(diff[i]) > thres)
             return false;
     return true;
@@ -239,7 +239,7 @@ private:
     {
         if (major_ == major_pv)
         {
-            for (int i = 0; i < size(); i++) dataobj[i] = pv[i];
+            for (size_t i = 0; i < size(); i++) dataobj[i] = pv[i];
         }
         else
         {
@@ -376,7 +376,7 @@ public:
                 }
             }
             else
-                for (int i = 0; i != size(); i++)
+                for (size_t i = 0; i != size(); i++)
                     join_re_im(this->dataobj[i], dr(e), di(e));
         }
         else
@@ -393,7 +393,7 @@ public:
                 }
             else
             {
-                for (int i = 0; i != size(); i++)
+                for (size_t i = 0; i != size(); i++)
                     this->dataobj[i] = dr(e);
             }
         }
@@ -469,7 +469,7 @@ public:
     void operator+=(const matrix_m<T1> &m)
     {
         assert(this->size() == m.size() && this->major() == m.major());
-        for (int i = 0; i < size(); i++)
+        for (size_t i = 0; i < size(); i++)
             dataobj[i] += m.dataobj[i];
     }
     template <typename T1>
@@ -483,7 +483,7 @@ public:
     template <typename T1>
     void operator+=(const T1 &cnum)
     {
-        for (int i = 0; i < size(); i++)
+        for (size_t i = 0; i < size(); i++)
             dataobj[i] += cnum;
     }
 
@@ -491,7 +491,7 @@ public:
     void operator-=(const matrix_m<T1> &m)
     {
         assert(size() == m.size() && major() == m.major());
-        for (int i = 0; i < size(); i++)
+        for (size_t i = 0; i < size(); i++)
             dataobj[i] -= m.dataobj[i];
     }
     template <typename T1>
@@ -505,19 +505,19 @@ public:
     template <typename T1>
     void operator-=(const T1 &cnum)
     {
-        for (int i = 0; i < size(); i++)
+        for (size_t i = 0; i < size(); i++)
             dataobj[i] -= cnum;
     }
     template <typename T1>
     void operator*=(const T1 &cnum)
     {
-        for (int i = 0; i < size(); i++)
+        for (size_t i = 0; i < size(); i++)
             dataobj[i] *= cnum;
     }
     template <typename T1>
     void operator/=(const T1 &cnum)
     {
-        for (int i = 0; i < size(); i++)
+        for (size_t i = 0; i < size(); i++)
             dataobj[i] /= cnum;
     }
 
@@ -544,7 +544,7 @@ public:
     matrix_m<T>& conj()
     {
         if (!matrix_m<T>::is_complex) return *this;
-        for (int i = 0; i < this->size(); i++)
+        for (size_t i = 0; i < this->size(); i++)
             dataobj[i] = get_conj(dataobj[i]);
         return *this;
     };
@@ -592,7 +592,7 @@ public:
     matrix_m<cplx_t> to_complex() const
     {
         matrix_m<cplx_t> m(nr(), nc(), major_);
-        for (int i = 0; i < size(); i++)
+        for (size_t i = 0; i < size(); i++)
             m.dataobj[i] = dataobj[i];
         return m;
     }
@@ -600,7 +600,7 @@ public:
     matrix_m<real_t> get_real() const
     {
         matrix_m<real_t> m(nr(), nc(), this->major_);
-        for (int i = 0; i < size(); i++)
+        for (size_t i = 0; i < size(); i++)
             m.dataobj[i] = ::get_real(dataobj[i]);
         return m;
     }
@@ -608,23 +608,23 @@ public:
     matrix_m<real_t> get_imag() const
     {
         matrix_m<real_t> m(nr(), nc(), major_);
-        for (int i = 0; i < size(); i++)
+        for (size_t i = 0; i < size(); i++)
             m.dataobj[i] = ::get_imag(dataobj[i]);
         return m;
     }
 
-    int count_absle(real_t thres) const
+    size_t count_absle(real_t thres) const
     {
-        int count = 0;
-        for (int i = 0; i < size(); i++)
+        size_t count = 0;
+        for (size_t i = 0; i < size(); i++)
             if (std::abs(dataobj[i]) <= thres) count++;
         return count;
     }
 
-    int count_absge(real_t thres) const
+    size_t count_absge(real_t thres) const
     {
-        int count = 0;
-        for (int i = 0; i < size(); i++)
+        size_t count = 0;
+        for (size_t i = 0; i < size(); i++)
             if (std::abs(dataobj[i]) >= thres) count++;
         return count;
     }
@@ -635,8 +635,8 @@ public:
         const std::function<real_t(T)> filter =
             matrix_m<T>::is_complex ? [](T a) { return std::abs(a); } : [](T a) { return ::get_real(a); };
         real_t value = std::numeric_limits<real_t>::max();
-        int indx = 0;
-        for (int i = 0; i < size(); i++)
+        size_t indx = 0;
+        for (size_t i = 0; i < size(); i++)
             if (filter(dataobj[i]) < value)
             {
                 indx = i;
@@ -651,8 +651,8 @@ public:
         const std::function<real_t(T)> filter =
             matrix_m<T>::is_complex ? [](T a) { return std::abs(a); } : [](T a) { return ::get_real(a); };
         real_t value = std::numeric_limits<real_t>::min();
-        int indx = 0;
-        for (int i = 0; i < size(); i++)
+        size_t indx = 0;
+        for (size_t i = 0; i < size(); i++)
             if (filter(dataobj[i]) > value)
             {
                 indx = i;
@@ -667,7 +667,7 @@ public:
         const std::function<real_t(T)> filter =
             matrix_m<T>::is_complex ? [](T a) { return std::abs(a); } : [](T a) { return ::get_real(a); };
         real_t value = std::numeric_limits<real_t>::max();
-        for (int i = 0; i < size(); i++)
+        for (size_t i = 0; i < size(); i++)
             if (filter(dataobj[i]) < value)
             {
                 value = filter(dataobj[i]);
@@ -681,7 +681,7 @@ public:
         const std::function<real_t(T)> filter =
             matrix_m<T>::is_complex ? [](T a) { return std::abs(a); } : [](T a) { return ::get_real(a); };
         real_t value = std::numeric_limits<real_t>::min();
-        for (int i = 0; i < size(); i++)
+        for (size_t i = 0; i < size(); i++)
             if (filter(dataobj[i]) > value)
             {
                 value = filter(dataobj[i]);
@@ -692,7 +692,7 @@ public:
     real_t absmin() const
     {
         real_t value = 0;
-        for (int i = 0; i < size(); i++)
+        for (size_t i = 0; i < size(); i++)
             value = std::min(value, std::abs(dataobj[i]));
         return value;
     }
@@ -700,7 +700,7 @@ public:
     real_t absmax() const
     {
         real_t value = 0;
-        for (int i = 0; i < size(); i++)
+        for (size_t i = 0; i < size(); i++)
             value = std::max(value, std::abs(dataobj[i]));
         return value;
     }
@@ -728,7 +728,7 @@ template <typename T1, typename T2>
 void copy(const matrix_m<T1> &src, matrix_m<T2> &dest)
 {
     assert(src.size() == dest.size() && same_major(src, dest));
-    for (int i = 0; i < src.size(); i++)
+    for (size_t i = 0; i < src.size(); i++)
         dest.dataobj[i] = src.dataobj[i];
 }
 
@@ -903,16 +903,14 @@ template <typename T>
 T get_determinant(const matrix_m<T> &m)
 {
     matrix_m<T> m_copy = m.copy();
-    int lwork = m_copy.nr();
     int info = 0;
     int mrank = std::min(m_copy.nr(), m_copy.nc());
-    T work[lwork];
-    int ipiv[mrank];
+    std::vector<int> ipiv(mrank);
     // debug
     if (m_copy.is_row_major())
-        LapackConnector::getrf(m_copy.nr(), m_copy.nc(), m_copy.ptr(), m_copy.nr(), ipiv, info);
+        LapackConnector::getrf(m_copy.nr(), m_copy.nc(), m_copy.ptr(), m_copy.nr(), ipiv.data(), info);
     else
-        LapackConnector::getrf_f(m_copy.nr(), m_copy.nc(), m_copy.ptr(), m_copy.nr(), ipiv, info);
+        LapackConnector::getrf_f(m_copy.nr(), m_copy.nc(), m_copy.ptr(), m_copy.nr(), ipiv.data(), info);
     T det = 1;
     for (int i = 0; i < mrank; i++)
     {
@@ -943,19 +941,13 @@ matrix_m<std::complex<T>> power_hemat(matrix_m<std::complex<T>> &mat,
     int info = 0;
     T w[n], wpow[n];
     T rwork[3*n-2];
-    std::complex<T> work[lwork];
+    std::vector<std::complex<T>> work(lwork);
     if (mat.is_row_major())
-        LapackConnector::heev(jobz, uplo, n, mat.ptr(), n, w, work, lwork, rwork, info);
+        LapackConnector::heev(jobz, uplo, n, mat.ptr(), n, w, work.data(), lwork, rwork, info);
     else
-        LapackConnector::heev_f(jobz, uplo, n, mat.ptr(), n, w, work, lwork, rwork, info);
+        LapackConnector::heev_f(jobz, uplo, n, mat.ptr(), n, w, work.data(), lwork, rwork, info);
     bool is_int_power = fabs(power - int(power)) < 1e-8;
-    // debug
-    // for ( int i = 0; i != n; i++ )
-    // {
-    //     cout << w[i] << " ";
-    // }
-    // cout << endl;
-    // end debug
+
     for ( int i = 0; i != n; i++ )
     {
         if (w[i] < 0 && w[i] > threshold && !is_int_power)
@@ -972,6 +964,7 @@ matrix_m<std::complex<T>> power_hemat(matrix_m<std::complex<T>> &mat,
             wpow[i] = w[i];
         wpow[i] = pow(wpow[i], power);
     }
+
     auto evconj = transpose(mat, true);
     auto temp = evconj.copy();
     for (int i = 0; i != n; i++)
@@ -1095,7 +1088,7 @@ void print_matrix_mm(const matrix_m<T> &mat, ostream &os, Treal threshold = 1e-1
 {
     const int nr = mat.nr(), nc = mat.nc();
     size_t nnz = 0;
-    for (int i = 0; i != mat.size(); i++)
+    for (size_t i = 0; i < mat.size(); i++)
     {
         if (fabs(mat.dataobj[i]) > threshold)
             nnz++;
@@ -1175,9 +1168,9 @@ void print_matrix_mm_file(const matrix_m<T> &mat, const std::string &fn, Treal t
     fs.close();
 }
 
-//! print the matrix in ELSI CSC format
+//! Write the matrix to file in ELSI CSC format
 template <typename T, typename Treal = typename to_real<T>::type>
-void print_matrix_elsi_csc(const matrix_m<T> &mat, const std::string &fn, Treal threshold = 1e-15)
+void write_matrix_elsi_csc(const matrix_m<T> &mat, const std::string &fn, Treal threshold = 1e-15)
 {
     const int nr = mat.nr(), nc = mat.nc();
     const int step =  is_complex<T>()? 2 : 1;
@@ -1185,7 +1178,7 @@ void print_matrix_elsi_csc(const matrix_m<T> &mat, const std::string &fn, Treal 
     assert (nr == nc);
 
     int64_t nnz = 0;
-    for (int i = 0; i != mat.size(); i++)
+    for (int64_t i = 0; i != mat.size(); i++)
     {
         if (fabs(mat.dataobj[i]) > threshold)
             nnz++;

@@ -45,7 +45,7 @@ void task_test()
                     meanfield_band.get_eigenvectors()[ispin][ik].c, MAJOR::ROW);
             stringstream s;
             s << "bandv_" << ispin << "_" << ik << ".csc";
-            print_matrix_elsi_csc(vec, s.str());
+            write_matrix_elsi_csc(vec, s.str());
         }
     }
 
