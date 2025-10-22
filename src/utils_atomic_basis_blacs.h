@@ -175,6 +175,22 @@ get_communicate_local_ids_list_blacs_to_ap(const int &myid,
                                            const AtomicBasis &atbasis_c,
                                            const Array_Desc &ad, bool row_fast, bool row_major);
 
+std::pair<std::map<int, std::vector<size_t>>,
+          std::map<int, std::pair<std::vector<size_t>, std::vector<char>>>>
+get_communicate_global_ids_list_blacs_to_ap_sy(const int &myid,
+                                               const char &uplo,
+                                               const std::map<int, std::vector<atpair_t>> &map_proc_IJs_avail,
+                                               const AtomicBasis &atbasis,
+                                               const Array_Desc &ad, bool row_fast, bool row_major);
+
+std::pair<std::map<int, std::vector<size_t>>,
+          std::map<int, std::vector<std::pair<atpair_t, std::pair<std::vector<size_t>, std::vector<char>>>>>>
+get_communicate_local_ids_list_blacs_to_ap_sy(const int &myid,
+                                              const char &uplo,
+                                              const std::map<int, std::vector<atpair_t>> &map_proc_IJs_avail,
+                                              const AtomicBasis &atbasis,
+                                              const Array_Desc &ad, bool row_fast, bool row_major);
+
 } /* end of namespace utils */
 
 } /* end of namespace LIBRPA */
