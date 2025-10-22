@@ -16,6 +16,12 @@
 #include "libri_stub.h"
 #endif
 
+namespace LIBRPA
+{
+
+namespace utils
+{
+
 template <typename T>
 matrix_m<T> init_local_mat(const LIBRPA::Array_Desc &ad, MAJOR major)
 {
@@ -552,9 +558,8 @@ matrix_m<std::complex<T>> power_hemat_blacs(matrix_m<std::complex<T>> &A_local,
 
     // filter and scale the eigenvalues, store in a temp array
     Profiler::start("power_hemat_blacs_4");
-    T W_temp[n];
-    for (int i = 0; i != n_filtered; i++)
-        W_temp[i] = 0.0;
+    std::vector<T> W_temp(n);
+    for (int i = 0; i != n_filtered; i++) W_temp[i] = 0.0;
     for (int i = n_filtered; i != n; i++)
     {
         if (W[i] < 0 && !is_int_power)
@@ -689,3 +694,15 @@ void invert_scalapack(matrix_m<T> &m_loc, const LIBRPA::Array_Desc &desc_m)
         throw std::logic_error("row-major invert is not implemented");
     }
 }
+
+// template <typename T>
+// matrix_m<T> get_redist_block_ap_to_blacs(const AtomicBasis &atbasis_r,
+//                                          const AtomicBasis &atbasis_c,
+//                                          const std::map<int, std::vector<atpair_t>> &map_proc_IJs_avail,
+//                                          const Array_Desc &ad, bool row_fast, bool row_major)
+// {
+// }
+
+} /* end of namespace utils */
+
+} /* end of namespace LIBRPA */

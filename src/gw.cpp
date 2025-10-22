@@ -410,6 +410,10 @@ void G0W0::build_sigc_matrix_KS(const std::vector<std::vector<ComplexMatrix>> &w
 {
     using LIBRPA::envs::mpi_comm_global_h;
     using LIBRPA::envs::blacs_ctxt_global_h;
+    using LIBRPA::utils::init_local_mat;
+    using LIBRPA::utils::get_local_mat;
+    using LIBRPA::utils::collect_block_from_IJ_storage_tensor_transform;
+    using LIBRPA::utils::multiply_scalapack;
 
     assert(this->is_rspace_built_);
     if (this->is_kspace_built_)

@@ -270,6 +270,7 @@ static void test_ap_to_2d_local_indices_communicate()
 static void test_ap_to_2d_matrix_m_communicate()
 {
     using namespace LIBRPA::envs;
+    using LIBRPA::utils::init_local_mat;
 
     const size_t m = 4;
     const size_t n = m;

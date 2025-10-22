@@ -307,6 +307,9 @@ void Exx::build_KS(const std::vector<std::vector<ComplexMatrix>> &wfc_target,
 {
     using LIBRPA::envs::mpi_comm_global_h;
     using LIBRPA::envs::blacs_ctxt_global_h;
+    using LIBRPA::utils::init_local_mat;
+    using LIBRPA::utils::get_local_mat;
+    using LIBRPA::utils::collect_block_from_IJ_storage_tensor_transform;
     using RI::Communicate_Tensors_Map_Judge::comm_map2_first;
 
     assert(this->is_rspace_build_);

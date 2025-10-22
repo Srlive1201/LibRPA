@@ -35,6 +35,7 @@ using RI::Tensor;
 using RI::Communicate_Tensors_Map_Judge::comm_map2_first;
 #endif
 
+using LIBRPA::utils::init_local_mat;
 using LIBRPA::envs::mpi_comm_global_h;
 using LIBRPA::envs::blacs_ctxt_global_h;
 using LIBRPA::Array_Desc;
@@ -43,6 +44,7 @@ using LIBRPA::utils::lib_printf;
 
 CorrEnergy compute_RPA_correlation_blacs_2d_gamma_only( Chi0 &chi0, atpair_k_cplx_mat_t &coulmat)
 {
+    using LIBRPA::utils::collect_block_from_ALL_IJ_Tensor;
     CorrEnergy corr;
     if (mpi_comm_global_h.myid == 0)
         lib_printf("Calculating EcRPA with BLACS/ScaLAPACK 2D gamma_only\n");
@@ -261,6 +263,8 @@ CorrEnergy compute_RPA_correlation_blacs_2d_gamma_only( Chi0 &chi0, atpair_k_cpl
 
 CorrEnergy compute_RPA_correlation_blacs_2d( Chi0 &chi0,  atpair_k_cplx_mat_t &coulmat)
 {
+    using LIBRPA::utils::collect_block_from_ALL_IJ_Tensor;
+
     lib_printf("Begin to compute_RPA_correlation_blacs_2d  myid: %d\n",mpi_comm_global_h.myid );
     system("free -m");
     CorrEnergy corr;
@@ -1624,6 +1628,11 @@ compute_Wc_freq_q(Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, atpair_k_c
 map<double, atom_mapping<std::map<Vector3_Order<double>, matrix_m<complex<double>>>>::pair_t_old>
 compute_Wc_freq_q_blacs(Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, atpair_k_cplx_mat_t &coulmat_wc, const vector<std::complex<double>> &epsmac_LF_imagfreq)
 {
+    using LIBRPA::utils::collect_block_from_ALL_IJ_Tensor;
+    using LIBRPA::utils::power_hemat_blacs;
+    using LIBRPA::utils::map_block_to_IJ_storage_new;
+    using LIBRPA::utils::invert_scalapack;
+
     map<double, atom_mapping<std::map<Vector3_Order<double>, matrix_m<complex<double>>>>::pair_t_old> Wc_freq_q;
     const complex<double> CONE{1.0, 0.0};
     const int n_abf = LIBRPA::atomic_basis_abf.nb_total;
@@ -2303,6 +2312,8 @@ CT_FT_Wc_freq_q(const map<double, atom_mapping<std::map<Vector3_Order<double>, m
 
 void test_libcomm_for_system(const atpair_k_cplx_mat_t &coulmat)
 {
+    using LIBRPA::utils::collect_block_from_ALL_IJ_Tensor;
+
     if (mpi_comm_global_h.myid == 0)
         lib_printf("test_libcomm_for_system Coulumb\n");
     // lib_printf("Calculating EcRPA with BLACS, pid:  %d\n", mpi_comm_global_h.myid);
