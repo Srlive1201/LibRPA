@@ -2,7 +2,7 @@
 
 #include "atomic_basis.h"
 #include "constants.h"
-#include "matrix_m_parallel_utils.h"
+#include "utils_matrix_m_mpi.h"
 #include "profiler.h"
 #include "params.h"
 #include "geometry.h"

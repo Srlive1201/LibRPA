@@ -122,6 +122,7 @@ get_communicate_local_ids_list_ap_to_blacs_sy(const int &myid,
                                               const std::map<int, std::vector<atpair_t>> &map_proc_IJs_avail,
                                               const AtomicBasis &atbasis,
                                               const Array_Desc &ad, bool row_fast, bool row_major);
+
 } /* end of namespace utils */
 
 } /* end of namespace LIBRPA */

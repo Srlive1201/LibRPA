@@ -5,7 +5,7 @@
 #include "envs_blacs.h"
 #include "utils_atomic_basis_blacs.h"
 #include "profiler.h"
-#include "matrix_m_parallel_utils.h"
+#include "utils_matrix_m_mpi.h"
 #include "params.h"
 #include "constants.h"
 #include "pbc.h"

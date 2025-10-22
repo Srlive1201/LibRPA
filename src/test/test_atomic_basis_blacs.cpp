@@ -3,7 +3,7 @@
 #include "../utils_atomic_basis_blacs.h"
 
 #include "../matrix_m.h"
-#include "../matrix_m_parallel_utils.h"
+#include "../utils_matrix_m_mpi.h"
 
 #include "../stl_io_helper.h"
 #include "testutils.h"
