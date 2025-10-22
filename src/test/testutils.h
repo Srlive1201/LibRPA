@@ -143,7 +143,7 @@ bool equal_map_vector(const std::map<Tk, std::vector<Tv>> &mv1,
     {
         const auto &key = kv1.first;
         const auto &v1 = kv1.second;
-        if (mv2.count(kv1.first) == 0)
+        if (mv2.count(key) == 0)
         {
             if (print) std::cout << "Missing key in map2: " << key << std::endl;
             return false;
@@ -152,6 +152,39 @@ bool equal_map_vector(const std::map<Tk, std::vector<Tv>> &mv1,
         if (v1.size() != v2.size()) return false;
         if (print) std::cout << "Key " << key << std::endl;
         flag = flag && equal_array(v1.size(), v1.data(), v2.data(), print);
+    }
+    return flag;
+}
+
+template <typename Tk, typename Tv1, typename Tv2>
+bool equal_map_pair_vector(const std::map<Tk, std::pair<std::vector<Tv1>, std::vector<Tv2>>> &mvv1,
+                           const std::map<Tk, std::pair<std::vector<Tv1>, std::vector<Tv2>>> &mvv2,
+                      bool print = false)
+{
+    bool flag = true;
+    if (mvv1.size() != mvv2.size())
+    {
+        if (print) std::cout << "Map size differ: "
+                             << mvv1.size() << " != " << mvv2.size() << std::endl;
+        return false;
+    }
+    for (const auto &kvv1: mvv1)
+    {
+        const auto &key = kvv1.first;
+        const auto &v11 = kvv1.second.first;
+        const auto &v12 = kvv1.second.second;
+        if (mvv2.count(key) == 0)
+        {
+            if (print) std::cout << "Missing key in map2: " << key << std::endl;
+            return false;
+        }
+        const auto &v21 = mvv2.at(key).first;
+        const auto &v22 = mvv2.at(key).second;
+        if (v11.size() != v21.size()) return false;
+        // if (print) std::cout << "Key " << key << std::endl;
+        flag = flag && equal_array(v11.size(), v11.data(), v21.data(), print);
+        if (v12.size() != v22.size()) return false;
+        flag = flag && equal_array(v12.size(), v12.data(), v22.data(), print);
     }
     return flag;
 }

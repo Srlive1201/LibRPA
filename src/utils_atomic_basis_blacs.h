@@ -60,9 +60,10 @@ get_communicate_global_ids_list_ap_to_blacs(const int &myid,
  *
  *            map_send: process id -> [ global indices (in atom-pair context) ]
  *
- *            map_recv: process id -> { [ global indices (in BLACS context) ], [ if conjugate should be taken when applicable ] }
+ *            map_recv: process id -> { [ global indices (in BLACS context) ], [ conjugate label ] }.
+ *                      conjugate label is 'c' is necessary conjugate should be performed.
  */
-std::pair<std::map<int, std::vector<size_t>>, std::map<int, std::pair<std::vector<size_t>, std::vector<bool>>>>
+std::pair<std::map<int, std::vector<size_t>>, std::map<int, std::pair<std::vector<size_t>, std::vector<char>>>>
 get_communicate_global_ids_list_ap_to_blacs_sy(const int &myid,
                                                const char &uplo,
                                                const std::map<int, std::vector<atpair_t>> &map_proc_IJs_avail,
@@ -113,10 +114,11 @@ get_communicate_local_ids_list_ap_to_blacs(const int &myid,
  *
  *            map_send: process id -> [ { <I,J>, [ local indices in atom-pair sub-matrix ] } , ...]
  *
- *            map_recv: process id -> { [ local indices in BLACS sub-matrix ], [ if conjugate should be taken when applicable ] }
+ *            map_recv: process id -> { [ local indices in BLACS sub-matrix ], [ conjugate label ] }.
+ *                      conjugate label is 'c' is necessary conjugate should be performed.
  */
 std::pair<std::map<int, std::vector<std::pair<atpair_t, std::vector<size_t>>>>,
-          std::map<int, std::pair<std::vector<size_t>, std::vector<bool>>>>
+          std::map<int, std::pair<std::vector<size_t>, std::vector<char>>>>
 get_communicate_local_ids_list_ap_to_blacs_sy(const int &myid,
                                               const char &uplo,
                                               const std::map<int, std::vector<atpair_t>> &map_proc_IJs_avail,

@@ -279,7 +279,7 @@ get_communicate_local_ids_list_ap_to_blacs(const int &myid,
 // FIXME: need test
 static 
 std::pair<std::map<int, std::vector<std::pair<atpair_t, std::vector<std::pair<size_t, size_t>>>>>,
-          std::map<int, std::pair<std::vector<std::pair<size_t, size_t>>, std::vector<bool>>>>
+          std::map<int, std::pair<std::vector<std::pair<size_t, size_t>>, std::vector<char>>>>
 _get_communicate_ids_list_ap_to_blacs_sy(const int &myid,
                                          const char &uplo,
                                          const std::map<int, std::vector<atpair_t>> &map_proc_IJs_avail,
@@ -294,7 +294,7 @@ _get_communicate_ids_list_ap_to_blacs_sy(const int &myid,
     std::map<int, std::vector<std::pair<atpair_t, std::vector<std::pair<size_t, size_t>>>>> map_proc_id2d_send;
     // process ID -> { list of basis indices, list of flags whether conjugate should be taken }, receiving by myid from others
     std::map<int, std::vector<std::pair<size_t, size_t>>> map_proc_id2d_recv;
-    std::map<int, std::pair<std::vector<std::pair<size_t, size_t>>, std::vector<bool>>> map_proc_id2d_lconj_recv;
+    std::map<int, std::pair<std::vector<std::pair<size_t, size_t>>, std::vector<char>>> map_proc_id2d_lconj_recv;
 
     const bool ap_upper_half = uplo == 'U' || uplo == 'u';
     // manually check the keys to ensure they are either all in upper half or all in lower half
@@ -326,6 +326,9 @@ _get_communicate_ids_list_ap_to_blacs_sy(const int &myid,
     {
         const auto &i_gl = as_int(id.first);
         const auto &j_gl = as_int(id.second);
+        // Only sending either half
+        if (ap_upper_half && i_gl > j_gl) continue;
+        if (!ap_upper_half && i_gl < j_gl) continue;
         // filter out the required BLACS indices that already owns by myid
         myprow = ScalapackConnector::indxg2p(i_gl, ad.mb(), dummy, ad.irsrc(), ad.nprows());
         mypcol = ScalapackConnector::indxg2p(j_gl, ad.nb(), dummy, ad.icsrc(), ad.npcols());
@@ -373,9 +376,9 @@ _get_communicate_ids_list_ap_to_blacs_sy(const int &myid,
             {
                 int I, J;
                 int i_lo, j_lo;
-                // only exchange the global index
-                atbasis.get_local_index(j_gl, I, i_lo);
-                atbasis.get_local_index(i_gl, J, j_lo);
+                // Sending the same element, but may be conjugate on the receiver side
+                atbasis.get_local_index(i_gl, I, i_lo);
+                atbasis.get_local_index(j_gl, J, j_lo);
                 auto &IJs_save_order = map_proc_IJs_save_order[target_T];
                 const atpair_t IJ = {static_cast<atom_t>(I), static_cast<atom_t>(J)};
                 if (std::find(IJs_save_order.cbegin(), IJs_save_order.cend(), IJ) == IJs_save_order.cend())
@@ -453,7 +456,7 @@ _get_communicate_ids_list_ap_to_blacs_sy(const int &myid,
                 {
                     map_proc_id2d_lconj_recv[source].first.emplace_back(id);
                 }
-                map_proc_id2d_lconj_recv[source].second.push_back(false);
+                map_proc_id2d_lconj_recv[source].second.push_back('n');
             }
         }
         else
@@ -475,7 +478,7 @@ _get_communicate_ids_list_ap_to_blacs_sy(const int &myid,
                 {
                     map_proc_id2d_lconj_recv[source].first.emplace_back(id);
                 }
-                map_proc_id2d_lconj_recv[source].second.push_back(true);
+                map_proc_id2d_lconj_recv[source].second.push_back('c');
             }
         }
     }
@@ -485,7 +488,7 @@ _get_communicate_ids_list_ap_to_blacs_sy(const int &myid,
 
 
 std::pair<std::map<int, std::vector<size_t>>,
-          std::map<int, std::pair<std::vector<size_t>, std::vector<bool>>>>
+          std::map<int, std::pair<std::vector<size_t>, std::vector<char>>>>
 get_communicate_global_ids_list_ap_to_blacs_sy(const int &myid,
                                                const char &uplo,
                                                const std::map<int, std::vector<atpair_t>> &map_proc_IJs_avail,
@@ -494,7 +497,7 @@ get_communicate_global_ids_list_ap_to_blacs_sy(const int &myid,
 {
     // Objects to return
     std::map<int, std::vector<size_t>> map_proc_id1d_send;
-    std::map<int, std::pair<std::vector<size_t>, std::vector<bool>>> map_proc_id1d_lconj_recv;
+    std::map<int, std::pair<std::vector<size_t>, std::vector<char>>> map_proc_id1d_lconj_recv;
 
     const auto ids = _get_communicate_ids_list_ap_to_blacs_sy(myid, uplo, map_proc_IJs_avail, atbasis,
                                                               ad, row_fast, false);
@@ -534,7 +537,7 @@ get_communicate_global_ids_list_ap_to_blacs_sy(const int &myid,
 }
 
 std::pair<std::map<int, std::vector<std::pair<atpair_t, std::vector<size_t>>>>,
-          std::map<int, std::pair<std::vector<size_t>, std::vector<bool>>>>
+          std::map<int, std::pair<std::vector<size_t>, std::vector<char>>>>
 get_communicate_local_ids_list_ap_to_blacs_sy(const int &myid,
                                               const char &uplo,
                                               const std::map<int, std::vector<atpair_t>> &map_proc_IJs_avail,
@@ -550,7 +553,7 @@ get_communicate_local_ids_list_ap_to_blacs_sy(const int &myid,
 
     // flatten 2D indices to 1D
     std::map<int, std::vector<std::pair<atpair_t, std::vector<size_t>>>> map_proc_id1d_send;
-    std::map<int, std::pair<std::vector<size_t>, std::vector<bool>>> map_proc_id1d_lconj_recv;
+    std::map<int, std::pair<std::vector<size_t>, std::vector<char>>> map_proc_id1d_lconj_recv;
 
     for (const auto &proc_IJ_id2d: map_proc_id2d_send)
     {
