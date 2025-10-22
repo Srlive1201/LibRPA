@@ -929,9 +929,24 @@ void fill_local_mat_from_ap_dist_sy(matrix_m<T> &m_loc,
         {
             atbasis.get_local_index(ad.indx_l2g_c(ic), J, j);
             const atpair_t atpair{static_cast<atom_t>(I), static_cast<atom_t>(J)};
-            if (data.count(atpair))
+            const atpair_t atpair_T{static_cast<atom_t>(J), static_cast<atom_t>(I)};
+            if (I == J && data.count(atpair))
             {
+                // diagonal block
                 m_loc(ir, ic) = data.at(atpair)(i, j);
+            }
+            else
+            {
+                // off-diagonal block, obtain element from existing conjugate block
+                if (data.count(atpair))
+                {
+                    m_loc(ir, ic) = data.at(atpair)(i, j);
+                }
+                else if (data.count(atpair_T))
+                {
+                    const auto &mat = data.at(atpair_T);
+                    m_loc(ir, ic) = is_complex<T>() && apply_conjugate? ::get_conj(mat(i, j)) : mat(i, j);
+                }
             }
         }
     }

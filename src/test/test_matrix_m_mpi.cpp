@@ -341,16 +341,6 @@ void test_local_mat_from_ap_dist()
     MPI_Bcast(global.ptr(), m * n, mpi_datatype<T>::value, 0, ad.comm());
     auto mat_loc_ref = get_local_mat<T>(global, ad);
 
-    for (int i = 0; i < 4; i++)
-    {
-        blacs_ctxt_global_h.barrier();
-        if (myid_global == i)
-        {
-            std::cout << "myid " << i << " local matrix reference" << std::endl;
-            std::cout << mat_loc_ref << std::endl;
-        }
-    }
-
     const std::map<int, std::vector<atpair_t>> map_proc_IJs_avail {{0, {{0, 0}, {1, 0}, {0, 1}}},
                                                                    {1, {{0, 2}, {1, 2}}},
                                                                    {2, {{2, 0}, {2, 1}}},
@@ -376,6 +366,8 @@ void test_local_mat_from_ap_dist()
         blacs_ctxt_global_h.barrier();
         if (myid_global == i)
         {
+            std::cout << "myid " << i << " local matrix reference" << std::endl;
+            std::cout << mat_loc_ref;
             std::cout << "myid " << i << " local matrix" << std::endl;
             std::cout << mat_loc << std::endl;
         }
@@ -383,6 +375,84 @@ void test_local_mat_from_ap_dist()
     assert(fequal_array(mat_loc.size(), mat_loc.ptr(), mat_loc_ref.ptr(), false));
 
     blacs_ctxt_global_h.exit();
+}
+
+void test_local_mat_from_ap_dist_he()
+{
+    blacs_ctxt_global_h.set_square_grid(true, LIBRPA::CTXT_LAYOUT::R);
+    assert(blacs_ctxt_global_h.nprocs == 4);
+    assert(blacs_ctxt_global_h.nprows == 2);
+    assert(blacs_ctxt_global_h.npcols == 2);
+
+    const size_t m = 4;
+    const size_t n = m;
+
+    Array_Desc ad(blacs_ctxt_global_h);
+    ad.init_1b1p(m, n, 0, 0);
+    assert(ad.initialized());
+    assert(ad.mb() == 2);
+    assert(ad.nb() == 2);
+
+    LIBRPA::AtomicBasis ab;
+    // 3 atoms, atom 0 and 2 with 1 and atom 1 with 2
+    // Process indices
+    // | 0   0 | 0   1 |
+    // | 0   3 | 3   1 |
+    // |-------|-------|
+    // | 0   3 | 3   1 |
+    // | 2   2 | 2   3 |
+    ab.set(std::vector<size_t>{1, 2, 1});
+
+    typedef complex<double> T;
+    MPI_Datatype dtype = mpi_datatype<T>::value;
+
+    matrix_m<T> global(ab.nb_total, ab.nb_total, MAJOR::COL);
+
+    if (myid_global == 0)
+    {
+         global.randomize({0, 0}, {1, 1}, false, true);
+    }
+    // broadcast
+    MPI_Bcast(global.ptr(), m * n, dtype, 0, ad.comm());
+    auto mat_loc_ref = get_local_mat<T>(global, ad);
+
+    // only the upper half
+    const std::map<int, std::vector<atpair_t>> map_proc_IJs_avail {{0, {{0, 0}, {0, 1}}},
+                                                                   {1, {{0, 2}, {1, 2}}},
+                                                                   {2, {}},
+                                                                   {3, {{1, 1}, {2, 2}}}};
+    map<atpair_t, matrix_m<T>> IJmap;
+    for (const auto &IJ: map_proc_IJs_avail.at(myid_global))
+    {
+        const auto &I = IJ.first;
+        const auto &J = IJ.second;
+        auto mat = matrix_m<T>(ab.get_atom_nb(I), ab.get_atom_nb(J), MAJOR::COL);
+        for (int i = 0; i < mat.nr(); i++)
+        {
+            for (int j = 0; j < mat.nc(); j++)
+            {
+                mat(i, j) = global(ab.get_part_range()[I] + i, ab.get_part_range()[J]+ j);
+            }
+        }
+        IJmap[IJ] = std::move(mat);
+    }
+    const auto mat_loc = get_local_mat_from_ap_dist_sy<T>('u', IJmap, map_proc_IJs_avail, ab, ad, true, MAJOR::COL);
+    for (int i = 0; i < 4; i++)
+    {
+        blacs_ctxt_global_h.barrier();
+        if (myid_global == i)
+        {
+            std::cout << "myid " << i << " local matrix reference" << std::endl;
+            std::cout << mat_loc_ref;
+            std::cout << "myid " << i << " local matrix" << std::endl;
+            std::cout << mat_loc << std::endl;
+        }
+    }
+    blacs_ctxt_global_h.barrier();
+    assert(fequal_array(mat_loc.size(), mat_loc.ptr(), mat_loc_ref.ptr(), false));
+
+    blacs_ctxt_global_h.exit();
+
 }
 
 int main (int argc, char *argv[])
@@ -411,6 +481,8 @@ int main (int argc, char *argv[])
 
     test_local_mat_from_ap_dist<double>();
     test_local_mat_from_ap_dist<complex<double>>();
+
+    test_local_mat_from_ap_dist_he();
 
     finalize_io();
     finalize_blacs();
