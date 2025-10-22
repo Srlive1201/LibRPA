@@ -61,7 +61,7 @@ void get_nr_nc_from_nested_vector(const std::vector<std::vector<T>> &nested_vec,
     nr = nested_vec.size();
     int nc_ = 0;
     for (const auto& v: nested_vec)
-        nc_ = std::max(static_cast<int>(v.size()), nc_);
+        nc_ = std::max(as_int(v.size()), nc_);
     nc = nc_;
 }
 

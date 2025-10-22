@@ -356,7 +356,7 @@ void map_block_to_IJ_storage(map<int, map<int, matrix_m<T>>> &IJmap,
             int j_glo = desc.indx_l2g_c(j_lo);
             atbasis_col.get_local_index(j_glo, J, jJ);
             if (IJmap.count(I) == 0 || IJmap.at(I).count(J) == 0 || IJmap.at(I).at(J).size() == 0)
-                IJmap[I][J] = matrix_m<T>{static_cast<int>(atbasis_row.get_atom_nb(I)), static_cast<int>(atbasis_col.get_atom_nb(J)), major_map};
+                IJmap[I][J] = matrix_m<T>{as_int(atbasis_row.get_atom_nb(I)), as_int(atbasis_col.get_atom_nb(J)), major_map};
             IJmap[I][J](iI, jJ) = mat_lo(i_lo, j_lo);
         }
     }
@@ -393,8 +393,8 @@ void map_block_to_IJ_storage_new(map<int, map<int, matrix_m<T>>> &IJmap,
         {
             const auto &I = Is[i_I];
             const auto &J = Js[j_J];
-            const auto n_i = static_cast<int>(atbasis.get_atom_nb(I));
-            const auto n_j = static_cast<int>(atbasis.get_atom_nb(J));
+            const auto n_i = as_int(atbasis.get_atom_nb(I));
+            const auto n_j = as_int(atbasis.get_atom_nb(J));
             auto mat = matrix_m<T>(n_i, n_j, major_map);
 #pragma omp critical
             {
@@ -761,7 +761,7 @@ matrix_m<T> get_local_mat_from_ap_dist(const std::map<atpair_t, matrix_m<T>> dat
     {
         if (pid_ids_recv.count(pid))
         {
-            pid_recv_disp_count[pid] = {static_cast<int>(recvcount), pid_ids_recv.at(pid).size()};
+            pid_recv_disp_count[pid] = {as_int(recvcount), pid_ids_recv.at(pid).size()};
             recvcount += pid_ids_recv.at(pid).size();
         }
     }
@@ -782,7 +782,7 @@ matrix_m<T> get_local_mat_from_ap_dist(const std::map<atpair_t, matrix_m<T>> dat
             {
                 sendcount_pid += pair_ids.second.size();
             }
-            pid_send_disp_count[pid] = {static_cast<int>(sendcount), sendcount_pid};
+            pid_send_disp_count[pid] = {as_int(sendcount), sendcount_pid};
             sendcount += sendcount_pid;
         }
     }

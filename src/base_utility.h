@@ -77,3 +77,14 @@ std::vector<TI> flatten_2d_indices(const std::vector<std::pair<TI, TI>> &indices
     }
     return indices_1d;
 }
+
+inline std::size_t as_size(int x) noexcept
+{
+    return static_cast<std::size_t>(x);
+}
+
+template <typename T>
+inline int as_int(T x) noexcept
+{
+    return static_cast<int>(x);
+}

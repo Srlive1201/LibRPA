@@ -370,7 +370,7 @@ static void chi_libri_ft_ct(
                         Rs.push_back(chi0s_JR.first.second);
                     }
                 }
-                ifreq_iq_mu_nu_to_Rs.push_back({{ifreq, iq, static_cast<int>(Mu), static_cast<int>(Nu)}, Rs});
+                ifreq_iq_mu_nu_to_Rs.push_back({{ifreq, iq, as_int(Mu), as_int(Nu)}, Rs});
             }
         }
     }

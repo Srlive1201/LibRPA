@@ -120,7 +120,7 @@ std::vector<int> get_proc_indices_blacs(const int &m, const int &n, const int &m
                                         const int &ictxt, bool row_fast)
 {
     std::vector<int> procids;
-    procids.reserve(static_cast<size_t>(m * n));
+    procids.reserve(as_size(m * n));
     // myprow/mypcol are not used here, declared for indxg2p interface
     int nprows, npcols, myprow, mypcol;
     Cblacs_gridinfo(ictxt, &nprows, &npcols, &myprow, &mypcol);
@@ -331,14 +331,14 @@ get_2d_mat_indices_blacs(const int &m, const int &n,
     {
         if (myprow == ScalapackConnector::indxg2p(i, mb, myprow, irsrc, nprows))
         {
-            row_ids.push_back(static_cast<size_t>(i));
+            row_ids.push_back(as_size(i));
         }
     }
     for (auto i = 0; i < n; i++)
     {
         if (mypcol == ScalapackConnector::indxg2p(i, nb, mypcol, icsrc, npcols))
         {
-            col_ids.push_back(static_cast<size_t>(i));
+            col_ids.push_back(as_size(i));
         }
     }
 
@@ -386,7 +386,7 @@ get_1d_mat_indices_blacs(const int &m, const int &n,
                          bool row_fast, bool row_major)
 {
     const auto indices_2d = get_2d_mat_indices_blacs(m, n, mb, nb, irsrc, icsrc, nprows, npcols, myprow, mypcol, row_fast);
-    return flatten_2d_indices(indices_2d, static_cast<size_t>(m), static_cast<size_t>(n),
+    return flatten_2d_indices(indices_2d, as_size(m), as_size(n),
                               row_major);
 }
 
@@ -394,7 +394,7 @@ std::vector<size_t>
 get_1d_mat_indices_blacs(const Array_Desc &ad, const int &myid, bool row_fast, bool row_major)
 {
     const auto indices_2d = get_2d_mat_indices_blacs(ad, myid, row_fast);
-    return flatten_2d_indices(indices_2d, static_cast<size_t>(ad.m()), static_cast<size_t>(ad.n()),
+    return flatten_2d_indices(indices_2d, as_size(ad.m()), as_size(ad.n()),
                               row_major);
 }
 

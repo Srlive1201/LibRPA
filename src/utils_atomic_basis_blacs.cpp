@@ -80,8 +80,8 @@ _get_communicate_ids_list_ap_to_blacs(const int &myid,
                                       const Array_Desc &ad, const bool row_fast, const bool return_local)
 {
     assert(atbasis_r.nb_total == ad.m());
-    assert(ad.m() > 0 && atbasis_r.nb_total == static_cast<size_t>(ad.m()));
-    assert(ad.n() > 0 && atbasis_c.nb_total == static_cast<size_t>(ad.n()));
+    assert(ad.m() > 0 && atbasis_r.nb_total == as_size(ad.m()));
+    assert(ad.n() > 0 && atbasis_c.nb_total == as_size(ad.n()));
 
     // Objects to return
     // process ID -> list of basis indices, sending from myid to others
@@ -105,8 +105,8 @@ _get_communicate_ids_list_ap_to_blacs(const int &myid,
     std::map<int, std::vector<atpair_t>> map_proc_IJs_save_order;
     for (const auto &id: ids_ap)
     {
-        const auto &i_gl = static_cast<int>(id.first);
-        const auto &j_gl = static_cast<int>(id.second);
+        const auto &i_gl = as_int(id.first);
+        const auto &j_gl = as_int(id.second);
         // filter out the required BLACS indices that already owns by myid
         myprow = ScalapackConnector::indxg2p(i_gl, ad.mb(), dummy, ad.irsrc(), ad.nprows());
         mypcol = ScalapackConnector::indxg2p(j_gl, ad.nb(), dummy, ad.icsrc(), ad.npcols());
@@ -177,8 +177,8 @@ _get_communicate_ids_list_ap_to_blacs(const int &myid,
             if (return_local)
             {
                 // FIXME: now only works when myid == ad.myid
-                const auto i_lo = static_cast<size_t>(ad.indx_g2l_r(static_cast<int>(id.first)));
-                const auto j_lo = static_cast<size_t>(ad.indx_g2l_c(static_cast<int>(id.second)));
+                const auto i_lo = as_size(ad.indx_g2l_r(as_int(id.first)));
+                const auto j_lo = as_size(ad.indx_g2l_c(as_int(id.second)));
                 map_proc_id2d_recv[source].push_back({i_lo, j_lo});
             }
             else
@@ -269,7 +269,7 @@ get_communicate_local_ids_list_ap_to_blacs(const int &myid,
     }
     for (const auto &proc_id2d: map_proc_id2d_recv)
     {
-        map_proc_id1d_recv[proc_id2d.first] = flatten_2d_indices(proc_id2d.second, static_cast<size_t>(ad.m_loc()), static_cast<size_t>(ad.n_loc()), row_major);
+        map_proc_id1d_recv[proc_id2d.first] = flatten_2d_indices(proc_id2d.second, as_size(ad.m_loc()), as_size(ad.n_loc()), row_major);
     }
     return {map_proc_id1d_send, map_proc_id1d_recv};
 }
@@ -286,7 +286,7 @@ _get_communicate_ids_list_ap_to_blacs_sy(const int &myid,
                                          const AtomicBasis &atbasis,
                                          const Array_Desc &ad, const bool row_fast, const bool return_local)
 {
-    assert(ad.m() > 0 && ad.m() == ad.n() && atbasis.nb_total == static_cast<size_t>(ad.m()));
+    assert(ad.m() > 0 && ad.m() == ad.n() && atbasis.nb_total == as_size(ad.m()));
     assert(uplo == 'U' || uplo == 'u' || uplo == 'L' || uplo == 'l');
 
     // Objects to return
@@ -324,8 +324,8 @@ _get_communicate_ids_list_ap_to_blacs_sy(const int &myid,
     std::map<int, std::vector<atpair_t>> map_proc_IJs_save_order;
     for (const auto &id: ids_ap)
     {
-        const auto &i_gl = static_cast<int>(id.first);
-        const auto &j_gl = static_cast<int>(id.second);
+        const auto &i_gl = as_int(id.first);
+        const auto &j_gl = as_int(id.second);
         // filter out the required BLACS indices that already owns by myid
         myprow = ScalapackConnector::indxg2p(i_gl, ad.mb(), dummy, ad.irsrc(), ad.nprows());
         mypcol = ScalapackConnector::indxg2p(j_gl, ad.nb(), dummy, ad.icsrc(), ad.npcols());
@@ -445,8 +445,8 @@ _get_communicate_ids_list_ap_to_blacs_sy(const int &myid,
                 if (return_local)
                 {
                     // FIXME: now only works when myid == ad.myid
-                    const auto i_lo = static_cast<size_t>(ad.indx_g2l_r(static_cast<int>(id.first)));
-                    const auto j_lo = static_cast<size_t>(ad.indx_g2l_c(static_cast<int>(id.second)));
+                    const auto i_lo = as_size(ad.indx_g2l_r(as_int(id.first)));
+                    const auto j_lo = as_size(ad.indx_g2l_c(as_int(id.second)));
                     map_proc_id2d_lconj_recv[source].first.push_back({i_lo, j_lo});
                 }
                 else
@@ -467,8 +467,8 @@ _get_communicate_ids_list_ap_to_blacs_sy(const int &myid,
                 if (return_local)
                 {
                     // FIXME: now only works when myid == ad.myid
-                    const auto i_lo = static_cast<size_t>(ad.indx_g2l_r(static_cast<int>(id.first)));
-                    const auto j_lo = static_cast<size_t>(ad.indx_g2l_c(static_cast<int>(id.second)));
+                    const auto i_lo = as_size(ad.indx_g2l_r(as_int(id.first)));
+                    const auto j_lo = as_size(ad.indx_g2l_c(as_int(id.second)));
                     map_proc_id2d_lconj_recv[source].first.push_back({i_lo, j_lo});
                 }
                 else
@@ -571,7 +571,7 @@ get_communicate_local_ids_list_ap_to_blacs_sy(const int &myid,
         const auto &proc = proc_data.first;
         const auto &id2d_lconj = proc_data.second;
         // indices
-        map_proc_id1d_lconj_recv[proc].first = flatten_2d_indices(id2d_lconj.first, static_cast<size_t>(ad.m_loc()), static_cast<size_t>(ad.n_loc()), row_major);
+        map_proc_id1d_lconj_recv[proc].first = flatten_2d_indices(id2d_lconj.first, as_size(ad.m_loc()), as_size(ad.n_loc()), row_major);
         // flag for conjugate
         map_proc_id1d_lconj_recv[proc].second = std::move(id2d_lconj.second);
     }

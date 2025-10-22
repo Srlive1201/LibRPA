@@ -412,7 +412,7 @@ static void test_ap_to_2d_matrix_m_communicate()
         {
             if (pid_ids_recv.count(pid))
             {
-                pid_recv_disp_count[pid] = {static_cast<int>(recvcount), pid_ids_recv.at(pid).size()};
+                pid_recv_disp_count[pid] = {as_int(recvcount), pid_ids_recv.at(pid).size()};
                 recvcount += pid_ids_recv.at(pid).size();
             }
         }
@@ -433,7 +433,7 @@ static void test_ap_to_2d_matrix_m_communicate()
                 {
                     sendcount_pid += pair_ids.second.size();
                 }
-                pid_send_disp_count[pid] = {static_cast<int>(sendcount), sendcount_pid};
+                pid_send_disp_count[pid] = {as_int(sendcount), sendcount_pid};
                 sendcount += sendcount_pid;
             }
         }

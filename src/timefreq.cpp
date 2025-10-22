@@ -7,6 +7,7 @@
 #include <utility>
 #include <algorithm>
 
+#include "base_utility.h"
 #include "mathtools.h"
 #include "utils_io.h"
 #include "get_minimax.h"
@@ -210,7 +211,7 @@ double TFGrids::generate_minimax(double emin, double emax)
     double cosft_duality_error = 1e8;
     int ierr = -1;
 
-    auto n = static_cast<int>(n_grids);
+    auto n = as_int(n_grids);
     get_minimax_grid(n, emin, emax, time_nodes.data(), time_weights.data(), freq_nodes.data(), freq_weights.data(),
                      costrans_t2f.c, costrans_f2t.c, sintrans_t2f.c, max_errors, cosft_duality_error, ierr);
 
