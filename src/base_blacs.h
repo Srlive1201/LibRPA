@@ -48,6 +48,7 @@ public:
     //! call gridexit to reset process grid
     void exit();
     bool initialized() const { return initialized_; }
+    const MPI_Comm &get_comm() const { return this->mpi_comm_h.comm; };
 };
 
 /*!
@@ -69,6 +70,7 @@ class Array_Desc
 {
 private:
     // BLACS parameters obtained upon construction
+    MPI_Comm comm_;
     int ictxt_;
     int nprocs_;
     int myid_;
@@ -76,7 +78,7 @@ private:
     int myprow_;
     int npcols_;
     int mypcol_;
-    void set_blacs_params_(int ictxt, int nprocs, int myid, int nprows, int myprow, int npcols, int mypcol);
+    void set_blacs_params_(MPI_Comm comm, int ictxt, int nprocs, int myid, int nprows, int myprow, int npcols, int mypcol);
     int set_desc_(const int &m, const int &n, const int &mb, const int &nb,
                   const int &irsrc, const int &icsrc);
 
@@ -114,7 +116,9 @@ public:
     inline int indx_g2l_c(int gindx) const;
     inline int indx_l2g_r(int lindx) const;
     inline int indx_l2g_c(int lindx) const;
+    const int& myid() const { return myid_; }
     const int& ictxt() const { return ictxt_; }
+    const MPI_Comm& comm() const { return comm_; }
     const int& m() const { return m_; }
     const int& n() const { return n_; }
     const int& mb() const { return mb_; }
@@ -126,6 +130,7 @@ public:
     const int& n_loc() const { return n_local_; }
     const int& myprow() const { return myprow_; }
     const int& mypcol() const { return mypcol_; }
+    const int& nprocs() const { return nprocs_; }
     const int& nprows() const { return nprows_; }
     const int& npcols() const { return npcols_; }
     std::string info() const;

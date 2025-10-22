@@ -40,7 +40,8 @@ inline void foldid_cm(const int& indx, const int &nr, int &ir, const int &nc, in
 enum MAJOR
 {
     ROW = 0,
-    COL = 1
+    COL = 1,
+    AUTO = 2
 };
 const Indx_picker_2d Indx_pickers_2d[]
 {
@@ -60,7 +61,7 @@ void get_nr_nc_from_nested_vector(const std::vector<std::vector<T>> &nested_vec,
     nr = nested_vec.size();
     int nc_ = 0;
     for (const auto& v: nested_vec)
-        nc_ = v.size() > nc_? v.size() : nc_;
+        nc_ = std::max(static_cast<int>(v.size()), nc_);
     nc = nc_;
 }
 

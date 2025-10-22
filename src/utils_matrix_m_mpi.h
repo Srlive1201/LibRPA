@@ -5,6 +5,7 @@
 #include <map>
 
 #include "atomic_basis.h"
+#include "utils_atomic_basis_blacs.h"
 #include "base_blacs.h"
 #include "matrix_m.h"
 #include "profiler.h"
@@ -32,11 +33,13 @@ matrix_m<T> init_local_mat(const LIBRPA::Array_Desc &ad, MAJOR major)
 }
 
 template <typename T>
-matrix_m<T> get_local_mat(const matrix_m<T> &mat_go, const LIBRPA::Array_Desc &ad, MAJOR major)
+matrix_m<T> get_local_mat(const matrix_m<T> &mat_go, const LIBRPA::Array_Desc &ad,
+                          MAJOR major = MAJOR::AUTO)
 {
     // assert the shape of global matrix conforms with the array descriptor
     assert(mat_go.nr() == ad.m() && mat_go.nc() == ad.n());
 
+    if (major == MAJOR::AUTO) major = mat_go.major();
     matrix_m<T> mat_lo(ad.m_loc(), ad.n_loc(), major);
     for (int i = 0; i != mat_go.nr(); i++)
     {
@@ -482,7 +485,7 @@ matrix_m<std::complex<T>> power_hemat_blacs(matrix_m<std::complex<T>> &A_local,
 
     assert (A_local.is_col_major() && Z_local.is_col_major());
     const bool is_int_power = fabs(power - int(power)) < 1e-4;
-    const int n = ad_A.m();
+    const size_t n = ad_A.m();
     const char jobz = 'V';
     const char uplo = 'U';
 
@@ -559,8 +562,8 @@ matrix_m<std::complex<T>> power_hemat_blacs(matrix_m<std::complex<T>> &A_local,
     // filter and scale the eigenvalues, store in a temp array
     Profiler::start("power_hemat_blacs_4");
     std::vector<T> W_temp(n);
-    for (int i = 0; i != n_filtered; i++) W_temp[i] = 0.0;
-    for (int i = n_filtered; i != n; i++)
+    for (size_t i = 0; i < n_filtered; i++) W_temp[i] = 0.0;
+    for (size_t i = n_filtered; i != n; i++)
     {
         if (W[i] < 0 && !is_int_power)
         {
@@ -695,13 +698,164 @@ void invert_scalapack(matrix_m<T> &m_loc, const LIBRPA::Array_Desc &desc_m)
     }
 }
 
-// template <typename T>
-// matrix_m<T> get_redist_block_ap_to_blacs(const AtomicBasis &atbasis_r,
-//                                          const AtomicBasis &atbasis_c,
-//                                          const std::map<int, std::vector<atpair_t>> &map_proc_IJs_avail,
-//                                          const Array_Desc &ad, bool row_fast, bool row_major)
-// {
-// }
+/*!
+ * @brief Get the BLACS local matrix on each process by redistributed atom-pair mapping data
+ *
+ * @param  [in]  data                  Full matrix data distributed in atom-pair mapping
+ * @param  [in]  map_proc_IJs_avail    Distribution of atom-pair blocks on all processes.
+ *                                     The keys of the map are process ranks within
+ *                                     the context of the array descriptor.
+ * @param  [in]  atbasis_r             AtomicBasis object for row
+ * @param  [in]  atbasis_c             AtomicBasis object for column
+ * @param  [in]  ad                    Array descriptor for BLACS distribution
+ *
+ * @retval   matrix_m. The major is the same as the input
+ */
+template <typename T>
+matrix_m<T> get_local_mat_from_ap_dist(const std::map<atpair_t, matrix_m<T>> data,
+                                       const std::map<int, std::vector<atpair_t>> &map_proc_IJs_avail,
+                                       const AtomicBasis &atbasis_r,
+                                       const AtomicBasis &atbasis_c,
+                                       const Array_Desc &ad, MAJOR major_data)
+{
+    assert(ad.initialized());
+
+    // Resolve data type for communication
+    MPI_Datatype dtype = mpi_datatype<T>::value;
+
+    // Initialize return matrix
+    auto m_loc = init_local_mat<T>(ad, major_data);
+
+    const auto &myid = ad.myid();
+    const auto &row_first = major_data == MAJOR::ROW ? false : true;
+    const auto &row_major = major_data == MAJOR::ROW ? true : false;
+
+    // Fill in data that is already available before communication
+    int I, J, i, j;
+    for (int ir = 0; ir < m_loc.nr(); ir++)
+    {
+        atbasis_r.get_local_index(ad.indx_l2g_r(ir), I, i);
+        for (int ic = 0; ic < m_loc.nc(); ic++)
+        {
+            atbasis_c.get_local_index(ad.indx_l2g_c(ic), J, j);
+            const atpair_t atpair{static_cast<atom_t>(I), static_cast<atom_t>(J)};
+            if (data.count(atpair))
+            {
+                m_loc(ir, ic) = data.at(atpair)(i, j);
+            }
+        }
+    }
+
+    // Compute indices of matrix elements that should be communicated
+    const auto proc2idlist = LIBRPA::utils::get_communicate_local_ids_list_ap_to_blacs(
+            myid, map_proc_IJs_avail, atbasis_r, atbasis_c, ad, row_first, row_major);
+    const auto &pid_ids_send = proc2idlist.first;
+    const auto &pid_ids_recv = proc2idlist.second;
+
+    // prepare recv buffer
+    // computer recv buffer size and displacements
+    map<int, pair<int, MPI_Count>> pid_recv_disp_count;
+    std::vector<T> recvbuff(0);
+    MPI_Count recvcount = 0;
+    for (int pid = 0; pid < ad.nprocs(); pid++)
+    {
+        if (pid_ids_recv.count(pid))
+        {
+            pid_recv_disp_count[pid] = {static_cast<int>(recvcount), pid_ids_recv.at(pid).size()};
+            recvcount += pid_ids_recv.at(pid).size();
+        }
+    }
+    if (recvcount > 0) recvbuff.resize(recvcount);
+
+    // prepare send buffer
+    // first run, computer send buffer size and displacements, allocate the whole buffer
+    map<int, pair<int, MPI_Count>> pid_send_disp_count;
+    std::vector<T> sendbuff(0);
+    MPI_Count sendcount = 0;
+    for (int pid = 0; pid < ad.nprocs(); pid++)
+    {
+        if (pid_ids_send.count(pid))
+        {
+            const auto &ids_send = pid_ids_send.at(pid);
+            MPI_Count sendcount_pid = 0;
+            for (const auto &pair_ids: ids_send)
+            {
+                sendcount_pid += pair_ids.second.size();
+            }
+            pid_send_disp_count[pid] = {static_cast<int>(sendcount), sendcount_pid};
+            sendcount += sendcount_pid;
+        }
+    }
+    if (sendcount > 0) sendbuff.resize(sendcount);
+
+    // second run, fill in the data to be sent
+    for (int pid = 0; pid < ad.nprocs(); pid++)
+    {
+        if (pid_ids_send.count(pid))
+        {
+            const auto &ids_send = pid_ids_send.at(pid);
+            MPI_Count disp = pid_send_disp_count.at(pid).first;
+            for (const auto &pair_ids: ids_send)
+            {
+                const auto &atpair = pair_ids.first;
+                const auto &atmat = data.at(atpair);
+                const auto &ids = pair_ids.second;
+                for (size_t i = 0; i < ids.size(); i++)
+                {
+                    const auto &id = ids[i];
+                    sendbuff[disp+i] = atmat.ptr()[id];
+                }
+                disp += ids.size();
+            }
+        }
+    }
+
+    // Begin communication
+    std::vector<MPI_Request> reqs;
+    MPI_Request req;
+
+    // First non-blocking receive
+    for (const auto &pid_disp_count: pid_recv_disp_count)
+    {
+        const auto &pid = pid_disp_count.first;
+        const auto &disp_count = pid_disp_count.second;
+        const auto &disp = disp_count.first;
+        const auto &count = disp_count.second;
+        // ofs << "MPI_Irecv dist " << dist << " count " << count << " from pid " << pid << endl;
+        MPI_Irecv(recvbuff.data() + disp, count, dtype, pid, 0, MPI_COMM_WORLD, &req);
+        reqs.push_back(req);
+    }
+    // Then non-blocking send
+    for (const auto &pid_disp_count: pid_send_disp_count)
+    {
+        const auto &pid = pid_disp_count.first;
+        const auto &disp_count = pid_disp_count.second;
+        const auto &disp = disp_count.first;
+        const auto &count = disp_count.second;
+        // ofs << "MPI_Isend count " << count << " to pid " << pid << endl;
+        MPI_Isend(sendbuff.data() + disp, count, dtype, pid, 0, MPI_COMM_WORLD, &req);
+        reqs.push_back(req);
+    }
+
+    // Wait all non-blocking communication to finish
+    if (!reqs.empty()) MPI_Waitall((int)reqs.size(), reqs.data(), MPI_STATUSES_IGNORE);
+
+    // Map the received data to the correct location in the BLACS sub-block
+    for (const auto &pid_disp_count: pid_recv_disp_count)
+    {
+        const auto &pid = pid_disp_count.first;
+        const auto &ids = pid_ids_recv.at(pid);
+        const auto &disp_count = pid_disp_count.second;
+        const auto &disp = disp_count.first;
+        const auto &count = disp_count.second;
+        for (auto i = 0; i < count; i++)
+        {
+            m_loc.ptr()[ids[i]] = recvbuff[disp+i];
+        }
+    }
+
+    return m_loc;
+}
 
 } /* end of namespace utils */
 

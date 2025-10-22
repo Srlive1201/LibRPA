@@ -450,7 +450,7 @@ static void test_ap_to_2d_matrix_m_communicate()
                     const auto &atpair = pair_ids.first;
                     const auto &atmat = data.at(atpair);
                     const auto &ids = pair_ids.second;
-                    for (auto i = 0; i < ids.size(); i++)
+                    for (size_t i = 0; i < ids.size(); i++)
                     {
                         const auto &id = ids[i];
                         sendbuff[disp+i] = atmat.ptr()[id];

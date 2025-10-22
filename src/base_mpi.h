@@ -4,9 +4,25 @@
 
 #include <string>
 #include <vector>
+#include <complex>
 
 namespace LIBRPA
 {
+
+// traits to decide MPI_Datatype for communication
+template <typename T> struct mpi_datatype;
+template <> struct mpi_datatype<int>
+{ static constexpr MPI_Datatype value = MPI_INT; };
+template <> struct mpi_datatype<float>
+{ static constexpr MPI_Datatype value = MPI_FLOAT; };
+template <> struct mpi_datatype<double>
+{ static constexpr MPI_Datatype value = MPI_DOUBLE; };
+template <> struct mpi_datatype<long>
+{ static constexpr MPI_Datatype value = MPI_LONG; };
+template <> struct mpi_datatype<std::complex<float>>
+{ static constexpr MPI_Datatype value = MPI_C_FLOAT_COMPLEX; };
+template <> struct mpi_datatype<std::complex<double>>
+{ static constexpr MPI_Datatype value = MPI_C_DOUBLE_COMPLEX; };
 
 class MPI_COMM_handler
 {

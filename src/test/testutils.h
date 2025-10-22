@@ -104,7 +104,7 @@ bool equal_map_vector_pv(const std::map<Tk, std::vector<std::pair<Tv1, std::vect
         const auto &v2 = mvpv2.at(key);
         if (v1.size() != v2.size()) return false;
         if (print) std::cout << "Key " << key << std::endl;
-        for (int i = 0; i < v1.size(); i++)
+        for (size_t i = 0; i < v1.size(); i++)
         {
             const auto &v1p = v1[i].first;
             const auto &v2p = v2[i].first;

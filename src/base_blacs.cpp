@@ -155,10 +155,11 @@ std::vector<int> get_proc_indices_blacs(const int &m, const int &n, const int &m
     return procids;
 }
 
-void Array_Desc::set_blacs_params_(int ictxt, int nprocs, int myid, int nprows,
+void Array_Desc::set_blacs_params_(int comm, int ictxt, int nprocs, int myid, int nprows,
                                   int myprow, int npcols, int mypcol)
 {
     assert(myid < nprocs && myprow < nprows && mypcol < npcols);
+    comm_ = comm;
     ictxt_ = ictxt;
     nprocs_ = nprocs;
     myid_ = myid;
@@ -210,7 +211,7 @@ Array_Desc::Array_Desc(const BLACS_CTXT_handler &blacs_h)
 {
     if (!blacs_h.initialized())
         throw std::logic_error("BLACS context is not initialized before creating ArrayDesc");
-    set_blacs_params_(blacs_h.ictxt, blacs_h.nprocs, blacs_h.myid,
+    set_blacs_params_(blacs_h.get_comm(), blacs_h.ictxt, blacs_h.nprocs, blacs_h.myid,
                       blacs_h.nprows, blacs_h.myprow, blacs_h.npcols,
                       blacs_h.mypcol);
 }
@@ -224,10 +225,11 @@ Array_Desc::Array_Desc(const int &ictxt)
 {
     // TODO: how to check if ictxt is a valid context?
     int nprocs, myid, nprows, npcols, myprow, mypcol;
+    MPI_Comm comm = Cblacs2sys_handle(ictxt);
     Cblacs_gridinfo(ictxt, &nprows, &npcols, &myprow, &mypcol);
     myid = Cblacs_pnum(ictxt, myprow, mypcol);
     nprocs = nprows * npcols;
-    set_blacs_params_(ictxt, nprocs, myid,
+    set_blacs_params_(comm, ictxt, nprocs, myid,
                       nprows, myprow, npcols,
                       mypcol);
 }
