@@ -17,8 +17,8 @@ std::set<std::pair<int, int>> get_necessary_IJ_from_block_2D(const AtomicBasis &
 std::set<std::pair<int, int>> get_necessary_IJ_from_block_2D_sy(const char &uplo, const AtomicBasis &atbasis, const Array_Desc& arrdesc);
 
 /*!
- * @brief Get the list of global matrix indices (1D) to communicate during
- *        conversion between atom-pair and BLACS block-cyclic distributions
+ * @brief Get the list of global matrix indices (1D) to communicate for
+ *        conversion from atom-pair to BLACS block-cyclic distributions
  *
  * @param  [in]  myid                  Process rank to inquire
  * @param  [in]  map_proc_IJs_avail    Available atom-pair blocks on all processes, with process rank as map key
@@ -32,7 +32,7 @@ std::set<std::pair<int, int>> get_necessary_IJ_from_block_2D_sy(const char &uplo
  *
  *            map_send: process id -> [ global indices (in atom-pair context) ]
  *
- *            map_send: process id -> [ global indices (in BLACS context) ]
+ *            map_recv: process id -> [ global indices (in BLACS context) ]
  */
 std::pair<std::map<int, std::vector<size_t>>, std::map<int, std::vector<size_t>>>
 get_communicate_global_ids_list_ap_to_blacs(const int &myid,
@@ -124,6 +124,56 @@ get_communicate_local_ids_list_ap_to_blacs_sy(const int &myid,
                                               const std::map<int, std::vector<atpair_t>> &map_proc_IJs_avail,
                                               const AtomicBasis &atbasis,
                                               const Array_Desc &ad, bool row_fast, bool row_major);
+
+/*!
+ * @brief Get the list of global matrix indices (1D) to communicate for
+ *        conversion from BLACS block-cyclic to atom-pair distributions
+ *
+ * @param  [in]  myid                  Process rank to inquire
+ * @param  [in]  map_proc_IJs_require  Required atom-pair blocks on all processes, with process rank as map key
+ * @param  [in]  atbasis_r             AtomicBasis object for row
+ * @param  [in]  atbasis_c             AtomicBasis object for column
+ * @param  [in]  ad                    Array descriptor for BLACS distribution
+ * @param  [in]  row_fast              Flag to set the row basis index faster
+ * @param  [in]  row_major             flag to compute the 1D indices from 2D in row-major (column major if false)
+ *
+ * @retval    map_send, map_recv
+ *
+ *            map_send: process id -> [ global indices (in BLACS context) ]
+ *
+ *            map_recv: process id -> [ global indices (in atom-pair context) ]
+ */
+std::pair<std::map<int, std::vector<size_t>>, std::map<int, std::vector<size_t>>>
+get_communicate_global_ids_list_blacs_to_ap(const int &myid,
+                                            const std::map<int, std::vector<atpair_t>> &map_proc_IJs_require,
+                                            const AtomicBasis &atbasis_r,
+                                            const AtomicBasis &atbasis_c,
+                                            const Array_Desc &ad, bool row_fast, bool row_major);
+
+/*!
+ * @brief Similar to get_communicate_global_ids_list_blacs_to_ap, but the indices are local instead of global.
+ *
+ * @param  [in]  myid                  Process rank to inquire
+ * @param  [in]  map_proc_IJs_require  Required atom-pair blocks on all processes, with process rank as map key
+ * @param  [in]  atbasis_r             AtomicBasis object for row
+ * @param  [in]  atbasis_c             AtomicBasis object for column
+ * @param  [in]  ad                    Array descriptor for BLACS distribution
+ * @param  [in]  row_fast              Flag to set the row basis index faster
+ * @param  [in]  row_major             flag to compute the 1D indices from 2D in row-major (column major if false)
+ *
+ * @retval    map_send, map_recv
+ *
+ *            map_send: process id -> [ local indices in BLACS sub-matrix ]
+ *
+ *            map_recv: process id -> [ { <I,J>, [ local indices in atom-pair sub-matrix ] } , ...]
+ */
+std::pair<std::map<int, std::vector<size_t>>,
+         std::map<int, std::vector<std::pair<atpair_t, std::vector<size_t>>>>>
+get_communicate_local_ids_list_blacs_to_ap(const int &myid,
+                                           const std::map<int, std::vector<atpair_t>> &map_proc_IJs_require,
+                                           const AtomicBasis &atbasis_r,
+                                           const AtomicBasis &atbasis_c,
+                                           const Array_Desc &ad, bool row_fast, bool row_major);
 
 } /* end of namespace utils */
 
