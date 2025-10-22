@@ -461,7 +461,7 @@ public:
     // operator overload
     matrix_m<T> & operator=(const T &cnum)
     {
-        (dataobj.data)->fill(cnum);
+        *(dataobj.data) = cnum;
         return *this;
     }
 
