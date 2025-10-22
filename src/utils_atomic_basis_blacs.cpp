@@ -194,28 +194,28 @@ _get_communicate_ids_list_ap_and_blacs(const int &myid,
 }
 
 // indices computation backend for AP->BLACS conversion of symmetric matrix
-static 
+static
 std::pair<std::map<int, std::vector<std::pair<atpair_t, std::vector<std::pair<size_t, size_t>>>>>,
-          std::map<int, std::pair<std::vector<std::pair<size_t, size_t>>, std::vector<char>>>>
-_get_communicate_ids_list_ap_to_blacs_sy(const int &myid,
-                                         const char &uplo,
-                                         const std::map<int, std::vector<atpair_t>> &map_proc_IJs_avail,
-                                         const AtomicBasis &atbasis,
-                                         const Array_Desc &ad, const bool row_fast, const bool return_local)
+          std::map<int, std::vector<std::pair<size_t, size_t>>>>
+_get_communicate_ids_list_ap_and_blacs_sy(std::map<int, std::vector<char>> &map_lconj,
+                                          const int &myid,
+                                          const char &uplo,
+                                          const std::map<int, std::vector<atpair_t>> &map_proc_IJs,
+                                          const AtomicBasis &atbasis,
+                                          const Array_Desc &ad, const bool row_fast, const bool return_local)
 {
     assert(ad.m() > 0 && ad.m() == ad.n() && atbasis.nb_total == as_size(ad.m()));
     assert(uplo == 'U' || uplo == 'u' || uplo == 'L' || uplo == 'l');
 
     // Objects to return
-    // process ID -> list of basis indices, sending from myid to others
-    std::map<int, std::vector<std::pair<atpair_t, std::vector<std::pair<size_t, size_t>>>>> map_proc_id2d_send;
-    // process ID -> { list of basis indices, list of flags whether conjugate should be taken }, receiving by myid from others
-    std::map<int, std::vector<std::pair<size_t, size_t>>> map_proc_id2d_recv;
-    std::map<int, std::pair<std::vector<std::pair<size_t, size_t>>, std::vector<char>>> map_proc_id2d_lconj_recv;
+    // process ID -> list of basis indices (AP)
+    std::map<int, std::vector<std::pair<atpair_t, std::vector<std::pair<size_t, size_t>>>>> map_proc_id2d_ap;
+    // process ID -> list of basis indices (BLACS)
+    std::map<int, std::vector<std::pair<size_t, size_t>>> map_proc_id2d_blacs;
 
     const bool ap_upper_half = uplo == 'U' || uplo == 'u';
     // manually check the keys to ensure they are either all in upper half or all in lower half
-    for (const auto &proc_IJs: map_proc_IJs_avail)
+    for (const auto &proc_IJs: map_proc_IJs)
     {
         for (const auto &IJ: proc_IJs.second)
         {
@@ -230,14 +230,14 @@ _get_communicate_ids_list_ap_to_blacs_sy(const int &myid,
     int dummy = 0;
 
     // basis indices availble at myid in the atom-pair distribution
-    const std::vector<atpair_t> &IJs_avail =
-        map_proc_IJs_avail.count(myid) ? map_proc_IJs_avail.at(myid) : std::vector<atpair_t>();
-    const auto ids_ap = get_2d_mat_indices_atpair(atbasis, atbasis, IJs_avail, row_fast);
+    const std::vector<atpair_t> &IJs =
+        map_proc_IJs.count(myid) ? map_proc_IJs.at(myid) : std::vector<atpair_t>();
+    const auto ids_ap = get_2d_mat_indices_atpair(atbasis, atbasis, IJs, row_fast);
 
     // global basis indices required by BLACS
     const auto ids_blacs = get_2d_mat_indices_blacs(ad, myid, row_fast);
 
-    std::map<int, std::map<atpair_t, std::vector<std::pair<size_t, size_t>>>> map_proc_map_id2d_send;
+    std::map<int, std::map<atpair_t, std::vector<std::pair<size_t, size_t>>>> map_proc_map_id2d_ap;
     std::map<int, std::vector<atpair_t>> map_proc_IJs_save_order;
     for (const auto &id: ids_ap)
     {
@@ -271,7 +271,7 @@ _get_communicate_ids_list_ap_to_blacs_sy(const int &myid,
                     IJs_save_order.emplace_back(IJ);
                 }
                 const atpair_t ij_lo = {static_cast<atom_t>(i_lo), static_cast<atom_t>(j_lo)};
-                map_proc_map_id2d_send[target][IJ].emplace_back(ij_lo);
+                map_proc_map_id2d_ap[target][IJ].emplace_back(ij_lo);
             }
             else
             {
@@ -282,7 +282,7 @@ _get_communicate_ids_list_ap_to_blacs_sy(const int &myid,
                 {
                     IJs_save_order.emplace_back(IJ);
                 }
-                map_proc_map_id2d_send[target][IJ].emplace_back(id);
+                map_proc_map_id2d_ap[target][IJ].emplace_back(id);
             }
         }
 
@@ -303,7 +303,7 @@ _get_communicate_ids_list_ap_to_blacs_sy(const int &myid,
                     IJs_save_order.emplace_back(IJ);
                 }
                 const atpair_t ij_lo = {static_cast<atom_t>(i_lo), static_cast<atom_t>(j_lo)};
-                map_proc_map_id2d_send[target_T][IJ].emplace_back(ij_lo);
+                map_proc_map_id2d_ap[target_T][IJ].emplace_back(ij_lo);
             }
             else
             {
@@ -314,25 +314,25 @@ _get_communicate_ids_list_ap_to_blacs_sy(const int &myid,
                 {
                     IJs_save_order.emplace_back(IJ);
                 }
-                map_proc_map_id2d_send[target_T][IJ].emplace_back(id);
+                map_proc_map_id2d_ap[target_T][IJ].emplace_back(id);
             }
 
         }
     }
 
-    for (const auto &target_map: map_proc_map_id2d_send)
+    for (const auto &target_map: map_proc_map_id2d_ap)
     {
         const auto &target = target_map.first;
         const auto &IJs_save_order = map_proc_IJs_save_order.at(target);
         for (const auto &IJ: IJs_save_order)
         {
-            map_proc_id2d_send[target].push_back({IJ, target_map.second.at(IJ)});
+            map_proc_id2d_ap[target].push_back({IJ, target_map.second.at(IJ)});
         }
     }
 
     // reverse map of map_proc_IJs_avail
     std::map<atpair_t, int> map_IJs_proc;
-    for (const auto &proc_IJs: map_proc_IJs_avail)
+    for (const auto &proc_IJs: map_proc_IJs)
     {
         const auto &proc = proc_IJs.first;
         for (const auto &IJ: proc_IJs.second)
@@ -367,13 +367,13 @@ _get_communicate_ids_list_ap_to_blacs_sy(const int &myid,
                     // FIXME: now only works when myid == ad.myid
                     const auto i_lo = as_size(ad.indx_g2l_r(as_int(id.first)));
                     const auto j_lo = as_size(ad.indx_g2l_c(as_int(id.second)));
-                    map_proc_id2d_lconj_recv[source].first.push_back({i_lo, j_lo});
+                    map_proc_id2d_blacs[source].push_back({i_lo, j_lo});
                 }
                 else
                 {
-                    map_proc_id2d_lconj_recv[source].first.emplace_back(id);
+                    map_proc_id2d_blacs[source].emplace_back(id);
                 }
-                map_proc_id2d_lconj_recv[source].second.push_back('n');
+                map_lconj[source].push_back('n');
             }
         }
         else
@@ -389,18 +389,18 @@ _get_communicate_ids_list_ap_to_blacs_sy(const int &myid,
                     // FIXME: now only works when myid == ad.myid
                     const auto i_lo = as_size(ad.indx_g2l_r(as_int(id.first)));
                     const auto j_lo = as_size(ad.indx_g2l_c(as_int(id.second)));
-                    map_proc_id2d_lconj_recv[source].first.push_back({i_lo, j_lo});
+                    map_proc_id2d_blacs[source].push_back({i_lo, j_lo});
                 }
                 else
                 {
-                    map_proc_id2d_lconj_recv[source].first.emplace_back(id);
+                    map_proc_id2d_blacs[source].emplace_back(id);
                 }
-                map_proc_id2d_lconj_recv[source].second.push_back('c');
+                map_lconj[source].push_back('c');
             }
         }
     }
 
-    return {map_proc_id2d_send, map_proc_id2d_lconj_recv};
+    return {map_proc_id2d_ap, map_proc_id2d_blacs};
 }
 
 /* ================================================================================= */
@@ -506,8 +506,9 @@ get_communicate_global_ids_list_ap_to_blacs_sy(const int &myid,
     std::map<int, std::vector<size_t>> map_proc_id1d_send;
     std::map<int, std::pair<std::vector<size_t>, std::vector<char>>> map_proc_id1d_lconj_recv;
 
-    const auto ids = _get_communicate_ids_list_ap_to_blacs_sy(myid, uplo, map_proc_IJs_avail, atbasis,
-                                                              ad, row_fast, false);
+    std::map<int, std::vector<char>> map_lconj;
+    const auto ids = _get_communicate_ids_list_ap_and_blacs_sy(map_lconj, myid, uplo, map_proc_IJs_avail, atbasis,
+                                                               ad, row_fast, false);
 
     // process ID -> list of basis indices, sending from myid to others
     std::map<int, std::vector<std::pair<size_t, size_t>>> map_proc_id2d_send;
@@ -523,21 +524,21 @@ get_communicate_global_ids_list_ap_to_blacs_sy(const int &myid,
     }
 
     // process ID -> list of basis indices, receiving by myid from others
-    const auto &map_proc_id2d_lconj_recv = ids.second;
+    const auto &map_proc_id2d_recv = ids.second;
 
     // flatten 2D indices to 1D
     for (const auto &proc_id2d: map_proc_id2d_send)
     {
         map_proc_id1d_send[proc_id2d.first] = flatten_2d_indices(proc_id2d.second, atbasis.nb_total, atbasis.nb_total, row_major);
     }
-    for (const auto &proc_data: map_proc_id2d_lconj_recv)
+    for (const auto &proc_data: map_proc_id2d_recv)
     {
         const auto &proc = proc_data.first;
-        const auto &id2d_lconj = proc_data.second;
+        const auto &id2d = proc_data.second;
         // indices
-        map_proc_id1d_lconj_recv[proc].first = flatten_2d_indices(id2d_lconj.first, atbasis.nb_total, atbasis.nb_total, row_major);
+        map_proc_id1d_lconj_recv[proc].first = flatten_2d_indices(id2d, atbasis.nb_total, atbasis.nb_total, row_major);
         // flag for conjugate
-        map_proc_id1d_lconj_recv[proc].second = std::move(id2d_lconj.second);
+        map_proc_id1d_lconj_recv[proc].second = std::move(map_lconj[proc]);
     }
 
     return {map_proc_id1d_send, map_proc_id1d_lconj_recv};
@@ -551,12 +552,13 @@ get_communicate_local_ids_list_ap_to_blacs_sy(const int &myid,
                                               const AtomicBasis &atbasis,
                                               const Array_Desc &ad, bool row_fast, bool row_major)
 {
-    const auto ids = _get_communicate_ids_list_ap_to_blacs_sy(myid, uplo, map_proc_IJs_avail, atbasis,
-                                                              ad, row_fast, true);
+    std::map<int, std::vector<char>> map_lconj;
+    const auto ids = _get_communicate_ids_list_ap_and_blacs_sy(map_lconj, myid, uplo, map_proc_IJs_avail, atbasis,
+                                                               ad, row_fast, true);
     // process ID -> list of basis indices, sending from myid to others
     const auto &map_proc_id2d_send = ids.first;
     // process ID -> list of basis indices, receiving by myid from others
-    const auto &map_proc_id2d_lconj_recv = ids.second;
+    const auto &map_proc_id2d_recv = ids.second;
 
     // flatten 2D indices to 1D
     std::map<int, std::vector<std::pair<atpair_t, std::vector<size_t>>>> map_proc_id1d_send;
@@ -576,14 +578,14 @@ get_communicate_local_ids_list_ap_to_blacs_sy(const int &myid,
             proc_vec.emplace_back(v);
         }
     }
-    for (const auto &proc_data: map_proc_id2d_lconj_recv)
+    for (const auto &proc_data: map_proc_id2d_recv)
     {
         const auto &proc = proc_data.first;
-        const auto &id2d_lconj = proc_data.second;
+        const auto &id2d = proc_data.second;
         // indices
-        map_proc_id1d_lconj_recv[proc].first = flatten_2d_indices(id2d_lconj.first, as_size(ad.m_loc()), as_size(ad.n_loc()), row_major);
+        map_proc_id1d_lconj_recv[proc].first = flatten_2d_indices(id2d, as_size(ad.m_loc()), as_size(ad.n_loc()), row_major);
         // flag for conjugate
-        map_proc_id1d_lconj_recv[proc].second = std::move(id2d_lconj.second);
+        map_proc_id1d_lconj_recv[proc].second = std::move(map_lconj[proc]);
     }
     return {map_proc_id1d_send, map_proc_id1d_lconj_recv};
 }
