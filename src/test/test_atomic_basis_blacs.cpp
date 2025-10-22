@@ -566,6 +566,100 @@ static void test_blacs_to_ap_global_indices_communicate()
 
 static void test_blacs_to_ap_local_indices_communicate()
 {
+    using namespace LIBRPA::envs;
+
+    const size_t m = 4;
+    const size_t n = m;
+    blacs_ctxt_global_h.set_square_grid(true, LIBRPA::CTXT_LAYOUT::R);
+    // Process grid:
+    //    0  1
+    //    2  3
+    LIBRPA::Array_Desc ad(blacs_ctxt_global_h);
+    ad.init_1b1p(m, n, 0, 0);
+    assert(ad.initialized());
+    assert(ad.mb() == 2);
+    assert(ad.nb() == 2);
+
+    LIBRPA::AtomicBasis ab;
+
+    // 2 atoms, atom 0 with 1 basis, atom 1 with 3
+    ab.set(std::vector<size_t>{1, 3});
+    assert(ab.nb_total == m);
+    {
+        const auto proc2idlist = LIBRPA::utils::get_communicate_local_ids_list_blacs_to_ap(
+            myid_global,
+            {{0, {{0, 0}}}, {1, {{0, 1}}}, {2, {{1, 0}}}, {3, {{1, 1}}}},
+            ab, ab, ad, true, false);
+        // flattened indices with column major and sorted with row index going fastest
+        const std::vector<std::map<int, std::vector<std::pair<atpair_t, std::vector<size_t>>>>> recvlist_ref_all(
+            {
+                {},
+                {{0, {{{0, 1}, {0}}}}},
+                {{0, {{{1, 0}, {0}}}}},
+                {{0, {{{1, 1}, {0}}}}, {1, {{{1, 1}, {3, 6}}}},{2, {{{1, 1}, {1, 2}}}}},
+            }
+        );
+        const std::vector<std::map<int, std::vector<size_t>>> sendlist_ref_all(
+            {
+                {{1, {2}}, {2, {1}}, {3, {3}}},
+                {{3, {1, 3}}},
+                {{3, {2, 3}}},
+                {}
+            }
+        );
+        const auto &recvlist_ref = recvlist_ref_all[myid_global];
+        const auto &sendlist_ref = sendlist_ref_all[myid_global];
+        assert(equal_map_vector(sendlist_ref, proc2idlist.first));
+        assert(equal_map_vector_pv(recvlist_ref, proc2idlist.second));
+    }
+
+    // 3 atoms, atom 0 and 2 with 1 and atom 1 with 2
+    // | 0   0 | 0   1 |
+    // | 0   3 | 3   1 |
+    // |-------|-------|
+    // | 0   3 | 3   1 |
+    // | 2   2 | 2   3 |
+    ab.set(std::vector<size_t>{1, 2, 1});
+    assert(ab.nb_total == m);
+    {
+        const auto proc2idlist = LIBRPA::utils::get_communicate_local_ids_list_blacs_to_ap(
+            myid_global,
+            {
+             {0, {{0, 0}, {1, 0}, {0, 1}}},
+             {1, {{0, 2}, {1, 2}}},
+             {2, {{2, 0}, {2, 1}}},
+             {3, {{1, 1}, {2, 2}}}
+            },
+            ab, ab,
+            ad, true, false);
+        // flattened indices with column major and sorted with row index going fastest
+        // const std::vector<std::map<int, std::vector<size_t>>> sendlist_ref_all({
+        //     {{1, {8}}, {2, {2}}}, // 1:{(0,2)} 2:{(2,0)}
+        //     {{3, {14}}}, // 3:{(2,3)}
+        //     {{3, {11}}}, // 3:{(3,2)}
+        //     {{0, {5}}, {1, {9}}, {2, {6}}}, // 0:{(1,1)} 1:{(1,2)} 2:{(2,1)}
+        // });
+        // flattened indices with column major and sorted with row index going fastest
+        const std::vector<std::map<int, std::vector<std::pair<atpair_t, std::vector<size_t>>>>> recvlist_ref_all(
+            {
+                {{1, {{{0, 1}, {1}}}}, {2, {{{1, 0}, {1}}}}},
+                {{3, {{{1, 2}, {1}}}}},
+                {{3, {{{2, 1}, {1}}}}},
+                {{0, {{{1, 1}, {0}}}}, {1, {{{1, 1}, {2}}}},{2, {{{1, 1}, {1}}}}},
+            }
+        );
+        const std::vector<std::map<int, std::vector<size_t>>> sendlist_ref_all({
+            {{3, {3}}},
+            {{0, {0}}, {3, {1}}},
+            {{0, {0}}, {3, {2}}},
+            {{1, {2}}, {2, {1}}},
+        });
+        const auto &sendlist_ref = sendlist_ref_all[myid_global];
+        const auto &recvlist_ref = recvlist_ref_all[myid_global];
+        assert(equal_map_vector(sendlist_ref, proc2idlist.first));
+        assert(equal_map_vector_pv(recvlist_ref, proc2idlist.second));
+    }
+    blacs_ctxt_global_h.exit();
 }
 
 int main (int argc, char *argv[])
