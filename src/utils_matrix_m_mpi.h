@@ -550,7 +550,7 @@ matrix_m<std::complex<T>> power_hemat_blacs(matrix_m<std::complex<T>> &A_local,
     // check the number of non-singular eigenvalues,
     // using the fact that W is in ascending order
     n_filtered = n;
-    for (int i = 0; i != n; i++)
+    for (size_t i = 0; i != n; i++)
         if (W[i] >= threshold)
         {
             n_filtered = i;
@@ -583,7 +583,7 @@ matrix_m<std::complex<T>> power_hemat_blacs(matrix_m<std::complex<T>> &A_local,
     Profiler::start("power_hemat_blacs_5");
     // create scaled eigenvectors
     auto scaled_opt = Z_local_opt.copy();
-    for (int i = 0; i != n; i++)
+    for (size_t i = 0; i != n; i++)
     {
         ScalapackConnector::pscal_f(n, W_temp[i], scaled_opt.ptr(), 1, 1+i, ad_Z_opt.desc, 1);
     }
