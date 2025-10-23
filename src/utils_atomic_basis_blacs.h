@@ -168,7 +168,7 @@ get_communicate_global_ids_list_blacs_to_ap(const int &myid,
  *            map_recv: process id -> [ { <I,J>, [ local indices in atom-pair sub-matrix ] } , ...]
  */
 std::pair<std::map<int, std::vector<size_t>>,
-         std::map<int, std::vector<std::pair<atpair_t, std::vector<size_t>>>>>
+          std::map<int, std::vector<std::pair<atpair_t, std::vector<size_t>>>>>
 get_communicate_local_ids_list_blacs_to_ap(const int &myid,
                                            const std::map<int, std::vector<atpair_t>> &map_proc_IJs_require,
                                            const AtomicBasis &atbasis_r,

@@ -891,9 +891,9 @@ matrix_m<T> get_local_mat_from_ap_dist(const std::map<atpair_t, matrix_m<T>> dat
  *        or upper half of the global matrix.
  *
  * @param  [in,out] m_loc.                The BLACS local matrix to be filled.
- * @param  [in]     uplo                  whether the matrix data are available in upper ('U', 'u') or lower ('L', 'l') half.
  * @param  [in]     data                  Global matrix data distributed in atom-pair mapping,
  *                                        either upper or lower half depending on uplo.
+ * @param  [in]     uplo                  whether the matrix data are available in upper ('U', 'u') or lower ('L', 'l') half.
  * @param  [in]     map_proc_IJs_avail    Distribution of atom-pair blocks on all processes.
  *                                        The keys of the map are process ranks within
  *                                        the context of the array descriptor.
@@ -1077,9 +1077,9 @@ void fill_local_mat_from_ap_dist_sy(matrix_m<T> &m_loc,
  *        Similar to get_local_mat_from_ap_dist, but it only requires input data on either lower
  *        or upper half of the global matrix.
  *
- * @param  [in]  uplo                  whether the matrix data are available in upper ('U', 'u') or lower ('L', 'l') half.
  * @param  [in]  data                  Global matrix data distributed in atom-pair mapping,
  *                                     either upper or lower half depending on uplo.
+ * @param  [in]  uplo                  whether the matrix data are available in upper ('U', 'u') or lower ('L', 'l') half.
  * @param  [in]  map_proc_IJs_avail    Distribution of atom-pair blocks on all processes.
  *                                     The keys of the map are process ranks within
  *                                     the context of the array descriptor.
@@ -1104,6 +1104,203 @@ matrix_m<T> get_local_mat_from_ap_dist_sy(const std::map<atpair_t, matrix_m<T>> 
     auto m_loc = init_local_mat<T>(ad, major_data);
     fill_local_mat_from_ap_dist_sy<T>(m_loc, data, uplo, map_proc_IJs_avail, atbasis, ad, apply_conjugate);
     return m_loc;
+}
+
+/*!
+ * @brief Fill atom-pair mapping data by redistributing the BLACS local matrix on each process.
+ *
+ * @param  [in,out] data                  Matrix data distributed in atom-pair mapping to be completed
+ * @param  [in]     m_loc                 The BLACS local matrix owned by each process
+ * @param  [in]     map_proc_IJs_require  Atom-pair blocks required by each processes.
+ * @param  [in]     atbasis_r             AtomicBasis object for row
+ * @param  [in]     atbasis_c             AtomicBasis object for column
+ * @param  [in]     ad                    Array descriptor for BLACS distribution
+ */
+template <typename T>
+void fill_ap_map_from_blacs_dist(std::map<atpair_t, matrix_m<T>> &data,
+                                 const matrix_m<T> &m_loc,
+                                 const std::map<int, std::vector<atpair_t>> &map_proc_IJs_require,
+                                 const AtomicBasis &atbasis_r,
+                                 const AtomicBasis &atbasis_c,
+                                 const Array_Desc &ad)
+
+{
+    assert(ad.initialized());
+    const auto major_data = m_loc.major();
+
+    // clean up input
+    data.clear();
+
+    // Resolve data type for communication
+    MPI_Datatype dtype = mpi_datatype<T>::value;
+
+    const auto &myid = ad.myid();
+    const auto &row_first = major_data == MAJOR::ROW ? false : true;
+    const auto &row_major = major_data == MAJOR::ROW ? true : false;
+
+    // Fill in data that is already available before communication
+    int I, J, i, j;
+    for (int ir = 0; ir < m_loc.nr(); ir++)
+    {
+        atbasis_r.get_local_index(ad.indx_l2g_r(ir), I, i);
+        for (int ic = 0; ic < m_loc.nc(); ic++)
+        {
+            atbasis_c.get_local_index(ad.indx_l2g_c(ic), J, j);
+            const atpair_t atpair{static_cast<atom_t>(I), static_cast<atom_t>(J)};
+            if (!data.count(atpair))
+            {
+                data[atpair] = matrix_m<T>(atbasis_r.get_atom_nb(I), atbasis_r.get_atom_nb(J), major_data);
+            }
+            data.at(atpair)(i, j) = m_loc(ir, ic);
+        }
+    }
+
+    // Compute indices of matrix elements that should be communicated
+    const auto proc2idlist = LIBRPA::utils::get_communicate_local_ids_list_blacs_to_ap(
+            myid, map_proc_IJs_require, atbasis_r, atbasis_c, ad, row_first, row_major);
+    const auto &pid_ids_send = proc2idlist.first;
+    const auto &pid_ids_recv = proc2idlist.second;
+
+    // prepare send buffer (from BLACS block)
+    // computer send buffer size and displacements
+    map<int, pair<int, MPI_Count>> pid_send_disp_count;
+    std::vector<T> sendbuff(0);
+    MPI_Count sendcount = 0;
+    for (int pid = 0; pid < ad.nprocs(); pid++)
+    {
+        if (pid_ids_send.count(pid))
+        {
+            const auto &size = pid_ids_send.at(pid).size();
+            pid_send_disp_count[pid] = {as_int(sendcount), size};
+            sendcount += size;
+        }
+    }
+    if (sendcount > 0) sendbuff.resize(sendcount);
+
+    // prepare recv buffer (to AP mapping)
+    // first run, compute recv buffer size and displacements, allocate the whole buffer
+    map<int, pair<int, MPI_Count>> pid_recv_disp_count;
+    std::vector<T> recvbuff(0);
+    MPI_Count recvcount = 0;
+    for (int pid = 0; pid < ad.nprocs(); pid++)
+    {
+        if (pid_ids_recv.count(pid))
+        {
+            const auto &ids_recv = pid_ids_recv.at(pid);
+            MPI_Count recvcount_pid = 0;
+            for (const auto &pair_ids: ids_recv)
+            {
+                recvcount_pid += pair_ids.second.size();
+            }
+            pid_recv_disp_count[pid] = {as_int(recvcount), recvcount_pid};
+            recvcount += recvcount_pid;
+        }
+    }
+    if (recvcount > 0) recvbuff.resize(recvcount);
+
+    // second run, fill in the data to be sent
+    for (int pid = 0; pid < ad.nprocs(); pid++)
+    {
+        if (pid_ids_recv.count(pid))
+        {
+            const auto &ids_recv = pid_ids_recv.at(pid);
+            MPI_Count disp = pid_recv_disp_count.at(pid).first;
+            for (const auto &pair_ids: ids_recv)
+            {
+                const auto &atpair = pair_ids.first;
+                const auto &atmat = data.at(atpair);
+                const auto &ids = pair_ids.second;
+                for (size_t i = 0; i < ids.size(); i++)
+                {
+                    const auto &id = ids[i];
+                    recvbuff[disp+i] = atmat.ptr()[id];
+                }
+                disp += ids.size();
+            }
+        }
+    }
+
+    // Begin communication
+    std::vector<MPI_Request> reqs;
+    MPI_Request req;
+
+    // First non-blocking receive
+    for (const auto &pid_disp_count: pid_recv_disp_count)
+    {
+        const auto &pid = pid_disp_count.first;
+        const auto &disp_count = pid_disp_count.second;
+        const auto &disp = disp_count.first;
+        const auto &count = disp_count.second;
+        // ofs << "MPI_Irecv dist " << dist << " count " << count << " from pid " << pid << endl;
+        MPI_Irecv(recvbuff.data() + disp, count, dtype, pid, 0, ad.comm(), &req);
+        reqs.push_back(req);
+    }
+    // Then non-blocking send
+    for (const auto &pid_disp_count: pid_send_disp_count)
+    {
+        const auto &pid = pid_disp_count.first;
+        const auto &disp_count = pid_disp_count.second;
+        const auto &disp = disp_count.first;
+        const auto &count = disp_count.second;
+        // ofs << "MPI_Isend count " << count << " to pid " << pid << endl;
+        MPI_Isend(sendbuff.data() + disp, count, dtype, pid, 0, ad.comm(), &req);
+        reqs.push_back(req);
+    }
+
+    // Wait for all non-blocking communication to finish
+    if (!reqs.empty()) MPI_Waitall((int)reqs.size(), reqs.data(), MPI_STATUSES_IGNORE);
+
+    // Map the received data to the correct location in the atom-pair mapping
+    for (const auto &pid_disp_count: pid_recv_disp_count)
+    {
+        const auto &pid = pid_disp_count.first;
+        const auto &v_pair_ids = pid_ids_recv.at(pid);
+        size_t count = 0;
+        const auto &disp_count = pid_disp_count.second;
+        const auto &disp = disp_count.first;
+        const auto &count_recv = disp_count.second;
+        for (const auto &pair_ids: v_pair_ids)
+        {
+            const auto &atpair = pair_ids.first;
+            const auto &ids = pair_ids.second;
+            if (!data.count(atpair))
+            {
+                const auto &nI = atbasis_c.get_atom_nb(as_int(atpair.first));
+                const auto &nJ = atbasis_c.get_atom_nb(as_int(atpair.second));
+                data[atpair] = matrix_m<T>(nI, nJ, major_data);
+            }
+            for (int i = 0; i < ids.size(); i++)
+            {
+                data.at(atpair).ptr()[ids[i]] = recvbuff[disp+i];
+            }
+        }
+        assert(count == count_recv); // consistency check
+    }
+}
+
+/*!
+ * @brief Get atom-pair mapping data by redistributing the BLACS local matrix on each process.
+ *
+ * @param  [in]     m_loc                 The BLACS local matrix owned by each process
+ * @param  [in]     map_proc_IJs_require  Atom-pair blocks required by each processes.
+ * @param  [in]     atbasis_r             AtomicBasis object for row
+ * @param  [in]     atbasis_c             AtomicBasis object for column
+ * @param  [in]     ad                    Array descriptor for BLACS distribution
+ *
+ * @retval atom-pair mapping matrix data. The major is the same as the input m_loc, major_data
+ */
+template <typename T> std::map<atpair_t, matrix_m<T>>
+get_ap_map_from_blacs_dist(const matrix_m<T> &m_loc,
+                           const std::map<int, std::vector<atpair_t>> &map_proc_IJs_require,
+                           const AtomicBasis &atbasis_r,
+                           const AtomicBasis &atbasis_c,
+                           const Array_Desc &ad)
+{
+    assert(ad.initialized());
+
+    std::map<atpair_t, matrix_m<T>> data;
+    fill_ap_map_from_blacs_dist<T>(data, m_loc, map_proc_IJs_require, atbasis_r, atbasis_c, ad);
+    return data;
 }
 
 } /* end of namespace utils */
