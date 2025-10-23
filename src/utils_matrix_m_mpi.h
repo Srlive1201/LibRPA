@@ -6,7 +6,7 @@
 #include <cassert>
 #include <stdexcept>
 
-#include "envs_mpi.h"
+// #include "envs_mpi.h"
 #include "matrix_m.h"
 #include "profiler.h"
 #include "scalapack_connector.h"
