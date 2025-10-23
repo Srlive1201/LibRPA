@@ -3,6 +3,8 @@
 
 #include <functional>
 #include <map>
+#include <cassert>
+#include <stdexcept>
 
 #include "matrix_m.h"
 #include "profiler.h"
@@ -1140,6 +1142,9 @@ void fill_ap_map_from_blacs_dist(std::map<atpair_t, matrix_m<T>> &data,
 
     // Fill in data that is already available before communication
     int I, J, i, j;
+    // atom pairs required by this process
+    const auto &IJs = map_proc_IJs_require.count(myid) ?
+                      map_proc_IJs_require.at(myid) : std::vector<atpair_t>{};
     for (int ir = 0; ir < m_loc.nr(); ir++)
     {
         atbasis_r.get_local_index(ad.indx_l2g_r(ir), I, i);
@@ -1147,6 +1152,7 @@ void fill_ap_map_from_blacs_dist(std::map<atpair_t, matrix_m<T>> &data,
         {
             atbasis_c.get_local_index(ad.indx_l2g_c(ic), J, j);
             const atpair_t atpair{static_cast<atom_t>(I), static_cast<atom_t>(J)};
+            if (std::find(IJs.cbegin(), IJs.cend(), atpair) == IJs.cend()) continue; // not required
             if (!data.count(atpair))
             {
                 data[atpair] = matrix_m<T>(atbasis_r.get_atom_nb(I), atbasis_r.get_atom_nb(J), major_data);
@@ -1162,7 +1168,7 @@ void fill_ap_map_from_blacs_dist(std::map<atpair_t, matrix_m<T>> &data,
     const auto &pid_ids_recv = proc2idlist.second;
 
     // prepare send buffer (from BLACS block)
-    // computer send buffer size and displacements
+    // first run, compute recv buffer size and displacements, allocate the whole buffer
     map<int, pair<int, MPI_Count>> pid_send_disp_count;
     std::vector<T> sendbuff(0);
     MPI_Count sendcount = 0;
@@ -1177,8 +1183,23 @@ void fill_ap_map_from_blacs_dist(std::map<atpair_t, matrix_m<T>> &data,
     }
     if (sendcount > 0) sendbuff.resize(sendcount);
 
+    // second run, fill in the data to be sent
+    for (int pid = 0; pid < ad.nprocs(); pid++)
+    {
+        if (pid_ids_send.count(pid))
+        {
+            const auto &ids = pid_ids_send.at(pid);
+            MPI_Count disp = pid_send_disp_count.at(pid).first;
+            for (size_t i = 0; i < ids.size(); i++)
+            {
+                const auto &id = ids[i];
+                sendbuff[disp+i] = m_loc.ptr()[id];
+            }
+        }
+    }
+
     // prepare recv buffer (to AP mapping)
-    // first run, compute recv buffer size and displacements, allocate the whole buffer
+    // compute recv buffer size and displacements, allocate the whole buffer
     map<int, pair<int, MPI_Count>> pid_recv_disp_count;
     std::vector<T> recvbuff(0);
     MPI_Count recvcount = 0;
@@ -1197,28 +1218,6 @@ void fill_ap_map_from_blacs_dist(std::map<atpair_t, matrix_m<T>> &data,
         }
     }
     if (recvcount > 0) recvbuff.resize(recvcount);
-
-    // second run, fill in the data to be sent
-    for (int pid = 0; pid < ad.nprocs(); pid++)
-    {
-        if (pid_ids_recv.count(pid))
-        {
-            const auto &ids_recv = pid_ids_recv.at(pid);
-            MPI_Count disp = pid_recv_disp_count.at(pid).first;
-            for (const auto &pair_ids: ids_recv)
-            {
-                const auto &atpair = pair_ids.first;
-                const auto &atmat = data.at(atpair);
-                const auto &ids = pair_ids.second;
-                for (size_t i = 0; i < ids.size(); i++)
-                {
-                    const auto &id = ids[i];
-                    recvbuff[disp+i] = atmat.ptr()[id];
-                }
-                disp += ids.size();
-            }
-        }
-    }
 
     // Begin communication
     std::vector<MPI_Request> reqs;
@@ -1269,12 +1268,13 @@ void fill_ap_map_from_blacs_dist(std::map<atpair_t, matrix_m<T>> &data,
                 const auto &nJ = atbasis_c.get_atom_nb(as_int(atpair.second));
                 data[atpair] = matrix_m<T>(nI, nJ, major_data);
             }
-            for (int i = 0; i < ids.size(); i++)
+            for (size_t i = 0; i < ids.size(); i++)
             {
                 data.at(atpair).ptr()[ids[i]] = recvbuff[disp+i];
             }
+            count += ids.size();
         }
-        assert(count == count_recv); // consistency check
+        assert(count == as_size(count_recv)); // consistency check
     }
 }
 
@@ -1286,6 +1286,7 @@ void fill_ap_map_from_blacs_dist(std::map<atpair_t, matrix_m<T>> &data,
  * @param  [in]     atbasis_r             AtomicBasis object for row
  * @param  [in]     atbasis_c             AtomicBasis object for column
  * @param  [in]     ad                    Array descriptor for BLACS distribution
+ * @param  [in]     major_data            Major of the input atom-pair matrices
  *
  * @retval atom-pair mapping matrix data. The major is the same as the input m_loc, major_data
  */
@@ -1294,9 +1295,15 @@ get_ap_map_from_blacs_dist(const matrix_m<T> &m_loc,
                            const std::map<int, std::vector<atpair_t>> &map_proc_IJs_require,
                            const AtomicBasis &atbasis_r,
                            const AtomicBasis &atbasis_c,
-                           const Array_Desc &ad)
+                           const Array_Desc &ad,
+                           MAJOR major_data = MAJOR::AUTO)
 {
     assert(ad.initialized());
+
+    if (major_data != MAJOR::AUTO && major_data != m_loc.major())
+    {
+        throw std::logic_error("major passed but not consistent with m_loc");
+    }
 
     std::map<atpair_t, matrix_m<T>> data;
     fill_ap_map_from_blacs_dist<T>(data, m_loc, map_proc_IJs_require, atbasis_r, atbasis_c, ad);

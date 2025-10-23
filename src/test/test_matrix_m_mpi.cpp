@@ -6,6 +6,7 @@
 
 #include "../utils_blacs.h"
 
+#include "../stl_io_helper.h"
 #include "testutils.h"
 
 using namespace LIBRPA;
@@ -455,6 +456,95 @@ void test_local_mat_from_ap_dist_he()
 
 }
 
+template <typename T>
+void test_ap_map_from_blacs_dist()
+{
+    blacs_ctxt_global_h.set_square_grid(true, LIBRPA::CTXT_LAYOUT::R);
+    assert(blacs_ctxt_global_h.nprocs == 4);
+    assert(blacs_ctxt_global_h.nprows == 2);
+    assert(blacs_ctxt_global_h.npcols == 2);
+
+    const size_t m = 4;
+    const size_t n = m;
+
+    Array_Desc ad(blacs_ctxt_global_h);
+    ad.init_1b1p(m, n, 0, 0);
+    assert(ad.initialized());
+    assert(ad.mb() == 2);
+    assert(ad.nb() == 2);
+
+    LIBRPA::AtomicBasis ab;
+    // 3 atoms, atom 0 and 2 with 1 and atom 1 with 2
+    // Process indices
+    // | 0   0 | 0   1 |
+    // | 0   3 | 3   1 |
+    // |-------|-------|
+    // | 0   3 | 3   1 |
+    // | 2   2 | 2   3 |
+    ab.set(std::vector<size_t>{1, 2, 1});
+    matrix_m<T> global(ab.nb_total, ab.nb_total, MAJOR::COL);
+    if (myid_global == 0)
+    {
+        if (is_complex<T>())
+        {
+             global.randomize(0, 1, false, true);
+        }
+        else
+        {
+             global.randomize(0, 1, true, false);
+        }
+    }
+    // broadcast
+    MPI_Bcast(global.ptr(), m * n, mpi_datatype<T>::value, 0, ad.comm());
+    auto mat_loc = get_local_mat<T>(global, ad);
+
+    if (myid_global == 0)
+    {
+        std::cout << "global matrix" << std::endl << global;
+    }
+
+    const std::map<int, std::vector<atpair_t>> map_proc_IJs_require {{0, {{0, 0}, {1, 0}, {0, 1}}},
+                                                                     {1, {{0, 2}, {1, 2}}},
+                                                                     {2, {{2, 0}, {2, 1}}},
+                                                                     {3, {{1, 1}, {2, 2}}}};
+    const auto IJmap = get_ap_map_from_blacs_dist<T>(mat_loc, map_proc_IJs_require, ab, ab, ad);
+    const std::vector<std::map<atpair_t, matrix_m<T>>> IJmap_ref_all {
+        {{{0, 0}, { {{global(0, 0)}} }}, {{0, 1}, { {{global(0, 1), global(0, 2)}} }}, {{1, 0}, { {{global(1, 0)}, {global(2, 0)}} }}}, // proc 0
+        {{{0, 2}, { {{global(0, 3)}} }}, {{1, 2}, { {{global(1, 3)}, {global(2, 3)}} }}}, // proc 1
+        {{{2, 0}, { {{global(3, 0)}} }}, {{2, 1}, { {{global(3, 1), global(3, 2)}} }}, }, // proc 2
+        {{{2, 2}, { {{global(3, 3)}} }}, {{1, 1}, { {{global(1, 1), global(1, 2)}, {global(2, 1), global(2, 2)}} }}, }, // proc 0
+    };
+    const auto &IJmap_ref = IJmap_ref_all[myid_global];
+    for (int i = 0; i < 4; i++)
+    {
+        blacs_ctxt_global_h.barrier();
+        if (myid_global == i)
+        {
+            std::cout << "myid " << i << " comparing atom pair mapping data" << std::endl;
+            std::cout << "map size: ref " << IJmap_ref.size() << " - test " << IJmap.size() << std::endl;
+            for (const auto &IJ_mat: IJmap)
+            {
+                const auto &IJ = IJ_mat.first;
+                const auto &mat = IJ_mat.second;
+                if (!IJmap_ref.count(IJ))
+                {
+                    std::cout << "ref has no " << IJ << " ! " << std::endl;
+                    std::cout << "test" << std::endl << mat;
+                    continue;
+                }
+                const auto &mat_ref = IJmap_ref.at(IJ);
+                std::cout << "comparing common key " << IJ << std::endl;
+                std::cout << "test" << std::endl << mat;
+                std::cout << "ref" << std::endl << mat_ref;
+                assert(fequal_array(mat.size(), mat.ptr(), mat_ref.ptr(), true));
+                // fequal_array(mat.size(), mat_ref.ptr(), mat.ptr(), true);
+            }
+        }
+    }
+
+    blacs_ctxt_global_h.exit();
+}
+
 int main (int argc, char *argv[])
 {
     int provided;
@@ -481,8 +571,10 @@ int main (int argc, char *argv[])
 
     test_local_mat_from_ap_dist<double>();
     test_local_mat_from_ap_dist<complex<double>>();
-
     test_local_mat_from_ap_dist_he();
+
+    test_ap_map_from_blacs_dist<double>();
+    test_ap_map_from_blacs_dist<complex<double>>();
 
     finalize_io();
     finalize_blacs();
