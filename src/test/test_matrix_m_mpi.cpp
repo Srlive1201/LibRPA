@@ -625,6 +625,8 @@ void test_restore_local_mat(const std::vector<size_t> &nbs)
     // if (myid_global == 0) std::cout << IJs << std::endl;
 
     const auto IJmap = get_ap_map_from_blacs_dist(mat_loc_ref, IJs, ab, ab, ad);
+    // blacs_ctxt_global_h.exit();
+    // return;
     const auto mat_loc = get_local_mat_from_ap_dist(IJmap, IJs, ab, ab, ad, MAJOR::COL);
 
     for (int i = 0; i < 4; i++)
@@ -710,8 +712,6 @@ void test_restore_ap_map(const std::vector<size_t> &nbs)
     //     }
     // }
     const auto mat_loc = get_local_mat_from_ap_dist(IJmap_ref, IJs, ab, ab, ad, MAJOR::COL);
-    // blacs_ctxt_global_h.exit();
-    // return;
     const auto IJmap = get_ap_map_from_blacs_dist(mat_loc, IJs, ab, ab, ad);
 
     for (int i = 0; i < 4; i++)
@@ -778,14 +778,14 @@ int main (int argc, char *argv[])
     test_ap_map_from_blacs_dist<double>();
     test_ap_map_from_blacs_dist<complex<double>>();
 
-    // test_restore_local_mat<double>({1}); // FIXME: single basis will fail
+    test_restore_local_mat<double>({1});
     test_restore_local_mat<double>({2});
     test_restore_local_mat<double>({4, 3});
     test_restore_local_mat<double>({1, 2, 1});
     test_restore_local_mat<double>({2, 4, 1, 3});
     test_restore_local_mat<complex<double>>({3, 5, 1});
 
-    // test_restore_ap_map<double>({1}); // FIXME: single basis will fail
+    test_restore_ap_map<double>({1});
     test_restore_ap_map<double>({2});
     test_restore_ap_map<double>({4, 3});
     test_restore_ap_map<double>({1, 2, 1});

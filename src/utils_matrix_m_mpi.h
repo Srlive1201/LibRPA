@@ -1300,6 +1300,10 @@ get_ap_map_from_blacs_dist(const matrix_m<T> &m_loc,
 {
     assert(ad.initialized());
 
+    // cout << envs::myid_global
+    //      << " " << m_loc.size()
+    //      << " " << m_loc.nr() << " " << m_loc.nc()
+    //      << " " << ad.m_loc() << " " << ad.n_loc()<< endl;
     if (major_data != MAJOR::AUTO && major_data != m_loc.major())
     {
         throw std::logic_error("major passed but not consistent with m_loc");
