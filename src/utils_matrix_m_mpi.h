@@ -883,6 +883,7 @@ matrix_m<T> get_local_mat_from_ap_dist(const std::map<atpair_t, matrix_m<T>> dat
 
     // Initialize return matrix
     auto m_loc = init_local_mat<T>(ad, major_data);
+    // cout << envs::myid_global << " " << m_loc.size() << " " << ad.m_loc() << " " << ad.n_loc()<< endl;
     fill_local_mat_from_ap_dist<T>(m_loc, data, map_proc_IJs_avail, atbasis_r, atbasis_c, ad);
     return m_loc;
 }

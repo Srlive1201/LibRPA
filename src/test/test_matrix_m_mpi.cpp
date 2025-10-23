@@ -674,6 +674,8 @@ void test_restore_ap_map(const std::vector<size_t> &nbs)
              global.randomize(0, 1, true, false);
         }
     }
+    // if (myid_global == 0) std::cout << "global matrix" << std::endl << global;
+
     // broadcast
     MPI_Bcast(global.ptr(), m * n, mpi_datatype<T>::value, 0, ad.comm());
     const auto &pairs = generate_atom_pair_from_nat(ab.n_atoms, true);
@@ -685,11 +687,31 @@ void test_restore_ap_map(const std::vector<size_t> &nbs)
         IJs[i % nprocs].emplace_back(pairs[i]);
     }
     std::map<atpair_t, matrix_m<T>> IJmap_ref;
-    for (const auto &IJ: IJs[myid_global])
+    if (IJs.count(myid_global))
     {
-        IJmap_ref[IJ] = get_ap_block_from_global(global, IJ, ab, ab);
+        for (const auto &IJ: IJs.at(myid_global))
+        {
+            IJmap_ref[IJ] = get_ap_block_from_global(global, IJ, ab, ab);
+        }
     }
+    // for (int i = 0; i < 4; i++)
+    // {
+    //     blacs_ctxt_global_h.barrier();
+    //     // cout << "part_range: " << ab.get_part_range() << endl;
+    //     if (myid_global == i)
+    //     {
+    //         // std::cout << "myid " << i << std::endl;
+    //         for (const auto &IJ: IJs.at(myid_global))
+    //         {
+    //             // cout << IJ << endl;
+    //             IJmap_ref[IJ] = get_ap_block_from_global(global, IJ, ab, ab);
+    //             // cout << IJmap_ref[IJ];
+    //         }
+    //     }
+    // }
     const auto mat_loc = get_local_mat_from_ap_dist(IJmap_ref, IJs, ab, ab, ad, MAJOR::COL);
+    // blacs_ctxt_global_h.exit();
+    // return;
     const auto IJmap = get_ap_map_from_blacs_dist(mat_loc, IJs, ab, ab, ad);
 
     for (int i = 0; i < 4; i++)
@@ -716,7 +738,7 @@ void test_restore_ap_map(const std::vector<size_t> &nbs)
                 assert(IJmap_ref.count(IJ));
                 const auto &mat_ref = IJmap_ref.at(IJ);
                 assert(mat.size() == mat_ref.size());
-                assert(fequal_array(mat.size(), mat.ptr(), mat_ref.ptr(), true));
+                assert(fequal_array(mat.size(), mat.ptr(), mat_ref.ptr(), false));
                 // fequal_array(mat.size(), mat.ptr(), mat_ref.ptr(), true);
             }
         }
@@ -756,13 +778,20 @@ int main (int argc, char *argv[])
     test_ap_map_from_blacs_dist<double>();
     test_ap_map_from_blacs_dist<complex<double>>();
 
+    // test_restore_local_mat<double>({1}); // FIXME: single basis will fail
+    test_restore_local_mat<double>({2});
+    test_restore_local_mat<double>({4, 3});
     test_restore_local_mat<double>({1, 2, 1});
     test_restore_local_mat<double>({2, 4, 1, 3});
     test_restore_local_mat<complex<double>>({3, 5, 1});
 
-    // test_restore_ap_map<double>({1, 2, 1});
-    // test_restore_ap_map<double>({2, 4, 1, 3});
-    // test_restore_ap_map<complex<double>>({3, 5, 1});
+    // test_restore_ap_map<double>({1}); // FIXME: single basis will fail
+    test_restore_ap_map<double>({2});
+    test_restore_ap_map<double>({4, 3});
+    test_restore_ap_map<double>({1, 2, 1});
+    test_restore_ap_map<double>({2, 4, 1, 3});
+    test_restore_ap_map<complex<double>>({3, 5, 1});
+
 
     finalize_io();
     finalize_blacs();
