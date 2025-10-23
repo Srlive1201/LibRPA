@@ -904,8 +904,8 @@ matrix_m<T> get_local_mat_from_ap_dist(const std::map<atpair_t, matrix_m<T>> dat
  */
 template <typename T>
 void fill_local_mat_from_ap_dist_sy(matrix_m<T> &m_loc,
-                                    const char &uplo,
                                     const std::map<atpair_t, matrix_m<T>> data,
+                                    const char &uplo,
                                     const std::map<int, std::vector<atpair_t>> &map_proc_IJs_avail,
                                     const AtomicBasis &atbasis,
                                     const Array_Desc &ad, bool apply_conjugate)
@@ -1092,8 +1092,8 @@ void fill_local_mat_from_ap_dist_sy(matrix_m<T> &m_loc,
  * @retval    matrix_m. The major is the same as the input, major_data
  */
 template <typename T>
-matrix_m<T> get_local_mat_from_ap_dist_sy(const char &uplo,
-                                          const std::map<atpair_t, matrix_m<T>> data,
+matrix_m<T> get_local_mat_from_ap_dist_sy(const std::map<atpair_t, matrix_m<T>> data,
+                                          const char &uplo,
                                           const std::map<int, std::vector<atpair_t>> &map_proc_IJs_avail,
                                           const AtomicBasis &atbasis,
                                           const Array_Desc &ad, bool apply_conjugate, MAJOR major_data)
@@ -1102,7 +1102,7 @@ matrix_m<T> get_local_mat_from_ap_dist_sy(const char &uplo,
 
     // Initialize return matrix
     auto m_loc = init_local_mat<T>(ad, major_data);
-    fill_local_mat_from_ap_dist_sy<T>(m_loc, uplo, data, map_proc_IJs_avail, atbasis, ad, apply_conjugate);
+    fill_local_mat_from_ap_dist_sy<T>(m_loc, data, uplo, map_proc_IJs_avail, atbasis, ad, apply_conjugate);
     return m_loc;
 }
 

@@ -436,7 +436,7 @@ void test_local_mat_from_ap_dist_he()
         }
         IJmap[IJ] = std::move(mat);
     }
-    const auto mat_loc = get_local_mat_from_ap_dist_sy<T>('u', IJmap, map_proc_IJs_avail, ab, ad, true, MAJOR::COL);
+    const auto mat_loc = get_local_mat_from_ap_dist_sy<T>(IJmap, 'u', map_proc_IJs_avail, ab, ad, true, MAJOR::COL);
     for (int i = 0; i < 4; i++)
     {
         blacs_ctxt_global_h.barrier();
