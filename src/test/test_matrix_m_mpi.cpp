@@ -791,6 +791,9 @@ int main (int argc, char *argv[])
     test_restore_local_mat<double>({1, 2, 1}, MAJOR::ROW);
     test_restore_local_mat<double>({2, 4, 1, 3}, MAJOR::ROW);
     test_restore_local_mat<complex<double>>({3, 5, 1}, MAJOR::ROW);
+    // large cases
+    // test_restore_local_mat<complex<double>>(std::vector<size_t>(50, 20), MAJOR::ROW);
+    test_restore_local_mat<complex<double>>({418, 643}, MAJOR::ROW);
 
     test_restore_ap_map<double>({1}, MAJOR::COL);
     test_restore_ap_map<double>({2}, MAJOR::COL);
@@ -805,6 +808,9 @@ int main (int argc, char *argv[])
     test_restore_ap_map<double>({1, 2, 1}, MAJOR::ROW);
     test_restore_ap_map<double>({2, 4, 1, 3}, MAJOR::ROW);
     test_restore_ap_map<complex<double>>({3, 5, 1}, MAJOR::ROW);
+    // large cases
+    test_restore_ap_map<complex<double>>(std::vector<size_t>(50, 20), MAJOR::ROW);
+    // test_restore_ap_map<complex<double>>({418, 643}, MAJOR::ROW);
 
     finalize_io();
     finalize_blacs();
