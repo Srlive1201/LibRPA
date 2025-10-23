@@ -84,7 +84,7 @@ vector<atpair_t> get_atom_pair(const map<atpair_t, T> &apdata) // work
     return apair;
 }
 
-//! Get atom pair from number of atoms. The generated paris are in lower half if ordered_pair is false.
+//! Get atom pair from number of atoms. The generated paris are in upper half if ordered_pair is false.
 template <typename T>
 vector<atpair_t> generate_atom_pair_from_nat(const T &nat, bool ordered_pair = false)
 {
