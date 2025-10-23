@@ -582,7 +582,7 @@ void test_ap_map_from_blacs_dist()
 }
 
 template <typename T>
-void test_restore_local_mat(const std::vector<size_t> &nbs)
+void test_restore_local_mat(const std::vector<size_t> &nbs, MAJOR major)
 {
     blacs_ctxt_global_h.set_square_grid(true, LIBRPA::CTXT_LAYOUT::R);
     const auto &nprocs = blacs_ctxt_global_h.nprocs;
@@ -598,7 +598,7 @@ void test_restore_local_mat(const std::vector<size_t> &nbs)
     assert(ad.initialized());
 
     // initialize global matrix
-    matrix_m<T> global(ab.nb_total, ab.nb_total, MAJOR::COL);
+    matrix_m<T> global(ab.nb_total, ab.nb_total, major);
     if (myid_global == 0)
     {
         if (is_complex<T>())
@@ -627,7 +627,7 @@ void test_restore_local_mat(const std::vector<size_t> &nbs)
     const auto IJmap = get_ap_map_from_blacs_dist(mat_loc_ref, IJs, ab, ab, ad);
     // blacs_ctxt_global_h.exit();
     // return;
-    const auto mat_loc = get_local_mat_from_ap_dist(IJmap, IJs, ab, ab, ad, MAJOR::COL);
+    const auto mat_loc = get_local_mat_from_ap_dist(IJmap, IJs, ab, ab, ad, major);
 
     for (int i = 0; i < 4; i++)
     {
@@ -647,7 +647,7 @@ void test_restore_local_mat(const std::vector<size_t> &nbs)
 }
 
 template <typename T>
-void test_restore_ap_map(const std::vector<size_t> &nbs)
+void test_restore_ap_map(const std::vector<size_t> &nbs, MAJOR major)
 {
     blacs_ctxt_global_h.set_square_grid(true, LIBRPA::CTXT_LAYOUT::R);
 
@@ -664,7 +664,7 @@ void test_restore_ap_map(const std::vector<size_t> &nbs)
     assert(ad.initialized());
 
     // initialize global matrix
-    matrix_m<T> global(ab.nb_total, ab.nb_total, MAJOR::COL);
+    matrix_m<T> global(ab.nb_total, ab.nb_total, major);
     if (myid_global == 0)
     {
         if (is_complex<T>())
@@ -711,7 +711,7 @@ void test_restore_ap_map(const std::vector<size_t> &nbs)
     //         }
     //     }
     // }
-    const auto mat_loc = get_local_mat_from_ap_dist(IJmap_ref, IJs, ab, ab, ad, MAJOR::COL);
+    const auto mat_loc = get_local_mat_from_ap_dist(IJmap_ref, IJs, ab, ab, ad, major);
     const auto IJmap = get_ap_map_from_blacs_dist(mat_loc, IJs, ab, ab, ad);
 
     for (int i = 0; i < 4; i++)
@@ -778,20 +778,33 @@ int main (int argc, char *argv[])
     test_ap_map_from_blacs_dist<double>();
     test_ap_map_from_blacs_dist<complex<double>>();
 
-    test_restore_local_mat<double>({1});
-    test_restore_local_mat<double>({2});
-    test_restore_local_mat<double>({4, 3});
-    test_restore_local_mat<double>({1, 2, 1});
-    test_restore_local_mat<double>({2, 4, 1, 3});
-    test_restore_local_mat<complex<double>>({3, 5, 1});
+    test_restore_local_mat<double>({1}, MAJOR::COL);
+    test_restore_local_mat<double>({2}, MAJOR::COL);
+    test_restore_local_mat<double>({4, 3}, MAJOR::COL);
+    test_restore_local_mat<double>({1, 2, 1}, MAJOR::COL);
+    test_restore_local_mat<double>({2, 4, 1, 3}, MAJOR::COL);
+    test_restore_local_mat<complex<double>>({3, 5, 1}, MAJOR::COL);
 
-    test_restore_ap_map<double>({1});
-    test_restore_ap_map<double>({2});
-    test_restore_ap_map<double>({4, 3});
-    test_restore_ap_map<double>({1, 2, 1});
-    test_restore_ap_map<double>({2, 4, 1, 3});
-    test_restore_ap_map<complex<double>>({3, 5, 1});
+    test_restore_local_mat<double>({1}, MAJOR::ROW);
+    test_restore_local_mat<double>({2}, MAJOR::ROW);
+    test_restore_local_mat<double>({4, 3}, MAJOR::ROW);
+    test_restore_local_mat<double>({1, 2, 1}, MAJOR::ROW);
+    test_restore_local_mat<double>({2, 4, 1, 3}, MAJOR::ROW);
+    test_restore_local_mat<complex<double>>({3, 5, 1}, MAJOR::ROW);
 
+    test_restore_ap_map<double>({1}, MAJOR::COL);
+    test_restore_ap_map<double>({2}, MAJOR::COL);
+    test_restore_ap_map<double>({4, 3}, MAJOR::COL);
+    test_restore_ap_map<double>({1, 2, 1}, MAJOR::COL);
+    test_restore_ap_map<double>({2, 4, 1, 3}, MAJOR::COL);
+    test_restore_ap_map<complex<double>>({3, 5, 1}, MAJOR::COL);
+
+    test_restore_ap_map<double>({1}, MAJOR::ROW);
+    test_restore_ap_map<double>({2}, MAJOR::ROW);
+    test_restore_ap_map<double>({4, 3}, MAJOR::ROW);
+    test_restore_ap_map<double>({1, 2, 1}, MAJOR::ROW);
+    test_restore_ap_map<double>({2, 4, 1, 3}, MAJOR::ROW);
+    test_restore_ap_map<complex<double>>({3, 5, 1}, MAJOR::ROW);
 
     finalize_io();
     finalize_blacs();
