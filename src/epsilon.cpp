@@ -2171,14 +2171,14 @@ FT_Wc_freq_q(const map<double, atom_mapping<std::map<Vector3_Order<double>, matr
 }
 
 
-map<double, atom_mapping<std::map<Vector3_Order<int>, matrix_m<complex<double>>>>::pair_t_old>
-CT_FT_Wc_freq_q(const map<double, atom_mapping<std::map<Vector3_Order<double>, matrix_m<complex<double>>>>::pair_t_old> &Wc_freq_q,
+map<double, atom_mapping<std::map<Vector3_Order<int>, matrix_m<cplxdb>>>::pair_t_old>
+CT_FT_Wc_freq_q(const map<double, atom_mapping<std::map<Vector3_Order<double>, matrix_m<cplxdb>>>::pair_t_old> &Wc_freq_q,
                 const TFGrids &tfg, const int &n_k_points, const vector<Vector3_Order<int>> &Rlist)
 {
     // major of Wc_freq_q input and Wc_tau_R output
     const MAJOR major_Wc = MAJOR::ROW;
 
-    map<double, atom_mapping<std::map<Vector3_Order<int>, matrix_m<complex<double>>>>::pair_t_old> Wc_tau_R;
+    map<double, atom_mapping<std::map<Vector3_Order<int>, matrix_m<cplxdb>>>::pair_t_old> Wc_tau_R;
     if (!tfg.has_time_grids())
         throw logic_error("TFGrids object does not have time grids");
     const int ngrids = tfg.get_n_grids();
@@ -2276,37 +2276,6 @@ CT_FT_Wc_freq_q(const map<double, atom_mapping<std::map<Vector3_Order<double>, m
     LIBRPA::utils::lib_printf_root("Done converting Wc q,w -> R,t\n");
     mpi_comm_global_h.barrier();
 
-    // myz debug: check the imaginary part of the matrix
-    // NOTE: if G(R) is real, is W(R) real as well?
-    // if (Params::debug)
-    // {
-    //     for (const auto & tau_MuNuRWc: Wc_tau_R)
-    //     {
-    //         char fn[80];
-    //         auto tau = tau_MuNuRWc.first;
-    //         auto itau = tfg.get_time_index(tau);
-    //         for (const auto & Mu_NuRWc: tau_MuNuRWc.second)
-    //         {
-    //             auto Mu = Mu_NuRWc.first;
-    //             // const int n_mu = atom_mu[Mu];
-    //             for (const auto & Nu_RWc: Mu_NuRWc.second)
-    //             {
-    //                 auto Nu = Nu_RWc.first;
-    //                 // const int n_nu = atom_mu[Nu];
-    //                 for (const auto & R_Wc: Nu_RWc.second)
-    //                 {
-    //                     auto R = R_Wc.first;
-    //                     auto Wc = R_Wc.second;
-    //                     auto iteR = std::find(Rlist.cbegin(), Rlist.cend(), R);
-    //                     auto iR = std::distance(Rlist.cbegin(), iteR);
-    //                     sprintf(fn, "Wc_Mu_%zu_Nu_%zu_iR_%zu_itau_%d_id_%d.mtx", Mu, Nu, iR, itau, mpi_comm_global_h.myid);
-    //                     print_matrix_mm_file(Wc, Params::output_dir + "/" + fn, 1e-10);
-    //                 }
-    //             }
-    //         }
-    //     }
-    // }
-    // end myz debug
     return Wc_tau_R;
 }
 
