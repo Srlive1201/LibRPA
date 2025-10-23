@@ -77,3 +77,7 @@ mybuild*.sh
 
 # extracted test input data
 input_librpa/
+
+regression_tests/testcases/*/*out
+regression_tests/testcases/*/*dat
+regression_tests/testcases/*/*txt
