@@ -6,6 +6,7 @@
 #include <cassert>
 #include <stdexcept>
 
+#include "envs_mpi.h"
 #include "matrix_m.h"
 #include "profiler.h"
 #include "scalapack_connector.h"
@@ -27,8 +28,6 @@ template <typename T>
 matrix_m<T> init_local_mat(const LIBRPA::Array_Desc &ad, MAJOR major)
 {
     matrix_m<T> mat_lo(ad.m_loc(), ad.n_loc(), major);
-    if (mat_lo.size() == 0)
-        mat_lo.resize(1, 1);
     return mat_lo;
 }
 
@@ -52,8 +51,6 @@ matrix_m<T> get_local_mat(const matrix_m<T> &mat_go, const LIBRPA::Array_Desc &a
             mat_lo(i_lo, j_lo) = mat_go(i, j);
         }
     }
-    if (mat_lo.size() == 0)
-        mat_lo.resize(1, 1);
     return mat_lo;
 }
 

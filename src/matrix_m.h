@@ -95,12 +95,15 @@ public:
     std::shared_ptr<std::valarray<T>> data = nullptr;
 
 private:
+    // create a dummy data of size 1 to avoid null pointer when size is 0
+    bool data_dummy_;
     size_t size_;
     int mrank_;
     void set_size_mrank()
     {
         mrank_ = std::min((*dim)[0], (*dim)[1]);
         size_ = (*dim)[0] * (*dim)[1];
+        data_dummy_ = size_ > 0 ? false : true;
     }
 
 public:
@@ -109,13 +112,22 @@ public:
         dim = std::make_shared<std::array<int, 2>>();
         mrank_ = 0;
         size_ = 0;
+        data_dummy_ = true;
     }
     matrix_data(const std::array<int, 2> &dim_in)
     {
         dim = std::make_shared<std::array<int, 2>>(dim_in);
         set_size_mrank();
         if (size() > 0)
+        {
             data = std::make_shared<std::valarray<T>>(size());
+            data_dummy_ = false;
+        }
+        else
+        {
+            data = std::make_shared<std::valarray<T>>(1);
+            data_dummy_ = true;
+        }
     }
     matrix_data(const std::array<int, 2> &dim_in, const std::valarray<T> &data_in)
     {
@@ -128,7 +140,15 @@ public:
         dim = std::make_shared<std::array<int, 2>>(dim_in);
         set_size_mrank();
         if (size() > 0)
+        {
             data = std::make_shared<std::valarray<T>>(pdata, size());
+            data_dummy_ = false;
+        }
+        else
+        {
+            data = std::make_shared<std::valarray<T>>(1);
+            data_dummy_ = true;
+        }
     }
     matrix_data(const std::array<int, 2> &dim_in,
                 const std::shared_ptr<std::valarray<T>> &data_in)
@@ -136,14 +156,17 @@ public:
     {
         dim = std::make_shared<std::array<int, 2>>(dim_in);
         set_size_mrank();
+        data_dummy_ = size() > 0 ? true : false;
     }
     matrix_data(const std::shared_ptr<std::array<int, 2>> &dim_in,
                 const std::shared_ptr<std::valarray<T>> &data_in)
         : dim(dim_in), data(data_in)
     {
         set_size_mrank();
+        data_dummy_ = size() > 0 ? true : false;
     }
 
+    inline bool is_data_dummy() const { return data_dummy_; }
     inline int nr() const { return (*dim)[0]; }
     inline int nc() const { return (*dim)[1]; }
     inline size_t size() const { return size_; }
@@ -166,13 +189,15 @@ public:
         {
             if (size() > 0)
                 data = std::make_shared<std::valarray<T>>(0, size());
+            else
+                data = std::make_shared<std::valarray<T>>(0, 1);
         }
         else
         {
             if (size() > 0)
                 data->resize(size());
             else
-                data->resize(0);
+                data->resize(1);
         }
     }
 
@@ -185,12 +210,16 @@ public:
 
     void operator+=(const matrix_data<T> &mdata)
     {
+        // pointer is dummy, modifying the data is meaningless
+        if (data_dummy_ || mdata.data_dummy_) return;
         if (data != nullptr && mdata.data != nullptr)
             *data += *(mdata.data);
     }
 
     void operator-=(const matrix_data<T> &mdata)
     {
+        // pointer is dummy, modifying the data is meaningless
+        if (data_dummy_ || mdata.data_dummy_) return;
         if (data != nullptr && mdata.data != nullptr)
             *data -= *(mdata.data);
     }
@@ -203,6 +232,7 @@ bool operator==(const matrix_data<T> &mdata1, const matrix_data<T> &mdata2)
         return false;
     if (mdata1.sptr() == nullptr || mdata2.sptr() == nullptr)
         return false;
+    if (mdata1.is_data_dummy() || mdata2.is_data_dummy()) return false;
     using real_t = typename to_real<T>::type;
     const bool is_double = std::is_same<T, double>::value;
     const real_t thres = is_double ? 1e-14 : 1e-6;
