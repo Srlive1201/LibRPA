@@ -80,8 +80,8 @@ template <typename T>
 vector<atpair_t> generate_atom_pair_from_nat(const T &nat, bool ordered_pair = false)
 {
     vector<atpair_t> apair;
-    for(int i=0; i!=nat; i++)
-        for(int j = ordered_pair? 0 : i; j!=nat; j++)
+    for(T i=0; i!=nat; i++)
+        for(T j = ordered_pair? 0 : i; j!=nat; j++)
             apair.push_back({i,j});
     return apair;
 }

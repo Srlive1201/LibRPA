@@ -78,8 +78,11 @@ void expand_nested_vector_to_pointer(const std::vector<std::vector<T>> &nested_v
     if (nr&&nc)
     {
         for (int ir = 0; ir < nr_; ir++)
-            for (int ic = 0; ic < std::min(size_t(nc_), nested_vector[ir].size()); ic++)
+        {
+            const auto &ir_size = as_int(nested_vector[ir].size());
+            for (int ic = 0; ic < std::min(nc_, ir_size); ic++)
                 c[picker(nr, ir, nc, ic)] = nested_vector[ir][ic];
+        }
     }
 }
 

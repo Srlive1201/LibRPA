@@ -47,7 +47,9 @@ bool equal_array(int n, const T *a, const T *b, bool print = false)
     {
         if (print)
         {
-            std::cout << i << " : a " << *(a+i) << " , " << *(b+i) << std::endl;
+            std::cout << i << " : a " << *(a+i) << " , " << *(b+i);
+            if ( *(a+i) != *(b+i) ) std::cout << " (diff)";
+            std::cout << std::endl;
         }
         if ( *(a+i) != *(b+i) )
         {
@@ -196,7 +198,11 @@ bool fequal_array(int n, const T *a, const T *b, bool print = false, T thres = 1
     for ( int i = 0; i != n; i++ )
     {
         if (print)
-            printf("%d : a %f , b %f\n", i, *(a+i), *(b+i));
+        {
+            std::cout << i << " : a " << *(a+i) << " , " << *(b+i);
+            if ( !fequal(*(a+i), *(b+i), thres) ) std::cout << " (diff)";
+            std::cout << std::endl;
+        }
         if ( !fequal(*(a+i), *(b+i), thres) )
         {
             ndiff++;
