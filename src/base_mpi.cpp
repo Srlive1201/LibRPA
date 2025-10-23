@@ -205,7 +205,7 @@ std::vector<std::pair<int, int>> dispatcher(int i1st, int i1ed, int i2st, int i2
     return ilist;
 }
 
-std::vector<std::pair<int,int>> dispatch_upper_trangular_tasks(const int &natoms, const int &myid, const int &nprows, const int &npcols, const int &myprow, const int &mypcol)
+std::vector<std::pair<int,int>> dispatch_upper_triangular_tasks(const int &natoms, const int &myid, const int &nprows, const int &npcols, const int &myprow, const int &mypcol)
 {
     // int myid = blacs_ctxt_world_h.myid;
     // int nprows = blacs_ctxt_world_h.nprows;
@@ -226,13 +226,13 @@ std::vector<std::pair<int,int>> dispatch_upper_trangular_tasks(const int &natoms
         flag_former=false;
     }
 
-    auto list_row = dispatcher(0, natoms, myprow, nprows, true );
-    auto list_col = dispatcher(0, natoms, mypcol, npcols, true );
-    auto list_rev_row = dispatcher(0, natoms, rev_myprow, nprows, true );
-    auto list_rev_col = dispatcher(0, natoms, rev_mypcol, npcols, true );
+    auto list_row = dispatcher(0, natoms, myprow, nprows, true);
+    auto list_col = dispatcher(0, natoms, mypcol, npcols, true);
+    auto list_rev_row = dispatcher(0, natoms, rev_myprow, nprows, true);
+    auto list_rev_col = dispatcher(0, natoms, rev_mypcol, npcols, true);
 
-    auto loc_task= pick_upper_trangular_tasks(list_row,list_col);
-    auto rev_loc_task =pick_upper_trangular_tasks(list_rev_row,list_rev_col);
+    auto loc_task = pick_upper_triangular_tasks(list_row, list_col);
+    auto rev_loc_task = pick_upper_triangular_tasks(list_rev_row, list_rev_col);
 
     std::vector<std::pair<int,int>> combine_task, final_loc_task;
     if(myprow == rev_myprow && mypcol==rev_mypcol)
@@ -243,14 +243,14 @@ std::vector<std::pair<int,int>> dispatch_upper_trangular_tasks(const int &natoms
     {
         combine_task.insert(combine_task.end(),loc_task.begin(),loc_task.end());
         combine_task.insert(combine_task.end(),rev_loc_task.begin(),rev_loc_task.end());
-        int n_half_task= combine_task.size()/2;
+        int n_half_task = combine_task.size() / 2;
         final_loc_task.insert(final_loc_task.end(),combine_task.begin(),combine_task.begin()+n_half_task);
     }
     else
     {
         combine_task.insert(combine_task.end(),rev_loc_task.begin(),rev_loc_task.end());
         combine_task.insert(combine_task.end(),loc_task.begin(),loc_task.end());
-        int n_half_task= combine_task.size()/2;
+        int n_half_task = combine_task.size() / 2;
         final_loc_task.insert(final_loc_task.end(),combine_task.begin()+n_half_task,combine_task.end());
     }
     // for(auto &iap:final_loc_task)
@@ -258,7 +258,7 @@ std::vector<std::pair<int,int>> dispatch_upper_trangular_tasks(const int &natoms
     return final_loc_task;
 }
 
-std::vector<std::pair<int,int>> pick_upper_trangular_tasks(std::vector<int> list_row, std::vector<int> list_col)
+std::vector<std::pair<int,int>> pick_upper_triangular_tasks(std::vector<int> list_row, std::vector<int> list_col)
 {
     std::vector<std::pair<int,int>> loc_task;
     for(auto &lr:list_row)

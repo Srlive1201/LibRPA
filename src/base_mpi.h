@@ -78,8 +78,8 @@ std::vector<int> dispatcher(int ist, int ied, unsigned myid, unsigned size, bool
 std::vector<std::pair<int, int>> dispatcher(int i1st, int i1ed, int i2st, int i2ed,
                                   unsigned myid, unsigned size, bool sequential, bool favor_1st);
 
-std::vector<std::pair<int,int>> pick_upper_trangular_tasks(std::vector<int> list_row, std::vector<int> list_col);
-std::vector<std::pair<int,int>> dispatch_upper_trangular_tasks(const int &natoms, const int &myid, const int &nprows, const int &npcols, const int &myprow, const int &mypcol);
+std::vector<std::pair<int,int>> pick_upper_triangular_tasks(std::vector<int> list_row, std::vector<int> list_col);
+std::vector<std::pair<int,int>> dispatch_upper_triangular_tasks(const int &natoms, const int &myid, const int &nprows, const int &npcols, const int &myprow, const int &mypcol);
 
 /*!
  * @brief find duplicate pairs across all processes

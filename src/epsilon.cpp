@@ -1670,7 +1670,7 @@ compute_Wc_freq_q_blacs(Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, atpa
                                coul_chi0_block.size() + coulwc_block.size()) * 16.0e-6;
     ofs_myid << get_timestamp() << " Memory consumption of task-local blocks for screened Coulomb [MB]: " << mem_blocks << endl;
 
-    const auto atpair_local = LIBRPA::dispatch_upper_trangular_tasks(
+    const auto atpair_local = LIBRPA::dispatch_upper_triangular_tasks(
         natom, blacs_ctxt_global_h.myid, blacs_ctxt_global_h.nprows, blacs_ctxt_global_h.npcols,
         blacs_ctxt_global_h.myprow, blacs_ctxt_global_h.mypcol);
 #ifdef LIBRPA_DEBUG
