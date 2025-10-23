@@ -29,8 +29,11 @@ enum class AngularConvention
 class AtomicBasis
 {
 private:
+    bool initialized_;
     std::vector<std::size_t> nbs_;
-    std::vector<std::size_t> part_range;
+    std::vector<std::size_t> part_range_;
+    std::map<atom_t, std::vector<std::size_t>> global_indices_;
+
     void initialize();
 public:
     //! Total number of atoms
@@ -39,7 +42,7 @@ public:
     std::size_t nb_total;
 
     // Constructors
-    AtomicBasis(): nbs_(), part_range(), n_atoms(0), nb_total(0) {};
+    AtomicBasis(): initialized_(false), nbs_(), part_range_(), n_atoms(0), nb_total(0) {};
     AtomicBasis(const std::vector<std::size_t>& nbs);
     AtomicBasis(const std::vector<int>& atoms,
                 const std::map<int, std::size_t>& map_atom_nb);
@@ -71,7 +74,8 @@ public:
 
     std::size_t get_atom_nb(const int& i_atom) const { return nbs_[i_atom]; }
     std::vector<std::size_t> get_atom_nbs() const { return nbs_; }
-    const std::vector<std::size_t>& get_part_range() const { return part_range; }
+    const std::vector<std::size_t>& get_part_range() const { return part_range_; }
+    bool initialized() const { return initialized_; }
 };
 
 /*!

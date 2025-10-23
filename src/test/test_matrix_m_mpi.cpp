@@ -1,4 +1,5 @@
 #include "../utils_matrix_m_mpi.h"
+#include "../utils_matrix_m.h"
 
 #include "../envs_mpi.h"
 #include "../envs_blacs.h"
@@ -29,7 +30,7 @@ void test_pgemm(const T &m1_lb, const T &m1_ub)
     int pid_src, irsrc, icsrc;
     pid_src = 2;
     blacs_ctxt_global_h.get_pcoord(pid_src, irsrc, icsrc);
-    printf("pid_src irsrc icsrc: %d %d %d\n", pid_src, irsrc, icsrc);
+    // printf("pid_src irsrc icsrc: %d %d %d\n", pid_src, irsrc, icsrc);
 
     // prepare the real data in the source process
     if (blacs_ctxt_global_h.myid == pid_src)
@@ -39,10 +40,10 @@ void test_pgemm(const T &m1_lb, const T &m1_ub)
         prod.resize(m, n);
         m1.randomize(m1_lb, m1_ub);
         m2.randomize();
-        printf("Mat1:\n%s", str(m1).c_str());
-        printf("Mat2:\n%s", str(m2).c_str());
+        // printf("Mat1:\n%s", str(m1).c_str());
+        // printf("Mat2:\n%s", str(m2).c_str());
         prod_lapack = m1 * m2;
-        printf("Product:\n%s", str(prod_lapack).c_str());
+        // printf("Product:\n%s", str(prod_lapack).c_str());
     }
     blacs_ctxt_global_h.barrier();
 
@@ -50,8 +51,8 @@ void test_pgemm(const T &m1_lb, const T &m1_ub)
     auto pair_desc_m2 = prepare_array_desc_mr2d_src_and_all(blacs_ctxt_global_h, k, n, kb, nb, irsrc, icsrc);
     matrix_m<T> m1_local = init_local_mat<T>(pair_desc_m1.second, MAJOR::COL);
     matrix_m<T> m2_local = init_local_mat<T>(pair_desc_m2.second, MAJOR::COL);
-    printf("mat1_local addr %p\n%s", m1_local.ptr(), str(m1_local).c_str());
-    printf("mat2_local addr %p\n%s", m2_local.ptr(), str(m2_local).c_str());
+    // printf("mat1_local addr %p\n%s", m1_local.ptr(), str(m1_local).c_str());
+    // printf("mat2_local addr %p\n%s", m2_local.ptr(), str(m2_local).c_str());
     // distribute data
     ScalapackConnector::pgemr2d_f(m, k,
                                   m1.ptr(), 1, 1, pair_desc_m1.first.desc,
@@ -72,7 +73,7 @@ void test_pgemm(const T &m1_lb, const T &m1_ub)
                                 m2_local.ptr(), 1, 1, pair_desc_m2.second.desc,
                                 0.0,
                                 prod_local.ptr(), 1, 1, pair_desc_prod.second.desc);
-    printf("prod_local on proc %d:\n%s", blacs_ctxt_global_h.myid, str(prod_local).c_str());
+    // printf("prod_local on proc %d:\n%s", blacs_ctxt_global_h.myid, str(prod_local).c_str());
     // collect data back to source
     ScalapackConnector::pgemr2d_f(m, n,
                                   prod_local.ptr(), 1, 1, pair_desc_prod.second.desc,
@@ -137,7 +138,7 @@ void test_invert_scalapack()
                                   mat_times_invmat.ptr(), 1, 1, desc_mat.desc,
                                   mat.ptr(), 1, 1, desc_mat_fb_src.desc,
                                   blacs_ctxt_global_h.ictxt);
-    printf("mat * invmat on proc %d\n%s", blacs_ctxt_global_h.myid, str(mat_times_invmat).c_str());
+    // printf("mat * invmat on proc %d\n%s", blacs_ctxt_global_h.myid, str(mat_times_invmat).c_str());
     if (blacs_ctxt_global_h.myid == pid_src)
     {
         matrix_m<T> identity(n, n, MAJOR::COL);
@@ -190,13 +191,13 @@ void test_power_hemat_blacs_square_grid(const T &m_lb, const T &m_ub)
     power_hemat_blacs<real_type>(mat_loc, pair_desc_m.second,
                                  eig_loc, pair_desc_m.second, n_filtered, W, 1.0/3.0, -1.0e5);
     assert(n_filtered == 0);
-    if (blacs_ctxt_global_h.myid == pid_src)
-    {
-        printf("Eigenvalues: ");
-        for (int i = 0; i < n; i++)
-            printf("%f ", W[i]);
-        printf("\n");
-    }
+    // if (blacs_ctxt_global_h.myid == pid_src)
+    // {
+    //     printf("Eigenvalues: ");
+    //     for (int i = 0; i < n; i++)
+    //         printf("%f ", W[i]);
+    //     printf("\n");
+    // }
     blacs_ctxt_global_h.barrier();
     // printf("mat_loc of PID %d middle\n%s", blacs_ctxt_global_h.myid, str(mat_loc).c_str());
     power_hemat_blacs<real_type>(mat_loc, pair_desc_m.second,
@@ -212,9 +213,13 @@ void test_power_hemat_blacs_square_grid(const T &m_lb, const T &m_ub)
 
     if (blacs_ctxt_global_h.myid == pid_src)
     {
-        printf("mat global at pid_src %d\n%s", pid_src, str(mat).c_str());
-        printf("mat gathered at pid_src %d\n%s", pid_src, str(mat_gather).c_str());
-        assert(fequal_array(n*n, mat.ptr(), mat_gather.ptr(), false, thres));
+        bool print = false;
+        if (print)
+        {
+            printf("mat global at pid_src %d\n%s", pid_src, str(mat).c_str());
+            printf("mat gathered at pid_src %d\n%s", pid_src, str(mat_gather).c_str());
+        }
+        assert(fequal_array(n*n, mat.ptr(), mat_gather.ptr(), print, thres));
     }
 
     delete [] W;
@@ -362,17 +367,17 @@ void test_local_mat_from_ap_dist()
         IJmap[IJ] = std::move(mat);
     }
     const auto mat_loc = get_local_mat_from_ap_dist<T>(IJmap, map_proc_IJs_avail, ab, ab, ad, MAJOR::COL);
-    for (int i = 0; i < 4; i++)
-    {
-        blacs_ctxt_global_h.barrier();
-        if (myid_global == i)
-        {
-            std::cout << "myid " << i << " local matrix reference" << std::endl;
-            std::cout << mat_loc_ref;
-            std::cout << "myid " << i << " local matrix" << std::endl;
-            std::cout << mat_loc << std::endl;
-        }
-    }
+    // for (int i = 0; i < 4; i++)
+    // {
+    //     blacs_ctxt_global_h.barrier();
+    //     if (myid_global == i)
+    //     {
+    //         std::cout << "myid " << i << " local matrix reference" << std::endl;
+    //         std::cout << mat_loc_ref;
+    //         std::cout << "myid " << i << " local matrix" << std::endl;
+    //         std::cout << mat_loc << std::endl;
+    //     }
+    // }
     assert(fequal_array(mat_loc.size(), mat_loc.ptr(), mat_loc_ref.ptr(), false));
 
     blacs_ctxt_global_h.exit();
@@ -438,22 +443,21 @@ void test_local_mat_from_ap_dist_he()
         IJmap[IJ] = std::move(mat);
     }
     const auto mat_loc = get_local_mat_from_ap_dist_sy<T>(IJmap, 'u', map_proc_IJs_avail, ab, ad, true, MAJOR::COL);
-    for (int i = 0; i < 4; i++)
-    {
-        blacs_ctxt_global_h.barrier();
-        if (myid_global == i)
-        {
-            std::cout << "myid " << i << " local matrix reference" << std::endl;
-            std::cout << mat_loc_ref;
-            std::cout << "myid " << i << " local matrix" << std::endl;
-            std::cout << mat_loc << std::endl;
-        }
-    }
+    // for (int i = 0; i < 4; i++)
+    // {
+    //     blacs_ctxt_global_h.barrier();
+    //     if (myid_global == i)
+    //     {
+    //         std::cout << "myid " << i << " local matrix reference" << std::endl;
+    //         std::cout << mat_loc_ref;
+    //         std::cout << "myid " << i << " local matrix" << std::endl;
+    //         std::cout << mat_loc << std::endl;
+    //     }
+    // }
     blacs_ctxt_global_h.barrier();
     assert(fequal_array(mat_loc.size(), mat_loc.ptr(), mat_loc_ref.ptr(), false));
 
     blacs_ctxt_global_h.exit();
-
 }
 
 template <typename T>
@@ -560,27 +564,15 @@ void test_ap_map_from_blacs_dist()
             blacs_ctxt_global_h.barrier();
             if (myid_global == i)
             {
-                // std::cout << "myid " << i << " comparing atom pair mapping data" << std::endl;
-                // std::cout << "map size: ref " << IJmap_ref.size() << " - test " << IJmap.size() << std::endl;
                 assert(IJmap.size() == IJmap_ref.size());
                 for (const auto &IJ_mat: IJmap)
                 {
                     const auto &IJ = IJ_mat.first;
                     const auto &mat = IJ_mat.second;
-                    // if (!IJmap_ref.count(IJ))
-                    // {
-                    //     std::cout << "ref has no " << IJ << " ! " << std::endl;
-                    //     std::cout << "test" << std::endl << mat;
-                    //     continue;
-                    // }
-                    // std::cout << "comparing common key " << IJ << std::endl;
-                    // std::cout << "test" << std::endl << mat;
-                    // std::cout << "ref" << std::endl << mat_ref;
                     assert(IJmap_ref.count(IJ));
                     const auto &mat_ref = IJmap_ref.at(IJ);
                     assert(mat.size() == mat_ref.size());
                     assert(fequal_array(mat.size(), mat.ptr(), mat_ref.ptr(), false));
-                    // fequal_array(mat.size(), mat.ptr(), mat_ref.ptr(), true);
                 }
             }
         }
@@ -654,7 +646,84 @@ void test_restore_local_mat(const std::vector<size_t> &nbs)
 
 template <typename T>
 void test_restore_ap_map(const std::vector<size_t> &nbs)
-{}
+{
+    blacs_ctxt_global_h.set_square_grid(true, LIBRPA::CTXT_LAYOUT::R);
+
+    const auto &nprocs = blacs_ctxt_global_h.nprocs;
+    assert(nprocs == 4);
+    assert(blacs_ctxt_global_h.nprows == 2);
+    assert(blacs_ctxt_global_h.npcols == 2);
+
+    LIBRPA::AtomicBasis ab(nbs);
+    const auto m = ab.nb_total;
+    const auto n = m;
+    Array_Desc ad(blacs_ctxt_global_h);
+    ad.init_1b1p(m, n, 0, 0);
+    assert(ad.initialized());
+
+    // initialize global matrix
+    matrix_m<T> global(ab.nb_total, ab.nb_total, MAJOR::COL);
+    if (myid_global == 0)
+    {
+        if (is_complex<T>())
+        {
+             global.randomize(0, 1, false, true);
+        }
+        else
+        {
+             global.randomize(0, 1, true, false);
+        }
+    }
+    // broadcast
+    MPI_Bcast(global.ptr(), m * n, mpi_datatype<T>::value, 0, ad.comm());
+    const auto &pairs = generate_atom_pair_from_nat(ab.n_atoms, true);
+    assert(pairs.size() == ab.n_atoms * ab.n_atoms);
+    // distribute atom pairs to processes - a naive distribution by order
+    std::map<int, std::vector<atpair_t>> IJs;
+    for (size_t i = 0; i < pairs.size(); i++)
+    {
+        IJs[i % nprocs].emplace_back(pairs[i]);
+    }
+    std::map<atpair_t, matrix_m<T>> IJmap_ref;
+    for (const auto &IJ: IJs[myid_global])
+    {
+        IJmap_ref[IJ] = get_ap_block_from_global(global, IJ, ab, ab);
+    }
+    const auto mat_loc = get_local_mat_from_ap_dist(IJmap_ref, IJs, ab, ab, ad, MAJOR::COL);
+    const auto IJmap = get_ap_map_from_blacs_dist(mat_loc, IJs, ab, ab, ad);
+
+    for (int i = 0; i < 4; i++)
+    {
+        blacs_ctxt_global_h.barrier();
+        if (myid_global == i)
+        {
+            // std::cout << "myid " << i << " comparing atom pair mapping data" << std::endl;
+            // std::cout << "map size: ref " << IJmap_ref.size() << " - test " << IJmap.size() << std::endl;
+            assert(IJmap.size() == IJmap_ref.size());
+            for (const auto &IJ_mat: IJmap)
+            {
+                const auto &IJ = IJ_mat.first;
+                const auto &mat = IJ_mat.second;
+                // if (!IJmap_ref.count(IJ))
+                // {
+                //     std::cout << "ref has no " << IJ << " ! " << std::endl;
+                //     std::cout << "test" << std::endl << mat;
+                //     continue;
+                // }
+                // std::cout << "comparing common key " << IJ << std::endl;
+                // std::cout << "test" << std::endl << mat;
+                // std::cout << "ref" << std::endl << mat_ref;
+                assert(IJmap_ref.count(IJ));
+                const auto &mat_ref = IJmap_ref.at(IJ);
+                assert(mat.size() == mat_ref.size());
+                assert(fequal_array(mat.size(), mat.ptr(), mat_ref.ptr(), true));
+                // fequal_array(mat.size(), mat.ptr(), mat_ref.ptr(), true);
+            }
+        }
+    }
+
+    blacs_ctxt_global_h.exit();
+}
 
 int main (int argc, char *argv[])
 {
@@ -690,8 +759,10 @@ int main (int argc, char *argv[])
     test_restore_local_mat<double>({1, 2, 1});
     test_restore_local_mat<double>({2, 4, 1, 3});
     test_restore_local_mat<complex<double>>({3, 5, 1});
-    // test_restore_ap_map<double>();
-    // test_restore_ap_map<complex<double>>();
+
+    // test_restore_ap_map<double>({1, 2, 1});
+    // test_restore_ap_map<double>({2, 4, 1, 3});
+    // test_restore_ap_map<complex<double>>({3, 5, 1});
 
     finalize_io();
     finalize_blacs();

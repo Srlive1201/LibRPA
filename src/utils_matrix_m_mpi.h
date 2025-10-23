@@ -1156,6 +1156,7 @@ void fill_ap_map_from_blacs_dist(std::map<atpair_t, matrix_m<T>> &data,
             if (!data.count(atpair))
             {
                 data[atpair] = matrix_m<T>(atbasis_r.get_atom_nb(I), atbasis_r.get_atom_nb(J), major_data);
+                data[atpair].zero_out();
             }
             data.at(atpair)(i, j) = m_loc(ir, ic);
         }
@@ -1267,6 +1268,7 @@ void fill_ap_map_from_blacs_dist(std::map<atpair_t, matrix_m<T>> &data,
                 const auto &nI = atbasis_c.get_atom_nb(as_int(atpair.first));
                 const auto &nJ = atbasis_c.get_atom_nb(as_int(atpair.second));
                 data[atpair] = matrix_m<T>(nI, nJ, major_data);
+                data[atpair].zero_out();
             }
             for (size_t i = 0; i < ids.size(); i++)
             {

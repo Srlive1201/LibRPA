@@ -13,6 +13,8 @@
 /* #include "vector3.h" */
 /* #include "matrix3.h" */
 
+#include "base_utility.h"
+
 using std::vector;
 using std::map;
 using std::pair;
@@ -20,6 +22,12 @@ using std::size_t;
 
 //! type of atom indices
 typedef size_t atom_t;
+
+template <typename T>
+inline atom_t as_atom(T x) noexcept
+{
+    return static_cast<atom_t>(x);
+}
 
 //! atom-pair type. NOTE: may turn into a class?
 typedef pair<atom_t, atom_t> atpair_t;
