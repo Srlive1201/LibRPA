@@ -475,12 +475,6 @@ void test_ap_map_from_blacs_dist()
 
     LIBRPA::AtomicBasis ab;
     // 3 atoms, atom 0 and 2 with 1 and atom 1 with 2
-    // Process indices
-    // | 0   0 | 0   1 |
-    // | 0   3 | 3   1 |
-    // |-------|-------|
-    // | 0   3 | 3   1 |
-    // | 2   2 | 2   3 |
     ab.set(std::vector<size_t>{1, 2, 1});
     matrix_m<T> global(ab.nb_total, ab.nb_total, MAJOR::COL);
     if (myid_global == 0)
@@ -498,46 +492,96 @@ void test_ap_map_from_blacs_dist()
     MPI_Bcast(global.ptr(), m * n, mpi_datatype<T>::value, 0, ad.comm());
     auto mat_loc = get_local_mat<T>(global, ad);
 
-    if (myid_global == 0)
+    // if (myid_global == 0) std::cout << "global matrix" << std::endl << global;
+
+    // Test different IJ distribution cases
+
+    // Case one
+    // Process indices
+    // | 0   0 | 0   1 |
+    // | 0   3 | 3   1 |
+    // |-------|-------|
+    // | 0   3 | 3   1 |
+    // | 2   2 | 2   3 |
     {
-        std::cout << "global matrix" << std::endl << global;
+        const std::map<int, std::vector<atpair_t>> map_proc_IJs_require {{0, {{0, 0}, {1, 0}, {0, 1}}},
+                                                                         {1, {{0, 2}, {1, 2}}},
+                                                                         {2, {{2, 0}, {2, 1}}},
+                                                                         {3, {{1, 1}, {2, 2}}}};
+        const auto IJmap = get_ap_map_from_blacs_dist<T>(mat_loc, map_proc_IJs_require, ab, ab, ad);
+        const std::vector<std::map<atpair_t, matrix_m<T>>> IJmap_ref_all {
+            {{{0, 0}, { {{global(0, 0)}} }}, {{0, 1}, { {{global(0, 1), global(0, 2)}} }}, {{1, 0}, { {{global(1, 0)}, {global(2, 0)}} }}}, // proc 0
+            {{{0, 2}, { {{global(0, 3)}} }}, {{1, 2}, { {{global(1, 3)}, {global(2, 3)}} }}}, // proc 1
+            {{{2, 0}, { {{global(3, 0)}} }}, {{2, 1}, { {{global(3, 1), global(3, 2)}} }}, }, // proc 2
+            {{{2, 2}, { {{global(3, 3)}} }}, {{1, 1}, { {{global(1, 1), global(1, 2)}, {global(2, 1), global(2, 2)}} }}, }, // proc 0
+        };
+        const auto &IJmap_ref = IJmap_ref_all[myid_global];
+        for (int i = 0; i < 4; i++)
+        {
+            blacs_ctxt_global_h.barrier();
+            if (myid_global == i)
+            {
+                assert(IJmap.size() == IJmap_ref.size());
+                for (const auto &IJ_mat: IJmap)
+                {
+                    const auto &IJ = IJ_mat.first;
+                    const auto &mat = IJ_mat.second;
+                    assert(IJmap_ref.count(IJ));
+                    const auto &mat_ref = IJmap_ref.at(IJ);
+                    assert(mat.size() == mat_ref.size());
+                    assert(fequal_array(mat.size(), mat.ptr(), mat_ref.ptr(), false));
+                }
+            }
+        }
     }
 
-    const std::map<int, std::vector<atpair_t>> map_proc_IJs_require {{0, {{0, 0}, {1, 0}, {0, 1}}},
-                                                                     {1, {{0, 2}, {1, 2}}},
-                                                                     {2, {{2, 0}, {2, 1}}},
-                                                                     {3, {{1, 1}, {2, 2}}}};
-    const auto IJmap = get_ap_map_from_blacs_dist<T>(mat_loc, map_proc_IJs_require, ab, ab, ad);
-    const std::vector<std::map<atpair_t, matrix_m<T>>> IJmap_ref_all {
-        {{{0, 0}, { {{global(0, 0)}} }}, {{0, 1}, { {{global(0, 1), global(0, 2)}} }}, {{1, 0}, { {{global(1, 0)}, {global(2, 0)}} }}}, // proc 0
-        {{{0, 2}, { {{global(0, 3)}} }}, {{1, 2}, { {{global(1, 3)}, {global(2, 3)}} }}}, // proc 1
-        {{{2, 0}, { {{global(3, 0)}} }}, {{2, 1}, { {{global(3, 1), global(3, 2)}} }}, }, // proc 2
-        {{{2, 2}, { {{global(3, 3)}} }}, {{1, 1}, { {{global(1, 1), global(1, 2)}, {global(2, 1), global(2, 2)}} }}, }, // proc 0
-    };
-    const auto &IJmap_ref = IJmap_ref_all[myid_global];
-    for (int i = 0; i < 4; i++)
+    // Case two
+    // Process indices
+    // | 0   1 | 1   2 |
+    // | 3   0 | 0   1 |
+    // |-------|-------|
+    // | 3   0 | 0   1 |
+    // | 2   3 | 3   0 |
     {
-        blacs_ctxt_global_h.barrier();
-        if (myid_global == i)
+        const std::map<int, std::vector<atpair_t>> map_proc_IJs_require {{0, {{0, 0}, {1, 1}, {2, 2}}},
+                                                                         {1, {{0, 1}, {1, 2}}},
+                                                                         {2, {{0, 2}, {2, 0}}},
+                                                                         {3, {{1, 0}, {2, 1}}}};
+        const auto IJmap = get_ap_map_from_blacs_dist<T>(mat_loc, map_proc_IJs_require, ab, ab, ad);
+        const std::vector<std::map<atpair_t, matrix_m<T>>> IJmap_ref_all {
+            {{{0, 0}, { {{global(0, 0)}} }}, {{1, 1}, { {{global(1, 1), global(1, 2)}, {global(2, 1), global(2, 2)}} }}, {{2, 2}, { {{global(3, 3)}} }}, }, // proc 0
+            {{{0, 1}, { {{global(0, 1), global(0, 2)}} }}, {{1, 2}, { {{global(1, 3)}, {global(2, 3)}} }}}, // proc 1
+            {{{0, 2}, { {{global(0, 3)}} }}, {{2, 0}, { {{global(3, 0)}} }}, }, // proc 2
+            {{{1, 0}, { {{global(1, 0)}, {global(2, 0)}} }}, {{2, 1}, { {{global(3, 1), global(3, 2)}} }}, }, // proc 3
+        };
+        const auto &IJmap_ref = IJmap_ref_all[myid_global];
+        for (int i = 0; i < 4; i++)
         {
-            std::cout << "myid " << i << " comparing atom pair mapping data" << std::endl;
-            std::cout << "map size: ref " << IJmap_ref.size() << " - test " << IJmap.size() << std::endl;
-            for (const auto &IJ_mat: IJmap)
+            blacs_ctxt_global_h.barrier();
+            if (myid_global == i)
             {
-                const auto &IJ = IJ_mat.first;
-                const auto &mat = IJ_mat.second;
-                if (!IJmap_ref.count(IJ))
+                // std::cout << "myid " << i << " comparing atom pair mapping data" << std::endl;
+                // std::cout << "map size: ref " << IJmap_ref.size() << " - test " << IJmap.size() << std::endl;
+                assert(IJmap.size() == IJmap_ref.size());
+                for (const auto &IJ_mat: IJmap)
                 {
-                    std::cout << "ref has no " << IJ << " ! " << std::endl;
-                    std::cout << "test" << std::endl << mat;
-                    continue;
+                    const auto &IJ = IJ_mat.first;
+                    const auto &mat = IJ_mat.second;
+                    // if (!IJmap_ref.count(IJ))
+                    // {
+                    //     std::cout << "ref has no " << IJ << " ! " << std::endl;
+                    //     std::cout << "test" << std::endl << mat;
+                    //     continue;
+                    // }
+                    // std::cout << "comparing common key " << IJ << std::endl;
+                    // std::cout << "test" << std::endl << mat;
+                    // std::cout << "ref" << std::endl << mat_ref;
+                    assert(IJmap_ref.count(IJ));
+                    const auto &mat_ref = IJmap_ref.at(IJ);
+                    assert(mat.size() == mat_ref.size());
+                    assert(fequal_array(mat.size(), mat.ptr(), mat_ref.ptr(), false));
+                    // fequal_array(mat.size(), mat.ptr(), mat_ref.ptr(), true);
                 }
-                const auto &mat_ref = IJmap_ref.at(IJ);
-                std::cout << "comparing common key " << IJ << std::endl;
-                std::cout << "test" << std::endl << mat;
-                std::cout << "ref" << std::endl << mat_ref;
-                assert(fequal_array(mat.size(), mat.ptr(), mat_ref.ptr(), true));
-                // fequal_array(mat.size(), mat_ref.ptr(), mat.ptr(), true);
             }
         }
     }
@@ -561,15 +605,6 @@ void test_restore_local_mat(const std::vector<size_t> &nbs)
     ad.init_1b1p(m, n, 0, 0);
     assert(ad.initialized());
 
-    const auto &pairs = generate_atom_pair_from_nat(ab.n_atoms, true);
-    assert(pairs.size() == ab.n_atoms * ab.n_atoms);
-    // distribute atom pairs to processes - a naive distribution by order
-    std::map<int, std::vector<atpair_t>> IJs;
-    for (size_t i = 0; i < pairs.size(); i++)
-    {
-        IJs[i % nprocs].emplace_back(pairs[i]);
-    }
-
     // initialize global matrix
     matrix_m<T> global(ab.nb_total, ab.nb_total, MAJOR::COL);
     if (myid_global == 0)
@@ -587,6 +622,16 @@ void test_restore_local_mat(const std::vector<size_t> &nbs)
     MPI_Bcast(global.ptr(), m * n, mpi_datatype<T>::value, 0, ad.comm());
     const auto mat_loc_ref = get_local_mat<T>(global, ad);
 
+    const auto &pairs = generate_atom_pair_from_nat(ab.n_atoms, true);
+    assert(pairs.size() == ab.n_atoms * ab.n_atoms);
+    // distribute atom pairs to processes - a naive distribution by order
+    std::map<int, std::vector<atpair_t>> IJs;
+    for (size_t i = 0; i < pairs.size(); i++)
+    {
+        IJs[i % nprocs].emplace_back(pairs[i]);
+    }
+    // if (myid_global == 0) std::cout << IJs << std::endl;
+
     const auto IJmap = get_ap_map_from_blacs_dist(mat_loc_ref, IJs, ab, ab, ad);
     const auto mat_loc = get_local_mat_from_ap_dist(IJmap, IJs, ab, ab, ad, MAJOR::COL);
 
@@ -595,12 +640,12 @@ void test_restore_local_mat(const std::vector<size_t> &nbs)
         blacs_ctxt_global_h.barrier();
         if (myid_global == i)
         {
-            std::cout << "myid " << i << " local matrix reference" << std::endl;
-            std::cout << mat_loc_ref;
-            std::cout << "myid " << i << " local matrix" << std::endl;
-            std::cout << mat_loc << std::endl;
-            // assert(fequal_array(mat_loc.size(), mat_loc.ptr(), mat_loc_ref.ptr(), true));
-            fequal_array(mat_loc.size(), mat_loc.ptr(), mat_loc_ref.ptr(), true);
+            // std::cout << "myid " << i << " local matrix reference" << std::endl;
+            // std::cout << mat_loc_ref;
+            // std::cout << "myid " << i << " local matrix" << std::endl;
+            // std::cout << mat_loc << std::endl;
+            assert(fequal_array(mat_loc.size(), mat_loc.ptr(), mat_loc_ref.ptr(), false));
+            // fequal_array(mat_loc.size(), mat_loc.ptr(), mat_loc_ref.ptr(), true);
         }
     }
 
@@ -642,9 +687,9 @@ int main (int argc, char *argv[])
     test_ap_map_from_blacs_dist<double>();
     test_ap_map_from_blacs_dist<complex<double>>();
 
-    // test_restore_local_mat<double>({2, 4, 1, 3});
-    // test_restore_local_mat<double>({1, 2, 1});
-    // test_restore_local_mat<complex<double>>({3, 5, 1});
+    test_restore_local_mat<double>({1, 2, 1});
+    test_restore_local_mat<double>({2, 4, 1, 3});
+    test_restore_local_mat<complex<double>>({3, 5, 1});
     // test_restore_ap_map<double>();
     // test_restore_ap_map<complex<double>>();
 

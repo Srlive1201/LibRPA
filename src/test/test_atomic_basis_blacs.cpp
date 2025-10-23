@@ -2,9 +2,6 @@
 #include "../envs_mpi.h"
 #include "../utils_atomic_basis_blacs.h"
 
-#include "../matrix_m.h"
-#include "../utils_matrix_m_mpi.h"
-
 #include "../stl_io_helper.h"
 #include "testutils.h"
 
@@ -561,6 +558,42 @@ static void test_blacs_to_ap_global_indices_communicate()
         assert(equal_map_vector(sendlist_ref, proc2idlist.first));
         assert(equal_map_vector(recvlist_ref, proc2idlist.second));
     }
+    // same basis, but a different IJ distribtution
+    // | 0   1 | 1   2 |
+    // | 3   0 | 0   1 |
+    // |-------|-------|
+    // | 3   0 | 0   1 |
+    // | 2   3 | 3   0 |
+    {
+        const auto proc2idlist = LIBRPA::utils::get_communicate_global_ids_list_blacs_to_ap(
+            myid_global,
+            {
+             {0, {{0, 0}, {1, 1}, {2, 2}}},
+             {1, {{0, 1}, {1, 2}}},
+             {2, {{0, 2}, {2, 0}}},
+             {3, {{1, 0}, {2, 1}}}
+            },
+            ab, ab,
+            ad, true, false);
+        // flattened indices with column major and sorted with row index going fastest
+        const std::vector<std::map<int, std::vector<size_t>>> sendlist_ref_all({
+            {{1, {4}}, {3, {1}}},
+            {{0, {9}}, {2, {12}}},
+            {{0, {6}}, {3, {2, 7}}},
+            {{1, {14}}, {0, {10, 15}}},
+        });
+        const auto &sendlist_ref = sendlist_ref_all[myid_global];
+        const std::vector<std::map<int, std::vector<size_t>>> recvlist_ref_all({
+            {{1, {9}}, {2, {6}}, {3, {10, 15}}},
+            {{3, {14}}, {0, {4}}},
+            {{1, {12}}},
+            {{0, {1}}, {2, {2, 7}}},
+        });
+        const auto &recvlist_ref = recvlist_ref_all[myid_global];
+
+        assert(equal_map_vector(sendlist_ref, proc2idlist.first));
+        assert(equal_map_vector(recvlist_ref, proc2idlist.second));
+    }
     blacs_ctxt_global_h.exit();
 }
 
@@ -650,6 +683,60 @@ static void test_blacs_to_ap_local_indices_communicate()
         assert(equal_map_vector(sendlist_ref, proc2idlist.first));
         assert(equal_map_vector_pv(recvlist_ref, proc2idlist.second));
     }
+    // same basis, but a different IJ distribtution
+    // | 0   1 | 1   2 |
+    // | 3   0 | 0   1 |
+    // |-------|-------|
+    // | 3   0 | 0   1 |
+    // | 2   3 | 3   0 |
+    {
+        const auto proc2idlist = LIBRPA::utils::get_communicate_local_ids_list_blacs_to_ap(
+            myid_global,
+            {
+             {0, {{0, 0}, {1, 1}, {2, 2}}},
+             {1, {{0, 1}, {1, 2}}},
+             {2, {{0, 2}, {2, 0}}},
+             {3, {{1, 0}, {2, 1}}}
+            },
+            ab, ab,
+            ad, true, false);
+        const std::vector<std::map<int, std::vector<size_t>>> sendlist_ref_all({
+            {{1, {2}}, {3, {1}}},
+            {{0, {1}}, {2, {2}}},
+            {{0, {2}}, {3, {0, 3}}},
+            {{1, {2}}, {0, {0, 3}}},
+        });
+        const auto &sendlist_ref = sendlist_ref_all[myid_global];
+        const std::vector<std::map<int, std::vector<std::pair<atpair_t, std::vector<size_t>>>>>
+            recvlist_ref_all({
+                {{1, {{{1, 1}, {2}}}}, {2, {{{1, 1}, {1}}}}, {3, {{{1, 1}, {3}}, {{2, 2}, {0}}}}},
+                {{3, {{{1, 2}, {1}}}}, {0, {{{0, 1}, {0}}}}},
+                {{1, {{{0, 2}, {0}}}}},
+                {{0, {{{1, 0}, {0}}}}, {2, {{{1, 0}, {1}}, {{2, 1}, {0}}}}},
+                // global:
+                // {{1, {9}}, {2, {6}}, {3, {10, 15}}},
+                // {{3, {14}}, {0, {4}}},
+                // {{1, {12}}},
+                // {{0, {1}}, {2, {2, 7}}},
+        });
+        const auto &recvlist_ref = recvlist_ref_all[myid_global];
+
+        // for (int i = 0; i < 4; i++)
+        // {
+        //     blacs_ctxt_global_h.barrier();
+        //     if (myid_global == i)
+        //     {
+        //         std::cout << "myid " << i << std::endl;
+        //         std::cout << "Recv Ref:" << std::endl << recvlist_ref << std::endl;
+        //         std::cout << "Recv Test:" << std::endl << proc2idlist.second << std::endl;
+        //         std::cout << "Send Ref:" << std::endl << sendlist_ref << std::endl;
+        //         std::cout << "Send Test:" << std::endl << proc2idlist.first << std::endl;
+        //     }
+        // }
+        assert(equal_map_vector(sendlist_ref, proc2idlist.first));
+        assert(equal_map_vector_pv(recvlist_ref, proc2idlist.second));
+    }
+
     blacs_ctxt_global_h.exit();
 }
 

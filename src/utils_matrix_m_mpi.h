@@ -1270,7 +1270,7 @@ void fill_ap_map_from_blacs_dist(std::map<atpair_t, matrix_m<T>> &data,
             }
             for (size_t i = 0; i < ids.size(); i++)
             {
-                data.at(atpair).ptr()[ids[i]] = recvbuff[disp+i];
+                data.at(atpair).ptr()[ids[i]] = recvbuff[disp+count+i];
             }
             count += ids.size();
         }

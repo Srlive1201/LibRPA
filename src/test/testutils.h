@@ -199,7 +199,7 @@ bool fequal_array(int n, const T *a, const T *b, bool print = false, T thres = 1
     {
         if (print)
         {
-            std::cout << i << " : a " << *(a+i) << " , " << *(b+i);
+            std::cout << i << " : a " << *(a+i) << " , b " << *(b+i);
             if ( !fequal(*(a+i), *(b+i), thres) ) std::cout << " (diff)";
             std::cout << std::endl;
         }
