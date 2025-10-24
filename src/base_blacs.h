@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <valarray>
 #include <vector>
 
 #include "base_mpi.h"
@@ -79,8 +80,8 @@ private:
     int npcols_;
     int mypcol_;
     void set_blacs_params_(MPI_Comm comm, int ictxt, int nprocs, int myid, int nprows, int myprow, int npcols, int mypcol);
-    int set_desc_(const int &m, const int &n, const int &mb, const int &nb,
-                  const int &irsrc, const int &icsrc);
+    int set_desc_indices_(const int &m, const int &n, const int &mb, const int &nb,
+                          const int &irsrc, const int &icsrc);
 
     // Array dimensions
     int m_;
@@ -92,6 +93,12 @@ private:
     int lld_;
     int m_local_;
     int n_local_;
+
+    // Precomputed indices
+    std::valarray<int> g2l_r;
+    std::valarray<int> g2l_c;
+    std::valarray<int> l2g_r;
+    std::valarray<int> l2g_c;
 
     //! flag to indicate that the current process should contain no data of local matrix, but for scalapack routines, it will generate a dummy matrix of size 1, nrows = ncols = 1
     bool empty_local_mat_ = false;
@@ -112,10 +119,10 @@ public:
                   const int &irsrc, const int &icsrc);
     int init_square_blk(const int &m, const int &n,
                         const int &irsrc, const int &icsrc);
-    inline int indx_g2l_r(int gindx) const;
-    inline int indx_g2l_c(int gindx) const;
-    inline int indx_l2g_r(int lindx) const;
-    inline int indx_l2g_c(int lindx) const;
+    inline int indx_g2l_r(int gindx) const noexcept { return g2l_r[gindx]; };
+    inline int indx_g2l_c(int gindx) const noexcept { return g2l_c[gindx]; };
+    inline int indx_l2g_r(int lindx) const noexcept { return l2g_r[lindx]; };
+    inline int indx_l2g_c(int lindx) const noexcept { return l2g_c[lindx]; };
     const int& myid() const { return myid_; }
     const int& ictxt() const { return ictxt_; }
     const MPI_Comm& comm() const { return comm_; }
@@ -139,30 +146,6 @@ public:
     bool initialized() const { return this->initialized_; };
     void barrier(CTXT_SCOPE scope = CTXT_SCOPE::A);
 };
-
-inline int Array_Desc::indx_g2l_r(int gindx) const
-{
-    return myprow_ != ScalapackConnector::indxg2p(gindx, mb_, myprow_, irsrc_, nprows_) || gindx >= m_
-               ? -1
-               : ScalapackConnector::indxg2l(gindx, mb_, myprow_, irsrc_, nprows_);
-}
-
-inline int Array_Desc::indx_g2l_c(int gindx) const
-{
-    return mypcol_ != ScalapackConnector::indxg2p(gindx, nb_, mypcol_, icsrc_, npcols_) || gindx >= n_
-               ? -1
-               : ScalapackConnector::indxg2l(gindx, nb_, mypcol_, icsrc_, npcols_);
-}
-
-inline int Array_Desc::indx_l2g_r(int lindx) const
-{
-    return ScalapackConnector::indxl2g(lindx, mb_, myprow_, irsrc_, nprows_);
-}
-
-inline int Array_Desc::indx_l2g_c(int lindx) const
-{
-    return ScalapackConnector::indxl2g(lindx, nb_, mypcol_, icsrc_, npcols_);
-}
 
 
 int get_globalIndex(int localIndex, int nblk, int nprocs, int myproc);

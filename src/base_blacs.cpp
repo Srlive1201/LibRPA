@@ -169,8 +169,8 @@ void Array_Desc::set_blacs_params_(int comm, int ictxt, int nprocs, int myid, in
     mypcol_ = mypcol;
 }
 
-int Array_Desc::set_desc_(const int &m, const int &n, const int &mb, const int &nb,
-                          const int &irsrc, const int &icsrc)
+int Array_Desc::set_desc_indices_(const int &m, const int &n, const int &mb, const int &nb,
+                                  const int &irsrc, const int &icsrc)
 {
     int info = 0;
     m_local_ = ScalapackConnector::numroc(m, mb, myprow_, irsrc, nprows_);
@@ -198,6 +198,41 @@ int Array_Desc::set_desc_(const int &m, const int &n, const int &mb, const int &
     irsrc_ = desc[6];
     icsrc_ = desc[7];
     lld_ = desc[8];
+
+    // precompute indices
+    g2l_r.resize(m, -1);
+    for (int i = 0; i < m_; i++)
+    {
+        if (myprow_ == ScalapackConnector::indxg2p(i, mb_, myprow_, irsrc_, nprows_))
+        {
+            g2l_r[i] = ScalapackConnector::indxg2l(i, mb_, myprow_, irsrc_, nprows_);
+        }
+    }
+    g2l_c.resize(n, -1);
+    for (int j = 0; j < n_; j++)
+    {
+        if (mypcol_ == ScalapackConnector::indxg2p(j, nb_, mypcol_, icsrc_, npcols_))
+        {
+            g2l_c[j] = ScalapackConnector::indxg2l(j, nb_, mypcol_, icsrc_, npcols_);
+        }
+    }
+    if (m_local_ > 0)
+    {
+        l2g_r.resize(m_local_, 0);
+        for (int i = 0; i < m_local_; i++)
+        {
+            l2g_r[i] = ScalapackConnector::indxl2g(i, mb_, myprow_, irsrc_, nprows_);
+        }
+    }
+    if (n_local_ > 0)
+    {
+        l2g_c.resize(n_local_, 0);
+        for (int j = 0; j < n_local_; j++)
+        {
+            l2g_c[j] = ScalapackConnector::indxl2g(j, nb_, mypcol_, icsrc_, npcols_);
+        }
+    }
+
     initialized_ = true;
     return info;
 }
@@ -207,6 +242,7 @@ Array_Desc::Array_Desc(const BLACS_CTXT_handler &blacs_h)
       nprows_(0), myprow_(0), npcols_(0), mypcol_(0),
       m_(0), n_(0), mb_(0), nb_(0), irsrc_(0), icsrc_(0),
       lld_(0), m_local_(0), n_local_(0),
+      g2l_r(), g2l_c(), l2g_r(), l2g_c(),
       empty_local_mat_(false), initialized_(false)
 {
     if (!blacs_h.initialized())
@@ -221,6 +257,7 @@ Array_Desc::Array_Desc(const int &ictxt)
       nprows_(0), myprow_(0), npcols_(0), mypcol_(0),
       m_(0), n_(0), mb_(0), nb_(0), irsrc_(0), icsrc_(0),
       lld_(0), m_local_(0), n_local_(0),
+      g2l_r(), g2l_c(), l2g_r(), l2g_c(),
       empty_local_mat_(false), initialized_(false)
 {
     // TODO: how to check if ictxt is a valid context?
@@ -237,7 +274,7 @@ Array_Desc::Array_Desc(const int &ictxt)
 int Array_Desc::init(const int &m, const int &n, const int &mb, const int &nb,
                     const int &irsrc, const int &icsrc)
 {
-    return set_desc_(m, n, mb, nb, irsrc, icsrc);
+    return set_desc_indices_(m, n, mb, nb, irsrc, icsrc);
 }
 
 int Array_Desc::init_1b1p(const int &m, const int &n,
@@ -246,7 +283,7 @@ int Array_Desc::init_1b1p(const int &m, const int &n,
     int mb = 1, nb = 1;
     mb = std::ceil(double(m)/nprows_);
     nb = std::ceil(double(n)/npcols_);
-    return set_desc_(m, n, mb, nb, irsrc, icsrc);
+    return set_desc_indices_(m, n, mb, nb, irsrc, icsrc);
 }
 
 int Array_Desc::init_square_blk(const int &m, const int &n,
@@ -256,7 +293,7 @@ int Array_Desc::init_square_blk(const int &m, const int &n,
     mb = std::ceil(double(m)/nprows_);
     nb = std::ceil(double(n)/npcols_);
     minblk = std::min(mb, nb);
-    return set_desc_(m, n, minblk, minblk, irsrc, icsrc);
+    return set_desc_indices_(m, n, minblk, minblk, irsrc, icsrc);
 }
 
 std::string Array_Desc::info() const
