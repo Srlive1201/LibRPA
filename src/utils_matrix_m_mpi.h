@@ -1138,15 +1138,18 @@ void fill_ap_map_from_blacs_dist(std::map<atpair_t, matrix_m<T>> &data,
     const auto &row_first = major_data == MAJOR::ROW ? false : true;
     const auto &row_major = major_data == MAJOR::ROW ? true : false;
 
+    // Profiler::start("assign_self");
     // Fill in data that is already available before communication
     int I, J, i, j;
     // atom pairs required by this process
     const auto &IJs = map_proc_IJs_require.count(myid) ?
                       map_proc_IJs_require.at(myid) : std::vector<atpair_t>{};
-    for (int ir = 0; ir < m_loc.nr(); ir++)
+    const auto nr = m_loc.nr();
+    const auto nc = m_loc.nc();
+    for (int ir = 0; ir < nr; ir++)
     {
         atbasis_r.get_local_index(ad.indx_l2g_r(ir), I, i);
-        for (int ic = 0; ic < m_loc.nc(); ic++)
+        for (int ic = 0; ic < nc; ic++)
         {
             atbasis_c.get_local_index(ad.indx_l2g_c(ic), J, j);
             const atpair_t atpair{static_cast<atom_t>(I), static_cast<atom_t>(J)};
@@ -1159,12 +1162,16 @@ void fill_ap_map_from_blacs_dist(std::map<atpair_t, matrix_m<T>> &data,
             data.at(atpair)(i, j) = m_loc(ir, ic);
         }
     }
+    // Profiler::stop("assign_self");
 
+    // Profiler::start("compute_indices");
     // Compute indices of matrix elements that should be communicated
     const auto proc2idlist = LIBRPA::utils::get_communicate_local_ids_list_blacs_to_ap(
             myid, map_proc_IJs_require, atbasis_r, atbasis_c, ad, row_first, row_major);
     const auto &pid_ids_send = proc2idlist.first;
     const auto &pid_ids_recv = proc2idlist.second;
+    // Profiler::stop("compute_indices");
+    // return;
 
     // prepare send buffer (from BLACS block)
     // first run, compute recv buffer size and displacements, allocate the whole buffer
