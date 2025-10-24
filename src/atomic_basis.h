@@ -3,6 +3,7 @@
  * @brief Utilities for handling atomic basis functions
  */
 #pragma once
+#include <cassert>
 #include <map>
 #include <utility>
 #include <vector>
@@ -53,10 +54,13 @@ public:
     void set(const std::map<std::size_t, std::size_t>& iatom_nbs);
 
     //! Get the global index of a certain basis function of an atom
-    std::size_t get_global_index(const int& i_atom, const std::size_t& i_loc_b) const;
+    inline std::size_t get_global_index(const int& i_atom, const std::size_t& i_loc_b) const noexcept
+    {
+        return part_range_[i_atom] + i_loc_b;
+    }
 
     //! Get the size of submatrix corresponding to atom pair i and j
-    std::size_t get_pair_matrix_size(const int& i_atom, const int& j_atom) const
+    std::size_t get_pair_matrix_size(const int& i_atom, const int& j_atom) const noexcept
     {
         return nbs_[i_atom] * nbs_[j_atom];
     };
@@ -65,17 +69,35 @@ public:
     std::vector<std::size_t> get_global_indices(const int& i_atom) const;
 
     //! Get the index of atom on which a certain basis function is located
-    int get_i_atom(const std::size_t& i_glo_b) const;
+    inline int get_i_atom(const std::size_t& i_glo_b) const noexcept
+    {
+        assert (i_glo_b < nb_total && i_glo_b >= 0);
+        for (int iat = 1; iat <= n_atoms; iat++) if (i_glo_b < get_part_range()[iat]) return iat - 1;
+        return -1; // should not be here
+    }
 
     //! Get the local indices of a basis function from its global index
-    void get_local_index(const std::size_t& i_glo_b, int& i_atom, int& i_loc_b) const;
-    int get_local_index(const std::size_t& i_glo_b, const int& i_atom) const;
-    std::pair<int, int> get_local_index(const std::size_t& i_glo_b) const;
+    inline void get_local_index(const std::size_t& i_glo_b, int& i_atom, int& i_loc_b) const
+    {
+        i_atom = get_i_atom(i_glo_b);
+        i_loc_b = i_glo_b - part_range_[i_atom];
+    }
+    inline int get_local_index(const std::size_t& i_glo_b, const int& i_atom) const noexcept
+    {
+        return i_glo_b - part_range_[i_atom];
+    }
 
-    std::size_t get_atom_nb(const int& i_atom) const { return nbs_[i_atom]; }
-    std::vector<std::size_t> get_atom_nbs() const { return nbs_; }
-    const std::vector<std::size_t>& get_part_range() const { return part_range_; }
-    bool initialized() const { return initialized_; }
+    inline std::pair<int, int> get_local_index(const std::size_t& i_glo_b) const noexcept
+    {
+        int i_atom, i_loc_b;
+        this->get_local_index(i_glo_b, i_atom, i_loc_b);
+        return {i_atom, i_loc_b};
+    }
+
+    inline std::size_t get_atom_nb(const int& i_atom) const noexcept { return nbs_[i_atom]; }
+    inline std::vector<std::size_t> get_atom_nbs() const noexcept { return nbs_; }
+    inline const std::vector<std::size_t>& get_part_range() const noexcept { return part_range_; }
+    inline bool initialized() const noexcept { return initialized_; }
 };
 
 /*!
