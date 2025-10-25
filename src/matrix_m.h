@@ -166,22 +166,22 @@ public:
         data_dummy_ = size() > 0 ? true : false;
     }
 
-    inline bool is_data_dummy() const { return data_dummy_; }
-    inline int nr() const { return (*dim)[0]; }
-    inline int nc() const { return (*dim)[1]; }
+    inline bool is_data_dummy() const noexcept { return data_dummy_; }
+    inline int nr() const noexcept { return (*dim)[0]; }
+    inline int nc() const noexcept { return (*dim)[1]; }
     inline size_t size() const { return size_; }
-    inline int mrank() const { return mrank_; }
+    inline int mrank() const noexcept { return mrank_; }
 
     // data access
-    inline T &operator[](const int i) { return (*data)[i]; }
-    inline const T &operator[](const int i) const { return (*data)[i]; }
+    inline T &operator[](const int i) noexcept { return (*data)[i]; }
+    inline const T &operator[](const int i) const noexcept { return (*data)[i]; }
 
-    inline T* ptr() { return &(*this->data)[0]; }
-    inline const T* ptr() const { return &(*this->data)[0]; }
-    inline std::shared_ptr<std::valarray<T>> sptr() { return data; }
-    inline const std::shared_ptr<std::valarray<T>> sptr() const { return data; }
+    inline T* ptr() noexcept { return &(*this->data)[0]; }
+    inline const T* ptr() const noexcept { return &(*this->data)[0]; }
+    inline std::shared_ptr<std::valarray<T>> sptr() noexcept { return data; }
+    inline const std::shared_ptr<std::valarray<T>> sptr() const noexcept { return data; }
 
-    void resize(const std::array<int, 2>& dim_new)
+    void resize(const std::array<int, 2>& dim_new) noexcept
     {
         *dim = dim_new;
         set_size_mrank();
@@ -201,14 +201,14 @@ public:
         }
     }
 
-    void reshape(const std::array<int, 2>& dim_new)
+    void reshape(const std::array<int, 2>& dim_new) noexcept
     {
         assert(dim_new[0] * dim_new[1] == size());
         *dim = dim_new;
         set_size_mrank();
     }
 
-    void operator+=(const matrix_data<T> &mdata)
+    void operator+=(const matrix_data<T> &mdata) noexcept
     {
         // pointer is dummy, modifying the data is meaningless
         if (data_dummy_ || mdata.data_dummy_) return;
@@ -216,7 +216,7 @@ public:
             *data += *(mdata.data);
     }
 
-    void operator-=(const matrix_data<T> &mdata)
+    void operator-=(const matrix_data<T> &mdata) noexcept
     {
         // pointer is dummy, modifying the data is meaningless
         if (data_dummy_ || mdata.data_dummy_) return;
@@ -264,12 +264,8 @@ public:
     matrix_data<T> dataobj;
 
 private:
-    void assign_value(const T &v)
-    {
-        if (size() > 0)
-            *(dataobj.data) = v;
-    }
-    void assign_value(const T* const pv, MAJOR major_pv)
+    void assign_value(const T &v) noexcept { if (size() > 0) *(dataobj.data) = v; }
+    void assign_value(const T* const pv, MAJOR major_pv) noexcept
     {
         if (major_ == major_pv)
         {
@@ -284,12 +280,9 @@ private:
         }
     }
 
-    void set_ld()
-    {
-        ld_ = (major_ == MAJOR::ROW ? nc() : nr());
-    }
+    inline void set_ld() { ld_ = (major_ == MAJOR::ROW ? nc() : nr()); }
 
-    void set_indx_picker_folder()
+    inline void set_indx_picker_folder() noexcept
     {
         indx_picker_2d_ = Indx_pickers_2d[major_];
         indx_folder_2d_ = Indx_folders_2d[major_];
@@ -349,36 +342,27 @@ public:
     // destructor
     ~matrix_m() {}
 
-    void zero_out()
+    inline void zero_out() noexcept { assign_value(T(0)); }
+
+    inline void clear() noexcept { this->resize(0, 0); }
+
+    inline void set_diag(const T& v) noexcept
     {
-        assign_value(T(0));
+        for (int i = 0; i < mrank(); i++) this->at(i, i) = v;
     }
 
-    void clear()
+    inline void scale_row(int irow, const T &scale) noexcept
     {
-        this->resize(0, 0);
+        for (int ic = 0; ic < nc(); ic++) this->at(irow, ic) *= scale;
     }
 
-    void set_diag(const T& v)
+    inline void scale_col(int icol, const T &scale) noexcept
     {
-        for (int i = 0; i < mrank(); i++)
-            this->at(i, i) = v;
-    }
-
-    void scale_row(int irow, const T &scale)
-    {
-        for (int ic = 0; ic < nc(); ic++)
-            this->at(irow, ic) *= scale;
-    }
-
-    void scale_col(int icol, const T &scale)
-    {
-        for (int ir = 0; ir < nr(); ir++)
-            this->at(ir, icol) *= scale;
+        for (int ir = 0; ir < nr(); ir++) this->at(ir, icol) *= scale;
     }
 
     //! Randomize the matrix elements with lower and upper bound and symmetry constraint
-    void randomize(const T &lb = 0, const T &ub = 1, bool symmetrize = false, bool hermitian = false)
+    void randomize(const T &lb = 0, const T &ub = 1, bool symmetrize = false, bool hermitian = false) noexcept
     {
         static std::default_random_engine e(time(0));
         std::uniform_real_distribution<real_t> dr(::get_real(lb), ::get_real(ub));
@@ -434,29 +418,29 @@ public:
     }
 
     // access to private variables
-    int nr() const { return dataobj.nr(); }
-    int nc() const { return dataobj.nc(); }
+    inline int nr() const noexcept { return dataobj.nr(); }
+    inline int nc() const noexcept { return dataobj.nc(); }
     // leading dimension
-    int ld() const { return ld_; }
-    MAJOR major() const { return major_; }
-    size_t size() const { return dataobj.size(); }
-    int mrank() const { return dataobj.mrank(); }
+    inline int ld() const noexcept { return ld_; }
+    inline MAJOR major() const noexcept { return major_; }
+    inline size_t size() const { return dataobj.size(); }
+    inline int mrank() const { return dataobj.mrank(); }
 
-    bool is_row_major() const { return major_ == MAJOR::ROW; }
-    bool is_col_major() const { return major_ == MAJOR::COL; }
+    inline bool is_row_major() const noexcept { return major_ == MAJOR::ROW; }
+    inline bool is_col_major() const noexcept { return major_ == MAJOR::COL; }
 
     // indexing
-    T &operator()(const int ir, const int ic) { return this->at(ir, ic); }
-    const T &operator()(const int ir, const int ic) const { return this->at(ir, ic); }
-    T &at(const int ir, const int ic) { return dataobj[indx_picker_2d_(nr(), ir, nc(), ic)]; }
-    const T &at(const int ir, const int ic) const { return dataobj[indx_picker_2d_(nr(), ir, nc(), ic)]; }
+    inline T &operator()(const int ir, const int ic) noexcept { return this->at(ir, ic); }
+    inline const T &operator()(const int ir, const int ic) const noexcept { return this->at(ir, ic); }
+    inline T &at(const int ir, const int ic) noexcept { return dataobj[indx_picker_2d_(nr(), ir, nc(), ic)]; }
+    inline const T &at(const int ir, const int ic) const noexcept { return dataobj[indx_picker_2d_(nr(), ir, nc(), ic)]; }
 
-    T* ptr() { return dataobj.ptr(); }
-    const T* ptr() const { return dataobj.ptr(); }
-    std::shared_ptr<std::valarray<T>> sptr() { return dataobj.sptr(); }
-    const std::shared_ptr<std::valarray<T>> sptr() const { return dataobj.sptr(); }
+    inline T* ptr() noexcept { return dataobj.ptr(); }
+    inline const T* ptr() const noexcept { return dataobj.ptr(); }
+    inline std::shared_ptr<std::valarray<T>> sptr() noexcept { return dataobj.sptr(); }
+    inline const std::shared_ptr<std::valarray<T>> sptr() const noexcept { return dataobj.sptr(); }
 
-    matrix_m<T> copy() const
+    inline matrix_m<T> copy() const
     {
         matrix_m<T> m_copy(nr(), nc(), ptr(), major_);
         return m_copy;
@@ -493,7 +477,7 @@ public:
     matrix_m<T> & operator=(matrix_m<T> &&m) = default;
 
     // operator overload
-    matrix_m<T> & operator=(const T &cnum)
+    inline matrix_m<T> & operator=(const T &cnum)
     {
         *(dataobj.data) = cnum;
         return *this;
@@ -920,14 +904,14 @@ void inverse(const matrix_m<T> &m, matrix_m<T> &m_inv)
 
 //! get the transpose of matrix
 template <typename T>
-inline matrix_m<T> transpose(const matrix_m<T> &m, bool conjugate = false)
+inline matrix_m<T> transpose(const matrix_m<T> &m, bool conjugate = false) noexcept
 {
     return m.get_transpose(conjugate);
 }
 
 //! get the conjugate of matrix
 template <typename T>
-inline matrix_m<T> conj(const matrix_m<T> &m)
+inline matrix_m<T> conj(const matrix_m<T> &m) noexcept
 {
     return m.copy().conj();
 }
@@ -1013,7 +997,7 @@ matrix_m<std::complex<T>> power_hemat(matrix_m<std::complex<T>> &mat,
 }
 
 template <typename T>
-bool operator==(const matrix_m<T> &m1, const matrix_m<T> &m2)
+inline bool operator==(const matrix_m<T> &m1, const matrix_m<T> &m2) noexcept
 {
     return m1.dataobj == m2.dataobj;
 }
