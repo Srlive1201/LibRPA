@@ -119,10 +119,10 @@ public:
                   const int &irsrc, const int &icsrc);
     int init_square_blk(const int &m, const int &n,
                         const int &irsrc, const int &icsrc);
-    inline int indx_g2l_r(int gindx) const noexcept { return g2l_r[gindx]; };
-    inline int indx_g2l_c(int gindx) const noexcept { return g2l_c[gindx]; };
-    inline int indx_l2g_r(int lindx) const noexcept { return l2g_r[lindx]; };
-    inline int indx_l2g_c(int lindx) const noexcept { return l2g_c[lindx]; };
+    inline int indx_g2l_r(int gindx) const noexcept { return (gindx < m_ && gindx > -1)? g2l_r[gindx]: -1; };
+    inline int indx_g2l_c(int gindx) const noexcept { return (gindx < n_ && gindx > -1)? g2l_c[gindx]: -1; };
+    inline int indx_l2g_r(int lindx) const noexcept { return (lindx < m_local_ && lindx > -1)? l2g_r[lindx]: -1; };
+    inline int indx_l2g_c(int lindx) const noexcept { return (lindx < n_local_ && lindx > -1)? l2g_c[lindx]: -1; };
     const int& myid() const { return myid_; }
     const int& ictxt() const { return ictxt_; }
     const MPI_Comm& comm() const { return comm_; }
