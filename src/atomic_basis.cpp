@@ -19,7 +19,7 @@ void AtomicBasis::initialize()
         throw std::invalid_argument("empty basis is parsed");
     part_range_.resize(n_atoms + 1);
     part_range_[0] = 0;
-    for (int i = 0; i < n_atoms; i++)
+    for (size_t i = 0; i < n_atoms; i++)
         part_range_[i+1] = part_range_[i] + nbs_[i];
     nb_total = part_range_[n_atoms];
     initialized_ = true;

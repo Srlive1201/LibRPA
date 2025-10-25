@@ -10,6 +10,7 @@
 #include <vector>
 #include <utility>
 #include <map>
+#include <cstdint>
 /* #include "vector3.h" */
 /* #include "matrix3.h" */
 
@@ -31,6 +32,15 @@ inline atom_t as_atom(T x) noexcept
 
 //! atom-pair type. NOTE: may turn into a class?
 typedef pair<atom_t, atom_t> atpair_t;
+
+//! Hash function for atom pair in unordered mapping/set. It works for number of atoms < 2^{32}
+struct atpair_hash
+{
+    std::size_t operator()(const atpair_t &p) const noexcept
+    {
+        return (static_cast<std::size_t>(p.first) << 32) | static_cast<std::uint32_t>(p.second);
+    }
+};
 
 //! mapping from atom entries to data
 template <typename T>

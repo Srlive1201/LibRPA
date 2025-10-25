@@ -7,6 +7,7 @@
 #include <map>
 #include <utility>
 #include <vector>
+#include <limits>
 
 #include "atoms.h"
 
@@ -72,8 +73,8 @@ public:
     inline int get_i_atom(const std::size_t& i_glo_b) const noexcept
     {
         assert (i_glo_b < nb_total && i_glo_b >= 0);
-        for (int iat = 1; iat <= n_atoms; iat++) if (i_glo_b < get_part_range()[iat]) return iat - 1;
-        return -1; // should not be here
+        for (int iat = 0; iat < as_int(n_atoms); iat++) if (i_glo_b < get_part_range()[iat+1]) return iat;
+        return std::numeric_limits<int>::max(); // one should not be here
     }
 
     //! Get the local indices of a basis function from its global index

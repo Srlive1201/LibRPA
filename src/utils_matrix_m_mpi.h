@@ -5,6 +5,7 @@
 #include <map>
 #include <cassert>
 #include <stdexcept>
+#include <unordered_set>
 
 // #include "envs_mpi.h"
 #include "matrix_m.h"
@@ -1143,23 +1144,50 @@ void fill_ap_map_from_blacs_dist(std::map<atpair_t, matrix_m<T>> &data,
     int I, J, i, j;
     // atom pairs required by this process
     const auto &IJs = map_proc_IJs_require.count(myid) ?
-                      map_proc_IJs_require.at(myid) : std::vector<atpair_t>{};
+                      std::unordered_set<atpair_t, atpair_hash>(map_proc_IJs_require.at(myid).cbegin(), map_proc_IJs_require.at(myid).cend()) :
+                      std::unordered_set<atpair_t, atpair_hash>();
     const auto nr = m_loc.nr();
     const auto nc = m_loc.nc();
-    for (int ir = 0; ir < nr; ir++)
+    if (row_major)
     {
-        atbasis_r.get_local_index(ad.indx_l2g_r(ir), I, i);
+        for (int ir = 0; ir < nr; ir++)
+        {
+            atbasis_r.get_local_index(ad.indx_l2g_r(ir), I, i);
+            for (int ic = 0; ic < nc; ic++)
+            {
+                atbasis_c.get_local_index(ad.indx_l2g_c(ic), J, j);
+                const atpair_t atpair{static_cast<atom_t>(I), static_cast<atom_t>(J)};
+                if (IJs.find(atpair) == IJs.cend()) continue; // not required
+                const auto &nI = atbasis_r.get_atom_nb(I);
+                const auto &nJ = atbasis_c.get_atom_nb(J);
+                if (!data.count(atpair))
+                {
+                    data[atpair] = matrix_m<T>(nI, nJ, major_data);
+                    data[atpair].zero_out();
+                }
+                data.at(atpair).ptr()[i*nJ+j] = m_loc.ptr()[ir*nc+ic];
+            }
+        }
+    }
+    else
+    {
         for (int ic = 0; ic < nc; ic++)
         {
             atbasis_c.get_local_index(ad.indx_l2g_c(ic), J, j);
-            const atpair_t atpair{static_cast<atom_t>(I), static_cast<atom_t>(J)};
-            if (std::find(IJs.cbegin(), IJs.cend(), atpair) == IJs.cend()) continue; // not required
-            if (!data.count(atpair))
+            for (int ir = 0; ir < nr; ir++)
             {
-                data[atpair] = matrix_m<T>(atbasis_r.get_atom_nb(I), atbasis_r.get_atom_nb(J), major_data);
-                data[atpair].zero_out();
+                atbasis_r.get_local_index(ad.indx_l2g_r(ir), I, i);
+                const atpair_t atpair{static_cast<atom_t>(I), static_cast<atom_t>(J)};
+                if (IJs.find(atpair) == IJs.cend()) continue; // not required
+                const auto &nI = atbasis_r.get_atom_nb(I);
+                const auto &nJ = atbasis_c.get_atom_nb(J);
+                if (!data.count(atpair))
+                {
+                    data[atpair] = matrix_m<T>(nI, nJ, major_data);
+                    data[atpair].zero_out();
+                }
+                data.at(atpair).ptr()[j*nI+i] = m_loc.ptr()[ic*nr+ir];
             }
-            data.at(atpair)(i, j) = m_loc(ir, ic);
         }
     }
     // Profiler::stop("assign_self");
