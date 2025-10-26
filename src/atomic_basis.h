@@ -7,7 +7,6 @@
 #include <map>
 #include <utility>
 #include <vector>
-#include <limits>
 
 #include "atoms.h"
 
@@ -34,7 +33,8 @@ private:
     bool initialized_;
     std::vector<std::size_t> nbs_;
     std::vector<std::size_t> part_range_;
-    std::map<atom_t, std::vector<std::size_t>> global_indices_;
+    std::vector<int> glo2iat_;
+    std::vector<std::size_t> glo2loc_;
 
     void initialize();
 public:
@@ -44,7 +44,7 @@ public:
     std::size_t nb_total;
 
     // Constructors
-    AtomicBasis(): initialized_(false), nbs_(), part_range_(), n_atoms(0), nb_total(0) {};
+    AtomicBasis(): initialized_(false), nbs_(), part_range_(), glo2iat_(), glo2loc_(), n_atoms(0), nb_total(0) {};
     AtomicBasis(const std::vector<std::size_t>& nbs);
     AtomicBasis(const std::vector<int>& atoms,
                 const std::map<int, std::size_t>& map_atom_nb);
@@ -73,26 +73,26 @@ public:
     inline int get_i_atom(const std::size_t& i_glo_b) const noexcept
     {
         assert (i_glo_b < nb_total && i_glo_b >= 0);
-        for (int iat = 0; iat < as_int(n_atoms); iat++) if (i_glo_b < get_part_range()[iat+1]) return iat;
-        return std::numeric_limits<int>::max(); // one should not be here
+        return glo2iat_[i_glo_b];
     }
 
     //! Get the local indices of a basis function from its global index
     inline void get_local_index(const std::size_t& i_glo_b, int& i_atom, int& i_loc_b) const
     {
         i_atom = get_i_atom(i_glo_b);
-        i_loc_b = i_glo_b - part_range_[i_atom];
+        i_loc_b = as_int(glo2loc_[i_glo_b]);
     }
     inline int get_local_index(const std::size_t& i_glo_b, const int& i_atom) const noexcept
     {
-        return i_glo_b - part_range_[i_atom];
+        // return i_glo_b - part_range_[i_atom];
+        return as_int(glo2loc_[i_glo_b]);
     }
 
     inline std::pair<int, int> get_local_index(const std::size_t& i_glo_b) const noexcept
     {
-        int i_atom, i_loc_b;
-        this->get_local_index(i_glo_b, i_atom, i_loc_b);
-        return {i_atom, i_loc_b};
+        // int i_atom, i_loc_b;
+        // this->get_local_index(i_glo_b, i_atom, i_loc_b);
+        return {glo2iat_[i_glo_b], as_int(glo2loc_[i_glo_b])};
     }
 
     inline std::size_t get_atom_nb(const int& i_atom) const noexcept { return nbs_[i_atom]; }

@@ -22,12 +22,22 @@ void AtomicBasis::initialize()
     for (size_t i = 0; i < n_atoms; i++)
         part_range_[i+1] = part_range_[i] + nbs_[i];
     nb_total = part_range_[n_atoms];
+
+    // compute local indices
+    glo2iat_.resize(nb_total);
+    glo2loc_.resize(nb_total);
+    for (int I = 0; I < as_int(n_atoms); I++)
+    {
+        std::fill(glo2iat_.begin()+part_range_[I], glo2iat_.begin()+part_range_[I+1], I);
+        std::iota(glo2loc_.begin()+part_range_[I], glo2loc_.begin()+part_range_[I+1], 0);
+    }
+
     initialized_ = true;
 }
 
 AtomicBasis::AtomicBasis(const std::vector<int>& atoms,
                          const std::map<int, std::size_t>& map_atom_nb)
-    : initialized_(false), nbs_(), part_range_(), n_atoms(0), nb_total(0)
+    : initialized_(false), nbs_(), part_range_(), glo2iat_(), glo2loc_()
 {
     for (const auto &atom: atoms)
     {
