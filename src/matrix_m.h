@@ -86,162 +86,6 @@ void expand_nested_vector_to_pointer(const std::vector<std::vector<T>> &nested_v
     }
 }
 
-//! struct to store the shared data and dimension
-template <typename T>
-struct matrix_data
-{
-public:
-    std::shared_ptr<std::array<int, 2>> dim = nullptr;
-    std::shared_ptr<std::valarray<T>> data = nullptr;
-
-private:
-    // create a dummy data of size 1 to avoid null pointer when size is 0
-    bool data_dummy_;
-    size_t size_;
-    int mrank_;
-    void set_size_mrank()
-    {
-        mrank_ = std::min((*dim)[0], (*dim)[1]);
-        size_ = (*dim)[0] * (*dim)[1];
-        data_dummy_ = size_ > 0 ? false : true;
-    }
-
-public:
-    matrix_data()
-    {
-        dim = std::make_shared<std::array<int, 2>>();
-        mrank_ = 0;
-        size_ = 0;
-        data_dummy_ = true;
-    }
-    matrix_data(const std::array<int, 2> &dim_in)
-    {
-        dim = std::make_shared<std::array<int, 2>>(dim_in);
-        set_size_mrank();
-        if (size() > 0)
-        {
-            data = std::make_shared<std::valarray<T>>(size());
-            data_dummy_ = false;
-        }
-        else
-        {
-            data = std::make_shared<std::valarray<T>>(1);
-            data_dummy_ = true;
-        }
-    }
-    matrix_data(const std::array<int, 2> &dim_in, const std::valarray<T> &data_in)
-    {
-        dim = std::make_shared<std::array<int, 2>>(dim_in);
-        data = std::make_shared<std::valarray<T>>(data_in);
-        set_size_mrank();
-    }
-    matrix_data(const std::array<int, 2> &dim_in, const T* const pdata)
-    {
-        dim = std::make_shared<std::array<int, 2>>(dim_in);
-        set_size_mrank();
-        if (size() > 0)
-        {
-            data = std::make_shared<std::valarray<T>>(pdata, size());
-            data_dummy_ = false;
-        }
-        else
-        {
-            data = std::make_shared<std::valarray<T>>(1);
-            data_dummy_ = true;
-        }
-    }
-    matrix_data(const std::array<int, 2> &dim_in,
-                const std::shared_ptr<std::valarray<T>> &data_in)
-        : data(data_in)
-    {
-        dim = std::make_shared<std::array<int, 2>>(dim_in);
-        set_size_mrank();
-        data_dummy_ = size() > 0 ? true : false;
-    }
-    matrix_data(const std::shared_ptr<std::array<int, 2>> &dim_in,
-                const std::shared_ptr<std::valarray<T>> &data_in)
-        : dim(dim_in), data(data_in)
-    {
-        set_size_mrank();
-        data_dummy_ = size() > 0 ? true : false;
-    }
-
-    inline bool is_data_dummy() const noexcept { return data_dummy_; }
-    inline int nr() const noexcept { return (*dim)[0]; }
-    inline int nc() const noexcept { return (*dim)[1]; }
-    inline size_t size() const { return size_; }
-    inline int mrank() const noexcept { return mrank_; }
-
-    // data access
-    inline T &operator[](const int i) noexcept { return (*data)[i]; }
-    inline const T &operator[](const int i) const noexcept { return (*data)[i]; }
-
-    inline T* ptr() noexcept { return &(*this->data)[0]; }
-    inline const T* ptr() const noexcept { return &(*this->data)[0]; }
-    inline std::shared_ptr<std::valarray<T>> sptr() noexcept { return data; }
-    inline const std::shared_ptr<std::valarray<T>> sptr() const noexcept { return data; }
-
-    void resize(const std::array<int, 2>& dim_new) noexcept
-    {
-        *dim = dim_new;
-        set_size_mrank();
-        if (data == nullptr)
-        {
-            if (size() > 0)
-                data = std::make_shared<std::valarray<T>>(0, size());
-            else
-                data = std::make_shared<std::valarray<T>>(0, 1);
-        }
-        else
-        {
-            if (size() > 0)
-                data->resize(size());
-            else
-                data->resize(1);
-        }
-    }
-
-    void reshape(const std::array<int, 2>& dim_new) noexcept
-    {
-        assert(dim_new[0] * dim_new[1] == size());
-        *dim = dim_new;
-        set_size_mrank();
-    }
-
-    void operator+=(const matrix_data<T> &mdata) noexcept
-    {
-        // pointer is dummy, modifying the data is meaningless
-        if (data_dummy_ || mdata.data_dummy_) return;
-        if (data != nullptr && mdata.data != nullptr)
-            *data += *(mdata.data);
-    }
-
-    void operator-=(const matrix_data<T> &mdata) noexcept
-    {
-        // pointer is dummy, modifying the data is meaningless
-        if (data_dummy_ || mdata.data_dummy_) return;
-        if (data != nullptr && mdata.data != nullptr)
-            *data -= *(mdata.data);
-    }
-};
-
-template <typename T>
-bool operator==(const matrix_data<T> &mdata1, const matrix_data<T> &mdata2)
-{
-    if (mdata1.nr() != mdata2.nr() || mdata1.nc() != mdata2.nc())
-        return false;
-    if (mdata1.sptr() == nullptr || mdata2.sptr() == nullptr)
-        return false;
-    if (mdata1.is_data_dummy() || mdata2.is_data_dummy()) return false;
-    using real_t = typename to_real<T>::type;
-    const bool is_double = std::is_same<T, double>::value;
-    const real_t thres = is_double ? 1e-14 : 1e-6;
-    auto diff = std::abs(*(mdata1.data) - *(mdata2.data));
-    for (size_t i = 0; i < mdata1.size(); i++)
-        if (::get_real(diff[i]) > thres)
-            return false;
-    return true;
-}
 
 template <typename T>
 class matrix_m
@@ -253,34 +97,112 @@ public:
 private:
     //! Major of matrix data storage, either row- or column-major
     MAJOR major_;
+    int nr_;
+    int nc_;
+    size_t size_;
     //! The leading dimension of the matrix
     int ld_;
+    int mrank_;
+    //! Flag whether a dummy data of size 1 is allocated to avoid null pointer when size is 0
+    bool data_dummy_;
+    std::shared_ptr<std::valarray<T>> data_;
     //! Function to extract the data in the memory from 2D indexing
     Indx_picker_2d indx_picker_2d_;
     //! Function to convert 1D index to 2D index
     Indx_folder_2d indx_folder_2d_;
 
 public:
-    matrix_data<T> dataobj;
+    // access to private variables
+    inline int nr() const noexcept { return nr_; }
+    inline int nc() const noexcept { return nc_; }
+    // leading dimension
+    inline int ld() const noexcept { return ld_; }
+    inline MAJOR major() const noexcept { return major_; }
+    inline size_t size() const { return size_; }
+    inline int mrank() const { return mrank_; }
+    inline bool is_data_dummy() const noexcept { return data_dummy_; }
+
+    inline bool is_row_major() const noexcept { return major_ == MAJOR::ROW; }
+    inline bool is_col_major() const noexcept { return major_ == MAJOR::COL; }
+
+    // resizing
+    matrix_m<T>& resize(int nrows_new, int ncols_new)
+    {
+        reset_dimensions_(nrows_new, ncols_new);
+        // data not initialized
+        if (data_ == nullptr)
+        {
+            if (size_ > 0)
+            {
+                data_ = std::make_shared<std::valarray<T>>(0, size_);
+            }
+            else
+            {
+                assert(data_dummy_);
+                data_ = std::make_shared<std::valarray<T>>(0, 1); // dummy
+            }
+        }
+        else
+        {
+            if (size_ > 0)
+            {
+                data_->resize(size_);
+            }
+            else
+            {
+                assert(data_dummy_);
+                data_->resize(1); // dummy
+            }
+        }
+        zero_out();
+        return *this;
+    }
+
+    matrix_m<T>& resize(int nrows_new, int ncols_new, MAJOR major)
+    {
+        major_ = major;
+        set_indx_picker_folder();
+        return this->resize(nrows_new, ncols_new);
+    }
+
+    // indexing
+    inline T &operator()(const int ir, const int ic) noexcept { return this->at(ir, ic); }
+    inline const T &operator()(const int ir, const int ic) const noexcept { return this->at(ir, ic); }
+    inline T &at(const int ir, const int ic) noexcept { return (*data_)[indx_picker_2d_(nr_, ir, nc_, ic)]; }
+    inline const T &at(const int ir, const int ic) const noexcept { return (*data_)[indx_picker_2d_(nr_, ir, nc_, ic)]; }
+
+    inline T* ptr() noexcept { return &(*this->data_)[0]; }
+    inline const T* ptr() const noexcept { return &(*this->data_)[0]; }
+    inline std::shared_ptr<std::valarray<T>> sptr() noexcept { return this->data_; }
+    inline const std::shared_ptr<std::valarray<T>> sptr() const noexcept { return this->data_; }
 
 private:
-    void assign_value(const T &v) noexcept { if (size() > 0) *(dataobj.data) = v; }
-    void assign_value(const T* const pv, MAJOR major_pv) noexcept
+    void assign_value_(const T &v) noexcept { if (size_ > 0) *data_ = v; }
+    void assign_value_(const T* const pv, MAJOR major_pv) noexcept
     {
         if (major_ == major_pv)
         {
-            for (size_t i = 0; i < size(); i++) dataobj[i] = pv[i];
+            for (size_t i = 0; i < size_; i++) (*data_)[i] = pv[i];
         }
         else
         {
             const Indx_picker_2d pv_picker = Indx_pickers_2d[major_pv];
-            for (int ir = 0; ir < nr(); ir++)
-                for (int ic = 0; ic < nc(); ic++)
-                    this->at(ir, ic) = pv[pv_picker(nr(), ir, nc(), ic)];
+            for (int ir = 0; ir < nr_; ir++)
+                for (int ic = 0; ic < nc_; ic++)
+                    this->at(ir, ic) = pv[pv_picker(nr_, ir, nc_, ic)];
         }
     }
 
-    inline void set_ld() { ld_ = (major_ == MAJOR::ROW ? nc() : nr()); }
+    void reset_dimensions_(int nrows, int ncols)
+    {
+        assert(nrows >= 0 && ncols >= 0);
+        nr_ = nrows;
+        nc_ = ncols;
+        ld_ = (major_ == MAJOR::ROW ? nc_ : nr_);
+        mrank_ = std::min(nr_, nc_);
+        size_ = nr_ * nc_;
+        data_dummy_ = size_ > 0 ? false : true;
+    }
 
     inline void set_indx_picker_folder() noexcept
     {
@@ -294,44 +216,38 @@ public:
     using cplx_t = typename to_cplx<T>::type;
 
     // constructors
-    matrix_m() : major_(MAJOR::ROW), ld_(0), dataobj()
+    matrix_m(): major_(MAJOR::ROW), nr_(0), nc_(0), size_(0), ld_(0), mrank_(0), data_dummy_(true), data_(nullptr) {}
+    matrix_m(const int &nrows, const int &ncols, MAJOR major = MAJOR::ROW): major_(major), data_(nullptr)
     {
-        set_ld();
-        set_indx_picker_folder();
-    }
-    matrix_m(const int &nrows, const int &ncols, MAJOR major = MAJOR::ROW): major_(major), ld_(0), dataobj({nrows, ncols})
-    {
-        set_ld();
+        resize(nrows, ncols);
         set_indx_picker_folder();
         zero_out();
     }
-    matrix_m(const int &nrows, const int &ncols, const T * const parr, MAJOR major = MAJOR::ROW): major_(major), ld_(0), dataobj({nrows, ncols}, parr)
+    matrix_m(const int &nrows, const int &ncols, const T * const parr, MAJOR major = MAJOR::ROW): major_(major), ld_(0), data_(nullptr)
     {
-        set_ld();
+        resize(nrows, ncols);
         set_indx_picker_folder();
+        assign_value_(parr, major);
     }
-    matrix_m(const int &nrows, const int &ncols, const T * const parr, MAJOR major_arr, MAJOR major): major_(major), ld_(0), dataobj({nrows, ncols})
+    matrix_m(const int &nrows, const int &ncols, const T * const parr, MAJOR major_arr, MAJOR major): major_(major), nr_(nrows), nc_(ncols), ld_(0), data_(nullptr)
     {
-        set_ld();
+        resize(nrows, ncols);
         set_indx_picker_folder();
-        zero_out();
-        assign_value(parr, major_arr);
+        assign_value_(parr, major_arr);
     }
-    matrix_m(const int &nrows, const int &ncols, const std::shared_ptr<std::valarray<T>> &valarr, MAJOR major_valarr): major_(major_valarr), ld_(0), dataobj({nrows, ncols}, valarr)
+    matrix_m(const int &nrows, const int &ncols, const std::shared_ptr<std::valarray<T>> &valarr, MAJOR major_valarr): major_(major_valarr), nr_(nrows), nc_(ncols), ld_(0), data_(valarr)
     {
-        set_ld();
+        reset_dimensions_(nrows, ncols);
         set_indx_picker_folder();
     }
     // constructor from a nested vector
-    matrix_m(const std::vector<std::vector<T>> &nested_vector, MAJOR major = MAJOR::ROW): major_(major), ld_(0), dataobj()
+    matrix_m(const std::vector<std::vector<T>> &nested_vector, MAJOR major = MAJOR::ROW): major_(major), ld_(0), data_(nullptr)
     {
-        int nr_, nc_;
         get_nr_nc_from_nested_vector(nested_vector, nr_, nc_);
-        dataobj.resize({nr_, nc_});
-        set_ld();
+        resize(nr_, nc_);
         set_indx_picker_folder();
         zero_out();
-        expand_nested_vector_to_pointer(nested_vector, nr_, nc_, dataobj.ptr(), is_row_major());
+        expand_nested_vector_to_pointer(nested_vector, nr_, nc_, this->ptr(), is_row_major());
     }
 
     // copy constructor
@@ -342,7 +258,7 @@ public:
     // destructor
     ~matrix_m() {}
 
-    inline void zero_out() noexcept { assign_value(T(0)); }
+    inline void zero_out() noexcept { assign_value_(T(0)); }
 
     inline void clear() noexcept { this->resize(0, 0); }
 
@@ -353,28 +269,36 @@ public:
 
     inline void scale_row(int irow, const T &scale) noexcept
     {
-        for (int ic = 0; ic < nc(); ic++) this->at(irow, ic) *= scale;
+        for (int ic = 0; ic < nc_; ic++) this->at(irow, ic) *= scale;
     }
 
     inline void scale_col(int icol, const T &scale) noexcept
     {
-        for (int ir = 0; ir < nr(); ir++) this->at(ir, icol) *= scale;
+        for (int ir = 0; ir < nr_; ir++) this->at(ir, icol) *= scale;
+    }
+
+    inline std::size_t index(const int &i, const int &j, const int &nr, const int &nc) const noexcept
+    {
+        return major_ == ROW? i * nc + j : j * nc + i;
     }
 
     //! Randomize the matrix elements with lower and upper bound and symmetry constraint
     void randomize(const T &lb = 0, const T &ub = 1, bool symmetrize = false, bool hermitian = false) noexcept
     {
         static std::default_random_engine e(time(0));
-        std::uniform_real_distribution<real_t> dr(::get_real(lb), ::get_real(ub));
+        const auto nr = nr_;
+        const auto nc = nc_;
+        const auto mrank = mrank_;
         if constexpr (matrix_m<T>::is_complex)
         {
+            std::uniform_real_distribution<real_t> dr(::get_real(lb), ::get_real(ub));
             std::uniform_real_distribution<real_t> di(::get_imag(lb), ::get_imag(ub));
             if (symmetrize)
             {
-                for (int i = 0; i != mrank(); i++)
+                for (int i = 0; i != mrank; i++)
                 {
                     join_re_im((*this)(i, i), dr(e), di(e));
-                    for (int j = i + 1; j < mrank(); j++)
+                    for (int j = i + 1; j < mrank; j++)
                     {
                         join_re_im((*this)(i, j), dr(e), di(e));
                         (*this)(j, i) = (*this)(i, j);
@@ -383,10 +307,10 @@ public:
             }
             else if (hermitian)
             {
-                for (int i = 0; i != mrank(); i++)
+                for (int i = 0; i != mrank; i++)
                 {
                     join_re_im((*this)(i, i), dr(e), real_t(0.0));
-                    for (int j = i + 1; j < mrank(); j++)
+                    for (int j = i + 1; j < mrank; j++)
                     {
                         join_re_im((*this)(i, j), dr(e), di(e));
                         (*this)(j, i) = ::get_conj((*this)(i, j));
@@ -395,55 +319,69 @@ public:
             }
             else
                 for (size_t i = 0; i != size(); i++)
-                    join_re_im(this->dataobj[i], dr(e), di(e));
+                    join_re_im(this->ptr()[i], dr(e), di(e));
         }
         else
         {
+            std::uniform_real_distribution<real_t> dr(lb, ub);
             if (symmetrize)
-                for (int i = 0; i != mrank(); i++)
+            {
+                if (major_ == ROW)
                 {
-                    this->at(i, i) = dr(e);
-                    for (int j = i + 1; j < mrank(); j++)
+                    // std::cout << "real symmetrize row" << std::endl; // debug
+                    for (int i = 0; i != mrank; i++)
                     {
-                        this->at(i, j) = dr(e);
-                        this->at(j, i) = this->at(i, j);
+                        this->ptr()[indx_picker_2d_(nr, i, nc, i)] = dr(e);
+                        for (int j = i + 1; j < mrank; j++)
+                        {
+                            // this->at(i, j) = dr(e);
+                            // this->at(j, i) = this->at(i, j);
+                            this->ptr()[indx_picker_2d_(nr, i, nc, j)] = dr(e);
+                            this->ptr()[indx_picker_2d_(nr, j, nc, i)] = this->ptr()[indx_picker_2d_(nr, i, nc, j)];
+                        }
                     }
                 }
+                else
+                {
+                    // std::cout << "real symmetrize col" << std::endl; // debug
+                    for (int j = 0; j < mrank; j++)
+                    {
+                        // this->at(j, j) = dr(e);
+                        // this->ptr()[indx_picker_2d_(nr, j, nc, j)] = dr(e);
+                        // this->ptr()[nr * j + j] = dr(e);
+                        this->ptr()[index(j, j, nr, nc)] = dr(e);
+                        for (int i = j + 1; i < mrank; i++)
+                        {
+                            // this->at(i, j) = dr(e);
+                            // this->at(j, i) = this->at(i, j);
+                            // this->ptr()[indx_picker_2d_(nr, i, nc, j)] = dr(e);
+                            // this->ptr()[indx_picker_2d_(nr, j, nc, i)] = this->ptr()[indx_picker_2d_(nr, i, nc, j)];
+                            this->ptr()[nr * j + i] = dr(e);
+                            this->ptr()[nr * i + j] = this->ptr()[nr * j + i];
+                            // this->ptr()[index(i, j, nr, nc)] = dr(e);
+                            // this->ptr()[index(j, i, nr, nc)] = this->ptr()[index(i, j, nr, nc)];
+                        }
+                    }
+                }
+            }
             else
             {
                 for (size_t i = 0; i != size(); i++)
-                    this->dataobj[i] = dr(e);
+                    (*this->data_)[i] = dr(e);
             }
         }
     }
 
-    // access to private variables
-    inline int nr() const noexcept { return dataobj.nr(); }
-    inline int nc() const noexcept { return dataobj.nc(); }
-    // leading dimension
-    inline int ld() const noexcept { return ld_; }
-    inline MAJOR major() const noexcept { return major_; }
-    inline size_t size() const { return dataobj.size(); }
-    inline int mrank() const { return dataobj.mrank(); }
-
-    inline bool is_row_major() const noexcept { return major_ == MAJOR::ROW; }
-    inline bool is_col_major() const noexcept { return major_ == MAJOR::COL; }
-
-    // indexing
-    inline T &operator()(const int ir, const int ic) noexcept { return this->at(ir, ic); }
-    inline const T &operator()(const int ir, const int ic) const noexcept { return this->at(ir, ic); }
-    inline T &at(const int ir, const int ic) noexcept { return dataobj[indx_picker_2d_(nr(), ir, nc(), ic)]; }
-    inline const T &at(const int ir, const int ic) const noexcept { return dataobj[indx_picker_2d_(nr(), ir, nc(), ic)]; }
-
-    inline T* ptr() noexcept { return dataobj.ptr(); }
-    inline const T* ptr() const noexcept { return dataobj.ptr(); }
-    inline std::shared_ptr<std::valarray<T>> sptr() noexcept { return dataobj.sptr(); }
-    inline const std::shared_ptr<std::valarray<T>> sptr() const noexcept { return dataobj.sptr(); }
-
     inline matrix_m<T> copy() const
     {
-        matrix_m<T> m_copy(nr(), nc(), ptr(), major_);
+        matrix_m<T> m_copy(nr_, nc_, ptr(), major_);
         return m_copy;
+    }
+
+    void reshape(int nrows_new, int ncols_new)
+    {
+        assert(size_ == as_size(nrows_new * ncols_new));
+        reset_dimensions_(nrows_new, ncols_new);
     }
 
     // swap major
@@ -451,11 +389,11 @@ public:
     {
         if (is_col_major())
         {
-            int nr_old = nr(), nc_old = nc();
+            int nr_old = nr_, nc_old = nc_;
             this->transpose();
+            reset_dimensions_(nr_old, nc_old);
             reshape(nr_old, nc_old);
             major_ = MAJOR::ROW;
-            set_ld();
             set_indx_picker_folder();
         }
     }
@@ -463,11 +401,10 @@ public:
     {
         if (is_row_major())
         {
-            int nr_old = nr(), nc_old = nc();
+            int nr_old = nr_, nc_old = nc_;
             this->transpose();
-            reshape(nr_old, nc_old);
+            reset_dimensions_(nr_old, nc_old);
             major_ = MAJOR::COL;
-            set_ld();
             set_indx_picker_folder();
         }
     }
@@ -479,38 +416,35 @@ public:
     // operator overload
     inline matrix_m<T> & operator=(const T &cnum)
     {
-        *(dataobj.data) = cnum;
+        *(this->data_) = cnum;
         return *this;
     }
 
     template <typename T1>
     void operator+=(const matrix_m<T1> &m)
     {
-        assert(this->size() == m.size() && this->major() == m.major());
-        for (size_t i = 0; i < size(); i++)
-            dataobj[i] += m.dataobj[i];
+        assert(this->size() == m.size() && this->major_ == m.major_);
+        *(this->data_) += *(m.data_);
     }
     template <typename T1>
     void operator+=(const std::vector<T1> &v)
     {
-        assert(nc() == v.size());
-        for (int i = 0; i < nr(); i++)
-            for (int ic = 0; ic < nc(); ic++)
+        assert(nc_ == v.size());
+        for (int i = 0; i < nr_; i++)
+            for (int ic = 0; ic < nc_; ic++)
                 this->at(i, ic) += v[ic];
     }
     template <typename T1>
     void operator+=(const T1 &cnum)
     {
-        for (size_t i = 0; i < size(); i++)
-            dataobj[i] += cnum;
+        *(this->data_) += cnum;
     }
 
     template <typename T1>
     void operator-=(const matrix_m<T1> &m)
     {
-        assert(size() == m.size() && major() == m.major());
-        for (size_t i = 0; i < size(); i++)
-            dataobj[i] -= m.dataobj[i];
+        assert(size() == m.size() && major_ == m.major_);
+        *(this->data_) -= *(m.data_);
     }
     template <typename T1>
     void operator-=(const std::vector<T1> &v)
@@ -523,47 +457,25 @@ public:
     template <typename T1>
     void operator-=(const T1 &cnum)
     {
-        for (size_t i = 0; i < size(); i++)
-            dataobj[i] -= cnum;
+        assert(this->size_ > 0);
+        *(this->data_) -= cnum;
     }
     template <typename T1>
     void operator*=(const T1 &cnum)
     {
-        for (size_t i = 0; i < size(); i++)
-            dataobj[i] *= cnum;
+        *(this->data_) *= cnum;
     }
     template <typename T1>
     void operator/=(const T1 &cnum)
     {
-        for (size_t i = 0; i < size(); i++)
-            dataobj[i] /= cnum;
-    }
-
-    void reshape(int nrows_new, int ncols_new)
-    {
-        assert(size() == nrows_new * ncols_new);
-        dataobj.reshape({nrows_new, ncols_new});
-    }
-    matrix_m<T>& resize(int nrows_new, int ncols_new)
-    {
-        dataobj.resize({nrows_new, ncols_new});
-        set_ld();
-        zero_out();
-        return *this;
-    }
-
-    matrix_m<T>& resize(int nrows_new, int ncols_new, MAJOR major)
-    {
-        major_ = major;
-        set_indx_picker_folder();
-        return this->resize(nrows_new, ncols_new);
+        *(this->data_) /= cnum;
     }
 
     matrix_m<T>& conj()
     {
-        if (!matrix_m<T>::is_complex) return *this;
+        if constexpr (!matrix_m<T>::is_complex) return *this;
         for (size_t i = 0; i < this->size(); i++)
-            dataobj[i] = get_conj(dataobj[i]);
+            this->ptr()[i] = get_conj(this->ptr()[i]);
         return *this;
     };
 
@@ -579,16 +491,16 @@ public:
 
     matrix_m<T>& transpose(bool conjugate = false)
     {
-        if (nr() == nc())
+        if (nr_ == nc_)
         {
             // handling within the memory of c pointer for square matrix
-            int n = nr();
+            int n = nr_;
             for (int i = 0; i != n; i++)
                 for (int j = i + 1; j < n; j++)
                 {
-                    T temp = dataobj[i * n + j];
-                    dataobj[i * n + j] = dataobj[j * n + i];
-                    dataobj[j * n + i] = temp;
+                    T temp = (*data_)[i * n + j];
+                    (*data_)[i * n + j] = (*data_)[j * n + i];
+                    (*data_)[j * n + i] = temp;
                 }
         }
         else
@@ -597,37 +509,43 @@ public:
             if (size() > 0)
             {
                 std::valarray<T> a_new(size());
-                for (int i = 0; i < nr(); i++)
-                    for (int j = 0; j < nc(); j++)
-                        a_new[indx_picker_2d_(nc(), j, nr(), i)] = this->at(i, j);
-                *(dataobj.data) = a_new;
+                for (int i = 0; i < nr_; i++)
+                    for (int j = 0; j < nc_; j++)
+                        a_new[indx_picker_2d_(nc_, j, nr_, i)] = this->at(i, j);
+                *(data_) = a_new;
             }
         }
+        reset_dimensions_(nc_, nr_);
         if (conjugate) conj();
         return *this;
     }
 
     matrix_m<cplx_t> to_complex() const
     {
-        matrix_m<cplx_t> m(nr(), nc(), major_);
-        for (size_t i = 0; i < size(); i++)
-            m.dataobj[i] = dataobj[i];
+        if constexpr (matrix_m<T>::is_complex) return this->copy();
+        matrix_m<cplx_t> m(nr_, nc_, major_);
+        for (size_t i = 0; i < size_; i++)
+            (*m.sptr())[i] = (*data_)[i];
         return m;
     }
 
     matrix_m<real_t> get_real() const
     {
+        if constexpr (!matrix_m<T>::is_complex) return this->copy();
         matrix_m<real_t> m(nr(), nc(), this->major_);
         for (size_t i = 0; i < size(); i++)
-            m.dataobj[i] = ::get_real(dataobj[i]);
+            (*m.sptr())[i] = ::get_real((*data_)[i]);
         return m;
     }
 
     matrix_m<real_t> get_imag() const
     {
         matrix_m<real_t> m(nr(), nc(), major_);
-        for (size_t i = 0; i < size(); i++)
-            m.dataobj[i] = ::get_imag(dataobj[i]);
+        if constexpr (matrix_m<T>::is_complex)
+        {
+            for (size_t i = 0; i < size(); i++)
+                (*m.sptr())[i] = ::get_imag((*data_)[i]);
+        }
         return m;
     }
 
@@ -635,7 +553,7 @@ public:
     {
         size_t count = 0;
         for (size_t i = 0; i < size(); i++)
-            if (std::abs(dataobj[i]) <= thres) count++;
+            if (std::abs((*data_)[i]) <= thres) count++;
         return count;
     }
 
@@ -643,40 +561,49 @@ public:
     {
         size_t count = 0;
         for (size_t i = 0; i < size(); i++)
-            if (std::abs(dataobj[i]) >= thres) count++;
+            if (std::abs((*data_)[i]) >= thres) count++;
         return count;
+    }
+
+    void _argmaxmin(int &ir, int &ic, bool max) const
+    {
+        real_t value = max? std::numeric_limits<real_t>::min() : std::numeric_limits<real_t>::max();
+        size_t indx = 0;
+        if constexpr (matrix_m<T>::is_complex)
+        {
+            for (size_t i = 0; i < size_; i++)
+            {
+                const real_t a = std::abs((*data_)[i]);
+                if ((!max && a < value) || (max && a > value))
+                {
+                    indx = i;
+                    value = a;
+                }
+            }
+        }
+        else
+        {
+            for (size_t i = 0; i < size_; i++)
+            {
+                const auto &a = (*data_)[i];
+                if ((!max && a < value) || (max && a > value))
+                {
+                    indx = i;
+                    value = (*data_)[i];
+                }
+            }
+        }
+        indx_folder_2d_(indx, nr(), ir, nc(), ic);
     }
 
     void argmin(int &ir, int &ic) const
     {
-        // for complex type, compare the absolute value
-        const std::function<real_t(T)> filter =
-            matrix_m<T>::is_complex ? [](T a) { return std::abs(a); } : [](T a) { return ::get_real(a); };
-        real_t value = std::numeric_limits<real_t>::max();
-        size_t indx = 0;
-        for (size_t i = 0; i < size(); i++)
-            if (filter(dataobj[i]) < value)
-            {
-                indx = i;
-                value = filter(dataobj[i]);
-            }
-        indx_folder_2d_(indx, nr(), ir, nc(), ic);
+        _argmaxmin(ir, ic, false);
     }
 
     void argmax(int &ir, int &ic) const
     {
-        // for complex type, compare the absolute value
-        const std::function<real_t(T)> filter =
-            matrix_m<T>::is_complex ? [](T a) { return std::abs(a); } : [](T a) { return ::get_real(a); };
-        real_t value = std::numeric_limits<real_t>::min();
-        size_t indx = 0;
-        for (size_t i = 0; i < size(); i++)
-            if (filter(dataobj[i]) > value)
-            {
-                indx = i;
-                value = filter(dataobj[i]);
-            }
-        indx_folder_2d_(indx, nr(), ir, nc(), ic);
+        _argmaxmin(ir, ic, true);
     }
 
     real_t min() const
@@ -685,10 +612,10 @@ public:
         const std::function<real_t(T)> filter =
             matrix_m<T>::is_complex ? [](T a) { return std::abs(a); } : [](T a) { return ::get_real(a); };
         real_t value = std::numeric_limits<real_t>::max();
-        for (size_t i = 0; i < size(); i++)
-            if (filter(dataobj[i]) < value)
+        for (size_t i = 0; i < size_; i++)
+            if (filter((*data_)[i]) < value)
             {
-                value = filter(dataobj[i]);
+                value = filter((*data_)[i]);
             }
         return value;
     }
@@ -699,10 +626,10 @@ public:
         const std::function<real_t(T)> filter =
             matrix_m<T>::is_complex ? [](T a) { return std::abs(a); } : [](T a) { return ::get_real(a); };
         real_t value = std::numeric_limits<real_t>::min();
-        for (size_t i = 0; i < size(); i++)
-            if (filter(dataobj[i]) > value)
+        for (size_t i = 0; i < size_; i++)
+            if (filter((*data_)[i]) > value)
             {
-                value = filter(dataobj[i]);
+                value = filter((*data_)[i]);
             }
         return value;
     }
@@ -711,7 +638,7 @@ public:
     {
         real_t value = 0;
         for (size_t i = 0; i < size(); i++)
-            value = std::min(value, std::abs(dataobj[i]));
+            value = std::min(value, std::abs((*data_)[i]));
         return value;
     }
 
@@ -719,7 +646,7 @@ public:
     {
         real_t value = 0;
         for (size_t i = 0; i < size(); i++)
-            value = std::max(value, std::abs(dataobj[i]));
+            value = std::max(value, std::abs((*data_)[i]));
         return value;
     }
 };
@@ -746,8 +673,7 @@ template <typename T1, typename T2>
 void copy(const matrix_m<T1> &src, matrix_m<T2> &dest)
 {
     assert(src.size() == dest.size() && same_major(src, dest));
-    for (size_t i = 0; i < src.size(); i++)
-        dest.dataobj[i] = src.dataobj[i];
+    *dest.sptr() = *src.sptr();
 }
 
 // copy matrix elements of src to matrix of the same type
@@ -883,7 +809,7 @@ void inverse(const matrix_m<T> &m, matrix_m<T> &m_inv)
     assert(m.major() == m_inv.major());
     int lwork = m.nr();
     int info = 0;
-    T work[lwork];
+    std::vector<T> work(lwork);
     int ipiv[std::min(m.nr(), m.nc())];
     m_inv.resize(m.nr(), m.nc());
     copy(m, m_inv);
@@ -999,7 +925,20 @@ matrix_m<std::complex<T>> power_hemat(matrix_m<std::complex<T>> &mat,
 template <typename T>
 inline bool operator==(const matrix_m<T> &m1, const matrix_m<T> &m2) noexcept
 {
-    return m1.dataobj == m2.dataobj;
+    if (m1.nr() != m2.nr() || m1.nc() != m2.nc())
+        return false;
+    if (m1.sptr() == nullptr || m2.sptr() == nullptr)
+        return false;
+    if (m1.is_data_dummy() || m2.is_data_dummy()) return false;
+    using real_t = typename to_real<T>::type;
+    const bool is_double = std::is_same<T, double>::value;
+    const real_t thres = is_double ? 1e-14 : 1e-6;
+    auto diff = std::abs(*(m1.sptr()) - *(m2.sptr()));
+    const auto size = m1.size();
+    for (size_t i = 0; i < size; i++)
+        if (::get_real(diff[i]) > thres)
+            return false;
+    return true;
 }
 
 //! convert matrix into a string
@@ -1108,7 +1047,7 @@ void print_matrix_mm(const matrix_m<T> &mat, ostream &os, Treal threshold = 1e-1
     size_t nnz = 0;
     for (size_t i = 0; i < mat.size(); i++)
     {
-        if (fabs(mat.dataobj[i]) > threshold)
+        if (fabs((*mat.sptr())[i]) > threshold)
             nnz++;
     }
     os << "%%MatrixMarket matrix coordinate "
@@ -1198,7 +1137,7 @@ void write_matrix_elsi_csc(const matrix_m<T> &mat, const std::string &fn, Treal 
     int64_t nnz = 0;
     for (int64_t i = 0; i != mat.size(); i++)
     {
-        if (fabs(mat.dataobj[i]) > threshold)
+        if (fabs(mat.ptr()[i]) > threshold)
             nnz++;
     }
     // cout << nnz << endl;
