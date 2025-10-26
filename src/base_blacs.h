@@ -1,7 +1,6 @@
 #pragma once
 
 #include <string>
-#include <valarray>
 #include <vector>
 
 #include "base_mpi.h"
@@ -95,10 +94,10 @@ private:
     int n_local_;
 
     // Precomputed indices
-    std::valarray<int> g2l_r;
-    std::valarray<int> g2l_c;
-    std::valarray<int> l2g_r;
-    std::valarray<int> l2g_c;
+    std::vector<int> g2l_r_;
+    std::vector<int> g2l_c_;
+    std::vector<int> l2g_r_;
+    std::vector<int> l2g_c_;
 
     //! flag to indicate that the current process should contain no data of local matrix, but for scalapack routines, it will generate a dummy matrix of size 1, nrows = ncols = 1
     bool empty_local_mat_ = false;
@@ -119,10 +118,14 @@ public:
                   const int &irsrc, const int &icsrc);
     int init_square_blk(const int &m, const int &n,
                         const int &irsrc, const int &icsrc);
-    inline int indx_g2l_r(int gindx) const noexcept { return (gindx < m_ && gindx > -1)? g2l_r[gindx]: -1; };
-    inline int indx_g2l_c(int gindx) const noexcept { return (gindx < n_ && gindx > -1)? g2l_c[gindx]: -1; };
-    inline int indx_l2g_r(int lindx) const noexcept { return (lindx < m_local_ && lindx > -1)? l2g_r[lindx]: -1; };
-    inline int indx_l2g_c(int lindx) const noexcept { return (lindx < n_local_ && lindx > -1)? l2g_c[lindx]: -1; };
+    inline int indx_g2l_r(int gindx) const noexcept { return (gindx < m_ && gindx > -1)? g2l_r_[gindx]: -1; };
+    inline int indx_g2l_c(int gindx) const noexcept { return (gindx < n_ && gindx > -1)? g2l_c_[gindx]: -1; };
+    inline int indx_l2g_r(int lindx) const noexcept { return (lindx < m_local_ && lindx > -1)? l2g_r_[lindx]: -1; };
+    inline int indx_l2g_c(int lindx) const noexcept { return (lindx < n_local_ && lindx > -1)? l2g_c_[lindx]: -1; };
+    inline const std::vector<int> &g2l_r() const noexcept { return g2l_r_; }
+    inline const std::vector<int> &g2l_c() const noexcept { return g2l_c_; }
+    inline const std::vector<int> &l2g_r() const noexcept { return l2g_r_; }
+    inline const std::vector<int> &l2g_c() const noexcept { return l2g_c_; }
     const int& myid() const { return myid_; }
     const int& ictxt() const { return ictxt_; }
     const MPI_Comm& comm() const { return comm_; }

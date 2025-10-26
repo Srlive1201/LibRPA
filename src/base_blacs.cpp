@@ -200,36 +200,36 @@ int Array_Desc::set_desc_indices_(const int &m, const int &n, const int &mb, con
     lld_ = desc[8];
 
     // precompute indices
-    g2l_r.resize(m, -1);
+    g2l_r_.resize(m, -1);
     for (int i = 0; i < m_; i++)
     {
         if (myprow_ == ScalapackConnector::indxg2p(i, mb_, myprow_, irsrc_, nprows_))
         {
-            g2l_r[i] = ScalapackConnector::indxg2l(i, mb_, myprow_, irsrc_, nprows_);
+            g2l_r_[i] = ScalapackConnector::indxg2l(i, mb_, myprow_, irsrc_, nprows_);
         }
     }
-    g2l_c.resize(n, -1);
+    g2l_c_.resize(n, -1);
     for (int j = 0; j < n_; j++)
     {
         if (mypcol_ == ScalapackConnector::indxg2p(j, nb_, mypcol_, icsrc_, npcols_))
         {
-            g2l_c[j] = ScalapackConnector::indxg2l(j, nb_, mypcol_, icsrc_, npcols_);
+            g2l_c_[j] = ScalapackConnector::indxg2l(j, nb_, mypcol_, icsrc_, npcols_);
         }
     }
     if (m_local_ > 0)
     {
-        l2g_r.resize(m_local_, 0);
+        l2g_r_.resize(m_local_, 0);
         for (int i = 0; i < m_local_; i++)
         {
-            l2g_r[i] = ScalapackConnector::indxl2g(i, mb_, myprow_, irsrc_, nprows_);
+            l2g_r_[i] = ScalapackConnector::indxl2g(i, mb_, myprow_, irsrc_, nprows_);
         }
     }
     if (n_local_ > 0)
     {
-        l2g_c.resize(n_local_, 0);
+        l2g_c_.resize(n_local_, 0);
         for (int j = 0; j < n_local_; j++)
         {
-            l2g_c[j] = ScalapackConnector::indxl2g(j, nb_, mypcol_, icsrc_, npcols_);
+            l2g_c_[j] = ScalapackConnector::indxl2g(j, nb_, mypcol_, icsrc_, npcols_);
         }
     }
 
@@ -242,7 +242,7 @@ Array_Desc::Array_Desc(const BLACS_CTXT_handler &blacs_h)
       nprows_(0), myprow_(0), npcols_(0), mypcol_(0),
       m_(0), n_(0), mb_(0), nb_(0), irsrc_(0), icsrc_(0),
       lld_(0), m_local_(0), n_local_(0),
-      g2l_r(), g2l_c(), l2g_r(), l2g_c(),
+      g2l_r_(), g2l_c_(), l2g_r_(), l2g_c_(),
       empty_local_mat_(false), initialized_(false)
 {
     if (!blacs_h.initialized())
@@ -257,7 +257,7 @@ Array_Desc::Array_Desc(const int &ictxt)
       nprows_(0), myprow_(0), npcols_(0), mypcol_(0),
       m_(0), n_(0), mb_(0), nb_(0), irsrc_(0), icsrc_(0),
       lld_(0), m_local_(0), n_local_(0),
-      g2l_r(), g2l_c(), l2g_r(), l2g_c(),
+      g2l_r_(), g2l_c_(), l2g_r_(), l2g_c_(),
       empty_local_mat_(false), initialized_(false)
 {
     // TODO: how to check if ictxt is a valid context?
