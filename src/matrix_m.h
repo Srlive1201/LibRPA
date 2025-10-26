@@ -248,8 +248,8 @@ class matrix_m
 {
 public:
     //! Flag of whether the instantialized matrix class is complex-typed
-    static const bool is_complex = is_complex_t<T>::value;
-    static const bool is_double = std::is_same<T, double>::value;
+    static constexpr bool is_complex = is_complex_t<T>::value;
+    static constexpr bool is_double = std::is_same<T, double>::value;
 private:
     //! Major of matrix data storage, either row- or column-major
     MAJOR major_;
@@ -366,7 +366,7 @@ public:
     {
         static std::default_random_engine e(time(0));
         std::uniform_real_distribution<real_t> dr(::get_real(lb), ::get_real(ub));
-        if (matrix_m<T>::is_complex)
+        if constexpr (matrix_m<T>::is_complex)
         {
             std::uniform_real_distribution<real_t> di(::get_imag(lb), ::get_imag(ub));
             if (symmetrize)
