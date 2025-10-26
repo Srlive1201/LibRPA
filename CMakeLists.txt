@@ -51,11 +51,7 @@ if(EXISTS "${PROJECT_SOURCE_DIR}/cmake.inc" AND USE_CMAKE_INC)
 endif()
 
 # C++ standard requirement
-if(USE_LIBRI)
-  set(CMAKE_CXX_STANDARD 14)
-else()
-  set(CMAKE_CXX_STANDARD 11)
-endif()
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 # enable_language later than cmake.inc to take the variables therein into accout
