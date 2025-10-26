@@ -106,10 +106,6 @@ private:
     //! Flag whether a dummy data of size 1 is allocated to avoid null pointer when size is 0
     bool data_dummy_;
     std::shared_ptr<std::valarray<T>> data_;
-    //! Function to extract the data in the memory from 2D indexing
-    Indx_picker_2d indx_picker_2d_;
-    //! Function to convert 1D index to 2D index
-    Indx_folder_2d indx_folder_2d_;
 
 public:
     // access to private variables
@@ -161,15 +157,34 @@ public:
     matrix_m<T>& resize(int nrows_new, int ncols_new, MAJOR major)
     {
         major_ = major;
-        set_indx_picker_folder();
         return this->resize(nrows_new, ncols_new);
     }
 
     // indexing
+private:
+    inline std::size_t index(const int &nr, const int &i, const int &nc, const int &j) const noexcept
+    {
+        return major_ == ROW? i * nc + j : j * nr + i;
+    }
+    inline void fold(const size_t& indx, const int &nr, int &ir, const int &nc, int &ic) const noexcept
+    {
+        if (major_ == ROW)
+        {
+            ir = indx / nc;
+            ic = indx % nc;
+        }
+        else
+        {
+            ir = indx % nr;
+            ic = indx / nr;
+        };
+    }
+
+public:
     inline T &operator()(const int ir, const int ic) noexcept { return this->at(ir, ic); }
     inline const T &operator()(const int ir, const int ic) const noexcept { return this->at(ir, ic); }
-    inline T &at(const int ir, const int ic) noexcept { return (*data_)[indx_picker_2d_(nr_, ir, nc_, ic)]; }
-    inline const T &at(const int ir, const int ic) const noexcept { return (*data_)[indx_picker_2d_(nr_, ir, nc_, ic)]; }
+    inline T &at(const int ir, const int ic) noexcept { return (*data_)[index(nr_, ir, nc_, ic)]; }
+    inline const T &at(const int ir, const int ic) const noexcept { return (*data_)[index(nr_, ir, nc_, ic)]; }
 
     inline T* ptr() noexcept { return &(*this->data_)[0]; }
     inline const T* ptr() const noexcept { return &(*this->data_)[0]; }
@@ -204,12 +219,6 @@ private:
         data_dummy_ = size_ > 0 ? false : true;
     }
 
-    inline void set_indx_picker_folder() noexcept
-    {
-        indx_picker_2d_ = Indx_pickers_2d[major_];
-        indx_folder_2d_ = Indx_folders_2d[major_];
-    }
-
 public:
     using type = T;
     using real_t = typename to_real<T>::type;
@@ -220,32 +229,27 @@ public:
     matrix_m(const int &nrows, const int &ncols, MAJOR major = MAJOR::ROW): major_(major), data_(nullptr)
     {
         resize(nrows, ncols);
-        set_indx_picker_folder();
         zero_out();
     }
     matrix_m(const int &nrows, const int &ncols, const T * const parr, MAJOR major = MAJOR::ROW): major_(major), ld_(0), data_(nullptr)
     {
         resize(nrows, ncols);
-        set_indx_picker_folder();
         assign_value_(parr, major);
     }
     matrix_m(const int &nrows, const int &ncols, const T * const parr, MAJOR major_arr, MAJOR major): major_(major), nr_(nrows), nc_(ncols), ld_(0), data_(nullptr)
     {
         resize(nrows, ncols);
-        set_indx_picker_folder();
         assign_value_(parr, major_arr);
     }
     matrix_m(const int &nrows, const int &ncols, const std::shared_ptr<std::valarray<T>> &valarr, MAJOR major_valarr): major_(major_valarr), nr_(nrows), nc_(ncols), ld_(0), data_(valarr)
     {
         reset_dimensions_(nrows, ncols);
-        set_indx_picker_folder();
     }
     // constructor from a nested vector
     matrix_m(const std::vector<std::vector<T>> &nested_vector, MAJOR major = MAJOR::ROW): major_(major), ld_(0), data_(nullptr)
     {
         get_nr_nc_from_nested_vector(nested_vector, nr_, nc_);
         resize(nr_, nc_);
-        set_indx_picker_folder();
         zero_out();
         expand_nested_vector_to_pointer(nested_vector, nr_, nc_, this->ptr(), is_row_major());
     }
@@ -275,11 +279,6 @@ public:
     inline void scale_col(int icol, const T &scale) noexcept
     {
         for (int ir = 0; ir < nr_; ir++) this->at(ir, icol) *= scale;
-    }
-
-    inline std::size_t index(const int &i, const int &j, const int &nr, const int &nc) const noexcept
-    {
-        return major_ == ROW? i * nc + j : j * nc + i;
     }
 
     //! Randomize the matrix elements with lower and upper bound and symmetry constraint
@@ -331,13 +330,11 @@ public:
                     // std::cout << "real symmetrize row" << std::endl; // debug
                     for (int i = 0; i != mrank; i++)
                     {
-                        this->ptr()[indx_picker_2d_(nr, i, nc, i)] = dr(e);
+                        this->ptr()[index(nr, i, nc, i)] = dr(e);
                         for (int j = i + 1; j < mrank; j++)
                         {
-                            // this->at(i, j) = dr(e);
-                            // this->at(j, i) = this->at(i, j);
-                            this->ptr()[indx_picker_2d_(nr, i, nc, j)] = dr(e);
-                            this->ptr()[indx_picker_2d_(nr, j, nc, i)] = this->ptr()[indx_picker_2d_(nr, i, nc, j)];
+                            this->ptr()[index(nr, i, nc, j)] = dr(e);
+                            this->ptr()[index(nr, j, nc, i)] = this->ptr()[index(nr, i, nc, j)];
                         }
                     }
                 }
@@ -346,20 +343,11 @@ public:
                     // std::cout << "real symmetrize col" << std::endl; // debug
                     for (int j = 0; j < mrank; j++)
                     {
-                        // this->at(j, j) = dr(e);
-                        // this->ptr()[indx_picker_2d_(nr, j, nc, j)] = dr(e);
-                        // this->ptr()[nr * j + j] = dr(e);
-                        this->ptr()[index(j, j, nr, nc)] = dr(e);
+                        this->ptr()[nr * j + j] = dr(e);
                         for (int i = j + 1; i < mrank; i++)
                         {
-                            // this->at(i, j) = dr(e);
-                            // this->at(j, i) = this->at(i, j);
-                            // this->ptr()[indx_picker_2d_(nr, i, nc, j)] = dr(e);
-                            // this->ptr()[indx_picker_2d_(nr, j, nc, i)] = this->ptr()[indx_picker_2d_(nr, i, nc, j)];
                             this->ptr()[nr * j + i] = dr(e);
                             this->ptr()[nr * i + j] = this->ptr()[nr * j + i];
-                            // this->ptr()[index(i, j, nr, nc)] = dr(e);
-                            // this->ptr()[index(j, i, nr, nc)] = this->ptr()[index(i, j, nr, nc)];
                         }
                     }
                 }
@@ -394,7 +382,6 @@ public:
             reset_dimensions_(nr_old, nc_old);
             reshape(nr_old, nc_old);
             major_ = MAJOR::ROW;
-            set_indx_picker_folder();
         }
     }
     void swap_to_col_major()
@@ -405,7 +392,6 @@ public:
             this->transpose();
             reset_dimensions_(nr_old, nc_old);
             major_ = MAJOR::COL;
-            set_indx_picker_folder();
         }
     }
 
@@ -511,7 +497,7 @@ public:
                 std::valarray<T> a_new(size());
                 for (int i = 0; i < nr_; i++)
                     for (int j = 0; j < nc_; j++)
-                        a_new[indx_picker_2d_(nc_, j, nr_, i)] = this->at(i, j);
+                        a_new[index(nc_, j, nr_, i)] = this->at(i, j);
                 *(data_) = a_new;
             }
         }
@@ -593,7 +579,7 @@ public:
                 }
             }
         }
-        indx_folder_2d_(indx, nr(), ir, nc(), ic);
+        fold(indx, nr(), ir, nc(), ic);
     }
 
     void argmin(int &ir, int &ic) const
