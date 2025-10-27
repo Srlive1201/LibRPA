@@ -1288,5 +1288,5 @@ void Chi0::free_chi0_q(const double freq, const Vector3_Order<double> q)
 {
     auto &chi0_for_free = chi0_q.at(freq).at(q);
     chi0_for_free.clear();
-    map<atom_t, map<atom_t,ComplexMatrix>>().swap(chi0_for_free);
+    ap_n_map<ComplexMatrix>().swap(chi0_for_free);
 }

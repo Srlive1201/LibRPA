@@ -47,22 +47,30 @@ struct atpair_hash
 template <typename T>
 struct atom_mapping
 {
-    typedef T non_t;
+    using non_t       = T;
     //! mapping between single atom and data
-    typedef map<atom_t, T> single_t;
+    using single_t    = std::unordered_map<atom_t, T>;
     //! mapping between atom pair and data
-    typedef std::unordered_map<atpair_t, T, atpair_hash> pair_t;
-    //! mapping between tri-atom group and data
-    typedef map<pair<atom_t, atpair_t>, T> tri_t;
+    using pair_t      = std::unordered_map<atpair_t, T, atpair_hash>;
+    // //! mapping between tri-atom group and data
+    // using tri_t       = std::map<std::pair<atom_t, atpair_t>, T>;
     //! mapping between atom pair and data. Nested map, old style
-    typedef map<atom_t, map<atom_t, T>> pair_t_old;
-    //! mapping between tri-atom group and data. Nested map, old style
-    typedef map<atom_t, map<atom_t, map<atom_t, T>>> tri_t_old;
+    using pair_t_old  = std::unordered_map<atom_t, std::unordered_map<atom_t, T>>;
+    // //! mapping between tri-atom group and data. Nested map, old style
+    // using tri_t_old   = std::unordered_map<atom_t, std::unordered_map<atom_t, std::unordered_map<atom_t, T>>>;
 };
+
+//! Alias of mapping from atom pair to data, with atom pair as key
+template <typename T>
+using ap_p_map = typename atom_mapping<T>::pair_t; // pair mapping
+
+//! Alias of mapping from atom pair (old style, nested map) to data
+template <typename T>
+using ap_n_map = typename atom_mapping<T>::pair_t_old; // nested mapping
 
 //! get atom indcies from a atom_mapping::single_t object (old style)
 template <typename T>
-vector<atom_t> get_atom(const map<atom_t, T> &adata) // work
+vector<atom_t> get_atom(const std::unordered_map<atom_t, T> &adata) // work
 /* vector<atom_t> get_atom(const typename atom_mapping<T>::single_t &adata) // not work */
 {
     vector<atom_t> alist;
@@ -73,7 +81,7 @@ vector<atom_t> get_atom(const map<atom_t, T> &adata) // work
 
 //! get atom pairs from a atom_mapping::pair_t object (old style)
 template <typename T>
-vector<atpair_t> get_atom_pair(const map<atom_t, map<atom_t, T>> &apdata) // work
+vector<atpair_t> get_atom_pair(const std::unordered_map<atom_t, std::unordered_map<atom_t, T>> &apdata) // work
 /* vector<pair<atom_t, atom_t>> get_atom_pair(const typename atom_mapping<T>::pair_t &apdata) // not work */
 {
     vector<atpair_t> apair;
@@ -85,7 +93,7 @@ vector<atpair_t> get_atom_pair(const map<atom_t, map<atom_t, T>> &apdata) // wor
 
 //! get atom pairs from a atom_mapping::pair_t object
 template <typename T>
-vector<atpair_t> get_atom_pair(const map<atpair_t, T> &apdata) // work
+vector<atpair_t> get_atom_pair(const std::unordered_map<atpair_t, T, atpair_hash> &apdata) // work
 /* vector<pair<atom_t, atom_t>> get_atom_pair(const typename atom_mapping<T>::pair_t &apdata) // not work */
 // FIXME: check this: https://en.cppreference.com/w/cpp/language/template_argument_deduction
 {

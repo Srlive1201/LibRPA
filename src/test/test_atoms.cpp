@@ -4,7 +4,7 @@
 int main (int argc, char *argv[])
 {
     using namespace std;
-    double non_double;
+    // double non_double;
     atom_mapping<double>::single_t a_double;
     atom_mapping<double>::pair_t_old apair_double;
     a_double[1] = 1.0;

@@ -1136,7 +1136,7 @@ matrix_m<T> get_local_mat_from_ap_dist_sy(const std::unordered_map<atpair_t, mat
  * @param  [in]     ad                    Array descriptor for BLACS distribution
  */
 template <typename T>
-void fill_ap_map_from_blacs_dist(std::unordered_map<atpair_t, matrix_m<T>, atpair_hash> &data,
+void fill_ap_map_from_blacs_dist(ap_p_map<matrix_m<T>> &data,
                                  const matrix_m<T> &m_loc,
                                  const std::unordered_map<int, std::vector<atpair_t>> &map_proc_IJs_require,
                                  const AtomicBasis &atbasis_r,
@@ -1188,6 +1188,7 @@ void fill_ap_map_from_blacs_dist(std::unordered_map<atpair_t, matrix_m<T>, atpai
     }
     else
     {
+        ap_p_map<matrix_m<T>> data_local;
         for (int ic = 0; ic < nc; ic++)
         {
             atbasis_c.get_local_index(ad.indx_l2g_c(ic), J, j);
@@ -1196,15 +1197,16 @@ void fill_ap_map_from_blacs_dist(std::unordered_map<atpair_t, matrix_m<T>, atpai
                 atbasis_r.get_local_index(ad.indx_l2g_r(ir), I, i);
                 const atpair_t atpair{static_cast<atom_t>(I), static_cast<atom_t>(J)};
                 if (IJs.find(atpair) == IJs.cend()) continue; // not required
-                const auto &nI = atbasis_r.get_atom_nb(I);
-                const auto &nJ = atbasis_c.get_atom_nb(J);
-                if (!data.count(atpair))
+                const auto nI = atbasis_r.get_atom_nb(I);
+                const auto nJ = atbasis_c.get_atom_nb(J);
+                if (!data_local.count(atpair))
                 {
-                    data[atpair] = matrix_m<T>(nI, nJ, major_data);
+                    data_local[atpair] = matrix_m<T>(nI, nJ, major_data);
                 }
-                data.at(atpair).ptr()[j*nI+i] = m_loc.ptr()[ic*nr+ir];
+                data_local.at(atpair).ptr()[j*nI+i] = m_loc.ptr()[ic*nr+ir];
             }
         }
+        data.merge(data_local);
     }
     // Profiler::stop("assign_self");
 
