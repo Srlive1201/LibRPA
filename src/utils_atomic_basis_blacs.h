@@ -41,7 +41,8 @@ get_communicate_global_ids_list_ap_to_blacs(const int &myid,
                                             const std::unordered_map<int, std::vector<atpair_t>> &map_proc_IJs_avail,
                                             const AtomicBasis &atbasis_r,
                                             const AtomicBasis &atbasis_c,
-                                            const Array_Desc &ad, bool row_fast, bool row_major);
+                                            const Array_Desc &ad,
+                                            bool row_fast, bool row_major, bool include_self = false);
 
 /*!
  * @brief Similar to get_communicate_global_ids_list_ap_to_blacs, but the atom-pair data are only
@@ -71,7 +72,8 @@ get_communicate_global_ids_list_ap_to_blacs_sy(const int &myid,
                                                const char &uplo,
                                                const std::unordered_map<int, std::vector<atpair_t>> &map_proc_IJs_avail,
                                                const AtomicBasis &atbasis,
-                                               const Array_Desc &ad, bool row_fast, bool row_major);
+                                               const Array_Desc &ad,
+                                               bool row_fast, bool row_major, bool include_self = false);
 
 /*!
  * @brief Similar to get_communicate_global_ids_list_ap_to_blacs, but the indices are local instead of global.
@@ -96,7 +98,8 @@ get_communicate_local_ids_list_ap_to_blacs(const int &myid,
                                            const std::unordered_map<int, std::vector<atpair_t>> &map_proc_IJs_avail,
                                            const AtomicBasis &atbasis_r,
                                            const AtomicBasis &atbasis_c,
-                                           const Array_Desc &ad, bool row_fast, bool row_major);
+                                           const Array_Desc &ad,
+                                           bool row_fast, bool row_major, bool include_self = false);
 
 /*!
  * @brief Similar to get_communicate_local_ids_list_ap_to_blacs, but the atom-pair data are only
@@ -126,7 +129,8 @@ get_communicate_local_ids_list_ap_to_blacs_sy(const int &myid,
                                               const char &uplo,
                                               const std::unordered_map<int, std::vector<atpair_t>> &map_proc_IJs_avail,
                                               const AtomicBasis &atbasis,
-                                              const Array_Desc &ad, bool row_fast, bool row_major);
+                                              const Array_Desc &ad,
+                                              bool row_fast, bool row_major, bool include_self = false);
 
 /*!
  * @brief Get the list of global matrix indices (1D) to communicate for
@@ -152,7 +156,8 @@ get_communicate_global_ids_list_blacs_to_ap(const int &myid,
                                             const std::unordered_map<int, std::vector<atpair_t>> &map_proc_IJs_require,
                                             const AtomicBasis &atbasis_r,
                                             const AtomicBasis &atbasis_c,
-                                            const Array_Desc &ad, bool row_fast, bool row_major);
+                                            const Array_Desc &ad,
+                                            bool row_fast, bool row_major, bool include_self = false);
 
 /*!
  * @brief Similar to get_communicate_global_ids_list_blacs_to_ap, but the indices are local instead of global.
@@ -177,7 +182,8 @@ get_communicate_local_ids_list_blacs_to_ap(const int &myid,
                                            const std::unordered_map<int, std::vector<atpair_t>> &map_proc_IJs_require,
                                            const AtomicBasis &atbasis_r,
                                            const AtomicBasis &atbasis_c,
-                                           const Array_Desc &ad, bool row_fast, bool row_major);
+                                           const Array_Desc &ad,
+                                           bool row_fast, bool row_major, bool include_self = false);
 
 } /* end of namespace utils */
 
