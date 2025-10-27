@@ -35,7 +35,7 @@ static void test_ap_to_blacs_global_indices_communicate()
             {{0, {{0, 0}}}, {1, {{0, 1}}}, {2, {{1, 0}}}, {3, {{1, 1}}}},
             ab, ab, ad, true, false);
         // flattened indices with column major and sorted with row index going fastest
-        const std::vector<std::map<int, std::vector<size_t>>> sendlist_ref_all(
+        const std::vector<std::unordered_map<int, std::vector<size_t>>> sendlist_ref_all(
             {
                 {},
                 {{0, {4}}},
@@ -44,7 +44,7 @@ static void test_ap_to_blacs_global_indices_communicate()
             }
         );
         const auto &sendlist_ref = sendlist_ref_all[myid_global];
-        const std::vector<std::map<int, std::vector<size_t>>> recvlist_ref_all(
+        const std::vector<std::unordered_map<int, std::vector<size_t>>> recvlist_ref_all(
             {
                 {{1, {4}}, {2, {1}}, {3, {5}}},
                 {{3, {9, 13}}},
@@ -66,14 +66,14 @@ static void test_ap_to_blacs_global_indices_communicate()
             {{0, {{0, 0}}}, {1, {{0, 1}}}, {2, {{1, 0}}}, {3, {{1, 1}}}},
             ab, ab, ad, true, false);
         // flattened indices with column major and sorted with row index going fastest
-        const std::vector<std::map<int, std::vector<size_t>>> sendlist_ref_all({
+        const std::vector<std::unordered_map<int, std::vector<size_t>>> sendlist_ref_all({
             {},
             {},
             {},
             {},
         });
         const auto &sendlist_ref = sendlist_ref_all[myid_global];
-        const std::vector<std::map<int, std::vector<size_t>>> recvlist_ref_all({
+        const std::vector<std::unordered_map<int, std::vector<size_t>>> recvlist_ref_all({
             {},
             {},
             {},
@@ -93,14 +93,14 @@ static void test_ap_to_blacs_global_indices_communicate()
             {{0, {{0, 0}}}, {1, {{0, 1}}}, {2, {{1, 0}}}, {3, {{1, 1}}}},
             ab, ab, ad, true, false);
         // flattened indices with column major and sorted with row index going fastest
-        const std::vector<std::map<int, std::vector<size_t>>> sendlist_ref_all({
+        const std::vector<std::unordered_map<int, std::vector<size_t>>> sendlist_ref_all({
             {{1, {8, 9}}, {2, {2, 6}}, {3, {10}}}, // 1:{(0,2) (1,2)} 2:{(2,0) (2,1)} 3:{2,2}
             {{3, {14}}}, // 3:{(2,3)}
             {{3, {11}}}, // 3:{(3,2)}
             {},
         });
         const auto &sendlist_ref = sendlist_ref_all[myid_global];
-        const std::vector<std::map<int, std::vector<size_t>>> recvlist_ref_all({
+        const std::vector<std::unordered_map<int, std::vector<size_t>>> recvlist_ref_all({
             {},
             {{0, {8, 9}}},
             {{0, {2, 6}}},
@@ -131,14 +131,14 @@ static void test_ap_to_blacs_global_indices_communicate()
             ab, ab,
             ad, true, false);
         // flattened indices with column major and sorted with row index going fastest
-        const std::vector<std::map<int, std::vector<size_t>>> sendlist_ref_all({
+        const std::vector<std::unordered_map<int, std::vector<size_t>>> sendlist_ref_all({
             {{1, {8}}, {2, {2}}}, // 1:{(0,2)} 2:{(2,0)}
             {{3, {14}}}, // 3:{(2,3)}
             {{3, {11}}}, // 3:{(3,2)}
             {{0, {5}}, {1, {9}}, {2, {6}}}, // 0:{(1,1)} 1:{(1,2)} 2:{(2,1)}
         });
         const auto &sendlist_ref = sendlist_ref_all[myid_global];
-        const std::vector<std::map<int, std::vector<size_t>>> recvlist_ref_all({
+        const std::vector<std::unordered_map<int, std::vector<size_t>>> recvlist_ref_all({
             {{3, {5}}},
             {{0, {8}}, {3, {9}}},
             {{0, {2}}, {3, {6}}},
@@ -192,7 +192,7 @@ static void test_ap_to_blacs_local_indices_communicate()
             {{0, {{0, 0}}}, {1, {{0, 1}}}, {2, {{1, 0}}}, {3, {{1, 1}}}},
             ab, ab, ad, true, false);
         // flattened indices with column major and sorted with row index going fastest
-        const std::vector<std::map<int, std::vector<std::pair<atpair_t, std::vector<size_t>>>>> sendlist_ref_all(
+        const std::vector<std::unordered_map<int, std::vector<std::pair<atpair_t, std::vector<size_t>>>>> sendlist_ref_all(
             {
                 {},
                 {{0, {{{0, 1}, {0}}}}},
@@ -201,7 +201,7 @@ static void test_ap_to_blacs_local_indices_communicate()
             }
         );
         const auto &sendlist_ref = sendlist_ref_all[myid_global];
-        const std::vector<std::map<int, std::vector<size_t>>> recvlist_ref_all(
+        const std::vector<std::unordered_map<int, std::vector<size_t>>> recvlist_ref_all(
             {
                 {{1, {2}}, {2, {1}}, {3, {3}}},
                 {{3, {1, 3}}},
@@ -234,14 +234,14 @@ static void test_ap_to_blacs_local_indices_communicate()
             ab, ab,
             ad, true, false);
         // flattened indices with column major and sorted with row index going fastest
-        // const std::vector<std::map<int, std::vector<size_t>>> sendlist_ref_all({
+        // const std::vector<std::unordered_map<int, std::vector<size_t>>> sendlist_ref_all({
         //     {{1, {8}}, {2, {2}}}, // 1:{(0,2)} 2:{(2,0)}
         //     {{3, {14}}}, // 3:{(2,3)}
         //     {{3, {11}}}, // 3:{(3,2)}
         //     {{0, {5}}, {1, {9}}, {2, {6}}}, // 0:{(1,1)} 1:{(1,2)} 2:{(2,1)}
         // });
         // flattened indices with column major and sorted with row index going fastest
-        const std::vector<std::map<int, std::vector<std::pair<atpair_t, std::vector<size_t>>>>> sendlist_ref_all(
+        const std::vector<std::unordered_map<int, std::vector<std::pair<atpair_t, std::vector<size_t>>>>> sendlist_ref_all(
             {
                 {{1, {{{0, 1}, {1}}}}, {2, {{{1, 0}, {1}}}}},
                 {{3, {{{1, 2}, {1}}}}},
@@ -250,7 +250,7 @@ static void test_ap_to_blacs_local_indices_communicate()
             }
         );
         const auto &sendlist_ref = sendlist_ref_all[myid_global];
-        const std::vector<std::map<int, std::vector<size_t>>> recvlist_ref_all({
+        const std::vector<std::unordered_map<int, std::vector<size_t>>> recvlist_ref_all({
             {{3, {3}}},
             {{0, {0}}, {3, {1}}},
             {{0, {0}}, {3, {2}}},
@@ -296,7 +296,7 @@ static void test_ap_to_blacs_global_indices_sy_communicate()
             {{0, {{0, 0}}}, {1, {{0, 1}}}, {3, {{1, 1}}}},
             ab, ad, true, false);
         // flattened indices with column major and sorted with row index going fastest
-        const std::vector<std::map<int, std::vector<size_t>>> sendlist_ref_all(
+        const std::vector<std::unordered_map<int, std::vector<size_t>>> sendlist_ref_all(
             {
                 {},
                 {{0, {4, 4}}, {2, {8, 12}}},
@@ -305,7 +305,7 @@ static void test_ap_to_blacs_global_indices_sy_communicate()
             }
         );
         const auto &sendlist_ref = sendlist_ref_all[myid_global];
-        const std::vector<std::map<int, std::pair<std::vector<size_t>, std::vector<char>>>>
+        const std::vector<std::unordered_map<int, std::pair<std::vector<size_t>, std::vector<char>>>>
             recvlist_ref_all(
             {
                 {{1, {{1, 4}, {'c', 'n'}}}, {3, {{5}, {'n'}}}},
@@ -355,7 +355,7 @@ static void test_ap_to_blacs_local_indices_sy_communicate()
             myid_global, 'u',
             {{0, {{0, 0}}}, {1, {{0, 1}}}, {3, {{1, 1}}}},
             ab, ad, true, false);
-        const std::vector<std::map<int,
+        const std::vector<std::unordered_map<int,
                                    std::vector<std::pair<atpair_t, std::vector<size_t>>>>> sendlist_ref_all(
             // global
             // {
@@ -372,7 +372,7 @@ static void test_ap_to_blacs_local_indices_sy_communicate()
             }
         );
         const auto &sendlist_ref = sendlist_ref_all[myid_global];
-        const std::vector<std::map<int, std::pair<std::vector<size_t>, std::vector<char>>>>
+        const std::vector<std::unordered_map<int, std::pair<std::vector<size_t>, std::vector<char>>>>
             recvlist_ref_all(
             // global
             // {
@@ -440,7 +440,7 @@ static void test_blacs_to_ap_global_indices_communicate()
             {{0, {{0, 0}}}, {1, {{0, 1}}}, {2, {{1, 0}}}, {3, {{1, 1}}}},
             ab, ab, ad, true, false);
         // flattened indices with column major and sorted with row index going fastest
-        const std::vector<std::map<int, std::vector<size_t>>> sendlist_ref_all(
+        const std::vector<std::unordered_map<int, std::vector<size_t>>> sendlist_ref_all(
             {
                 {{1, {4}}, {2, {1}}, {3, {5}}},
                 {{3, {9, 13}}},
@@ -449,7 +449,7 @@ static void test_blacs_to_ap_global_indices_communicate()
             }
         );
         const auto &sendlist_ref = sendlist_ref_all[myid_global];
-        const std::vector<std::map<int, std::vector<size_t>>> recvlist_ref_all(
+        const std::vector<std::unordered_map<int, std::vector<size_t>>> recvlist_ref_all(
             {
                 {},
                 {{0, {4}}},
@@ -470,14 +470,14 @@ static void test_blacs_to_ap_global_indices_communicate()
             myid_global,
             {{0, {{0, 0}}}, {1, {{0, 1}}}, {2, {{1, 0}}}, {3, {{1, 1}}}},
             ab, ab, ad, true, false);
-        const std::vector<std::map<int, std::vector<size_t>>> sendlist_ref_all({
+        const std::vector<std::unordered_map<int, std::vector<size_t>>> sendlist_ref_all({
             {},
             {},
             {},
             {},
         });
         const auto &sendlist_ref = sendlist_ref_all[myid_global];
-        const std::vector<std::map<int, std::vector<size_t>>> recvlist_ref_all({
+        const std::vector<std::unordered_map<int, std::vector<size_t>>> recvlist_ref_all({
             {},
             {},
             {},
@@ -502,14 +502,14 @@ static void test_blacs_to_ap_global_indices_communicate()
             {{0, {{0, 0}}}, {1, {{0, 1}}}, {2, {{1, 0}}}, {3, {{1, 1}}}},
             ab, ab, ad, true, false);
         // flattened indices with column major and sorted with row index going fastest
-        const std::vector<std::map<int, std::vector<size_t>>> sendlist_ref_all({
+        const std::vector<std::unordered_map<int, std::vector<size_t>>> sendlist_ref_all({
             {},
             {{0, {8, 9}}},
             {{0, {2, 6}}},
             {{0, {10}}, {1, {14}}, {2, {11}}},
         });
         const auto &sendlist_ref = sendlist_ref_all[myid_global];
-        const std::vector<std::map<int, std::vector<size_t>>> recvlist_ref_all({
+        const std::vector<std::unordered_map<int, std::vector<size_t>>> recvlist_ref_all({
             {{1, {8, 9}}, {2, {2, 6}}, {3, {10}}},
             {{3, {14}}},
             {{3, {11}}},
@@ -540,14 +540,14 @@ static void test_blacs_to_ap_global_indices_communicate()
             ab, ab,
             ad, true, false);
         // flattened indices with column major and sorted with row index going fastest
-        const std::vector<std::map<int, std::vector<size_t>>> sendlist_ref_all({
+        const std::vector<std::unordered_map<int, std::vector<size_t>>> sendlist_ref_all({
             {{3, {5}}},
             {{0, {8}}, {3, {9}}},
             {{0, {2}}, {3, {6}}},
             {{1, {14}}, {2, {11}}},
         });
         const auto &sendlist_ref = sendlist_ref_all[myid_global];
-        const std::vector<std::map<int, std::vector<size_t>>> recvlist_ref_all({
+        const std::vector<std::unordered_map<int, std::vector<size_t>>> recvlist_ref_all({
             {{1, {8}}, {2, {2}}},
             {{3, {14}}},
             {{3, {11}}},
@@ -576,14 +576,14 @@ static void test_blacs_to_ap_global_indices_communicate()
             ab, ab,
             ad, true, false);
         // flattened indices with column major and sorted with row index going fastest
-        const std::vector<std::map<int, std::vector<size_t>>> sendlist_ref_all({
+        const std::vector<std::unordered_map<int, std::vector<size_t>>> sendlist_ref_all({
             {{1, {4}}, {3, {1}}},
             {{0, {9}}, {2, {12}}},
             {{0, {6}}, {3, {2, 7}}},
             {{1, {14}}, {0, {10, 15}}},
         });
         const auto &sendlist_ref = sendlist_ref_all[myid_global];
-        const std::vector<std::map<int, std::vector<size_t>>> recvlist_ref_all({
+        const std::vector<std::unordered_map<int, std::vector<size_t>>> recvlist_ref_all({
             {{1, {9}}, {2, {6}}, {3, {10, 15}}},
             {{3, {14}}, {0, {4}}},
             {{1, {12}}},
@@ -624,7 +624,7 @@ static void test_blacs_to_ap_local_indices_communicate()
             {{0, {{0, 0}}}, {1, {{0, 1}}}, {2, {{1, 0}}}, {3, {{1, 1}}}},
             ab, ab, ad, true, false);
         // flattened indices with column major and sorted with row index going fastest
-        const std::vector<std::map<int, std::vector<std::pair<atpair_t, std::vector<size_t>>>>> recvlist_ref_all(
+        const std::vector<std::unordered_map<int, std::vector<std::pair<atpair_t, std::vector<size_t>>>>> recvlist_ref_all(
             {
                 {},
                 {{0, {{{0, 1}, {0}}}}},
@@ -632,7 +632,7 @@ static void test_blacs_to_ap_local_indices_communicate()
                 {{0, {{{1, 1}, {0}}}}, {1, {{{1, 1}, {3, 6}}}},{2, {{{1, 1}, {1, 2}}}}},
             }
         );
-        const std::vector<std::map<int, std::vector<size_t>>> sendlist_ref_all(
+        const std::vector<std::unordered_map<int, std::vector<size_t>>> sendlist_ref_all(
             {
                 {{1, {2}}, {2, {1}}, {3, {3}}},
                 {{3, {1, 3}}},
@@ -665,13 +665,13 @@ static void test_blacs_to_ap_local_indices_communicate()
             },
             ab, ab,
             ad, true, false);
-        const std::vector<std::map<int, std::vector<size_t>>> sendlist_ref_all({
+        const std::vector<std::unordered_map<int, std::vector<size_t>>> sendlist_ref_all({
             {{3, {3}}},
             {{0, {0}}, {3, {1}}},
             {{0, {0}}, {3, {2}}},
             {{1, {2}}, {2, {1}}},
         });
-        const std::vector<std::map<int, std::vector<std::pair<atpair_t, std::vector<size_t>>>>>
+        const std::vector<std::unordered_map<int, std::vector<std::pair<atpair_t, std::vector<size_t>>>>>
             recvlist_ref_all({
                 {{1, {{{0, 1}, {1}}}}, {2, {{{1, 0}, {1}}}}},
                 {{3, {{{1, 2}, {1}}}}},
@@ -700,14 +700,14 @@ static void test_blacs_to_ap_local_indices_communicate()
             },
             ab, ab,
             ad, true, false);
-        const std::vector<std::map<int, std::vector<size_t>>> sendlist_ref_all({
+        const std::vector<std::unordered_map<int, std::vector<size_t>>> sendlist_ref_all({
             {{1, {2}}, {3, {1}}},
             {{0, {1}}, {2, {2}}},
             {{0, {2}}, {3, {0, 3}}},
             {{1, {2}}, {0, {0, 3}}},
         });
         const auto &sendlist_ref = sendlist_ref_all[myid_global];
-        const std::vector<std::map<int, std::vector<std::pair<atpair_t, std::vector<size_t>>>>>
+        const std::vector<std::unordered_map<int, std::vector<std::pair<atpair_t, std::vector<size_t>>>>>
             recvlist_ref_all({
                 {{1, {{{1, 1}, {2}}}}, {2, {{{1, 1}, {1}}}}, {3, {{{1, 1}, {3}}, {{2, 2}, {0}}}}},
                 {{3, {{{1, 2}, {1}}}}, {0, {{{0, 1}, {0}}}}},
@@ -774,7 +774,7 @@ static void test_blacs_to_ap_global_indices_sy_communicate()
             {{0, {{0, 0}}}, {1, {{0, 1}}}, {3, {{1, 1}}}},
             ab, ab, ad, true, false);
         // flattened indices with column major and sorted with row index going fastest
-        const std::vector<std::map<int, std::vector<size_t>>> sendlist_ref_all(
+        const std::vector<std::unordered_map<int, std::vector<size_t>>> sendlist_ref_all(
             {
                 {{1, {4}}, {3, {5}}},
                 {{3, {9, 13}}},
@@ -783,7 +783,7 @@ static void test_blacs_to_ap_global_indices_sy_communicate()
             }
         );
         const auto &sendlist_ref = sendlist_ref_all[myid_global];
-        const std::vector<std::map<int, std::vector<size_t>>>
+        const std::vector<std::unordered_map<int, std::vector<size_t>>>
             recvlist_ref_all(
             {
                 {},
@@ -839,7 +839,7 @@ static void test_blacs_to_ap_local_indices_sy_communicate()
             {{0, {{0, 0}}}, {1, {{0, 1}}}, {3, {{1, 1}}}},
             ab, ab, ad, true, false);
         // flattened indices with column major and sorted with row index going fastest
-        const std::vector<std::map<int, std::vector<std::pair<atpair_t, std::vector<size_t>>>>> recvlist_ref_all(
+        const std::vector<std::unordered_map<int, std::vector<std::pair<atpair_t, std::vector<size_t>>>>> recvlist_ref_all(
             {
                 {},
                 {{0, {{{0, 1}, {0}}}}},
@@ -847,7 +847,7 @@ static void test_blacs_to_ap_local_indices_sy_communicate()
                 {{0, {{{1, 1}, {0}}}}, {1, {{{1, 1}, {3, 6}}}},{2, {{{1, 1}, {1, 2}}}}},
             }
         );
-        const std::vector<std::map<int, std::vector<size_t>>> sendlist_ref_all(
+        const std::vector<std::unordered_map<int, std::vector<size_t>>> sendlist_ref_all(
             {
                 {{1, {2}}, {3, {3}}},
                 {{3, {1, 3}}},
@@ -880,14 +880,14 @@ static void test_blacs_to_ap_local_indices_sy_communicate()
             ab, ab,
             ad, true, false);
         // flattened indices with column major and sorted with row index going fastest
-        // const std::vector<std::map<int, std::vector<size_t>>> sendlist_ref_all({
+        // const std::vector<std::unordered_map<int, std::vector<size_t>>> sendlist_ref_all({
         //     {{1, {8}}, {2, {2}}}, // 1:{(0,2)} 2:{(2,0)}
         //     {{3, {14}}}, // 3:{(2,3)}
         //     {{3, {11}}}, // 3:{(3,2)}
         //     {{0, {5}}, {1, {9}}, {2, {6}}}, // 0:{(1,1)} 1:{(1,2)} 2:{(2,1)}
         // });
         // flattened indices with column major and sorted with row index going fastest
-        const std::vector<std::map<int, std::vector<std::pair<atpair_t, std::vector<size_t>>>>> recvlist_ref_all(
+        const std::vector<std::unordered_map<int, std::vector<std::pair<atpair_t, std::vector<size_t>>>>> recvlist_ref_all(
             {
                 {{1, {{{0, 1}, {1}}}}, },
                 {{3, {{{1, 2}, {1}}}}},
@@ -895,7 +895,7 @@ static void test_blacs_to_ap_local_indices_sy_communicate()
                 {{0, {{{1, 1}, {0}}}}, {1, {{{1, 1}, {2}}}},{2, {{{1, 1}, {1}}}}},
             }
         );
-        const std::vector<std::map<int, std::vector<size_t>>> sendlist_ref_all({
+        const std::vector<std::unordered_map<int, std::vector<size_t>>> sendlist_ref_all({
             {{3, {3}}},
             {{0, {0}}, {3, {1}}},
             {{3, {2}}},

@@ -6,6 +6,7 @@
 #include <cassert>
 #include <stdexcept>
 #include <unordered_set>
+#include <unordered_map>
 
 // #include "envs_mpi.h"
 #include "matrix_m.h"
@@ -727,8 +728,8 @@ void invert_scalapack(matrix_m<T> &m_loc, const LIBRPA::Array_Desc &desc_m)
  */
 template <typename T>
 void fill_local_mat_from_ap_dist(matrix_m<T> &m_loc,
-                                 const std::map<atpair_t, matrix_m<T>> data,
-                                 const std::map<int, std::vector<atpair_t>> &map_proc_IJs_avail,
+                                 const std::unordered_map<atpair_t, matrix_m<T>, atpair_hash> data,
+                                 const std::unordered_map<int, std::vector<atpair_t>> &map_proc_IJs_avail,
                                  const AtomicBasis &atbasis_r,
                                  const AtomicBasis &atbasis_c,
                                  const Array_Desc &ad)
@@ -888,8 +889,8 @@ void fill_local_mat_from_ap_dist(matrix_m<T> &m_loc,
  * @retval    matrix_m. The major is the same as the input, major_data
  */
 template <typename T>
-matrix_m<T> get_local_mat_from_ap_dist(const std::map<atpair_t, matrix_m<T>> data,
-                                       const std::map<int, std::vector<atpair_t>> &map_proc_IJs_avail,
+matrix_m<T> get_local_mat_from_ap_dist(const std::unordered_map<atpair_t, matrix_m<T>, atpair_hash> &data,
+                                       const std::unordered_map<int, std::vector<atpair_t>> &map_proc_IJs_avail,
                                        const AtomicBasis &atbasis_r,
                                        const AtomicBasis &atbasis_c,
                                        const Array_Desc &ad, MAJOR major_data)
@@ -922,9 +923,9 @@ matrix_m<T> get_local_mat_from_ap_dist(const std::map<atpair_t, matrix_m<T>> dat
  */
 template <typename T>
 void fill_local_mat_from_ap_dist_sy(matrix_m<T> &m_loc,
-                                    const std::map<atpair_t, matrix_m<T>> data,
+                                    const std::unordered_map<atpair_t, matrix_m<T>, atpair_hash> data,
                                     const char &uplo,
-                                    const std::map<int, std::vector<atpair_t>> &map_proc_IJs_avail,
+                                    const std::unordered_map<int, std::vector<atpair_t>> &map_proc_IJs_avail,
                                     const AtomicBasis &atbasis,
                                     const Array_Desc &ad, bool apply_conjugate)
 {
@@ -1110,9 +1111,9 @@ void fill_local_mat_from_ap_dist_sy(matrix_m<T> &m_loc,
  * @retval    matrix_m. The major is the same as the input, major_data
  */
 template <typename T>
-matrix_m<T> get_local_mat_from_ap_dist_sy(const std::map<atpair_t, matrix_m<T>> data,
+matrix_m<T> get_local_mat_from_ap_dist_sy(const std::unordered_map<atpair_t, matrix_m<T>, atpair_hash> data,
                                           const char &uplo,
-                                          const std::map<int, std::vector<atpair_t>> &map_proc_IJs_avail,
+                                          const std::unordered_map<int, std::vector<atpair_t>> &map_proc_IJs_avail,
                                           const AtomicBasis &atbasis,
                                           const Array_Desc &ad, bool apply_conjugate, MAJOR major_data)
 {
@@ -1135,9 +1136,9 @@ matrix_m<T> get_local_mat_from_ap_dist_sy(const std::map<atpair_t, matrix_m<T>> 
  * @param  [in]     ad                    Array descriptor for BLACS distribution
  */
 template <typename T>
-void fill_ap_map_from_blacs_dist(std::map<atpair_t, matrix_m<T>> &data,
+void fill_ap_map_from_blacs_dist(std::unordered_map<atpair_t, matrix_m<T>, atpair_hash> &data,
                                  const matrix_m<T> &m_loc,
-                                 const std::map<int, std::vector<atpair_t>> &map_proc_IJs_require,
+                                 const std::unordered_map<int, std::vector<atpair_t>> &map_proc_IJs_require,
                                  const AtomicBasis &atbasis_r,
                                  const AtomicBasis &atbasis_c,
                                  const Array_Desc &ad)
@@ -1340,9 +1341,9 @@ void fill_ap_map_from_blacs_dist(std::map<atpair_t, matrix_m<T>> &data,
  *
  * @retval atom-pair mapping matrix data. The major is the same as the input m_loc, major_data
  */
-template <typename T> std::map<atpair_t, matrix_m<T>>
+template <typename T> std::unordered_map<atpair_t, matrix_m<T>, atpair_hash>
 get_ap_map_from_blacs_dist(const matrix_m<T> &m_loc,
-                           const std::map<int, std::vector<atpair_t>> &map_proc_IJs_require,
+                           const std::unordered_map<int, std::vector<atpair_t>> &map_proc_IJs_require,
                            const AtomicBasis &atbasis_r,
                            const AtomicBasis &atbasis_c,
                            const Array_Desc &ad,
@@ -1359,7 +1360,7 @@ get_ap_map_from_blacs_dist(const matrix_m<T> &m_loc,
         throw std::logic_error("major passed but not consistent with m_loc");
     }
 
-    std::map<atpair_t, matrix_m<T>> data;
+    std::unordered_map<atpair_t, matrix_m<T>, atpair_hash> data;
     fill_ap_map_from_blacs_dist<T>(data, m_loc, map_proc_IJs_require, atbasis_r, atbasis_c, ad);
     return data;
 }

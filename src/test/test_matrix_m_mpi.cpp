@@ -347,11 +347,12 @@ void test_local_mat_from_ap_dist()
     MPI_Bcast(global.ptr(), m * n, mpi_datatype<T>::value, 0, ad.comm());
     auto mat_loc_ref = get_local_mat<T>(global, ad);
 
-    const std::map<int, std::vector<atpair_t>> map_proc_IJs_avail {{0, {{0, 0}, {1, 0}, {0, 1}}},
-                                                                   {1, {{0, 2}, {1, 2}}},
-                                                                   {2, {{2, 0}, {2, 1}}},
-                                                                   {3, {{1, 1}, {2, 2}}}};
-    map<atpair_t, matrix_m<T>> IJmap;
+    const std::unordered_map<int, std::vector<atpair_t>> map_proc_IJs_avail{
+        {0, {{0, 0}, {1, 0}, {0, 1}}},
+        {1, {{0, 2}, {1, 2}}},
+        {2, {{2, 0}, {2, 1}}},
+        {3, {{1, 1}, {2, 2}}}};
+    unordered_map<atpair_t, matrix_m<T>, atpair_hash> IJmap;
     for (const auto &IJ: map_proc_IJs_avail.at(myid_global))
     {
         const auto &I = IJ.first;
@@ -423,11 +424,12 @@ void test_local_mat_from_ap_dist_he()
     const auto mat_loc_ref = get_local_mat<T>(global, ad);
 
     // only the upper half
-    const std::map<int, std::vector<atpair_t>> map_proc_IJs_avail {{0, {{0, 0}, {0, 1}}},
-                                                                   {1, {{0, 2}, {1, 2}}},
-                                                                   {2, {}},
-                                                                   {3, {{1, 1}, {2, 2}}}};
-    map<atpair_t, matrix_m<T>> IJmap;
+    const std::unordered_map<int, std::vector<atpair_t>> map_proc_IJs_avail{
+        {0, {{0, 0}, {0, 1}}},
+        {1, {{0, 2}, {1, 2}}},
+        {2, {}},
+        {3, {{1, 1}, {2, 2}}}};
+    unordered_map<atpair_t, matrix_m<T>, atpair_hash> IJmap;
     for (const auto &IJ: map_proc_IJs_avail.at(myid_global))
     {
         const auto &I = IJ.first;
@@ -508,10 +510,11 @@ void test_ap_map_from_blacs_dist()
     // | 0   3 | 3   1 |
     // | 2   2 | 2   3 |
     {
-        const std::map<int, std::vector<atpair_t>> map_proc_IJs_require {{0, {{0, 0}, {1, 0}, {0, 1}}},
-                                                                         {1, {{0, 2}, {1, 2}}},
-                                                                         {2, {{2, 0}, {2, 1}}},
-                                                                         {3, {{1, 1}, {2, 2}}}};
+        const std::unordered_map<int, std::vector<atpair_t>> map_proc_IJs_require{
+            {0, {{0, 0}, {1, 0}, {0, 1}}},
+            {1, {{0, 2}, {1, 2}}},
+            {2, {{2, 0}, {2, 1}}},
+            {3, {{1, 1}, {2, 2}}}};
         const auto IJmap = get_ap_map_from_blacs_dist<T>(mat_loc, map_proc_IJs_require, ab, ab, ad);
         const std::vector<std::map<atpair_t, matrix_m<T>>> IJmap_ref_all {
             {{{0, 0}, { {{global(0, 0)}} }}, {{0, 1}, { {{global(0, 1), global(0, 2)}} }}, {{1, 0}, { {{global(1, 0)}, {global(2, 0)}} }}}, // proc 0
@@ -547,10 +550,11 @@ void test_ap_map_from_blacs_dist()
     // | 3   0 | 0   1 |
     // | 2   3 | 3   0 |
     {
-        const std::map<int, std::vector<atpair_t>> map_proc_IJs_require {{0, {{0, 0}, {1, 1}, {2, 2}}},
-                                                                         {1, {{0, 1}, {1, 2}}},
-                                                                         {2, {{0, 2}, {2, 0}}},
-                                                                         {3, {{1, 0}, {2, 1}}}};
+        const std::unordered_map<int, std::vector<atpair_t>> map_proc_IJs_require{
+            {0, {{0, 0}, {1, 1}, {2, 2}}},
+            {1, {{0, 1}, {1, 2}}},
+            {2, {{0, 2}, {2, 0}}},
+            {3, {{1, 0}, {2, 1}}}};
         const auto IJmap = get_ap_map_from_blacs_dist<T>(mat_loc, map_proc_IJs_require, ab, ab, ad);
         const std::vector<std::map<atpair_t, matrix_m<T>>> IJmap_ref_all {
             {{{0, 0}, { {{global(0, 0)}} }}, {{1, 1}, { {{global(1, 1), global(1, 2)}, {global(2, 1), global(2, 2)}} }}, {{2, 2}, { {{global(3, 3)}} }}, }, // proc 0
@@ -617,7 +621,7 @@ void test_restore_local_mat(const std::vector<size_t> &nbs, MAJOR major)
     const auto &pairs = generate_atom_pair_from_nat(ab.n_atoms, true);
     assert(pairs.size() == ab.n_atoms * ab.n_atoms);
     // distribute atom pairs to processes - a naive distribution by order
-    std::map<int, std::vector<atpair_t>> IJs;
+    std::unordered_map<int, std::vector<atpair_t>> IJs;
     for (size_t i = 0; i < pairs.size(); i++)
     {
         IJs[i % nprocs].emplace_back(pairs[i]);
@@ -683,12 +687,12 @@ void test_restore_ap_map(const std::vector<size_t> &nbs, MAJOR major)
     const auto &pairs = generate_atom_pair_from_nat(ab.n_atoms, true);
     assert(pairs.size() == ab.n_atoms * ab.n_atoms);
     // distribute atom pairs to processes - a naive distribution by order
-    std::map<int, std::vector<atpair_t>> IJs;
+    std::unordered_map<int, std::vector<atpair_t>> IJs;
     for (size_t i = 0; i < pairs.size(); i++)
     {
         IJs[i % nprocs].emplace_back(pairs[i]);
     }
-    std::map<atpair_t, matrix_m<T>> IJmap_ref;
+    std::unordered_map<atpair_t, matrix_m<T>, atpair_hash> IJmap_ref;
     if (IJs.count(myid_global))
     {
         for (const auto &IJ: IJs.at(myid_global))
@@ -783,7 +787,7 @@ void test_restore_local_mat_sy(const std::vector<size_t> &nbs, MAJOR major)
     const auto &pairs = generate_atom_pair_from_nat(ab.n_atoms, false);
     assert(pairs.size() == ab.n_atoms * (ab.n_atoms + 1) / 2);
     // distribute atom pairs to processes - a naive distribution by order
-    std::map<int, std::vector<atpair_t>> IJs;
+    std::unordered_map<int, std::vector<atpair_t>> IJs;
     for (size_t i = 0; i < pairs.size(); i++)
     {
         IJs[i % nprocs].emplace_back(pairs[i]);

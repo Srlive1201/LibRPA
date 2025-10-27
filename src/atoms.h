@@ -10,6 +10,7 @@
 #include <vector>
 #include <utility>
 #include <map>
+#include <unordered_map>
 #include <cstdint>
 /* #include "vector3.h" */
 /* #include "matrix3.h" */
@@ -50,7 +51,7 @@ struct atom_mapping
     //! mapping between single atom and data
     typedef map<atom_t, T> single_t;
     //! mapping between atom pair and data
-    typedef map<atpair_t, T> pair_t;
+    typedef std::unordered_map<atpair_t, T, atpair_hash> pair_t;
     //! mapping between tri-atom group and data
     typedef map<pair<atom_t, atpair_t>, T> tri_t;
     //! mapping between atom pair and data. Nested map, old style

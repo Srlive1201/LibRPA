@@ -1,6 +1,7 @@
 #pragma once
 
 #include <set>
+#include <unordered_map>
 
 #include "atomic_basis.h"
 #include "base_blacs.h"
@@ -34,9 +35,10 @@ std::set<std::pair<int, int>> get_necessary_IJ_from_block_2D_sy(const char &uplo
  *
  *            map_recv: process id -> [ global indices (in BLACS context) ]
  */
-std::pair<std::map<int, std::vector<size_t>>, std::map<int, std::vector<size_t>>>
+std::pair<std::unordered_map<int, std::vector<size_t>>,
+          std::unordered_map<int, std::vector<size_t>>>
 get_communicate_global_ids_list_ap_to_blacs(const int &myid,
-                                            const std::map<int, std::vector<atpair_t>> &map_proc_IJs_avail,
+                                            const std::unordered_map<int, std::vector<atpair_t>> &map_proc_IJs_avail,
                                             const AtomicBasis &atbasis_r,
                                             const AtomicBasis &atbasis_c,
                                             const Array_Desc &ad, bool row_fast, bool row_major);
@@ -63,10 +65,11 @@ get_communicate_global_ids_list_ap_to_blacs(const int &myid,
  *            map_recv: process id -> { [ global indices (in BLACS context) ], [ conjugate label ] }.
  *                      conjugate label is 'c' is necessary conjugate should be performed.
  */
-std::pair<std::map<int, std::vector<size_t>>, std::map<int, std::pair<std::vector<size_t>, std::vector<char>>>>
+std::pair<std::unordered_map<int, std::vector<size_t>>,
+          std::unordered_map<int, std::pair<std::vector<size_t>, std::vector<char>>>>
 get_communicate_global_ids_list_ap_to_blacs_sy(const int &myid,
                                                const char &uplo,
-                                               const std::map<int, std::vector<atpair_t>> &map_proc_IJs_avail,
+                                               const std::unordered_map<int, std::vector<atpair_t>> &map_proc_IJs_avail,
                                                const AtomicBasis &atbasis,
                                                const Array_Desc &ad, bool row_fast, bool row_major);
 
@@ -87,10 +90,10 @@ get_communicate_global_ids_list_ap_to_blacs_sy(const int &myid,
  *
  *            map_recv: process id -> [ local indices in BLACS sub-matrix ]
  */
-std::pair<std::map<int, std::vector<std::pair<atpair_t, std::vector<size_t>>>>,
-          std::map<int, std::vector<size_t>>>
+std::pair<std::unordered_map<int, std::vector<std::pair<atpair_t, std::vector<size_t>>>>,
+          std::unordered_map<int, std::vector<size_t>>>
 get_communicate_local_ids_list_ap_to_blacs(const int &myid,
-                                           const std::map<int, std::vector<atpair_t>> &map_proc_IJs_avail,
+                                           const std::unordered_map<int, std::vector<atpair_t>> &map_proc_IJs_avail,
                                            const AtomicBasis &atbasis_r,
                                            const AtomicBasis &atbasis_c,
                                            const Array_Desc &ad, bool row_fast, bool row_major);
@@ -117,11 +120,11 @@ get_communicate_local_ids_list_ap_to_blacs(const int &myid,
  *            map_recv: process id -> { [ local indices in BLACS sub-matrix ], [ conjugate label ] }.
  *                      conjugate label is 'c' is necessary conjugate should be performed.
  */
-std::pair<std::map<int, std::vector<std::pair<atpair_t, std::vector<size_t>>>>,
-          std::map<int, std::pair<std::vector<size_t>, std::vector<char>>>>
+std::pair<std::unordered_map<int, std::vector<std::pair<atpair_t, std::vector<size_t>>>>,
+          std::unordered_map<int, std::pair<std::vector<size_t>, std::vector<char>>>>
 get_communicate_local_ids_list_ap_to_blacs_sy(const int &myid,
                                               const char &uplo,
-                                              const std::map<int, std::vector<atpair_t>> &map_proc_IJs_avail,
+                                              const std::unordered_map<int, std::vector<atpair_t>> &map_proc_IJs_avail,
                                               const AtomicBasis &atbasis,
                                               const Array_Desc &ad, bool row_fast, bool row_major);
 
@@ -143,9 +146,10 @@ get_communicate_local_ids_list_ap_to_blacs_sy(const int &myid,
  *
  *            map_recv: process id -> [ global indices (in atom-pair context) ]
  */
-std::pair<std::map<int, std::vector<size_t>>, std::map<int, std::vector<size_t>>>
+std::pair<std::unordered_map<int, std::vector<size_t>>,
+          std::unordered_map<int, std::vector<size_t>>>
 get_communicate_global_ids_list_blacs_to_ap(const int &myid,
-                                            const std::map<int, std::vector<atpair_t>> &map_proc_IJs_require,
+                                            const std::unordered_map<int, std::vector<atpair_t>> &map_proc_IJs_require,
                                             const AtomicBasis &atbasis_r,
                                             const AtomicBasis &atbasis_c,
                                             const Array_Desc &ad, bool row_fast, bool row_major);
@@ -167,10 +171,10 @@ get_communicate_global_ids_list_blacs_to_ap(const int &myid,
  *
  *            map_recv: process id -> [ { <I,J>, [ local indices in atom-pair sub-matrix ] } , ...]
  */
-std::pair<std::map<int, std::vector<size_t>>,
-          std::map<int, std::vector<std::pair<atpair_t, std::vector<size_t>>>>>
+std::pair<std::unordered_map<int, std::vector<size_t>>,
+          std::unordered_map<int, std::vector<std::pair<atpair_t, std::vector<size_t>>>>>
 get_communicate_local_ids_list_blacs_to_ap(const int &myid,
-                                           const std::map<int, std::vector<atpair_t>> &map_proc_IJs_require,
+                                           const std::unordered_map<int, std::vector<atpair_t>> &map_proc_IJs_require,
                                            const AtomicBasis &atbasis_r,
                                            const AtomicBasis &atbasis_c,
                                            const Array_Desc &ad, bool row_fast, bool row_major);
