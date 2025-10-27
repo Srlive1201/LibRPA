@@ -192,7 +192,6 @@ public:
     inline const std::shared_ptr<std::valarray<T>> sptr() const noexcept { return this->data_; }
 
 private:
-    void assign_value_(const T &v) noexcept { if (size_ > 0) *data_ = v; }
     void assign_value_(const T* const pv, MAJOR major_pv) noexcept
     {
         if (major_ == major_pv)
@@ -229,7 +228,6 @@ public:
     matrix_m(const int &nrows, const int &ncols, MAJOR major = MAJOR::ROW): major_(major), data_(nullptr)
     {
         resize(nrows, ncols);
-        zero_out();
     }
     matrix_m(const int &nrows, const int &ncols, const T * const parr, MAJOR major = MAJOR::ROW): major_(major), ld_(0), data_(nullptr)
     {
@@ -250,7 +248,6 @@ public:
     {
         get_nr_nc_from_nested_vector(nested_vector, nr_, nc_);
         resize(nr_, nc_);
-        zero_out();
         expand_nested_vector_to_pointer(nested_vector, nr_, nc_, this->ptr(), is_row_major());
     }
 
@@ -262,7 +259,7 @@ public:
     // destructor
     ~matrix_m() {}
 
-    inline void zero_out() noexcept { assign_value_(T(0)); }
+    inline void zero_out() noexcept { if (size_ > 0) *(this->data_) = 0; }
 
     inline void clear() noexcept { this->resize(0, 0); }
 
@@ -330,11 +327,11 @@ public:
                     // std::cout << "real symmetrize row" << std::endl; // debug
                     for (int i = 0; i != mrank; i++)
                     {
-                        this->ptr()[index(nr, i, nc, i)] = dr(e);
+                        this->ptr()[nc * i + i] = dr(e);
                         for (int j = i + 1; j < mrank; j++)
                         {
-                            this->ptr()[index(nr, i, nc, j)] = dr(e);
-                            this->ptr()[index(nr, j, nc, i)] = this->ptr()[index(nr, i, nc, j)];
+                            this->ptr()[nc * i + j] = dr(e);
+                            this->ptr()[nc * j + i] = this->ptr()[nc * i + j];
                         }
                     }
                 }

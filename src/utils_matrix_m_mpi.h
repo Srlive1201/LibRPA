@@ -40,16 +40,33 @@ matrix_m<T> get_local_mat(const matrix_m<T> &mat_go, const LIBRPA::Array_Desc &a
     assert(mat_go.nr() == ad.m() && mat_go.nc() == ad.n());
 
     if (major == MAJOR::AUTO) major = mat_go.major();
+    const auto major_src = mat_go.major();
     matrix_m<T> mat_lo(ad.m_loc(), ad.n_loc(), major);
-    for (int i = 0; i != mat_go.nr(); i++)
+    const auto nr = mat_lo.nr();
+    const auto nc = mat_lo.nc();
+
+    if (major_src == MAJOR::ROW)
     {
-        auto i_lo = ad.indx_g2l_r(i);
-        if (i_lo < 0) continue;
-        for (int j = 0; j != mat_go.nc(); j++)
+        for (int i = 0; i != nr; i++)
         {
-            auto j_lo = ad.indx_g2l_c(j);
-            if (j_lo < 0) continue;
-            mat_lo(i_lo, j_lo) = mat_go(i, j);
+            const auto i_go = ad.indx_l2g_r(i);
+            for (int j = 0; j != nc; j++)
+            {
+                const auto j_go = ad.indx_l2g_c(j);
+                mat_lo(i, j) = mat_go(i_go, j_go);
+            }
+        }
+    }
+    else
+    {
+        for (int j = 0; j != nc; j++)
+        {
+            const auto j_go = ad.indx_l2g_c(j);
+            for (int i = 0; i != nr; i++)
+            {
+                const auto i_go = ad.indx_l2g_r(i);
+                mat_lo(i, j) = mat_go(i_go, j_go);
+            }
         }
     }
     return mat_lo;
@@ -1163,7 +1180,6 @@ void fill_ap_map_from_blacs_dist(std::map<atpair_t, matrix_m<T>> &data,
                 if (!data.count(atpair))
                 {
                     data[atpair] = matrix_m<T>(nI, nJ, major_data);
-                    data[atpair].zero_out();
                 }
                 data.at(atpair).ptr()[i*nJ+j] = m_loc.ptr()[ir*nc+ic];
             }
@@ -1184,7 +1200,6 @@ void fill_ap_map_from_blacs_dist(std::map<atpair_t, matrix_m<T>> &data,
                 if (!data.count(atpair))
                 {
                     data[atpair] = matrix_m<T>(nI, nJ, major_data);
-                    data[atpair].zero_out();
                 }
                 data.at(atpair).ptr()[j*nI+i] = m_loc.ptr()[ic*nr+ir];
             }
