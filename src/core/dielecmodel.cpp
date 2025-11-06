@@ -1115,24 +1115,30 @@ void diele_func::cal_eps(const int ifreq, ArrayDesc &desc_nabf_nabf_opt, ArrayDe
             chi0(ilo, jlo) = result;
         }
     }
-    auto identity = init_local_mat<complex<double>>(desc_body, MAJOR::COL);
-    for (int i = 0; i < n_nonsingular - 1; i++)
-    {
-        const int ilo = desc_body.indx_g2l_r(i);
-        if (ilo < 0) continue;
-        for (int j = 0; j < n_nonsingular - 1; j++)
-        {
-            const int jlo = desc_body.indx_g2l_c(j);
-            if (jlo < 0) continue;
-            if (i == j)
-                identity(ilo, jlo) = 1.0;
-            else
-                identity(ilo, jlo) = 0.0;
-        }
-    }
-    ScalapackConnector::pgemm_f('N', 'N', n_nonsingular - 1, n_nonsingular - 1, n_nonsingular - 1,
-                                1.0, body_inv.ptr(), 1, 1, desc_body.desc, identity.ptr(), 1, 1,
-                                desc_body.desc, 1.0, chi0.ptr(), 2, 2, desc_nabf_nabf_opt.desc);
+    // auto identity = init_local_mat<complex<double>>(desc_body, MAJOR::COL);
+    // for (int i = 0; i < n_nonsingular - 1; i++)
+    // {
+    //     const int ilo = desc_body.indx_g2l_r(i);
+    //     if (ilo < 0) continue;
+    //     for (int j = 0; j < n_nonsingular - 1; j++)
+    //     {
+    //         const int jlo = desc_body.indx_g2l_c(j);
+    //         if (jlo < 0) continue;
+    //         if (i == j)
+    //             identity(ilo, jlo) = 1.0;
+    //         else
+    //             identity(ilo, jlo) = 0.0;
+    //     }
+    // }
+    // ScalapackConnector::pgemm_f('N', 'N', n_nonsingular - 1, n_nonsingular - 1, n_nonsingular - 1,
+    //                             1.0, body_inv.ptr(), 1, 1, desc_body.desc, identity.ptr(), 1, 1,
+    //                             desc_body.desc, 1.0, chi0.ptr(), 2, 2, desc_nabf_nabf_opt.desc);
+    ScalapackConnector::pgeadd_f(
+        'N', n_nonsingular - 1, n_nonsingular - 1, 
+        1.0, 
+        body_inv.ptr(), 1, 1, desc_body.desc, 
+        1.0, 
+        chi0.ptr(), 2, 2, desc_nabf_nabf_opt.desc);
     profiler.stop("cal_inverse_dielectric_matrix_ij");
     if (mpi_comm_global_h.is_root())
         std::cout << "* Success: calculate average inverse dielectric matrix no." << ifreq + 1
