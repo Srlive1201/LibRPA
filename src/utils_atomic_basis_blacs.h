@@ -12,6 +12,12 @@ namespace LIBRPA
 namespace utils
 {
 
+// aliases for mapping indices from process rank
+typedef std::unordered_map<int, std::vector<size_t>> myid_blacsid_map_t;
+typedef std::unordered_map<int, std::vector<size_t>> myid_ap_glid_map_t;
+typedef std::unordered_map<int, std::vector<std::pair<atpair_t, std::vector<size_t>>>> myid_ap_loid_map_t;
+typedef std::unordered_map<int, std::pair<std::vector<size_t>, std::vector<char>>> myid_blacs_idop_map_t;
+
 //! obtain the necessary atom pair of atomic basis to build the block-cyclic submatrix
 std::set<std::pair<int, int>> get_necessary_IJ_from_block_2D(const AtomicBasis &atbasis_row, const AtomicBasis &atbasis_col, const Array_Desc& arrdesc);
 
@@ -35,8 +41,7 @@ std::set<std::pair<int, int>> get_necessary_IJ_from_block_2D_sy(const char &uplo
  *
  *            map_recv: process id -> [ global indices (in BLACS context) ]
  */
-std::pair<std::unordered_map<int, std::vector<size_t>>,
-          std::unordered_map<int, std::vector<size_t>>>
+std::pair<myid_ap_glid_map_t, myid_blacsid_map_t>
 get_communicate_global_ids_list_ap_to_blacs(const int &myid,
                                             const std::unordered_map<int, std::vector<atpair_t>> &map_proc_IJs_avail,
                                             const AtomicBasis &atbasis_r,
@@ -66,8 +71,7 @@ get_communicate_global_ids_list_ap_to_blacs(const int &myid,
  *            map_recv: process id -> { [ global indices (in BLACS context) ], [ conjugate label ] }.
  *                      conjugate label is 'c' is necessary conjugate should be performed.
  */
-std::pair<std::unordered_map<int, std::vector<size_t>>,
-          std::unordered_map<int, std::pair<std::vector<size_t>, std::vector<char>>>>
+std::pair<myid_ap_glid_map_t, myid_blacs_idop_map_t>
 get_communicate_global_ids_list_ap_to_blacs_sy(const int &myid,
                                                const char &uplo,
                                                const std::unordered_map<int, std::vector<atpair_t>> &map_proc_IJs_avail,
@@ -92,8 +96,7 @@ get_communicate_global_ids_list_ap_to_blacs_sy(const int &myid,
  *
  *            map_recv: process id -> [ local indices in BLACS sub-matrix ]
  */
-std::pair<std::unordered_map<int, std::vector<std::pair<atpair_t, std::vector<size_t>>>>,
-          std::unordered_map<int, std::vector<size_t>>>
+std::pair<myid_ap_loid_map_t, myid_blacsid_map_t>
 get_communicate_local_ids_list_ap_to_blacs(const int &myid,
                                            const std::unordered_map<int, std::vector<atpair_t>> &map_proc_IJs_avail,
                                            const AtomicBasis &atbasis_r,
@@ -123,8 +126,7 @@ get_communicate_local_ids_list_ap_to_blacs(const int &myid,
  *            map_recv: process id -> { [ local indices in BLACS sub-matrix ], [ conjugate label ] }.
  *                      conjugate label is 'c' is necessary conjugate should be performed.
  */
-std::pair<std::unordered_map<int, std::vector<std::pair<atpair_t, std::vector<size_t>>>>,
-          std::unordered_map<int, std::pair<std::vector<size_t>, std::vector<char>>>>
+std::pair<myid_ap_loid_map_t, myid_blacs_idop_map_t>
 get_communicate_local_ids_list_ap_to_blacs_sy(const int &myid,
                                               const char &uplo,
                                               const std::unordered_map<int, std::vector<atpair_t>> &map_proc_IJs_avail,
@@ -150,8 +152,7 @@ get_communicate_local_ids_list_ap_to_blacs_sy(const int &myid,
  *
  *            map_recv: process id -> [ global indices (in atom-pair context) ]
  */
-std::pair<std::unordered_map<int, std::vector<size_t>>,
-          std::unordered_map<int, std::vector<size_t>>>
+std::pair<myid_blacsid_map_t, myid_ap_glid_map_t>
 get_communicate_global_ids_list_blacs_to_ap(const int &myid,
                                             const std::unordered_map<int, std::vector<atpair_t>> &map_proc_IJs_require,
                                             const AtomicBasis &atbasis_r,
@@ -176,8 +177,7 @@ get_communicate_global_ids_list_blacs_to_ap(const int &myid,
  *
  *            map_recv: process id -> [ { <I,J>, [ local indices in atom-pair sub-matrix ] } , ...]
  */
-std::pair<std::unordered_map<int, std::vector<size_t>>,
-          std::unordered_map<int, std::vector<std::pair<atpair_t, std::vector<size_t>>>>>
+std::pair<myid_blacsid_map_t, myid_ap_loid_map_t>
 get_communicate_local_ids_list_blacs_to_ap(const int &myid,
                                            const std::unordered_map<int, std::vector<atpair_t>> &map_proc_IJs_require,
                                            const AtomicBasis &atbasis_r,

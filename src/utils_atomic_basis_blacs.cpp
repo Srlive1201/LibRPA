@@ -3,12 +3,11 @@
 #include <algorithm>
 #include <cassert>
 // #include <iostream>
-#include <map>
 #include <stdexcept>
 
 #include "base_utility.h"
-#include "scalapack_connector.h"
 #include "profiler.h"
+#include "scalapack_connector.h"
 
 // #include "stl_io_helper.h"
 
@@ -420,7 +419,7 @@ _get_communicate_ids_list_ap_to_blacs_sy(std::unordered_map<int, std::vector<cha
 /* For general matrix redistribution from atom-pair (AP) to BLACS block-cyclic forms */
 /* ================================================================================= */
 
-std::pair<std::unordered_map<int, std::vector<size_t>>, std::unordered_map<int, std::vector<size_t>>>
+std::pair<myid_ap_glid_map_t, myid_blacsid_map_t>
 get_communicate_global_ids_list_ap_to_blacs(const int &myid,
                                             const std::unordered_map<int, std::vector<atpair_t>> &map_proc_IJs_avail,
                                             const AtomicBasis &atbasis_r,
@@ -429,8 +428,8 @@ get_communicate_global_ids_list_ap_to_blacs(const int &myid,
                                             bool row_fast, bool row_major, bool include_self)
 {
     // Objects to return
-    std::unordered_map<int, std::vector<size_t>> map_proc_id1d_send;
-    std::unordered_map<int, std::vector<size_t>> map_proc_id1d_recv;
+    myid_ap_glid_map_t map_proc_id1d_send;
+    myid_blacsid_map_t map_proc_id1d_recv;
 
     const auto ids = _get_communicate_ids_list_ap_and_blacs(myid, map_proc_IJs_avail, atbasis_r,
                                                             atbasis_c, ad, row_fast, false, include_self);
@@ -464,8 +463,7 @@ get_communicate_global_ids_list_ap_to_blacs(const int &myid,
     return {map_proc_id1d_send, map_proc_id1d_recv};
 }
 
-std::pair<std::unordered_map<int, std::vector<std::pair<atpair_t, std::vector<size_t>>>>,
-          std::unordered_map<int, std::vector<size_t>>>
+std::pair<myid_ap_loid_map_t, myid_blacsid_map_t>
 get_communicate_local_ids_list_ap_to_blacs(const int &myid,
                                            const std::unordered_map<int, std::vector<atpair_t>> &map_proc_IJs_avail,
                                            const AtomicBasis &atbasis_r,
@@ -480,9 +478,9 @@ get_communicate_local_ids_list_ap_to_blacs(const int &myid,
     // process ID -> list of basis indices, receiving by myid from others
     const auto &map_proc_id2d_recv = ids.second;
 
-    // flatten 2D indices to 1D
-    std::unordered_map<int, std::vector<std::pair<atpair_t, std::vector<size_t>>>> map_proc_id1d_send;
-    std::unordered_map<int, std::vector<size_t>> map_proc_id1d_recv;
+    // flattened 1D indices to return
+    myid_ap_loid_map_t map_proc_id1d_send;
+    myid_blacsid_map_t map_proc_id1d_recv;
 
     for (const auto &proc_IJ_id2d: map_proc_id2d_send)
     {
@@ -509,8 +507,7 @@ get_communicate_local_ids_list_ap_to_blacs(const int &myid,
 /* For symmetric/Hermitian matrix redistribution from atom-pair (AP) to BLACS block-cyclic forms */
 /* ============================================================================================= */
 
-std::pair<std::unordered_map<int, std::vector<size_t>>,
-          std::unordered_map<int, std::pair<std::vector<size_t>, std::vector<char>>>>
+std::pair<myid_ap_glid_map_t, myid_blacs_idop_map_t>
 get_communicate_global_ids_list_ap_to_blacs_sy(const int &myid,
                                                const char &uplo,
                                                const std::unordered_map<int, std::vector<atpair_t>> &map_proc_IJs_avail,
@@ -519,8 +516,8 @@ get_communicate_global_ids_list_ap_to_blacs_sy(const int &myid,
                                                bool row_fast, bool row_major, bool include_self)
 {
     // Objects to return
-    std::unordered_map<int, std::vector<size_t>> map_proc_id1d_send;
-    std::unordered_map<int, std::pair<std::vector<size_t>, std::vector<char>>> map_proc_id1d_lconj_recv;
+    myid_ap_glid_map_t map_proc_id1d_send;
+    myid_blacs_idop_map_t map_proc_id1d_lconj_recv;
 
     std::unordered_map<int, std::vector<char>> map_lconj;
     const auto ids = _get_communicate_ids_list_ap_to_blacs_sy(map_lconj, myid, uplo, map_proc_IJs_avail, atbasis,
@@ -560,8 +557,7 @@ get_communicate_global_ids_list_ap_to_blacs_sy(const int &myid,
     return {map_proc_id1d_send, map_proc_id1d_lconj_recv};
 }
 
-std::pair<std::unordered_map<int, std::vector<std::pair<atpair_t, std::vector<size_t>>>>,
-          std::unordered_map<int, std::pair<std::vector<size_t>, std::vector<char>>>>
+std::pair<myid_ap_loid_map_t, myid_blacs_idop_map_t>
 get_communicate_local_ids_list_ap_to_blacs_sy(const int &myid,
                                               const char &uplo,
                                               const std::unordered_map<int, std::vector<atpair_t>> &map_proc_IJs_avail,
@@ -577,9 +573,9 @@ get_communicate_local_ids_list_ap_to_blacs_sy(const int &myid,
     // process ID -> list of basis indices, receiving by myid from others
     const auto &map_proc_id2d_recv = ids.second;
 
-    // flatten 2D indices to 1D
-    std::unordered_map<int, std::vector<std::pair<atpair_t, std::vector<size_t>>>> map_proc_id1d_send;
-    std::unordered_map<int, std::pair<std::vector<size_t>, std::vector<char>>> map_proc_id1d_lconj_recv;
+    // flattened 1D indices to return
+    myid_ap_loid_map_t map_proc_id1d_send;
+    myid_blacs_idop_map_t map_proc_id1d_lconj_recv;
 
     for (const auto &proc_IJ_id2d: map_proc_id2d_send)
     {
@@ -611,7 +607,7 @@ get_communicate_local_ids_list_ap_to_blacs_sy(const int &myid,
 /* For general matrix redistribution from BLACS block-cyclic to atom-pair (AP) forms */
 /* ================================================================================= */
 
-std::pair<std::unordered_map<int, std::vector<size_t>>, std::unordered_map<int, std::vector<size_t>>>
+std::pair<myid_blacsid_map_t, myid_ap_glid_map_t>
 get_communicate_global_ids_list_blacs_to_ap(const int &myid,
                                             const std::unordered_map<int, std::vector<atpair_t>> &map_proc_IJs_require,
                                             const AtomicBasis &atbasis_r,
@@ -620,8 +616,8 @@ get_communicate_global_ids_list_blacs_to_ap(const int &myid,
                                             bool row_fast, bool row_major, bool include_self)
 {
     // Objects to return
-    std::unordered_map<int, std::vector<size_t>> map_proc_id1d_send;
-    std::unordered_map<int, std::vector<size_t>> map_proc_id1d_recv;
+    myid_blacsid_map_t map_proc_id1d_send;
+    myid_ap_glid_map_t map_proc_id1d_recv;
 
     const auto ids = _get_communicate_ids_list_ap_and_blacs(myid, map_proc_IJs_require, atbasis_r,
                                                            atbasis_c, ad, row_fast, false, include_self);
@@ -654,8 +650,7 @@ get_communicate_global_ids_list_blacs_to_ap(const int &myid,
     return {map_proc_id1d_send, map_proc_id1d_recv};
 }
 
-std::pair<std::unordered_map<int, std::vector<size_t>>,
-          std::unordered_map<int, std::vector<std::pair<atpair_t, std::vector<size_t>>>>>
+std::pair<myid_blacsid_map_t, myid_ap_loid_map_t>
 get_communicate_local_ids_list_blacs_to_ap(const int &myid,
                                            const std::unordered_map<int, std::vector<atpair_t>> &map_proc_IJs_require,
                                            const AtomicBasis &atbasis_r,
@@ -668,8 +663,8 @@ get_communicate_local_ids_list_blacs_to_ap(const int &myid,
     const auto &map_proc_id2d_send = ids.second;
     const auto &map_proc_id2d_recv = ids.first;
 
-    std::unordered_map<int, std::vector<size_t>> map_proc_id1d_send;
-    std::unordered_map<int, std::vector<std::pair<atpair_t, std::vector<size_t>>>> map_proc_id1d_recv;
+    myid_blacsid_map_t map_proc_id1d_send;
+    myid_ap_loid_map_t map_proc_id1d_recv;
 
     for (const auto &proc_IJ_id2d: map_proc_id2d_recv)
     {
