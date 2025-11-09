@@ -12,13 +12,15 @@ static void test_ap_to_blacs_global_indices_communicate()
 {
     using namespace LIBRPA::envs;
 
-    const size_t m = 4;
-    const size_t n = m;
     blacs_ctxt_global_h.set_square_grid(true, LIBRPA::CTXT_LAYOUT::R);
     // Process grid:
     //    0  1
     //    2  3
     LIBRPA::Array_Desc ad(blacs_ctxt_global_h);
+
+    // m = n = 4
+    size_t m = 4;
+    size_t n = m;
     ad.init_1b1p(m, n, 0, 0);
     assert(ad.initialized());
     assert(ad.mb() == 2);
@@ -146,21 +148,69 @@ static void test_ap_to_blacs_global_indices_communicate()
         });
         const auto &recvlist_ref = recvlist_ref_all[myid_global];
 
-        // for (int i = 0; i < 4; i++)
-        // {
-        //     blacs_ctxt_global_h.barrier();
-        //     if (myid_global == i)
-        //     {
-        //         std::cout << "myid " << i << std::endl;
-        //         std::cout << "Recv Ref:" << std::endl << recvlist_ref << std::endl;
-        //         std::cout << "Recv Test:" << std::endl << proc2idlist.second << std::endl;
-        //         std::cout << "Send Ref:" << std::endl << sendlist_ref << std::endl;
-        //         std::cout << "Send Test:" << std::endl << proc2idlist.first << std::endl;
-        //     }
-        // }
         assert(equal_map_vector(sendlist_ref, proc2idlist.first));
         assert(equal_map_vector(recvlist_ref, proc2idlist.second));
     }
+
+    // m = n = 6
+    m = 6;
+    n = m;
+    ad.init_1b1p(m, n, 0, 0);
+    assert(ad.initialized());
+    assert(ad.mb() == 3);
+    assert(ad.nb() == 3);
+    ab.set(std::vector<size_t>{1, 2, 1, 2});
+    assert(ab.nb_total == m);
+    // 4 atoms, atom 0 and 2 with 1 and atom 1 and 3 with 2
+    // | 0   1   1 | 2   3   3 |
+    // | 0   1   1 | 2   3   3 |
+    // | 0   1   1 | 2   3   3 |
+    // |-----------|-----------|
+    // | 0   1   1 | 2   3   3 |
+    // | 0   1   1 | 2   3   3 |
+    // | 0   1   1 | 2   3   3 |
+    {
+        const auto proc2idlist = LIBRPA::utils::get_communicate_global_ids_list_ap_to_blacs(
+            myid_global,
+            {
+             {0, {{0, 0}, {1, 0}, {2, 0}, {3, 0}}},
+             {1, {{0, 1}, {1, 1}, {2, 1}, {3, 1}}},
+             {2, {{0, 2}, {1, 2}, {2, 2}, {3, 2}}},
+             {3, {{0, 3}, {1, 3}, {2, 3}, {3, 3}}},
+            },
+            ab, ab,
+            ad, true, false, false); // column major
+        // flattened indices with column major and sorted with row index going fastest
+        const std::vector<std::unordered_map<int, std::vector<size_t>>> sendlist_ref_all({
+            {{2, {3, 4, 5}}},
+            {{0, {6, 12, 7, 8, 13, 14}}, {2, {9, 15, 10, 11, 16, 17}}},
+            {{1, {18, 19, 20}}, {3, {21, 22, 23}}},
+            {{1, {24, 30, 25, 26, 31, 32}}},
+        });
+        const auto &sendlist_ref = sendlist_ref_all[myid_global];
+        const std::vector<std::unordered_map<int, std::vector<size_t>>> recvlist_ref_all({
+            {{1, {6, 7, 8, 12, 13, 14}}},
+            {{2, {18, 19, 20,}}, {3, {24, 25, 26, 30, 31, 32}}},
+            {{0, {3, 4, 5}}, {1, {9, 10, 11, 15, 16, 17,}}},
+            {{2, {21, 22, 23}}},
+        });
+        const auto &recvlist_ref = recvlist_ref_all[myid_global];
+        for (int i = 0; i < 4; i++)
+        {
+            blacs_ctxt_global_h.barrier();
+            if (myid_global == i)
+            {
+                std::cout << "myid " << i << std::endl;
+                std::cout << "Recv Ref:" << std::endl << recvlist_ref << std::endl;
+                std::cout << "Recv Test:" << std::endl << proc2idlist.second << std::endl;
+                // std::cout << "Send Ref:" << std::endl << sendlist_ref << std::endl;
+                // std::cout << "Send Test:" << std::endl << proc2idlist.first << std::endl;
+            }
+        }
+        assert(equal_map_vector(sendlist_ref, proc2idlist.first));
+        // assert(equal_map_vector(recvlist_ref, proc2idlist.second));
+    }
+
     blacs_ctxt_global_h.exit();
 }
 
