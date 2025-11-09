@@ -120,7 +120,7 @@ _get_communicate_ids_list_ap_and_blacs(const int &myid,
         mypcol = ScalapackConnector::indxg2p(j_gl, ad.nb(), dummy, ad.icsrc(), ad.npcols());
         const auto target = Cblacs_pnum(ad.ictxt(), myprow, mypcol);
         // if (myid == 0) std::cout << "id/target " << id << " " << target << std::endl;
-        if (myid != target)
+        if (myid != target || include_self)
         {
             if (return_local)
             {
@@ -184,7 +184,7 @@ _get_communicate_ids_list_ap_and_blacs(const int &myid,
         if (map_IJs_proc.count(IJ))
         {
             const auto &source = map_IJs_proc[IJ];
-            // exclude self
+            // exclude self if not requested
             if (!include_self && source == myid) continue;
             if (return_local)
             {
@@ -268,7 +268,7 @@ _get_communicate_ids_list_ap_to_blacs_sy(std::unordered_map<int, std::vector<cha
         const auto target_T = Cblacs_pnum(ad.ictxt(), myprow_T, mypcol_T);
 
         // if (myid == 0) std::cout << "id/target " << id << " " << target << std::endl;
-        if (myid != target)
+        if (myid != target || include_self)
         {
             if (return_local)
             {
@@ -299,7 +299,7 @@ _get_communicate_ids_list_ap_to_blacs_sy(std::unordered_map<int, std::vector<cha
         }
 
         // id_aps are only in either half, should complete the whole one except for the diagonals
-        if (i_gl != j_gl && myid != target_T)
+        if (i_gl != j_gl && (myid != target_T || include_self))
         {
             if (return_local)
             {
