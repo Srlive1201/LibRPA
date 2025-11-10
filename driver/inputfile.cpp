@@ -237,6 +237,7 @@ void parse_inputfile_to_params(const std::string &fn)
     _parse_switch(opts, use_scalapack_ecrpa);
 
     // EXX specific
+    parser.parse_bool("use_fullcoul_exx", Params::use_fullcoul_exx, false, flag);
     _parse_double(opts, libri_exx_threshold_C);
     _parse_double(opts, libri_exx_threshold_D);
     _parse_double(opts, libri_exx_threshold_V);

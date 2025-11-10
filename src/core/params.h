@@ -79,6 +79,9 @@ struct Params
     //! maximum transition frequency in minimax time-frequency grids
     //! for test supercell to fix the minimax frequency points
     static double minimax_max_transition;
+    //! switch of using full Coulomb interaction in EXX
+    //! test for abacus 2d system
+    static bool use_fullcoul_exx;
 
     //! switch of using ScaLAPACK for computing Wc from chi0
     static bool use_scalapack_gw_wc;
