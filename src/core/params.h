@@ -76,6 +76,9 @@ struct Params
     //! set gap by hand to generate frequency points in minimax time-frequency grids, for gapless
     //! systems
     static double minimax_min_gap;
+    //! maximum transition frequency in minimax time-frequency grids
+    //! for test supercell to fix the minimax frequency points
+    static double minimax_max_transition;
 
     //! switch of using ScaLAPACK for computing Wc from chi0
     static bool use_scalapack_gw_wc;
