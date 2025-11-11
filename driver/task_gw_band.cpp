@@ -442,11 +442,21 @@ void task_g0w0_band(std::map<Vector3_Order<double>, ComplexMatrix> &sinvS)
             }
         }
         // output bandgap
-        double bandgap = 0.0;
-        double valence = -1.e10;
-        double conduct = 1.e10;
-        int ik_val = 0;
-        int ik_cond = 0;
+        double gw_bandgap = 0.0;
+        double gw_valence = -1.e10;
+        double gw_conduct = 1.e10;
+        double exx_bandgap = 0.0;
+        double exx_valence = -1.e10;
+        double exx_conduct = 1.e10;
+        double dft_bandgap = 0.0;
+        double dft_valence = -1.e10;
+        double dft_conduct = 1.e10;
+        int ik_val_gw = 0;
+        int ik_cond_gw = 0;
+        int ik_val_exx = 0;
+        int ik_cond_exx = 0;
+        int ik_val_dft = 0;
+        int ik_cond_dft = 0;
         int nocc = 0;
         auto &wg = meanfield.get_weight()[0];
         for (int i = 0; i != wg.size; i++)
@@ -512,16 +522,38 @@ void task_g0w0_band(std::map<Vector3_Order<double>, ComplexMatrix> &sinvS)
                     ofs_hf << std::setw(15) << std::setprecision(5) << occ_state << std::setw(15)
                            << std::setprecision(5) << eks_state - vxc_state + exx_state;
 
-                    // output bandgap
-                    if (i_state == nocc - 1 && eqp > valence)  // HOMO
+                    // output GW bandgap
+                    if (i_state == nocc - 1 && eqp > gw_conduct)  // HOMO
                     {
-                        valence = eqp;
-                        ik_val = i_kpoint;
+                        gw_valence = eqp;
+                        ik_val_gw = i_kpoint;
                     }
-                    else if (i_state == nocc && eqp < conduct)  // LUMO
+                    else if (i_state == nocc && eqp < gw_conduct)  // LUMO
                     {
-                        conduct = eqp;
-                        ik_cond = i_kpoint;
+                        gw_conduct = eqp;
+                        ik_cond_gw = i_kpoint;
+                    }
+                    // output EXX bandgap
+                    if (i_state == nocc - 1 && exx_state > exx_valence)  // HOMO
+                    {
+                        exx_valence = exx_state;
+                        ik_val_exx = i_kpoint;
+                    }
+                    else if (i_state == nocc && exx_state < exx_conduct)  // LUMO
+                    {
+                        exx_conduct = exx_state;
+                        ik_cond_exx = i_kpoint;
+                    }
+                    // output DFT bandgap
+                    if (i_state == nocc - 1 && eks_state > dft_valence)  // HOMO
+                    {
+                        dft_valence = eks_state;
+                        ik_val_dft = i_kpoint;
+                    }
+                    else if (i_state == nocc && eks_state < dft_conduct)  // LUMO
+                    {
+                        dft_conduct = eks_state;
+                        ik_cond_dft = i_kpoint;
                     }
                 }
                 ofs_gw << "\n";
@@ -529,13 +561,30 @@ void task_g0w0_band(std::map<Vector3_Order<double>, ComplexMatrix> &sinvS)
                 ofs_ks << "\n";
             }
         }
-        bandgap = conduct - valence;
-        const auto &k_val = kfrac_band[ik_val];
-        printf("VBM: k-point %4d: (%.5f, %.5f, %.5f) \n", ik_val + 1, k_val.x, k_val.y, k_val.z);
-        const auto &k_cond = kfrac_band[ik_cond];
-        printf("CBM: k-point %4d: (%.5f, %.5f, %.5f) \n", ik_cond + 1, k_cond.x, k_cond.y,
-               k_cond.z);
-        lib_printf("Bandgap(eV): %12.7f \n", bandgap);
+        gw_bandgap = gw_conduct - gw_valence;
+        exx_bandgap = exx_conduct - exx_valence;
+        dft_bandgap = dft_conduct - dft_valence;
+        const auto &k_val_gw = kfrac_band[ik_val_gw];
+        const auto &k_cond_gw = kfrac_band[ik_cond_gw];
+        printf("GW VBM: k-point %4d: (%.5f, %.5f, %.5f) \n", ik_val_gw + 1, k_val_gw.x, k_val_gw.y,
+               k_val_gw.z);
+        printf("GW CBM: k-point %4d: (%.5f, %.5f, %.5f) \n", ik_cond_gw + 1, k_cond_gw.x,
+               k_cond_gw.y, k_cond_gw.z);
+        lib_printf("GW bandgap(eV): %12.7f \n", gw_bandgap);
+        const auto &k_val_exx = kfrac_band[ik_val_exx];
+        const auto &k_cond_exx = kfrac_band[ik_cond_exx];
+        printf("EXX VBM: k-point %4d: (%.5f, %.5f, %.5f) \n", ik_val_exx + 1, k_val_exx.x,
+               k_val_exx.y, k_val_exx.z);
+        printf("EXX CBM: k-point %4d: (%.5f, %.5f, %.5f) \n", ik_cond_exx + 1, k_cond_exx.x,
+               k_cond_exx.y, k_cond_exx.z);
+        lib_printf("EXX bandgap(eV): %12.7f \n", exx_bandgap);
+        const auto &k_val_dft = kfrac_band[ik_val_dft];
+        const auto &k_cond_dft = kfrac_band[ik_cond_dft];
+        printf("DFT VBM: k-point %4d: (%.5f, %.5f, %.5f) \n", ik_val_dft + 1, k_val_dft.x,
+               k_val_dft.y, k_val_dft.z);
+        printf("DFT CBM: k-point %4d: (%.5f, %.5f, %.5f) \n", ik_cond_dft + 1, k_cond_dft.x,
+               k_cond_dft.y, k_cond_dft.z);
+        lib_printf("DFT bandgap(eV): %12.7f \n", dft_bandgap);
     }
     Profiler::stop("g0w0_solve_band_qpe");
 
