@@ -12,6 +12,11 @@
 
 namespace LIBRPA {
 
+typedef int locid_t;
+typedef std::size_t gloid_t;
+typedef std::pair<locid_t, locid_t> locid_pair_t;
+typedef std::pair<gloid_t, gloid_t> gloid_pair_t;
+
 /*! @enum
  *
  *  Control for phase and order convention for basis functions in the same shell
@@ -105,9 +110,9 @@ public:
  * @brief Get the size of matrix block corresponding to an atom pair.
  *
  * @param  [in]  atbasis_r  AtomicBasis object for row
- * @param  [in]  at_r       Index of atomic for row
+ * @param  [in]  at_r       Index of atom for row
  * @param  [in]  atbasis_c  AtomicBasis object for column
- * @param  [in]  at_c       Index of atomic for column
+ * @param  [in]  at_c       Index of atom for column
  *
  * @retval       size       Number of elements in the atom-pair matrix block.
  */
@@ -120,9 +125,9 @@ inline std::size_t get_pair_matrix_size(const AtomicBasis& atbasis_r, const int&
 /*!
  * @brief Get the size of matrix block corresponding to an atom pair.
  *
- * @param  [in]  atbasis    AtomicBasis object for both row and columns
- * @param  [in]  at_r       Index of atomic for row
- * @param  [in]  at_c       Index of atomic for column
+ * @param  [in]  atbasis    AtomicBasis object for both row and column
+ * @param  [in]  at_r       Index of atom for row
+ * @param  [in]  at_c       Index of atom for column
  *
  * @retval       size       Number of elements in the atom-pair matrix block.
  */
@@ -139,13 +144,18 @@ inline std::size_t get_pair_matrix_size(const AtomicBasis& atbasis, const int& a
  * @param  [in]  atbasis_c  AtomicBasis object for column
  * @param  [in]  IJs        Atomic pairs to request
  * @param  [in]  row_fast   Flag to set the row basis index faster
+ * @param  [in]  sort_fast  Flag to sort with the faster dimension.
+ *                          The indices are continuous within one atom-pair block.
+ *                          When sort_fast is true, the indices will be sorted and
+ *                          hence the continuity may break.
  *
  * @retval       indices    2D indices of elements in the request atom-pair blocks
  */
 std::vector<std::pair<size_t, size_t>> get_2d_mat_indices_atpair(const AtomicBasis &atbasis_r,
                                                                  const AtomicBasis &atbasis_c,
                                                                  const std::vector<atpair_t> &IJs,
-                                                                 bool row_fast);
+                                                                 const bool row_fast,
+                                                                 const bool sort_fast = false);
 
 /*!
  * @brief Get the 1D indices for matrix elements in the atom-pair blocks
@@ -156,14 +166,19 @@ std::vector<std::pair<size_t, size_t>> get_2d_mat_indices_atpair(const AtomicBas
  * @param  [in]  IJs        Atomic pairs to request
  * @param  [in]  row_fast   Flag to set the row basis index faster
  * @param  [in]  row_major  Flag to compute 1D indices in row major (C-style)
+ * @param  [in]  sort_fast  Flag to sort with the faster dimension.
+ *                          The indices are continuous within one atom-pair block.
+ *                          When sort_fast is true, the indices will be sorted and
+ *                          hence the continuity may break.
  *
  * @retval       indices    1D indices of elements
  */
 std::vector<size_t> get_1d_mat_indices_atpair(const AtomicBasis &atbasis_r,
                                               const AtomicBasis &atbasis_c,
                                               const std::vector<atpair_t> &IJs,
-                                              bool row_fast,
-                                              bool row_major);
+                                              const bool row_fast,
+                                              const bool row_major,
+                                              const bool sort_fast = false);
 
 extern AtomicBasis atomic_basis_wfc;
 extern AtomicBasis atomic_basis_abf;

@@ -1,4 +1,5 @@
 #pragma once
+#include <algorithm>
 #include <complex>
 
 constexpr static const double DOUBLE_EQUAL_THRES = 1e-10;
@@ -88,3 +89,20 @@ inline int as_int(T x) noexcept
 {
     return static_cast<int>(x);
 }
+
+template <class Pair>
+struct FastLess
+{
+    bool row_fast;  // true: (second, first); false: (first, second)
+    bool operator()(const Pair &a, const Pair &b) const noexcept
+    {
+        if (row_fast)
+        {
+            return std::tie(a.second, a.first) < std::tie(b.second, b.first);
+        }
+        else
+        {
+            return std::tie(a.first, a.second) < std::tie(b.first, b.second);
+        }
+    }
+};

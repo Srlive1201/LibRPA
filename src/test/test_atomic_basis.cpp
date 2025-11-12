@@ -1,5 +1,6 @@
 #include "../atomic_basis.h"
 
+// #include "../stl_io_helper.h"
 #include "testutils.h"
 
 #include <cassert>
@@ -33,7 +34,7 @@ void test_indexing()
 {
     LIBRPA::AtomicBasis ab({4, 4, 8, 8, 5});
     assert(ab.nb_total == 29);
-    std::unordered_map<int, std::pair<int, int>> map_go_I_lo
+    std::unordered_map<size_t, std::pair<int, int>> map_go_I_lo
         {
             {0, {0, 0}},
             {4, {1, 0}},
@@ -42,7 +43,8 @@ void test_indexing()
             {24, {4, 0}},
             {28, {4, 4}},
         };
-    int I, ilo, igo;
+    int I, ilo;
+    size_t igo;
     for (const auto& go_I_lo: map_go_I_lo)
     {
         igo = go_I_lo.first;
@@ -56,22 +58,58 @@ void test_indexing()
 void test_get_2d_indices()
 {
     LIBRPA::AtomicBasis ab({1, 2, 3});
-    // (0, 1), (0, 2), (1, 0), (2, 0)
-    const auto id_col_fast = LIBRPA::get_2d_mat_indices_atpair(ab, ab, {{0, 1}, {1, 0}}, false);
-    assert(id_col_fast.size() == 4);
-    assert(equal_pair(id_col_fast[0], {0, 1}));
-    assert(equal_pair(id_col_fast[1], {0, 2}));
-    assert(equal_pair(id_col_fast[2], {1, 0}));
-    assert(equal_pair(id_col_fast[3], {2, 0}));
-    // (1, 3), (2, 3), (1, 4), (2, 4), (1, 5), (2, 5)
-    const auto id_row_fast = LIBRPA::get_2d_mat_indices_atpair(ab, ab, {{1, 2}}, true);
-    assert(id_row_fast.size() == 6);
-    assert(equal_pair(id_row_fast[0], {1, 3}));
-    assert(equal_pair(id_row_fast[1], {2, 3}));
-    assert(equal_pair(id_row_fast[2], {1, 4}));
-    assert(equal_pair(id_row_fast[3], {2, 4}));
-    assert(equal_pair(id_row_fast[4], {1, 5}));
-    assert(equal_pair(id_row_fast[5], {2, 5}));
+    {
+        // column fast case
+        const auto id = LIBRPA::get_2d_mat_indices_atpair(ab, ab, {{0, 1}, {1, 0}}, false, false);
+        assert(id.size() == 4);
+        const std::vector<atpair_t> ref = {{0, 1}, {0, 2}, {1, 0}, {2, 0}};
+        for (int i = 0; i < 4; i++) assert(equal_pair(id[i], ref[i]));
+    }
+    {
+        // row fast case
+        const auto id = LIBRPA::get_2d_mat_indices_atpair(ab, ab, {{1, 2}}, true, false);
+        assert(id.size() == 6);
+        const std::vector<atpair_t> ref = {{1, 3}, {2, 3}, {1, 4}, {2, 4}, {1, 5}, {2, 5}};
+        for (int i = 0; i < 6; i++) assert(equal_pair(id[i], ref[i]));
+    }
+    {
+        // another row fast case
+        const std::vector<atpair_t> ref_nosort = {
+            {1, 1}, {2, 1}, {1, 2}, {2, 2}, // (1, 1)
+            {3, 1}, {4, 1}, {5, 1}, {3, 2}, {4, 2}, {5, 2}, // (2, 1)
+        };
+        const std::vector<atpair_t> ref_sort = {
+            {1, 1}, {2, 1}, {3, 1}, {4, 1}, {5, 1}, // second column
+            {1, 2}, {2, 2}, {3, 2}, {4, 2}, {5, 2}, // third column
+        };
+        // without sort
+        auto id = LIBRPA::get_2d_mat_indices_atpair(ab, ab, {{1, 1}, {2, 1}}, true, false);
+        assert(id.size() == 10);
+        for (int i = 0; i < 10; i++) assert(equal_pair(id[i], ref_nosort[i]));
+        // sort
+        id = LIBRPA::get_2d_mat_indices_atpair(ab, ab, {{1, 1}, {2, 1}}, true, true);
+        assert(id.size() == 10);
+        for (int i = 0; i < 10; i++) assert(equal_pair(id[i], ref_sort[i]));
+    }
+    {
+        // almost same as above, but column fast
+        const std::vector<atpair_t> ref_nosort = {
+            {1, 1}, {1, 2}, {2, 1}, {2, 2}, // (1, 1)
+            {3, 1}, {3, 2}, {4, 1}, {4, 2}, {5, 1}, {5, 2}, // (2, 1)
+        };
+        const std::vector<atpair_t> ref_sort = {
+            {1, 1}, {1, 2}, {2, 1}, {2, 2}, {3, 1}, {3, 2}, {4, 1}, {4, 2}, {5, 1}, {5, 2},
+        };
+        // without sort
+        auto id = LIBRPA::get_2d_mat_indices_atpair(ab, ab, {{1, 1}, {2, 1}}, false, false);
+        assert(id.size() == 10);
+        for (int i = 0; i < 10; i++) assert(equal_pair(id[i], ref_nosort[i]));
+        // sort
+        id = LIBRPA::get_2d_mat_indices_atpair(ab, ab, {{1, 1}, {2, 1}}, false, true);
+        assert(id.size() == 10);
+        for (int i = 0; i < 10; i++) assert(equal_pair(id[i], ref_sort[i]));
+    }
+
 }
 
 void test_get_1d_indices()

@@ -2,10 +2,8 @@
 
 #include <algorithm>
 #include <cassert>
-#include <functional>
 #include <numeric>
 #include <stdexcept>
-#include <string>
 
 #include "base_utility.h"
 
@@ -100,40 +98,47 @@ std::vector<std::pair<size_t, size_t>>
 get_2d_mat_indices_atpair(const AtomicBasis &atbasis_r,
                           const AtomicBasis &atbasis_c,
                           const std::vector<atpair_t> &IJs,
-                          bool row_fast)
+                          const bool row_fast,
+                          const bool sort_fast)
 {
     std::vector<std::pair<size_t, size_t>> indices;
     size_t nelems = 0;
+
+    // pre-compute the size of all indices to reserve enough space
     for (const auto &IJ: IJs)
     {
         nelems += get_pair_matrix_size(atbasis_r, IJ.first, atbasis_c, IJ.second);
     }
     indices.reserve(nelems);
 
-    for (const auto &IJ: IJs)
-    {
+    const auto append_indices = [&](const atpair_t& IJ) {
         const auto row_ids = atbasis_r.get_global_indices(IJ.first);
         const auto col_ids = atbasis_c.get_global_indices(IJ.second);
+
         if (row_fast)
         {
-            for (const auto &c: col_ids)
-            {
-                for (const auto &r: row_ids)
-                {
-                    indices.push_back({r, c});
-                }
-            }
+            for (const auto &c : col_ids)
+                for (const auto &r : row_ids) indices.push_back({r, c});
         }
         else
         {
-            for (const auto &r: row_ids)
-            {
-                for (const auto &c: col_ids)
-                {
-                    indices.push_back({r, c});
-                }
-            }
+            for (const auto &r : row_ids)
+                for (const auto &c : col_ids) indices.push_back({r, c});
         }
+    };
+
+    if (sort_fast)
+    {
+        // pre-sort the atom pairs to make index sorting easier
+        std::vector<atpair_t> IJs_sorted = IJs;
+        std::sort(IJs_sorted.begin(), IJs_sorted.end(), FastLess<atpair_t>{row_fast});
+
+        for (const auto &IJ: IJs_sorted) append_indices(IJ);
+        std::sort(indices.begin(), indices.end(), FastLess<gloid_pair_t>{row_fast});
+    }
+    else
+    {
+        for (const auto &IJ: IJs) append_indices(IJ);
     }
 
     return indices;
@@ -142,10 +147,11 @@ get_2d_mat_indices_atpair(const AtomicBasis &atbasis_r,
 std::vector<size_t> get_1d_mat_indices_atpair(const AtomicBasis &atbasis_r,
                                               const AtomicBasis &atbasis_c,
                                               const std::vector<atpair_t> &IJs,
-                                              bool row_fast,
-                                              bool row_major)
+                                              const bool row_fast,
+                                              const bool row_major,
+                                              const bool sort_fast)
 {
-    const auto indices_2d = get_2d_mat_indices_atpair(atbasis_r, atbasis_c, IJs, row_fast);
+    const auto indices_2d = get_2d_mat_indices_atpair(atbasis_r, atbasis_c, IJs, row_fast, sort_fast);
     const auto indices_1d = flatten_2d_indices(indices_2d, atbasis_r.nb_total, atbasis_c.nb_total, row_major);
     return indices_1d;
 }
