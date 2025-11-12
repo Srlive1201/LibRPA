@@ -744,16 +744,18 @@ void fill_local_mat_from_ap_dist(matrix_m<T> &m_loc,
     // Resolve data type for communication
     MPI_Datatype dtype = mpi_datatype<T>::value;
 
-    const auto &myid = ad.myid();
-    const auto &row_first = major_data == MAJOR::ROW ? false : true;
-    const auto &row_major = major_data == MAJOR::ROW ? true : false;
+    const auto myid = ad.myid();
+    const auto row_first = major_data == MAJOR::ROW ? false : true;
+    const auto row_major = major_data == MAJOR::ROW ? true : false;
+    const auto nr = m_loc.nr();
+    const auto nc = m_loc.nc();
 
     // Fill in data that is already available before communication
     int I, J, i, j;
-    for (int ir = 0; ir < m_loc.nr(); ir++)
+    for (int ir = 0; ir < nr; ir++)
     {
         atbasis_r.get_local_index(ad.indx_l2g_r(ir), I, i);
-        for (int ic = 0; ic < m_loc.nc(); ic++)
+        for (int ic = 0; ic < nc; ic++)
         {
             atbasis_c.get_local_index(ad.indx_l2g_c(ic), J, j);
             const atpair_t atpair{static_cast<atom_t>(I), static_cast<atom_t>(J)};
@@ -777,6 +779,7 @@ void fill_local_mat_from_ap_dist(matrix_m<T> &m_loc,
     MPI_Count recvcount = 0;
     for (int pid = 0; pid < ad.nprocs(); pid++)
     {
+        if (pid == myid) continue; // skip self-receiving
         if (pid_ids_recv.count(pid))
         {
             const auto &size = pid_ids_recv.at(pid).size();
@@ -793,6 +796,7 @@ void fill_local_mat_from_ap_dist(matrix_m<T> &m_loc,
     MPI_Count sendcount = 0;
     for (int pid = 0; pid < ad.nprocs(); pid++)
     {
+        if (pid == myid) continue; // skip self-sending
         if (pid_ids_send.count(pid))
         {
             const auto &ids_send = pid_ids_send.at(pid);
@@ -810,6 +814,7 @@ void fill_local_mat_from_ap_dist(matrix_m<T> &m_loc,
     // second run, fill in the data to be sent
     for (int pid = 0; pid < ad.nprocs(); pid++)
     {
+        if (pid == myid) continue; // skip self-sending
         if (pid_ids_send.count(pid))
         {
             const auto &ids_send = pid_ids_send.at(pid);
@@ -1343,7 +1348,7 @@ void fill_ap_map_from_blacs_dist(ap_p_map<matrix_m<T>> &data,
  *
  * @retval atom-pair mapping matrix data. The major is the same as the input m_loc, major_data
  */
-template <typename T> std::unordered_map<atpair_t, matrix_m<T>, atpair_hash>
+template <typename T> ap_p_map<matrix_m<T>>
 get_ap_map_from_blacs_dist(const matrix_m<T> &m_loc,
                            const std::unordered_map<int, std::vector<atpair_t>> &map_proc_IJs_require,
                            const AtomicBasis &atbasis_r,
@@ -1362,7 +1367,7 @@ get_ap_map_from_blacs_dist(const matrix_m<T> &m_loc,
         throw std::logic_error("major passed but not consistent with m_loc");
     }
 
-    std::unordered_map<atpair_t, matrix_m<T>, atpair_hash> data;
+    ap_p_map<matrix_m<T>> data;
     fill_ap_map_from_blacs_dist<T>(data, m_loc, map_proc_IJs_require, atbasis_r, atbasis_c, ad);
     return data;
 }
