@@ -71,8 +71,8 @@ std::ostream& operator<<(std::ostream& os, const std::map<Tkey, Tval> &map_objs)
 }
 
 //! Print a map
-template <typename Tkey, typename Tval>
-std::ostream& operator<<(std::ostream& os, const std::unordered_map<Tkey, Tval> &map_objs)
+template <typename Tkey, typename Tval, typename Hash>
+std::ostream& operator<<(std::ostream& os, const std::unordered_map<Tkey, Tval, Hash> &map_objs)
 {
     os << "{";
     for (const auto& kv: map_objs)
