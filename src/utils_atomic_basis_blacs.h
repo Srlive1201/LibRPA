@@ -23,6 +23,56 @@ std::set<std::pair<int, int>> get_necessary_IJ_from_block_2D(const AtomicBasis &
 
 std::set<std::pair<int, int>> get_necessary_IJ_from_block_2D_sy(const char &uplo, const AtomicBasis &atbasis, const Array_Desc& arrdesc);
 
+// Scheduler for index and communication for conversion between atom-pair and BLACS distribution
+class IndexScheduler
+{
+private:
+    bool initialized_;
+public:
+    std::vector<atpair_t> atpairs;
+
+    // Local 1D indices in atomic basis context to send when converting from AP->BLACS
+    std::vector<size_t> ids_ap_ipair;
+    std::vector<size_t> ids_ap_locid;
+    // Local 1D indices in BLACS context to send when converting from BLACS->AP
+    std::vector<size_t> ids_blacs_locid;
+
+    // Displacements and counts to send for AP->BLACS
+    std::vector<MPI_Count> disp_ap;
+    std::vector<MPI_Count> counts_ap;
+    // Displacements and counts to send for BLACS->AP
+    std::vector<MPI_Count> disp_blacs;
+    std::vector<MPI_Count> counts_blacs;
+
+    // default constructor
+    IndexScheduler()
+        : initialized_(false),
+          atpairs(),
+          ids_ap_ipair(),
+          ids_ap_locid(),
+          ids_blacs_locid(),
+          disp_ap(),
+          counts_ap(),
+          disp_blacs(),
+          counts_blacs() {};
+    // destructor
+    ~IndexScheduler() {};
+    // copy & move constructor
+    IndexScheduler(const IndexScheduler& s) = delete;
+    IndexScheduler(IndexScheduler&& s) = delete;
+    // copy & move assignment operator
+    IndexScheduler& operator=(const IndexScheduler& s) = delete;
+    IndexScheduler& operator=(IndexScheduler&& s) = delete;
+
+    inline bool initialized() const noexcept { return initialized_; }
+
+    void init(const std::unordered_map<int, std::set<atpair_t>> &map_proc_IJs,
+              const AtomicBasis &atbasis_r, const AtomicBasis &atbasis_c,
+              const Array_Desc &ad, const bool row_major) noexcept;
+
+    void reset();
+};
+
 /*!
  * @brief Get the list of global matrix indices (1D) to communicate for
  *        conversion from atom-pair to BLACS block-cyclic distributions

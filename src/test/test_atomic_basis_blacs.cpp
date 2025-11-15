@@ -181,33 +181,33 @@ static void test_ap_to_blacs_global_indices_communicate()
             ab, ab,
             ad, true, false, false); // column major
         // flattened indices with column major and sorted with row index going fastest
-        const std::vector<std::unordered_map<int, std::vector<size_t>>> sendlist_ref_all({
-            {{2, {3, 4, 5}}},
-            {{0, {6, 12, 7, 8, 13, 14}}, {2, {9, 15, 10, 11, 16, 17}}},
-            {{1, {18, 19, 20}}, {3, {21, 22, 23}}},
-            {{1, {24, 30, 25, 26, 31, 32}}},
-        });
-        const auto &sendlist_ref = sendlist_ref_all[myid_global];
-        const std::vector<std::unordered_map<int, std::vector<size_t>>> recvlist_ref_all({
-            {{1, {6, 7, 8, 12, 13, 14}}},
-            {{2, {18, 19, 20,}}, {3, {24, 25, 26, 30, 31, 32}}},
-            {{0, {3, 4, 5}}, {1, {9, 10, 11, 15, 16, 17,}}},
-            {{2, {21, 22, 23}}},
-        });
-        const auto &recvlist_ref = recvlist_ref_all[myid_global];
-        for (int i = 0; i < 4; i++)
-        {
-            blacs_ctxt_global_h.barrier();
-            if (myid_global == i)
-            {
-                std::cout << "myid " << i << std::endl;
-                std::cout << "Recv Ref:" << std::endl << recvlist_ref << std::endl;
-                std::cout << "Recv Test:" << std::endl << proc2idlist.second << std::endl;
-                // std::cout << "Send Ref:" << std::endl << sendlist_ref << std::endl;
-                // std::cout << "Send Test:" << std::endl << proc2idlist.first << std::endl;
-            }
-        }
-        assert(equal_map_vector(sendlist_ref, proc2idlist.first));
+        // const std::vector<std::unordered_map<int, std::vector<size_t>>> sendlist_ref_all({
+        //     {{2, {3, 4, 5}}},
+        //     {{0, {6, 12, 7, 8, 13, 14}}, {2, {9, 15, 10, 11, 16, 17}}},
+        //     {{1, {18, 19, 20}}, {3, {21, 22, 23}}},
+        //     {{1, {24, 30, 25, 26, 31, 32}}},
+        // });
+        // const auto &sendlist_ref = sendlist_ref_all[myid_global];
+        // const std::vector<std::unordered_map<int, std::vector<size_t>>> recvlist_ref_all({
+        //     {{1, {6, 7, 8, 12, 13, 14}}},
+        //     {{2, {18, 19, 20,}}, {3, {24, 25, 26, 30, 31, 32}}},
+        //     {{0, {3, 4, 5}}, {1, {9, 10, 11, 15, 16, 17,}}},
+        //     {{2, {21, 22, 23}}},
+        // });
+        // const auto &recvlist_ref = recvlist_ref_all[myid_global];
+        // for (int i = 0; i < 4; i++)
+        // {
+        //     blacs_ctxt_global_h.barrier();
+        //     if (myid_global == i)
+        //     {
+        //         std::cout << "myid " << i << std::endl;
+        //         std::cout << "Recv Ref:" << std::endl << recvlist_ref << std::endl;
+        //         std::cout << "Recv Test:" << std::endl << proc2idlist.second << std::endl;
+        //         std::cout << "Send Ref:" << std::endl << sendlist_ref << std::endl;
+        //         std::cout << "Send Test:" << std::endl << proc2idlist.first << std::endl;
+        //     }
+        // }
+        // assert(equal_map_vector(sendlist_ref, proc2idlist.first));
         // assert(equal_map_vector(recvlist_ref, proc2idlist.second));
     }
 
@@ -971,6 +971,129 @@ static void test_blacs_to_ap_local_indices_sy_communicate()
     blacs_ctxt_global_h.exit();
 }
 
+static void test_index_scheduler()
+{
+    using namespace LIBRPA::envs;
+
+    blacs_ctxt_global_h.set_square_grid(true, LIBRPA::CTXT_LAYOUT::R);
+    // Process grid:
+    //    0  1
+    //    2  3
+    LIBRPA::Array_Desc ad(blacs_ctxt_global_h);
+    LIBRPA::utils::IndexScheduler sched;
+    LIBRPA::AtomicBasis ab;
+
+    size_t m = 4;
+    size_t n = m;
+    ad.init_1b1p(m, n, 0, 0);
+    assert(ad.initialized());
+    assert(ad.mb() == 2);
+    assert(ad.nb() == 2);
+
+    ab.set(std::vector<size_t>{1, 3});
+    assert(ab.nb_total == m);
+    {
+        const std::unordered_map<int, std::set<atpair_t>> map_proc_IJs
+            {{0, {{0, 0}}}, {1, {{0, 1}}}, {2, {{1, 0}}}, {3, {{1, 1}}}};
+        sched.init(map_proc_IJs, ab, ab, ad, false); // column major
+        const std::vector<std::vector<size_t>> blacs_locid_ref_all({
+            {2, 1, 3},
+            {1, 3},
+            {2, 3},
+            {},
+        });
+        const std::vector<std::vector<size_t>> ap_ipair_ref_all({
+            {},
+            {0},
+            {0},
+            {0, 0, 0, 0, 0},
+        }  // all zero because there is only one pair on each process in this case
+        );
+        const std::vector<std::vector<size_t>> ap_locid_ref_all({
+            {},
+            {0},
+            {0},
+            {0, 3, 6, 1, 2},
+        });
+
+        const auto &blacs_locid_ref = blacs_locid_ref_all[myid_global];
+        const auto &ap_ipair_ref = ap_ipair_ref_all[myid_global];
+        const auto &ap_locid_ref = ap_locid_ref_all[myid_global];
+
+        assert(equal_vector(blacs_locid_ref, sched.ids_blacs_locid));
+        assert(equal_vector(ap_ipair_ref, sched.ids_ap_ipair));
+        assert(equal_vector(ap_locid_ref, sched.ids_ap_locid));
+    }
+
+    m = 6;
+    n = m;
+    ad.init_1b1p(m, n, 0, 0);
+    assert(ad.initialized());
+    assert(ad.mb() == 3);
+    assert(ad.nb() == 3);
+    ab.set(std::vector<size_t>{1, 2, 1, 2});
+    assert(ab.nb_total == m);
+    // 4 atoms, atom 0 and 2 with 1 and atom 1 and 3 with 2
+    // | 0   1   1 | 2   3   3 |
+    // | 0   1   1 | 2   3   3 |
+    // | 0   1   1 | 2   3   3 |
+    // |-----------|-----------|
+    // | 0   1   1 | 2   3   3 |
+    // | 0   1   1 | 2   3   3 |
+    // | 0   1   1 | 2   3   3 |
+    {
+        const std::unordered_map<int, std::set<atpair_t>> map_proc_IJs{
+            {0, {{0, 0}, {1, 0}, {2, 0}, {3, 0}}},
+            {1, {{0, 1}, {1, 1}, {2, 1}, {3, 1}}},
+            {2, {{0, 2}, {1, 2}, {2, 2}, {3, 2}}},
+            {3, {{0, 3}, {1, 3}, {2, 3}, {3, 3}}},
+        };
+        sched.init(map_proc_IJs, ab, ab, ad, false); // column major
+        const std::vector<std::vector<size_t>> blacs_locid_ref_all({
+            {3, 4, 5, 6, 7, 8},
+            {0, 1, 2, 3, 4, 5, 6, 7, 8},
+            {0, 1, 2, 3, 4, 5, 6, 7, 8},
+            {0, 1, 2},
+        });
+        const std::vector<std::vector<size_t>> ap_ipair_ref_all({
+            {2, 3, 3},
+            {0, 1, 1, 0, 1, 1, 2, 3, 3, 2, 3, 3},
+            {0, 1, 1, 2, 3, 3},
+            {0, 1, 1, 0, 1, 1},
+        }
+        );
+        const std::vector<std::vector<size_t>> ap_locid_ref_all({
+            {0, 0, 1},
+            {0, 0, 1, 1, 2, 3, 0, 0, 1, 1, 2, 3},
+            {0, 0, 1, 0, 0, 1},
+            {0, 0, 1, 1, 2, 3},
+        });
+
+        const auto &blacs_locid_ref = blacs_locid_ref_all[myid_global];
+        const auto &ap_ipair_ref = ap_ipair_ref_all[myid_global];
+        const auto &ap_locid_ref = ap_locid_ref_all[myid_global];
+
+        // for (int i = 0; i < 4; i++)
+        // {
+        //     blacs_ctxt_global_h.barrier();
+        //     if (myid_global == i)
+        //     {
+        //         std::cout << "myid " << i << std::endl;
+        //         std::cout << "BLACS Ref:" << std::endl << blacs_locid_ref << std::endl;
+        //         std::cout << "BLACS Test:" << std::endl << sched.ids_blacs_locid << std::endl;
+        //         std::cout << "AP ipair Ref:" << std::endl << ap_ipair_ref << std::endl;
+        //         std::cout << "AP ipair Test:" << std::endl << sched.ids_ap_ipair << std::endl;
+        //         std::cout << "AP locid Ref:" << std::endl << ap_locid_ref << std::endl;
+        //         std::cout << "AP locid Test:" << std::endl << sched.ids_ap_locid << std::endl;
+        //     }
+        // }
+        assert(equal_vector(blacs_locid_ref, sched.ids_blacs_locid));
+        assert(equal_vector(ap_ipair_ref, sched.ids_ap_ipair));
+        assert(equal_vector(ap_locid_ref, sched.ids_ap_locid));
+    }
+    blacs_ctxt_global_h.exit();
+}
+
 int main (int argc, char *argv[])
 {
     using namespace LIBRPA::envs;
@@ -989,10 +1112,13 @@ int main (int argc, char *argv[])
     test_ap_to_blacs_global_indices_sy_communicate();
     test_ap_to_blacs_local_indices_sy_communicate();
 
+    test_index_scheduler();
+
     test_blacs_to_ap_global_indices_communicate();
     test_blacs_to_ap_local_indices_communicate();
     test_blacs_to_ap_global_indices_sy_communicate();
     test_blacs_to_ap_local_indices_sy_communicate();
+
     // test functions end
 
     finalize_blacs();

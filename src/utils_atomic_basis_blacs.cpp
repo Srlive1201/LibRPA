@@ -70,6 +70,203 @@ std::set<std::pair<int, int>> get_necessary_IJ_from_block_2D_sy(const char &uplo
     return IJs;
 }
 
+void
+IndexScheduler::init(const std::unordered_map<int, std::set<atpair_t>> &map_proc_IJs,
+                     const AtomicBasis &atbasis_r, const AtomicBasis &atbasis_c,
+                     const Array_Desc &ad, const bool row_major) noexcept
+{
+    if (initialized_) reset();
+
+    assert(ad.m() > 0 && atbasis_r.nb_total == as_size(ad.m()));
+    assert(ad.n() > 0 && atbasis_c.nb_total == as_size(ad.n()));
+    assert(atbasis_r.n_atoms == atbasis_c.n_atoms);
+
+    // process -> local 1D indices in atomic basis context to send when converting from AP->BLACS
+    std::unordered_map<int, std::vector<size_t>> proc_ap_ipair;
+    std::unordered_map<int, std::vector<size_t>> proc_ap_locid;
+    // process -> local 1D indices in BLACS context to send when converting from BLACS->AP
+    std::unordered_map<int, std::vector<size_t>> proc_blacs_locid;
+
+    const auto m = as_size(ad.m());
+    const auto n = as_size(ad.n());
+
+    ap_p_map<int> map_IJ_proc;
+    for (const auto &proc_IJs: map_proc_IJs)
+    {
+        const auto id = proc_IJs.first;
+        const auto &IJs = proc_IJs.second;
+        for (const auto &IJ: IJs)
+        {
+            assert(map_IJ_proc.count(IJ) == 0); // check atom-pair overlap
+            map_IJ_proc[IJ] = id;
+        }
+    }
+
+    const auto myid = ad.myid();
+    if (map_proc_IJs.count(myid))
+    {
+        const auto row_fast = !row_major;
+        const auto &IJs = map_proc_IJs.at(myid);
+        atpairs = std::vector<atpair_t>(IJs.cbegin(), IJs.cend());
+        std::sort(atpairs.begin(), atpairs.end(), FastLess<atpair_t>{row_fast});
+    }
+
+    // std::unordered_map<atom_t, std::vector<size_t>> row_ids_ap;
+    // std::unordered_map<atom_t, std::vector<size_t>> col_ids_ap;
+    // for (size_t I = 0; I < atbasis_r.n_atoms; I++) row_ids_ap[I] = atbasis_r.get_global_indices(I);
+    // for (size_t I = 0; I < atbasis_c.n_atoms; I++) col_ids_ap[I] = atbasis_c.get_global_indices(I);
+    const auto &row_procs_blacs = ad.g2p_r();
+    const auto &col_procs_blacs = ad.g2p_c();
+    const auto &ir_blacs = ad.g2l_r();
+    const auto &ic_blacs = ad.g2l_c();
+
+    const auto &m_loc = ad.m_loc();
+    const auto &n_loc = ad.n_loc();
+
+    if (row_major)
+    {
+        for (size_t i = 0; i < m; i++)
+        {
+            std::pair<size_t, size_t> I_loci(atbasis_r.get_local_index(i));
+            const auto &I = I_loci.first;
+            int prow = row_procs_blacs[i];
+            for (size_t j = 0; j < n; j++)
+            {
+                std::pair<size_t, size_t> J_locj(atbasis_c.get_local_index(j));
+                const auto &J = J_locj.first;
+                atpair_t IJ{I, J};
+                if (map_IJ_proc.count(IJ) == 0) continue; // no global data for this pair
+                const auto proc_ap = map_IJ_proc.at(IJ); // process that requires in atom-pair context
+                int pcol = col_procs_blacs[j];
+                auto proc_blacs = ad.get_pnum(prow, pcol); // process that requires in BLACS context
+                if (myid != proc_ap && myid != proc_blacs) continue; // not related with me
+                if (myid == proc_ap && myid == proc_blacs) continue; // already on me, no need to communicate
+                if (proc_blacs == myid) // need in BLACS context, to obtain from elsewhere
+                {
+                    const auto &ir = ir_blacs[i];
+                    const auto &ic = ic_blacs[j];
+                    proc_blacs_locid[proc_ap].push_back(ir * n_loc + ic);
+                }
+                if (proc_ap == myid) // need in AP context, to obtain from elsewhere
+                {
+                    size_t ipair = std::distance(atpairs.cbegin(), std::find(atpairs.cbegin(), atpairs.cend(), IJ));
+                    proc_ap_ipair[proc_blacs].push_back(ipair);
+                    const auto nJ = atbasis_c.get_atom_nb(J);
+                    const auto &ir = I_loci.second;
+                    const auto &ic = J_locj.second;
+                    proc_ap_locid[proc_blacs].push_back(ir * nJ + ic);
+                }
+            }
+        }
+    }
+    else
+    {
+        for (size_t j = 0; j < n; j++)
+        {
+            std::pair<size_t, size_t> J_locj(atbasis_c.get_local_index(j));
+            const auto &J = J_locj.first;
+            int pcol = col_procs_blacs[j];
+            for (size_t i = 0; i < m; i++)
+            {
+                std::pair<size_t, size_t> I_loci(atbasis_r.get_local_index(i));
+                const auto &I = I_loci.first;
+                atpair_t IJ{I, J};
+                if (map_IJ_proc.count(IJ) == 0) continue; // no global data for this pair
+                int prow = row_procs_blacs[i];
+                const auto proc_ap = map_IJ_proc.at(IJ); // process that requires in atom-pair context
+                auto proc_blacs = ad.get_pnum(prow, pcol); // process that requires in BLACS context
+                if (myid != proc_ap && myid != proc_blacs) continue; // not related with me
+                if (myid == proc_ap && myid == proc_blacs) continue; // already on me, no need to communicate
+                if (proc_blacs == myid) // need in BLACS context, to obtain from elsewhere
+                {
+                    const auto &ir = ir_blacs[i];
+                    const auto &ic = ic_blacs[j];
+                    proc_blacs_locid[proc_ap].push_back(ic * m_loc + ir);
+                }
+                if (proc_ap == myid) // need in AP context, to obtain from elsewhere
+                {
+                    size_t ipair = std::distance(atpairs.cbegin(), std::find(atpairs.cbegin(), atpairs.cend(), IJ));
+                    proc_ap_ipair[proc_blacs].push_back(ipair);
+                    const auto nI = atbasis_c.get_atom_nb(I);
+                    const auto &ir = I_loci.second;
+                    const auto &ic = J_locj.second;
+                    proc_ap_locid[proc_blacs].push_back(ic * nI + ir);
+                }
+            }
+        }
+    }
+
+    const auto nprocs = ad.nprocs();
+    disp_ap.resize(nprocs);
+    counts_ap.resize(nprocs);
+    disp_blacs.resize(nprocs);
+    counts_blacs.resize(nprocs);
+
+    // flatten the map and save
+    MPI_Count total_count;
+    total_count = 0;
+    for (int i = 0; i < nprocs; i++)
+    {
+        disp_ap[i] = total_count;
+        if (i == myid || proc_ap_ipair.count(i) == 0)
+        {
+            counts_ap[i] = 0;
+        }
+        else
+        {
+            counts_ap[i] = proc_ap_ipair.at(i).size();
+        }
+        total_count += counts_ap[i];
+    }
+    ids_ap_ipair.reserve(total_count);
+    ids_ap_locid.reserve(total_count);
+    for (int i = 0; i < nprocs; i++)
+    {
+        if (i == myid || proc_ap_ipair.count(i) == 0) continue;
+        const auto &ipairs = proc_ap_ipair.at(i);
+        const auto &locids = proc_ap_locid.at(i);
+        ids_ap_ipair.insert(ids_ap_ipair.cend(), ipairs.cbegin(), ipairs.cend());
+        ids_ap_locid.insert(ids_ap_locid.cend(), locids.cbegin(), locids.cend());
+    }
+
+    total_count = 0;
+    for (int i = 0; i < nprocs; i++)
+    {
+        disp_blacs[i] = total_count;
+        if (i == myid || proc_blacs_locid.count(i) == 0)
+        {
+            counts_blacs[i] = 0;
+        }
+        else
+        {
+            counts_blacs[i] = proc_blacs_locid.at(i).size();
+        }
+        total_count += counts_blacs[i];
+    }
+    ids_blacs_locid.reserve(total_count);
+    for (int i = 0; i < nprocs; i++)
+    {
+        if (i == myid || proc_blacs_locid.count(i) == 0) continue;
+        const auto &locids = proc_blacs_locid.at(i);
+        ids_blacs_locid.insert(ids_blacs_locid.cend(), locids.cbegin(), locids.cend());
+    }
+
+    initialized_ = true;
+}
+
+void
+IndexScheduler::reset()
+{
+    atpairs.clear();
+    ids_ap_ipair.clear();
+    ids_ap_locid.clear();
+    ids_blacs_locid.clear();
+    disp_ap.clear();
+    counts_ap.clear();
+    disp_blacs.clear();
+    counts_blacs.clear();
+    initialized_ = false;
+}
 
 // indices computation backend for AP<->BLACS conversion of general matrix
 static 
@@ -82,7 +279,6 @@ _get_communicate_ids_list_ap_and_blacs(const int &myid,
                                        const Array_Desc &ad, const bool row_fast,
                                        const bool return_local, const bool include_self = false)
 {
-    assert(atbasis_r.nb_total == as_size(ad.m()));
     assert(ad.m() > 0 && atbasis_r.nb_total == as_size(ad.m()));
     assert(ad.n() > 0 && atbasis_c.nb_total == as_size(ad.n()));
 
