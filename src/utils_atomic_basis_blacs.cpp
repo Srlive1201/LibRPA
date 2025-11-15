@@ -177,13 +177,13 @@ IndexScheduler::init(const std::unordered_map<int, std::set<atpair_t>> &map_proc
                 auto proc_blacs = ad.get_pnum(prow, pcol); // process that requires in BLACS context
                 if (myid != proc_ap && myid != proc_blacs) continue; // not related with me
                 if (myid == proc_ap && myid == proc_blacs) continue; // already on me, no need to communicate
-                if (proc_blacs == myid) // need in BLACS context, to obtain from elsewhere
+                if (proc_blacs == myid) // contained here in BLACS context, required by elsewhere in AP context
                 {
                     const auto &ir = ir_blacs[i];
                     const auto &ic = ic_blacs[j];
                     proc_blacs_locid[proc_ap].push_back(ic * m_loc + ir);
                 }
-                if (proc_ap == myid) // need in AP context, to obtain from elsewhere
+                if (proc_ap == myid) // contained here in AP context, required by elsewhere in BLACS context
                 {
                     size_t ipair = std::distance(atpairs.cbegin(), std::find(atpairs.cbegin(), atpairs.cend(), IJ));
                     proc_ap_ipair[proc_blacs].push_back(ipair);
@@ -203,11 +203,10 @@ IndexScheduler::init(const std::unordered_map<int, std::set<atpair_t>> &map_proc
     counts_blacs.resize(nprocs);
 
     // flatten the map and save
-    MPI_Count total_count;
-    total_count = 0;
+    total_count_ap = 0;
     for (int i = 0; i < nprocs; i++)
     {
-        disp_ap[i] = total_count;
+        disp_ap[i] = total_count_ap;
         if (i == myid || proc_ap_ipair.count(i) == 0)
         {
             counts_ap[i] = 0;
@@ -216,10 +215,10 @@ IndexScheduler::init(const std::unordered_map<int, std::set<atpair_t>> &map_proc
         {
             counts_ap[i] = proc_ap_ipair.at(i).size();
         }
-        total_count += counts_ap[i];
+        total_count_ap += counts_ap[i];
     }
-    ids_ap_ipair.reserve(total_count);
-    ids_ap_locid.reserve(total_count);
+    ids_ap_ipair.reserve(total_count_ap);
+    ids_ap_locid.reserve(total_count_ap);
     for (int i = 0; i < nprocs; i++)
     {
         if (i == myid || proc_ap_ipair.count(i) == 0) continue;
@@ -229,10 +228,10 @@ IndexScheduler::init(const std::unordered_map<int, std::set<atpair_t>> &map_proc
         ids_ap_locid.insert(ids_ap_locid.cend(), locids.cbegin(), locids.cend());
     }
 
-    total_count = 0;
+    total_count_blacs = 0;
     for (int i = 0; i < nprocs; i++)
     {
-        disp_blacs[i] = total_count;
+        disp_blacs[i] = total_count_blacs;
         if (i == myid || proc_blacs_locid.count(i) == 0)
         {
             counts_blacs[i] = 0;
@@ -241,9 +240,9 @@ IndexScheduler::init(const std::unordered_map<int, std::set<atpair_t>> &map_proc
         {
             counts_blacs[i] = proc_blacs_locid.at(i).size();
         }
-        total_count += counts_blacs[i];
+        total_count_blacs += counts_blacs[i];
     }
-    ids_blacs_locid.reserve(total_count);
+    ids_blacs_locid.reserve(total_count_blacs);
     for (int i = 0; i < nprocs; i++)
     {
         if (i == myid || proc_blacs_locid.count(i) == 0) continue;

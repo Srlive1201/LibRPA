@@ -31,16 +31,18 @@ private:
 public:
     std::vector<atpair_t> atpairs;
 
-    // Local 1D indices in atomic basis context to send when converting from AP->BLACS
+    // Local 1D indices in atomic basis context to send when converting from AP to BLACS
     std::vector<size_t> ids_ap_ipair;
     std::vector<size_t> ids_ap_locid;
-    // Local 1D indices in BLACS context to send when converting from BLACS->AP
+    // Local 1D indices in BLACS context to send when converting from BLACS to AP
     std::vector<size_t> ids_blacs_locid;
 
     // Displacements and counts to send for AP->BLACS
+    MPI_Count total_count_ap;
     std::vector<MPI_Count> disp_ap;
     std::vector<MPI_Count> counts_ap;
     // Displacements and counts to send for BLACS->AP
+    MPI_Count total_count_blacs;
     std::vector<MPI_Count> disp_blacs;
     std::vector<MPI_Count> counts_blacs;
 
@@ -51,8 +53,10 @@ public:
           ids_ap_ipair(),
           ids_ap_locid(),
           ids_blacs_locid(),
+          total_count_ap(0),
           disp_ap(),
           counts_ap(),
+          total_count_blacs(0),
           disp_blacs(),
           counts_blacs() {};
     // destructor

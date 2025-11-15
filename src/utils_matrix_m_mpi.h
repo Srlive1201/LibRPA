@@ -1206,7 +1206,9 @@ void fill_ap_map_from_blacs_dist(ap_p_map<matrix_m<T>> &data,
                 const auto nJ = atbasis_c.get_atom_nb(J);
                 if (!data_local.count(atpair))
                 {
+                    // Profiler::start("create_self");
                     data_local[atpair] = matrix_m<T>(nI, nJ, major_data);
+                    // Profiler::stop("create_self");
                 }
                 data_local.at(atpair).ptr()[j*nI+i] = m_loc.ptr()[ic*nr+ir];
             }
@@ -1214,90 +1216,56 @@ void fill_ap_map_from_blacs_dist(ap_p_map<matrix_m<T>> &data,
         data.merge(data_local);
     }
     // Profiler::stop("assign_self");
+    // return;
 
     // Profiler::start("compute_indices");
     // Compute indices of matrix elements that should be communicated
-    const auto proc2idlist = LIBRPA::utils::get_communicate_local_ids_list_blacs_to_ap(
-            myid, map_proc_IJs_require, atbasis_r, atbasis_c, ad, row_first, row_major);
-    const auto &pid_ids_send = proc2idlist.first;
-    const auto &pid_ids_recv = proc2idlist.second;
+    IndexScheduler sched;
+    std::unordered_map<int, std::set<atpair_t>> map_proc_set_IJs;
+    for (const auto &proc_IJs: map_proc_IJs_require)
+    {
+        const auto &IJs = proc_IJs.second;
+        map_proc_set_IJs[proc_IJs.first] = std::set<atpair_t>{IJs.cbegin(), IJs.cend()};
+    }
+    sched.init(map_proc_set_IJs, atbasis_r, atbasis_c, ad, row_major);
     // Profiler::stop("compute_indices");
-    // return;
 
     // prepare send buffer (from BLACS block)
-    // first run, compute recv buffer size and displacements, allocate the whole buffer
-    map<int, pair<int, MPI_Count>> pid_send_disp_count;
-    std::vector<T> sendbuff(0);
-    MPI_Count sendcount = 0;
-    for (int pid = 0; pid < ad.nprocs(); pid++)
+    // Profiler::start("compute_disp_count");
+    std::vector<T> sendbuff(sched.total_count_blacs);
+    for (MPI_Count i = 0; i < sched.total_count_blacs; i++)
     {
-        if (pid_ids_send.count(pid))
-        {
-            const auto &size = pid_ids_send.at(pid).size();
-            pid_send_disp_count[pid] = {as_int(sendcount), size};
-            sendcount += size;
-        }
-    }
-    if (sendcount > 0) sendbuff.resize(sendcount);
-
-    // second run, fill in the data to be sent
-    for (int pid = 0; pid < ad.nprocs(); pid++)
-    {
-        if (pid_ids_send.count(pid))
-        {
-            const auto &ids = pid_ids_send.at(pid);
-            MPI_Count disp = pid_send_disp_count.at(pid).first;
-            for (size_t i = 0; i < ids.size(); i++)
-            {
-                const auto &id = ids[i];
-                sendbuff[disp+i] = m_loc.ptr()[id];
-            }
-        }
+        const auto &id = sched.ids_blacs_locid[i];
+        sendbuff[i] = m_loc.ptr()[id];
     }
 
     // prepare recv buffer (to AP mapping)
-    // compute recv buffer size and displacements, allocate the whole buffer
-    map<int, pair<int, MPI_Count>> pid_recv_disp_count;
-    std::vector<T> recvbuff(0);
-    MPI_Count recvcount = 0;
-    for (int pid = 0; pid < ad.nprocs(); pid++)
-    {
-        if (pid_ids_recv.count(pid))
-        {
-            const auto &ids_recv = pid_ids_recv.at(pid);
-            MPI_Count recvcount_pid = 0;
-            for (const auto &pair_ids: ids_recv)
-            {
-                recvcount_pid += pair_ids.second.size();
-            }
-            pid_recv_disp_count[pid] = {as_int(recvcount), recvcount_pid};
-            recvcount += recvcount_pid;
-        }
-    }
-    if (recvcount > 0) recvbuff.resize(recvcount);
+    std::vector<T> recvbuff(sched.total_count_ap);
+    // Profiler::stop("compute_disp_count");
 
     // Begin communication
+    // Profiler::start("comm");
     std::vector<MPI_Request> reqs;
     MPI_Request req;
 
+    const auto nprocs = ad.nprocs();
+
     // First non-blocking receive
-    for (const auto &pid_disp_count: pid_recv_disp_count)
+    for (int pid = 0; pid < nprocs; pid++)
     {
-        const auto &pid = pid_disp_count.first;
-        const auto &disp_count = pid_disp_count.second;
-        const auto &disp = disp_count.first;
-        const auto &count = disp_count.second;
+        const auto &count = sched.counts_ap[pid];
+        if (count == 0) continue;
+        const auto &disp = sched.disp_ap[pid];
         // ofs << "MPI_Irecv dist " << dist << " count " << count << " from pid " << pid << endl;
         MPI_Irecv(recvbuff.data() + disp, count, dtype, pid, 0, ad.comm(), &req);
         reqs.push_back(req);
     }
     // Then non-blocking send
-    for (const auto &pid_disp_count: pid_send_disp_count)
+    for (int pid = 0; pid < nprocs; pid++)
     {
-        const auto &pid = pid_disp_count.first;
-        const auto &disp_count = pid_disp_count.second;
-        const auto &disp = disp_count.first;
-        const auto &count = disp_count.second;
+        const auto &count = sched.counts_blacs[pid];
+        if (count == 0) continue;
+        const auto &disp = sched.disp_blacs[pid];
         // ofs << "MPI_Isend count " << count << " to pid " << pid << endl;
         MPI_Isend(sendbuff.data() + disp, count, dtype, pid, 0, ad.comm(), &req);
         reqs.push_back(req);
@@ -1305,35 +1273,24 @@ void fill_ap_map_from_blacs_dist(ap_p_map<matrix_m<T>> &data,
 
     // Wait for all non-blocking communication to finish
     if (!reqs.empty()) MPI_Waitall((int)reqs.size(), reqs.data(), MPI_STATUSES_IGNORE);
+    // Profiler::stop("comm");
 
     // Map the received data to the correct location in the atom-pair mapping
-    for (const auto &pid_disp_count: pid_recv_disp_count)
+    // Profiler::start("assign");
+    for (MPI_Count i = 0; i < sched.total_count_ap; i++)
     {
-        const auto &pid = pid_disp_count.first;
-        const auto &v_pair_ids = pid_ids_recv.at(pid);
-        size_t count = 0;
-        const auto &disp_count = pid_disp_count.second;
-        const auto &disp = disp_count.first;
-        const auto &count_recv = disp_count.second;
-        for (const auto &pair_ids: v_pair_ids)
+        const auto &atpair = sched.atpairs[sched.ids_ap_ipair[i]];
+        const auto &locid = sched.ids_ap_locid[i];
+        if (!data.count(atpair))
         {
-            const auto &atpair = pair_ids.first;
-            const auto &ids = pair_ids.second;
-            if (!data.count(atpair))
-            {
-                const auto &nI = atbasis_c.get_atom_nb(as_int(atpair.first));
-                const auto &nJ = atbasis_c.get_atom_nb(as_int(atpair.second));
-                data[atpair] = matrix_m<T>(nI, nJ, major_data);
-                data[atpair].zero_out();
-            }
-            for (size_t i = 0; i < ids.size(); i++)
-            {
-                data.at(atpair).ptr()[ids[i]] = recvbuff[disp+count+i];
-            }
-            count += ids.size();
+            const auto &nI = atbasis_c.get_atom_nb(as_int(atpair.first));
+            const auto &nJ = atbasis_c.get_atom_nb(as_int(atpair.second));
+            data[atpair] = matrix_m<T>(nI, nJ, major_data);
+            data[atpair].zero_out();
         }
-        assert(count == as_size(count_recv)); // consistency check
+        data.at(atpair).ptr()[locid] = recvbuff[i];
     }
+    // Profiler::stop("assign");
 }
 
 /*!
