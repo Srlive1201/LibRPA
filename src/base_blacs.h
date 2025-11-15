@@ -14,6 +14,8 @@ enum class CTXT_SCOPE {R, C, A};
 
 void CTXT_barrier(int ictxt, CTXT_SCOPE scope = CTXT_SCOPE::A);
 
+typedef std::pair<int, int> pcoord_t;
+
 class BLACS_CTXT_handler
 {
 private:
@@ -44,10 +46,11 @@ public:
     std::string info() const;
     int get_pnum(int prow, int pcol) const;
     void get_pcoord(int pid, int &prow, int &pcol) const;
+    pcoord_t get_pcoord(int pid) const;
     void barrier(CTXT_SCOPE scope = CTXT_SCOPE::A) const;
     //! call gridexit to reset process grid
     void exit();
-    bool initialized() const { return initialized_; }
+    inline bool initialized() const { return initialized_; }
     const MPI_Comm &get_comm() const { return this->mpi_comm_h.comm; };
 };
 
@@ -98,6 +101,9 @@ private:
     std::vector<int> g2l_c_;
     std::vector<int> l2g_r_;
     std::vector<int> l2g_c_;
+    // Process location of index
+    std::vector<int> g2p_r_;
+    std::vector<int> g2p_c_;
 
     //! flag to indicate that the current process should contain no data of local matrix, but for scalapack routines, it will generate a dummy matrix of size 1, nrows = ncols = 1
     bool empty_local_mat_ = false;
@@ -124,6 +130,8 @@ public:
     inline int indx_l2g_c(int lindx) const noexcept { return (lindx < n_local_ && lindx > -1)? l2g_c_[lindx]: -1; };
     inline const std::vector<int> &g2l_r() const noexcept { return g2l_r_; }
     inline const std::vector<int> &g2l_c() const noexcept { return g2l_c_; }
+    inline const std::vector<int> &g2p_r() const noexcept { return g2p_r_; }
+    inline const std::vector<int> &g2p_c() const noexcept { return g2p_c_; }
     inline const std::vector<int> &l2g_r() const noexcept { return l2g_r_; }
     inline const std::vector<int> &l2g_c() const noexcept { return l2g_c_; }
     const int& myid() const { return myid_; }
@@ -143,6 +151,10 @@ public:
     const int& nprocs() const { return nprocs_; }
     const int& nprows() const { return nprows_; }
     const int& npcols() const { return npcols_; }
+    inline void get_pcoord(int pid, int &prow, int &pcol) const { Cblacs_pcoord(ictxt_, myid_, &prow, &pcol); };
+    inline pcoord_t get_pcoord(int pid) const { int prow, pcol; Cblacs_pcoord(ictxt_, myid_, &prow, &pcol); return {prow, pcol}; };
+    inline int get_pnum(int prow, int pcol) const { return Cblacs_pnum(ictxt_, prow, pcol); };
+    inline int get_pnum(const pcoord_t &pc) const { return Cblacs_pnum(ictxt_, pc.first, pc.second); };
     std::string info() const;
     std::string info_desc() const;
     bool is_src() const;

@@ -110,6 +110,13 @@ void BLACS_CTXT_handler::get_pcoord(int pid, int &prow, int &pcol) const
     Cblacs_pcoord(ictxt, pid, &prow, &pcol);
 }
 
+pcoord_t BLACS_CTXT_handler::get_pcoord(int pid) const
+{
+    int prow, pcol;
+    Cblacs_pcoord(ictxt, pid, &prow, &pcol);
+    return {prow, pcol};
+}
+
 void BLACS_CTXT_handler::barrier(CTXT_SCOPE scope) const
 {
     CTXT_barrier(ictxt, scope);
@@ -201,17 +208,23 @@ int Array_Desc::set_desc_indices_(const int &m, const int &n, const int &mb, con
 
     // precompute indices
     g2l_r_.resize(m, -1);
+    g2p_r_.resize(m, -1);
     for (int i = 0; i < m_; i++)
     {
-        if (myprow_ == ScalapackConnector::indxg2p(i, mb_, myprow_, irsrc_, nprows_))
+        int row = ScalapackConnector::indxg2p(i, mb_, myprow_, irsrc_, nprows_);
+        g2p_r_[i] = row;
+        if (myprow_ == row)
         {
             g2l_r_[i] = ScalapackConnector::indxg2l(i, mb_, myprow_, irsrc_, nprows_);
         }
     }
     g2l_c_.resize(n, -1);
+    g2p_c_.resize(n, -1);
     for (int j = 0; j < n_; j++)
     {
-        if (mypcol_ == ScalapackConnector::indxg2p(j, nb_, mypcol_, icsrc_, npcols_))
+        int col = ScalapackConnector::indxg2p(j, nb_, mypcol_, icsrc_, npcols_);
+        g2p_c_[j] = col;
+        if (mypcol_ == col)
         {
             g2l_c_[j] = ScalapackConnector::indxg2l(j, nb_, mypcol_, icsrc_, npcols_);
         }
