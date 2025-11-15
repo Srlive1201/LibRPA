@@ -14,8 +14,8 @@ namespace LIBRPA {
 
 typedef int locid_t;
 typedef std::size_t gloid_t;
-typedef std::pair<locid_t, locid_t> locid_pair_t;
-typedef std::pair<gloid_t, gloid_t> gloid_pair_t;
+typedef std::pair<locid_t, locid_t> locid_ap_t;
+typedef std::pair<gloid_t, gloid_t> gloid_ap_t;
 
 /*! @enum
  *

@@ -1,5 +1,6 @@
 #pragma once
 #include <algorithm>
+#include <vector>
 #include <complex>
 
 constexpr static const double DOUBLE_EQUAL_THRES = 1e-10;

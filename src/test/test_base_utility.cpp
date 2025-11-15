@@ -11,5 +11,11 @@ int main (int argc, char *argv[])
     b = std::is_same<double, to_real<std::complex<double>>::type>::value;
     assert(b);
 
+    // lexico comparison for pair
+    auto row_fast = FastLess<std::pair<int, int>>{true}; // row index runs faster
+    assert(row_fast({1, 0}, {0, 1}));
+    auto col_fast = FastLess<std::pair<int, int>>{false};
+    assert(col_fast({0, 1}, {1, 0}));
+
     return 0;
 }

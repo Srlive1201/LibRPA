@@ -134,7 +134,7 @@ get_2d_mat_indices_atpair(const AtomicBasis &atbasis_r,
         std::sort(IJs_sorted.begin(), IJs_sorted.end(), FastLess<atpair_t>{row_fast});
 
         for (const auto &IJ: IJs_sorted) append_indices(IJ);
-        std::sort(indices.begin(), indices.end(), FastLess<gloid_pair_t>{row_fast});
+        std::sort(indices.begin(), indices.end(), FastLess<gloid_ap_t>{row_fast});
     }
     else
     {
