@@ -744,7 +744,6 @@ void fill_local_mat_from_ap_dist(matrix_m<T> &m_loc,
     // Resolve data type for communication
     MPI_Datatype dtype = mpi_datatype<T>::value;
 
-    const auto myid = ad.myid();
     const auto row_first = major_data == MAJOR::ROW ? false : true;
     const auto row_major = major_data == MAJOR::ROW ? true : false;
     const auto nr = m_loc.nr();
@@ -766,96 +765,49 @@ void fill_local_mat_from_ap_dist(matrix_m<T> &m_loc,
         }
     }
 
-    // Compute indices of matrix elements that should be communicated
-    const auto proc2idlist = LIBRPA::utils::get_communicate_local_ids_list_ap_to_blacs(
-            myid, map_proc_IJs_avail, atbasis_r, atbasis_c, ad, row_first, row_major);
-    const auto &pid_ids_send = proc2idlist.first;
-    const auto &pid_ids_recv = proc2idlist.second;
-
-    // prepare recv buffer
-    // computer recv buffer size and displacements
-    map<int, pair<int, MPI_Count>> pid_recv_disp_count;
-    std::vector<T> recvbuff(0);
-    MPI_Count recvcount = 0;
-    for (int pid = 0; pid < ad.nprocs(); pid++)
+    IndexScheduler sched;
+    std::unordered_map<int, std::set<atpair_t>> map_proc_set_IJs;
+    for (const auto &proc_IJs: map_proc_IJs_avail)
     {
-        if (pid == myid) continue; // skip self-receiving
-        if (pid_ids_recv.count(pid))
-        {
-            const auto &size = pid_ids_recv.at(pid).size();
-            pid_recv_disp_count[pid] = {as_int(recvcount), size};
-            recvcount += size;
-        }
+        const auto &IJs = proc_IJs.second;
+        map_proc_set_IJs[proc_IJs.first] = std::set<atpair_t>{IJs.cbegin(), IJs.cend()};
     }
-    if (recvcount > 0) recvbuff.resize(recvcount);
+    sched.init(map_proc_set_IJs, atbasis_r, atbasis_c, ad, row_major);
 
-    // prepare send buffer
-    // first run, compute send buffer size and displacements, allocate the whole buffer
-    map<int, pair<int, MPI_Count>> pid_send_disp_count;
-    std::vector<T> sendbuff(0);
-    MPI_Count sendcount = 0;
-    for (int pid = 0; pid < ad.nprocs(); pid++)
+    // prepare send buffer (from AP blocks)
+    // Profiler::start("compute_disp_count");
+    std::vector<T> sendbuff(sched.total_count_ap);
+    for (MPI_Count i = 0; i < sched.total_count_ap; i++)
     {
-        if (pid == myid) continue; // skip self-sending
-        if (pid_ids_send.count(pid))
-        {
-            const auto &ids_send = pid_ids_send.at(pid);
-            MPI_Count sendcount_pid = 0;
-            for (const auto &pair_ids: ids_send)
-            {
-                sendcount_pid += pair_ids.second.size();
-            }
-            pid_send_disp_count[pid] = {as_int(sendcount), sendcount_pid};
-            sendcount += sendcount_pid;
-        }
+        const auto &atpair = sched.atpairs[sched.ids_ap_ipair[i]];
+        const auto &locid = sched.ids_ap_locid[i];
+        sendbuff[i] = data.at(atpair).ptr()[locid];
     }
-    if (sendcount > 0) sendbuff.resize(sendcount);
 
-    // second run, fill in the data to be sent
-    for (int pid = 0; pid < ad.nprocs(); pid++)
-    {
-        if (pid == myid) continue; // skip self-sending
-        if (pid_ids_send.count(pid))
-        {
-            const auto &ids_send = pid_ids_send.at(pid);
-            MPI_Count disp = pid_send_disp_count.at(pid).first;
-            for (const auto &pair_ids: ids_send)
-            {
-                const auto &atpair = pair_ids.first;
-                const auto &atmat = data.at(atpair);
-                const auto &ids = pair_ids.second;
-                for (size_t i = 0; i < ids.size(); i++)
-                {
-                    const auto &id = ids[i];
-                    sendbuff[disp+i] = atmat.ptr()[id];
-                }
-                disp += ids.size();
-            }
-        }
-    }
+    // prepare recv buffer (to BLACS mapping), just allocate
+    std::vector<T> recvbuff(sched.total_count_blacs);
 
     // Begin communication
+    const auto nprocs = ad.nprocs();
     std::vector<MPI_Request> reqs;
     MPI_Request req;
 
     // First non-blocking receive
-    for (const auto &pid_disp_count: pid_recv_disp_count)
+    for (int pid = 0; pid < nprocs; pid++)
     {
-        const auto &pid = pid_disp_count.first;
-        const auto &disp_count = pid_disp_count.second;
-        const auto &disp = disp_count.first;
-        const auto &count = disp_count.second;
+        const auto &count = sched.counts_blacs[pid];
+        if (count == 0) continue;
+        const auto &disp = sched.disp_blacs[pid];
         // ofs << "MPI_Irecv dist " << dist << " count " << count << " from pid " << pid << endl;
         MPI_Irecv(recvbuff.data() + disp, count, dtype, pid, 0, ad.comm(), &req);
         reqs.push_back(req);
     }
     // Then non-blocking send
-    for (const auto &pid_disp_count: pid_send_disp_count)
+    for (int pid = 0; pid < nprocs; pid++)
     {
-        const auto &pid = pid_disp_count.first;
-        const auto &disp_count = pid_disp_count.second;
-        const auto &disp = disp_count.first;
-        const auto &count = disp_count.second;
+        const auto &count = sched.counts_ap[pid];
+        if (count == 0) continue;
+        const auto &disp = sched.disp_ap[pid];
         // ofs << "MPI_Isend count " << count << " to pid " << pid << endl;
         MPI_Isend(sendbuff.data() + disp, count, dtype, pid, 0, ad.comm(), &req);
         reqs.push_back(req);
@@ -865,17 +817,10 @@ void fill_local_mat_from_ap_dist(matrix_m<T> &m_loc,
     if (!reqs.empty()) MPI_Waitall((int)reqs.size(), reqs.data(), MPI_STATUSES_IGNORE);
 
     // Map the received data to the correct location in the BLACS sub-block
-    for (const auto &pid_disp_count: pid_recv_disp_count)
+    for (MPI_Count i = 0; i < sched.total_count_blacs; i++)
     {
-        const auto &pid = pid_disp_count.first;
-        const auto &ids = pid_ids_recv.at(pid);
-        const auto &disp_count = pid_disp_count.second;
-        const auto &disp = disp_count.first;
-        const auto &count = disp_count.second;
-        for (auto i = 0; i < count; i++)
-        {
-            m_loc.ptr()[ids[i]] = recvbuff[disp+i];
-        }
+        const auto &locid = sched.ids_blacs_locid[i];
+        m_loc.ptr()[locid] = recvbuff[i];
     }
 }
 
