@@ -844,13 +844,25 @@ void test_restore_local_mat_sy(const std::vector<size_t> &nbs, MAJOR major)
     blacs_ctxt_global_h.exit();
 }
 
+static void initialize()
+{
+    initialize_mpi(MPI_COMM_WORLD);
+    initialize_blacs(MPI_COMM_WORLD);
+    initialize_io();
+}
+
+static void finalize()
+{
+    finalize_io();
+    finalize_blacs();
+    finalize_mpi();
+}
+
 int main (int argc, char *argv[])
 {
     int provided;
     MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
-    initialize_mpi(MPI_COMM_WORLD);
-    initialize_blacs(MPI_COMM_WORLD);
-    initialize_io();
+    initialize();
 
     // test_pgemm<float>(-2, 1);
     // test_pgemm<double>(-2, 1);
@@ -879,7 +891,7 @@ int main (int argc, char *argv[])
     test_restore_local_mat<double>({2}, MAJOR::COL);
     test_restore_local_mat<double>({4, 3}, MAJOR::COL);
     test_restore_local_mat<double>({1, 2, 1}, MAJOR::COL);
-    test_restore_local_mat<double>({1, 2, 1, 2}, MAJOR::COL, true);
+    test_restore_local_mat<double>({1, 2, 1, 2}, MAJOR::COL, false);
     // test_restore_local_mat<double>({2, 4, 1, 3}, MAJOR::COL);
     test_restore_local_mat<complex<double>>({3, 5, 1}, MAJOR::COL);
 
@@ -920,9 +932,7 @@ int main (int argc, char *argv[])
     // test_restore_local_mat_sy<double>({2, 4, 1, 3}, MAJOR::COL); // FAIL
     // test_restore_local_mat_sy<complex<double>>({3, 5, 1}, MAJOR::COL); // FAIL
 
-    finalize_io();
-    finalize_blacs();
-    finalize_mpi();
+    finalize();
     MPI_Finalize();
     return 0;
 }
