@@ -29,6 +29,7 @@ class IndexScheduler
 private:
     bool initialized_;
 public:
+    // atom pairs that this process should handle
     std::vector<atpair_t> atpairs;
 
     // Local 1D indices in atomic basis context to send when converting from AP to BLACS

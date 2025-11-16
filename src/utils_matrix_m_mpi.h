@@ -734,37 +734,36 @@ void fill_local_mat_from_ap_dist_scheduler(matrix_m<T> &m_loc,
     const auto nc = m_loc.nc();
 
     // Fill in data that is already available before communication
-    int I, J, i, j;
     Profiler::start("assign_self_ap2blacs");
     if (row_major)
     {
+        #pragma omp parallel for collapse(2) schedule(static)
         for (int ir = 0; ir < nr; ir++)
         {
-            atbasis_r.get_local_index(ad.indx_l2g_r(ir), I, i);
             for (int ic = 0; ic < nc; ic++)
             {
+                int I, J, i, j;
+                atbasis_r.get_local_index(ad.indx_l2g_r(ir), I, i);
                 atbasis_c.get_local_index(ad.indx_l2g_c(ic), J, j);
                 const atpair_t atpair{static_cast<atom_t>(I), static_cast<atom_t>(J)};
-                if (data.count(atpair))
-                {
-                    m_loc(ir, ic) = data.at(atpair)(i, j);
-                }
+                auto it = data.find(atpair);
+                if (it != data.end()) m_loc(ir, ic) = it->second(i, j);
             }
         }
     }
     else
     {
+        #pragma omp parallel for collapse(2) schedule(static)
         for (int ic = 0; ic < nc; ic++)
         {
-            atbasis_c.get_local_index(ad.indx_l2g_c(ic), J, j);
             for (int ir = 0; ir < nr; ir++)
             {
+                int I, J, i, j;
+                atbasis_c.get_local_index(ad.indx_l2g_c(ic), J, j);
                 atbasis_r.get_local_index(ad.indx_l2g_r(ir), I, i);
                 const atpair_t atpair{static_cast<atom_t>(I), static_cast<atom_t>(J)};
-                if (data.count(atpair))
-                {
-                    m_loc(ir, ic) = data.at(atpair)(i, j);
-                }
+                auto it = data.find(atpair);
+                if (it != data.end()) m_loc(ir, ic) = it->second(i, j);
             }
         }
     }
@@ -774,6 +773,7 @@ void fill_local_mat_from_ap_dist_scheduler(matrix_m<T> &m_loc,
     Profiler::start("prep_send_ap2blacs");
     // envs::ofs_myid << "prep_send_ap2blacs total_count_ap " << sched.total_count_ap << endl;
     std::vector<T> sendbuff(sched.total_count_ap);
+    #pragma omp parallel for
     for (MPI_Count i = 0; i < sched.total_count_ap; i++)
     {
         const auto &atpair = sched.atpairs[sched.ids_ap_ipair[i]];
@@ -819,6 +819,7 @@ void fill_local_mat_from_ap_dist_scheduler(matrix_m<T> &m_loc,
     // Map the received data to the correct location in the BLACS sub-block
     Profiler::start("assign_ap2blacs");
     // envs::ofs_myid << "assign_ap2blacs total_count_blacs " << sched.total_count_blacs << endl;
+    #pragma omp parallel for
     for (MPI_Count i = 0; i < sched.total_count_blacs; i++)
     {
         const auto &locid = sched.ids_blacs_locid[i];
@@ -1156,54 +1157,52 @@ void fill_ap_map_from_blacs_dist_scheduler(ap_p_map<matrix_m<T>> &data,
 
     Profiler::start("assign_self_blacs2ap");
     // Fill in data that is already available before communication
-    int I, J, i, j;
     // atom pairs required by this process
     const auto IJs = std::unordered_set<atpair_t, atpair_hash>(sched.atpairs.cbegin(), sched.atpairs.cend());
     const auto nr = m_loc.nr();
     const auto nc = m_loc.nc();
+    // Allocate necessary blocks first
+    for (const auto &atpair: sched.atpairs)
+    {
+        const auto I = atpair.first;
+        const auto J = atpair.second;
+        const auto &nI = atbasis_r.get_atom_nb(I);
+        const auto &nJ = atbasis_c.get_atom_nb(J);
+        data[atpair] = matrix_m<T>(nI, nJ, major_data);
+    }
     if (row_major)
     {
+        #pragma omp parallel for collapse(2) schedule(static)
         for (int ir = 0; ir < nr; ir++)
         {
-            atbasis_r.get_local_index(ad.indx_l2g_r(ir), I, i);
             for (int ic = 0; ic < nc; ic++)
             {
+                int I, J, i, j;
+                atbasis_r.get_local_index(ad.indx_l2g_r(ir), I, i);
                 atbasis_c.get_local_index(ad.indx_l2g_c(ic), J, j);
                 const atpair_t atpair{static_cast<atom_t>(I), static_cast<atom_t>(J)};
                 if (IJs.find(atpair) == IJs.cend()) continue; // not required
-                const auto &nI = atbasis_r.get_atom_nb(I);
                 const auto &nJ = atbasis_c.get_atom_nb(J);
-                if (!data.count(atpair))
-                {
-                    data[atpair] = matrix_m<T>(nI, nJ, major_data);
-                }
                 data.at(atpair).ptr()[i*nJ+j] = m_loc.ptr()[ir*nc+ic];
             }
         }
     }
     else
     {
-        ap_p_map<matrix_m<T>> data_local;
+        #pragma omp parallel for collapse(2) schedule(static)
         for (int ic = 0; ic < nc; ic++)
         {
-            atbasis_c.get_local_index(ad.indx_l2g_c(ic), J, j);
             for (int ir = 0; ir < nr; ir++)
             {
+                int I, J, i, j;
+                atbasis_c.get_local_index(ad.indx_l2g_c(ic), J, j);
                 atbasis_r.get_local_index(ad.indx_l2g_r(ir), I, i);
                 const atpair_t atpair{static_cast<atom_t>(I), static_cast<atom_t>(J)};
                 if (IJs.find(atpair) == IJs.cend()) continue; // not required
                 const auto nI = atbasis_r.get_atom_nb(I);
-                const auto nJ = atbasis_c.get_atom_nb(J);
-                if (!data_local.count(atpair))
-                {
-                    // Profiler::start("create_self");
-                    data_local[atpair] = matrix_m<T>(nI, nJ, major_data);
-                    // Profiler::stop("create_self");
-                }
-                data_local.at(atpair).ptr()[j*nI+i] = m_loc.ptr()[ic*nr+ir];
+                data.at(atpair).ptr()[j*nI+i] = m_loc.ptr()[ic*nr+ir];
             }
         }
-        data.merge(data_local);
     }
     Profiler::stop("assign_self_blacs2ap");
     // return;
@@ -1211,6 +1210,7 @@ void fill_ap_map_from_blacs_dist_scheduler(ap_p_map<matrix_m<T>> &data,
     // prepare send buffer (from BLACS block)
     Profiler::start("prep_send_blacs2ap");
     std::vector<T> sendbuff(sched.total_count_blacs);
+    #pragma omp parallel for
     for (MPI_Count i = 0; i < sched.total_count_blacs; i++)
     {
         const auto &id = sched.ids_blacs_locid[i];
@@ -1255,17 +1255,12 @@ void fill_ap_map_from_blacs_dist_scheduler(ap_p_map<matrix_m<T>> &data,
 
     // Map the received data to the correct location in the atom-pair mapping
     Profiler::start("assign_blacs2ap");
+    // Allocate the required atom-pair block first
+    #pragma omp parallel for
     for (MPI_Count i = 0; i < sched.total_count_ap; i++)
     {
         const auto &atpair = sched.atpairs[sched.ids_ap_ipair[i]];
         const auto &locid = sched.ids_ap_locid[i];
-        if (!data.count(atpair))
-        {
-            const auto &nI = atbasis_r.get_atom_nb(as_int(atpair.first));
-            const auto &nJ = atbasis_c.get_atom_nb(as_int(atpair.second));
-            data[atpair] = matrix_m<T>(nI, nJ, major_data);
-            data[atpair].zero_out();
-        }
         data.at(atpair).ptr()[locid] = recvbuff[i];
     }
     Profiler::stop("assign_blacs2ap");
