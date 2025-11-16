@@ -90,6 +90,7 @@ IndexScheduler::init(const std::unordered_map<int, std::set<atpair_t>> &map_proc
     const auto m = as_size(ad.m());
     const auto n = as_size(ad.n());
 
+    Profiler::start("index_scheduler_init_pairs_map");
     ap_p_map<int> map_IJ_proc;
     for (const auto &proc_IJs: map_proc_IJs)
     {
@@ -110,7 +111,9 @@ IndexScheduler::init(const std::unordered_map<int, std::set<atpair_t>> &map_proc
         atpairs = std::vector<atpair_t>(IJs.cbegin(), IJs.cend());
         std::sort(atpairs.begin(), atpairs.end(), FastLess<atpair_t>{row_fast});
     }
+    Profiler::stop("index_scheduler_init_pairs_map");
 
+    Profiler::start("index_scheduler_ids_rc");
     // std::unordered_map<atom_t, std::vector<size_t>> row_ids_ap;
     // std::unordered_map<atom_t, std::vector<size_t>> col_ids_ap;
     // for (size_t I = 0; I < atbasis_r.n_atoms; I++) row_ids_ap[I] = atbasis_r.get_global_indices(I);
@@ -119,10 +122,11 @@ IndexScheduler::init(const std::unordered_map<int, std::set<atpair_t>> &map_proc
     const auto &col_procs_blacs = ad.g2p_c();
     const auto &ir_blacs = ad.g2l_r();
     const auto &ic_blacs = ad.g2l_c();
-
     const auto &m_loc = ad.m_loc();
     const auto &n_loc = ad.n_loc();
+    Profiler::stop("index_scheduler_ids_rc");
 
+    Profiler::start("index_scheduler_compute_map");
     if (row_major)
     {
         for (size_t i = 0; i < m; i++)
@@ -195,6 +199,7 @@ IndexScheduler::init(const std::unordered_map<int, std::set<atpair_t>> &map_proc
             }
         }
     }
+    Profiler::stop("index_scheduler_compute_map");
 
     const auto nprocs = ad.nprocs();
     disp_ap.resize(nprocs);
@@ -202,6 +207,7 @@ IndexScheduler::init(const std::unordered_map<int, std::set<atpair_t>> &map_proc
     disp_blacs.resize(nprocs);
     counts_blacs.resize(nprocs);
 
+    Profiler::start("index_scheduler_flatten");
     // flatten the map and save
     total_count_ap = 0;
     for (int i = 0; i < nprocs; i++)
@@ -249,6 +255,7 @@ IndexScheduler::init(const std::unordered_map<int, std::set<atpair_t>> &map_proc
         const auto &locids = proc_blacs_locid.at(i);
         ids_blacs_locid.insert(ids_blacs_locid.cend(), locids.cbegin(), locids.cend());
     }
+    Profiler::stop("index_scheduler_flatten");
 
     initialized_ = true;
 }

@@ -735,6 +735,7 @@ void fill_local_mat_from_ap_dist_scheduler(matrix_m<T> &m_loc,
 
     // Fill in data that is already available before communication
     int I, J, i, j;
+    Profiler::start("assign_self_ap2blacs");
     if (row_major)
     {
         for (int ir = 0; ir < nr; ir++)
@@ -767,9 +768,11 @@ void fill_local_mat_from_ap_dist_scheduler(matrix_m<T> &m_loc,
             }
         }
     }
+    Profiler::stop("assign_self_ap2blacs");
 
     // prepare send buffer (from AP blocks)
-    // Profiler::start("compute_disp_count");
+    Profiler::start("prep_send_ap2blacs");
+    // envs::ofs_myid << "prep_send_ap2blacs total_count_ap " << sched.total_count_ap << endl;
     std::vector<T> sendbuff(sched.total_count_ap);
     for (MPI_Count i = 0; i < sched.total_count_ap; i++)
     {
@@ -777,6 +780,7 @@ void fill_local_mat_from_ap_dist_scheduler(matrix_m<T> &m_loc,
         const auto &locid = sched.ids_ap_locid[i];
         sendbuff[i] = data.at(atpair).ptr()[locid];
     }
+    Profiler::stop("prep_send_ap2blacs");
 
     // prepare recv buffer (to BLACS mapping), just allocate
     std::vector<T> recvbuff(sched.total_count_blacs);
@@ -786,6 +790,7 @@ void fill_local_mat_from_ap_dist_scheduler(matrix_m<T> &m_loc,
     std::vector<MPI_Request> reqs;
     MPI_Request req;
 
+    Profiler::start("comm_ap2blacs");
     // First non-blocking receive
     for (int pid = 0; pid < nprocs; pid++)
     {
@@ -809,13 +814,17 @@ void fill_local_mat_from_ap_dist_scheduler(matrix_m<T> &m_loc,
 
     // Wait for all non-blocking communication to finish
     if (!reqs.empty()) MPI_Waitall((int)reqs.size(), reqs.data(), MPI_STATUSES_IGNORE);
+    Profiler::stop("comm_ap2blacs");
 
     // Map the received data to the correct location in the BLACS sub-block
+    Profiler::start("assign_ap2blacs");
+    // envs::ofs_myid << "assign_ap2blacs total_count_blacs " << sched.total_count_blacs << endl;
     for (MPI_Count i = 0; i < sched.total_count_blacs; i++)
     {
         const auto &locid = sched.ids_blacs_locid[i];
         m_loc.ptr()[locid] = recvbuff[i];
     }
+    Profiler::stop("assign_ap2blacs");
 }
 
 /*!
@@ -1145,7 +1154,7 @@ void fill_ap_map_from_blacs_dist_scheduler(ap_p_map<matrix_m<T>> &data,
 
     const auto &row_major = major_data == MAJOR::ROW ? true : false;
 
-    // Profiler::start("assign_self");
+    Profiler::start("assign_self_blacs2ap");
     // Fill in data that is already available before communication
     int I, J, i, j;
     // atom pairs required by this process
@@ -1196,24 +1205,24 @@ void fill_ap_map_from_blacs_dist_scheduler(ap_p_map<matrix_m<T>> &data,
         }
         data.merge(data_local);
     }
-    // Profiler::stop("assign_self");
+    Profiler::stop("assign_self_blacs2ap");
     // return;
 
     // prepare send buffer (from BLACS block)
-    // Profiler::start("compute_disp_count");
+    Profiler::start("prep_send_blacs2ap");
     std::vector<T> sendbuff(sched.total_count_blacs);
     for (MPI_Count i = 0; i < sched.total_count_blacs; i++)
     {
         const auto &id = sched.ids_blacs_locid[i];
         sendbuff[i] = m_loc.ptr()[id];
     }
+    Profiler::stop("prep_send_blacs2ap");
 
     // prepare recv buffer (to AP mapping)
     std::vector<T> recvbuff(sched.total_count_ap);
-    // Profiler::stop("compute_disp_count");
 
     // Begin communication
-    // Profiler::start("comm");
+    Profiler::start("comm_blacs2ap");
     std::vector<MPI_Request> reqs;
     MPI_Request req;
 
@@ -1242,10 +1251,10 @@ void fill_ap_map_from_blacs_dist_scheduler(ap_p_map<matrix_m<T>> &data,
 
     // Wait for all non-blocking communication to finish
     if (!reqs.empty()) MPI_Waitall((int)reqs.size(), reqs.data(), MPI_STATUSES_IGNORE);
-    // Profiler::stop("comm");
+    Profiler::stop("comm_blacs2ap");
 
     // Map the received data to the correct location in the atom-pair mapping
-    // Profiler::start("assign");
+    Profiler::start("assign_blacs2ap");
     for (MPI_Count i = 0; i < sched.total_count_ap; i++)
     {
         const auto &atpair = sched.atpairs[sched.ids_ap_ipair[i]];
@@ -1259,7 +1268,7 @@ void fill_ap_map_from_blacs_dist_scheduler(ap_p_map<matrix_m<T>> &data,
         }
         data.at(atpair).ptr()[locid] = recvbuff[i];
     }
-    // Profiler::stop("assign");
+    Profiler::stop("assign_blacs2ap");
 }
 
 /*!
