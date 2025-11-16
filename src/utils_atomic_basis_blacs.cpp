@@ -126,23 +126,28 @@ IndexScheduler::init(const std::unordered_map<int, std::set<atpair_t>> &map_proc
     const auto &n_loc = ad.n_loc();
     Profiler::stop("index_scheduler_ids_rc");
 
-    Profiler::start("index_scheduler_compute_map");
+    Profiler::start("index_scheduler_compute_map"); // most intensive part, not paralleized
+    // const auto n_avg = m * n / ad.nprocs();
+    // proc_ap_locid.reserve(n_avg);
+    // proc_ap_ipair.reserve(n_avg);
+    // proc_blacs_locid.reserve(n_avg);
+
+    size_t I, loi, J, loj;
     if (row_major)
     {
         for (size_t i = 0; i < m; i++)
         {
-            std::pair<size_t, size_t> I_loci(atbasis_r.get_local_index(i));
-            const auto &I = I_loci.first;
+            atbasis_r.get_local_index(i, I, loi);
             int prow = row_procs_blacs[i];
             for (size_t j = 0; j < n; j++)
             {
-                std::pair<size_t, size_t> J_locj(atbasis_c.get_local_index(j));
-                const auto &J = J_locj.first;
+                atbasis_c.get_local_index(j, J, loj);
                 atpair_t IJ{I, J};
-                if (map_IJ_proc.count(IJ) == 0) continue; // no global data for this pair
-                const auto proc_ap = map_IJ_proc.at(IJ); // process that requires in atom-pair context
+                auto it = map_IJ_proc.find(IJ);
+                if (it == map_IJ_proc.end()) continue; // no global data for this pair
+                const auto proc_ap = it->second; // process that requires in atom-pair context
                 int pcol = col_procs_blacs[j];
-                auto proc_blacs = ad.get_pnum(prow, pcol); // process that requires in BLACS context
+                const auto proc_blacs = ad.get_pnum(prow, pcol); // process that requires in BLACS context
                 if (myid != proc_ap && myid != proc_blacs) continue; // not related with me
                 if (myid == proc_ap && myid == proc_blacs) continue; // already on me, no need to communicate
                 if (proc_blacs == myid) // need in BLACS context, to obtain from elsewhere
@@ -153,12 +158,10 @@ IndexScheduler::init(const std::unordered_map<int, std::set<atpair_t>> &map_proc
                 }
                 if (proc_ap == myid) // need in AP context, to obtain from elsewhere
                 {
-                    size_t ipair = std::distance(atpairs.cbegin(), std::find(atpairs.cbegin(), atpairs.cend(), IJ));
+                    const size_t ipair = std::distance(atpairs.cbegin(), std::find(atpairs.cbegin(), atpairs.cend(), IJ));
                     proc_ap_ipair[proc_blacs].push_back(ipair);
                     const auto nJ = atbasis_c.get_atom_nb(J);
-                    const auto &ir = I_loci.second;
-                    const auto &ic = J_locj.second;
-                    proc_ap_locid[proc_blacs].push_back(ir * nJ + ic);
+                    proc_ap_locid[proc_blacs].push_back(loi * nJ + loj);
                 }
             }
         }
@@ -167,17 +170,16 @@ IndexScheduler::init(const std::unordered_map<int, std::set<atpair_t>> &map_proc
     {
         for (size_t j = 0; j < n; j++)
         {
-            std::pair<size_t, size_t> J_locj(atbasis_c.get_local_index(j));
-            const auto &J = J_locj.first;
+            atbasis_c.get_local_index(j, J, loj);
             int pcol = col_procs_blacs[j];
             for (size_t i = 0; i < m; i++)
             {
-                std::pair<size_t, size_t> I_loci(atbasis_r.get_local_index(i));
-                const auto &I = I_loci.first;
+                atbasis_r.get_local_index(i, I, loi);
                 atpair_t IJ{I, J};
-                if (map_IJ_proc.count(IJ) == 0) continue; // no global data for this pair
+                auto it = map_IJ_proc.find(IJ);
+                if (it == map_IJ_proc.end()) continue; // no global data for this pair
+                const auto proc_ap = it->second; // process that requires in atom-pair context
                 int prow = row_procs_blacs[i];
-                const auto proc_ap = map_IJ_proc.at(IJ); // process that requires in atom-pair context
                 auto proc_blacs = ad.get_pnum(prow, pcol); // process that requires in BLACS context
                 if (myid != proc_ap && myid != proc_blacs) continue; // not related with me
                 if (myid == proc_ap && myid == proc_blacs) continue; // already on me, no need to communicate
@@ -192,9 +194,7 @@ IndexScheduler::init(const std::unordered_map<int, std::set<atpair_t>> &map_proc
                     size_t ipair = std::distance(atpairs.cbegin(), std::find(atpairs.cbegin(), atpairs.cend(), IJ));
                     proc_ap_ipair[proc_blacs].push_back(ipair);
                     const auto nI = atbasis_c.get_atom_nb(I);
-                    const auto &ir = I_loci.second;
-                    const auto &ic = J_locj.second;
-                    proc_ap_locid[proc_blacs].push_back(ic * nI + ir);
+                    proc_ap_locid[proc_blacs].push_back(loj * nI + loi);
                 }
             }
         }
@@ -202,10 +202,10 @@ IndexScheduler::init(const std::unordered_map<int, std::set<atpair_t>> &map_proc
     Profiler::stop("index_scheduler_compute_map");
 
     const auto nprocs = ad.nprocs();
-    disp_ap.resize(nprocs);
-    counts_ap.resize(nprocs);
-    disp_blacs.resize(nprocs);
-    counts_blacs.resize(nprocs);
+    disp_ap.resize(nprocs, 0);
+    counts_ap.resize(nprocs, 0);
+    disp_blacs.resize(nprocs, 0);
+    counts_blacs.resize(nprocs, 0);
 
     Profiler::start("index_scheduler_flatten");
     // flatten the map and save
@@ -213,22 +213,20 @@ IndexScheduler::init(const std::unordered_map<int, std::set<atpair_t>> &map_proc
     for (int i = 0; i < nprocs; i++)
     {
         disp_ap[i] = total_count_ap;
-        if (i == myid || proc_ap_ipair.count(i) == 0)
-        {
-            counts_ap[i] = 0;
-        }
-        else
-        {
-            counts_ap[i] = proc_ap_ipair.at(i).size();
-        }
+        if (i == myid) continue;
+        const auto it = proc_ap_ipair.find(i);
+        if (it == proc_ap_ipair.cend()) continue;
+        counts_ap[i] = it->second.size();
         total_count_ap += counts_ap[i];
     }
     ids_ap_ipair.reserve(total_count_ap);
     ids_ap_locid.reserve(total_count_ap);
     for (int i = 0; i < nprocs; i++)
     {
-        if (i == myid || proc_ap_ipair.count(i) == 0) continue;
-        const auto &ipairs = proc_ap_ipair.at(i);
+        if (i == myid) continue;
+        const auto it = proc_ap_ipair.find(i);
+        if (it == proc_ap_ipair.cend()) continue;
+        const auto &ipairs = it->second;
         const auto &locids = proc_ap_locid.at(i);
         ids_ap_ipair.insert(ids_ap_ipair.cend(), ipairs.cbegin(), ipairs.cend());
         ids_ap_locid.insert(ids_ap_locid.cend(), locids.cbegin(), locids.cend());
@@ -238,21 +236,19 @@ IndexScheduler::init(const std::unordered_map<int, std::set<atpair_t>> &map_proc
     for (int i = 0; i < nprocs; i++)
     {
         disp_blacs[i] = total_count_blacs;
-        if (i == myid || proc_blacs_locid.count(i) == 0)
-        {
-            counts_blacs[i] = 0;
-        }
-        else
-        {
-            counts_blacs[i] = proc_blacs_locid.at(i).size();
-        }
+        if (i == myid) continue;
+        const auto it = proc_blacs_locid.find(i);
+        if (it == proc_blacs_locid.cend()) continue;
+        counts_blacs[i] = it->second.size();
         total_count_blacs += counts_blacs[i];
     }
     ids_blacs_locid.reserve(total_count_blacs);
     for (int i = 0; i < nprocs; i++)
     {
-        if (i == myid || proc_blacs_locid.count(i) == 0) continue;
-        const auto &locids = proc_blacs_locid.at(i);
+        if (i == myid) continue;
+        const auto it = proc_blacs_locid.find(i);
+        if (it == proc_blacs_locid.cend()) continue;
+        const auto &locids = it->second;
         ids_blacs_locid.insert(ids_blacs_locid.cend(), locids.cbegin(), locids.cend());
     }
     Profiler::stop("index_scheduler_flatten");

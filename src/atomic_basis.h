@@ -87,6 +87,11 @@ public:
         i_atom = get_i_atom(i_glo_b);
         i_loc_b = as_int(glo2loc_[i_glo_b]);
     }
+    inline void get_local_index(const std::size_t& i_glo_b, size_t& i_atom, size_t& i_loc_b) const
+    {
+        i_atom = as_size(get_i_atom(i_glo_b));
+        i_loc_b = glo2loc_[i_glo_b];
+    }
     inline int get_local_index(const std::size_t& i_glo_b, const int& i_atom) const noexcept
     {
         // return i_glo_b - part_range_[i_atom];
