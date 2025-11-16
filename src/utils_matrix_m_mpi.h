@@ -714,65 +714,59 @@ void invert_scalapack(matrix_m<T> &m_loc, const LIBRPA::Array_Desc &desc_m)
     }
 }
 
-/*!
- * @brief Fill the BLACS local matrix on each process by redistributing atom-pair mapping data
- *
- * @param  [in,out] m_loc.                The BLACS local matrix to be filled.
- * @param  [in]     data                  Full matrix data distributed in atom-pair mapping
- * @param  [in]     map_proc_IJs_avail    Distribution of atom-pair blocks on all processes.
- *                                        The keys of the map are process ranks within
- *                                        the context of the array descriptor.
- * @param  [in]     atbasis_r             AtomicBasis object for row
- * @param  [in]     atbasis_c             AtomicBasis object for column
- * @param  [in]     ad                    Array descriptor for BLACS distribution
- */
 template <typename T>
-void fill_local_mat_from_ap_dist(matrix_m<T> &m_loc,
-                                 const std::unordered_map<atpair_t, matrix_m<T>, atpair_hash> data,
-                                 const std::unordered_map<int, std::vector<atpair_t>> &map_proc_IJs_avail,
-                                 const AtomicBasis &atbasis_r,
-                                 const AtomicBasis &atbasis_c,
-                                 const Array_Desc &ad)
-
+void fill_local_mat_from_ap_dist_scheduler(matrix_m<T> &m_loc,
+                                           const ap_p_map<matrix_m<T>> &data,
+                                           const IndexScheduler &sched,
+                                           const AtomicBasis &atbasis_r,
+                                           const AtomicBasis &atbasis_c,
+                                           const Array_Desc &ad)
 {
+    assert(sched.initialized());
     assert(ad.initialized());
     const auto major_data = m_loc.major();
-
-    // clean up
-    m_loc.zero_out();
+    const auto row_major = major_data == MAJOR::ROW ? true : false;
 
     // Resolve data type for communication
     MPI_Datatype dtype = mpi_datatype<T>::value;
 
-    const auto row_first = major_data == MAJOR::ROW ? false : true;
-    const auto row_major = major_data == MAJOR::ROW ? true : false;
     const auto nr = m_loc.nr();
     const auto nc = m_loc.nc();
 
     // Fill in data that is already available before communication
     int I, J, i, j;
-    for (int ir = 0; ir < nr; ir++)
+    if (row_major)
     {
-        atbasis_r.get_local_index(ad.indx_l2g_r(ir), I, i);
-        for (int ic = 0; ic < nc; ic++)
+        for (int ir = 0; ir < nr; ir++)
         {
-            atbasis_c.get_local_index(ad.indx_l2g_c(ic), J, j);
-            const atpair_t atpair{static_cast<atom_t>(I), static_cast<atom_t>(J)};
-            if (data.count(atpair))
+            atbasis_r.get_local_index(ad.indx_l2g_r(ir), I, i);
+            for (int ic = 0; ic < nc; ic++)
             {
-                m_loc(ir, ic) = data.at(atpair)(i, j);
+                atbasis_c.get_local_index(ad.indx_l2g_c(ic), J, j);
+                const atpair_t atpair{static_cast<atom_t>(I), static_cast<atom_t>(J)};
+                if (data.count(atpair))
+                {
+                    m_loc(ir, ic) = data.at(atpair)(i, j);
+                }
             }
         }
     }
-
-    IndexScheduler sched;
-    std::unordered_map<int, std::set<atpair_t>> map_proc_set_IJs;
-    for (const auto &proc_IJs: map_proc_IJs_avail)
+    else
     {
-        const auto &IJs = proc_IJs.second;
-        map_proc_set_IJs[proc_IJs.first] = std::set<atpair_t>{IJs.cbegin(), IJs.cend()};
+        for (int ic = 0; ic < nc; ic++)
+        {
+            atbasis_c.get_local_index(ad.indx_l2g_c(ic), J, j);
+            for (int ir = 0; ir < nr; ir++)
+            {
+                atbasis_r.get_local_index(ad.indx_l2g_r(ir), I, i);
+                const atpair_t atpair{static_cast<atom_t>(I), static_cast<atom_t>(J)};
+                if (data.count(atpair))
+                {
+                    m_loc(ir, ic) = data.at(atpair)(i, j);
+                }
+            }
+        }
     }
-    sched.init(map_proc_set_IJs, atbasis_r, atbasis_c, ad, row_major);
 
     // prepare send buffer (from AP blocks)
     // Profiler::start("compute_disp_count");
@@ -825,6 +819,45 @@ void fill_local_mat_from_ap_dist(matrix_m<T> &m_loc,
 }
 
 /*!
+ * @brief Fill the BLACS local matrix on each process by redistributing atom-pair mapping data
+ *
+ * @param  [in,out] m_loc.                The BLACS local matrix to be filled.
+ * @param  [in]     data                  Full matrix data distributed in atom-pair mapping
+ * @param  [in]     map_proc_IJs_avail    Distribution of atom-pair blocks on all processes.
+ *                                        The keys of the map are process ranks within
+ *                                        the context of the array descriptor.
+ * @param  [in]     atbasis_r             AtomicBasis object for row
+ * @param  [in]     atbasis_c             AtomicBasis object for column
+ * @param  [in]     ad                    Array descriptor for BLACS distribution
+ */
+template <typename T>
+void fill_local_mat_from_ap_dist(matrix_m<T> &m_loc,
+                                 const ap_p_map<matrix_m<T>> &data,
+                                 const std::unordered_map<int, std::vector<atpair_t>> &map_proc_IJs_avail,
+                                 const AtomicBasis &atbasis_r,
+                                 const AtomicBasis &atbasis_c,
+                                 const Array_Desc &ad)
+{
+    assert(ad.initialized());
+    const auto major_data = m_loc.major();
+    const auto row_major = major_data == MAJOR::ROW ? true : false;
+
+    // clean up
+    m_loc.zero_out();
+
+    IndexScheduler sched;
+    std::unordered_map<int, std::set<atpair_t>> map_proc_set_IJs;
+    for (const auto &proc_IJs: map_proc_IJs_avail)
+    {
+        const auto &IJs = proc_IJs.second;
+        map_proc_set_IJs[proc_IJs.first] = std::set<atpair_t>{IJs.cbegin(), IJs.cend()};
+    }
+    sched.init(map_proc_set_IJs, atbasis_r, atbasis_c, ad, row_major);
+
+    fill_local_mat_from_ap_dist_scheduler(m_loc, data, sched, atbasis_r, atbasis_c, ad);
+}
+
+/*!
  * @brief Get the BLACS local matrix on each process by redistributing atom-pair mapping data
  *
  * @param  [in]  data                  Full matrix data distributed in atom-pair mapping
@@ -850,7 +883,24 @@ matrix_m<T> get_local_mat_from_ap_dist(const std::unordered_map<atpair_t, matrix
     // Initialize return matrix
     auto m_loc = init_local_mat<T>(ad, major_data);
     // cout << envs::myid_global << " " << m_loc.size() << " " << ad.m_loc() << " " << ad.n_loc()<< endl;
-    fill_local_mat_from_ap_dist<T>(m_loc, data, map_proc_IJs_avail, atbasis_r, atbasis_c, ad);
+    fill_local_mat_from_ap_dist(m_loc, data, map_proc_IJs_avail, atbasis_r, atbasis_c, ad);
+    return m_loc;
+}
+
+template <typename T> matrix_m<T>
+get_local_mat_from_ap_dist_scheduler(const std::unordered_map<atpair_t, matrix_m<T>, atpair_hash> &data, // FIXME: do not know why cannot use ap_p_map<matrix_m<T>> here
+                                     const IndexScheduler &sched,
+                                     const AtomicBasis &atbasis_r,
+                                     const AtomicBasis &atbasis_c,
+                                     const Array_Desc &ad, MAJOR major_data)
+{
+    assert(sched.initialized());
+    assert(ad.initialized());
+
+    // Initialize return matrix
+    auto m_loc = init_local_mat<T>(ad, major_data);
+    // cout << envs::myid_global << " " << m_loc.size() << " " << ad.m_loc() << " " << ad.n_loc()<< endl;
+    fill_local_mat_from_ap_dist_scheduler(m_loc, data, sched, atbasis_r, atbasis_c, ad);
     return m_loc;
 }
 
@@ -1075,26 +1125,16 @@ matrix_m<T> get_local_mat_from_ap_dist_sy(const std::unordered_map<atpair_t, mat
     return m_loc;
 }
 
-/*!
- * @brief Fill atom-pair mapping data by redistributing the BLACS local matrix on each process.
- *
- * @param  [in,out] data                  Matrix data distributed in atom-pair mapping to be completed
- * @param  [in]     m_loc                 The BLACS local matrix owned by each process
- * @param  [in]     map_proc_IJs_require  Atom-pair blocks required by each processes.
- * @param  [in]     atbasis_r             AtomicBasis object for row
- * @param  [in]     atbasis_c             AtomicBasis object for column
- * @param  [in]     ad                    Array descriptor for BLACS distribution
- */
 template <typename T>
-void fill_ap_map_from_blacs_dist(ap_p_map<matrix_m<T>> &data,
-                                 const matrix_m<T> &m_loc,
-                                 const std::unordered_map<int, std::vector<atpair_t>> &map_proc_IJs_require,
-                                 const AtomicBasis &atbasis_r,
-                                 const AtomicBasis &atbasis_c,
-                                 const Array_Desc &ad)
-
+void fill_ap_map_from_blacs_dist_scheduler(ap_p_map<matrix_m<T>> &data,
+                                           const matrix_m<T> &m_loc,
+                                           const IndexScheduler &sched,
+                                           const AtomicBasis &atbasis_r,
+                                           const AtomicBasis &atbasis_c,
+                                           const Array_Desc &ad)
 {
     assert(ad.initialized());
+    assert(sched.initialized());
     const auto major_data = m_loc.major();
 
     // clean up input
@@ -1103,17 +1143,13 @@ void fill_ap_map_from_blacs_dist(ap_p_map<matrix_m<T>> &data,
     // Resolve data type for communication
     MPI_Datatype dtype = mpi_datatype<T>::value;
 
-    const auto &myid = ad.myid();
-    const auto &row_first = major_data == MAJOR::ROW ? false : true;
     const auto &row_major = major_data == MAJOR::ROW ? true : false;
 
     // Profiler::start("assign_self");
     // Fill in data that is already available before communication
     int I, J, i, j;
     // atom pairs required by this process
-    const auto &IJs = map_proc_IJs_require.count(myid) ?
-                      std::unordered_set<atpair_t, atpair_hash>(map_proc_IJs_require.at(myid).cbegin(), map_proc_IJs_require.at(myid).cend()) :
-                      std::unordered_set<atpair_t, atpair_hash>();
+    const auto IJs = std::unordered_set<atpair_t, atpair_hash>(sched.atpairs.cbegin(), sched.atpairs.cend());
     const auto nr = m_loc.nr();
     const auto nc = m_loc.nc();
     if (row_major)
@@ -1162,18 +1198,6 @@ void fill_ap_map_from_blacs_dist(ap_p_map<matrix_m<T>> &data,
     }
     // Profiler::stop("assign_self");
     // return;
-
-    // Profiler::start("compute_indices");
-    // Compute indices of matrix elements that should be communicated
-    IndexScheduler sched;
-    std::unordered_map<int, std::set<atpair_t>> map_proc_set_IJs;
-    for (const auto &proc_IJs: map_proc_IJs_require)
-    {
-        const auto &IJs = proc_IJs.second;
-        map_proc_set_IJs[proc_IJs.first] = std::set<atpair_t>{IJs.cbegin(), IJs.cend()};
-    }
-    sched.init(map_proc_set_IJs, atbasis_r, atbasis_c, ad, row_major);
-    // Profiler::stop("compute_indices");
 
     // prepare send buffer (from BLACS block)
     // Profiler::start("compute_disp_count");
@@ -1228,7 +1252,7 @@ void fill_ap_map_from_blacs_dist(ap_p_map<matrix_m<T>> &data,
         const auto &locid = sched.ids_ap_locid[i];
         if (!data.count(atpair))
         {
-            const auto &nI = atbasis_c.get_atom_nb(as_int(atpair.first));
+            const auto &nI = atbasis_r.get_atom_nb(as_int(atpair.first));
             const auto &nJ = atbasis_c.get_atom_nb(as_int(atpair.second));
             data[atpair] = matrix_m<T>(nI, nJ, major_data);
             data[atpair].zero_out();
@@ -1236,6 +1260,38 @@ void fill_ap_map_from_blacs_dist(ap_p_map<matrix_m<T>> &data,
         data.at(atpair).ptr()[locid] = recvbuff[i];
     }
     // Profiler::stop("assign");
+}
+
+/*!
+ * @brief Fill atom-pair mapping data by redistributing the BLACS local matrix on each process.
+ *
+ * @param  [in,out] data                  Matrix data distributed in atom-pair mapping to be completed
+ * @param  [in]     m_loc                 The BLACS local matrix owned by each process
+ * @param  [in]     map_proc_IJs_require  Atom-pair blocks required by each processes.
+ * @param  [in]     atbasis_r             AtomicBasis object for row
+ * @param  [in]     atbasis_c             AtomicBasis object for column
+ * @param  [in]     ad                    Array descriptor for BLACS distribution
+ */
+template <typename T>
+void fill_ap_map_from_blacs_dist(ap_p_map<matrix_m<T>> &data,
+                                 const matrix_m<T> &m_loc,
+                                 const std::unordered_map<int, std::vector<atpair_t>> &map_proc_IJs_require,
+                                 const AtomicBasis &atbasis_r,
+                                 const AtomicBasis &atbasis_c,
+                                 const Array_Desc &ad)
+{
+    assert(ad.initialized());
+    const auto row_major = m_loc.major() == MAJOR::ROW ? true : false;
+
+    IndexScheduler sched;
+    std::unordered_map<int, std::set<atpair_t>> map_proc_set_IJs;
+    for (const auto &proc_IJs: map_proc_IJs_require)
+    {
+        const auto &IJs = proc_IJs.second;
+        map_proc_set_IJs[proc_IJs.first] = std::set<atpair_t>{IJs.cbegin(), IJs.cend()};
+    }
+    sched.init(map_proc_set_IJs, atbasis_r, atbasis_c, ad, row_major);
+    fill_ap_map_from_blacs_dist_scheduler(data, m_loc, sched, atbasis_r, atbasis_c, ad);
 }
 
 /*!
@@ -1273,6 +1329,32 @@ get_ap_map_from_blacs_dist(const matrix_m<T> &m_loc,
     fill_ap_map_from_blacs_dist<T>(data, m_loc, map_proc_IJs_require, atbasis_r, atbasis_c, ad);
     return data;
 }
+
+template <typename T> ap_p_map<matrix_m<T>>
+get_ap_map_from_blacs_dist_scheduler(const matrix_m<T> &m_loc,
+                                     const IndexScheduler &sched,
+                                     const AtomicBasis &atbasis_r,
+                                     const AtomicBasis &atbasis_c,
+                                     const Array_Desc &ad,
+                                     MAJOR major_data = MAJOR::AUTO)
+{
+    assert(sched.initialized());
+    assert(ad.initialized());
+
+    // cout << envs::myid_global
+    //      << " " << m_loc.size()
+    //      << " " << m_loc.nr() << " " << m_loc.nc()
+    //      << " " << ad.m_loc() << " " << ad.n_loc()<< endl;
+    if (major_data != MAJOR::AUTO && major_data != m_loc.major())
+    {
+        throw std::logic_error("major passed but not consistent with m_loc");
+    }
+
+    ap_p_map<matrix_m<T>> data;
+    fill_ap_map_from_blacs_dist_scheduler(data, m_loc, sched, atbasis_r, atbasis_c, ad);
+    return data;
+}
+
 
 } /* end of namespace utils */
 

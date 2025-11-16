@@ -620,16 +620,17 @@ void test_restore_local_mat(const std::vector<size_t> &nbs, MAJOR major, const b
     const auto &pairs = generate_atom_pair_from_nat(ab.n_atoms, true);
     assert(pairs.size() == ab.n_atoms * ab.n_atoms);
     // distribute atom pairs to processes - a naive distribution by order
-    std::unordered_map<int, std::vector<atpair_t>> IJs;
+    std::unordered_map<int, std::set<atpair_t>> IJs;
     for (size_t i = 0; i < pairs.size(); i++)
     {
-        IJs[i % nprocs].emplace_back(pairs[i]);
+        IJs[i % nprocs].insert(pairs[i]);
     }
     if (print && myid_global == 0) std::cout << IJs << std::endl;
 
-    const auto proc2idlist = LIBRPA::utils::get_communicate_local_ids_list_blacs_to_ap(
-            myid_global, IJs, ab, ab, ad, major == MAJOR::COL, major == MAJOR::ROW);
-    const auto IJmap = get_ap_map_from_blacs_dist(mat_loc_ref, IJs, ab, ab, ad);
+    IndexScheduler sched;
+    sched.init(IJs, ab, ab, ad, major == MAJOR::ROW);
+
+    const auto IJmap = get_ap_map_from_blacs_dist_scheduler(mat_loc_ref, sched, ab, ab, ad);
     for (int i = 0; i < size_global; i++)
     {
         blacs_ctxt_global_h.barrier();
@@ -638,10 +639,6 @@ void test_restore_local_mat(const std::vector<size_t> &nbs, MAJOR major, const b
             if (print)
             {
                 std::cout << "myid " << i << " AP matrices reference" << std::endl;
-                std::cout << "sendlist " << std::endl;
-                std::cout << proc2idlist.first << std::endl;
-                std::cout << "recvlist " << std::endl;
-                std::cout << proc2idlist.second << std::endl;
             }
             for (const auto &IJ_mat: IJmap)
             {
@@ -662,6 +659,94 @@ void test_restore_local_mat(const std::vector<size_t> &nbs, MAJOR major, const b
     }
     // blacs_ctxt_global_h.exit();
     // return;
+    const auto mat_loc = get_local_mat_from_ap_dist_scheduler(IJmap, sched, ab, ab, ad, major);
+
+    for (int i = 0; i < size_global; i++)
+    {
+        blacs_ctxt_global_h.barrier();
+        if (print && myid_global == i)
+        {
+            std::cout << "myid " << i << " local matrix reference" << std::endl;
+            std::cout << mat_loc_ref;
+            std::cout << "myid " << i << " local matrix" << std::endl;
+            std::cout << mat_loc << std::endl;
+            assert(fequal_array(mat_loc.size(), mat_loc.ptr(), mat_loc_ref.ptr(), false));
+            // fequal_array(mat_loc.size(), mat_loc.ptr(), mat_loc_ref.ptr(), true);
+        }
+    }
+
+    blacs_ctxt_global_h.exit();
+}
+
+template <typename T>
+void test_restore_local_mat_scheduler(const std::vector<size_t> &nbs, MAJOR major, const bool print = false)
+{
+    blacs_ctxt_global_h.set_square_grid(true, LIBRPA::CTXT_LAYOUT::R);
+    const auto &nprocs = blacs_ctxt_global_h.nprocs;
+    assert(blacs_ctxt_global_h.nprows == blacs_ctxt_global_h.npcols);
+
+    LIBRPA::AtomicBasis ab(nbs);
+    const auto m = ab.nb_total;
+    const auto n = m;
+    Array_Desc ad(blacs_ctxt_global_h);
+    ad.init_1b1p(m, n, 0, 0);
+    assert(ad.initialized());
+
+    // initialize global matrix
+    matrix_m<T> global(ab.nb_total, ab.nb_total, major);
+    if (myid_global == 0)
+    {
+        if (is_complex<T>())
+        {
+             global.randomize(0, 1, false, true);
+        }
+        else
+        {
+             global.randomize(0, 1, true, false);
+        }
+    }
+    // broadcast
+    MPI_Bcast(global.ptr(), m * n, mpi_datatype<T>::value, 0, ad.comm());
+    if (print && myid_global == 0) std::cout << "global matrix" << std::endl << global;
+    const auto mat_loc_ref = get_local_mat<T>(global, ad);
+
+    const auto &pairs = generate_atom_pair_from_nat(ab.n_atoms, true);
+    assert(pairs.size() == ab.n_atoms * ab.n_atoms);
+    // distribute atom pairs to processes - a naive distribution by order
+    std::unordered_map<int, std::vector<atpair_t>> IJs;
+    for (size_t i = 0; i < pairs.size(); i++)
+    {
+        IJs[i % nprocs].emplace_back(pairs[i]);
+    }
+    if (print && myid_global == 0) std::cout << IJs << std::endl;
+
+    const auto IJmap = get_ap_map_from_blacs_dist(mat_loc_ref, IJs, ab, ab, ad);
+    for (int i = 0; i < size_global; i++)
+    {
+        blacs_ctxt_global_h.barrier();
+        if (myid_global == i)
+        {
+            if (print)
+            {
+                std::cout << "myid " << i << " AP matrices reference" << std::endl;
+            }
+            for (const auto &IJ_mat: IJmap)
+            {
+                const auto &IJ = IJ_mat.first;
+                const auto &mat = IJ_mat.second;
+                if (print) std::cout << "IJ " << IJ << std::endl;
+                const auto mat_ref = get_ap_block_from_global(global, IJ, ab, ab);
+                if (print)
+                {
+                    fequal_array(mat_ref.size(), mat_ref.ptr(), mat.ptr(), print);
+                }
+                else
+                {
+                    assert(fequal_array(mat_ref.size(), mat_ref.ptr(), mat.ptr(), print));
+                }
+            }
+        }
+    }
     const auto mat_loc = get_local_mat_from_ap_dist(IJmap, IJs, ab, ab, ad, major);
 
     for (int i = 0; i < size_global; i++)
@@ -746,6 +831,107 @@ void test_restore_ap_map(const std::vector<size_t> &nbs, MAJOR major, const bool
     // }
     const auto mat_loc = get_local_mat_from_ap_dist(IJmap_ref, IJs, ab, ab, ad, major);
     const auto IJmap = get_ap_map_from_blacs_dist(mat_loc, IJs, ab, ab, ad);
+
+    for (int i = 0; i < size_global; i++)
+    {
+        blacs_ctxt_global_h.barrier();
+        if (myid_global == i)
+        {
+            // std::cout << "myid " << i << " comparing atom pair mapping data" << std::endl;
+            // std::cout << "map size: ref " << IJmap_ref.size() << " - test " << IJmap.size() << std::endl;
+            assert(IJmap.size() == IJmap_ref.size());
+            for (const auto &IJ_mat: IJmap)
+            {
+                const auto &IJ = IJ_mat.first;
+                const auto &mat = IJ_mat.second;
+                // if (!IJmap_ref.count(IJ))
+                // {
+                //     std::cout << "ref has no " << IJ << " ! " << std::endl;
+                //     std::cout << "test" << std::endl << mat;
+                //     continue;
+                // }
+                // std::cout << "comparing common key " << IJ << std::endl;
+                // std::cout << "test" << std::endl << mat;
+                // std::cout << "ref" << std::endl << mat_ref;
+                assert(IJmap_ref.count(IJ));
+                const auto &mat_ref = IJmap_ref.at(IJ);
+                assert(mat.size() == mat_ref.size());
+                assert(fequal_array(mat.size(), mat.ptr(), mat_ref.ptr(), false));
+                // fequal_array(mat.size(), mat.ptr(), mat_ref.ptr(), true);
+            }
+        }
+    }
+
+    blacs_ctxt_global_h.exit();
+}
+
+template <typename T>
+void test_restore_ap_map_scheduler(const std::vector<size_t> &nbs, MAJOR major, const bool print = false)
+{
+    blacs_ctxt_global_h.set_square_grid(true, LIBRPA::CTXT_LAYOUT::R);
+
+    const auto &nprocs = blacs_ctxt_global_h.nprocs;
+    assert(blacs_ctxt_global_h.nprows == blacs_ctxt_global_h.npcols);
+
+    LIBRPA::AtomicBasis ab(nbs);
+    const auto m = ab.nb_total;
+    const auto n = m;
+    Array_Desc ad(blacs_ctxt_global_h);
+    ad.init_1b1p(m, n, 0, 0);
+    assert(ad.initialized());
+
+    // initialize global matrix
+    matrix_m<T> global(ab.nb_total, ab.nb_total, major);
+    if (myid_global == 0)
+    {
+        if (is_complex<T>())
+        {
+             global.randomize(0, 1, false, true);
+        }
+        else
+        {
+             global.randomize(0, 1, true, false);
+        }
+    }
+    if (print && myid_global == 0) std::cout << "global matrix" << std::endl << global;
+
+    // broadcast
+    MPI_Bcast(global.ptr(), m * n, mpi_datatype<T>::value, 0, ad.comm());
+    const auto &pairs = generate_atom_pair_from_nat(ab.n_atoms, true);
+    assert(pairs.size() == ab.n_atoms * ab.n_atoms);
+    // distribute atom pairs to processes - a naive distribution by order
+    std::unordered_map<int, std::set<atpair_t>> IJs;
+    for (size_t i = 0; i < pairs.size(); i++)
+    {
+        IJs[i % nprocs].insert(pairs[i]);
+    }
+    std::unordered_map<atpair_t, matrix_m<T>, atpair_hash> IJmap_ref;
+    if (IJs.count(myid_global))
+    {
+        for (const auto &IJ: IJs.at(myid_global))
+        {
+            IJmap_ref[IJ] = get_ap_block_from_global(global, IJ, ab, ab);
+        }
+    }
+    // for (int i = 0; i < 4; i++)
+    // {
+    //     blacs_ctxt_global_h.barrier();
+    //     // cout << "part_range: " << ab.get_part_range() << endl;
+    //     if (myid_global == i)
+    //     {
+    //         // std::cout << "myid " << i << std::endl;
+    //         for (const auto &IJ: IJs.at(myid_global))
+    //         {
+    //             // cout << IJ << endl;
+    //             IJmap_ref[IJ] = get_ap_block_from_global(global, IJ, ab, ab);
+    //             // cout << IJmap_ref[IJ];
+    //         }
+    //     }
+    // }
+    IndexScheduler sched;
+    sched.init(IJs, ab, ab, ad, major == MAJOR::ROW);
+    const auto mat_loc = get_local_mat_from_ap_dist_scheduler(IJmap_ref, sched, ab, ab, ad, major);
+    const auto IJmap = get_ap_map_from_blacs_dist_scheduler(mat_loc, sched, ab, ab, ad);
 
     for (int i = 0; i < size_global; i++)
     {
@@ -902,9 +1088,11 @@ int main (int argc, char *argv[])
     test_restore_local_mat<double>({1, 2, 1, 2}, MAJOR::ROW);
     test_restore_local_mat<double>({2, 4, 1, 3}, MAJOR::ROW);
     test_restore_local_mat<complex<double>>({3, 5, 1}, MAJOR::ROW);
+
     // large cases
-    // test_restore_local_mat<complex<double>>(std::vector<size_t>(50, 20), MAJOR::ROW);
-    test_restore_local_mat<complex<double>>({418, 643}, MAJOR::ROW);
+    test_restore_local_mat_scheduler<complex<double>>({418, 643}, MAJOR::ROW);
+    test_restore_local_mat_scheduler<complex<double>>(std::vector<size_t>(50, 20), MAJOR::COL);
+    test_restore_local_mat_scheduler<double>({200, 150, 401, 300}, MAJOR::ROW);
 
     test_restore_ap_map<double>({1}, MAJOR::COL);
     test_restore_ap_map<double>({2}, MAJOR::COL);
@@ -921,9 +1109,11 @@ int main (int argc, char *argv[])
     test_restore_ap_map<double>({1, 2, 1, 2}, MAJOR::ROW);
     test_restore_ap_map<double>({2, 4, 1, 3}, MAJOR::ROW);
     test_restore_ap_map<complex<double>>({3, 5, 1}, MAJOR::ROW);
+
     // large cases
-    test_restore_ap_map<complex<double>>(std::vector<size_t>(50, 20), MAJOR::ROW);
-    // test_restore_ap_map<complex<double>>({418, 643}, MAJOR::ROW);
+    test_restore_ap_map_scheduler<complex<double>>(std::vector<size_t>(50, 20), MAJOR::ROW);
+    test_restore_local_mat_scheduler<complex<double>>({418, 643}, MAJOR::COL);
+    test_restore_ap_map_scheduler<double>({200, 150, 401, 300}, MAJOR::COL);
 
     test_restore_local_mat_sy<double>({1}, MAJOR::COL);
     test_restore_local_mat_sy<double>({2}, MAJOR::ROW);
