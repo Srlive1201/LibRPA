@@ -47,12 +47,12 @@ void test_power_hemat()
     auto hemat = random_he_selected_ev<double>(n, {1.0, 2.25, 4.0, 9.0}, MAJOR::ROW);
     cout << "hemat" << endl << hemat;
     const auto hemat_back = hemat.copy();
-    auto sqrt_hemat = power_hemat(hemat, 0.5, false);
+    auto sqrt_hemat = power_hemat(hemat, 0.5, false, false);
     cout << "hemat after power_hemat" << endl << hemat;
     assert(hemat == hemat_back);
     assert(hemat == sqrt_hemat * sqrt_hemat);
     hemat.swap_to_col_major();
-    sqrt_hemat = power_hemat(hemat, 0.5, false);
+    sqrt_hemat = power_hemat(hemat, 0.5, false, false);
     assert(hemat == sqrt_hemat * sqrt_hemat);
 }
 

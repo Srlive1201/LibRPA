@@ -33,19 +33,11 @@ void AtomicBasis::initialize()
     initialized_ = true;
 }
 
-AtomicBasis::AtomicBasis(const std::vector<int>& atoms,
-                         const std::map<int, std::size_t>& map_atom_nb)
+AtomicBasis::AtomicBasis(const std::vector<int>& atom_species,
+                         const std::map<int, std::size_t>& map_species_nb)
     : initialized_(false), nbs_(), part_range_(), glo2iat_(), glo2loc_()
 {
-    for (const auto &atom: atoms)
-    {
-        if (map_atom_nb.count(atom))
-            this->nbs_.push_back(map_atom_nb.at(atom));
-    }
-    if (atoms.size() != this->nbs_.size())
-    {
-        throw std::invalid_argument("missing nbs for some atom");
-    }
+    set(atom_species, map_species_nb);
     initialize();
 }
 
@@ -71,10 +63,26 @@ void AtomicBasis::set(const std::vector<std::size_t>& nbs)
     initialize();
 }
 
+void AtomicBasis::set(const std::vector<int>& atom_species,
+                      const std::map<int, std::size_t>& map_species_nb)
+{
+    nbs_.clear();
+    for (const auto &atom: atom_species)
+    {
+        if (map_species_nb.count(atom))
+            this->nbs_.push_back(map_species_nb.at(atom));
+    }
+    if (atom_species.size() != this->nbs_.size())
+    {
+        throw std::invalid_argument("missing nbs for some atom");
+    }
+    initialize();
+}
+
 void AtomicBasis::set(const std::map<std::size_t, std::size_t>& iatom_nbs)
 {
     auto sortfn = [](const std::pair<std::size_t, std::size_t> &p1,
-                     const std::pair<std::size_t, std::size_t>& p2)
+                     const std::pair<std::size_t, std::size_t> &p2)
                     { return p1.first < p2.first; };
     std::vector<std::pair<std::size_t, std::size_t>> v_ianb;
     for (const auto &ia_nb: iatom_nbs)

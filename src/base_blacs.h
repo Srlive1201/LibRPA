@@ -161,7 +161,7 @@ public:
     std::string info_desc() const;
     bool is_src() const;
     bool initialized() const { return this->initialized_; };
-    void barrier(CTXT_SCOPE scope = CTXT_SCOPE::A);
+    void barrier(CTXT_SCOPE scope = CTXT_SCOPE::A) const;
 };
 
 

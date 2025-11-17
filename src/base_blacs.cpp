@@ -356,7 +356,7 @@ std::string Array_Desc::info_desc() const
     return std::string(s);
 }
 
-void Array_Desc::barrier(CTXT_SCOPE scope)
+void Array_Desc::barrier(CTXT_SCOPE scope) const
 {
     CTXT_barrier(ictxt_, scope);
 }

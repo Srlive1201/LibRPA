@@ -23,6 +23,7 @@ typedef std::pair<gloid_t, gloid_t> gloid_ap_t;
  */
 enum class AngularConvention
 {
+    UNSET = -1,
     AIMS = 0,
     ABACUS = 1,
     OPENMX = 2,
@@ -40,6 +41,9 @@ private:
     std::vector<std::size_t> part_range_;
     std::vector<int> glo2iat_;
     std::vector<std::size_t> glo2loc_;
+    // std::vector<int> irad_;
+    // std::vector<int> l_;
+    // std::vector<int> m_;
 
     void initialize();
 public:
@@ -51,12 +55,14 @@ public:
     // Constructors
     AtomicBasis(): initialized_(false), nbs_(), part_range_(), glo2iat_(), glo2loc_(), n_atoms(0), nb_total(0) {};
     AtomicBasis(const std::vector<std::size_t>& nbs);
-    AtomicBasis(const std::vector<int>& atoms,
-                const std::map<int, std::size_t>& map_atom_nb);
+    AtomicBasis(const std::vector<int>& atom_species,
+                const std::map<int, std::size_t>& map_species_nb);
     AtomicBasis(const std::map<std::size_t, std::size_t>& iatom_nbs);
 
     //! Set number of basis functions for each atom
     void set(const std::vector<std::size_t>& nbs);
+    void set(const std::vector<int>& atom_species,
+             const std::map<int, std::size_t>& map_species_nb);
     void set(const std::map<std::size_t, std::size_t>& iatom_nbs);
 
     //! Get the global index of a certain basis function of an atom

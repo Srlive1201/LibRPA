@@ -632,12 +632,26 @@ void print_matrix_mm_parallel(ostream &os, const matrix_m<T> &mat_loc, const LIB
 }
 
 template <typename T, typename Treal = typename to_real<T>::type>
-void print_matrix_mm_file_parallel(const char *fn, const matrix_m<T> &mat_loc, const LIBRPA::Array_Desc &ad, Treal threshold = 1e-15, bool row_first = true)
+void print_matrix_mm_file_parallel(const string &fn, const matrix_m<T> &mat_loc, const LIBRPA::Array_Desc &ad, Treal threshold = 1e-15, bool row_first = true)
 {
     ofstream fs;
     if (ad.is_src())
         fs.open(fn);
     print_matrix_mm_parallel(fs, mat_loc, ad, threshold, row_first);
+}
+
+template <typename T, typename Treal = typename to_real<T>::type>
+void write_matrix_elsi_csc_parallel(const string &fn, const matrix_m<T> &mat_loc, const LIBRPA::Array_Desc &ad, Treal threshold = 1e-15)
+{
+    LIBRPA::Array_Desc ad_fb(ad.ictxt());
+    const int nr = ad.m(), nc = ad.n();
+    const int irsrc = ad.irsrc(), icsrc = ad.icsrc();
+    ad_fb.init(nr, nc, nr, nc, irsrc, icsrc);
+    matrix_m<T> mat_glo = init_local_mat<T>(ad_fb, mat_loc.major());
+
+    ScalapackConnector::pgemr2d_f(nr, nc, mat_loc.ptr(), 1, 1, ad.desc, mat_glo.ptr(), 1, 1, ad_fb.desc, ad.ictxt());
+    if (ad_fb.is_src()) write_matrix_elsi_csc(fn, mat_glo, threshold);
+    ad.barrier();
 }
 
 template <typename T>

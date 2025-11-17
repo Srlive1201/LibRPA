@@ -114,8 +114,8 @@ public:
     // leading dimension
     inline int ld() const noexcept { return ld_; }
     inline MAJOR major() const noexcept { return major_; }
-    inline size_t size() const { return size_; }
-    inline int mrank() const { return mrank_; }
+    inline size_t size() const noexcept { return size_; }
+    inline int mrank() const noexcept { return mrank_; }
     inline bool is_data_dummy() const noexcept { return data_dummy_; }
 
     inline bool is_row_major() const noexcept { return major_ == MAJOR::ROW; }
@@ -403,6 +403,15 @@ public:
         return *this;
     }
 
+    // uniary operations
+    inline matrix_m<T> operator-() const
+    {
+        auto m = this->copy();
+        *(this->data_) = - *(this->data_);
+        return m;
+    }
+
+    // binary operations
     template <typename T1>
     void operator+=(const matrix_m<T1> &m)
     {
@@ -847,10 +856,10 @@ T get_determinant(const matrix_m<T> &m)
     return det;
 }
 
-template <typename T>
-matrix_m<std::complex<T>> power_hemat(matrix_m<std::complex<T>> &mat,
-                                      T power, bool filter_original,
-                                      const T &threshold = -1.e5)
+template <typename T> matrix_m<std::complex<T>>
+power_hemat(matrix_m<std::complex<T>> &mat,
+            T power, bool keep_ev, bool filter_original,
+            const T &threshold = -1.e5)
 {
     using LIBRPA::utils::lib_printf;
 
@@ -866,13 +875,12 @@ matrix_m<std::complex<T>> power_hemat(matrix_m<std::complex<T>> &mat,
 
     int lwork = mat.nc() * (nb+1);
     int info = 0;
-    T w[n], wpow[n];
-    T rwork[3*n-2];
+    std::vector<T> w(n), wpow(n), rwork(3*n-2);
     std::vector<std::complex<T>> work(lwork);
     if (mat.is_row_major())
-        LapackConnector::heev(jobz, uplo, n, mat.ptr(), n, w, work.data(), lwork, rwork, info);
+        LapackConnector::heev(jobz, uplo, n, mat.ptr(), n, w.data(), work.data(), lwork, rwork.data(), info);
     else
-        LapackConnector::heev_f(jobz, uplo, n, mat.ptr(), n, w, work.data(), lwork, rwork, info);
+        LapackConnector::heev_f(jobz, uplo, n, mat.ptr(), n, w.data(), work.data(), lwork, rwork.data(), info);
     bool is_int_power = fabs(power - int(power)) < 1e-8;
 
     for ( int i = 0; i != n; i++ )
@@ -898,11 +906,64 @@ matrix_m<std::complex<T>> power_hemat(matrix_m<std::complex<T>> &mat,
         temp.scale_row(i, wpow[i]);
     auto pmat = mat * temp;
     // recover the original matrix here
+    // if eigenvectors are requested, return now
+    if (keep_ev)
+        return pmat;
     temp = mat.copy();
     for (int i = 0; i != n; i++)
         evconj.scale_row(i, w[i]);
     matmul(temp, evconj, mat);
     return pmat;
+}
+
+template <typename T>
+void power_hemat_onsite(matrix_m<std::complex<T>> &mat,
+                        const T &power, const T &threshold = -1.e5)
+{
+    using LIBRPA::utils::lib_printf;
+
+    assert (mat.nr() == mat.nc());
+    const char jobz = 'V';
+    const char uplo = 'U';
+    const int n = mat.nr();
+    int nb;
+    if (matrix_m<T>::is_double)
+        nb = LapackConnector::ilaenv(1, "zheev", "VU", n, -1, -1, -1);
+    else
+        nb = LapackConnector::ilaenv(1, "cheev", "VU", n, -1, -1, -1);
+
+    int lwork = mat.nc() * (nb+1);
+    int info = 0;
+    std::vector<T> w(n), wpow(n), rwork(3*n-2);
+    std::vector<std::complex<T>> work(lwork);
+    if (mat.is_row_major())
+        LapackConnector::heev(jobz, uplo, n, mat.ptr(), n, w.data(), work.data(), lwork, rwork.data(), info);
+    else
+        LapackConnector::heev_f(jobz, uplo, n, mat.ptr(), n, w.data(), work.data(), lwork, rwork.data(), info);
+    bool is_int_power = fabs(power - int(power)) < 1e-8;
+
+    for ( int i = 0; i != n; i++ )
+    {
+        if (w[i] < 0 && w[i] > threshold && !is_int_power)
+            lib_printf("Warning! kept negative eigenvalue with non-integer power: # %d ev = %f , pow = %f\n", i, w[i], power);
+        if (fabs(w[i]) < 1e-10 && power < 0)
+            lib_printf("Warning! nearly-zero eigenvalue with negative power: # %d ev = %f , pow = %f\n", i, w[i], power);
+        if (w[i] < threshold)
+        {
+            wpow[i] = 0;
+        }
+        else
+            wpow[i] = w[i];
+        wpow[i] = pow(wpow[i], power);
+    }
+
+    auto evconj = transpose(mat, true);
+    auto temp = evconj.copy();
+    for (int i = 0; i != n; i++)
+        temp.scale_row(i, wpow[i]);
+    auto pmat = mat * temp;
+    // parse back to the original matrix here
+    memcpy(mat.ptr(), pmat.ptr(), mat.size() * sizeof(T) * 2);
 }
 
 template <typename T>

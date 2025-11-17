@@ -34,9 +34,9 @@ list(APPEND lib_sources
         coulmat.cpp
         dielecmodel.cpp
         ${CMAKE_CURRENT_BINARY_DIR}/envs_cmake.cpp
+        envs_blacs.cpp
         envs_io.cpp
         envs_mpi.cpp
-        envs_blacs.cpp
         epsilon.cpp
         exx.cpp
         fitting.cpp
