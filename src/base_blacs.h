@@ -113,6 +113,7 @@ private:
 
 public:
     int desc[9];
+    Array_Desc();
     Array_Desc(const BLACS_CTXT_handler &blacs_ctxt_h);
     Array_Desc(const int &ictxt);
     //! initialize the array descriptor
@@ -155,6 +156,7 @@ public:
     inline pcoord_t get_pcoord(int pid) const { int prow, pcol; Cblacs_pcoord(ictxt_, myid_, &prow, &pcol); return {prow, pcol}; };
     inline int get_pnum(int prow, int pcol) const { return Cblacs_pnum(ictxt_, prow, pcol); };
     inline int get_pnum(const pcoord_t &pc) const { return Cblacs_pnum(ictxt_, pc.first, pc.second); };
+    void reset_handler(const BLACS_CTXT_handler &blacs_h);
     std::string info() const;
     std::string info_desc() const;
     bool is_src() const;

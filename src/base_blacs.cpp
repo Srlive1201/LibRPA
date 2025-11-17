@@ -250,6 +250,15 @@ int Array_Desc::set_desc_indices_(const int &m, const int &n, const int &mb, con
     return info;
 }
 
+Array_Desc::Array_Desc()
+    : ictxt_(0), nprocs_(0), myid_(0),
+      nprows_(0), myprow_(0), npcols_(0), mypcol_(0),
+      m_(0), n_(0), mb_(0), nb_(0), irsrc_(0), icsrc_(0),
+      lld_(0), m_local_(0), n_local_(0),
+      g2l_r_(), g2l_c_(), l2g_r_(), l2g_c_(),
+      empty_local_mat_(false), initialized_(false)
+{}
+
 Array_Desc::Array_Desc(const BLACS_CTXT_handler &blacs_h)
     : ictxt_(0), nprocs_(0), myid_(0),
       nprows_(0), myprow_(0), npcols_(0), mypcol_(0),
@@ -258,11 +267,7 @@ Array_Desc::Array_Desc(const BLACS_CTXT_handler &blacs_h)
       g2l_r_(), g2l_c_(), l2g_r_(), l2g_c_(),
       empty_local_mat_(false), initialized_(false)
 {
-    if (!blacs_h.initialized())
-        throw std::logic_error("BLACS context is not initialized before creating ArrayDesc");
-    set_blacs_params_(blacs_h.get_comm(), blacs_h.ictxt, blacs_h.nprocs, blacs_h.myid,
-                      blacs_h.nprows, blacs_h.myprow, blacs_h.npcols,
-                      blacs_h.mypcol);
+    this->reset_handler(blacs_h);
 }
 
 Array_Desc::Array_Desc(const int &ictxt)
@@ -282,6 +287,25 @@ Array_Desc::Array_Desc(const int &ictxt)
     set_blacs_params_(comm, ictxt, nprocs, myid,
                       nprows, myprow, npcols,
                       mypcol);
+}
+
+void Array_Desc::reset_handler(const BLACS_CTXT_handler &blacs_h)
+{
+    assert(blacs_h.initialized());
+    // clean up current indices if the descriptor is already initialized
+    if (initialized_)
+    {
+        initialized_ = false;
+        g2l_r_.clear();
+        g2l_c_.clear();
+        l2g_r_.clear();
+        l2g_c_.clear();
+        g2p_r_.clear();
+        g2p_c_.clear();
+    }
+    set_blacs_params_(blacs_h.get_comm(), blacs_h.ictxt, blacs_h.nprocs, blacs_h.myid,
+                      blacs_h.nprows, blacs_h.myprow, blacs_h.npcols,
+                      blacs_h.mypcol);
 }
 
 int Array_Desc::init(const int &m, const int &n, const int &mb, const int &nb,
