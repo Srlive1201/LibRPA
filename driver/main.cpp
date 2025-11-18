@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <omp.h>
 
+#include "atomic_basis.h"
 #include "envs_io.h"
 #include "envs_mpi.h"
 #include "envs_blacs.h"
@@ -155,6 +156,7 @@ int main(int argc, char **argv)
 
     Profiler::start("driver_band_out", "Driver Read Meanfield band");
     read_scf_occ_eigenvalues(driver_params.input_dir + "band_out", meanfield);
+    LIBRPA::envs::initialize_array_desc_wfc_global(meanfield.get_n_aos());
     if (mpi_comm_global_h.is_root())
     {
         cout << "Information of mean-field starting-point" << endl;
@@ -344,6 +346,8 @@ int main(int argc, char **argv)
         Profiler::cease("driver_read_Vq");
     }
     Profiler::stop("driver_read_Cs_Vq");
+    // After succesfully loading Cs, number of auxiliary basis functions is now fixed
+    LIBRPA::envs::initialize_array_desc_abf_global(LIBRPA::atomic_basis_abf.nb_total);
 
     // debug, check available Coulomb blocks on each process
     // ofs_myid << "Read Coulomb blocks in process\n";
