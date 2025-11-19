@@ -523,37 +523,55 @@ void task_g0w0_band(std::map<Vector3_Order<double>, ComplexMatrix> &sinvS)
                            << std::setprecision(5) << eks_state - vxc_state + exx_state;
 
                     // output GW bandgap
-                    if (i_state == nocc - 1 && eqp > gw_conduct)  // HOMO
+                    if (i_state == nocc - 1)  // HOMO
                     {
-                        gw_valence = eqp;
-                        ik_val_gw = i_kpoint;
+                        if (eqp > gw_valence)
+                        {
+                            gw_valence = eqp;
+                            ik_val_gw = i_kpoint;
+                        }
                     }
-                    else if (i_state == nocc && eqp < gw_conduct)  // LUMO
+                    else if (i_state == nocc)  // LUMO
                     {
-                        gw_conduct = eqp;
-                        ik_cond_gw = i_kpoint;
+                        if (eqp < gw_conduct)
+                        {
+                            gw_conduct = eqp;
+                            ik_cond_gw = i_kpoint;
+                        }
                     }
                     // output EXX bandgap
-                    if (i_state == nocc - 1 && exx_state > exx_valence)  // HOMO
+                    if (i_state == nocc - 1)  // HOMO
                     {
-                        exx_valence = exx_state;
-                        ik_val_exx = i_kpoint;
+                        if (eks_state - vxc_state + exx_state > exx_valence)
+                        {
+                            exx_valence = eks_state - vxc_state + exx_state;
+                            ik_val_exx = i_kpoint;
+                        }
                     }
-                    else if (i_state == nocc && exx_state < exx_conduct)  // LUMO
+                    else if (i_state == nocc)  // LUMO
                     {
-                        exx_conduct = exx_state;
-                        ik_cond_exx = i_kpoint;
+                        if (eks_state - vxc_state + exx_state < exx_conduct)
+                        {
+                            exx_conduct = eks_state - vxc_state + exx_state;
+                            ik_cond_exx = i_kpoint;
+                        }
                     }
                     // output DFT bandgap
-                    if (i_state == nocc - 1 && eks_state > dft_valence)  // HOMO
+                    if (i_state == nocc - 1)  // HOMO
                     {
-                        dft_valence = eks_state;
-                        ik_val_dft = i_kpoint;
+                        if (eks_state > dft_valence)
+                        {
+                            dft_valence = eks_state;
+                            ik_val_dft = i_kpoint;
+                        }
                     }
-                    else if (i_state == nocc && eks_state < dft_conduct)  // LUMO
+                    else if (i_state == nocc)  // LUMO
                     {
-                        dft_conduct = eks_state;
-                        ik_cond_dft = i_kpoint;
+                        if (eks_state < dft_conduct)
+                        {
+                            dft_conduct = eks_state;
+                            ik_cond_dft = i_kpoint;
+                        }
                     }
                 }
                 ofs_gw << "\n";
