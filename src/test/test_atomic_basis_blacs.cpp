@@ -3,10 +3,12 @@
 #include "../utils_atomic_basis_blacs.h"
 
 #include "../stl_io_helper.h"
+#include "base_blacs.h"
 #include "testutils.h"
 
 #include <stdexcept>
 #include <cassert>
+#include <unordered_map>
 
 static void test_ap_to_blacs_global_indices_communicate()
 {
@@ -1094,6 +1096,65 @@ static void test_index_scheduler()
     blacs_ctxt_global_h.exit();
 }
 
+static void test_get_balanced_ap()
+{
+    using namespace LIBRPA::envs;
+
+    blacs_ctxt_global_h.set_square_grid(true, LIBRPA::CTXT_LAYOUT::R);
+
+    LIBRPA::Array_Desc ad(blacs_ctxt_global_h);
+    LIBRPA::AtomicBasis ab;
+
+    {
+        ad.init_1b1p(6, 6, 0, 0);
+        ab.set(std::vector<size_t>{1, 2, 1, 2});
+        const auto map_proc_IJs = LIBRPA::utils::get_balanced_ap_distribution_for_consec_descriptor(ab, ab, ad);
+        const std::unordered_map<int, std::vector<atpair_t>> map_proc_IJs_ref = 
+        {
+            {0, {{0, 0}, {0, 1}, {1, 0}, {1, 1}}},
+            {1, {{0, 2}, {0, 3}, {1, 2}, {1, 3}}},
+            {2, {{2, 0}, {2, 1}, {3, 0}, {3, 1}}},
+            {3, {{2, 2}, {2, 3}, {3, 2}, {3, 3}}},
+        };
+        assert(map_proc_IJs.size() == map_proc_IJs_ref.size());
+        for (const auto &[id, IJs]: map_proc_IJs)
+        {
+            const auto &IJs_ref = map_proc_IJs_ref.at(id);
+            assert(IJs.size() == IJs_ref.size());
+            for (const auto &IJ: IJs_ref)
+            {
+                assert(IJs.find(IJ) != IJs.end());
+            }
+        }
+    }
+
+    // 2-atom system with very different basis size and non-uniform local matrix size
+    {
+        ad.init_1b1p(11, 11, 0, 0);
+        ab.set(std::vector<size_t>{1, 10});
+        const auto map_proc_IJs = LIBRPA::utils::get_balanced_ap_distribution_for_consec_descriptor(ab, ab, ad);
+        const std::unordered_map<int, std::vector<atpair_t>> map_proc_IJs_ref = 
+        {
+            {0, {{0, 0}}},
+            {1, {{0, 1}}},
+            {2, {{1, 0}}},
+            {3, {{1, 1}}},
+        };
+        assert(map_proc_IJs.size() == map_proc_IJs_ref.size());
+        for (const auto &[id, IJs]: map_proc_IJs)
+        {
+            const auto &IJs_ref = map_proc_IJs_ref.at(id);
+            assert(IJs.size() == IJs_ref.size());
+            for (const auto &IJ: IJs_ref)
+            {
+                assert(IJs.find(IJ) != IJs.end());
+            }
+        }
+    }
+
+    blacs_ctxt_global_h.exit();
+}
+
 int main (int argc, char *argv[])
 {
     using namespace LIBRPA::envs;
@@ -1118,6 +1179,8 @@ int main (int argc, char *argv[])
     test_blacs_to_ap_local_indices_communicate();
     test_blacs_to_ap_global_indices_sy_communicate();
     test_blacs_to_ap_local_indices_sy_communicate();
+
+    test_get_balanced_ap();
 
     // test functions end
 

@@ -31,3 +31,5 @@ extern std::vector<Vector3_Order<double>> kfrac_list;
 extern std::vector<int> irk_point_id_mapping;
 extern map<Vector3_Order<double>, vector<Vector3_Order<double>>> map_irk_ks;
 extern Vector3<double> *kvec_c;
+
+int get_k_index_full(const Vector3_Order<double> &k);

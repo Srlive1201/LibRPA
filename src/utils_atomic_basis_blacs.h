@@ -78,6 +78,11 @@ public:
     void reset();
 };
 
+std::unordered_map<int, std::set<atpair_t>>
+get_balanced_ap_distribution_for_consec_descriptor(const AtomicBasis &atbasis_r,
+                                                   const AtomicBasis &atbasis_c,
+                                                   const Array_Desc &ad);
+
 /*!
  * @brief Get the list of global matrix indices (1D) to communicate for
  *        conversion from atom-pair to BLACS block-cyclic distributions

@@ -105,6 +105,11 @@ private:
     std::vector<int> g2p_r_;
     std::vector<int> g2p_c_;
 
+    //! flag to indicate whether the local row indices correspond to consecutive global indices
+    bool is_loc_consecutive_r_;
+    //! flag to indicate whether the local column indices correspond to consecutive global indices
+    bool is_loc_consecutive_c_;
+
     //! flag to indicate that the current process should contain no data of local matrix, but for scalapack routines, it will generate a dummy matrix of size 1, nrows = ncols = 1
     bool empty_local_mat_ = false;
 
@@ -159,7 +164,9 @@ public:
     void reset_handler(const BLACS_CTXT_handler &blacs_h);
     std::string info() const;
     std::string info_desc() const;
-    bool is_src() const;
+    bool is_src() const { return myprow_ == irsrc_ && mypcol_ == icsrc_; }
+    bool is_row_consec() const { return is_loc_consecutive_r_; }
+    bool is_col_consec() const { return is_loc_consecutive_c_; }
     bool initialized() const { return this->initialized_; };
     void barrier(CTXT_SCOPE scope = CTXT_SCOPE::A) const;
 };

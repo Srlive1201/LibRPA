@@ -80,6 +80,12 @@ std::vector<TI> flatten_2d_indices(const std::vector<std::pair<TI, TI>> &indices
     return indices_1d;
 }
 
+template <typename T>
+constexpr T ceil_div(T num, T den)
+{
+    return (num + den - 1) / den;  // assumes num >= 0, den > 0
+}
+
 inline std::size_t as_size(int x) noexcept
 {
     return static_cast<std::size_t>(x);

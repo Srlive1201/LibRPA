@@ -154,9 +154,11 @@ public:
         return *this;
     }
 
-    matrix_m<T>& resize(int nrows_new, int ncols_new, MAJOR major)
+    matrix_m<T>& resize(int nrows_new, int ncols_new, MAJOR major_new)
     {
-        major_ = major;
+        // Keep the original major if AUTO is specified; this is a safeguard.
+        // In case that major should be kept, just drop the major argument.
+        major_ = major_new == MAJOR::AUTO? major_: major_new;
         return this->resize(nrows_new, ncols_new);
     }
 
@@ -377,7 +379,6 @@ public:
             int nr_old = nr_, nc_old = nc_;
             this->transpose();
             reset_dimensions_(nr_old, nc_old);
-            reshape(nr_old, nc_old);
             major_ = MAJOR::ROW;
         }
     }
@@ -390,6 +391,12 @@ public:
             reset_dimensions_(nr_old, nc_old);
             major_ = MAJOR::COL;
         }
+    }
+    void swap_major(MAJOR major_to)
+    {
+        assert(major_to != MAJOR::AUTO);
+        if (major_to == MAJOR::ROW) swap_to_row_major();
+        else swap_to_col_major();
     }
 
     // assignment copy
@@ -465,9 +472,13 @@ public:
 
     matrix_m<T>& conj()
     {
-        if constexpr (!matrix_m<T>::is_complex) return *this;
-        for (size_t i = 0; i < this->size(); i++)
-            this->ptr()[i] = get_conj(this->ptr()[i]);
+        if constexpr (matrix_m<T>::is_complex)
+        {
+            for (auto &z : *data_)
+            {
+                z = std::conj(z);
+            }
+        }
         return *this;
     };
 
@@ -523,11 +534,17 @@ public:
 
     matrix_m<real_t> get_real() const
     {
-        if constexpr (!matrix_m<T>::is_complex) return this->copy();
-        matrix_m<real_t> m(nr(), nc(), this->major_);
-        for (size_t i = 0; i < size(); i++)
-            (*m.sptr())[i] = ::get_real((*data_)[i]);
-        return m;
+        if constexpr (matrix_m<T>::is_complex)
+        {
+            matrix_m<real_t> m(nr(), nc(), this->major_);
+            for (size_t i = 0; i < size(); i++)
+                (*m.sptr())[i] = ::get_real((*data_)[i]);
+            return m;
+        }
+        else
+        {
+            return this->copy();
+        }
     }
 
     matrix_m<real_t> get_imag() const

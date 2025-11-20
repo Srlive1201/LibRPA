@@ -188,6 +188,8 @@ int Array_Desc::set_desc_indices_(const int &m, const int &n, const int &mb, con
     {
         empty_local_mat_ = true;
     }
+    is_loc_consecutive_r_ = mb * nprows_ >= m;
+    is_loc_consecutive_c_ = nb * npcols_ >= n;
 
     ScalapackConnector::descinit(this->desc, m, n, mb, nb, irsrc, icsrc, ictxt_, lld_, info);
     if (info)
@@ -256,6 +258,7 @@ Array_Desc::Array_Desc()
       m_(0), n_(0), mb_(0), nb_(0), irsrc_(0), icsrc_(0),
       lld_(0), m_local_(0), n_local_(0),
       g2l_r_(), g2l_c_(), l2g_r_(), l2g_c_(),
+      is_loc_consecutive_r_(false), is_loc_consecutive_c_(false),
       empty_local_mat_(false), initialized_(false)
 {}
 
@@ -265,6 +268,7 @@ Array_Desc::Array_Desc(const BLACS_CTXT_handler &blacs_h)
       m_(0), n_(0), mb_(0), nb_(0), irsrc_(0), icsrc_(0),
       lld_(0), m_local_(0), n_local_(0),
       g2l_r_(), g2l_c_(), l2g_r_(), l2g_c_(),
+      is_loc_consecutive_r_(false), is_loc_consecutive_c_(false),
       empty_local_mat_(false), initialized_(false)
 {
     this->reset_handler(blacs_h);
@@ -276,6 +280,7 @@ Array_Desc::Array_Desc(const int &ictxt)
       m_(0), n_(0), mb_(0), nb_(0), irsrc_(0), icsrc_(0),
       lld_(0), m_local_(0), n_local_(0),
       g2l_r_(), g2l_c_(), l2g_r_(), l2g_c_(),
+      is_loc_consecutive_r_(false), is_loc_consecutive_c_(false),
       empty_local_mat_(false), initialized_(false)
 {
     // TODO: how to check if ictxt is a valid context?

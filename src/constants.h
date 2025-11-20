@@ -2,6 +2,7 @@
 #ifndef CONSTANTS_H
 #define CONSTANTS_H
 
+// Scientific constants
 extern const double PINF;
 extern const double NINF;
 extern const double PI;
@@ -11,6 +12,12 @@ extern const double RY2EV;
 extern const double ANG2BOHR;
 extern const double BOHR2ANG;
 
+// Complex numbers
 constexpr std::complex<double> C_ONE{1.0, 0.0};
 constexpr std::complex<double> C_ZERO{0.0, 0.0};
+
+constexpr size_t kbytes = 1024;
+constexpr size_t mbytes = kbytes * 1024;
+constexpr size_t gbytes = mbytes * 1024;
+
 #endif

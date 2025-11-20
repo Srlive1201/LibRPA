@@ -480,7 +480,7 @@ void map_block_to_IJ_storage_new(map<int, map<int, matrix_m<T>>> &IJmap,
  *
  * @param  [in,out]  A_local       Process-local part of global matrix A to be powered
  * @param  [in]      ad_A          Array descriptor of A
- * @param  [out]     A_local       Process-local part of the eigenvector matrix (Z) of A
+ * @param  [out]     Z_local       Process-local part of the eigenvector matrix (Z) of A
  * @param  [in]      ad_Z          Array descriptor of Z
  * @param  [out]     n_filtered    Array descriptor of Z
  * @param  [out]     W             Eigenvalues of A, including those smaller than threshold
@@ -650,7 +650,7 @@ void write_matrix_elsi_csc_parallel(const string &fn, const matrix_m<T> &mat_loc
     matrix_m<T> mat_glo = init_local_mat<T>(ad_fb, mat_loc.major());
 
     ScalapackConnector::pgemr2d_f(nr, nc, mat_loc.ptr(), 1, 1, ad.desc, mat_glo.ptr(), 1, 1, ad_fb.desc, ad.ictxt());
-    if (ad_fb.is_src()) write_matrix_elsi_csc(fn, mat_glo, threshold);
+    if (ad_fb.is_src()) write_matrix_elsi_csc(mat_glo, fn, threshold);
     ad.barrier();
 }
 

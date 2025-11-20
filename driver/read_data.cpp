@@ -1521,9 +1521,13 @@ void read_stru(const int& n_kpoints, const std::string &file_path)
     for (int i = 0; i != n_kpoints; i++)
     {
         infile >> x;
-        int id_irk = stoi(x) - 1;
-        irk_point_id_mapping.push_back(id_irk);
-        map_irk_ks[klist[id_irk]].push_back(klist[i]);
+        int i_ir = stoi(x) - 1;
+        irk_point_id_mapping.emplace_back(i_ir);
+        const auto &k = klist[i];
+        const auto &k_ir = klist[i_ir];
+        auto it = std::find(klist_ibz.begin(), klist_ibz.end(), k_ir);
+        if (it == klist_ibz.end()) klist_ibz.emplace_back(k_ir);
+        map_irk_ks[klist[i_ir]].emplace_back(k);
     }
 }
 

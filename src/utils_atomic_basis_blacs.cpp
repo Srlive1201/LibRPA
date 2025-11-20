@@ -5,6 +5,7 @@
 // #include <iostream>
 #include <stdexcept>
 
+#include "base_mpi.h"
 #include "base_utility.h"
 #include "profiler.h"
 #include "scalapack_connector.h"
@@ -269,6 +270,57 @@ IndexScheduler::reset()
     counts_blacs.clear();
     initialized_ = false;
 }
+
+std::unordered_map<int, std::set<atpair_t>>
+get_balanced_ap_distribution_for_consec_descriptor(const AtomicBasis &atbasis_r,
+                                                   const AtomicBasis &atbasis_c,
+                                                   const Array_Desc &ad)
+{
+    assert(ad.is_col_consec() && ad.is_row_consec());
+    assert(atbasis_r.n_atoms == atbasis_c.n_atoms);
+
+    // locate the appropriate row with the center of the matrix
+    std::vector<int> prows_at_center(atbasis_r.n_atoms);
+    for (size_t iat = 0; iat < atbasis_r.n_atoms; iat++)
+    {
+        prows_at_center[iat] = ad.g2p_r()[(atbasis_r.get_part_range()[iat] + atbasis_r.get_part_range()[iat+1])/2];
+    }
+
+    std::vector<size_t> pcols_at_center(atbasis_c.n_atoms);
+    for (size_t iat = 0; iat < atbasis_c.n_atoms; iat++)
+    {
+        pcols_at_center[iat] = ad.g2p_c()[(atbasis_c.get_part_range()[iat]+atbasis_c.get_part_range()[iat+1])/2];
+    }
+
+    const auto n_atoms = atbasis_r.n_atoms;
+    const int myid = ad.myid();
+    const int myprow = ad.myprow();
+    const int mypcol = ad.mypcol();
+    std::vector<int> procs(n_atoms * n_atoms, 0);
+    for (size_t iat_r = 0; iat_r < atbasis_r.n_atoms; iat_r++)
+    {
+        if (myprow != prows_at_center[iat_r]) continue;
+        for (size_t iat_c = 0; iat_c < atbasis_c.n_atoms; iat_c++)
+        {
+            if (mypcol != pcols_at_center[iat_c]) continue;
+            procs[iat_r + iat_c * n_atoms] = myid;
+        }
+    }
+
+    MPI_Allreduce(MPI_IN_PLACE, procs.data(), n_atoms * n_atoms, mpi_datatype<int>::value, MPI_SUM, ad.comm());
+
+    std::unordered_map<int, std::set<atpair_t>> map_proc_atpairs;
+    for (size_t iat_r = 0; iat_r < atbasis_r.n_atoms; iat_r++)
+    {
+        for (size_t iat_c = 0; iat_c < atbasis_c.n_atoms; iat_c++)
+        {
+            const auto proc = procs[iat_r + iat_c * n_atoms];
+            map_proc_atpairs[proc].insert({iat_r, iat_c});
+        }
+    }
+    return map_proc_atpairs;
+}
+
 
 // indices computation backend for AP<->BLACS conversion of general matrix
 static 

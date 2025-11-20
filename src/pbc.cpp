@@ -51,3 +51,10 @@ map<Vector3_Order<double>, vector<Vector3_Order<double>>> map_irk_ks;
 Matrix3 latvec;
 std::array<std::array<double, 3>, 3> lat_array;
 Matrix3 G;
+
+int get_k_index_full(const Vector3_Order<double> &k)
+{
+    auto it = std::find(klist.cbegin(), klist.cend(), k);
+    if ( it != klist.cend()) return distance(klist.cbegin(), it);
+    return -1;
+}
