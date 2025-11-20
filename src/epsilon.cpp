@@ -5,14 +5,18 @@
 
 #include <algorithm>
 #include <array>
+#include <iterator>
+#include <utility>
 #include <valarray>
 #include <set>
 #include <stdexcept>
 
+#include "base_utility.h"
 #include "lapack_connector.h"
 #include "constants.h"
 #include "envs_io.h"
 #include "envs_mpi.h"
+#include "matrix_m.h"
 #include "utils_io.h"
 #include "utils_mpi_io.h"
 #include "utils_mem.h"
@@ -27,6 +31,7 @@
 #include "atoms.h"
 #include "profiler.h"
 #include "scalapack_connector.h"
+#include "vector3_order.h"
 
 #ifdef LIBRPA_USE_LIBRI
 #include <RI/comm/mix/Communicate_Tensors_Map_Judge.h>
@@ -1438,10 +1443,11 @@ atom_mapping<ComplexMatrix>::pair_t_old gather_vq_row_q(const int &I, const atpa
     return Vq_row;
 }
 
-map<double, atom_mapping<std::map<Vector3_Order<double>, matrix_m<complex<double>>>>::pair_t_old>
+map<double, std::map<Vector3_Order<double>, Matz>>
 compute_Wc_freq_q(Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, atpair_k_cplx_mat_t &coulmat_wc, const vector<std::complex<double>> &epsmac_LF_imagfreq)
 {
-    map<double, atom_mapping<std::map<Vector3_Order<double>, matrix_m<complex<double>>>>::pair_t_old> Wc_freq_q;
+    // Object to return
+    map<double, std::map<Vector3_Order<double>, Matz>> Wc_freq_q;
     const int range_all = LIBRPA::atomic_basis_abf.nb_total;
     const auto part_range = LIBRPA::atomic_basis_abf.get_part_range();
 
@@ -1461,7 +1467,7 @@ compute_Wc_freq_q(Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, atpair_k_c
         int iq = std::distance(klist.begin(), std::find(klist.begin(), klist.end(), q));
         char fn[80];
 
-        ComplexMatrix Vq_all(range_all, range_all);
+        Matz Vq_all(range_all, range_all, MAJOR::COL);
         for (const auto &Mu_NuqVq: coulmat_eps)
         {
             auto Mu = Mu_NuqVq.first;
@@ -1482,24 +1488,25 @@ compute_Wc_freq_q(Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, atpair_k_c
         if (Params::debug)
         {
             sprintf(fn, "Vq_all_q_%d.mtx", iq);
-            print_complex_matrix_mm(Vq_all, Params::output_dir + "/" + fn, 1e-15);
+            print_matrix_mm_file(Vq_all, Params::output_dir + "/" + fn, 1e-15);
         }
-        auto sqrtVq_all = power_hemat(Vq_all, 0.5, true, false, Params::sqrt_coulomb_threshold);
+        const auto sqrtVq_all = power_hemat(Vq_all, 0.5, true, false, Params::sqrt_coulomb_threshold);
         // Vq_all is now eigenvectors of the original Coulomb matrix
+        // only required for Gamma point
         const auto& Vq_eigen = Vq_all;
         if (Params::debug)
         {
             sprintf(fn, "sqrtVq_all_q_%d.mtx", iq);
-            print_complex_matrix_mm(sqrtVq_all, Params::output_dir + "/" + fn, 1e-15);
+            print_matrix_mm_file(sqrtVq_all, Params::output_dir + "/" + fn, 1e-15);
             // sprintf(fn, "rotated_sqrtVq_all_q_%d.mtx", iq);
             // print_complex_matrix_mm(Vq_all * sqrtVq_all * transpose(Vq_all, true), fn, 1e-15);
             // print_complex_matrix_mm(transpose(Vq_all, true) * sqrtVq_all * Vq_all, fn, 1e-15);
             sprintf(fn, "Vqeigenvec_q_%d.mtx", iq);
-            print_complex_matrix_mm(Vq_eigen, Params::output_dir + "/" + fn, 1e-15);
+            print_matrix_mm_file(Vq_eigen, Params::output_dir + "/" + fn, 1e-15);
         }
 
         // truncated (cutoff) Coulomb
-        ComplexMatrix Vqcut_all(range_all, range_all);
+        Matz Vqcut_all(range_all, range_all);
         for ( auto &Mu_NuqVq: coulmat_wc )
         {
             auto Mu = Mu_NuqVq.first;
@@ -1520,7 +1527,7 @@ compute_Wc_freq_q(Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, atpair_k_c
         auto sqrtVqcut_all = power_hemat(Vqcut_all, 0.5, false, true, Params::sqrt_coulomb_threshold);
         // sprintf(fn, "sqrtVqcut_all_q_%d.mtx", iq);
         // print_complex_matrix_mm(sqrtVqcut_all, fn, 1e-15);
-        sprintf(fn, "Vqcut_all_filtered_q_%d.mtx", iq);
+        // sprintf(fn, "Vqcut_all_filtered_q_%d.mtx", iq);
         // print_complex_matrix_mm(Vqcut_all, fn, 1e-15);
         // save the filtered truncated Coulomb back to the atom mapping object
         // TODO: revise the necessity
@@ -1539,7 +1546,7 @@ compute_Wc_freq_q(Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, atpair_k_c
             }
         }
 
-        ComplexMatrix chi0fq_all(range_all, range_all);
+        Matz chi0fq_all(range_all, range_all, MAJOR::COL);
         for (const auto &freq_qMuNuchi: chi0.get_chi0_q())
         {
             auto freq = freq_qMuNuchi.first;
@@ -1561,80 +1568,64 @@ compute_Wc_freq_q(Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, atpair_k_c
                         }
                 }
             }
-            sprintf(fn, "chi0fq_all_q_%d_freq_%d.mtx", iq, ifreq);
-            print_complex_matrix_mm(chi0fq_all, Params::output_dir + "/" + fn, 1e-15);
+            if (Params::debug)
+            {
+                sprintf(fn, "chi0fq_all_q_%d_freq_%d.mtx", iq, ifreq);
+                print_matrix_mm_file(chi0fq_all, Params::output_dir + "/" + fn, 1e-15);
+            }
 
-            ComplexMatrix identity(range_all, range_all);
-            identity.set_as_identity_matrix();
-            auto eps_fq = sqrtVq_all * chi0fq_all * sqrtVq_all;
-            eps_fq = transpose(Vq_eigen, true) * eps_fq * Vq_eigen;
+            auto eps_fq = - sqrtVq_all * chi0fq_all * sqrtVq_all;
             if (!epsmac_LF_imagfreq.empty() && is_gamma_point(q))
             {
                 // rotate to Coulomb-diagonal basis
                 // lib_printf("Largest off-diagonal = %f\n", eps_fq.get_max_abs_offdiag());
                 // print_matrix("rotated eps_fq: ", eps_fq.real());
                 // replacing the element corresponding to largest Coulomb eigenvalue with dielectric function
-                lib_printf("%22.12f %22.12f %22.12f %22.12f\n", freq, eps_fq(0, 0).real(), eps_fq(eps_fq.nr - 1, eps_fq.nc - 1).real(), epsmac_LF_imagfreq[ifreq].real());
+                eps_fq = transpose(Vq_eigen, true) * eps_fq * Vq_eigen;
+                lib_printf("%22.12f %22.12f %22.12f %22.12f\n", freq, eps_fq(0, 0).real(), eps_fq(eps_fq.nr() - 1, eps_fq.nc() - 1).real(), epsmac_LF_imagfreq[ifreq].real());
                 // eps_fq(eps_fq.nr - 1, eps_fq.nc - 1) = epsmac_LF_imagfreq[ifreq];
                 eps_fq(0, 0) = 1.0 - epsmac_LF_imagfreq[ifreq];
+                if (Params::debug)
+                {
+                    sprintf(fn, "rotated_vsxvs_q_%d_freq_%d.mtx", iq, ifreq);
+                    print_matrix_mm_file(eps_fq, Params::output_dir + "/" + fn, 1e-10);
+                }
+                // rotate back to ABF
+                eps_fq = Vq_eigen * eps_fq * transpose(Vq_eigen, true);
             }
-            if (Params::debug)
-            {
-                sprintf(fn, "rotated_vsxvs_q_%d_freq_%d.mtx", iq, ifreq);
-                print_complex_matrix_mm(eps_fq, Params::output_dir + "/" + fn, 1e-10);
-            }
-            // rotate back to ABF
-            eps_fq = Vq_eigen * eps_fq * transpose(Vq_eigen, true);
-            eps_fq = identity - eps_fq;
+            for (int i = 0; i < eps_fq.nr(); i++) eps_fq(i, i) += C_ONE;
+            // eps_fq = identity - eps_fq;
             if (Params::debug)
             {
                 sprintf(fn, "eps_q_%d_freq_%d.mtx", iq, ifreq);
-                print_complex_matrix_mm(eps_fq, Params::output_dir + "/" + fn, 1e-10);
+                print_matrix_mm_file(eps_fq, Params::output_dir + "/" + fn, 1e-10);
             }
 
             // invert the epsilon matrix
-            power_hemat_onsite(eps_fq, -1);
-            auto wc_all = sqrtVqcut_all * (eps_fq - identity) * sqrtVqcut_all;
+            power_hemat_onsite(eps_fq, -1.0);
+            for (int i = 0; i < eps_fq.nr(); i++) eps_fq(i, i) -= C_ONE;
+            Wc_freq_q[freq][q] = sqrtVqcut_all * eps_fq * sqrtVqcut_all;
             // sprintf(fn, "inveps_q_%d_freq_%d.mtx", iq, ifreq);
             // print_complex_matrix_mm(eps_fq, fn, 1e-15);
             // sprintf(fn, "wc_q_%d_freq_%d.mtx", iq, ifreq);
             // print_complex_matrix_mm(wc_all, fn, 1e-15);
-
-            // save result to the atom mapping object
-            for ( auto &Mu_Nuchi: MuNuchi )
-            {
-                auto Mu = Mu_Nuchi.first;
-                auto n_mu = atom_mu[Mu];
-                for ( auto &Nu_chi: Mu_Nuchi.second )
-                {
-                    auto Nu = Nu_chi.first;
-                    auto n_nu = atom_mu[Nu];
-                    shared_ptr<ComplexMatrix> wc_ptr = make_shared<ComplexMatrix>();
-                    wc_ptr->create(n_mu, n_nu);
-                    for ( int i_mu = 0; i_mu != n_mu; i_mu++ )
-                        for ( int i_nu = 0; i_nu != n_nu; i_nu++ )
-                        {
-                            (*wc_ptr)(i_mu, i_nu) = wc_all(part_range[Mu] + i_mu, part_range[Nu] + i_nu);
-                        }
-                    Wc_freq_q[freq][Mu][Nu][q] = matrix_m<complex<double>>(n_mu, n_nu, wc_ptr->c, MAJOR::ROW, MAJOR::ROW);
-                }
-            }
         }
     }
 
     return Wc_freq_q;
 }
 
-map<double, atom_mapping<std::map<Vector3_Order<double>, matrix_m<complex<double>>>>::pair_t_old>
-compute_Wc_freq_q_blacs(Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, atpair_k_cplx_mat_t &coulmat_wc, const vector<std::complex<double>> &epsmac_LF_imagfreq)
+map<double, std::map<Vector3_Order<double>, Matz>>
+compute_Wc_freq_q_blacs(Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, atpair_k_cplx_mat_t &coulmat_wc,
+                        const vector<std::complex<double>> &epsmac_LF_imagfreq, const Array_Desc &ad)
 {
     using LIBRPA::utils::collect_block_from_ALL_IJ_Tensor;
     using LIBRPA::utils::power_hemat_blacs;
     using LIBRPA::utils::map_block_to_IJ_storage_new;
     using LIBRPA::utils::invert_scalapack;
 
-    map<double, atom_mapping<std::map<Vector3_Order<double>, matrix_m<complex<double>>>>::pair_t_old> Wc_freq_q;
-    const complex<double> CONE{1.0, 0.0};
+    // Object to return
+    map<double, std::map<Vector3_Order<double>, Matz>> Wc_freq_q;
     const int n_abf = LIBRPA::atomic_basis_abf.nb_total;
     const auto part_range = LIBRPA::atomic_basis_abf.get_part_range();
 
@@ -1645,10 +1636,10 @@ compute_Wc_freq_q_blacs(Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, atpa
     mpi_comm_global_h.barrier();
 
     Profiler::start("compute_Wc_freq_q_blacs_init");
-    Array_Desc desc_nabf_nabf(blacs_ctxt_global_h);
+    const auto &desc_nabf_nabf = ad;
+    assert(desc_nabf_nabf.initialized() && desc_nabf_nabf.m() == n_abf && desc_nabf_nabf.n() == n_abf);
     // Use a square blocksize instead max block, otherwise heev and inversion will complain about illegal parameter
     // Maximal blocksize ensure that atom indices related to the rows/columns of a local matrix is minimized.
-    desc_nabf_nabf.init_square_blk(n_abf, n_abf, 0, 0);
     // This, however, is not optimal for matrix operations, and may lead to segment fault during
     // MPI operations with parallel linear algebra subroutine. Thus we define an optimal blocksize
     Array_Desc desc_nabf_nabf_opt(blacs_ctxt_global_h);
@@ -1770,7 +1761,7 @@ compute_Wc_freq_q_blacs(Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, atpa
             //         IJ.second, true, CONE, IJq_coul.at(I).at({J, qa}).ptr(), MAJOR::ROW);
             // }
             collect_block_from_ALL_IJ_Tensor(temp_block, desc_nabf_nabf, LIBRPA::atomic_basis_abf,
-                                             qa, true, CONE, IJq_coul, MAJOR::ROW);
+                                             qa, true, C_ONE, IJq_coul, MAJOR::ROW);
             ScalapackConnector::pgemr2d_f(n_abf, n_abf, temp_block.ptr(), 1, 1, desc_nabf_nabf.desc,
                                           coulwc_block.ptr(), 1, 1, desc_nabf_nabf_opt.desc, blacs_ctxt_global_h.ictxt);
             Profiler::stop("epsilon_prepare_coulwc_sqrt_3");
@@ -1829,7 +1820,7 @@ compute_Wc_freq_q_blacs(Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, atpa
 
             ofs_myid << get_timestamp() << " Start construct couleps 2D block" << endl;
             collect_block_from_ALL_IJ_Tensor(temp_block, desc_nabf_nabf, LIBRPA::atomic_basis_abf,
-                                             qa, true, CONE, IJq_coul, MAJOR::ROW);
+                                             qa, true, C_ONE, IJq_coul, MAJOR::ROW);
             ScalapackConnector::pgemr2d_f(n_abf, n_abf, temp_block.ptr(), 1, 1, desc_nabf_nabf.desc,
                                           coul_block.ptr(), 1, 1, desc_nabf_nabf_opt.desc, blacs_ctxt_global_h.ictxt);
             ofs_myid << get_timestamp() << " Done construct couleps 2D block" << endl;
@@ -1903,7 +1894,7 @@ compute_Wc_freq_q_blacs(Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, atpa
                 // }
                 Profiler::start("epsilon_prepare_chi0_2d_collect_block");
                 collect_block_from_ALL_IJ_Tensor(temp_block, desc_nabf_nabf, LIBRPA::atomic_basis_abf,
-                                                 qa, true, CONE, IJq_chi0, MAJOR::ROW);
+                                                 qa, true, C_ONE, IJq_chi0, MAJOR::ROW);
                 ScalapackConnector::pgemr2d_f(n_abf, n_abf, temp_block.ptr(), 1, 1, desc_nabf_nabf.desc,
                                               chi0_block.ptr(), 1, 1, desc_nabf_nabf_opt.desc, blacs_ctxt_global_h.ictxt);
                 Profiler::stop("epsilon_prepare_chi0_2d_collect_block");
@@ -1922,7 +1913,7 @@ compute_Wc_freq_q_blacs(Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, atpa
                         chi0_block.ptr(), 1, 1, desc_nabf_nabf_opt.desc,
                         sqrtveig_blacs.ptr(), 1, n_singular + 1, desc_nabf_nabf_opt.desc, 0.0,
                         coul_chi0_block.ptr(), 1, 1, desc_nabf_nabf_opt.desc);
-                ScalapackConnector::pgemm_f('C', 'N', n_nonsingular, n_nonsingular, n_abf, 1.0,
+                ScalapackConnector::pgemm_f('C', 'N', n_nonsingular, n_nonsingular, n_abf, -1.0,
                         sqrtveig_blacs.ptr(), 1, n_singular + 1, desc_nabf_nabf_opt.desc,
                         coul_chi0_block.ptr(), 1, 1, desc_nabf_nabf_opt.desc, 0.0,
                         chi0_block.ptr(), 1, 1, desc_nabf_nabf_opt.desc);
@@ -1931,7 +1922,7 @@ compute_Wc_freq_q_blacs(Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, atpa
                 if (ilo >= 0 && jlo >= 0)
                 {
                     ofs_myid << get_timestamp() << "Perform the head element overwrite" << endl;
-                    chi0_block(ilo, jlo) = 1.0 - epsmac_LF_imagfreq[ifreq];
+                    chi0_block(ilo, jlo) = epsmac_LF_imagfreq[ifreq] - 1.0;
                 }
                 // rotate back to ABF
                 ScalapackConnector::pgemm_f('N', 'N', n_abf, n_nonsingular, n_nonsingular, 1.0,
@@ -1952,14 +1943,13 @@ compute_Wc_freq_q_blacs(Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, atpa
                         coul_chi0_block.ptr(), 1, 1, desc_nabf_nabf_opt.desc);
                 Profiler::cease("epsilon_compute_eps_pgemm_1");
                 Profiler::start("epsilon_compute_eps_pgemm_2");
-                ScalapackConnector::pgemm_f('N', 'N', n_abf, n_abf, n_abf, 1.0,
+                ScalapackConnector::pgemm_f('N', 'N', n_abf, n_abf, n_abf, -1.0,
                         coul_chi0_block.ptr(), 1, 1, desc_nabf_nabf_opt.desc,
                         coul_block.ptr(), 1, 1, desc_nabf_nabf_opt.desc, 0.0,
                         chi0_block.ptr(), 1, 1, desc_nabf_nabf_opt.desc);
                 Profiler::cease("epsilon_compute_eps_pgemm_2");
             }
-            // now chi0_block is actually v1/2 chi v1/2
-            chi0_block *= -1.0;
+            // now chi0_block is actually - v1/2 chi v1/2
             for (int i = 0; i != n_abf; i++)
             {
                 const int ilo = desc_nabf_nabf_opt.indx_g2l_r(i);
@@ -1993,68 +1983,16 @@ compute_Wc_freq_q_blacs(Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, atpa
                     coul_chi0_block.ptr(), 1, 1, desc_nabf_nabf_opt.desc,
                     coulwc_block.ptr(), 1, 1, desc_nabf_nabf_opt.desc, 0.0,
                     chi0_block.ptr(), 1, 1, desc_nabf_nabf_opt.desc);
+            // convert back to initial distribution
             ScalapackConnector::pgemr2d_f(n_abf, n_abf, chi0_block.ptr(), 1, 1, desc_nabf_nabf_opt.desc,
                                           temp_block.ptr(), 1, 1, desc_nabf_nabf.desc, blacs_ctxt_global_h.ictxt);
             Profiler::stop("epsilon_multiply_coulwc");
             // lib_printf("chi0_block\n%s", str(chi0_block).c_str());
-            // now chi0_block is the screened Coulomb interaction Wc (i.e. W-V)
+            Profiler::stop("epsilon_wc_work_q_omega");
+            // now temp_block contains the screened Coulomb interaction Wc (i.e. W-V)
+            // under the desired array descriptor
+            Wc_freq_q[freq][q] = temp_block.copy();
 
-            Profiler::start("epsilon_convert_wc_2d_to_ij", "Convert Wc, 2D -> IJ");
-            Profiler::start("epsilon_convert_wc_map_block", "Initialize Wc atom-pair map");
-            map<int, map<int, matrix_m<complex<double>>>> Wc_MNmap;
-            // map_block_to_IJ_storage(Wc_MNmap, LIBRPA::atomic_basis_abf,
-            //                         LIBRPA::atomic_basis_abf, chi0_block,
-            //                         desc_nabf_nabf, MAJOR::ROW);
-            map_block_to_IJ_storage_new(Wc_MNmap, LIBRPA::atomic_basis_abf, map_lor_v, map_loc_v,
-                                        temp_block, desc_nabf_nabf, MAJOR::ROW);
-            Profiler::stop("epsilon_convert_wc_map_block");
-
-            Profiler::start("epsilon_convert_wc_communicate", "Communicate");
-            {
-                std::map<int, std::map<std::pair<int, std::array<double, 3>>, RI::Tensor<complex<double>>>> Wc_libri;
-                Profiler::start("epsilon_convert_wc_communicate_1");
-                for (const auto &M_NWc: Wc_MNmap)
-                {
-                    const auto &M = M_NWc.first;
-                    const auto n_mu = LIBRPA::atomic_basis_abf.get_atom_nb(M);
-                    for (const auto &N_Wc: M_NWc.second)
-                    {
-                        const auto &N = N_Wc.first;
-                        const auto n_nu = LIBRPA::atomic_basis_abf.get_atom_nb(N);
-                        const auto &Wc = N_Wc.second;
-                        // std::valarray<complex<double>> Wc_va(Wc.ptr(), Wc.size());
-                        // auto pWc = std::make_shared<std::valarray<complex<double>>>();
-                        // *pWc = Wc_va;
-                        Wc_libri[M][{N, qa}] = RI::Tensor<complex<double>>({n_mu, n_nu}, Wc.sptr());
-                    }
-                }
-                Profiler::stop("epsilon_convert_wc_communicate_1");
-                Profiler::start("epsilon_convert_wc_communicate_2");
-                // main timing
-                // cout << Wc_libri;
-                const auto IJq_Wc = RI::Communicate_Tensors_Map_Judge::comm_map2_first(mpi_comm_global_h.comm, Wc_libri, Iset_Jset_Wc.first, Iset_Jset_Wc.second);
-                Profiler::stop("epsilon_convert_wc_communicate_2");
-                Profiler::start("epsilon_convert_wc_communicate_3");
-                // parse collected to
-                for (const auto &MN: atpair_local)
-                {
-                    const auto &M = MN.first;
-                    const auto &N = MN.second;
-                    const auto n_mu = LIBRPA::atomic_basis_abf.get_atom_nb(M);
-                    const auto n_nu = LIBRPA::atomic_basis_abf.get_atom_nb(N);
-                    // Use row major for later usage in LibRI
-                    Wc_freq_q[freq][M][N][q] = matrix_m<complex<double>>(
-                        n_mu, n_nu, IJq_Wc.at(M).at({N, qa}).data, MAJOR::ROW);
-                }
-                Profiler::stop("epsilon_convert_wc_communicate_3");
-                // for ( int i_mu = 0; i_mu != n_mu; i_mu++ )
-                //     for ( int i_nu = 0; i_nu != n_nu; i_nu++ )
-                //     {
-                //     }
-            }
-            Profiler::stop("epsilon_convert_wc_communicate");
-            Profiler::stop("epsilon_convert_wc_2d_to_ij");
-            Profiler::cease("epsilon_wc_work_q_omega");
             LIBRPA::utils::lib_printf_root("Time for Wc(i_q=%d, i_omega=%d) (seconds, Wall/CPU): %f %f\n",
                     iq + 1, ifreq + 1,
                     Profiler::get_wall_time_last("epsilon_wc_work_q_omega"),
@@ -2072,93 +2010,173 @@ compute_Wc_freq_q_blacs(Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, atpa
     return Wc_freq_q;
 }
 
-map<double, atom_mapping<std::map<Vector3_Order<int>, matrix_m<complex<double>>>>::pair_t_old>
-FT_Wc_freq_q(const map<double, atom_mapping<std::map<Vector3_Order<double>, matrix_m<complex<double>>>>::pair_t_old> &Wc_freq_q,
-             const TFGrids &tfg, const int &n_k_points, const vector<Vector3_Order<int>> &Rlist)
+std::map<double, std::map<Vector3_Order<int>, Matz>>
+FT_Wc_freq_q(map<double, std::map<Vector3_Order<double>, Matz>> &Wc_freq_q,
+             const int &n_k_points, const vector<Vector3_Order<int>> &Rlist,
+             bool remove_freq_q, MAJOR major_out)
 {
-    // major of Wc_freq_q input and Wc_tau_R output
-    const MAJOR major_Wc = MAJOR::ROW;
-
-    map<double, atom_mapping<std::map<Vector3_Order<int>, matrix_m<complex<double>>>>::pair_t_old> Wc_freq_R;
-    const int ngrids = tfg.get_n_grids();
+    map<double, std::map<Vector3_Order<int>, Matz>> Wc_freq_R;
     if (Params::debug)
     {
         if (mpi_comm_global_h.is_root())
             lib_printf("Converting Wc q,w -> R,t\n");
         mpi_comm_global_h.barrier();
     }
-    set<pair<atom_t, atom_t>> atpairs_unique;
-    for (const auto &freq_MuNuqWc: Wc_freq_q)
+
+    // quick return if empty
+    if (Wc_freq_q.size() == 0) return Wc_freq_R;
+    // For single k-point (Gamma only), there is no need to transform: just remap and return
+    if (n_k_points == 1)
     {
-        for (const auto &Mu_NuqWc: freq_MuNuqWc.second)
+        for (auto it_freq = Wc_freq_q.begin(); it_freq != Wc_freq_q.end(); it_freq++)
         {
-            const auto Mu = Mu_NuqWc.first;
-            for (const auto &Nu_qWc: Mu_NuqWc.second)
+            const auto &freq = it_freq->first;
+            auto &map_q_mat = it_freq->second;
+            assert(map_q_mat.size() < 2);
+            for (auto it_q = map_q_mat.begin(); it_q != map_q_mat.end(); )
             {
-                const auto Nu = Nu_qWc.first;
-                atpairs_unique.insert({Mu, Nu});
-                for (const auto &q_Wc: Nu_qWc.second)
+                const Vector3_Order<int> center{0, 0, 0};
+                Wc_freq_R[freq][center] = it_q->second;
+                if (remove_freq_q)
                 {
-                    assert(q_Wc.second.major() == major_Wc);
+                    it_q = map_q_mat.erase(it_q);
+                }
+                else
+                {
+                    it_q++;
                 }
             }
         }
+        if (remove_freq_q) Wc_freq_q.clear();
+        return Wc_freq_R;
     }
 
-    vector<pair<pair<int, Vector3_Order<int>>, pair<atom_t, atom_t>>> ifreqR_atpair_all;
-    // allocate space before hand
-    for (auto R: Rlist)
+    // check major and size of the matrix to transform
+    MAJOR major_orig;
+    int nr, nc;
+    size_t size;
+    for (const auto &[freq, map_q_mat] : Wc_freq_q)
     {
-        for (int ifreq = 0; ifreq != ngrids; ifreq++)
+        if (map_q_mat.cbegin() != map_q_mat.cend())
         {
-            auto freq = tfg.get_freq_nodes()[ifreq];
-            for (auto atpair_unique: atpairs_unique)
-            {
-                const auto Mu = atpair_unique.first;
-                const int n_mu = atom_mu[Mu];
-                const auto Nu = atpair_unique.second;
-                const int n_nu = atom_mu[Nu];
-                Wc_freq_R[freq][Mu][Nu][R] = matrix_m<complex<double>>(n_mu, n_nu, major_Wc);
-                ifreqR_atpair_all.push_back({{ifreq, R}, atpair_unique});
-            }
+            const auto &mat = map_q_mat.begin()->second;
+            nr = mat.nr();
+            nc = mat.nc();
+            major_orig = mat.major();
+            size = mat.size();
+            break;
         }
     }
+    if (major_out == MAJOR::AUTO) major_out = major_orig;
 
-    #pragma omp parallel for schedule(dynamic)
-    for (auto ifreqR_atpair: ifreqR_atpair_all)
+    // initialize conversion matrix.
+    // major does not have to conform the original one
+    Matz coeff_k2r(n_k_points, n_k_points, MAJOR::COL);
+    for (int ik = 0; ik < n_k_points; ik++)
     {
-        const auto ifreq = ifreqR_atpair.first.first;
-        const auto freq = tfg.get_freq_nodes()[ifreq];
-        const auto R = ifreqR_atpair.first.second;
-        const auto Mu = ifreqR_atpair.second.first;
-        const auto Nu = ifreqR_atpair.second.second;
-        const int n_mu = atom_mu[Mu];
-        const int n_nu = atom_mu[Nu];
-
-        // thread local temporary matrix
-        matrix_m<complex<double>> WfR_temp(n_mu, n_nu, major_Wc);
-
-        if (Wc_freq_q.count(freq) == 0) continue;
-        if (Wc_freq_q.at(freq).count(Mu) == 0) continue;
-        if (Wc_freq_q.at(freq).at(Mu).count(Nu) == 0) continue;
-
-        for (auto &Wc_q: Wc_freq_q.at(freq).at(Mu).at(Nu))
+        for (int ir = 0; ir < n_k_points; ir++)
         {
-            const auto q = Wc_q.first;
-            const auto &Wc = Wc_q.second;
-            for (auto q_bz: map_irk_ks[q])
+            const auto &R = Rlist[ir];
+            const auto ang = - klist[ik] * (R * latvec) * TWO_PI;
+            coeff_k2r(ik, ir) = complex<double>(cos(ang), sin(ang));
+        }
+    }
+    coeff_k2r *= 1.0 / n_k_points;
+    // if (LIBRPA::envs::myid_global == 0) cout << coeff_k2r << endl;
+
+    // Divide into batches to limit the memory consumption of temporary matrices for Fourier transform
+    // Maximal 1GB per process for HPC usage, about 500 * 500 elements with 216 k-points (6x6x6)
+    const auto maxbytes_tmpmat = gbytes;
+    const auto size_batch_max = min(maxbytes_tmpmat / sizeof(cplxdb) / n_k_points, size);
+    const auto n_data_batches = ceil_div(size, size_batch_max);
+    const auto n_r_batch_max = min(maxbytes_tmpmat / sizeof(cplxdb) / size_batch_max, as_size(n_k_points));
+    const auto n_r_batches = ceil_div(as_size(n_k_points), n_r_batch_max);
+
+    LIBRPA::envs::ofs_myid << "size/n_r_batch_max " << size << " " << n_r_batch_max << endl;
+    LIBRPA::envs::ofs_myid << "size_batch_max/n_r_batch_max " << size_batch_max << " " << n_r_batch_max << endl;
+
+    std::vector<cplxdb> kmat(size_batch_max * n_k_points);
+    std::vector<cplxdb> rmat(size_batch_max * n_r_batch_max);
+
+    for (auto it_freq = Wc_freq_q.begin(); it_freq != Wc_freq_q.end();)
+    {
+        const auto freq = it_freq->first;
+        const auto map_q_mat = it_freq->second;
+        // initialize
+        for (const auto &R: Rlist)
+        {
+            Wc_freq_R[freq][R] = Matz(nr, nc, major_orig);
+        }
+        for (size_t i_data_batch = 0; i_data_batch < n_data_batches; i_data_batch++)
+        {
+            const size_t displ_data = i_data_batch * size_batch_max;
+            const size_t size_this_batch = min(size_batch_max, size - displ_data);
+            for (size_t i_r_batch = 0; i_r_batch < n_r_batches; i_r_batch++)
             {
-                const double ang = - q_bz * (R * latvec) * TWO_PI;
-                const complex<double> weight = complex<double>(cos(ang), sin(ang)) / double(n_k_points);
-                if (q == q_bz)
-                    WfR_temp += Wc * weight;
-                else
-                    WfR_temp += conj(Wc) * weight;
+                const size_t displ_r = i_r_batch * n_r_batch_max;
+                const size_t n_r_this_batch = min(n_r_batch_max, n_k_points - displ_r);
+                // Copy raw data
+                // for (const auto &[q, mat] : map_q_mat)
+                // for (auto it = map_q_mat.begin(); it != map_q_mat.end(); it++)
+                #pragma omp parallel for schedule(dynamic)
+                for (size_t iq = 0; iq < klist_ibz.size(); iq++)
+                {
+                    const auto &q = klist_ibz[iq];
+                    auto it = map_q_mat.find(q);
+                    if (it == map_q_mat.end()) continue;
+                    const auto &mat = it->second;
+                    if (it_freq == Wc_freq_q.begin()) // debug print
+                    {
+                        LIBRPA::envs::ofs_myid << "qmat[0/1] " << mat.ptr()[0] << " " << mat.ptr()[1] << endl;
+                    }
+                    for (const auto &q_fbz: map_irk_ks.at(q))
+                    {
+                        const auto iq = get_k_index_full(q_fbz);
+                        if (q_fbz == q)
+                        {
+                            memcpy(kmat.data() + iq * size_batch_max,
+                                   mat.ptr() + displ_data, size_this_batch * sizeof(cplxdb));
+                        }
+                        else // assume q_fbz = -q: mat(-q) = conjgate(mat(q))
+                        {
+                            Matz tmp(size_this_batch, 1, mat.ptr() + displ_data);
+                            memcpy(kmat.data() + iq * size_batch_max,
+                                   tmp.conj().ptr(),
+                                   size_this_batch * sizeof(cplxdb));
+                        }
+                    }
+                }
+                if (it_freq == Wc_freq_q.begin())
+                {
+                    LIBRPA::envs::ofs_myid << "kmat[0/1] " << kmat[0] << " " << kmat[1] << endl;
+                }
+                // Transform
+                LapackConnector::gemm_f('N', 'N', size_this_batch, n_r_this_batch, n_k_points,
+                                        1.0, kmat.data(), size_batch_max, coeff_k2r.ptr() + n_k_points * displ_r, n_k_points,
+                                        0.0, rmat.data(), size_batch_max);
+                // Add to the mapping
+                #pragma omp parallel for schedule(dynamic)
+                for (size_t ir_this = 0; ir_this < n_r_this_batch; ir_this++)
+                {
+                    auto ir = displ_r + ir_this;
+                    memcpy(Wc_freq_R[freq][Rlist[ir]].ptr() + displ_data, rmat.data() + size_batch_max * ir_this, sizeof(cplxdb) * size_this_batch);
+                }
             }
         }
-        // omp_set_lock(&lock_Wc);
-        Wc_freq_R[freq][Mu][Nu][R] += WfR_temp;
-        // omp_unset_lock(&lock_Wc);
+        // Swap to intended major
+        for (auto &[R, mat]: Wc_freq_R.at(freq))
+        {
+            mat.swap_major(major_out);
+        }
+        if (remove_freq_q)
+        {
+            // Remove data for this frequency
+            it_freq = Wc_freq_q.erase(it_freq);
+        }
+        else
+        {
+            it_freq++;
+        }
     }
 
     if (mpi_comm_global_h.is_root())
@@ -2171,106 +2189,168 @@ FT_Wc_freq_q(const map<double, atom_mapping<std::map<Vector3_Order<double>, matr
 }
 
 
-map<double, atom_mapping<std::map<Vector3_Order<int>, matrix_m<cplxdb>>>::pair_t_old>
-CT_FT_Wc_freq_q(const map<double, atom_mapping<std::map<Vector3_Order<double>, matrix_m<cplxdb>>>::pair_t_old> &Wc_freq_q,
-                const TFGrids &tfg, const int &n_k_points, const vector<Vector3_Order<int>> &Rlist)
+std::map<double, std::map<Vector3_Order<int>, Matz>>
+CT_FT_Wc_freq_q(std::map<double, std::map<Vector3_Order<double>, Matz>> &Wc_freq_q,
+                const TFGrids &tfg, const int &n_k_points, const vector<Vector3_Order<int>> &Rlist,
+                bool remove_freq_q, MAJOR major_out)
 {
-    // major of Wc_freq_q input and Wc_tau_R output
-    const MAJOR major_Wc = MAJOR::ROW;
+    std::map<double, std::map<Vector3_Order<int>, Matz>> Wc_tau_R;
+    // quick return if empty
+    if (Wc_freq_q.size() == 0) return Wc_tau_R;
 
-    map<double, atom_mapping<std::map<Vector3_Order<int>, matrix_m<cplxdb>>>::pair_t_old> Wc_tau_R;
     if (!tfg.has_time_grids())
         throw logic_error("TFGrids object does not have time grids");
-    const int ngrids = tfg.get_n_grids();
+    const auto n_freq = tfg.get_n_grids();
+
+    // check major and size of the matrix to transform
+    MAJOR major_orig = MAJOR::AUTO;
+    int nr, nc;
+    size_t size;
+    for (const auto &[freq, map_q_mat] : Wc_freq_q)
+    {
+        const auto &it = map_q_mat.cbegin();
+        if (it != map_q_mat.cend())
+        {
+            const auto &mat = it->second;
+            nr = mat.nr();
+            nc = mat.nc();
+            major_orig = mat.major();
+            size = mat.size();
+            break;
+        }
+    }
+    assert(major_orig != MAJOR::AUTO);
+    if (major_out == MAJOR::AUTO) major_out = major_orig;
 
     LIBRPA::utils::lib_printf_root("Converting Wc(q,w) -> W(R,t)\n");
     mpi_comm_global_h.barrier();
 
-    set<pair<atom_t, atom_t>> atpairs_unique;
-    for (const auto &freq_MuNuqWc: Wc_freq_q)
+    // Perform Fourier transform first, then inverse cosine transform
+    auto Wc_freq_R = FT_Wc_freq_q(Wc_freq_q, n_k_points, Rlist, remove_freq_q, major_out);
+    if (Params::debug)
     {
-        for (const auto &Mu_NuqWc: freq_MuNuqWc.second)
+        const auto &Wc = Wc_freq_R.at(tfg.get_freq_nodes()[0]).at(Rlist[0]);
+        std::stringstream ss;
+        ss << Params::output_dir << "Wc_freq_R"
+            << "_itau_" << std::setfill('0') << std::setw(5) << 0
+            << "_iR_" << std::setfill('0') << std::setw(5) << 0 << ".csc";
+        LIBRPA::utils::write_matrix_elsi_csc_parallel(ss.str(), Wc, LIBRPA::envs::array_desc_abf_global);
+    }
+    // Switch to [R][freq] mapping to allow release the intermediate data on-the-fly during inverse cosine transformation
+    std::map<Vector3_Order<int>, std::map<double, Matz>> Wc_R_freq;
+    for (auto &[freq, Wc_R]: Wc_freq_R)
+    {
+        for (auto &[R, Wc]: Wc_R)
         {
-            const auto Mu = Mu_NuqWc.first;
-            for (const auto &Nu_qWc: Mu_NuqWc.second)
+            Wc_R_freq[R].emplace(freq, std::move(Wc));
+        }
+    }
+    Wc_freq_R.clear();
+
+    // initialize inverse consine tranform matrix.
+    Matz coeff_f2t(n_freq, n_freq, MAJOR::COL);
+    for (int itau = 0; itau < n_freq; itau++)
+    {
+        for (int ifreq = 0; ifreq < n_freq; ifreq++)
+        {
+            coeff_f2t(ifreq, itau) = tfg.get_costrans_f2t()(itau, ifreq);
+        }
+    }
+    LIBRPA::envs::ofs_myid << coeff_f2t << endl;
+
+    // To balance performance and memory consumption, we divide basis x Rlist into batches as row indices.
+    // Maximal 1GB per process for HPC usage ~ 4 R-vector with 16 frequency points for 1000x1000 matrix.
+    const auto maxbytes_tmpmat = gbytes;
+    size_t size_batch_max, n_data_batches;
+    size_t n_r_batch_max, n_r_batches;
+    const auto n_r_batches_with_whole_size = maxbytes_tmpmat / sizeof(cplxdb) / size / n_freq;
+    if (n_r_batches_with_whole_size < 1)
+    {
+        // large basis case, the transform must be performed for each slice of the matrix at one R-vector.
+        n_r_batch_max = 1;
+        n_r_batches = n_k_points;
+        size_batch_max = min(maxbytes_tmpmat / sizeof(cplxdb) / n_freq, size);
+        n_data_batches = ceil_div(size, size_batch_max);
+    }
+    else
+    {
+        // Whole matrix for at least one R-vector can be transformed at once.
+        size_batch_max = size;
+        n_data_batches = 1;
+        n_r_batch_max = min(maxbytes_tmpmat / sizeof(cplxdb) / n_freq / size, as_size(n_k_points));
+        n_r_batches = ceil_div(as_size(n_k_points), n_r_batch_max);
+    }
+    LIBRPA::envs::ofs_myid << "size/n_r_batch_max " << size << " " << n_r_batch_max << endl;
+    LIBRPA::envs::ofs_myid << "size_batch_max/n_r_batch_max " << size_batch_max << " " << n_r_batch_max << endl;
+
+    const size_t row_max = size_batch_max * n_r_batch_max;
+    std::vector<cplxdb> fmat(row_max * n_freq);
+    std::vector<cplxdb> tmat(row_max * n_freq);
+
+    // Loop over R-vector batches
+    for (int i_r_batch = 0; i_r_batch < n_r_batches; i_r_batch++)
+    {
+        const size_t disp_r = i_r_batch * n_r_batch_max;
+        const size_t n_r_this_batch = as_size(n_k_points) - disp_r;
+
+        // Initialize tau blocks for these R vectors
+        for (int ir_this = 0; ir_this < n_r_this_batch; ir_this++)
+        {
+            const auto ir = disp_r + ir_this;
+            const auto &R = Rlist[ir];
+            for (const auto &tau: tfg.get_time_nodes())
             {
-                const auto Nu = Nu_qWc.first;
-                atpairs_unique.insert({Mu, Nu});
-                for (const auto &q_Wc: Nu_qWc.second)
+                Wc_tau_R[tau][R] = Matz(nr, nc, major_out);
+            }
+        }
+
+        // Loop over blocks of matrix to transform
+        for (size_t i_data_batch = 0; i_data_batch < n_data_batches; i_data_batch++)
+        {
+            const size_t displ_data = i_data_batch * size_batch_max;
+            const size_t size_this_batch = min(size_batch_max, size - displ_data);
+            const size_t row_this = size_this_batch * n_r_this_batch;
+            // Copy raw matrix to transform
+            #pragma omp parallel for collapse(2) schedule(dynamic)
+            for (size_t ir_this = 0; ir_this < n_r_this_batch; ir_this++)
+            {
+                for (size_t ifreq = 0; ifreq < n_freq; ifreq++)
                 {
-                    assert(q_Wc.second.major() == major_Wc);
+                    const auto freq = tfg.get_freq_nodes()[ifreq];
+                    const auto &R = Rlist[disp_r + ir_this];
+                    const auto &mat = Wc_R_freq.at(R).at(freq);
+                    memcpy(fmat.data() + ifreq * row_max + ir_this * size_this_batch,
+                           mat.ptr() + size_batch_max * i_data_batch, size_this_batch * sizeof(cplxdb));
+                }
+            }
+            // Transform
+            LapackConnector::gemm_f('N', 'N', row_this, n_freq, n_freq,
+                                    1.0, fmat.data(), row_max, coeff_f2t.ptr(), n_freq,
+                                    0.0, tmat.data(), row_max);
+            // LIBRPA::envs::ofs_myid << tmat << endl;
+
+            // Copy back
+            #pragma omp parallel for collapse(2) schedule(dynamic)
+            for (size_t itau = 0; itau < n_freq; itau++)
+            {
+                for (int ir_this = 0; ir_this < n_r_this_batch; ir_this++)
+                {
+                    const auto tau = tfg.get_time_nodes()[itau];
+                    const auto &R = Rlist[disp_r + ir_this];
+                    memcpy(Wc_tau_R[tau][R].ptr() + displ_data,
+                           tmat.data() + itau * row_max + ir_this * size_this_batch,
+                           size_this_batch * sizeof(cplxdb));
                 }
             }
         }
-    }
 
-    vector<pair<pair<int, Vector3_Order<int>>, pair<atom_t, atom_t>>> itauR_atpair_all;
-    // allocate space before hand
-    for (auto R: Rlist)
-    {
-        for (int itau = 0; itau != ngrids; itau++)
+        // Data at these R-vector will not be used any more, release them
+        for (int ir_this = 0; ir_this < n_r_this_batch; ir_this++)
         {
-            auto tau = tfg.get_time_nodes()[itau];
-            for (auto atpair_unique: atpairs_unique)
-            {
-                const auto Mu = atpair_unique.first;
-                const int n_mu = atom_mu[Mu];
-                const auto Nu = atpair_unique.second;
-                const int n_nu = atom_mu[Nu];
-                Wc_tau_R[tau][Mu][Nu][R] = matrix_m<complex<double>>(n_mu, n_nu, major_Wc);
-                itauR_atpair_all.push_back({{itau, R}, atpair_unique});
-            }
+            const auto ir = disp_r + ir_this;
+            const auto &R = Rlist[ir];
+            Wc_R_freq.erase(R);
         }
-    }
-
-    LIBRPA::utils::lib_printf_coll("Task %4d: distributing %d {I, J, R, tau} on %d threads\n",
-                                   LIBRPA::envs::myid_global, itauR_atpair_all.size(), omp_get_max_threads());
-
-    #pragma omp parallel for schedule(dynamic)
-    for (auto itauR_atpair: itauR_atpair_all)
-    {
-        const auto itau = itauR_atpair.first.first;
-        const auto tau = tfg.get_time_nodes()[itau];
-        const auto R = itauR_atpair.first.second;
-        const auto Mu = itauR_atpair.second.first;
-        const auto Nu = itauR_atpair.second.second;
-        const int n_mu = atom_mu[Mu];
-        const int n_nu = atom_mu[Nu];
-
-        // thread local temporary matrix
-        matrix_m<complex<double>> WtR_temp(n_mu, n_nu, major_Wc);
-
-        for (int ifreq = 0; ifreq < ngrids; ifreq++)
-        {
-            const auto freq = tfg.get_freq_nodes()[ifreq];
-            const auto f2t = tfg.get_costrans_f2t()(itau, ifreq);
-            // ofs_myid << "f2t cos eff for freq " << freq << " -> tau " << tau  << ": " << f2t << "\n";
-            if (Wc_freq_q.count(freq) == 0) continue;
-            if (Wc_freq_q.at(freq).count(Mu) == 0) continue;
-            if (Wc_freq_q.at(freq).at(Mu).count(Nu) == 0) continue;
-            // cout << "freq: " << freq << "\n";
-
-            const auto &Wc_q_all = Wc_freq_q.at(freq).at(Mu).at(Nu);
-            for (auto &Wc_q: Wc_q_all)
-            {
-                const auto q = Wc_q.first;
-                const auto &Wc = Wc_q.second;
-                for (auto q_bz: map_irk_ks[q])
-                {
-                    const double ang = - q_bz * (R * latvec) * TWO_PI;
-                    const complex<double> weight = complex<double>(cos(ang), sin(ang)) * f2t / double(n_k_points);
-                    // ofs_myid << q << " " << q_bz << " weight = " << weight << "\n";
-                    // ofs_myid << q_Wc.second;
-                    if (q == q_bz)
-                        WtR_temp += Wc * weight;
-                    else
-                        WtR_temp += conj(Wc) * weight;
-                }
-            }
-        }
-        // omp_set_lock(&lock_Wc);
-        Wc_tau_R[tau][Mu][Nu][R] += WtR_temp;
-        // omp_unset_lock(&lock_Wc);
     }
 
     LIBRPA::utils::lib_printf_root("Done converting Wc q,w -> R,t\n");

@@ -58,8 +58,8 @@ public:
     //! Build the real-space correlation self-energy matrix on imaginary frequencies with space-time method using LibRI
     void build_spacetime(
         const Cs_LRI &LRI_Cs,
-        map<double, atom_mapping<std::map<Vector3_Order<double>, matrix_m<complex<double>>>>::pair_t_old> &Wc_freq_q,
-        const vector<Vector3_Order<int>> &Rlist);
+        std::map<double, std::map<Vector3_Order<double>, Matz>> &Wc_freq_q,
+        const std::vector<Vector3_Order<int>> &Rlist);
 
     //! build the correlation self-energy matrix in Kohn-Sham basis at the SCF k-points
     void build_sigc_matrix_KS_kgrid();

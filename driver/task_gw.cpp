@@ -14,6 +14,7 @@
 #include "coulmat.h"
 #include "profiler.h"
 #include "ri.h"
+#include "utils_matrix_m_mpi.h"
 
 #include "envs_mpi.h"
 #include "envs_io.h"
@@ -26,9 +27,8 @@
 
 void task_g0w0()
 {
-    using LIBRPA::envs::mpi_comm_global_h;
-    using LIBRPA::envs::blacs_ctxt_global_h;
-    using LIBRPA::envs::ofs_myid;
+    using namespace LIBRPA::envs;
+    using namespace LIBRPA::utils;
     using LIBRPA::utils::lib_printf;
 
     Profiler::start("g0w0", "G0W0 quasi-particle calculation");
@@ -170,10 +170,10 @@ void task_g0w0()
 
     Profiler::start("g0w0_wc", "Build screened interaction");
     vector<std::complex<double>> epsmac_LF_imagfreq(epsmac_LF_imagfreq_re.cbegin(), epsmac_LF_imagfreq_re.cend());
-    map<double, atom_mapping<std::map<Vector3_Order<double>, matrix_m<complex<double>>>>::pair_t_old> Wc_freq_q;
+    map<double, std::map<Vector3_Order<double>, matrix_m<complex<double>>>> Wc_freq_q;
     if (Params::use_scalapack_gw_wc)
     {
-        Wc_freq_q = compute_Wc_freq_q_blacs(chi0, Vq, Vq_cut, epsmac_LF_imagfreq);
+        Wc_freq_q = compute_Wc_freq_q_blacs(chi0, Vq, Vq_cut, epsmac_LF_imagfreq, array_desc_abf_global);
     }
     else
     {
@@ -182,23 +182,16 @@ void task_g0w0()
     Profiler::stop("g0w0_wc");
     if (Params::debug)
     { // debug, check Wc
-        char fn[80];
-        for (const auto &Wc: Wc_freq_q)
+        for (const auto &[freq, q_Wc]: Wc_freq_q)
         {
-            const int ifreq = chi0.tfg.get_freq_index(Wc.first);
-            for (const auto &I_JqWc: Wc.second)
+            const int ifreq = chi0.tfg.get_freq_index(freq);
+            for (const auto &[q, Wc]: q_Wc)
             {
-                const auto &I = I_JqWc.first;
-                for (const auto &J_qWc: I_JqWc.second)
-                {
-                    const auto &J = J_qWc.first;
-                    for (const auto &q_Wc: J_qWc.second)
-                    {
-                        const int iq = std::distance(klist.begin(), std::find(klist.begin(), klist.end(), q_Wc.first));
-                        sprintf(fn, "Wcfq_ifreq_%d_iq_%d_I_%d_J_%d_id_%d.mtx", ifreq, iq, I, J, mpi_comm_global_h.myid);
-                        print_matrix_mm_file(q_Wc.second, Params::output_dir + "/" + fn, 1e-15);
-                    }
-                }
+                const int iq = std::distance(klist.begin(), std::find(klist.begin(), klist.end(), q));
+                std::stringstream ss;
+                ss << "Wcfq_ifreq_" << ifreq << "_iq_" << iq << ".csc";
+                const auto fn = Params::output_dir + "/" +  ss.str();
+                LIBRPA::utils::write_matrix_elsi_csc_parallel(fn, Wc, array_desc_abf_global, 1e-15);
             }
         }
     }

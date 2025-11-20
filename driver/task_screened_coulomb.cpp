@@ -1,5 +1,6 @@
 #include "task_screened_coulomb.h"
 
+#include "envs_blacs.h"
 #include "profiler.h"
 #include "params.h"
 #include "chi0.h"
@@ -16,7 +17,7 @@
 
 void task_screened_coulomb_real_freq()
 {
-    using LIBRPA::envs::mpi_comm_global_h;
+    using namespace LIBRPA::envs;
     using LIBRPA::utils::lib_printf;
 
     Profiler::start("Wc_Rf", "Build Screened Coulomb: R and freq. space");
@@ -68,73 +69,77 @@ void task_screened_coulomb_real_freq()
     }
 
     Profiler::start("compute_Wc_freq_q", "Build upper half of Wc(q,w)");
-    vector<std::complex<double>> epsmac_LF_imagfreq(epsmac_LF_imagfreq_re.cbegin(), epsmac_LF_imagfreq_re.cend());
-    map<double, atom_mapping<std::map<Vector3_Order<double>, matrix_m<complex<double>>>>::pair_t_old> Wc_freq_q;
+    std::vector<std::complex<double>> epsmac_LF_imagfreq(epsmac_LF_imagfreq_re.cbegin(), epsmac_LF_imagfreq_re.cend());
+    map<double, std::map<Vector3_Order<double>, Matz>> Wc_freq_q;
     if (Params::use_scalapack_gw_wc)
-        Wc_freq_q = compute_Wc_freq_q_blacs(chi0, Vq, Vq_cut, epsmac_LF_imagfreq);
+    {
+        Wc_freq_q = compute_Wc_freq_q_blacs(chi0, Vq, Vq_cut, epsmac_LF_imagfreq, array_desc_abf_global);
+    }
     else
+    {
         Wc_freq_q = compute_Wc_freq_q(chi0, Vq, Vq_cut, epsmac_LF_imagfreq);
+    }
     Profiler::stop("compute_Wc_freq_q");
 
-    Profiler::start("construct_Wc_lower_half", "Construct Lower Half of Wc(q,w)");
-    // NOTE: only upper half of Wc is built now
-    //       here we recover the other half before transform to R space using the Hermitian property
-    for (int ifreq = 0; ifreq < chi0.tfg.get_n_grids(); ifreq++)
-    {
-        const auto freq = chi0.tfg.get_freq_nodes()[ifreq];
-        auto &Wc = Wc_freq_q.at(freq);
-        vector<atom_t> iatoms_row;
-        for (const auto &Wc_IJ: Wc)
-            iatoms_row.push_back(Wc_IJ.first);
-        for (auto iatom_row: iatoms_row)
-        {
-            vector<atom_t> iatoms_col;
-            for (const auto &Wc_J: Wc.at(iatom_row))
-            {
-                iatoms_col.push_back(Wc_J.first);
-            }
-            for (auto iatom_col: iatoms_col)
-            {
-                if (iatom_row == iatom_col) continue;
-                for (const auto &Wc_q: Wc.at(iatom_row).at(iatom_col))
-                {
-                    Wc[iatom_col][iatom_row][Wc_q.first] = conj(Wc_q.second);
-                }
-            }
-        }
-    }
-    Profiler::stop("construct_Wc_lower_half");
-
     Profiler::start("FT_Wc_freq_q", "Fourier Transform Wc(q,w) -> Wc(R,w)");
-    const auto Wc_freq_MN_R = FT_Wc_freq_q(Wc_freq_q, chi0.tfg, meanfield.get_n_kpoints(), Rlist);
+    // const auto Wc_freq_MN_R = FT_Wc_freq_q(Wc_freq_q, chi0.tfg, meanfield.get_n_kpoints(), Rlist);
     Profiler::stop("FT_Wc_freq_q");
 
+    Profiler::start("extract_Wc_ap_blocks", "Extract atom-pair blocks (lower half) of Wc(q,w)");
+    // NOTE: only upper half of Wc is built now
+    //       here we recover the other half before transform to R space using the Hermitian property
+    // for (int ifreq = 0; ifreq < chi0.tfg.get_n_grids(); ifreq++)
+    // {
+    //     const auto freq = chi0.tfg.get_freq_nodes()[ifreq];
+    //     auto &Wc = Wc_freq_q.at(freq);
+    //     vector<atom_t> iatoms_row;
+    //     for (const auto &Wc_IJ: Wc)
+    //         iatoms_row.push_back(Wc_IJ.first);
+    //     for (auto iatom_row: iatoms_row)
+    //     {
+    //         vector<atom_t> iatoms_col;
+    //         for (const auto &Wc_J: Wc.at(iatom_row))
+    //         {
+    //             iatoms_col.push_back(Wc_J.first);
+    //         }
+    //         for (auto iatom_col: iatoms_col)
+    //         {
+    //             if (iatom_row == iatom_col) continue;
+    //             for (const auto &Wc_q: Wc.at(iatom_row).at(iatom_col))
+    //             {
+    //                 Wc[iatom_col][iatom_row][Wc_q.first] = conj(Wc_q.second);
+    //             }
+    //         }
+    //     }
+    // }
+    Profiler::stop("extract_Wc_ap_blocks");
+
     Profiler::start("write_Wc_freq_R", "Export Wc(R,w) to file");
-    for (const auto &freq_MuNuRWc: Wc_freq_MN_R)
-    {
-        char fn[80];
-        auto freq = freq_MuNuRWc.first;
-        auto ifreq = chi0.tfg.get_freq_index(freq);
-        for (const auto & Mu_NuRWc: freq_MuNuRWc.second)
-        {
-            auto Mu = Mu_NuRWc.first;
-            // const int n_mu = atom_mu[Mu];
-            for (const auto & Nu_RWc: Mu_NuRWc.second)
-            {
-                auto Nu = Nu_RWc.first;
-                // const int n_nu = atom_mu[Nu];
-                for (const auto & R_Wc: Nu_RWc.second)
-                {
-                    auto R = R_Wc.first;
-                    auto Wc = R_Wc.second;
-                    auto iteR = std::find(Rlist.cbegin(), Rlist.cend(), R);
-                    auto iR = std::distance(Rlist.cbegin(), iteR);
-                    sprintf(fn, "Wc_Mu_%zu_Nu_%zu_iR_%zu_ifreq_%d.mtx", Mu, Nu, iR, ifreq);
-                    print_matrix_mm_file(Wc, Params::output_dir + "/" + fn, 1e-10);
-                }
-            }
-        }
-    }
+    // for (const auto &freq_MuNuRWc: Wc_freq_MN_R)
+    // {
+    //     char fn[80];
+    //     auto freq = freq_MuNuRWc.first;
+    //     auto ifreq = chi0.tfg.get_freq_index(freq);
+    //     for (const auto & Mu_NuRWc: freq_MuNuRWc.second)
+    //     {
+    //         auto Mu = Mu_NuRWc.first;
+    //         // const int n_mu = atom_mu[Mu];
+    //         for (const auto & Nu_RWc: Mu_NuRWc.second)
+    //         {
+    //             auto Nu = Nu_RWc.first;
+    //             // const int n_nu = atom_mu[Nu];
+    //             for (const auto & R_Wc: Nu_RWc.second)
+    //             {
+    //                 auto R = R_Wc.first;
+    //                 auto Wc = R_Wc.second;
+    //                 auto iteR = std::find(Rlist.cbegin(), Rlist.cend(), R);
+    //                 auto iR = std::distance(Rlist.cbegin(), iteR);
+    //                 sprintf(fn, "Wc_Mu_%zu_Nu_%zu_iR_%zu_ifreq_%d.mtx", Mu, Nu, iR, ifreq);
+    //                 print_matrix_mm_file(Wc, Params::output_dir + "/" + fn, 1e-10);
+    //             }
+    //         }
+    //     }
+    // }
     Profiler::stop("write_Wc_freq_R");
     Profiler::stop("Wc_Rf");
 }
