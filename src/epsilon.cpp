@@ -2291,7 +2291,7 @@ CT_FT_Wc_freq_q(std::map<double, std::map<Vector3_Order<double>, Matz>> &Wc_freq
     for (int i_r_batch = 0; i_r_batch < n_r_batches; i_r_batch++)
     {
         const size_t disp_r = i_r_batch * n_r_batch_max;
-        const size_t n_r_this_batch = as_size(n_k_points) - disp_r;
+        const size_t n_r_this_batch = min(n_r_batch_max, as_size(n_k_points) - disp_r);
 
         // Initialize tau blocks for these R vectors
         for (int ir_this = 0; ir_this < n_r_this_batch; ir_this++)
