@@ -2092,8 +2092,8 @@ FT_Wc_freq_q(map<double, std::map<Vector3_Order<double>, Matz>> &Wc_freq_q,
     const auto n_r_batch_max = min(maxbytes_tmpmat / sizeof(cplxdb) / size_batch_max, as_size(n_k_points));
     const auto n_r_batches = ceil_div(as_size(n_k_points), n_r_batch_max);
 
-    LIBRPA::envs::ofs_myid << "size/n_r_batch_max " << size << " " << n_r_batch_max << endl;
     LIBRPA::envs::ofs_myid << "size_batch_max/n_r_batch_max " << size_batch_max << " " << n_r_batch_max << endl;
+    LIBRPA::envs::ofs_myid << "n_data_batches/n_r_batches " << n_data_batches << " " << n_r_batches << endl;
 
     std::vector<cplxdb> kmat(size_batch_max * n_k_points);
     std::vector<cplxdb> rmat(size_batch_max * n_r_batch_max);
@@ -2125,10 +2125,6 @@ FT_Wc_freq_q(map<double, std::map<Vector3_Order<double>, Matz>> &Wc_freq_q,
                     auto it = map_q_mat.find(q);
                     if (it == map_q_mat.end()) continue;
                     const auto &mat = it->second;
-                    if (it_freq == Wc_freq_q.begin()) // debug print
-                    {
-                        LIBRPA::envs::ofs_myid << "qmat[0/1] " << mat.ptr()[0] << " " << mat.ptr()[1] << endl;
-                    }
                     for (const auto &q_fbz: map_irk_ks.at(q))
                     {
                         const auto iq = get_k_index_full(q_fbz);
@@ -2145,10 +2141,6 @@ FT_Wc_freq_q(map<double, std::map<Vector3_Order<double>, Matz>> &Wc_freq_q,
                                    size_this_batch * sizeof(cplxdb));
                         }
                     }
-                }
-                if (it_freq == Wc_freq_q.begin())
-                {
-                    LIBRPA::envs::ofs_myid << "kmat[0/1] " << kmat[0] << " " << kmat[1] << endl;
                 }
                 // Transform
                 LapackConnector::gemm_f('N', 'N', size_this_batch, n_r_this_batch, n_k_points,
@@ -2227,15 +2219,15 @@ CT_FT_Wc_freq_q(std::map<double, std::map<Vector3_Order<double>, Matz>> &Wc_freq
 
     // Perform Fourier transform first, then inverse cosine transform
     auto Wc_freq_R = FT_Wc_freq_q(Wc_freq_q, n_k_points, Rlist, remove_freq_q, major_out);
-    if (Params::debug)
-    {
-        const auto &Wc = Wc_freq_R.at(tfg.get_freq_nodes()[0]).at(Rlist[0]);
-        std::stringstream ss;
-        ss << Params::output_dir << "Wc_freq_R"
-            << "_itau_" << std::setfill('0') << std::setw(5) << 0
-            << "_iR_" << std::setfill('0') << std::setw(5) << 0 << ".csc";
-        LIBRPA::utils::write_matrix_elsi_csc_parallel(ss.str(), Wc, LIBRPA::envs::array_desc_abf_global);
-    }
+    // if (Params::debug)
+    // {
+    //     const auto &Wc = Wc_freq_R.at(tfg.get_freq_nodes()[0]).at(Rlist[0]);
+    //     std::stringstream ss;
+    //     ss << Params::output_dir << "Wc_freq_R"
+    //         << "_itau_" << std::setfill('0') << std::setw(5) << 0
+    //         << "_iR_" << std::setfill('0') << std::setw(5) << 0 << ".csc";
+    //     LIBRPA::utils::write_matrix_elsi_csc_parallel(ss.str(), Wc, LIBRPA::envs::array_desc_abf_global);
+    // }
     // Switch to [R][freq] mapping to allow release the intermediate data on-the-fly during inverse cosine transformation
     std::map<Vector3_Order<int>, std::map<double, Matz>> Wc_R_freq;
     for (auto &[freq, Wc_R]: Wc_freq_R)
@@ -2280,12 +2272,14 @@ CT_FT_Wc_freq_q(std::map<double, std::map<Vector3_Order<double>, Matz>> &Wc_freq
         n_r_batch_max = min(maxbytes_tmpmat / sizeof(cplxdb) / n_freq / size, as_size(n_k_points));
         n_r_batches = ceil_div(as_size(n_k_points), n_r_batch_max);
     }
-    LIBRPA::envs::ofs_myid << "size/n_r_batch_max " << size << " " << n_r_batch_max << endl;
-    LIBRPA::envs::ofs_myid << "size_batch_max/n_r_batch_max " << size_batch_max << " " << n_r_batch_max << endl;
 
     const size_t row_max = size_batch_max * n_r_batch_max;
     std::vector<cplxdb> fmat(row_max * n_freq);
     std::vector<cplxdb> tmat(row_max * n_freq);
+
+    LIBRPA::envs::ofs_myid << "size_batch_max/n_r_batch_max " << size_batch_max << " " << n_r_batch_max << endl;
+    LIBRPA::envs::ofs_myid << "n_data_batches/n_r_batches " << n_data_batches << " " << n_r_batches << endl;
+    LIBRPA::envs::ofs_myid << "row_max " << row_max << endl;
 
     // Loop over R-vector batches
     for (int i_r_batch = 0; i_r_batch < n_r_batches; i_r_batch++)
