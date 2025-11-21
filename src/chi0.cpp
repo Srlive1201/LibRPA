@@ -564,6 +564,8 @@ void Chi0::build_chi0_q_space_time_LibRI_routing(const Cs_LRI &Cs,
                        cpu_time_from_clocks_diff(cpu_clock_done_chi0s, cpu_clock_done_trans),
                        wtime_end_isp_tau - wtime_start_isp_tau);
             }
+            // Release freed memory to OS, to resolve memory fragments in LibRI
+            LIBRPA::utils::release_free_mem();
         }
     }
     // omp_destroy_lock(&lock_chi0_fourier_cosine);

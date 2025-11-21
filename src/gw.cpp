@@ -355,6 +355,8 @@ void G0W0::build_spacetime(
         Profiler::start("g0w0_build_spacetime_free_Ws");
         gw_libri.free_Ws();
         Profiler::stop("g0w0_build_spacetime_free_Ws");
+        // Release freed memory to OS, to resolve memory fragments in LibRI
+        LIBRPA::utils::release_free_mem();
     }
     is_rspace_built_ = true;
 #endif
