@@ -34,6 +34,9 @@ list(APPEND lib_sources
         coulmat.cpp
         dielecmodel.cpp
         ${CMAKE_CURRENT_BINARY_DIR}/envs_cmake.cpp
+
+        global/instance_manager.cpp
+
         envs_blacs.cpp
         envs_io.cpp
         envs_mpi.cpp
@@ -62,7 +65,12 @@ list(APPEND lib_sources
         utils_timefreq.cpp
         utils_matrix_mpi.cpp
         vector3_order.cpp
-        )
+
+        librpa_compute.cpp
+        librpa_global.cpp
+        librpa_handler.cpp
+        librpa_options.cpp
+)
 
 if(USE_GREENX_API)
   list(APPEND lib_sources get_minimax_gx.cpp gx_minimax_wrp.f90)
@@ -76,6 +84,7 @@ endif()
 
 target_include_directories(rpa_lib
   PRIVATE
+    ${PROJECT_SOURCE_DIR}/include
     # ${CMAKE_CURRENT_LIST_DIR}
     ${PROJECT_SOURCE_DIR}/src
   )
