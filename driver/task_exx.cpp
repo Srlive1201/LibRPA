@@ -7,7 +7,7 @@
 #include "app_exx.h"
 #include "constants.h"
 #include "meanfield.h"
-#include "envs_mpi.h"
+#include "mpi/envs_mpi.h"
 #include "utils_io.h"
 #include "pbc.h"
 

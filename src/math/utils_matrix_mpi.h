@@ -2,7 +2,7 @@
 
 #include "matrix.h"
 #include "complexmatrix.h"
-#include "../base_mpi.h"
+#include "../mpi/base_mpi.h"
 
 namespace LIBRPA
 {

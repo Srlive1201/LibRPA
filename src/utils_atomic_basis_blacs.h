@@ -4,7 +4,7 @@
 #include <unordered_map>
 
 #include "atomic_basis.h"
-#include "base_blacs.h"
+#include "mpi/base_blacs.h"
 
 namespace LIBRPA
 {

@@ -4,7 +4,7 @@
 #include <vector>
 
 #include "base_mpi.h"
-#include "math/scalapack_connector.h"
+#include "../math/scalapack_connector.h"
 
 namespace LIBRPA
 {

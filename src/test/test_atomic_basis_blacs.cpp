@@ -1,9 +1,9 @@
-#include "../envs_blacs.h"
-#include "../envs_mpi.h"
+#include "../mpi/envs_blacs.h"
+#include "../mpi/envs_mpi.h"
 #include "../utils_atomic_basis_blacs.h"
 
 #include "../stl_io_helper.h"
-#include "base_blacs.h"
+#include "../mpi/base_blacs.h"
 #include "testutils.h"
 
 #include <stdexcept>

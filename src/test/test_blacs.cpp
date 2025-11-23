@@ -1,7 +1,7 @@
-#include "../base_blacs.h"
-#include "../envs_blacs.h"
+#include "../mpi/base_blacs.h"
+#include "../mpi/envs_blacs.h"
 
-#include "../envs_mpi.h"
+#include "../mpi/envs_mpi.h"
 
 #include "testutils.h"
 

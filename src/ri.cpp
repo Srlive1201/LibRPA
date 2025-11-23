@@ -2,7 +2,7 @@
 
 #include <memory.h>
 
-#include "envs_mpi.h"
+#include "mpi/envs_mpi.h"
 #include "utils_io.h"
 #include "params.h"
 #include "math/utils_matrix_mpi.h"

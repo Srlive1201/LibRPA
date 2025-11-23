@@ -5,7 +5,7 @@
 // #include <iostream>
 #include <stdexcept>
 
-#include "base_mpi.h"
+#include "mpi/base_mpi.h"
 #include "base_utility.h"
 #include "profiler.h"
 #include "math/scalapack_connector.h"

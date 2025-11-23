@@ -1,13 +1,13 @@
 #include "task_screened_coulomb.h"
 
-#include "envs_blacs.h"
+#include "mpi/envs_blacs.h"
 #include "profiler.h"
 #include "params.h"
 #include "chi0.h"
 #include "epsilon.h"
 #include "pbc.h"
 
-#include "envs_mpi.h"
+#include "mpi/envs_mpi.h"
 #include "utils_io.h"
 #include "utils_timefreq.h"
 

@@ -25,8 +25,6 @@ list(APPEND lib_sources
         app_rpa.cpp
         app_exx.cpp
         atomic_basis.cpp
-        base_blacs.cpp
-        base_mpi.cpp
         # cal_periodic_chi0.cpp
         chi0.cpp
         constants.cpp
@@ -45,9 +43,13 @@ list(APPEND lib_sources
         math/utils_matrix_mpi.cpp
         math/vector3_order.cpp
 
-        envs_blacs.cpp
+        mpi/base_blacs.cpp
+        mpi/base_mpi.cpp
+        mpi/envs_blacs.cpp
+        mpi/envs_mpi.cpp
+        mpi/utils_blacs.cpp
+
         envs_io.cpp
-        envs_mpi.cpp
         epsilon.cpp
         exx.cpp
         geometry.cpp
@@ -64,7 +66,6 @@ list(APPEND lib_sources
         utils_atomic_basis_blacs.cpp
         utils_cmake.cpp
         utils_mem.cpp
-        utils_blacs.cpp
         utils_timefreq.cpp
 
         librpa_compute.cpp

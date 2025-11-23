@@ -3,7 +3,7 @@
 #include "constants.h"
 #include <stdexcept>
 #include <iostream>
-#include "envs_mpi.h"
+#include "mpi/envs_mpi.h"
 #include "math/utils_matrix_mpi.h"
 
 void MeanField::resize(int ns, int nk, int nb, int nao)

@@ -17,7 +17,7 @@
 #include "ri.h"
 #include "pbc.h"
 #include "geometry.h"
-#include "envs_mpi.h"
+#include "mpi/envs_mpi.h"
 #include "envs_io.h"
 #include "utils_io.h"
 #include "stl_io_helper.h"

@@ -3,7 +3,7 @@
 #include <ctime>
 #include "envs_io.h"
 #include "math/utils_matrix_mpi.h"
-#include "envs_mpi.h"
+#include "mpi/envs_mpi.h"
 #include "profiler.h"
 #include "chi0.h"
 #include "libri_utils.h"

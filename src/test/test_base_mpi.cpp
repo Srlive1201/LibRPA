@@ -1,4 +1,4 @@
-#include "../envs_mpi.h"
+#include "../mpi/envs_mpi.h"
 #include "../envs_io.h"
 
 #include "testutils.h"

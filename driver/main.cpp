@@ -3,8 +3,8 @@
 
 #include "atomic_basis.h"
 #include "envs_io.h"
-#include "envs_mpi.h"
-#include "envs_blacs.h"
+#include "mpi/envs_mpi.h"
+#include "mpi/envs_blacs.h"
 #include "timefreq.h"
 #include "librpa.h"
 #include "geometry.h"
@@ -18,7 +18,7 @@
 #include "driver_params.h"
 #include "task.h"
 #include "utils_cmake.h"
-#include "utils_mpi_io.h"
+#include "mpi/utils_mpi_io.h"
 #include "utils_mem.h"
 
 #include "task_rpa.h"

@@ -3,7 +3,7 @@
 #include "ri.h"
 #include "atoms.h"
 #include "math/matrix_m.h"
-#include "base_blacs.h"
+#include "mpi/base_blacs.h"
 
 struct CorrEnergy
 {

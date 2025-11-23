@@ -1,11 +1,11 @@
 #include "../math/utils_matrix_m_mpi.h"
 #include "../math/utils_matrix_m.h"
 
-#include "../envs_mpi.h"
-#include "../envs_blacs.h"
+#include "../mpi/envs_mpi.h"
+#include "../mpi/envs_blacs.h"
 #include "../envs_io.h"
 
-#include "../utils_blacs.h"
+#include "../mpi/utils_blacs.h"
 
 #include "../stl_io_helper.h"
 #include "testutils.h"

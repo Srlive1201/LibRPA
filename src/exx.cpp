@@ -1,8 +1,8 @@
 #include "exx.h"
 
 #include "envs_io.h"
-#include "envs_mpi.h"
-#include "envs_blacs.h"
+#include "mpi/envs_mpi.h"
+#include "mpi/envs_blacs.h"
 #include "utils_atomic_basis_blacs.h"
 #include "profiler.h"
 #include "math/utils_matrix_m_mpi.h"

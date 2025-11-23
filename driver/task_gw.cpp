@@ -1,6 +1,6 @@
 #include "task_gw.h"
 
-#include "envs_blacs.h"
+#include "mpi/envs_blacs.h"
 #include "meanfield.h"
 #include "params.h"
 #include "pbc.h"
@@ -16,7 +16,7 @@
 #include "ri.h"
 #include "math/utils_matrix_m_mpi.h"
 
-#include "envs_mpi.h"
+#include "mpi/envs_mpi.h"
 #include "envs_io.h"
 #include "utils_timefreq.h"
 

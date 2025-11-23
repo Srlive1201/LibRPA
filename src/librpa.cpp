@@ -13,8 +13,8 @@
 #include <stdlib.h>
 #include <cstring>
 
-#include "envs_mpi.h"
-#include "envs_blacs.h"
+#include "mpi/envs_mpi.h"
+#include "mpi/envs_blacs.h"
 #include "envs_io.h"
 #include "utils_io.h"
 

@@ -4,7 +4,7 @@
 #include <iostream>
 #include <cstdio>
 
-#include "envs_mpi.h"
+#include "mpi/envs_mpi.h"
 
 
 namespace LIBRPA

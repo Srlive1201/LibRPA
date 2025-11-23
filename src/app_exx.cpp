@@ -3,7 +3,7 @@
 #include <numeric>
 #include <stdexcept>
 #include <string>
-#include "envs_mpi.h"
+#include "mpi/envs_mpi.h"
 
 #include "ri.h"
 #include "pbc.h"
