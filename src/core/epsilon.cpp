@@ -1371,6 +1371,7 @@ map<double, map<Vector3_Order<double>, atom_mapping<ComplexMatrix>::pair_t_old>>
             #ifdef OPEN_TEST_FOR_LU_DECOMPOSITION
             // printf("success after gather_vp_row_q irk_weight, pid: %d\n", mpi_comm_global_h.myid);
             #endif
+
             for (auto &freq_p : chi0.get_chi0_q())
             {
                 const double freq = freq_p.first;
