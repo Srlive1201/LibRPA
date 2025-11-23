@@ -563,10 +563,16 @@ void diele_func::wing_mu_to_lambda(matrix_m<std::complex<double>> &sqrtveig_blac
     desc_wing_mu.init_square_blk(n_abf, 3, 0, 0);
     ArrayDesc desc_wing(blacs_ctxt_global_h);
     desc_wing.init_square_blk(n_nonsingular - 1, 3, 0, 0);
+    ArrayDesc desc_body(blacs_ctxt_global_h);
+    desc_body.init_square_blk(n_nonsingular - 1, n_nonsingular - 1, 0, 0);
+    // opt descriptor for wing
+    ArrayDesc desc_wing_opt(blacs_ctxt_global_h);
+    desc_wing_opt.init(n_nonsingular - 1, 3, desc_body.mb(), desc_wing.nb(), 0, 0);
+
     for (int iomega = 0; iomega != this->omega.size(); iomega++)
     {
         auto &wing_tmp = this->wing.at(iomega);
-        wing_tmp = init_local_mat<complex<double>>(desc_wing, MAJOR::COL);
+        wing_tmp = init_local_mat<complex<double>>(desc_wing_opt, MAJOR::COL);
         // TODO: reconstruct wing_mu
         auto wing_mu_tmp = init_local_mat<complex<double>>(desc_wing_mu, MAJOR::COL);
         for (int alpha = 0; alpha != 3; alpha++)
@@ -585,7 +591,8 @@ void diele_func::wing_mu_to_lambda(matrix_m<std::complex<double>> &sqrtveig_blac
         // drop the first column of sqrtveig_blacs, the largest eigenvalue
         ScalapackConnector::pgemm_f('C', 'N', n_lambda, 3, n_abf, 1.0, sqrtveig_blacs.ptr(), 1, 2,
                                     desc_nabf_nabf_opt.desc, wing_mu_tmp.ptr(), 1, 1,
-                                    desc_wing_mu.desc, 0.0, wing_tmp.ptr(), 1, 1, desc_wing.desc);
+                                    desc_wing_mu.desc, 0.0, wing_tmp.ptr(), 1, 1,
+                                    desc_wing_opt.desc);
     }
 
     this->wing_mu.clear();
@@ -893,6 +900,9 @@ void diele_func::construct_L(const int ifreq, ArrayDesc &desc_body)
     this->wb.resize(3, n_nonsingular - 1, MAJOR::COL);
     ArrayDesc desc_wing(blacs_ctxt_global_h);
     desc_wing.init_square_blk(n_nonsingular - 1, 3, 0, 0);
+    // opt descriptor for wing
+    ArrayDesc desc_wing_opt(blacs_ctxt_global_h);
+    desc_wing_opt.init(n_nonsingular - 1, 3, desc_body.mb(), desc_wing.nb(), 0, 0);
 
     ArrayDesc desc_lam_3(blacs_ctxt_global_h);
     desc_lam_3.init_square_blk(n_nonsingular - 1, 3, 0, 0);
@@ -909,13 +919,13 @@ void diele_func::construct_L(const int ifreq, ArrayDesc &desc_body)
     // tmp = head.at(ifreq) - transpose(wing.at(ifreq), true) * body_inv * wing.at(ifreq);
     ScalapackConnector::pgemm_f('N', 'N', n_nonsingular - 1, 3, n_nonsingular - 1, 1.0,
                                 body_inv.ptr(), 1, 1, desc_body.desc, wing.at(ifreq).ptr(), 1, 1,
-                                desc_wing.desc, 0.0, lam_3.ptr(), 1, 1, desc_lam_3.desc);
+                                desc_wing_opt.desc, 0.0, lam_3.ptr(), 1, 1, desc_lam_3.desc);
     ScalapackConnector::pgemm_f('C', 'N', 3, 3, n_nonsingular - 1, 1.0, wing.at(ifreq).ptr(), 1, 1,
-                                desc_wing.desc, lam_3.ptr(), 1, 1, desc_lam_3.desc, 0.0,
+                                desc_wing_opt.desc, lam_3.ptr(), 1, 1, desc_lam_3.desc, 0.0,
                                 Lind_loc.ptr(), 1, 1, desc_3_3.desc);
     ScalapackConnector::pgemm_f('C', 'N', 3, n_nonsingular - 1, n_nonsingular - 1, 1.0,
-                                wing.at(ifreq).ptr(), 1, 1, desc_wing.desc, body_inv.ptr(), 1, 1,
-                                desc_body.desc, 0.0, _3_lam.ptr(), 1, 1, desc_3_lam.desc);
+                                wing.at(ifreq).ptr(), 1, 1, desc_wing_opt.desc, body_inv.ptr(), 1,
+                                1, desc_body.desc, 0.0, _3_lam.ptr(), 1, 1, desc_3_lam.desc);
 
     for (int i = 0; i != 3; i++)
     {
@@ -1130,15 +1140,12 @@ void diele_func::cal_eps(const int ifreq, ArrayDesc &desc_nabf_nabf_opt, ArrayDe
     //             identity(ilo, jlo) = 0.0;
     //     }
     // }
-    // ScalapackConnector::pgemm_f('N', 'N', n_nonsingular - 1, n_nonsingular - 1, n_nonsingular - 1,
+    // ScalapackConnector::pgemm_f('N', 'N', n_nonsingular - 1, n_nonsingular - 1, n_nonsingular -
+    // 1,
     //                             1.0, body_inv.ptr(), 1, 1, desc_body.desc, identity.ptr(), 1, 1,
     //                             desc_body.desc, 1.0, chi0.ptr(), 2, 2, desc_nabf_nabf_opt.desc);
-    ScalapackConnector::pgeadd_f(
-        'N', n_nonsingular - 1, n_nonsingular - 1, 
-        1.0, 
-        body_inv.ptr(), 1, 1, desc_body.desc, 
-        1.0, 
-        chi0.ptr(), 2, 2, desc_nabf_nabf_opt.desc);
+    ScalapackConnector::pgeadd_f('N', n_nonsingular - 1, n_nonsingular - 1, 1.0, body_inv.ptr(), 1,
+                                 1, desc_body.desc, 1.0, chi0.ptr(), 2, 2, desc_nabf_nabf_opt.desc);
     profiler.stop("cal_inverse_dielectric_matrix_ij");
     if (mpi_comm_global_h.is_root())
         std::cout << "* Success: calculate average inverse dielectric matrix no." << ifreq + 1

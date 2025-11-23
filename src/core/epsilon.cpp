@@ -328,7 +328,7 @@ CorrEnergy compute_RPA_correlation_blacs_2d(Chi0 &chi0, atpair_k_cplx_mat_t &cou
     // atpair_unordered_local << endl;
 
 #ifdef LIBRPA_USE_LIBRI
-    
+
     for (const auto &q : qpts)
     {
         coul_block.zero_out();
@@ -610,15 +610,16 @@ complex<double> compute_pi_det_blacs_2d(Matz &loc_piT, const ArrayDesc &arrdesc_
     int one = 1;
     const int range_all = arrdesc_pi.m();
     int DESCPI_T[9];
-    // if(out_pi)
-    // {
-    //     print_complex_real_matrix("first_pi",pi_freq_q.at(0).at(0));
-    //     print_complex_real_matrix("first_loc_piT_mat",loc_piT);
-    // }
-    #ifdef OPEN_TEST_FOR_LU_DECOMPOSITION
-    printf("success before pzgetrf_ processid:%d,range_all: %d, loc_piT.nr(): %d, loc_piT.nc(): %d\n",
-           mpi_comm_global_h.myid, range_all, loc_piT.nr(), loc_piT.nc());
-    #endif
+// if(out_pi)
+// {
+//     print_complex_real_matrix("first_pi",pi_freq_q.at(0).at(0));
+//     print_complex_real_matrix("first_loc_piT_mat",loc_piT);
+// }
+#ifdef OPEN_TEST_FOR_LU_DECOMPOSITION
+    printf(
+        "success before pzgetrf_ processid:%d,range_all: %d, loc_piT.nr(): %d, loc_piT.nc(): %d\n",
+        mpi_comm_global_h.myid, range_all, loc_piT.nr(), loc_piT.nc());
+#endif
     double det_begin = omp_get_wtime();
     // ScalapackConnector::transpose_desc(DESCPI_T, arrdesc_pi.desc);
     pzgetrf_(&range_all, &range_all, loc_piT.ptr(), &one, &one, arrdesc_pi.desc, ipiv, &info);
@@ -1010,7 +1011,15 @@ CorrEnergy compute_RPA_correlation(LibrpaParallelRouting routing, const Chi0 &ch
 
     int range_all = chi0.atbasis_abf.nb_total;
 
+#ifdef OPEN_TEST_FOR_LU_DECOMPOSITION
+// printf("success before part_range processid:%d, atom_mu.size(): %zu\n",
+//    mpi_comm_global_h.myid, atom_mu.size());
+#endif
     const auto part_range = chi0.atbasis_abf.get_part_range();
+#ifdef OPEN_TEST_FOR_LU_DECOMPOSITION
+// printf("success after part_range processid:%d, atom_mu.size(): %zu\n",
+//        mpi_comm_global_h.myid, atom_mu.size());
+#endif
 
     // cout << "part_range:" << endl;
     // for (int I = 0; I != atom_mu.size(); I++)
@@ -1021,45 +1030,47 @@ CorrEnergy compute_RPA_correlation(LibrpaParallelRouting routing, const Chi0 &ch
 
     // pi_freq_q contains all atoms
     map<double, map<Vector3_Order<double>, ComplexMatrix>> pi_freq_q;
-    #ifdef OPEN_TEST_FOR_LU_DECOMPOSITION
-    // printf("| process %d, qpts.size(): %zu,freq.size():%zu\n", mpi_comm_global_h.myid, chi0.klist.size(),chi0.tfg.get_freq_nodes().size());
-    #endif
-    for(const auto &freq : chi0.tfg.get_freq_nodes())
+#ifdef OPEN_TEST_FOR_LU_DECOMPOSITION
+// printf("| process %d, qpts.size(): %zu,freq.size():%zu\n", mpi_comm_global_h.myid,
+// chi0.klist.size(),chi0.tfg.get_freq_nodes().size());
+#endif
+    for (const auto &freq : chi0.tfg.get_freq_nodes())
     {
         // printf("| process %d, freq: %f\n", mpi_comm_global_h.myid, freq);
         map<Vector3_Order<double>, atom_mapping<ComplexMatrix>::pair_t_old> freq_q_MuNupi;
-        if(!chi0.get_chi0_q().empty())
-            freq_q_MuNupi=pi_freq_q_Mu_Nu.at(freq);
-        #ifdef OPEN_TEST_FOR_LU_DECOMPOSITION
-        // printf("success before freq_q_MuNupi processid:%d, freq_q_MuNupi.size(): %zu\n",
-        //        mpi_comm_global_h.myid, freq_q_MuNupi.size());
-        #endif
-        for(const auto &q:chi0.klist){
+        if (!chi0.get_chi0_q().empty()) freq_q_MuNupi = pi_freq_q_Mu_Nu.at(freq);
+#ifdef OPEN_TEST_FOR_LU_DECOMPOSITION
+// printf("success before freq_q_MuNupi processid:%d, freq_q_MuNupi.size(): %zu\n",
+//        mpi_comm_global_h.myid, freq_q_MuNupi.size());
+#endif
+        for (const auto &q : chi0.klist)
+        {
             atom_mapping<ComplexMatrix>::pair_t_old q_MuNupi;
-            if(!chi0.get_chi0_q().empty())
-                q_MuNupi = freq_q_MuNupi.at(q);
+            if (!chi0.get_chi0_q().empty()) q_MuNupi = freq_q_MuNupi.at(q);
             const auto MuNupi = q_MuNupi;
             pi_freq_q[freq][q].create(range_all, range_all);
 
             ComplexMatrix pi_munu_tmp(range_all, range_all);
             pi_munu_tmp.zero_out();
-            if(!chi0.get_chi0_q().empty())
-            for (const auto &Mu_Nupi : MuNupi)
-            {
-                const auto Mu = Mu_Nupi.first;
-                const auto Nupi = Mu_Nupi.second;
-                const size_t n_mu = chi0.atbasis_abf[Mu];
-                for (const auto &Nu_pi : Nupi)
+            if (!chi0.get_chi0_q().empty())
+                for (const auto &Mu_Nupi : MuNupi)
                 {
-                    const auto Nu = Nu_pi.first;
-                    const auto pimat = Nu_pi.second;
-                    const size_t n_nu = chi0.atbasis_abf[Nu];
-
-                    for (size_t mu = 0; mu != n_mu; ++mu)
+                    const auto Mu = Mu_Nupi.first;
+                    const auto Nupi = Mu_Nupi.second;
+                    const size_t n_mu = atom_mu[Mu];
+                    for (const auto &Nu_pi : Nupi)
                     {
-                        for (size_t nu = 0; nu != n_nu; ++nu)
+                        const auto Nu = Nu_pi.first;
+                        const auto pimat = Nu_pi.second;
+                        const size_t n_nu = atom_mu[Nu];
+
+                        for (size_t mu = 0; mu != n_mu; ++mu)
                         {
-                            pi_munu_tmp(part_range[Mu] + mu, part_range[Nu] + nu) += pimat(mu, nu);
+                            for (size_t nu = 0; nu != n_nu; ++nu)
+                            {
+                                pi_munu_tmp(part_range[Mu] + mu, part_range[Nu] + nu) +=
+                                    pimat(mu, nu);
+                            }
                         }
                     }
                 }
@@ -1080,9 +1091,9 @@ CorrEnergy compute_RPA_correlation(LibrpaParallelRouting routing, const Chi0 &ch
     {
         complex<double> tot_RPA_energy(0.0, 0.0);
         map<Vector3_Order<double>, complex<double>> cRPA_q;
-        #ifdef OPEN_TEST_FOR_LU_DECOMPOSITION
+#ifdef OPEN_TEST_FOR_LU_DECOMPOSITION
         int num_iteration = 0;
-        #endif
+#endif
         for (const auto &freq_qpi : pi_freq_q)
         {
             const auto freq = freq_qpi.first;
@@ -1096,7 +1107,7 @@ CorrEnergy compute_RPA_correlation(LibrpaParallelRouting routing, const Chi0 &ch
                 ComplexMatrix identity_minus_pi(range_all, range_all);
                 identity.set_as_identity_matrix();
                 identity_minus_pi = identity - pi_freq_q[freq][q];
-                #ifdef OPEN_TEST_FOR_LU_DECOMPOSITION
+#ifdef OPEN_TEST_FOR_LU_DECOMPOSITION
                 // if(num_iteration==0)
                 // if(mpi_comm_global_h.myid == 1)
                 // {
@@ -1110,7 +1121,7 @@ CorrEnergy compute_RPA_correlation(LibrpaParallelRouting routing, const Chi0 &ch
                 //     }
                 // }
                 num_iteration++;
-                #endif
+#endif
                 complex<double> det_for_rpa(1.0, 0.0);
                 int info_LU = 0;
                 int *ipiv = new int[range_all];
@@ -2200,19 +2211,19 @@ std::map<double, std::map<Vector3_Order<double>, Matz>> compute_Wc_freq_q_blacs(
                 }
                 profiler.stop("epsilon_invert_eps");
             }
-            // debug for GaAs
+            // debug for Coulomb, epsilon^{-1} - 1 = -0.75
             // for (int i = 0; i != n_abf; i++)
             // {
             //     for (int j = 0; j != n_abf; j++)
             //     {
-            //     const int ilo = desc_nabf_nabf_opt.indx_g2l_r(i);
-            //     if (ilo < 0) continue;
-            //     const int jlo = desc_nabf_nabf_opt.indx_g2l_c(j);
-            //     if (jlo < 0) continue;
-            //     if(i==j)
-            //         chi0_block(ilo, jlo) = 1.0;
-            //     else
-            //         chi0_block(ilo, jlo) = 0.0;
+            //         const int ilo = desc_nabf_nabf_opt.indx_g2l_r(i);
+            //         if (ilo < 0) continue;
+            //         const int jlo = desc_nabf_nabf_opt.indx_g2l_c(j);
+            //         if (jlo < 0) continue;
+            //         if (i == j)
+            //             chi0_block(ilo, jlo) = -0.75;
+            //         else
+            //             chi0_block(ilo, jlo) = 0.0;
             //     }
             // }
             // debug for unfold shrink Wc
