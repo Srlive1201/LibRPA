@@ -1,5 +1,5 @@
 // Public headers (prefixed by librpa)
-#include "../include/librpa_options.h"
+#include "../../include/librpa_options.h"
 
 // C APIs
 void librpa_init_options(LibrpaOptions *opts)

@@ -6,7 +6,7 @@
 #include "mpi/envs_mpi.h"
 #include "mpi/envs_blacs.h"
 #include "timefreq.h"
-#include "librpa.h"
+#include "api/librpa.h"
 #include "geometry.h"
 #include "inputfile.h"
 #include "meanfield.h"

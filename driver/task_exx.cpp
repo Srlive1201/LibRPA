@@ -4,7 +4,7 @@
 #include "read_data.h"
 
 // src headers
-#include "app_exx.h"
+#include "api/app_exx.h"
 #include "constants.h"
 #include "meanfield.h"
 #include "mpi/envs_mpi.h"

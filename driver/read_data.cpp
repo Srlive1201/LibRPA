@@ -23,7 +23,7 @@
 #include "stl_io_helper.h"
 #include "profiler.h"
 
-#include "librpa.h"
+#include "api/librpa.h"
 #include "utils_mem.h"
 
 using std::ifstream;

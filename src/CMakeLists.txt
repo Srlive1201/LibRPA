@@ -22,8 +22,17 @@ configure_file(envs_cmake.cpp.in envs_cmake.cpp)
 list(APPEND lib_sources
         # aperiodic_chi0.cpp
         analycont.cpp
-        app_rpa.cpp
-        app_exx.cpp
+
+        api/app_exx.cpp
+        api/app_rpa.cpp
+        api/app_gw.cpp
+        api/librpa_compute.cpp
+        api/librpa_global.cpp
+        api/librpa_handler.cpp
+        api/librpa_options.cpp
+        api/librpa.cpp
+        api/librpa_main.cpp
+
         atomic_basis.cpp
         # cal_periodic_chi0.cpp
         chi0.cpp
@@ -54,8 +63,6 @@ list(APPEND lib_sources
         exx.cpp
         geometry.cpp
         gw.cpp
-        librpa.cpp
-        librpa_main.cpp
         meanfield.cpp
         params.cpp
         pbc.cpp
@@ -67,11 +74,6 @@ list(APPEND lib_sources
         utils_cmake.cpp
         utils_mem.cpp
         utils_timefreq.cpp
-
-        librpa_compute.cpp
-        librpa_global.cpp
-        librpa_handler.cpp
-        librpa_options.cpp
 )
 
 if(USE_GREENX_API)
@@ -107,7 +109,8 @@ target_link_libraries(rpa_lib PUBLIC ${math_libs} ${parallel_libs})
 install(TARGETS rpa_lib
         ARCHIVE
         DESTINATION ${CMAKE_INSTALL_LIBDIR})
-install(FILES ${PROJECT_SOURCE_DIR}/src/librpa.h
+install(FILES
+        ${PROJECT_SOURCE_DIR}/src/api/librpa.h
         DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
 if(ENABLE_TEST)

@@ -13,19 +13,19 @@
 #include <stdlib.h>
 #include <cstring>
 
-#include "mpi/envs_mpi.h"
-#include "mpi/envs_blacs.h"
-#include "envs_io.h"
-#include "utils_io.h"
+#include "../mpi/envs_mpi.h"
+#include "../mpi/envs_blacs.h"
+#include "../envs_io.h"
+#include "../utils_io.h"
 
-#include "atoms.h"
-#include "constants.h"
-#include "math/matrix_m.h"
+#include "../atoms.h"
+#include "../constants.h"
+#include "../math/matrix_m.h"
 #include "librpa_main.h"
-#include "meanfield.h"
-#include "params.h"
-#include "pbc.h"
-#include "ri.h"
+#include "../meanfield.h"
+#include "../params.h"
+#include "../pbc.h"
+#include "../ri.h"
 
 #ifdef LIBRPA_USE_LIBRI
 #include <initializer_list>

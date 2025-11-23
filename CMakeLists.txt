@@ -108,7 +108,7 @@ if(NOT _loaded_cmake_inc)
     set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${MPI_CXX_FLAGS}")
   endif()
 
-  # message(INFO "${CMAKE_C_COMPILER_LOADED} ${CMAKE_CXX_COMPILER_LOADED} ${CMAKE_Fortran_COMPILER_LOADED}") 
+  # message(INFO "${CMAKE_C_COMPILER_LOADED} ${CMAKE_CXX_COMPILER_LOADED} ${CMAKE_Fortran_COMPILER_LOADED}")
   find_package(OpenMP REQUIRED)
   if (OpenMP_CXX_FOUND)
     set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
@@ -224,5 +224,16 @@ if(ENABLE_DRIVER)
 endif()
 
 add_subdirectory(src)
+install(FILES
+        ${PROJECT_SOURCE_DIR}/src/api/librpa.h  # to be removed
+        ${PROJECT_SOURCE_DIR}/include/librpa_compute.h
+        ${PROJECT_SOURCE_DIR}/include/librpa_enums.h
+        ${PROJECT_SOURCE_DIR}/include/librpa_global.h
+        ${PROJECT_SOURCE_DIR}/include/librpa_handler.h
+        ${PROJECT_SOURCE_DIR}/include/librpa_input.h
+        ${PROJECT_SOURCE_DIR}/include/librpa_new.h
+        ${PROJECT_SOURCE_DIR}/include/librpa_options.h
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+
 
 message(STATUS "CMAKE_CXX_FLAGS: ${CMAKE_CXX_FLAGS}")

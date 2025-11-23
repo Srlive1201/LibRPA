@@ -1,9 +1,9 @@
 // Public headers
-#include "../include/librpa_compute.h"
+#include "../../include/librpa_compute.h"
 
 // Internal headers
-#include "core/dataset.h"
-#include "global/instance_manager.h"
+#include "../core/dataset.h"
+#include "../global/instance_manager.h"
 
 // C++ APIs
 // The functions here should be just wrappers of C APIs.

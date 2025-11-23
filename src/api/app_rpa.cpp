@@ -1,17 +1,17 @@
 #include "app_rpa.h"
 
-#include "utils_mem.h"
+#include "../utils_mem.h"
 
-#include "chi0.h"
-#include "epsilon.h"
-#include "mpi/envs_mpi.h"
-#include "params.h"
-#include "pbc.h"
-#include "profiler.h"
-#include "utils_timefreq.h"
-#include "ri.h"
+#include "../chi0.h"
+#include "../epsilon.h"
+#include "../mpi/envs_mpi.h"
+#include "../params.h"
+#include "../pbc.h"
+#include "../profiler.h"
+#include "../utils_timefreq.h"
+#include "../ri.h"
 
-#include "stl_io_helper.h"
+#include "../stl_io_helper.h"
 
 namespace LIBRPA
 {

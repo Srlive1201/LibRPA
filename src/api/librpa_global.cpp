@@ -1,4 +1,4 @@
-#include "../include/librpa_global.h"
+#include "../../include/librpa_global.h"
 
 void librpa_init_global_env(LibrpaSwitch switch_redirect_stdout, const char *redirect_path)
 {

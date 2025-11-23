@@ -3,13 +3,13 @@
 #include <numeric>
 #include <stdexcept>
 #include <string>
-#include "mpi/envs_mpi.h"
+#include "../mpi/envs_mpi.h"
 
-#include "ri.h"
-#include "pbc.h"
-#include "coulmat.h"
-#include "meanfield.h"
-#include "exx.h"
+#include "../ri.h"
+#include "../pbc.h"
+#include "../coulmat.h"
+#include "../meanfield.h"
+#include "../exx.h"
 
 namespace LIBRPA
 {

@@ -2,18 +2,18 @@
 
 #include <algorithm>
 
-#include "atomic_basis.h"
-#include "chi0.h"
-#include "epsilon.h"
-#include "meanfield.h"
-#include "params.h"
-#include "pbc.h"
-#include "profiler.h"
-#include "envs_io.h"
-#include "mpi/envs_mpi.h"
-#include "mpi/envs_blacs.h"
-#include "utils_io.h"
-#include "utils_mem.h"
+#include "../atomic_basis.h"
+#include "../chi0.h"
+#include "../epsilon.h"
+#include "../meanfield.h"
+#include "../params.h"
+#include "../pbc.h"
+#include "../profiler.h"
+#include "../envs_io.h"
+#include "../mpi/envs_mpi.h"
+#include "../mpi/envs_blacs.h"
+#include "../utils_io.h"
+#include "../utils_mem.h"
 
 void librpa_main()
 {

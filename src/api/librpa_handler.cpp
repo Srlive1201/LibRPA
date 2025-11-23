@@ -1,10 +1,10 @@
 // Public headers (prefixed by librpa)
-#include "../include/librpa_handler.h"
+#include "../../include/librpa_handler.h"
 
 // Internal headers
-#include "global/instance_manager.h"
+#include "../global/instance_manager.h"
 
-#include "core/dataset.h"
+#include "../core/dataset.h"
 
 // C APIs
 LibrpaHandler* librpa_create_handler(int comm)
