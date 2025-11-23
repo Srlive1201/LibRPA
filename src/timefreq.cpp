@@ -10,7 +10,7 @@
 #include "utils/base_utility.h"
 #include "math/mathtools.h"
 #include "utils_io.h"
-#include "get_minimax.h"
+#include "minimax.h"
 
 using std::pair;
 using std::string;

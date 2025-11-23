@@ -1,4 +1,4 @@
-#include "get_minimax.h"
+#include "minimax.h"
 
 #include "envs_cmake.h"
 #include "mpi/envs_mpi.h"
