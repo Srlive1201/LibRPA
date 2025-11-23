@@ -3,8 +3,8 @@
 #include <sstream>
 #include <fstream>
 
-#include "matrix_m.h"
-#include "utils_matrix_m_mpi.h"
+#include "math/matrix_m.h"
+#include "math/utils_matrix_m_mpi.h"
 #include "meanfield.h"
 #include "params.h"
 #include "pbc.h"

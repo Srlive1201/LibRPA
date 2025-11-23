@@ -14,7 +14,7 @@
 #include "coulmat.h"
 #include "profiler.h"
 #include "ri.h"
-#include "utils_matrix_m_mpi.h"
+#include "math/utils_matrix_m_mpi.h"
 
 #include "envs_mpi.h"
 #include "envs_io.h"

@@ -1,5 +1,5 @@
-#include "../utils_matrix_m_mpi.h"
-#include "../utils_matrix_m.h"
+#include "../math/utils_matrix_m_mpi.h"
+#include "../math/utils_matrix_m.h"
 
 #include "../envs_mpi.h"
 #include "../envs_blacs.h"

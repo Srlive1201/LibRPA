@@ -9,7 +9,7 @@
 #include "timefreq.h"
 #include "atoms.h"
 #include "ri.h"
-#include "vector3_order.h"
+#include "math/vector3_order.h"
 
 using std::vector;
 

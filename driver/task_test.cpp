@@ -4,7 +4,7 @@
 #include "envs_io.h"
 
 #include "profiler.h"
-#include "matrix_m.h"
+#include "math/matrix_m.h"
 
 #include "read_data.h"
 #include "driver_params.h"

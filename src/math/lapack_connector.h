@@ -6,10 +6,10 @@
 #include <stdexcept>
 #include <iostream>
 #include <cassert>
-#include "base_utility.h"
+#include "../base_utility.h"
 #include "matrix.h"
 #include "complexmatrix.h"
-#include "interface/blas_lapack.h"
+#include "../interface/blas_lapack.h"
 
 // Class LapackConnector provide the connector to fortran lapack routine.
 // The entire function in this class are static and inline function.

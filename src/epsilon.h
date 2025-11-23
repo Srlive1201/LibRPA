@@ -2,7 +2,7 @@
 #include "chi0.h"
 #include "ri.h"
 #include "atoms.h"
-#include "matrix_m.h"
+#include "math/matrix_m.h"
 #include "base_blacs.h"
 
 struct CorrEnergy

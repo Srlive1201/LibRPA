@@ -8,9 +8,9 @@
 #include <map>
 #include <memory>
 #include <utility>
-#include "vector3_order.h"
+#include "math/vector3_order.h"
 #include "atoms.h"
-#include "complexmatrix.h"
+#include "math/complexmatrix.h"
 
 #ifdef LIBRPA_USE_LIBRI
 #include <RI/global/Tensor.h>

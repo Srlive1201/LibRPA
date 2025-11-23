@@ -8,7 +8,7 @@
 #include <cassert>
 // #include <iostream>
 
-#include "complexmatrix.h"
+#include "math/complexmatrix.h"
 // #include "stl_io_helper.h"
 
 namespace LIBRPA

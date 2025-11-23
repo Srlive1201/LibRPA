@@ -1,4 +1,4 @@
-#include "../matrix.h"
+#include "../math/matrix.h"
 #include <stdexcept>
 #include <cstdlib>
 #include <ctime>

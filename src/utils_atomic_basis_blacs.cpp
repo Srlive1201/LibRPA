@@ -8,7 +8,7 @@
 #include "base_mpi.h"
 #include "base_utility.h"
 #include "profiler.h"
-#include "scalapack_connector.h"
+#include "math/scalapack_connector.h"
 
 // #include "stl_io_helper.h"
 

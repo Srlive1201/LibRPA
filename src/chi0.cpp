@@ -2,7 +2,7 @@
 #include <cstring>
 #include <ctime>
 #include "envs_io.h"
-#include "utils_matrix_mpi.h"
+#include "math/utils_matrix_mpi.h"
 #include "envs_mpi.h"
 #include "profiler.h"
 #include "chi0.h"
@@ -14,13 +14,13 @@
 #include "pbc.h"
 #include "ri.h"
 #include <omp.h>
-#include "matrix.h"
-#include "complexmatrix.h"
-#include "lapack_connector.h"
+#include "math/matrix.h"
+#include "math/complexmatrix.h"
+#include "math/lapack_connector.h"
 #include "pbc.h"
 #include "constants.h"
 #include "params.h"
-#include "scalapack_connector.h"
+#include "math/scalapack_connector.h"
 #ifdef LIBRPA_USE_LIBRI
 #include <RI/physics/RPA.h>
 #endif

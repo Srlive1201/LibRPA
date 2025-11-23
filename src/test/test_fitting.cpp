@@ -1,4 +1,4 @@
-#include "../fitting.h"
+#include "../math/fitting.h"
 #include "testutils.h"
 
 #include <cmath>

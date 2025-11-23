@@ -12,26 +12,26 @@
 #include <stdexcept>
 
 #include "base_utility.h"
-#include "lapack_connector.h"
+#include "math/lapack_connector.h"
 #include "constants.h"
 #include "envs_io.h"
 #include "envs_mpi.h"
-#include "matrix_m.h"
+#include "math/matrix_m.h"
 #include "utils_io.h"
 #include "utils_mpi_io.h"
 #include "utils_mem.h"
 #include "stl_io_helper.h"
 #include "libri_utils.h"
-#include "utils_matrix_m_mpi.h"
-#include "utils_matrix_mpi.h"
+#include "math/utils_matrix_m_mpi.h"
+#include "math/utils_matrix_mpi.h"
 #include "envs_blacs.h"
 #include "utils_atomic_basis_blacs.h"
 #include "params.h"
 #include "pbc.h"
 #include "atoms.h"
 #include "profiler.h"
-#include "scalapack_connector.h"
-#include "vector3_order.h"
+#include "math/scalapack_connector.h"
+#include "math/vector3_order.h"
 
 #ifdef LIBRPA_USE_LIBRI
 #include <RI/comm/mix/Communicate_Tensors_Map_Judge.h>

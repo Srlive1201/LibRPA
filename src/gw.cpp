@@ -3,7 +3,7 @@
 #include "atomic_basis.h"
 #include "constants.h"
 #include "envs_io.h"
-#include "utils_matrix_m_mpi.h"
+#include "math/utils_matrix_m_mpi.h"
 #include "profiler.h"
 #include "params.h"
 #include "geometry.h"

@@ -1,4 +1,4 @@
-#include "../complexmatrix.h"
+#include "../math/complexmatrix.h"
 #include "testutils.h"
 #include <random>
 #include <ctime>

@@ -1,10 +1,10 @@
 #include "meanfield.h"
-#include "lapack_connector.h"
+#include "math/lapack_connector.h"
 #include "constants.h"
 #include <stdexcept>
 #include <iostream>
 #include "envs_mpi.h"
-#include "utils_matrix_mpi.h"
+#include "math/utils_matrix_mpi.h"
 
 void MeanField::resize(int ns, int nk, int nb, int nao)
 {

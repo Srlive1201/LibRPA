@@ -7,9 +7,9 @@
 
 #include <vector>
 #include <map>
-#include "matrix.h"
-#include "complexmatrix.h"
-#include "vector3_order.h"
+#include "math/matrix.h"
+#include "math/complexmatrix.h"
+#include "math/vector3_order.h"
 
 //! Object of the meanfield input of Green's function
 /*!

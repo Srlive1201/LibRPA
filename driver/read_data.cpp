@@ -13,7 +13,7 @@
 #include "atoms.h"
 #include "atomic_basis.h"
 #include "constants.h"
-#include "matrix.h"
+#include "math/matrix.h"
 #include "ri.h"
 #include "pbc.h"
 #include "geometry.h"

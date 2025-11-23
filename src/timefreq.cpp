@@ -8,7 +8,7 @@
 #include <algorithm>
 
 #include "base_utility.h"
-#include "mathtools.h"
+#include "math/mathtools.h"
 #include "utils_io.h"
 #include "get_minimax.h"
 

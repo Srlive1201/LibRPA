@@ -7,10 +7,10 @@
 #include <string>
 #include <vector>
 
-#include "matrix.h"
+#include "math/matrix.h"
 #include "meanfield.h"
 #include "ri.h"
-#include "vector3_order.h"
+#include "math/vector3_order.h"
 
 using std::string;
 

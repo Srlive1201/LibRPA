@@ -2,7 +2,7 @@
 #define SCALAPACK_CONNECTOR_H
 
 #include <complex>
-#include "interface/blacs_scalapack.h"
+#include "../interface/blacs_scalapack.h"
 #include "lapack_connector.h"
 
 class ScalapackConnector

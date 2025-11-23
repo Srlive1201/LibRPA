@@ -29,7 +29,6 @@ list(APPEND lib_sources
         base_mpi.cpp
         # cal_periodic_chi0.cpp
         chi0.cpp
-        complexmatrix.cpp
         constants.cpp
         coulmat.cpp
         dielecmodel.cpp
@@ -37,20 +36,24 @@ list(APPEND lib_sources
 
         global/instance_manager.cpp
 
+        math/complexmatrix.cpp
+        math/fitting.cpp
+        math/interpolate.cpp
+        math/mathtools.cpp
+        math/matrix.cpp
+        math/matrix3.cpp
+        math/utils_matrix_mpi.cpp
+        math/vector3_order.cpp
+
         envs_blacs.cpp
         envs_io.cpp
         envs_mpi.cpp
         epsilon.cpp
         exx.cpp
-        fitting.cpp
         geometry.cpp
         gw.cpp
         librpa.cpp
         librpa_main.cpp
-        interpolate.cpp
-        mathtools.cpp
-        matrix.cpp
-        matrix3.cpp
         meanfield.cpp
         params.cpp
         pbc.cpp
@@ -63,8 +66,6 @@ list(APPEND lib_sources
         utils_mem.cpp
         utils_blacs.cpp
         utils_timefreq.cpp
-        utils_matrix_mpi.cpp
-        vector3_order.cpp
 
         librpa_compute.cpp
         librpa_global.cpp

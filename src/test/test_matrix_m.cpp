@@ -1,4 +1,4 @@
-#include "../matrix_m.h"
+#include "../math/matrix_m.h"
 #include "testutils.h"
 
 static void test_constuctor()

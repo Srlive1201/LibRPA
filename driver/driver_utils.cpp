@@ -3,9 +3,9 @@
 #include <cassert>
 #include <stdexcept>
 
-#include "fitting.h"
+#include "math/fitting.h"
 #include "dielecmodel.h"
-#include "interpolate.h"
+#include "math/interpolate.h"
 
 
 std::vector<double> interpolate_dielec_func(int option, const std::vector<double> &frequencies_in,

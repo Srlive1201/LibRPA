@@ -8,8 +8,8 @@
 #include <vector>
 #include <string>
 
-#include "complexmatrix.h"
-#include "matrix.h"
+#include "math/complexmatrix.h"
+#include "math/matrix.h"
 
 //! Object to handle time/frequency grids for quadrature
 /*!

@@ -16,10 +16,10 @@
 #include <utility>
 #include <ostream>
 
-#include "base_utility.h"
+#include "../base_utility.h"
 #include "lapack_connector.h"
 #include "vec.h"
-#include "utils_io.h"
+#include "../utils_io.h"
 
 //! type alias for functors to map 2D array index to flatten array index
 typedef std::function<int(const int& nr, const int& ir, const int& nc, const int& ic)> Indx_picker_2d;

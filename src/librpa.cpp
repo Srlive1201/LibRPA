@@ -20,7 +20,7 @@
 
 #include "atoms.h"
 #include "constants.h"
-#include "matrix_m.h"
+#include "math/matrix_m.h"
 #include "librpa_main.h"
 #include "meanfield.h"
 #include "params.h"

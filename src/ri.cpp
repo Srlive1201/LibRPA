@@ -5,7 +5,7 @@
 #include "envs_mpi.h"
 #include "utils_io.h"
 #include "params.h"
-#include "utils_matrix_mpi.h"
+#include "math/utils_matrix_mpi.h"
 #include "pbc.h"
 
 int n_irk_points;
