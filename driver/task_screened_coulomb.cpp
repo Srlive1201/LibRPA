@@ -1,7 +1,7 @@
 #include "task_screened_coulomb.h"
 
 #include "mpi/envs_blacs.h"
-#include "profiler.h"
+#include "utils/profiler.h"
 #include "params.h"
 #include "chi0.h"
 #include "epsilon.h"

@@ -12,7 +12,7 @@
 #include "exx.h"
 #include "constants.h"
 #include "coulmat.h"
-#include "profiler.h"
+#include "utils/profiler.h"
 #include "ri.h"
 #include "math/utils_matrix_m_mpi.h"
 

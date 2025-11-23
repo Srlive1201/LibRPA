@@ -2,7 +2,7 @@
 
 #include "../mpi/envs_mpi.h"
 #include "../envs_io.h"
-#include "../stl_io_helper.h"
+#include "../utils/stl_io_helper.h"
 
 #include "testutils.h"
 

@@ -1,5 +1,5 @@
 #include "base_blacs.h"
-#include "base_utility.h"
+#include "../utils/base_utility.h"
 
 #include "interface/blacs_scalapack.h"
 #include "utils_io.h"

@@ -3,7 +3,7 @@
 #include "mpi/envs_mpi.h"
 #include "envs_io.h"
 
-#include "profiler.h"
+#include "utils/profiler.h"
 #include "math/matrix_m.h"
 
 #include "read_data.h"

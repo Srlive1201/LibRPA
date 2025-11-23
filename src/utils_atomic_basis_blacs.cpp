@@ -6,8 +6,8 @@
 #include <stdexcept>
 
 #include "mpi/base_mpi.h"
-#include "base_utility.h"
-#include "profiler.h"
+#include "utils/base_utility.h"
+#include "utils/profiler.h"
 #include "math/scalapack_connector.h"
 
 // #include "stl_io_helper.h"

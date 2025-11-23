@@ -19,9 +19,9 @@ set_target_properties(rpa_lib PROPERTIES
 )
 
 configure_file(envs_cmake.cpp.in envs_cmake.cpp)
+
 list(APPEND lib_sources
-        # aperiodic_chi0.cpp
-        analycont.cpp
+        ${CMAKE_CURRENT_BINARY_DIR}/envs_cmake.cpp
 
         api/app_exx.cpp
         api/app_rpa.cpp
@@ -33,13 +33,25 @@ list(APPEND lib_sources
         api/librpa.cpp
         api/librpa_main.cpp
 
+        analycont.cpp
         atomic_basis.cpp
-        # cal_periodic_chi0.cpp
         chi0.cpp
         constants.cpp
         coulmat.cpp
         dielecmodel.cpp
-        ${CMAKE_CURRENT_BINARY_DIR}/envs_cmake.cpp
+        envs_io.cpp
+        epsilon.cpp
+        exx.cpp
+        geometry.cpp
+        gw.cpp
+        meanfield.cpp
+        params.cpp
+        pbc.cpp
+        qpe_solver.cpp
+        ri.cpp
+        timefreq.cpp
+        utils_atomic_basis_blacs.cpp
+        utils_timefreq.cpp
 
         global/instance_manager.cpp
 
@@ -58,22 +70,9 @@ list(APPEND lib_sources
         mpi/envs_mpi.cpp
         mpi/utils_blacs.cpp
 
-        envs_io.cpp
-        epsilon.cpp
-        exx.cpp
-        geometry.cpp
-        gw.cpp
-        meanfield.cpp
-        params.cpp
-        pbc.cpp
-        profiler.cpp
-        qpe_solver.cpp
-        ri.cpp
-        timefreq.cpp
-        utils_atomic_basis_blacs.cpp
-        utils_cmake.cpp
-        utils_mem.cpp
-        utils_timefreq.cpp
+        utils/utils_cmake.cpp
+        utils/profiler.cpp
+        utils/utils_mem.cpp
 )
 
 if(USE_GREENX_API)

@@ -10,7 +10,7 @@
 
 // #include "envs_mpi.h"
 #include "matrix_m.h"
-#include "../profiler.h"
+#include "../utils/profiler.h"
 #include "scalapack_connector.h"
 #include "../utils_atomic_basis_blacs.h"
 // #include "utils_io.h"

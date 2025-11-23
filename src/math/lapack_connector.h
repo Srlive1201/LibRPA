@@ -6,7 +6,7 @@
 #include <stdexcept>
 #include <iostream>
 #include <cassert>
-#include "../base_utility.h"
+#include "../utils/base_utility.h"
 #include "matrix.h"
 #include "complexmatrix.h"
 #include "../interface/blas_lapack.h"

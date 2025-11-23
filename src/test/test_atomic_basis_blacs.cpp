@@ -2,7 +2,7 @@
 #include "../mpi/envs_mpi.h"
 #include "../utils_atomic_basis_blacs.h"
 
-#include "../stl_io_helper.h"
+#include "../utils/stl_io_helper.h"
 #include "../mpi/base_blacs.h"
 #include "testutils.h"
 

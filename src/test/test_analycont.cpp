@@ -1,6 +1,6 @@
 #include "../analycont.h"
 #include "../constants.h"
-#include "../stl_io_helper.h"
+#include "../utils/stl_io_helper.h"
 
 #include <cassert>
 #include "testutils.h"

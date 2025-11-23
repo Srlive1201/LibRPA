@@ -31,7 +31,7 @@
 #include <initializer_list>
 #include <RI/global/Tensor.h>
 #else
-#include "libri_stub.h"
+#include "../utils/libri_stub.h"
 #endif
 
 #include "app_rpa.h"

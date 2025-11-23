@@ -15,9 +15,9 @@
 #ifdef LIBRPA_USE_LIBRI
 #include <RI/global/Tensor.h>
 #else
-#include "libri_stub.h"
+#include "utils/libri_stub.h"
 #endif
-#include "libri_utils.h"
+#include "utils/libri_utils.h"
 
 extern int n_irk_points;
 extern int natom;

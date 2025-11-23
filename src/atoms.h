@@ -15,7 +15,7 @@
 /* #include "vector3.h" */
 /* #include "matrix3.h" */
 
-#include "base_utility.h"
+#include "utils/base_utility.h"
 
 using std::vector;
 using std::map;

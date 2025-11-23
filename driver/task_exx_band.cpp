@@ -8,7 +8,7 @@
 #include "exx.h"
 #include "constants.h"
 #include "coulmat.h"
-#include "profiler.h"
+#include "utils/profiler.h"
 #include "ri.h"
 
 #include "mpi/envs_mpi.h"

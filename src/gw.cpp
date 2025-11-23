@@ -4,19 +4,19 @@
 #include "constants.h"
 #include "envs_io.h"
 #include "math/utils_matrix_m_mpi.h"
-#include "profiler.h"
+#include "utils/profiler.h"
 #include "params.h"
 #include "geometry.h"
 #include "epsilon.h"
 #include "pbc.h"
-#include "libri_utils.h"
+#include "utils/libri_utils.h"
 #include "mpi/envs_mpi.h"
 #include "mpi/envs_blacs.h"
 #include "utils_io.h"
-#include "utils_mem.h"
+#include "utils/utils_mem.h"
 #include "mpi/utils_mpi_io.h"
 #include "utils_atomic_basis_blacs.h"
-#include "stl_io_helper.h"
+#include "utils/stl_io_helper.h"
 
 #include <map>
 #include <functional>

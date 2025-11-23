@@ -16,7 +16,7 @@
 #include <utility>
 #include <ostream>
 
-#include "../base_utility.h"
+#include "../utils/base_utility.h"
 #include "lapack_connector.h"
 #include "vec.h"
 #include "../utils_io.h"

@@ -7,7 +7,7 @@
 
 #include "../mpi/utils_blacs.h"
 
-#include "../stl_io_helper.h"
+#include "../utils/stl_io_helper.h"
 #include "testutils.h"
 
 using namespace LIBRPA;

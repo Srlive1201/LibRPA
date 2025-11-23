@@ -20,11 +20,11 @@
 #include "mpi/envs_mpi.h"
 #include "envs_io.h"
 #include "utils_io.h"
-#include "stl_io_helper.h"
-#include "profiler.h"
+#include "utils/stl_io_helper.h"
+#include "utils/profiler.h"
 
 #include "api/librpa.h"
-#include "utils_mem.h"
+#include "utils/utils_mem.h"
 
 using std::ifstream;
 using std::string;

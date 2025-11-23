@@ -11,7 +11,7 @@
 #include <set>
 #include <stdexcept>
 
-#include "base_utility.h"
+#include "utils/base_utility.h"
 #include "math/lapack_connector.h"
 #include "constants.h"
 #include "envs_io.h"
@@ -19,9 +19,9 @@
 #include "math/matrix_m.h"
 #include "utils_io.h"
 #include "mpi/utils_mpi_io.h"
-#include "utils_mem.h"
-#include "stl_io_helper.h"
-#include "libri_utils.h"
+#include "utils/utils_mem.h"
+#include "utils/stl_io_helper.h"
+#include "utils/libri_utils.h"
 #include "math/utils_matrix_m_mpi.h"
 #include "math/utils_matrix_mpi.h"
 #include "mpi/envs_blacs.h"
@@ -29,7 +29,7 @@
 #include "params.h"
 #include "pbc.h"
 #include "atoms.h"
-#include "profiler.h"
+#include "utils/profiler.h"
 #include "math/scalapack_connector.h"
 #include "math/vector3_order.h"
 
