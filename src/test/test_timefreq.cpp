@@ -1,6 +1,6 @@
 #include "../core/timefreq.h"
 
-#include "../mpi/envs_mpi.h"
+#include "../global/mpi_handler.h"
 #include "../utils/envs_io.h"
 #include "../utils/stl_io_helper.h"
 
@@ -121,6 +121,7 @@ void check_minimax_ng6_HF_123()
 int main (int argc, char **argv)
 {
     using namespace librpa_int::envs;
+    using namespace librpa_int::global;
     int provided;
     MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
     initialize_mpi(MPI_COMM_WORLD);

@@ -6,7 +6,7 @@
 #include "../src/core/chi0.h"
 #include "../src/core/epsilon.h"
 #include "../src/core/pbc.h"
-#include "../src/mpi/envs_mpi.h"
+#include "../src/global/mpi_handler.h"
 #include "../src/utils/utils_io.h"
 #include "../src/core/utils_timefreq.h"
 
@@ -17,6 +17,7 @@
 void task_screened_coulomb_real_freq()
 {
     using namespace librpa_int::envs;
+    using namespace librpa_int::global;
     using librpa_int::utils::lib_printf;
 
     Profiler::start("Wc_Rf", "Build Screened Coulomb: R and freq. space");

@@ -15,7 +15,7 @@
 #include "../math/lapack_connector.h"
 #include "../utils/constants.h"
 #include "../utils/envs_io.h"
-#include "../mpi/envs_mpi.h"
+#include "../global/mpi_handler.h"
 #include "../math/matrix_m.h"
 #include "../utils/utils_io.h"
 #include "../mpi/utils_mpi_io.h"
@@ -41,7 +41,7 @@ using RI::Communicate_Tensors_Map_Judge::comm_map2_first;
 #endif
 
 using librpa_int::utils::init_local_mat;
-using librpa_int::envs::mpi_comm_global_h;
+using librpa_int::global::mpi_comm_global_h;
 using librpa_int::envs::blacs_ctxt_global_h;
 using librpa_int::ArrayDesc;
 using librpa_int::envs::ofs_myid;
@@ -2082,7 +2082,7 @@ FT_Wc_freq_q(map<double, std::map<Vector3_Order<double>, Matz>> &Wc_freq_q,
         }
     }
     coeff_k2r *= 1.0 / n_k_points;
-    // if (librpa_int::envs::myid_global == 0) cout << coeff_k2r << endl;
+    // if (librpa_int::global::myid_global == 0) cout << coeff_k2r << endl;
 
     // Divide into batches to limit the memory consumption of temporary matrices for Fourier transform
     // Maximal 1GB per process for HPC usage, about 500 * 500 elements with 216 k-points (6x6x6)

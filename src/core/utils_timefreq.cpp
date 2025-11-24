@@ -1,6 +1,6 @@
 #include "utils_timefreq.h"
 
-#include "../mpi/envs_mpi.h"
+#include "../global/mpi_handler.h"
 #include "../utils/utils_io.h"
 
 
@@ -53,7 +53,7 @@ TFGrids generate_timefreq_grids(unsigned ngrids, const std::string &grid_type_st
     {
         case (TFGrids::GRID_TYPES::Minimax):
         {
-            if (envs::mpi_comm_global_h.is_root())
+            if (global::mpi_comm_global_h.is_root())
             {
                 librpa_int::utils::lib_printf("Cosine transform duality error: %20.12f\n", retval);
             }

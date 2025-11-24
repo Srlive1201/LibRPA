@@ -1,7 +1,7 @@
 #include "../mpi/base_blacs.h"
 #include "../mpi/envs_blacs.h"
 
-#include "../mpi/envs_mpi.h"
+#include "../global/mpi_handler.h"
 
 #include "testutils.h"
 
@@ -75,6 +75,8 @@ void test_arraydesc()
 int main (int argc, char *argv[])
 {
     using namespace librpa_int::envs;
+    using namespace librpa_int::global;
+
     int provided;
     MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
 

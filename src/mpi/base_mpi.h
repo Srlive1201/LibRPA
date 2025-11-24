@@ -1,6 +1,6 @@
 #pragma once
 
-#include <mpi.h>
+#include "../interface/mpi.h"
 
 #include <string>
 #include <vector>

@@ -1,7 +1,7 @@
 #pragma once
 
 // MPI related
-#ifdef __USE_MPI__
+#ifdef LIBRPA_USE_MPI
 #include <mpi.h>
 #else
 
@@ -13,6 +13,34 @@
 
 #ifndef MPI_Comm
 #define MPI_Comm int
+#endif
+
+#ifndef MPI_Datatype
+#define MPI_Datatype int
+#endif
+
+#ifndef MPI_INT
+#define MPI_INT 4
+#endif
+
+#ifndef MPI_FLOAT
+#define MPI_FLOAT 4
+#endif
+
+#ifndef MPI_DOUBLE
+#define MPI_DOUBLE 8
+#endif
+
+#ifndef MPI_LONG
+#define MPI_LONG 8
+#endif
+
+#ifndef MPI_C_FLOAT_COMPLEX
+#define MPI_C_FLOAT_COMPLEX 8
+#endif
+
+#ifndef MPI_C_DOUBLE_COMPLEX
+#define MPI_C_DOUBLE_COMPLEX 16
 #endif
 
 #endif

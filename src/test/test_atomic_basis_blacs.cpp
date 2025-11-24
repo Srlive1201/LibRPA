@@ -1,5 +1,5 @@
 #include "../mpi/envs_blacs.h"
-#include "../mpi/envs_mpi.h"
+#include "../global/mpi_handler.h"
 #include "../core/utils_atomic_basis_blacs.h"
 
 #include "../utils/stl_io_helper.h"
@@ -13,6 +13,7 @@
 static void test_ap_to_blacs_global_indices_communicate()
 {
     using namespace librpa_int::envs;
+    using namespace librpa_int::global;
 
     blacs_ctxt_global_h.set_square_grid(true, librpa_int::CTXT_LAYOUT::R);
     // Process grid:
@@ -220,6 +221,7 @@ static void test_ap_to_blacs_global_indices_communicate()
 static void test_ap_to_blacs_local_indices_communicate()
 {
     using namespace librpa_int::envs;
+    using namespace librpa_int::global;
 
     const size_t m = 4;
     const size_t n = m;
@@ -319,6 +321,7 @@ static void test_ap_to_blacs_local_indices_communicate()
 static void test_ap_to_blacs_global_indices_sy_communicate()
 {
     using namespace librpa_int::envs;
+    using namespace librpa_int::global;
 
     const size_t m = 4;
     const size_t n = m;
@@ -378,6 +381,7 @@ static void test_ap_to_blacs_global_indices_sy_communicate()
 static void test_ap_to_blacs_local_indices_sy_communicate()
 {
     using namespace librpa_int::envs;
+    using namespace librpa_int::global;
 
     const size_t m = 4;
     const size_t n = m;
@@ -463,6 +467,7 @@ static void test_ap_to_blacs_local_indices_sy_communicate()
 static void test_blacs_to_ap_global_indices_communicate()
 {
     using namespace librpa_int::envs;
+    using namespace librpa_int::global;
 
     const size_t m = 4;
     const size_t n = m;
@@ -652,6 +657,7 @@ static void test_blacs_to_ap_global_indices_communicate()
 static void test_blacs_to_ap_local_indices_communicate()
 {
     using namespace librpa_int::envs;
+    using namespace librpa_int::global;
 
     const size_t m = 4;
     const size_t n = m;
@@ -795,6 +801,7 @@ static void test_blacs_to_ap_local_indices_communicate()
 static void test_blacs_to_ap_global_indices_sy_communicate()
 {
     using namespace librpa_int::envs;
+    using namespace librpa_int::global;
 
     const size_t m = 4;
     const size_t n = m;
@@ -867,6 +874,7 @@ static void test_blacs_to_ap_global_indices_sy_communicate()
 static void test_blacs_to_ap_local_indices_sy_communicate()
 {
     using namespace librpa_int::envs;
+    using namespace librpa_int::global;
 
     const size_t m = 4;
     const size_t n = m;
@@ -976,6 +984,7 @@ static void test_blacs_to_ap_local_indices_sy_communicate()
 static void test_index_scheduler()
 {
     using namespace librpa_int::envs;
+    using namespace librpa_int::global;
 
     blacs_ctxt_global_h.set_square_grid(true, librpa_int::CTXT_LAYOUT::R);
     // Process grid:
@@ -1158,6 +1167,8 @@ static void test_get_balanced_ap()
 int main (int argc, char *argv[])
 {
     using namespace librpa_int::envs;
+    using namespace librpa_int::global;
+
     int provided;
     MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
 

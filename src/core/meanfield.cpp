@@ -6,7 +6,7 @@
 #include "../utils/constants.h"
 #include "../math/lapack_connector.h"
 #include "../math/utils_matrix_mpi.h"
-#include "../mpi/envs_mpi.h"
+#include "../global/mpi_handler.h"
 
 void MeanField::resize(int ns, int nk, int nb, int nao)
 {
@@ -215,7 +215,7 @@ std::map<double, std::map<Vector3_Order<int>, matrix>> MeanField::get_gf_real_im
 
 void MeanField::allredue_wfc_isk()
 {
-    using librpa_int::envs::mpi_comm_global_h;
+    using librpa_int::global::mpi_comm_global_h;
 
     for(int is=0;is!=n_spins;is++)
         for(int ik=0;ik!=n_kpoints;ik++)

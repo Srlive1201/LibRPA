@@ -1,18 +1,18 @@
 #pragma once
 #include <omp.h>
 
+#include <cassert>
 #include <functional>
 #include <map>
-#include <cassert>
 #include <stdexcept>
-#include <unordered_set>
 #include <unordered_map>
+#include <unordered_set>
 
 // #include "envs_mpi.h"
-#include "matrix_m.h"
-#include "../utils/profiler.h"
-#include "scalapack_connector.h"
 #include "../core/utils_atomic_basis_blacs.h"
+#include "../utils/profiler.h"
+#include "matrix_m.h"
+#include "scalapack_connector.h"
 // #include "utils_io.h"
 #ifdef LIBRPA_USE_LIBRI
 #include <RI/global/Tensor.h>
@@ -906,7 +906,7 @@ matrix_m<T> get_local_mat_from_ap_dist(const std::unordered_map<atpair_t, matrix
 
     // Initialize return matrix
     auto m_loc = init_local_mat<T>(ad, major_data);
-    // cout << envs::myid_global << " " << m_loc.size() << " " << ad.m_loc() << " " << ad.n_loc()<< endl;
+    // cout << global::myid_global << " " << m_loc.size() << " " << ad.m_loc() << " " << ad.n_loc()<< endl;
     fill_local_mat_from_ap_dist(m_loc, data, map_proc_IJs_avail, atbasis_r, atbasis_c, ad);
     return m_loc;
 }
@@ -923,7 +923,7 @@ get_local_mat_from_ap_dist_scheduler(const std::unordered_map<atpair_t, matrix_m
 
     // Initialize return matrix
     auto m_loc = init_local_mat<T>(ad, major_data);
-    // cout << envs::myid_global << " " << m_loc.size() << " " << ad.m_loc() << " " << ad.n_loc()<< endl;
+    // cout << global::myid_global << " " << m_loc.size() << " " << ad.m_loc() << " " << ad.n_loc()<< endl;
     fill_local_mat_from_ap_dist_scheduler(m_loc, data, sched, atbasis_r, atbasis_c, ad);
     return m_loc;
 }
@@ -1334,7 +1334,7 @@ get_ap_map_from_blacs_dist(const matrix_m<T> &m_loc,
 {
     assert(ad.initialized());
 
-    // cout << envs::myid_global
+    // cout << global::myid_global
     //      << " " << m_loc.size()
     //      << " " << m_loc.nr() << " " << m_loc.nc()
     //      << " " << ad.m_loc() << " " << ad.n_loc()<< endl;
@@ -1359,7 +1359,7 @@ get_ap_map_from_blacs_dist_scheduler(const matrix_m<T> &m_loc,
     assert(sched.initialized());
     assert(ad.initialized());
 
-    // cout << envs::myid_global
+    // cout << global::myid_global
     //      << " " << m_loc.size()
     //      << " " << m_loc.nr() << " " << m_loc.nc()
     //      << " " << ad.m_loc() << " " << ad.n_loc()<< endl;

@@ -7,7 +7,7 @@
 
 #include "../math/utils_matrix_m_mpi.h"
 #include "../mpi/envs_blacs.h"
-#include "../mpi/envs_mpi.h"
+#include "../global/mpi_handler.h"
 #include "../mpi/utils_mpi_io.h"
 #include "../utils/constants.h"
 #include "../utils/envs_io.h"
@@ -60,7 +60,7 @@ void G0W0::build_spacetime(
     std::map<double, std::map<Vector3_Order<double>, matrix_m<complex<double>>>> &Wc_freq_q,
     const std::vector<Vector3_Order<int>> &Rlist)
 {
-    using librpa_int::envs::mpi_comm_global_h;
+    using librpa_int::global::mpi_comm_global_h;
 
     if(parallel_routing != ParallelRouting::LIBRI)
     {
@@ -267,7 +267,7 @@ void G0W0::build_spacetime(
                 ss << Params::output_dir << "SigcRT"
                     << "_ispin_" << std::setfill('0') << std::setw(5) << ispin
                     << "_itau_" << std::setfill('0') << std::setw(5) << itau
-                    << "_myid_" << std::setfill('0') << std::setw(5) << envs::myid_global << ".dat";
+                    << "_myid_" << std::setfill('0') << std::setw(5) << global::myid_global << ".dat";
                 ofs_sigmac_r.open(ss.str(), std::ios::out | std::ios::binary);
                 ofs_sigmac_r.write((char *) &n_IJR_myid, sizeof(size_t)); // placeholder
             }
@@ -373,7 +373,7 @@ void G0W0::build_spacetime(
                 ss << Params::output_dir << "SigcRF"
                     << "_ispin_" << std::setfill('0') << std::setw(5) << ispin
                     << "_iomega_" << std::setfill('0') << std::setw(5) << iomega
-                    << "_myid_" << std::setfill('0') << std::setw(5) << envs::myid_global << ".dat";
+                    << "_myid_" << std::setfill('0') << std::setw(5) << global::myid_global << ".dat";
                 ofs_sigmac_r.open(ss.str(), std::ios::out | std::ios::binary);
                 ofs_sigmac_r.write((char *) &n_IJR_myid, sizeof(size_t)); // placeholder
 
@@ -416,7 +416,7 @@ void G0W0::build_spacetime(
 void G0W0::build_sigc_matrix_KS(const std::vector<std::vector<ComplexMatrix>> &wfc_target,
                                 const std::vector<Vector3_Order<double>> &kfrac_target)
 {
-    using librpa_int::envs::mpi_comm_global_h;
+    using librpa_int::global::mpi_comm_global_h;
     using librpa_int::envs::blacs_ctxt_global_h;
     using librpa_int::utils::init_local_mat;
     using librpa_int::utils::get_local_mat;
@@ -591,8 +591,8 @@ void G0W0::build_sigc_matrix_KS(const std::vector<std::vector<ComplexMatrix>> &w
 
 void G0W0::build_sigc_matrix_KS_kgrid()
 {
-    librpa_int::envs::mpi_comm_global_h.barrier();
-    if (librpa_int::envs::mpi_comm_global_h.myid == 0)
+    librpa_int::global::mpi_comm_global_h.barrier();
+    if (librpa_int::global::mpi_comm_global_h.myid == 0)
     {
         librpa_int::utils::lib_printf("build_sigc_matrix_KS_kgrid: constructing self-energy matrix for SCF k-grid\n");
     }
@@ -602,8 +602,8 @@ void G0W0::build_sigc_matrix_KS_kgrid()
 void G0W0::build_sigc_matrix_KS_band(const std::vector<std::vector<ComplexMatrix>> &wfc,
                                      const std::vector<Vector3_Order<double>> &kfrac_band)
 {
-    librpa_int::envs::mpi_comm_global_h.barrier();
-    if (librpa_int::envs::mpi_comm_global_h.myid == 0)
+    librpa_int::global::mpi_comm_global_h.barrier();
+    if (librpa_int::global::mpi_comm_global_h.myid == 0)
     {
         librpa_int::utils::lib_printf("build_sigc_matrix_KS_kgrid: constructing self-energy matrix for band k-path\n");
     }

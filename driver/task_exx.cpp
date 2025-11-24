@@ -6,7 +6,7 @@
 // src headers
 #include "../src/api/app_exx.h"
 #include "../src/core/meanfield.h"
-#include "../src/mpi/envs_mpi.h"
+#include "../src/global/mpi_handler.h"
 #include "../src/utils/constants.h"
 #include "../src/utils/utils_io.h"
 #include "../src/core/pbc.h"
@@ -18,7 +18,7 @@
 
 void task_exx()
 {
-    using librpa_int::envs::mpi_comm_global_h;
+    using librpa_int::global::mpi_comm_global_h;
     using librpa_int::utils::lib_printf;
 
     // Load the cut coulomb data

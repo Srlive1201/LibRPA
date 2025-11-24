@@ -2,7 +2,7 @@
 
 #include "../utils/envs_io.h"
 #include "../utils/utils_io.h"
-#include "envs_mpi.h"
+#include "../global/mpi_handler.h"
 
 namespace librpa_int
 {
@@ -14,7 +14,7 @@ namespace utils
 template <typename... Args>
 void lib_printf_root(const char* format, Args&&... args)
 {
-    if (envs::myid_global == 0)
+    if (global::myid_global == 0)
     {
         lib_printf(format, std::forward<Args>(args)...);
     }
@@ -35,13 +35,13 @@ void lib_printf_comm_root(const librpa_int::MpiCommHandler &comm_h, const char* 
 template <typename... Args>
 void lib_printf_coll(const char* format, Args&&... args)
 {
-    for (int i = 0; i < envs::size_global; i++)
+    for (int i = 0; i < global::size_global; i++)
     {
-        if (envs::myid_global == i)
+        if (global::myid_global == i)
         {
             lib_printf(format, std::forward<Args>(args)...);
         }
-        MPI_Barrier(envs::mpi_comm_global);
+        MPI_Barrier(global::mpi_comm_global);
     }
 }
 

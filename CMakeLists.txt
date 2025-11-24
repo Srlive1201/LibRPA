@@ -120,6 +120,9 @@ if(NOT _loaded_cmake_inc)
   include_directories(${MPI_CXX_INCLUDE_PATH})
 endif()
 
+# TODO: always switch on MPI, until test program for MPI is implemented
+add_compile_definitions("LIBRPA_USE_MPI")
+
 include_directories(src)
 
 # Switch on LibRI functionalities, which requires Cereal, LibComm and LibRI

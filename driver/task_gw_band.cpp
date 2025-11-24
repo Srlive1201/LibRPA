@@ -18,7 +18,7 @@
 #include "../src/math/matrix_m.h"
 #include "../src/math/utils_matrix_m_mpi.h"
 #include "../src/mpi/envs_blacs.h"
-#include "../src/mpi/envs_mpi.h"
+#include "../src/global/mpi_handler.h"
 #include "../src/utils/constants.h"
 #include "../src/utils/envs_io.h"
 #include "../src/utils/profiler.h"
@@ -30,6 +30,7 @@
 void task_g0w0_band()
 {
     using namespace librpa_int::envs;
+    using namespace librpa_int::global;
     using librpa_int::utils::lib_printf;
 
     Profiler::start("g0w0_band", "G0W0 quasi-particle band structure calculation");

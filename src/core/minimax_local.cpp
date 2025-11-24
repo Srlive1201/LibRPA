@@ -1,7 +1,7 @@
 #include "minimax.h"
 
 #include "../utils/envs_cmake.h"
-#include "../mpi/envs_mpi.h"
+#include "../global/mpi_handler.h"
 
 #include <fstream>
 #include <unistd.h>
@@ -108,12 +108,12 @@ static void call_local_grid_script(int ngrids, double e_min, double e_max)
 {
     std::string tmps;
     double erange = e_max / e_min;
-    if(librpa_int::envs::mpi_comm_global_h.is_root())
+    if(librpa_int::global::mpi_comm_global_h.is_root())
     {
         tmps = "python " + GX_path + " " + std::to_string(ngrids) + " " + std::to_string(erange);
         system(tmps.c_str());
     }
-    librpa_int::envs::mpi_comm_global_h.barrier();
+    librpa_int::global::mpi_comm_global_h.barrier();
     sleep(1);
 }
 

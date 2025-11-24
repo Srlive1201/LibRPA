@@ -1,6 +1,6 @@
 #include "task_test.h"
 
-#include "../src/mpi/envs_mpi.h"
+#include "../src/global/mpi_handler.h"
 #include "../src/utils/envs_io.h"
 #include "../src/utils/profiler.h"
 #include "../src/math/matrix_m.h"
@@ -10,7 +10,7 @@
 
 void task_test()
 {
-    using librpa_int::envs::mpi_comm_global_h;
+    using librpa_int::global::mpi_comm_global_h;
     using librpa_int::envs::ofs_myid;
     using librpa_int::utils::lib_printf;
 

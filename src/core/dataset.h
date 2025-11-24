@@ -1,5 +1,5 @@
 #pragma once
-#include "../interface/mpi.h"
+#include "../mpi/base_mpi.h"
 
 namespace librpa_int
 {
@@ -9,9 +9,9 @@ namespace librpa_int
 class Dataset
 {
 public:
-    MPI_Comm comm_;
+    MpiCommHandler comm_h_;
 
-    Dataset(MPI_Comm comm): comm_(comm) {}
+    Dataset(MPI_Comm comm): comm_h_(comm) {}
 
     void free() {};
     ~Dataset() { free(); }

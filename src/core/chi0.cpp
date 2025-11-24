@@ -11,7 +11,7 @@
 #include "../math/matrix.h"
 #include "../math/scalapack_connector.h"
 #include "../math/utils_matrix_mpi.h"
-#include "../mpi/envs_mpi.h"
+#include "../global/mpi_handler.h"
 #include "../utils/constants.h"
 #include "../utils/envs_io.h"
 #include "../utils/libri_utils.h"
@@ -29,7 +29,7 @@
 #include <array>
 #include <map>
 
-using librpa_int::envs::mpi_comm_global_h;
+using librpa_int::global::mpi_comm_global_h;
 using librpa_int::ParallelRouting;
 using librpa_int::parallel_routing;
 using librpa_int::envs::ofs_myid;

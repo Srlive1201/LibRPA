@@ -3,7 +3,7 @@
 
 #include "../src/core/atomic_basis.h"
 #include "../src/utils/envs_io.h"
-#include "../src/mpi/envs_mpi.h"
+#include "../src/global/mpi_handler.h"
 #include "../src/mpi/envs_blacs.h"
 #include "../src/core/timefreq.h"
 #include "../src/api/librpa.h"
@@ -50,6 +50,7 @@ static void initialize(int argc, char **argv)
 static void finalize(bool success)
 {
     using namespace librpa_int::envs;
+    using namespace librpa_int::global;
     using librpa_int::utils::lib_printf;
 
     Profiler::stop("total");
@@ -73,7 +74,8 @@ static void finalize(bool success)
 
 int main(int argc, char **argv)
 {
-    using librpa_int::envs::mpi_comm_global_h;
+    using librpa_int::global::mpi_comm_global_h;
+    using librpa_int::global::mpi_comm_global;
     using librpa_int::envs::blacs_ctxt_global_h;
     using librpa_int::ParallelRouting;
     using librpa_int::parallel_routing;
@@ -85,12 +87,12 @@ int main(int argc, char **argv)
     using librpa_int::utils::lib_printf_comm_coll;
 
     initialize(argc, argv);
-    lib_printf_root("Total number of tasks: %5d\n", librpa_int::envs::size_global);
-    lib_printf_root("Total number of nodes: %5d\n", librpa_int::envs::size_inter);
+    lib_printf_root("Total number of tasks: %5d\n", librpa_int::global::size_global);
+    lib_printf_root("Total number of nodes: %5d\n", librpa_int::global::size_inter);
     lib_printf_root("Maximumal number of threads: %3d\n", omp_get_max_threads());
     mpi_comm_global_h.barrier();
-    lib_printf_comm_coll(librpa_int::envs::mpi_comm_intra_h, "Global ID of master process of node %5d : %5d\n",
-                         librpa_int::envs::mpi_comm_inter_h.myid, librpa_int::envs::mpi_comm_global_h.myid);
+    lib_printf_comm_coll(librpa_int::global::mpi_comm_intra_h, "Global ID of master process of node %5d : %5d\n",
+                         librpa_int::global::mpi_comm_inter_h.myid, librpa_int::global::mpi_comm_global_h.myid);
     mpi_comm_global_h.barrier();
     lib_printf_coll("%s\n", mpi_comm_global_h.str().c_str());
     mpi_comm_global_h.barrier();
@@ -369,7 +371,7 @@ int main(int argc, char **argv)
 
     // Check memory usage on each node
     mpi_comm_global_h.barrier();
-    if (librpa_int::envs::mpi_comm_intra_h.myid == 0)
+    if (librpa_int::global::mpi_comm_intra_h.myid == 0)
     {
         if (mpi_comm_global_h.myid == 0)
         {
@@ -383,7 +385,7 @@ int main(int argc, char **argv)
             if (flag == 0)
             {
                 lib_printf("Free memory on node %5d [GB]: %8.3f\n",
-                           librpa_int::envs::mpi_comm_inter_h.myid, freemem);
+                           librpa_int::global::mpi_comm_inter_h.myid, freemem);
             }
         }
     }

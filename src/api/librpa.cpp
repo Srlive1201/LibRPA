@@ -21,7 +21,7 @@
 #include "../core/ri.h"
 #include "../math/matrix_m.h"
 #include "../mpi/envs_blacs.h"
-#include "../mpi/envs_mpi.h"
+#include "../global/mpi_handler.h"
 #include "../utils/constants.h"
 #include "../utils/envs_io.h"
 #include "../utils/utils_io.h"
@@ -42,7 +42,7 @@ void initialize_librpa_environment(
         MPI_Comm comm_global_in, int is_fortran_comm,
         int redirect_stdout, const char *output_filename)
 {
-    using librpa_int::envs::mpi_comm_global_h;
+    using librpa_int::global::mpi_comm_global_h;
 
     MPI_Comm comm_global;
     if (is_fortran_comm)
@@ -54,7 +54,7 @@ void initialize_librpa_environment(
         comm_global = comm_global_in;
     }
 
-    librpa_int::envs::initialize_mpi(comm_global);
+    librpa_int::global::initialize_mpi(comm_global);
     librpa_int::envs::initialize_blacs(comm_global);
     librpa_int::envs::initialize_io(redirect_stdout, output_filename);
 
@@ -66,12 +66,12 @@ void finalize_librpa_environment()
 {
     librpa_int::envs::finalize_io();
     librpa_int::envs::finalize_blacs();
-    librpa_int::envs::finalize_mpi();
+    librpa_int::global::finalize_mpi();
 }
 
 void set_dimension(int nspins, int nkpts, int nstates, int nbasis,int natoms)
 {
-    using librpa_int::envs::mpi_comm_global_h;
+    using librpa_int::global::mpi_comm_global_h;
 
     if (mpi_comm_global_h.is_root())
     {

@@ -9,7 +9,7 @@
 #include "../core/params.h"
 #include "../core/pbc.h"
 #include "../mpi/envs_blacs.h"
-#include "../mpi/envs_mpi.h"
+#include "../global/mpi_handler.h"
 #include "../utils/envs_io.h"
 #include "../utils/profiler.h"
 #include "../utils/utils_io.h"
@@ -17,7 +17,7 @@
 
 void librpa_main()
 {
-    using librpa_int::envs::mpi_comm_global_h;
+    using librpa_int::global::mpi_comm_global_h;
     using librpa_int::envs::blacs_ctxt_global_h;
     using librpa_int::utils::lib_printf;
     using librpa_int::envs::ofs_myid;

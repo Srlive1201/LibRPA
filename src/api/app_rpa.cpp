@@ -6,7 +6,7 @@
 #include "../core/pbc.h"
 #include "../core/ri.h"
 #include "../core/utils_timefreq.h"
-#include "../mpi/envs_mpi.h"
+#include "../global/mpi_handler.h"
 #include "../utils/profiler.h"
 #include "../utils/stl_io_helper.h"
 #include "../utils/utils_mem.h"
@@ -20,7 +20,7 @@ namespace app
 void get_rpa_correlation_energy_(std::complex<double> &rpa_corr,
                                  std::vector<std::complex<double>> &rpa_corr_irk_contrib)
 {
-    using librpa_int::envs::mpi_comm_global_h;
+    using librpa_int::global::mpi_comm_global_h;
     using librpa_int::utils::lib_printf;
 
     Vector3_Order<int> period {kv_nmp[0], kv_nmp[1], kv_nmp[2]};

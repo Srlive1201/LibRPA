@@ -67,7 +67,6 @@ list(APPEND lib_sources
         mpi/base_blacs.cpp
         mpi/base_mpi.cpp
         mpi/envs_blacs.cpp
-        mpi/envs_mpi.cpp
         mpi/utils_blacs.cpp
 
         utils/constants.cpp

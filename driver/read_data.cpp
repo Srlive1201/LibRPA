@@ -18,7 +18,7 @@
 #include "../src/core/pbc.h"
 #include "../src/core/ri.h"
 #include "../src/math/matrix.h"
-#include "../src/mpi/envs_mpi.h"
+#include "../src/global/mpi_handler.h"
 #include "../src/utils/constants.h"
 #include "../src/utils/envs_io.h"
 #include "../src/utils/profiler.h"
@@ -432,7 +432,7 @@ size_t read_Cs(const string &dir_path, double threshold,const vector<atpair_t> &
             {
                 binary = check_Cs_file_binary(fn);
                 binary_checked = true;
-                if (librpa_int::envs::myid_global == 0)
+                if (librpa_int::global::myid_global == 0)
                 {
                     if (binary)
                     {
@@ -806,7 +806,7 @@ void get_natom_ncell_from_first_Cs_file(int &n_atom, int &n_cell, const string &
         throw std::runtime_error("Cs_data file is not found under dir_path: " + dir_path);
 
     binary = check_Cs_file_binary(file_path);
-    if (librpa_int::envs::myid_global == 0)
+    if (librpa_int::global::myid_global == 0)
     {
         if (binary)
         {
@@ -1000,7 +1000,7 @@ size_t read_Vq_full(const string &dir_path, const string &vq_fprefix, bool is_cu
             {
                 binary = check_coulomb_file_binary(file_path);
                 binary_checked = true;
-                if (librpa_int::envs::myid_global == 0)
+                if (librpa_int::global::myid_global == 0)
                 {
                     if (binary)
                     {
@@ -1346,7 +1346,7 @@ size_t read_Vq_row(const string &dir_path, const string &vq_fprefix, double thre
             {
                 binary = check_coulomb_file_binary(file_path);
                 binary_checked = true;
-                if (librpa_int::envs::myid_global == 0)
+                if (librpa_int::global::myid_global == 0)
                 {
                     if (binary)
                     {
@@ -1446,7 +1446,7 @@ void erase_Cs_from_local_atp(atpair_R_mat_t &Cs, vector<atpair_t> &local_atpair)
     //         Cs.erase(Ip.first);
     //     }
     librpa_int::utils::release_free_mem();
-    librpa_int::utils::lib_printf("| process %d, size of Cs after erase: %lu\n", librpa_int::envs::mpi_comm_global_h.myid, Cs.size());
+    librpa_int::utils::lib_printf("| process %d, size of Cs after erase: %lu\n", librpa_int::global::mpi_comm_global_h.myid, Cs.size());
 }
 
 void read_stru(const int& n_kpoints, const std::string &file_path)

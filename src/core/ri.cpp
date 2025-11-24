@@ -3,7 +3,7 @@
 #include <memory.h>
 
 #include "../math/utils_matrix_mpi.h"
-#include "../mpi/envs_mpi.h"
+#include "../global/mpi_handler.h"
 #include "../utils/utils_io.h"
 #include "params.h"
 #include "pbc.h"
@@ -174,8 +174,8 @@ matrix reshape_mat_21(const size_t n1, const size_t n2, const size_t n3, const m
 
 void init_N_all_mu()
 {
-    using librpa_int::envs::mpi_comm_global;
-    using librpa_int::envs::mpi_comm_global_h;
+    using librpa_int::global::mpi_comm_global;
+    using librpa_int::global::mpi_comm_global_h;
     using librpa_int::utils::lib_printf;
     
     lib_printf("begin init_N_all_mu   atom_mu.size: %d  myid: %d\n",atom_mu.size(), mpi_comm_global_h.myid);
@@ -223,8 +223,8 @@ void init_N_all_mu()
 
 void allreduce_atp_aux()
 {
-    using librpa_int::envs::mpi_comm_global;
-    using librpa_int::envs::mpi_comm_global_h;
+    using librpa_int::global::mpi_comm_global;
+    using librpa_int::global::mpi_comm_global_h;
 
     if (Cs_data.use_libri)
     {
@@ -289,7 +289,7 @@ void allreduce_atp_aux()
 
 void allreduce_2D_coulomb_to_atompair(map<Vector3_Order<double>, ComplexMatrix> &Vq_loc, atpair_k_cplx_mat_t &coulomb_mat,double threshold )
 {
-    using librpa_int::envs::mpi_comm_global_h;
+    using librpa_int::global::mpi_comm_global_h;
     using librpa_int::utils::lib_printf;
 
     lib_printf("Begin allreduce_2D_coulomb_to_atompair!\n");
@@ -354,8 +354,8 @@ void allreduce_2D_coulomb_to_atompair(map<Vector3_Order<double>, ComplexMatrix> 
 
 void allreduce_atp_coulomb( atpair_k_cplx_mat_t &coulomb_mat )
 {
-    using librpa_int::envs::mpi_comm_global;
-    using librpa_int::envs::mpi_comm_global_h;
+    using librpa_int::global::mpi_comm_global;
+    using librpa_int::global::mpi_comm_global_h;
     using librpa_int::utils::lib_printf;
 
     printf("Begin allreduce_atp_coulomb!\n");

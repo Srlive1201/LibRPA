@@ -4,7 +4,7 @@
 #include <iostream>
 #include <cstdio>
 
-#include "../mpi/envs_mpi.h"
+#include "../global/mpi_handler.h"
 
 
 namespace librpa_int
@@ -29,6 +29,7 @@ static std::streambuf *cout_buf_old;
 
 void initialize_io(bool redirect_stdout_in, const char *filename)
 {
+    using namespace librpa_int::global;
     if (!is_mpi_initialized())
     {
         throw std::runtime_error(

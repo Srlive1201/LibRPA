@@ -4,7 +4,7 @@
 #include "../math/utils_matrix_m_mpi.h"
 #include "../math/vector3_order.h"
 #include "../mpi/envs_blacs.h"
-#include "../mpi/envs_mpi.h"
+#include "../global/mpi_handler.h"
 #include "../utils/envs_io.h"
 #include "../utils/libri_utils.h"
 #include "../utils/profiler.h"
@@ -109,8 +109,8 @@ void Exx::build(const Cs_LRI &Cs,
                 const vector<Vector3_Order<int>> &Rlist,
                 const atpair_R_mat_t &coul_mat)
 {
-    using librpa_int::envs::mpi_comm_global;
-    using librpa_int::envs::mpi_comm_global_h;
+    using librpa_int::global::mpi_comm_global;
+    using librpa_int::global::mpi_comm_global_h;
 
     assert (parallel_routing == ParallelRouting::LIBRI);
 
@@ -305,7 +305,7 @@ void Exx::build(const Cs_LRI &Cs,
 void Exx::build_KS(const std::vector<std::vector<ComplexMatrix>> &wfc_target,
                   const std::vector<Vector3_Order<double>> &kfrac_target)
 {
-    using librpa_int::envs::mpi_comm_global_h;
+    using librpa_int::global::mpi_comm_global_h;
     using librpa_int::envs::blacs_ctxt_global_h;
     using librpa_int::utils::init_local_mat;
     using librpa_int::utils::get_local_mat;

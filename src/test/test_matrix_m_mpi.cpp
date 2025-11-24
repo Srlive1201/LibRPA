@@ -1,7 +1,7 @@
 #include "../math/utils_matrix_m_mpi.h"
 #include "../math/utils_matrix_m.h"
 
-#include "../mpi/envs_mpi.h"
+#include "../global/mpi_handler.h"
 #include "../mpi/envs_blacs.h"
 #include "../utils/envs_io.h"
 
@@ -12,6 +12,7 @@
 
 using namespace librpa_int;
 using namespace librpa_int::envs;
+using namespace librpa_int::global;
 using namespace librpa_int::utils;
 
 template <typename T>

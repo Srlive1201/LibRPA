@@ -14,7 +14,7 @@
 #include "../src/core/utils_timefreq.h"
 #include "../src/math/utils_matrix_m_mpi.h"
 #include "../src/mpi/envs_blacs.h"
-#include "../src/mpi/envs_mpi.h"
+#include "../src/global/mpi_handler.h"
 #include "../src/utils/constants.h"
 #include "../src/utils/envs_io.h"
 #include "../src/utils/profiler.h"
@@ -26,6 +26,7 @@
 void task_g0w0()
 {
     using namespace librpa_int::envs;
+    using namespace librpa_int::global;
     using namespace librpa_int::utils;
     using librpa_int::utils::lib_printf;
 
@@ -342,7 +343,7 @@ void task_g0w0()
         // for aims analytic continuation reader
     }
     // Limit writing of file to the master process (it has all the data)
-    if (librpa_int::envs::myid_global == 0)
+    if (librpa_int::global::myid_global == 0)
     {
         write_self_energy_omega("self_energy_omega.dat", s_g0w0);
     }
