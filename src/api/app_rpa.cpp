@@ -6,7 +6,7 @@
 #include "../core/pbc.h"
 #include "../core/ri.h"
 #include "../core/utils_timefreq.h"
-#include "../global/mpi_handler.h"
+#include "../mpi/global_mpi.h"
 #include "../utils/profiler.h"
 #include "../io/stl_io_helper.h"
 #include "../utils/utils_mem.h"

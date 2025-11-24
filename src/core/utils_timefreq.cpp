@@ -1,6 +1,6 @@
 #include "utils_timefreq.h"
 
-#include "../global/mpi_handler.h"
+#include "../mpi/global_mpi.h"
 #include "../io/utils_io.h"
 
 

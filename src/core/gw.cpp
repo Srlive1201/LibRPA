@@ -7,7 +7,7 @@
 
 #include "../math/utils_matrix_m_mpi.h"
 #include "../mpi/envs_blacs.h"
-#include "../global/mpi_handler.h"
+#include "../mpi/global_mpi.h"
 #include "../io/utils_mpi_io.h"
 #include "../utils/constants.h"
 #include "../io/envs_io.h"

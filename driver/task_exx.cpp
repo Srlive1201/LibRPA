@@ -6,7 +6,7 @@
 // src headers
 #include "../src/api/app_exx.h"
 #include "../src/core/meanfield.h"
-#include "../src/global/mpi_handler.h"
+#include "../src/mpi/global_mpi.h"
 #include "../src/utils/constants.h"
 #include "../src/io/utils_io.h"
 #include "../src/core/pbc.h"

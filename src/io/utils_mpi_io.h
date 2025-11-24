@@ -2,7 +2,7 @@
 
 #include "../io/envs_io.h"
 #include "../io/utils_io.h"
-#include "../global/mpi_handler.h"
+#include "../mpi/global_mpi.h"
 
 namespace librpa_int
 {

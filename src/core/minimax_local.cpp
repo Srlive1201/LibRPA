@@ -1,7 +1,7 @@
 #include "minimax.h"
 
 #include "../utils/envs_cmake.h"
-#include "../global/mpi_handler.h"
+#include "../mpi/global_mpi.h"
 
 #include <fstream>
 #include <unistd.h>

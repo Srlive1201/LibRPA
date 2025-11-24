@@ -4,7 +4,7 @@
 #include "../math/utils_matrix_m_mpi.h"
 #include "../math/vector3_order.h"
 #include "../mpi/envs_blacs.h"
-#include "../global/mpi_handler.h"
+#include "../mpi/global_mpi.h"
 #include "../io/envs_io.h"
 #include "../utils/libri_utils.h"
 #include "../utils/profiler.h"

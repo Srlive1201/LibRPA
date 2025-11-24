@@ -21,7 +21,7 @@
 #include "../core/ri.h"
 #include "../math/matrix_m.h"
 #include "../mpi/envs_blacs.h"
-#include "../global/mpi_handler.h"
+#include "../mpi/global_mpi.h"
 #include "../utils/constants.h"
 #include "../io/envs_io.h"
 #include "../io/utils_io.h"

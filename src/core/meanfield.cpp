@@ -6,7 +6,7 @@
 #include "../utils/constants.h"
 #include "../math/lapack_connector.h"
 #include "../math/utils_matrix_mpi.h"
-#include "../global/mpi_handler.h"
+#include "../mpi/global_mpi.h"
 
 namespace librpa_int {
 

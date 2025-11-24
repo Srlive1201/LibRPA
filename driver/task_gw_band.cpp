@@ -18,7 +18,7 @@
 #include "../src/math/matrix_m.h"
 #include "../src/math/utils_matrix_m_mpi.h"
 #include "../src/mpi/envs_blacs.h"
-#include "../src/global/mpi_handler.h"
+#include "../src/mpi/global_mpi.h"
 #include "../src/utils/constants.h"
 #include "../src/io/envs_io.h"
 #include "../src/utils/profiler.h"

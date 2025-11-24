@@ -3,7 +3,7 @@
 #include <numeric>
 #include <stdexcept>
 #include <string>
-#include "../global/mpi_handler.h"
+#include "../mpi/global_mpi.h"
 
 #include "../core/ri.h"
 #include "../core/pbc.h"

@@ -3,7 +3,7 @@
 #include <memory.h>
 
 #include "../math/utils_matrix_mpi.h"
-#include "../global/mpi_handler.h"
+#include "../mpi/global_mpi.h"
 #include "../io/utils_io.h"
 #include "params.h"
 #include "pbc.h"

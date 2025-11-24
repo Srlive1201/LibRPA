@@ -3,7 +3,7 @@
 
 #include "../src/core/atomic_basis.h"
 #include "../src/io/envs_io.h"
-#include "../src/global/mpi_handler.h"
+#include "../src/mpi/global_mpi.h"
 #include "../src/mpi/envs_blacs.h"
 #include "../src/core/timefreq.h"
 #include "../src/api/librpa.h"

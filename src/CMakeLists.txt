@@ -30,6 +30,7 @@ list(APPEND lib_sources
         api/compute_test.cpp
         api/global.cpp
         api/handler.cpp
+        api/instance_manager.cpp
         api/options.cpp
         api/librpa.cpp
         api/librpa_main.cpp
@@ -54,9 +55,6 @@ list(APPEND lib_sources
 
         io/envs_io.cpp
 
-        global/instance_manager.cpp
-        global/mpi_handler.cpp
-
         math/complexmatrix.cpp
         math/fitting.cpp
         math/interpolate.cpp
@@ -70,6 +68,7 @@ list(APPEND lib_sources
         mpi/base_mpi.cpp
         mpi/envs_blacs.cpp
         mpi/utils_blacs.cpp
+        mpi/global_mpi.cpp
 
         utils/constants.cpp
         utils/profiler.cpp

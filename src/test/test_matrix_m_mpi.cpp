@@ -1,4 +1,4 @@
-#include "../global/mpi_handler.h"
+#include "../mpi/global_mpi.h"
 #include "../math/utils_matrix_m.h"
 #include "../math/utils_matrix_m_mpi.h"
 #include "../mpi/envs_blacs.h"

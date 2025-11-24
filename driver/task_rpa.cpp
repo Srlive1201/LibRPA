@@ -1,7 +1,7 @@
 #include "task_rpa.h"
 
 #include "../src/api/app_rpa.h"
-#include "../src/global/mpi_handler.h"
+#include "../src/mpi/global_mpi.h"
 #include "../src/core/ri.h"
 
 void task_rpa()

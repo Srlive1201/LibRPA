@@ -18,7 +18,7 @@
 #include "../src/core/pbc.h"
 #include "../src/core/ri.h"
 #include "../src/math/matrix.h"
-#include "../src/global/mpi_handler.h"
+#include "../src/mpi/global_mpi.h"
 #include "../src/utils/constants.h"
 #include "../src/io/envs_io.h"
 #include "../src/utils/profiler.h"

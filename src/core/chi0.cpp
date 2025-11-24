@@ -11,7 +11,7 @@
 #include "../math/matrix.h"
 #include "../math/scalapack_connector.h"
 #include "../math/utils_matrix_mpi.h"
-#include "../global/mpi_handler.h"
+#include "../mpi/global_mpi.h"
 #include "../utils/constants.h"
 #include "../io/envs_io.h"
 #include "../utils/libri_utils.h"

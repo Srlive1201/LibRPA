@@ -1,6 +1,6 @@
 #include "../core/timefreq.h"
 
-#include "../global/mpi_handler.h"
+#include "../mpi/global_mpi.h"
 #include "../io/envs_io.h"
 #include "../io/stl_io_helper.h"
 

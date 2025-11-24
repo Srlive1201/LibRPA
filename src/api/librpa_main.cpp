@@ -11,7 +11,7 @@
 #include "../mpi/envs_blacs.h"
 #include "../io/envs_io.h"
 #include "../io/utils_io.h"
-#include "../global/mpi_handler.h"
+#include "../mpi/global_mpi.h"
 #include "../utils/profiler.h"
 #include "../utils/utils_mem.h"
 

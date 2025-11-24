@@ -10,7 +10,7 @@
 namespace librpa_int
 {
 
-namespace global
+namespace api
 {
 
 //! Manager of dataset instances created by user

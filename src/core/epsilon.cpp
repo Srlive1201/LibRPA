@@ -15,7 +15,7 @@
 #include "../math/lapack_connector.h"
 #include "../utils/constants.h"
 #include "../io/envs_io.h"
-#include "../global/mpi_handler.h"
+#include "../mpi/global_mpi.h"
 #include "../math/matrix_m.h"
 #include "../io/utils_io.h"
 #include "../io/utils_mpi_io.h"

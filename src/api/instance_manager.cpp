@@ -5,7 +5,7 @@
 namespace librpa_int
 {
 
-namespace global
+namespace api
 {
 
 // manager[0] is a reserved sentinel (always nullptr); real instances start at 1.
@@ -26,9 +26,9 @@ librpa_int::Dataset* get_dataset_instance(const LibrpaHandler *h)
 LibrpaHandler* push_back_dataset(int comm)
 {
     // create a new instance and append it to the manager
-    int instance_id = librpa_int::global::manager.size();
+    int instance_id = manager.size();
     librpa_int::Dataset *obj = new librpa_int::Dataset(comm);
-    librpa_int::global::manager.emplace_back(obj);
+    manager.emplace_back(obj);
 
     // initialize a binding handler
     LibrpaHandler* h = new LibrpaHandler {instance_id};
@@ -55,6 +55,6 @@ void destroy_dataset(LibrpaHandler* h)
     }
 }
 
-}
+} /* namespace api */
 
-}
+} /* namespace librpa_int */

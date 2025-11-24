@@ -1,5 +1,5 @@
 #include "../mpi/envs_blacs.h"
-#include "../global/mpi_handler.h"
+#include "../mpi/global_mpi.h"
 #include "../core/utils_atomic_basis_blacs.h"
 
 #include "../io/stl_io_helper.h"

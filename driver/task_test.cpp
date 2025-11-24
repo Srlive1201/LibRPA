@@ -1,6 +1,6 @@
 #include "task_test.h"
 
-#include "../src/global/mpi_handler.h"
+#include "../src/mpi/global_mpi.h"
 #include "../src/io/envs_io.h"
 #include "../src/utils/profiler.h"
 #include "../src/math/matrix_m.h"

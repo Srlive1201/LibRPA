@@ -4,7 +4,7 @@
 #include <iostream>
 #include <cstdio>
 
-#include "../global/mpi_handler.h"
+#include "../mpi/global_mpi.h"
 
 
 namespace librpa_int

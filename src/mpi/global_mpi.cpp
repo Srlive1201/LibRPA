@@ -1,4 +1,4 @@
-#include "mpi_handler.h"
+#include "global_mpi.h"
 
 #include <stdexcept>
 

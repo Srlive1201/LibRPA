@@ -1,6 +1,6 @@
 #include "../../include/librpa_global.h"
 
-#include "../global/mpi_handler.h"
+#include "../mpi/global_mpi.h"
 
 void librpa_init_global(LibrpaSwitch switch_redirect_stdout, const char *redirect_path)
 {

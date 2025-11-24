@@ -6,7 +6,7 @@
 #include "../src/core/chi0.h"
 #include "../src/core/epsilon.h"
 #include "../src/core/pbc.h"
-#include "../src/global/mpi_handler.h"
+#include "../src/mpi/global_mpi.h"
 #include "../src/io/utils_io.h"
 #include "../src/core/utils_timefreq.h"
 
