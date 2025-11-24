@@ -5,11 +5,11 @@
 #include <string>
 #include "../mpi/envs_mpi.h"
 
-#include "../ri.h"
-#include "../pbc.h"
-#include "../coulmat.h"
-#include "../meanfield.h"
-#include "../exx.h"
+#include "../core/ri.h"
+#include "../core/pbc.h"
+#include "../core/coulmat.h"
+#include "../core/meanfield.h"
+#include "../core/exx.h"
 
 namespace LIBRPA
 {

@@ -1,5 +1,5 @@
 #include <algorithm>
-#include "constants.h"
+#include "../utils/constants.h"
 #include "coulmat.h"
 #include "pbc.h"
 

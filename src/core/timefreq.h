@@ -5,11 +5,11 @@
 #ifndef TIMEFREQ_H
 #define TIMEFREQ_H
 
-#include <vector>
 #include <string>
+#include <vector>
 
-#include "math/complexmatrix.h"
-#include "math/matrix.h"
+#include "../math/complexmatrix.h"
+#include "../math/matrix.h"
 
 //! Object to handle time/frequency grids for quadrature
 /*!

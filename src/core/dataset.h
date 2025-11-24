@@ -1,5 +1,5 @@
 #pragma once
-#include "interface/mpi.h"
+#include "../interface/mpi.h"
 
 namespace librpa_int
 {

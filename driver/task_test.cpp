@@ -1,10 +1,9 @@
 #include "task_test.h"
 
-#include "mpi/envs_mpi.h"
-#include "envs_io.h"
-
-#include "utils/profiler.h"
-#include "math/matrix_m.h"
+#include "../src/mpi/envs_mpi.h"
+#include "../src/utils/envs_io.h"
+#include "../src/utils/profiler.h"
+#include "../src/math/matrix_m.h"
 
 #include "read_data.h"
 #include "driver_params.h"

@@ -2,7 +2,7 @@
 
 #include "matrix_m.h"
 
-#include "../atomic_basis.h"
+#include "../core/atomic_basis.h"
 
 namespace LIBRPA
 {

@@ -1,33 +1,31 @@
 #include "task_gw_band.h"
 
-#include <sstream>
 #include <fstream>
+#include <sstream>
 
-#include "math/matrix_m.h"
-#include "math/utils_matrix_m_mpi.h"
-#include "meanfield.h"
-#include "params.h"
-#include "pbc.h"
-#include "chi0.h"
-#include "gw.h"
-#include "analycont.h"
-#include "qpe_solver.h"
-#include "epsilon.h"
-#include "exx.h"
-#include "constants.h"
-#include "coulmat.h"
-#include "utils/profiler.h"
-#include "ri.h"
-
-#include "mpi/envs_mpi.h"
-#include "envs_io.h"
-#include "mpi/envs_blacs.h"
-#include "utils_timefreq.h"
-
+#include "../src/core/analycont.h"
+#include "../src/core/chi0.h"
+#include "../src/core/coulmat.h"
+#include "../src/core/epsilon.h"
+#include "../src/core/exx.h"
+#include "../src/core/gw.h"
+#include "../src/core/meanfield.h"
+#include "../src/core/params.h"
+#include "../src/core/pbc.h"
+#include "../src/core/qpe_solver.h"
+#include "../src/core/ri.h"
+#include "../src/core/utils_timefreq.h"
+#include "../src/math/matrix_m.h"
+#include "../src/math/utils_matrix_m_mpi.h"
+#include "../src/mpi/envs_blacs.h"
+#include "../src/mpi/envs_mpi.h"
+#include "../src/utils/constants.h"
+#include "../src/utils/envs_io.h"
+#include "../src/utils/profiler.h"
+#include "driver_params.h"
+#include "driver_utils.h"
 #include "read_data.h"
 #include "write_aims.h"
-#include "driver_utils.h"
-#include "driver_params.h"
 
 void task_g0w0_band()
 {

@@ -1,6 +1,6 @@
-#include "../atomic_basis.h"
+#include "../core/atomic_basis.h"
 
-// #include "../stl_io_helper.h"
+// #include "../utils/stl_io_helper.h"
 #include "testutils.h"
 
 #include <cassert>

@@ -11,21 +11,21 @@
 #include "librpa.h"
 
 #include <stdlib.h>
+
 #include <cstring>
 
-#include "../mpi/envs_mpi.h"
-#include "../mpi/envs_blacs.h"
-#include "../envs_io.h"
-#include "../utils_io.h"
-
-#include "../atoms.h"
-#include "../constants.h"
+#include "../core/atoms.h"
+#include "../core/meanfield.h"
+#include "../core/params.h"
+#include "../core/pbc.h"
+#include "../core/ri.h"
 #include "../math/matrix_m.h"
+#include "../mpi/envs_blacs.h"
+#include "../mpi/envs_mpi.h"
+#include "../utils/constants.h"
+#include "../utils/envs_io.h"
+#include "../utils/utils_io.h"
 #include "librpa_main.h"
-#include "../meanfield.h"
-#include "../params.h"
-#include "../pbc.h"
-#include "../ri.h"
 
 #ifdef LIBRPA_USE_LIBRI
 #include <initializer_list>

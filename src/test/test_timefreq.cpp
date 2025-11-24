@@ -1,7 +1,7 @@
-#include "../timefreq.h"
+#include "../core/timefreq.h"
 
 #include "../mpi/envs_mpi.h"
-#include "../envs_io.h"
+#include "../utils/envs_io.h"
 #include "../utils/stl_io_helper.h"
 
 #include "testutils.h"

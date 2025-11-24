@@ -8,16 +8,16 @@
 #include <map>
 #include <memory>
 #include <utility>
-#include "math/vector3_order.h"
+#include "../math/vector3_order.h"
 #include "atoms.h"
-#include "math/complexmatrix.h"
+#include "../math/complexmatrix.h"
 
 #ifdef LIBRPA_USE_LIBRI
 #include <RI/global/Tensor.h>
 #else
-#include "utils/libri_stub.h"
+#include "../utils/libri_stub.h"
 #endif
-#include "utils/libri_utils.h"
+#include "../utils/libri_utils.h"
 
 extern int n_irk_points;
 extern int natom;

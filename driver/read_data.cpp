@@ -1,30 +1,30 @@
 #include "read_data.h"
 
-#include <iostream>
-#include <iomanip>
+#include <dirent.h>
+
+#include <algorithm>
 #include <cassert>
 #include <fstream>
+#include <iomanip>
+#include <iostream>
 #include <sstream>
 #include <string>
-#include <dirent.h>
-#include <algorithm>
 #include <unordered_map>
 
-#include "atoms.h"
-#include "atomic_basis.h"
-#include "constants.h"
-#include "math/matrix.h"
-#include "ri.h"
-#include "pbc.h"
-#include "geometry.h"
-#include "mpi/envs_mpi.h"
-#include "envs_io.h"
-#include "utils_io.h"
-#include "utils/stl_io_helper.h"
-#include "utils/profiler.h"
-
-#include "api/librpa.h"
-#include "utils/utils_mem.h"
+#include "../src/api/librpa.h"
+#include "../src/core/atomic_basis.h"
+#include "../src/core/atoms.h"
+#include "../src/core/geometry.h"
+#include "../src/core/pbc.h"
+#include "../src/core/ri.h"
+#include "../src/math/matrix.h"
+#include "../src/mpi/envs_mpi.h"
+#include "../src/utils/constants.h"
+#include "../src/utils/envs_io.h"
+#include "../src/utils/profiler.h"
+#include "../src/utils/stl_io_helper.h"
+#include "../src/utils/utils_io.h"
+#include "../src/utils/utils_mem.h"
 
 using std::ifstream;
 using std::string;

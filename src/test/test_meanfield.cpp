@@ -1,4 +1,4 @@
-#include "../meanfield.h"
+#include "../core/meanfield.h"
 #include <utility>
 #include <map>
 #include "testutils.h"

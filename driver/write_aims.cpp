@@ -1,6 +1,6 @@
 #include "write_aims.h"
 
-#include "gw.h"
+#include "../src/core/gw.h"
 
 #include <fstream>
 #include <iomanip>

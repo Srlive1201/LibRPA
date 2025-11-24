@@ -4,12 +4,12 @@
 #include "read_data.h"
 
 // src headers
-#include "api/app_exx.h"
-#include "constants.h"
-#include "meanfield.h"
-#include "mpi/envs_mpi.h"
-#include "utils_io.h"
-#include "pbc.h"
+#include "../src/api/app_exx.h"
+#include "../src/core/meanfield.h"
+#include "../src/mpi/envs_mpi.h"
+#include "../src/utils/constants.h"
+#include "../src/utils/utils_io.h"
+#include "../src/core/pbc.h"
 
 #include "driver_params.h"
 

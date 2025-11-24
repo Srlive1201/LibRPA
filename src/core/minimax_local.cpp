@@ -1,7 +1,7 @@
 #include "minimax.h"
 
-#include "envs_cmake.h"
-#include "mpi/envs_mpi.h"
+#include "../utils/envs_cmake.h"
+#include "../mpi/envs_mpi.h"
 
 #include <fstream>
 #include <unistd.h>

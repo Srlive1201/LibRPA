@@ -1,8 +1,8 @@
 #include "task_rpa.h"
 
-#include "api/app_rpa.h"
-#include "mpi/envs_mpi.h"
-#include "ri.h"
+#include "../src/api/app_rpa.h"
+#include "../src/mpi/envs_mpi.h"
+#include "../src/core/ri.h"
 
 void task_rpa()
 {

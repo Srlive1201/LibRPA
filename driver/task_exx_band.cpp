@@ -1,21 +1,19 @@
 #include "task_exx_band.h"
 
-#include <sstream>
 #include <fstream>
+#include <sstream>
 
-#include "meanfield.h"
-#include "pbc.h"
-#include "exx.h"
-#include "constants.h"
-#include "coulmat.h"
-#include "utils/profiler.h"
-#include "ri.h"
-
-#include "mpi/envs_mpi.h"
-#include "envs_io.h"
-
-#include "read_data.h"
+#include "../src/core/coulmat.h"
+#include "../src/core/exx.h"
+#include "../src/core/meanfield.h"
+#include "../src/core/pbc.h"
+#include "../src/core/ri.h"
+#include "../src/mpi/envs_mpi.h"
+#include "../src/utils/constants.h"
+#include "../src/utils/envs_io.h"
+#include "../src/utils/profiler.h"
 #include "driver_params.h"
+#include "read_data.h"
 
 void task_exx_band()
 {

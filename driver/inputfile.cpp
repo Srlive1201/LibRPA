@@ -5,7 +5,7 @@
 #include <sstream>
 #include <iostream>
 
-#include "params.h"
+#include "../src/core/params.h"
 #include "driver_params.h"
 
 static const std::string SPACE_SEP = "[ \r\f\t]*";

@@ -3,12 +3,12 @@
 #include <ostream>
 #include <set>
 #include <array>
-#include "atoms.h"
-#include "math/vector3_order.h"
+#include "../core/atoms.h"
+#include "../math/vector3_order.h"
 #ifdef LIBRPA_USE_LIBRI
 #include <RI/global/Tensor.h>
 #else
-#include "libri_stub.h"
+#include "../utils/libri_stub.h"
 #endif
 
 template <typename TA, typename Tcell>

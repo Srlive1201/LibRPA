@@ -1,4 +1,4 @@
-#include "../pbc.h"
+#include "../core/pbc.h"
 #include <cassert>
 
 void test_is_gamma_point()

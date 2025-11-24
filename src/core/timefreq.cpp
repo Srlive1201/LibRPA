@@ -1,16 +1,17 @@
 #include "timefreq.h"
 
 #include <omp.h>
-#include <iostream>
-#include <fstream>
-#include <vector>
-#include <utility>
-#include <algorithm>
 
-#include "utils/base_utility.h"
-#include "math/mathtools.h"
-#include "utils_io.h"
+#include <algorithm>
+#include <fstream>
+#include <iostream>
+#include <utility>
+#include <vector>
+
+#include "../math/mathtools.h"
+#include "../utils/base_utility.h"
 #include "minimax.h"
+#include "../utils/utils_io.h"
 
 using std::pair;
 using std::string;

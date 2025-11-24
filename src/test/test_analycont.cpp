@@ -1,5 +1,5 @@
-#include "../analycont.h"
-#include "../constants.h"
+#include "../core/analycont.h"
+#include "../utils/constants.h"
 #include "../utils/stl_io_helper.h"
 
 #include <cassert>

@@ -5,7 +5,7 @@
 #include <numeric>
 #include <stdexcept>
 
-#include "utils/base_utility.h"
+#include "../utils/base_utility.h"
 
 namespace LIBRPA {
 

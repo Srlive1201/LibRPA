@@ -4,7 +4,7 @@
  */
 #include "meanfield.h"
 #include "ri.h"
-#include "math/matrix_m.h"
+#include "../math/matrix_m.h"
 
 namespace LIBRPA
 {

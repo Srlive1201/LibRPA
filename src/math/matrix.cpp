@@ -12,7 +12,7 @@
 using namespace std;
 #include "matrix.h"
 #include "lapack_connector.h"
-#include "utils_io.h"
+#include "../utils/utils_io.h"
 
 //*********************************************************
 // The init() function is the main initialization routine.

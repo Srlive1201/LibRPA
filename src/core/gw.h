@@ -7,7 +7,7 @@
 #include "timefreq.h"
 #include "meanfield.h"
 #include "atoms.h"
-#include "math/matrix_m.h"
+#include "../math/matrix_m.h"
 
 namespace LIBRPA
 {

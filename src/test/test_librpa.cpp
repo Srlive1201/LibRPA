@@ -1,4 +1,4 @@
-#include "api/librpa.h"
+#include "../api/librpa.h"
 #include <cstring>
 
 void test_set_librpa_params()

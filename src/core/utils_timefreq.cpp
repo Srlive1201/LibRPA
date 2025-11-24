@@ -1,7 +1,7 @@
 #include "utils_timefreq.h"
 
-#include "mpi/envs_mpi.h"
-#include "utils_io.h"
+#include "../mpi/envs_mpi.h"
+#include "../utils/utils_io.h"
 
 
 namespace LIBRPA

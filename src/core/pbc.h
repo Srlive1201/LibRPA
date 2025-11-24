@@ -6,8 +6,8 @@
 #include <array>
 #include <map>
 #include <vector>
-#include "math/vector3_order.h"
-#include "math/matrix3.h"
+#include "../math/vector3_order.h"
+#include "../math/matrix3.h"
 
 // TODO: make it into a template
 std::vector<Vector3_Order<int>> construct_R_grid(const Vector3_Order<int> &period);

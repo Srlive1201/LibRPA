@@ -5,12 +5,12 @@
 // #include <iostream>
 #include <stdexcept>
 
-#include "mpi/base_mpi.h"
-#include "utils/base_utility.h"
-#include "utils/profiler.h"
-#include "math/scalapack_connector.h"
+#include "../mpi/base_mpi.h"
+#include "../utils/base_utility.h"
+#include "../utils/profiler.h"
+#include "../math/scalapack_connector.h"
 
-// #include "stl_io_helper.h"
+// #include "../utils/stl_io_helper.h"
 
 namespace LIBRPA
 {

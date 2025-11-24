@@ -3,13 +3,14 @@
  @brief Utlities to compute the independent response function
  */
 #pragma once
-#include <vector>
 #include <set>
-#include "meanfield.h"
-#include "timefreq.h"
+#include <vector>
+
+#include "../math/vector3_order.h"
 #include "atoms.h"
+#include "meanfield.h"
 #include "ri.h"
-#include "math/vector3_order.h"
+#include "timefreq.h"
 
 using std::vector;
 

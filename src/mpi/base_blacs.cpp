@@ -1,8 +1,8 @@
 #include "base_blacs.h"
 #include "../utils/base_utility.h"
 
-#include "interface/blacs_scalapack.h"
-#include "utils_io.h"
+#include "../interface/blacs_scalapack.h"
+#include "../utils/utils_io.h"
 
 
 namespace LIBRPA

@@ -1,26 +1,26 @@
 #include "exx.h"
 
-#include "envs_io.h"
-#include "mpi/envs_mpi.h"
-#include "mpi/envs_blacs.h"
-#include "utils_atomic_basis_blacs.h"
-#include "utils/profiler.h"
-#include "math/utils_matrix_m_mpi.h"
-#include "params.h"
-#include "constants.h"
-#include "pbc.h"
+#include "../math/lapack_connector.h"
+#include "../math/utils_matrix_m_mpi.h"
+#include "../math/vector3_order.h"
+#include "../mpi/envs_blacs.h"
+#include "../mpi/envs_mpi.h"
+#include "../utils/envs_io.h"
+#include "../utils/libri_utils.h"
+#include "../utils/profiler.h"
+#include "../utils/stl_io_helper.h"
+#include "../utils/utils_io.h"
+#include "../utils/constants.h"
 #include "geometry.h"
-#include "math/lapack_connector.h"
-#include "math/vector3_order.h"
-#include "utils/libri_utils.h"
-#include "utils/stl_io_helper.h"
+#include "params.h"
+#include "pbc.h"
+#include "utils_atomic_basis_blacs.h"
 #ifdef LIBRPA_USE_LIBRI
 #include <RI/physics/Exx.h>
 #include <RI/ri/Cell_Nearest.h>
 #else
-#include "utils/libri_stub.h"
+#include "../utils/libri_stub.h"
 #endif
-#include "utils_io.h"
 
 namespace LIBRPA
 {

@@ -1,6 +1,6 @@
 #include "../mpi/envs_blacs.h"
 #include "../mpi/envs_mpi.h"
-#include "../utils_atomic_basis_blacs.h"
+#include "../core/utils_atomic_basis_blacs.h"
 
 #include "../utils/stl_io_helper.h"
 #include "../mpi/base_blacs.h"

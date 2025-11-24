@@ -12,12 +12,12 @@
 #include "matrix_m.h"
 #include "../utils/profiler.h"
 #include "scalapack_connector.h"
-#include "../utils_atomic_basis_blacs.h"
+#include "../core/utils_atomic_basis_blacs.h"
 // #include "utils_io.h"
 #ifdef LIBRPA_USE_LIBRI
 #include <RI/global/Tensor.h>
 #else
-#include "libri_stub.h"
+#include "../utils/libri_stub.h"
 #endif
 
 namespace LIBRPA

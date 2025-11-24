@@ -1,4 +1,4 @@
-#include "../atoms.h"
+#include "../core/atoms.h"
 #include <iostream>
 
 int main (int argc, char *argv[])

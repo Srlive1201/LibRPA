@@ -1,26 +1,28 @@
-#include <iostream>
+#include "chi0.h"
+
+#include <omp.h>
+
 #include <cstring>
 #include <ctime>
-#include "envs_io.h"
-#include "math/utils_matrix_mpi.h"
-#include "mpi/envs_mpi.h"
-#include "utils/profiler.h"
-#include "chi0.h"
-#include "utils/libri_utils.h"
+#include <iostream>
+
+#include "../math/complexmatrix.h"
+#include "../math/lapack_connector.h"
+#include "../math/matrix.h"
+#include "../math/scalapack_connector.h"
+#include "../math/utils_matrix_mpi.h"
+#include "../mpi/envs_mpi.h"
+#include "../utils/constants.h"
+#include "../utils/envs_io.h"
+#include "../utils/libri_utils.h"
+#include "../utils/profiler.h"
+#include "../utils/stl_io_helper.h"
+#include "../utils/utils_io.h"
+#include "../utils/utils_mem.h"
 #include "atomic_basis.h"
-#include "utils/stl_io_helper.h"
-#include "utils_io.h"
-#include "utils/utils_mem.h"
+#include "params.h"
 #include "pbc.h"
 #include "ri.h"
-#include <omp.h>
-#include "math/matrix.h"
-#include "math/complexmatrix.h"
-#include "math/lapack_connector.h"
-#include "pbc.h"
-#include "constants.h"
-#include "params.h"
-#include "math/scalapack_connector.h"
 #ifdef LIBRPA_USE_LIBRI
 #include <RI/physics/RPA.h>
 #endif

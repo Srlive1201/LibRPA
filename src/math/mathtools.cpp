@@ -1,5 +1,5 @@
 #include "mathtools.h"
-#include "../constants.h"
+#include "../utils/constants.h"
 
 #include <cmath>
 #include <stdexcept>
