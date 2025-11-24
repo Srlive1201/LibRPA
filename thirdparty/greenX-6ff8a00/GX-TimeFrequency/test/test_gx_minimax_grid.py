@@ -17,11 +17,12 @@ from pygreenx.run import BinaryRunner, BuildType
 
 
 @pytest.fixture()
-@pytest.mark.usefixtures("get_binary", "greenx_build_root")
+# @pytest.mark.usefixtures("get_binary", "greenx_build_root")
 def fortran_binary(get_binary, greenx_build_root):
     name = 'test_gx_minimax_grid.exe'
     _binary = get_binary(name)
-    assert _binary is not None, f'{name} cannot be found in {greenx_build_root}'
+    assert _binary is not None, f'{
+        name} cannot be found in {greenx_build_root}'
     print(f'Binary source: {_binary}')
     return _binary
 
@@ -57,11 +58,13 @@ e_transition_max  {}
 
     working_dir = os.getcwd()
 
-    inputs_str = inputs_template.format(working_dir, n_mesh_points, e_trans.min, e_trans.max)
+    inputs_str = inputs_template.format(
+        working_dir, n_mesh_points, e_trans.min, e_trans.max)
     file = mock_file(working_dir, inputs_str)
 
     # Run test
-    runner = BinaryRunner(fortran_binary, BuildType.serial, args=[file.as_posix()])
+    runner = BinaryRunner(fortran_binary, BuildType.serial,
+                          args=[file.as_posix()])
     results = runner.run()
     assert results.success, f"Execution of {fortran_binary} failed"
 
