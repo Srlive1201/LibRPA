@@ -122,7 +122,7 @@ namespace librpa
 // Straighforward inheritance
 // IMPORTANT: DO NOT add extra member variables here, which will break the inheritated data layout
 // New control options should be put under the LibrpaOptions C structure
-class Options : ::LibrpaOptions
+class Options : public ::LibrpaOptions
 {
 public:
     Options() { ::librpa_init_options(this); }
