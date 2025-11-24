@@ -21,6 +21,8 @@
 #include "vec.h"
 #include "../utils/utils_io.h"
 
+namespace librpa_int {
+
 //! type alias for functors to map 2D array index to flatten array index
 typedef std::function<int(const int& nr, const int& ir, const int& nc, const int& ic)> Indx_picker_2d;
 typedef std::function<void(const int& indx, const int& nr, int& ir, const int& nc, int& ic)> Indx_folder_2d;
@@ -289,8 +291,8 @@ public:
         const auto mrank = mrank_;
         if constexpr (matrix_m<T>::is_complex)
         {
-            std::uniform_real_distribution<real_t> dr(::get_real(lb), ::get_real(ub));
-            std::uniform_real_distribution<real_t> di(::get_imag(lb), ::get_imag(ub));
+            std::uniform_real_distribution<real_t> dr(librpa_int::get_real(lb), librpa_int::get_real(ub));
+            std::uniform_real_distribution<real_t> di(librpa_int::get_imag(lb), librpa_int::get_imag(ub));
             if (symmetrize)
             {
                 for (int i = 0; i != mrank; i++)
@@ -311,7 +313,7 @@ public:
                     for (int j = i + 1; j < mrank; j++)
                     {
                         join_re_im((*this)(i, j), dr(e), di(e));
-                        (*this)(j, i) = ::get_conj((*this)(i, j));
+                        (*this)(j, i) = librpa_int::get_conj((*this)(i, j));
                     }
                 }
             }
@@ -538,7 +540,7 @@ public:
         {
             matrix_m<real_t> m(nr(), nc(), this->major_);
             for (size_t i = 0; i < size(); i++)
-                (*m.sptr())[i] = ::get_real((*data_)[i]);
+                (*m.sptr())[i] = librpa_int::get_real((*data_)[i]);
             return m;
         }
         else
@@ -553,7 +555,7 @@ public:
         if constexpr (matrix_m<T>::is_complex)
         {
             for (size_t i = 0; i < size(); i++)
-                (*m.sptr())[i] = ::get_imag((*data_)[i]);
+                (*m.sptr())[i] = librpa_int::get_imag((*data_)[i]);
         }
         return m;
     }
@@ -619,7 +621,7 @@ public:
     {
         // for complex type, compare the absolute value
         const std::function<real_t(T)> filter =
-            matrix_m<T>::is_complex ? [](T a) { return std::abs(a); } : [](T a) { return ::get_real(a); };
+            matrix_m<T>::is_complex ? [](T a) { return std::abs(a); } : [](T a) { return librpa_int::get_real(a); };
         real_t value = std::numeric_limits<real_t>::max();
         for (size_t i = 0; i < size_; i++)
             if (filter((*data_)[i]) < value)
@@ -633,7 +635,7 @@ public:
     {
         // for complex type, compare the absolute value
         const std::function<real_t(T)> filter =
-            matrix_m<T>::is_complex ? [](T a) { return std::abs(a); } : [](T a) { return ::get_real(a); };
+            matrix_m<T>::is_complex ? [](T a) { return std::abs(a); } : [](T a) { return librpa_int::get_real(a); };
         real_t value = std::numeric_limits<real_t>::min();
         for (size_t i = 0; i < size_; i++)
             if (filter((*data_)[i]) > value)
@@ -997,7 +999,7 @@ inline bool operator==(const matrix_m<T> &m1, const matrix_m<T> &m2) noexcept
     auto diff = std::abs(*(m1.sptr()) - *(m2.sptr()));
     const auto size = m1.size();
     for (size_t i = 0; i < size; i++)
-        if (::get_real(diff[i]) > thres)
+        if (librpa_int::get_real(diff[i]) > thres)
             return false;
     return true;
 }
@@ -1245,4 +1247,6 @@ void write_matrix_elsi_csc(const matrix_m<T> &mat, const std::string &fn, Treal 
     wf.write((char *) rowptr.data(), nnz * sizeof(int32_t));
     wf.write((char *) nnz_val.data(), nnz * sizeof(T));
     wf.close();
+}
+
 }

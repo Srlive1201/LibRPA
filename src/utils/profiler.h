@@ -9,6 +9,8 @@
 #include <string>
 #include <map>
 
+namespace librpa_int {
+
 double cpu_time_from_clocks_diff(const std::clock_t& ct_start,
                                  const std::clock_t& ct_end);
 
@@ -84,4 +86,5 @@ public:
     static int get_num_timers() noexcept { return sd_order.size(); };
 };
 
+}
 #endif

@@ -5,7 +5,8 @@
 
 void test_BCC_He_gamma_minimal_basis_aims()
 {
-    // 
+    using namespace librpa_int;
+
     MeanField mf(1, 1, 8, 8);
     mf.get_efermi() = 0.240386888648512;
     mf.get_weight()[0].zero_out();

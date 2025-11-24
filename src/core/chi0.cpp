@@ -29,6 +29,9 @@
 #include <array>
 #include <map>
 
+
+namespace librpa_int {
+
 using librpa_int::global::mpi_comm_global_h;
 using librpa_int::ParallelRouting;
 using librpa_int::parallel_routing;
@@ -1293,4 +1296,6 @@ void Chi0::free_chi0_q(const double freq, const Vector3_Order<double> q)
     auto &chi0_for_free = chi0_q.at(freq).at(q);
     chi0_for_free.clear();
     ap_n_map<ComplexMatrix>().swap(chi0_for_free);
+}
+
 }

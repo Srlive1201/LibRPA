@@ -12,6 +12,8 @@
 #include "ri.h"
 #include "timefreq.h"
 
+namespace librpa_int {
+
 using std::vector;
 
 //! Object to handle calculation of independent repsonse function (\f$\chi_0\f$)
@@ -102,3 +104,5 @@ class Chi0
         const map<double, map<Vector3_Order<double>, atom_mapping<ComplexMatrix>::pair_t_old>> & get_chi0_q() const { return chi0_q; }
         void free_chi0_q(const double freq, const Vector3_Order<double> q);
 };
+
+}

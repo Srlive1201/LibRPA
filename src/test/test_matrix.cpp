@@ -4,6 +4,8 @@
 #include <ctime>
 #include <cmath>
 
+using namespace librpa_int;
+
 bool double_equal(double a, double b)
 {
     double eqthres = 1e-14;

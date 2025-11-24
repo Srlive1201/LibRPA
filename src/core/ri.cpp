@@ -8,6 +8,9 @@
 #include "params.h"
 #include "pbc.h"
 
+namespace librpa_int
+{
+
 int n_irk_points;
 int natom;
 int ncell;
@@ -174,9 +177,9 @@ matrix reshape_mat_21(const size_t n1, const size_t n2, const size_t n3, const m
 
 void init_N_all_mu()
 {
-    using librpa_int::global::mpi_comm_global;
-    using librpa_int::global::mpi_comm_global_h;
-    using librpa_int::utils::lib_printf;
+    using global::mpi_comm_global;
+    using global::mpi_comm_global_h;
+    using utils::lib_printf;
     
     lib_printf("begin init_N_all_mu   atom_mu.size: %d  myid: %d\n",atom_mu.size(), mpi_comm_global_h.myid);
     if(Params::DFT_software == "ABACUS")
@@ -192,10 +195,10 @@ void init_N_all_mu()
         {
             loc_mu[mu_p.first]=mu_p.second;
         }
-        librpa_int::utils::lib_printf(" mid init_N_all_mu\n");
+        utils::lib_printf(" mid init_N_all_mu\n");
         vector<size_t> glo_nw(natom);
         vector<size_t> glo_mu(natom);
-        librpa_int::utils::lib_printf(" mid init_N_all_mu myid: %d\n",mpi_comm_global_h.myid);
+        utils::lib_printf(" mid init_N_all_mu myid: %d\n",mpi_comm_global_h.myid);
         MPI_Allreduce(loc_nw.data(),glo_nw.data(),natom,MPI_UNSIGNED_LONG_LONG,MPI_MAX,mpi_comm_global);
         MPI_Allreduce(loc_mu.data(),glo_mu.data(),natom,MPI_UNSIGNED_LONG_LONG,MPI_MAX,mpi_comm_global);
 
@@ -203,8 +206,8 @@ void init_N_all_mu()
         atom_mu.clear();
         for(int i =0; i!=natom;i++ )
         {
-            librpa_int::utils::lib_printf("I: %d ,  glo_nw: %d",i,glo_nw[i]);
-            librpa_int::utils::lib_printf("I: %d ,  glo_mu: %d",i,glo_mu[i]);
+            utils::lib_printf("I: %d ,  glo_nw: %d",i,glo_nw[i]);
+            utils::lib_printf("I: %d ,  glo_mu: %d",i,glo_mu[i]);
             atom_nw.insert(pair<atom_t,size_t>(i,glo_nw[i]));
             atom_mu.insert(pair<atom_t,size_t>(i,glo_mu[i]));
         }
@@ -223,8 +226,8 @@ void init_N_all_mu()
 
 void allreduce_atp_aux()
 {
-    using librpa_int::global::mpi_comm_global;
-    using librpa_int::global::mpi_comm_global_h;
+    using global::mpi_comm_global;
+    using global::mpi_comm_global_h;
 
     if (Cs_data.use_libri)
     {
@@ -280,7 +283,7 @@ void allreduce_atp_aux()
                 matrix loc_cs(nbasI*nbasJ, nauxI);
                 if(Cs[I][J].count(Rv))
                     memcpy(loc_cs.c,(*Cs[I][J].at(Rv)).c,sizeof(double)*cs_size);
-                librpa_int::allreduce_matrix(loc_cs,(*cs_ptr),mpi_comm_global_h.comm);
+                allreduce_matrix(loc_cs,(*cs_ptr),mpi_comm_global_h.comm);
                 if(!Cs[I][J].count(Rv))
                     Cs[I][J][Rv] = cs_ptr;
             }
@@ -289,8 +292,8 @@ void allreduce_atp_aux()
 
 void allreduce_2D_coulomb_to_atompair(map<Vector3_Order<double>, ComplexMatrix> &Vq_loc, atpair_k_cplx_mat_t &coulomb_mat,double threshold )
 {
-    using librpa_int::global::mpi_comm_global_h;
-    using librpa_int::utils::lib_printf;
+    using global::mpi_comm_global_h;
+    using utils::lib_printf;
 
     lib_printf("Begin allreduce_2D_coulomb_to_atompair!\n");
 
@@ -354,9 +357,9 @@ void allreduce_2D_coulomb_to_atompair(map<Vector3_Order<double>, ComplexMatrix> 
 
 void allreduce_atp_coulomb( atpair_k_cplx_mat_t &coulomb_mat )
 {
-    using librpa_int::global::mpi_comm_global;
-    using librpa_int::global::mpi_comm_global_h;
-    using librpa_int::utils::lib_printf;
+    using global::mpi_comm_global;
+    using global::mpi_comm_global_h;
+    using utils::lib_printf;
 
     printf("Begin allreduce_atp_coulomb!\n");
     // mpi_comm_world_h.barrier();
@@ -390,4 +393,6 @@ void allreduce_atp_coulomb( atpair_k_cplx_mat_t &coulomb_mat )
 
     printf("End allreduce_atp_coulomb!\n");
     // mpi_comm_world_h.barrier();
+}
+
 }

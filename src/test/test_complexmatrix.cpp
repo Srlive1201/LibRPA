@@ -3,6 +3,8 @@
 #include <random>
 #include <ctime>
 
+using namespace librpa_int;
+
 void test_power_hemat()
 {
     ComplexMatrix a(2, 2);

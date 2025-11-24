@@ -3,6 +3,8 @@
 #include "coulmat.h"
 #include "pbc.h"
 
+namespace librpa_int {
+
 atpair_R_mat_t
 FT_Vq(const atpair_k_cplx_mat_t &coulmat_k, const int &n_k_points, const vector<Vector3_Order<int>> &Rlist, bool return_ordered_atom_pair)
 {
@@ -109,3 +111,4 @@ FT_Vq(const atpair_k_cplx_mat_t &coulmat_k, const int &n_k_points, const vector<
     return coulmat_R;
 }
 
+}

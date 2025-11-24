@@ -16,6 +16,8 @@ using namespace std;
 //#include "src_parallel/mcd.h"
 //#endif
 
+namespace librpa_int {
+
 class ComplexMatrix
 {
 
@@ -150,4 +152,6 @@ void print_complex_matrix_mm(const ComplexMatrix &mat, ofstream &fs, double thre
 void print_complex_matrix_file(const char *desc, const ComplexMatrix &mat, const string &fn, bool use_scientific);
 void print_complex_matrix_mm(const ComplexMatrix &mat, const string &fn, double threshold = 1e-15, bool row_first = true);
 void print_complex_real_matrix(const char* desc, const ComplexMatrix &mat );
+
+}
 #endif

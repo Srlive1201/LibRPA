@@ -7,6 +7,8 @@
 #include <vector>
 #include <utility>
 
+namespace librpa_int {
+
 //! Print a set of objects
 template <typename T>
 std::ostream& operator<<(std::ostream& os, const std::set<T> &set_objs);
@@ -49,5 +51,7 @@ int get_num_keys(const std::map<Tkey1, std::map<Tkey2, Tval>> &nested_map);
 //! Get total number of elements
 template <typename Tkey1, typename Tkey2, typename Tkey3, typename Tval>
 int get_num_keys(const std::map<Tkey1, std::map<Tkey2, std::map<Tkey3, Tval>>> &nested_map);
+
+}
 
 #include "stl_io_helper.hpp"  // IWYU pragma: export

@@ -7,6 +7,8 @@
 #include <unordered_map>
 #include <utility>
 
+using namespace librpa_int;
+
 void test_constuctor()
 {
     librpa_int::AtomicBasis ab;

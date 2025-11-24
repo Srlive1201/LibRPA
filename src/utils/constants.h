@@ -2,6 +2,8 @@
 #ifndef CONSTANTS_H
 #define CONSTANTS_H
 
+namespace librpa_int {
+
 // Scientific constants
 extern const double PINF;
 extern const double NINF;
@@ -20,4 +22,5 @@ constexpr size_t kbytes = 1024;
 constexpr size_t mbytes = kbytes * 1024;
 constexpr size_t gbytes = mbytes * 1024;
 
+}
 #endif

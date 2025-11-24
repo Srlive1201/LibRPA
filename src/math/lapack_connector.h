@@ -11,6 +11,8 @@
 #include "complexmatrix.h"
 #include "../interface/blas_lapack.h"
 
+namespace librpa_int {
+
 // Class LapackConnector provide the connector to fortran lapack routine.
 // The entire function in this class are static and inline function.
 // Usage example:	LapackConnector::functionname(parameter list).
@@ -849,4 +851,6 @@ public:
 		zherk_(&uplo_changed, &trans_changed, &n, &k, &alpha, A, &lda, &beta, C, &ldc);
 	}
 };
+
+}
 #endif  // LAPACKCONNECTOR_HPP

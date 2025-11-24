@@ -8,6 +8,8 @@
 #include <cmath>
 #include <vector>
 
+namespace librpa_int {
+
 template <typename T>
 class vec
 {
@@ -300,4 +302,6 @@ std::string str(const vec<std::complex<T>> &v)
     for (int i = 1; i < v.size(); i++)
         s = s + " (" + std::to_string(v[0].real()) + "," + std::to_string(v[0].imag()) + ")";
     return s;
+}
+
 }

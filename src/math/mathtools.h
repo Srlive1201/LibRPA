@@ -6,6 +6,8 @@
 #pragma once
 #include <cstddef>
 
+namespace librpa_int {
+
 //! Get the Gauss-Chebyshev quadrature based on Chebyshev points of the first type (kind)
 /*!
  * @param N Number of grid points
@@ -74,3 +76,5 @@ void transform_GaussQuad_unit2inf(size_t N, double *nodes, double *weights);
  * @param weights Weights of grid points
  */
 void transform_GaussQuad_unit2minfx0(double x0, size_t N, double *nodes, double *weights);
+
+}

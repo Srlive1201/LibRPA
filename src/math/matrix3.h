@@ -7,6 +7,8 @@
 
 #include "vector3.h"
 
+namespace librpa_int {
+
 class Matrix3
 {
 	/* data */
@@ -67,5 +69,6 @@ Vector3<double> operator *(const Vector3<T> &u, const Matrix3 &m)
 	                       u.x*m.e13 + u.y*m.e23 + u.z*m.e33);
 }
 
-#endif // MATRIX3_H
+}
 
+#endif // MATRIX3_H

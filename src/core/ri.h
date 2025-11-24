@@ -19,6 +19,8 @@
 #endif
 #include "../utils/libri_utils.h"
 
+namespace librpa_int {
+
 extern int n_irk_points;
 extern int natom;
 extern int ncell;
@@ -92,4 +94,6 @@ matrix reshape_mat(size_t n1, size_t n2, size_t n3, const matrix &Csmat);
 matrix reshape_mat_21(const size_t n1, const size_t n2, const size_t n3, const matrix &Csmat);
 //! Reshape Cs matrix from n1,n2*n3) to (n1*n2,n3)
 matrix reshape_mat_21(const size_t n1, const size_t n2, const size_t n3, const matrix &Csmat);
+
+}
 #endif

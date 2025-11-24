@@ -2,6 +2,8 @@
 
 #include <cmath>
 
+namespace librpa_int {
+
 const int DoubleHavriliakNegami::d_npar = 8;
 
 const std::function<double(double, const std::vector<double> &)>
@@ -32,3 +34,5 @@ const std::function<void(std::vector<double> &, double, const std::vector<double
     grads[7] = (pars[4] - 1.0) * (-pars[6]) / pow(1.0 + pow(u * pars[7], pars[5]), pars[6] + 1) *
                pars[5] / pars[7] * pow(u * pars[7], pars[5]);
 };
+
+}

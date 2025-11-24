@@ -1,5 +1,7 @@
 #include "vector3_order.h"
 
+namespace librpa_int {
+
 template<>
 bool operator< ( const Vector3_Order<double> &v1, const Vector3_Order<double> &v2 )
 {
@@ -39,4 +41,6 @@ template<>
 bool operator== ( const Vector3_Order<int> &v1, const Vector3_Order<int> &v2 )
 {
     return v1.x == v2.x && v1.y == v2.y && v1.z == v2.z;
+}
+
 }

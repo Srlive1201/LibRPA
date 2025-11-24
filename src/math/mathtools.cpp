@@ -4,6 +4,8 @@
 #include <cmath>
 #include <stdexcept>
 
+namespace librpa_int {
+
 /*!
  * The nodes are zeros of order-N Chebyshev polynomials of first kind \f$T_N(x)\f$ in \f$[-1,1]\f$:
  * \f[
@@ -155,4 +157,6 @@ void transform_GaussQuad_unit2minfx0(double x0, size_t N, double *nodes, double 
         weights[i] = weights[i] / ((1.0 + nodes[i]) * (1.0 + nodes[i]));
         nodes[i] = 0.5 * (nodes[i] - 1.0) / (1.0 + nodes[i]) + x0;
     }
+}
+
 }

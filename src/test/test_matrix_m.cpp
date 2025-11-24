@@ -1,6 +1,8 @@
 #include "../math/matrix_m.h"
 #include "testutils.h"
 
+using namespace librpa_int;
+
 static void test_constuctor()
 {
     Matd m1(2, 3, MAJOR::COL);

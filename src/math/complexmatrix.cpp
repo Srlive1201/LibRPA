@@ -13,6 +13,8 @@
 #include "complexmatrix.h"
 #include "lapack_connector.h"
 
+namespace librpa_int {
+
 // constructor with sizes
 ComplexMatrix::ComplexMatrix(const int nrows, const int ncols, const bool flag_zero)
 	:nr(nrows),
@@ -736,3 +738,4 @@ void print_complex_real_matrix(const char *desc, const ComplexMatrix &mat)
     }
 }
 
+}

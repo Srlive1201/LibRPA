@@ -5,6 +5,8 @@
 #include <cstdlib>
 #include <ctime>
 
+using namespace librpa_int;
+
 void test_blas_mv_mm_double(bool debug = false)
 {
     const int RDIM = 6;

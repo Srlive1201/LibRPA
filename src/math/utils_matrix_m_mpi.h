@@ -988,7 +988,7 @@ void fill_local_mat_from_ap_dist_sy(matrix_m<T> &m_loc,
                 else if (data.count(atpair_T))
                 {
                     const auto &mat = data.at(atpair_T);
-                    m_loc(ir, ic) = is_complex<T>() && apply_conjugate? ::get_conj(mat(i, j)) : mat(i, j);
+                    m_loc(ir, ic) = is_complex<T>() && apply_conjugate? get_conj(mat(i, j)) : mat(i, j);
                 }
             }
         }
@@ -1102,7 +1102,7 @@ void fill_local_mat_from_ap_dist_sy(matrix_m<T> &m_loc,
         {
             for (auto i = 0; i < count; i++)
             {
-                m_loc.ptr()[ids[i]] = conjs[i] == 'c' ? ::get_conj(recvbuff[disp+i]) : recvbuff[disp+i];
+                m_loc.ptr()[ids[i]] = conjs[i] == 'c' ? get_conj(recvbuff[disp+i]) : recvbuff[disp+i];
             }
         }
         else

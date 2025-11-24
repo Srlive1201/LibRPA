@@ -1,10 +1,12 @@
 #include "pbc.h"
 #include <algorithm>
 
-vector<Vector3_Order<int>> construct_R_grid(const Vector3_Order<int> &period)
+namespace librpa_int {
+
+std::vector<Vector3_Order<int>> construct_R_grid(const Vector3_Order<int> &period)
 {
     // cout<<" begin to construct_R_grid"<<endl;
-    vector<Vector3_Order<int>> R_grid;
+    std::vector<Vector3_Order<int>> R_grid;
     R_grid.clear();
 
     for (int x = -(period.x) / 2; x <= (period.x - 1) / 2; ++x)
@@ -15,7 +17,7 @@ vector<Vector3_Order<int>> construct_R_grid(const Vector3_Order<int> &period)
     return R_grid;
 }
 
-int get_R_index(const vector<Vector3_Order<int>> &Rlist, const Vector3_Order<int> &R)
+int get_R_index(const std::vector<Vector3_Order<int>> &Rlist, const Vector3_Order<int> &R)
 {
     // v1: manual search
     // for ( int iR = 0; iR != Rlist.size(); iR++ )
@@ -47,7 +49,7 @@ std::vector<Vector3_Order<double>> klist;
 std::vector<Vector3_Order<double>> klist_ibz;
 std::vector<Vector3_Order<double>> kfrac_list;
 std::vector<int> irk_point_id_mapping;
-map<Vector3_Order<double>, vector<Vector3_Order<double>>> map_irk_ks;
+std::map<Vector3_Order<double>, std::vector<Vector3_Order<double>>> map_irk_ks;
 Matrix3 latvec;
 std::array<std::array<double, 3>, 3> lat_array;
 Matrix3 G;
@@ -57,4 +59,6 @@ int get_k_index_full(const Vector3_Order<double> &k)
     auto it = std::find(klist.cbegin(), klist.cend(), k);
     if ( it != klist.cend()) return distance(klist.cbegin(), it);
     return -1;
+}
+
 }

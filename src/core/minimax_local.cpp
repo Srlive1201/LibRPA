@@ -9,6 +9,8 @@
 #include <string>
 #include <sstream>
 
+namespace librpa_int {
+
 static const std::string minimax_grid_path =
     std::string(librpa_int::envs::source_dir) + "/minimax_grid";
 static const std::string GX_path = minimax_grid_path + "/GreenX/generate_local_grid.py";
@@ -181,4 +183,6 @@ void get_minimax_grid(int ngrids, double e_min, double e_max,
                 error_ij += cosft_wt[i*ngrids + k] * cosft_tw[k*ngrids + j];
             cosft_duality_error = std::max(cosft_duality_error, std::abs(error_ij));
         }
+}
+
 }

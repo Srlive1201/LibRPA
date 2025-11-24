@@ -10,8 +10,19 @@
 namespace librpa_int
 {
 
+namespace global
+{
+
+//! Manager of dataset instances created by user
 extern std::vector<Dataset*> manager;
 
 Dataset* get_dataset_instance(const LibrpaHandler *h);
+
+LibrpaHandler* push_back_dataset(int comm);
+
+//! Free the data instance that the handler binds
+void destroy_dataset(LibrpaHandler* h);
+
+}
 
 }

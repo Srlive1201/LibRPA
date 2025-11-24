@@ -7,6 +7,8 @@
 
 #include <string>
 
+namespace librpa_int {
+
 //! a simple struct to collect all runtime parameters
 struct Params
 {
@@ -105,4 +107,5 @@ struct Params
     static void print();
 };
 
+}
 #endif

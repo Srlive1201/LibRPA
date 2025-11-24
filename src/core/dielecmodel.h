@@ -2,6 +2,8 @@
 #include <functional>
 #include <vector>
 
+namespace librpa_int {
+
 //! double-dispersion Havriliak-Negami model
 struct DoubleHavriliakNegami
 {
@@ -10,3 +12,5 @@ struct DoubleHavriliakNegami
     static const std::function<void(std::vector<double> &, double, const std::vector<double> &)>
         grad_imfreq;
 };
+
+}

@@ -8,6 +8,8 @@
 // static const int ngrids_below_freqweight_inconsistent = 26;
 // static const double scale_inconsistent = 0.25;
 
+namespace librpa_int {
+
 bool check_minimax_available(int ngrids)
 {
     bool avail = false;
@@ -37,4 +39,6 @@ void get_minimax_grid(int ngrids, double e_min, double e_max,
     // if (ngrids < ngrids_below_freqweight_inconsistent)
     //     for (int i = 0; i != ngrids; i++)
     //         omega_weights[i] *= scale_inconsistent;
+}
+
 }

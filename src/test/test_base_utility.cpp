@@ -1,6 +1,8 @@
 #include "../utils/base_utility.h"
 #include <cassert>
 
+using namespace librpa_int;
+
 int main (int argc, char *argv[])
 {
 

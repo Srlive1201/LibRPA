@@ -17,16 +17,16 @@
 #include <sys/sysctl.h>
 #endif
 
-#if defined(__GLIBC__) && (__GLIBC__ * 1000 + __GLIBC_MINOR__ >= 2033)
-#define USE_MALLINFO2 1
-#endif
-
 #ifdef PROC_DIR_AVAILABLE
 #include <fstream>
 #endif
 
 namespace librpa_int
 {
+
+#if defined(__GLIBC__) && (__GLIBC__ * 1000 + __GLIBC_MINOR__ >= 2033)
+#define USE_MALLINFO2 1
+#endif
 
 namespace utils
 {

@@ -14,6 +14,8 @@
 #include "utils_mem.h"
 #endif
 
+namespace librpa_int {
+
 double cpu_time_from_clocks_diff(const std::clock_t& ct_start,
                                  const std::clock_t& ct_end)
 {
@@ -175,4 +177,6 @@ void Profiler::display(int verbose) noexcept
         librpa_int::utils::lib_printf("%-49s %-12zu %-18s %-18s\n", name.c_str(), t.get_ncalls(),
                (s + cstr_cputime).c_str(), (s + cstr_walltime).c_str());
     }
+}
+
 }

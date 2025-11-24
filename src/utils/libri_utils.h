@@ -11,6 +11,8 @@
 #include "../utils/libri_stub.h"
 #endif
 
+namespace librpa_int {
+
 template <typename TA, typename Tcell>
 struct libri_types
 {
@@ -133,5 +135,7 @@ std::ostream& operator<<(std::ostream& os, const RI::Tensor<T>& t)
             throw std::invalid_argument(std::string(__FILE__) + " line " +
                                         std::to_string(__LINE__));
     }
+}
+
 }
 #endif

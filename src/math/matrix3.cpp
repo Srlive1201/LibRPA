@@ -1,5 +1,7 @@
 #include "matrix3.h"
 
+namespace librpa_int {
+
 Matrix3::Matrix3(const double &r11, const double &r12, const double &r13,
                  const double &r21, const double &r22, const double &r23,
                  const double &r31, const double &r32, const double &r33)
@@ -188,8 +190,13 @@ bool operator!=(const Matrix3 &m1, const Matrix3 &m2)
 
 void Matrix3::print(int width) const
 {
+	using std::cout;
+	using std::setw;
+	using std::endl;
 	cout << setw(width) << e11 << setw(width) << e12 << setw(width) << e13 << endl ;
 	cout << setw(width) << e21 << setw(width) << e22 << setw(width) << e23 << endl ;
 	cout << setw(width) << e31 << setw(width) << e32 << setw(width) << e33 << endl ;
 	return;
+}
+
 }

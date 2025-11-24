@@ -10,6 +10,7 @@
 #include <cassert>
 
 using namespace std;
+using namespace librpa_int;
 
 void check_initialize()
 {

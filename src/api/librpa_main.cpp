@@ -17,6 +17,7 @@
 
 void librpa_main()
 {
+    using namespace librpa_int;
     using librpa_int::global::mpi_comm_global_h;
     using librpa_int::envs::blacs_ctxt_global_h;
     using librpa_int::utils::lib_printf;

@@ -8,6 +8,8 @@
 #include "../math/utils_matrix_mpi.h"
 #include "../global/mpi_handler.h"
 
+namespace librpa_int {
+
 void MeanField::resize(int ns, int nk, int nb, int nao)
 {
     if (ns == 0 || nk == 0 || nb == 0 || nao == 0)
@@ -235,4 +237,7 @@ void MeanField::allredue_wfc_isk()
                 wfc[is][ik]=glo_wfc;
             }
 }
+
 MeanField meanfield = MeanField();
+
+}

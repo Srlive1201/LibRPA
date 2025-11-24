@@ -11,6 +11,8 @@
 #include "../math/complexmatrix.h"
 #include "../math/vector3_order.h"
 
+namespace librpa_int {
+
 //! Object of the meanfield input of Green's function
 /*!
   @note Energies are saved in Rydberg unit.
@@ -68,5 +70,7 @@ class MeanField
 
 //! A global MeanField object
 extern MeanField meanfield;
+
+}
 
 #endif // ! MEANFIELD_H

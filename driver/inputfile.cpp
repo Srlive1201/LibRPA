@@ -13,6 +13,8 @@ static const std::string SPACE_SEP = "[ \r\f\t]*";
 const std::string InputParser::KV_SEP = "=";
 const std::string InputParser::COMMENTS_IDEN = "[#!]";
 
+using namespace librpa_int;
+
 static std::string get_last_matched(const std::string &s,
                                     const std::string &key,
                                     const std::string &vregex,

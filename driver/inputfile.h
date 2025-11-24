@@ -1,5 +1,6 @@
 #pragma once
 #include <string>
+
 //! Class to parse parameters from string
 /*!
   Member functions prefixed with parse_ have a int argument at last.

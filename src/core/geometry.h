@@ -3,6 +3,8 @@
 
 #include "atoms.h"
 
+namespace librpa_int {
+
 typedef std::array<double, 3> coord_t;
 
 //! Cartesian coordinates of atoms
@@ -13,3 +15,5 @@ extern std::map<atom_t, coord_t> coord_frac;
 
 //! Atom type of atoms
 extern std::map<atom_t, int> atom_types;
+
+}

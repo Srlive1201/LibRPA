@@ -9,6 +9,8 @@
 using std::vector;
 using std::cout;
 using std::endl;
+using namespace librpa_int;
+
 
 static void initialize_1_over_x_minus_x0_data(int n, const cplxdb &x0, vector<cplxdb> &xs,
                                               vector<cplxdb> &data)

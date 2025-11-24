@@ -11,7 +11,7 @@ namespace librpa
 {
     bool test_handler(const LibrpaHandler *h)
     {
-        librpa_int::Dataset* p = librpa_int::get_dataset_instance(h);
+        librpa_int::Dataset* p = librpa_int::global::get_dataset_instance(h);
         return is_null_dataset_ptr(p);
     }
 }

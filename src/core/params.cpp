@@ -6,6 +6,8 @@
 
 #include "../utils/utils_io.h"
 
+namespace librpa_int {
+
 // default setting
 
 std::string Params::task = "rpa";
@@ -112,3 +114,5 @@ void Params::print()
 }
 
 Params params;
+
+}

@@ -36,6 +36,9 @@
 #ifdef LIBRPA_USE_LIBRI
 #include <RI/comm/mix/Communicate_Tensors_Map_Judge.h>
 #include <RI/global/Tensor.h>
+
+namespace librpa_int {
+
 using RI::Tensor;
 using RI::Communicate_Tensors_Map_Judge::comm_map2_first;
 #endif
@@ -2456,4 +2459,6 @@ void test_libcomm_for_system(const atpair_k_cplx_mat_t &coulmat)
     }
     lib_printf("Success test_libcomm_for_system\n");
 #endif
+}
+
 }

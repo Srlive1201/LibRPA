@@ -11,6 +11,8 @@
 //#include <boost/archive/binary_oarchive.hpp>
 //#include <boost/archive/binary_iarchive.hpp>
 
+namespace librpa_int {
+
 template<typename T> class Vector3_Order: public Vector3<T>
 {
 public: 
@@ -77,4 +79,5 @@ Vector3_Order<T> operator% ( const Vector3_Order<T> &v1, const Vector3_Order<T> 
 	return Vector3_Order<T>{ mod(v1.x,v2.x), mod(v1.y,v2.y), mod(v1.z,v2.z) };
 }
 
+}
 #endif	// ABFS_VECTOR3_ORDER_H

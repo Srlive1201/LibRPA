@@ -9,11 +9,13 @@
 #include <cstdlib>
 #include <limits>
 
-using namespace std;
 #include "matrix.h"
 #include "lapack_connector.h"
 #include "../utils/utils_io.h"
 
+namespace librpa_int {
+
+using namespace std;
 //*********************************************************
 // The init() function is the main initialization routine.
 // Sets up sizes and allocates memory for matrix class.
@@ -561,3 +563,4 @@ void print_matrix_mm(const matrix &mat, const string &fn, double threshold, bool
     fs.close();
 }
 
+}

@@ -13,6 +13,7 @@
 #include "../src/math/vector3_order.h"
 
 using std::string;
+using namespace librpa_int;
 
 /*!
  * @brief Read occupation numbers and eigenvalues of SCF calculation

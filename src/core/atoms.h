@@ -12,10 +12,12 @@
 #include <map>
 #include <unordered_map>
 #include <cstdint>
-/* #include "vector3.h" */
-/* #include "matrix3.h" */
+/* #include "../math/vector3.h" */
+/* #include "../math/matrix3.h" */
 
 #include "../utils/base_utility.h"
+
+namespace librpa_int {
 
 using std::vector;
 using std::map;
@@ -154,5 +156,7 @@ class Atoms
         /* const Matrix3 & get_lattice_vectors() const { return latt; } */
         /* const size_t & get_n_atoms() const { return n_atoms; } */
 };
+
+}
 
 #endif // !ATOMS_H

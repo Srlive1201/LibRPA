@@ -71,6 +71,7 @@ void finalize_librpa_environment()
 
 void set_dimension(int nspins, int nkpts, int nstates, int nbasis,int natoms)
 {
+    using namespace librpa_int;
     using librpa_int::global::mpi_comm_global_h;
 
     if (mpi_comm_global_h.is_root())
@@ -86,6 +87,8 @@ void set_dimension(int nspins, int nkpts, int nstates, int nbasis,int natoms)
 
 void set_wg_ekb_efermi(int nspins, int nkpts, int nstates, double* wg, double* ekb, double efermi)
 {
+    using namespace librpa_int;
+
     meanfield.get_efermi() = efermi;
     auto& eskb = meanfield.get_eigenvals();
     auto& swg = meanfield.get_weight();
@@ -106,6 +109,7 @@ void set_wg_ekb_efermi(int nspins, int nkpts, int nstates, double* wg, double* e
 
 void set_ao_basis_wfc(int ispin, int ik, double* wfc_real, double* wfc_imag)
 {
+    using namespace librpa_int;
     // librpa_int::utils::lib_printf("is: %d, ik: %d\n",is,ik);
     // int length_ib_iw=meanfield.get_n_bands()*meanfield.get_n_aos();
     // vector<double> vec_wfc_real(wfc_real,wfc_real+length_ib_iw);
@@ -122,6 +126,8 @@ void set_ao_basis_wfc(int ispin, int ik, double* wfc_real, double* wfc_imag)
 
 void set_latvec_and_G(double lat_mat[9], double G_mat[9])
 {
+    using namespace librpa_int;
+
     latvec.e11 = lat_mat[0];
     latvec.e12 = lat_mat[1];
     latvec.e13 = lat_mat[2];
@@ -164,6 +170,8 @@ void set_latvec_and_G(double lat_mat[9], double G_mat[9])
 
 void set_kgrids_kvec_tot(int nk1, int nk2, int nk3, double* kvecs)
 {
+    using namespace librpa_int;
+
     kv_nmp[0] = nk1;
     kv_nmp[1] = nk2;
     kv_nmp[2] = nk3;
@@ -190,6 +198,8 @@ void set_kgrids_kvec_tot(int nk1, int nk2, int nk3, double* kvecs)
 
 void set_ibz2bz_index_and_weight(const int nk_irk, const int* ibz2bz_index, const double* wk_irk)
 {
+    using namespace librpa_int;
+
    // librpa_int::utils::lib_printf(" nks_irk: %d\n",nk_irk);
    for (int ik_ibz = 0; ik_ibz != nk_irk; ik_ibz++)
    {
@@ -209,6 +219,8 @@ void set_ibz2bz_index_and_weight(const int nk_irk, const int* ibz2bz_index, cons
 
 void set_ao_basis_aux(int I, int J, int nbasis_i, int nbasis_j, int naux_mu, int* R, double* Cs_in, int insert_index_only)
 {
+    using namespace librpa_int;
+
     atom_nw.insert(pair<atom_t, size_t>(I, nbasis_i));
     atom_mu.insert(pair<atom_t, size_t>(I, naux_mu));
 
@@ -261,8 +273,11 @@ void set_ao_basis_aux(int I, int J, int nbasis_i, int nbasis_j, int naux_mu, int
     }
 }
 
-static void _set_aux_coulomb_k_atom_pair(int ik, int I, int J, int naux_mu, int naux_nu, double* Vq_real_in, double* Vq_imag_in, atpair_k_cplx_mat_t &coulomb_mat)
+static void _set_aux_coulomb_k_atom_pair(int ik, int I, int J, int naux_mu, int naux_nu, double* Vq_real_in, double* Vq_imag_in,
+                                         librpa_int::atpair_k_cplx_mat_t &coulomb_mat)
 {
+    using namespace librpa_int;
+
     // librpa_int::utils::lib_printf("I,J,mu,nu: %d  %d  %d  %d\n",I,J, naux_mu,naux_nu);
     // librpa_int::utils::lib_printf("atom_mu nu: %d %d\n",atom_mu[I],atom_mu[J]);
     // librpa_int::utils::lib_printf("Vq threshold : %f\n",Params::vq_threshold);
@@ -292,19 +307,25 @@ static void _set_aux_coulomb_k_atom_pair(int ik, int I, int J, int naux_mu, int 
 
 void set_aux_bare_coulomb_k_atom_pair(int ik, int I, int J, int naux_mu, int naux_nu, double* Vq_real_in, double* Vq_imag_in)
 {
+    using namespace librpa_int;
+
     _set_aux_coulomb_k_atom_pair(ik, I, J, naux_mu, naux_nu,
             Vq_real_in, Vq_imag_in, Vq);
 }
 
 void set_aux_cut_coulomb_k_atom_pair(int ik, int I, int J, int naux_mu, int naux_nu, double* Vq_real_in, double* Vq_imag_in)
 {
+    using namespace librpa_int;
+
     _set_aux_coulomb_k_atom_pair(ik, I, J, naux_mu, naux_nu,
             Vq_real_in, Vq_imag_in, Vq_cut);
 }
 
 static void _set_aux_coulomb_k_2D_block(int ik, int max_naux, int mu_begin, int mu_end, int nu_begin, int nu_end,
-        double* Vq_real_in, double* Vq_imag_in, map<Vector3_Order<double>, ComplexMatrix> &vq_block)
+        double* Vq_real_in, double* Vq_imag_in, std::map<librpa_int::Vector3_Order<double>, librpa_int::ComplexMatrix> &vq_block)
 {
+    using namespace librpa_int;
+
     int brow = mu_begin - 1;
     int erow = mu_end - 1;
     int bcol = nu_begin - 1;
@@ -332,18 +353,24 @@ static void _set_aux_coulomb_k_2D_block(int ik, int max_naux, int mu_begin, int 
 
 void set_aux_bare_coulomb_k_2D_block(int ik, int max_naux, int mu_begin, int mu_end, int nu_begin, int nu_end, double* Vq_real_in, double* Vq_imag_in)
 {
+    using namespace librpa_int;
+
     _set_aux_coulomb_k_2D_block(ik, max_naux, mu_begin, mu_end, nu_begin, nu_end, Vq_real_in, Vq_imag_in,
             Vq_block_loc);
 }
 
 void set_aux_cut_coulomb_k_2D_block(int ik, int max_naux, int mu_begin, int mu_end, int nu_begin, int nu_end, double* Vq_real_in, double* Vq_imag_in)
 {
+    using namespace librpa_int;
+
     _set_aux_coulomb_k_2D_block(ik, max_naux, mu_begin, mu_end, nu_begin, nu_end, Vq_real_in, Vq_imag_in,
             Vq_cut_block_loc);
 }
 
 void set_librpa_params(LibRPAParams *params_c)
 {
+    using namespace librpa_int;
+
     Params::output_file = params_c->output_file;
     Params::output_dir = params_c->output_dir;
     Params::tfgrids_type = params_c->tfgrids_type;
@@ -411,6 +438,8 @@ void get_frequency_grids(int ngrid, double *freqeuncy_grids)
 
 void get_rpa_correlation_energy(double *rpa_corr, double *rpa_corr_irk_contrib)
 {
+    using namespace librpa_int;
+
     std::complex<double> rpa_corr_;
     std::vector<std::complex<double>> rpa_corr_irk_contrib_(n_irk_points);
 

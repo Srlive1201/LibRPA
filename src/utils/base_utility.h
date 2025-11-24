@@ -3,6 +3,8 @@
 #include <vector>
 #include <complex>
 
+namespace librpa_int {
+
 constexpr static const double DOUBLE_EQUAL_THRES = 1e-10;
 
 typedef std::complex<double> cplxdb;
@@ -113,3 +115,5 @@ struct FastLess
         }
     }
 };
+
+}

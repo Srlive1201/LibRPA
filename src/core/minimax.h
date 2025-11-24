@@ -1,5 +1,7 @@
 #pragma once
 
+namespace librpa_int {
+
 //! \brief get the minimax frequency grids
 void get_minimax_grid_frequency(int ngrids, double e_min, double e_max,
                                 double *omega_points, double *omega_weights,
@@ -11,3 +13,5 @@ void get_minimax_grid(int ngrids, double e_min, double e_max,
                       double *omega_points, double *omega_weights,
                       double *cosft_wt, double *cosft_tw, double *sinft_wt,
                       double max_errors[3], double &cosft_duality_error, int &ierr);
+
+}

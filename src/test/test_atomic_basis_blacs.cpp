@@ -4,6 +4,9 @@
 
 #include "../utils/stl_io_helper.h"
 #include "../mpi/base_blacs.h"
+
+using namespace librpa_int;
+
 #include "testutils.h"
 
 #include <stdexcept>

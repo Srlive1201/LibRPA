@@ -5,6 +5,8 @@
 #pragma once
 #include "ri.h"
 
+namespace librpa_int {
+
 /*!
  * @brief perform Fourier transform of q/k-space Coulomb matrix to R-space
  * @param coulmat  q/k-space Coulomb matrix by atom-pair index
@@ -18,3 +20,5 @@ atpair_R_mat_t FT_Vq(const atpair_k_cplx_mat_t &coulmat,
                      const int &n_k_points,
                      const vector<Vector3_Order<int>> &Rlist,
                      bool return_ordered_atom_pair);
+
+}

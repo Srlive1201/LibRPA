@@ -11,6 +11,8 @@
 #include "../math/complexmatrix.h"
 #include "../math/matrix.h"
 
+namespace librpa_int {
+
 //! Object to handle time/frequency grids for quadrature
 /*!
  * Not necessay have a time grids, unless the space-time minimax grid is used.
@@ -110,4 +112,5 @@ class TFGrids
         ~TFGrids();
 };
 
+}
 #endif

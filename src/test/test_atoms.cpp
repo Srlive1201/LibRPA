@@ -1,6 +1,8 @@
 #include "../core/atoms.h"
 #include <iostream>
 
+using namespace librpa_int;
+
 int main (int argc, char *argv[])
 {
     using namespace std;

@@ -1,6 +1,8 @@
 #include "../core/pbc.h"
 #include <cassert>
 
+using namespace librpa_int;
+
 void test_is_gamma_point()
 {
     assert(is_gamma_point(Vector3_Order<double>{0.0, 0.0, 0.0}));
@@ -11,7 +13,7 @@ void test_is_gamma_point()
 void test_get_R_index()
 {
     Vector3_Order<int> period{2, 2, 2};
-    vector<Vector3_Order<int>> sc222 = construct_R_grid(period);
+    std::vector<Vector3_Order<int>> sc222 = construct_R_grid(period);
     for ( int i = 0; i != sc222.size(); i++ )
         printf("i=%d: x %d, y %d, z %d\n", i, sc222[i].x, sc222[i].y, sc222[i].z);
     Vector3_Order<int> R {-1, -1, -1};

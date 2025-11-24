@@ -5,6 +5,8 @@
 #include "../math/matrix_m.h"
 #include "../mpi/base_blacs.h"
 
+namespace librpa_int {
+
 struct CorrEnergy
 {
     enum type { RPA, MP2 };
@@ -57,3 +59,4 @@ cplxdb compute_pi_det_blacs_2d(Matz &loc_piT, const librpa_int::ArrayDesc &arrde
 double compute_pi_det_blacs_2d_gamma_only(matrix_m<double> &loc_piT, const librpa_int::ArrayDesc &arrdesc_pi, int *ipiv, int &info);
 
 void test_libcomm_for_system(const atpair_k_cplx_mat_t &coulmat);
+}

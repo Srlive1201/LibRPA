@@ -13,6 +13,8 @@
 #include "minimax.h"
 #include "../utils/utils_io.h"
 
+namespace librpa_int {
+
 using std::pair;
 using std::string;
 using std::ifstream;
@@ -316,4 +318,6 @@ const pair<int, int> TFGrids::get_tf_index(const pair<double, double> &tf) const
 double TFGrids::find_freq_weight(const double & freq) const
 {
     return freq_weights[get_freq_index(freq)];
+}
+
 }

@@ -5,6 +5,8 @@
 #include "../interface/blacs_scalapack.h"
 #include "lapack_connector.h"
 
+namespace librpa_int {
+
 class ScalapackConnector
 {
 public:
@@ -461,4 +463,5 @@ public:
 
 };
 
+}
 #endif
