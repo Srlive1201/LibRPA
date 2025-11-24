@@ -1,12 +1,9 @@
-#include "../math/utils_matrix_m_mpi.h"
-#include "../math/utils_matrix_m.h"
-
 #include "../global/mpi_handler.h"
+#include "../math/utils_matrix_m.h"
+#include "../math/utils_matrix_m_mpi.h"
 #include "../mpi/envs_blacs.h"
-#include "../utils/envs_io.h"
-
 #include "../mpi/utils_blacs.h"
-
+#include "../utils/envs_io.h"
 #include "../utils/stl_io_helper.h"
 #include "testutils.h"
 
@@ -1033,7 +1030,7 @@ void test_restore_local_mat_sy(const std::vector<size_t> &nbs, MAJOR major)
 
 static void initialize()
 {
-    initialize_mpi(MPI_COMM_WORLD);
+    init_global_mpi();
     initialize_blacs(MPI_COMM_WORLD);
     initialize_io();
 }
@@ -1042,7 +1039,7 @@ static void finalize()
 {
     finalize_io();
     finalize_blacs();
-    finalize_mpi();
+    finalize_global_mpi();
 }
 
 int main (int argc, char *argv[])

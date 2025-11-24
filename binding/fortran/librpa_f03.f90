@@ -81,9 +81,9 @@ module librpa_f03
 
    interface
       subroutine initialize_librpa_environment( &
-         comm_in, is_fortran_comm, redirect_stdout, output_filename) bind(c, name="initialize_librpa_environment")
+         redirect_stdout, output_filename) bind(c, name="initialize_librpa_environment")
          use, intrinsic :: iso_c_binding, only: c_int, c_char
-         integer(c_int), value :: comm_in, is_fortran_comm, redirect_stdout
+         integer(c_int), value :: redirect_stdout
          character(kind=c_char), dimension(*), intent(in) :: output_filename
       end subroutine
    end interface

@@ -41,7 +41,7 @@ static void initialize(int argc, char **argv)
         lib_printf("Warning: MPI_Init_thread provide %d != required %d", provided, MPI_THREAD_MULTIPLE);
     }
 
-    initialize_librpa_environment(MPI_COMM_WORLD, 0, 0, "");
+    initialize_librpa_environment(0, "");
 
     // Global profiler begins right after MPI is initialized
     Profiler::start("total", "Total");

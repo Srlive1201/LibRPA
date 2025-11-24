@@ -5,9 +5,9 @@
 extern "C" {
 #endif
 
-void librpa_init_global_env(LibrpaSwitch switch_redirect_stdout, const char *redirect_path);
+void librpa_init_global(LibrpaSwitch switch_redirect_stdout, const char *redirect_path);
 
-void librpa_finalize_global_env();
+void librpa_finalize_global();
 
 #ifdef __cplusplus
 }
@@ -17,9 +17,9 @@ void librpa_finalize_global_env();
 namespace librpa
 {
 
-void init_global_env(LibrpaSwitch switch_redirect_stdout, const char *redirect_path);
+void init_global(LibrpaSwitch switch_redirect_stdout, const char *redirect_path);
 
-void finalize_global_env();
+void finalize_global();
 
 }
 #endif

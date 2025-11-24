@@ -91,14 +91,10 @@ struct LibRPAParams
 /*!
  * @brief Initialize the environment of LibRPA calculation
  *
- * @param[in] comm_global_in     Global MPI communicator
- * @param[in] is_fortran_comm    Flag to identify whether the input communicator is Fortran.
  * @param[in] redirect_stdout    Flag to control whether output LibRPA will be printed to a file
  * @param[in] output_filename    Name of file for redirected output. Only used when redirect_stdout is true
  */
-void initialize_librpa_environment(
-        MPI_Comm comm_global_in, int is_fortran_comm,
-        int redirect_stdout, const char *output_filename);
+void initialize_librpa_environment(int redirect_stdout, const char *output_filename);
 
 /*!
  * @brief Finalize the environment of LibRPA calculation

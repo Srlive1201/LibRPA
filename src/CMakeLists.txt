@@ -27,10 +27,10 @@ list(APPEND lib_sources
         api/app_exx.cpp
         api/app_rpa.cpp
         api/app_gw.cpp
-        api/librpa_compute.cpp
-        api/librpa_global.cpp
-        api/librpa_handler.cpp
-        api/librpa_options.cpp
+        api/compute_test.cpp
+        api/global.cpp
+        api/handler.cpp
+        api/options.cpp
         api/librpa.cpp
         api/librpa_main.cpp
 

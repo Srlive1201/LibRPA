@@ -80,7 +80,7 @@ int main (int argc, char *argv[])
     int provided;
     MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
 
-    initialize_mpi(MPI_COMM_WORLD);
+    init_global_mpi();
     initialize_blacs(MPI_COMM_WORLD);
 
     if ( size_global != 4 )
@@ -90,7 +90,7 @@ int main (int argc, char *argv[])
     test_arraydesc();
 
     finalize_blacs();
-    finalize_mpi();
+    finalize_global_mpi();
     MPI_Finalize();
 
     return 0;

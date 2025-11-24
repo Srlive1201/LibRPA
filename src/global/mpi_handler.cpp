@@ -27,7 +27,7 @@ int size_inter = 1;
 
 static bool mpi_initialized = false;
 
-void initialize_mpi(const MPI_Comm &mpi_comm_global_in)
+void init_global_mpi()
 {
     int flag;
     MPI_Initialized(&flag);
@@ -38,7 +38,7 @@ void initialize_mpi(const MPI_Comm &mpi_comm_global_in)
             "MPI_Init or MPI_Init_thread must be called before " + std::string(__FUNCTION__));
     }
 
-    mpi_comm_global = mpi_comm_global_in;
+    mpi_comm_global = MPI_COMM_WORLD;
     // Initialize handlers of global MPI communicator
     mpi_comm_global_h.reset_comm(mpi_comm_global);
     mpi_comm_global_h.init();
@@ -81,11 +81,10 @@ bool is_mpi_initialized()
     return mpi_initialized;
 }
 
-void finalize_mpi()
+void finalize_global_mpi()
 {
     procname = "not-init";
     mpi_comm_global_h.reset_comm();
-
     mpi_comm_inter_h.reset_comm();
     mpi_comm_intra_h.reset_comm();
     MPI_Comm_free(&mpi_comm_intra);

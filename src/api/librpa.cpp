@@ -39,26 +39,12 @@
 
 
 void initialize_librpa_environment(
-        MPI_Comm comm_global_in, int is_fortran_comm,
         int redirect_stdout, const char *output_filename)
 {
-    using librpa_int::global::mpi_comm_global_h;
-
-    MPI_Comm comm_global;
-    if (is_fortran_comm)
-    {
-        comm_global = MPI_Comm_f2c(comm_global_in);
-    }
-    else
-    {
-        comm_global = comm_global_in;
-    }
-
-    librpa_int::global::initialize_mpi(comm_global);
-    librpa_int::envs::initialize_blacs(comm_global);
+    librpa_int::global::init_global_mpi();
+    librpa_int::envs::initialize_blacs(librpa_int::global::mpi_comm_global);
     librpa_int::envs::initialize_io(redirect_stdout, output_filename);
 
-    mpi_comm_global_h.init();
     // cout << mpi_comm_global_h.str() << endl;
 }
 
@@ -66,7 +52,7 @@ void finalize_librpa_environment()
 {
     librpa_int::envs::finalize_io();
     librpa_int::envs::finalize_blacs();
-    librpa_int::global::finalize_mpi();
+    librpa_int::global::finalize_global_mpi();
 }
 
 void set_dimension(int nspins, int nkpts, int nstates, int nbasis,int natoms)
