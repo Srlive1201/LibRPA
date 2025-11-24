@@ -43,7 +43,7 @@ using RI::Communicate_Tensors_Map_Judge::comm_map2_first;
 using LIBRPA::utils::init_local_mat;
 using LIBRPA::envs::mpi_comm_global_h;
 using LIBRPA::envs::blacs_ctxt_global_h;
-using LIBRPA::Array_Desc;
+using LIBRPA::ArrayDesc;
 using LIBRPA::envs::ofs_myid;
 using LIBRPA::utils::lib_printf;
 
@@ -61,7 +61,7 @@ CorrEnergy compute_RPA_correlation_blacs_2d_gamma_only( Chi0 &chi0, atpair_k_cpl
 
     mpi_comm_global_h.barrier();
 
-    Array_Desc desc_nabf_nabf(blacs_ctxt_global_h);
+    ArrayDesc desc_nabf_nabf(blacs_ctxt_global_h);
     // use a square blocksize instead max block, otherwise heev and inversion will complain about illegal parameter
     desc_nabf_nabf.init_square_blk(n_abf, n_abf, 0, 0);
     const auto set_IJ_nabf_nabf = LIBRPA::utils::get_necessary_IJ_from_block_2D_sy('U', LIBRPA::atomic_basis_abf, desc_nabf_nabf);
@@ -283,7 +283,7 @@ CorrEnergy compute_RPA_correlation_blacs_2d( Chi0 &chi0,  atpair_k_cplx_mat_t &c
 
     mpi_comm_global_h.barrier();
 
-    Array_Desc desc_nabf_nabf(blacs_ctxt_global_h);
+    ArrayDesc desc_nabf_nabf(blacs_ctxt_global_h);
     // use a square blocksize instead max block, otherwise heev and inversion will complain about illegal parameter
     desc_nabf_nabf.init_square_blk(n_abf, n_abf, 0, 0);
     const auto set_IJ_nabf_nabf = LIBRPA::utils::get_necessary_IJ_from_block_2D_sy('U', LIBRPA::atomic_basis_abf, desc_nabf_nabf);
@@ -511,7 +511,7 @@ CorrEnergy compute_RPA_correlation_blacs_2d( Chi0 &chi0,  atpair_k_cplx_mat_t &c
     corr.etype = CorrEnergy::type::RPA;
     return corr;
 }
-double compute_pi_det_blacs_2d_gamma_only(matrix_m<double> &loc_piT, const Array_Desc &arrdesc_pi, int *ipiv, int &info)
+double compute_pi_det_blacs_2d_gamma_only(matrix_m<double> &loc_piT, const ArrayDesc &arrdesc_pi, int *ipiv, int &info)
 {
     int one=1;
     int range_all= N_all_mu;
@@ -551,7 +551,7 @@ double compute_pi_det_blacs_2d_gamma_only(matrix_m<double> &loc_piT, const Array
     double det_end = omp_get_wtime();
     return ln_det_all;
 }
-complex<double> compute_pi_det_blacs_2d(matrix_m<complex<double>> &loc_piT, const Array_Desc &arrdesc_pi, int *ipiv, int &info)
+complex<double> compute_pi_det_blacs_2d(matrix_m<complex<double>> &loc_piT, const ArrayDesc &arrdesc_pi, int *ipiv, int &info)
 {
     int one=1;
     int range_all= N_all_mu;
@@ -637,7 +637,7 @@ complex<double> compute_pi_det_blacs_2d(matrix_m<complex<double>> &loc_piT, cons
     return ln_det_all;
 }
 
-complex<double> compute_pi_det_blacs(ComplexMatrix &loc_piT, const Array_Desc &arrdesc_pi, int *ipiv, int &info)
+complex<double> compute_pi_det_blacs(ComplexMatrix &loc_piT, const ArrayDesc &arrdesc_pi, int *ipiv, int &info)
 {
     // int range_all = atom_mu_part_range[natom-1]+atom_mu[natom-1];
     // int desc_pi[9];
@@ -724,7 +724,7 @@ CorrEnergy compute_RPA_correlation_blacs(const Chi0 &chi0, const atpair_k_cplx_m
 
     mpi_comm_global_h.barrier();
 
-    LIBRPA::Array_Desc arrdesc_pi(blacs_ctxt_global_h);
+    LIBRPA::ArrayDesc arrdesc_pi(blacs_ctxt_global_h);
     arrdesc_pi.init_square_blk(n_abf, n_abf, 0, 0);
     int loc_row = arrdesc_pi.m_loc(), loc_col = arrdesc_pi.n_loc(), info;
 
@@ -1617,7 +1617,7 @@ compute_Wc_freq_q(Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, atpair_k_c
 
 map<double, std::map<Vector3_Order<double>, Matz>>
 compute_Wc_freq_q_blacs(Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, atpair_k_cplx_mat_t &coulmat_wc,
-                        const vector<std::complex<double>> &epsmac_LF_imagfreq, const Array_Desc &ad)
+                        const vector<std::complex<double>> &epsmac_LF_imagfreq, const ArrayDesc &ad)
 {
     using LIBRPA::utils::collect_block_from_ALL_IJ_Tensor;
     using LIBRPA::utils::power_hemat_blacs;
@@ -1642,7 +1642,7 @@ compute_Wc_freq_q_blacs(Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, atpa
     // Maximal blocksize ensure that atom indices related to the rows/columns of a local matrix is minimized.
     // This, however, is not optimal for matrix operations, and may lead to segment fault during
     // MPI operations with parallel linear algebra subroutine. Thus we define an optimal blocksize
-    Array_Desc desc_nabf_nabf_opt(blacs_ctxt_global_h);
+    ArrayDesc desc_nabf_nabf_opt(blacs_ctxt_global_h);
     const int nb_opt = min(128, desc_nabf_nabf.nb());
     desc_nabf_nabf_opt.init(n_abf, n_abf, nb_opt, nb_opt, 0, 0);
     // obtain the indices of atom-pair block necessary to build 2D block of a Hermitian/symmetric matrix
@@ -2366,7 +2366,7 @@ void test_libcomm_for_system(const atpair_k_cplx_mat_t &coulmat)
 
     mpi_comm_global_h.barrier();
 
-    Array_Desc desc_nabf_nabf(blacs_ctxt_global_h);
+    ArrayDesc desc_nabf_nabf(blacs_ctxt_global_h);
     // use a square blocksize instead max block, otherwise heev and inversion will complain about illegal parameter
     desc_nabf_nabf.init_square_blk(n_abf, n_abf, 0, 0);
     const auto set_IJ_nabf_nabf = LIBRPA::utils::get_necessary_IJ_from_block_2D_sy('U', LIBRPA::atomic_basis_abf, desc_nabf_nabf);

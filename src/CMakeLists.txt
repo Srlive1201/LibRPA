@@ -53,6 +53,7 @@ list(APPEND lib_sources
         core/utils_timefreq.cpp
 
         global/instance_manager.cpp
+        global/mpi_handler.cpp
 
         math/complexmatrix.cpp
         math/fitting.cpp

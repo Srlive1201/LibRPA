@@ -325,10 +325,10 @@ void Exx::build_KS(const std::vector<std::vector<ComplexMatrix>> &wfc_target,
     const auto& n_bands = this->mf_.get_n_bands();
 
     // prepare scalapack array descriptors
-    Array_Desc desc_nao_nao(blacs_ctxt_global_h);
-    Array_Desc desc_nband_nao(blacs_ctxt_global_h);
-    Array_Desc desc_nband_nband(blacs_ctxt_global_h);
-    Array_Desc desc_nband_nband_fb(blacs_ctxt_global_h);
+    ArrayDesc desc_nao_nao(blacs_ctxt_global_h);
+    ArrayDesc desc_nband_nao(blacs_ctxt_global_h);
+    ArrayDesc desc_nband_nband(blacs_ctxt_global_h);
+    ArrayDesc desc_nband_nband_fb(blacs_ctxt_global_h);
 
     desc_nao_nao.init_1b1p(n_aos, n_aos, 0, 0);
     desc_nband_nao.init_1b1p(n_bands, n_aos, 0, 0);

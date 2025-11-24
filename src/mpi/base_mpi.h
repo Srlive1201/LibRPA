@@ -24,7 +24,7 @@ template <> struct mpi_datatype<std::complex<float>>
 template <> struct mpi_datatype<std::complex<double>>
 { static constexpr MPI_Datatype value = MPI_C_DOUBLE_COMPLEX; };
 
-class MPI_COMM_handler
+class MpiCommHandler
 {
 private:
     bool initialized_;
@@ -35,9 +35,9 @@ public:
     int nprocs;
     std::string procname;
 public:
-    MPI_COMM_handler();
-    MPI_COMM_handler(MPI_Comm comm_in);
-    ~MPI_COMM_handler() {};
+    MpiCommHandler();
+    MpiCommHandler(MPI_Comm comm_in);
+    ~MpiCommHandler() {};
     void init();
     void reset_comm();
     void reset_comm(MPI_Comm comm_in);

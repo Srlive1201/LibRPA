@@ -21,7 +21,7 @@ void CTXT_barrier(int ictxt, CTXT_SCOPE scope)
 }
 
 
-void BLACS_CTXT_handler::init()
+void BlacsCtxtHandler::init()
 {
     this->mpi_comm_h.init();
     this->ictxt = Csys2blacs_handle(this->mpi_comm_h.comm);
@@ -29,7 +29,7 @@ void BLACS_CTXT_handler::init()
     this->initialized_ = true;
 }
 
-void BLACS_CTXT_handler::reset_comm(MPI_Comm comm_in)
+void BlacsCtxtHandler::reset_comm(MPI_Comm comm_in)
 {
     this->mpi_comm_h.reset_comm(comm_in);
     this->comm_set_ = true;
@@ -37,7 +37,7 @@ void BLACS_CTXT_handler::reset_comm(MPI_Comm comm_in)
     this->initialized_ = false;
 }
 
-void BLACS_CTXT_handler::set_grid(const int &nprows_in, const int &npcols_in,
+void BlacsCtxtHandler::set_grid(const int &nprows_in, const int &npcols_in,
                                   CTXT_LAYOUT layout_in)
 {
     // if the grid has been set, exit it first
@@ -54,7 +54,7 @@ void BLACS_CTXT_handler::set_grid(const int &nprows_in, const int &npcols_in,
     pgrid_set_ = true;
 }
 
-void BLACS_CTXT_handler::set_square_grid(bool more_rows, CTXT_LAYOUT layout_in)
+void BlacsCtxtHandler::set_square_grid(bool more_rows, CTXT_LAYOUT layout_in)
 {
     int nroc;
     layout = layout_in;
@@ -67,17 +67,17 @@ void BLACS_CTXT_handler::set_square_grid(bool more_rows, CTXT_LAYOUT layout_in)
     set_grid(nprows, npcols, layout_in);
 }
 
-void BLACS_CTXT_handler::set_horizontal_grid()
+void BlacsCtxtHandler::set_horizontal_grid()
 {
     set_grid(1, nprocs, CTXT_LAYOUT::R);
 }
 
-void BLACS_CTXT_handler::set_vertical_grid()
+void BlacsCtxtHandler::set_vertical_grid()
 {
     set_grid(nprocs, 1, CTXT_LAYOUT::C);
 }
 
-void BLACS_CTXT_handler::exit()
+void BlacsCtxtHandler::exit()
 {
     if (pgrid_set_)
     {
@@ -88,10 +88,10 @@ void BLACS_CTXT_handler::exit()
     }
 }
 
-std::string BLACS_CTXT_handler::info() const
+std::string BlacsCtxtHandler::info() const
 {
     std::string info;
-    info = std::string("BLACS_CTXT_handler: ")
+    info = std::string("BlacsCtxtHandler: ")
          + "ICTXT " + std::to_string(ictxt) + " "
          + "PSIZE " + std::to_string(nprocs) + " "
          + "PID " + std::to_string(myid) + " "
@@ -100,24 +100,24 @@ std::string BLACS_CTXT_handler::info() const
     return info;
 }
 
-int BLACS_CTXT_handler::get_pnum(int prow, int pcol) const
+int BlacsCtxtHandler::get_pnum(int prow, int pcol) const
 {
     return Cblacs_pnum(ictxt, prow, pcol);
 }
 
-void BLACS_CTXT_handler::get_pcoord(int pid, int &prow, int &pcol) const
+void BlacsCtxtHandler::get_pcoord(int pid, int &prow, int &pcol) const
 {
     Cblacs_pcoord(ictxt, pid, &prow, &pcol);
 }
 
-pcoord_t BLACS_CTXT_handler::get_pcoord(int pid) const
+pcoord_t BlacsCtxtHandler::get_pcoord(int pid) const
 {
     int prow, pcol;
     Cblacs_pcoord(ictxt, pid, &prow, &pcol);
     return {prow, pcol};
 }
 
-void BLACS_CTXT_handler::barrier(CTXT_SCOPE scope) const
+void BlacsCtxtHandler::barrier(CTXT_SCOPE scope) const
 {
     CTXT_barrier(ictxt, scope);
 }
@@ -162,7 +162,7 @@ std::vector<int> get_proc_indices_blacs(const int &m, const int &n, const int &m
     return procids;
 }
 
-void Array_Desc::set_blacs_params_(int comm, int ictxt, int nprocs, int myid, int nprows,
+void ArrayDesc::set_blacs_params_(int comm, int ictxt, int nprocs, int myid, int nprows,
                                   int myprow, int npcols, int mypcol)
 {
     assert(myid < nprocs && myprow < nprows && mypcol < npcols);
@@ -176,7 +176,7 @@ void Array_Desc::set_blacs_params_(int comm, int ictxt, int nprocs, int myid, in
     mypcol_ = mypcol;
 }
 
-int Array_Desc::set_desc_indices_(const int &m, const int &n, const int &mb, const int &nb,
+int ArrayDesc::set_desc_indices_(const int &m, const int &n, const int &mb, const int &nb,
                                   const int &irsrc, const int &icsrc)
 {
     int info = 0;
@@ -252,7 +252,7 @@ int Array_Desc::set_desc_indices_(const int &m, const int &n, const int &mb, con
     return info;
 }
 
-Array_Desc::Array_Desc()
+ArrayDesc::ArrayDesc()
     : ictxt_(0), nprocs_(0), myid_(0),
       nprows_(0), myprow_(0), npcols_(0), mypcol_(0),
       m_(0), n_(0), mb_(0), nb_(0), irsrc_(0), icsrc_(0),
@@ -262,7 +262,7 @@ Array_Desc::Array_Desc()
       empty_local_mat_(false), initialized_(false)
 {}
 
-Array_Desc::Array_Desc(const BLACS_CTXT_handler &blacs_h)
+ArrayDesc::ArrayDesc(const BlacsCtxtHandler &blacs_h)
     : ictxt_(0), nprocs_(0), myid_(0),
       nprows_(0), myprow_(0), npcols_(0), mypcol_(0),
       m_(0), n_(0), mb_(0), nb_(0), irsrc_(0), icsrc_(0),
@@ -274,7 +274,7 @@ Array_Desc::Array_Desc(const BLACS_CTXT_handler &blacs_h)
     this->reset_handler(blacs_h);
 }
 
-Array_Desc::Array_Desc(const int &ictxt)
+ArrayDesc::ArrayDesc(const int &ictxt)
     : ictxt_(0), nprocs_(0), myid_(0),
       nprows_(0), myprow_(0), npcols_(0), mypcol_(0),
       m_(0), n_(0), mb_(0), nb_(0), irsrc_(0), icsrc_(0),
@@ -294,7 +294,7 @@ Array_Desc::Array_Desc(const int &ictxt)
                       mypcol);
 }
 
-void Array_Desc::reset_handler(const BLACS_CTXT_handler &blacs_h)
+void ArrayDesc::reset_handler(const BlacsCtxtHandler &blacs_h)
 {
     assert(blacs_h.initialized());
     // clean up current indices if the descriptor is already initialized
@@ -313,13 +313,13 @@ void Array_Desc::reset_handler(const BLACS_CTXT_handler &blacs_h)
                       blacs_h.mypcol);
 }
 
-int Array_Desc::init(const int &m, const int &n, const int &mb, const int &nb,
+int ArrayDesc::init(const int &m, const int &n, const int &mb, const int &nb,
                     const int &irsrc, const int &icsrc)
 {
     return set_desc_indices_(m, n, mb, nb, irsrc, icsrc);
 }
 
-int Array_Desc::init_1b1p(const int &m, const int &n,
+int ArrayDesc::init_1b1p(const int &m, const int &n,
                           const int &irsrc, const int &icsrc)
 {
     int mb = 1, nb = 1;
@@ -328,7 +328,7 @@ int Array_Desc::init_1b1p(const int &m, const int &n,
     return set_desc_indices_(m, n, mb, nb, irsrc, icsrc);
 }
 
-int Array_Desc::init_square_blk(const int &m, const int &n,
+int ArrayDesc::init_square_blk(const int &m, const int &n,
                                     const int &irsrc, const int &icsrc)
 {
     int mb = 1, nb = 1, minblk = 1;
@@ -338,7 +338,7 @@ int Array_Desc::init_square_blk(const int &m, const int &n,
     return set_desc_indices_(m, n, minblk, minblk, irsrc, icsrc);
 }
 
-std::string Array_Desc::info() const
+std::string ArrayDesc::info() const
 {
     std::string info;
     info = std::string("ArrayDesc: ")
@@ -351,7 +351,7 @@ std::string Array_Desc::info() const
     return info;
 }
 
-std::string Array_Desc::info_desc() const
+std::string ArrayDesc::info_desc() const
 {
     char s[100];
     sprintf(s, "DESC %d %d %d %d %d %d %d %d %d",
@@ -361,7 +361,7 @@ std::string Array_Desc::info_desc() const
     return std::string(s);
 }
 
-void Array_Desc::barrier(CTXT_SCOPE scope) const
+void ArrayDesc::barrier(CTXT_SCOPE scope) const
 {
     CTXT_barrier(ictxt_, scope);
 }
@@ -387,7 +387,7 @@ int get_localIndex(int globalIndex, int nblk, int nprocs, int myproc)
     }
 }
 
-std::vector<int> get_proc_indices_blacs(const Array_Desc &ad, bool row_fast)
+std::vector<int> get_proc_indices_blacs(const ArrayDesc &ad, bool row_fast)
 {
     assert(ad.initialized());
     return get_proc_indices_blacs(ad.m(), ad.n(), ad.mb(), ad.nb(), ad.irsrc(), ad.icsrc(),
@@ -445,7 +445,7 @@ get_2d_mat_indices_blacs(const int &m, const int &n,
     return indices;
 }
 
-std::vector<std::pair<size_t, size_t>> get_2d_mat_indices_blacs(const Array_Desc &ad, const int &myid, bool row_fast)
+std::vector<std::pair<size_t, size_t>> get_2d_mat_indices_blacs(const ArrayDesc &ad, const int &myid, bool row_fast)
 {
     assert(ad.initialized());
 
@@ -470,7 +470,7 @@ get_1d_mat_indices_blacs(const int &m, const int &n,
 }
 
 std::vector<size_t>
-get_1d_mat_indices_blacs(const Array_Desc &ad, const int &myid, bool row_fast, bool row_major)
+get_1d_mat_indices_blacs(const ArrayDesc &ad, const int &myid, bool row_fast, bool row_major)
 {
     const auto indices_2d = get_2d_mat_indices_blacs(ad, myid, row_fast);
     return flatten_2d_indices(indices_2d, as_size(ad.m()), as_size(ad.n()),

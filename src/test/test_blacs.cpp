@@ -55,7 +55,7 @@ void test_arraydesc()
 {
     using namespace LIBRPA::envs;
     blacs_ctxt_global_h.set_square_grid();
-    LIBRPA::Array_Desc ad(blacs_ctxt_global_h);
+    LIBRPA::ArrayDesc ad(blacs_ctxt_global_h);
     const int m = 10, n = 10;
     // one-block per process, distribution as even as possible
     ad.init_1b1p(m, n, 0, 0);

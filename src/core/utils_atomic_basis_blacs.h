@@ -19,9 +19,9 @@ typedef std::unordered_map<int, std::vector<std::pair<atpair_t, std::vector<size
 typedef std::unordered_map<int, std::pair<std::vector<size_t>, std::vector<char>>> myid_blacs_idop_map_t;
 
 //! obtain the necessary atom pair of atomic basis to build the block-cyclic submatrix
-std::set<std::pair<int, int>> get_necessary_IJ_from_block_2D(const AtomicBasis &atbasis_row, const AtomicBasis &atbasis_col, const Array_Desc& arrdesc);
+std::set<std::pair<int, int>> get_necessary_IJ_from_block_2D(const AtomicBasis &atbasis_row, const AtomicBasis &atbasis_col, const ArrayDesc& arrdesc);
 
-std::set<std::pair<int, int>> get_necessary_IJ_from_block_2D_sy(const char &uplo, const AtomicBasis &atbasis, const Array_Desc& arrdesc);
+std::set<std::pair<int, int>> get_necessary_IJ_from_block_2D_sy(const char &uplo, const AtomicBasis &atbasis, const ArrayDesc& arrdesc);
 
 // Scheduler for index and communication for conversion between atom-pair and BLACS distribution
 class IndexScheduler
@@ -73,7 +73,7 @@ public:
 
     void init(const std::unordered_map<int, std::set<atpair_t>> &map_proc_IJs,
               const AtomicBasis &atbasis_r, const AtomicBasis &atbasis_c,
-              const Array_Desc &ad, const bool row_major) noexcept;
+              const ArrayDesc &ad, const bool row_major) noexcept;
 
     void reset();
 };
@@ -81,7 +81,7 @@ public:
 std::unordered_map<int, std::set<atpair_t>>
 get_balanced_ap_distribution_for_consec_descriptor(const AtomicBasis &atbasis_r,
                                                    const AtomicBasis &atbasis_c,
-                                                   const Array_Desc &ad);
+                                                   const ArrayDesc &ad);
 
 /*!
  * @brief Get the list of global matrix indices (1D) to communicate for
@@ -106,7 +106,7 @@ get_communicate_global_ids_list_ap_to_blacs(const int &myid,
                                             const std::unordered_map<int, std::vector<atpair_t>> &map_proc_IJs_avail,
                                             const AtomicBasis &atbasis_r,
                                             const AtomicBasis &atbasis_c,
-                                            const Array_Desc &ad,
+                                            const ArrayDesc &ad,
                                             bool row_fast, bool row_major, bool include_self = false);
 
 /*!
@@ -136,7 +136,7 @@ get_communicate_global_ids_list_ap_to_blacs_sy(const int &myid,
                                                const char &uplo,
                                                const std::unordered_map<int, std::vector<atpair_t>> &map_proc_IJs_avail,
                                                const AtomicBasis &atbasis,
-                                               const Array_Desc &ad,
+                                               const ArrayDesc &ad,
                                                bool row_fast, bool row_major, bool include_self = false);
 
 /*!
@@ -161,7 +161,7 @@ get_communicate_local_ids_list_ap_to_blacs(const int &myid,
                                            const std::unordered_map<int, std::vector<atpair_t>> &map_proc_IJs_avail,
                                            const AtomicBasis &atbasis_r,
                                            const AtomicBasis &atbasis_c,
-                                           const Array_Desc &ad,
+                                           const ArrayDesc &ad,
                                            bool row_fast, bool row_major, bool include_self = false);
 
 /*!
@@ -191,7 +191,7 @@ get_communicate_local_ids_list_ap_to_blacs_sy(const int &myid,
                                               const char &uplo,
                                               const std::unordered_map<int, std::vector<atpair_t>> &map_proc_IJs_avail,
                                               const AtomicBasis &atbasis,
-                                              const Array_Desc &ad,
+                                              const ArrayDesc &ad,
                                               bool row_fast, bool row_major, bool include_self = false);
 
 /*!
@@ -217,7 +217,7 @@ get_communicate_global_ids_list_blacs_to_ap(const int &myid,
                                             const std::unordered_map<int, std::vector<atpair_t>> &map_proc_IJs_require,
                                             const AtomicBasis &atbasis_r,
                                             const AtomicBasis &atbasis_c,
-                                            const Array_Desc &ad,
+                                            const ArrayDesc &ad,
                                             bool row_fast, bool row_major, bool include_self = false);
 
 /*!
@@ -242,7 +242,7 @@ get_communicate_local_ids_list_blacs_to_ap(const int &myid,
                                            const std::unordered_map<int, std::vector<atpair_t>> &map_proc_IJs_require,
                                            const AtomicBasis &atbasis_r,
                                            const AtomicBasis &atbasis_c,
-                                           const Array_Desc &ad,
+                                           const ArrayDesc &ad,
                                            bool row_fast, bool row_major, bool include_self = false);
 
 } /* end of namespace utils */

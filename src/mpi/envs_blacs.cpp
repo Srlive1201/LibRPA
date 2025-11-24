@@ -8,9 +8,9 @@ namespace envs
 
 static bool librpa_blacs_initialized = false;
 
-LIBRPA::BLACS_CTXT_handler blacs_ctxt_global_h;
-LIBRPA::Array_Desc array_desc_wfc_global;
-LIBRPA::Array_Desc array_desc_abf_global;
+LIBRPA::BlacsCtxtHandler blacs_ctxt_global_h;
+LIBRPA::ArrayDesc array_desc_wfc_global;
+LIBRPA::ArrayDesc array_desc_abf_global;
 
 void initialize_blacs(const MPI_Comm &mpi_comm_global_in)
 {
@@ -27,7 +27,7 @@ void initialize_blacs(const MPI_Comm &mpi_comm_global_in)
     librpa_blacs_initialized = true;
 }
 
-static void _initialize_array_desc_global(Array_Desc &ad, const size_t &n)
+static void _initialize_array_desc_global(ArrayDesc &ad, const size_t &n)
 {
     assert(is_blacs_initialized());
     ad.reset_handler(blacs_ctxt_global_h);

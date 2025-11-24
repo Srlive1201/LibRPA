@@ -18,7 +18,7 @@ static void test_ap_to_blacs_global_indices_communicate()
     // Process grid:
     //    0  1
     //    2  3
-    LIBRPA::Array_Desc ad(blacs_ctxt_global_h);
+    LIBRPA::ArrayDesc ad(blacs_ctxt_global_h);
 
     // m = n = 4
     size_t m = 4;
@@ -227,7 +227,7 @@ static void test_ap_to_blacs_local_indices_communicate()
     // Process grid:
     //    0  1
     //    2  3
-    LIBRPA::Array_Desc ad(blacs_ctxt_global_h);
+    LIBRPA::ArrayDesc ad(blacs_ctxt_global_h);
     ad.init_1b1p(m, n, 0, 0);
     assert(ad.initialized());
     assert(ad.mb() == 2);
@@ -326,7 +326,7 @@ static void test_ap_to_blacs_global_indices_sy_communicate()
     // Process grid:
     //    0  1
     //    2  3
-    LIBRPA::Array_Desc ad(blacs_ctxt_global_h);
+    LIBRPA::ArrayDesc ad(blacs_ctxt_global_h);
     ad.init_1b1p(m, n, 0, 0);
     assert(ad.initialized());
     assert(ad.mb() == 2);
@@ -386,7 +386,7 @@ static void test_ap_to_blacs_local_indices_sy_communicate()
     // Process grid:
     //    0  1
     //    2  3
-    LIBRPA::Array_Desc ad(blacs_ctxt_global_h);
+    LIBRPA::ArrayDesc ad(blacs_ctxt_global_h);
     ad.init_1b1p(m, n, 0, 0);
     assert(ad.initialized());
     assert(ad.mb() == 2);
@@ -470,7 +470,7 @@ static void test_blacs_to_ap_global_indices_communicate()
     // Process grid:
     //    0  1
     //    2  3
-    LIBRPA::Array_Desc ad(blacs_ctxt_global_h);
+    LIBRPA::ArrayDesc ad(blacs_ctxt_global_h);
     ad.init_1b1p(m, n, 0, 0);
     assert(ad.initialized());
     assert(ad.mb() == 2);
@@ -659,7 +659,7 @@ static void test_blacs_to_ap_local_indices_communicate()
     // Process grid:
     //    0  1
     //    2  3
-    LIBRPA::Array_Desc ad(blacs_ctxt_global_h);
+    LIBRPA::ArrayDesc ad(blacs_ctxt_global_h);
     ad.init_1b1p(m, n, 0, 0);
     assert(ad.initialized());
     assert(ad.mb() == 2);
@@ -802,7 +802,7 @@ static void test_blacs_to_ap_global_indices_sy_communicate()
     // Process grid:
     //    0  1
     //    2  3
-    LIBRPA::Array_Desc ad(blacs_ctxt_global_h);
+    LIBRPA::ArrayDesc ad(blacs_ctxt_global_h);
     ad.init_1b1p(m, n, 0, 0);
     assert(ad.initialized());
     assert(ad.mb() == 2);
@@ -874,7 +874,7 @@ static void test_blacs_to_ap_local_indices_sy_communicate()
     // Process grid:
     //    0  1
     //    2  3
-    LIBRPA::Array_Desc ad(blacs_ctxt_global_h);
+    LIBRPA::ArrayDesc ad(blacs_ctxt_global_h);
     ad.init_1b1p(m, n, 0, 0);
     assert(ad.initialized());
     assert(ad.mb() == 2);
@@ -981,7 +981,7 @@ static void test_index_scheduler()
     // Process grid:
     //    0  1
     //    2  3
-    LIBRPA::Array_Desc ad(blacs_ctxt_global_h);
+    LIBRPA::ArrayDesc ad(blacs_ctxt_global_h);
     LIBRPA::utils::IndexScheduler sched;
     LIBRPA::AtomicBasis ab;
 
@@ -1102,7 +1102,7 @@ static void test_get_balanced_ap()
 
     blacs_ctxt_global_h.set_square_grid(true, LIBRPA::CTXT_LAYOUT::R);
 
-    LIBRPA::Array_Desc ad(blacs_ctxt_global_h);
+    LIBRPA::ArrayDesc ad(blacs_ctxt_global_h);
     LIBRPA::AtomicBasis ab;
 
     {

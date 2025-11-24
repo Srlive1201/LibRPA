@@ -16,10 +16,10 @@ void CTXT_barrier(int ictxt, CTXT_SCOPE scope = CTXT_SCOPE::A);
 
 typedef std::pair<int, int> pcoord_t;
 
-class BLACS_CTXT_handler
+class BlacsCtxtHandler
 {
 private:
-    MPI_COMM_handler mpi_comm_h;
+    MpiCommHandler mpi_comm_h;
     char layout_ch;
     bool initialized_;
     bool pgrid_set_;
@@ -33,9 +33,9 @@ public:
     int npcols;
     int mypcol;
     int myprow;
-    BLACS_CTXT_handler() { comm_set_ = pgrid_set_ = initialized_ = false; }
-    BLACS_CTXT_handler(MPI_Comm comm_in): mpi_comm_h(comm_in) { comm_set_ = true; pgrid_set_ = initialized_ = false; }
-    ~BLACS_CTXT_handler() {};
+    BlacsCtxtHandler() { comm_set_ = pgrid_set_ = initialized_ = false; }
+    BlacsCtxtHandler(MPI_Comm comm_in): mpi_comm_h(comm_in) { comm_set_ = true; pgrid_set_ = initialized_ = false; }
+    ~BlacsCtxtHandler() {};
 
     void init();
     void reset_comm(MPI_Comm comm_in);
@@ -69,7 +69,7 @@ std::vector<int> get_proc_indices_blacs(const int &m, const int &n, const int &m
                                         const int &irsrc, const int &icsrc,
                                         const int &ictxt, bool row_fast);
 
-class Array_Desc
+class ArrayDesc
 {
 private:
     // BLACS parameters obtained upon construction
@@ -118,9 +118,9 @@ private:
 
 public:
     int desc[9];
-    Array_Desc();
-    Array_Desc(const BLACS_CTXT_handler &blacs_ctxt_h);
-    Array_Desc(const int &ictxt);
+    ArrayDesc();
+    ArrayDesc(const BlacsCtxtHandler &blacs_ctxt_h);
+    ArrayDesc(const int &ictxt);
     //! initialize the array descriptor
     int init(const int &m, const int &n,
              const int &mb, const int &nb,
@@ -161,7 +161,7 @@ public:
     inline pcoord_t get_pcoord(int pid) const { int prow, pcol; Cblacs_pcoord(ictxt_, myid_, &prow, &pcol); return {prow, pcol}; };
     inline int get_pnum(int prow, int pcol) const { return Cblacs_pnum(ictxt_, prow, pcol); };
     inline int get_pnum(const pcoord_t &pc) const { return Cblacs_pnum(ictxt_, pc.first, pc.second); };
-    void reset_handler(const BLACS_CTXT_handler &blacs_h);
+    void reset_handler(const BlacsCtxtHandler &blacs_h);
     std::string info() const;
     std::string info_desc() const;
     bool is_src() const { return myprow_ == irsrc_ && mypcol_ == icsrc_; }
@@ -178,14 +178,14 @@ int get_localIndex(int globalIndex, int nblk, int nprocs, int myproc);
 /*!
  * @brief Get indices of process to which the distributed elements of global matrix belong
  *
- * @param  [in]  ad              Array_Desc object, must be initialized beforehand.
+ * @param  [in]  ad              ArrayDesc object, must be initialized beforehand.
  * @param  [in]  row_fast        Flag to set the row basis index goes faster.
  *
  * @warning      Memory intensive for large system
  *
  * @retval       indices         List of process indices (size m * n)
  */
-std::vector<int> get_proc_indices_blacs(const Array_Desc &ad, bool row_fast);
+std::vector<int> get_proc_indices_blacs(const ArrayDesc &ad, bool row_fast);
 
 /*!
  * @brief Get 2D indices of elements of submatrix in BLACS 2D block-cyclic format
@@ -209,15 +209,15 @@ get_2d_mat_indices_blacs(const int &m, const int &n,
 
 /*!
  * @brief Get 2D indices of elements of submatrix in BLACS 2D block-cyclic format
- *        from the Array_Desc object.
+ *        from the ArrayDesc object.
  *
- * @param  [in]  ad         Array_Desc object, must be initialized before parsing
+ * @param  [in]  ad         ArrayDesc object, must be initialized before parsing
  * @param  [in]  row_fast   Flag to set the row basis index faster.
  *
  * @retval indices
  */
 std::vector<std::pair<size_t, size_t>>
-get_2d_mat_indices_blacs(const Array_Desc &ad, const int &myid, bool row_fast);
+get_2d_mat_indices_blacs(const ArrayDesc &ad, const int &myid, bool row_fast);
 
 /*!
  * @brief Get 1D indices of elements of submatrix in BLACS 2D block-cyclic format
@@ -243,15 +243,15 @@ get_1d_mat_indices_blacs(const int &m, const int &n,
 
 /*!
  * @brief Get 1D indices of elements of submatrix in BLACS 2D block-cyclic format
- *        from the Array_Desc object.
+ *        from the ArrayDesc object.
  *
- * @param  [in]  ad         Array_Desc object, must be initialized before parsing
+ * @param  [in]  ad         ArrayDesc object, must be initialized before parsing
  * @param  [in]  row_fast   Flag to set the row basis index faster.
  * @param  [in]  row_major  Flag to compute the 1D indices in row-major (C-style)
  *
  * @retval indices
  */
 std::vector<size_t>
-get_1d_mat_indices_blacs(const Array_Desc &ad, const int &myid, bool row_fast, bool row_major);
+get_1d_mat_indices_blacs(const ArrayDesc &ad, const int &myid, bool row_fast, bool row_major);
 
 } /* end of namespace LIBRPA */

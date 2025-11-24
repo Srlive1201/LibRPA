@@ -122,7 +122,7 @@ void test_invert_scalapack()
         }
     }
 
-    Array_Desc desc_mat(blacs_ctxt_global_h), desc_mat_fb_src(blacs_ctxt_global_h);
+    ArrayDesc desc_mat(blacs_ctxt_global_h), desc_mat_fb_src(blacs_ctxt_global_h);
     desc_mat.init_1b1p(n, n, irsrc, icsrc);
     desc_mat_fb_src.init(n, n, n, n, irsrc, icsrc);
     // create local matrix and distribute the source to the process grid
@@ -259,7 +259,7 @@ void test_collect_block_from_IJ_storage()
     blacs_ctxt_global_h.barrier();
     T alpha = 1.0;
 
-    Array_Desc desc_fb(blacs_ctxt_global_h);
+    ArrayDesc desc_fb(blacs_ctxt_global_h);
     desc_fb.init(ab.nb_total, ab.nb_total, ab.nb_total, ab.nb_total, 0, 0);
     auto mat_loc = init_local_mat<T>(desc_fb, IJmap[0][0].major());
 
@@ -316,7 +316,7 @@ void test_local_mat_from_ap_dist()
     const size_t m = 4;
     const size_t n = m;
 
-    Array_Desc ad(blacs_ctxt_global_h);
+    ArrayDesc ad(blacs_ctxt_global_h);
     ad.init_1b1p(m, n, 0, 0);
     assert(ad.initialized());
     assert(ad.mb() == 2);
@@ -394,7 +394,7 @@ void test_local_mat_from_ap_dist_he()
     const size_t m = 4;
     const size_t n = m;
 
-    Array_Desc ad(blacs_ctxt_global_h);
+    ArrayDesc ad(blacs_ctxt_global_h);
     ad.init_1b1p(m, n, 0, 0);
     assert(ad.initialized());
     assert(ad.mb() == 2);
@@ -473,7 +473,7 @@ void test_ap_map_from_blacs_dist()
     const size_t m = 4;
     const size_t n = m;
 
-    Array_Desc ad(blacs_ctxt_global_h);
+    ArrayDesc ad(blacs_ctxt_global_h);
     ad.init_1b1p(m, n, 0, 0);
     assert(ad.initialized());
     assert(ad.mb() == 2);
@@ -595,7 +595,7 @@ void test_restore_local_mat(const std::vector<size_t> &nbs, MAJOR major, const b
     LIBRPA::AtomicBasis ab(nbs);
     const auto m = ab.nb_total;
     const auto n = m;
-    Array_Desc ad(blacs_ctxt_global_h);
+    ArrayDesc ad(blacs_ctxt_global_h);
     ad.init_1b1p(m, n, 0, 0);
     assert(ad.initialized());
 
@@ -688,7 +688,7 @@ void test_restore_local_mat_scheduler(const std::vector<size_t> &nbs, MAJOR majo
     LIBRPA::AtomicBasis ab(nbs);
     const auto m = ab.nb_total;
     const auto n = m;
-    Array_Desc ad(blacs_ctxt_global_h);
+    ArrayDesc ad(blacs_ctxt_global_h);
     ad.init_1b1p(m, n, 0, 0);
     assert(ad.initialized());
 
@@ -777,7 +777,7 @@ void test_restore_ap_map(const std::vector<size_t> &nbs, MAJOR major, const bool
     LIBRPA::AtomicBasis ab(nbs);
     const auto m = ab.nb_total;
     const auto n = m;
-    Array_Desc ad(blacs_ctxt_global_h);
+    ArrayDesc ad(blacs_ctxt_global_h);
     ad.init_1b1p(m, n, 0, 0);
     assert(ad.initialized());
 
@@ -876,7 +876,7 @@ void test_restore_ap_map_scheduler(const std::vector<size_t> &nbs, MAJOR major, 
     LIBRPA::AtomicBasis ab(nbs);
     const auto m = ab.nb_total;
     const auto n = m;
-    Array_Desc ad(blacs_ctxt_global_h);
+    ArrayDesc ad(blacs_ctxt_global_h);
     ad.init_1b1p(m, n, 0, 0);
     assert(ad.initialized());
 
@@ -978,7 +978,7 @@ void test_restore_local_mat_sy(const std::vector<size_t> &nbs, MAJOR major)
     LIBRPA::AtomicBasis ab(nbs);
     const auto m = ab.nb_total;
     const auto n = m;
-    Array_Desc ad(blacs_ctxt_global_h);
+    ArrayDesc ad(blacs_ctxt_global_h);
     ad.init_1b1p(m, n, 0, 0);
     assert(ad.initialized());
 

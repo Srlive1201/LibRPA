@@ -24,7 +24,7 @@ namespace envs
 //! Global communicator
 extern MPI_Comm mpi_comm_global;
 //! Handler of the global communicator
-extern LIBRPA::MPI_COMM_handler mpi_comm_global_h;
+extern LIBRPA::MpiCommHandler mpi_comm_global_h;
 //! Rank of process in the global communciator
 extern int myid_global;
 //! Number of processes in the global communciator
@@ -36,7 +36,7 @@ extern std::string procname;
 //! Intra-node communicator
 extern MPI_Comm mpi_comm_intra;
 //! Handler of the intra-node communicator
-extern LIBRPA::MPI_COMM_handler mpi_comm_intra_h;
+extern LIBRPA::MpiCommHandler mpi_comm_intra_h;
 //! Rank of process in the intra-node communciator
 extern int myid_intra;
 //! Number of processes in the intra-node communciator
@@ -45,7 +45,7 @@ extern int size_intra;
 //! Inter-node communicator
 extern MPI_Comm mpi_comm_inter;
 //! Handler of the inter-node communicator
-extern LIBRPA::MPI_COMM_handler mpi_comm_inter_h;
+extern LIBRPA::MpiCommHandler mpi_comm_inter_h;
 //! Rank of process in the intra-node communciator
 extern int myid_inter;
 //! Number of processes in the intra-node communciator

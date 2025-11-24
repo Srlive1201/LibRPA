@@ -27,14 +27,14 @@ namespace utils
 {
 
 template <typename T>
-matrix_m<T> init_local_mat(const LIBRPA::Array_Desc &ad, MAJOR major)
+matrix_m<T> init_local_mat(const LIBRPA::ArrayDesc &ad, MAJOR major)
 {
     matrix_m<T> mat_lo(ad.m_loc(), ad.n_loc(), major);
     return mat_lo;
 }
 
 template <typename T>
-matrix_m<T> get_local_mat(const matrix_m<T> &mat_go, const LIBRPA::Array_Desc &ad,
+matrix_m<T> get_local_mat(const matrix_m<T> &mat_go, const LIBRPA::ArrayDesc &ad,
                           MAJOR major = MAJOR::AUTO)
 {
     // assert the shape of global matrix conforms with the array descriptor
@@ -74,7 +74,7 @@ matrix_m<T> get_local_mat(const matrix_m<T> &mat_go, const LIBRPA::Array_Desc &a
 }
 
 template <typename T>
-matrix_m<T> get_local_mat(const T *pv, MAJOR major_pv, const LIBRPA::Array_Desc &ad, MAJOR major)
+matrix_m<T> get_local_mat(const T *pv, MAJOR major_pv, const LIBRPA::ArrayDesc &ad, MAJOR major)
 {
     const int nr = ad.m(), nc = ad.n();
     matrix_m<T> mat_lo(ad.m_loc(), ad.n_loc(), major);
@@ -98,7 +98,7 @@ matrix_m<T> get_local_mat(const T *pv, MAJOR major_pv, const LIBRPA::Array_Desc 
 template <typename Tdst, typename Tsrc>
 void collect_block_from_IJ_storage(
     matrix_m<Tdst> &mat_lo,
-    const LIBRPA::Array_Desc &ad,
+    const LIBRPA::ArrayDesc &ad,
     const LIBRPA::AtomicBasis &atbasis_row,
     const LIBRPA::AtomicBasis &atbasis_col,
     const int &I, const int &J,
@@ -132,7 +132,7 @@ void collect_block_from_IJ_storage(
 template <typename Tdst, typename Tsrc, typename TA, typename TC, typename TAC = std::pair<TA, TC>>
 void collect_block_from_IJ_storage_tensor(
     matrix_m<Tdst> &mat_lo,
-    const LIBRPA::Array_Desc &ad,
+    const LIBRPA::ArrayDesc &ad,
     const LIBRPA::AtomicBasis &atbasis_row,
     const LIBRPA::AtomicBasis &atbasis_col,
     const TC &cell,
@@ -179,7 +179,7 @@ void collect_block_from_IJ_storage_tensor(
 template <typename Tdst, typename Tsrc, typename TA, typename TAC>
 void collect_block_from_IJ_storage_tensor_transform(
     matrix_m<Tdst> &mat_lo,
-    const LIBRPA::Array_Desc &ad,
+    const LIBRPA::ArrayDesc &ad,
     const LIBRPA::AtomicBasis &atbasis_row,
     const LIBRPA::AtomicBasis &atbasis_col,
     const std::function<Tdst(const TA &, const TAC &)> &transform,
@@ -237,7 +237,7 @@ void collect_block_from_IJ_storage_tensor_transform(
 template <typename Tdst, typename Tsrc>
 void collect_block_from_IJ_storage_syhe(
     matrix_m<Tdst> &mat_lo,
-    const LIBRPA::Array_Desc &ad,
+    const LIBRPA::ArrayDesc &ad,
     const LIBRPA::AtomicBasis &atbasis,
     const int &I, const int &J, bool conjugate,
     Tdst alpha, const Tsrc *pvIJ, MAJOR major_pv)
@@ -287,7 +287,7 @@ void collect_block_from_IJ_storage_syhe(
 template <typename Tdst, typename TA, typename TC, typename TAC = std::pair<TA, TC>>
 void collect_block_from_ALL_IJ_Tensor(
     matrix_m<Tdst> &mat_lo,
-    const LIBRPA::Array_Desc &ad,
+    const LIBRPA::ArrayDesc &ad,
     const LIBRPA::AtomicBasis &atbasis,
     const TC &cell,
     bool conjugate,
@@ -359,7 +359,7 @@ void map_block_to_IJ_storage(map<int, map<int, matrix_m<T>>> &IJmap,
                              const LIBRPA::AtomicBasis &atbasis_row,
                              const LIBRPA::AtomicBasis &atbasis_col,
                              const matrix_m<T> &mat_lo,
-                             const LIBRPA::Array_Desc &desc, MAJOR major_map)
+                             const LIBRPA::ArrayDesc &desc, MAJOR major_map)
 {
     assert(desc.m() == atbasis_row.nb_total && desc.n() == atbasis_col.nb_total);
     int I, J, iI, jJ;
@@ -384,7 +384,7 @@ void map_block_to_IJ_storage_new(map<int, map<int, matrix_m<T>>> &IJmap,
                                  const LIBRPA::AtomicBasis &atbasis,
                                  const map<int, vector<int>> &map_lor_I_is,
                                  const map<int, vector<int>> &map_loc_J_js,
-                                 const matrix_m<T> &mat_lo, const LIBRPA::Array_Desc &desc, MAJOR major_map)
+                                 const matrix_m<T> &mat_lo, const LIBRPA::ArrayDesc &desc, MAJOR major_map)
 {
     // map<int, map<int, matrix_m<T>>> IJmap_local;
     int max_threads = omp_get_max_threads(); // Get the total number of available threads
@@ -491,9 +491,9 @@ void map_block_to_IJ_storage_new(map<int, map<int, matrix_m<T>>> &IJmap,
  */
 template <typename T>
 matrix_m<std::complex<T>> power_hemat_blacs(matrix_m<std::complex<T>> &A_local,
-                                            const LIBRPA::Array_Desc &ad_A,
+                                            const LIBRPA::ArrayDesc &ad_A,
                                             matrix_m<std::complex<T>> &Z_local,
-                                            const LIBRPA::Array_Desc &ad_Z,
+                                            const LIBRPA::ArrayDesc &ad_Z,
                                             size_t &n_filtered, T *W, T power,
                                             const T &threshold = -1.e5)
 {
@@ -510,7 +510,7 @@ matrix_m<std::complex<T>> power_hemat_blacs(matrix_m<std::complex<T>> &A_local,
     const int blocksize_col_opt = min(ad_A.nb(), 128);
 
     // initialize descriptor of array A for optimized block size
-    LIBRPA::Array_Desc ad_A_opt(ad_A.ictxt());
+    LIBRPA::ArrayDesc ad_A_opt(ad_A.ictxt());
     ad_A_opt.init(n, n, blocksize_row_opt, blocksize_col_opt, 0, 0);
     auto A_local_opt = init_local_mat<std::complex<T>>(ad_A_opt, MAJOR::COL);
     // NOTE: imply A and Z should be in the same context
@@ -522,7 +522,7 @@ matrix_m<std::complex<T>> power_hemat_blacs(matrix_m<std::complex<T>> &A_local,
     {
         ofs_myid << "Warning(power_hemat_blacs): input contexts of A and Z are different!" << endl;
     }
-    LIBRPA::Array_Desc ad_Z_opt(ad_Z.ictxt());
+    LIBRPA::ArrayDesc ad_Z_opt(ad_Z.ictxt());
     ad_Z_opt.init(n, n, blocksize_row_opt, blocksize_col_opt, 0, 0);
     auto Z_local_opt = init_local_mat<std::complex<T>>(ad_Z_opt, MAJOR::COL);
     // printf("Z_local_opt size: %d\n", Z_local_opt.size());
@@ -616,9 +616,9 @@ matrix_m<std::complex<T>> power_hemat_blacs(matrix_m<std::complex<T>> &A_local,
 }
 
 template <typename T, typename Treal = typename to_real<T>::type>
-void print_matrix_mm_parallel(ostream &os, const matrix_m<T> &mat_loc, const LIBRPA::Array_Desc &ad, Treal threshold = 1e-15, bool row_first = true)
+void print_matrix_mm_parallel(ostream &os, const matrix_m<T> &mat_loc, const LIBRPA::ArrayDesc &ad, Treal threshold = 1e-15, bool row_first = true)
 {
-    LIBRPA::Array_Desc ad_fb(ad.ictxt());
+    LIBRPA::ArrayDesc ad_fb(ad.ictxt());
     const int nr = ad.m(), nc = ad.n();
     const int irsrc = ad.irsrc(), icsrc = ad.icsrc();
     ad_fb.init(nr, nc, nr, nc, irsrc, icsrc);
@@ -632,7 +632,7 @@ void print_matrix_mm_parallel(ostream &os, const matrix_m<T> &mat_loc, const LIB
 }
 
 template <typename T, typename Treal = typename to_real<T>::type>
-void print_matrix_mm_file_parallel(const string &fn, const matrix_m<T> &mat_loc, const LIBRPA::Array_Desc &ad, Treal threshold = 1e-15, bool row_first = true)
+void print_matrix_mm_file_parallel(const string &fn, const matrix_m<T> &mat_loc, const LIBRPA::ArrayDesc &ad, Treal threshold = 1e-15, bool row_first = true)
 {
     ofstream fs;
     if (ad.is_src())
@@ -641,9 +641,9 @@ void print_matrix_mm_file_parallel(const string &fn, const matrix_m<T> &mat_loc,
 }
 
 template <typename T, typename Treal = typename to_real<T>::type>
-void write_matrix_elsi_csc_parallel(const string &fn, const matrix_m<T> &mat_loc, const LIBRPA::Array_Desc &ad, Treal threshold = 1e-15)
+void write_matrix_elsi_csc_parallel(const string &fn, const matrix_m<T> &mat_loc, const LIBRPA::ArrayDesc &ad, Treal threshold = 1e-15)
 {
-    LIBRPA::Array_Desc ad_fb(ad.ictxt());
+    LIBRPA::ArrayDesc ad_fb(ad.ictxt());
     const int nr = ad.m(), nc = ad.n();
     const int irsrc = ad.irsrc(), icsrc = ad.icsrc();
     ad_fb.init(nr, nc, nr, nc, irsrc, icsrc);
@@ -655,9 +655,9 @@ void write_matrix_elsi_csc_parallel(const string &fn, const matrix_m<T> &mat_loc
 }
 
 template <typename T>
-matrix_m<T> multiply_scalapack(const matrix_m<T> &m1_loc, const LIBRPA::Array_Desc &desc_m1,
-                               const matrix_m<T> &m2_loc, const LIBRPA::Array_Desc &desc_m2,
-                               const LIBRPA::Array_Desc &desc_prod)
+matrix_m<T> multiply_scalapack(const matrix_m<T> &m1_loc, const LIBRPA::ArrayDesc &desc_m1,
+                               const matrix_m<T> &m2_loc, const LIBRPA::ArrayDesc &desc_m2,
+                               const LIBRPA::ArrayDesc &desc_prod)
 {
     if (m1_loc.major() != m2_loc.major())
     {
@@ -691,7 +691,7 @@ matrix_m<T> multiply_scalapack(const matrix_m<T> &m1_loc, const LIBRPA::Array_De
 }
 
 template <typename T>
-void invert_scalapack(matrix_m<T> &m_loc, const LIBRPA::Array_Desc &desc_m)
+void invert_scalapack(matrix_m<T> &m_loc, const LIBRPA::ArrayDesc &desc_m)
 {
     assert(m_loc.is_col_major());
     int info = 0;
@@ -734,7 +734,7 @@ void fill_local_mat_from_ap_dist_scheduler(matrix_m<T> &m_loc,
                                            const IndexScheduler &sched,
                                            const AtomicBasis &atbasis_r,
                                            const AtomicBasis &atbasis_c,
-                                           const Array_Desc &ad)
+                                           const ArrayDesc &ad)
 {
     assert(sched.initialized());
     assert(ad.initialized());
@@ -860,7 +860,7 @@ void fill_local_mat_from_ap_dist(matrix_m<T> &m_loc,
                                  const std::unordered_map<int, std::vector<atpair_t>> &map_proc_IJs_avail,
                                  const AtomicBasis &atbasis_r,
                                  const AtomicBasis &atbasis_c,
-                                 const Array_Desc &ad)
+                                 const ArrayDesc &ad)
 {
     assert(ad.initialized());
     const auto major_data = m_loc.major();
@@ -900,7 +900,7 @@ matrix_m<T> get_local_mat_from_ap_dist(const std::unordered_map<atpair_t, matrix
                                        const std::unordered_map<int, std::vector<atpair_t>> &map_proc_IJs_avail,
                                        const AtomicBasis &atbasis_r,
                                        const AtomicBasis &atbasis_c,
-                                       const Array_Desc &ad, MAJOR major_data)
+                                       const ArrayDesc &ad, MAJOR major_data)
 {
     assert(ad.initialized());
 
@@ -916,7 +916,7 @@ get_local_mat_from_ap_dist_scheduler(const std::unordered_map<atpair_t, matrix_m
                                      const IndexScheduler &sched,
                                      const AtomicBasis &atbasis_r,
                                      const AtomicBasis &atbasis_c,
-                                     const Array_Desc &ad, MAJOR major_data)
+                                     const ArrayDesc &ad, MAJOR major_data)
 {
     assert(sched.initialized());
     assert(ad.initialized());
@@ -951,7 +951,7 @@ void fill_local_mat_from_ap_dist_sy(matrix_m<T> &m_loc,
                                     const char &uplo,
                                     const std::unordered_map<int, std::vector<atpair_t>> &map_proc_IJs_avail,
                                     const AtomicBasis &atbasis,
-                                    const Array_Desc &ad, bool apply_conjugate)
+                                    const ArrayDesc &ad, bool apply_conjugate)
 {
     assert(ad.initialized());
     const auto major_data = m_loc.major();
@@ -1139,7 +1139,7 @@ matrix_m<T> get_local_mat_from_ap_dist_sy(const std::unordered_map<atpair_t, mat
                                           const char &uplo,
                                           const std::unordered_map<int, std::vector<atpair_t>> &map_proc_IJs_avail,
                                           const AtomicBasis &atbasis,
-                                          const Array_Desc &ad, bool apply_conjugate, MAJOR major_data)
+                                          const ArrayDesc &ad, bool apply_conjugate, MAJOR major_data)
 {
     assert(ad.initialized());
 
@@ -1155,7 +1155,7 @@ void fill_ap_map_from_blacs_dist_scheduler(ap_p_map<matrix_m<T>> &data,
                                            const IndexScheduler &sched,
                                            const AtomicBasis &atbasis_r,
                                            const AtomicBasis &atbasis_c,
-                                           const Array_Desc &ad)
+                                           const ArrayDesc &ad)
 {
     assert(ad.initialized());
     assert(sched.initialized());
@@ -1296,7 +1296,7 @@ void fill_ap_map_from_blacs_dist(ap_p_map<matrix_m<T>> &data,
                                  const std::unordered_map<int, std::vector<atpair_t>> &map_proc_IJs_require,
                                  const AtomicBasis &atbasis_r,
                                  const AtomicBasis &atbasis_c,
-                                 const Array_Desc &ad)
+                                 const ArrayDesc &ad)
 {
     assert(ad.initialized());
     const auto row_major = m_loc.major() == MAJOR::ROW ? true : false;
@@ -1329,7 +1329,7 @@ get_ap_map_from_blacs_dist(const matrix_m<T> &m_loc,
                            const std::unordered_map<int, std::vector<atpair_t>> &map_proc_IJs_require,
                            const AtomicBasis &atbasis_r,
                            const AtomicBasis &atbasis_c,
-                           const Array_Desc &ad,
+                           const ArrayDesc &ad,
                            MAJOR major_data = MAJOR::AUTO)
 {
     assert(ad.initialized());
@@ -1353,7 +1353,7 @@ get_ap_map_from_blacs_dist_scheduler(const matrix_m<T> &m_loc,
                                      const IndexScheduler &sched,
                                      const AtomicBasis &atbasis_r,
                                      const AtomicBasis &atbasis_c,
-                                     const Array_Desc &ad,
+                                     const ArrayDesc &ad,
                                      MAJOR major_data = MAJOR::AUTO)
 {
     assert(sched.initialized());

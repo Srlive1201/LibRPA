@@ -9,17 +9,17 @@ namespace envs
 {
 
 MPI_Comm mpi_comm_global;
-LIBRPA::MPI_COMM_handler mpi_comm_global_h;
+LIBRPA::MpiCommHandler mpi_comm_global_h;
 int myid_global = 0;
 int size_global = 1;
 
 MPI_Comm mpi_comm_intra;
-LIBRPA::MPI_COMM_handler mpi_comm_intra_h;
+LIBRPA::MpiCommHandler mpi_comm_intra_h;
 int myid_intra = 0;
 int size_intra = 1;
 
 MPI_Comm mpi_comm_inter;
-LIBRPA::MPI_COMM_handler mpi_comm_inter_h;
+LIBRPA::MpiCommHandler mpi_comm_inter_h;
 int myid_inter = 0;
 int size_inter = 1;
 

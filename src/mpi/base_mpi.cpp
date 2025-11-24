@@ -9,42 +9,42 @@
 namespace LIBRPA
 {
 
-MPI_COMM_handler::MPI_COMM_handler()
+MpiCommHandler::MpiCommHandler()
 {
     this->comm_set_ = false;
     this->initialized_ = false;
 }
 
-MPI_COMM_handler::MPI_COMM_handler(MPI_Comm comm_in)
+MpiCommHandler::MpiCommHandler(MPI_Comm comm_in)
         : comm(comm_in)
 {
     this->comm_set_ = true;
     this->initialized_ = false;
 }
 
-void MPI_COMM_handler::reset_comm()
+void MpiCommHandler::reset_comm()
 {
     this->comm = MPI_COMM_NULL;
     this->comm_set_ = false;
     this->initialized_ = false;
 }
 
-void MPI_COMM_handler::reset_comm(MPI_Comm comm_in)
+void MpiCommHandler::reset_comm(MPI_Comm comm_in)
 {
     this->comm = comm_in;
     this->comm_set_ = true;
     this->initialized_ = false;
 }
 
-void MPI_COMM_handler::check_initialized() const
+void MpiCommHandler::check_initialized() const
 {
     if (!initialized_)
     {
-        throw std::logic_error("MPI_COMM_handler not initialized");
+        throw std::logic_error("MpiCommHandler not initialized");
     }
 }
 
-void MPI_COMM_handler::init()
+void MpiCommHandler::init()
 {
     if (this->comm_set_)
     {
@@ -59,11 +59,11 @@ void MPI_COMM_handler::init()
     }
     else
     {
-        throw std::logic_error("Communicator of MPI_COMM_handler is not set");
+        throw std::logic_error("Communicator of MpiCommHandler is not set");
     }
 }
 
-void MPI_COMM_handler::barrier() const
+void MpiCommHandler::barrier() const
 {
 #ifdef LIBRPA_DEBUG
     this->check_initialized();
@@ -71,35 +71,35 @@ void MPI_COMM_handler::barrier() const
     MPI_Barrier(this->comm);
 }
 
-std::string MPI_COMM_handler::str() const
+std::string MpiCommHandler::str() const
 {
     char s[80];
     sprintf(s, "Proc %4d of Size %4d: %s", this->myid, this->nprocs, this->procname.c_str());
     return std::string(s);
 }
 
-// void MPI_COMM_handler::allreduce_matrix(matrix &mat_send,
+// void MpiCommHandler::allreduce_matrix(matrix &mat_send,
 //                                         matrix &mat_recv) const
 // {
 //     this->check_initialized();
 //     MPI_Wrapper::allreduce_matrix(mat_send, mat_recv, this->comm);
 // }
 //
-// void MPI_COMM_handler::reduce_matrix(matrix &mat_send, matrix &mat_recv,
+// void MpiCommHandler::reduce_matrix(matrix &mat_send, matrix &mat_recv,
 //                                      int root) const
 // {
 //     this->check_initialized();
 //     MPI_Wrapper::reduce_matrix(mat_send, mat_recv, root, this->comm);
 // }
 //
-// void MPI_COMM_handler::allreduce_ComplexMatrix(ComplexMatrix &cmat_sent,
+// void MpiCommHandler::allreduce_ComplexMatrix(ComplexMatrix &cmat_sent,
 //                                                ComplexMatrix &cmat_recv) const
 // {
 //     this->check_initialized();
 //     MPI_Wrapper::allreduce_ComplexMatrix(cmat_sent, cmat_recv, this->comm);
 // }
 //
-// void MPI_COMM_handler::reduce_ComplexMatrix(ComplexMatrix &cmat_sent,
+// void MpiCommHandler::reduce_ComplexMatrix(ComplexMatrix &cmat_sent,
 //                                             ComplexMatrix &cmat_recv,
 //                                             int root) const
 // {

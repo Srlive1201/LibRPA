@@ -9,12 +9,12 @@ namespace envs
 {
 
 //! Handler of the global BLACS context
-extern LIBRPA::BLACS_CTXT_handler blacs_ctxt_global_h;
+extern LIBRPA::BlacsCtxtHandler blacs_ctxt_global_h;
 
 //! Array descriptor for matrix within wave function basis that shared by all MPI tasks
-extern LIBRPA::Array_Desc array_desc_wfc_global;
+extern LIBRPA::ArrayDesc array_desc_wfc_global;
 //! Array descriptor for matrix within auxiliary basis that shared by all MPI tasks
-extern LIBRPA::Array_Desc array_desc_abf_global;
+extern LIBRPA::ArrayDesc array_desc_abf_global;
 
 //! Initialize the MPI environment of LibRPA
 /*!

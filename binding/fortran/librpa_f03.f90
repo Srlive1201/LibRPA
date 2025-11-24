@@ -1,4 +1,4 @@
-module librpa
+module librpa_f03
 
    use iso_c_binding, only: c_char, c_int, c_double
    implicit none

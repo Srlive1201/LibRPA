@@ -17,7 +17,7 @@ set(CMAKE_PROJECT_VERSION "${version}")
 
 set(DRIVER_NAME         "chi0_main.exe")
 set(LIB_NAME            "rpa")
-set(FORTRAN_LIB_NAME    "rpa_f")
+set(FORTRAN_LIB_NAME    "rpa_f03")
 
 # options setup
 option(USE_LIBRI            "Use LibRI for tensor contraction" OFF)

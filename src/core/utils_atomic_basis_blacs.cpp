@@ -18,7 +18,7 @@ namespace LIBRPA
 namespace utils
 {
 
-std::set<std::pair<int, int>> get_necessary_IJ_from_block_2D(const AtomicBasis &atbasis_row, const AtomicBasis &atbasis_col, const Array_Desc& arrdesc)
+std::set<std::pair<int, int>> get_necessary_IJ_from_block_2D(const AtomicBasis &atbasis_row, const AtomicBasis &atbasis_col, const ArrayDesc& arrdesc)
 {
     std::set<std::pair<int, int>> IJs;
     if (as_size(arrdesc.m()) != atbasis_row.nb_total)
@@ -42,7 +42,7 @@ std::set<std::pair<int, int>> get_necessary_IJ_from_block_2D(const AtomicBasis &
     return IJs;
 }
 
-std::set<std::pair<int, int>> get_necessary_IJ_from_block_2D_sy(const char &uplo, const AtomicBasis &atbasis, const Array_Desc& arrdesc)
+std::set<std::pair<int, int>> get_necessary_IJ_from_block_2D_sy(const char &uplo, const AtomicBasis &atbasis, const ArrayDesc& arrdesc)
 {
     std::set<std::pair<int, int>> IJs;
     if (uplo != 'U' && uplo != 'L')
@@ -74,7 +74,7 @@ std::set<std::pair<int, int>> get_necessary_IJ_from_block_2D_sy(const char &uplo
 void
 IndexScheduler::init(const std::unordered_map<int, std::set<atpair_t>> &map_proc_IJs,
                      const AtomicBasis &atbasis_r, const AtomicBasis &atbasis_c,
-                     const Array_Desc &ad, const bool row_major) noexcept
+                     const ArrayDesc &ad, const bool row_major) noexcept
 {
     if (initialized_) reset();
 
@@ -274,7 +274,7 @@ IndexScheduler::reset()
 std::unordered_map<int, std::set<atpair_t>>
 get_balanced_ap_distribution_for_consec_descriptor(const AtomicBasis &atbasis_r,
                                                    const AtomicBasis &atbasis_c,
-                                                   const Array_Desc &ad)
+                                                   const ArrayDesc &ad)
 {
     assert(ad.is_col_consec() && ad.is_row_consec());
     assert(atbasis_r.n_atoms == atbasis_c.n_atoms);
@@ -330,7 +330,7 @@ _get_communicate_ids_list_ap_and_blacs(const int &myid,
                                        const std::unordered_map<int, std::vector<atpair_t>> &map_proc_IJs,
                                        const AtomicBasis &atbasis_r,
                                        const AtomicBasis &atbasis_c,
-                                       const Array_Desc &ad, const bool row_fast,
+                                       const ArrayDesc &ad, const bool row_fast,
                                        const bool return_local, const bool include_self = false)
 {
     assert(ad.m() > 0 && atbasis_r.nb_total == as_size(ad.m()));
@@ -463,7 +463,7 @@ _get_communicate_ids_list_ap_to_blacs_sy(std::unordered_map<int, std::vector<cha
                                           const char &uplo,
                                           const std::unordered_map<int, std::vector<atpair_t>> &map_proc_IJs_avail,
                                           const AtomicBasis &atbasis,
-                                          const Array_Desc &ad, const bool row_fast,
+                                          const ArrayDesc &ad, const bool row_fast,
                                           const bool return_local, const bool include_self = false)
 {
     assert(ad.m() > 0 && ad.m() == ad.n() && atbasis.nb_total == as_size(ad.m()));
@@ -674,7 +674,7 @@ get_communicate_global_ids_list_ap_to_blacs(const int &myid,
                                             const std::unordered_map<int, std::vector<atpair_t>> &map_proc_IJs_avail,
                                             const AtomicBasis &atbasis_r,
                                             const AtomicBasis &atbasis_c,
-                                            const Array_Desc &ad,
+                                            const ArrayDesc &ad,
                                             bool row_fast, bool row_major, bool include_self)
 {
     // Objects to return
@@ -718,7 +718,7 @@ get_communicate_local_ids_list_ap_to_blacs(const int &myid,
                                            const std::unordered_map<int, std::vector<atpair_t>> &map_proc_IJs_avail,
                                            const AtomicBasis &atbasis_r,
                                            const AtomicBasis &atbasis_c,
-                                           const Array_Desc &ad,
+                                           const ArrayDesc &ad,
                                            bool row_fast, bool row_major, bool include_self)
 {
     const auto ids = _get_communicate_ids_list_ap_and_blacs(myid, map_proc_IJs_avail, atbasis_r,
@@ -762,7 +762,7 @@ get_communicate_global_ids_list_ap_to_blacs_sy(const int &myid,
                                                const char &uplo,
                                                const std::unordered_map<int, std::vector<atpair_t>> &map_proc_IJs_avail,
                                                const AtomicBasis &atbasis,
-                                               const Array_Desc &ad,
+                                               const ArrayDesc &ad,
                                                bool row_fast, bool row_major, bool include_self)
 {
     // Objects to return
@@ -812,7 +812,7 @@ get_communicate_local_ids_list_ap_to_blacs_sy(const int &myid,
                                               const char &uplo,
                                               const std::unordered_map<int, std::vector<atpair_t>> &map_proc_IJs_avail,
                                               const AtomicBasis &atbasis,
-                                              const Array_Desc &ad,
+                                              const ArrayDesc &ad,
                                               bool row_fast, bool row_major, bool include_self)
 {
     std::unordered_map<int, std::vector<char>> map_lconj;
@@ -862,7 +862,7 @@ get_communicate_global_ids_list_blacs_to_ap(const int &myid,
                                             const std::unordered_map<int, std::vector<atpair_t>> &map_proc_IJs_require,
                                             const AtomicBasis &atbasis_r,
                                             const AtomicBasis &atbasis_c,
-                                            const Array_Desc &ad,
+                                            const ArrayDesc &ad,
                                             bool row_fast, bool row_major, bool include_self)
 {
     // Objects to return
@@ -905,7 +905,7 @@ get_communicate_local_ids_list_blacs_to_ap(const int &myid,
                                            const std::unordered_map<int, std::vector<atpair_t>> &map_proc_IJs_require,
                                            const AtomicBasis &atbasis_r,
                                            const AtomicBasis &atbasis_c,
-                                           const Array_Desc &ad,
+                                           const ArrayDesc &ad,
                                            bool row_fast, bool row_major, bool include_self)
 {
     const auto ids = _get_communicate_ids_list_ap_and_blacs(myid, map_proc_IJs_require, atbasis_r,
