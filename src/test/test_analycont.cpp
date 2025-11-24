@@ -33,7 +33,7 @@ void test_analycont_pade()
     cout << "Input x: " << xs << endl;
     cout << "Input y: " << data << endl;
 
-    LIBRPA::AnalyContPade pade(n, xs, data);
+    librpa_int::AnalyContPade pade(n, xs, data);
     // std::cout << data << endl;
     const cplxdb test_x = {1.0, 1.0};
     const cplxdb ref = -1.0 / (test_x - x0);
@@ -51,7 +51,7 @@ void test_get_spectfunc_acpade()
     std::vector<cplxdb> xs(n);
     std::vector<cplxdb> data(n);
     initialize_1_over_x_minus_x0_data(n, x0, xs, data);
-    LIBRPA::AnalyContPade pade(n, xs, data);
+    librpa_int::AnalyContPade pade(n, xs, data);
 
     vector<cplxdb> omegas(2);
     omegas[0] = {0.0, 0.0};
@@ -66,17 +66,17 @@ void test_get_spectfunc_acpade()
     ref_sf[0] = 2.0 / PI;
     ref_sf[1] = 0.25 / PI;
 
-    auto sf = LIBRPA::get_specfunc(pade, omegas, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+    auto sf = librpa_int::get_specfunc(pade, omegas, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
     assert(fequal_array(2, sf.data(), ref_sf.data(), false));
 
     // same results if we have v_xc cancels e_ks and v_exx
-    sf = LIBRPA::get_specfunc(pade, omegas, 0.0, 1.0, 2.0, 1.0, 0.0, 0.0);
+    sf = librpa_int::get_specfunc(pade, omegas, 0.0, 1.0, 2.0, 1.0, 0.0, 0.0);
     assert(fequal_array(2, sf.data(), ref_sf.data(), false));
 
     // same results if we shift the omegas and e_ks by reference (2.0)
     omegas[0] = {2.0, -1.0};
     omegas[1] = {4.0, 2.0};
-    sf = LIBRPA::get_specfunc(pade, omegas, 2.0, 1.0 + 2.0, 2.0, 1.0, 1.0, 1.0);
+    sf = librpa_int::get_specfunc(pade, omegas, 2.0, 1.0 + 2.0, 2.0, 1.0, 1.0, 1.0);
     assert(fequal_array(2, sf.data(), ref_sf.data(), false));
 }
 

@@ -9,7 +9,7 @@
 #include "atoms.h"
 #include "../math/matrix_m.h"
 
-namespace LIBRPA
+namespace librpa_int
 {
 
 class G0W0

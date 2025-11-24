@@ -12,7 +12,7 @@
 
 // #include "../utils/stl_io_helper.h"
 
-namespace LIBRPA
+namespace librpa_int
 {
 
 namespace utils
@@ -939,4 +939,4 @@ get_communicate_local_ids_list_blacs_to_ap(const int &myid,
 
 } /* end of namespace utils */
 
-} /* end of namespace LIBRPA */
+} /* end of namespace librpa_int */

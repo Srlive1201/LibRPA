@@ -9,7 +9,7 @@
 
 #include "../utils/base_utility.h"
 
-namespace LIBRPA
+namespace librpa_int
 {
 
 class AnalyCont

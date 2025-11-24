@@ -17,13 +17,13 @@ DriverParams::DriverParams():
 
 void DriverParams::print()
 {
-    LIBRPA::utils::lib_printf("input_dir = %s\n", input_dir.c_str());
-    LIBRPA::utils::lib_printf("output_gw_spec_func = %L\n", output_gw_spec_func);
+    librpa_int::utils::lib_printf("input_dir = %s\n", input_dir.c_str());
+    librpa_int::utils::lib_printf("output_gw_spec_func = %L\n", output_gw_spec_func);
     if (output_gw_spec_func)
     {
-        LIBRPA::utils::lib_printf("sf_omega_start = %f\n", sf_omega_start);
-        LIBRPA::utils::lib_printf("sf_omega_end   = %f\n", sf_omega_end);
-        LIBRPA::utils::lib_printf("sf_omega_step  = %f\n", sf_omega_step);
+        librpa_int::utils::lib_printf("sf_omega_start = %f\n", sf_omega_start);
+        librpa_int::utils::lib_printf("sf_omega_end   = %f\n", sf_omega_end);
+        librpa_int::utils::lib_printf("sf_omega_step  = %f\n", sf_omega_step);
     }
 }
 

@@ -2,24 +2,24 @@
 
 #include <stdexcept>
 
-namespace LIBRPA
+namespace librpa_int
 {
 
 namespace envs
 {
 
 MPI_Comm mpi_comm_global;
-LIBRPA::MpiCommHandler mpi_comm_global_h;
+librpa_int::MpiCommHandler mpi_comm_global_h;
 int myid_global = 0;
 int size_global = 1;
 
 MPI_Comm mpi_comm_intra;
-LIBRPA::MpiCommHandler mpi_comm_intra_h;
+librpa_int::MpiCommHandler mpi_comm_intra_h;
 int myid_intra = 0;
 int size_intra = 1;
 
 MPI_Comm mpi_comm_inter;
-LIBRPA::MpiCommHandler mpi_comm_inter_h;
+librpa_int::MpiCommHandler mpi_comm_inter_h;
 int myid_inter = 0;
 int size_inter = 1;
 
@@ -96,4 +96,4 @@ void finalize_mpi()
 
 } /* end of namespace envs */
 
-} /* end of namespace LIBRPA */
+} /* end of namespace librpa_int */

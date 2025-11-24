@@ -5,7 +5,7 @@
 #include <fstream>
 #include <iomanip>
 
-void write_self_energy_omega(const char *fn, const LIBRPA::G0W0 &s_g0w0)
+void write_self_energy_omega(const char *fn, const librpa_int::G0W0 &s_g0w0)
 {
     const auto &n_spins = s_g0w0.mf.get_n_spins();
     const auto &n_kpts = s_g0w0.mf.get_n_kpoints();

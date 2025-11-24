@@ -215,7 +215,7 @@ std::map<double, std::map<Vector3_Order<int>, matrix>> MeanField::get_gf_real_im
 
 void MeanField::allredue_wfc_isk()
 {
-    using LIBRPA::envs::mpi_comm_global_h;
+    using librpa_int::envs::mpi_comm_global_h;
 
     for(int is=0;is!=n_spins;is++)
         for(int ik=0;ik!=n_kpoints;ik++)
@@ -231,7 +231,7 @@ void MeanField::allredue_wfc_isk()
                 // {
                 //     wfc[is][ik]=glo_wfc;
                 // }
-                LIBRPA::allreduce_ComplexMatrix(wfc[is][ik],glo_wfc,mpi_comm_global_h.comm);
+                librpa_int::allreduce_ComplexMatrix(wfc[is][ik],glo_wfc,mpi_comm_global_h.comm);
                 wfc[is][ik]=glo_wfc;
             }
 }

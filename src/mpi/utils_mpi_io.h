@@ -4,7 +4,7 @@
 #include "../utils/utils_io.h"
 #include "envs_mpi.h"
 
-namespace LIBRPA
+namespace librpa_int
 {
 
 namespace utils
@@ -22,7 +22,7 @@ void lib_printf_root(const char* format, Args&&... args)
 
 //! Similar to lib_printf_root, but one can specify any communicator
 template <typename... Args>
-void lib_printf_comm_root(const LIBRPA::MpiCommHandler &comm_h, const char* format, Args&&... args)
+void lib_printf_comm_root(const librpa_int::MpiCommHandler &comm_h, const char* format, Args&&... args)
 {
     comm_h.check_initialized();
     if (0 == comm_h.myid)
@@ -47,7 +47,7 @@ void lib_printf_coll(const char* format, Args&&... args)
 
 //! Similar to lib_printf_cool, but one can specify any communicator
 template <typename... Args>
-void lib_printf_comm_coll(const LIBRPA::MpiCommHandler &comm_h, const char* format, Args&&... args)
+void lib_printf_comm_coll(const librpa_int::MpiCommHandler &comm_h, const char* format, Args&&... args)
 {
     comm_h.check_initialized();
     for (int i = 0; i < comm_h.nprocs; i++)

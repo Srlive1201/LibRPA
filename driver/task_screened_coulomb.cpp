@@ -16,8 +16,8 @@
 
 void task_screened_coulomb_real_freq()
 {
-    using namespace LIBRPA::envs;
-    using LIBRPA::utils::lib_printf;
+    using namespace librpa_int::envs;
+    using librpa_int::utils::lib_printf;
 
     Profiler::start("Wc_Rf", "Build Screened Coulomb: R and freq. space");
 
@@ -31,7 +31,7 @@ void task_screened_coulomb_real_freq()
     }
 
     // Prepare time-frequency grids
-    auto tfg = LIBRPA::utils::generate_timefreq_grids(Params::nfreq, Params::tfgrids_type, meanfield);
+    auto tfg = librpa_int::utils::generate_timefreq_grids(Params::nfreq, Params::tfgrids_type, meanfield);
 
     Chi0 chi0(meanfield, klist, tfg);
     chi0.gf_R_threshold = Params::gf_R_threshold;

@@ -10,9 +10,9 @@
 
 void task_test()
 {
-    using LIBRPA::envs::mpi_comm_global_h;
-    using LIBRPA::envs::ofs_myid;
-    using LIBRPA::utils::lib_printf;
+    using librpa_int::envs::mpi_comm_global_h;
+    using librpa_int::envs::ofs_myid;
+    using librpa_int::utils::lib_printf;
 
     Profiler::start("test");
 

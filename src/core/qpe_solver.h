@@ -2,7 +2,7 @@
 
 #include "analycont.h"
 
-namespace LIBRPA
+namespace librpa_int
 {
 
 /*!

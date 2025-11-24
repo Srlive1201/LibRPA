@@ -7,7 +7,7 @@
 #include "../mpi/envs_mpi.h"
 
 
-namespace LIBRPA
+namespace librpa_int
 {
 
 namespace envs
@@ -86,4 +86,4 @@ void finalize_io()
 
 } /* end of namespace envs */
 
-} /* end of namespace LIBRPA */
+} /* end of namespace librpa_int */

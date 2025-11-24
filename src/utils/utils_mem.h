@@ -2,7 +2,7 @@
 
 #include <ostream>
 
-namespace LIBRPA
+namespace librpa_int
 {
 
 namespace utils
@@ -60,5 +60,5 @@ void report_virtual_pages(std::ostream &os);
 
 } /* end of namespace utils */
 
-} /* end of namespace LIBRPA */
+} /* end of namespace librpa_int */
 

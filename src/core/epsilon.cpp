@@ -40,31 +40,31 @@ using RI::Tensor;
 using RI::Communicate_Tensors_Map_Judge::comm_map2_first;
 #endif
 
-using LIBRPA::utils::init_local_mat;
-using LIBRPA::envs::mpi_comm_global_h;
-using LIBRPA::envs::blacs_ctxt_global_h;
-using LIBRPA::ArrayDesc;
-using LIBRPA::envs::ofs_myid;
-using LIBRPA::utils::lib_printf;
+using librpa_int::utils::init_local_mat;
+using librpa_int::envs::mpi_comm_global_h;
+using librpa_int::envs::blacs_ctxt_global_h;
+using librpa_int::ArrayDesc;
+using librpa_int::envs::ofs_myid;
+using librpa_int::utils::lib_printf;
 
 CorrEnergy compute_RPA_correlation_blacs_2d_gamma_only( Chi0 &chi0, atpair_k_cplx_mat_t &coulmat)
 {
-    using LIBRPA::utils::collect_block_from_ALL_IJ_Tensor;
+    using librpa_int::utils::collect_block_from_ALL_IJ_Tensor;
     CorrEnergy corr;
     if (mpi_comm_global_h.myid == 0)
         lib_printf("Calculating EcRPA with BLACS/ScaLAPACK 2D gamma_only\n");
     // lib_printf("Calculating EcRPA with BLACS, pid:  %d\n", mpi_comm_global_h.myid);
     const auto & mf = chi0.mf;
     const double CONE=1.0;
-    const int n_abf = LIBRPA::atomic_basis_abf.nb_total;
-    const auto part_range = LIBRPA::atomic_basis_abf.get_part_range();
+    const int n_abf = librpa_int::atomic_basis_abf.nb_total;
+    const auto part_range = librpa_int::atomic_basis_abf.get_part_range();
 
     mpi_comm_global_h.barrier();
 
     ArrayDesc desc_nabf_nabf(blacs_ctxt_global_h);
     // use a square blocksize instead max block, otherwise heev and inversion will complain about illegal parameter
     desc_nabf_nabf.init_square_blk(n_abf, n_abf, 0, 0);
-    const auto set_IJ_nabf_nabf = LIBRPA::utils::get_necessary_IJ_from_block_2D_sy('U', LIBRPA::atomic_basis_abf, desc_nabf_nabf);
+    const auto set_IJ_nabf_nabf = librpa_int::utils::get_necessary_IJ_from_block_2D_sy('U', librpa_int::atomic_basis_abf, desc_nabf_nabf);
     const auto s0_s1 = get_s0_s1_for_comm_map2_first(set_IJ_nabf_nabf);
     auto chi0_block = init_local_mat<double>(desc_nabf_nabf, MAJOR::COL);
     auto coul_block = init_local_mat<double>(desc_nabf_nabf, MAJOR::COL);
@@ -100,8 +100,8 @@ CorrEnergy compute_RPA_correlation_blacs_2d_gamma_only( Chi0 &chi0, atpair_k_cpl
                     coulmat.at(Mu).count(Nu) == 0 ||
                     coulmat.at(Mu).at(Nu).count(q) == 0) continue;
                 const auto &Vq = coulmat.at(Mu).at(Nu).at(q);
-                const auto n_mu = LIBRPA::atomic_basis_abf.get_atom_nb(Mu);
-                const auto n_nu = LIBRPA::atomic_basis_abf.get_atom_nb(Nu);
+                const auto n_mu = librpa_int::atomic_basis_abf.get_atom_nb(Mu);
+                const auto n_nu = librpa_int::atomic_basis_abf.get_atom_nb(Nu);
                 matrix tmp_vq_real=(*Vq).real();
                 std::valarray<double> Vq_va(tmp_vq_real.c, Vq->size);
                 auto pvq = std::make_shared<std::valarray<double>>();
@@ -110,7 +110,7 @@ CorrEnergy compute_RPA_correlation_blacs_2d_gamma_only( Chi0 &chi0, atpair_k_cpl
                 coulmat.at(Mu).at(Nu).at(q).reset();
             }
 
-            LIBRPA::utils::release_free_mem();
+            librpa_int::utils::release_free_mem();
 
             //printf("Finish RPA blacs 2d  vq arr\n");
             double arr_end = omp_get_wtime();
@@ -123,7 +123,7 @@ CorrEnergy compute_RPA_correlation_blacs_2d_gamma_only( Chi0 &chi0, atpair_k_cpl
 
             double block_begin = omp_get_wtime();
 
-            collect_block_from_ALL_IJ_Tensor(coul_block, desc_nabf_nabf, LIBRPA::atomic_basis_abf,
+            collect_block_from_ALL_IJ_Tensor(coul_block, desc_nabf_nabf, librpa_int::atomic_basis_abf,
                         qa,true, CONE, IJq_coul, MAJOR::ROW);
             double block_end = omp_get_wtime();
             lib_printf("Vq Time  myid: %d  arr_time: %f  comm_time: %f   block_time: %f   pair_size: %d\n",mpi_comm_global_h.myid,arr_end-vq_begin, comm_end-comm_begin, block_end-block_begin,set_IJ_nabf_nabf.size());
@@ -151,11 +151,11 @@ CorrEnergy compute_RPA_correlation_blacs_2d_gamma_only( Chi0 &chi0, atpair_k_cpl
                 for (const auto &M_Nchi: chi0_wq)
                 {
                     const auto &M = M_Nchi.first;
-                    const auto n_mu = LIBRPA::atomic_basis_abf.get_atom_nb(M);
+                    const auto n_mu = librpa_int::atomic_basis_abf.get_atom_nb(M);
                     for (const auto &N_chi: M_Nchi.second)
                     {
                         const auto &N = N_chi.first;
-                        const auto n_nu = LIBRPA::atomic_basis_abf.get_atom_nb(N);
+                        const auto n_nu = librpa_int::atomic_basis_abf.get_atom_nb(N);
                         const auto &chi = N_chi.second.real();
                         std::valarray<double> chi_va(chi.c, chi.size);
                         auto pchi = std::make_shared<std::valarray<double>>();
@@ -173,7 +173,7 @@ CorrEnergy compute_RPA_correlation_blacs_2d_gamma_only( Chi0 &chi0, atpair_k_cpl
 
                 chi0.free_chi0_q(freq,q);
 
-                LIBRPA::utils::release_free_mem();
+                librpa_int::utils::release_free_mem();
 
                 // if(mpi_comm_global_h.is_root())
                 // {
@@ -190,7 +190,7 @@ CorrEnergy compute_RPA_correlation_blacs_2d_gamma_only( Chi0 &chi0, atpair_k_cpl
                 // ofs_myid << "IJq_chi0" << endl << IJq_chi0;
                 double chi_end_comm = omp_get_wtime();
 
-                collect_block_from_ALL_IJ_Tensor(chi0_block, desc_nabf_nabf, LIBRPA::atomic_basis_abf,
+                collect_block_from_ALL_IJ_Tensor(chi0_block, desc_nabf_nabf, librpa_int::atomic_basis_abf,
                         qa,true, CONE, IJq_chi0, MAJOR::ROW);
                 //printf("End collect block myid: %d ifreq: %d   TIME_USED: %f\n",mpi_comm_global_h.myid,ifreq,chi_end_comm-chi_end_arr);
                 mpi_comm_global_h.barrier();
@@ -268,7 +268,7 @@ CorrEnergy compute_RPA_correlation_blacs_2d_gamma_only( Chi0 &chi0, atpair_k_cpl
 
 CorrEnergy compute_RPA_correlation_blacs_2d( Chi0 &chi0,  atpair_k_cplx_mat_t &coulmat)
 {
-    using LIBRPA::utils::collect_block_from_ALL_IJ_Tensor;
+    using librpa_int::utils::collect_block_from_ALL_IJ_Tensor;
 
     lib_printf("Begin to compute_RPA_correlation_blacs_2d  myid: %d\n",mpi_comm_global_h.myid );
     system("free -m");
@@ -278,15 +278,15 @@ CorrEnergy compute_RPA_correlation_blacs_2d( Chi0 &chi0,  atpair_k_cplx_mat_t &c
     // lib_printf("Calculating EcRPA with BLACS, pid:  %d\n", mpi_comm_global_h.myid);
     const auto & mf = chi0.mf;
     const complex<double> CONE{1.0, 0.0};
-    const int n_abf = LIBRPA::atomic_basis_abf.nb_total;
-    const auto part_range = LIBRPA::atomic_basis_abf.get_part_range();
+    const int n_abf = librpa_int::atomic_basis_abf.nb_total;
+    const auto part_range = librpa_int::atomic_basis_abf.get_part_range();
 
     mpi_comm_global_h.barrier();
 
     ArrayDesc desc_nabf_nabf(blacs_ctxt_global_h);
     // use a square blocksize instead max block, otherwise heev and inversion will complain about illegal parameter
     desc_nabf_nabf.init_square_blk(n_abf, n_abf, 0, 0);
-    const auto set_IJ_nabf_nabf = LIBRPA::utils::get_necessary_IJ_from_block_2D_sy('U', LIBRPA::atomic_basis_abf, desc_nabf_nabf);
+    const auto set_IJ_nabf_nabf = librpa_int::utils::get_necessary_IJ_from_block_2D_sy('U', librpa_int::atomic_basis_abf, desc_nabf_nabf);
     const auto s0_s1 = get_s0_s1_for_comm_map2_first(set_IJ_nabf_nabf);
     auto chi0_block = init_local_mat<complex<double>>(desc_nabf_nabf, MAJOR::COL);
     auto coul_block = init_local_mat<complex<double>>(desc_nabf_nabf, MAJOR::COL);
@@ -325,8 +325,8 @@ CorrEnergy compute_RPA_correlation_blacs_2d( Chi0 &chi0,  atpair_k_cplx_mat_t &c
                     coulmat.at(Mu).count(Nu) == 0 ||
                     coulmat.at(Mu).at(Nu).count(q) == 0) continue;
                 const auto &Vq = coulmat.at(Mu).at(Nu).at(q);
-                const auto n_mu = LIBRPA::atomic_basis_abf.get_atom_nb(Mu);
-                const auto n_nu = LIBRPA::atomic_basis_abf.get_atom_nb(Nu);
+                const auto n_mu = librpa_int::atomic_basis_abf.get_atom_nb(Mu);
+                const auto n_nu = librpa_int::atomic_basis_abf.get_atom_nb(Nu);
                 std::valarray<complex<double>> Vq_va(Vq->c, Vq->size);
                 auto pvq = std::make_shared<std::valarray<complex<double>>>();
                 *pvq = Vq_va;
@@ -350,14 +350,14 @@ CorrEnergy compute_RPA_correlation_blacs_2d( Chi0 &chi0,  atpair_k_cplx_mat_t &c
             //     const auto &J = IJ.second;
             //     // cout << IJq_coul.at(I).at({J, qa});
             //     collect_block_from_IJ_storage_syhe(
-            //         coul_block, desc_nabf_nabf, LIBRPA::atomic_basis_abf, IJ.first,
+            //         coul_block, desc_nabf_nabf, librpa_int::atomic_basis_abf, IJ.first,
             //         IJ.second, true, CONE, IJq_coul.at(I).at({J, qa}).ptr(), MAJOR::ROW);
             //     // lib_printf("myid %d I %d J %d nr %d nc %d\n%s",
             //     //        blacs_ctxt_global_h.myid, I, J,
             //     //        coul_block.nr(), coul_block.nc(),
             //     //        str(coul_block).c_str());
             // }
-            collect_block_from_ALL_IJ_Tensor(coul_block, desc_nabf_nabf, LIBRPA::atomic_basis_abf,
+            collect_block_from_ALL_IJ_Tensor(coul_block, desc_nabf_nabf, librpa_int::atomic_basis_abf,
                                              qa, true, CONE, IJq_coul, MAJOR::ROW);
             double block_end = omp_get_wtime();
             lib_printf("Vq Time  myid: %d  arr_time: %f  comm_time: %f   block_time: %f   pair_size: %d\n",mpi_comm_global_h.myid,arr_end-vq_begin, comm_end-comm_begin, block_end-block_begin,set_IJ_nabf_nabf.size());
@@ -393,11 +393,11 @@ CorrEnergy compute_RPA_correlation_blacs_2d( Chi0 &chi0,  atpair_k_cplx_mat_t &c
                 for (const auto &M_Nchi: chi0_wq)
                 {
                     const auto &M = M_Nchi.first;
-                    const auto n_mu = LIBRPA::atomic_basis_abf.get_atom_nb(M);
+                    const auto n_mu = librpa_int::atomic_basis_abf.get_atom_nb(M);
                     for (const auto &N_chi: M_Nchi.second)
                     {
                         const auto &N = N_chi.first;
-                        const auto n_nu = LIBRPA::atomic_basis_abf.get_atom_nb(N);
+                        const auto n_nu = librpa_int::atomic_basis_abf.get_atom_nb(N);
                         const auto &chi = N_chi.second;
                         std::valarray<complex<double>> chi_va(chi.c, chi.size);
                         auto pchi = std::make_shared<std::valarray<complex<double>>>();
@@ -408,12 +408,12 @@ CorrEnergy compute_RPA_correlation_blacs_2d( Chi0 &chi0,  atpair_k_cplx_mat_t &c
                 if(mpi_comm_global_h.is_root())
                 {
                     lib_printf("Begin to clean chi0 !!! \n");
-                    LIBRPA::utils::display_free_mem();
+                    librpa_int::utils::display_free_mem();
                     lib_printf("chi0_freq_q size: %d,  freq: %f, q:( %f, %f, %f )\n",chi0_wq.size(),freq, q.x,q.y,q.z );
                 }
                 chi0.free_chi0_q(freq,q);
 
-                LIBRPA::utils::release_free_mem();
+                librpa_int::utils::release_free_mem();
                 // if(mpi_comm_global_h.is_root())
                 // {
                 //     lib_printf("After clean chi0 !!! \n");
@@ -427,7 +427,7 @@ CorrEnergy compute_RPA_correlation_blacs_2d( Chi0 &chi0,  atpair_k_cplx_mat_t &c
                 const auto IJq_chi0 = comm_map2_first(mpi_comm_global_h.comm, chi0_libri, s0_s1.first, s0_s1.second);
                 // ofs_myid << "IJq_chi0" << endl << IJq_chi0;
                 double chi_end_comm = omp_get_wtime();
-                collect_block_from_ALL_IJ_Tensor(chi0_block, desc_nabf_nabf, LIBRPA::atomic_basis_abf,
+                collect_block_from_ALL_IJ_Tensor(chi0_block, desc_nabf_nabf, librpa_int::atomic_basis_abf,
                                                  qa, true, CONE, IJq_chi0, MAJOR::ROW);
                 mpi_comm_global_h.barrier();
                 double chi_end_2d = omp_get_wtime();
@@ -719,12 +719,12 @@ CorrEnergy compute_RPA_correlation_blacs(const Chi0 &chi0, const atpair_k_cplx_m
 
     const auto & mf = chi0.mf;
     const complex<double> CONE{1.0, 0.0};
-    const int n_abf = LIBRPA::atomic_basis_abf.nb_total;
-    const auto part_range = LIBRPA::atomic_basis_abf.get_part_range();
+    const int n_abf = librpa_int::atomic_basis_abf.nb_total;
+    const auto part_range = librpa_int::atomic_basis_abf.get_part_range();
 
     mpi_comm_global_h.barrier();
 
-    LIBRPA::ArrayDesc arrdesc_pi(blacs_ctxt_global_h);
+    librpa_int::ArrayDesc arrdesc_pi(blacs_ctxt_global_h);
     arrdesc_pi.init_square_blk(n_abf, n_abf, 0, 0);
     int loc_row = arrdesc_pi.m_loc(), loc_col = arrdesc_pi.n_loc(), info;
 
@@ -735,11 +735,11 @@ CorrEnergy compute_RPA_correlation_blacs(const Chi0 &chi0, const atpair_k_cplx_m
     // for(auto &Ip:Vq)
     // {
     //     auto I=Ip.first;
-    //     const auto n_mu = LIBRPA::atomic_basis_abf.get_atom_nb(I);
+    //     const auto n_mu = librpa_int::atomic_basis_abf.get_atom_nb(I);
     //     for(auto &Jp:Ip.second)
     //     {
     //         auto J=Jp.first;
-    //         const auto n_nu = LIBRPA::atomic_basis_abf.get_atom_nb(J);
+    //         const auto n_nu = librpa_int::atomic_basis_abf.get_atom_nb(J);
     //         for(auto &qp:Jp.second)
     //         {
     //             auto q=qp.first;
@@ -845,7 +845,7 @@ CorrEnergy compute_RPA_correlation_blacs(const Chi0 &chi0, const atpair_k_cplx_m
                 //printf("   |process %d,   compute_pi\n",para_mpi.get_myid());
                 ComplexMatrix glo_pi_row( n_mu,N_all_mu);
                 mpi_comm_global_h.barrier();
-                LIBRPA::allreduce_ComplexMatrix(loc_pi_row,glo_pi_row,mpi_comm_global_h.comm);
+                librpa_int::allreduce_ComplexMatrix(loc_pi_row,glo_pi_row,mpi_comm_global_h.comm);
                 double Mu_after_pi_loc=omp_get_wtime();
                 //cout<<"  glo_pi_rowT nr,nc: "<<glo_pi_row.nr<<" "<<glo_pi_row.nc<<endl;
 
@@ -928,7 +928,7 @@ CorrEnergy compute_RPA_correlation(const Chi0 &chi0, const atpair_k_cplx_mat_t &
 
     // freq, q
     map<double, map<Vector3_Order<double>, atom_mapping<ComplexMatrix>::pair_t_old>> pi_freq_q_Mu_Nu;
-    if (LIBRPA::parallel_routing == LIBRPA::ParallelRouting::ATOM_PAIR || LIBRPA::parallel_routing == LIBRPA::ParallelRouting::LIBRI)
+    if (librpa_int::parallel_routing == librpa_int::ParallelRouting::ATOM_PAIR || librpa_int::parallel_routing == librpa_int::ParallelRouting::LIBRI)
         pi_freq_q_Mu_Nu = compute_Pi_q_MPI(chi0, coulmat);
     else
         pi_freq_q_Mu_Nu = compute_Pi_q(chi0, coulmat);
@@ -991,9 +991,9 @@ CorrEnergy compute_RPA_correlation(const Chi0 &chi0, const atpair_k_cplx_mat_t &
                     }
                 }
             }
-            if (LIBRPA::parallel_routing == LIBRPA::ParallelRouting::ATOM_PAIR || LIBRPA::parallel_routing == LIBRPA::ParallelRouting::LIBRI)
+            if (librpa_int::parallel_routing == librpa_int::ParallelRouting::ATOM_PAIR || librpa_int::parallel_routing == librpa_int::ParallelRouting::LIBRI)
             {
-                LIBRPA::reduce_ComplexMatrix(pi_munu_tmp, pi_freq_q.at(freq).at(q), 0, mpi_comm_global_h.comm);
+                librpa_int::reduce_ComplexMatrix(pi_munu_tmp, pi_freq_q.at(freq).at(q), 0, mpi_comm_global_h.comm);
             }
             else
             {
@@ -1438,7 +1438,7 @@ atom_mapping<ComplexMatrix>::pair_t_old gather_vq_row_q(const int &I, const atpa
                     loc_vq=transpose(*Vq.at(J_tmp).at(I).at(ik_vec), 1);
 
         }
-        LIBRPA::allreduce_ComplexMatrix(loc_vq,Vq_row[I][J_tmp], mpi_comm_global_h.comm);
+        librpa_int::allreduce_ComplexMatrix(loc_vq,Vq_row[I][J_tmp], mpi_comm_global_h.comm);
     }
     return Vq_row;
 }
@@ -1448,8 +1448,8 @@ compute_Wc_freq_q(Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, atpair_k_c
 {
     // Object to return
     map<double, std::map<Vector3_Order<double>, Matz>> Wc_freq_q;
-    const int range_all = LIBRPA::atomic_basis_abf.nb_total;
-    const auto part_range = LIBRPA::atomic_basis_abf.get_part_range();
+    const int range_all = librpa_int::atomic_basis_abf.nb_total;
+    const auto part_range = librpa_int::atomic_basis_abf.get_part_range();
 
     if (mpi_comm_global_h.myid == 0)
     {
@@ -1619,15 +1619,15 @@ map<double, std::map<Vector3_Order<double>, Matz>>
 compute_Wc_freq_q_blacs(Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, atpair_k_cplx_mat_t &coulmat_wc,
                         const vector<std::complex<double>> &epsmac_LF_imagfreq, const ArrayDesc &ad)
 {
-    using LIBRPA::utils::collect_block_from_ALL_IJ_Tensor;
-    using LIBRPA::utils::power_hemat_blacs;
-    using LIBRPA::utils::map_block_to_IJ_storage_new;
-    using LIBRPA::utils::invert_scalapack;
+    using librpa_int::utils::collect_block_from_ALL_IJ_Tensor;
+    using librpa_int::utils::power_hemat_blacs;
+    using librpa_int::utils::map_block_to_IJ_storage_new;
+    using librpa_int::utils::invert_scalapack;
 
     // Object to return
     map<double, std::map<Vector3_Order<double>, Matz>> Wc_freq_q;
-    const int n_abf = LIBRPA::atomic_basis_abf.nb_total;
-    const auto part_range = LIBRPA::atomic_basis_abf.get_part_range();
+    const int n_abf = librpa_int::atomic_basis_abf.nb_total;
+    const auto part_range = librpa_int::atomic_basis_abf.get_part_range();
 
     if (mpi_comm_global_h.myid == 0)
     {
@@ -1646,7 +1646,7 @@ compute_Wc_freq_q_blacs(Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, atpa
     const int nb_opt = min(128, desc_nabf_nabf.nb());
     desc_nabf_nabf_opt.init(n_abf, n_abf, nb_opt, nb_opt, 0, 0);
     // obtain the indices of atom-pair block necessary to build 2D block of a Hermitian/symmetric matrix
-    const auto set_IJ_nabf_nabf = LIBRPA::utils::get_necessary_IJ_from_block_2D_sy('U', LIBRPA::atomic_basis_abf, desc_nabf_nabf);
+    const auto set_IJ_nabf_nabf = librpa_int::utils::get_necessary_IJ_from_block_2D_sy('U', librpa_int::atomic_basis_abf, desc_nabf_nabf);
     const auto s0_s1 = get_s0_s1_for_comm_map2_first(set_IJ_nabf_nabf);
     // temp_block is used to collect data from IJ-pair data structure with comm_map2_first
     auto temp_block = init_local_mat<complex<double>>(desc_nabf_nabf, MAJOR::COL);
@@ -1661,7 +1661,7 @@ compute_Wc_freq_q_blacs(Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, atpa
                                coul_chi0_block.size() + coulwc_block.size()) * 16.0e-6;
     ofs_myid << get_timestamp() << " Memory consumption of task-local blocks for screened Coulomb [MB]: " << mem_blocks << endl;
 
-    const auto atpair_local = LIBRPA::dispatch_upper_triangular_tasks(
+    const auto atpair_local = librpa_int::dispatch_upper_triangular_tasks(
         natom, blacs_ctxt_global_h.myid, blacs_ctxt_global_h.nprows, blacs_ctxt_global_h.npcols,
         blacs_ctxt_global_h.myprow, blacs_ctxt_global_h.mypcol);
 #ifdef LIBRPA_DEBUG
@@ -1684,13 +1684,13 @@ compute_Wc_freq_q_blacs(Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, atpa
     for (int i_lo = 0; i_lo != desc_nabf_nabf.m_loc(); i_lo++)
     {
         int i_glo = desc_nabf_nabf.indx_l2g_r(i_lo);
-        LIBRPA::atomic_basis_abf.get_local_index(i_glo, I, iI);
+        librpa_int::atomic_basis_abf.get_local_index(i_glo, I, iI);
         map_lor_v[I].push_back(iI);
     }
     for (int i_lo = 0; i_lo != desc_nabf_nabf.n_loc(); i_lo++)
     {
         int i_glo = desc_nabf_nabf.indx_l2g_c(i_lo);
-        LIBRPA::atomic_basis_abf.get_local_index(i_glo, I, iI);
+        librpa_int::atomic_basis_abf.get_local_index(i_glo, I, iI);
         map_loc_v[I].push_back(iI);
     }
 
@@ -1700,7 +1700,7 @@ compute_Wc_freq_q_blacs(Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, atpa
 
     vec<double> eigenvalues(n_abf);
     Profiler::cease("compute_Wc_freq_q_blacs_init");
-    LIBRPA::utils::lib_printf_root("Time for Wc initialization (seconds, Wall/CPU): %f %f\n",
+    librpa_int::utils::lib_printf_root("Time for Wc initialization (seconds, Wall/CPU): %f %f\n",
             Profiler::get_wall_time_last("compute_Wc_freq_q_blacs_init"),
             Profiler::get_cpu_time_last("compute_Wc_freq_q_blacs_init"));
 
@@ -1712,7 +1712,7 @@ compute_Wc_freq_q_blacs(Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, atpa
         const int iq_in_k = std::distance(klist.cbegin(), std::find(klist.cbegin(), klist.cend(), q));
         // q-point in fractional coordinates
         const auto &qf= kfrac_list[iq_in_k];
-        LIBRPA::utils::lib_printf_root("Computing Wc(q), %d / %d, q=(%f, %f, %f)\n",
+        librpa_int::utils::lib_printf_root("Computing Wc(q), %d / %d, q=(%f, %f, %f)\n",
                                        iq + 1, qpts.size(), qf.x, qf.y, qf.z);
         coul_block.zero_out();
         coulwc_block.zero_out();
@@ -1738,8 +1738,8 @@ compute_Wc_freq_q_blacs(Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, atpa
                     coulmat_wc.at(Mu).count(Nu) == 0 ||
                     coulmat_wc.at(Mu).at(Nu).count(q) == 0) continue;
                 const auto &Vq = coulmat_wc.at(Mu).at(Nu).at(q);
-                const auto n_mu = LIBRPA::atomic_basis_abf.get_atom_nb(Mu);
-                const auto n_nu = LIBRPA::atomic_basis_abf.get_atom_nb(Nu);
+                const auto n_mu = librpa_int::atomic_basis_abf.get_atom_nb(Mu);
+                const auto n_nu = librpa_int::atomic_basis_abf.get_atom_nb(Nu);
                 std::valarray<complex<double>> Vq_va(Vq->c, Vq->size);
                 auto pvq = std::make_shared<std::valarray<complex<double>>>();
                 *pvq = Vq_va;
@@ -1757,10 +1757,10 @@ compute_Wc_freq_q_blacs(Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, atpa
             //     const auto &I = IJ.first;
             //     const auto &J = IJ.second;
             //     collect_block_from_IJ_storage_syhe(
-            //         coulwc_block, desc_nabf_nabf, LIBRPA::atomic_basis_abf, IJ.first,
+            //         coulwc_block, desc_nabf_nabf, librpa_int::atomic_basis_abf, IJ.first,
             //         IJ.second, true, CONE, IJq_coul.at(I).at({J, qa}).ptr(), MAJOR::ROW);
             // }
-            collect_block_from_ALL_IJ_Tensor(temp_block, desc_nabf_nabf, LIBRPA::atomic_basis_abf,
+            collect_block_from_ALL_IJ_Tensor(temp_block, desc_nabf_nabf, librpa_int::atomic_basis_abf,
                                              qa, true, C_ONE, IJq_coul, MAJOR::ROW);
             ScalapackConnector::pgemr2d_f(n_abf, n_abf, temp_block.ptr(), 1, 1, desc_nabf_nabf.desc,
                                           coulwc_block.ptr(), 1, 1, desc_nabf_nabf_opt.desc, blacs_ctxt_global_h.ictxt);
@@ -1772,7 +1772,7 @@ compute_Wc_freq_q_blacs(Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, atpa
             Profiler::stop("epsilon_prepare_coulwc_sqrt_4");
         }
         Profiler::stop("epsilon_prepare_coulwc_sqrt");
-        LIBRPA::utils::lib_printf_root("Time to prepare sqrt root of Coulomb for Wc(q) (seconds, Wall/CPU): %f %f\n",
+        librpa_int::utils::lib_printf_root("Time to prepare sqrt root of Coulomb for Wc(q) (seconds, Wall/CPU): %f %f\n",
                 Profiler::get_wall_time_last("epsilon_prepare_coulwc_sqrt"),
                 Profiler::get_cpu_time_last("epsilon_prepare_coulwc_sqrt"));
         ofs_myid << get_timestamp() << " Done coulwc sqrt" << endl;
@@ -1792,8 +1792,8 @@ compute_Wc_freq_q_blacs(Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, atpa
                     coulmat_eps.at(Mu).count(Nu) == 0 ||
                     coulmat_eps.at(Mu).at(Nu).count(q) == 0) continue;
                 const auto &Vq = coulmat_eps.at(Mu).at(Nu).at(q);
-                const auto n_mu = LIBRPA::atomic_basis_abf.get_atom_nb(Mu);
-                const auto n_nu = LIBRPA::atomic_basis_abf.get_atom_nb(Nu);
+                const auto n_mu = librpa_int::atomic_basis_abf.get_atom_nb(Mu);
+                const auto n_nu = librpa_int::atomic_basis_abf.get_atom_nb(Nu);
                 std::valarray<complex<double>> Vq_va(Vq->c, Vq->size);
                 auto pvq = std::make_shared<std::valarray<complex<double>>>();
                 *pvq = Vq_va;
@@ -1819,7 +1819,7 @@ compute_Wc_freq_q_blacs(Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, atpa
             ofs_myid << get_timestamp() << " Done collect couleps_libri, collected blocks" << endl;
 
             ofs_myid << get_timestamp() << " Start construct couleps 2D block" << endl;
-            collect_block_from_ALL_IJ_Tensor(temp_block, desc_nabf_nabf, LIBRPA::atomic_basis_abf,
+            collect_block_from_ALL_IJ_Tensor(temp_block, desc_nabf_nabf, librpa_int::atomic_basis_abf,
                                              qa, true, C_ONE, IJq_coul, MAJOR::ROW);
             ScalapackConnector::pgemr2d_f(n_abf, n_abf, temp_block.ptr(), 1, 1, desc_nabf_nabf.desc,
                                           coul_block.ptr(), 1, 1, desc_nabf_nabf_opt.desc, blacs_ctxt_global_h.ictxt);
@@ -1843,7 +1843,7 @@ compute_Wc_freq_q_blacs(Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, atpa
             sqrtveig_blacs.clear();
         const size_t n_nonsingular = n_abf - n_singular;
         Profiler::stop("epsilon_prepare_couleps_sqrt");
-        LIBRPA::utils::lib_printf_root("Time to prepare sqrt root of Coulomb for Epsilon(q) (seconds, Wall/CPU): %f %f\n",
+        librpa_int::utils::lib_printf_root("Time to prepare sqrt root of Coulomb for Epsilon(q) (seconds, Wall/CPU): %f %f\n",
                 Profiler::get_wall_time_last("epsilon_prepare_couleps_sqrt"),
                 Profiler::get_cpu_time_last("epsilon_prepare_couleps_sqrt"));
         ofs_myid << get_timestamp() << " Done couleps sqrt\n";
@@ -1863,11 +1863,11 @@ compute_Wc_freq_q_blacs(Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, atpa
                     for (const auto &M_Nchi: chi0_wq)
                     {
                         const auto &M = M_Nchi.first;
-                        const auto n_mu = LIBRPA::atomic_basis_abf.get_atom_nb(M);
+                        const auto n_mu = librpa_int::atomic_basis_abf.get_atom_nb(M);
                         for (const auto &N_chi: M_Nchi.second)
                         {
                             const auto &N = N_chi.first;
-                            const auto n_nu = LIBRPA::atomic_basis_abf.get_atom_nb(N);
+                            const auto n_nu = librpa_int::atomic_basis_abf.get_atom_nb(N);
                             const auto &chi = N_chi.second;
                             std::valarray<complex<double>> chi_va(chi.c, chi.size);
                             auto pchi = std::make_shared<std::valarray<complex<double>>>();
@@ -1889,11 +1889,11 @@ compute_Wc_freq_q_blacs(Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, atpa
                 //     const auto &I = IJ.first;
                 //     const auto &J = IJ.second;
                 //     collect_block_from_IJ_storage_syhe(
-                //         chi0_block, desc_nabf_nabf, LIBRPA::atomic_basis_abf, IJ.first,
+                //         chi0_block, desc_nabf_nabf, librpa_int::atomic_basis_abf, IJ.first,
                 //         IJ.second, true, CONE, IJq_chi0.at(I).at({J, qa}).ptr(), MAJOR::ROW);
                 // }
                 Profiler::start("epsilon_prepare_chi0_2d_collect_block");
-                collect_block_from_ALL_IJ_Tensor(temp_block, desc_nabf_nabf, LIBRPA::atomic_basis_abf,
+                collect_block_from_ALL_IJ_Tensor(temp_block, desc_nabf_nabf, librpa_int::atomic_basis_abf,
                                                  qa, true, C_ONE, IJq_chi0, MAJOR::ROW);
                 ScalapackConnector::pgemr2d_f(n_abf, n_abf, temp_block.ptr(), 1, 1, desc_nabf_nabf.desc,
                                               chi0_block.ptr(), 1, 1, desc_nabf_nabf_opt.desc, blacs_ctxt_global_h.ictxt);
@@ -1993,7 +1993,7 @@ compute_Wc_freq_q_blacs(Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, atpa
             // under the desired array descriptor
             Wc_freq_q[freq][q] = temp_block.copy();
 
-            LIBRPA::utils::lib_printf_root("Time for Wc(i_q=%d, i_omega=%d) (seconds, Wall/CPU): %f %f\n",
+            librpa_int::utils::lib_printf_root("Time for Wc(i_q=%d, i_omega=%d) (seconds, Wall/CPU): %f %f\n",
                     iq + 1, ifreq + 1,
                     Profiler::get_wall_time_last("epsilon_wc_work_q_omega"),
                     Profiler::get_cpu_time_last("epsilon_wc_work_q_omega"));
@@ -2003,7 +2003,7 @@ compute_Wc_freq_q_blacs(Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, atpa
     throw std::logic_error("need compilation with LibRI");
 #endif
     Profiler::cease("compute_Wc_freq_q_work");
-    LIBRPA::utils::lib_printf_root("Time for Wc computation (seconds, Wall/CPU): %f %f\n",
+    librpa_int::utils::lib_printf_root("Time for Wc computation (seconds, Wall/CPU): %f %f\n",
             Profiler::get_wall_time_last("compute_Wc_freq_q_work"),
             Profiler::get_cpu_time_last("compute_Wc_freq_q_work"));
 
@@ -2082,7 +2082,7 @@ FT_Wc_freq_q(map<double, std::map<Vector3_Order<double>, Matz>> &Wc_freq_q,
         }
     }
     coeff_k2r *= 1.0 / n_k_points;
-    // if (LIBRPA::envs::myid_global == 0) cout << coeff_k2r << endl;
+    // if (librpa_int::envs::myid_global == 0) cout << coeff_k2r << endl;
 
     // Divide into batches to limit the memory consumption of temporary matrices for Fourier transform
     // Maximal 1GB per process for HPC usage, about 500 * 500 elements with 216 k-points (6x6x6)
@@ -2092,8 +2092,8 @@ FT_Wc_freq_q(map<double, std::map<Vector3_Order<double>, Matz>> &Wc_freq_q,
     const auto n_r_batch_max = min(maxbytes_tmpmat / sizeof(cplxdb) / size_batch_max, as_size(n_k_points));
     const auto n_r_batches = ceil_div(as_size(n_k_points), n_r_batch_max);
 
-    LIBRPA::envs::ofs_myid << "size_batch_max/n_r_batch_max " << size_batch_max << " " << n_r_batch_max << endl;
-    LIBRPA::envs::ofs_myid << "n_data_batches/n_r_batches " << n_data_batches << " " << n_r_batches << endl;
+    librpa_int::envs::ofs_myid << "size_batch_max/n_r_batch_max " << size_batch_max << " " << n_r_batch_max << endl;
+    librpa_int::envs::ofs_myid << "n_data_batches/n_r_batches " << n_data_batches << " " << n_r_batches << endl;
 
     std::vector<cplxdb> kmat(size_batch_max * n_k_points);
     std::vector<cplxdb> rmat(size_batch_max * n_r_batch_max);
@@ -2214,7 +2214,7 @@ CT_FT_Wc_freq_q(std::map<double, std::map<Vector3_Order<double>, Matz>> &Wc_freq
     assert(major_orig != MAJOR::AUTO);
     if (major_out == MAJOR::AUTO) major_out = major_orig;
 
-    LIBRPA::utils::lib_printf_root("Converting Wc(q,w) -> W(R,t)\n");
+    librpa_int::utils::lib_printf_root("Converting Wc(q,w) -> W(R,t)\n");
     mpi_comm_global_h.barrier();
 
     // Perform Fourier transform first, then inverse cosine transform
@@ -2226,7 +2226,7 @@ CT_FT_Wc_freq_q(std::map<double, std::map<Vector3_Order<double>, Matz>> &Wc_freq
     //     ss << Params::output_dir << "Wc_freq_R"
     //         << "_itau_" << std::setfill('0') << std::setw(5) << 0
     //         << "_iR_" << std::setfill('0') << std::setw(5) << 0 << ".csc";
-    //     LIBRPA::utils::write_matrix_elsi_csc_parallel(ss.str(), Wc, LIBRPA::envs::array_desc_abf_global);
+    //     librpa_int::utils::write_matrix_elsi_csc_parallel(ss.str(), Wc, librpa_int::envs::array_desc_abf_global);
     // }
     // Switch to [R][freq] mapping to allow release the intermediate data on-the-fly during inverse cosine transformation
     std::map<Vector3_Order<int>, std::map<double, Matz>> Wc_R_freq;
@@ -2248,7 +2248,7 @@ CT_FT_Wc_freq_q(std::map<double, std::map<Vector3_Order<double>, Matz>> &Wc_freq
             coeff_f2t(ifreq, itau) = tfg.get_costrans_f2t()(itau, ifreq);
         }
     }
-    LIBRPA::envs::ofs_myid << coeff_f2t << endl;
+    librpa_int::envs::ofs_myid << coeff_f2t << endl;
 
     // To balance performance and memory consumption, we divide basis x Rlist into batches as row indices.
     // Maximal 1GB per process for HPC usage ~ 4 R-vector with 16 frequency points for 1000x1000 matrix.
@@ -2277,9 +2277,9 @@ CT_FT_Wc_freq_q(std::map<double, std::map<Vector3_Order<double>, Matz>> &Wc_freq
     std::vector<cplxdb> fmat(row_max * n_freq);
     std::vector<cplxdb> tmat(row_max * n_freq);
 
-    LIBRPA::envs::ofs_myid << "size_batch_max/n_r_batch_max " << size_batch_max << " " << n_r_batch_max << endl;
-    LIBRPA::envs::ofs_myid << "n_data_batches/n_r_batches " << n_data_batches << " " << n_r_batches << endl;
-    LIBRPA::envs::ofs_myid << "row_max " << row_max << endl;
+    librpa_int::envs::ofs_myid << "size_batch_max/n_r_batch_max " << size_batch_max << " " << n_r_batch_max << endl;
+    librpa_int::envs::ofs_myid << "n_data_batches/n_r_batches " << n_data_batches << " " << n_r_batches << endl;
+    librpa_int::envs::ofs_myid << "row_max " << row_max << endl;
 
     // Loop over R-vector batches
     for (int i_r_batch = 0; i_r_batch < n_r_batches; i_r_batch++)
@@ -2321,7 +2321,7 @@ CT_FT_Wc_freq_q(std::map<double, std::map<Vector3_Order<double>, Matz>> &Wc_freq
             LapackConnector::gemm_f('N', 'N', row_this, n_freq, n_freq,
                                     1.0, fmat.data(), row_max, coeff_f2t.ptr(), n_freq,
                                     0.0, tmat.data(), row_max);
-            // LIBRPA::envs::ofs_myid << tmat << endl;
+            // librpa_int::envs::ofs_myid << tmat << endl;
 
             // Copy back
             #pragma omp parallel for collapse(2) schedule(dynamic)
@@ -2347,7 +2347,7 @@ CT_FT_Wc_freq_q(std::map<double, std::map<Vector3_Order<double>, Matz>> &Wc_freq
         }
     }
 
-    LIBRPA::utils::lib_printf_root("Done converting Wc q,w -> R,t\n");
+    librpa_int::utils::lib_printf_root("Done converting Wc q,w -> R,t\n");
     mpi_comm_global_h.barrier();
 
     return Wc_tau_R;
@@ -2355,21 +2355,21 @@ CT_FT_Wc_freq_q(std::map<double, std::map<Vector3_Order<double>, Matz>> &Wc_freq
 
 void test_libcomm_for_system(const atpair_k_cplx_mat_t &coulmat)
 {
-    using LIBRPA::utils::collect_block_from_ALL_IJ_Tensor;
+    using librpa_int::utils::collect_block_from_ALL_IJ_Tensor;
 
     if (mpi_comm_global_h.myid == 0)
         lib_printf("test_libcomm_for_system Coulumb\n");
     // lib_printf("Calculating EcRPA with BLACS, pid:  %d\n", mpi_comm_global_h.myid);
     const complex<double> CONE{1.0, 0.0};
-    const int n_abf = LIBRPA::atomic_basis_abf.nb_total;
-    const auto part_range = LIBRPA::atomic_basis_abf.get_part_range();
+    const int n_abf = librpa_int::atomic_basis_abf.nb_total;
+    const auto part_range = librpa_int::atomic_basis_abf.get_part_range();
 
     mpi_comm_global_h.barrier();
 
     ArrayDesc desc_nabf_nabf(blacs_ctxt_global_h);
     // use a square blocksize instead max block, otherwise heev and inversion will complain about illegal parameter
     desc_nabf_nabf.init_square_blk(n_abf, n_abf, 0, 0);
-    const auto set_IJ_nabf_nabf = LIBRPA::utils::get_necessary_IJ_from_block_2D_sy('U', LIBRPA::atomic_basis_abf, desc_nabf_nabf);
+    const auto set_IJ_nabf_nabf = librpa_int::utils::get_necessary_IJ_from_block_2D_sy('U', librpa_int::atomic_basis_abf, desc_nabf_nabf);
     const auto s0_s1 = get_s0_s1_for_comm_map2_first(set_IJ_nabf_nabf);
     
     auto coul_block = init_local_mat<complex<double>>(desc_nabf_nabf, MAJOR::COL);
@@ -2402,8 +2402,8 @@ void test_libcomm_for_system(const atpair_k_cplx_mat_t &coulmat)
                     coulmat.at(Mu).count(Nu) == 0 ||
                     coulmat.at(Mu).at(Nu).count(q) == 0) continue;
                 const auto &Vq = coulmat.at(Mu).at(Nu).at(q);
-                const auto n_mu = LIBRPA::atomic_basis_abf.get_atom_nb(Mu);
-                const auto n_nu = LIBRPA::atomic_basis_abf.get_atom_nb(Nu);
+                const auto n_mu = librpa_int::atomic_basis_abf.get_atom_nb(Mu);
+                const auto n_nu = librpa_int::atomic_basis_abf.get_atom_nb(Nu);
                 std::valarray<complex<double>> Vq_va(Vq->c, Vq->size);
                 auto pvq = std::make_shared<std::valarray<complex<double>>>();
                 *pvq = Vq_va;
@@ -2436,14 +2436,14 @@ void test_libcomm_for_system(const atpair_k_cplx_mat_t &coulmat)
             //     const auto &J = IJ.second;
             //     // cout << IJq_coul.at(I).at({J, qa});
             //     collect_block_from_IJ_storage_syhe(
-            //         coul_block, desc_nabf_nabf, LIBRPA::atomic_basis_abf, IJ.first,
+            //         coul_block, desc_nabf_nabf, librpa_int::atomic_basis_abf, IJ.first,
             //         IJ.second, true, CONE, IJq_coul.at(I).at({J, qa}).ptr(), MAJOR::ROW);
             //     // lib_printf("myid %d I %d J %d nr %d nc %d\n%s",
             //     //        blacs_ctxt_global_h.myid, I, J,
             //     //        coul_block.nr(), coul_block.nc(),
             //     //        str(coul_block).c_str());
             // }
-            collect_block_from_ALL_IJ_Tensor(coul_block, desc_nabf_nabf, LIBRPA::atomic_basis_abf,
+            collect_block_from_ALL_IJ_Tensor(coul_block, desc_nabf_nabf, librpa_int::atomic_basis_abf,
                                              qa, true, CONE, IJq_coul, MAJOR::ROW);
             double block_end = omp_get_wtime();
             // lib_printf("Vq Time  myid: %d  arr_time: %f  comm_time: %f   block_time: %f   pair_size: %d\n",mpi_comm_global_h.myid,arr_end-vq_begin, comm_end-comm_begin, block_end-block_begin,set_IJ_nabf_nabf.size());

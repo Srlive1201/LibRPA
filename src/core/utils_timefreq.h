@@ -6,7 +6,7 @@
 
 #include "meanfield.h"
 
-namespace LIBRPA
+namespace librpa_int
 {
 
 namespace utils
@@ -16,4 +16,4 @@ TFGrids generate_timefreq_grids(unsigned ngrids, const std::string &grid_type_st
 
 } /* end of namespace utils */
 
-} /* end of namespace LIBRPA */
+} /* end of namespace librpa_int */

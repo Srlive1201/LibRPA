@@ -120,7 +120,7 @@ void check_minimax_ng6_HF_123()
 
 int main (int argc, char **argv)
 {
-    using namespace LIBRPA::envs;
+    using namespace librpa_int::envs;
     int provided;
     MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
     initialize_mpi(MPI_COMM_WORLD);

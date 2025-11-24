@@ -99,16 +99,16 @@ void Params::print()
         };
 
     for (const auto &param: str_params)
-        LIBRPA::utils::lib_printf("%s = %s\n", param.first.c_str(), param.second.c_str());
+        librpa_int::utils::lib_printf("%s = %s\n", param.first.c_str(), param.second.c_str());
 
     for (const auto &param: int_params)
-        LIBRPA::utils::lib_printf("%s = %d\n", param.first.c_str(), param.second);
+        librpa_int::utils::lib_printf("%s = %d\n", param.first.c_str(), param.second);
 
     for (const auto &param: double_params)
-        LIBRPA::utils::lib_printf("%s = %f\n", param.first.c_str(), param.second);
+        librpa_int::utils::lib_printf("%s = %f\n", param.first.c_str(), param.second);
 
     for (const auto &param: bool_params)
-        LIBRPA::utils::lib_printf("%s = %s\n", param.first.c_str(), param.second? "T": "F");
+        librpa_int::utils::lib_printf("%s = %s\n", param.first.c_str(), param.second? "T": "F");
 }
 
 Params params;

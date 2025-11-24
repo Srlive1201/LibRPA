@@ -6,7 +6,7 @@
 #include <vector>
 #include <complex>
 
-namespace LIBRPA
+namespace librpa_int
 {
 
 // traits to decide MPI_Datatype for communication
@@ -109,4 +109,4 @@ std::vector<std::pair<T1, T2>> dispatch_vector_prod(const std::vector<T1> &vec1,
     return local_vec;
 }
 
-} /* end of namespace LIBRPA */
+} /* end of namespace librpa_int */

@@ -20,21 +20,21 @@
 #include "../utils/libri_stub.h"
 #endif
 
-namespace LIBRPA
+namespace librpa_int
 {
 
 namespace utils
 {
 
 template <typename T>
-matrix_m<T> init_local_mat(const LIBRPA::ArrayDesc &ad, MAJOR major)
+matrix_m<T> init_local_mat(const librpa_int::ArrayDesc &ad, MAJOR major)
 {
     matrix_m<T> mat_lo(ad.m_loc(), ad.n_loc(), major);
     return mat_lo;
 }
 
 template <typename T>
-matrix_m<T> get_local_mat(const matrix_m<T> &mat_go, const LIBRPA::ArrayDesc &ad,
+matrix_m<T> get_local_mat(const matrix_m<T> &mat_go, const librpa_int::ArrayDesc &ad,
                           MAJOR major = MAJOR::AUTO)
 {
     // assert the shape of global matrix conforms with the array descriptor
@@ -74,7 +74,7 @@ matrix_m<T> get_local_mat(const matrix_m<T> &mat_go, const LIBRPA::ArrayDesc &ad
 }
 
 template <typename T>
-matrix_m<T> get_local_mat(const T *pv, MAJOR major_pv, const LIBRPA::ArrayDesc &ad, MAJOR major)
+matrix_m<T> get_local_mat(const T *pv, MAJOR major_pv, const librpa_int::ArrayDesc &ad, MAJOR major)
 {
     const int nr = ad.m(), nc = ad.n();
     matrix_m<T> mat_lo(ad.m_loc(), ad.n_loc(), major);
@@ -98,9 +98,9 @@ matrix_m<T> get_local_mat(const T *pv, MAJOR major_pv, const LIBRPA::ArrayDesc &
 template <typename Tdst, typename Tsrc>
 void collect_block_from_IJ_storage(
     matrix_m<Tdst> &mat_lo,
-    const LIBRPA::ArrayDesc &ad,
-    const LIBRPA::AtomicBasis &atbasis_row,
-    const LIBRPA::AtomicBasis &atbasis_col,
+    const librpa_int::ArrayDesc &ad,
+    const librpa_int::AtomicBasis &atbasis_row,
+    const librpa_int::AtomicBasis &atbasis_col,
     const int &I, const int &J,
     Tdst alpha, const Tsrc *pvIJ, MAJOR major_pv)
 {
@@ -115,12 +115,12 @@ void collect_block_from_IJ_storage(
     for (int iI = 0; iI != row_nb; iI++)
     {
         int ilo = ad.indx_g2l_r(row_start_id + iI);
-        // LIBRPA::utils::lib_printf("row igo %d ilo %d\n", row_start_id + iI, ilo);
+        // librpa_int::utils::lib_printf("row igo %d ilo %d\n", row_start_id + iI, ilo);
         if (ilo < 0) continue;
         for (int jJ = 0; jJ != col_nb; jJ++)
         {
             int jlo = ad.indx_g2l_c(col_start_id + jJ);
-            // LIBRPA::utils::lib_printf("col jgo %d jlo %d\n", col_start_id + jJ, jlo);
+            // librpa_int::utils::lib_printf("col jgo %d jlo %d\n", col_start_id + jJ, jlo);
             if (jlo < 0) continue;
             // cout << "pickerID " << picker(row_nb, iI, col_nb, jJ) << " " << pvIJ[picker(row_nb, iI, col_nb, jJ)] << " matloc befor " << mat_lo(ilo, jlo);
             mat_lo(ilo, jlo) += alpha * pvIJ[picker(row_nb, iI, col_nb, jJ)];
@@ -132,9 +132,9 @@ void collect_block_from_IJ_storage(
 template <typename Tdst, typename Tsrc, typename TA, typename TC, typename TAC = std::pair<TA, TC>>
 void collect_block_from_IJ_storage_tensor(
     matrix_m<Tdst> &mat_lo,
-    const LIBRPA::ArrayDesc &ad,
-    const LIBRPA::AtomicBasis &atbasis_row,
-    const LIBRPA::AtomicBasis &atbasis_col,
+    const librpa_int::ArrayDesc &ad,
+    const librpa_int::AtomicBasis &atbasis_row,
+    const librpa_int::AtomicBasis &atbasis_col,
     const TC &cell,
     Tdst alpha, const std::map<TA,std::map<TAC, RI::Tensor<Tsrc>>> &TMAP)
 {
@@ -159,7 +159,7 @@ void collect_block_from_IJ_storage_tensor(
             int j_gl = ad.indx_l2g_c(jlo);
             atbasis_col.get_local_index(j_gl, J_loc, j_ab);
             //Tdst temp;
-            // LIBRPA::utils::lib_printf("i_gl I_loc i_ab %d %d %d j_gl J_loc j_ab %d %d %d\n", i_gl, I_loc, i_ab, j_gl, J_loc, j_ab);
+            // librpa_int::utils::lib_printf("i_gl I_loc i_ab %d %d %d j_gl J_loc j_ab %d %d %d\n", i_gl, I_loc, i_ab, j_gl, J_loc, j_ab);
             tmp_loc_row[jlo] = TMAP.at(I_loc).at({J_loc, cell})(i_ab, j_ab);
         }
         Tdst *row_ptr=tmp_loc.ptr() + ilo* ad.n_loc();
@@ -179,9 +179,9 @@ void collect_block_from_IJ_storage_tensor(
 template <typename Tdst, typename Tsrc, typename TA, typename TAC>
 void collect_block_from_IJ_storage_tensor_transform(
     matrix_m<Tdst> &mat_lo,
-    const LIBRPA::ArrayDesc &ad,
-    const LIBRPA::AtomicBasis &atbasis_row,
-    const LIBRPA::AtomicBasis &atbasis_col,
+    const librpa_int::ArrayDesc &ad,
+    const librpa_int::AtomicBasis &atbasis_row,
+    const librpa_int::AtomicBasis &atbasis_col,
     const std::function<Tdst(const TA &, const TAC &)> &transform,
     const std::map<TA,std::map<TAC, RI::Tensor<Tsrc>>> &TMAP)
 {
@@ -237,8 +237,8 @@ void collect_block_from_IJ_storage_tensor_transform(
 template <typename Tdst, typename Tsrc>
 void collect_block_from_IJ_storage_syhe(
     matrix_m<Tdst> &mat_lo,
-    const LIBRPA::ArrayDesc &ad,
-    const LIBRPA::AtomicBasis &atbasis,
+    const librpa_int::ArrayDesc &ad,
+    const librpa_int::AtomicBasis &atbasis,
     const int &I, const int &J, bool conjugate,
     Tdst alpha, const Tsrc *pvIJ, MAJOR major_pv)
 {
@@ -264,7 +264,7 @@ void collect_block_from_IJ_storage_syhe(
             atbasis.get_local_index(i_gl, I_loc, i_ab);
             atbasis.get_local_index(j_gl, J_loc, j_ab);
             Tdst temp;
-            // LIBRPA::utils::lib_printf("i_gl I_loc i_ab %d %d %d j_gl J_loc j_ab %d %d %d\n", i_gl, I_loc, i_ab, j_gl, J_loc, j_ab);
+            // librpa_int::utils::lib_printf("i_gl I_loc i_ab %d %d %d j_gl J_loc j_ab %d %d %d\n", i_gl, I_loc, i_ab, j_gl, J_loc, j_ab);
             if ((I_loc == I) && (J_loc == J))
             {
                 // in the same block
@@ -287,8 +287,8 @@ void collect_block_from_IJ_storage_syhe(
 template <typename Tdst, typename TA, typename TC, typename TAC = std::pair<TA, TC>>
 void collect_block_from_ALL_IJ_Tensor(
     matrix_m<Tdst> &mat_lo,
-    const LIBRPA::ArrayDesc &ad,
-    const LIBRPA::AtomicBasis &atbasis,
+    const librpa_int::ArrayDesc &ad,
+    const librpa_int::AtomicBasis &atbasis,
     const TC &cell,
     bool conjugate,
     Tdst alpha, const std::map<TA,std::map<TAC, RI::Tensor<Tdst>>> &TMAP, MAJOR major_pv)
@@ -299,12 +299,12 @@ void collect_block_from_ALL_IJ_Tensor(
     size_t cp_size= ad.n_loc()*sizeof(Tdst);
 
 #ifdef LIBRPA_DEBUG
-    LIBRPA::envs::ofs_myid << "cp_size: " << cp_size << endl;
-    LIBRPA::envs::ofs_myid << "Available TMAP keys: ";
-    print_keys(LIBRPA::envs::ofs_myid, TMAP);
-    LIBRPA::envs::ofs_myid << endl;
-    LIBRPA::envs::ofs_myid << "mat_lo dims: " << mat_lo.nr() << " " << mat_lo.nc() << endl;
-    LIBRPA::envs::ofs_myid << "ad_loc dims: " << ad.m_loc() << " " << ad.n_loc() << endl;
+    librpa_int::envs::ofs_myid << "cp_size: " << cp_size << endl;
+    librpa_int::envs::ofs_myid << "Available TMAP keys: ";
+    print_keys(librpa_int::envs::ofs_myid, TMAP);
+    librpa_int::envs::ofs_myid << endl;
+    librpa_int::envs::ofs_myid << "mat_lo dims: " << mat_lo.nr() << " " << mat_lo.nc() << endl;
+    librpa_int::envs::ofs_myid << "ad_loc dims: " << ad.m_loc() << " " << ad.n_loc() << endl;
 #endif
 
     omp_lock_t mat_lock;
@@ -324,7 +324,7 @@ void collect_block_from_ALL_IJ_Tensor(
 
             atbasis.get_local_index(j_gl, J_loc, j_ab);
             //Tdst temp;
-            // LIBRPA::utils::lib_printf("i_gl I_loc i_ab %d %d %d j_gl J_loc j_ab %d %d %d\n", i_gl, I_loc, i_ab, j_gl, J_loc, j_ab);
+            // librpa_int::utils::lib_printf("i_gl I_loc i_ab %d %d %d j_gl J_loc j_ab %d %d %d\n", i_gl, I_loc, i_ab, j_gl, J_loc, j_ab);
             if(I_loc<=J_loc)
             {
                 tmp_loc_row[jlo]= TMAP.at(I_loc).at({J_loc, cell})(i_ab,j_ab);
@@ -356,10 +356,10 @@ void collect_block_from_ALL_IJ_Tensor(
 //! collect a IJ-pair storage from a 2D block local matrix
 template <typename T>
 void map_block_to_IJ_storage(map<int, map<int, matrix_m<T>>> &IJmap,
-                             const LIBRPA::AtomicBasis &atbasis_row,
-                             const LIBRPA::AtomicBasis &atbasis_col,
+                             const librpa_int::AtomicBasis &atbasis_row,
+                             const librpa_int::AtomicBasis &atbasis_col,
                              const matrix_m<T> &mat_lo,
-                             const LIBRPA::ArrayDesc &desc, MAJOR major_map)
+                             const librpa_int::ArrayDesc &desc, MAJOR major_map)
 {
     assert(desc.m() == atbasis_row.nb_total && desc.n() == atbasis_col.nb_total);
     int I, J, iI, jJ;
@@ -381,10 +381,10 @@ void map_block_to_IJ_storage(map<int, map<int, matrix_m<T>>> &IJmap,
 
 template <typename T>
 void map_block_to_IJ_storage_new(map<int, map<int, matrix_m<T>>> &IJmap,
-                                 const LIBRPA::AtomicBasis &atbasis,
+                                 const librpa_int::AtomicBasis &atbasis,
                                  const map<int, vector<int>> &map_lor_I_is,
                                  const map<int, vector<int>> &map_loc_J_js,
-                                 const matrix_m<T> &mat_lo, const LIBRPA::ArrayDesc &desc, MAJOR major_map)
+                                 const matrix_m<T> &mat_lo, const librpa_int::ArrayDesc &desc, MAJOR major_map)
 {
     // map<int, map<int, matrix_m<T>>> IJmap_local;
     int max_threads = omp_get_max_threads(); // Get the total number of available threads
@@ -491,13 +491,13 @@ void map_block_to_IJ_storage_new(map<int, map<int, matrix_m<T>>> &IJmap,
  */
 template <typename T>
 matrix_m<std::complex<T>> power_hemat_blacs(matrix_m<std::complex<T>> &A_local,
-                                            const LIBRPA::ArrayDesc &ad_A,
+                                            const librpa_int::ArrayDesc &ad_A,
                                             matrix_m<std::complex<T>> &Z_local,
-                                            const LIBRPA::ArrayDesc &ad_Z,
+                                            const librpa_int::ArrayDesc &ad_Z,
                                             size_t &n_filtered, T *W, T power,
                                             const T &threshold = -1.e5)
 {
-    using LIBRPA::envs::ofs_myid;
+    using librpa_int::envs::ofs_myid;
 
     assert (A_local.is_col_major() && Z_local.is_col_major());
     const bool is_int_power = fabs(power - int(power)) < 1e-4;
@@ -510,7 +510,7 @@ matrix_m<std::complex<T>> power_hemat_blacs(matrix_m<std::complex<T>> &A_local,
     const int blocksize_col_opt = min(ad_A.nb(), 128);
 
     // initialize descriptor of array A for optimized block size
-    LIBRPA::ArrayDesc ad_A_opt(ad_A.ictxt());
+    librpa_int::ArrayDesc ad_A_opt(ad_A.ictxt());
     ad_A_opt.init(n, n, blocksize_row_opt, blocksize_col_opt, 0, 0);
     auto A_local_opt = init_local_mat<std::complex<T>>(ad_A_opt, MAJOR::COL);
     // NOTE: imply A and Z should be in the same context
@@ -522,7 +522,7 @@ matrix_m<std::complex<T>> power_hemat_blacs(matrix_m<std::complex<T>> &A_local,
     {
         ofs_myid << "Warning(power_hemat_blacs): input contexts of A and Z are different!" << endl;
     }
-    LIBRPA::ArrayDesc ad_Z_opt(ad_Z.ictxt());
+    librpa_int::ArrayDesc ad_Z_opt(ad_Z.ictxt());
     ad_Z_opt.init(n, n, blocksize_row_opt, blocksize_col_opt, 0, 0);
     auto Z_local_opt = init_local_mat<std::complex<T>>(ad_Z_opt, MAJOR::COL);
     // printf("Z_local_opt size: %d\n", Z_local_opt.size());
@@ -536,7 +536,7 @@ matrix_m<std::complex<T>> power_hemat_blacs(matrix_m<std::complex<T>> &A_local,
         rwork = new T[1];
         // query the optimal lwork and lrwork
         T *Wquery = new T[1];
-        // LIBRPA::utils::lib_printf("power_hemat_blacs descA %s\n", ad_A.info_desc().c_str());
+        // librpa_int::utils::lib_printf("power_hemat_blacs descA %s\n", ad_A.info_desc().c_str());
         ScalapackConnector::pheev_f(jobz, uplo,
                 n, A_local_opt.ptr(), 1, 1, ad_A_opt.desc,
                 Wquery, Z_local_opt.ptr(), 1, 1, ad_A_opt.desc, work, lwork, rwork, lrwork, info);
@@ -583,11 +583,11 @@ matrix_m<std::complex<T>> power_hemat_blacs(matrix_m<std::complex<T>> &A_local,
     {
         if (W[i] < 0 && !is_int_power)
         {
-            LIBRPA::utils::lib_printf("Warning! unfiltered negative eigenvalue with non-integer power: # %d ev = %f , pow = %f\n", i, W[i], power);
+            librpa_int::utils::lib_printf("Warning! unfiltered negative eigenvalue with non-integer power: # %d ev = %f , pow = %f\n", i, W[i], power);
         }
         if (fabs(W[i]) < 1e-10 && power < 0)
         {
-            LIBRPA::utils::lib_printf("Warning! unfiltered nearly-singular eigenvalue with negative power: # %d ev = %f , pow = %f\n", i, W[i], power);
+            librpa_int::utils::lib_printf("Warning! unfiltered nearly-singular eigenvalue with negative power: # %d ev = %f , pow = %f\n", i, W[i], power);
         }
         W_temp[i] = std::pow(W[i], power);
     }
@@ -595,7 +595,7 @@ matrix_m<std::complex<T>> power_hemat_blacs(matrix_m<std::complex<T>> &A_local,
     // debug print
     // for (int i = 0; i != n; i++)
     // {
-    //     LIBRPA::utils::lib_printf("%d %f %f\n", i, W[i], W_temp[i]);
+    //     librpa_int::utils::lib_printf("%d %f %f\n", i, W[i], W_temp[i]);
     // }
 
     Profiler::start("power_hemat_blacs_5");
@@ -616,9 +616,9 @@ matrix_m<std::complex<T>> power_hemat_blacs(matrix_m<std::complex<T>> &A_local,
 }
 
 template <typename T, typename Treal = typename to_real<T>::type>
-void print_matrix_mm_parallel(ostream &os, const matrix_m<T> &mat_loc, const LIBRPA::ArrayDesc &ad, Treal threshold = 1e-15, bool row_first = true)
+void print_matrix_mm_parallel(ostream &os, const matrix_m<T> &mat_loc, const librpa_int::ArrayDesc &ad, Treal threshold = 1e-15, bool row_first = true)
 {
-    LIBRPA::ArrayDesc ad_fb(ad.ictxt());
+    librpa_int::ArrayDesc ad_fb(ad.ictxt());
     const int nr = ad.m(), nc = ad.n();
     const int irsrc = ad.irsrc(), icsrc = ad.icsrc();
     ad_fb.init(nr, nc, nr, nc, irsrc, icsrc);
@@ -632,7 +632,7 @@ void print_matrix_mm_parallel(ostream &os, const matrix_m<T> &mat_loc, const LIB
 }
 
 template <typename T, typename Treal = typename to_real<T>::type>
-void print_matrix_mm_file_parallel(const string &fn, const matrix_m<T> &mat_loc, const LIBRPA::ArrayDesc &ad, Treal threshold = 1e-15, bool row_first = true)
+void print_matrix_mm_file_parallel(const string &fn, const matrix_m<T> &mat_loc, const librpa_int::ArrayDesc &ad, Treal threshold = 1e-15, bool row_first = true)
 {
     ofstream fs;
     if (ad.is_src())
@@ -641,9 +641,9 @@ void print_matrix_mm_file_parallel(const string &fn, const matrix_m<T> &mat_loc,
 }
 
 template <typename T, typename Treal = typename to_real<T>::type>
-void write_matrix_elsi_csc_parallel(const string &fn, const matrix_m<T> &mat_loc, const LIBRPA::ArrayDesc &ad, Treal threshold = 1e-15)
+void write_matrix_elsi_csc_parallel(const string &fn, const matrix_m<T> &mat_loc, const librpa_int::ArrayDesc &ad, Treal threshold = 1e-15)
 {
-    LIBRPA::ArrayDesc ad_fb(ad.ictxt());
+    librpa_int::ArrayDesc ad_fb(ad.ictxt());
     const int nr = ad.m(), nc = ad.n();
     const int irsrc = ad.irsrc(), icsrc = ad.icsrc();
     ad_fb.init(nr, nc, nr, nc, irsrc, icsrc);
@@ -655,9 +655,9 @@ void write_matrix_elsi_csc_parallel(const string &fn, const matrix_m<T> &mat_loc
 }
 
 template <typename T>
-matrix_m<T> multiply_scalapack(const matrix_m<T> &m1_loc, const LIBRPA::ArrayDesc &desc_m1,
-                               const matrix_m<T> &m2_loc, const LIBRPA::ArrayDesc &desc_m2,
-                               const LIBRPA::ArrayDesc &desc_prod)
+matrix_m<T> multiply_scalapack(const matrix_m<T> &m1_loc, const librpa_int::ArrayDesc &desc_m1,
+                               const matrix_m<T> &m2_loc, const librpa_int::ArrayDesc &desc_m2,
+                               const librpa_int::ArrayDesc &desc_prod)
 {
     if (m1_loc.major() != m2_loc.major())
     {
@@ -691,7 +691,7 @@ matrix_m<T> multiply_scalapack(const matrix_m<T> &m1_loc, const LIBRPA::ArrayDes
 }
 
 template <typename T>
-void invert_scalapack(matrix_m<T> &m_loc, const LIBRPA::ArrayDesc &desc_m)
+void invert_scalapack(matrix_m<T> &m_loc, const librpa_int::ArrayDesc &desc_m)
 {
     assert(m_loc.is_col_major());
     int info = 0;
@@ -699,7 +699,7 @@ void invert_scalapack(matrix_m<T> &m_loc, const LIBRPA::ArrayDesc &desc_m)
     {
         // NOTE: use local leading dimension desc_m.lld() will lead to invalid pointer error
         int *ipiv = new int [desc_m.m()];
-        // LIBRPA::utils::lib_printf("invert_scalpack desc %s\n", desc_m.info_desc().c_str());
+        // librpa_int::utils::lib_printf("invert_scalpack desc %s\n", desc_m.info_desc().c_str());
         ScalapackConnector::pgetrf_f(desc_m.m(), desc_m.n(), m_loc.ptr(), 1, 1, desc_m.desc, ipiv, info);
         // get optimized work size
         int lwork = -1, liwork = -1;
@@ -709,7 +709,7 @@ void invert_scalapack(matrix_m<T> &m_loc, const LIBRPA::ArrayDesc &desc_m)
             ScalapackConnector::pgetri_f(desc_m.m(), m_loc.ptr(), 1, 1, desc_m.desc, ipiv, work, lwork, iwork, liwork, info);
             lwork = int(get_real(work[0]));
             liwork = iwork[0];
-            // LIBRPA::utils::lib_printf("lwork %d liwork %d\n", lwork, liwork);
+            // librpa_int::utils::lib_printf("lwork %d liwork %d\n", lwork, liwork);
             delete [] work;
             delete [] iwork;
         }
@@ -720,7 +720,7 @@ void invert_scalapack(matrix_m<T> &m_loc, const LIBRPA::ArrayDesc &desc_m)
         delete [] iwork;
         delete [] work;
         delete [] ipiv;
-        // LIBRPA::utils::lib_printf("done free\n");
+        // librpa_int::utils::lib_printf("done free\n");
     }
     else
     {
@@ -995,7 +995,7 @@ void fill_local_mat_from_ap_dist_sy(matrix_m<T> &m_loc,
     }
 
     // Compute indices of matrix elements that should be communicated
-    const auto proc2idlist = LIBRPA::utils::get_communicate_local_ids_list_ap_to_blacs_sy(
+    const auto proc2idlist = librpa_int::utils::get_communicate_local_ids_list_ap_to_blacs_sy(
             myid, uplo, map_proc_IJs_avail, atbasis, ad, row_first, row_major);
     const auto &pid_ids_send = proc2idlist.first;
     const auto &pid_ids_lconj_recv = proc2idlist.second;
@@ -1376,4 +1376,4 @@ get_ap_map_from_blacs_dist_scheduler(const matrix_m<T> &m_loc,
 
 } /* end of namespace utils */
 
-} /* end of namespace LIBRPA */
+} /* end of namespace librpa_int */

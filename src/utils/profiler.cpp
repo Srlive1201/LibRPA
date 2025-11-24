@@ -46,7 +46,7 @@ void Profiler::Timer::start() noexcept
     wt_start = omp_get_wtime();
     cpu_time_last = 0.0;
     wall_time_last = 0.0;
-    // LIBRPA::utils::lib_printf("start: %zu %zu %f\n", ncalls, clock_start, wt_start);
+    // librpa_int::utils::lib_printf("start: %zu %zu %f\n", ncalls, clock_start, wt_start);
 }
 
 void Profiler::Timer::stop() noexcept
@@ -54,7 +54,7 @@ void Profiler::Timer::stop() noexcept
     if(!is_on()) return;
     cpu_time_accu += (cpu_time_last = cpu_time_from_clocks_diff(clock_start, clock()));
     wall_time_accu += (wall_time_last = omp_get_wtime() - wt_start);
-    // LIBRPA::utils::lib_printf("stop: %f %f %f\n", wt_start, wall_time, cpu_time);
+    // librpa_int::utils::lib_printf("stop: %f %f %f\n", wt_start, wall_time, cpu_time);
     wt_start = 0.;
     clock_start = 0;
 }
@@ -96,10 +96,10 @@ void Profiler::start(const char *tname, const char *tnote, int level) noexcept
     }
 #ifdef LIBRPA_VERBOSE
     double free_mem_gb;
-    LIBRPA::utils::get_node_free_mem(free_mem_gb);
-    LIBRPA::envs::ofs_myid << get_timestamp() <<" Timer start: " << tname << ". "
+    librpa_int::utils::get_node_free_mem(free_mem_gb);
+    librpa_int::envs::ofs_myid << get_timestamp() <<" Timer start: " << tname << ". "
                            << "Free memory on node [GB]: " << free_mem_gb << "\n";
-    std::flush(LIBRPA::envs::ofs_myid);
+    std::flush(librpa_int::envs::ofs_myid);
 #endif
     sd_map_timer.at(tname).start();
 }
@@ -111,15 +111,15 @@ void Profiler::stop(const char *tname) noexcept
     {
 #ifdef LIBRPA_VERBOSE
         double free_mem_gb;
-        LIBRPA::utils::get_node_free_mem(free_mem_gb);
-        LIBRPA::envs::ofs_myid << get_timestamp() << " Timer stop:  " << tname << ". "
+        librpa_int::utils::get_node_free_mem(free_mem_gb);
+        librpa_int::envs::ofs_myid << get_timestamp() << " Timer stop:  " << tname << ". "
                                << "Free memory on node [GB]: " << free_mem_gb << "\n";
 #endif
         sd_map_timer.at(tname).stop();
     }
     else
     {
-        LIBRPA::utils::lib_printf("Warning!!! Timer %s not found, profiling is very likely wrong!\n", tname);
+        librpa_int::utils::lib_printf("Warning!!! Timer %s not found, profiling is very likely wrong!\n", tname);
     }
 }
 
@@ -153,8 +153,8 @@ static std::string banner(char c, int n)
 
 void Profiler::display(int verbose) noexcept
 {
-    LIBRPA::utils::lib_printf("%-49s %-12s %-18s %-18s\n", "Entry", "#calls", "CPU time (s)", "Wall time (s)");
-    LIBRPA::utils::lib_printf("%100s\n", banner('-', 100).c_str());
+    librpa_int::utils::lib_printf("%-49s %-12s %-18s %-18s\n", "Entry", "#calls", "CPU time (s)", "Wall time (s)");
+    librpa_int::utils::lib_printf("%100s\n", banner('-', 100).c_str());
     for (auto &tname: sd_order)
     {
         // decide level indentation
@@ -172,7 +172,7 @@ void Profiler::display(int verbose) noexcept
         sprintf(cstr_walltime, "%.4f", t.get_wall_time());
         // skip timers that have not been called
         if(!t.get_ncalls()) continue;
-        LIBRPA::utils::lib_printf("%-49s %-12zu %-18s %-18s\n", name.c_str(), t.get_ncalls(),
+        librpa_int::utils::lib_printf("%-49s %-12zu %-18s %-18s\n", name.c_str(), t.get_ncalls(),
                (s + cstr_cputime).c_str(), (s + cstr_walltime).c_str());
     }
 }

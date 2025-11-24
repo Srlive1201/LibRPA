@@ -17,9 +17,9 @@
 
 void task_exx_band()
 {
-    using LIBRPA::envs::mpi_comm_global_h;
-    using LIBRPA::envs::ofs_myid;
-    using LIBRPA::utils::lib_printf;
+    using librpa_int::envs::mpi_comm_global_h;
+    using librpa_int::envs::ofs_myid;
+    using librpa_int::utils::lib_printf;
 
     Profiler::start("exx_band");
 
@@ -40,7 +40,7 @@ void task_exx_band()
     std::vector<double> epsmac_LF_imagfreq_re;
 
     Profiler::start("exx_real_space", "Build exchange self-energy");
-    auto exx = LIBRPA::Exx(meanfield, kfrac_list, period);
+    auto exx = librpa_int::Exx(meanfield, kfrac_list, period);
     {
         Profiler::start("ft_vq_cut", "Fourier transform truncated Coulomb");
         const auto VR = FT_Vq(Vq_cut, meanfield.get_n_kpoints(), Rlist, true);

@@ -1,6 +1,6 @@
 #pragma once
 
-namespace LIBRPA
+namespace librpa_int
 {
 
 namespace app
@@ -8,4 +8,4 @@ namespace app
 
 } /* end of namespace app */
 
-} /* end of namespace LIBRPA */
+} /* end of namespace librpa_int */

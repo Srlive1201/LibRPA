@@ -6,7 +6,7 @@
 #include <stdexcept>
 #include <algorithm>
 
-namespace LIBRPA
+namespace librpa_int
 {
 
 MpiCommHandler::MpiCommHandler()
@@ -152,7 +152,7 @@ std::vector<int> dispatcher(int ist, int ied, unsigned myid, unsigned size, bool
     int n = dist / size;
     int extra = dist % size;
     bool has_extra = myid < extra;
-    /* LIBRPA::utils::lib_printf("%u %d\n", myid, size); */
+    /* librpa_int::utils::lib_printf("%u %d\n", myid, size); */
     unsigned id;
     for (int i = 0; i != n + has_extra; i++)
     {
@@ -178,7 +178,7 @@ std::vector<std::pair<int, int>> dispatcher(int i1st, int i1ed, int i2st, int i2
     int n = dist1 * dist2 / size;
     int extra = (dist1 * dist2) % size;
     bool has_extra = myid < extra;
-    /* LIBRPA::utils::lib_printf("%u %d\n", myid, size); */
+    /* librpa_int::utils::lib_printf("%u %d\n", myid, size); */
     unsigned id, id1, id2;
     for ( int i = 0; i != n + has_extra; i++)
     {
@@ -254,7 +254,7 @@ std::vector<std::pair<int,int>> dispatch_upper_triangular_tasks(const int &natom
         final_loc_task.insert(final_loc_task.end(),combine_task.begin()+n_half_task,combine_task.end());
     }
     // for(auto &iap:final_loc_task)
-    //     LIBRPA::utils::lib_printf(" loc_task  myid: %d, myprow ,mypcol: %d, %d  task-pair ( %d, %d ) \n",myid, myprow,mypcol, iap.first, iap.second);
+    //     librpa_int::utils::lib_printf(" loc_task  myid: %d, myprow ,mypcol: %d, %d  task-pair ( %d, %d ) \n",myid, myprow,mypcol, iap.first, iap.second);
     return final_loc_task;
 }
 
@@ -350,4 +350,4 @@ std::vector<std::pair<int, int>> find_duplicate_ordered_pair(
     return pairs_duplicate;
 }
 
-} /* end of namespace LIBRPA */
+} /* end of namespace librpa_int */

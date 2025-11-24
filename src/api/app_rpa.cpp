@@ -11,7 +11,7 @@
 #include "../utils/stl_io_helper.h"
 #include "../utils/utils_mem.h"
 
-namespace LIBRPA
+namespace librpa_int
 {
 
 namespace app
@@ -20,8 +20,8 @@ namespace app
 void get_rpa_correlation_energy_(std::complex<double> &rpa_corr,
                                  std::vector<std::complex<double>> &rpa_corr_irk_contrib)
 {
-    using LIBRPA::envs::mpi_comm_global_h;
-    using LIBRPA::utils::lib_printf;
+    using librpa_int::envs::mpi_comm_global_h;
+    using librpa_int::utils::lib_printf;
 
     Vector3_Order<int> period {kv_nmp[0], kv_nmp[1], kv_nmp[2]};
     auto Rlist = construct_R_grid(period);
@@ -29,7 +29,7 @@ void get_rpa_correlation_energy_(std::complex<double> &rpa_corr,
 
     tot_atpair = generate_atom_pair_from_nat(natom, false);
 
-    set_parallel_routing(Params::parallel_routing, tot_atpair.size(), Rt_num, LIBRPA::parallel_routing);
+    set_parallel_routing(Params::parallel_routing, tot_atpair.size(), Rt_num, librpa_int::parallel_routing);
 
     // Build time-frequency objects
     auto tfg = utils::generate_timefreq_grids(Params::nfreq, Params::tfgrids_type, meanfield);
@@ -74,12 +74,12 @@ void get_rpa_correlation_energy_(std::complex<double> &rpa_corr,
     // NOTE: Cs is cleaned up.
     // This means that the behavior will be undefined if this function is called again
     Cs_data.clear();
-    LIBRPA::utils::release_free_mem();
+    librpa_int::utils::release_free_mem();
 
     mpi_comm_global_h.barrier();
     Profiler::start("EcRPA", "Compute RPA correlation Energy");
     CorrEnergy corr;
-    if (Params::use_scalapack_ecrpa && (LIBRPA::parallel_routing == LIBRPA::ParallelRouting::ATOM_PAIR || LIBRPA::parallel_routing == LIBRPA::ParallelRouting::LIBRI))
+    if (Params::use_scalapack_ecrpa && (librpa_int::parallel_routing == librpa_int::ParallelRouting::ATOM_PAIR || librpa_int::parallel_routing == librpa_int::ParallelRouting::LIBRI))
     {
         if(meanfield.get_n_kpoints() == 1)
             corr = compute_RPA_correlation_blacs_2d_gamma_only(chi0, Vq);
@@ -106,4 +106,4 @@ void get_rpa_correlation_energy_(std::complex<double> &rpa_corr,
 
 } /* end of namespace app */
 
-} /* end of namespace LIBRPA */
+} /* end of namespace librpa_int */

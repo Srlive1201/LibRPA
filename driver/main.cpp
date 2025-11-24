@@ -31,8 +31,8 @@
 
 static void initialize(int argc, char **argv)
 {
-    using namespace LIBRPA::envs;
-    using LIBRPA::utils::lib_printf;
+    using namespace librpa_int::envs;
+    using librpa_int::utils::lib_printf;
     // MPI Initialization
     int provided;
     MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
@@ -49,8 +49,8 @@ static void initialize(int argc, char **argv)
 
 static void finalize(bool success)
 {
-    using namespace LIBRPA::envs;
-    using LIBRPA::utils::lib_printf;
+    using namespace librpa_int::envs;
+    using librpa_int::utils::lib_printf;
 
     Profiler::stop("total");
     if (mpi_comm_global_h.is_root())
@@ -73,24 +73,24 @@ static void finalize(bool success)
 
 int main(int argc, char **argv)
 {
-    using LIBRPA::envs::mpi_comm_global_h;
-    using LIBRPA::envs::blacs_ctxt_global_h;
-    using LIBRPA::ParallelRouting;
-    using LIBRPA::parallel_routing;
-    using LIBRPA::task_t;
-    using LIBRPA::envs::ofs_myid;
-    using LIBRPA::utils::lib_printf;
-    using LIBRPA::utils::lib_printf_coll;
-    using LIBRPA::utils::lib_printf_root;
-    using LIBRPA::utils::lib_printf_comm_coll;
+    using librpa_int::envs::mpi_comm_global_h;
+    using librpa_int::envs::blacs_ctxt_global_h;
+    using librpa_int::ParallelRouting;
+    using librpa_int::parallel_routing;
+    using librpa_int::task_t;
+    using librpa_int::envs::ofs_myid;
+    using librpa_int::utils::lib_printf;
+    using librpa_int::utils::lib_printf_coll;
+    using librpa_int::utils::lib_printf_root;
+    using librpa_int::utils::lib_printf_comm_coll;
 
     initialize(argc, argv);
-    lib_printf_root("Total number of tasks: %5d\n", LIBRPA::envs::size_global);
-    lib_printf_root("Total number of nodes: %5d\n", LIBRPA::envs::size_inter);
+    lib_printf_root("Total number of tasks: %5d\n", librpa_int::envs::size_global);
+    lib_printf_root("Total number of nodes: %5d\n", librpa_int::envs::size_inter);
     lib_printf_root("Maximumal number of threads: %3d\n", omp_get_max_threads());
     mpi_comm_global_h.barrier();
-    lib_printf_comm_coll(LIBRPA::envs::mpi_comm_intra_h, "Global ID of master process of node %5d : %5d\n",
-                         LIBRPA::envs::mpi_comm_inter_h.myid, LIBRPA::envs::mpi_comm_global_h.myid);
+    lib_printf_comm_coll(librpa_int::envs::mpi_comm_intra_h, "Global ID of master process of node %5d : %5d\n",
+                         librpa_int::envs::mpi_comm_inter_h.myid, librpa_int::envs::mpi_comm_global_h.myid);
     mpi_comm_global_h.barrier();
     lib_printf_coll("%s\n", mpi_comm_global_h.str().c_str());
     mpi_comm_global_h.barrier();
@@ -99,7 +99,7 @@ int main(int argc, char **argv)
     if (mpi_comm_global_h.is_root())
     {
         lib_printf("\n");
-        LIBRPA::utils::print_cmake_info();
+        librpa_int::utils::print_cmake_info();
         lib_printf("\n");
     }
     mpi_comm_global_h.barrier();
@@ -156,7 +156,7 @@ int main(int argc, char **argv)
 
     Profiler::start("driver_band_out", "Driver Read Meanfield band");
     read_scf_occ_eigenvalues(driver_params.input_dir + "band_out", meanfield);
-    LIBRPA::envs::initialize_array_desc_wfc_global(meanfield.get_n_aos());
+    librpa_int::envs::initialize_array_desc_wfc_global(meanfield.get_n_aos());
     if (mpi_comm_global_h.is_root())
     {
         cout << "Information of mean-field starting-point" << endl;
@@ -284,7 +284,7 @@ int main(int argc, char **argv)
         //         ofs<<a2.first<<"  ("<<a2.second[0]<<", "<<a2.second[1]<<", "<<a2.second[2]<<" )"<<endl;
         if (mpi_comm_global_h.is_root())
             lib_printf("Triangular dispatching of atom pairs\n");
-        auto trangular_loc_atpair = LIBRPA::dispatch_upper_triangular_tasks(
+        auto trangular_loc_atpair = librpa_int::dispatch_upper_triangular_tasks(
             natom, blacs_ctxt_global_h.myid, blacs_ctxt_global_h.nprows, blacs_ctxt_global_h.npcols,
             blacs_ctxt_global_h.myprow, blacs_ctxt_global_h.mypcol);
         //local_atpair = dispatch_vector(tot_atpair, mpi_comm_global_h.myid, mpi_comm_global_h.nprocs, true);
@@ -319,7 +319,7 @@ int main(int argc, char **argv)
         // There should be no duplicate for V
 
         Profiler::start("driver_read_Vq");
-        auto trangular_loc_atpair = LIBRPA::dispatch_upper_triangular_tasks(
+        auto trangular_loc_atpair = librpa_int::dispatch_upper_triangular_tasks(
             natom, blacs_ctxt_global_h.myid, blacs_ctxt_global_h.nprows, blacs_ctxt_global_h.npcols,
             blacs_ctxt_global_h.myprow, blacs_ctxt_global_h.mypcol);
         for(auto &iap:trangular_loc_atpair)
@@ -347,7 +347,7 @@ int main(int argc, char **argv)
     }
     Profiler::stop("driver_read_Cs_Vq");
     // After succesfully loading Cs, number of auxiliary basis functions is now fixed
-    LIBRPA::envs::initialize_array_desc_abf_global(LIBRPA::atomic_basis_abf.nb_total);
+    librpa_int::envs::initialize_array_desc_abf_global(librpa_int::atomic_basis_abf.nb_total);
 
     // debug, check available Coulomb blocks on each process
     // ofs_myid << "Read Coulomb blocks in process\n";
@@ -369,7 +369,7 @@ int main(int argc, char **argv)
 
     // Check memory usage on each node
     mpi_comm_global_h.barrier();
-    if (LIBRPA::envs::mpi_comm_intra_h.myid == 0)
+    if (librpa_int::envs::mpi_comm_intra_h.myid == 0)
     {
         if (mpi_comm_global_h.myid == 0)
         {
@@ -379,11 +379,11 @@ int main(int argc, char **argv)
             lib_printf("Task work begins: %s\n", task_lower.c_str());
 
             double freemem;
-            auto flag = LIBRPA::utils::get_node_free_mem(freemem);
+            auto flag = librpa_int::utils::get_node_free_mem(freemem);
             if (flag == 0)
             {
                 lib_printf("Free memory on node %5d [GB]: %8.3f\n",
-                           LIBRPA::envs::mpi_comm_inter_h.myid, freemem);
+                           librpa_int::envs::mpi_comm_inter_h.myid, freemem);
             }
         }
     }

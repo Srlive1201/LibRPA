@@ -11,7 +11,7 @@
 #include "../math/complexmatrix.h"
 // #include "../utils/stl_io_helper.h"
 
-namespace LIBRPA
+namespace librpa_int
 {
 
 AnalyContPade::AnalyContPade(int n_pars_in, const std::vector<cplxdb> &xs, const std::vector<cplxdb> &data)

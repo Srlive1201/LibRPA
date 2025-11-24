@@ -68,7 +68,7 @@ void TFGrids::set_time()
 
 void TFGrids::show() const
 {
-    using LIBRPA::utils::lib_printf;
+    using librpa_int::utils::lib_printf;
     cout << "Grid type: " << TFGrids::GRID_TYPES_NOTES[grid_type] << endl;
     cout << "Grid size: " << n_grids << endl;
     cout << "Frequency node & weight: " << endl;

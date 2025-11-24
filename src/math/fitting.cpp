@@ -86,7 +86,7 @@ static void solve_axb_cholesky(int n, const std::vector<std::vector<double>> &l,
     }
 }
 
-namespace LIBRPA
+namespace librpa_int
 {
 
 namespace utils
@@ -216,4 +216,4 @@ std::vector<double> LevMarqFitting::fit_eval(std::vector<double> &pars, const st
 
 } /* end of namespace utils */
 
-} /* end of namespace LIBRPA */
+} /* end of namespace librpa_int */

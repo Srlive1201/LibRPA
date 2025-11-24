@@ -4,7 +4,7 @@
 // #include <iostream>
 // #include <iomanip>
 
-namespace LIBRPA
+namespace librpa_int
 {
 
 int qpe_solver_pade_self_consistent(
@@ -48,4 +48,4 @@ int qpe_solver_pade_self_consistent(
     return info;
 }
 
-} /* end of namespace LIBRPA */
+} /* end of namespace librpa_int */

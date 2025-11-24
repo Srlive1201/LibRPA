@@ -10,9 +10,9 @@
 #include "../utils/stl_io_helper.h"
 #include "testutils.h"
 
-using namespace LIBRPA;
-using namespace LIBRPA::envs;
-using namespace LIBRPA::utils;
+using namespace librpa_int;
+using namespace librpa_int::envs;
+using namespace librpa_int::utils;
 
 template <typename T>
 void test_pgemm(const T &m1_lb, const T &m1_ub)
@@ -308,7 +308,7 @@ void test_collect_block_from_IJ_storage()
 template <typename T>
 void test_local_mat_from_ap_dist()
 {
-    blacs_ctxt_global_h.set_square_grid(true, LIBRPA::CTXT_LAYOUT::R);
+    blacs_ctxt_global_h.set_square_grid(true, librpa_int::CTXT_LAYOUT::R);
     assert(blacs_ctxt_global_h.nprocs == 4);
     assert(blacs_ctxt_global_h.nprows == 2);
     assert(blacs_ctxt_global_h.npcols == 2);
@@ -322,7 +322,7 @@ void test_local_mat_from_ap_dist()
     assert(ad.mb() == 2);
     assert(ad.nb() == 2);
 
-    LIBRPA::AtomicBasis ab;
+    librpa_int::AtomicBasis ab;
     // 3 atoms, atom 0 and 2 with 1 and atom 1 with 2
     // Process indices
     // | 0   0 | 0   1 |
@@ -386,7 +386,7 @@ void test_local_mat_from_ap_dist()
 
 void test_local_mat_from_ap_dist_he()
 {
-    blacs_ctxt_global_h.set_square_grid(true, LIBRPA::CTXT_LAYOUT::R);
+    blacs_ctxt_global_h.set_square_grid(true, librpa_int::CTXT_LAYOUT::R);
     assert(blacs_ctxt_global_h.nprocs == 4);
     assert(blacs_ctxt_global_h.nprows == 2);
     assert(blacs_ctxt_global_h.npcols == 2);
@@ -400,7 +400,7 @@ void test_local_mat_from_ap_dist_he()
     assert(ad.mb() == 2);
     assert(ad.nb() == 2);
 
-    LIBRPA::AtomicBasis ab;
+    librpa_int::AtomicBasis ab;
     // 3 atoms, atom 0 and 2 with 1 and atom 1 with 2
     // Process indices
     // | 0   0 | 0   1 |
@@ -465,7 +465,7 @@ void test_local_mat_from_ap_dist_he()
 template <typename T>
 void test_ap_map_from_blacs_dist()
 {
-    blacs_ctxt_global_h.set_square_grid(true, LIBRPA::CTXT_LAYOUT::R);
+    blacs_ctxt_global_h.set_square_grid(true, librpa_int::CTXT_LAYOUT::R);
     assert(blacs_ctxt_global_h.nprocs == 4);
     assert(blacs_ctxt_global_h.nprows == 2);
     assert(blacs_ctxt_global_h.npcols == 2);
@@ -479,7 +479,7 @@ void test_ap_map_from_blacs_dist()
     assert(ad.mb() == 2);
     assert(ad.nb() == 2);
 
-    LIBRPA::AtomicBasis ab;
+    librpa_int::AtomicBasis ab;
     // 3 atoms, atom 0 and 2 with 1 and atom 1 with 2
     ab.set(std::vector<size_t>{1, 2, 1});
     matrix_m<T> global(ab.nb_total, ab.nb_total, MAJOR::COL);
@@ -588,11 +588,11 @@ void test_ap_map_from_blacs_dist()
 template <typename T>
 void test_restore_local_mat(const std::vector<size_t> &nbs, MAJOR major, const bool print = false)
 {
-    blacs_ctxt_global_h.set_square_grid(true, LIBRPA::CTXT_LAYOUT::R);
+    blacs_ctxt_global_h.set_square_grid(true, librpa_int::CTXT_LAYOUT::R);
     const auto &nprocs = blacs_ctxt_global_h.nprocs;
     assert(blacs_ctxt_global_h.nprows == blacs_ctxt_global_h.npcols);
 
-    LIBRPA::AtomicBasis ab(nbs);
+    librpa_int::AtomicBasis ab(nbs);
     const auto m = ab.nb_total;
     const auto n = m;
     ArrayDesc ad(blacs_ctxt_global_h);
@@ -681,11 +681,11 @@ void test_restore_local_mat(const std::vector<size_t> &nbs, MAJOR major, const b
 template <typename T>
 void test_restore_local_mat_scheduler(const std::vector<size_t> &nbs, MAJOR major, const bool print = false)
 {
-    blacs_ctxt_global_h.set_square_grid(true, LIBRPA::CTXT_LAYOUT::R);
+    blacs_ctxt_global_h.set_square_grid(true, librpa_int::CTXT_LAYOUT::R);
     const auto &nprocs = blacs_ctxt_global_h.nprocs;
     assert(blacs_ctxt_global_h.nprows == blacs_ctxt_global_h.npcols);
 
-    LIBRPA::AtomicBasis ab(nbs);
+    librpa_int::AtomicBasis ab(nbs);
     const auto m = ab.nb_total;
     const auto n = m;
     ArrayDesc ad(blacs_ctxt_global_h);
@@ -769,12 +769,12 @@ void test_restore_local_mat_scheduler(const std::vector<size_t> &nbs, MAJOR majo
 template <typename T>
 void test_restore_ap_map(const std::vector<size_t> &nbs, MAJOR major, const bool print = false)
 {
-    blacs_ctxt_global_h.set_square_grid(true, LIBRPA::CTXT_LAYOUT::R);
+    blacs_ctxt_global_h.set_square_grid(true, librpa_int::CTXT_LAYOUT::R);
 
     const auto &nprocs = blacs_ctxt_global_h.nprocs;
     assert(blacs_ctxt_global_h.nprows == blacs_ctxt_global_h.npcols);
 
-    LIBRPA::AtomicBasis ab(nbs);
+    librpa_int::AtomicBasis ab(nbs);
     const auto m = ab.nb_total;
     const auto n = m;
     ArrayDesc ad(blacs_ctxt_global_h);
@@ -868,12 +868,12 @@ void test_restore_ap_map(const std::vector<size_t> &nbs, MAJOR major, const bool
 template <typename T>
 void test_restore_ap_map_scheduler(const std::vector<size_t> &nbs, MAJOR major, const bool print = false)
 {
-    blacs_ctxt_global_h.set_square_grid(true, LIBRPA::CTXT_LAYOUT::R);
+    blacs_ctxt_global_h.set_square_grid(true, librpa_int::CTXT_LAYOUT::R);
 
     const auto &nprocs = blacs_ctxt_global_h.nprocs;
     assert(blacs_ctxt_global_h.nprows == blacs_ctxt_global_h.npcols);
 
-    LIBRPA::AtomicBasis ab(nbs);
+    librpa_int::AtomicBasis ab(nbs);
     const auto m = ab.nb_total;
     const auto n = m;
     ArrayDesc ad(blacs_ctxt_global_h);
@@ -969,13 +969,13 @@ void test_restore_ap_map_scheduler(const std::vector<size_t> &nbs, MAJOR major, 
 template <typename T>
 void test_restore_local_mat_sy(const std::vector<size_t> &nbs, MAJOR major)
 {
-    blacs_ctxt_global_h.set_square_grid(true, LIBRPA::CTXT_LAYOUT::R);
+    blacs_ctxt_global_h.set_square_grid(true, librpa_int::CTXT_LAYOUT::R);
     const auto &nprocs = blacs_ctxt_global_h.nprocs;
     assert(nprocs == 4);
     assert(blacs_ctxt_global_h.nprows == 2);
     assert(blacs_ctxt_global_h.npcols == 2);
 
-    LIBRPA::AtomicBasis ab(nbs);
+    librpa_int::AtomicBasis ab(nbs);
     const auto m = ab.nb_total;
     const auto n = m;
     ArrayDesc ad(blacs_ctxt_global_h);

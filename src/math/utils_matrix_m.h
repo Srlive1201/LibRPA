@@ -4,7 +4,7 @@
 
 #include "../core/atomic_basis.h"
 
-namespace LIBRPA
+namespace librpa_int
 {
 
 namespace utils
@@ -65,5 +65,5 @@ matrix_m<T> get_ap_block_from_global(const matrix_m<T> &m_global,
 
 } /* end of namespace utils */
 
-} /* end of namespace LIBRPA */
+} /* end of namespace librpa_int */
 

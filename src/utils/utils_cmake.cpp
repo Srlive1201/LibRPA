@@ -5,7 +5,7 @@
 
 #include <cstring>
 
-namespace LIBRPA
+namespace librpa_int
 {
 
 namespace utils
@@ -31,4 +31,4 @@ void print_cmake_info()
 
 } /* end of namespace utils */
 
-} /* end of namespace LIBRPA */
+} /* end of namespace librpa_int */

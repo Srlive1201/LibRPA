@@ -29,8 +29,8 @@
 
 void task_g0w0_band()
 {
-    using namespace LIBRPA::envs;
-    using LIBRPA::utils::lib_printf;
+    using namespace librpa_int::envs;
+    using librpa_int::utils::lib_printf;
 
     Profiler::start("g0w0_band", "G0W0 quasi-particle band structure calculation");
 
@@ -44,7 +44,7 @@ void task_g0w0_band()
     }
 
     // Prepare time-frequency grids
-    auto tfg = LIBRPA::utils::generate_timefreq_grids(Params::nfreq, Params::tfgrids_type, meanfield);
+    auto tfg = librpa_int::utils::generate_timefreq_grids(Params::nfreq, Params::tfgrids_type, meanfield);
 
     Chi0 chi0(meanfield, klist, tfg);
     chi0.gf_R_threshold = Params::gf_R_threshold;
@@ -80,7 +80,7 @@ void task_g0w0_band()
     }
 
     Profiler::start("read_vq_cut", "Load truncated Coulomb");
-    if (LIBRPA::parallel_routing == LIBRPA::ParallelRouting::R_TAU)
+    if (librpa_int::parallel_routing == librpa_int::ParallelRouting::R_TAU)
     {
         read_Vq_full(driver_params.input_dir, "coulomb_cut_", true);
     }
@@ -108,7 +108,7 @@ void task_g0w0_band()
     }
 
     Profiler::start("g0w0_exx", "Build exchange self-energy");
-    auto exx = LIBRPA::Exx(meanfield, kfrac_list, period);
+    auto exx = librpa_int::Exx(meanfield, kfrac_list, period);
     {
         Profiler::start("ft_vq_cut", "Fourier transform truncated Coulomb");
         const auto VR = FT_Vq(Vq_cut, meanfield.get_n_kpoints(), Rlist, true);
@@ -144,12 +144,12 @@ void task_g0w0_band()
                 std::stringstream ss;
                 ss << "Wcfq_ifreq_" << ifreq << "_iq_" << iq << ".csc";
                 const auto fn = Params::output_dir + "/" +  ss.str();
-                LIBRPA::utils::write_matrix_elsi_csc_parallel(fn, Wc, array_desc_abf_global, 1e-15);
+                librpa_int::utils::write_matrix_elsi_csc_parallel(fn, Wc, array_desc_abf_global, 1e-15);
             }
         }
     }
 
-    LIBRPA::G0W0 s_g0w0(meanfield, kfrac_list, chi0.tfg, period);
+    librpa_int::G0W0 s_g0w0(meanfield, kfrac_list, chi0.tfg, period);
     Profiler::start("g0w0_sigc_IJ", "Build real-space correlation self-energy");
     s_g0w0.build_spacetime(Cs_data, Wc_freq_q, Rlist);
     Profiler::stop("g0w0_sigc_IJ");
@@ -214,10 +214,10 @@ void task_g0w0_band()
                     {
                         sigc_state.push_back(sigc_sk.at(freq)(i_state, i_state));
                     }
-                    LIBRPA::AnalyContPade pade(Params::n_params_anacon, imagfreqs, sigc_state);
+                    librpa_int::AnalyContPade pade(Params::n_params_anacon, imagfreqs, sigc_state);
                     double e_qp;
                     cplxdb sigc;
-                    int flag_qpe_solver = LIBRPA::qpe_solver_pade_self_consistent(
+                    int flag_qpe_solver = librpa_int::qpe_solver_pade_self_consistent(
                         pade, eks_state, efermi, vxc_state, exx_state, e_qp, sigc);
                     if (flag_qpe_solver == 0)
                     {
@@ -388,14 +388,14 @@ void task_g0w0_band()
                     {
                         sigc_state.push_back(sigc_sk.at(freq)(i_state, i_state));
                     }
-                    LIBRPA::AnalyContPade pade(Params::n_params_anacon, imagfreqs, sigc_state);
+                    librpa_int::AnalyContPade pade(Params::n_params_anacon, imagfreqs, sigc_state);
                     
                     if (driver_params.output_gw_spec_func && n_omegas_sf > 0)
                     {
                         if (i_state >= driver_params.sf_state_start &&
                             i_state <= driver_params.sf_state_end)
                         {
-                            const auto sf = LIBRPA::get_specfunc(
+                            const auto sf = librpa_int::get_specfunc(
                                 pade, omegas, efermi, eks_state, vxc_state, exx_state,
                                 sigc_shift_ha, gf_shift_ha);
                             wf_sf.write((char *) &eks_state, sizeof(double));
@@ -407,7 +407,7 @@ void task_g0w0_band()
 
                     double e_qp;
                     cplxdb sigc;
-                    int flag_qpe_solver = LIBRPA::qpe_solver_pade_self_consistent(
+                    int flag_qpe_solver = librpa_int::qpe_solver_pade_self_consistent(
                         pade, eks_state, efermi, vxc_state, exx_state, e_qp, sigc);
                     if (flag_qpe_solver == 0)
                     {

@@ -4,7 +4,7 @@
 #include "complexmatrix.h"
 #include "../mpi/base_mpi.h"
 
-namespace LIBRPA
+namespace librpa_int
 {
 
 void reduce_matrix(const matrix& mat_send, matrix& mat_recv, int root, MPI_Comm mpi_comm);
@@ -14,4 +14,4 @@ void allreduce_matrix(const matrix& mat_send, matrix& mat_recv, MPI_Comm mpi_com
 void allreduce_ComplexMatrix(const ComplexMatrix& cmat_send, ComplexMatrix & cmat_recv, MPI_Comm mpi_comm);
 
 
-} /* end of namespace LIBRPA */
+} /* end of namespace librpa_int */

@@ -6,8 +6,8 @@
 
 void task_rpa()
 {
-    using LIBRPA::envs::mpi_comm_global_h;
-    using LIBRPA::utils::lib_printf;
+    using librpa_int::envs::mpi_comm_global_h;
+    using librpa_int::utils::lib_printf;
 
     // Using public API.
     // std::vector<double> temp_corr(2);
@@ -21,7 +21,7 @@ void task_rpa()
     std::complex<double> corr;
     std::vector<std::complex<double>> corr_irk(n_irk_points);
 
-    LIBRPA::app::get_rpa_correlation_energy_(corr, corr_irk);
+    librpa_int::app::get_rpa_correlation_energy_(corr, corr_irk);
 
     if (mpi_comm_global_h.is_root())
     {

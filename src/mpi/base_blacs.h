@@ -6,7 +6,7 @@
 #include "base_mpi.h"
 #include "../math/scalapack_connector.h"
 
-namespace LIBRPA
+namespace librpa_int
 {
 
 enum class CTXT_LAYOUT {R, C};
@@ -254,4 +254,4 @@ get_1d_mat_indices_blacs(const int &m, const int &n,
 std::vector<size_t>
 get_1d_mat_indices_blacs(const ArrayDesc &ad, const int &myid, bool row_fast, bool row_major);
 
-} /* end of namespace LIBRPA */
+} /* end of namespace librpa_int */

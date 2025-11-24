@@ -6,7 +6,7 @@
 #pragma once
 #include <vector>
 
-namespace LIBRPA
+namespace librpa_int
 {
 
 namespace app
@@ -36,4 +36,4 @@ compute_exx_orbital_energy_(int i_state_low, int i_state_high,
 
 } /* end of namespace app */
 
-} /* end of namespace LIBRPA */
+} /* end of namespace librpa_int */

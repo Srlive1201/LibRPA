@@ -1,6 +1,6 @@
 #pragma once
 
-namespace LIBRPA
+namespace librpa_int
 {
 
 enum class task_t {

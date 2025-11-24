@@ -472,9 +472,9 @@ matrix power_symat(matrix &mat, double power, double threshold)
     for ( int i = 0; i != mat.nc; i++ )
     {
         if (w[i] < 0 && !is_int_power)
-            LIBRPA::utils::lib_printf("Warning! negative eigenvalue with non-integer power: # %d ev = %f , pow = %f", i, w[i], power);
+            librpa_int::utils::lib_printf("Warning! negative eigenvalue with non-integer power: # %d ev = %f , pow = %f", i, w[i], power);
         if (fabs(w[i]) < 1e-10 && power < 0)
-            LIBRPA::utils::lib_printf("Warning! nearly-zero eigenvalue with negative power: # %d ev = %f , pow = %f", i, w[i], power);
+            librpa_int::utils::lib_printf("Warning! nearly-zero eigenvalue with negative power: # %d ev = %f , pow = %f", i, w[i], power);
         if (w[i] < threshold)
             w[i] = 0;
         else
@@ -494,13 +494,13 @@ void print_matrix(const char *desc, const matrix &mat)
 {
     int nr = mat.nr;
     int nc = mat.nc;
-    LIBRPA::utils::lib_printf("\n %s\n", desc);
-    LIBRPA::utils::lib_printf("nr = %d, nc = %d\n", nr, nc);
+    librpa_int::utils::lib_printf("\n %s\n", desc);
+    librpa_int::utils::lib_printf("nr = %d, nc = %d\n", nr, nc);
     for (int i = 0; i < nr; i++)
     {
         for (int j = 0; j < nc; j++)
-            LIBRPA::utils::lib_printf(" %9.5e", mat.c[i * nc + j]);
-        LIBRPA::utils::lib_printf("\n");
+            librpa_int::utils::lib_printf(" %9.5e", mat.c[i * nc + j]);
+        librpa_int::utils::lib_printf("\n");
     }
 }
 // double matrix::norm() const

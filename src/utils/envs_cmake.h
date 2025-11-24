@@ -1,6 +1,6 @@
 #pragma once
 
-namespace LIBRPA
+namespace librpa_int
 {
 
 namespace envs
@@ -40,4 +40,4 @@ extern const char * libcomm_include_dir;
 extern const char * use_greenx_api;
 
 } /* end of namespace envs */
-} /* end of namespace LIBRPA */
+} /* end of namespace librpa_int */

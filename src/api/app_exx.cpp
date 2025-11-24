@@ -11,7 +11,7 @@
 #include "../core/meanfield.h"
 #include "../core/exx.h"
 
-namespace LIBRPA
+namespace librpa_int
 {
 
 namespace app
@@ -19,8 +19,8 @@ namespace app
 
 std::vector<double> compute_exx_orbital_energy_(int i_state_low, int i_state_high, int n_kpoints_task, const int *i_kpoints_task)
 {
-    using LIBRPA::envs::mpi_comm_global_h;
-    using LIBRPA::utils::lib_printf;
+    using librpa_int::envs::mpi_comm_global_h;
+    using librpa_int::utils::lib_printf;
 
     std::vector<int> i_kpoints_compute(0);
 
@@ -60,7 +60,7 @@ std::vector<double> compute_exx_orbital_energy_(int i_state_low, int i_state_hig
 
     const auto VR = FT_Vq(Vq_cut, meanfield.get_n_kpoints(), Rlist, true);
     // TODO: kfrac_list should depend on i_kpoints_compute
-    auto exx = LIBRPA::Exx(meanfield, kfrac_list, period);
+    auto exx = librpa_int::Exx(meanfield, kfrac_list, period);
     exx.build(Cs_data, Rlist, VR);
     exx.build_KS_kgrid();
 
@@ -81,4 +81,4 @@ std::vector<double> compute_exx_orbital_energy_(int i_state_low, int i_state_hig
 
 } /* end of namespace app */
 
-} /* end of namespace LIBRPA */
+} /* end of namespace librpa_int */

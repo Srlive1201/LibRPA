@@ -10,7 +10,7 @@
 
 #include "atoms.h"
 
-namespace LIBRPA {
+namespace librpa_int {
 
 typedef int locid_t;
 typedef std::size_t gloid_t;
@@ -194,4 +194,4 @@ std::vector<size_t> get_1d_mat_indices_atpair(const AtomicBasis &atbasis_r,
 extern AtomicBasis atomic_basis_wfc;
 extern AtomicBasis atomic_basis_abf;
 
-} // namespace LIBRPA
+} // namespace librpa_int

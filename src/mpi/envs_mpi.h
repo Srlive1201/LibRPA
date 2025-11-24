@@ -10,12 +10,12 @@
 
 #include "base_mpi.h"
 
-//! @namespace LIBRPA           Global namespace for LibRPA functions and classes
-//! @namespace LIBRPA::envs     Facilities regarding computation envrionment
-//! @namespace LIBRPA::utils    Utilities functions
-//! @namespace LIBRPA::app      Functions for applications, e.g. RPA correlation, exact-exchange matrix
+//! @namespace librpa_int           Global namespace for LibRPA functions and classes
+//! @namespace librpa_int::envs     Facilities regarding computation envrionment
+//! @namespace librpa_int::utils    Utilities functions
+//! @namespace librpa_int::app      Functions for applications, e.g. RPA correlation, exact-exchange matrix
 
-namespace LIBRPA
+namespace librpa_int
 {
 
 namespace envs
@@ -24,7 +24,7 @@ namespace envs
 //! Global communicator
 extern MPI_Comm mpi_comm_global;
 //! Handler of the global communicator
-extern LIBRPA::MpiCommHandler mpi_comm_global_h;
+extern librpa_int::MpiCommHandler mpi_comm_global_h;
 //! Rank of process in the global communciator
 extern int myid_global;
 //! Number of processes in the global communciator
@@ -36,7 +36,7 @@ extern std::string procname;
 //! Intra-node communicator
 extern MPI_Comm mpi_comm_intra;
 //! Handler of the intra-node communicator
-extern LIBRPA::MpiCommHandler mpi_comm_intra_h;
+extern librpa_int::MpiCommHandler mpi_comm_intra_h;
 //! Rank of process in the intra-node communciator
 extern int myid_intra;
 //! Number of processes in the intra-node communciator
@@ -45,7 +45,7 @@ extern int size_intra;
 //! Inter-node communicator
 extern MPI_Comm mpi_comm_inter;
 //! Handler of the inter-node communicator
-extern LIBRPA::MpiCommHandler mpi_comm_inter_h;
+extern librpa_int::MpiCommHandler mpi_comm_inter_h;
 //! Rank of process in the intra-node communciator
 extern int myid_inter;
 //! Number of processes in the intra-node communciator
@@ -65,4 +65,4 @@ void finalize_mpi();
 
 } /* end of namespace envs */
 
-} /* end of namespace LIBRPA */
+} /* end of namespace librpa_int */

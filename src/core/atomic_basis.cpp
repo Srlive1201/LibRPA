@@ -7,7 +7,7 @@
 
 #include "../utils/base_utility.h"
 
-namespace LIBRPA {
+namespace librpa_int {
 
 void AtomicBasis::initialize()
 {
@@ -167,4 +167,4 @@ std::vector<size_t> get_1d_mat_indices_atpair(const AtomicBasis &atbasis_r,
 AtomicBasis atomic_basis_wfc;
 AtomicBasis atomic_basis_abf;
 
-} // namespace LIBRPA
+} // namespace librpa_int

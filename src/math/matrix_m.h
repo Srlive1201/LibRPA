@@ -878,7 +878,7 @@ power_hemat(matrix_m<std::complex<T>> &mat,
             T power, bool keep_ev, bool filter_original,
             const T &threshold = -1.e5)
 {
-    using LIBRPA::utils::lib_printf;
+    using librpa_int::utils::lib_printf;
 
     assert (mat.nr() == mat.nc());
     const char jobz = 'V';
@@ -937,7 +937,7 @@ template <typename T>
 void power_hemat_onsite(matrix_m<std::complex<T>> &mat,
                         const T &power, const T &threshold = -1.e5)
 {
-    using LIBRPA::utils::lib_printf;
+    using librpa_int::utils::lib_printf;
 
     assert (mat.nr() == mat.nc());
     const char jobz = 'V';
@@ -1151,7 +1151,7 @@ void print_matrix_mm(const matrix_m<T> &mat, ostream &os, Treal threshold = 1e-1
 template <typename T, typename Treal = typename to_real<T>::type>
 void print_whole_matrix(const char *desc, const matrix_m<T> &mat)
 {
-    using LIBRPA::utils::lib_printf;
+    using librpa_int::utils::lib_printf;
 
     int nr = mat.nr();
     int nc = mat.nc();

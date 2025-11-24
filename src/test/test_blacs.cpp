@@ -10,7 +10,7 @@
 
 void test_proc_indices()
 {
-    using namespace LIBRPA::envs;
+    using namespace librpa_int::envs;
 
     const int m = 4, n = 6;
     const int mb = m / 2, nb = n / 2;
@@ -19,9 +19,9 @@ void test_proc_indices()
     // row-major 2x2 process grid:
     //  0 1
     //  2 3
-    blacs_ctxt_global_h.set_square_grid(true, LIBRPA::CTXT_LAYOUT::R);
+    blacs_ctxt_global_h.set_square_grid(true, librpa_int::CTXT_LAYOUT::R);
     {
-        const auto pids_rr = LIBRPA::get_proc_indices_blacs(m, n, mb, nb, irsrc, icsrc, blacs_ctxt_global_h.ictxt, true);
+        const auto pids_rr = librpa_int::get_proc_indices_blacs(m, n, mb, nb, irsrc, icsrc, blacs_ctxt_global_h.ictxt, true);
         assert(pids_rr.size() == m * n);
         const std::vector<int> pids_rr_ref(
                 {0, 0, 2, 2,
@@ -37,9 +37,9 @@ void test_proc_indices()
     // col-major 2x2 process grid:
     //  0 2
     //  1 3
-    blacs_ctxt_global_h.set_square_grid(true, LIBRPA::CTXT_LAYOUT::C);
+    blacs_ctxt_global_h.set_square_grid(true, librpa_int::CTXT_LAYOUT::C);
     {
-        const auto pids_cc = LIBRPA::get_proc_indices_blacs(m, n, mb, nb, irsrc, icsrc, blacs_ctxt_global_h.ictxt, false);
+        const auto pids_cc = librpa_int::get_proc_indices_blacs(m, n, mb, nb, irsrc, icsrc, blacs_ctxt_global_h.ictxt, false);
         assert(pids_cc.size() == m * n);
         const std::vector<int> pids_cc_ref(
                 {0, 0, 0, 1, 1, 1,
@@ -53,9 +53,9 @@ void test_proc_indices()
 
 void test_arraydesc()
 {
-    using namespace LIBRPA::envs;
+    using namespace librpa_int::envs;
     blacs_ctxt_global_h.set_square_grid();
-    LIBRPA::ArrayDesc ad(blacs_ctxt_global_h);
+    librpa_int::ArrayDesc ad(blacs_ctxt_global_h);
     const int m = 10, n = 10;
     // one-block per process, distribution as even as possible
     ad.init_1b1p(m, n, 0, 0);
@@ -74,7 +74,7 @@ void test_arraydesc()
 
 int main (int argc, char *argv[])
 {
-    using namespace LIBRPA::envs;
+    using namespace librpa_int::envs;
     int provided;
     MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
 

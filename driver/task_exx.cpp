@@ -18,8 +18,8 @@
 
 void task_exx()
 {
-    using LIBRPA::envs::mpi_comm_global_h;
-    using LIBRPA::utils::lib_printf;
+    using librpa_int::envs::mpi_comm_global_h;
+    using librpa_int::utils::lib_printf;
 
     // Load the cut coulomb data
     // TODO: replace read_Vq_full by read_Vq_row to reduce memory consumption
@@ -32,7 +32,7 @@ void task_exx()
     const int i_state_high = meanfield.get_n_bands();
     const int n_states_calc = i_state_high - i_state_low;
 
-    auto exx_ks = LIBRPA::app::compute_exx_orbital_energy_(i_state_low, i_state_high, -1, nullptr);
+    auto exx_ks = librpa_int::app::compute_exx_orbital_energy_(i_state_low, i_state_high, -1, nullptr);
 
     if (exx_ks.size() > 0 && mpi_comm_global_h.is_root())
     {

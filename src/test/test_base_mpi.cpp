@@ -6,7 +6,7 @@
 #include <stdexcept>
 #include <cassert>
 
-using namespace LIBRPA;
+using namespace librpa_int;
 
 void test_dispatcher_1d()
 {

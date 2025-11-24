@@ -1,6 +1,6 @@
 #include "envs_blacs.h"
 
-namespace LIBRPA
+namespace librpa_int
 {
 
 namespace envs
@@ -8,9 +8,9 @@ namespace envs
 
 static bool librpa_blacs_initialized = false;
 
-LIBRPA::BlacsCtxtHandler blacs_ctxt_global_h;
-LIBRPA::ArrayDesc array_desc_wfc_global;
-LIBRPA::ArrayDesc array_desc_abf_global;
+librpa_int::BlacsCtxtHandler blacs_ctxt_global_h;
+librpa_int::ArrayDesc array_desc_wfc_global;
+librpa_int::ArrayDesc array_desc_abf_global;
 
 void initialize_blacs(const MPI_Comm &mpi_comm_global_in)
 {
@@ -57,4 +57,4 @@ void finalize_blacs()
 
 } /* end of namespace envs */
 
-} /* end of namespace LIBRPA */
+} /* end of namespace librpa_int */

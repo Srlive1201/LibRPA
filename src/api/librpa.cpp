@@ -42,7 +42,7 @@ void initialize_librpa_environment(
         MPI_Comm comm_global_in, int is_fortran_comm,
         int redirect_stdout, const char *output_filename)
 {
-    using LIBRPA::envs::mpi_comm_global_h;
+    using librpa_int::envs::mpi_comm_global_h;
 
     MPI_Comm comm_global;
     if (is_fortran_comm)
@@ -54,9 +54,9 @@ void initialize_librpa_environment(
         comm_global = comm_global_in;
     }
 
-    LIBRPA::envs::initialize_mpi(comm_global);
-    LIBRPA::envs::initialize_blacs(comm_global);
-    LIBRPA::envs::initialize_io(redirect_stdout, output_filename);
+    librpa_int::envs::initialize_mpi(comm_global);
+    librpa_int::envs::initialize_blacs(comm_global);
+    librpa_int::envs::initialize_io(redirect_stdout, output_filename);
 
     mpi_comm_global_h.init();
     // cout << mpi_comm_global_h.str() << endl;
@@ -64,19 +64,19 @@ void initialize_librpa_environment(
 
 void finalize_librpa_environment()
 {
-    LIBRPA::envs::finalize_io();
-    LIBRPA::envs::finalize_blacs();
-    LIBRPA::envs::finalize_mpi();
+    librpa_int::envs::finalize_io();
+    librpa_int::envs::finalize_blacs();
+    librpa_int::envs::finalize_mpi();
 }
 
 void set_dimension(int nspins, int nkpts, int nstates, int nbasis,int natoms)
 {
-    using LIBRPA::envs::mpi_comm_global_h;
+    using librpa_int::envs::mpi_comm_global_h;
 
     if (mpi_comm_global_h.is_root())
     {
         cout << "In LibRPA nspin: " << nspins << "  nkpt: " << nkpts << endl;
-        LIBRPA::utils::lib_printf("In LibRPA nspin: %d,  nkpts: %d nstate: %d, nbasis: %d, natom: %d\n",
+        librpa_int::utils::lib_printf("In LibRPA nspin: %d,  nkpts: %d nstate: %d, nbasis: %d, natom: %d\n",
                 nspins, nkpts, nstates, nbasis, natoms);
     }
     meanfield.set(nspins, nkpts, nstates, nbasis);
@@ -106,7 +106,7 @@ void set_wg_ekb_efermi(int nspins, int nkpts, int nstates, double* wg, double* e
 
 void set_ao_basis_wfc(int ispin, int ik, double* wfc_real, double* wfc_imag)
 {
-    // LIBRPA::utils::lib_printf("is: %d, ik: %d\n",is,ik);
+    // librpa_int::utils::lib_printf("is: %d, ik: %d\n",is,ik);
     // int length_ib_iw=meanfield.get_n_bands()*meanfield.get_n_aos();
     // vector<double> vec_wfc_real(wfc_real,wfc_real+length_ib_iw);
     // vector<double> vec_wfc_imag(wfc_imag,wfc_imag+length_ib_iw);
@@ -114,7 +114,7 @@ void set_ao_basis_wfc(int ispin, int ik, double* wfc_real, double* wfc_imag)
     const auto n = meanfield.get_n_bands() * meanfield.get_n_aos();
     for (int i = 0; i != n; i++)
     {
-        // LIBRPA::utils::lib_printf("In ao wfc: %f, %f\n",wfc_real[i],wfc_imag[i]);
+        // librpa_int::utils::lib_printf("In ao wfc: %f, %f\n",wfc_real[i],wfc_imag[i]);
         wfc.c[i] = complex<double>(wfc_real[i], wfc_imag[i]);
     }
     // print_complex_matrix("wfc_isk", wfc.at(is).at(ik));
@@ -156,7 +156,7 @@ void set_latvec_and_G(double lat_mat[9], double G_mat[9])
     
     // if (mpi_comm_global_h.is_root())
     // {
-    //     LIBRPA::utils::lib_printf(" LibRPA_lat (Bohr) : %f, %f, %f\n",latvec.e11,latvec.e12,latvec.e13);
+    //     librpa_int::utils::lib_printf(" LibRPA_lat (Bohr) : %f, %f, %f\n",latvec.e11,latvec.e12,latvec.e13);
     // }
     //latvec.print();
     //G.print();
@@ -182,7 +182,7 @@ void set_kgrids_kvec_tot(int nk1, int nk2, int nk3, double* kvecs)
         Vector3_Order<double> kvec_tmp(kvec_c[ik]);
         klist.push_back(kvec_tmp);
         kfrac_list.push_back(latvec * kvec_tmp);
-        // LIBRPA::utils::lib_printf("ik: %d, (%f, %f, %f), (%f, %f, %f)\n",
+        // librpa_int::utils::lib_printf("ik: %d, (%f, %f, %f), (%f, %f, %f)\n",
         //         ik, kvec_c[ik].x, kvec_c[ik].y, kvec_c[ik].z,
         //         kfrac_list[ik].x, kfrac_list[ik].y, kfrac_list[ik].z);
     }
@@ -190,15 +190,15 @@ void set_kgrids_kvec_tot(int nk1, int nk2, int nk3, double* kvecs)
 
 void set_ibz2bz_index_and_weight(const int nk_irk, const int* ibz2bz_index, const double* wk_irk)
 {
-   // LIBRPA::utils::lib_printf(" nks_irk: %d\n",nk_irk);
+   // librpa_int::utils::lib_printf(" nks_irk: %d\n",nk_irk);
    for (int ik_ibz = 0; ik_ibz != nk_irk; ik_ibz++)
    {
        Vector3_Order<double> kvec_ibz = klist[ibz2bz_index[ik_ibz]];
        klist_ibz.push_back(kvec_ibz);
        irk_weight.insert(pair<Vector3_Order<double>, double>(kvec_ibz, wk_irk[ik_ibz]));
-       // LIBRPA::utils::lib_printf("ibz2bz:  %d   kvec_ibz:( %f, %f,
+       // librpa_int::utils::lib_printf("ibz2bz:  %d   kvec_ibz:( %f, %f,
        // %f)\n",ibz2bz_index[ik_ibz],kvec_ibz.x,kvec_ibz.y,kvec_ibz.z);
-       // LIBRPA::utils::lib_printf("irk_weight: %f\n",irk_weight[kvec_ibz]);
+       // librpa_int::utils::lib_printf("irk_weight: %f\n",irk_weight[kvec_ibz]);
        // for (int ik = 0; ik != meanfield.get_n_kpoints(); ik++)
        // {
        //     if(klist[ik]==kvec_ibz)
@@ -218,17 +218,17 @@ void set_ao_basis_aux(int I, int J, int nbasis_i, int nbasis_j, int naux_mu, int
     }
 
     // cout<< ia1<<ia2<<box<<endl;
-    // LIBRPA::utils::lib_printf("Cs_in size: %zu",sizeof(Cs_in) / sizeof(Cs_in[0]));
+    // librpa_int::utils::lib_printf("Cs_in size: %zu",sizeof(Cs_in) / sizeof(Cs_in[0]));
     const int cs_size = nbasis_i * nbasis_j * naux_mu;
     const int n_ij = nbasis_i * nbasis_j;
     //(*cs_ptr).c=Cs_in;
 
     /*
-     * LIBRPA::parallel_routing may not be properly set when parsing to set_ao_basis_aux.
+     * librpa_int::parallel_routing may not be properly set when parsing to set_ao_basis_aux.
      * Therefore using Params::parallel_routing string to check, because
      * Params are required to set up after the environment initialization and before data transfer.
      * */
-    // Cs_data.use_libri = LIBRPA::parallel_routing == LIBRPA::ParallelRouting::LIBRI;
+    // Cs_data.use_libri = librpa_int::parallel_routing == librpa_int::ParallelRouting::LIBRI;
     Cs_data.use_libri = Params::parallel_routing == "libri";
 
     if (Cs_data.use_libri)
@@ -255,28 +255,28 @@ void set_ao_basis_aux(int I, int J, int nbasis_i, int nbasis_j, int naux_mu, int
         cs_ptr->create(nbasis_i * nbasis_j, naux_mu);
         memcpy((*cs_ptr).c, Cs_in, sizeof(double) * cs_size);
         Cs_data.data_IJR[I][J][box] = cs_ptr;
-        // LIBRPA::utils::lib_printf("Cs out:\n");
+        // librpa_int::utils::lib_printf("Cs out:\n");
         // for(int i=0;i!=cs_size;i++)
-        //     LIBRPA::utils::lib_printf("   %f",(*Cs[I][J][box]).c[i]);
+        //     librpa_int::utils::lib_printf("   %f",(*Cs[I][J][box]).c[i]);
     }
 }
 
 static void _set_aux_coulomb_k_atom_pair(int ik, int I, int J, int naux_mu, int naux_nu, double* Vq_real_in, double* Vq_imag_in, atpair_k_cplx_mat_t &coulomb_mat)
 {
-    // LIBRPA::utils::lib_printf("I,J,mu,nu: %d  %d  %d  %d\n",I,J, naux_mu,naux_nu);
-    // LIBRPA::utils::lib_printf("atom_mu nu: %d %d\n",atom_mu[I],atom_mu[J]);
-    // LIBRPA::utils::lib_printf("Vq threshold : %f\n",Params::vq_threshold);
+    // librpa_int::utils::lib_printf("I,J,mu,nu: %d  %d  %d  %d\n",I,J, naux_mu,naux_nu);
+    // librpa_int::utils::lib_printf("atom_mu nu: %d %d\n",atom_mu[I],atom_mu[J]);
+    // librpa_int::utils::lib_printf("Vq threshold : %f\n",Params::vq_threshold);
     Vector3_Order<double> qvec(klist[ik]);
-    // LIBRPA::utils::lib_printf("qvec: %f,%f,%f\n",qvec.x,qvec.y,qvec.z);
+    // librpa_int::utils::lib_printf("qvec: %f,%f,%f\n",qvec.x,qvec.y,qvec.z);
     shared_ptr<ComplexMatrix> vq_ptr = make_shared<ComplexMatrix>();
     vq_ptr->create(naux_mu, naux_nu);
-    // LIBRPA::utils::lib_printf("vq_ptr_size: %d\n",(*vq_ptr).size);
-    // LIBRPA::utils::lib_printf(" vq_in 0 0 :  %f\n",Vq_real_in[0]);
+    // librpa_int::utils::lib_printf("vq_ptr_size: %d\n",(*vq_ptr).size);
+    // librpa_int::utils::lib_printf(" vq_in 0 0 :  %f\n",Vq_real_in[0]);
     for (int i_mu = 0; i_mu != naux_mu; i_mu++)
     {
         for (int i_nu = 0; i_nu != naux_nu; i_nu++)
         {
-            // LIBRPA::utils::lib_printf("mu,nu:  %d %d, vq_real: %f,  vq_imag:
+            // librpa_int::utils::lib_printf("mu,nu:  %d %d, vq_real: %f,  vq_imag:
             // %f\n",i_mu,i_nu,Vq_real_in[i_nu+i_mu*naux_nu],Vq_imag_in[i_nu+i_mu*naux_nu]);
 
             (*vq_ptr)(i_mu, i_nu) = complex<double>(Vq_real_in[i_nu + i_mu * naux_nu],
@@ -311,7 +311,7 @@ static void _set_aux_coulomb_k_2D_block(int ik, int max_naux, int mu_begin, int 
     int ecol = nu_end - 1;
       
     Vector3_Order<double> qvec(klist[ik]);
-    // LIBRPA::utils::lib_printf("qvec: %f,%f,%f\n",qvec.x,qvec.y,qvec.z);
+    // librpa_int::utils::lib_printf("qvec: %f,%f,%f\n",qvec.x,qvec.y,qvec.z);
     shared_ptr<ComplexMatrix> vq_ptr = make_shared<ComplexMatrix>();
     vq_ptr->create(max_naux, max_naux);
 
@@ -396,7 +396,7 @@ void get_default_librpa_params(LibRPAParams *params_c)
 
 void run_librpa_main()
 {
-    LIBRPA::utils::lib_printf("Begin run LibRPA\n");
+    librpa_int::utils::lib_printf("Begin run LibRPA\n");
     // std::ofstream outputFile("LibRPA_cout.txt");
     // std::streambuf* originalCoutBuffer = std::cout.rdbuf();
    // std::cout.rdbuf(outputFile.rdbuf());
@@ -414,7 +414,7 @@ void get_rpa_correlation_energy(double *rpa_corr, double *rpa_corr_irk_contrib)
     std::complex<double> rpa_corr_;
     std::vector<std::complex<double>> rpa_corr_irk_contrib_(n_irk_points);
 
-    LIBRPA::app::get_rpa_correlation_energy_(rpa_corr_, rpa_corr_irk_contrib_);
+    librpa_int::app::get_rpa_correlation_energy_(rpa_corr_, rpa_corr_irk_contrib_);
 
     auto dp = reinterpret_cast<double*>(rpa_corr_irk_contrib_.data());
 
@@ -426,7 +426,7 @@ void compute_exx_orbital_energy(int i_state_low, int i_state_high,
                                 int n_kpoints_task, const int *i_kpoints_task,
                                 double *exx)
 {
-    const auto exx_vec = LIBRPA::app::compute_exx_orbital_energy_(i_state_low, i_state_high,
+    const auto exx_vec = librpa_int::app::compute_exx_orbital_energy_(i_state_low, i_state_high,
                                                                   n_kpoints_task, i_kpoints_task);
     memcpy(exx, exx_vec.data(), sizeof(double) * exx_vec.size());
 }

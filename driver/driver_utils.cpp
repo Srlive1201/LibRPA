@@ -24,13 +24,13 @@ std::vector<double> interpolate_dielec_func(int option, const std::vector<double
         }
         case 1: /* Use spline interpolation */
         {
-            df_target = LIBRPA::utils::interp_cubic_spline(
+            df_target = librpa_int::utils::interp_cubic_spline(
                     frequencies_in, df_in, frequencies_target);
             break;
         }
         case 2: /* Use dielectric model for fitting */
         {
-            LIBRPA::utils::LevMarqFitting levmarq;
+            librpa_int::utils::LevMarqFitting levmarq;
             // use double-dispersion Havriliak-Negami model
             // initialize the parameters as 1.0
             std::vector<double> pars(DoubleHavriliakNegami::d_npar, 1);

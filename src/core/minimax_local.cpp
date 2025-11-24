@@ -10,7 +10,7 @@
 #include <sstream>
 
 static const std::string minimax_grid_path =
-    std::string(LIBRPA::envs::source_dir) + "/minimax_grid";
+    std::string(librpa_int::envs::source_dir) + "/minimax_grid";
 static const std::string GX_path = minimax_grid_path + "/GreenX/generate_local_grid.py";
 
 //! read the file containing grids points information
@@ -108,12 +108,12 @@ static void call_local_grid_script(int ngrids, double e_min, double e_max)
 {
     std::string tmps;
     double erange = e_max / e_min;
-    if(LIBRPA::envs::mpi_comm_global_h.is_root())
+    if(librpa_int::envs::mpi_comm_global_h.is_root())
     {
         tmps = "python " + GX_path + " " + std::to_string(ngrids) + " " + std::to_string(erange);
         system(tmps.c_str());
     }
-    LIBRPA::envs::mpi_comm_global_h.barrier();
+    librpa_int::envs::mpi_comm_global_h.barrier();
     sleep(1);
 }
 

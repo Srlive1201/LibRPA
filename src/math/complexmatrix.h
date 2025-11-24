@@ -42,15 +42,15 @@ public:
 	//============
 	complex<double> &operator()(const int ir,const int ic)
 	{
-        if (ir >= nr) LIBRPA::utils::lib_printf("ir %d nr %d\n", ir, nr);
-        if (ic >= nc) LIBRPA::utils::lib_printf("ic %d nc %d\n", ic, nc);
+        if (ir >= nr) librpa_int::utils::lib_printf("ir %d nr %d\n", ir, nr);
+        if (ic >= nc) librpa_int::utils::lib_printf("ic %d nc %d\n", ic, nc);
 		assert(ir>=0);	assert(ir<nr);	assert(ic>=0);	assert(ic<nc);
 		return c[ir*nc+ic];//mohan modify in-line 2007-10-1
 	}
 	const complex<double> &operator()(const int ir,const int ic)const
 	{
-        if (ir >= nr) LIBRPA::utils::lib_printf("ir %d nr %d\n", ir, nr);
-        if (ic >= nc) LIBRPA::utils::lib_printf("ic %d nc %d\n", ic, nc);
+        if (ir >= nr) librpa_int::utils::lib_printf("ir %d nr %d\n", ir, nr);
+        if (ic >= nc) librpa_int::utils::lib_printf("ic %d nc %d\n", ic, nc);
 		assert(ir>=0);	assert(ir<nr);	assert(ic>=0);	assert(ic<nc);
 		return c[ir*nc+ic];//mohan modify in-line 2007-10-13
 	}

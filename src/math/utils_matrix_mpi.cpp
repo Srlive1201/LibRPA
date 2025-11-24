@@ -2,7 +2,7 @@
 
 #include <cassert>
 
-namespace LIBRPA
+namespace librpa_int
 {
 
 void allreduce_matrix(const matrix &mat_send, matrix &mat_recv, MPI_Comm mpi_comm)
@@ -35,5 +35,5 @@ void reduce_ComplexMatrix(const ComplexMatrix &cmat_send, ComplexMatrix &cmat_re
     MPI_Reduce(cmat_send.c, cmat_recv.c, cmat_recv.size, MPI_DOUBLE_COMPLEX, MPI_SUM, root, mpi_comm);
 }
 
-} /* end of namespace LIBRPA */
+} /* end of namespace librpa_int */
 

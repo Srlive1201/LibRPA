@@ -2,7 +2,7 @@
 
 #include "envs_io.h"
 
-namespace LIBRPA
+namespace librpa_int
 {
 
 namespace utils
@@ -19,4 +19,4 @@ void lib_printf(const char* format, Args&&... args)
 
 } /* end of namespace utils */
 
-} /* end of namespace LIBRPA */
+} /* end of namespace librpa_int */

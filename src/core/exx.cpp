@@ -22,7 +22,7 @@
 #include "../utils/libri_stub.h"
 #endif
 
-namespace LIBRPA
+namespace librpa_int
 {
 
 Exx::Exx(const MeanField &mf,
@@ -109,8 +109,8 @@ void Exx::build(const Cs_LRI &Cs,
                 const vector<Vector3_Order<int>> &Rlist,
                 const atpair_R_mat_t &coul_mat)
 {
-    using LIBRPA::envs::mpi_comm_global;
-    using LIBRPA::envs::mpi_comm_global_h;
+    using librpa_int::envs::mpi_comm_global;
+    using librpa_int::envs::mpi_comm_global_h;
 
     assert (parallel_routing == ParallelRouting::LIBRI);
 
@@ -161,7 +161,7 @@ void Exx::build(const Cs_LRI &Cs,
     Profiler::start("build_real_space_exx_2", "Prepare V libRI object");
     std::map<int, std::map<std::pair<int,std::array<int,3>>, RI::Tensor<double>>> V_libri;
     Profiler::start("build_real_space_exx_2_1");
-    if (LIBRPA::parallel_routing == LIBRPA::ParallelRouting::R_TAU)
+    if (librpa_int::parallel_routing == librpa_int::ParallelRouting::R_TAU)
     {
         // Full Coulomb case, have to re-distribute
         for (auto IJR: dispatch_vector_prod(get_atom_pair(coul_mat), Rlist, mpi_comm_global_h.myid, mpi_comm_global_h.nprocs, true, true))
@@ -305,11 +305,11 @@ void Exx::build(const Cs_LRI &Cs,
 void Exx::build_KS(const std::vector<std::vector<ComplexMatrix>> &wfc_target,
                   const std::vector<Vector3_Order<double>> &kfrac_target)
 {
-    using LIBRPA::envs::mpi_comm_global_h;
-    using LIBRPA::envs::blacs_ctxt_global_h;
-    using LIBRPA::utils::init_local_mat;
-    using LIBRPA::utils::get_local_mat;
-    using LIBRPA::utils::collect_block_from_IJ_storage_tensor_transform;
+    using librpa_int::envs::mpi_comm_global_h;
+    using librpa_int::envs::blacs_ctxt_global_h;
+    using librpa_int::utils::init_local_mat;
+    using librpa_int::utils::get_local_mat;
+    using librpa_int::utils::collect_block_from_IJ_storage_tensor_transform;
     using RI::Communicate_Tensors_Map_Judge::comm_map2_first;
 
     assert(this->is_rspace_build_);
@@ -341,7 +341,7 @@ void Exx::build_KS(const std::vector<std::vector<ComplexMatrix>> &wfc_target,
     auto Hexx_nband_nband = init_local_mat<complex<double>>(desc_nband_nband, MAJOR::COL);
     auto Hexx_nband_nband_fb = init_local_mat<complex<double>>(desc_nband_nband_fb, MAJOR::COL);
 
-    const auto set_IJ_naonao = LIBRPA::utils::get_necessary_IJ_from_block_2D(
+    const auto set_IJ_naonao = librpa_int::utils::get_necessary_IJ_from_block_2D(
         atomic_basis_wfc, atomic_basis_wfc, desc_nao_nao);
     const auto Iset_Jset = convert_IJset_to_Iset_Jset(set_IJ_naonao);
 

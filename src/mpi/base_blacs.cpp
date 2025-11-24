@@ -5,7 +5,7 @@
 #include "../utils/utils_io.h"
 
 
-namespace LIBRPA
+namespace librpa_int
 {
 
 void CTXT_barrier(int ictxt, CTXT_SCOPE scope)
@@ -194,12 +194,12 @@ int ArrayDesc::set_desc_indices_(const int &m, const int &n, const int &mb, cons
     ScalapackConnector::descinit(this->desc, m, n, mb, nb, irsrc, icsrc, ictxt_, lld_, info);
     if (info)
     {
-        LIBRPA::utils::lib_printf(
+        librpa_int::utils::lib_printf(
             "ERROR DESCINIT! PROC %d (%d,%d) PARAMS: DESC %d %d %d %d %d %d %d %d\n",
             myid_, myprow_, mypcol_, m, n, mb, nb, irsrc, icsrc, ictxt_, m_local_);
     }
     // else
-    //     LIBRPA::utils::lib_printf("SUCCE DESCINIT! PROC %d (%d,%d) PARAMS: DESC %d %d %d %d %d %d %d %d\n", myid_, myprow_, mypcol_, m, n, mb, nb, irsrc, icsrc, ictxt_, m_local_);
+    //     librpa_int::utils::lib_printf("SUCCE DESCINIT! PROC %d (%d,%d) PARAMS: DESC %d %d %d %d %d %d %d %d\n", myid_, myprow_, mypcol_, m, n, mb, nb, irsrc, icsrc, ictxt_, m_local_);
     m_ = desc[2];
     n_ = desc[3];
     mb_ = desc[4];
@@ -477,4 +477,4 @@ get_1d_mat_indices_blacs(const ArrayDesc &ad, const int &myid, bool row_fast, bo
                               row_major);
 }
 
-} /* end of namespace LIBRPA */
+} /* end of namespace librpa_int */

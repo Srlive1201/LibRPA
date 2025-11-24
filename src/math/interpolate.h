@@ -9,7 +9,7 @@
 #pragma once
 #include <vector>
 
-namespace LIBRPA
+namespace librpa_int
 {
 namespace utils
 {
@@ -55,4 +55,4 @@ std::vector<double> interp_cubic_spline(const std::vector<double> &xs,
 
 } /* end of namepsace utils */
 
-} /* end of namespace LIBRPA */
+} /* end of namespace librpa_int */

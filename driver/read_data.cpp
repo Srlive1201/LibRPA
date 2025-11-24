@@ -432,7 +432,7 @@ size_t read_Cs(const string &dir_path, double threshold,const vector<atpair_t> &
             {
                 binary = check_Cs_file_binary(fn);
                 binary_checked = true;
-                if (LIBRPA::envs::myid_global == 0)
+                if (librpa_int::envs::myid_global == 0)
                 {
                     if (binary)
                     {
@@ -457,8 +457,8 @@ size_t read_Cs(const string &dir_path, double threshold,const vector<atpair_t> &
     closedir(dir);
     dir = NULL;
     // initialize basis set object
-    LIBRPA::atomic_basis_wfc.set(atom_nw);
-    LIBRPA::atomic_basis_abf.set(atom_mu);
+    librpa_int::atomic_basis_wfc.set(atom_nw);
+    librpa_int::atomic_basis_abf.set(atom_mu);
     
     // atom_mu_part_range.resize(atom_mu.size());
     // atom_mu_part_range[0]=0;
@@ -513,12 +513,12 @@ std::vector<size_t> handle_Cs_file_dry(const string &file_path, double threshold
                     infile >> Cs_ele;
                     maxval = std::max(maxval, abs(stod(Cs_ele)));
                 }
-        LIBRPA::envs::ofs_myid << id << " (" << ic_1 << "," << ic_2 << "," << ic_3 << ") " << maxval << " keep? " << (maxval >= threshold) << endl;
+        librpa_int::envs::ofs_myid << id << " (" << ic_1 << "," << ic_2 << "," << ic_3 << ") " << maxval << " keep? " << (maxval >= threshold) << endl;
         if (maxval >= threshold)
             Cs_ids_keep.push_back(id);
         id++;
     }
-    LIBRPA::envs::ofs_myid << file_path << ": " << Cs_ids_keep << endl;
+    librpa_int::envs::ofs_myid << file_path << ": " << Cs_ids_keep << endl;
     infile.close();
     return Cs_ids_keep;
 }
@@ -559,13 +559,13 @@ std::vector<size_t> handle_Cs_file_binary_dry(const string &file_path, double th
         {
             Cs_ids_keep.push_back(i_file);
 #ifdef LIBRPA_DEBUG
-            // LIBRPA::envs::ofs_myid << i_file << " (" << ic1 << "," << ic2 << "," << ic3 << ") " << maxval << " kept, maxval: " << maxval << endl;
+            // librpa_int::envs::ofs_myid << i_file << " (" << ic1 << "," << ic2 << "," << ic3 << ") " << maxval << " kept, maxval: " << maxval << endl;
 #endif
         }
     }
-    // LIBRPA::envs::ofs_myid << file_path << ": kept " << Cs_ids_keep.size() << " of " << n_processed << endl;
+    // librpa_int::envs::ofs_myid << file_path << ": kept " << Cs_ids_keep.size() << " of " << n_processed << endl;
 #ifdef LIBRPA_DEBUG
-    // LIBRPA::envs::ofs_myid << Cs_ids_keep << endl;
+    // librpa_int::envs::ofs_myid << Cs_ids_keep << endl;
 #endif
     infile.close();
     return Cs_ids_keep;
@@ -720,7 +720,7 @@ size_t read_Cs_evenly_distribute(const string &dir_path, double threshold, int m
         // Let each MPI process read different files at one time
         auto i_fn_myid = (i_fn + myid * nfiles / nprocs) % files.size();
         const auto &fn = files[i_fn_myid];
-        LIBRPA::envs::ofs_myid << "Reading " << fn << endl;
+        librpa_int::envs::ofs_myid << "Reading " << fn << endl;
         std::vector<size_t> ids_keep_this_file;
         if (binary)
         {
@@ -748,14 +748,14 @@ size_t read_Cs_evenly_distribute(const string &dir_path, double threshold, int m
     Profiler::stop("handle_Cs_file_dry");
     closedir(dir);
     dir = NULL;
-    if (myid == 0) LIBRPA::utils::lib_printf("Finished Cs filtering\n");
+    if (myid == 0) librpa_int::utils::lib_printf("Finished Cs filtering\n");
 
     Profiler::start("handle_Cs_file");
     // cout << files_Cs_ids_this_proc.size() << "\n";
-    LIBRPA::envs::ofs_myid << "Number of Cs files to process: " << files_Cs_ids_this_proc.size() << "\n";
+    librpa_int::envs::ofs_myid << "Number of Cs files to process: " << files_Cs_ids_this_proc.size() << "\n";
     for (const auto& fn_ids: files_Cs_ids_this_proc)
     {
-        LIBRPA::envs::ofs_myid << fn_ids.first << " " << fn_ids.second << endl;
+        librpa_int::envs::ofs_myid << fn_ids.first << " " << fn_ids.second << endl;
         if (binary)
         {
             cs_discard += handle_Cs_file_binary_by_ids(fn_ids.first, threshold, fn_ids.second);
@@ -768,8 +768,8 @@ size_t read_Cs_evenly_distribute(const string &dir_path, double threshold, int m
     Profiler::stop("handle_Cs_file");
 
     // initialize basis set object
-    LIBRPA::atomic_basis_wfc.set(atom_nw);
-    LIBRPA::atomic_basis_abf.set(atom_mu);
+    librpa_int::atomic_basis_wfc.set(atom_nw);
+    librpa_int::atomic_basis_abf.set(atom_mu);
     
     atom_mu_part_range.resize(atom_mu.size());
     atom_mu_part_range[0]=0;
@@ -806,7 +806,7 @@ void get_natom_ncell_from_first_Cs_file(int &n_atom, int &n_cell, const string &
         throw std::runtime_error("Cs_data file is not found under dir_path: " + dir_path);
 
     binary = check_Cs_file_binary(file_path);
-    if (LIBRPA::envs::myid_global == 0)
+    if (librpa_int::envs::myid_global == 0)
     {
         if (binary)
         {
@@ -1000,7 +1000,7 @@ size_t read_Vq_full(const string &dir_path, const string &vq_fprefix, bool is_cu
             {
                 binary = check_coulomb_file_binary(file_path);
                 binary_checked = true;
-                if (LIBRPA::envs::myid_global == 0)
+                if (librpa_int::envs::myid_global == 0)
                 {
                     if (binary)
                     {
@@ -1016,7 +1016,7 @@ size_t read_Vq_full(const string &dir_path, const string &vq_fprefix, bool is_cu
             int retcode = handle_Vq_full_file(file_path, Vq_full, binary);
             if (retcode != 0)
             {
-                LIBRPA::utils::lib_printf("Error encountered when reading %s, return code %d", fm.c_str(), retcode);
+                librpa_int::utils::lib_printf("Error encountered when reading %s, return code %d", fm.c_str(), retcode);
             }
         }
     }
@@ -1346,7 +1346,7 @@ size_t read_Vq_row(const string &dir_path, const string &vq_fprefix, double thre
             {
                 binary = check_coulomb_file_binary(file_path);
                 binary_checked = true;
-                if (LIBRPA::envs::myid_global == 0)
+                if (librpa_int::envs::myid_global == 0)
                 {
                     if (binary)
                     {
@@ -1445,8 +1445,8 @@ void erase_Cs_from_local_atp(atpair_R_mat_t &Cs, vector<atpair_t> &local_atpair)
     //     {
     //         Cs.erase(Ip.first);
     //     }
-    LIBRPA::utils::release_free_mem();
-    LIBRPA::utils::lib_printf("| process %d, size of Cs after erase: %lu\n", LIBRPA::envs::mpi_comm_global_h.myid, Cs.size());
+    librpa_int::utils::release_free_mem();
+    librpa_int::utils::lib_printf("| process %d, size of Cs after erase: %lu\n", librpa_int::envs::mpi_comm_global_h.myid, Cs.size());
 }
 
 void read_stru(const int& n_kpoints, const std::string &file_path)

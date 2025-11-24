@@ -2,19 +2,19 @@
 
 #include "base_blacs.h"
 
-namespace LIBRPA
+namespace librpa_int
 {
 
 namespace envs
 {
 
 //! Handler of the global BLACS context
-extern LIBRPA::BlacsCtxtHandler blacs_ctxt_global_h;
+extern librpa_int::BlacsCtxtHandler blacs_ctxt_global_h;
 
 //! Array descriptor for matrix within wave function basis that shared by all MPI tasks
-extern LIBRPA::ArrayDesc array_desc_wfc_global;
+extern librpa_int::ArrayDesc array_desc_wfc_global;
 //! Array descriptor for matrix within auxiliary basis that shared by all MPI tasks
-extern LIBRPA::ArrayDesc array_desc_abf_global;
+extern librpa_int::ArrayDesc array_desc_abf_global;
 
 //! Initialize the MPI environment of LibRPA
 /*!
@@ -51,4 +51,4 @@ void finalize_blacs();
 
 } /* end of namespace envs */
 
-} /* end of namespace LIBRPA */
+} /* end of namespace librpa_int */

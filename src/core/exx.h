@@ -6,7 +6,7 @@
 #include "ri.h"
 #include "../math/matrix_m.h"
 
-namespace LIBRPA
+namespace librpa_int
 {
 
 class Exx
@@ -68,4 +68,4 @@ class Exx
         void reset_kspace();
 };
 
-} /* end of namespace LIBRPA */
+} /* end of namespace librpa_int */
