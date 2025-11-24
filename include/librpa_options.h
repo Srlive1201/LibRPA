@@ -13,6 +13,9 @@ typedef struct
     /* ============================================================================= */
     /* Common runtime control */
 
+    //! Output directory
+    char output_dir[LIBRPA_MAX_STRLEN];
+
     //! Scheme of parallelization.
     LibrpaParallelRouting parallel_routing;
 
@@ -94,20 +97,23 @@ typedef struct
     //! Threshold of correlation screened Coulomb matrix to compute GW correlation self-energy using LibRI
     double libri_gw_threshold_Wc;
 
-    // /* Output controls */
-    // //! Output correlation self-energy matrix (reciprocal space, imaginary frequency domain)
-    // LibrpaSwitch output_gw_sigc_mat;
+    /* Output controls */
+    //! Output correlation self-energy matrix (reciprocal space, imaginary frequency domain)
+    LibrpaSwitch output_gw_sigc_mat;
 
-    // //! Output correlation self-energy matrix in NAO (real space, imaginary time domain)
-    // LibrpaSwitch output_gw_sigc_mat_rt;
+    //! Output correlation self-energy matrix in NAO (real space, imaginary time domain)
+    LibrpaSwitch output_gw_sigc_mat_rt;
 
-    // //! Output correlation self-energy matrix in NAO (real space, imaginary frequency domain)
-    // LibrpaSwitch output_gw_sigc_mat_rf;
+    //! Output correlation self-energy matrix in NAO (real space, imaginary frequency domain)
+    LibrpaSwitch output_gw_sigc_mat_rf;
 
 } LibrpaOptions;
 
-//! Initialize options to default values
+//! Initialize runtime options to default values
 void librpa_init_options(LibrpaOptions *opts);
+
+//! Helper function to set output directory in the runtime options
+void librpa_set_output_dir(LibrpaOptions *opts, const char *output_dir);
 
 #ifdef __cplusplus
 }
@@ -126,6 +132,7 @@ class Options : public ::LibrpaOptions
 {
 public:
     Options() { ::librpa_init_options(this); }
+    void set_output_dir(const char *output_dir) { ::librpa_set_output_dir(this, output_dir); }
 };
 
 }

@@ -35,24 +35,25 @@ foreach(target
     test_atoms
     test_atomic_basis
     test_base_utility
-    test_timefreq 
+    test_blas_lapack
+    test_complexmatrix
+    test_io
+    test_fitting
     test_librpa
     test_matrix
     test_matrix_m
     test_meanfield
-    test_complexmatrix
     test_pbc
-    test_fitting
-    test_blas_lapack
+    test_timefreq 
     )
   config_test(${target} 1)
 endforeach()
 
 # add 4-process tests
 foreach(target
+  test_atomic_basis_blacs
   test_base_mpi
   test_blacs
-  test_atomic_basis_blacs
   test_matrix_m_mpi
   )
   config_test(${target} 4)

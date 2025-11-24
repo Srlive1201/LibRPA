@@ -53,6 +53,7 @@ list(APPEND lib_sources
         core/utils_timefreq.cpp
 
         io/global_io.cpp
+        io/fs.cpp
 
         math/complexmatrix.cpp
         math/fitting.cpp
