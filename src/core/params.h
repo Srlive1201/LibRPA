@@ -12,10 +12,8 @@ namespace librpa_int {
 //! a simple struct to collect all runtime parameters
 struct Params
 {
-    //! the task to perform in LibRPA.
-    static std::string task;
-
     static std::string DFT_software;
+
     //! the path of file to store librpa mainly output
     static std::string output_file;
 

@@ -2,12 +2,15 @@
 
 #include <cmath>
 
-#include "../io/utils_io.h"
+#include "../io/global_io.h"
 
 /*
  * The fitting code is adapted from C version by Ron Babich
  * See https://gist.github.com/rbabich/3539146
  */
+
+namespace librpa_int
+{
 
 static double error_func(const std::vector<double> &par,
                          const std::vector<double> &xs,
@@ -86,12 +89,6 @@ static void solve_axb_cholesky(int n, const std::vector<std::vector<double>> &l,
     }
 }
 
-namespace librpa_int
-{
-
-namespace utils
-{
-
 LevMarqFitting::LevMarqFitting()
 {
     d_maxiter = 10000;
@@ -110,7 +107,7 @@ void LevMarqFitting::fit(
     const std::size_t n = xs.size();
     if (xs.size() != ys.size())
     {
-        lib_printf("Warning: inconsistent x and y size of data\n");
+        global::lib_printf("Warning: inconsistent x and y size of data\n");
     }
     int nit = d_maxiter;
     double lambda = d_init_lambda;
@@ -186,7 +183,7 @@ void LevMarqFitting::fit(
         err = newerr;
         lambda *= down;
 #ifdef PRINT_DEBUG
-        lib_printf("Iteration %d: ", it);
+        global::lib_printf("Iteration %d: ", it);
         for (i = 0; i < npar; i++)
         {
             lib_printf("%f:", par[i]);
@@ -213,7 +210,5 @@ std::vector<double> LevMarqFitting::fit_eval(std::vector<double> &pars, const st
     }
     return ys_eval;
 }
-
-} /* end of namespace utils */
 
 } /* end of namespace librpa_int */

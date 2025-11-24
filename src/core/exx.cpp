@@ -5,11 +5,10 @@
 #include "../math/vector3_order.h"
 #include "../mpi/envs_blacs.h"
 #include "../mpi/global_mpi.h"
-#include "../io/envs_io.h"
+#include "../io/global_io.h"
 #include "../utils/libri_utils.h"
 #include "../utils/profiler.h"
 #include "../io/stl_io_helper.h"
-#include "../io/utils_io.h"
 #include "../utils/constants.h"
 #include "geometry.h"
 #include "params.h"
@@ -101,7 +100,7 @@ void Exx::build_dmat_R(const atom_t& I, const atom_t& J, const Vector3_Order<int
 void Exx::warn_dmat_IJR_nonzero_imag(const ComplexMatrix& dmat_cplx, const int& ispin, const atom_t& I, const atom_t& J, const Vector3_Order<int> R)
 {
     if (dmat_cplx.get_max_abs_imag() > 1e-2)
-        utils::lib_printf("Warning: complex-valued density matrix, spin %d IJR %zu %zu (%d, %d, %d)\n", ispin, I, J, R.x, R.y, R.z);
+        global::lib_printf("Warning: complex-valued density matrix, spin %d IJR %zu %zu (%d, %d, %d)\n", ispin, I, J, R.x, R.y, R.z);
 }
 
 
@@ -124,7 +123,7 @@ void Exx::build(const Cs_LRI &Cs,
 #ifdef LIBRPA_USE_LIBRI
     if (mpi_comm_global_h.is_root())
     {
-        utils::lib_printf("Computing EXX orbital energy using LibRI\n");
+        global::lib_printf("Computing EXX orbital energy using LibRI\n");
     }
     mpi_comm_global_h.barrier();
 
@@ -150,12 +149,12 @@ void Exx::build(const Cs_LRI &Cs,
     //         Pass the all Cs to libRI container.
 
     Profiler::start("build_real_space_exx_1", "Prepare C libRI object");
-    envs::ofs_myid << "Number of Cs keys: " << get_num_keys(Cs.data_libri) << "\n";
-    // print_keys(envs::ofs_myid, Cs.data_libri);
+    global::ofs_myid << "Number of Cs keys: " << get_num_keys(Cs.data_libri) << "\n";
+    // print_keys(global::ofs_myid, Cs.data_libri);
     exx_libri.set_Cs(Cs.data_libri, Params::libri_exx_threshold_C);
     Profiler::stop("build_real_space_exx_1");
-    envs::ofs_myid << "Finished setup Cs for EXX\n";
-    std::flush(envs::ofs_myid);
+    global::ofs_myid << "Finished setup Cs for EXX\n";
+    std::flush(global::ofs_myid);
 
     // initialize Coulomb matrix
     Profiler::start("build_real_space_exx_2", "Prepare V libRI object");
@@ -201,13 +200,13 @@ void Exx::build(const Cs_LRI &Cs,
         }
     }
     Profiler::cease("build_real_space_exx_2_1");
-    envs::ofs_myid << "Number of V keys: " << get_num_keys(V_libri) << "\n";
+    global::ofs_myid << "Number of V keys: " << get_num_keys(V_libri) << "\n";
     Profiler::start("build_real_space_exx_2_2");
     exx_libri.set_Vs(V_libri, Params::libri_exx_threshold_V);
     V_libri.clear();
     Profiler::cease("build_real_space_exx_2_2");
     Profiler::cease("build_real_space_exx_2");
-    utils::lib_printf("Task %4d: V setup for EXX\n", mpi_comm_global_h.myid);
+    global::lib_printf("Task %4d: V setup for EXX\n", mpi_comm_global_h.myid);
     // cout << V_libri << endl;
 
     // initialize density matrix
@@ -240,19 +239,19 @@ void Exx::build(const Cs_LRI &Cs,
                 }
             }
         }
-        envs::ofs_myid << "Number of Dmat keys: " << get_num_keys(dmat_libri) << "\n";
-        // print_keys(envs::ofs_myid, dmat_libri);
+        global::ofs_myid << "Number of Dmat keys: " << get_num_keys(dmat_libri) << "\n";
+        // print_keys(global::ofs_myid, dmat_libri);
         exx_libri.set_Ds(dmat_libri, Params::libri_exx_threshold_D);
         Profiler::stop("build_real_space_exx_3");
-        utils::lib_printf("Task %4d: DM setup for EXX\n", mpi_comm_global_h.myid);
+        global::lib_printf("Task %4d: DM setup for EXX\n", mpi_comm_global_h.myid);
 
         Profiler::start("build_real_space_exx_4", "Call libRI Hexx calculation");
         exx_libri.cal_Hs();
         Profiler::stop("build_real_space_exx_4");
 
-        utils::lib_printf("Task %4d: cal_Hs elapsed time: %f\n", mpi_comm_global_h.myid, Profiler::get_wall_time_last("build_real_space_exx_4"));
-        envs::ofs_myid << "Number of exx_libri.Hs keys: " << get_num_keys(exx_libri.Hs) << "\n";
-        // print_keys(envs::ofs_myid, exx_libri.Hs);
+        global::lib_printf("Task %4d: cal_Hs elapsed time: %f\n", mpi_comm_global_h.myid, Profiler::get_wall_time_last("build_real_space_exx_4"));
+        global::ofs_myid << "Number of exx_libri.Hs keys: " << get_num_keys(exx_libri.Hs) << "\n";
+        // print_keys(global::ofs_myid, exx_libri.Hs);
         // ofs_myid << "exx_libri.Hs:\n" << exx_libri.Hs << endl;
 
         for (const auto &I_JR_exx: exx_libri.Hs)
@@ -292,7 +291,7 @@ void Exx::build(const Cs_LRI &Cs,
 #else
     if (mpi_comm_global_h.is_root())
     {
-        utils::lib_printf("Error: trying build EXX orbital energy with LibRI, but the program is not compiled against LibRI\n");
+        global::lib_printf("Error: trying build EXX orbital energy with LibRI, but the program is not compiled against LibRI\n");
     }
     throw std::logic_error("compilation");
     mpi_comm_global_h.barrier();
@@ -316,7 +315,7 @@ void Exx::build_KS(const std::vector<std::vector<ComplexMatrix>> &wfc_target,
     // Reset k-space matrices built from last call
     if (this->is_kspace_built_)
     {
-        utils::lib_printf("Warning: reset EXX k-space matrices\n");
+        global::lib_printf("Warning: reset EXX k-space matrices\n");
         this->reset_kspace();
     }
 
@@ -430,7 +429,7 @@ void Exx::build_KS(const std::vector<std::vector<ComplexMatrix>> &wfc_target,
         exx_I_JR.clear();
         Profiler::stop("build_real_space_exx_5");
 
-        utils::lib_printf("Task %4d: tensor communicate elapsed time: %f\n", mpi_comm_global_h.myid, Profiler::get_wall_time_last("build_real_space_exx_5"));
+        global::lib_printf("Task %4d: tensor communicate elapsed time: %f\n", mpi_comm_global_h.myid, Profiler::get_wall_time_last("build_real_space_exx_5"));
         // cout << I_JallR_Hs << endl;
 
         for (int ik = 0; ik < kfrac_target.size(); ik++)
@@ -449,13 +448,13 @@ void Exx::build_KS(const std::vector<std::vector<ComplexMatrix>> &wfc_target,
             collect_block_from_IJ_storage_tensor_transform(Hexx_nao_nao, desc_nao_nao, 
                     atomic_basis_wfc, atomic_basis_wfc, fourier, exx_I_JR_local);
             Profiler::stop("build_real_space_exx_6");
-            // utils::lib_printf("%s\n", str(Hexx_nao_nao).c_str());
+            // global::lib_printf("%s\n", str(Hexx_nao_nao).c_str());
             const auto &wfc_isp_k = wfc_target[isp][ik];
             blacs_ctxt_global_h.barrier();
             const auto wfc_block = get_local_mat(wfc_isp_k.c, MAJOR::ROW, desc_nband_nao, MAJOR::COL).conj();
-            // utils::lib_printf("%s\n", str(wfc_block).c_str());
-            // utils::lib_printf("%s\n", desc_nao_nao.info_desc().c_str());
-            // utils::lib_printf("%s\n", desc_nband_nao.info_desc().c_str());
+            // global::lib_printf("%s\n", str(wfc_block).c_str());
+            // global::lib_printf("%s\n", desc_nao_nao.info_desc().c_str());
+            // global::lib_printf("%s\n", desc_nband_nao.info_desc().c_str());
             Profiler::start("build_real_space_exx_7", "Rotate Hexx ij -> KS");
             ScalapackConnector::pgemm_f('N', 'N', n_bands, n_aos, n_aos, 1.0,
                                         wfc_block.ptr(), 1, 1, desc_nband_nao.desc,

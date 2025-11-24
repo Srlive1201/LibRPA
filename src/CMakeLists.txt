@@ -33,7 +33,6 @@ list(APPEND lib_sources
         api/instance_manager.cpp
         api/options.cpp
         api/librpa.cpp
-        api/librpa_main.cpp
 
         core/analycont.cpp
         core/atomic_basis.cpp
@@ -53,7 +52,7 @@ list(APPEND lib_sources
         core/utils_atomic_basis_blacs.cpp
         core/utils_timefreq.cpp
 
-        io/envs_io.cpp
+        io/global_io.cpp
 
         math/complexmatrix.cpp
         math/fitting.cpp

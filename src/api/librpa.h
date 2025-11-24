@@ -267,7 +267,7 @@ void get_default_librpa_params(LibRPAParams *params);
  */
 void get_frequency_grids(int ngrid, double *freqeuncy_grids);
 
-void run_librpa_main();
+// void run_librpa_main();
 
 /*!
  * @brief compute and return the RPA correlation energy

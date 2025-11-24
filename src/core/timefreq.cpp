@@ -11,7 +11,7 @@
 #include "../math/mathtools.h"
 #include "../utils/base_utility.h"
 #include "minimax.h"
-#include "../io/utils_io.h"
+#include "../io/global_io.h"
 
 namespace librpa_int {
 
@@ -70,7 +70,7 @@ void TFGrids::set_time()
 
 void TFGrids::show() const
 {
-    using librpa_int::utils::lib_printf;
+    using librpa_int::global::lib_printf;
     cout << "Grid type: " << TFGrids::GRID_TYPES_NOTES[grid_type] << endl;
     cout << "Grid size: " << n_grids << endl;
     cout << "Frequency node & weight: " << endl;

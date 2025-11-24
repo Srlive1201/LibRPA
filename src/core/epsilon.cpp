@@ -14,11 +14,9 @@
 #include "../utils/base_utility.h"
 #include "../math/lapack_connector.h"
 #include "../utils/constants.h"
-#include "../io/envs_io.h"
+#include "../io/global_io.h"
 #include "../mpi/global_mpi.h"
 #include "../math/matrix_m.h"
-#include "../io/utils_io.h"
-#include "../io/utils_mpi_io.h"
 #include "../utils/utils_mem.h"
 #include "../io/stl_io_helper.h"
 #include "../utils/libri_utils.h"
@@ -47,8 +45,8 @@ using librpa_int::utils::init_local_mat;
 using librpa_int::global::mpi_comm_global_h;
 using librpa_int::envs::blacs_ctxt_global_h;
 using librpa_int::ArrayDesc;
-using librpa_int::envs::ofs_myid;
-using librpa_int::utils::lib_printf;
+using librpa_int::global::ofs_myid;
+using librpa_int::global::lib_printf;
 
 CorrEnergy compute_RPA_correlation_blacs_2d_gamma_only( Chi0 &chi0, atpair_k_cplx_mat_t &coulmat)
 {
@@ -1703,7 +1701,7 @@ compute_Wc_freq_q_blacs(Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, atpa
 
     vec<double> eigenvalues(n_abf);
     Profiler::cease("compute_Wc_freq_q_blacs_init");
-    librpa_int::utils::lib_printf_root("Time for Wc initialization (seconds, Wall/CPU): %f %f\n",
+    librpa_int::global::lib_printf_root("Time for Wc initialization (seconds, Wall/CPU): %f %f\n",
             Profiler::get_wall_time_last("compute_Wc_freq_q_blacs_init"),
             Profiler::get_cpu_time_last("compute_Wc_freq_q_blacs_init"));
 
@@ -1715,7 +1713,7 @@ compute_Wc_freq_q_blacs(Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, atpa
         const int iq_in_k = std::distance(klist.cbegin(), std::find(klist.cbegin(), klist.cend(), q));
         // q-point in fractional coordinates
         const auto &qf= kfrac_list[iq_in_k];
-        librpa_int::utils::lib_printf_root("Computing Wc(q), %d / %d, q=(%f, %f, %f)\n",
+        librpa_int::global::lib_printf_root("Computing Wc(q), %d / %d, q=(%f, %f, %f)\n",
                                        iq + 1, qpts.size(), qf.x, qf.y, qf.z);
         coul_block.zero_out();
         coulwc_block.zero_out();
@@ -1775,7 +1773,7 @@ compute_Wc_freq_q_blacs(Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, atpa
             Profiler::stop("epsilon_prepare_coulwc_sqrt_4");
         }
         Profiler::stop("epsilon_prepare_coulwc_sqrt");
-        librpa_int::utils::lib_printf_root("Time to prepare sqrt root of Coulomb for Wc(q) (seconds, Wall/CPU): %f %f\n",
+        librpa_int::global::lib_printf_root("Time to prepare sqrt root of Coulomb for Wc(q) (seconds, Wall/CPU): %f %f\n",
                 Profiler::get_wall_time_last("epsilon_prepare_coulwc_sqrt"),
                 Profiler::get_cpu_time_last("epsilon_prepare_coulwc_sqrt"));
         ofs_myid << get_timestamp() << " Done coulwc sqrt" << endl;
@@ -1846,7 +1844,7 @@ compute_Wc_freq_q_blacs(Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, atpa
             sqrtveig_blacs.clear();
         const size_t n_nonsingular = n_abf - n_singular;
         Profiler::stop("epsilon_prepare_couleps_sqrt");
-        librpa_int::utils::lib_printf_root("Time to prepare sqrt root of Coulomb for Epsilon(q) (seconds, Wall/CPU): %f %f\n",
+        librpa_int::global::lib_printf_root("Time to prepare sqrt root of Coulomb for Epsilon(q) (seconds, Wall/CPU): %f %f\n",
                 Profiler::get_wall_time_last("epsilon_prepare_couleps_sqrt"),
                 Profiler::get_cpu_time_last("epsilon_prepare_couleps_sqrt"));
         ofs_myid << get_timestamp() << " Done couleps sqrt\n";
@@ -1996,7 +1994,7 @@ compute_Wc_freq_q_blacs(Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, atpa
             // under the desired array descriptor
             Wc_freq_q[freq][q] = temp_block.copy();
 
-            librpa_int::utils::lib_printf_root("Time for Wc(i_q=%d, i_omega=%d) (seconds, Wall/CPU): %f %f\n",
+            librpa_int::global::lib_printf_root("Time for Wc(i_q=%d, i_omega=%d) (seconds, Wall/CPU): %f %f\n",
                     iq + 1, ifreq + 1,
                     Profiler::get_wall_time_last("epsilon_wc_work_q_omega"),
                     Profiler::get_cpu_time_last("epsilon_wc_work_q_omega"));
@@ -2006,7 +2004,7 @@ compute_Wc_freq_q_blacs(Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, atpa
     throw std::logic_error("need compilation with LibRI");
 #endif
     Profiler::cease("compute_Wc_freq_q_work");
-    librpa_int::utils::lib_printf_root("Time for Wc computation (seconds, Wall/CPU): %f %f\n",
+    librpa_int::global::lib_printf_root("Time for Wc computation (seconds, Wall/CPU): %f %f\n",
             Profiler::get_wall_time_last("compute_Wc_freq_q_work"),
             Profiler::get_cpu_time_last("compute_Wc_freq_q_work"));
 
@@ -2095,8 +2093,8 @@ FT_Wc_freq_q(map<double, std::map<Vector3_Order<double>, Matz>> &Wc_freq_q,
     const auto n_r_batch_max = min(maxbytes_tmpmat / sizeof(cplxdb) / size_batch_max, as_size(n_k_points));
     const auto n_r_batches = ceil_div(as_size(n_k_points), n_r_batch_max);
 
-    librpa_int::envs::ofs_myid << "size_batch_max/n_r_batch_max " << size_batch_max << " " << n_r_batch_max << endl;
-    librpa_int::envs::ofs_myid << "n_data_batches/n_r_batches " << n_data_batches << " " << n_r_batches << endl;
+    global::ofs_myid << "size_batch_max/n_r_batch_max " << size_batch_max << " " << n_r_batch_max << endl;
+    global::ofs_myid << "n_data_batches/n_r_batches " << n_data_batches << " " << n_r_batches << endl;
 
     std::vector<cplxdb> kmat(size_batch_max * n_k_points);
     std::vector<cplxdb> rmat(size_batch_max * n_r_batch_max);
@@ -2217,7 +2215,7 @@ CT_FT_Wc_freq_q(std::map<double, std::map<Vector3_Order<double>, Matz>> &Wc_freq
     assert(major_orig != MAJOR::AUTO);
     if (major_out == MAJOR::AUTO) major_out = major_orig;
 
-    librpa_int::utils::lib_printf_root("Converting Wc(q,w) -> W(R,t)\n");
+    librpa_int::global::lib_printf_root("Converting Wc(q,w) -> W(R,t)\n");
     mpi_comm_global_h.barrier();
 
     // Perform Fourier transform first, then inverse cosine transform
@@ -2251,7 +2249,7 @@ CT_FT_Wc_freq_q(std::map<double, std::map<Vector3_Order<double>, Matz>> &Wc_freq
             coeff_f2t(ifreq, itau) = tfg.get_costrans_f2t()(itau, ifreq);
         }
     }
-    librpa_int::envs::ofs_myid << coeff_f2t << endl;
+    global::ofs_myid << coeff_f2t << endl;
 
     // To balance performance and memory consumption, we divide basis x Rlist into batches as row indices.
     // Maximal 1GB per process for HPC usage ~ 4 R-vector with 16 frequency points for 1000x1000 matrix.
@@ -2280,9 +2278,9 @@ CT_FT_Wc_freq_q(std::map<double, std::map<Vector3_Order<double>, Matz>> &Wc_freq
     std::vector<cplxdb> fmat(row_max * n_freq);
     std::vector<cplxdb> tmat(row_max * n_freq);
 
-    librpa_int::envs::ofs_myid << "size_batch_max/n_r_batch_max " << size_batch_max << " " << n_r_batch_max << endl;
-    librpa_int::envs::ofs_myid << "n_data_batches/n_r_batches " << n_data_batches << " " << n_r_batches << endl;
-    librpa_int::envs::ofs_myid << "row_max " << row_max << endl;
+    global::ofs_myid << "size_batch_max/n_r_batch_max " << size_batch_max << " " << n_r_batch_max << endl;
+    global::ofs_myid << "n_data_batches/n_r_batches " << n_data_batches << " " << n_r_batches << endl;
+    global::ofs_myid << "row_max " << row_max << endl;
 
     // Loop over R-vector batches
     for (int i_r_batch = 0; i_r_batch < n_r_batches; i_r_batch++)
@@ -2324,7 +2322,7 @@ CT_FT_Wc_freq_q(std::map<double, std::map<Vector3_Order<double>, Matz>> &Wc_freq
             LapackConnector::gemm_f('N', 'N', row_this, n_freq, n_freq,
                                     1.0, fmat.data(), row_max, coeff_f2t.ptr(), n_freq,
                                     0.0, tmat.data(), row_max);
-            // librpa_int::envs::ofs_myid << tmat << endl;
+            // librpa_int::global::ofs_myid << tmat << endl;
 
             // Copy back
             #pragma omp parallel for collapse(2) schedule(dynamic)
@@ -2350,7 +2348,7 @@ CT_FT_Wc_freq_q(std::map<double, std::map<Vector3_Order<double>, Matz>> &Wc_freq
         }
     }
 
-    librpa_int::utils::lib_printf_root("Done converting Wc q,w -> R,t\n");
+    librpa_int::global::lib_printf_root("Done converting Wc q,w -> R,t\n");
     mpi_comm_global_h.barrier();
 
     return Wc_tau_R;

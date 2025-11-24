@@ -2,7 +2,7 @@
 #include <vector>
 
 // Public headers
-#include "../../include/librpa_handler.h"
+#include "librpa_handler.h"
 
 // Internal headers
 #include "../core/dataset.h"

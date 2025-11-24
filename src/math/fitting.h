@@ -9,9 +9,6 @@
 namespace librpa_int
 {
 
-namespace utils
-{
-
 //! Non-linear fitting using the Levenberg-Marquardt algorithm
 struct LevMarqFitting
 {
@@ -58,8 +55,6 @@ struct LevMarqFitting
                   const std::function<void(std::vector<double> &, double, const std::vector<double> &)> &grad,
                   const std::vector<double> &xs_eval);
 };
-
-} /* end of namespace utils */
 
 } /* end of namespace librpa_int */
 

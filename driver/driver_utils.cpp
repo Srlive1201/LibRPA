@@ -31,7 +31,7 @@ std::vector<double> interpolate_dielec_func(int option, const std::vector<double
         }
         case 2: /* Use dielectric model for fitting */
         {
-            librpa_int::utils::LevMarqFitting levmarq;
+            librpa_int::LevMarqFitting levmarq;
             // use double-dispersion Havriliak-Negami model
             // initialize the parameters as 1.0
             std::vector<double> pars(DoubleHavriliakNegami::d_npar, 1);

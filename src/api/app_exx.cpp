@@ -20,7 +20,6 @@ namespace app
 std::vector<double> compute_exx_orbital_energy_(int i_state_low, int i_state_high, int n_kpoints_task, const int *i_kpoints_task)
 {
     using librpa_int::global::mpi_comm_global_h;
-    using librpa_int::utils::lib_printf;
 
     std::vector<int> i_kpoints_compute(0);
 

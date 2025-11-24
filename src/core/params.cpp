@@ -4,13 +4,12 @@
 #include <utility>
 #include <vector>
 
-#include "../io/utils_io.h"
+#include "../io/global_io.h"
 
 namespace librpa_int {
 
 // default setting
 
-std::string Params::task = "rpa";
 std::string Params::output_file = "stdout";
 std::string Params::output_dir = "librpa.d/";
 std::string Params::tfgrids_type = "minimax";
@@ -84,7 +83,6 @@ void Params::print()
 
     const std::vector<std::pair<std::string, std::string>> str_params
         {
-            {"task", task},
             {"output_dir", output_dir},
             {"output_file", output_file},
             {"tfgrids_type", tfgrids_type},
@@ -101,16 +99,16 @@ void Params::print()
         };
 
     for (const auto &param: str_params)
-        librpa_int::utils::lib_printf("%s = %s\n", param.first.c_str(), param.second.c_str());
+        librpa_int::global::lib_printf("%s = %s\n", param.first.c_str(), param.second.c_str());
 
     for (const auto &param: int_params)
-        librpa_int::utils::lib_printf("%s = %d\n", param.first.c_str(), param.second);
+        librpa_int::global::lib_printf("%s = %d\n", param.first.c_str(), param.second);
 
     for (const auto &param: double_params)
-        librpa_int::utils::lib_printf("%s = %f\n", param.first.c_str(), param.second);
+        librpa_int::global::lib_printf("%s = %f\n", param.first.c_str(), param.second);
 
     for (const auto &param: bool_params)
-        librpa_int::utils::lib_printf("%s = %s\n", param.first.c_str(), param.second? "T": "F");
+        librpa_int::global::lib_printf("%s = %s\n", param.first.c_str(), param.second? "T": "F");
 }
 
 Params params;

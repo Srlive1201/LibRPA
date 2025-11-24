@@ -2,7 +2,7 @@
 #include "../utils/base_utility.h"
 
 #include "../interface/blacs_scalapack.h"
-#include "../io/utils_io.h"
+#include "../io/global_io.h"
 
 
 namespace librpa_int
@@ -194,12 +194,12 @@ int ArrayDesc::set_desc_indices_(const int &m, const int &n, const int &mb, cons
     ScalapackConnector::descinit(this->desc, m, n, mb, nb, irsrc, icsrc, ictxt_, lld_, info);
     if (info)
     {
-        librpa_int::utils::lib_printf(
+        librpa_int::global::lib_printf(
             "ERROR DESCINIT! PROC %d (%d,%d) PARAMS: DESC %d %d %d %d %d %d %d %d\n",
             myid_, myprow_, mypcol_, m, n, mb, nb, irsrc, icsrc, ictxt_, m_local_);
     }
     // else
-    //     librpa_int::utils::lib_printf("SUCCE DESCINIT! PROC %d (%d,%d) PARAMS: DESC %d %d %d %d %d %d %d %d\n", myid_, myprow_, mypcol_, m, n, mb, nb, irsrc, icsrc, ictxt_, m_local_);
+    //     librpa_int::global::lib_printf("SUCCE DESCINIT! PROC %d (%d,%d) PARAMS: DESC %d %d %d %d %d %d %d %d\n", myid_, myprow_, mypcol_, m, n, mb, nb, irsrc, icsrc, ictxt_, m_local_);
     m_ = desc[2];
     n_ = desc[3];
     mb_ = desc[4];

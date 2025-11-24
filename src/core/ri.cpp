@@ -4,7 +4,6 @@
 
 #include "../math/utils_matrix_mpi.h"
 #include "../mpi/global_mpi.h"
-#include "../io/utils_io.h"
 #include "params.h"
 #include "pbc.h"
 
@@ -179,7 +178,7 @@ void init_N_all_mu()
 {
     using global::mpi_comm_global;
     using global::mpi_comm_global_h;
-    using utils::lib_printf;
+    using global::lib_printf;
     
     lib_printf("begin init_N_all_mu   atom_mu.size: %d  myid: %d\n",atom_mu.size(), mpi_comm_global_h.myid);
     if(Params::DFT_software == "ABACUS")
@@ -195,10 +194,10 @@ void init_N_all_mu()
         {
             loc_mu[mu_p.first]=mu_p.second;
         }
-        utils::lib_printf(" mid init_N_all_mu\n");
+        global::lib_printf(" mid init_N_all_mu\n");
         vector<size_t> glo_nw(natom);
         vector<size_t> glo_mu(natom);
-        utils::lib_printf(" mid init_N_all_mu myid: %d\n",mpi_comm_global_h.myid);
+        global::lib_printf(" mid init_N_all_mu myid: %d\n",mpi_comm_global_h.myid);
         MPI_Allreduce(loc_nw.data(),glo_nw.data(),natom,MPI_UNSIGNED_LONG_LONG,MPI_MAX,mpi_comm_global);
         MPI_Allreduce(loc_mu.data(),glo_mu.data(),natom,MPI_UNSIGNED_LONG_LONG,MPI_MAX,mpi_comm_global);
 
@@ -206,8 +205,8 @@ void init_N_all_mu()
         atom_mu.clear();
         for(int i =0; i!=natom;i++ )
         {
-            utils::lib_printf("I: %d ,  glo_nw: %d",i,glo_nw[i]);
-            utils::lib_printf("I: %d ,  glo_mu: %d",i,glo_mu[i]);
+            global::lib_printf("I: %d ,  glo_nw: %d",i,glo_nw[i]);
+            global::lib_printf("I: %d ,  glo_mu: %d",i,glo_mu[i]);
             atom_nw.insert(pair<atom_t,size_t>(i,glo_nw[i]));
             atom_mu.insert(pair<atom_t,size_t>(i,glo_mu[i]));
         }
@@ -220,7 +219,7 @@ void init_N_all_mu()
         atom_mu_part_range[I]=atom_mu.at(I-1)+atom_mu_part_range[I-1];
     
     N_all_mu=atom_mu_part_range[natom-1]+atom_mu[natom-1];
-    // librpa_int::utils::lib_printf("end init_N_all_mu, atom_mu.size: %d\n",atom_mu.size());
+    // librpa_int::global::lib_printf("end init_N_all_mu, atom_mu.size: %d\n",atom_mu.size());
   //  MPI_Barrier(mpi_comm_global);
 }
 
@@ -256,7 +255,7 @@ void allreduce_atp_aux()
             {   
                 auto R=Rp.first;
                 // if(I==0 && J==0)
-                //     librpa_int::utils::lib_printf(" send R  Cs  myid : %d   I: %d, J: %d, R:(%d, %d, %d)\n",mpi_comm_global_h.myid, I,J,R.x,R.y,R.z);
+                //     librpa_int::global::lib_printf(" send R  Cs  myid : %d   I: %d, J: %d, R:(%d, %d, %d)\n",mpi_comm_global_h.myid, I,J,R.x,R.y,R.z);
                 send_R_data.push_back(Rp.first.x);
                 send_R_data.push_back(Rp.first.y);
                 send_R_data.push_back(Rp.first.z);
@@ -277,7 +276,7 @@ void allreduce_atp_aux()
             {
                 Vector3_Order<int> Rv(all_R_data[iR*3],all_R_data[iR*3+1],all_R_data[iR*3+2]);
                 // if(I==0 && J==0)
-                //     librpa_int::utils::lib_printf(" Rv  Cs  myid : %d   I: %d, J: %d, R:(%d, %d, %d)\n",mpi_comm_global_h.myid, I,J,Rv.x,Rv.y,Rv.z);
+                //     librpa_int::global::lib_printf(" Rv  Cs  myid : %d   I: %d, J: %d, R:(%d, %d, %d)\n",mpi_comm_global_h.myid, I,J,Rv.x,Rv.y,Rv.z);
                 shared_ptr<matrix> cs_ptr = make_shared<matrix>();
                 cs_ptr->create(nbasI*nbasJ, nauxI);
                 matrix loc_cs(nbasI*nbasJ, nauxI);
@@ -293,7 +292,7 @@ void allreduce_atp_aux()
 void allreduce_2D_coulomb_to_atompair(map<Vector3_Order<double>, ComplexMatrix> &Vq_loc, atpair_k_cplx_mat_t &coulomb_mat,double threshold )
 {
     using global::mpi_comm_global_h;
-    using utils::lib_printf;
+    using global::lib_printf;
 
     lib_printf("Begin allreduce_2D_coulomb_to_atompair!\n");
 
@@ -359,7 +358,7 @@ void allreduce_atp_coulomb( atpair_k_cplx_mat_t &coulomb_mat )
 {
     using global::mpi_comm_global;
     using global::mpi_comm_global_h;
-    using utils::lib_printf;
+    using global::lib_printf;
 
     printf("Begin allreduce_atp_coulomb!\n");
     // mpi_comm_world_h.barrier();

@@ -1,7 +1,7 @@
 #include "task_test.h"
 
 #include "../src/mpi/global_mpi.h"
-#include "../src/io/envs_io.h"
+#include "../src/io/global_io.h"
 #include "../src/utils/profiler.h"
 #include "../src/math/matrix_m.h"
 
@@ -11,8 +11,8 @@
 void task_test()
 {
     using librpa_int::global::mpi_comm_global_h;
-    using librpa_int::envs::ofs_myid;
-    using librpa_int::utils::lib_printf;
+    using librpa_int::global::ofs_myid;
+    using librpa_int::global::lib_printf;
 
     Profiler::start("test");
 

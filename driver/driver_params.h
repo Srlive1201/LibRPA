@@ -3,6 +3,7 @@
 
 struct DriverParams
 {
+    std::string task;
     std::string input_dir;
 
     bool output_gw_spec_func;

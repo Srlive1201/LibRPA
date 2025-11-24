@@ -5,6 +5,8 @@
 #include <mpi.h>
 #else
 
+#ifndef MPI_VERSION
+
 // All wrapped in ifndef, considering that the user might define in there own case.
 // In that case, it is assumed that the user-defined macros are consistent with those in LibRPA
 // Usually it is the case, since everyone shares the purpose to emulate MPI standard while keeping
@@ -41,6 +43,8 @@
 
 #ifndef MPI_C_DOUBLE_COMPLEX
 #define MPI_C_DOUBLE_COMPLEX 16
+#endif
+
 #endif
 
 #endif

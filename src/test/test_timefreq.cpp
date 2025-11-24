@@ -1,7 +1,7 @@
 #include "../core/timefreq.h"
 
 #include "../mpi/global_mpi.h"
-#include "../io/envs_io.h"
+#include "../io/global_io.h"
 #include "../io/stl_io_helper.h"
 
 #include "testutils.h"
@@ -121,18 +121,17 @@ void check_minimax_ng6_HF_123()
 
 int main (int argc, char **argv)
 {
-    using namespace librpa_int::envs;
     using namespace librpa_int::global;
     int provided;
     MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
     init_global_mpi();
-    initialize_io();
+    init_global_io();
 
     check_initialize();
     check_minimax_ng16_diamond_k222();
     check_minimax_ng6_HF_123();
 
-    finalize_io();
+    finalize_global_io();
     finalize_global_mpi();
     MPI_Finalize();
     return 0;

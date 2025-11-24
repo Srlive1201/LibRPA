@@ -1,33 +1,31 @@
-#include "envs_io.h"
+#include "global_io.h"
 
-#include <string>
-#include <iostream>
+#include <cstddef>
 #include <cstdio>
-
-#include "../mpi/global_mpi.h"
-
+#include <iostream>
+#include <string>
 
 namespace librpa_int
 {
 
-namespace envs
+namespace global
 {
 
-std::ofstream ofs;
 std::ofstream ofs_myid;
-bool redirect_stdout = false;
-FILE *pfile_redirect;
+FILE *pfile_redirect = nullptr;
 
 /* ==============================================
  * Private variables starts
  */
+static std::ofstream ofs;
+static std::streambuf *cout_buf_old = nullptr;
 static bool librpa_io_initialized = false;
-static std::streambuf *cout_buf_old;
+
 /*
  * Private variables ends
  ============================================== */
 
-void initialize_io(bool redirect_stdout_in, const char *filename)
+void init_global_io(bool redirect_stdout, const char *filename)
 {
     using namespace librpa_int::global;
     if (!is_mpi_initialized())
@@ -39,8 +37,6 @@ void initialize_io(bool redirect_stdout_in, const char *filename)
 
     std::string fn = "librpa_para_nprocs_" + std::to_string(size_global) +  "_myid_" + std::to_string(myid_global) + ".out";
     ofs_myid.open(fn);
-
-    redirect_stdout = redirect_stdout_in;
 
     // Redirect output
     if (redirect_stdout)
@@ -65,26 +61,22 @@ void initialize_io(bool redirect_stdout_in, const char *filename)
     librpa_io_initialized = true;
 }
 
-bool is_io_initialized()
-{
-    return librpa_io_initialized;
-}
+inline bool is_io_initialized() { return librpa_io_initialized; }
 
-void finalize_io()
+void finalize_global_io()
 {
     ofs_myid.close();
 
     // Recover original stdout behavior
-    if (redirect_stdout)
+    if (pfile_redirect != nullptr)
     {
         std::cout.rdbuf(cout_buf_old);
         fclose(pfile_redirect);
+        pfile_redirect = nullptr;
     }
-
-    redirect_stdout = false;
     librpa_io_initialized = false;
 }
 
-} /* end of namespace envs */
+} /* end of namespace global */
 
 } /* end of namespace librpa_int */

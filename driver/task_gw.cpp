@@ -16,7 +16,7 @@
 #include "../src/mpi/envs_blacs.h"
 #include "../src/mpi/global_mpi.h"
 #include "../src/utils/constants.h"
-#include "../src/io/envs_io.h"
+#include "../src/io/global_io.h"
 #include "../src/utils/profiler.h"
 #include "driver_params.h"
 #include "driver_utils.h"
@@ -28,7 +28,7 @@ void task_g0w0()
     using namespace librpa_int::envs;
     using namespace librpa_int::global;
     using namespace librpa_int::utils;
-    using librpa_int::utils::lib_printf;
+    using librpa_int::global::lib_printf;
 
     Profiler::start("g0w0", "G0W0 quasi-particle calculation");
 

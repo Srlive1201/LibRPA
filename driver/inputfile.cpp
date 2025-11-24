@@ -49,8 +49,7 @@ void InputParser::parse_double(const std::string &vname, double &var, double de,
             var = std::stod(s);
         }
         catch (std::invalid_argument)
-        {
-            flag = 2;
+        { flag = 2;
         }
     }
     else
@@ -150,6 +149,7 @@ void parse_inputfile_to_params(const std::string& fn)
     auto parser = inputf.load(fn, false);
 
     // driver parameters
+    parser.parse_string("task", driver_params.task, "rpa", flag);
     parser.parse_string("input_dir", driver_params.input_dir, "./", flag);
     driver_params.input_dir = check_dirpath(driver_params.input_dir);
     parser.parse_bool("output_gw_spec_func", driver_params.output_gw_spec_func, false, flag);
@@ -167,7 +167,6 @@ void parse_inputfile_to_params(const std::string& fn)
     }
 
     // general parameters
-    parser.parse_string("task", Params::task, "rpa", flag);
     parser.parse_string("output_dir", Params::output_dir, "librpa.d/", flag);
     Params::output_dir = check_dirpath(Params::output_dir);
 

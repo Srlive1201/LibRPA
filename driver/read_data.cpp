@@ -20,10 +20,9 @@
 #include "../src/math/matrix.h"
 #include "../src/mpi/global_mpi.h"
 #include "../src/utils/constants.h"
-#include "../src/io/envs_io.h"
+#include "../src/io/global_io.h"
 #include "../src/utils/profiler.h"
 #include "../src/io/stl_io_helper.h"
-#include "../src/io/utils_io.h"
 #include "../src/utils/utils_mem.h"
 
 using std::ifstream;
@@ -513,12 +512,12 @@ std::vector<size_t> handle_Cs_file_dry(const string &file_path, double threshold
                     infile >> Cs_ele;
                     maxval = std::max(maxval, abs(stod(Cs_ele)));
                 }
-        librpa_int::envs::ofs_myid << id << " (" << ic_1 << "," << ic_2 << "," << ic_3 << ") " << maxval << " keep? " << (maxval >= threshold) << endl;
+        librpa_int::global::ofs_myid << id << " (" << ic_1 << "," << ic_2 << "," << ic_3 << ") " << maxval << " keep? " << (maxval >= threshold) << endl;
         if (maxval >= threshold)
             Cs_ids_keep.push_back(id);
         id++;
     }
-    librpa_int::envs::ofs_myid << file_path << ": " << Cs_ids_keep << endl;
+    librpa_int::global::ofs_myid << file_path << ": " << Cs_ids_keep << endl;
     infile.close();
     return Cs_ids_keep;
 }
@@ -720,7 +719,7 @@ size_t read_Cs_evenly_distribute(const string &dir_path, double threshold, int m
         // Let each MPI process read different files at one time
         auto i_fn_myid = (i_fn + myid * nfiles / nprocs) % files.size();
         const auto &fn = files[i_fn_myid];
-        librpa_int::envs::ofs_myid << "Reading " << fn << endl;
+        librpa_int::global::ofs_myid << "Reading " << fn << endl;
         std::vector<size_t> ids_keep_this_file;
         if (binary)
         {
@@ -748,14 +747,14 @@ size_t read_Cs_evenly_distribute(const string &dir_path, double threshold, int m
     Profiler::stop("handle_Cs_file_dry");
     closedir(dir);
     dir = NULL;
-    if (myid == 0) librpa_int::utils::lib_printf("Finished Cs filtering\n");
+    if (myid == 0) librpa_int::global::lib_printf("Finished Cs filtering\n");
 
     Profiler::start("handle_Cs_file");
     // cout << files_Cs_ids_this_proc.size() << "\n";
-    librpa_int::envs::ofs_myid << "Number of Cs files to process: " << files_Cs_ids_this_proc.size() << "\n";
+    librpa_int::global::ofs_myid << "Number of Cs files to process: " << files_Cs_ids_this_proc.size() << "\n";
     for (const auto& fn_ids: files_Cs_ids_this_proc)
     {
-        librpa_int::envs::ofs_myid << fn_ids.first << " " << fn_ids.second << endl;
+        librpa_int::global::ofs_myid << fn_ids.first << " " << fn_ids.second << endl;
         if (binary)
         {
             cs_discard += handle_Cs_file_binary_by_ids(fn_ids.first, threshold, fn_ids.second);
@@ -1016,7 +1015,7 @@ size_t read_Vq_full(const string &dir_path, const string &vq_fprefix, bool is_cu
             int retcode = handle_Vq_full_file(file_path, Vq_full, binary);
             if (retcode != 0)
             {
-                librpa_int::utils::lib_printf("Error encountered when reading %s, return code %d", fm.c_str(), retcode);
+                librpa_int::global::lib_printf("Error encountered when reading %s, return code %d", fm.c_str(), retcode);
             }
         }
     }
@@ -1446,7 +1445,7 @@ void erase_Cs_from_local_atp(atpair_R_mat_t &Cs, vector<atpair_t> &local_atpair)
     //         Cs.erase(Ip.first);
     //     }
     librpa_int::utils::release_free_mem();
-    librpa_int::utils::lib_printf("| process %d, size of Cs after erase: %lu\n", librpa_int::global::mpi_comm_global_h.myid, Cs.size());
+    librpa_int::global::lib_printf("| process %d, size of Cs after erase: %lu\n", librpa_int::global::mpi_comm_global_h.myid, Cs.size());
 }
 
 void read_stru(const int& n_kpoints, const std::string &file_path)

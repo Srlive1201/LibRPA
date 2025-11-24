@@ -1,5 +1,5 @@
 #include "../mpi/base_mpi.h"
-#include "../io/envs_io.h"
+#include "../io/global_io.h"
 
 #include "testutils.h"
 

@@ -13,11 +13,10 @@
 #include "../math/utils_matrix_mpi.h"
 #include "../mpi/global_mpi.h"
 #include "../utils/constants.h"
-#include "../io/envs_io.h"
+#include "../io/global_io.h"
 #include "../utils/libri_utils.h"
 #include "../utils/profiler.h"
 #include "../io/stl_io_helper.h"
-#include "../io/utils_io.h"
 #include "../utils/utils_mem.h"
 #include "atomic_basis.h"
 #include "params.h"
@@ -35,8 +34,8 @@ namespace librpa_int {
 using librpa_int::global::mpi_comm_global_h;
 using librpa_int::ParallelRouting;
 using librpa_int::parallel_routing;
-using librpa_int::envs::ofs_myid;
-using librpa_int::utils::lib_printf;
+using librpa_int::global::ofs_myid;
+using librpa_int::global::lib_printf;
 
 Chi0::Chi0(const MeanField &mf_in, const vector<Vector3_Order<double>> &klist_in,
            const TFGrids &tfg_in)
@@ -77,10 +76,10 @@ void Chi0::build(const Cs_LRI &Cs,
         {
             const auto atpairs_gf = generate_atom_pair_from_nat(natom, true);
             if (mpi_comm_global_h.is_root())
-                librpa_int::utils::lib_printf("Total count of GFs IJR: %zu\n", atpairs_gf.size() * Rlist_gf.size());
+                librpa_int::global::lib_printf("Total count of GFs IJR: %zu\n", atpairs_gf.size() * Rlist_gf.size());
             this->IJRs_gf_local = librpa_int::dispatch_vector_prod(
                 atpairs_gf, Rlist_gf, mpi_comm_global_h.myid, mpi_comm_global_h.nprocs, true, true);
-            librpa_int::utils::lib_printf("| Number of GFs IJR on Proc %4d: %zu\n",
+            librpa_int::global::lib_printf("| Number of GFs IJR on Proc %4d: %zu\n",
                                       mpi_comm_global_h.myid, this->IJRs_gf_local.size());
         }
         else
@@ -97,9 +96,9 @@ void Chi0::build(const Cs_LRI &Cs,
         if (mpi_comm_global_h.is_root())
         {
             // cout << " Green threshold: " << gf_R_threshold << endl;
-            librpa_int::utils::lib_printf("Finished construction of R-space Green's function\n");
-            librpa_int::utils::lib_printf("| Saved Green's function:     %zu\n", gf_save);
-            librpa_int::utils::lib_printf("| Discarded Green's function: %zu\n\n", gf_discard);
+            librpa_int::global::lib_printf("Finished construction of R-space Green's function\n");
+            librpa_int::global::lib_printf("| Saved Green's function:     %zu\n", gf_save);
+            librpa_int::global::lib_printf("| Discarded Green's function: %zu\n\n", gf_discard);
         }
         build_chi0_q_space_time(Cs, R_period, atpairs_ABF, qlist);
     }
@@ -155,7 +154,7 @@ void Chi0::build_gf_Rt(Vector3_Order<int> R, double tau)
         {
             double ang = - klist[ik] * (R * latvec) * TWO_PI;
             complex<double> kphase = complex<double>(cos(ang), sin(ang));
-            /* librpa_int::utils::lib_printf("kphase %f %fj\n", kphase.real(), kphase.imag()); */
+            /* librpa_int::global::lib_printf("kphase %f %fj\n", kphase.real(), kphase.imag()); */
             auto scaled_wfc_conj = conj(mf.get_eigenvectors()[is][ik]);
             for ( int ib = 0; ib != nbands; ib++)
                 LapackConnector::scal(naos, scale(ik, ib), scaled_wfc_conj.c + naos * ib, 1);
@@ -193,7 +192,7 @@ void Chi0::build_gf_Rt(Vector3_Order<int> R, double tau)
                 }
                 else
                 {
-                    // librpa_int::utils::lib_printf("Discarding GF of spin %1d, IJR {%d, %d, (%d, %d, %d)}, t %f\n",
+                    // librpa_int::global::lib_printf("Discarding GF of spin %1d, IJR {%d, %d, (%d, %d, %d)}, t %f\n",
                     //        is, I, J, R.x, R.y, R.z, tau);
                     gf_discard++;
                 }
@@ -829,7 +828,7 @@ matrix Chi0::compute_chi0_s_munu_tau_R(const atpair_R_mat_t &Cs_IJR,
     {
         const auto L_index = L_pair.first;
         const size_t l_num = atom_nw[L_index];
-        /* librpa_int::utils::lib_printf("     begin is loop\n"); */
+        /* librpa_int::global::lib_printf("     begin is loop\n"); */
         if (gf_R_tau.at(I_index).count(L_index))
         {
             for (const auto &R2_index : L_pair.second)
@@ -842,7 +841,7 @@ matrix Chi0::compute_chi0_s_munu_tau_R(const atpair_R_mat_t &Cs_IJR,
                 if (gf_R_tau.at(I_index).at(L_index).count(R_temp_2))
                 {
                     assert(j_num * l_num == (*Cs_mat2).nr);
-                    /* librpa_int::utils::lib_printf("          thread: %d, X_R2 IJL:   %zu,%zu,%zu  R:(  %d,%d,%d  )  tau:%f\n",omp_get_thread_num(),I_index,J_index,L_index,R.x,R.y,R.z,time_tau); */
+                    /* librpa_int::global::lib_printf("          thread: %d, X_R2 IJL:   %zu,%zu,%zu  R:(  %d,%d,%d  )  tau:%f\n",omp_get_thread_num(),I_index,J_index,L_index,R.x,R.y,R.z,time_tau); */
                     matrix Cs2_reshape(reshape_Cs(j_num, l_num, nu_num, Cs_mat2));
 
                     if (gf_R_tau.at(I_index).at(L_index).at(R_temp_2).count(tau))
@@ -904,7 +903,7 @@ matrix Chi0::compute_chi0_s_munu_tau_R(const atpair_R_mat_t &Cs_IJR,
                                 {
 
                                     assert(j_num * l_num == (*Cs_mat2).nr);
-                                    // librpa_int::utils::lib_printf("          thread: %d, IJKL:   %d,%d,%d,%d  R:(  %d,%d,%d  )  tau:%f\n",omp_get_thread_num(),I_index,J_index,K_index,L_index,R.x,R.y,R.z,time_tau);
+                                    // librpa_int::global::lib_printf("          thread: %d, IJKL:   %d,%d,%d,%d  R:(  %d,%d,%d  )  tau:%f\n",omp_get_thread_num(),I_index,J_index,K_index,L_index,R.x,R.y,R.z,time_tau);
                                     matrix Cs2_reshape(reshape_Cs(j_num, l_num, nu_num, Cs_mat2));
                                     if (flag_G_IJRNt && gf_R_tau.at(K_index).at(L_index).at(R_temp_1).count(tau))
                                     {

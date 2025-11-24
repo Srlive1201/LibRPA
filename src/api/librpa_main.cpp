@@ -9,25 +9,26 @@
 #include "../core/params.h"
 #include "../core/pbc.h"
 #include "../mpi/envs_blacs.h"
-#include "../io/envs_io.h"
-#include "../io/utils_io.h"
+#include "../io/global_io.h"
 #include "../mpi/global_mpi.h"
 #include "../utils/profiler.h"
 #include "../utils/utils_mem.h"
+
+#include "../driver/driver_params.h"
 
 void librpa_main()
 {
     using namespace librpa_int;
     using librpa_int::global::mpi_comm_global_h;
     using librpa_int::envs::blacs_ctxt_global_h;
-    using librpa_int::utils::lib_printf;
-    using librpa_int::envs::ofs_myid;
+    using librpa_int::global::lib_printf;
+    using librpa_int::global::ofs_myid;
     //printf("AFTER init MPI  myid: %d\n",mpi_comm_global_h.myid);
     // mpi_comm_global_h.barrier();
 
     if (mpi_comm_global_h.is_root())
     {
-        librpa_int::utils::lib_printf("LibRPA control parameters:\n");
+        lib_printf("LibRPA control parameters: %d\n");
         Params::print();
     }
     for(auto &p:atom_nw)
@@ -48,7 +49,7 @@ void librpa_main()
     //         for(auto &Rp:Jp.second)
     //         {
     //             auto R=Rp.first;
-    //             librpa_int::utils::lib_printf("Cs  myid : %d   I: %d, J: %d, R:(%d, %d, %d)\n",mpi_comm_global_h.myid, Ip.first,Jp.first,R.x,R.y,R.z);
+    //             librpa_int::global::lib_printf("Cs  myid : %d   I: %d, J: %d, R:(%d, %d, %d)\n",mpi_comm_global_h.myid, Ip.first,Jp.first,R.x,R.y,R.z);
     //         }
 
     
@@ -63,7 +64,7 @@ void librpa_main()
             for (auto &qp : Jp.second)
             {
                 auto q = qp.first;
-                // librpa_int::utils::lib_printf("allreduce Vq myid : %d   I: %d, J: %d, q:(%f, %f, %f)\n",mpi_comm_global_h.myid, Ip.first,Jp.first,q.x,q.y,q.z);
+                // librpa_int::global::lib_printf("allreduce Vq myid : %d   I: %d, J: %d, q:(%f, %f, %f)\n",mpi_comm_global_h.myid, Ip.first,Jp.first,q.x,q.y,q.z);
                 // print_complex_matrix("vq",*qp.second);
             }
     // for(auto vq_p:Vq)
@@ -126,18 +127,18 @@ void librpa_main()
         latvec.print();
         cout << "Reciprocal lattice vectors (2PI Bohr^-1)" << endl;
         G.print();
-        librpa_int::utils::lib_printf("kgrids: %2d %2d %2d\n", kv_nmp[0], kv_nmp[1], kv_nmp[2]);
+        lib_printf("kgrids: %2d %2d %2d\n", kv_nmp[0], kv_nmp[1], kv_nmp[2]);
         cout << "k-points read (Cartisian in 2Pi Bohr^-1 | fractional):" << endl;
         for (int ik = 0; ik != meanfield.get_n_kpoints(); ik++)
         {
-            librpa_int::utils::lib_printf("ik %4d: %10.7f %10.7f %10.7f | %10.7f %10.7f %10.7f\n",
+            lib_printf("ik %4d: %10.7f %10.7f %10.7f | %10.7f %10.7f %10.7f\n",
                    ik+1, klist[ik].x, klist[ik].y, klist[ik].z,
                    kfrac_list[ik].x, kfrac_list[ik].y, kfrac_list[ik].z);
         }
         cout << "R-points to compute:" << endl;
         for (int iR = 0; iR != Rlist.size(); iR++)
         {
-            librpa_int::utils::lib_printf("iR %4d: %3d %3d %3d\n", iR+1, Rlist[iR].x, Rlist[iR].y, Rlist[iR].z);
+            lib_printf("iR %4d: %3d %3d %3d\n", iR+1, Rlist[iR].x, Rlist[iR].y, Rlist[iR].z);
         }
         cout << endl;
     }
@@ -169,9 +170,9 @@ void librpa_main()
         // std::pair<std::vector<int>, std::vector<std::vector<std::pair<int, std::array<int, 3>>>>> list_loc_atp
         // = RI::Distribute_Equally::distribute_atoms(mpi_comm_global_h.comm, atoms_list, period_arr, 2, false);
         // // for(auto &atp:list_loc_atp.first)
-        // //     librpa_int::utils::lib_printf("| myid: %d   atp.first: %d\n",mpi_comm_global_h.myid,atp);
+        // //     librpa_int::global::lib_printf("| myid: %d   atp.first: %d\n",mpi_comm_global_h.myid,atp);
         // // for(auto &atps:list_loc_atp.second)
-        // //     librpa_int::utils::lib_printf("| myid: %d   atp.second: %d\n",mpi_comm_global_h.myid,atps);
+        // //     librpa_int::global::lib_printf("| myid: %d   atp.second: %d\n",mpi_comm_global_h.myid,atps);
         // std::ofstream ofs("out."+std::to_string(RI::MPI_Wrapper::mpi_get_rank(mpi_comm_global)));
         // for(auto &af:list_loc_atp.first)
 		//     ofs<<af<<"  ";
@@ -183,11 +184,11 @@ void librpa_main()
         //local_atpair = dispatch_vector(tot_atpair, mpi_comm_global_h.myid, mpi_comm_global_h.nprocs, true);
         for(auto &iap:trangular_loc_atpair)
             local_atpair.push_back(iap);
-        librpa_int::utils::lib_printf("| process %d , local_atom_pair size:  %zu\n", mpi_comm_global_h.myid, local_atpair.size());
+        lib_printf("| process %d , local_atom_pair size:  %zu\n", mpi_comm_global_h.myid, local_atpair.size());
 
-        librpa_int::utils::lib_printf("| process %d, size of Cs from local_atpair: %lu\n", mpi_comm_global_h.myid, Cs_data.data_IJR.size());
+        lib_printf("| process %d, size of Cs from local_atpair: %lu\n", mpi_comm_global_h.myid, Cs_data.data_IJR.size());
         // for(auto &ap:local_atpair)
-        //     librpa_int::utils::lib_printf("   |process %d , local_atom_pair:  %d,  %d\n", mpi_comm_global_h.myid,ap.first,ap.second);
+        //     librpa_int::global::lib_printf("   |process %d , local_atom_pair:  %d,  %d\n", mpi_comm_global_h.myid,ap.first,ap.second);
     }
     else
     {
@@ -196,7 +197,7 @@ void librpa_main()
             allreduce_atp_coulomb(Vq);
     }
     // debug, check available Coulomb blocks on each process
-    librpa_int::envs::ofs_myid << "Read Coulomb blocks in process\n";
+    ofs_myid << "Read Coulomb blocks in process\n";
     for (const auto& IJqcoul: Vq)
     {
         const auto& I = IJqcoul.first;
@@ -205,11 +206,11 @@ void librpa_main()
             const auto& J = Jqcoul.first;
             for (const auto& qcoul: Jqcoul.second)
             {
-                librpa_int::envs::ofs_myid << I << " " << J << " " << qcoul.first << "\n";
+                ofs_myid << I << " " << J << " " << qcoul.first << "\n";
             }
         }
     }
-    std::flush(librpa_int::envs::ofs_myid);
+    std::flush(ofs_myid);
     mpi_comm_global_h.barrier();
     Profiler::stop("driver_io_init");
 
@@ -310,7 +311,7 @@ void librpa_main()
         //     Cs.erase(Cp.first);
         // }
         Cs_data.clear();
-        librpa_int::utils::lib_printf("Cs have been cleaned!\n");
+        lib_printf("Cs have been cleaned!\n");
     }
 
     librpa_int::utils::release_free_mem();

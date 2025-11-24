@@ -1,7 +1,7 @@
 #include "utils_timefreq.h"
 
 #include "../mpi/global_mpi.h"
-#include "../io/utils_io.h"
+#include "../io/global_io.h"
 
 
 namespace librpa_int
@@ -55,7 +55,7 @@ TFGrids generate_timefreq_grids(unsigned ngrids, const std::string &grid_type_st
         {
             if (global::mpi_comm_global_h.is_root())
             {
-                librpa_int::utils::lib_printf("Cosine transform duality error: %20.12f\n", retval);
+                librpa_int::global::lib_printf("Cosine transform duality error: %20.12f\n", retval);
             }
         }
         default:

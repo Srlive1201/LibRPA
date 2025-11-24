@@ -10,7 +10,7 @@
 #include "../src/core/ri.h"
 #include "../src/mpi/global_mpi.h"
 #include "../src/utils/constants.h"
-#include "../src/io/envs_io.h"
+#include "../src/io/global_io.h"
 #include "../src/utils/profiler.h"
 #include "driver_params.h"
 #include "read_data.h"
@@ -18,8 +18,8 @@
 void task_exx_band()
 {
     using librpa_int::global::mpi_comm_global_h;
-    using librpa_int::envs::ofs_myid;
-    using librpa_int::utils::lib_printf;
+    using librpa_int::global::ofs_myid;
+    using librpa_int::global::lib_printf;
 
     Profiler::start("exx_band");
 

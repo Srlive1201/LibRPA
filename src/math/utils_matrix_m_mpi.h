@@ -113,12 +113,12 @@ void collect_block_from_IJ_storage(
     for (int iI = 0; iI != row_nb; iI++)
     {
         int ilo = ad.indx_g2l_r(row_start_id + iI);
-        // librpa_int::utils::lib_printf("row igo %d ilo %d\n", row_start_id + iI, ilo);
+        // librpa_int::global::lib_printf("row igo %d ilo %d\n", row_start_id + iI, ilo);
         if (ilo < 0) continue;
         for (int jJ = 0; jJ != col_nb; jJ++)
         {
             int jlo = ad.indx_g2l_c(col_start_id + jJ);
-            // librpa_int::utils::lib_printf("col jgo %d jlo %d\n", col_start_id + jJ, jlo);
+            // librpa_int::global::lib_printf("col jgo %d jlo %d\n", col_start_id + jJ, jlo);
             if (jlo < 0) continue;
             // cout << "pickerID " << picker(row_nb, iI, col_nb, jJ) << " " << pvIJ[picker(row_nb, iI, col_nb, jJ)] << " matloc befor " << mat_lo(ilo, jlo);
             mat_lo(ilo, jlo) += alpha * pvIJ[picker(row_nb, iI, col_nb, jJ)];
@@ -157,7 +157,7 @@ void collect_block_from_IJ_storage_tensor(
             int j_gl = ad.indx_l2g_c(jlo);
             atbasis_col.get_local_index(j_gl, J_loc, j_ab);
             //Tdst temp;
-            // librpa_int::utils::lib_printf("i_gl I_loc i_ab %d %d %d j_gl J_loc j_ab %d %d %d\n", i_gl, I_loc, i_ab, j_gl, J_loc, j_ab);
+            // librpa_int::global::lib_printf("i_gl I_loc i_ab %d %d %d j_gl J_loc j_ab %d %d %d\n", i_gl, I_loc, i_ab, j_gl, J_loc, j_ab);
             tmp_loc_row[jlo] = TMAP.at(I_loc).at({J_loc, cell})(i_ab, j_ab);
         }
         Tdst *row_ptr=tmp_loc.ptr() + ilo* ad.n_loc();
@@ -262,7 +262,7 @@ void collect_block_from_IJ_storage_syhe(
             atbasis.get_local_index(i_gl, I_loc, i_ab);
             atbasis.get_local_index(j_gl, J_loc, j_ab);
             Tdst temp;
-            // librpa_int::utils::lib_printf("i_gl I_loc i_ab %d %d %d j_gl J_loc j_ab %d %d %d\n", i_gl, I_loc, i_ab, j_gl, J_loc, j_ab);
+            // librpa_int::global::lib_printf("i_gl I_loc i_ab %d %d %d j_gl J_loc j_ab %d %d %d\n", i_gl, I_loc, i_ab, j_gl, J_loc, j_ab);
             if ((I_loc == I) && (J_loc == J))
             {
                 // in the same block
@@ -297,12 +297,12 @@ void collect_block_from_ALL_IJ_Tensor(
     size_t cp_size= ad.n_loc()*sizeof(Tdst);
 
 #ifdef LIBRPA_DEBUG
-    librpa_int::envs::ofs_myid << "cp_size: " << cp_size << endl;
-    librpa_int::envs::ofs_myid << "Available TMAP keys: ";
-    print_keys(librpa_int::envs::ofs_myid, TMAP);
-    librpa_int::envs::ofs_myid << endl;
-    librpa_int::envs::ofs_myid << "mat_lo dims: " << mat_lo.nr() << " " << mat_lo.nc() << endl;
-    librpa_int::envs::ofs_myid << "ad_loc dims: " << ad.m_loc() << " " << ad.n_loc() << endl;
+    librpa_int::global::ofs_myid << "cp_size: " << cp_size << endl;
+    librpa_int::global::ofs_myid << "Available TMAP keys: ";
+    print_keys(librpa_int::global::ofs_myid, TMAP);
+    librpa_int::global::ofs_myid << endl;
+    librpa_int::global::ofs_myid << "mat_lo dims: " << mat_lo.nr() << " " << mat_lo.nc() << endl;
+    librpa_int::global::ofs_myid << "ad_loc dims: " << ad.m_loc() << " " << ad.n_loc() << endl;
 #endif
 
     omp_lock_t mat_lock;
@@ -322,7 +322,7 @@ void collect_block_from_ALL_IJ_Tensor(
 
             atbasis.get_local_index(j_gl, J_loc, j_ab);
             //Tdst temp;
-            // librpa_int::utils::lib_printf("i_gl I_loc i_ab %d %d %d j_gl J_loc j_ab %d %d %d\n", i_gl, I_loc, i_ab, j_gl, J_loc, j_ab);
+            // librpa_int::global::lib_printf("i_gl I_loc i_ab %d %d %d j_gl J_loc j_ab %d %d %d\n", i_gl, I_loc, i_ab, j_gl, J_loc, j_ab);
             if(I_loc<=J_loc)
             {
                 tmp_loc_row[jlo]= TMAP.at(I_loc).at({J_loc, cell})(i_ab,j_ab);
@@ -495,7 +495,7 @@ matrix_m<std::complex<T>> power_hemat_blacs(matrix_m<std::complex<T>> &A_local,
                                             size_t &n_filtered, T *W, T power,
                                             const T &threshold = -1.e5)
 {
-    using librpa_int::envs::ofs_myid;
+    using librpa_int::global::ofs_myid;
 
     assert (A_local.is_col_major() && Z_local.is_col_major());
     const bool is_int_power = fabs(power - int(power)) < 1e-4;
@@ -534,7 +534,7 @@ matrix_m<std::complex<T>> power_hemat_blacs(matrix_m<std::complex<T>> &A_local,
         rwork = new T[1];
         // query the optimal lwork and lrwork
         T *Wquery = new T[1];
-        // librpa_int::utils::lib_printf("power_hemat_blacs descA %s\n", ad_A.info_desc().c_str());
+        // librpa_int::global::lib_printf("power_hemat_blacs descA %s\n", ad_A.info_desc().c_str());
         ScalapackConnector::pheev_f(jobz, uplo,
                 n, A_local_opt.ptr(), 1, 1, ad_A_opt.desc,
                 Wquery, Z_local_opt.ptr(), 1, 1, ad_A_opt.desc, work, lwork, rwork, lrwork, info);
@@ -581,11 +581,11 @@ matrix_m<std::complex<T>> power_hemat_blacs(matrix_m<std::complex<T>> &A_local,
     {
         if (W[i] < 0 && !is_int_power)
         {
-            librpa_int::utils::lib_printf("Warning! unfiltered negative eigenvalue with non-integer power: # %d ev = %f , pow = %f\n", i, W[i], power);
+            librpa_int::global::lib_printf("Warning! unfiltered negative eigenvalue with non-integer power: # %d ev = %f , pow = %f\n", i, W[i], power);
         }
         if (fabs(W[i]) < 1e-10 && power < 0)
         {
-            librpa_int::utils::lib_printf("Warning! unfiltered nearly-singular eigenvalue with negative power: # %d ev = %f , pow = %f\n", i, W[i], power);
+            librpa_int::global::lib_printf("Warning! unfiltered nearly-singular eigenvalue with negative power: # %d ev = %f , pow = %f\n", i, W[i], power);
         }
         W_temp[i] = std::pow(W[i], power);
     }
@@ -593,7 +593,7 @@ matrix_m<std::complex<T>> power_hemat_blacs(matrix_m<std::complex<T>> &A_local,
     // debug print
     // for (int i = 0; i != n; i++)
     // {
-    //     librpa_int::utils::lib_printf("%d %f %f\n", i, W[i], W_temp[i]);
+    //     librpa_int::global::lib_printf("%d %f %f\n", i, W[i], W_temp[i]);
     // }
 
     Profiler::start("power_hemat_blacs_5");
@@ -697,7 +697,7 @@ void invert_scalapack(matrix_m<T> &m_loc, const librpa_int::ArrayDesc &desc_m)
     {
         // NOTE: use local leading dimension desc_m.lld() will lead to invalid pointer error
         int *ipiv = new int [desc_m.m()];
-        // librpa_int::utils::lib_printf("invert_scalpack desc %s\n", desc_m.info_desc().c_str());
+        // librpa_int::global::lib_printf("invert_scalpack desc %s\n", desc_m.info_desc().c_str());
         ScalapackConnector::pgetrf_f(desc_m.m(), desc_m.n(), m_loc.ptr(), 1, 1, desc_m.desc, ipiv, info);
         // get optimized work size
         int lwork = -1, liwork = -1;
@@ -707,7 +707,7 @@ void invert_scalapack(matrix_m<T> &m_loc, const librpa_int::ArrayDesc &desc_m)
             ScalapackConnector::pgetri_f(desc_m.m(), m_loc.ptr(), 1, 1, desc_m.desc, ipiv, work, lwork, iwork, liwork, info);
             lwork = int(get_real(work[0]));
             liwork = iwork[0];
-            // librpa_int::utils::lib_printf("lwork %d liwork %d\n", lwork, liwork);
+            // librpa_int::global::lib_printf("lwork %d liwork %d\n", lwork, liwork);
             delete [] work;
             delete [] iwork;
         }
@@ -718,7 +718,7 @@ void invert_scalapack(matrix_m<T> &m_loc, const librpa_int::ArrayDesc &desc_m)
         delete [] iwork;
         delete [] work;
         delete [] ipiv;
-        // librpa_int::utils::lib_printf("done free\n");
+        // librpa_int::global::lib_printf("done free\n");
     }
     else
     {
@@ -783,7 +783,7 @@ void fill_local_mat_from_ap_dist_scheduler(matrix_m<T> &m_loc,
 
     // prepare send buffer (from AP blocks)
     Profiler::start("prep_send_ap2blacs");
-    // envs::ofs_myid << "prep_send_ap2blacs total_count_ap " << sched.total_count_ap << endl;
+    // global::ofs_myid << "prep_send_ap2blacs total_count_ap " << sched.total_count_ap << endl;
     std::vector<T> sendbuff(sched.total_count_ap);
     #pragma omp parallel for
     for (MPI_Count i = 0; i < sched.total_count_ap; i++)
@@ -830,7 +830,7 @@ void fill_local_mat_from_ap_dist_scheduler(matrix_m<T> &m_loc,
 
     // Map the received data to the correct location in the BLACS sub-block
     Profiler::start("assign_ap2blacs");
-    // envs::ofs_myid << "assign_ap2blacs total_count_blacs " << sched.total_count_blacs << endl;
+    // global::ofs_myid << "assign_ap2blacs total_count_blacs " << sched.total_count_blacs << endl;
     #pragma omp parallel for
     for (MPI_Count i = 0; i < sched.total_count_blacs; i++)
     {

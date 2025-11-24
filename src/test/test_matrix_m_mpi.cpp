@@ -3,7 +3,7 @@
 #include "../math/utils_matrix_m_mpi.h"
 #include "../mpi/envs_blacs.h"
 #include "../mpi/utils_blacs.h"
-#include "../io/envs_io.h"
+#include "../src/io/global_io.h"
 #include "../io/stl_io_helper.h"
 #include "testutils.h"
 
@@ -1032,12 +1032,12 @@ static void initialize()
 {
     init_global_mpi();
     initialize_blacs(MPI_COMM_WORLD);
-    initialize_io();
+    init_global_io();
 }
 
 static void finalize()
 {
-    finalize_io();
+    finalize_global_io();
     finalize_blacs();
     finalize_global_mpi();
 }

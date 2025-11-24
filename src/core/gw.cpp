@@ -8,13 +8,11 @@
 #include "../math/utils_matrix_m_mpi.h"
 #include "../mpi/envs_blacs.h"
 #include "../mpi/global_mpi.h"
-#include "../io/utils_mpi_io.h"
 #include "../utils/constants.h"
-#include "../io/envs_io.h"
+#include "../io/global_io.h"
 #include "../utils/libri_utils.h"
 #include "../utils/profiler.h"
 #include "../io/stl_io_helper.h"
-#include "../io/utils_io.h"
 #include "../utils/utils_mem.h"
 #include "atomic_basis.h"
 #include "epsilon.h"
@@ -68,10 +66,10 @@ void G0W0::build_spacetime(
         throw std::logic_error("not implemented");
     }
 
-    librpa_int::utils::lib_printf_root("Calculating correlation self-energy by space-time method\n");
+    librpa_int::global::lib_printf_root("Calculating correlation self-energy by space-time method\n");
     if (!tfg.has_time_grids())
     {
-        librpa_int::utils::lib_printf_root("Parsed time-frequency object do not have time grids, exiting\n");
+        librpa_int::global::lib_printf_root("Parsed time-frequency object do not have time grids, exiting\n");
         mpi_comm_global_h.barrier();
         throw std::logic_error("no time grids");
     }
@@ -91,7 +89,7 @@ void G0W0::build_spacetime(
     // Transform from frequency/reciprocal to time/real-space
     Profiler::start("g0w0_build_spacetime_ct_ft_wc", "Tranform Wc (q,w) -> (R,t)");
     Profiler::start("g0w0_build_spacetime_ct_ft_real_work", "Perform transformation");
-    // envs::ofs_myid << Wc_freq_q.at(tfg.get_freq_nodes()[0]) << endl;
+    // global::ofs_myid << Wc_freq_q.at(tfg.get_freq_nodes()[0]) << endl;
     auto Wc_tau_R_blacs = CT_FT_Wc_freq_q(Wc_freq_q, tfg, meanfield.get_n_kpoints(), Rlist, true, MAJOR::ROW);
     utils::release_free_mem();
     Profiler::stop("g0w0_build_spacetime_ct_ft_real_work");
@@ -113,7 +111,7 @@ void G0W0::build_spacetime(
             auto pair_mat = utils::get_ap_map_from_blacs_dist_scheduler(mat_blacs, sched, atomic_basis_abf, atomic_basis_abf, envs::array_desc_abf_global);
             // if (tau == tfg.get_time_nodes()[0])
             // {
-            //     librpa_int::envs::ofs_myid << pair_mat << endl;
+            //     librpa_int::global::ofs_myid << pair_mat << endl;
             // }
             // if (Params::debug)
             // {
@@ -132,14 +130,14 @@ void G0W0::build_spacetime(
                 const auto &nabf_J = atomic_basis_abf.get_atom_nb(J);
                 tau_Wc_libri[tau][I][{J, {R.x, R.y, R.z}}] = RI::Tensor<double>({nabf_I, nabf_J}, mat_ap.get_real().sptr());
             }
-            // envs::ofs_myid << "tau " << tau << endl << tau_Wc_libri[tau] << endl;
+            // global::ofs_myid << "tau " << tau << endl << tau_Wc_libri[tau] << endl;
             mat_blacs.clear();
             Profiler::stop("g0w0_build_spacetime_prep_Wc_all");
         }
     }
     Profiler::stop("g0w0_build_spacetime_ct_ft_wc");
 
-    librpa_int::utils::lib_printf_root("Time for Fourier transform of Wc in GW (seconds, Wall/CPU): %f %f\n",
+    librpa_int::global::lib_printf_root("Time for Fourier transform of Wc in GW (seconds, Wall/CPU): %f %f\n",
             Profiler::get_wall_time_last("g0w0_build_spacetime_ct_ft_wc"),
             Profiler::get_cpu_time_last("g0w0_build_spacetime_ct_ft_wc"));
 
@@ -153,12 +151,12 @@ void G0W0::build_spacetime(
     gw_libri.set_parallel(mpi_comm_global_h.comm, atoms_pos, lat_array, period_array);
     gw_libri.set_Cs(Cs_data.data_libri, Params::libri_g0w0_threshold_C);
     Profiler::stop("g0w0_build_spacetime_2");
-    librpa_int::utils::lib_printf_root("Time for LibRI G0W0 setup (seconds, Wall/CPU): %f %f\n",
+    librpa_int::global::lib_printf_root("Time for LibRI G0W0 setup (seconds, Wall/CPU): %f %f\n",
             Profiler::get_wall_time_last("g0w0_build_spacetime_2"),
             Profiler::get_cpu_time_last("g0w0_build_spacetime_2"));
 
     auto IJR_local_gf = dispatch_vector_prod(tot_atpair_ordered, Rlist, mpi_comm_global_h.myid, mpi_comm_global_h.nprocs, true, false);
-    envs::ofs_myid << "IJR_local_gf: " << IJR_local_gf << endl;
+    global::ofs_myid << "IJR_local_gf: " << IJR_local_gf << endl;
     std::set<Vector3_Order<int>> Rs_local;
     for (const auto &IJR: IJR_local_gf)
     {
@@ -167,9 +165,9 @@ void G0W0::build_spacetime(
 
     for (auto itau = 0; itau != tfg.get_n_grids(); itau++)
     {
-        // librpa_int::utils::lib_printf("task %d itau %d start\n", mpi_comm_global_h.myid, itau);
+        // librpa_int::global::lib_printf("task %d itau %d start\n", mpi_comm_global_h.myid, itau);
         const auto tau = tfg.get_time_nodes()[itau];
-        // librpa_int::utils::lib_printf("task %d Wc_tau_R.count(tau) %zu\n", mpi_comm_global_h.myid, Wc_tau_R.count(tau));
+        // librpa_int::global::lib_printf("task %d Wc_tau_R.count(tau) %zu\n", mpi_comm_global_h.myid, Wc_tau_R.count(tau));
         auto it = tau_Wc_libri.find(tau);
         const auto &Wc_libri = (it == tau_Wc_libri.end())? tensor_map{} : it->second;
         size_t n_obj_wc_libri = 0;
@@ -189,8 +187,8 @@ void G0W0::build_spacetime(
 
             Profiler::start("g0w0_build_spacetime_4", "Compute G(R,t) and G(R,-t)");
             auto gf = mf.get_gf_real_imagtimes_Rs(ispin, kfrac_list, {tau, -tau}, {Rs_local.cbegin(), Rs_local.cend()});
-            // envs::ofs_myid << "gf size " << gf.size() << endl;
-            // envs::ofs_myid << "t " << gf[tau].size() << " ; -t " << gf[-tau].size() << endl;
+            // global::ofs_myid << "gf size " << gf.size() << endl;
+            // global::ofs_myid << "t " << gf[tau].size() << " ; -t " << gf[-tau].size() << endl;
             std::map<double, std::map<int, std::map<std::pair<int, std::array<int, 3>>, RI::Tensor<double>>>> tau_gf_libri;
             for (auto t: {tau, -tau})
             {
@@ -223,7 +221,7 @@ void G0W0::build_spacetime(
             }
             gf.clear();
             Profiler::stop("g0w0_build_spacetime_4");
-            librpa_int::utils::lib_printf_root("Time for Green's function, i_spin %d i_tau %d (seconds, Wall/CPU): %f %f\n",
+            librpa_int::global::lib_printf_root("Time for Green's function, i_spin %d i_tau %d (seconds, Wall/CPU): %f %f\n",
                     ispin + 1, itau + 1,
                     Profiler::get_wall_time_last("g0w0_build_spacetime_4"),
                     Profiler::get_cpu_time_last("g0w0_build_spacetime_4"));
@@ -246,7 +244,7 @@ void G0W0::build_spacetime(
 
                 // Check size of data
                 double mem_mb = get_tensor_map_bytes(gw_libri.Sigmas) * 1e-6;
-                envs::ofs_myid << "Temporary Sigc_tau size for time " << t << " [MB]: " << mem_mb << endl;
+                global::ofs_myid << "Temporary Sigc_tau size for time " << t << " [MB]: " << mem_mb << endl;
 
                 if (t > 0)
                     sigc_posi_tau = std::move(gw_libri.Sigmas);
@@ -255,7 +253,7 @@ void G0W0::build_spacetime(
                 gw_libri.Sigmas.clear();
 
                 wtime_g0w0_cal_sigc = omp_get_wtime() - wtime_g0w0_cal_sigc;
-                librpa_int::utils::lib_printf("Task %4d. libRI G0W0, spin %1d, time grid %12.6f. Wc size %zu, GF size %zu. Wall time %f\n",
+                librpa_int::global::lib_printf("Task %4d. libRI G0W0, spin %1d, time grid %12.6f. Wc size %zu, GF size %zu. Wall time %f\n",
                        mpi_comm_global_h.myid, ispin, t, n_obj_wc_libri, n_obj_gf_libri, wtime_g0w0_cal_sigc);
             }
 
@@ -426,7 +424,7 @@ void G0W0::build_sigc_matrix_KS(const std::vector<std::vector<ComplexMatrix>> &w
     assert(this->is_rspace_built_);
     if (this->is_kspace_built_)
     {
-        utils::lib_printf("Warning: reset Sigmac_c k-space matrices\n");
+        global::lib_printf("Warning: reset Sigmac_c k-space matrices\n");
         this->reset_kspace();
     }
 
@@ -594,7 +592,7 @@ void G0W0::build_sigc_matrix_KS_kgrid()
     librpa_int::global::mpi_comm_global_h.barrier();
     if (librpa_int::global::mpi_comm_global_h.myid == 0)
     {
-        librpa_int::utils::lib_printf("build_sigc_matrix_KS_kgrid: constructing self-energy matrix for SCF k-grid\n");
+        librpa_int::global::lib_printf("build_sigc_matrix_KS_kgrid: constructing self-energy matrix for SCF k-grid\n");
     }
     this->build_sigc_matrix_KS(this->mf.get_eigenvectors(), this->kfrac_list);
 }
@@ -605,7 +603,7 @@ void G0W0::build_sigc_matrix_KS_band(const std::vector<std::vector<ComplexMatrix
     librpa_int::global::mpi_comm_global_h.barrier();
     if (librpa_int::global::mpi_comm_global_h.myid == 0)
     {
-        librpa_int::utils::lib_printf("build_sigc_matrix_KS_kgrid: constructing self-energy matrix for band k-path\n");
+        librpa_int::global::lib_printf("build_sigc_matrix_KS_kgrid: constructing self-energy matrix for band k-path\n");
     }
     this->build_sigc_matrix_KS(wfc, kfrac_band);
 }

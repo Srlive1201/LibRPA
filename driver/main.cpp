@@ -2,7 +2,7 @@
 #include <omp.h>
 
 #include "../src/core/atomic_basis.h"
-#include "../src/io/envs_io.h"
+#include "../src/io/global_io.h"
 #include "../src/mpi/global_mpi.h"
 #include "../src/mpi/envs_blacs.h"
 #include "../src/core/timefreq.h"
@@ -16,9 +16,8 @@
 #include "read_data.h"
 #include "../src/io/stl_io_helper.h"
 #include "driver_params.h"
-#include "../src/core/task.h"
+#include "task.h"
 #include "../src/utils/utils_cmake.h"
-#include "../src/io/utils_mpi_io.h"
 #include "../src/utils/utils_mem.h"
 
 #include "task_rpa.h"
@@ -32,7 +31,7 @@
 static void initialize(int argc, char **argv)
 {
     using namespace librpa_int::envs;
-    using librpa_int::utils::lib_printf;
+    using librpa_int::global::lib_printf;
     // MPI Initialization
     int provided;
     MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
@@ -51,7 +50,7 @@ static void finalize(bool success)
 {
     using namespace librpa_int::envs;
     using namespace librpa_int::global;
-    using librpa_int::utils::lib_printf;
+    using librpa_int::global::lib_printf;
 
     Profiler::stop("total");
     if (mpi_comm_global_h.is_root())
@@ -80,19 +79,19 @@ int main(int argc, char **argv)
     using librpa_int::ParallelRouting;
     using librpa_int::parallel_routing;
     using librpa_int::task_t;
-    using librpa_int::envs::ofs_myid;
-    using librpa_int::utils::lib_printf;
-    using librpa_int::utils::lib_printf_coll;
-    using librpa_int::utils::lib_printf_root;
-    using librpa_int::utils::lib_printf_comm_coll;
+    using librpa_int::global::ofs_myid;
+    using librpa_int::global::lib_printf;
+    using librpa_int::global::lib_printf_coll;
+    using librpa_int::global::lib_printf_root;
+    using librpa_int::printf_comm_coll;
 
     initialize(argc, argv);
     lib_printf_root("Total number of tasks: %5d\n", librpa_int::global::size_global);
     lib_printf_root("Total number of nodes: %5d\n", librpa_int::global::size_inter);
     lib_printf_root("Maximumal number of threads: %3d\n", omp_get_max_threads());
     mpi_comm_global_h.barrier();
-    lib_printf_comm_coll(librpa_int::global::mpi_comm_intra_h, "Global ID of master process of node %5d : %5d\n",
-                         librpa_int::global::mpi_comm_inter_h.myid, librpa_int::global::mpi_comm_global_h.myid);
+    printf_comm_coll(librpa_int::global::mpi_comm_intra_h, "Global ID of master process of node %5d : %5d\n",
+                     librpa_int::global::mpi_comm_inter_h.myid, librpa_int::global::mpi_comm_global_h.myid);
     mpi_comm_global_h.barrier();
     lib_printf_coll("%s\n", mpi_comm_global_h.str().c_str());
     mpi_comm_global_h.barrier();
@@ -101,7 +100,7 @@ int main(int argc, char **argv)
     if (mpi_comm_global_h.is_root())
     {
         lib_printf("\n");
-        librpa_int::utils::print_cmake_info();
+        librpa_int::print_cmake_info();
         lib_printf("\n");
     }
     mpi_comm_global_h.barrier();
@@ -121,7 +120,7 @@ int main(int argc, char **argv)
 
     // check and set computing task
     task_t task;
-    std::string task_lower = Params::task;
+    std::string task_lower = driver_params.task;
     transform(task_lower.begin(), task_lower.end(), task_lower.begin(), ::tolower);
     if (task_lower == "rpa")
         task = task_t::RPA;
@@ -140,7 +139,7 @@ int main(int argc, char **argv)
     else if (task_lower == "test")
         task = task_t::test;
     else
-        throw std::logic_error("Unknown task (" + Params::task + "). Please check your input");
+        throw std::logic_error("Unknown task (" + driver_params.task + "). Please check your input");
 
 
     if (mpi_comm_global_h.is_root())

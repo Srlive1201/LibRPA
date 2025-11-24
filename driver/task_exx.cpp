@@ -8,7 +8,7 @@
 #include "../src/core/meanfield.h"
 #include "../src/mpi/global_mpi.h"
 #include "../src/utils/constants.h"
-#include "../src/io/utils_io.h"
+#include "../src/io/global_io.h"
 #include "../src/core/pbc.h"
 
 #include "driver_params.h"
@@ -19,7 +19,7 @@
 void task_exx()
 {
     using librpa_int::global::mpi_comm_global_h;
-    using librpa_int::utils::lib_printf;
+    using librpa_int::global::lib_printf;
 
     // Load the cut coulomb data
     // TODO: replace read_Vq_full by read_Vq_row to reduce memory consumption
