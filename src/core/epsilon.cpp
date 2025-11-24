@@ -37,11 +37,11 @@
 #include <RI/comm/mix/Communicate_Tensors_Map_Judge.h>
 #include <RI/global/Tensor.h>
 
-namespace librpa_int {
-
 using RI::Tensor;
 using RI::Communicate_Tensors_Map_Judge::comm_map2_first;
 #endif
+
+namespace librpa_int {
 
 using librpa_int::utils::init_local_mat;
 using librpa_int::global::mpi_comm_global_h;

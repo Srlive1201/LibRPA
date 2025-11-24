@@ -136,6 +136,6 @@ std::ostream& operator<<(std::ostream& os, const RI::Tensor<T>& t)
                                         std::to_string(__LINE__));
     }
 }
+#endif
 
 }
-#endif

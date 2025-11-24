@@ -15,6 +15,7 @@
 #include <functional>
 #include <utility>
 #include <ostream>
+#include <limits>
 
 #include "../utils/base_utility.h"
 #include "lapack_connector.h"
