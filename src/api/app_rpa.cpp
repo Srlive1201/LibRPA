@@ -8,7 +8,7 @@
 #include "../core/utils_timefreq.h"
 #include "../global/mpi_handler.h"
 #include "../utils/profiler.h"
-#include "../utils/stl_io_helper.h"
+#include "../io/stl_io_helper.h"
 #include "../utils/utils_mem.h"
 
 namespace librpa_int

@@ -2,7 +2,7 @@
 #include "../global/mpi_handler.h"
 #include "../core/utils_atomic_basis_blacs.h"
 
-#include "../utils/stl_io_helper.h"
+#include "../io/stl_io_helper.h"
 #include "../mpi/base_blacs.h"
 
 using namespace librpa_int;

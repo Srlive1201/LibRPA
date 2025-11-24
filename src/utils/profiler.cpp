@@ -9,7 +9,7 @@
 #include <sstream>
 #include <iomanip>
 
-#include "utils_io.h"
+#include "../io/utils_io.h"
 #ifdef LIBRPA_VERBOSE
 #include "utils_mem.h"
 #endif

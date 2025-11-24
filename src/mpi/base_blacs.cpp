@@ -2,7 +2,7 @@
 #include "../utils/base_utility.h"
 
 #include "../interface/blacs_scalapack.h"
-#include "../utils/utils_io.h"
+#include "../io/utils_io.h"
 
 
 namespace librpa_int

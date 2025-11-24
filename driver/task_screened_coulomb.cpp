@@ -7,7 +7,7 @@
 #include "../src/core/epsilon.h"
 #include "../src/core/pbc.h"
 #include "../src/global/mpi_handler.h"
-#include "../src/utils/utils_io.h"
+#include "../src/io/utils_io.h"
 #include "../src/core/utils_timefreq.h"
 
 #include "read_data.h"

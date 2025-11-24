@@ -8,12 +8,10 @@
 #include <unordered_map>
 #include <unordered_set>
 
-// #include "envs_mpi.h"
 #include "../core/utils_atomic_basis_blacs.h"
 #include "../utils/profiler.h"
 #include "matrix_m.h"
 #include "scalapack_connector.h"
-// #include "utils_io.h"
 #ifdef LIBRPA_USE_LIBRI
 #include <RI/global/Tensor.h>
 #else

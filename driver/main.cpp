@@ -2,7 +2,7 @@
 #include <omp.h>
 
 #include "../src/core/atomic_basis.h"
-#include "../src/utils/envs_io.h"
+#include "../src/io/envs_io.h"
 #include "../src/global/mpi_handler.h"
 #include "../src/mpi/envs_blacs.h"
 #include "../src/core/timefreq.h"
@@ -14,11 +14,11 @@
 #include "../src/core/pbc.h"
 #include "../src/utils/profiler.h"
 #include "read_data.h"
-#include "../src/utils/stl_io_helper.h"
+#include "../src/io/stl_io_helper.h"
 #include "driver_params.h"
 #include "../src/core/task.h"
 #include "../src/utils/utils_cmake.h"
-#include "../src/mpi/utils_mpi_io.h"
+#include "../src/io/utils_mpi_io.h"
 #include "../src/utils/utils_mem.h"
 
 #include "task_rpa.h"

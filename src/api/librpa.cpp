@@ -23,8 +23,8 @@
 #include "../mpi/envs_blacs.h"
 #include "../global/mpi_handler.h"
 #include "../utils/constants.h"
-#include "../utils/envs_io.h"
-#include "../utils/utils_io.h"
+#include "../io/envs_io.h"
+#include "../io/utils_io.h"
 #include "librpa_main.h"
 
 #ifdef LIBRPA_USE_LIBRI

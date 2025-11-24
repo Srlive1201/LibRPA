@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../utils/envs_io.h"
-#include "../utils/utils_io.h"
+#include "../io/envs_io.h"
+#include "../io/utils_io.h"
 #include "../global/mpi_handler.h"
 
 namespace librpa_int

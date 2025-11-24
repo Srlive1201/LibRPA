@@ -20,10 +20,10 @@
 #include "../src/math/matrix.h"
 #include "../src/global/mpi_handler.h"
 #include "../src/utils/constants.h"
-#include "../src/utils/envs_io.h"
+#include "../src/io/envs_io.h"
 #include "../src/utils/profiler.h"
-#include "../src/utils/stl_io_helper.h"
-#include "../src/utils/utils_io.h"
+#include "../src/io/stl_io_helper.h"
+#include "../src/io/utils_io.h"
 #include "../src/utils/utils_mem.h"
 
 using std::ifstream;

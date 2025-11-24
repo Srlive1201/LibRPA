@@ -2,7 +2,7 @@
 
 #include <cmath>
 
-#include "../utils/utils_io.h"
+#include "../io/utils_io.h"
 
 /*
  * The fitting code is adapted from C version by Ron Babich

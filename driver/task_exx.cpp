@@ -8,7 +8,7 @@
 #include "../src/core/meanfield.h"
 #include "../src/global/mpi_handler.h"
 #include "../src/utils/constants.h"
-#include "../src/utils/utils_io.h"
+#include "../src/io/utils_io.h"
 #include "../src/core/pbc.h"
 
 #include "driver_params.h"

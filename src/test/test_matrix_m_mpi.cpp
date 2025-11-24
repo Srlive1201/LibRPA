@@ -3,8 +3,8 @@
 #include "../math/utils_matrix_m_mpi.h"
 #include "../mpi/envs_blacs.h"
 #include "../mpi/utils_blacs.h"
-#include "../utils/envs_io.h"
-#include "../utils/stl_io_helper.h"
+#include "../io/envs_io.h"
+#include "../io/stl_io_helper.h"
 #include "testutils.h"
 
 using namespace librpa_int;

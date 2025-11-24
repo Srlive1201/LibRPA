@@ -52,6 +52,8 @@ list(APPEND lib_sources
         core/utils_atomic_basis_blacs.cpp
         core/utils_timefreq.cpp
 
+        io/envs_io.cpp
+
         global/instance_manager.cpp
         global/mpi_handler.cpp
 
@@ -70,7 +72,6 @@ list(APPEND lib_sources
         mpi/utils_blacs.cpp
 
         utils/constants.cpp
-        utils/envs_io.cpp
         utils/profiler.cpp
         utils/utils_cmake.cpp
         utils/utils_mem.cpp

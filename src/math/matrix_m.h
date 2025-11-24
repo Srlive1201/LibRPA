@@ -19,7 +19,7 @@
 #include "../utils/base_utility.h"
 #include "lapack_connector.h"
 #include "vec.h"
-#include "../utils/utils_io.h"
+#include "../io/utils_io.h"
 
 namespace librpa_int {
 

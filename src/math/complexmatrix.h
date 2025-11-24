@@ -10,7 +10,7 @@
 using namespace std;
 
 #include "matrix.h"
-#include "../utils/utils_io.h"
+#include "../io/utils_io.h"
 
 //#ifdef _MCD_CHECK
 //#include "src_parallel/mcd.h"
