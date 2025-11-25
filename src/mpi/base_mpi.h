@@ -1,4 +1,5 @@
 #pragma once
+#include "librpa_enums.h"
 
 #include "../interface/mpi.h"
 

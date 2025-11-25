@@ -26,7 +26,7 @@
 #include "utils_atomic_basis_blacs.h"
 #include "params.h"
 #include "pbc.h"
-#include "atoms.h"
+#include "atom.h"
 #include "../utils/profiler.h"
 #include "../math/scalapack_connector.h"
 #include "../math/vector3_order.h"

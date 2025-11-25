@@ -1,10 +1,10 @@
 /*!
- @file atoms.h
+ @file atom.h
  @brief Utilies to handle atomic model and related data
  @date 2022-05-05 minyez created
  */
-#ifndef ATOMS_H
-#define ATOMS_H
+#ifndef ATOM_H
+#define ATOM_H
 
 #include <set>
 #include <vector>
@@ -128,35 +128,6 @@ std::pair<std::set<TA1>, std::set<TA2>> convert_IJset_to_Iset_Jset(std::set<std:
     return {Iset, Jset};
 }
 
-//! Object to handle the atomic structure
-/*!
-  It should also handle the non-PBC case.
-  @note For now, atom positions are not necessary, as one decides the sparsity from matrix element,
-  instead of distances between atoms
- */
-class Atoms
-{
-    private:
-        //! number of inequivalent atoms
-        /* size_t n_ineq; */
-        //! total number of atoms
-        /* Matrix3 latt; */
-        /* Matrix3 G; */
-        size_t n_atoms;
-        //! number of atoms of each inequivalent type;
-        /* vector<size_t> n_atoms_per_ineq; */
-        //! cooridnates of all atoms, Cartesian
-        /* vector<Vector3<double>> coords; */
-        //! cooridnates of the representative inequivalent atoms, Cartesian
-        /* vector<Vector3<double>> coords_ineq; */
-        //! index mapping from total atom to inquivalent type
-        /* vector<map<atom_t, atom_t>> imap_at2ineq; */
-    public:
-        /* Matrix3 & get_lattice_vectors() { return latt; } */
-        /* const Matrix3 & get_lattice_vectors() const { return latt; } */
-        /* const size_t & get_n_atoms() const { return n_atoms; } */
-};
-
 }
 
-#endif // !ATOMS_H
+#endif // !ATOM_H

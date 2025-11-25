@@ -4,6 +4,7 @@
 
 #include <string>
 #include <cstring>
+#include <stdexcept>
 
 // C APIs
 void librpa_init_options(LibrpaOptions *opts)

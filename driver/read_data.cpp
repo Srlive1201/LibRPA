@@ -13,7 +13,7 @@
 
 #include "../src/api/librpa.h"
 #include "../src/core/atomic_basis.h"
-#include "../src/core/atoms.h"
+#include "../src/core/atom.h"
 #include "../src/core/geometry.h"
 #include "../src/core/pbc.h"
 #include "../src/core/ri.h"

@@ -7,7 +7,7 @@
 #include <vector>
 
 #include "../math/vector3_order.h"
-#include "atoms.h"
+#include "atom.h"
 #include "meanfield.h"
 #include "ri.h"
 #include "timefreq.h"

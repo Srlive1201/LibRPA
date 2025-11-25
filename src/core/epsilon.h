@@ -1,7 +1,7 @@
 #pragma once
 #include "chi0.h"
 #include "ri.h"
-#include "atoms.h"
+#include "atom.h"
 #include "../math/matrix_m.h"
 #include "../mpi/base_blacs.h"
 

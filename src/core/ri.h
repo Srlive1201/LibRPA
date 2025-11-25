@@ -9,7 +9,7 @@
 #include <memory>
 #include <utility>
 #include "../math/vector3_order.h"
-#include "atoms.h"
+#include "atom.h"
 #include "../math/complexmatrix.h"
 
 #ifdef LIBRPA_USE_LIBRI

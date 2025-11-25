@@ -14,7 +14,7 @@
 
 #include <cstring>
 
-#include "../core/atoms.h"
+#include "../core/atom.h"
 #include "../core/meanfield.h"
 #include "../core/params.h"
 #include "../core/pbc.h"

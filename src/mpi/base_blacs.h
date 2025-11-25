@@ -35,7 +35,7 @@ public:
     int myprow;
     BlacsCtxtHandler() { comm_set_ = pgrid_set_ = initialized_ = false; }
     BlacsCtxtHandler(MPI_Comm comm_in): mpi_comm_h(comm_in) { comm_set_ = true; pgrid_set_ = initialized_ = false; }
-    ~BlacsCtxtHandler() {};
+    ~BlacsCtxtHandler() { this->exit(); }
 
     void init();
     void reset_comm(MPI_Comm comm_in);

@@ -1,4 +1,4 @@
-#include "../core/atoms.h"
+#include "../core/atom.h"
 #include <iostream>
 
 using namespace librpa_int;

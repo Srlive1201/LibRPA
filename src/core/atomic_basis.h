@@ -8,7 +8,7 @@
 #include <utility>
 #include <vector>
 
-#include "atoms.h"
+#include "atom.h"
 
 namespace librpa_int {
 

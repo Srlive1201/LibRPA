@@ -6,7 +6,7 @@
 #include "ri.h"
 #include "timefreq.h"
 #include "meanfield.h"
-#include "atoms.h"
+#include "atom.h"
 #include "../math/matrix_m.h"
 
 namespace librpa_int

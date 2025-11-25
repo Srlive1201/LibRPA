@@ -38,6 +38,7 @@ list(APPEND lib_sources
         core/atomic_basis.cpp
         core/chi0.cpp
         core/coulmat.cpp
+        core/dataset.cpp
         core/dielecmodel.cpp
         core/epsilon.cpp
         core/exx.cpp

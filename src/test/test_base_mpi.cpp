@@ -13,6 +13,7 @@ void test_dispatcher_1d()
     const int myid = get_mpi_rank(MPI_COMM_WORLD);
     const int size = get_mpi_size(MPI_COMM_WORLD);
 
+    int n;
     // single index dispatcher
     // balanced sequential case
     //   proc 0: 0, 1, 2
@@ -20,10 +21,11 @@ void test_dispatcher_1d()
     //   proc 2: 6, 7, 8
     //   proc 3: 9, 10, 11
     auto ilist = dispatcher(0, 12, myid, size, true);
+    n = ilist.size();
     /* for (auto &id: ilist) */
     /*     printf("myid = %d, id = %u\n", myid, id); */
     assert(ilist.size() == 3);
-    for ( int i = 0; i != ilist.size(); i++ )
+    for ( int i = 0; i != n; i++ )
         assert( ilist[i] == myid * 3 + i);
 
     // balanced non-sequential case
@@ -32,8 +34,9 @@ void test_dispatcher_1d()
     //   proc 2: 2, 6, 10
     //   proc 3: 3, 7, 11
     ilist = dispatcher(0, 12, myid, size, false);
-    assert (ilist.size() == 3);
-    for ( int i = 0; i != ilist.size(); i++ )
+    n = ilist.size();
+    assert (n == 3);
+    for ( int i = 0; i != n; i++ )
         assert( ilist[i] == myid + i * 4);
 
     // inbalanced non-sequential dispatching
@@ -42,17 +45,18 @@ void test_dispatcher_1d()
     //   proc 2: 2
     //   proc 3: 3
     ilist = dispatcher(0, 5, myid, size, false);
+    n = ilist.size();
     /* for (auto &id: ilist) */
     /*     printf("myid = %d, id = %u\n", myid, id); */
     if (myid == 0)
     {
-        assert(ilist.size() == 2);
+        assert(n == 2);
         assert(ilist[0] == 0);
         assert(ilist[1] == 4);
     }
     else
     {
-        assert(ilist.size() == 1);
+        assert(n == 1);
         assert(ilist[0] == myid);
     }
 
@@ -62,17 +66,18 @@ void test_dispatcher_1d()
     //   proc 2: 4
     //   proc 3: 5
     ilist = dispatcher(0, 6, myid, size, true);
+    n = ilist.size();
     /* for (auto &id: ilist) */
     /*     printf("myid = %d, id = %u\n", myid, id); */
     if ((myid == 0) || (myid == 1))
     {
-        assert(ilist.size() == 2);
+        assert(n == 2);
         assert(ilist[0] == myid * 2);
         assert(ilist[1] == myid * 2 + 1);
     }
     else
     {
-        assert(ilist.size() == 1);
+        assert(n == 1);
         assert(ilist[0] == myid + 2);
     }
 }
@@ -81,6 +86,7 @@ void test_dispatcher_2d()
 {
     const int myid = get_mpi_rank(MPI_COMM_WORLD);
     const int size = get_mpi_size(MPI_COMM_WORLD);
+    int n;
 
     // =====================================
     // double index dispatcher
@@ -90,7 +96,8 @@ void test_dispatcher_2d()
     //   proc 2: (0, 3), (1, 3)
     //   proc 3: (0, 4), (1, 4)
     auto i2list = dispatcher(0, 2, 1, 5, myid, size, true, true);
-    assert(i2list.size() == 2);
+    n = i2list.size();
+    assert(n == 2);
     for ( int i = 0; i != 2; i++)
     {
         assert(i2list[i].first == i);
@@ -103,7 +110,8 @@ void test_dispatcher_2d()
     //   proc 2: (1, 1), (1, 2)
     //   proc 3: (1, 3), (1, 4)
     i2list = dispatcher(0, 2, 1, 5, myid, size, true, false);
-    assert(i2list.size() == 2);
+    n = i2list.size();
+    assert(n == 2);
     for ( int i = 0; i != 2; i++)
     {
         assert(i2list[i].first == myid / 2);
@@ -116,7 +124,8 @@ void test_dispatcher_2d()
     //   proc 2: (0, 2), (0, 4)
     //   proc 3: (1, 2), (1, 4)
     i2list = dispatcher(0, 2, 1, 5, myid, size, false, true);
-    assert(i2list.size() == 2);
+    n = i2list.size();
+    assert(n == 2);
     for ( int i = 0; i != 2; i++)
     {
         assert(i2list[i].first == myid % 2);
@@ -128,7 +137,8 @@ void test_dispatcher_2d()
     //   proc 2: (1, 1), (3, 1)
     //   proc 3: (1, 2), (3, 2)
     i2list = dispatcher(0, 4, 1, 3, myid, size, false, false);
-    assert(i2list.size() == 2);
+    n = i2list.size();
+    assert(n == 2);
     for ( int i = 0; i != 2; i++)
     {
         assert(i2list[i].first == myid / 2 + i * 2);
@@ -137,13 +147,14 @@ void test_dispatcher_2d()
 
     // inbalanced sequential, 1st faster
     i2list = dispatcher(0, 3, 1, 3, myid, size, true, true);
+    n = i2list.size();
     //   proc 0: (0, 1), (1, 1)
     //   proc 1: (2, 1), (0, 2)
     //   proc 2: (1, 2)
     //   proc 3: (2, 2)
     if ( (myid == 0) || (myid == 1) )
     {
-        assert(i2list.size() == 2);
+        assert(n == 2);
         assert(i2list[0].first == myid * 2);
         assert(i2list[0].second == 1);
         assert(i2list[1].first == 1 - myid);
@@ -151,20 +162,21 @@ void test_dispatcher_2d()
     }
     else
     {
-        assert(i2list.size() == 1);
+        assert(n == 1);
         assert(i2list[0].first == myid - 1);
         assert(i2list[0].second == 2);
     }
 
     // inbalanced sequential, 2nd faster
     i2list = dispatcher(0, 2, 2, 5, myid, size, true, false);
+    n = i2list.size();
     //   proc 0: (0, 2), (0, 3)
     //   proc 1: (0, 4), (1, 2)
     //   proc 2: (1, 3)
     //   proc 3: (1, 4)
     if ( (myid == 0) || (myid == 1) )
     {
-        assert(i2list.size() == 2);
+        assert(n == 2);
         assert(i2list[0].first == 0);
         assert(i2list[0].second == (myid+1)*2);
         assert(i2list[1].first == myid);
@@ -172,13 +184,14 @@ void test_dispatcher_2d()
     }
     else
     {
-        assert(i2list.size() == 1);
+        assert(n == 1);
         assert(i2list[0].first == 1);
         assert(i2list[0].second == myid + 1);
     }
 
     // inbalanced non-sequential, 1st faster
     i2list = dispatcher(-1, 2, 1, 3, myid, size, false, true);
+    n = i2list.size();
     //   proc 0: (-1, 1), (0, 2)
     //   proc 1: ( 0, 1), (1, 2)
     //   proc 2: ( 1, 1)
@@ -187,7 +200,7 @@ void test_dispatcher_2d()
     {
         printf("myid %d: item 0: (%d %d) item 1 (%d %d)\n",
                myid, i2list[0].first, i2list[0].second, i2list[1].first, i2list[1].second);
-        assert(i2list.size() == 2);
+        assert(n == 2);
         assert(i2list[0].first == myid -1);
         assert(i2list[0].second == 1);
         assert(i2list[1].first == myid);
@@ -197,13 +210,14 @@ void test_dispatcher_2d()
     {
         printf("myid %d: item 0: (%d %d)\n",
                myid, i2list[0].first, i2list[0].second);
-        assert(i2list.size() == 1);
+        assert(n == 1);
         assert(i2list[0].first == 5 - 2*myid);
         assert(i2list[0].second == myid - 1);
     }
 
     // inbalanced non-sequential, 2nd faster
     i2list = dispatcher(0, 3, -2, 0, myid, size, false, false);
+    n = i2list.size();
     //   proc 0: (0, -2), (2, -2)
     //   proc 1: (0, -1), (2, -1)
     //   proc 2: (1, -2)
@@ -212,7 +226,7 @@ void test_dispatcher_2d()
     {
         printf("myid %d: item 0: (%d %d) item 1 (%d %d)\n",
                myid, i2list[0].first, i2list[0].second, i2list[1].first, i2list[1].second);
-        assert(i2list.size() == 2);
+        assert(n == 2);
         assert(i2list[0].first == 0);
         assert(i2list[0].second == myid-2);
         assert(i2list[1].first == 2);
@@ -222,7 +236,7 @@ void test_dispatcher_2d()
     {
         printf("myid %d: item 0: (%d %d)\n",
                myid, i2list[0].first, i2list[0].second);
-        assert(i2list.size() == 1);
+        assert(n == 1);
         assert(i2list[0].first == 1);
         assert(i2list[0].second == myid - 4);
     }

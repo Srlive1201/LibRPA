@@ -1,20 +1,65 @@
 #pragma once
+
+#include <memory>
+
+#include "../mpi/base_blacs.h"
 #include "../mpi/base_mpi.h"
+#include "atomic_basis.h"
+#include "chi0.h"
+#include "exx.h"
+#include "geometry.h"
+#include "gw.h"
+#include "meanfield.h"
+#include "pbc.h"
+#include "ri.h"
+#include "timefreq.h"
 
 namespace librpa_int
 {
 
 #define is_null_dataset_ptr(p) p == nullptr
 
+/*!
+ * Core object to hold input and output data
+ */
 class Dataset
 {
 public:
-    MpiCommHandler comm_h_;
+    /* Variables */
+    // Environment control
+    MpiCommHandler comm_h;
+    BlacsCtxtHandler blacs_ctxt_h;
 
-    Dataset(MPI_Comm comm): comm_h_(comm) {}
+    // Physical system.
+    //! Basic set functions for wave function expansion.
+    AtomicBasis basis_wfc;
+    //! Auxiliary basic set functions for RI
+    AtomicBasis basis_abf;
+    Atoms atoms;
+    PeriodicBoundaryData pbc;
 
-    void free() {};
+    // Input data.
+    MeanField mf;
+    TFGrids tfg;
+    Cs_LRI cs_data;
+    atpair_k_cplx_mat_t vq;
+    atpair_k_cplx_mat_t vq_cut;
+
+    // Computation data.
+    // All computation data objects should be contained as pointers
+    // and are created only when requested.
+    std::unique_ptr<Exx> p_exx = nullptr;
+    std::unique_ptr<Chi0> p_chi0 = nullptr;
+    std::unique_ptr<G0W0> p_g0w0 = nullptr;
+
+    /* Constructors and destructors */
+    Dataset(MPI_Comm comm);
     ~Dataset() { free(); }
+    void free();
+
+    /* Disable copy */
+    Dataset(const Dataset &) = delete;
+    Dataset &operator=(const Dataset &) = delete;
 };
 
 }

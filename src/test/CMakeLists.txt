@@ -37,8 +37,9 @@ foreach(target
     test_base_utility
     test_blas_lapack
     test_complexmatrix
-    test_io
     test_fitting
+    test_io
+    test_geometry
     test_librpa
     test_matrix
     test_matrix_m
