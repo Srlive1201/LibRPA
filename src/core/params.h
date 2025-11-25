@@ -116,6 +116,10 @@ struct Params
 
     //! output correlation self-energy matrix in NAO (real space, imaginary frequency domain)
     static bool output_gw_sigc_mat_rf;
+
+    //! output gw energy for HamGNN mechine learning
+    static bool output_hamgnn;
+
     //! sum of nbands in Green's function. nbands < 0 meanns sum over all states.
     static int nbands_G;
 

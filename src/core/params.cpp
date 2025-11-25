@@ -49,6 +49,7 @@ bool Params::use_soc = false;
 bool Params::output_gw_sigc_mat = false;
 bool Params::output_gw_sigc_mat_rt = false;
 bool Params::output_gw_sigc_mat_rf = false;
+bool Params::output_hamgnn = false;
 int Params::nbands_G = -1;
 /* ==========================================================
  * output options end
@@ -105,6 +106,7 @@ void Params::print()
         {"use_shrink_abfs", use_shrink_abfs},
         {"use_soc", use_soc},
         {"use_fullcoul_exx", use_fullcoul_exx},
+        {"output_hamgnn", output_hamgnn},
     };
 
     for (const auto &param: str_params)

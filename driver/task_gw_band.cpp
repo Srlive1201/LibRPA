@@ -320,6 +320,41 @@ void task_g0w0_band(std::map<Vector3_Order<double>, ComplexMatrix> &sinvS)
                 printf("\n");
             }
         }
+
+        // output for HamGNN
+        if (Params::output_hamgnn)
+        {
+            std::ofstream ofs_hamgnn;
+            std::stringstream fn;
+            fn << "GW_gridk_hamgnn" << ".dat";
+            ofs_hamgnn.open(fn.str());
+            ofs_hamgnn << std::fixed;
+
+            for (int i_spin = 0; i_spin < meanfield.get_n_spins(); i_spin++)
+            {
+                for (int i_kpoint = 0; i_kpoint < meanfield.get_n_kpoints(); i_kpoint++)
+                {
+                    const auto &k = kfrac_list[i_kpoint];
+                    ofs_hamgnn << "spin " << i_spin << ", k-point " << i_kpoint << ": ("
+                               << std::setw(10) << std::setprecision(7) << k.x << ", "
+                               << std::setw(10) << std::setprecision(7) << k.y << ", "
+                               << std::setw(10) << std::setprecision(7) << k.z << ")" << std::endl;
+                    ofs_hamgnn << std::setw(5) << "State"
+                               << " " << std::setw(16) << "occ"
+                               << " " << std::setw(25) << "e_qp(eV)" << std::endl;
+                    for (int i_state = 0; i_state < meanfield.get_n_bands(); i_state++)
+                    {
+                        const auto &occ_state = meanfield.get_weight()[i_spin](i_kpoint, i_state) *
+                                                meanfield.get_n_kpoints();
+                        const auto &eqp = e_qp_all[i_spin][i_kpoint][i_state] * HA2EV;
+                        ofs_hamgnn << std::setw(5) << i_state + 1 << " " << std::setw(16)
+                                   << std::setprecision(5) << occ_state << " " << std::setw(25)
+                                   << std::setprecision(8) << eqp << std::endl;
+                    }
+                    printf("\n");
+                }
+            }
+        }
     }
     Profiler::stop("g0w0_solve_qpe_kgrid");
 
