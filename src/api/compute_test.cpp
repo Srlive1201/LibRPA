@@ -2,7 +2,7 @@
 #include "../../include/librpa_compute.h"
 
 // Internal headers
-#include "../core/dataset.h"
+#include "dataset.h"
 #include "instance_manager.h"
 
 // C++ APIs

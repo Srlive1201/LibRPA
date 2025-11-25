@@ -5,7 +5,7 @@
 #include "librpa_handler.h"
 
 // Internal headers
-#include "../core/dataset.h"
+#include "dataset.h"
 
 namespace librpa_int
 {

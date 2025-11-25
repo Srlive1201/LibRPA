@@ -4,15 +4,15 @@
 
 #include "../mpi/base_blacs.h"
 #include "../mpi/base_mpi.h"
-#include "atomic_basis.h"
-#include "chi0.h"
-#include "exx.h"
-#include "geometry.h"
-#include "gw.h"
-#include "meanfield.h"
-#include "pbc.h"
-#include "ri.h"
-#include "timefreq.h"
+#include "../core/atomic_basis.h"
+#include "../core/chi0.h"
+#include "../core/exx.h"
+#include "../core/geometry.h"
+#include "../core/gw.h"
+#include "../core/meanfield.h"
+#include "../core/pbc.h"
+#include "../core/ri.h"
+#include "../core/timefreq.h"
 
 namespace librpa_int
 {

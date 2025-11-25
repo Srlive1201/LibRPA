@@ -28,6 +28,7 @@ list(APPEND lib_sources
         api/app_rpa.cpp
         api/app_gw.cpp
         api/compute_test.cpp
+        api/dataset.cpp
         api/global.cpp
         api/handler.cpp
         api/instance_manager.cpp
@@ -38,7 +39,6 @@ list(APPEND lib_sources
         core/atomic_basis.cpp
         core/chi0.cpp
         core/coulmat.cpp
-        core/dataset.cpp
         core/dielecmodel.cpp
         core/epsilon.cpp
         core/exx.cpp
