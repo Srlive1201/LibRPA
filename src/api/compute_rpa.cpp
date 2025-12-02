@@ -70,8 +70,8 @@ LIBRPA_C_H_FUNC_WRAP_WOPT(double, librpa_get_rpa_correlation_energy,
     ds->p_chi0->libri_threshold_G = opts.libri_chi0_threshold_G;
 
     auto &chi0 = *(ds->p_chi0);
-    std::cout << "n_abf & " << chi0.atbasis_abf.nb_total;
-    std::cout << "n_abf * " << ds->p_chi0->atbasis_abf.nb_total;
+    // std::cout << "n_abf & " << chi0.atbasis_abf.nb_total;
+    // std::cout << "n_abf * " << ds->p_chi0->atbasis_abf.nb_total;
 
     profiler.start("chi0_build", "Build response function chi0");
     chi0.build(opts.parallel_routing, ds->cs_data, ds->atpairs_local);
