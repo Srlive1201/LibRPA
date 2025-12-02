@@ -18,7 +18,6 @@
 // #include "../src/core/geometry.h"
 // #include "../src/core/pbc.h"
 // #include "../src/core/ri.h"
-// #include "../src/math/matrix.h"
 #include "../src/mpi/global_mpi.h"
 // #include "../src/utils/constants.h"
 #include "../src/api/instance_manager.h"
@@ -56,6 +55,7 @@ void read_scf_occ_eigenvalues(const string &file_path)
 
     // TODO: replace it with set_dimension
     driver::h.set_scf_dimension(n_spins, n_kpoints, n_states, n_basis_wfc);
+    driver::n_ibz_kpoints = n_kpoints;
 
     // Load the file data
     auto eskb = new double [n_spins * n_kpoints * n_states];
@@ -1589,10 +1589,12 @@ void read_stru(const std::string &file_path)
     const auto n_atoms = driver::n_atoms;
     driver::atom_types.resize(n_atoms);
     std::vector<double> coords(n_atoms * 3);
+    int type;
     for (size_t iat = 0; iat < n_atoms; iat++)
     {
         for (int i = 0; i < 3; i++) infile >> coords[3 * iat + i];
-        infile >> driver::atom_types[iat];
+        infile >> type;
+        driver::atom_types[iat] = type - 1;
     }
     // Parsed after lattice is set, so that the fractional coordinates are calculated
     driver::h.set_atoms(driver::atom_types, coords);
@@ -1626,7 +1628,7 @@ void read_bz_sampling(const std::string &file_path)
     assert(nk_full == nk[0] * nk[1] * nk[2]);
 
     std::vector<double> kvecs(3 * nk_full);
-    std::vector<int> map_ibzk(nk_full);
+    std::vector<int> map_ibzk(nk_full, -1);
 
     // kvec_c = new Vector3<double>[n_kpoints];
     for (int i = 0; i != nk_full; i++)
@@ -1637,23 +1639,17 @@ void read_bz_sampling(const std::string &file_path)
         infile >> kvecs[3 * i] >> kvecs[3 * i + 1] >> kvecs[3 * i + 2];
         infile >> tmp >> map_ibzk[i];
         map_ibzk[i] -= 1;
+        // Save a copy in the driver for information printing
+        Vector3_Order<double> kvec(kvecs[3 * i], kvecs[3 * i + 1], kvecs[3 * i + 2]);
+        auto it = std::find(driver::ibz_kpoints.cbegin(), driver::ibz_kpoints.cend(), kvec);
+        if (it == driver::ibz_kpoints.cend()) driver::ibz_kpoints.emplace_back(kvec);
     }
+    infile.close();
+
+    driver::n_ibz_kpoints = driver::ibz_kpoints.size();
+
     driver::h.set_kgrids_kvec(nk[0], nk[1], nk[2], kvecs.data());
     driver::h.set_ibz_mapping(map_ibzk);
-
-    // TODO: use API for IBZ mapping
-    // for (int i = 0; i != n_kpoints; i++)
-    // {
-    //     infile >> x;
-    //     int i_ir = stoi(x) - 1;
-    //     irk_point_id_mapping.emplace_back(i_ir);
-    //     const auto &k = klist[i];
-    //     const auto &k_ir = klist[i_ir];
-    //     auto it = std::find(klist_ibz.begin(), klist_ibz.end(), k_ir);
-    //     if (it == klist_ibz.end()) klist_ibz.emplace_back(k_ir);
-    //     map_irk_ks[klist[i_ir]].emplace_back(k);
-    // }
-    infile.close();
 }
 
 void read_basis(const std::string &file_path)
@@ -1672,7 +1668,6 @@ void read_basis(const std::string &file_path)
     std::vector<size_t> nbs_wfc(n_atoms);
     std::vector<size_t> nbs_aux(n_atoms);
 
-
     int ntypes, type;
     size_t n_wfc, n_aux;
     string kind_str;
@@ -1684,15 +1679,19 @@ void read_basis(const std::string &file_path)
     for (int itype = 0; itype < ntypes; itype++)
     {
         infile >> type >> n_wfc >> n_aux;
+        type--;
         map_at_wfc[type] = n_wfc;
         map_at_aux[type] = n_aux;
     }
     for (int iat = 0; iat < n_atoms; iat++)
     {
         auto type = driver::atom_types[iat];
-        nbs_wfc[iat] = map_at_wfc[type];
-        nbs_aux[iat] = map_at_aux[type];
+        nbs_wfc[iat] = map_at_wfc.at(type);
+        nbs_aux[iat] = map_at_aux.at(type);
     }
+
+    // std::cout << "nbs_wfc " << nbs_wfc << std::endl;
+    // std::cout << "nbs_aux " << nbs_aux << std::endl;
 
     driver::h.set_ao_basis_wfc(nbs_wfc);
     driver::h.set_ao_basis_aux(nbs_aux);

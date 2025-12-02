@@ -5,6 +5,8 @@
 
 #include <string>
 
+#include "../src/math/vector3_order.h"
+
 namespace driver
 {
 
@@ -41,10 +43,12 @@ extern size_t n_atoms;
 // Dimension information, used across a few read_data functions
 extern int n_spins;
 extern int n_kpoints;
+extern int n_ibz_kpoints;
 extern int n_states;
 extern int n_basis_wfc;
 
 extern std::vector<std::pair<size_t, size_t>> local_atpair;
+extern std::vector<librpa_int::Vector3_Order<double>> ibz_kpoints;
 
 // Working handle
 extern librpa::Handler h;

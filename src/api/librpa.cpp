@@ -5,6 +5,7 @@
 #include "librpa_compute.h"
 
 #include <cstddef>
+#include <complex>
 
 // Internal headers
 #include "../utils/error.h"
@@ -55,28 +56,29 @@ Handler::~Handler() { free(); }
 #define LIBRPA_UNPAREN(x) LIBRPA_UNPAREN_ x
 #define LIBRPA_UNPAREN_(...) __VA_ARGS__
 
-#define LIBRPA_CPP_H_METHOD_DEF_WRAP_VOID(cpp_name, params, args) \
-    void Handler::cpp_name(LIBRPA_UNPAREN(params))                       \
-    {                                                                    \
-        ::LIBRPA_C_NAME(cpp_name)(this->h_, LIBRPA_UNPAREN(args));       \
+#define LIBRPA_CPP_H_METHOD_DEF_WRAP_VOID(cpp_name, params, args)  \
+    void Handler::cpp_name(LIBRPA_UNPAREN(params))                 \
+    {                                                              \
+        ::LIBRPA_C_NAME(cpp_name)(this->h_, LIBRPA_UNPAREN(args)); \
     }
 
 #define LIBRPA_CPP_H_METHOD_DEF_WRAP_VOID_WOPT(cpp_name, params, args)        \
-    void Handler::cpp_name(const LibrpaOptions* opts, LIBRPA_UNPAREN(params)) \
+    void Handler::cpp_name(const librpa::Options& opts, LIBRPA_UNPAREN(params)) \
     {                                                                         \
-        ::LIBRPA_C_NAME(cpp_name)(this->h_, opts, LIBRPA_UNPAREN(args));      \
+        ::LIBRPA_C_NAME(cpp_name)(this->h_, &opts, LIBRPA_UNPAREN(args));      \
     }
 
-#define LIBRPA_CPP_H_METHOD_DEF_WRAP_RET_NOOPT(ret, cpp_name, params, args) \
-    ret Handler::cpp_name(LIBRPA_UNPAREN(params))                           \
-    {                                                                       \
-        return ::LIBRPA_C_NAME(cpp_name)(this->h_, LIBRPA_UNPAREN(args));   \
+#define LIBRPA_CPP_H_METHOD_DEF_WRAP_RET(ret, cpp_name, params, args)     \
+    ret Handler::cpp_name(LIBRPA_UNPAREN(params))                         \
+    {                                                                     \
+        return ::LIBRPA_C_NAME(cpp_name)(this->h_, LIBRPA_UNPAREN(args)); \
     }
 
-#define LIBRPA_CPP_H_METHOD_DEF_WRAP_RET(ret, cpp_name, params, args)           \
-    ret Handler::cpp_name(const LibrpaOptions* opts, LIBRPA_UNPAREN(params))    \
-    {                                                                           \
-        return ::LIBRPA_C_NAME(cpp_name)(this->h_, opts, LIBRPA_UNPAREN(args)); \
+#define LIBRPA_CPP_H_METHOD_DEF_WRAP_RET_WOPT(ret, cpp_name, params, pre, args, post)    \
+    ret Handler::cpp_name(const librpa::Options& opts, LIBRPA_UNPAREN(params))             \
+    {                                                                                    \
+        pre auto retc = ::LIBRPA_C_NAME(cpp_name)(this->h_, &opts, LIBRPA_UNPAREN(args)); \
+        post return retc;                                                                \
     }
 
 // LIBRPA_CPP_H_METHOD_DEF_WRAP_VOID(
@@ -166,6 +168,14 @@ LIBRPA_CPP_H_METHOD_DEF_WRAP_VOID(
     set_aux_cut_coulomb_k_2d_block,
     (int ik, int max_naux, int mu_begin, int mu_end, int nu_begin, int nu_end, const double* Vq_real_in, const double* Vq_imag_in),
     (ik, max_naux, mu_begin, mu_end, nu_begin, nu_end, Vq_real_in, Vq_imag_in)
+)
+
+LIBRPA_CPP_H_METHOD_DEF_WRAP_RET_WOPT(
+    double, get_rpa_correlation_energy,
+    (std::vector<std::complex<double>> &rpa_corr_ibzk_contrib),
+    using namespace std::complex_literals; const int nq = rpa_corr_ibzk_contrib.size(); std::vector<double> re(nq); std::vector<double> im(nq);,
+    (nq, re.data(), im.data()),
+    {for (int iq = 0; iq < nq; iq++) { rpa_corr_ibzk_contrib[iq] = re[iq] + im[iq] * 1.0i;}}
 )
 
 }

@@ -7,6 +7,7 @@ Dataset::Dataset(MPI_Comm comm)
     : comm_h(comm, true),
       blacs_ctxt_h(comm),
       desc_abf(),
+      atpairs_local(),
       basis_wfc(),
       basis_aux(),
       atoms(),

@@ -64,6 +64,7 @@ public:
     // Getting
     int get_R_index(const Vector3_Order<int> &R) const;
     int get_k_index_full(const Vector3_Order<double> &k) const;
+    int get_k_index_ibz(const Vector3_Order<double> &k) const;
     int get_n_cells_bvk() const { return period.x * period.y * period.z; }
     bool is_latt_set() const { return lattice_reset_; }
 };

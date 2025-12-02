@@ -45,11 +45,16 @@ std::vector<int> atom_types;
 size_t n_atoms;
 
 int n_spins = 0;
-int n_kpoints;
+int n_kpoints = 0;
+int n_ibz_kpoints = 0;
 int n_states = 0;
 int n_basis_wfc = 0;
 
+// Used to read Coulomb matrix data.
+// Should be consistent with the internal `atpairs_local` of the Dataset object
 std::vector<std::pair<size_t, size_t>> local_atpair;
+
+std::vector<librpa_int::Vector3_Order<double>> ibz_kpoints;
 
 librpa::Handler h;
 

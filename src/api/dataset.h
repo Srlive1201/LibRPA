@@ -2,8 +2,7 @@
 
 #include <memory>
 
-#include "../mpi/base_blacs.h"
-#include "../mpi/base_mpi.h"
+#include "../core/atom.h"
 #include "../core/atomic_basis.h"
 #include "../core/chi0.h"
 #include "../core/exx.h"
@@ -13,6 +12,8 @@
 #include "../core/pbc.h"
 #include "../core/ri.h"
 #include "../core/timefreq.h"
+#include "../mpi/base_blacs.h"
+#include "../mpi/base_mpi.h"
 
 namespace librpa_int
 {
@@ -20,7 +21,7 @@ namespace librpa_int
 #define is_null_dataset_ptr(p) p == nullptr
 
 /*!
- * Core object to hold input and output data
+ * Core object to hold runtime environemtn, input and output data
  */
 class Dataset
 {
@@ -31,6 +32,8 @@ public:
     BlacsCtxtHandler blacs_ctxt_h;
     //! Array descriptor for matrices of auxiliary basis set size
     ArrayDesc desc_abf;
+    //! Distribution of atom-pairs on current process for atomic-basis matrix data
+    std::vector<atpair_t> atpairs_local;
 
     // Physical system.
     //! Handliing boject for basic set functions for wave function expansion.
@@ -54,9 +57,9 @@ public:
     // Output data, held by computation objects
     // All computation data objects should be contained here as pointers
     // and are created only when requested.
-    std::unique_ptr<Exx> p_exx = nullptr;
-    std::unique_ptr<Chi0> p_chi0 = nullptr;
-    std::unique_ptr<G0W0> p_g0w0 = nullptr;
+    std::unique_ptr<Exx> p_exx;
+    std::unique_ptr<Chi0> p_chi0;
+    std::unique_ptr<G0W0> p_g0w0;
 
     /* Constructors and destructors */
     Dataset(MPI_Comm comm);

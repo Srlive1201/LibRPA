@@ -1,10 +1,15 @@
-#include "task_rpa.h"
+#include "librpa.hpp"
 
-#include "../src/api/app_rpa.h"
-#include "../src/mpi/global_mpi.h"
-#include "../src/core/ri.h"
+#include <iostream>
 
-void task_rpa()
+#include "../task.h"
+#include "../driver.h"
+#include "../../src/mpi/global_mpi.h"
+#include "../../src/io/global_io.h"
+
+// #include "../../src/io/stl_io_helper.h"
+
+void driver::task_rpa()
 {
     using namespace librpa_int;
     using librpa_int::global::mpi_comm_global_h;
@@ -19,22 +24,28 @@ void task_rpa()
     // std::vector<std::complex<double>> corr_irk(dp, dp + n_irk_points);
 
     // Using the internal work function, avoid copying between vector and double*
-    std::complex<double> corr;
-    std::vector<std::complex<double>> corr_irk(n_irk_points);
+    double corr = 0.0;
+    std::vector<std::complex<double>> corr_irk(n_ibz_kpoints);
 
-    librpa_int::app::get_rpa_correlation_energy_(corr, corr_irk);
+    corr = h.get_rpa_correlation_energy(driver::opts, corr_irk);
 
+    mpi_comm_global_h.barrier();
     if (mpi_comm_global_h.is_root())
     {
         lib_printf("RPA correlation energy (Hartree)\n");
         lib_printf("| Weighted contribution from each k:\n");
 
-        for (int i_irk = 0; i_irk < n_irk_points; i_irk++)
+        for (int i_irk = 0; i_irk < n_ibz_kpoints; i_irk++)
         {
-            cout << "| " << irk_points[i_irk] << ": " << corr_irk[i_irk] << endl;
+            std::cout << "| " << ibz_kpoints[i_irk] << ": " << corr_irk[i_irk] << std::endl;
         }
-        lib_printf("| Total EcRPA: %18.9f\n", corr.real());
-        if (std::abs(corr.imag()) > 1.e-3)
-            lib_printf("Warning: considerable imaginary part of EcRPA = %f\n", corr.imag());
+        lib_printf("| Total EcRPA: %18.9f\n", corr);
+        for (int i_irk = 0; i_irk < n_ibz_kpoints; i_irk++)
+        {
+            const auto &im = corr_irk[i_irk].imag();
+            if (std::abs(im) > 1.e-3)
+                lib_printf("Warning: considerable imaginary part of EcRPA = %f\n at IBZ k-point %d\n", im, i_irk + 1);
+        }
     }
+    mpi_comm_global_h.barrier();
 }

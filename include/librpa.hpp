@@ -5,6 +5,7 @@
 #include "librpa_handler.h"
 
 #include <vector>
+#include <complex>
 
 namespace librpa
 {
@@ -52,7 +53,7 @@ void finalize_global(void);
 
 // Declaration wrapper macro, without and with options
 #define LIBRPA_CPP_H_METHOD_DECL_WRAP(ret, func, ...) ret func(__VA_ARGS__)
-#define LIBRPA_CPP_H_METHOD_DECL_WRAP_WOPTS(ret, func, ...) ret func(const LibrpaOptions *opts, __VA_ARGS__)
+#define LIBRPA_CPP_H_METHOD_DECL_WRAP_WOPTS(ret, func, ...) ret func(const librpa::Options &opts, __VA_ARGS__)
 
 class Handler
 {
@@ -66,7 +67,8 @@ public:
     void free();
     ~Handler();
 
-    // Input (set) functions
+    /* Input (set) functions */
+
     LIBRPA_CPP_H_METHOD_DECL_WRAP(void, set_scf_dimension,
                                   int nspins, int nkpts, int nstates, int nbasis);
     LIBRPA_CPP_H_METHOD_DECL_WRAP(void, set_wg_ekb_efermi,
@@ -99,9 +101,11 @@ public:
                                   int ik, int max_naux, int mu_begin, int mu_end, int nu_begin, int nu_end,
                                   const double* Vq_real_in, const double* Vq_imag_in);
 
-    // Compute (get) functions
-    // LIBRPA_CPP_H_METHOD_DECL_WRAP(void, get_rpa_correlation_energy,
-    //                               double *rpa_corr, double *rpa_corr_irk_contrib);
+    /* Compute (get) functions */
+
+    //! Compute RPA correlation energy
+    LIBRPA_CPP_H_METHOD_DECL_WRAP_WOPTS(double, get_rpa_correlation_energy,
+                                        std::vector<std::complex<double>> &rpa_corr_ibzk_contrib);
 };
 
 #undef LIBRPA_CPP_H_METHOD_DECL_WRAP

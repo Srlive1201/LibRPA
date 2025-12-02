@@ -152,11 +152,21 @@ int PeriodicBoundaryData::get_R_index(const Vector3_Order<int> &R) const
     return librpa_int::get_R_index(this->Rlist, R);
 }
 
+static int get_k_index_(const std::vector<Vector3_Order<double>> &klist, const Vector3_Order<double> &k)
+{
+    auto it = std::find(klist.cbegin(), klist.cend(), k);
+    if (it != klist.cend()) return distance(klist.cbegin(), it);
+    return -1;
+}
+
 int PeriodicBoundaryData::get_k_index_full(const Vector3_Order<double> &k) const
 {
-    auto it = std::find(this->klist.cbegin(), this->klist.cend(), k);
-    if ( it != this->klist.cend()) return distance(this->klist.cbegin(), it);
-    return -1;
+    return get_k_index_(this->klist, k);
+}
+
+int PeriodicBoundaryData::get_k_index_ibz(const Vector3_Order<double> &k) const
+{
+    return get_k_index_(this->klist_ibz, k);
 }
 
 
@@ -203,12 +213,5 @@ bool is_gamma_point(const Vector3_Order<int> &kpt_int)
 // Matrix3 latvec;
 // std::array<std::array<double, 3>, 3> lat_array;
 // Matrix3 G;
-
-// int get_k_index_full(const Vector3_Order<double> &k)
-// {
-//     auto it = std::find(klist.cbegin(), klist.cend(), k);
-//     if ( it != klist.cend()) return distance(klist.cbegin(), it);
-//     return -1;
-// }
 
 }
