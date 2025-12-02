@@ -189,10 +189,10 @@ double ComplexMatrix::get_max_abs() const
     // Not allocated
     if (size == 0)
         return 0.0;
-    double iv = abs(this->c[0]);
+    double iv = std::abs(this->c[0]);
     for (int i = 1; i != this->size; i++)
     {
-        iv = std::max(iv, abs(this->c[i]));
+        iv = std::max(iv, std::abs(this->c[i]));
     }
     return iv;
 }
@@ -202,10 +202,10 @@ double ComplexMatrix::get_max_abs_imag() const
     // Not allocated
     if (size == 0)
         return 0.0;
-    double iv = abs(this->c[0].imag());
+    double iv = std::abs(this->c[0].imag());
     for (int i = 1; i != this->size; i++)
     {
-        iv = std::max(iv, abs(this->c[i].imag()));
+        iv = std::max(iv, std::abs(this->c[i].imag()));
     }
     return iv;
 }

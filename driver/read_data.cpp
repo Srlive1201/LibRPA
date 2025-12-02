@@ -615,7 +615,7 @@ std::vector<size_t> handle_Cs_file_dry(const string &file_path, double threshold
                 for (int mu = 0; mu != n_mu; mu++)
                 {
                     infile >> Cs_ele;
-                    maxval = std::max(maxval, abs(stod(Cs_ele)));
+                    maxval = std::max(maxval, std::abs(stod(Cs_ele)));
                 }
         librpa_int::global::ofs_myid << id << " (" << ic_1 << "," << ic_2 << "," << ic_3 << ") " << maxval << " keep? " << (maxval >= threshold) << endl;
         if (maxval >= threshold)
@@ -733,7 +733,7 @@ static size_t handle_Cs_file_by_ids(const string &file_path, double threshold, c
                     for (int mu = 0; mu != n_mu; mu++)
                     {
                         infile >> Cs_ele;
-                        maxval = std::max(maxval, abs(stod(Cs_ele)));
+                        maxval = std::max(maxval, std::abs(stod(Cs_ele)));
                     }
             if (maxval < threshold) cs_discard++;
         }
