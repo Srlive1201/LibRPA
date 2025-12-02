@@ -435,13 +435,13 @@ static void chi_libri_ft_ct(
 #endif
 
 void Chi0::build_chi0_q_space_time_LibRI_routing(const Cs_LRI &Cs,
-                                                 const vector<atpair_t> &atpairs_ABF)
+                                                 const std::vector<atpair_t> &atpairs_ABF)
 {
 #ifndef LIBRPA_USE_LIBRI
-    cout << "LibRI routing requested, but the executable is not compiled with LibRI" << endl;
-    cout << "Please recompiler libRPA with -DUSE_LIBRI and configure include path" << endl;
-    mpi_comm_global_h.barrier();
-    throw std::logic_error("compilation");
+    std::cout << "LibRI routing requested, but the executable is not compiled with LibRI" << std::endl;
+    std::cout << "Please recompiler libRPA with -DUSE_LIBRI and configure include path" << std::endl;
+    global::mpi_comm_global_h.barrier();
+    throw LIBRPA_RUNTIME_ERROR("compilation");
 #else
     global::profiler.start("LibRI_routing", "Loop over LibRI");
     map<int,std::array<double,3>> atoms_pos;

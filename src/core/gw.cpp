@@ -95,11 +95,11 @@ void G0W0::build_spacetime(
 #ifndef LIBRPA_USE_LIBRI
     if (mpi_comm_global_h.myid == 0)
     {
-        cout << "LIBRA::G0W0::build_spacetime is only implemented on top of LibRI" << endl;
-        cout << "Please recompiler LibRPA with -DUSE_LIBRI and configure include path" << endl;
+        std::cout << "LIBRA::G0W0::build_spacetime is only implemented on top of LibRI" << std::endl;
+        std::cout << "Please recompiler LibRPA with -DUSE_LIBRI and configure include path" << std::endl;
     }
-    mpi_comm_global_h.barrier();
-    throw std::logic_error("compilation");
+    global::mpi_comm_global_h.barrier();
+    throw LIBRPA_RUNTIME_ERROR("compilation");
 #else
     // Transform from frequency/reciprocal to time/real-space
     global::profiler.start("g0w0_build_spacetime_ct_ft_wc", "Tranform Wc (q,w) -> (R,t)");
@@ -396,19 +396,15 @@ void G0W0::build_spacetime(
 
                 const auto omega = tfg.get_freq_nodes()[iomega];
                 const auto &sigc_RIJ = sigc_is_f_R_IJ[ispin][omega];
-                for (const auto& R_IJsigc: sigc_RIJ)
+                for (const auto &[R, IJsigc]: sigc_RIJ)
                 {
-                    const auto &R = R_IJsigc.first;
-                    const auto iR = std::distance(Rlist.cbegin(), std::find(Rlist.cbegin(), Rlist.cend(), R));
-                    for (const auto& I_Jsigc: R_IJsigc.second)
+                    const auto iR = this->pbc.get_R_index(R);
+                    for (const auto &[I, Jsigc]: IJsigc)
                     {
-                        const auto &I = I_Jsigc.first;
                         const auto &n_I = this->atbasis_wfc.get_atom_nb(I);
-                        for (const auto& J_sigc: I_Jsigc.second)
+                        for (const auto &[J, sigc]: Jsigc)
                         {
-                            const auto &J = J_sigc.first;
                             const auto &n_J = this->atbasis_wfc.get_atom_nb(J);
-                            const auto &sigc = J_sigc.second;
                             n_IJR_myid++;
                             size_t dims[5];
                             dims[0] = iR;
@@ -450,13 +446,13 @@ void G0W0::build_sigc_matrix_KS(const std::vector<std::vector<ComplexMatrix>> &w
     global::profiler.start("g0w0_build_sigc_KS");
 
 #ifndef LIBRPA_USE_LIBRI
-    if (mpi_comm_global_h.myid == 0)
+    if (global::mpi_comm_global_h.myid == 0)
     {
-        cout << "LIBRA::G0W0::build_sigc_matrix_KS is only implemented on top of LibRI" << endl;
-        cout << "Please recompile LibRPA with -DUSE_LIBRI and optionally configure include path" << endl;
+        std::cout << "LIBRA::G0W0::build_sigc_matrix_KS is only implemented on top of LibRI" << std::endl;
+        std::cout << "Please recompile LibRPA with -DUSE_LIBRI and optionally configure include path" << std::endl;
     }
-    mpi_comm_global_h.barrier();
-    throw std::logic_error("compilation");
+    global::mpi_comm_global_h.barrier();
+    throw LIBRPA_RUNTIME_ERROR("compilation");
 #else
     // char fn[80];
     ArrayDesc desc_nband_nao(blacs_ctxt_h);

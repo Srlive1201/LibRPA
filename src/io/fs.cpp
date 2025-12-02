@@ -4,6 +4,8 @@
 #include <stdexcept>
 #include <system_error>
 
+#include "../utils/error.h"
+
 namespace librpa_int
 {
 
@@ -29,9 +31,9 @@ void create_directories(const char *dname, int root_process)
     {
         std::error_code ec;
         std::filesystem::create_directories(dname, ec);
-        if (std::filesystem::is_directory(dname))
+        if (!std::filesystem::is_directory(dname))
         {
-            throw std::runtime_error(std::string("Failed to create directories ") + dname);
+            throw LIBRPA_RUNTIME_ERROR(std::string("Failed to create directories ") + dname);
         }
     }
 }
