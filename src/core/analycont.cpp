@@ -20,7 +20,8 @@ AnalyContPade::AnalyContPade(int n_pars_in, const std::vector<cplxdb> &xs, const
     const int n_data = data.size();
     std::vector<cplxdb> data_npar;
 
-    assert (n_pars > 0);
+    // Use all data if requested number of parameters is invalid
+    if (n_pars < 0) n_pars = n_data;
 
     if (n_data <= n_pars)
     {

@@ -3,28 +3,23 @@
 #include <algorithm>
 #include <cassert>
 // #include <iostream>
-#include <stdexcept>
 
+#include "../math/scalapack_connector.h"
 #include "../mpi/base_mpi.h"
 #include "../utils/base_utility.h"
+#include "../utils/error.h"
 #include "../utils/profiler.h"
-#include "../math/scalapack_connector.h"
 
 // #include "../io/stl_io_helper.h"
 
 namespace librpa_int
 {
 
-namespace utils
-{
-
 std::set<std::pair<int, int>> get_necessary_IJ_from_block_2D(const AtomicBasis &atbasis_row, const AtomicBasis &atbasis_col, const ArrayDesc& arrdesc)
 {
     std::set<std::pair<int, int>> IJs;
-    if (as_size(arrdesc.m()) != atbasis_row.nb_total)
-        throw std::invalid_argument("row basis and array descriptor inconsistent");
-    if (as_size(arrdesc.n()) != atbasis_col.nb_total)
-        throw std::invalid_argument("col basis and array descriptor inconsistent");
+    assert(as_size(arrdesc.m()) == atbasis_row.nb_total);
+    assert(as_size(arrdesc.n()) == atbasis_col.nb_total);
 
     const auto mlo = arrdesc.m_loc();
     const auto nlo = arrdesc.n_loc();
@@ -46,11 +41,9 @@ std::set<std::pair<int, int>> get_necessary_IJ_from_block_2D_sy(const char &uplo
 {
     std::set<std::pair<int, int>> IJs;
     if (uplo != 'U' && uplo != 'L')
-        throw std::invalid_argument("uplo should be U or L");
-    if (as_size(arrdesc.m()) != atbasis.nb_total)
-        throw std::invalid_argument("row basis and array descriptor inconsistent");
-    if (as_size(arrdesc.n()) != atbasis.nb_total)
-        throw std::invalid_argument("col basis and array descriptor inconsistent");
+        throw LIBRPA_RUNTIME_ERROR("uplo should be U or L");
+    assert(as_size(arrdesc.m()) == atbasis.nb_total);
+    assert(as_size(arrdesc.n()) == atbasis.nb_total);
 
     const auto mlo = arrdesc.m_loc();
     const auto nlo = arrdesc.n_loc();
@@ -91,7 +84,7 @@ IndexScheduler::init(const std::unordered_map<int, std::set<atpair_t>> &map_proc
     const auto m = as_size(ad.m());
     const auto n = as_size(ad.n());
 
-    Profiler::start("index_scheduler_init_pairs_map");
+    global::profiler.start("index_scheduler_init_pairs_map");
     ap_p_map<int> map_IJ_proc;
     for (const auto &proc_IJs: map_proc_IJs)
     {
@@ -112,9 +105,9 @@ IndexScheduler::init(const std::unordered_map<int, std::set<atpair_t>> &map_proc
         atpairs = std::vector<atpair_t>(IJs.cbegin(), IJs.cend());
         std::sort(atpairs.begin(), atpairs.end(), FastLess<atpair_t>{row_fast});
     }
-    Profiler::stop("index_scheduler_init_pairs_map");
+    global::profiler.stop("index_scheduler_init_pairs_map");
 
-    Profiler::start("index_scheduler_ids_rc");
+    global::profiler.start("index_scheduler_ids_rc");
     // std::unordered_map<atom_t, std::vector<size_t>> row_ids_ap;
     // std::unordered_map<atom_t, std::vector<size_t>> col_ids_ap;
     // for (size_t I = 0; I < atbasis_r.n_atoms; I++) row_ids_ap[I] = atbasis_r.get_global_indices(I);
@@ -125,9 +118,9 @@ IndexScheduler::init(const std::unordered_map<int, std::set<atpair_t>> &map_proc
     const auto &ic_blacs = ad.g2l_c();
     const auto &m_loc = ad.m_loc();
     const auto &n_loc = ad.n_loc();
-    Profiler::stop("index_scheduler_ids_rc");
+    global::profiler.stop("index_scheduler_ids_rc");
 
-    Profiler::start("index_scheduler_compute_map"); // most intensive part, not paralleized
+    global::profiler.start("index_scheduler_compute_map"); // most intensive part, not paralleized
     // const auto n_avg = m * n / ad.nprocs();
     // proc_ap_locid.reserve(n_avg);
     // proc_ap_ipair.reserve(n_avg);
@@ -200,7 +193,7 @@ IndexScheduler::init(const std::unordered_map<int, std::set<atpair_t>> &map_proc
             }
         }
     }
-    Profiler::stop("index_scheduler_compute_map");
+    global::profiler.stop("index_scheduler_compute_map");
 
     const auto nprocs = ad.nprocs();
     disp_ap.resize(nprocs, 0);
@@ -208,7 +201,7 @@ IndexScheduler::init(const std::unordered_map<int, std::set<atpair_t>> &map_proc
     disp_blacs.resize(nprocs, 0);
     counts_blacs.resize(nprocs, 0);
 
-    Profiler::start("index_scheduler_flatten");
+    global::profiler.start("index_scheduler_flatten");
     // flatten the map and save
     total_count_ap = 0;
     for (int i = 0; i < nprocs; i++)
@@ -252,7 +245,7 @@ IndexScheduler::init(const std::unordered_map<int, std::set<atpair_t>> &map_proc
         const auto &locids = it->second;
         ids_blacs_locid.insert(ids_blacs_locid.cend(), locids.cbegin(), locids.cend());
     }
-    Profiler::stop("index_scheduler_flatten");
+    global::profiler.stop("index_scheduler_flatten");
 
     initialized_ = true;
 }
@@ -349,16 +342,16 @@ _get_communicate_ids_list_ap_and_blacs(const int &myid,
     const std::vector<atpair_t> &IJs =
         map_proc_IJs.count(myid) ? map_proc_IJs.at(myid) : std::vector<atpair_t>();
     // if (myid == 0) std::cout << "IJs_avail " << IJs_avail << std::endl;
-    Profiler::start("get_2d_mat_indices_atpair");
+    global::profiler.start("get_2d_mat_indices_atpair");
     const auto ids_ap = get_2d_mat_indices_atpair(atbasis_r, atbasis_c, IJs, row_fast);
-    Profiler::stop("get_2d_mat_indices_atpair");
+    global::profiler.stop("get_2d_mat_indices_atpair");
 
     // global basis indices required by BLACS
-    Profiler::start("get_2d_mat_indices_blacs");
+    global::profiler.start("get_2d_mat_indices_blacs");
     const auto ids_blacs = get_2d_mat_indices_blacs(ad, myid, row_fast);
-    Profiler::stop("get_2d_mat_indices_blacs");
+    global::profiler.stop("get_2d_mat_indices_blacs");
 
-    Profiler::start("ap_and_blacs_map_proc_map_id2d_ap");
+    global::profiler.start("ap_and_blacs_map_proc_map_id2d_ap");
     std::unordered_map<int, atom_mapping<std::vector<std::pair<size_t, size_t>>>::pair_t> map_proc_map_id2d_ap;
     std::unordered_map<int, std::vector<atpair_t>> map_proc_IJs_save_order;
     for (const auto &id: ids_ap)
@@ -409,9 +402,9 @@ _get_communicate_ids_list_ap_and_blacs(const int &myid,
             map_proc_id2d_ap[target].push_back({IJ, target_map.second.at(IJ)});
         }
     }
-    Profiler::stop("ap_and_blacs_map_proc_map_id2d_ap");
+    global::profiler.stop("ap_and_blacs_map_proc_map_id2d_ap");
 
-    Profiler::start("reverse_map_proc_IJs_avail");
+    global::profiler.start("reverse_map_proc_IJs_avail");
     // reverse map of map_proc_IJs_avail
     atom_mapping<int>::pair_t map_IJs_proc;
     for (const auto &proc_IJs: map_proc_IJs)
@@ -422,9 +415,9 @@ _get_communicate_ids_list_ap_and_blacs(const int &myid,
             map_IJs_proc[IJ] = proc;
         }
     }
-    Profiler::stop("reverse_map_proc_IJs_avail");
+    global::profiler.stop("reverse_map_proc_IJs_avail");
 
-    Profiler::start("map_proc_id2d_blacs");
+    global::profiler.start("map_proc_id2d_blacs");
     Cblacs_pcoord(ad.ictxt(), myid, &myprow, &mypcol);
     for (const auto &id: ids_blacs)
     {
@@ -449,7 +442,7 @@ _get_communicate_ids_list_ap_and_blacs(const int &myid,
             }
         }
     }
-    Profiler::stop("map_proc_id2d_blacs");
+    global::profiler.stop("map_proc_id2d_blacs");
 
     return {map_proc_id2d_ap, map_proc_id2d_blacs};
 }
@@ -936,7 +929,5 @@ get_communicate_local_ids_list_blacs_to_ap(const int &myid,
     }
     return {map_proc_id1d_send, map_proc_id1d_recv};
 }
-
-} /* end of namespace utils */
 
 } /* end of namespace librpa_int */

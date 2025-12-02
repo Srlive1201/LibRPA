@@ -11,8 +11,6 @@
 
 namespace librpa_int
 {
-namespace utils
-{
 
 //! Class to perform cubic spline interolation
 class CubicSpline
@@ -52,7 +50,5 @@ public:
 std::vector<double> interp_cubic_spline(const std::vector<double> &xs,
                                         const std::vector<double> &ys,
                                         const std::vector<double> &xs_new);
-
-} /* end of namepsace utils */
 
 } /* end of namespace librpa_int */

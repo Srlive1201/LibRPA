@@ -29,16 +29,17 @@ void BlacsCtxtHandler::init()
     this->initialized_ = true;
 }
 
-void BlacsCtxtHandler::reset_comm(MPI_Comm comm_in)
+void BlacsCtxtHandler::reset_comm(MPI_Comm comm_in, bool init_on_reset)
 {
     this->mpi_comm_h.reset_comm(comm_in);
     this->comm_set_ = true;
     this->pgrid_set_ = false;
     this->initialized_ = false;
+    if (init_on_reset) this->init();
 }
 
 void BlacsCtxtHandler::set_grid(const int &nprows_in, const int &npcols_in,
-                                  CTXT_LAYOUT layout_in)
+                                CTXT_LAYOUT layout_in)
 {
     // if the grid has been set, exit it first
     if (pgrid_set_) exit();

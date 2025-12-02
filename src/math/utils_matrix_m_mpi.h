@@ -21,9 +21,6 @@
 namespace librpa_int
 {
 
-namespace utils
-{
-
 template <typename T>
 matrix_m<T> init_local_mat(const librpa_int::ArrayDesc &ad, MAJOR major)
 {
@@ -184,7 +181,7 @@ void collect_block_from_IJ_storage_tensor_transform(
     const std::map<TA,std::map<TAC, RI::Tensor<Tsrc>>> &TMAP)
 {
     // assert(mat_lo.nr() == ad.m_loc() && mat_lo.nc() == ad.n_loc());
-    assert(ad.m() == atbasis_row.nb_total && ad.n() == atbasis_col.nb_total );
+    assert(as_size(ad.m()) == atbasis_row.nb_total && as_size(ad.n()) == atbasis_col.nb_total );
 
     matrix_m<Tdst> tmp_loc(mat_lo.nr(),mat_lo.nc(), MAJOR::ROW);
     size_t cp_size= ad.n_loc()*sizeof(Tdst);
@@ -292,17 +289,17 @@ void collect_block_from_ALL_IJ_Tensor(
     Tdst alpha, const std::map<TA,std::map<TAC, RI::Tensor<Tdst>>> &TMAP, MAJOR major_pv)
 {
     // assert(mat_lo.nr() == ad.m_loc() && mat_lo.nc() == ad.n_loc());
-    assert(ad.m() == atbasis.nb_total && ad.n() == atbasis.nb_total);
+    assert(as_size(ad.m()) == atbasis.nb_total && as_size(ad.n()) == atbasis.nb_total);
     matrix_m<Tdst> tmp_loc(mat_lo.nr(),mat_lo.nc(), MAJOR::ROW);
     size_t cp_size= ad.n_loc()*sizeof(Tdst);
 
 #ifdef LIBRPA_DEBUG
-    librpa_int::global::ofs_myid << "cp_size: " << cp_size << endl;
+    librpa_int::global::ofs_myid << "cp_size: " << cp_size << std::endl;
     librpa_int::global::ofs_myid << "Available TMAP keys: ";
     print_keys(librpa_int::global::ofs_myid, TMAP);
-    librpa_int::global::ofs_myid << endl;
-    librpa_int::global::ofs_myid << "mat_lo dims: " << mat_lo.nr() << " " << mat_lo.nc() << endl;
-    librpa_int::global::ofs_myid << "ad_loc dims: " << ad.m_loc() << " " << ad.n_loc() << endl;
+    librpa_int::global::ofs_myid << std::endl;
+    librpa_int::global::ofs_myid << "mat_lo dims: " << mat_lo.nr() << " " << mat_lo.nc() << std::endl;
+    librpa_int::global::ofs_myid << "ad_loc dims: " << ad.m_loc() << " " << ad.n_loc() << std::endl;
 #endif
 
     omp_lock_t mat_lock;
@@ -504,8 +501,8 @@ matrix_m<std::complex<T>> power_hemat_blacs(matrix_m<std::complex<T>> &A_local,
     const char uplo = 'U';
 
     // temporary array for heev with optmized block size
-    const int blocksize_row_opt = min(ad_A.mb(), 128);
-    const int blocksize_col_opt = min(ad_A.nb(), 128);
+    const int blocksize_row_opt = std::min(ad_A.mb(), 128);
+    const int blocksize_col_opt = std::min(ad_A.nb(), 128);
 
     // initialize descriptor of array A for optimized block size
     librpa_int::ArrayDesc ad_A_opt(ad_A.ictxt());
@@ -518,14 +515,14 @@ matrix_m<std::complex<T>> power_hemat_blacs(matrix_m<std::complex<T>> &A_local,
     // initialize descriptor of array Z for optimized block size
     if (ad_A.ictxt() != ad_Z.ictxt())
     {
-        ofs_myid << "Warning(power_hemat_blacs): input contexts of A and Z are different!" << endl;
+        ofs_myid << "Warning(power_hemat_blacs): input contexts of A and Z are different!" << std::endl;
     }
     librpa_int::ArrayDesc ad_Z_opt(ad_Z.ictxt());
     ad_Z_opt.init(n, n, blocksize_row_opt, blocksize_col_opt, 0, 0);
     auto Z_local_opt = init_local_mat<std::complex<T>>(ad_Z_opt, MAJOR::COL);
     // printf("Z_local_opt size: %d\n", Z_local_opt.size());
 
-    Profiler::start("power_hemat_blacs_1");
+    global::profiler.start("power_hemat_blacs_1");
     int lwork = -1, lrwork = -1, info = 0;
     std::complex<T>  *work;
     T *rwork;
@@ -544,9 +541,9 @@ matrix_m<std::complex<T>> power_hemat_blacs(matrix_m<std::complex<T>> &A_local,
         delete [] Wquery;
         delete [] rwork;
     }
-    Profiler::stop("power_hemat_blacs_1");
+    global::profiler.stop("power_hemat_blacs_1");
 
-    Profiler::start("power_hemat_blacs_2");
+    global::profiler.start("power_hemat_blacs_2");
     work = new std::complex<T> [lwork];
     rwork = new T [lrwork];
     ScalapackConnector::pheev_f(jobz, uplo,
@@ -554,14 +551,14 @@ matrix_m<std::complex<T>> power_hemat_blacs(matrix_m<std::complex<T>> &A_local,
             W, Z_local_opt.ptr(), 1, 1, ad_Z_opt.desc, work, lwork, rwork, lrwork, info);
     delete [] work;
     delete [] rwork;
-    Profiler::stop("power_hemat_blacs_2");
+    global::profiler.stop("power_hemat_blacs_2");
     // Optimized A no longer used
-    Profiler::start("power_hemat_blacs_3");
+    global::profiler.start("power_hemat_blacs_3");
     A_local_opt.clear();
     // send back the eigenvector matrix
     ScalapackConnector::pgemr2d_f(n, n, Z_local_opt.ptr(), 1, 1, ad_Z_opt.desc,
                                   Z_local.ptr(), 1, 1, ad_Z.desc, ad_Z.ictxt());
-    Profiler::stop("power_hemat_blacs_3");
+    global::profiler.stop("power_hemat_blacs_3");
 
     // check the number of non-singular eigenvalues,
     // using the fact that W is in ascending order
@@ -574,7 +571,7 @@ matrix_m<std::complex<T>> power_hemat_blacs(matrix_m<std::complex<T>> &A_local,
         }
 
     // filter and scale the eigenvalues, store in a temp array
-    Profiler::start("power_hemat_blacs_4");
+    global::profiler.start("power_hemat_blacs_4");
     std::vector<T> W_temp(n);
     for (size_t i = 0; i < n_filtered; i++) W_temp[i] = 0.0;
     for (size_t i = n_filtered; i != n; i++)
@@ -589,14 +586,14 @@ matrix_m<std::complex<T>> power_hemat_blacs(matrix_m<std::complex<T>> &A_local,
         }
         W_temp[i] = std::pow(W[i], power);
     }
-    Profiler::stop("power_hemat_blacs_4");
+    global::profiler.stop("power_hemat_blacs_4");
     // debug print
     // for (int i = 0; i != n; i++)
     // {
     //     librpa_int::global::lib_printf("%d %f %f\n", i, W[i], W_temp[i]);
     // }
 
-    Profiler::start("power_hemat_blacs_5");
+    global::profiler.start("power_hemat_blacs_5");
     // create scaled eigenvectors
     auto scaled_opt = Z_local_opt.copy();
     for (size_t i = 0; i != n; i++)
@@ -608,13 +605,13 @@ matrix_m<std::complex<T>> power_hemat_blacs(matrix_m<std::complex<T>> &A_local,
     // send back the scaled eigenvector matrix with descriptor using optimized block size to that with input descriptor
     ScalapackConnector::pgemr2d_f(n, n, scaled_opt.ptr(), 1, 1, ad_Z_opt.desc,
                                   scaled.ptr(), 1, 1, ad_Z.desc, ad_Z.ictxt());
-    Profiler::stop("power_hemat_blacs_5");
+    global::profiler.stop("power_hemat_blacs_5");
 
     return scaled;
 }
 
 template <typename T, typename Treal = typename to_real<T>::type>
-void print_matrix_mm_parallel(ostream &os, const matrix_m<T> &mat_loc, const librpa_int::ArrayDesc &ad, Treal threshold = 1e-15, bool row_first = true)
+void print_matrix_mm_parallel(std::ostream &os, const matrix_m<T> &mat_loc, const librpa_int::ArrayDesc &ad, Treal threshold = 1e-15, bool row_first = true)
 {
     librpa_int::ArrayDesc ad_fb(ad.ictxt());
     const int nr = ad.m(), nc = ad.n();
@@ -746,7 +743,7 @@ void fill_local_mat_from_ap_dist_scheduler(matrix_m<T> &m_loc,
     const auto nc = m_loc.nc();
 
     // Fill in data that is already available before communication
-    Profiler::start("assign_self_ap2blacs");
+    global::profiler.start("assign_self_ap2blacs");
     if (row_major)
     {
         #pragma omp parallel for collapse(2) schedule(static)
@@ -779,10 +776,10 @@ void fill_local_mat_from_ap_dist_scheduler(matrix_m<T> &m_loc,
             }
         }
     }
-    Profiler::stop("assign_self_ap2blacs");
+    global::profiler.stop("assign_self_ap2blacs");
 
     // prepare send buffer (from AP blocks)
-    Profiler::start("prep_send_ap2blacs");
+    global::profiler.start("prep_send_ap2blacs");
     // global::ofs_myid << "prep_send_ap2blacs total_count_ap " << sched.total_count_ap << endl;
     std::vector<T> sendbuff(sched.total_count_ap);
     #pragma omp parallel for
@@ -792,7 +789,7 @@ void fill_local_mat_from_ap_dist_scheduler(matrix_m<T> &m_loc,
         const auto &locid = sched.ids_ap_locid[i];
         sendbuff[i] = data.at(atpair).ptr()[locid];
     }
-    Profiler::stop("prep_send_ap2blacs");
+    global::profiler.stop("prep_send_ap2blacs");
 
     // prepare recv buffer (to BLACS mapping), just allocate
     std::vector<T> recvbuff(sched.total_count_blacs);
@@ -802,7 +799,7 @@ void fill_local_mat_from_ap_dist_scheduler(matrix_m<T> &m_loc,
     std::vector<MPI_Request> reqs;
     MPI_Request req;
 
-    Profiler::start("comm_ap2blacs");
+    global::profiler.start("comm_ap2blacs");
     // First non-blocking receive
     for (int pid = 0; pid < nprocs; pid++)
     {
@@ -826,10 +823,10 @@ void fill_local_mat_from_ap_dist_scheduler(matrix_m<T> &m_loc,
 
     // Wait for all non-blocking communication to finish
     if (!reqs.empty()) MPI_Waitall((int)reqs.size(), reqs.data(), MPI_STATUSES_IGNORE);
-    Profiler::stop("comm_ap2blacs");
+    global::profiler.stop("comm_ap2blacs");
 
     // Map the received data to the correct location in the BLACS sub-block
-    Profiler::start("assign_ap2blacs");
+    global::profiler.start("assign_ap2blacs");
     // global::ofs_myid << "assign_ap2blacs total_count_blacs " << sched.total_count_blacs << endl;
     #pragma omp parallel for
     for (MPI_Count i = 0; i < sched.total_count_blacs; i++)
@@ -837,7 +834,7 @@ void fill_local_mat_from_ap_dist_scheduler(matrix_m<T> &m_loc,
         const auto &locid = sched.ids_blacs_locid[i];
         m_loc.ptr()[locid] = recvbuff[i];
     }
-    Profiler::stop("assign_ap2blacs");
+    global::profiler.stop("assign_ap2blacs");
 }
 
 /*!
@@ -993,8 +990,8 @@ void fill_local_mat_from_ap_dist_sy(matrix_m<T> &m_loc,
     }
 
     // Compute indices of matrix elements that should be communicated
-    const auto proc2idlist = librpa_int::utils::get_communicate_local_ids_list_ap_to_blacs_sy(
-            myid, uplo, map_proc_IJs_avail, atbasis, ad, row_first, row_major);
+    const auto proc2idlist = get_communicate_local_ids_list_ap_to_blacs_sy(
+        myid, uplo, map_proc_IJs_avail, atbasis, ad, row_first, row_major);
     const auto &pid_ids_send = proc2idlist.first;
     const auto &pid_ids_lconj_recv = proc2idlist.second;
 
@@ -1167,7 +1164,7 @@ void fill_ap_map_from_blacs_dist_scheduler(ap_p_map<matrix_m<T>> &data,
 
     const auto &row_major = major_data == MAJOR::ROW ? true : false;
 
-    Profiler::start("assign_self_blacs2ap");
+    global::profiler.start("assign_self_blacs2ap");
     // Fill in data that is already available before communication
     // atom pairs required by this process
     const auto IJs = std::unordered_set<atpair_t, atpair_hash>(sched.atpairs.cbegin(), sched.atpairs.cend());
@@ -1216,11 +1213,11 @@ void fill_ap_map_from_blacs_dist_scheduler(ap_p_map<matrix_m<T>> &data,
             }
         }
     }
-    Profiler::stop("assign_self_blacs2ap");
+    global::profiler.stop("assign_self_blacs2ap");
     // return;
 
     // prepare send buffer (from BLACS block)
-    Profiler::start("prep_send_blacs2ap");
+    global::profiler.start("prep_send_blacs2ap");
     std::vector<T> sendbuff(sched.total_count_blacs);
     #pragma omp parallel for
     for (MPI_Count i = 0; i < sched.total_count_blacs; i++)
@@ -1228,13 +1225,13 @@ void fill_ap_map_from_blacs_dist_scheduler(ap_p_map<matrix_m<T>> &data,
         const auto &id = sched.ids_blacs_locid[i];
         sendbuff[i] = m_loc.ptr()[id];
     }
-    Profiler::stop("prep_send_blacs2ap");
+    global::profiler.stop("prep_send_blacs2ap");
 
     // prepare recv buffer (to AP mapping)
     std::vector<T> recvbuff(sched.total_count_ap);
 
     // Begin communication
-    Profiler::start("comm_blacs2ap");
+    global::profiler.start("comm_blacs2ap");
     std::vector<MPI_Request> reqs;
     MPI_Request req;
 
@@ -1263,10 +1260,10 @@ void fill_ap_map_from_blacs_dist_scheduler(ap_p_map<matrix_m<T>> &data,
 
     // Wait for all non-blocking communication to finish
     if (!reqs.empty()) MPI_Waitall((int)reqs.size(), reqs.data(), MPI_STATUSES_IGNORE);
-    Profiler::stop("comm_blacs2ap");
+    global::profiler.stop("comm_blacs2ap");
 
     // Map the received data to the correct location in the atom-pair mapping
-    Profiler::start("assign_blacs2ap");
+    global::profiler.start("assign_blacs2ap");
     // Allocate the required atom-pair block first
     #pragma omp parallel for
     for (MPI_Count i = 0; i < sched.total_count_ap; i++)
@@ -1275,7 +1272,7 @@ void fill_ap_map_from_blacs_dist_scheduler(ap_p_map<matrix_m<T>> &data,
         const auto &locid = sched.ids_ap_locid[i];
         data.at(atpair).ptr()[locid] = recvbuff[i];
     }
-    Profiler::stop("assign_blacs2ap");
+    global::profiler.stop("assign_blacs2ap");
 }
 
 /*!
@@ -1371,7 +1368,5 @@ get_ap_map_from_blacs_dist_scheduler(const matrix_m<T> &m_loc,
     return data;
 }
 
-
-} /* end of namespace utils */
 
 } /* end of namespace librpa_int */

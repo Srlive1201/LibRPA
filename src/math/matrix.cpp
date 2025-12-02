@@ -1,4 +1,5 @@
 /* matrix.cpp file */
+#include <ios>
 #include <iostream>
 #include <fstream>
 #include <iomanip>
@@ -15,7 +16,6 @@
 
 namespace librpa_int {
 
-using namespace std;
 //*********************************************************
 // The init() function is the main initialization routine.
 // Sets up sizes and allocates memory for matrix class.
@@ -37,10 +37,10 @@ matrix::matrix( const int nrows, const int ncols, const bool flag_zero )
 {
 	if( nr && nc )
 	{
-		auto handler_old = set_new_handler(matrixAlloc);
+		auto handler_old = std::set_new_handler(matrixAlloc);
 		c = new double[nr*nc];
         size = nr * nc;
-		set_new_handler(handler_old);
+		std::set_new_handler(handler_old);
 		if(flag_zero)	this->zero_out();
 	}
 }
@@ -52,9 +52,9 @@ matrix::matrix( const matrix &m_in )
 {
 	if( nr && nc )
 	{
-		auto handler_old = set_new_handler(matrixAlloc);
+		auto handler_old = std::set_new_handler(matrixAlloc);
 		c = new double[nr*nc];
-		set_new_handler(handler_old);
+		std::set_new_handler(handler_old);
 		memcpy( c, m_in.c, nr*nc*sizeof(double) );
         size = m_in.size;
 	}
@@ -136,16 +136,16 @@ void matrix::create( const int nrow, const int ncol, const bool flag_zero )
 			if( size != nr*nc )
 			{
 				delete[] c;
-				auto handler_old = set_new_handler(matrixAlloc);			
+				auto handler_old = std::set_new_handler(matrixAlloc);			
 				c = new double[size];
-				set_new_handler(handler_old);
+				std::set_new_handler(handler_old);
 			}
 		}
 		else
 		{
-			auto handler_old = set_new_handler(matrixAlloc);
+			auto handler_old = std::set_new_handler(matrixAlloc);
 			c = new double[size];
-			set_new_handler(handler_old);
+			std::set_new_handler(handler_old);
 		}			
 			
 		nr = nrow;
@@ -168,7 +168,7 @@ matrix operator+(const matrix &m1, const matrix &m2)
 	// assert(m2.nc == m2.nc);
 
 	matrix tm(m1);
-	for (int i = 0; i < m1.size; i++) 
+	for (size_t i = 0; i < m1.size; i++) 
 		tm.c[i] += m2.c[i];
 	return tm;
 }
@@ -180,7 +180,7 @@ matrix operator-(const matrix &m1, const matrix &m2)
 	// assert(m2.nc == m2.nc);
 
 	matrix tm(m1);
-	for(int i = 0; i < m1.size; i++) 
+	for(size_t i = 0; i < m1.size; i++) 
 		tm.c[i] -= m2.c[i];
 	return tm;
 }
@@ -218,7 +218,7 @@ matrix operator*(const matrix &m1, const matrix &m2)
 matrix operator*(const double &s, const matrix &m)
 {
 	matrix sm(m);
-	for (int i = 0; i < m.size; i++) 
+	for (size_t i = 0; i < m.size; i++) 
 		sm.c[i] *= s;
 	return sm;
 }
@@ -227,7 +227,7 @@ matrix operator*(const double &s, const matrix &m)
 matrix operator*(const matrix &m,const double &s)
 {
 	matrix sm(m);
-	for (int i = 0; i < m.size; i++)
+	for (size_t i = 0; i < m.size; i++)
 		sm.c[i] *= s;
 	return sm;
 }
@@ -235,21 +235,21 @@ matrix operator*(const matrix &m,const double &s)
 /* Scale a matrix in place */
 void matrix::operator*=(const double &s)
 {
-	for (int i = 0; i < size; i++) 
+	for (size_t i = 0; i < size; i++) 
 		c[i] *= s;
 }
 
 // minyez added 2022-05-06, shift all elements up by s
 void matrix::operator+=(const double &s)
 {
-    for( int i = 0; i < size; ++i )
+    for( size_t i = 0; i < size; ++i )
         c[i] += s;
 }
 
 // minyez added 2022-05-06, shift all elements down by s
 void matrix::operator-=(const double &s)
 {
-    for( int i = 0; i < size; ++i )
+    for( size_t i = 0; i < size; ++i )
         c[i] -= s;
 }
 
@@ -259,7 +259,7 @@ void matrix::operator+=(const matrix & m)
 	// assert( nr==m.nr );
 	// assert( nc==m.nc );
 	const double * const c_in = m.c;
-	for( int i = 0; i < size; ++i ) 
+	for( size_t i = 0; i < size; ++i ) 
 		c[i] += c_in[i];
 }
 
@@ -285,7 +285,7 @@ void matrix::operator-=(const matrix & m)
 	assert( nr==m.nr );
 	assert( nc==m.nc );
 	const double * const c_in = m.c;
-	for( int i = 0; i < size; ++i ) 
+	for( size_t i = 0; i < size; ++i ) 
 		c[i] -= c_in[i];
 }
 
@@ -293,7 +293,7 @@ void matrix::operator-=(const matrix & m)
 bool matrix::operator==(const matrix & m)
 {
     if ( size != m.size) return false;
-    for ( int i = 0; i != size; i++)
+    for ( size_t i = 0; i != size; i++)
         if ( std::abs( c[i] - m.c[i] ) > matrix::EQUAL_THRES ) return false;
     return true;
 }
@@ -301,7 +301,7 @@ bool matrix::operator==(const matrix & m)
 /* zero out the matrix */
 void matrix::zero_out(void)
 {
-	for(int i = 0; i < size; i++)
+	for(size_t i = 0; i < size; i++)
 		c[i] = 0.0;
 }
 
@@ -320,7 +320,7 @@ double matrix::trace_on(void) const
     assert(nr == nc);
     int inch = nc + 1;
     double tr = 0.0;
-    for (int i = 0; i < size; i += inch)
+    for (size_t i = 0; i < size; i += inch)
     {
         tr += c[i];
     }
@@ -378,7 +378,7 @@ double mdot(const matrix &A, const matrix &B)
     assert (A.nc == B.nc);
 
     double sum = 0.0;
-    for (int i = 0; i < A.size; ++i)
+    for (size_t i = 0; i < A.size; ++i)
         sum += A.c[i] * B.c[i];
     return sum;
 }
@@ -399,7 +399,7 @@ std::ostream & operator<<( std::ostream & os, const matrix & m )
 double matrix::max() const
 {
 	double value = std::numeric_limits<double>::min();
-	for( int i=0; i<size; ++i )
+	for( size_t i=0; i<size; ++i )
 		value = std::max( value, c[i] );
 	return value;
 }
@@ -409,7 +409,7 @@ double matrix::max(int &ir, int &ic) const
 {
     double value = std::numeric_limits<double>::min();
     int pos = 0;
-    for( int i=0; i<size; ++i )
+    for( size_t i=0; i<size; ++i )
         if (value > c[i])
         {
             value = c[i];
@@ -424,7 +424,7 @@ double matrix::max(int &ir, int &ic) const
 double matrix::min() const
 {
 	double value = std::numeric_limits<double>::max();
-	for( int i=0; i<size; ++i )
+	for( size_t i=0; i<size; ++i )
 		value = std::min( value, c[i] );
 	return value;
 }
@@ -433,7 +433,7 @@ double matrix::min() const
 double matrix::absmax() const
 {
 	double value = 0;
-	for( int i=0; i<size; ++i )
+	for( size_t i=0; i<size; ++i )
 		value = std::max( value, std::abs(c[i]) );
 	return value;
 }
@@ -442,7 +442,7 @@ double matrix::absmax() const
 unsigned matrix::count_absle(double thres) const
 {
     unsigned count = 0;
-    for( int i=0; i<size; ++i )
+    for( size_t i=0; i<size; ++i )
         if (std::abs(c[i]) <= thres) count++;
     return count;
 }
@@ -450,7 +450,7 @@ unsigned matrix::count_absle(double thres) const
 unsigned matrix::count_absge(double thres) const
 {
     unsigned count = 0;
-    for( int i=0; i<size; ++i )
+    for( size_t i=0; i<size; ++i )
         if (std::abs(c[i]) >= thres) count++;
     return count;
 }
@@ -466,10 +466,10 @@ matrix power_symat(matrix &mat, double power, double threshold)
     int nb = LapackConnector::ilaenv(1, "dsyev", "VU", mat.nc, 1, 1, 1);
     int lwork = mat.nc * (nb+2);
     int info = 0;
-    double w[mat.nc];
-    double work[lwork];
+    std::vector<double> w(mat.nc);
+    std::vector<double> work(lwork);
     LapackConnector::dsyev(jobz, uplo, mat.nc, mat.c, mat.nc,
-                           w, work, lwork, info);
+                           w.data(), work.data(), lwork, info);
     bool is_int_power = fabs(power - int(power)) < 1e-8;
     for ( int i = 0; i != mat.nc; i++ )
     {
@@ -483,7 +483,7 @@ matrix power_symat(matrix &mat, double power, double threshold)
             w[i] = pow(w[i], power);
     }
     matrix evtrans = transpose(mat);
-    for ( int i = 0; i != mat.nr; i++ )
+    for ( size_t i = 0; i != mat.nr; i++ )
         for ( int j = 0; j != mat.nc; j++ )
             evtrans.c[i*mat.nc+j] *= w[i];
 
@@ -512,6 +512,10 @@ void print_matrix(const char *desc, const matrix &mat)
 
 void print_matrix_mm(const matrix &mat, std::ostream &os, double threshold, bool row_first)
 {
+    using std::scientific;
+    using std::showpoint;
+    using std::setprecision;
+    using std::endl;
     int nr = mat.nr;
     int nc = mat.nc;
     int prec = 15;
@@ -520,7 +524,7 @@ void print_matrix_mm(const matrix &mat, std::ostream &os, double threshold, bool
     os << "%%MatrixMarket matrix coordinate real general" << endl;
     os << "%" << endl;
     // count non-zero values first
-    for (int i = 0; i < mat.size; i++)
+    for (size_t i = 0; i < mat.size; i++)
     {
         auto v = mat.c[i];
         if ( fabs(v) > threshold )

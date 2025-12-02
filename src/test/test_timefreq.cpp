@@ -14,7 +14,7 @@ using namespace librpa_int;
 
 void check_initialize()
 {
-    cout << "Available time-frequency grids: " << TFGrids::GRID_TYPES::COUNT << endl;
+    cout << "Available time-frequency grids: " << LIBRPA_TFGRID_COUNT << endl;
     // cout << source_dir << endl;
     // cout << minimax_grid_path << endl;
     TFGrids tfg(6);

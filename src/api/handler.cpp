@@ -16,21 +16,3 @@ void librpa_destroy_handler(LibrpaHandler *h)
     librpa_int::api::destroy_dataset(h);
     delete h;
 }
-
-// C++ APIs
-
-namespace librpa
-{
-
-Handler::Handler(int comm): h(nullptr)
-{
-    h = ::librpa_create_handler(comm);
-}
-
-Handler::~Handler()
-{
-    ::librpa_destroy_handler(h);
-}
-
-}
-

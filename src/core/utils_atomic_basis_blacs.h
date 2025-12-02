@@ -3,13 +3,10 @@
 #include <set>
 #include <unordered_map>
 
-#include "atomic_basis.h"
 #include "../mpi/base_blacs.h"
+#include "atomic_basis.h"
 
 namespace librpa_int
-{
-
-namespace utils
 {
 
 // aliases for mapping indices from process rank
@@ -244,7 +241,5 @@ get_communicate_local_ids_list_blacs_to_ap(const int &myid,
                                            const AtomicBasis &atbasis_c,
                                            const ArrayDesc &ad,
                                            bool row_fast, bool row_major, bool include_self = false);
-
-} /* end of namespace utils */
 
 } /* end of namespace librpa_int */

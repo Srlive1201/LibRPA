@@ -25,16 +25,18 @@ namespace librpa_int
 class Dataset
 {
 public:
-    /* Variables */
+    /* Member variables */
     // Environment control
     MpiCommHandler comm_h;
     BlacsCtxtHandler blacs_ctxt_h;
+    //! Array descriptor for matrices of auxiliary basis set size
+    ArrayDesc desc_abf;
 
     // Physical system.
-    //! Basic set functions for wave function expansion.
+    //! Handliing boject for basic set functions for wave function expansion.
     AtomicBasis basis_wfc;
-    //! Auxiliary basic set functions for RI
-    AtomicBasis basis_abf;
+    //! Handliing boject for auxiliary basic set functions for RI
+    AtomicBasis basis_aux;
     Atoms atoms;
     PeriodicBoundaryData pbc;
 
@@ -42,11 +44,15 @@ public:
     MeanField mf;
     TFGrids tfg;
     Cs_LRI cs_data;
+    // atom-pair distribution of Coulomb matrices
     atpair_k_cplx_mat_t vq;
     atpair_k_cplx_mat_t vq_cut;
+    // 2D distribution of Coulomb matrices
+    std::map<Vector3_Order<double>, ComplexMatrix> vq_block_loc;
+    std::map<Vector3_Order<double>, ComplexMatrix> vq_cut_block_loc;
 
-    // Computation data.
-    // All computation data objects should be contained as pointers
+    // Output data, held by computation objects
+    // All computation data objects should be contained here as pointers
     // and are created only when requested.
     std::unique_ptr<Exx> p_exx = nullptr;
     std::unique_ptr<Chi0> p_chi0 = nullptr;

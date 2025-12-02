@@ -45,6 +45,10 @@
 #define MPI_C_DOUBLE_COMPLEX 16
 #endif
 
+int MPI_Comm_rank(MPI_Comm comm, int *rank) { rank = 0; return 0; }
+
+int MPI_Comm_size(MPI_Comm comm, int *size) { size = 1; return 0; }
+
 #endif
 
 #endif

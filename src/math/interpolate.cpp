@@ -5,8 +5,7 @@
 
 namespace librpa_int
 {
-namespace utils
-{
+
 CubicSpline::CubicSpline(const std::vector<double>& xs, const std::vector<double>& ys): d_xs(xs), d_ys(ys)
 {
     // Get the number of data points
@@ -152,6 +151,5 @@ std::vector<double> interp_cubic_spline(const std::vector<double> &xs, const std
     return cs(xs_new);
 }
 
-} /* end of namespace utils */
 } /* end of namespace librpa_int */
 

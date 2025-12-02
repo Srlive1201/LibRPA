@@ -8,29 +8,33 @@ extern "C" {
 #endif
 
 #define LIBRPA_UNSET -101
+#define LIBRPA_AUTO -51
 
 #define LIBRPA_SWITCH_OFF 0
 #define LIBRPA_SWITCH_ON 1
 
-#define LIBRPA_VERBOSE_DEBUG 0
-#define LIBRPA_VERBOSE_WARN 1
+#define LIBRPA_VERBOSE_DEBUG 4
+#define LIBRPA_VERBOSE_WARN 3
 #define LIBRPA_VERBOSE_INFO 2
-#define LIBRPA_VERBOSE_CRITICAL 3
-#define LIBRPA_VERBOSE_SILENT 10
+#define LIBRPA_VERBOSE_CRITICAL 1
+#define LIBRPA_VERBOSE_SILENT 0
 
-#define LIBRPA_KIND_AIMS 100
-#define LIBRPA_KIND_ABACUS 101
-#define LIBRPA_KIND_OPENMX 102
-#define LIBRPA_KIND_PYSCF 103
+// #define LIBRPA_KIND_AIMS 100
+// #define LIBRPA_KIND_ABACUS 101
+// #define LIBRPA_KIND_OPENMX 102
+// #define LIBRPA_KIND_PYSCF 103
 
+#define LIBRPA_ROUTING_COUNT 5
 typedef enum
 {
     ROUTING_UNSET = LIBRPA_UNSET,
+    AUTO = LIBRPA_AUTO,
     RTAU = 0,
     ATOMPAIR = 1,
-    LibRI = 2,
+    LIBRI = 2,
 } LibrpaParallelRouting;
 
+#define LIBRPA_TFGRID_COUNT 7
 typedef enum
 {
     TFGRID_UNSET = LIBRPA_UNSET,
@@ -51,24 +55,3 @@ typedef int LibrpaVerbose;
 #ifdef __cplusplus
 }
 #endif
-
-// C++ enums
-#ifdef __cplusplus
-
-namespace librpa
-{
-
-typedef LibrpaParallelRouting ParallelRouting;
-
-typedef LibrpaTimeFreqGrid TimeFreqGrid;
-
-typedef LibrpaSwitch Switch;
-
-typedef LibrpaKind Kind;
-
-typedef LibrpaVerbose Verbose;
-
-}
-
-#endif
-

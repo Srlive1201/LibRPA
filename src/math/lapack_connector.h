@@ -112,7 +112,7 @@ public:
 		{
 			case 'L': return 'R';
 			case 'R': return 'L';
-			default: throw invalid_argument("Side must be 'L' or 'R'");
+			default: throw std::invalid_argument("Side must be 'L' or 'R'");
 		}		
 	}
 	
@@ -124,7 +124,7 @@ public:
 		{
 			case 'U': return 'L';
 			case 'L': return 'U';
-			default: throw invalid_argument("uplo must be 'U' or 'L'");
+			default: throw std::invalid_argument("uplo must be 'U' or 'L'");
 		}		
 	}
 	
@@ -136,7 +136,7 @@ public:
 		{
 			case 'N': return 'T';
 			case 'T': return 'N';
-			default: throw invalid_argument("trans must be 'N' or 'T'");
+			default: throw std::invalid_argument("trans must be 'N' or 'T'");
 		}
 	}
 	// Peize Lin add 2019-04-14
@@ -147,7 +147,7 @@ public:
 		{
 			case 'N': return 'C';
 			case 'C': return 'N';
-			default: throw invalid_argument("trans must be 'N' or 'C'");
+			default: throw std::invalid_argument("trans must be 'N' or 'C'");
 		}
 	}
 	

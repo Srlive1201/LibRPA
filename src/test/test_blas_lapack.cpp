@@ -42,8 +42,8 @@ void test_blas_mv_mm_double(bool debug = false)
             mat2[ic][ir] = double(rand()) / RAND_MAX;
 
     double mat_or[RDIM][RDIM] = {};
-    double mat_oc[CDIM][CDIM] = {};
-    const char transt = 'T';
+    // double mat_oc[CDIM][CDIM] = {};
+    // const char transt = 'T';
     // mat[RDIM][CDIM] * mat2[CDIM][RIM] = m[RDIM][RDIM]
     dgemm_(&transn, &transn, &RDIM, &RDIM, &CDIM, &alpha, *mat2, &RDIM, *mat, &CDIM, &beta, *mat_or, &RDIM);
     assert( is_matmul_AB_equal_C(RDIM, RDIM, CDIM, *mat, *mat2, *mat_or, false, debug));

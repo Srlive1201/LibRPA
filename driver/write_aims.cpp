@@ -7,6 +7,10 @@
 
 void write_self_energy_omega(const char *fn, const librpa_int::G0W0 &s_g0w0)
 {
+    using std::fixed;
+    using std::setprecision;
+    using std::setw;
+
     const auto &n_spins = s_g0w0.mf.get_n_spins();
     const auto &n_kpts = s_g0w0.mf.get_n_kpoints();
     const auto &n_bands = s_g0w0.mf.get_n_bands();

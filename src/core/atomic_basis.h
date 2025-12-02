@@ -112,6 +112,7 @@ public:
     }
 
     inline std::size_t get_atom_nb(const int& i_atom) const noexcept { return nbs_[i_atom]; }
+    inline std::size_t operator[](const int& i_atom) const noexcept { return nbs_[i_atom]; }
     inline std::vector<std::size_t> get_atom_nbs() const noexcept { return nbs_; }
     inline const std::vector<std::size_t>& get_part_range() const noexcept { return part_range_; }
     inline bool initialized() const noexcept { return initialized_; }
@@ -191,7 +192,7 @@ std::vector<size_t> get_1d_mat_indices_atpair(const AtomicBasis &atbasis_r,
                                               const bool row_major,
                                               const bool sort_fast = false);
 
-extern AtomicBasis atomic_basis_wfc;
-extern AtomicBasis atomic_basis_abf;
+// extern AtomicBasis atomic_basis_wfc;
+// extern AtomicBasis atomic_basis_abf;
 
 } // namespace librpa_int

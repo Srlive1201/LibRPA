@@ -1,12 +1,28 @@
+#include "../utils/error.h"
 #include "geometry.h"
+
 #include <stdexcept>
 
 namespace librpa_int {
 
-std::map<atom_t, coord_t> coord;
-std::map<atom_t, coord_t> coord_frac;
+// std::map<atom_t, coord_t> coord;
+// std::map<atom_t, coord_t> coord_frac;
+// std::map<atom_t, int> atom_types;
 
-std::map<atom_t, int> atom_types;
+// Corresponds to cubic lattice with a=2Pi*10^5 Bohr
+static double blen = 1e-5;
+Matrix3 Atoms::pseudo_recplatt_in_2pi_ = {blen, 0, 0, 0, blen, 0, 0, 0, blen};
+
+// G is reciprocal lattice vectors in 2pi/length^-1 unit
+inline static coord_t cart2frac(const coord_t &cart, const Matrix3 &G_in_2pi)
+{
+    return
+    {
+        (cart[0] * G_in_2pi.e11 + cart[1] * G_in_2pi.e12 + cart[2] * G_in_2pi.e13),
+        (cart[0] * G_in_2pi.e21 + cart[1] * G_in_2pi.e22 + cart[2] * G_in_2pi.e23),
+        (cart[0] * G_in_2pi.e31 + cart[1] * G_in_2pi.e32 + cart[2] * G_in_2pi.e33)
+    };
+}
 
 void Atoms::set(const std::vector<int> &types_in,
                 const std::vector<coord_t> &coords_in)
@@ -34,7 +50,10 @@ void Atoms::set(const std::vector<int> &types_in,
         for (size_t iat = 0; iat < n_coord_in; iat++)
         {
             this->coords[atom_t(iat)] = coords_in[iat];
+            this->coords_frac[atom_t(iat)] =
+                cart2frac(this->coords[atom_t(iat)], Atoms::pseudo_recplatt_in_2pi_);
         }
+        is_pseudo_lattice_ = true;
     };
 
     auto set_both = [&]()
@@ -93,21 +112,18 @@ void Atoms::set(const std::vector<int> &types_in,
     this->set(types_in, coords_in);
     if (!is_set())
     {
-        throw std::runtime_error("Coordinates not set, cannot compute fractional coords");
+        throw LIBRPA_RUNTIME_ERROR("Coordinates not set, cannot compute fractional coords");
     }
 
-    const auto G = lattice.Inverse().Transpose();
+    const auto G_in_2pi = lattice.Inverse().Transpose();
 
     this->coords_frac.clear();
-    auto n_atoms = this->coords.size();
+    const auto n_atoms = this->coords.size();
     for (size_t i = 0; i < n_atoms; i++)
     {
-        this->coords_frac[atom_t(i)] = {
-            (this->coords[i][0] * G.e11 + this->coords[i][1] * G.e12 + this->coords[i][2] * G.e13),
-            (this->coords[i][0] * G.e21 + this->coords[i][1] * G.e22 + this->coords[i][2] * G.e23),
-            (this->coords[i][0] * G.e31 + this->coords[i][1] * G.e32 + this->coords[i][2] * G.e33),
-        };
+        this->coords_frac[atom_t(i)] = cart2frac(this->coords[atom_t(i)], G_in_2pi);
     }
+    is_pseudo_lattice_ = false;
 }
 
 

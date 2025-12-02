@@ -28,9 +28,6 @@ namespace librpa_int
 #define USE_MALLINFO2 1
 #endif
 
-namespace utils
-{
-
 void display_free_mem()
 {
 #if defined(__linux__)
@@ -127,8 +124,6 @@ void report_virtual_pages(std::ostream &os)
        << " MB" << std::endl;
 #endif
 }
-
-} /* end of namespace utils */
 
 } /* end of namespace librpa_int */
 

@@ -1,7 +1,10 @@
 #pragma once
+#include <string>
 
 namespace librpa_int
 {
+
+std::string path_as_directory(const std::string &path);
 
 /*!
  * @brief Create directory and its parent directories if necessary.

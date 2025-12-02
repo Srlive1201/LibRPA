@@ -1,6 +1,7 @@
 #include "../math/matrix_m.h"
 #include "testutils.h"
 
+using namespace std;
 using namespace librpa_int;
 
 static void test_constuctor()

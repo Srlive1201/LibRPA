@@ -204,7 +204,7 @@ else()
 endif()
 
 if(ENABLE_FORTRAN_BIND)
-  add_subdirectory(./binding/fortran)
+  # add_subdirectory(./binding/fortran)
 endif()
 
 if(ENABLE_TEST)
@@ -228,14 +228,15 @@ endif()
 
 add_subdirectory(src)
 install(FILES
-        ${PROJECT_SOURCE_DIR}/src/api/librpa.h  # to be removed
         ${PROJECT_SOURCE_DIR}/include/librpa_compute.h
         ${PROJECT_SOURCE_DIR}/include/librpa_enums.h
         ${PROJECT_SOURCE_DIR}/include/librpa_global.h
         ${PROJECT_SOURCE_DIR}/include/librpa_handler.h
         ${PROJECT_SOURCE_DIR}/include/librpa_input.h
-        ${PROJECT_SOURCE_DIR}/include/librpa_new.h
+        ${PROJECT_SOURCE_DIR}/include/librpa_func.h
         ${PROJECT_SOURCE_DIR}/include/librpa_options.h
+        ${PROJECT_SOURCE_DIR}/include/librpa.h
+        ${PROJECT_SOURCE_DIR}/include/librpa.hpp
         DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
 

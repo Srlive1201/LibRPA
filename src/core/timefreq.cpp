@@ -8,20 +8,16 @@
 #include <utility>
 #include <vector>
 
+#include "../io/global_io.h"
 #include "../math/mathtools.h"
 #include "../utils/base_utility.h"
+#include "../utils/error.h"
+#include "librpa_enums.h"
 #include "minimax.h"
-#include "../io/global_io.h"
 
 namespace librpa_int {
 
-using std::pair;
-using std::string;
-using std::ifstream;
-using std::endl;
-using std::cout;
-
-const string TFGrids::GRID_TYPES_NOTES[TFGrids::GRID_TYPES::COUNT] =
+const string TFGrids::GRID_TYPES_NOTES[LIBRPA_TFGRID_COUNT] =
     {
         "Gauss-Legendre grids",
         "Gauss-Chebyshev grids of the first kind",
@@ -31,25 +27,8 @@ const string TFGrids::GRID_TYPES_NOTES[TFGrids::GRID_TYPES::COUNT] =
         "Even-spaced time-frequency grids (debug use)",
     };
 
-const bool TFGrids::SUPPORT_TIME_GRIDS[TFGrids::GRID_TYPES::COUNT] =
+const bool TFGrids::SUPPORT_TIME_GRIDS[LIBRPA_TFGRID_COUNT] =
     { false, false, false, true, false, true };
-
-TFGrids::GRID_TYPES TFGrids::get_grid_type(const string& grid_str)
-{
-    if (grid_str == "GL")
-        return TFGrids::GRID_TYPES::GaussLegendre;
-    if (grid_str == "GC-I")
-        return TFGrids::GRID_TYPES::GaussChebyshevI;
-    if (grid_str == "GL-II")
-        return TFGrids::GRID_TYPES::GaussChebyshevII;
-    if (grid_str == "minimax")
-        return TFGrids::GRID_TYPES::Minimax;
-    if (grid_str == "evenspaced")
-        return TFGrids::GRID_TYPES::EvenSpaced;
-    if (grid_str == "evenspaced_tf")
-        return TFGrids::GRID_TYPES::EvenSpaced_TF;
-    throw std::invalid_argument("Unknown grid string: " + grid_str);
-}
 
 void TFGrids::set_freq()
 {
@@ -70,6 +49,9 @@ void TFGrids::set_time()
 
 void TFGrids::show() const
 {
+    using std::endl;
+    using std::cout;
+
     using librpa_int::global::lib_printf;
     cout << "Grid type: " << TFGrids::GRID_TYPES_NOTES[grid_type] << endl;
     cout << "Grid size: " << n_grids << endl;
@@ -130,40 +112,40 @@ TFGrids::~TFGrids()
     /* unset(); */
 }
 
-double TFGrids::generate(TFGrids::GRID_TYPES gtype, double emin, double eintveral, double emax, double tmin, double tinterval)
+double TFGrids::generate(LibrpaTimeFreqGrid gtype, double emin, double eintveral, double emax, double tmin, double tinterval)
 {
     double retval = -1;
     switch (gtype)
     {
-        case (TFGrids::GRID_TYPES::GaussLegendre):
+        case (LibrpaTimeFreqGrid::GaussLegendre):
         {
             this->generate_GaussLegendre();
         }
-        case (TFGrids::GRID_TYPES::GaussChebyshevI):
+        case (LibrpaTimeFreqGrid::GaussChebyshevI):
         {
             this->generate_GaussChebyshevI();
         }
-        case (TFGrids::GRID_TYPES::GaussChebyshevII):
+        case (LibrpaTimeFreqGrid::GaussChebyshevII):
         {
             this->generate_GaussChebyshevII();
         }
-        case (TFGrids::GRID_TYPES::Minimax):
+        case (LibrpaTimeFreqGrid::Minimax):
         {
             retval = this->generate_minimax(emin, emax);
             break;
         }
-        case (TFGrids::GRID_TYPES::EvenSpaced):
+        case (LibrpaTimeFreqGrid::EvenSpaced):
         {
             this->generate_evenspaced(emin, eintveral);
             break;
         }
-        case (TFGrids::GRID_TYPES::EvenSpaced_TF):
+        case (LibrpaTimeFreqGrid::EvenSpaced_TF):
         {
             this->generate_evenspaced_tf(emin, eintveral, tmin, tinterval);
             break;
         }
         default:
-            throw invalid_argument("requested time-frequency grid is not implemented");
+            throw LIBRPA_RUNTIME_ERROR("requested time-frequency grid is not implemented");
     }
     return retval;
 }
@@ -171,16 +153,16 @@ double TFGrids::generate(TFGrids::GRID_TYPES gtype, double emin, double eintvera
 void TFGrids::generate_evenspaced(double emin, double interval)
 {
     if ( emin <= 0 )
-        throw invalid_argument("emin must be positive");
+        throw LIBRPA_RUNTIME_ERROR("emin must be positive");
     if ( interval < 0 )
-        throw invalid_argument("emin must be non-negative");
+        throw LIBRPA_RUNTIME_ERROR("emin must be non-negative");
     double weight = 1.0 / n_grids;
     for ( int i = 0; i != n_grids; i++)
     {
         freq_nodes[i] = emin + interval * i;
         freq_weights[i] = weight;
     }
-    grid_type = TFGrids::GRID_TYPES::EvenSpaced;
+    grid_type = LibrpaTimeFreqGrid::EvenSpaced;
 }
 
 void TFGrids::generate_evenspaced_tf(double emin, double eintv, double tmin, double tintv)
@@ -188,9 +170,9 @@ void TFGrids::generate_evenspaced_tf(double emin, double eintv, double tmin, dou
     generate_evenspaced(emin, eintv);
     set_time();
     if ( tmin <= 0 )
-        throw invalid_argument("tmin must be positive");
+        throw LIBRPA_RUNTIME_ERROR("tmin must be positive");
     if ( tintv < 0 )
-        throw invalid_argument("tintv must be non-negative");
+        throw LIBRPA_RUNTIME_ERROR("tintv must be non-negative");
     double weight = 1.0 / n_grids;
     for ( int i = 0; i != n_grids; i++)
     {
@@ -202,12 +184,12 @@ void TFGrids::generate_evenspaced_tf(double emin, double eintv, double tmin, dou
         costrans_f2t(i, i) = 1/weight;
         sintrans_f2t(i, i) = 1/weight;
     }
-    grid_type = TFGrids::GRID_TYPES::EvenSpaced_TF;
+    grid_type = LibrpaTimeFreqGrid::EvenSpaced_TF;
 }
 
 double TFGrids::generate_minimax(double emin, double emax)
 {
-    grid_type = TFGrids::GRID_TYPES::Minimax;
+    grid_type = LibrpaTimeFreqGrid::Minimax;
     set_time();
 
     double max_errors[3];
@@ -222,11 +204,11 @@ double TFGrids::generate_minimax(double emin, double emax)
         case 0: /* success */
             break;
         case -1:
-            throw invalid_argument("get_minimax_grid not properly called");
+            throw LIBRPA_RUNTIME_ERROR("get_minimax_grid not properly called");
         case 1: /* GreenX internal code */
-            throw invalid_argument(string("unsupported minimax grids size: ") + to_string(n_grids));
+            throw LIBRPA_RUNTIME_ERROR(string("unsupported minimax grids size: ") + std::to_string(n_grids));
         default:
-            throw invalid_argument(string("minimax grids failed, return code: ") + to_string(ierr));
+            throw LIBRPA_RUNTIME_ERROR(string("minimax grids failed, return code: ") + std::to_string(ierr));
     }
 
     return cosft_duality_error;
@@ -248,7 +230,7 @@ double TFGrids::generate_minimax(double emin, double emax)
 
 void TFGrids::generate_GaussChebyshevI()
 {
-    grid_type = TFGrids::GRID_TYPES::GaussChebyshevI;
+    grid_type = LibrpaTimeFreqGrid::GaussChebyshevI;
     std::vector<double> nodes(n_grids), weights(n_grids);
     GaussChebyshevI_unit(n_grids, nodes.data(), weights.data());
     // transform from [-1,1] to [0, infinity]
@@ -262,7 +244,7 @@ void TFGrids::generate_GaussChebyshevI()
 
 void TFGrids::generate_GaussChebyshevII()
 {
-    grid_type = TFGrids::GRID_TYPES::GaussChebyshevII;
+    grid_type = LibrpaTimeFreqGrid::GaussChebyshevII;
     std::vector<double> nodes(n_grids), weights(n_grids);
     GaussChebyshevII_unit(n_grids, nodes.data(), weights.data());
     // transform from [-1,1] to [0, infinity]
@@ -276,7 +258,7 @@ void TFGrids::generate_GaussChebyshevII()
 
 void TFGrids::generate_GaussLegendre()
 {
-    grid_type = TFGrids::GRID_TYPES::GaussLegendre;
+    grid_type = LibrpaTimeFreqGrid::GaussLegendre;
     std::vector<double> nodes(n_grids), weights(n_grids);
     GaussLegendre_unit(n_grids, nodes.data(), weights.data());
     // transform from [-1,1] to [0, infinity]
@@ -291,10 +273,10 @@ void TFGrids::generate_GaussLegendre()
 int TFGrids::get_time_index(const double &time) const
 {
     if (!has_time_grids())
-        throw logic_error("time grids not available");
+        throw LIBRPA_RUNTIME_ERROR("time grids not available");
     auto itr = std::find(time_nodes.cbegin(), time_nodes.cend(), time);
     if ( itr == time_nodes.cend() )
-        throw invalid_argument("time not found");
+        throw LIBRPA_RUNTIME_ERROR("time not found");
     int i = std::distance(time_nodes.cbegin(), itr);
     return i;
 }
@@ -303,16 +285,16 @@ int TFGrids::get_freq_index(const double &freq) const
 {
     auto itr = std::find(freq_nodes.cbegin(), freq_nodes.cend(), freq);
     if ( itr == freq_nodes.cend() )
-        throw invalid_argument("frequency not found");
+        throw LIBRPA_RUNTIME_ERROR("frequency not found");
     int i = std::distance(freq_nodes.cbegin(), itr);
     return i;
 }
 
-const pair<int, int> TFGrids::get_tf_index(const pair<double, double> &tf) const
+const std::pair<int, int> TFGrids::get_tf_index(const std::pair<double, double> &tf) const
 {
     auto itime = get_time_index(tf.first);
     auto ifreq = get_freq_index(tf.second);
-    return pair<int, int>{itime, ifreq};
+    return std::pair<int, int>{itime, ifreq};
 }
 
 double TFGrids::find_freq_weight(const double & freq) const

@@ -6,19 +6,21 @@ set_target_properties(rpa_exe PROPERTIES
   RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
 
 list(APPEND exe_sources
-  driver_params.cpp
-  driver_utils.cpp
+  driver.cpp
+  inputfile.cpp
   main.cpp
   read_data.cpp
   write_aims.cpp
-  inputfile.cpp
-  task_rpa.cpp
-  task_exx.cpp
-  task_exx_band.cpp
-  task_gw.cpp
-  task_gw_band.cpp
-  task_screened_coulomb.cpp
-  task_test.cpp
+  task.cpp
+  # Specific task implementations
+  # task/exx.cpp
+  # task/exx_band.cpp
+  task/gw.cpp
+  # task/gw_band.cpp
+  # task/rpa.cpp
+  # task/screened_coulomb.cpp
+  task/print_minimax.cpp
+  # task/test.cpp
   )
 
 target_include_directories(rpa_exe

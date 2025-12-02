@@ -1,4 +1,3 @@
-#include "../mpi/envs_blacs.h"
 #include "../mpi/global_mpi.h"
 #include "../core/utils_atomic_basis_blacs.h"
 
@@ -13,16 +12,17 @@ using namespace librpa_int;
 #include <cassert>
 #include <unordered_map>
 
+static librpa_int::BlacsCtxtHandler blacs_ctxt_h;
+
 static void test_ap_to_blacs_global_indices_communicate()
 {
-    using namespace librpa_int::envs;
     using namespace librpa_int::global;
 
-    blacs_ctxt_global_h.set_square_grid(true, librpa_int::CTXT_LAYOUT::R);
+    blacs_ctxt_h.set_square_grid(true, librpa_int::CTXT_LAYOUT::R);
     // Process grid:
     //    0  1
     //    2  3
-    librpa_int::ArrayDesc ad(blacs_ctxt_global_h);
+    librpa_int::ArrayDesc ad(blacs_ctxt_h);
 
     // m = n = 4
     size_t m = 4;
@@ -38,7 +38,7 @@ static void test_ap_to_blacs_global_indices_communicate()
     ab.set(std::vector<size_t>{1, 3});
     assert(ab.nb_total == m);
     {
-        const auto proc2idlist = librpa_int::utils::get_communicate_global_ids_list_ap_to_blacs(
+        const auto proc2idlist = get_communicate_global_ids_list_ap_to_blacs(
             myid_global,
             {{0, {{0, 0}}}, {1, {{0, 1}}}, {2, {{1, 0}}}, {3, {{1, 1}}}},
             ab, ab, ad, true, false);
@@ -69,7 +69,7 @@ static void test_ap_to_blacs_global_indices_communicate()
     ab.set(std::vector<size_t>{2, 2});
     assert(ab.nb_total == m);
     {
-        const auto proc2idlist = librpa_int::utils::get_communicate_global_ids_list_ap_to_blacs(
+        const auto proc2idlist = get_communicate_global_ids_list_ap_to_blacs(
             myid_global,
             {{0, {{0, 0}}}, {1, {{0, 1}}}, {2, {{1, 0}}}, {3, {{1, 1}}}},
             ab, ab, ad, true, false);
@@ -96,7 +96,7 @@ static void test_ap_to_blacs_global_indices_communicate()
     ab.set(std::vector<size_t>{3, 1});
     assert(ab.nb_total == m);
     {
-        const auto proc2idlist = librpa_int::utils::get_communicate_global_ids_list_ap_to_blacs(
+        const auto proc2idlist = get_communicate_global_ids_list_ap_to_blacs(
             myid_global,
             {{0, {{0, 0}}}, {1, {{0, 1}}}, {2, {{1, 0}}}, {3, {{1, 1}}}},
             ab, ab, ad, true, false);
@@ -128,7 +128,7 @@ static void test_ap_to_blacs_global_indices_communicate()
     ab.set(std::vector<size_t>{1, 2, 1});
     assert(ab.nb_total == m);
     {
-        const auto proc2idlist = librpa_int::utils::get_communicate_global_ids_list_ap_to_blacs(
+        const auto proc2idlist = get_communicate_global_ids_list_ap_to_blacs(
             myid_global,
             {
              {0, {{0, 0}, {1, 0}, {0, 1}}},
@@ -176,7 +176,7 @@ static void test_ap_to_blacs_global_indices_communicate()
     // | 0   1   1 | 2   3   3 |
     // | 0   1   1 | 2   3   3 |
     {
-        const auto proc2idlist = librpa_int::utils::get_communicate_global_ids_list_ap_to_blacs(
+        const auto proc2idlist = get_communicate_global_ids_list_ap_to_blacs(
             myid_global,
             {
              {0, {{0, 0}, {1, 0}, {2, 0}, {3, 0}}},
@@ -203,7 +203,7 @@ static void test_ap_to_blacs_global_indices_communicate()
         // const auto &recvlist_ref = recvlist_ref_all[myid_global];
         // for (int i = 0; i < 4; i++)
         // {
-        //     blacs_ctxt_global_h.barrier();
+        //     blacs_ctxt_h.barrier();
         //     if (myid_global == i)
         //     {
         //         std::cout << "myid " << i << std::endl;
@@ -217,22 +217,21 @@ static void test_ap_to_blacs_global_indices_communicate()
         // assert(equal_map_vector(recvlist_ref, proc2idlist.second));
     }
 
-    blacs_ctxt_global_h.exit();
+    blacs_ctxt_h.exit();
 }
 
 
 static void test_ap_to_blacs_local_indices_communicate()
 {
-    using namespace librpa_int::envs;
     using namespace librpa_int::global;
 
     const size_t m = 4;
     const size_t n = m;
-    blacs_ctxt_global_h.set_square_grid(true, librpa_int::CTXT_LAYOUT::R);
+    blacs_ctxt_h.set_square_grid(true, librpa_int::CTXT_LAYOUT::R);
     // Process grid:
     //    0  1
     //    2  3
-    librpa_int::ArrayDesc ad(blacs_ctxt_global_h);
+    librpa_int::ArrayDesc ad(blacs_ctxt_h);
     ad.init_1b1p(m, n, 0, 0);
     assert(ad.initialized());
     assert(ad.mb() == 2);
@@ -244,7 +243,7 @@ static void test_ap_to_blacs_local_indices_communicate()
     ab.set(std::vector<size_t>{1, 3});
     assert(ab.nb_total == m);
     {
-        const auto proc2idlist = librpa_int::utils::get_communicate_local_ids_list_ap_to_blacs(
+        const auto proc2idlist = get_communicate_local_ids_list_ap_to_blacs(
             myid_global,
             {{0, {{0, 0}}}, {1, {{0, 1}}}, {2, {{1, 0}}}, {3, {{1, 1}}}},
             ab, ab, ad, true, false);
@@ -280,7 +279,7 @@ static void test_ap_to_blacs_local_indices_communicate()
     ab.set(std::vector<size_t>{1, 2, 1});
     assert(ab.nb_total == m);
     {
-        const auto proc2idlist = librpa_int::utils::get_communicate_local_ids_list_ap_to_blacs(
+        const auto proc2idlist = get_communicate_local_ids_list_ap_to_blacs(
             myid_global,
             {
              {0, {{0, 0}, {1, 0}, {0, 1}}},
@@ -317,22 +316,21 @@ static void test_ap_to_blacs_local_indices_communicate()
         assert(equal_map_vector_pv(sendlist_ref, proc2idlist.first));
         assert(equal_map_vector(recvlist_ref, proc2idlist.second));
     }
-    blacs_ctxt_global_h.exit();
+    blacs_ctxt_h.exit();
 }
 
 
 static void test_ap_to_blacs_global_indices_sy_communicate()
 {
-    using namespace librpa_int::envs;
     using namespace librpa_int::global;
 
     const size_t m = 4;
     const size_t n = m;
-    blacs_ctxt_global_h.set_square_grid(true, librpa_int::CTXT_LAYOUT::R);
+    blacs_ctxt_h.set_square_grid(true, librpa_int::CTXT_LAYOUT::R);
     // Process grid:
     //    0  1
     //    2  3
-    librpa_int::ArrayDesc ad(blacs_ctxt_global_h);
+    librpa_int::ArrayDesc ad(blacs_ctxt_h);
     ad.init_1b1p(m, n, 0, 0);
     assert(ad.initialized());
     assert(ad.mb() == 2);
@@ -349,7 +347,7 @@ static void test_ap_to_blacs_global_indices_sy_communicate()
     ab.set(std::vector<size_t>{1, 3});
     assert(ab.nb_total == m);
     {
-        const auto proc2idlist = librpa_int::utils::get_communicate_global_ids_list_ap_to_blacs_sy(
+        const auto proc2idlist = get_communicate_global_ids_list_ap_to_blacs_sy(
             myid_global, 'u',
             {{0, {{0, 0}}}, {1, {{0, 1}}}, {3, {{1, 1}}}},
             ab, ad, true, false);
@@ -377,23 +375,22 @@ static void test_ap_to_blacs_global_indices_sy_communicate()
         assert(equal_map_pair_vector(recvlist_ref, proc2idlist.second));
     }
 
-    blacs_ctxt_global_h.exit();
+    blacs_ctxt_h.exit();
 }
 
 
 static void test_ap_to_blacs_local_indices_sy_communicate()
 {
-    using namespace librpa_int::envs;
     using namespace librpa_int::global;
 
     const size_t m = 4;
     const size_t n = m;
-    blacs_ctxt_global_h.set_square_grid(true, librpa_int::CTXT_LAYOUT::R);
+    blacs_ctxt_h.set_square_grid(true, librpa_int::CTXT_LAYOUT::R);
 
     // Process grid:
     //    0  1
     //    2  3
-    librpa_int::ArrayDesc ad(blacs_ctxt_global_h);
+    librpa_int::ArrayDesc ad(blacs_ctxt_h);
     ad.init_1b1p(m, n, 0, 0);
     assert(ad.initialized());
     assert(ad.mb() == 2);
@@ -410,7 +407,7 @@ static void test_ap_to_blacs_local_indices_sy_communicate()
     ab.set(std::vector<size_t>{1, 3});
     assert(ab.nb_total == m);
     {
-        const auto proc2idlist = librpa_int::utils::get_communicate_local_ids_list_ap_to_blacs_sy(
+        const auto proc2idlist = get_communicate_local_ids_list_ap_to_blacs_sy(
             myid_global, 'u',
             {{0, {{0, 0}}}, {1, {{0, 1}}}, {3, {{1, 1}}}},
             ab, ad, true, false);
@@ -450,7 +447,7 @@ static void test_ap_to_blacs_local_indices_sy_communicate()
         const auto &recvlist_ref = recvlist_ref_all[myid_global];
         // for (int i = 0; i < 4; i++)
         // {
-        //     blacs_ctxt_global_h.barrier();
+        //     blacs_ctxt_h.barrier();
         //     if (myid_global == i)
         //     {
         //         std::cout << "myid " << i << std::endl;
@@ -464,21 +461,20 @@ static void test_ap_to_blacs_local_indices_sy_communicate()
         assert(equal_map_pair_vector(recvlist_ref, proc2idlist.second));
     }
 
-    blacs_ctxt_global_h.exit();
+    blacs_ctxt_h.exit();
 }
 
 static void test_blacs_to_ap_global_indices_communicate()
 {
-    using namespace librpa_int::envs;
     using namespace librpa_int::global;
 
     const size_t m = 4;
     const size_t n = m;
-    blacs_ctxt_global_h.set_square_grid(true, librpa_int::CTXT_LAYOUT::R);
+    blacs_ctxt_h.set_square_grid(true, librpa_int::CTXT_LAYOUT::R);
     // Process grid:
     //    0  1
     //    2  3
-    librpa_int::ArrayDesc ad(blacs_ctxt_global_h);
+    librpa_int::ArrayDesc ad(blacs_ctxt_h);
     ad.init_1b1p(m, n, 0, 0);
     assert(ad.initialized());
     assert(ad.mb() == 2);
@@ -495,7 +491,7 @@ static void test_blacs_to_ap_global_indices_communicate()
     ab.set(std::vector<size_t>{1, 3});
     assert(ab.nb_total == m);
     {
-        const auto proc2idlist = librpa_int::utils::get_communicate_global_ids_list_blacs_to_ap(
+        const auto proc2idlist = get_communicate_global_ids_list_blacs_to_ap(
             myid_global,
             {{0, {{0, 0}}}, {1, {{0, 1}}}, {2, {{1, 0}}}, {3, {{1, 1}}}},
             ab, ab, ad, true, false);
@@ -526,7 +522,7 @@ static void test_blacs_to_ap_global_indices_communicate()
     ab.set(std::vector<size_t>{2, 2});
     assert(ab.nb_total == m);
     {
-        const auto proc2idlist = librpa_int::utils::get_communicate_global_ids_list_blacs_to_ap(
+        const auto proc2idlist = get_communicate_global_ids_list_blacs_to_ap(
             myid_global,
             {{0, {{0, 0}}}, {1, {{0, 1}}}, {2, {{1, 0}}}, {3, {{1, 1}}}},
             ab, ab, ad, true, false);
@@ -557,7 +553,7 @@ static void test_blacs_to_ap_global_indices_communicate()
     ab.set(std::vector<size_t>{3, 1});
     assert(ab.nb_total == m);
     {
-        const auto proc2idlist = librpa_int::utils::get_communicate_global_ids_list_blacs_to_ap(
+        const auto proc2idlist = get_communicate_global_ids_list_blacs_to_ap(
             myid_global,
             {{0, {{0, 0}}}, {1, {{0, 1}}}, {2, {{1, 0}}}, {3, {{1, 1}}}},
             ab, ab, ad, true, false);
@@ -589,7 +585,7 @@ static void test_blacs_to_ap_global_indices_communicate()
     ab.set(std::vector<size_t>{1, 2, 1});
     assert(ab.nb_total == m);
     {
-        const auto proc2idlist = librpa_int::utils::get_communicate_global_ids_list_blacs_to_ap(
+        const auto proc2idlist = get_communicate_global_ids_list_blacs_to_ap(
             myid_global,
             {
              {0, {{0, 0}, {1, 0}, {0, 1}}},
@@ -625,7 +621,7 @@ static void test_blacs_to_ap_global_indices_communicate()
     // | 3   0 | 0   1 |
     // | 2   3 | 3   0 |
     {
-        const auto proc2idlist = librpa_int::utils::get_communicate_global_ids_list_blacs_to_ap(
+        const auto proc2idlist = get_communicate_global_ids_list_blacs_to_ap(
             myid_global,
             {
              {0, {{0, 0}, {1, 1}, {2, 2}}},
@@ -654,21 +650,20 @@ static void test_blacs_to_ap_global_indices_communicate()
         assert(equal_map_vector(sendlist_ref, proc2idlist.first));
         assert(equal_map_vector(recvlist_ref, proc2idlist.second));
     }
-    blacs_ctxt_global_h.exit();
+    blacs_ctxt_h.exit();
 }
 
 static void test_blacs_to_ap_local_indices_communicate()
 {
-    using namespace librpa_int::envs;
     using namespace librpa_int::global;
 
     const size_t m = 4;
     const size_t n = m;
-    blacs_ctxt_global_h.set_square_grid(true, librpa_int::CTXT_LAYOUT::R);
+    blacs_ctxt_h.set_square_grid(true, librpa_int::CTXT_LAYOUT::R);
     // Process grid:
     //    0  1
     //    2  3
-    librpa_int::ArrayDesc ad(blacs_ctxt_global_h);
+    librpa_int::ArrayDesc ad(blacs_ctxt_h);
     ad.init_1b1p(m, n, 0, 0);
     assert(ad.initialized());
     assert(ad.mb() == 2);
@@ -680,7 +675,7 @@ static void test_blacs_to_ap_local_indices_communicate()
     ab.set(std::vector<size_t>{1, 3});
     assert(ab.nb_total == m);
     {
-        const auto proc2idlist = librpa_int::utils::get_communicate_local_ids_list_blacs_to_ap(
+        const auto proc2idlist = get_communicate_local_ids_list_blacs_to_ap(
             myid_global,
             {{0, {{0, 0}}}, {1, {{0, 1}}}, {2, {{1, 0}}}, {3, {{1, 1}}}},
             ab, ab, ad, true, false);
@@ -716,7 +711,7 @@ static void test_blacs_to_ap_local_indices_communicate()
     ab.set(std::vector<size_t>{1, 2, 1});
     assert(ab.nb_total == m);
     {
-        const auto proc2idlist = librpa_int::utils::get_communicate_local_ids_list_blacs_to_ap(
+        const auto proc2idlist = get_communicate_local_ids_list_blacs_to_ap(
             myid_global,
             {
              {0, {{0, 0}, {1, 0}, {0, 1}}},
@@ -751,7 +746,7 @@ static void test_blacs_to_ap_local_indices_communicate()
     // | 3   0 | 0   1 |
     // | 2   3 | 3   0 |
     {
-        const auto proc2idlist = librpa_int::utils::get_communicate_local_ids_list_blacs_to_ap(
+        const auto proc2idlist = get_communicate_local_ids_list_blacs_to_ap(
             myid_global,
             {
              {0, {{0, 0}, {1, 1}, {2, 2}}},
@@ -784,7 +779,7 @@ static void test_blacs_to_ap_local_indices_communicate()
 
         // for (int i = 0; i < 4; i++)
         // {
-        //     blacs_ctxt_global_h.barrier();
+        //     blacs_ctxt_h.barrier();
         //     if (myid_global == i)
         //     {
         //         std::cout << "myid " << i << std::endl;
@@ -798,21 +793,20 @@ static void test_blacs_to_ap_local_indices_communicate()
         assert(equal_map_vector_pv(recvlist_ref, proc2idlist.second));
     }
 
-    blacs_ctxt_global_h.exit();
+    blacs_ctxt_h.exit();
 }
 
 static void test_blacs_to_ap_global_indices_sy_communicate()
 {
-    using namespace librpa_int::envs;
     using namespace librpa_int::global;
 
     const size_t m = 4;
     const size_t n = m;
-    blacs_ctxt_global_h.set_square_grid(true, librpa_int::CTXT_LAYOUT::R);
+    blacs_ctxt_h.set_square_grid(true, librpa_int::CTXT_LAYOUT::R);
     // Process grid:
     //    0  1
     //    2  3
-    librpa_int::ArrayDesc ad(blacs_ctxt_global_h);
+    librpa_int::ArrayDesc ad(blacs_ctxt_h);
     ad.init_1b1p(m, n, 0, 0);
     assert(ad.initialized());
     assert(ad.mb() == 2);
@@ -831,7 +825,7 @@ static void test_blacs_to_ap_global_indices_sy_communicate()
     {
         // Using the function for general matrix is sufficient, just only specify either half of atom pairs.
         // This is because BLACS distribution generally contain the full matrix.
-        const auto proc2idlist = librpa_int::utils::get_communicate_global_ids_list_blacs_to_ap(
+        const auto proc2idlist = get_communicate_global_ids_list_blacs_to_ap(
             myid_global,
             {{0, {{0, 0}}}, {1, {{0, 1}}}, {3, {{1, 1}}}},
             ab, ab, ad, true, false);
@@ -857,7 +851,7 @@ static void test_blacs_to_ap_global_indices_sy_communicate()
         const auto &recvlist_ref = recvlist_ref_all[myid_global];
         // for (int i = 0; i < 4; i++)
         // {
-        //     blacs_ctxt_global_h.barrier();
+        //     blacs_ctxt_h.barrier();
         //     if (myid_global == i)
         //     {
         //         std::cout << "myid " << i << std::endl;
@@ -871,21 +865,20 @@ static void test_blacs_to_ap_global_indices_sy_communicate()
         assert(equal_map_vector(recvlist_ref, proc2idlist.second));
     }
 
-    blacs_ctxt_global_h.exit();
+    blacs_ctxt_h.exit();
 }
 
 static void test_blacs_to_ap_local_indices_sy_communicate()
 {
-    using namespace librpa_int::envs;
     using namespace librpa_int::global;
 
     const size_t m = 4;
     const size_t n = m;
-    blacs_ctxt_global_h.set_square_grid(true, librpa_int::CTXT_LAYOUT::R);
+    blacs_ctxt_h.set_square_grid(true, librpa_int::CTXT_LAYOUT::R);
     // Process grid:
     //    0  1
     //    2  3
-    librpa_int::ArrayDesc ad(blacs_ctxt_global_h);
+    librpa_int::ArrayDesc ad(blacs_ctxt_h);
     ad.init_1b1p(m, n, 0, 0);
     assert(ad.initialized());
     assert(ad.mb() == 2);
@@ -897,7 +890,7 @@ static void test_blacs_to_ap_local_indices_sy_communicate()
     ab.set(std::vector<size_t>{1, 3});
     assert(ab.nb_total == m);
     {
-        const auto proc2idlist = librpa_int::utils::get_communicate_local_ids_list_blacs_to_ap(
+        const auto proc2idlist = get_communicate_local_ids_list_blacs_to_ap(
             myid_global,
             {{0, {{0, 0}}}, {1, {{0, 1}}}, {3, {{1, 1}}}},
             ab, ab, ad, true, false);
@@ -933,7 +926,7 @@ static void test_blacs_to_ap_local_indices_sy_communicate()
     ab.set(std::vector<size_t>{1, 2, 1});
     assert(ab.nb_total == m);
     {
-        const auto proc2idlist = librpa_int::utils::get_communicate_local_ids_list_blacs_to_ap(
+        const auto proc2idlist = get_communicate_local_ids_list_blacs_to_ap(
             myid_global,
             {
              {0, {{0, 0}, {0, 1}}},
@@ -968,7 +961,7 @@ static void test_blacs_to_ap_local_indices_sy_communicate()
         const auto &recvlist_ref = recvlist_ref_all[myid_global];
         // for (int i = 0; i < 4; i++)
         // {
-        //     blacs_ctxt_global_h.barrier();
+        //     blacs_ctxt_h.barrier();
         //     if (myid_global == i)
         //     {
         //         std::cout << "myid " << i << std::endl;
@@ -981,20 +974,19 @@ static void test_blacs_to_ap_local_indices_sy_communicate()
         assert(equal_map_vector(sendlist_ref, proc2idlist.first));
         assert(equal_map_vector_pv(recvlist_ref, proc2idlist.second));
     }
-    blacs_ctxt_global_h.exit();
+    blacs_ctxt_h.exit();
 }
 
 static void test_index_scheduler()
 {
-    using namespace librpa_int::envs;
     using namespace librpa_int::global;
 
-    blacs_ctxt_global_h.set_square_grid(true, librpa_int::CTXT_LAYOUT::R);
+    blacs_ctxt_h.set_square_grid(true, librpa_int::CTXT_LAYOUT::R);
     // Process grid:
     //    0  1
     //    2  3
-    librpa_int::ArrayDesc ad(blacs_ctxt_global_h);
-    librpa_int::utils::IndexScheduler sched;
+    librpa_int::ArrayDesc ad(blacs_ctxt_h);
+    IndexScheduler sched;
     librpa_int::AtomicBasis ab;
 
     size_t m = 4;
@@ -1089,7 +1081,7 @@ static void test_index_scheduler()
 
         // for (int i = 0; i < 4; i++)
         // {
-        //     blacs_ctxt_global_h.barrier();
+        //     blacs_ctxt_h.barrier();
         //     if (myid_global == i)
         //     {
         //         std::cout << "myid " << i << std::endl;
@@ -1105,22 +1097,20 @@ static void test_index_scheduler()
         assert(equal_vector(ap_ipair_ref, sched.ids_ap_ipair));
         assert(equal_vector(ap_locid_ref, sched.ids_ap_locid));
     }
-    blacs_ctxt_global_h.exit();
+    blacs_ctxt_h.exit();
 }
 
 static void test_get_balanced_ap()
 {
-    using namespace librpa_int::envs;
+    blacs_ctxt_h.set_square_grid(true, librpa_int::CTXT_LAYOUT::R);
 
-    blacs_ctxt_global_h.set_square_grid(true, librpa_int::CTXT_LAYOUT::R);
-
-    librpa_int::ArrayDesc ad(blacs_ctxt_global_h);
+    librpa_int::ArrayDesc ad(blacs_ctxt_h);
     librpa_int::AtomicBasis ab;
 
     {
         ad.init_1b1p(6, 6, 0, 0);
         ab.set(std::vector<size_t>{1, 2, 1, 2});
-        const auto map_proc_IJs = librpa_int::utils::get_balanced_ap_distribution_for_consec_descriptor(ab, ab, ad);
+        const auto map_proc_IJs = get_balanced_ap_distribution_for_consec_descriptor(ab, ab, ad);
         const std::unordered_map<int, std::vector<atpair_t>> map_proc_IJs_ref = 
         {
             {0, {{0, 0}, {0, 1}, {1, 0}, {1, 1}}},
@@ -1144,7 +1134,7 @@ static void test_get_balanced_ap()
     {
         ad.init_1b1p(11, 11, 0, 0);
         ab.set(std::vector<size_t>{1, 10});
-        const auto map_proc_IJs = librpa_int::utils::get_balanced_ap_distribution_for_consec_descriptor(ab, ab, ad);
+        const auto map_proc_IJs = get_balanced_ap_distribution_for_consec_descriptor(ab, ab, ad);
         const std::unordered_map<int, std::vector<atpair_t>> map_proc_IJs_ref = 
         {
             {0, {{0, 0}}},
@@ -1164,19 +1154,18 @@ static void test_get_balanced_ap()
         }
     }
 
-    blacs_ctxt_global_h.exit();
+    blacs_ctxt_h.exit();
 }
 
 int main (int argc, char *argv[])
 {
-    using namespace librpa_int::envs;
     using namespace librpa_int::global;
 
     int provided;
     MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
 
     init_global_mpi();
-    initialize_blacs(MPI_COMM_WORLD);
+    blacs_ctxt_h.reset_comm(mpi_comm_global);
 
     if ( size_global != 4 )
         throw std::runtime_error("test imposes 4 MPI processes");
@@ -1198,7 +1187,6 @@ int main (int argc, char *argv[])
 
     // test functions end
 
-    finalize_blacs();
     finalize_global_mpi();
     MPI_Finalize();
 

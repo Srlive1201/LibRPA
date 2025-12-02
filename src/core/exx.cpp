@@ -3,14 +3,15 @@
 #include "../math/lapack_connector.h"
 #include "../math/utils_matrix_m_mpi.h"
 #include "../math/vector3_order.h"
-#include "../mpi/envs_blacs.h"
 #include "../mpi/global_mpi.h"
 #include "../io/global_io.h"
 #include "../utils/libri_utils.h"
 #include "../utils/profiler.h"
 #include "../io/stl_io_helper.h"
 #include "../utils/constants.h"
+#include "atomic_basis.h"
 #include "geometry.h"
+#include "librpa_enums.h"
 #include "params.h"
 #include "pbc.h"
 #include "utils_atomic_basis_blacs.h"
@@ -24,19 +25,23 @@
 namespace librpa_int
 {
 
-Exx::Exx(const MeanField &mf,
-         const vector<Vector3_Order<double>> &kfrac_list,
-         const Vector3_Order<int> &period)
-    : mf_(mf), kfrac_list_(kfrac_list), period_(period)
+Exx::Exx(const MeanField &mf_in,
+         const AtomicBasis &atbasis_wfc_in,
+         const PeriodicBoundaryData &pbc_in,
+         const MpiCommHandler &comm_h_in)
+    : mf(mf_in), atbasis_wfc(atbasis_wfc_in), pbc(pbc_in), comm_h(comm_h_in)
 {
     is_rspace_build_ = false;
     is_kspace_built_ = false;
+    libri_exx_threshold_C = 0.0;
+    libri_exx_threshold_V = 0.0;
+    libri_exx_threshold_D = 0.0;
 };
 
 ComplexMatrix Exx::get_dmat_cplx_R_global(const int& ispin, const Vector3_Order<int>& R)
 {
-    const auto nspins = this->mf_.get_n_spins();
-    auto dmat_cplx = this->mf_.get_dmat_cplx_R(ispin, this->kfrac_list_, R);
+    const auto nspins = this->mf.get_n_spins();
+    auto dmat_cplx = this->mf.get_dmat_cplx_R(ispin, pbc.kfrac_list, R);
     // renormalize to single spin channel
     dmat_cplx *= 0.5 * nspins;
     return dmat_cplx;
@@ -45,15 +50,16 @@ ComplexMatrix Exx::get_dmat_cplx_R_global(const int& ispin, const Vector3_Order<
 
 ComplexMatrix Exx::extract_dmat_cplx_R_IJblock(const ComplexMatrix& dmat_cplx, const atom_t& I, const atom_t& J)
 {
-    const auto I_num = atom_nw.at(I);
-    const auto J_num = atom_nw.at(J);
+    const auto &ab = this->atbasis_wfc;
+    const auto I_num = ab.get_atom_nb(I);
+    const auto J_num = ab.get_atom_nb(J);
     ComplexMatrix dmat_cplx_IJR(I_num, J_num);
     for (size_t i = 0; i != I_num; i++)
     {
-        size_t i_glo = atom_iw_loc2glo(I, i);
+        size_t i_glo = ab.get_global_index(I, i);
         for (size_t j = 0; j != J_num; j++)
         {
-            size_t j_glo = atom_iw_loc2glo(J, j);
+            size_t j_glo = ab.get_global_index(J, j);
             dmat_cplx_IJR(i, j) = dmat_cplx(i_glo, j_glo);
         }
     }
@@ -63,7 +69,8 @@ ComplexMatrix Exx::extract_dmat_cplx_R_IJblock(const ComplexMatrix& dmat_cplx, c
 
 void Exx::build_dmat_R(const Vector3_Order<int> &R)
 {
-    const auto nspins = this->mf_.get_n_spins();
+    const auto nspins = this->mf.get_n_spins();
+    const int natom = this->atbasis_wfc.n_atoms;
 
     for (int is = 0; is != nspins; is++)
     {
@@ -84,7 +91,7 @@ void Exx::build_dmat_R(const Vector3_Order<int> &R)
 
 void Exx::build_dmat_R(const atom_t& I, const atom_t& J, const Vector3_Order<int> &R)
 {
-    const auto nspins = this->mf_.get_n_spins();
+    const auto nspins = this->mf.get_n_spins();
 
     for (int is = 0; is != nspins; is++)
     {
@@ -104,40 +111,35 @@ void Exx::warn_dmat_IJR_nonzero_imag(const ComplexMatrix& dmat_cplx, const int& 
 }
 
 
-void Exx::build(const Cs_LRI &Cs,
-                const vector<Vector3_Order<int>> &Rlist,
+void Exx::build(const LibrpaParallelRouting routing,
+                const AtomicBasis &atbasis_abf, const Cs_LRI &Cs,
                 const atpair_R_mat_t &coul_mat)
 {
-    using librpa_int::global::mpi_comm_global;
-    using librpa_int::global::mpi_comm_global_h;
-
-    assert (parallel_routing == ParallelRouting::LIBRI);
+    assert(routing == LibrpaParallelRouting::LIBRI);
 
     if (this->is_rspace_build_)
     {
         return;
     }
 
-    const auto& n_spins = this->mf_.get_n_spins();
+    const auto &n_spins = this->mf.get_n_spins();
+    const auto &ab_wfc = this->atbasis_wfc;
+    const int n_atoms = ab_wfc.n_atoms;
+    const auto &Rlist = this->pbc.Rlist;
 
 #ifdef LIBRPA_USE_LIBRI
-    if (mpi_comm_global_h.is_root())
+    if (comm_h.is_root())
     {
         global::lib_printf("Computing EXX orbital energy using LibRI\n");
     }
-    mpi_comm_global_h.barrier();
+    comm_h.barrier();
 
     RI::Exx<int, int, 3, double> exx_libri;
     map<int,std::array<double,3>> atoms_pos;
-    for(int i=0;i!=atom_mu.size();i++)
-        atoms_pos.insert(pair<int,std::array<double,3>>{i,{0,0,0}});
+    for (int i = 0; i < n_atoms; i++)
+        atoms_pos.insert(pair<int, std::array<double, 3>>{i, {0, 0, 0}});
 
-    std::array<double,3> xa{latvec.e11,latvec.e12,latvec.e13};
-    std::array<double,3> ya{latvec.e21,latvec.e22,latvec.e23};
-    std::array<double,3> za{latvec.e31,latvec.e32,latvec.e33};
-    std::array<std::array<double,3>,3> lat_array{xa,ya,za};
-    std::array<int,3> period_array{period_.x,period_.y,period_.z};
-    exx_libri.set_parallel(mpi_comm_global, atoms_pos, lat_array, period_array);
+    exx_libri.set_parallel(comm_h.comm, atoms_pos, this->pbc.latvec_array, this->pbc.period_array);
 
     // Initialize Cs libRI container on each process
     // Note: we use different treatment in different routings
@@ -148,22 +150,23 @@ void Exx::build(const Cs_LRI &Cs,
     //         Cs is already distributed across all processes.
     //         Pass the all Cs to libRI container.
 
-    Profiler::start("build_real_space_exx_1", "Prepare C libRI object");
+    global::profiler.start("build_real_space_exx_1", "Prepare C libRI object");
     global::ofs_myid << "Number of Cs keys: " << get_num_keys(Cs.data_libri) << "\n";
     // print_keys(global::ofs_myid, Cs.data_libri);
-    exx_libri.set_Cs(Cs.data_libri, Params::libri_exx_threshold_C);
-    Profiler::stop("build_real_space_exx_1");
+    exx_libri.set_Cs(Cs.data_libri, libri_exx_threshold_C);
+    global::profiler.stop("build_real_space_exx_1");
     global::ofs_myid << "Finished setup Cs for EXX\n";
     std::flush(global::ofs_myid);
 
     // initialize Coulomb matrix
-    Profiler::start("build_real_space_exx_2", "Prepare V libRI object");
+    global::profiler.start("build_real_space_exx_2", "Prepare V libRI object");
     std::map<int, std::map<std::pair<int,std::array<int,3>>, RI::Tensor<double>>> V_libri;
-    Profiler::start("build_real_space_exx_2_1");
-    if (librpa_int::parallel_routing == librpa_int::ParallelRouting::R_TAU)
+    global::profiler.start("build_real_space_exx_2_1");
+
+    if (routing == LibrpaParallelRouting::RTAU)
     {
         // Full Coulomb case, have to re-distribute
-        for (auto IJR: dispatch_vector_prod(get_atom_pair(coul_mat), Rlist, mpi_comm_global_h.myid, mpi_comm_global_h.nprocs, true, true))
+        for (auto IJR: dispatch_vector_prod(get_atom_pair(coul_mat), Rlist, comm_h.myid, comm_h.nprocs, true, true))
         {
             const auto I = IJR.first.first;
             const auto J = IJR.first.second;
@@ -199,26 +202,26 @@ void Exx::build(const Cs_LRI &Cs,
             }
         }
     }
-    Profiler::cease("build_real_space_exx_2_1");
+    global::profiler.stop("build_real_space_exx_2_1");
     global::ofs_myid << "Number of V keys: " << get_num_keys(V_libri) << "\n";
-    Profiler::start("build_real_space_exx_2_2");
-    exx_libri.set_Vs(V_libri, Params::libri_exx_threshold_V);
+    global::profiler.start("build_real_space_exx_2_2");
+    exx_libri.set_Vs(V_libri, libri_exx_threshold_V);
     V_libri.clear();
-    Profiler::cease("build_real_space_exx_2_2");
-    Profiler::cease("build_real_space_exx_2");
-    global::lib_printf("Task %4d: V setup for EXX\n", mpi_comm_global_h.myid);
+    global::profiler.stop("build_real_space_exx_2_2");
+    global::profiler.stop("build_real_space_exx_2");
+    global::lib_printf("Task %4d: V setup for EXX\n", comm_h.myid);
     // cout << V_libri << endl;
 
     // initialize density matrix
     vector<atpair_t> atpair_dmat;
-    for (int I = 0; I < atom_nw.size(); I++)
-        for (int J = 0; J < atom_nw.size(); J++)
+    for (atom_t I = 0; I < n_atoms; I++)
+        for (atom_t J = 0; J < n_atoms; J++)
             atpair_dmat.push_back({I, J});
-    const auto dmat_IJRs_local = dispatch_vector_prod(atpair_dmat, Rlist, mpi_comm_global_h.myid, mpi_comm_global_h.nprocs, true, true);
+    const auto dmat_IJRs_local = dispatch_vector_prod(atpair_dmat, Rlist, comm_h.myid, comm_h.nprocs, true, true);
 
     for (auto isp = 0; isp != n_spins; isp++)
     {
-        Profiler::start("build_real_space_exx_3", "Prepare DM libRI object");
+        global::profiler.start("build_real_space_exx_3", "Prepare DM libRI object");
         std::map<int, std::map<std::pair<int,std::array<int,3>>,RI::Tensor<double>>> dmat_libri;
         for (const auto &R: Rlist)
         {
@@ -241,15 +244,15 @@ void Exx::build(const Cs_LRI &Cs,
         }
         global::ofs_myid << "Number of Dmat keys: " << get_num_keys(dmat_libri) << "\n";
         // print_keys(global::ofs_myid, dmat_libri);
-        exx_libri.set_Ds(dmat_libri, Params::libri_exx_threshold_D);
-        Profiler::stop("build_real_space_exx_3");
-        global::lib_printf("Task %4d: DM setup for EXX\n", mpi_comm_global_h.myid);
+        exx_libri.set_Ds(dmat_libri, libri_exx_threshold_D);
+        global::profiler.stop("build_real_space_exx_3");
+        global::lib_printf("Task %4d: DM setup for EXX\n", comm_h.myid);
 
-        Profiler::start("build_real_space_exx_4", "Call libRI Hexx calculation");
+        global::profiler.start("build_real_space_exx_4", "Call libRI Hexx calculation");
         exx_libri.cal_Hs();
-        Profiler::stop("build_real_space_exx_4");
+        global::profiler.stop("build_real_space_exx_4");
 
-        global::lib_printf("Task %4d: cal_Hs elapsed time: %f\n", mpi_comm_global_h.myid, Profiler::get_wall_time_last("build_real_space_exx_4"));
+        global::lib_printf("Task %4d: cal_Hs elapsed time: %f\n", comm_h.myid, global::profiler.get_wall_time_last("build_real_space_exx_4"));
         global::ofs_myid << "Number of exx_libri.Hs keys: " << get_num_keys(exx_libri.Hs) << "\n";
         // print_keys(global::ofs_myid, exx_libri.Hs);
         // ofs_myid << "exx_libri.Hs:\n" << exx_libri.Hs << endl;
@@ -257,11 +260,11 @@ void Exx::build(const Cs_LRI &Cs,
         for (const auto &I_JR_exx: exx_libri.Hs)
         {
             const auto &I = I_JR_exx.first;
-            const auto &n_I = atomic_basis_wfc.get_atom_nb(I);
+            const auto &n_I = ab_wfc.get_atom_nb(I);
             for (const auto &JR_exx: I_JR_exx.second)
             {
                 const auto &J = JR_exx.first.first;
-                const auto &n_J = atomic_basis_wfc.get_atom_nb(J);
+                const auto &n_J = ab_wfc.get_atom_nb(J);
                 const auto &Ra = JR_exx.first.second;
                 const auto R = Vector3_Order<int>{Ra[0], Ra[1], Ra[2]};
                 Matd exx_temp(n_I, n_J, JR_exx.second.ptr(), MAJOR::ROW);
@@ -289,12 +292,12 @@ void Exx::build(const Cs_LRI &Cs,
     // }
 
 #else
-    if (mpi_comm_global_h.is_root())
+    if (comm_h.is_root())
     {
         global::lib_printf("Error: trying build EXX orbital energy with LibRI, but the program is not compiled against LibRI\n");
     }
     throw std::logic_error("compilation");
-    mpi_comm_global_h.barrier();
+    comm_h.barrier();
 #endif
 
     is_rspace_build_= true;
@@ -302,16 +305,14 @@ void Exx::build(const Cs_LRI &Cs,
 
 
 void Exx::build_KS(const std::vector<std::vector<ComplexMatrix>> &wfc_target,
-                  const std::vector<Vector3_Order<double>> &kfrac_target)
+                   const std::vector<Vector3_Order<double>> &kfrac_target,
+                   const Atoms &geometry,
+                   const BlacsCtxtHandler &blacs_ctxt_h)
 {
-    using librpa_int::global::mpi_comm_global_h;
-    using librpa_int::envs::blacs_ctxt_global_h;
-    using librpa_int::utils::init_local_mat;
-    using librpa_int::utils::get_local_mat;
-    using librpa_int::utils::collect_block_from_IJ_storage_tensor_transform;
     using RI::Communicate_Tensors_Map_Judge::comm_map2_first;
 
     assert(this->is_rspace_build_);
+
     // Reset k-space matrices built from last call
     if (this->is_kspace_built_)
     {
@@ -319,15 +320,15 @@ void Exx::build_KS(const std::vector<std::vector<ComplexMatrix>> &wfc_target,
         this->reset_kspace();
     }
 
-    const auto& n_aos = this->mf_.get_n_aos();
-    const auto& n_spins = this->mf_.get_n_spins();
-    const auto& n_bands = this->mf_.get_n_bands();
+    const auto& n_aos = this->mf.get_n_aos();
+    const auto& n_spins = this->mf.get_n_spins();
+    const auto& n_bands = this->mf.get_n_bands();
 
     // prepare scalapack array descriptors
-    ArrayDesc desc_nao_nao(blacs_ctxt_global_h);
-    ArrayDesc desc_nband_nao(blacs_ctxt_global_h);
-    ArrayDesc desc_nband_nband(blacs_ctxt_global_h);
-    ArrayDesc desc_nband_nband_fb(blacs_ctxt_global_h);
+    ArrayDesc desc_nao_nao(blacs_ctxt_h);
+    ArrayDesc desc_nband_nao(blacs_ctxt_h);
+    ArrayDesc desc_nband_nband(blacs_ctxt_h);
+    ArrayDesc desc_nband_nband_fb(blacs_ctxt_h);
 
     desc_nao_nao.init_1b1p(n_aos, n_aos, 0, 0);
     desc_nband_nao.init_1b1p(n_bands, n_aos, 0, 0);
@@ -340,14 +341,14 @@ void Exx::build_KS(const std::vector<std::vector<ComplexMatrix>> &wfc_target,
     auto Hexx_nband_nband = init_local_mat<complex<double>>(desc_nband_nband, MAJOR::COL);
     auto Hexx_nband_nband_fb = init_local_mat<complex<double>>(desc_nband_nband_fb, MAJOR::COL);
 
-    const auto set_IJ_naonao = librpa_int::utils::get_necessary_IJ_from_block_2D(
-        atomic_basis_wfc, atomic_basis_wfc, desc_nao_nao);
+    const auto set_IJ_naonao = get_necessary_IJ_from_block_2D(
+        this->atbasis_wfc, this->atbasis_wfc, desc_nao_nao);
     const auto Iset_Jset = convert_IJset_to_Iset_Jset(set_IJ_naonao);
 
     for (int isp = 0; isp < n_spins; isp++)
     {
         // collect necessary data
-        Profiler::start("build_real_space_exx_5", "Collect Hexx IJ from world");
+        global::profiler.start("build_real_space_exx_5", "Collect Hexx IJ from world");
         std::map<int, std::map<std::pair<int, std::array<int, 3>>, RI::Tensor<double>>> exx_I_JR_local;
 
         if (this->exx.count(isp))
@@ -359,11 +360,11 @@ void Exx::build_KS(const std::vector<std::vector<ComplexMatrix>> &wfc_target,
                 for (const auto &I_J_exx: R_IJ_exx.second)
                 {
                     const auto I = I_J_exx.first;
-                    const auto &n_I = atomic_basis_wfc.get_atom_nb(I);
+                    const auto &n_I = this->atbasis_wfc.get_atom_nb(I);
                     for (const auto &J_exx: I_J_exx.second)
                     {
                         const auto J = J_exx.first;
-                        const auto &n_J = atomic_basis_wfc.get_atom_nb(J);
+                        const auto &n_J = this->atbasis_wfc.get_atom_nb(J);
                         const std::array<int, 3> Ra{R.x, R.y, R.z};
                         exx_I_JR_local[I][{J, Ra}] = RI::Tensor<double>({n_I, n_J}, J_exx.second.sptr());
                     }
@@ -372,14 +373,17 @@ void Exx::build_KS(const std::vector<std::vector<ComplexMatrix>> &wfc_target,
         }
 
         // Collect the IJ pair of Hs with all R for Fourier transform
-        auto exx_I_JR = comm_map2_first(mpi_comm_global_h.comm,exx_I_JR_local, Iset_Jset.first, Iset_Jset.second);
+        auto exx_I_JR = comm_map2_first(comm_h.comm,exx_I_JR_local, Iset_Jset.first, Iset_Jset.second);
         exx_I_JR_local.clear();
 
         // Convert each <I,<J, R>> pair to the nearest neighbour to speed up later Fourier transform
         // while keep the accuracy in further band interpolation.
         // Reuse the cleared-up exx_I_JR_local object
-        if (coord_frac.size() > 0)
+        if (geometry.is_frac_set())
         {
+            const auto &coords_frac = geometry.coords_frac;
+            const auto &period = this->pbc.period;
+
             for (auto &I_exxJR: exx_I_JR)
             {
                 const auto &I = I_exxJR.first;
@@ -393,19 +397,19 @@ void Exx::build_KS(const std::vector<std::vector<ComplexMatrix>> &wfc_target,
                     std::array<int, 3> R_bvk;
                     for (int i = -1; i < 2; i++)
                     {
-                        R_IJ.x = i * this->period_.x + R[0];
+                        R_IJ.x = i * period.x + R[0];
                         for (int j = -1; j < 2; j++)
                         {
-                            R_IJ.y = j * this->period_.y + R[1];
+                            R_IJ.y = j * period.y + R[1];
                             for (int k = -1; k < 2; k++)
                             {
-                                R_IJ.z = k * this->period_.z + R[2];
+                                R_IJ.z = k * period.z + R[2];
                                 const auto diff =
-                                    (Vector3<double>(coord_frac[I][0], coord_frac[I][1],
-                                                     coord_frac[I][2]) -
-                                     Vector3<double>(coord_frac[J][0], coord_frac[J][1],
-                                                     coord_frac[J][2]) -
-                                     Vector3<double>(R_IJ.x, R_IJ.y, R_IJ.z)) * latvec;
+                                    (Vector3<double>(coords_frac.at(I)[0], coords_frac.at(I)[1],
+                                                     coords_frac.at(I)[2]) -
+                                     Vector3<double>(coords_frac.at(J)[0], coords_frac.at(J)[1],
+                                                     coords_frac.at(J)[2]) -
+                                     Vector3<double>(R_IJ.x, R_IJ.y, R_IJ.z)) * this->pbc.latvec;
                                 const auto norm2 = diff.norm2();
                                 if (norm2 < distsq)
                                 {
@@ -427,15 +431,15 @@ void Exx::build_KS(const std::vector<std::vector<ComplexMatrix>> &wfc_target,
         }
 
         exx_I_JR.clear();
-        Profiler::stop("build_real_space_exx_5");
+        global::profiler.stop("build_real_space_exx_5");
 
-        global::lib_printf("Task %4d: tensor communicate elapsed time: %f\n", mpi_comm_global_h.myid, Profiler::get_wall_time_last("build_real_space_exx_5"));
+        global::lib_printf("Task %4d: tensor communicate elapsed time: %f\n", comm_h.myid, global::profiler.get_wall_time_last("build_real_space_exx_5"));
         // cout << I_JallR_Hs << endl;
 
-        for (int ik = 0; ik < kfrac_target.size(); ik++)
+        for (size_t ik = 0; ik < kfrac_target.size(); ik++)
         {
             Hexx_nao_nao.zero_out();
-            Profiler::start("build_real_space_exx_6", "Hexx IJ -> 2D block");
+            global::profiler.start("build_real_space_exx_6", "Hexx IJ -> 2D block");
             const auto& kfrac = kfrac_target[ik];
             const std::function<complex<double>(const int &, const std::pair<int, std::array<int, 3>> &)>
                 fourier = [kfrac](const int &I, const std::pair<int, std::array<int, 3>> &J_Ra)
@@ -446,16 +450,16 @@ void Exx::build_KS(const std::vector<std::vector<ComplexMatrix>> &wfc_target,
                     return complex<double>{std::cos(ang), std::sin(ang)};
                 };
             collect_block_from_IJ_storage_tensor_transform(Hexx_nao_nao, desc_nao_nao, 
-                    atomic_basis_wfc, atomic_basis_wfc, fourier, exx_I_JR_local);
-            Profiler::stop("build_real_space_exx_6");
+                    this->atbasis_wfc, this->atbasis_wfc, fourier, exx_I_JR_local);
+            global::profiler.stop("build_real_space_exx_6");
             // global::lib_printf("%s\n", str(Hexx_nao_nao).c_str());
             const auto &wfc_isp_k = wfc_target[isp][ik];
-            blacs_ctxt_global_h.barrier();
+            blacs_ctxt_h.barrier();
             const auto wfc_block = get_local_mat(wfc_isp_k.c, MAJOR::ROW, desc_nband_nao, MAJOR::COL).conj();
             // global::lib_printf("%s\n", str(wfc_block).c_str());
             // global::lib_printf("%s\n", desc_nao_nao.info_desc().c_str());
             // global::lib_printf("%s\n", desc_nband_nao.info_desc().c_str());
-            Profiler::start("build_real_space_exx_7", "Rotate Hexx ij -> KS");
+            global::profiler.start("build_real_space_exx_7", "Rotate Hexx ij -> KS");
             ScalapackConnector::pgemm_f('N', 'N', n_bands, n_aos, n_aos, 1.0,
                                         wfc_block.ptr(), 1, 1, desc_nband_nao.desc,
                                         Hexx_nao_nao.ptr(), 1, 1, desc_nao_nao.desc,
@@ -466,35 +470,36 @@ void Exx::build_KS(const std::vector<std::vector<ComplexMatrix>> &wfc_target,
                                         wfc_block.ptr(), 1, 1, desc_nband_nao.desc,
                                         0.0,
                                         Hexx_nband_nband.ptr(), 1, 1, desc_nband_nband.desc);
-            Profiler::stop("build_real_space_exx_7");
+            global::profiler.stop("build_real_space_exx_7");
 
             // collect to master
-            Profiler::start("build_real_space_exx_8", "Collect Eexx to root process");
+            global::profiler.start("build_real_space_exx_8", "Collect Eexx to root process");
             ScalapackConnector::pgemr2d_f(n_bands, n_bands,
                                           Hexx_nband_nband.ptr(), 1, 1, desc_nband_nband.desc,
                                           Hexx_nband_nband_fb.ptr(), 1, 1, desc_nband_nband_fb.desc,
                                           desc_nband_nband_fb.ictxt());
             this->exx_is_ik_KS[isp][ik] = Hexx_nband_nband_fb;
             // cout << "Hexx_nband_nband_fb isp " << isp  << " ik " << ik << endl << Hexx_nband_nband_fb;
-            if (blacs_ctxt_global_h.myid == 0)
+            if (blacs_ctxt_h.myid == 0)
             {
                 for (int ib = 0; ib != n_bands; ib++)
                     this->Eexx[isp][ik][ib] = Hexx_nband_nband_fb(ib, ib).real();
             }
-            Profiler::stop("build_real_space_exx_8");
+            global::profiler.stop("build_real_space_exx_8");
         }
     }
 }
 
-void Exx::build_KS_kgrid()
+void Exx::build_KS_kgrid(const Atoms &geometry, const BlacsCtxtHandler &blacs_ctxt_h)
 {
-    this->build_KS(this->mf_.get_eigenvectors(), this->kfrac_list_);
+    this->build_KS(this->mf.get_eigenvectors(), this->pbc.kfrac_list, geometry, blacs_ctxt_h);
 }
 
 void Exx::build_KS_band(const std::vector<std::vector<ComplexMatrix>> &wfc_band,
-                        const std::vector<Vector3_Order<double>> &kfrac_band)
+                        const std::vector<Vector3_Order<double>> &kfrac_band, const Atoms &geometry,
+                        const BlacsCtxtHandler &blacs_ctxt_h)
 {
-    this->build_KS(wfc_band, kfrac_band);
+    this->build_KS(wfc_band, kfrac_band, geometry, blacs_ctxt_h);
 }
 
 void Exx::reset_rspace()
@@ -510,5 +515,4 @@ void Exx::reset_kspace()
     this->is_kspace_built_ = false;
 }
 
-
-}
+} /* end of namespace librpa_int */

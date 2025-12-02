@@ -43,9 +43,9 @@ void get_rpa_correlation_energy_(std::complex<double> &rpa_corr,
 
     mpi_comm_global_h.barrier();
 
-    Profiler::start("chi0_build", "Build response function chi0");
+    global::profiler.start("chi0_build", "Build response function chi0");
     chi0.build(Cs_data, Rlist, period, local_atpair, qlist);
-    Profiler::stop("chi0_build");
+    global::profiler.stop("chi0_build");
 
     if (Params::debug)
     { // debug, check chi0
@@ -76,7 +76,7 @@ void get_rpa_correlation_energy_(std::complex<double> &rpa_corr,
     librpa_int::utils::release_free_mem();
 
     mpi_comm_global_h.barrier();
-    Profiler::start("EcRPA", "Compute RPA correlation Energy");
+    global::profiler.start("EcRPA", "Compute RPA correlation Energy");
     CorrEnergy corr;
     if (Params::use_scalapack_ecrpa && (librpa_int::parallel_routing == librpa_int::ParallelRouting::ATOM_PAIR || librpa_int::parallel_routing == librpa_int::ParallelRouting::LIBRI))
     {
@@ -100,7 +100,7 @@ void get_rpa_correlation_energy_(std::complex<double> &rpa_corr,
         rpa_corr_irk_contrib[iq] = irk_corr.second;
     }
 
-    Profiler::stop("EcRPA");
+    global::profiler.stop("EcRPA");
 }
 
 } /* end of namespace app */

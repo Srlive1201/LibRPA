@@ -22,12 +22,6 @@ typedef struct
     //! Verbose level for output
     LibrpaVerbose output_level;
 
-    //! Type of time/frequency grids.
-    LibrpaTimeFreqGrid tfgrids_type;
-
-    //! Number of frequency points
-    int nfreq;
-
     //! Threshold for real-space LRI triple coefficients.
     double cs_threshold;
 
@@ -36,6 +30,19 @@ typedef struct
 
     //! Flag of parsing input and performing calculation in spin-orbit coupling formalism
     LibrpaSwitch use_soc;
+
+    //! Type of time/frequency grids.
+    LibrpaTimeFreqGrid tfgrids_type;
+
+    //! Number of time/frequency points
+    int nfreq;
+
+    //! Parameters for time and freqeuncy grids. Different grid types will use none/part/all of the parameters.
+    double tfgrids_freq_min;
+    double tfgrids_freq_interval;
+    double tfgrids_freq_max;
+    double tfgrids_time_min;
+    double tfgrids_time_interval;
 
     /* ============================================================================= */
     /* RPA specific */
@@ -89,13 +96,13 @@ typedef struct
     double libri_exx_threshold_V;
 
     //! Threshold of real-space LRI triple coefficients to compute GW correlation self-energy using LibRI
-    double libri_gw_threshold_C;
+    double libri_g0w0_threshold_C;
 
     //! Threshold of real-space Green's function to compute GW correlation self-energy using LibRI
-    double libri_gw_threshold_G;
+    double libri_g0w0_threshold_G;
 
     //! Threshold of correlation screened Coulomb matrix to compute GW correlation self-energy using LibRI
-    double libri_gw_threshold_Wc;
+    double libri_g0w0_threshold_Wc;
 
     /* Output controls */
     //! Output correlation self-energy matrix (reciprocal space, imaginary frequency domain)
@@ -117,24 +124,4 @@ void librpa_set_output_dir(LibrpaOptions *opts, const char *output_dir);
 
 #ifdef __cplusplus
 }
-#endif
-
-// C++ APIs
-#ifdef __cplusplus
-
-namespace librpa
-{
-
-// Straighforward inheritance
-// IMPORTANT: DO NOT add extra member variables here, which will break the inheritated data layout
-// New control options should be put under the LibrpaOptions C structure
-class Options : public ::LibrpaOptions
-{
-public:
-    Options() { ::librpa_init_options(this); }
-    void set_output_dir(const char *output_dir) { ::librpa_set_output_dir(this, output_dir); }
-};
-
-}
-
 #endif

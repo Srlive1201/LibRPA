@@ -164,7 +164,7 @@ std::vector<size_t> get_1d_mat_indices_atpair(const AtomicBasis &atbasis_r,
     return indices_1d;
 }
 
-AtomicBasis atomic_basis_wfc;
-AtomicBasis atomic_basis_abf;
+// AtomicBasis atomic_basis_wfc;
+// AtomicBasis atomic_basis_abf;
 
 } // namespace librpa_int

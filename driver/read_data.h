@@ -11,14 +11,19 @@
 #include "../src/core/ri.h"
 #include "../src/math/matrix.h"
 #include "../src/math/vector3_order.h"
+#include "librpa.hpp"
 
 using std::string;
-using namespace librpa_int;
+using librpa_int::matrix;
+using librpa_int::atpair_t;
+using librpa_int::MeanField;
+using librpa_int::Vector3_Order;
+using librpa_int::atpair_R_mat_t ;
 
 /*!
  * @brief Read occupation numbers and eigenvalues of SCF calculation
  */
-void read_scf_occ_eigenvalues(const string &file_path, MeanField &mf);
+void read_scf_occ_eigenvalues(const string &file_path);
 
 /*!
  * @brief Read exchange-correlation potential
@@ -28,23 +33,30 @@ void read_scf_occ_eigenvalues(const string &file_path, MeanField &mf);
  */
 int read_vxc(const string &file_path, std::vector<matrix> &vxc);
 
-int read_eigenvector(const string &dir_path, MeanField &mf);
+int read_eigenvector(const string &dir_path);
 
-size_t read_Cs(const string &dir_path, double threshold, const vector<atpair_t> &local_atpair);
+// high-level reader for RI coefficients and bare Coulomb interactions
+void read_ri(const string &dir_path, librpa::ParallelRouting routing);
+
+size_t read_Cs(const string &dir_path, double threshold, const std::vector<atpair_t> &local_atpair);
 
 size_t read_Cs_evenly_distribute(const string &dir_path, double threshold, int myid, int nprocs);
 
 size_t read_Vq_full(const string &dir_path, const string &vq_fprefix, bool is_cut_coulomb);
 
 size_t read_Vq_row(const string &dir_path, const string &vq_fprefix, double threshold,
-                   const vector<atpair_t> &local_atpair, bool is_cut_coulomb);
+                   const std::vector<atpair_t> &local_atpair, bool is_cut_coulomb);
 
-void read_stru(const int& n_kpoints, const std::string &file_path);
+void read_stru(const std::string &file_path);
+
+void read_bz_sampling(const std::string &file_path);
+
+void read_basis(const std::string &file_path);
 
 void read_dielec_func(const string &file_path, std::vector<double> &omegas,
                       std::vector<double> &dielec_func_imagfreq);
 
-void erase_Cs_from_local_atp(atpair_R_mat_t &Cs, vector<atpair_t> &local_atpair);
+void erase_Cs_from_local_atp(atpair_R_mat_t &Cs, std::vector<atpair_t> &local_atpair);
 
 void get_natom_ncell_from_first_Cs_file(int &n_atom, int &n_cell, const string &dir_path);
 

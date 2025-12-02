@@ -6,23 +6,23 @@ Matrix3::Matrix3(const double &r11, const double &r12, const double &r13,
                  const double &r21, const double &r22, const double &r23,
                  const double &r31, const double &r32, const double &r33)
 {
-	e11 = r11;e12 = r12;e13 = r13;
-	e21 = r21;e22 = r22;e23 = r23;
-	e31 = r31;e32 = r32;e33 = r33;
+	e11 = r11; e12 = r12; e13 = r13;
+	e21 = r21; e22 = r22; e23 = r23;
+	e31 = r31; e32 = r32; e33 = r33;
 }
 
 void Matrix3::Reset(void)
 {
-	e11 = 1;e12 = 0;e13 = 0;
-	e21 = 0;e22 = 1;e23 = 0;
-	e31 = 0;e32 = 0;e33 = 1;
+	e11 = 1.0e0;e12 = 0.0e0;e13 = 0.0e0;
+	e21 = 0.0e0;e22 = 1.0e0;e23 = 0.0e0;
+	e31 = 0.0e0;e32 = 0.0e0;e33 = 1.0e0;
 }
 
 void Matrix3::Identity(void)
 {
-	e11 = 1;e12 = 0;e13 = 0;
-	e21 = 0;e22 = 1;e23 = 0;
-	e31 = 0;e32 = 0;e33 = 1;
+	e11 = 1.0e0;e12 = 0.0e0;e13 = 0.0e0;
+	e21 = 0.0e0;e22 = 1.0e0;e23 = 0.0e0;
+	e31 = 0.0e0;e32 = 0.0e0;e33 = 1.0e0;
 }
 
 double Matrix3::Det(void) const 
@@ -44,7 +44,7 @@ Matrix3 Matrix3::Inverse(void) const
 {
 	double d = this->Det();
 
-	if(d == 0)d = 1;
+	if(d == 0) d = 1.0e0;
 
 	return Matrix3((e22*e33 - e23*e32) / d,
 	               -(e12*e33 - e13*e32) / d,
@@ -188,15 +188,18 @@ bool operator!=(const Matrix3 &m1, const Matrix3 &m2)
 }
 
 
-void Matrix3::print(int width) const
+void Matrix3::print(int width, double eps) const
 {
-	using std::cout;
-	using std::setw;
-	using std::endl;
-	cout << setw(width) << e11 << setw(width) << e12 << setw(width) << e13 << endl ;
-	cout << setw(width) << e21 << setw(width) << e22 << setw(width) << e23 << endl ;
-	cout << setw(width) << e31 << setw(width) << e32 << setw(width) << e33 << endl ;
-	return;
+    using std::cout;
+    using std::endl;
+    using std::setw;
+
+    auto clean = [&eps](double x) { return (std::abs(x) < eps) ? 0.0 : x; };
+
+    cout << setw(width) << clean(e11) << setw(width) << clean(e12) << setw(width) << clean(e13) << endl;
+    cout << setw(width) << clean(e21) << setw(width) << clean(e22) << setw(width) << clean(e23) << endl;
+    cout << setw(width) << clean(e31) << setw(width) << clean(e32) << setw(width) << clean(e33) << endl;
+    return;
 }
 
 }

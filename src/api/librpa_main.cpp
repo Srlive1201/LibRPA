@@ -89,9 +89,9 @@ void librpa_main()
     // The output now should be set using set_librpa_params
     // Params::output_file = "LibRPA_output.txt";
 
-    Profiler::start("total", "Total");
+    global::profiler.start("total", "Total");
 
-    Profiler::start("driver_io_init", "Driver IO Initialization");
+    global::profiler.start("driver_io_init", "Driver IO Initialization");
     //parse_inputfile_to_params(input_filename);
     // create output directory, only by the root process
 
@@ -212,7 +212,7 @@ void librpa_main()
     }
     std::flush(ofs_myid);
     mpi_comm_global_h.barrier();
-    Profiler::stop("driver_io_init");
+    global::profiler.stop("driver_io_init");
 
     // malloc_trim(0);
     // para_mpi.mpi_barrier();
@@ -271,9 +271,9 @@ void librpa_main()
 
     if ( Params::task != "exx" )
     {
-        Profiler::start("chi0_build", "Build response function chi0");
+        global::profiler.start("chi0_build", "Build response function chi0");
         chi0.build(Cs_data, Rlist, period, local_atpair, qlist);
-        Profiler::stop("chi0_build");
+        global::profiler.stop("chi0_build");
     }
     if (Params::debug)
     { // debug, check chi0
@@ -320,7 +320,7 @@ void librpa_main()
     if ( Params::task == "rpa" )
     {
         mpi_comm_global_h.barrier();
-        Profiler::start("EcRPA", "Compute RPA correlation Energy");
+        global::profiler.start("EcRPA", "Compute RPA correlation Energy");
         CorrEnergy corr;
         if (Params::use_scalapack_ecrpa && librpa_int::parallel_routing == librpa_int::ParallelRouting::ATOM_PAIR)
         {
@@ -344,18 +344,18 @@ void librpa_main()
             if (std::abs(corr.value.imag()) > 1.e-3)
                 lib_printf("Warning: considerable imaginary part of EcRPA = %f\n", corr.value.imag());
         }
-        Profiler::stop("EcRPA");
+        global::profiler.stop("EcRPA");
     }
     else
     {
 
     }
 
-    Profiler::stop("total");
+    global::profiler.stop("total");
 
     if (mpi_comm_global_h.is_root())
     {
-        Profiler::display();
+        global::profiler.display();
         lib_printf("libRPA finished\n");
     }
 

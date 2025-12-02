@@ -29,7 +29,7 @@ public:
     static const double EQUAL_THRES;
 	int nr=0;
 	int nc=0;   /* Number of rows and columns */
-    int size=0;
+	size_t size=0;
 	double *c=nullptr;    /* Holds the data */
 
 	/* Constructors and destructor */

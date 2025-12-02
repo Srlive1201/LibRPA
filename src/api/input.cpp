@@ -1,0 +1,441 @@
+// API headers
+#include "librpa_enums.h"
+#include "librpa_func.h"
+#include "librpa_input.h"
+
+// Standard headers
+#include <cstring>
+#include <memory>
+#include <vector>
+
+// Internal headers
+#include "../io/global_io.h"
+#include "../math/matrix.h"
+#include "../math/vector3_order.h"
+#include "../utils/error.h"
+#include "instance_manager.h"
+
+// External headers and stubs
+#ifdef LIBRPA_USE_LIBRI
+#include <initializer_list>
+#include <RI/global/Tensor.h>
+#else
+#include "../utils/libri_stub.h"
+#endif
+
+LIBRPA_C_H_FUNC_WRAP(void, librpa_set_scf_dimension, int nspins, int nkpts, int nstates, int nbasis)
+{
+    using librpa_int::api::get_dataset_instance;
+    using librpa_int::global::mpi_comm_global_h;
+    using librpa_int::global::lib_printf;
+
+    auto ds = librpa_int::api::get_dataset_instance(h);
+
+    auto &meanfield = ds->mf;
+    meanfield.set(nspins, nkpts, nstates, nbasis);
+    ds->comm_h.barrier();
+    if (ds->comm_h.is_root())
+    {
+        lib_printf("Mean-field dimensions set:\n");
+        lib_printf("| number of spins    : %d\n", meanfield.get_n_spins());
+        lib_printf("| number of k-points : %d\n", meanfield.get_n_kpoints());
+        lib_printf("| number of bands    : %d\n", meanfield.get_n_bands());
+        lib_printf("| number of NAOs     : %d\n", meanfield.get_n_aos());
+    }
+    ds->comm_h.barrier();
+}
+
+LIBRPA_C_H_FUNC_WRAP(void, librpa_set_wg_ekb_efermi, int nspins, int nkpts, int nstates, const double* wg,
+                     const double* ekb, double efermi)
+{
+    using librpa_int::global::lib_printf;
+
+    auto ds = librpa_int::api::get_dataset_instance(h);
+    auto &meanfield = ds->mf;
+
+    meanfield.get_efermi() = efermi;
+    auto& eskb = meanfield.get_eigenvals();
+    auto& swg = meanfield.get_weight();
+    int length_kb = nkpts * nstates;
+    for (int is = 0; is != nspins; is++)
+    {
+        memcpy(eskb[is].c, ekb + length_kb * is, length_kb * sizeof(double));
+        memcpy(swg[is].c, wg + length_kb * is, length_kb * sizeof(double));
+        // wg[is](k_index, i) = stod(ws) / n_kpoints; // different with abacus!
+        swg[is] *= (1.0 / nkpts);
+    }
+
+    double emin, emax;
+    ds->mf.get_E_min_max(emin, emax);
+
+    ds->comm_h.barrier();
+    if (ds->comm_h.is_root())
+    {
+        lib_printf("Mean-field eigenvalues and occupation numbers set:\n");
+        lib_printf("| Minimal transition energy (Ha): %f\n", emin);
+        lib_printf("| Maximal transition energy (Ha): %f\n", emax);
+    }
+    ds->comm_h.barrier();
+}
+
+LIBRPA_C_H_FUNC_WRAP(void, librpa_set_wfc, int ispin, int ik, const double* wfc_real, const double* wfc_imag)
+{
+    auto ds = librpa_int::api::get_dataset_instance(h);
+    auto &meanfield = ds->mf;
+
+    auto& wfc = meanfield.get_eigenvectors().at(ispin).at(ik);
+    const auto n = meanfield.get_n_bands() * meanfield.get_n_aos();
+    for (int i = 0; i != n; i++)
+    {
+        wfc.c[i] = std::complex<double>(wfc_real[i], wfc_imag[i]);
+    }
+}
+
+LIBRPA_C_H_FUNC_WRAP(void, librpa_set_ao_basis_wfc, const int natoms, const size_t *nbs_wfc)
+{
+    using librpa_int::global::lib_printf;
+
+    std::vector<size_t> nbs(natoms);
+    for (int i = 0; i < natoms; i++) nbs[i] = librpa_int::as_size(nbs_wfc[i]);
+
+    auto ds = librpa_int::api::get_dataset_instance(h);
+    ds->basis_wfc.set(nbs);
+
+    ds->comm_h.barrier();
+    if (ds->comm_h.is_root())
+    {
+        lib_printf("Wave-function basis functions set:\n");
+        lib_printf("| total number of basis: %lu\n", ds->basis_wfc.nb_total);
+    }
+    ds->comm_h.barrier();
+}
+
+LIBRPA_C_H_FUNC_WRAP(void, librpa_set_ao_basis_aux, int natoms, const size_t *nbs_aux)
+{
+    using librpa_int::global::lib_printf;
+
+    std::vector<size_t> nbs(natoms);
+    for (int i = 0; i < natoms; i++) nbs[i] = librpa_int::as_size(nbs_aux[i]);
+
+    auto ds = librpa_int::api::get_dataset_instance(h);
+    ds->basis_aux.set(nbs);
+
+    // After auxiliary basis is set, we can initialize the global (continous) array descriptor for N_abf size basis.
+    ds->desc_abf.reset_handler(ds->blacs_ctxt_h);
+    const auto n = ds->basis_aux.nb_total;
+    ds->desc_abf.init_1b1p(n, n, 0, 0);
+
+    ds->comm_h.barrier();
+    if (ds->comm_h.is_root())
+    {
+        lib_printf("Auxiliary basis functions set:\n");
+        lib_printf("| total number of basis: %lu\n", ds->basis_aux.nb_total);
+    }
+    ds->comm_h.barrier();
+}
+
+LIBRPA_C_H_FUNC_WRAP(void, librpa_set_latvec_and_G, const double lat_mat[9], const double G_mat[9])
+{
+    using std::cout;
+    using std::endl;
+
+    auto ds = librpa_int::api::get_dataset_instance(h);
+    auto &pbc = ds->pbc;
+
+    std::vector<double> latt(9);
+    memcpy(latt.data(), lat_mat, 9 * sizeof(double));
+    std::vector<double> recp(9);
+    memcpy(recp.data(), G_mat, 9 * sizeof(double));
+
+    pbc.set_latvec_and_G(latt, recp);
+
+    ds->comm_h.barrier();
+    if (ds->comm_h.is_root())
+    {
+        cout << "Lattice vectors (Bohr)" << endl;
+        pbc.latvec.print(16);
+        cout << "Reciprocal lattice vectors (2PI Bohr^-1)" << endl;
+        pbc.G.print(16);
+    }
+    ds->comm_h.barrier();
+}
+
+LIBRPA_C_H_FUNC_WRAP(void, librpa_set_atoms, int natoms, const int *types, const double *posi_cart)
+{
+    using std::cout;
+    using std::endl;
+    using librpa_int::coord_t;
+    using librpa_int::global::lib_printf;
+
+    auto ds = librpa_int::api::get_dataset_instance(h);
+    auto &pbc = ds->pbc;
+    auto &atoms = ds->atoms;
+
+    std::vector<int> v_types(natoms);
+    std::vector<coord_t> v_coords(natoms);
+    memcpy(v_types.data(), types, natoms * sizeof(int));
+    for (int i = 0; i < natoms; i++)
+    {
+        v_coords[i][0] = posi_cart[3 * i];
+        v_coords[i][1] = posi_cart[3 * i + 1];
+        v_coords[i][2] = posi_cart[3 * i + 2];
+    }
+
+    // Set the fractional coordinates as well if the lattice has been set manually
+    if (pbc.is_latt_set())
+    {
+        atoms.set(v_types, v_coords, pbc.latvec);
+        const auto &coords = atoms.coords;
+        const auto &coords_frac = atoms.coords_frac;
+        ds->comm_h.barrier();
+        if (ds->comm_h.is_root())
+        {
+            cout << "Atom positions read (Cartisian in Bohr | fractional):" << endl;
+            for (int i = 0; i != natoms; i++)
+            {
+                const auto i_at = librpa_int::as_atom(i);
+                const auto &c = coords.at(i_at);
+                const auto &cf = coords_frac.at(i_at);
+                lib_printf("ia %4d: %12.7f %12.7f %12.7f | %12.7f %12.7f %12.7f\n", i + 1, c[0], c[1],
+                        c[2], cf[0], cf[1], cf[2]);
+            }
+        }
+        ds->comm_h.barrier();
+    }
+    else
+    {
+        atoms.set(v_types, v_coords);
+        const auto &coords = atoms.coords;
+        ds->comm_h.barrier();
+        if (ds->comm_h.is_root())
+        {
+            cout << "Atom positions read (Cartisian in Bohr, fractional not set due to uninitialized lattice):" << endl;
+            for (int i = 0; i != natoms; i++)
+            {
+                const auto i_at = librpa_int::as_atom(i);
+                const auto &c = coords.at(i_at);
+                lib_printf("ia %4d: %12.7f %12.7f %12.7f\n", i + 1, c[0], c[1], c[2]);
+            }
+        }
+        ds->comm_h.barrier();
+    }
+
+}
+
+LIBRPA_C_H_FUNC_WRAP(void, librpa_set_kgrids_kvec, int nk1, int nk2, int nk3, const double* kvecs)
+{
+    using librpa_int::global::lib_printf;
+    using std::cout;
+    using std::endl;
+
+    auto ds = librpa_int::api::get_dataset_instance(h);
+    auto &pbc = ds->pbc;
+
+    const int nkpts = nk1 * nk2 * nk3;
+    std::vector<double> v_kvecs(3 * nkpts);
+    memcpy(v_kvecs.data(), kvecs, 3 * nkpts * sizeof(double));
+
+    pbc.set_kgrids_kvec(nk1, nk2, nk3, v_kvecs);
+
+    ds->comm_h.barrier();
+    if (ds->comm_h.is_root())
+    {
+        librpa_int::global::lib_printf("kgrids: %3d %3d %3d\n", pbc.period.x, pbc.period.y, pbc.period.z);
+        cout << "k-points read (Cartisian in 2Pi Bohr^-1 | fractional):" << endl;
+
+        const auto &klist = pbc.klist;
+        const auto &kfrac_list = pbc.kfrac_list;
+        for (int ik = 0; ik != nkpts; ik++)
+        {
+            lib_printf("ik %4d: %12.7f %12.7f %12.7f | %12.7f %12.7f %12.7f\n",
+                    ik+1, klist[ik].x, klist[ik].y, klist[ik].z,
+                    kfrac_list[ik].x, kfrac_list[ik].y, kfrac_list[ik].z);
+        }
+
+        const auto &Rlist = pbc.Rlist;
+        cout << "R-points to compute:" << endl;
+        for (int iR = 0; iR != nkpts; iR++)
+        {
+            lib_printf("%4d: %3d %3d %3d\n", iR+1, Rlist[iR].x, Rlist[iR].y, Rlist[iR].z);
+        }
+        cout << endl;
+    }
+    ds->comm_h.barrier();
+}
+
+LIBRPA_C_H_FUNC_WRAP(void, librpa_set_ibz_mapping, const int* map_ibzk)
+{
+    using std::cout;
+    using std::endl;
+    using namespace librpa_int::global;
+
+    auto ds = librpa_int::api::get_dataset_instance(h);
+    auto &pbc = ds->pbc;
+    const int nkpts = pbc.get_n_cells_bvk();
+
+    std::vector<int> map(nkpts);
+    memcpy(map.data(), map_ibzk, nkpts * sizeof(double));
+
+    pbc.set_ibz_mapping(map, {});
+    ds->comm_h.barrier();
+    if (ds->comm_h.is_root())
+    {
+        const int nkpt = pbc.irk_point_id_mapping.size();
+        cout << "Irreducible Brillouin mapping:" << endl;
+        lib_printf("%4s: %12s %12s %12s    %4s\n",
+                   "ik", "k_1", "k_2", "k_3", "ibzk");
+        for (int ik = 0; ik < nkpt; ik++)
+        {
+            int ibzk = pbc.irk_point_id_mapping[ik];
+            if (ibzk == ik)
+            {
+                lib_printf("%4d: %12.7f %12.7f %12.7f\n",
+                           ik + 1, pbc.kfrac_list[ik].x, pbc.kfrac_list[ik].y, pbc.kfrac_list[ik].z);
+            }
+            else
+            {
+                lib_printf("%4d: %12.7f %12.7f %12.7f -> %4d\n",
+                           ik + 1, pbc.kfrac_list[ik].x, pbc.kfrac_list[ik].y, pbc.kfrac_list[ik].z, ibzk + 1);
+            }
+        }
+    }
+    ds->comm_h.barrier();
+}
+
+LIBRPA_C_H_FUNC_WRAP(void, librpa_set_lri_coeff, LibrpaParallelRouting routing, int I, int J,
+                     int nbasis_i, int nbasis_j, int naux_mu, const int R[3], const double* Cs_in)
+{
+    using librpa_int::matrix;
+    using librpa_int::Vector3_Order;
+    using librpa_int::as_size;
+
+    auto ds = librpa_int::api::get_dataset_instance(h);
+    auto &cs_data = ds->cs_data;
+    if (!ds->basis_wfc.initialized())
+        throw LIBRPA_RUNTIME_ERROR("wave function basis not set, call (librpa_)set_ao_basis_wfc first");
+    if (!ds->basis_aux.initialized())
+        throw LIBRPA_RUNTIME_ERROR("auxiliary basis not set, call (librpa_)set_ao_basis_aux first");
+
+    const size_t cs_size = nbasis_i * nbasis_j * naux_mu;
+    const size_t n_ij = nbasis_i * nbasis_j;
+
+    if (routing == LibrpaParallelRouting::LIBRI)
+    {
+        const std::array<int, 3> Ra{R[0], R[1], R[2]};
+        // RI tensor uses ABF as slowest index, so we need transpose the input data.
+        auto data = std::make_shared<std::valarray<double>>(cs_size);
+        // Unless n_cols >> n_rows, cache-friendly reading (by row in C/C++) is more efficient
+        for (size_t i_row = 0; i_row < n_ij; i_row++)
+        {
+            for (size_t i_col = 0; i_col != as_size(naux_mu); i_col++)
+            {
+                (*data)[i_col * n_ij + i_row] = Cs_in[i_row * naux_mu + i_col];
+            }
+        }
+        const std::initializer_list<std::size_t> shape{as_size(naux_mu), as_size(nbasis_i),
+                                                       as_size(nbasis_j)};
+        cs_data.data_libri[I][{J, Ra}] = RI::Tensor<double>(shape, data);
+    }
+    else
+    {
+        librpa_int::Vector3_Order<int> box(R[0], R[1], R[2]);
+        std::shared_ptr<matrix> cs_ptr = std::make_shared<matrix>();
+        cs_ptr->create(nbasis_i * nbasis_j, naux_mu);
+        memcpy((*cs_ptr).c, Cs_in, sizeof(double) * cs_size);
+        cs_data.data_IJR[I][J][box] = cs_ptr;
+    }
+}
+
+static void _set_aux_coulomb_k_atom_pair(const librpa_int::Vector3_Order<double> &qvec,
+                                         librpa_int::atom_t I, librpa_int::atom_t J, size_t naux_mu, size_t naux_nu,
+                                         const double* Vq_real_in, const double* Vq_imag_in,
+                                         librpa_int::atpair_k_cplx_mat_t &coulomb_mat,
+                                         double vq_threshold)
+{
+    using librpa_int::ComplexMatrix;
+
+    std::shared_ptr<ComplexMatrix> vq_ptr = std::make_shared<ComplexMatrix>();
+    vq_ptr->create(naux_mu, naux_nu);
+
+    // Copy real data
+    for (size_t i_mu = 0; i_mu < naux_mu; i_mu++)
+    {
+        for (size_t i_nu = 0; i_nu < naux_nu; i_nu++)
+        {
+            const auto id = i_nu + i_mu * naux_nu;
+            (*vq_ptr)(i_mu, i_nu) = librpa_int::cplxdb(Vq_real_in[id], Vq_imag_in[id]);
+        }
+    }
+
+    if ((*vq_ptr).real().absmax() >= vq_threshold)
+    {
+        coulomb_mat[I][J][qvec] = vq_ptr;
+    }
+}
+
+LIBRPA_C_H_FUNC_WRAP(void, librpa_set_aux_bare_coulomb_k_atom_pair,
+                     int ik, int I, int J, int naux_mu, int naux_nu,
+                     const double* Vq_real_in, const double* Vq_imag_in, double vq_threshold)
+{
+    auto ds = librpa_int::api::get_dataset_instance(h);
+    const auto &qvec = ds->pbc.klist[ik];
+    _set_aux_coulomb_k_atom_pair(qvec, I, J, naux_mu, naux_nu, Vq_real_in, Vq_imag_in, ds->vq, vq_threshold);
+}
+
+LIBRPA_C_H_FUNC_WRAP(void, librpa_set_aux_cut_coulomb_k_atom_pair,
+                     int ik, int I, int J, int naux_mu, int naux_nu,
+                     const double* Vq_real_in, const double* Vq_imag_in, double vq_threshold)
+{
+    auto ds = librpa_int::api::get_dataset_instance(h);
+    const auto &qvec = ds->pbc.klist[ik];
+    _set_aux_coulomb_k_atom_pair(qvec, I, J, naux_mu, naux_nu, Vq_real_in, Vq_imag_in, ds->vq_cut, vq_threshold);
+}
+
+static void _set_aux_coulomb_k_2D_block(
+    const librpa_int::Vector3_Order<double>& qvec, int naux_total, int mu_begin, int mu_end,
+    int nu_begin, int nu_end, const double* Vq_real_in, const double* Vq_imag_in,
+    std::map<librpa_int::Vector3_Order<double>, librpa_int::ComplexMatrix>& vq_block)
+{
+    using namespace librpa_int;
+    using std::shared_ptr;
+    using std::make_shared;
+
+    int brow = mu_begin - 1;
+    int erow = mu_end - 1;
+    int bcol = nu_begin - 1;
+    int ecol = nu_end - 1;
+
+    // librpa_int::global::lib_printf("qvec: %f,%f,%f\n",qvec.x,qvec.y,qvec.z);
+    shared_ptr<ComplexMatrix> vq_ptr = make_shared<ComplexMatrix>();
+    vq_ptr->create(naux_total, naux_total);
+
+    size_t ii = 0;
+    for (int i_mu = brow; i_mu <= erow; i_mu++)
+    {
+        for (int i_nu = bcol; i_nu <= ecol; i_nu++)
+        {
+            vq_block[qvec](i_mu, i_nu) = complex<double>(Vq_real_in[ii], Vq_imag_in[ii]);
+            ii += 1;
+        }
+    }
+}
+
+LIBRPA_C_H_FUNC_WRAP(void, librpa_set_aux_bare_coulomb_k_2d_block,
+                     int ik, int max_naux, int mu_begin, int mu_end, int nu_begin, int nu_end,
+                     const double* Vq_real_in, const double* Vq_imag_in)
+{
+    auto ds = librpa_int::api::get_dataset_instance(h);
+    const auto &qvec = ds->pbc.klist[ik];
+    _set_aux_coulomb_k_2D_block(qvec, max_naux, mu_begin, mu_end, nu_begin, nu_end, Vq_real_in,
+                                Vq_imag_in, ds->vq_block_loc);
+}
+
+LIBRPA_C_H_FUNC_WRAP(void, librpa_set_aux_cut_coulomb_k_2d_block,
+                     int ik, int max_naux, int mu_begin, int mu_end, int nu_begin, int nu_end,
+                     const double* Vq_real_in, const double* Vq_imag_in)
+{
+    auto ds = librpa_int::api::get_dataset_instance(h);
+    const auto &qvec = ds->pbc.klist[ik];
+    _set_aux_coulomb_k_2D_block(qvec, max_naux, mu_begin, mu_end, nu_begin, nu_end, Vq_real_in,
+                                Vq_imag_in, ds->vq_cut_block_loc);
+}

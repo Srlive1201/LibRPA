@@ -37,11 +37,11 @@ public:
     std::string procname;
 public:
     MpiCommHandler();
-    MpiCommHandler(MPI_Comm comm_in);
+    MpiCommHandler(MPI_Comm comm_in, bool init_on_construct = false);
     ~MpiCommHandler() {};
     void init();
     void reset_comm();
-    void reset_comm(MPI_Comm comm_in);
+    void reset_comm(MPI_Comm comm_in, bool init_on_reset = false);
     bool is_root() const { return this->myid == 0; }
     void barrier() const;
     std::string str() const;
@@ -53,19 +53,11 @@ public:
     // void reduce_ComplexMatrix(ComplexMatrix &cmat_send, ComplexMatrix & cmat_recv, int root) const;
 };
 
+// extern const std::string parallel_routing_notes[LIBRPA_ROUTING_COUNT];
 
-enum ParallelRouting {
-    ATOM_PAIR,
-    R_TAU,
-    LIBRI,
-    COUNT
-};
+// extern ParallelRouting parallel_routing;
 
-extern const std::string parallel_routing_notes[ParallelRouting::COUNT];
-
-extern ParallelRouting parallel_routing;
-
-void set_parallel_routing(const std::string &option, const int &atpais_num, const int &Rt_num, ParallelRouting &routing);
+// void set_parallel_routing(const std::string &option, const int &atpais_num, const int &Rt_num, ParallelRouting &routing);
 
 //! Wrapper of MPI_Comm_rank
 int get_mpi_rank(const MPI_Comm &comm);

@@ -24,16 +24,17 @@ configure_file(utils/envs_cmake.h envs_cmake.h)
 list(APPEND lib_sources
         ${CMAKE_CURRENT_BINARY_DIR}/envs_cmake.cpp
 
-        api/app_exx.cpp
-        api/app_rpa.cpp
-        api/app_gw.cpp
+        # api/app_exx.cpp
+        # api/app_rpa.cpp
+        # api/app_gw.cpp
         api/compute_test.cpp
         api/dataset.cpp
         api/global.cpp
         api/handler.cpp
+        api/input.cpp
         api/instance_manager.cpp
-        api/options.cpp
         api/librpa.cpp
+        api/options.cpp
 
         core/analycont.cpp
         core/atomic_basis.cpp
@@ -45,13 +46,13 @@ list(APPEND lib_sources
         core/geometry.cpp
         core/gw.cpp
         core/meanfield.cpp
-        core/params.cpp
+        # core/params.cpp
         core/pbc.cpp
         core/qpe_solver.cpp
         core/ri.cpp
         core/timefreq.cpp
         core/utils_atomic_basis_blacs.cpp
-        core/utils_timefreq.cpp
+        # core/utils_timefreq.cpp
 
         io/global_io.cpp
         io/fs.cpp
@@ -67,7 +68,7 @@ list(APPEND lib_sources
 
         mpi/base_blacs.cpp
         mpi/base_mpi.cpp
-        mpi/envs_blacs.cpp
+        # mpi/envs_blacs.cpp
         mpi/utils_blacs.cpp
         mpi/global_mpi.cpp
 

@@ -5,22 +5,25 @@
 #pragma once
 #include <array>
 #include <cassert>
-#include <iomanip>
-#include <vector>
 #include <cmath>
+#include <cstdint>
 #include <ctime>
-#include <random>
-#include <valarray>
-#include <memory>
 #include <functional>
-#include <utility>
-#include <ostream>
+#include <iomanip>
+#include <ios>
 #include <limits>
+#include <memory>
+#include <ostream>
+#include <random>
+#include <utility>
+#include <valarray>
+#include <vector>
 
+#include "../io/global_io.h"
 #include "../utils/base_utility.h"
+#include "../utils/error.h"
 #include "lapack_connector.h"
 #include "vec.h"
-#include "../io/global_io.h"
 
 namespace librpa_int {
 
@@ -1087,7 +1090,7 @@ inline matrix_m<std::complex<T>> random_unitary(int n, MAJOR major = MAJOR::ROW)
 //! when the number of provided eigenvalues is smaller than the dimension,
 //! padding_zero will be used as the missing eigenvalues
 template <typename T>
-inline matrix_m<std::complex<T>> random_he_selected_ev(int n, const vector<T> &evs, MAJOR major = MAJOR::ROW, const T& padding_zero = 1e-14)
+inline matrix_m<std::complex<T>> random_he_selected_ev(int n, const std::vector<T> &evs, MAJOR major = MAJOR::ROW, const T& padding_zero = 1e-14)
 {
     const int nvec = evs.size();
     if (nvec == 0) return matrix_m<std::complex<T>>{0, 0, major};
@@ -1101,8 +1104,13 @@ inline matrix_m<std::complex<T>> random_he_selected_ev(int n, const vector<T> &e
 
 //! print the matrix in matrix-market style
 template <typename T, typename Treal = typename to_real<T>::type>
-void print_matrix_mm(const matrix_m<T> &mat, ostream &os, Treal threshold = 1e-15, bool row_first = true)
+void print_matrix_mm(const matrix_m<T> &mat, std::ostream &os, Treal threshold = 1e-15, bool row_first = true)
 {
+    using std::endl;
+    using std::showpoint;
+    using std::scientific;
+    using std::setprecision;
+
     const int nr = mat.nr(), nc = mat.nc();
     size_t nnz = 0;
     for (size_t i = 0; i < mat.size(); i++)
@@ -1192,8 +1200,8 @@ void write_matrix_elsi_csc(const matrix_m<T> &mat, const std::string &fn, Treal 
     // ELSI CSC only support square matrices
     assert (nr == nc);
 
-    int64_t nnz = 0;
-    for (int64_t i = 0; i != mat.size(); i++)
+    size_t nnz = 0;
+    for (size_t i = 0; i != mat.size(); i++)
     {
         if (fabs(mat.ptr()[i]) > threshold)
             nnz++;
@@ -1225,7 +1233,7 @@ void write_matrix_elsi_csc(const matrix_m<T> &mat, const std::string &fn, Treal 
 
     // Ensure correct non-zero values counting are consistent in the two runs
     // cout << colptr[nc] << " " << nnz + 1 << endl;
-    assert (colptr[nc] == nnz + 1);
+    assert (colptr[nc] == int64_t(nnz + 1));
 
     int64_t header[16];
     header[2] = is_complex<T>()? 1 : 0;
@@ -1236,7 +1244,7 @@ void write_matrix_elsi_csc(const matrix_m<T> &mat, const std::string &fn, Treal 
     wf.open(fn, std::ios::out | std::ios::binary);
     // check open status
     if (!wf)
-        throw logic_error("Fail to read " + fn);
+        throw LIBRPA_RUNTIME_ERROR("Fail to read " + fn);
     wf.write((char *) header, 16 * sizeof(int64_t));
     wf.write((char *) colptr.data(), nc * sizeof(int64_t));  // only write the first nc elements
     wf.write((char *) rowptr.data(), nnz * sizeof(int32_t));

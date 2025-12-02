@@ -53,7 +53,7 @@ template <typename T, size_t N>
 std::ostream& operator<<(std::ostream& os, const std::array<T, N> &arr_objs)
 {
     os << "[";
-    for (int i = 0; i < N - 1; i++)
+    for (size_t i = 0; i < N - 1; i++)
         os << arr_objs[i] << ",";
     os << arr_objs[N-1] << "](a" << N << ")";
     return os;

@@ -1,25 +1,25 @@
-#include "../mpi/global_mpi.h"
+#include "../io/stl_io_helper.h"
 #include "../math/utils_matrix_m.h"
 #include "../math/utils_matrix_m_mpi.h"
-#include "../mpi/envs_blacs.h"
+#include "../mpi/global_mpi.h"
 #include "../mpi/utils_blacs.h"
 #include "../src/io/global_io.h"
-#include "../io/stl_io_helper.h"
 #include "testutils.h"
 
+using namespace std;
 using namespace librpa_int;
-using namespace librpa_int::envs;
 using namespace librpa_int::global;
-using namespace librpa_int::utils;
+
+static BlacsCtxtHandler blacs_ctxt_h;
 
 template <typename T>
 void test_pgemm(const T &m1_lb, const T &m1_ub)
 {
     typedef T type;
-    blacs_ctxt_global_h.set_square_grid();
-    assert(blacs_ctxt_global_h.nprocs == 4);
-    assert(blacs_ctxt_global_h.nprows == 2);
-    assert(blacs_ctxt_global_h.npcols == 2);
+    blacs_ctxt_h.set_square_grid();
+    assert(blacs_ctxt_h.nprocs == 4);
+    assert(blacs_ctxt_h.nprows == 2);
+    assert(blacs_ctxt_h.npcols == 2);
 
     const int m = 2, n = 6, k = 4;
     const int mb = 1, nb = 3, kb = 2;
@@ -27,11 +27,11 @@ void test_pgemm(const T &m1_lb, const T &m1_ub)
     matrix_m<T> m1(1, 1, MAJOR::COL), m2(1, 1, MAJOR::COL), prod(1, 1, MAJOR::COL), prod_lapack(1, 1, MAJOR::COL);
     int pid_src, irsrc, icsrc;
     pid_src = 2;
-    blacs_ctxt_global_h.get_pcoord(pid_src, irsrc, icsrc);
+    blacs_ctxt_h.get_pcoord(pid_src, irsrc, icsrc);
     // printf("pid_src irsrc icsrc: %d %d %d\n", pid_src, irsrc, icsrc);
 
     // prepare the real data in the source process
-    if (blacs_ctxt_global_h.myid == pid_src)
+    if (blacs_ctxt_h.myid == pid_src)
     {
         m1.resize(m, k);
         m2.resize(k, n);
@@ -43,10 +43,10 @@ void test_pgemm(const T &m1_lb, const T &m1_ub)
         prod_lapack = m1 * m2;
         // printf("Product:\n%s", str(prod_lapack).c_str());
     }
-    blacs_ctxt_global_h.barrier();
+    blacs_ctxt_h.barrier();
 
-    auto pair_desc_m1 = prepare_array_desc_mr2d_src_and_all(blacs_ctxt_global_h, m, k, mb, kb, irsrc, icsrc);
-    auto pair_desc_m2 = prepare_array_desc_mr2d_src_and_all(blacs_ctxt_global_h, k, n, kb, nb, irsrc, icsrc);
+    auto pair_desc_m1 = prepare_array_desc_mr2d_src_and_all(blacs_ctxt_h, m, k, mb, kb, irsrc, icsrc);
+    auto pair_desc_m2 = prepare_array_desc_mr2d_src_and_all(blacs_ctxt_h, k, n, kb, nb, irsrc, icsrc);
     matrix_m<T> m1_local = init_local_mat<T>(pair_desc_m1.second, MAJOR::COL);
     matrix_m<T> m2_local = init_local_mat<T>(pair_desc_m2.second, MAJOR::COL);
     // printf("mat1_local addr %p\n%s", m1_local.ptr(), str(m1_local).c_str());
@@ -55,14 +55,14 @@ void test_pgemm(const T &m1_lb, const T &m1_ub)
     ScalapackConnector::pgemr2d_f(m, k,
                                   m1.ptr(), 1, 1, pair_desc_m1.first.desc,
                                   m1_local.ptr(), 1, 1, pair_desc_m1.second.desc,
-                                  blacs_ctxt_global_h.ictxt);
+                                  blacs_ctxt_h.ictxt);
     ScalapackConnector::pgemr2d_f(k, n,
                                   m2.ptr(), 1, 1, pair_desc_m2.first.desc,
                                   m2_local.ptr(), 1, 1, pair_desc_m2.second.desc,
-                                  blacs_ctxt_global_h.ictxt);
+                                  blacs_ctxt_h.ictxt);
 
     // initialize product matrix
-    auto pair_desc_prod = prepare_array_desc_mr2d_src_and_all(blacs_ctxt_global_h, m, n, mb, nb, irsrc, icsrc);
+    auto pair_desc_prod = prepare_array_desc_mr2d_src_and_all(blacs_ctxt_h, m, n, mb, nb, irsrc, icsrc);
     auto prod_local = init_local_mat<type>(pair_desc_prod.second, MAJOR::COL);
 
     // carry out distributed multiplication
@@ -71,14 +71,14 @@ void test_pgemm(const T &m1_lb, const T &m1_ub)
                                 m2_local.ptr(), 1, 1, pair_desc_m2.second.desc,
                                 0.0,
                                 prod_local.ptr(), 1, 1, pair_desc_prod.second.desc);
-    // printf("prod_local on proc %d:\n%s", blacs_ctxt_global_h.myid, str(prod_local).c_str());
+    // printf("prod_local on proc %d:\n%s", blacs_ctxt_h.myid, str(prod_local).c_str());
     // collect data back to source
     ScalapackConnector::pgemr2d_f(m, n,
                                   prod_local.ptr(), 1, 1, pair_desc_prod.second.desc,
                                   prod.ptr(), 1, 1, pair_desc_prod.first.desc,
-                                  blacs_ctxt_global_h.ictxt);
+                                  blacs_ctxt_h.ictxt);
 
-    if (blacs_ctxt_global_h.myid == pid_src)
+    if (blacs_ctxt_h.myid == pid_src)
     {
         T thres = 1e-14;
         // small threshold when float is used
@@ -87,7 +87,7 @@ void test_pgemm(const T &m1_lb, const T &m1_ub)
         assert(fequal_array(m*n, prod_lapack.ptr(), prod.ptr(), false, thres));
     }
 
-    blacs_ctxt_global_h.exit();
+    blacs_ctxt_h.exit();
 }
 
 template <typename T>
@@ -98,19 +98,19 @@ void test_invert_scalapack()
     // a looser threshold than gemm
     const T thres = std::is_same<real_type, float>::value ? 1e-4 : 1e-12;
 
-    blacs_ctxt_global_h.set_square_grid();
-    assert(blacs_ctxt_global_h.nprocs == 4);
-    assert(blacs_ctxt_global_h.nprows == 2);
-    assert(blacs_ctxt_global_h.npcols == 2);
+    blacs_ctxt_h.set_square_grid();
+    assert(blacs_ctxt_h.nprocs == 4);
+    assert(blacs_ctxt_h.nprows == 2);
+    assert(blacs_ctxt_h.npcols == 2);
 
     const int n = 8;
     matrix_m<T> mat(1, 1, MAJOR::COL);
 
     int pid_src, irsrc, icsrc;
     pid_src = 2;
-    blacs_ctxt_global_h.get_pcoord(pid_src, irsrc, icsrc);
+    blacs_ctxt_h.get_pcoord(pid_src, irsrc, icsrc);
     // initialize a non-singular matrix at source process
-    if (blacs_ctxt_global_h.myid == pid_src)
+    if (blacs_ctxt_h.myid == pid_src)
     {
         bool is_singular = true;
         while (is_singular)
@@ -120,7 +120,7 @@ void test_invert_scalapack()
         }
     }
 
-    ArrayDesc desc_mat(blacs_ctxt_global_h), desc_mat_fb_src(blacs_ctxt_global_h);
+    ArrayDesc desc_mat(blacs_ctxt_h), desc_mat_fb_src(blacs_ctxt_h);
     desc_mat.init_1b1p(n, n, irsrc, icsrc);
     desc_mat_fb_src.init(n, n, n, n, irsrc, icsrc);
     // create local matrix and distribute the source to the process grid
@@ -128,16 +128,16 @@ void test_invert_scalapack()
     ScalapackConnector::pgemr2d_f(n, n,
                                   mat.ptr(), 1, 1, desc_mat_fb_src.desc,
                                   mat_loc.ptr(), 1, 1, desc_mat.desc,
-                                  blacs_ctxt_global_h.ictxt);
+                                  blacs_ctxt_h.ictxt);
     auto mat_loc_orig = mat_loc.copy();
     invert_scalapack(mat_loc, desc_mat);
     auto mat_times_invmat = multiply_scalapack(mat_loc, desc_mat, mat_loc_orig, desc_mat, desc_mat);
     ScalapackConnector::pgemr2d_f(n, n,
                                   mat_times_invmat.ptr(), 1, 1, desc_mat.desc,
                                   mat.ptr(), 1, 1, desc_mat_fb_src.desc,
-                                  blacs_ctxt_global_h.ictxt);
-    // printf("mat * invmat on proc %d\n%s", blacs_ctxt_global_h.myid, str(mat_times_invmat).c_str());
-    if (blacs_ctxt_global_h.myid == pid_src)
+                                  blacs_ctxt_h.ictxt);
+    // printf("mat * invmat on proc %d\n%s", blacs_ctxt_h.myid, str(mat_times_invmat).c_str());
+    if (blacs_ctxt_h.myid == pid_src)
     {
         matrix_m<T> identity(n, n, MAJOR::COL);
         identity.zero_out();
@@ -145,7 +145,7 @@ void test_invert_scalapack()
         assert(fequal_array(n*n, mat.ptr(), identity.ptr(), false, thres));
     }
 
-    blacs_ctxt_global_h.exit();
+    blacs_ctxt_h.exit();
 }
 
 template <typename T>
@@ -155,31 +155,31 @@ void test_power_hemat_blacs_square_grid(const T &m_lb, const T &m_ub)
     typedef typename to_real<type>::type real_type;
     const T thres =
         std::is_same<typename to_real<type>::type, float>::value ? 1e-5 : 1e-14;
-    blacs_ctxt_global_h.set_square_grid();
-    assert(blacs_ctxt_global_h.nprocs == 4);
-    assert(blacs_ctxt_global_h.nprows == 2);
-    assert(blacs_ctxt_global_h.npcols == 2);
+    blacs_ctxt_h.set_square_grid();
+    assert(blacs_ctxt_h.nprocs == 4);
+    assert(blacs_ctxt_h.nprows == 2);
+    assert(blacs_ctxt_h.npcols == 2);
 
     const int n = 6, nb = n / 2;
     matrix_m<T> mat(1, 1, MAJOR::COL), mat_gather(1, 1, MAJOR::COL);
     int pid_src, irsrc, icsrc;
     pid_src = 2;
-    blacs_ctxt_global_h.get_pcoord(pid_src, irsrc, icsrc);
-    if (blacs_ctxt_global_h.myid == pid_src)
+    blacs_ctxt_h.get_pcoord(pid_src, irsrc, icsrc);
+    if (blacs_ctxt_h.myid == pid_src)
     {
         vector<real_type> evs {0.1, 0.2, 0.5, 1.0, 2.0, 4.0};
         mat = random_he_selected_ev(n, evs, MAJOR::COL);
         mat_gather = mat;
     }
-    auto pair_desc_m = prepare_array_desc_mr2d_src_and_all(blacs_ctxt_global_h, n, n, nb, nb, irsrc, icsrc);
+    auto pair_desc_m = prepare_array_desc_mr2d_src_and_all(blacs_ctxt_h, n, n, nb, nb, irsrc, icsrc);
     matrix_m<T> mat_loc = init_local_mat<T>(pair_desc_m.second, MAJOR::COL);
     matrix_m<T> eig_loc = init_local_mat<T>(pair_desc_m.second, MAJOR::COL);
     // printf("eig_loc\n%s", str(eig_loc).c_str());
     ScalapackConnector::pgemr2d_f(n, n,
                                   mat.ptr(), 1, 1, pair_desc_m.first.desc,
                                   mat_loc.ptr(), 1, 1, pair_desc_m.second.desc,
-                                  blacs_ctxt_global_h.ictxt);
-    // printf("mat_loc of PID %d before\n%s", blacs_ctxt_global_h.myid, str(mat_loc).c_str());
+                                  blacs_ctxt_h.ictxt);
+    // printf("mat_loc of PID %d before\n%s", blacs_ctxt_h.myid, str(mat_loc).c_str());
     auto mat_loc_back = mat_loc;
 
     real_type *W = new real_type [n];
@@ -189,27 +189,27 @@ void test_power_hemat_blacs_square_grid(const T &m_lb, const T &m_ub)
     power_hemat_blacs<real_type>(mat_loc, pair_desc_m.second,
                                  eig_loc, pair_desc_m.second, n_filtered, W, 1.0/3.0, -1.0e5);
     assert(n_filtered == 0);
-    // if (blacs_ctxt_global_h.myid == pid_src)
+    // if (blacs_ctxt_h.myid == pid_src)
     // {
     //     printf("Eigenvalues: ");
     //     for (int i = 0; i < n; i++)
     //         printf("%f ", W[i]);
     //     printf("\n");
     // }
-    blacs_ctxt_global_h.barrier();
-    // printf("mat_loc of PID %d middle\n%s", blacs_ctxt_global_h.myid, str(mat_loc).c_str());
+    blacs_ctxt_h.barrier();
+    // printf("mat_loc of PID %d middle\n%s", blacs_ctxt_h.myid, str(mat_loc).c_str());
     power_hemat_blacs<real_type>(mat_loc, pair_desc_m.second,
                                  eig_loc, pair_desc_m.second, n_filtered, W, 3.0, -1.0e5);
     assert(n_filtered == 0);
     // printf("eig_loc\n%s", str(eig_loc).c_str());
-    // printf("mat_loc of PID %d after\n%s", blacs_ctxt_global_h.myid, str(mat_loc).c_str());
+    // printf("mat_loc of PID %d after\n%s", blacs_ctxt_h.myid, str(mat_loc).c_str());
 
     ScalapackConnector::pgemr2d_f(n, n,
                                   mat_loc.ptr(), 1, 1, pair_desc_m.second.desc,
                                   mat_gather.ptr(), 1, 1, pair_desc_m.first.desc,
-                                  blacs_ctxt_global_h.ictxt);
+                                  blacs_ctxt_h.ictxt);
 
-    if (blacs_ctxt_global_h.myid == pid_src)
+    if (blacs_ctxt_h.myid == pid_src)
     {
         bool print = false;
         if (print)
@@ -222,7 +222,7 @@ void test_power_hemat_blacs_square_grid(const T &m_lb, const T &m_ub)
 
     delete [] W;
 
-    blacs_ctxt_global_h.exit();
+    blacs_ctxt_h.exit();
 }
 
 template<typename T>
@@ -230,10 +230,10 @@ void test_collect_block_from_IJ_storage()
 {
     // typedef T type;
     // typedef typename to_real<type>::type real_type;
-    blacs_ctxt_global_h.set_square_grid();
-    // assert(blacs_ctxt_global_h.nprocs == 4);
-    // assert(blacs_ctxt_global_h.nprows == 2);
-    // assert(blacs_ctxt_global_h.npcols == 2);
+    blacs_ctxt_h.set_square_grid();
+    // assert(blacs_ctxt_h.nprocs == 4);
+    // assert(blacs_ctxt_h.nprows == 2);
+    // assert(blacs_ctxt_h.npcols == 2);
     map<int, map<int, matrix_m<T>>> IJmap;
 
     AtomicBasis ab(vector<size_t>{1, 2, 2, 1});
@@ -248,16 +248,16 @@ void test_collect_block_from_IJ_storage()
         }
     }
 
-    if (blacs_ctxt_global_h.myid == 0)
+    if (blacs_ctxt_h.myid == 0)
     {
         for (int I = 0; I < ab.n_atoms; I++)
             for (int J = 0; J < ab.n_atoms; J++)
                 cout << I << " " << J << endl << str(IJmap[I][J]);
     }
-    blacs_ctxt_global_h.barrier();
+    blacs_ctxt_h.barrier();
     T alpha = 1.0;
 
-    ArrayDesc desc_fb(blacs_ctxt_global_h);
+    ArrayDesc desc_fb(blacs_ctxt_h);
     desc_fb.init(ab.nb_total, ab.nb_total, ab.nb_total, ab.nb_total, 0, 0);
     auto mat_loc = init_local_mat<T>(desc_fb, IJmap[0][0].major());
 
@@ -265,26 +265,26 @@ void test_collect_block_from_IJ_storage()
         for (int J = 0; J < ab.n_atoms; J++)
             collect_block_from_IJ_storage(mat_loc, desc_fb, ab, ab, I, J, alpha, IJmap[I][J].ptr(), MAJOR::COL);
 
-    // if (blacs_ctxt_global_h.myid == 0)
+    // if (blacs_ctxt_h.myid == 0)
     // {
     //     cout << "Use collect_block_from_IJ_storage" << endl << str(mat_loc);
     // }
-    blacs_ctxt_global_h.barrier();
+    blacs_ctxt_h.barrier();
 
     auto mat_loc_syhe = init_local_mat<T>(desc_fb, IJmap[0][0].major());
     for (int I = 0; I < ab.n_atoms; I++)
         for (int J = I; J < ab.n_atoms; J++)
         {
-            // printf("myid %d I %d J %d\n", blacs_ctxt_global_h.myid, I, J);
+            // printf("myid %d I %d J %d\n", blacs_ctxt_h.myid, I, J);
             collect_block_from_IJ_storage_syhe(mat_loc_syhe, desc_fb, ab, I, J, is_complex<T>(), alpha, IJmap[I][J].ptr(), MAJOR::COL);
         }
-    // if (blacs_ctxt_global_h.myid == 0)
+    // if (blacs_ctxt_h.myid == 0)
     // {
     //     cout << "Use collect_block_from_IJ_storage_syhe" << endl << str(mat_loc_syhe);
     // }
 
     map<int, map<int, matrix_m<T>>> IJmap_collect;
-    if (blacs_ctxt_global_h.myid == 0)
+    if (blacs_ctxt_h.myid == 0)
     {
         for (int I = 0; I < ab.n_atoms; I++)
             for (int J = 0; J < ab.n_atoms; J++)
@@ -293,28 +293,28 @@ void test_collect_block_from_IJ_storage()
     // cout << "mapping the 2D block to IJ" << endl;
     map_block_to_IJ_storage(IJmap_collect, ab, ab, mat_loc_syhe, desc_fb, MAJOR::COL);
     // cout << "done map" << endl;
-    if (blacs_ctxt_global_h.myid == 0)
+    if (blacs_ctxt_h.myid == 0)
     {
         for (int I = 0; I < ab.n_atoms; I++)
             for (int J = 0; J < ab.n_atoms; J++)
                 cout << I << " " << J << endl << str(IJmap_collect[I][J]);
     }
 
-    blacs_ctxt_global_h.exit();
+    blacs_ctxt_h.exit();
 }
 
 template <typename T>
 void test_local_mat_from_ap_dist()
 {
-    blacs_ctxt_global_h.set_square_grid(true, librpa_int::CTXT_LAYOUT::R);
-    assert(blacs_ctxt_global_h.nprocs == 4);
-    assert(blacs_ctxt_global_h.nprows == 2);
-    assert(blacs_ctxt_global_h.npcols == 2);
+    blacs_ctxt_h.set_square_grid(true, librpa_int::CTXT_LAYOUT::R);
+    assert(blacs_ctxt_h.nprocs == 4);
+    assert(blacs_ctxt_h.nprows == 2);
+    assert(blacs_ctxt_h.npcols == 2);
 
     const size_t m = 4;
     const size_t n = m;
 
-    ArrayDesc ad(blacs_ctxt_global_h);
+    ArrayDesc ad(blacs_ctxt_h);
     ad.init_1b1p(m, n, 0, 0);
     assert(ad.initialized());
     assert(ad.mb() == 2);
@@ -368,7 +368,7 @@ void test_local_mat_from_ap_dist()
     const auto mat_loc = get_local_mat_from_ap_dist<T>(IJmap, map_proc_IJs_avail, ab, ab, ad, MAJOR::COL);
     // for (int i = 0; i < 4; i++)
     // {
-    //     blacs_ctxt_global_h.barrier();
+    //     blacs_ctxt_h.barrier();
     //     if (myid_global == i)
     //     {
     //         std::cout << "myid " << i << " local matrix reference" << std::endl;
@@ -379,20 +379,20 @@ void test_local_mat_from_ap_dist()
     // }
     assert(fequal_array(mat_loc.size(), mat_loc.ptr(), mat_loc_ref.ptr(), false));
 
-    blacs_ctxt_global_h.exit();
+    blacs_ctxt_h.exit();
 }
 
 void test_local_mat_from_ap_dist_he()
 {
-    blacs_ctxt_global_h.set_square_grid(true, librpa_int::CTXT_LAYOUT::R);
-    assert(blacs_ctxt_global_h.nprocs == 4);
-    assert(blacs_ctxt_global_h.nprows == 2);
-    assert(blacs_ctxt_global_h.npcols == 2);
+    blacs_ctxt_h.set_square_grid(true, librpa_int::CTXT_LAYOUT::R);
+    assert(blacs_ctxt_h.nprocs == 4);
+    assert(blacs_ctxt_h.nprows == 2);
+    assert(blacs_ctxt_h.npcols == 2);
 
     const size_t m = 4;
     const size_t n = m;
 
-    ArrayDesc ad(blacs_ctxt_global_h);
+    ArrayDesc ad(blacs_ctxt_h);
     ad.init_1b1p(m, n, 0, 0);
     assert(ad.initialized());
     assert(ad.mb() == 2);
@@ -445,7 +445,7 @@ void test_local_mat_from_ap_dist_he()
     const auto mat_loc = get_local_mat_from_ap_dist_sy<T>(IJmap, 'u', map_proc_IJs_avail, ab, ad, true, MAJOR::COL);
     // for (int i = 0; i < 4; i++)
     // {
-    //     blacs_ctxt_global_h.barrier();
+    //     blacs_ctxt_h.barrier();
     //     if (myid_global == i)
     //     {
     //         std::cout << "myid " << i << " local matrix reference" << std::endl;
@@ -454,24 +454,24 @@ void test_local_mat_from_ap_dist_he()
     //         std::cout << mat_loc << std::endl;
     //     }
     // }
-    blacs_ctxt_global_h.barrier();
+    blacs_ctxt_h.barrier();
     assert(fequal_array(mat_loc.size(), mat_loc.ptr(), mat_loc_ref.ptr(), false));
 
-    blacs_ctxt_global_h.exit();
+    blacs_ctxt_h.exit();
 }
 
 template <typename T>
 void test_ap_map_from_blacs_dist()
 {
-    blacs_ctxt_global_h.set_square_grid(true, librpa_int::CTXT_LAYOUT::R);
-    assert(blacs_ctxt_global_h.nprocs == 4);
-    assert(blacs_ctxt_global_h.nprows == 2);
-    assert(blacs_ctxt_global_h.npcols == 2);
+    blacs_ctxt_h.set_square_grid(true, librpa_int::CTXT_LAYOUT::R);
+    assert(blacs_ctxt_h.nprocs == 4);
+    assert(blacs_ctxt_h.nprows == 2);
+    assert(blacs_ctxt_h.npcols == 2);
 
     const size_t m = 4;
     const size_t n = m;
 
-    ArrayDesc ad(blacs_ctxt_global_h);
+    ArrayDesc ad(blacs_ctxt_h);
     ad.init_1b1p(m, n, 0, 0);
     assert(ad.initialized());
     assert(ad.mb() == 2);
@@ -523,7 +523,7 @@ void test_ap_map_from_blacs_dist()
         const auto &IJmap_ref = IJmap_ref_all[myid_global];
         for (int i = 0; i < 4; i++)
         {
-            blacs_ctxt_global_h.barrier();
+            blacs_ctxt_h.barrier();
             if (myid_global == i)
             {
                 assert(IJmap.size() == IJmap_ref.size());
@@ -563,7 +563,7 @@ void test_ap_map_from_blacs_dist()
         const auto &IJmap_ref = IJmap_ref_all[myid_global];
         for (int i = 0; i < 4; i++)
         {
-            blacs_ctxt_global_h.barrier();
+            blacs_ctxt_h.barrier();
             if (myid_global == i)
             {
                 assert(IJmap.size() == IJmap_ref.size());
@@ -580,20 +580,20 @@ void test_ap_map_from_blacs_dist()
         }
     }
 
-    blacs_ctxt_global_h.exit();
+    blacs_ctxt_h.exit();
 }
 
 template <typename T>
 void test_restore_local_mat(const std::vector<size_t> &nbs, MAJOR major, const bool print = false)
 {
-    blacs_ctxt_global_h.set_square_grid(true, librpa_int::CTXT_LAYOUT::R);
-    const auto &nprocs = blacs_ctxt_global_h.nprocs;
-    assert(blacs_ctxt_global_h.nprows == blacs_ctxt_global_h.npcols);
+    blacs_ctxt_h.set_square_grid(true, librpa_int::CTXT_LAYOUT::R);
+    const auto &nprocs = blacs_ctxt_h.nprocs;
+    assert(blacs_ctxt_h.nprows == blacs_ctxt_h.npcols);
 
     librpa_int::AtomicBasis ab(nbs);
     const auto m = ab.nb_total;
     const auto n = m;
-    ArrayDesc ad(blacs_ctxt_global_h);
+    ArrayDesc ad(blacs_ctxt_h);
     ad.init_1b1p(m, n, 0, 0);
     assert(ad.initialized());
 
@@ -631,7 +631,7 @@ void test_restore_local_mat(const std::vector<size_t> &nbs, MAJOR major, const b
     const auto IJmap = get_ap_map_from_blacs_dist_scheduler(mat_loc_ref, sched, ab, ab, ad);
     for (int i = 0; i < size_global; i++)
     {
-        blacs_ctxt_global_h.barrier();
+        blacs_ctxt_h.barrier();
         if (myid_global == i)
         {
             if (print)
@@ -655,13 +655,13 @@ void test_restore_local_mat(const std::vector<size_t> &nbs, MAJOR major, const b
             }
         }
     }
-    // blacs_ctxt_global_h.exit();
+    // blacs_ctxt_h.exit();
     // return;
     const auto mat_loc = get_local_mat_from_ap_dist_scheduler(IJmap, sched, ab, ab, ad, major);
 
     for (int i = 0; i < size_global; i++)
     {
-        blacs_ctxt_global_h.barrier();
+        blacs_ctxt_h.barrier();
         if (print && myid_global == i)
         {
             std::cout << "myid " << i << " local matrix reference" << std::endl;
@@ -673,20 +673,20 @@ void test_restore_local_mat(const std::vector<size_t> &nbs, MAJOR major, const b
         }
     }
 
-    blacs_ctxt_global_h.exit();
+    blacs_ctxt_h.exit();
 }
 
 template <typename T>
 void test_restore_local_mat_scheduler(const std::vector<size_t> &nbs, MAJOR major, const bool print = false)
 {
-    blacs_ctxt_global_h.set_square_grid(true, librpa_int::CTXT_LAYOUT::R);
-    const auto &nprocs = blacs_ctxt_global_h.nprocs;
-    assert(blacs_ctxt_global_h.nprows == blacs_ctxt_global_h.npcols);
+    blacs_ctxt_h.set_square_grid(true, librpa_int::CTXT_LAYOUT::R);
+    const auto &nprocs = blacs_ctxt_h.nprocs;
+    assert(blacs_ctxt_h.nprows == blacs_ctxt_h.npcols);
 
     librpa_int::AtomicBasis ab(nbs);
     const auto m = ab.nb_total;
     const auto n = m;
-    ArrayDesc ad(blacs_ctxt_global_h);
+    ArrayDesc ad(blacs_ctxt_h);
     ad.init_1b1p(m, n, 0, 0);
     assert(ad.initialized());
 
@@ -721,7 +721,7 @@ void test_restore_local_mat_scheduler(const std::vector<size_t> &nbs, MAJOR majo
     const auto IJmap = get_ap_map_from_blacs_dist(mat_loc_ref, IJs, ab, ab, ad);
     for (int i = 0; i < size_global; i++)
     {
-        blacs_ctxt_global_h.barrier();
+        blacs_ctxt_h.barrier();
         if (myid_global == i)
         {
             if (print)
@@ -749,7 +749,7 @@ void test_restore_local_mat_scheduler(const std::vector<size_t> &nbs, MAJOR majo
 
     for (int i = 0; i < size_global; i++)
     {
-        blacs_ctxt_global_h.barrier();
+        blacs_ctxt_h.barrier();
         if (print && myid_global == i)
         {
             std::cout << "myid " << i << " local matrix reference" << std::endl;
@@ -761,21 +761,21 @@ void test_restore_local_mat_scheduler(const std::vector<size_t> &nbs, MAJOR majo
         }
     }
 
-    blacs_ctxt_global_h.exit();
+    blacs_ctxt_h.exit();
 }
 
 template <typename T>
 void test_restore_ap_map(const std::vector<size_t> &nbs, MAJOR major, const bool print = false)
 {
-    blacs_ctxt_global_h.set_square_grid(true, librpa_int::CTXT_LAYOUT::R);
+    blacs_ctxt_h.set_square_grid(true, librpa_int::CTXT_LAYOUT::R);
 
-    const auto &nprocs = blacs_ctxt_global_h.nprocs;
-    assert(blacs_ctxt_global_h.nprows == blacs_ctxt_global_h.npcols);
+    const auto &nprocs = blacs_ctxt_h.nprocs;
+    assert(blacs_ctxt_h.nprows == blacs_ctxt_h.npcols);
 
     librpa_int::AtomicBasis ab(nbs);
     const auto m = ab.nb_total;
     const auto n = m;
-    ArrayDesc ad(blacs_ctxt_global_h);
+    ArrayDesc ad(blacs_ctxt_h);
     ad.init_1b1p(m, n, 0, 0);
     assert(ad.initialized());
 
@@ -814,7 +814,7 @@ void test_restore_ap_map(const std::vector<size_t> &nbs, MAJOR major, const bool
     }
     // for (int i = 0; i < 4; i++)
     // {
-    //     blacs_ctxt_global_h.barrier();
+    //     blacs_ctxt_h.barrier();
     //     // cout << "part_range: " << ab.get_part_range() << endl;
     //     if (myid_global == i)
     //     {
@@ -832,7 +832,7 @@ void test_restore_ap_map(const std::vector<size_t> &nbs, MAJOR major, const bool
 
     for (int i = 0; i < size_global; i++)
     {
-        blacs_ctxt_global_h.barrier();
+        blacs_ctxt_h.barrier();
         if (myid_global == i)
         {
             // std::cout << "myid " << i << " comparing atom pair mapping data" << std::endl;
@@ -860,21 +860,21 @@ void test_restore_ap_map(const std::vector<size_t> &nbs, MAJOR major, const bool
         }
     }
 
-    blacs_ctxt_global_h.exit();
+    blacs_ctxt_h.exit();
 }
 
 template <typename T>
 void test_restore_ap_map_scheduler(const std::vector<size_t> &nbs, MAJOR major, const bool print = false)
 {
-    blacs_ctxt_global_h.set_square_grid(true, librpa_int::CTXT_LAYOUT::R);
+    blacs_ctxt_h.set_square_grid(true, librpa_int::CTXT_LAYOUT::R);
 
-    const auto &nprocs = blacs_ctxt_global_h.nprocs;
-    assert(blacs_ctxt_global_h.nprows == blacs_ctxt_global_h.npcols);
+    const auto &nprocs = blacs_ctxt_h.nprocs;
+    assert(blacs_ctxt_h.nprows == blacs_ctxt_h.npcols);
 
     librpa_int::AtomicBasis ab(nbs);
     const auto m = ab.nb_total;
     const auto n = m;
-    ArrayDesc ad(blacs_ctxt_global_h);
+    ArrayDesc ad(blacs_ctxt_h);
     ad.init_1b1p(m, n, 0, 0);
     assert(ad.initialized());
 
@@ -913,7 +913,7 @@ void test_restore_ap_map_scheduler(const std::vector<size_t> &nbs, MAJOR major, 
     }
     // for (int i = 0; i < 4; i++)
     // {
-    //     blacs_ctxt_global_h.barrier();
+    //     blacs_ctxt_h.barrier();
     //     // cout << "part_range: " << ab.get_part_range() << endl;
     //     if (myid_global == i)
     //     {
@@ -933,7 +933,7 @@ void test_restore_ap_map_scheduler(const std::vector<size_t> &nbs, MAJOR major, 
 
     for (int i = 0; i < size_global; i++)
     {
-        blacs_ctxt_global_h.barrier();
+        blacs_ctxt_h.barrier();
         if (myid_global == i)
         {
             // std::cout << "myid " << i << " comparing atom pair mapping data" << std::endl;
@@ -961,22 +961,22 @@ void test_restore_ap_map_scheduler(const std::vector<size_t> &nbs, MAJOR major, 
         }
     }
 
-    blacs_ctxt_global_h.exit();
+    blacs_ctxt_h.exit();
 }
 
 template <typename T>
 void test_restore_local_mat_sy(const std::vector<size_t> &nbs, MAJOR major)
 {
-    blacs_ctxt_global_h.set_square_grid(true, librpa_int::CTXT_LAYOUT::R);
-    const auto &nprocs = blacs_ctxt_global_h.nprocs;
+    blacs_ctxt_h.set_square_grid(true, librpa_int::CTXT_LAYOUT::R);
+    const auto &nprocs = blacs_ctxt_h.nprocs;
     assert(nprocs == 4);
-    assert(blacs_ctxt_global_h.nprows == 2);
-    assert(blacs_ctxt_global_h.npcols == 2);
+    assert(blacs_ctxt_h.nprows == 2);
+    assert(blacs_ctxt_h.npcols == 2);
 
     librpa_int::AtomicBasis ab(nbs);
     const auto m = ab.nb_total;
     const auto n = m;
-    ArrayDesc ad(blacs_ctxt_global_h);
+    ArrayDesc ad(blacs_ctxt_h);
     ad.init_1b1p(m, n, 0, 0);
     assert(ad.initialized());
 
@@ -1012,7 +1012,7 @@ void test_restore_local_mat_sy(const std::vector<size_t> &nbs, MAJOR major)
 
     for (int i = 0; i < 4; i++)
     {
-        blacs_ctxt_global_h.barrier();
+        blacs_ctxt_h.barrier();
         if (myid_global == i)
         {
             // std::cout << "myid " << i << " local matrix reference" << std::endl;
@@ -1024,21 +1024,20 @@ void test_restore_local_mat_sy(const std::vector<size_t> &nbs, MAJOR major)
         }
     }
 
-    blacs_ctxt_global_h.exit();
-    blacs_ctxt_global_h.exit();
+    blacs_ctxt_h.exit();
+    blacs_ctxt_h.exit();
 }
 
 static void initialize()
 {
     init_global_mpi();
-    initialize_blacs(MPI_COMM_WORLD);
+    blacs_ctxt_h.reset_comm(global::mpi_comm_global);
     init_global_io();
 }
 
 static void finalize()
 {
     finalize_global_io();
-    finalize_blacs();
     finalize_global_mpi();
 }
 

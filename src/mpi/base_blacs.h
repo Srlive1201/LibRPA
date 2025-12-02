@@ -38,12 +38,14 @@ public:
     ~BlacsCtxtHandler() { this->exit(); }
 
     void init();
-    void reset_comm(MPI_Comm comm_in);
+    void reset_comm(MPI_Comm comm_in, bool init_on_reset = true);
     void set_grid(const int &nprows_in, const int &npcols_in, CTXT_LAYOUT layout_in = CTXT_LAYOUT::R);
     void set_square_grid(bool more_rows = true, CTXT_LAYOUT layout_in = CTXT_LAYOUT::R);
     void set_horizontal_grid();
     void set_vertical_grid();
     std::string info() const;
+    const MpiCommHandler &comm_h() const { return mpi_comm_h; }
+    MPI_Comm comm() const { return mpi_comm_h.comm; }
     int get_pnum(int prow, int pcol) const;
     void get_pcoord(int pid, int &prow, int &pcol) const;
     pcoord_t get_pcoord(int pid) const;
@@ -121,11 +123,11 @@ public:
     ArrayDesc();
     ArrayDesc(const BlacsCtxtHandler &blacs_ctxt_h);
     ArrayDesc(const int &ictxt);
-    //! initialize the array descriptor
+    //! Initialize the array descriptor
     int init(const int &m, const int &n,
              const int &mb, const int &nb,
              const int &irsrc, const int &icsrc);
-    //! initialize the array descriptor such that each process has exactly one block
+    //! Initialize the array descriptor such that each process has exactly one block, with continuous local indices
     int init_1b1p(const int &m, const int &n,
                   const int &irsrc, const int &icsrc);
     int init_square_blk(const int &m, const int &n,

@@ -4,6 +4,7 @@
 //==========================================================
 
 #include <cassert>
+#include <ios>
 #include <new>
 #include <cstdlib>
 #include <cstring>
@@ -191,7 +192,7 @@ double ComplexMatrix::get_max_abs() const
     double iv = abs(this->c[0]);
     for (int i = 1; i != this->size; i++)
     {
-        iv = max(iv, abs(this->c[i]));
+        iv = std::max(iv, abs(this->c[i]));
     }
     return iv;
 }
@@ -204,7 +205,7 @@ double ComplexMatrix::get_max_abs_imag() const
     double iv = abs(this->c[0].imag());
     for (int i = 1; i != this->size; i++)
     {
-        iv = max(iv, abs(this->c[i].imag()));
+        iv = std::max(iv, abs(this->c[i].imag()));
     }
     return iv;
 }
@@ -646,6 +647,13 @@ void print_complex_matrix(const char *desc, const ComplexMatrix &mat)
 
 void print_complex_matrix_file(const char *desc, const ComplexMatrix &mat, ofstream &fs, bool use_scientific)
 {
+    using std::fixed;
+    using std::scientific;
+    using std::endl;
+    using std::showpoint;
+    using std::setw;
+    using std::setprecision;
+
     int nr = mat.nr;
     int nc = mat.nc;
     int w = 22;
@@ -666,6 +674,13 @@ void print_complex_matrix_file(const char *desc, const ComplexMatrix &mat, ofstr
 
 void print_complex_matrix_mm(const ComplexMatrix &mat, ofstream &fs, double threshold, bool row_first)
 {
+    using std::fixed;
+    using std::scientific;
+    using std::endl;
+    using std::showpoint;
+    using std::setw;
+    using std::setprecision;
+
     int nr = mat.nr;
     int nc = mat.nc;
     int prec = 15;

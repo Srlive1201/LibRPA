@@ -4,10 +4,11 @@ namespace librpa_int
 {
 
 Dataset::Dataset(MPI_Comm comm)
-    : comm_h(comm),
+    : comm_h(comm, true),
       blacs_ctxt_h(comm),
+      desc_abf(),
       basis_wfc(),
-      basis_abf(),
+      basis_aux(),
       atoms(),
       pbc(),
       mf(),
@@ -15,6 +16,8 @@ Dataset::Dataset(MPI_Comm comm)
       cs_data(),
       vq(),
       vq_cut(),
+      vq_block_loc(),
+      vq_cut_block_loc(),
       p_exx(nullptr),
       p_chi0(nullptr),
       p_g0w0(nullptr)

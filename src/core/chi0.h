@@ -8,7 +8,9 @@
 
 #include "../math/vector3_order.h"
 #include "atom.h"
+#include "atomic_basis.h"
 #include "meanfield.h"
+#include "pbc.h"
 #include "ri.h"
 #include "timefreq.h"
 
@@ -48,37 +50,26 @@ class Chi0
         /*
          * @todo add threshold parameter. Maybe in the class level?
          */
-        void build_chi0_q_space_time(const Cs_LRI &Cs,
-                                     const Vector3_Order<int> &R_period,
-                                     const vector<atpair_t> &atpairs_ABF,
-                                     const vector<Vector3_Order<double>> &qlist);
+        void build_chi0_q_space_time(const LibrpaParallelRouting routing, const Cs_LRI &Cs,
+                                     const vector<atpair_t> &atpairs_ABF);
 
         // NOTE: the following three methods could be converted to static functions in chi0.cpp
         void build_chi0_q_space_time_atom_pair_routing(const Cs_LRI &Cs,
-                                                       const Vector3_Order<int> &R_period,
-                                                       const vector<atpair_t> &atpairs_ABF,
-                                                       const vector<Vector3_Order<double>> &qlist);
+                                                       const vector<atpair_t> &atpairs_ABF);
         void build_chi0_q_space_time_R_tau_routing(const Cs_LRI &Cs,
-                                                   const Vector3_Order<int> &R_period,
-                                                   const vector<atpair_t> &atpairs_ABF,
-                                                   const vector<Vector3_Order<double>> &qlist);
+                                                   const vector<atpair_t> &atpairs_ABF);
         void build_chi0_q_space_time_LibRI_routing(const Cs_LRI &Cs,
-                                                   const Vector3_Order<int> &R_period,
-                                                   const vector<atpair_t> &atpairs_ABF,
-                                                   const vector<Vector3_Order<double>> &qlist);
+                                                   const vector<atpair_t> &atpairs_ABF);
 
         //! Internal procedure to compute chi0_q in the conventional method, i.e. in frequency domain and reciprocal space
         // TODO: implement the conventional method
         void build_chi0_q_conventional(const Cs_LRI &Cs,
-                                       const Vector3_Order<int> &R_period,
-                                       const vector<atpair_t> &atpairs_ABF,
-                                       const vector<Vector3_Order<double>> &qlist);
+                                       const vector<atpair_t> &atpairs_ABF);
         /*!
          * s_alpha and s_beta are the spin component of unoccupied Green's function, G_{alpha, beta}(tau)
          * correspondingly, occupied GF G_{beta, alpha}(-tau) will be used. itau must be positive.
          */
         matrix compute_chi0_s_munu_tau_R(const atpair_R_mat_t &Cs_IJR,
-                                         const Vector3_Order<int> &R_period, 
                                          int spin_channel,
                                          atom_t mu, atom_t nu, double tau, Vector3_Order<int> R);
         // copy some reshape method inside chi0, test performance
@@ -88,19 +79,24 @@ class Chi0
         /* matrix reshape_mat_21(const size_t n1, const size_t n2, const size_t n3, const matrix &mat); //(n1,n2*n3) -> (n1*n2,n3) */
     public:
         const MeanField &mf;
-        const vector<Vector3_Order<double>> &klist;
+        const AtomicBasis &atbasis_wfc;
+        const AtomicBasis &atbasis_abf;
+        const PeriodicBoundaryData &pbc;
         const TFGrids &tfg;
+        const MpiCommHandler &comm_h;
 
-        double gf_R_threshold;
+        double libri_threshold_C;
+        double libri_threshold_G;
+        double gf_threshold;
 
-        Chi0(const MeanField &mf_in, const vector<Vector3_Order<double>> &klist_in, const TFGrids &tfg_in);
+        Chi0(const MeanField &mf_in, const AtomicBasis &atbasis_wfc_in,
+             const AtomicBasis &atbasis_abf_in, const PeriodicBoundaryData &pbc_in,
+             const TFGrids &tfg_in, const MpiCommHandler &comm_h_in);
         ~Chi0() {};
         //! Build the independent response function in q-omega domain for ABFs on the atom pairs atpair_ABF and q-vectors in qlist
-        void build(const Cs_LRI &Cs,
-                   const vector<Vector3_Order<int>> &Rlist,
-                   const Vector3_Order<int> &R_period,
-                   const vector<atpair_t> &atpair_ABF,
-                   const vector<Vector3_Order<double>> &qlist);
+        void build(LibrpaParallelRouting routing,
+                   const Cs_LRI &Cs,
+                   const vector<atpair_t> &atpair_ABF);
         const map<double, map<Vector3_Order<double>, atom_mapping<ComplexMatrix>::pair_t_old>> & get_chi0_q() const { return chi0_q; }
         void free_chi0_q(const double freq, const Vector3_Order<double> q);
 };

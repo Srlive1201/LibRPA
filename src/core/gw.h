@@ -3,11 +3,15 @@
  * @brief facilities to calculate self-energy operator.
  */
 #pragma once
+#include "../math/matrix_m.h"
+#include "../mpi/base_blacs.h"
+#include "atom.h"
+#include "atomic_basis.h"
+#include "meanfield.h"
+#include "geometry.h"
+#include "pbc.h"
 #include "ri.h"
 #include "timefreq.h"
-#include "meanfield.h"
-#include "atom.h"
-#include "../math/matrix_m.h"
 
 namespace librpa_int
 {
@@ -20,9 +24,20 @@ private:
 
 public:
     const MeanField &mf;
-    const vector<Vector3_Order<double>>& kfrac_list;
+    const AtomicBasis& atbasis_wfc;
+    const PeriodicBoundaryData &pbc;
     const TFGrids &tfg;
-    const Vector3_Order<int>& period_;
+    const MpiCommHandler &comm_h;
+
+    std::string output_dir;
+
+    double libri_threshold_C;
+    double libri_threshold_Wc;
+    double libri_threshold_G;
+
+    bool output_sigc_mat;
+    bool output_sigc_mat_rt;
+    bool output_sigc_mat_rf;
 
     //! frequency-domain reciprocal-space correlation self-energy, indices [ispin][freq][k][I][J](n_I, n_J)
     // std::map<int, std::map<double, std::map<Vector3_Order<double>, atom_mapping<Matz>::pair_t_old>>> sigc_is_f_k_IJ;
@@ -34,13 +49,15 @@ public:
     std::map<int, std::map<int, std::map<double, Matz>>> sigc_is_ik_f_KS;
 
     void build_sigc_matrix_KS(const std::vector<std::vector<ComplexMatrix>> &wfc_target,
-                              const std::vector<Vector3_Order<double>> &kfrac_target);
+                              const std::vector<Vector3_Order<double>> &kfrac_target,
+                              const Atoms &geometry,
+                              const BlacsCtxtHandler &blacs_ctxt_h);
 public:
     // Constructors
-    G0W0(const MeanField &mf,
-         const vector<Vector3_Order<double>>& kfrac_list,
-         const TFGrids &tfg_in,
-         const Vector3_Order<int>& period);
+    G0W0(const MeanField &mf_in,
+         const AtomicBasis& atbasis_wfc_in,
+         const PeriodicBoundaryData &pbc_in,
+         const TFGrids &tfg_in, const MpiCommHandler &comm_h_in);
     // delete copy/move constructors
     G0W0(const G0W0 &s_g0w0) = delete;
     G0W0(G0W0 &&s_g0w0) = delete;
@@ -57,16 +74,20 @@ public:
 
     //! Build the real-space correlation self-energy matrix on imaginary frequencies with space-time method using LibRI
     void build_spacetime(
+        const LibrpaParallelRouting parallel_routing,
+        const AtomicBasis &atbasis_abf,
         const Cs_LRI &LRI_Cs,
         std::map<double, std::map<Vector3_Order<double>, Matz>> &Wc_freq_q,
-        const std::vector<Vector3_Order<int>> &Rlist);
+        const ArrayDesc &ad_Wc);
 
     //! build the correlation self-energy matrix in Kohn-Sham basis at the SCF k-points
-    void build_sigc_matrix_KS_kgrid();
+    void build_sigc_matrix_KS_kgrid(const Atoms &geometry, const BlacsCtxtHandler &blacs_ctxt_h);
 
     //! build the correlation self-energy matrix in Kohn-Sham basis at the SCF k-points
-    void build_sigc_matrix_KS_band(const std::vector<std::vector<ComplexMatrix>> &wfc,
-                                   const std::vector<Vector3_Order<double>> &kfrac_band);
+    void build_sigc_matrix_KS_band(const std::vector<std::vector<ComplexMatrix>> &wfc_band,
+                                   const std::vector<Vector3_Order<double>> &kfrac_band,
+                                   const Atoms &geometry,
+                                   const BlacsCtxtHandler &blacs_ctxt_h);
 };
 
-}
+} /* end of namespace librpa_int */

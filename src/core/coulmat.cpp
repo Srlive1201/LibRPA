@@ -1,14 +1,18 @@
 #include <algorithm>
 #include "../utils/constants.h"
 #include "coulmat.h"
-#include "pbc.h"
 
 namespace librpa_int {
 
-atpair_R_mat_t
-FT_Vq(const atpair_k_cplx_mat_t &coulmat_k, const int &n_k_points, const vector<Vector3_Order<int>> &Rlist, bool return_ordered_atom_pair)
+atpair_R_mat_t FT_Vq(const AtomicBasis &basis_abf, const atpair_k_cplx_mat_t &coulmat_k, const PeriodicBoundaryData &pbc,
+                     bool return_ordered_atom_pair)
 {
     atpair_R_mat_t coulmat_R;
+
+    const auto &Rlist = pbc.Rlist;
+    const auto &latvec = pbc.latvec;
+    const auto &map_irk_ks = pbc.map_irk_ks;
+    const auto n_k_points = pbc.get_n_cells_bvk();
 
     for (auto R: Rlist)
     {
@@ -17,18 +21,18 @@ FT_Vq(const atpair_k_cplx_mat_t &coulmat_k, const int &n_k_points, const vector<
         for (const auto &Mu_NuqV: coulmat_k)
         {
             const auto Mu = Mu_NuqV.first;
-            const int n_mu = atom_mu[Mu];
+            const int n_mu = basis_abf[Mu];
             for (const auto &Nu_qV: Mu_NuqV.second)
             {
                 const auto Nu = Nu_qV.first;
-                const int n_nu = atom_mu[Nu];
-                coulmat_R[Mu][Nu][R] = make_shared<matrix>();
+                const int n_nu = basis_abf[Nu];
+                coulmat_R[Mu][Nu][R] = std::make_shared<matrix>();
                 // a temporary complex matrix to save the transformed matrix
                 ComplexMatrix VR_cplx(n_mu, n_nu);
                 for (const auto &q_V: Nu_qV.second)
                 {
                     auto q = q_V.first;
-                    for (auto q_bz: map_irk_ks[q])
+                    for (auto q_bz: map_irk_ks.at(q))
                     {
                         double ang = - q_bz * (R * latvec) * TWO_PI;
                         complex<double> kphase = complex<double>(cos(ang), sin(ang)) / double(n_k_points);
@@ -63,12 +67,12 @@ FT_Vq(const atpair_k_cplx_mat_t &coulmat_k, const int &n_k_points, const vector<
                 // when ordered atom pair is requested, check whether it is available in the original map
                 if (return_ordered_atom_pair && Mu != Nu && (coulmat_k.count(Nu) == 0 || coulmat_k.at(Nu).count(Mu) == 0))
                 {
-                    coulmat_R[Nu][Mu][R] = make_shared<matrix>();
+                    coulmat_R[Nu][Mu][R] = std::make_shared<matrix>();
                     ComplexMatrix VR_cplx(n_nu, n_mu);
                     for (const auto &q_V: Nu_qV.second)
                     {
                         auto q = q_V.first;
-                        for (auto q_bz: map_irk_ks[q])
+                        for (auto q_bz: map_irk_ks.at(q))
                         {
                             double ang = - q_bz * (R * latvec) * TWO_PI;
                             complex<double> kphase = complex<double>(cos(ang), sin(ang)) / double(n_k_points);

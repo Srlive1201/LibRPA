@@ -32,7 +32,7 @@ endmacro()
 # add serial tests
 foreach(target
     test_analycont
-    test_atoms
+    test_atom
     test_atomic_basis
     test_base_utility
     test_blas_lapack
@@ -40,7 +40,7 @@ foreach(target
     test_fitting
     test_io
     test_geometry
-    test_librpa
+    # test_librpa
     test_matrix
     test_matrix_m
     test_meanfield

@@ -1,5 +1,3 @@
-#include "task_exx_band.h"
-
 #include <fstream>
 #include <sstream>
 

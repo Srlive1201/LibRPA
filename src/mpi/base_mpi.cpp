@@ -3,8 +3,9 @@
 #include <cassert>
 #include <set>
 #include <map>
-#include <stdexcept>
 #include <algorithm>
+
+#include "../utils/error.h"
 
 namespace librpa_int
 {
@@ -15,11 +16,12 @@ MpiCommHandler::MpiCommHandler()
     this->initialized_ = false;
 }
 
-MpiCommHandler::MpiCommHandler(MPI_Comm comm_in)
+MpiCommHandler::MpiCommHandler(MPI_Comm comm_in, bool init_on_construct)
         : comm(comm_in)
 {
     this->comm_set_ = true;
     this->initialized_ = false;
+    if (init_on_construct) this->init();
 }
 
 void MpiCommHandler::reset_comm()
@@ -29,19 +31,17 @@ void MpiCommHandler::reset_comm()
     this->initialized_ = false;
 }
 
-void MpiCommHandler::reset_comm(MPI_Comm comm_in)
+void MpiCommHandler::reset_comm(MPI_Comm comm_in, bool init_on_reset)
 {
     this->comm = comm_in;
     this->comm_set_ = true;
     this->initialized_ = false;
+    if (init_on_reset) this->init();
 }
 
 void MpiCommHandler::check_initialized() const
 {
-    if (!initialized_)
-    {
-        throw std::logic_error("MpiCommHandler not initialized");
-    }
+    if (!initialized_) throw LIBRPA_RUNTIME_ERROR("MpiCommHandler not initialized");
 }
 
 void MpiCommHandler::init()
@@ -59,7 +59,7 @@ void MpiCommHandler::init()
     }
     else
     {
-        throw std::logic_error("Communicator of MpiCommHandler is not set");
+        throw LIBRPA_RUNTIME_ERROR("Communicator of MpiCommHandler is not set");
     }
 }
 
@@ -107,27 +107,29 @@ std::string MpiCommHandler::str() const
 //     MPI_Wrapper::reduce_ComplexMatrix(cmat_sent, cmat_recv, root, this->comm);
 // }
 
-const std::string parallel_routing_notes[ParallelRouting::COUNT] = {
-    "atom-pair",
-    "R-tau",
-    "LibRI"
-};
+// const std::string parallel_routing_notes[LIBRPA_ROUTING_COUNT] = {
+//     "unset",
+//     "auto",
+//     "atom-pair",
+//     "R-tau",
+//     "LibRI"
+// };
 
-ParallelRouting parallel_routing = ParallelRouting::ATOM_PAIR;
+// ParallelRouting parallel_routing = ParallelRouting::ATOM_PAIR;
 
-void set_parallel_routing(const std::string &option, const int &atpais_num, const int &Rt_num, ParallelRouting &routing)
-{
-    if (option == "auto")
-        routing = atpais_num < Rt_num ? ParallelRouting::R_TAU : ParallelRouting::ATOM_PAIR;
-    else if (option == "atompair")
-        routing = ParallelRouting::ATOM_PAIR;
-    else if (option == "rtau")
-        routing = ParallelRouting::R_TAU;
-    else if (option == "libri")
-        routing = ParallelRouting::LIBRI;
-    else
-        throw std::invalid_argument("Unsupported parallel type option: " + option);
-}
+// void set_parallel_routing(const std::string &option, const int &atpais_num, const int &Rt_num, ParallelRouting &routing)
+// {
+//     if (option == "auto")
+//         routing = atpais_num < Rt_num ? ParallelRouting::R_TAU : ParallelRouting::ATOM_PAIR;
+//     else if (option == "atompair")
+//         routing = ParallelRouting::ATOM_PAIR;
+//     else if (option == "rtau")
+//         routing = ParallelRouting::R_TAU;
+//     else if (option == "libri")
+//         routing = ParallelRouting::LIBRI;
+//     else
+//         throw std::invalid_argument("Unsupported parallel type option: " + option);
+// }
 
 int get_mpi_rank(const MPI_Comm &comm)
 {

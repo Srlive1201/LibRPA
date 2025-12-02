@@ -7,9 +7,6 @@
 namespace librpa_int
 {
 
-namespace utils
-{
-
 template <typename T>
 void fill_ap_block_from_global(matrix_m<T> &m_ap, const matrix_m<T> &m_global,
                                const atpair_t &IJ,
@@ -63,7 +60,4 @@ matrix_m<T> get_ap_block_from_global(const matrix_m<T> &m_global,
     return m_ap;
 }
 
-} /* end of namespace utils */
-
 } /* end of namespace librpa_int */
-

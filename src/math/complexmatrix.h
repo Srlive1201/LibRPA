@@ -7,8 +7,6 @@
 #define COMPLEXMATRIX_H
 
 #include <complex>
-using namespace std;
-
 #include "matrix.h"
 #include "../io/global_io.h"
 
@@ -17,6 +15,10 @@ using namespace std;
 //#endif
 
 namespace librpa_int {
+
+using std::complex;
+using std::ofstream;
+using std::string;
 
 class ComplexMatrix
 {

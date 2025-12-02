@@ -22,11 +22,6 @@ double cpu_time_from_clocks_diff(const std::clock_t& ct_start,
     return double(ct_end - ct_start) / CLOCKS_PER_SEC;
 }
 
-std::map<std::string, Profiler::Timer> Profiler::sd_map_timer;
-std::map<std::string, int> Profiler::sd_map_level;
-std::map<std::string, std::string> Profiler::sd_map_note;
-std::vector<std::string> Profiler::sd_order;
-
 std::string get_timestamp()
 {
     auto now = std::chrono::system_clock::now();
@@ -98,8 +93,8 @@ void Profiler::start(const char *tname, const char *tnote, int level) noexcept
     }
 #ifdef LIBRPA_VERBOSE
     double free_mem_gb;
-    librpa_int::utils::get_node_free_mem(free_mem_gb);
-    librpa_int::global::ofs_myid << get_timestamp() <<" Timer start: " << tname << ". "
+    get_node_free_mem(free_mem_gb);
+    global::ofs_myid << get_timestamp() <<" Timer start: " << tname << ". "
                            << "Free memory on node [GB]: " << free_mem_gb << "\n";
     std::flush(librpa_int::global::ofs_myid);
 #endif
@@ -113,8 +108,8 @@ void Profiler::stop(const char *tname) noexcept
     {
 #ifdef LIBRPA_VERBOSE
         double free_mem_gb;
-        librpa_int::utils::get_node_free_mem(free_mem_gb);
-        librpa_int::global::ofs_myid << get_timestamp() << " Timer stop:  " << tname << ". "
+        get_node_free_mem(free_mem_gb);
+        global::ofs_myid << get_timestamp() << " Timer stop:  " << tname << ". "
                                << "Free memory on node [GB]: " << free_mem_gb << "\n";
 #endif
         sd_map_timer.at(tname).stop();
@@ -123,11 +118,6 @@ void Profiler::stop(const char *tname) noexcept
     {
         librpa_int::global::lib_printf("Warning!!! Timer %s not found, profiling is very likely wrong!\n", tname);
     }
-}
-
-void Profiler::cease(const char *tname) noexcept
-{
-    stop(tname);
 }
 
 double Profiler::get_cpu_time_last(const char *tname) noexcept
@@ -155,8 +145,8 @@ static std::string banner(char c, int n)
 
 void Profiler::display(int verbose) noexcept
 {
-    librpa_int::global::lib_printf("%-49s %-12s %-18s %-18s\n", "Entry", "#calls", "CPU time (s)", "Wall time (s)");
-    librpa_int::global::lib_printf("%100s\n", banner('-', 100).c_str());
+    global::lib_printf("%-49s %-12s %-18s %-18s\n", "Entry", "#calls", "CPU time (s)", "Wall time (s)");
+    global::lib_printf("%100s\n", banner('-', 100).c_str());
     for (auto &tname: sd_order)
     {
         // decide level indentation
@@ -174,9 +164,16 @@ void Profiler::display(int verbose) noexcept
         sprintf(cstr_walltime, "%.4f", t.get_wall_time());
         // skip timers that have not been called
         if(!t.get_ncalls()) continue;
-        librpa_int::global::lib_printf("%-49s %-12zu %-18s %-18s\n", name.c_str(), t.get_ncalls(),
+        global::lib_printf("%-49s %-12zu %-18s %-18s\n", name.c_str(), t.get_ncalls(),
                (s + cstr_cputime).c_str(), (s + cstr_walltime).c_str());
     }
+}
+
+namespace global
+{
+
+Profiler profiler;
+
 }
 
 }

@@ -11,25 +11,33 @@
 #include <string>
 #include <unordered_map>
 
-#include "../src/api/librpa.h"
-#include "../src/core/atomic_basis.h"
-#include "../src/core/atom.h"
-#include "../src/core/geometry.h"
-#include "../src/core/pbc.h"
-#include "../src/core/ri.h"
-#include "../src/math/matrix.h"
+#include "driver.h"
+#include "librpa.hpp"
+// #include "../src/core/atomic_basis.h"
+// #include "../src/core/atom.h"
+// #include "../src/core/geometry.h"
+// #include "../src/core/pbc.h"
+// #include "../src/core/ri.h"
+// #include "../src/math/matrix.h"
 #include "../src/mpi/global_mpi.h"
-#include "../src/utils/constants.h"
+// #include "../src/utils/constants.h"
+#include "../src/api/instance_manager.h"
 #include "../src/io/global_io.h"
-#include "../src/utils/profiler.h"
 #include "../src/io/stl_io_helper.h"
+#include "../src/utils/profiler.h"
 #include "../src/utils/utils_mem.h"
 
 using std::ifstream;
 using std::string;
 
-void read_scf_occ_eigenvalues(const string &file_path, MeanField &mf)
+void read_scf_occ_eigenvalues(const string &file_path)
 {
+    using std::to_string;
+    using driver::n_spins;
+    using driver::n_kpoints;
+    using driver::n_states;
+    using driver::n_basis_wfc;
+
     // cout << "Begin to read aims-band_out" << endl;
     ifstream infile;
     infile.open(file_path);
@@ -39,22 +47,21 @@ void read_scf_occ_eigenvalues(const string &file_path, MeanField &mf)
     }
 
     string ks, ss, a, ws, es, d;
-    int n_kpoints, n_spins, n_bands, n_aos;
     double efermi;
     infile >> n_kpoints;
     infile >> n_spins;
-    infile >> n_bands;
-    infile >> n_aos;
+    infile >> n_states;
+    infile >> n_basis_wfc;
     infile >> efermi;
 
     // TODO: replace it with set_dimension
-    mf.set(n_spins, n_kpoints, n_bands, n_aos);
+    driver::h.set_scf_dimension(n_spins, n_kpoints, n_states, n_basis_wfc);
 
     // Load the file data
-    auto eskb = new double [n_spins * n_kpoints * n_bands];
-    auto wskb = new double [n_spins * n_kpoints * n_bands];
+    auto eskb = new double [n_spins * n_kpoints * n_states];
+    auto wskb = new double [n_spins * n_kpoints * n_states];
 
-    const int n_kb = n_kpoints * n_bands;
+    const int n_kb = n_kpoints * n_states;
 
     int iline = 6;
 
@@ -73,8 +80,9 @@ void read_scf_occ_eigenvalues(const string &file_path, MeanField &mf)
             //cout<<ik<<is<<endl;
             int k_index = stoi(ks) - 1;
             // int s_index = stoi(ss) - 1;
-            for (int i = 0; i != n_bands; i++)
+            for (int i = 0; i != n_states; i++)
             {
+                // iband weight energy(Ha) energy(eV)
                 infile >> a >> ws >> es >> d;
                 if (!infile.good())
                 {
@@ -82,8 +90,8 @@ void read_scf_occ_eigenvalues(const string &file_path, MeanField &mf)
                                            ", file: " + file_path);
                 }
             iline++;
-                wskb[is * n_kb + k_index * n_bands + i] = stod(ws); // different with abacus!
-                eskb[is * n_kb + k_index * n_bands + i] = stod(es);
+                wskb[is * n_kb + k_index * n_states + i] = stod(ws); // different with abacus!
+                eskb[is * n_kb + k_index * n_states + i] = stod(es);
                 //cout<<" i_band: "<<i<<"    eskb: "<<eskb[is](k_index, i)<<endl;
             }
         }
@@ -91,7 +99,7 @@ void read_scf_occ_eigenvalues(const string &file_path, MeanField &mf)
     // for (int is = 0; is != n_spins; is++)
     //     print_matrix("eskb_mat",eskb[is]);
 
-    set_wg_ekb_efermi(n_spins, n_kpoints, n_bands, wskb, eskb, efermi);
+    driver::h.set_wg_ekb_efermi(n_spins, n_kpoints, n_states, wskb, eskb, efermi);
 
     // free buffer
     delete [] eskb;
@@ -140,7 +148,7 @@ int read_vxc(const string &file_path, std::vector<matrix> &vxc)
     return 0;
 }
 
-static int handle_KS_file(const string &file_path, MeanField &mf)
+static int handle_KS_file(const string &file_path)
 {
     int ret = 0;
     // cout<<file_path<<endl;
@@ -152,9 +160,9 @@ static int handle_KS_file(const string &file_path, MeanField &mf)
 
     string rvalue, ivalue, kstr;
 
-    const auto nspin = mf.get_n_spins();
-    const auto nband = mf.get_n_bands();
-    const auto nao = mf.get_n_aos();
+    const auto nspin = driver::n_spins;
+    const auto nband = driver::n_states;
+    const auto nao = driver::n_basis_wfc;
     const auto n = nband * nao;
 
     std::vector<double> re(nspin * nband * nao);
@@ -189,7 +197,7 @@ static int handle_KS_file(const string &file_path, MeanField &mf)
         }
         for (int is = 0; is != nspin; is++)
         {
-            set_ao_basis_wfc(is, ik, re.data() + is * n, im.data() + is * n);
+            driver::h.set_wfc(is, ik, re.data() + is * n, im.data() + is * n);
         }
         // for abacus
         // for (int ib = 0; ib != NBANDS; ib++)
@@ -205,7 +213,7 @@ static int handle_KS_file(const string &file_path, MeanField &mf)
     return ret;
 }
 
-int read_eigenvector(const string &dir_path, MeanField &mf)
+int read_eigenvector(const string &dir_path)
 {
     // return code
     int ret = 0;
@@ -214,14 +222,14 @@ int read_eigenvector(const string &dir_path, MeanField &mf)
     struct dirent *ptr;
     DIR *dir;
     dir = opendir(dir_path.c_str());
-    vector<string> files;
+    std::vector<string> files;
     while ((ptr = readdir(dir)) != NULL)
     {
         string fm(ptr->d_name);
         // cout << fm << " find:" << fm.find("KS_eigenvector") << "\n";
         if (fm.find("KS_eigenvector") == 0)
         {
-            ret = handle_KS_file(dir_path + fm, mf);
+            ret = handle_KS_file(dir_path + fm);
             if (ret != 0)
             {
                 break;
@@ -242,6 +250,91 @@ int read_eigenvector(const string &dir_path, MeanField &mf)
     //     print_complex_matrix("wfc ",tmp_wfc.at(is).at(0));
     // cout << "Finish read KS_eignvector! " << endl;
     return ret;
+}
+
+void read_ri(const string &dir_path, librpa::ParallelRouting routing)
+{
+    using driver::n_atoms;
+    using driver::n_kpoints;
+    using driver::local_atpair;
+    using librpa_int::generate_atom_pair_from_nat;
+    using librpa_int::dispatch_upper_triangular_tasks;
+    using namespace librpa_int::global;
+
+    mpi_comm_global_h.barrier();
+    lib_printf_root("Loading RI file from directory: %s\n", dir_path.c_str());
+
+    const auto tot_atpair = generate_atom_pair_from_nat(n_atoms, false);
+    const auto tot_atpair_ordered = generate_atom_pair_from_nat(n_atoms, true);
+
+    if (routing == librpa::ParallelRouting::AUTO)
+    {
+        routing = decide_auto_routing(tot_atpair.size(), driver::opts.nfreq * n_kpoints);
+    }
+
+    auto ds = librpa_int::api::get_dataset_instance(driver::h.get_c_handler());
+    const auto &Cs_data = ds->cs_data;
+    const auto &blacs_ctxt_h = ds->blacs_ctxt_h;
+
+    local_atpair.clear();
+
+    if(routing == librpa::ParallelRouting::ATOMPAIR)
+    {
+        lib_printf_root("Triangular dispatching of atom pairs\n");
+        auto tri_local_atpair = librpa_int::dispatch_upper_triangular_tasks(
+            n_atoms, blacs_ctxt_h.myid, blacs_ctxt_h.nprows, blacs_ctxt_h.npcols,
+            blacs_ctxt_h.myprow, blacs_ctxt_h.mypcol);
+        for (const auto &p: tri_local_atpair)
+            local_atpair.push_back(p);
+        profiler.start("driver_read_Cs");
+        read_Cs(dir_path, driver::opts.cs_threshold, local_atpair);
+        profiler.stop("driver_read_Cs");
+        profiler.start("driver_read_Vq");
+        read_Vq_row(dir_path, "coulomb_mat", driver::opts.vq_threshold, local_atpair, false);
+        profiler.stop("driver_read_Vq");
+    }
+    else if(routing == librpa::ParallelRouting::LIBRI)
+    {
+        lib_printf_root("Evenly distributed Cs and V for LibRI\n");
+        profiler.start("driver_read_Cs");
+        read_Cs_evenly_distribute(dir_path, driver::opts.cs_threshold, mpi_comm_global_h.myid, mpi_comm_global_h.nprocs);
+        profiler.stop("driver_read_Cs");
+
+        lib_printf_coll("| Process %5d: Cs with %14zu non-zero keys from local atpair size %7zu. "
+                        "Data memory: %10.2f MB. Wall/CPU time [min]: %12.4f %12.4f\n",
+                        mpi_comm_global_h.myid, Cs_data.n_keys(), local_atpair.size(),
+                        Cs_data.n_data_bytes() * 8.0e-6,
+                        librpa_int::global::profiler.get_wall_time_last("driver_read_Cs") / 60.0,
+                        librpa_int::global::profiler.get_cpu_time_last("driver_read_Cs") / 60.0);
+        // Vq distributed using the same strategy
+        // There should be no duplicate for V
+
+        librpa_int::global::profiler.start("driver_read_Vq");
+        auto trangular_loc_atpair = librpa_int::dispatch_upper_triangular_tasks(
+            n_atoms, blacs_ctxt_h.myid, blacs_ctxt_h.nprows, blacs_ctxt_h.npcols,
+            blacs_ctxt_h.myprow, blacs_ctxt_h.mypcol);
+        for(auto &iap:trangular_loc_atpair)
+            local_atpair.push_back(iap);
+        read_Vq_row(dir_path, "coulomb_mat", driver::opts.vq_threshold, local_atpair, false);
+        mpi_comm_global_h.barrier();
+        librpa_int::global::profiler.stop("driver_read_Vq");
+        lib_printf_coll("| Process %5d: coulomb_mat read. Wall/CPU time [min]: %12.4f %12.4f\n",
+                        mpi_comm_global_h.myid,
+                        librpa_int::global::profiler.get_wall_time_last("driver_read_Vq") / 60.0,
+                        librpa_int::global::profiler.get_cpu_time_last("driver_read_Vq") / 60.0);
+    }
+    else
+    {
+        lib_printf_root("Complete copy of Cs and V on each process\n");
+        local_atpair = generate_atom_pair_from_nat(n_atoms, false);
+        profiler.start("driver_read_Cs");
+        read_Cs(dir_path, driver::opts.cs_threshold, local_atpair);
+        profiler.stop("driver_read_Cs");
+
+        profiler.start("driver_read_Vq");
+        read_Vq_full(dir_path, "coulomb_mat", false);
+        profiler.stop("driver_read_Vq");
+    }
 }
 
 //! Check if Cs data file is in ASCII text or unformatted binary format
@@ -286,9 +379,10 @@ static bool check_coulomb_file_binary(const string &file_path)
     return is_binary;
 }
 
-static size_t handle_Cs_file(const string &file_path, double threshold, const vector<atpair_t> &local_atpair)
+static size_t handle_Cs_file(const string &file_path, double threshold, const std::vector<atpair_t> &local_atpair)
 {
-    
+    using namespace std;
+
     set<size_t> loc_atp_index;
     for(auto &lap:local_atpair)
     {
@@ -303,8 +397,8 @@ static size_t handle_Cs_file(const string &file_path, double threshold, const ve
     ifstream infile;
     infile.open(file_path);
     infile >> natom_s >> ncell_s;
-    natom = stoi(natom_s);
-    ncell = stoi(ncell_s);
+    int natom = stoi(natom_s);
+    int ncell = stoi(ncell_s);
 
     /* cout<<"  Natom  Ncell  "<<natom<<"  "<<ncell<<endl; */
     // for(int loop=0;loop!=natom*natom*ncell;loop++)
@@ -345,7 +439,8 @@ static size_t handle_Cs_file(const string &file_path, double threshold, const ve
         //     continue;
         // if (box == Vector3_Order<int>({0, 0, 1}))continue;
         bool keep = loc_atp_index.count(ia1) && (*cs_ptr).absmax() >= threshold;
-        set_ao_basis_aux(ia1, ia2, n_i, n_j, n_mu, R, cs_ptr->c, int(!keep));
+        if (keep)
+            driver::h.set_lri_coeff(driver::opts.parallel_routing, ia1, ia2, n_i, n_j, n_mu, R, cs_ptr->c);
         // cout<<cs_ptr->nr<<cs_ptr->nc<<endl;
         if (!keep)
         {
@@ -356,9 +451,10 @@ static size_t handle_Cs_file(const string &file_path, double threshold, const ve
     return cs_discard;
 }
 
-static size_t handle_Cs_file_binary(const string &file_path, double threshold, const vector<atpair_t> &local_atpair)
+static size_t handle_Cs_file_binary(const string &file_path, double threshold, const std::vector<atpair_t> &local_atpair)
 {
-    
+    using namespace std;
+
     set<size_t> loc_atp_index;
     for(auto &lap:local_atpair)
     {
@@ -371,6 +467,7 @@ static size_t handle_Cs_file_binary(const string &file_path, double threshold, c
     ifstream infile;
     int dims[8];
     int n_apcell_file;
+    int natom, ncell;
 
     infile.open(file_path, std::ios::in | std::ios::binary);
     infile.read((char *) &natom, sizeof(int));
@@ -399,9 +496,12 @@ static size_t handle_Cs_file_binary(const string &file_path, double threshold, c
         infile.read((char *) cs_ptr->c, n_i * n_j * n_mu * sizeof(double));
         bool keep = loc_atp_index.count(ia1) && (*cs_ptr).absmax() >= threshold;
         // cout << (*cs_ptr).absmax() << "\n";
-        set_ao_basis_aux(ia1, ia2, n_i, n_j, n_mu, R, cs_ptr->c, int(!keep));
-        // cout<<cs_ptr->nr<<cs_ptr->nc<<endl;
-        if (!keep)
+        if (keep)
+        {
+            driver::h.set_lri_coeff(driver::opts.parallel_routing, ia1, ia2, n_i, n_j, n_mu, R,
+                                    cs_ptr->c);
+        }
+        else
         {
             cs_discard++;
         }
@@ -409,15 +509,17 @@ static size_t handle_Cs_file_binary(const string &file_path, double threshold, c
     return cs_discard;
 }
 
-size_t read_Cs(const string &dir_path, double threshold,const vector<atpair_t> &local_atpair)
+size_t read_Cs(const string &dir_path, double threshold, const std::vector<atpair_t> &local_atpair)
 {
+    using namespace std;
+
     size_t cs_discard = 0;
     // cout << "Begin to read Cs" << endl;
     // cout << "cs_threshold:  " << threshold << endl;
     struct dirent *ptr;
     DIR *dir;
     dir = opendir(dir_path.c_str());
-    vector<string> files;
+    std::vector<string> files;
     bool binary;
     bool binary_checked = false;
 
@@ -456,8 +558,8 @@ size_t read_Cs(const string &dir_path, double threshold,const vector<atpair_t> &
     closedir(dir);
     dir = NULL;
     // initialize basis set object
-    librpa_int::atomic_basis_wfc.set(atom_nw);
-    librpa_int::atomic_basis_abf.set(atom_mu);
+    // librpa_int::atomic_basis_wfc.set(atom_nw);
+    // librpa_int::atomic_basis_abf.set(atom_mu);
     
     // atom_mu_part_range.resize(atom_mu.size());
     // atom_mu_part_range[0]=0;
@@ -465,7 +567,7 @@ size_t read_Cs(const string &dir_path, double threshold,const vector<atpair_t> &
     //     atom_mu_part_range[I]=atom_mu.at(I-1)+atom_mu_part_range[I-1];
     
     // N_all_mu=atom_mu_part_range[natom-1]+atom_mu[natom-1];
-    init_N_all_mu();
+    // init_N_all_mu(); // FIXME: backward compat
 
     // for(int i=0;i!=atom_mu_part_range.size();i++)
     //     cout<<" atom_mu_part_range ,i: "<<i<<"    "<<atom_mu_part_range[i]<<endl;
@@ -476,13 +578,16 @@ size_t read_Cs(const string &dir_path, double threshold,const vector<atpair_t> &
 
 std::vector<size_t> handle_Cs_file_dry(const string &file_path, double threshold)
 {
+    using namespace std;
+    using namespace librpa_int;
+
     std::vector<size_t> Cs_ids_keep;
     string natom_s, ncell_s, ia1_s, ia2_s, ic_1, ic_2, ic_3, i_s, j_s, mu_s, Cs_ele;
     ifstream infile;
     infile.open(file_path);
     infile >> natom_s >> ncell_s;
-    natom = stoi(natom_s);
-    ncell = stoi(ncell_s);
+    int natom = stoi(natom_s);
+    int ncell = stoi(ncell_s);
 
     size_t id = 0;
     int R[3];
@@ -502,7 +607,7 @@ std::vector<size_t> handle_Cs_file_dry(const string &file_path, double threshold
         R[1] = stoi(ic_2);
         R[2] = stoi(ic_3);
         // assign basis
-        set_ao_basis_aux(ia1, ia2, n_i, n_j, n_mu, R, nullptr, 1);
+        // set_ao_basis_aux(ia1, ia2, n_i, n_j, n_mu, R, nullptr, 1); // FIXME: here the basis is set. Should do it earlier
 
         double maxval = -1.0;
         for (int i = 0; i != n_i; i++)
@@ -530,6 +635,7 @@ std::vector<size_t> handle_Cs_file_binary_dry(const string &file_path, double th
     int n_apcell_file;
     int n_processed = 0;
     int R[3];
+    int natom, ncell;
 
     infile.open(file_path, std::ios::in | std::ios::binary);
     infile.read((char *) &natom, sizeof(int));
@@ -548,7 +654,7 @@ std::vector<size_t> handle_Cs_file_binary_dry(const string &file_path, double th
         const int n_i = dims[5];
         const int n_j = dims[6];
         const int n_mu = dims[7];
-        set_ao_basis_aux(ia1, ia2, n_i, n_j, n_mu, R, nullptr, 1);
+        // set_ao_basis_aux(ia1, ia2, n_i, n_j, n_mu, R, nullptr, 1);
 
         matrix mat(n_i * n_j, n_mu);
         infile.read((char *) mat.c, n_i * n_j * n_mu * sizeof(double));
@@ -570,11 +676,13 @@ std::vector<size_t> handle_Cs_file_binary_dry(const string &file_path, double th
     return Cs_ids_keep;
 }
 
-static size_t handle_Cs_file_by_ids(const string &file_path, double threshold, const vector<size_t> &ids)
+static size_t handle_Cs_file_by_ids(const string &file_path, double threshold, const std::vector<size_t> &ids)
 {
+    using namespace std;
     size_t cs_discard = 0;
     string natom_s, ncell_s, ia1_s, ia2_s, ic_1, ic_2, ic_3, i_s, j_s, mu_s, Cs_ele;
     ifstream infile;
+    int natom, ncell;
     infile.open(file_path);
     infile >> natom_s >> ncell_s;
     natom = stoi(natom_s);
@@ -613,11 +721,11 @@ static size_t handle_Cs_file_by_ids(const string &file_path, double threshold, c
                         infile >> Cs_ele;
                         (*cs_ptr)(i * n_j + j, mu) = stod(Cs_ele);
                     }
-            set_ao_basis_aux(ia1, ia2, n_i, n_j, n_mu, R, cs_ptr->c, 0);
+            driver::h.set_lri_coeff(driver::opts.parallel_routing, ia1, ia2, n_i, n_j, n_mu, R, cs_ptr->c);
         }
         else
         {
-            set_ao_basis_aux(ia1, ia2, n_i, n_j, n_mu, R, nullptr, 1);
+            // set_ao_basis_aux(ia1, ia2, n_i, n_j, n_mu, R, nullptr, 1);
 
             double maxval = -1.0;
             for (int i = 0; i != n_i; i++)
@@ -636,11 +744,14 @@ static size_t handle_Cs_file_by_ids(const string &file_path, double threshold, c
 }
 
 
-static size_t handle_Cs_file_binary_by_ids(const string &file_path, double threshold, const vector<size_t> &ids)
+static size_t handle_Cs_file_binary_by_ids(const string &file_path, double threshold, const std::vector<size_t> &ids)
 {
+    using namespace std;
+
     ifstream infile;
     int dims[8];
     int n_apcell_file;
+    int natom, ncell;
 
     infile.open(file_path, std::ios::in | std::ios::binary);
     infile.read((char *) &natom, sizeof(int));
@@ -668,7 +779,7 @@ static size_t handle_Cs_file_binary_by_ids(const string &file_path, double thres
             shared_ptr<matrix> cs_ptr = make_shared<matrix>();
             cs_ptr->create(n_i * n_j, n_mu);
             infile.read((char *) cs_ptr->c, n_i * n_j * n_mu * sizeof(double));
-            set_ao_basis_aux(ia1, ia2, n_i, n_j, n_mu, R, cs_ptr->c, 0);
+            driver::h.set_lri_coeff(driver::opts.parallel_routing, ia1, ia2, n_i, n_j, n_mu, R, cs_ptr->c);
         }
         else
         {
@@ -683,17 +794,21 @@ static size_t handle_Cs_file_binary_by_ids(const string &file_path, double thres
 
 size_t read_Cs_evenly_distribute(const string &dir_path, double threshold, int myid, int nprocs)
 {
+    using namespace std;
+    using namespace librpa_int;
+    using namespace librpa_int::global;
+
     size_t cs_discard = 0;
     struct dirent *ptr;
     DIR *dir;
     dir = opendir(dir_path.c_str());
-    vector<string> files;
-    unordered_map<string, vector<size_t>> files_Cs_ids;
-    unordered_map<string, vector<size_t>> files_Cs_ids_this_proc;
+    std::vector<string> files;
+    unordered_map<string, std::vector<size_t>> files_Cs_ids;
+    unordered_map<string, std::vector<size_t>> files_Cs_ids_this_proc;
     bool binary;
     bool binary_checked = false;
 
-    Profiler::start("handle_Cs_file_dry");
+    profiler.start("handle_Cs_file_dry");
     while ((ptr = readdir(dir)) != NULL)
     {
         string fn(ptr->d_name);
@@ -719,7 +834,7 @@ size_t read_Cs_evenly_distribute(const string &dir_path, double threshold, int m
         // Let each MPI process read different files at one time
         auto i_fn_myid = (i_fn + myid * nfiles / nprocs) % files.size();
         const auto &fn = files[i_fn_myid];
-        librpa_int::global::ofs_myid << "Reading " << fn << endl;
+        ofs_myid << "Reading " << fn << endl;
         std::vector<size_t> ids_keep_this_file;
         if (binary)
         {
@@ -744,17 +859,17 @@ size_t read_Cs_evenly_distribute(const string &dir_path, double threshold, int m
             id_total++;
         }
     }
-    Profiler::stop("handle_Cs_file_dry");
+    profiler.stop("handle_Cs_file_dry");
     closedir(dir);
     dir = NULL;
     if (myid == 0) librpa_int::global::lib_printf("Finished Cs filtering\n");
 
-    Profiler::start("handle_Cs_file");
+    profiler.start("handle_Cs_file");
     // cout << files_Cs_ids_this_proc.size() << "\n";
-    librpa_int::global::ofs_myid << "Number of Cs files to process: " << files_Cs_ids_this_proc.size() << "\n";
+    ofs_myid << "Number of Cs files to process: " << files_Cs_ids_this_proc.size() << "\n";
     for (const auto& fn_ids: files_Cs_ids_this_proc)
     {
-        librpa_int::global::ofs_myid << fn_ids.first << " " << fn_ids.second << endl;
+        ofs_myid << fn_ids.first << " " << fn_ids.second << endl;
         if (binary)
         {
             cs_discard += handle_Cs_file_binary_by_ids(fn_ids.first, threshold, fn_ids.second);
@@ -764,24 +879,26 @@ size_t read_Cs_evenly_distribute(const string &dir_path, double threshold, int m
             cs_discard += handle_Cs_file_by_ids(fn_ids.first, threshold, fn_ids.second);
         }
     }
-    Profiler::stop("handle_Cs_file");
+    librpa_int::global::profiler.stop("handle_Cs_file");
 
     // initialize basis set object
-    librpa_int::atomic_basis_wfc.set(atom_nw);
-    librpa_int::atomic_basis_abf.set(atom_mu);
+    // librpa_int::atomic_basis_wfc.set(atom_nw);
+    // librpa_int::atomic_basis_abf.set(atom_mu);
     
-    atom_mu_part_range.resize(atom_mu.size());
-    atom_mu_part_range[0]=0;
-    for(int I=1;I!=atom_mu.size();I++)
-        atom_mu_part_range[I]=atom_mu.at(I-1)+atom_mu_part_range[I-1];
-    
-    N_all_mu=atom_mu_part_range[natom-1]+atom_mu[natom-1];
+    // atom_mu_part_range.resize(atom_mu.size());
+    // atom_mu_part_range[0]=0;
+    // for(int I=1;I!=atom_mu.size();I++)
+    //     atom_mu_part_range[I]=atom_mu.at(I-1)+atom_mu_part_range[I-1];
+    //
+    // N_all_mu=atom_mu_part_range[natom-1]+atom_mu[natom-1];
     // cout << "Done\n";
     return cs_discard;
 }
 
 void get_natom_ncell_from_first_Cs_file(int &n_atom, int &n_cell, const string &dir_path)
 {
+    using namespace std;
+
     // cout<<file_path<<endl;
     ifstream infile;
     bool binary;
@@ -855,12 +972,17 @@ void read_dielec_func(const string &file_path, std::vector<double> &omegas, std:
     ifs.close();
 }
 
+// TODO work-in-progress: 2025-11-30
+void read_coulomb(const string &dir_path, const librpa::ParallelRouting routing, bool is_cut)
+{
+}
 
-static int handle_Vq_full_file(const string &file_path, map<Vector3_Order<double>, ComplexMatrix> &Vq_full, bool binary)
+static int handle_Vq_full_file(const string &file_path, std::map<int, librpa_int::ComplexMatrix> &Vq_full, bool binary)
 {
     // cout << "Begin to read aims vq_real from " << file_path << endl;
     ifstream infile;
     int n_irk_points_local;
+    int n_irk_points;
 
     if (binary)
     {
@@ -897,22 +1019,16 @@ static int handle_Vq_full_file(const string &file_path, map<Vector3_Order<double
             bcol--;
             ecol--;
             iq--;
-            Vector3_Order<double> qvec(kvec_c[iq]);
 
-            if (irk_weight.count(qvec) == 0)
+            if (!Vq_full.count(iq))
             {
-                irk_points.push_back(qvec);
-                irk_weight.insert(pair<Vector3_Order<double>, double>(qvec, q_weight));
-            }
-            if (!Vq_full.count(qvec))
-            {
-                Vq_full[qvec].create(nbasbas, nbasbas);
+                Vq_full[iq].create(nbasbas, nbasbas);
             }
 
             const int nrow = erow - brow + 1;
             const int ncol = ecol - bcol + 1;
             const size_t n = nrow * ncol;
-            std::vector<complex<double>> tmp(n);
+            std::vector<std::complex<double>> tmp(n);
             infile.read((char *) tmp.data(), 2 * n * sizeof(double));
             for (int i = 0; i < nrow; i++)
             {
@@ -920,7 +1036,7 @@ static int handle_Vq_full_file(const string &file_path, map<Vector3_Order<double
                 {
                     const auto i_mu = i + brow;
                     const auto i_nu = j + bcol;
-                    Vq_full[qvec](i_mu, i_nu) = tmp[i * ncol + j]; // for abacus
+                    Vq_full[iq](i_mu, i_nu) = tmp[i * ncol + j]; // for abacus
                 }
             }
         }
@@ -946,20 +1062,14 @@ static int handle_Vq_full_file(const string &file_path, map<Vector3_Order<double
             int bcol = stoi(begin_col) - 1;
             int ecol = stoi(end_col) - 1;
             int iq = stoi(q_num) - 1;
-            
+
             //skip empty coulumb_file
-            if((erow-brow<=0) || (ecol-bcol<=0) || iq<0 || iq> klist.size())
+            if((erow-brow<=0) || (ecol-bcol<=0) || iq<0)
                 return 4;
-            Vector3_Order<double> qvec(kvec_c[iq]);
-            // skip duplicate insert of k weight, since 
-            if (irk_weight.count(qvec) == 0)
+
+            if (!Vq_full.count(iq))
             {
-                irk_points.push_back(qvec);
-                irk_weight.insert(pair<Vector3_Order<double>, double>(qvec, stod(q_weight)));
-            }
-            if (!Vq_full.count(qvec))
-            {
-                Vq_full[qvec].create(mu, nu);
+                Vq_full[iq].create(mu, nu);
             }
             for (int i_mu = brow; i_mu <= erow; i_mu++)
             {
@@ -967,7 +1077,7 @@ static int handle_Vq_full_file(const string &file_path, map<Vector3_Order<double
                 {
                     infile >> vq_r >> vq_i;
                     //Vq_full[qvec](i_nu, i_mu) = complex<double>(stod(vq_r), stod(vq_i)); // for FHI-aims
-                    Vq_full[qvec](i_mu, i_nu) = complex<double>(stod(vq_r), stod(vq_i)); // for abacus
+                    Vq_full[iq](i_mu, i_nu) = std::complex<double>(stod(vq_r), stod(vq_i)); // for abacus
                 }
             }
         }
@@ -977,18 +1087,27 @@ static int handle_Vq_full_file(const string &file_path, map<Vector3_Order<double
 
 size_t read_Vq_full(const string &dir_path, const string &vq_fprefix, bool is_cut_coulomb)
 {
+    using std::cout;
+    using std::endl;
+    using librpa_int::ComplexMatrix;
+    using namespace librpa_int::global;
+
+    auto ds = librpa_int::api::get_dataset_instance(driver::h.get_c_handler());
+    const auto &basis_aux = ds->basis_aux;
+    const auto atom_mu_part_range = basis_aux.get_part_range();
+
     size_t vq_save = 0;
     size_t vq_discard = 0;
     struct dirent *ptr;
     DIR *dir;
     dir = opendir(dir_path.c_str());
-    vector<string> files;
-    map<Vector3_Order<double>, ComplexMatrix> Vq_full;
+    std::vector<string> files;
+    std::map<int, ComplexMatrix> Vq_full;
 
     bool binary;
     bool binary_checked = false;
 
-    Profiler::start("handle_Vq_full_file");
+    profiler.start("handle_Vq_full_file");
     while ((ptr = readdir(dir)) != NULL)
     {
         string fm(ptr->d_name);
@@ -1019,31 +1138,18 @@ size_t read_Vq_full(const string &dir_path, const string &vq_fprefix, bool is_cu
             }
         }
     }
-    Profiler::stop("handle_Vq_full_file");
+    profiler.stop("handle_Vq_full_file");
 
     // cout << "FINISH coulomb files reading!" << endl;
-    Profiler::start("set_aux_coulomb_k_atom_pair_out");
+    profiler.start("set_aux_coulomb_k_atom_pair_out");
     for (auto &vf_p : Vq_full)
     {
-        auto qvec = vf_p.first;
-        int iq = -1;
-        auto ite_q = std::find(klist.cbegin(), klist.cend(), qvec);
-        if (ite_q != klist.cend())
-        {
-            iq = std::distance(klist.cbegin(), ite_q);
-        }
-        else
-        {
-            throw std::runtime_error(
-                std::string(__FILE__) + ":" + std::to_string(__LINE__) + ":" + std::string(__FUNCTION__) + ": "
-                "fail to find qvec in klist, qvec = " + 
-                std::to_string(qvec.x) + " " + std::to_string(qvec.y) + " " + std::to_string(qvec.z));
-        }
-        
+        int iq = vf_p.first;
+
         // cout << "Qvec:" << qvec << endl;
-        for (int I = 0; I != atom_mu.size(); I++)
+        for (size_t I = 0; I != basis_aux.n_atoms; I++)
         {
-            for (int J = 0; J != atom_mu.size(); J++)
+            for (size_t J = 0; J != basis_aux.n_atoms; J++)
             {
                 // Coulomb is Hermitian, only parse upper half
                 if (I > J)
@@ -1053,27 +1159,27 @@ size_t read_Vq_full(const string &dir_path, const string &vq_fprefix, bool is_cu
 
                 // Vq_full stores the full matrix, parse by I-J block
                 // The matrices have to be duplicated ...
-                matrix re(atom_mu[I], atom_mu[J]), im(atom_mu[I], atom_mu[J]);
+                matrix re(basis_aux[I], basis_aux[J]), im(basis_aux[I], basis_aux[J]);
 
                 // vq_ptr_tran->create(atom_mu[J],atom_mu[I]);
                 // cout << "I J: " << I << "  " << J << "   mu,nu: " << atom_mu[I] << "  " << atom_mu[J] << endl;
-                for (int i_mu = 0; i_mu != atom_mu[I]; i_mu++)
+                for (int i_mu = 0; i_mu != basis_aux[I]; i_mu++)
                 {
-                    for (int i_nu = 0; i_nu != atom_mu[J]; i_nu++)
+                    for (int i_nu = 0; i_nu != basis_aux[J]; i_nu++)
                     {
                         //(*vq_ptr)(i_mu, i_nu) = vf_p.second(atom_mu_loc2glo(J, i_nu), atom_mu_loc2glo(I, i_mu)); ////for aims
-                        re(i_mu, i_nu) = vf_p.second(atom_mu_loc2glo(I, i_mu), atom_mu_loc2glo(J, i_nu)).real(); // for abacus
-                        im(i_mu, i_nu) = vf_p.second(atom_mu_loc2glo(I, i_mu), atom_mu_loc2glo(J, i_nu)).imag();
+                        re(i_mu, i_nu) = vf_p.second(basis_aux.get_global_index(I, i_mu), basis_aux.get_global_index(J, i_nu)).real(); // for abacus
+                        im(i_mu, i_nu) = vf_p.second(basis_aux.get_global_index(I, i_mu), basis_aux.get_global_index(J, i_nu)).imag();
                     }
                 }
 
                 if (is_cut_coulomb)
                 {
-                    set_aux_cut_coulomb_k_atom_pair(iq, I, J, atom_mu[I], atom_mu[J], re.c, im.c);
+                    driver::h.set_aux_cut_coulomb_k_atom_pair(iq, I, J, basis_aux[I], basis_aux[J], re.c, im.c, driver::opts.vq_threshold);
                 }
                 else
                 {
-                    set_aux_bare_coulomb_k_atom_pair(iq, I, J, atom_mu[I], atom_mu[J], re.c, im.c);
+                    driver::h.set_aux_bare_coulomb_k_atom_pair(iq, I, J, basis_aux[I], basis_aux[J], re.c, im.c, driver::opts.vq_threshold);
                 }
                 // if (I == J)
                 // {
@@ -1092,7 +1198,7 @@ size_t read_Vq_full(const string &dir_path, const string &vq_fprefix, bool is_cu
             }
         }
     }
-    Profiler::stop("set_aux_coulomb_k_atom_pair_out");
+    profiler.stop("set_aux_coulomb_k_atom_pair_out");
     closedir(dir);
     dir = NULL;
     // cout << "vq threshold: " << threshold << endl;
@@ -1109,12 +1215,18 @@ size_t read_Vq_full(const string &dir_path, const string &vq_fprefix, bool is_cu
 
 
 static int handle_Vq_row_file(const string &file_path, double threshold,
-        atom_mapping<std::map<int, std::shared_ptr<ComplexMatrix>>>::pair_t_old &coulomb,
-        const vector<atpair_t> &local_atpair, bool binary)
+        librpa_int::atom_mapping<std::map<int, std::shared_ptr<librpa_int::ComplexMatrix>>>::pair_t_old &coulomb,
+        const std::vector<atpair_t> &local_atpair, bool binary)
 {
+    using librpa_int::ComplexMatrix;
     // cout << "Begin to read aims vq_real from " << file_path << endl;
     ifstream infile;
     int n_irk_points_local;
+    int n_irk_points;
+
+    auto ds = librpa_int::api::get_dataset_instance(driver::h.get_c_handler());
+    const auto &basis_aux = ds->basis_aux;
+    const auto atom_mu_part_range = basis_aux.get_part_range();
 
     if (binary)
     {
@@ -1131,11 +1243,11 @@ static int handle_Vq_row_file(const string &file_path, double threshold,
 
     if (binary)
     {
-        set<int> coulomb_row_need;
+        std::set<int> coulomb_row_need;
         for (const auto &ap: local_atpair)
         {
             const auto brow = atom_mu_part_range[ap.first];
-            const auto nb = atom_mu[ap.first];
+            const auto nb = basis_aux[ap.first];
             for (int ir = 0; ir < nb; ir++)
             {
                 coulomb_row_need.insert(brow + ir);
@@ -1160,21 +1272,14 @@ static int handle_Vq_row_file(const string &file_path, double threshold,
             ecol--;
             iq--;
 
-            Vector3_Order<double> qvec(kvec_c[iq]);
-            if (irk_weight.count(qvec) == 0)
-            {
-                irk_points.push_back(qvec);
-                irk_weight.insert(pair<Vector3_Order<double>, double>(qvec, q_weight));
-            }
-
             for (const auto &ap : local_atpair)
             {
                 auto I = ap.first;
                 auto J = ap.second;
                 if (coulomb[I][J].count(iq) == 0)
                 {
-                    shared_ptr<ComplexMatrix> vq_ptr = make_shared<ComplexMatrix>();
-                    vq_ptr->create(atom_mu[I], atom_mu[J]);
+                    std::shared_ptr<ComplexMatrix> vq_ptr = std::make_shared<ComplexMatrix>();
+                    vq_ptr->create(basis_aux[I], basis_aux[J]);
                     coulomb[I][J][iq] = vq_ptr;
                 }
             }
@@ -1183,18 +1288,18 @@ static int handle_Vq_row_file(const string &file_path, double threshold,
 
             for (int i_mu = brow; i_mu <= erow; i_mu++)
             {
-                vector<complex<double>> tmp_row(ncol);
+                std::vector<std::complex<double>> tmp_row(ncol);
                 infile.read((char *) tmp_row.data(), 2 * ncol * sizeof(double));
 
                 if (coulomb_row_need.count(i_mu))
                 {
                     int I_loc, mu_loc;
-                    I_loc = atom_mu_glo2loc(i_mu, mu_loc);
+                    basis_aux.get_local_index(i_mu, I_loc, mu_loc);
                     for (auto &Jp : coulomb[I_loc])
                     {
                         auto J = Jp.first;
                         int Jb = atom_mu_part_range[J];
-                        int Je = atom_mu_part_range[J] + atom_mu[J] - 1;
+                        int Je = atom_mu_part_range[J] + basis_aux[J] - 1;
 
                         if (ecol >= Jb && bcol < Je)
                         {
@@ -1203,7 +1308,7 @@ static int handle_Vq_row_file(const string &file_path, double threshold,
                             for (int i = start_point; i <= end_point; i++)
                             {
                                 int J_loc, nu_loc;
-                                J_loc = atom_mu_glo2loc(i, nu_loc);
+                                basis_aux.get_local_index(i, J_loc, nu_loc);
                                 // printf("|i: %d   J: %d   J_loc: %d, nu_loc:
                                 // %d\n",i,J,J_loc,nu_loc);
                                 assert(J == J_loc);
@@ -1238,16 +1343,8 @@ static int handle_Vq_row_file(const string &file_path, double threshold,
             //cout<<file_path<<" iq:"<<iq<<"  qweight:"<<stod(q_weight)<<endl;
 
             //skip empty coulumb_file
-            if((erow-brow<=0) || (ecol-bcol<=0) || iq<0 || iq> klist.size())
+            if((erow-brow<=0) || (ecol-bcol<=0) || iq<0)
                 return 4;
-
-            Vector3_Order<double> qvec(kvec_c[iq]);
-            // skip duplicate insert of k weight, since 
-            if (irk_weight.count(qvec) == 0)
-            {
-                irk_points.push_back(qvec);
-                irk_weight.insert(pair<Vector3_Order<double>, double>(qvec, stod(q_weight)));
-            }
 
             for(const auto &ap:local_atpair)
             {
@@ -1255,41 +1352,42 @@ static int handle_Vq_row_file(const string &file_path, double threshold,
                 auto J=ap.second;
                 if(!coulomb[I][J].count(iq))
                 {
-                    shared_ptr<ComplexMatrix> vq_ptr = make_shared<ComplexMatrix>();
-                    vq_ptr->create(atom_mu[I], atom_mu[J]);
+                    std::shared_ptr<ComplexMatrix> vq_ptr = std::make_shared<ComplexMatrix>();
+                    vq_ptr->create(basis_aux[I], basis_aux[J]);
                     // cout<<"  create  IJ: "<<I<<"  "<<J<<"   "<<atom_mu[I]<<"  "<<atom_mu[J];
                     coulomb[I][J][iq]=vq_ptr;
                 }
             }   
 
-            set<int> coulomb_row_need;
+            std::set<int> coulomb_row_need;
             for(auto &Ip:coulomb)
-                for(int ir=atom_mu_part_range[Ip.first];ir!=atom_mu_part_range[Ip.first]+atom_mu[Ip.first];ir++)
+                for (int ir = atom_mu_part_range[Ip.first];
+                     ir != atom_mu_part_range[Ip.first] + basis_aux[Ip.first]; ir++)
                     coulomb_row_need.insert(ir);
 
             //printf("   |process %d, coulomb_begin:  %d, size: %d\n",para_mpi.get_myid(),*coulomb_row_need.begin(),coulomb_row_need.size());
             for (int i_mu = brow; i_mu <= erow; i_mu++)
             {
-                vector<complex<double>> tmp_row(ecol-bcol+1);
+                std::vector<std::complex<double>> tmp_row(ecol-bcol+1);
                 for (int i_nu = bcol; i_nu <= ecol; i_nu++)
                 {
                     infile >> vq_r >> vq_i;
                     if (!infile.good()) return 4;
-                    
-                    tmp_row[i_nu-bcol] = complex<double>(stod(vq_r), stod(vq_i)); // for abacus
-                    
+
+                    tmp_row[i_nu-bcol] = std::complex<double>(stod(vq_r), stod(vq_i)); // for abacus
+
                 }
                 if(coulomb_row_need.count(i_mu))
                 {
                     int I_loc,mu_loc;
-                    I_loc=atom_mu_glo2loc(i_mu,mu_loc);
-                    int bI=atom_mu_part_range[I_loc];
+                    basis_aux.get_local_index(i_mu, I_loc,mu_loc);
+                    // int bI=atom_mu_part_range[I_loc];
                     for(auto &Jp:coulomb[I_loc] )
                     {
                         auto J=Jp.first;
                         int Jb=atom_mu_part_range[J];
-                        int Je=atom_mu_part_range[J]+atom_mu[J]-1;
-                        
+                        int Je=atom_mu_part_range[J]+basis_aux[J]-1;
+
                         if(ecol>=Jb && bcol<Je)
                         {
                             int start_point = ( bcol<=Jb ? Jb:bcol);
@@ -1297,7 +1395,7 @@ static int handle_Vq_row_file(const string &file_path, double threshold,
                             for(int i=start_point;i<=end_point;i++)
                             {
                                 int J_loc, nu_loc;
-                                J_loc=atom_mu_glo2loc(i,nu_loc);
+                                basis_aux.get_local_index(i,J_loc, nu_loc);
                                 //printf("|i: %d   J: %d   J_loc: %d, nu_loc: %d\n",i,J,J_loc,nu_loc);
                                 assert(J==J_loc);
                                 (*coulomb[I_loc][J_loc][iq])(mu_loc,nu_loc)=tmp_row[i-bcol];
@@ -1313,10 +1411,16 @@ static int handle_Vq_row_file(const string &file_path, double threshold,
 
 
 size_t read_Vq_row(const string &dir_path, const string &vq_fprefix, double threshold,
-        const vector<atpair_t> &local_atpair, bool is_cut_coulomb)
+        const std::vector<atpair_t> &local_atpair, bool is_cut_coulomb)
 {
-    cout<<"Begin READ_Vq_Row"<<endl;
-    set<int> local_I_set;
+    using std::cout;
+    using std::endl;
+    using librpa_int::ComplexMatrix;
+    using librpa_int::atom_mapping;
+    using namespace librpa_int::global;
+
+    cout << "Begin READ_Vq_Row" << endl;
+    std::set<int> local_I_set;
     for(auto &lap:local_atpair)
     {
         local_I_set.insert(lap.first);
@@ -1329,12 +1433,12 @@ size_t read_Vq_row(const string &dir_path, const string &vq_fprefix, double thre
     struct dirent *ptr;
     DIR *dir;
     dir = opendir(dir_path.c_str());
-    vector<string> files;
+    std::vector<string> files;
     bool binary;
     bool binary_checked = false;
 
     //map<Vector3_Order<double>, ComplexMatrix> Vq_full;
-    Profiler::start("handle_Vq_row_file");
+    profiler.start("handle_Vq_row_file");
     while ((ptr = readdir(dir)) != NULL)
     {
         string fm(ptr->d_name);
@@ -1360,13 +1464,13 @@ size_t read_Vq_row(const string &dir_path, const string &vq_fprefix, double thre
             handle_Vq_row_file(file_path, threshold, coulomb, local_atpair, binary);
         }
     }
-    Profiler::stop("handle_Vq_row_file");
+    profiler.stop("handle_Vq_row_file");
 
     // MYZ: now the map coulomb contains the complete atom-pair matrix.
     // Call the API to parse the data.
     // To reduce memory consumption during this process, we erase the data in temporary object once it is parsed.
     auto it_I = coulomb.begin();
-    Profiler::start("set_aux_coulomb_k_atom_pair_out");
+    profiler.start("set_aux_coulomb_k_atom_pair_out");
     while (it_I != coulomb.end())
     {
         auto I = it_I->first;
@@ -1381,11 +1485,11 @@ size_t read_Vq_row(const string &dir_path, const string &vq_fprefix, double thre
                 auto &vq_ptr = it_iq->second;
                 if (is_cut_coulomb)
                 {
-                    set_aux_cut_coulomb_k_atom_pair(iq, I, J, vq_ptr->nr, vq_ptr->nc, vq_ptr->real().c, vq_ptr->imag().c);
+                    driver::h.set_aux_cut_coulomb_k_atom_pair(iq, I, J, vq_ptr->nr, vq_ptr->nc, vq_ptr->real().c, vq_ptr->imag().c, threshold);
                 }
                 else
                 {
-                    set_aux_bare_coulomb_k_atom_pair(iq, I, J, vq_ptr->nr, vq_ptr->nc, vq_ptr->real().c, vq_ptr->imag().c);
+                    driver::h.set_aux_bare_coulomb_k_atom_pair(iq, I, J, vq_ptr->nr, vq_ptr->nc, vq_ptr->real().c, vq_ptr->imag().c, threshold);
                 }
                 it_iq = it_J->second.erase(it_iq);
             }
@@ -1393,7 +1497,7 @@ size_t read_Vq_row(const string &dir_path, const string &vq_fprefix, double thre
         }
         it_I = coulomb.erase(it_I);
     }
-    Profiler::stop("set_aux_coulomb_k_atom_pair_out");
+    profiler.stop("set_aux_coulomb_k_atom_pair_out");
 
     // cout << "FINISH coulomb files reading!" << endl;
 
@@ -1414,24 +1518,26 @@ size_t read_Vq_row(const string &dir_path, const string &vq_fprefix, double thre
     //             //printf("|process %d  I J: %d, %d\n",para_mpi.get_myid(), Ip.first,Jp.first);
     //             print_complex_matrix_file(sm.str().c_str(),(*qp.second),fs,false);
     //         }
-                
+
     // }
     // fs.close();
     return vq_discard;
 }
 
 
-void erase_Cs_from_local_atp(atpair_R_mat_t &Cs, vector<atpair_t> &local_atpair)
+void erase_Cs_from_local_atp(atpair_R_mat_t &Cs, std::vector<atpair_t> &local_atpair)
 {
+    using namespace std;
+    using namespace librpa_int;
     //erase no need Cs
-    
+
     set<size_t> loc_atp_index;
     for(auto &lap:local_atpair)
     {
         loc_atp_index.insert(lap.first);
         loc_atp_index.insert(lap.second);
     }
-    vector<atom_t> Cs_first;
+    std::vector<atom_t> Cs_first;
     for (const auto &Ip: Cs)
         Cs_first.push_back(Ip.first);
     for (const auto &I: Cs_first)
@@ -1444,16 +1550,18 @@ void erase_Cs_from_local_atp(atpair_R_mat_t &Cs, vector<atpair_t> &local_atpair)
     //     {
     //         Cs.erase(Ip.first);
     //     }
-    librpa_int::utils::release_free_mem();
-    librpa_int::global::lib_printf("| process %d, size of Cs after erase: %lu\n", librpa_int::global::mpi_comm_global_h.myid, Cs.size());
+    release_free_mem();
+    global::lib_printf("| process %d, size of Cs after erase: %lu\n", librpa_int::global::mpi_comm_global_h.myid, Cs.size());
 }
 
-void read_stru(const int& n_kpoints, const std::string &file_path)
+void read_stru(const std::string &file_path)
 {
-    // cout << "Begin to read aims stru" << endl;
+    using namespace librpa_int;
+    global::lib_printf_root("Reading structure file: %s\n", file_path.c_str());
+
     ifstream infile;
-    string x, y, z, tmp;
     infile.open(file_path);
+    string x, y, z, tmp;
 
     std::vector<double> lat_mat(9);
     std::vector<double> G_mat(9);
@@ -1474,60 +1582,122 @@ void read_stru(const int& n_kpoints, const std::string &file_path)
         G_mat[i * 3 + 2] = stod(z);
     }
 
-    set_latvec_and_G(lat_mat.data(), G_mat.data());
+    driver::h.set_latvec_and_G(lat_mat.data(), G_mat.data());
 
     // Read coordinates of atoms
-    // Read number of atoms
-    // FIXME: move to LibRPA API
-    int n_atom;
-    coord.clear();
-    coord_frac.clear();
-    infile >> n_atom;
-    for (int i = 0; i < n_atom; i++)
+    infile >> driver::n_atoms;
+    const auto n_atoms = driver::n_atoms;
+    driver::atom_types.resize(n_atoms);
+    std::vector<double> coords(n_atoms * 3);
+    for (size_t iat = 0; iat < n_atoms; iat++)
     {
-        infile >> x >> y >> z >> tmp;
-        coord[i] = {stod(x), stod(y), stod(z)};
-        // convert to fractional using the reciprocal lattice vectors
-        coord_frac[i] = {
-            (coord[i][0] * G_mat[0] + coord[i][1] * G_mat[1] + coord[i][2] * G_mat[2]) / TWO_PI,
-            (coord[i][0] * G_mat[3] + coord[i][1] * G_mat[4] + coord[i][2] * G_mat[5]) / TWO_PI,
-            (coord[i][0] * G_mat[6] + coord[i][1] * G_mat[7] + coord[i][2] * G_mat[8]) / TWO_PI,
-        };
+        for (int i = 0; i < 3; i++) infile >> coords[3 * iat + i];
+        infile >> driver::atom_types[iat];
     }
+    // Parsed after lattice is set, so that the fractional coordinates are calculated
+    driver::h.set_atoms(driver::atom_types, coords);
 
-    // G.print();
-    // Matrix3 latG = latvec * G.Transpose();
+    // // Internal check
+    // const auto ds = api::get_dataset_instance(driver::h.get_c_handler());
+    // const auto &pbc = ds->pbc;
+    // Matrix3 latG = pbc.latvec * pbc.G.Transpose();
     // cout << " lat * G^T" << endl;
-    // latG.print();
+    // latG.print(5);
+}
+
+void read_bz_sampling(const std::string &file_path)
+{
+    using namespace librpa_int;
+
+    global::lib_printf_root("Reading Brillouin zone sampling file: %s\n", file_path.c_str());
+
+    ifstream infile;
+    infile.open(file_path);
+
+    string x, y, z, tmp;
 
     int nk[3];
     for (int i = 0; i < 3; i++)
     {
-        infile >> x;
-        nk[i] = stoi(x);
+        infile >> nk[i];
     }
-    assert(n_kpoints == nk[0] * nk[1] * nk[2]);
-    std::vector<double> kvecs(3 * n_kpoints);
+    int nk_full, nk_ibz;
+    infile >> nk_full >> nk_ibz;
+    assert(nk_full == nk[0] * nk[1] * nk[2]);
+
+    std::vector<double> kvecs(3 * nk_full);
+    std::vector<int> map_ibzk(nk_full);
+
     // kvec_c = new Vector3<double>[n_kpoints];
-    for (int i = 0; i != 3 * n_kpoints; i++)
+    for (int i = 0; i != nk_full; i++)
     {
-        infile >> x;
-        kvecs[i] = stod(x);
+        // id weight kfrac[3] kcart[3] ik_ibz map_ibz
+        infile >> x >> y;
+        infile >> x >> y >> z;
+        infile >> kvecs[3 * i] >> kvecs[3 * i + 1] >> kvecs[3 * i + 2];
+        infile >> tmp >> map_ibzk[i];
+        map_ibzk[i] -= 1;
     }
-    set_kgrids_kvec_tot(nk[0], nk[1], nk[2], kvecs.data());
+    driver::h.set_kgrids_kvec(nk[0], nk[1], nk[2], kvecs.data());
+    driver::h.set_ibz_mapping(map_ibzk);
 
     // TODO: use API for IBZ mapping
-    for (int i = 0; i != n_kpoints; i++)
+    // for (int i = 0; i != n_kpoints; i++)
+    // {
+    //     infile >> x;
+    //     int i_ir = stoi(x) - 1;
+    //     irk_point_id_mapping.emplace_back(i_ir);
+    //     const auto &k = klist[i];
+    //     const auto &k_ir = klist[i_ir];
+    //     auto it = std::find(klist_ibz.begin(), klist_ibz.end(), k_ir);
+    //     if (it == klist_ibz.end()) klist_ibz.emplace_back(k_ir);
+    //     map_irk_ks[klist[i_ir]].emplace_back(k);
+    // }
+    infile.close();
+}
+
+void read_basis(const std::string &file_path)
+{
+    using namespace librpa_int;
+
+    global::lib_printf_root("Reading basis information file: %s\n", file_path.c_str());
+    ifstream infile;
+    infile.open(file_path);
+
+    int n_atoms = driver::atom_types.size();
+    if (n_atoms != driver::n_atoms)
+        throw std::runtime_error("Number of atoms not consistent with the geometry file!");
+    std::map<int, size_t> map_at_wfc;
+    std::map<int, size_t> map_at_aux;
+    std::vector<size_t> nbs_wfc(n_atoms);
+    std::vector<size_t> nbs_aux(n_atoms);
+
+
+    int ntypes, type;
+    size_t n_wfc, n_aux;
+    string kind_str;
+
+    infile >> ntypes;
+    // total basis, not used here
+    infile >> n_wfc >> n_aux >> kind_str;
+
+    for (int itype = 0; itype < ntypes; itype++)
     {
-        infile >> x;
-        int i_ir = stoi(x) - 1;
-        irk_point_id_mapping.emplace_back(i_ir);
-        const auto &k = klist[i];
-        const auto &k_ir = klist[i_ir];
-        auto it = std::find(klist_ibz.begin(), klist_ibz.end(), k_ir);
-        if (it == klist_ibz.end()) klist_ibz.emplace_back(k_ir);
-        map_irk_ks[klist[i_ir]].emplace_back(k);
+        infile >> type >> n_wfc >> n_aux;
+        map_at_wfc[type] = n_wfc;
+        map_at_aux[type] = n_aux;
     }
+    for (int iat = 0; iat < n_atoms; iat++)
+    {
+        auto type = driver::atom_types[iat];
+        nbs_wfc[iat] = map_at_wfc[type];
+        nbs_aux[iat] = map_at_aux[type];
+    }
+
+    driver::h.set_ao_basis_wfc(nbs_wfc);
+    driver::h.set_ao_basis_aux(nbs_aux);
+
+    infile.close();
 }
 
 

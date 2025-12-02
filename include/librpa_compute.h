@@ -6,17 +6,8 @@
 extern "C" {
 #endif
 
+int test_handler(const LibrpaHandler *h);
+
 #ifdef __cplusplus
 }
 #endif
-
-// C++ APIs
-#ifdef __cplusplus
-
-namespace librpa
-{
-    bool test_handler(const LibrpaHandler *h);
-}
-
-#endif
-

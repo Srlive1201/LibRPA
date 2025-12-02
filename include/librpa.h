@@ -11,3 +11,8 @@
 
 // Computation APIs
 #include "librpa_compute.h"
+
+// C++ APIs: wrappers to the stable C APIs
+#ifdef __cplusplus
+#include "librpa.hpp"
+#endif

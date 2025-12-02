@@ -54,37 +54,38 @@ private:
         double get_wall_time_last() const { return wall_time_last; };
     };
     //! Container of Timer objects
-    static std::map<std::string, Timer> sd_map_timer;
+    std::map<std::string, Timer> sd_map_timer;
     //! Level of each timer to account for hierarchy
-    static std::map<std::string, int> sd_map_level;
+    std::map<std::string, int> sd_map_level;
     //! Explanatory note of the timer
-    static std::map<std::string, std::string> sd_map_note;
+    std::map<std::string, std::string> sd_map_note;
     //! Order of timers
-    static std::vector<std::string> sd_order;
+    std::vector<std::string> sd_order;
 
 public:
-    Profiler() = delete;
-    ~Profiler() = delete;
-    Profiler(const Profiler&) = delete;
-    Profiler(Profiler&&) = delete;
-
     //! Add a timer
-    static void add(const char *tname, const char *tnote = "", int level = -1) noexcept;
+    void add(const char *tname, const char *tnote = "", int level = -1) noexcept;
     //! Start a timer. If the timer is not added before, add it.
-    static void start(const char *tname, const char *tnote = "", int level = -1) noexcept;
+    void start(const char *tname, const char *tnote = "", int level = -1) noexcept;
     //! Stop a timer and record the timing
-    static void stop(const char *tname) noexcept;
-    //! Alias to stop
-    static void cease(const char *tname) noexcept;
+    void stop(const char *tname) noexcept;
     //! Get cpu time of last call of timer
-    static double get_cpu_time_last(const char *tname) noexcept;
+    double get_cpu_time_last(const char *tname) noexcept;
     //! Get wall time of last call of timer
-    static double get_wall_time_last(const char *tname) noexcept;
+    double get_wall_time_last(const char *tname) noexcept;
     //! Display the current profiling result
-    static void display(int verbose = 0) noexcept;
+    void display(int verbose = 0) noexcept;
     //! Get the number of created timers
-    static int get_num_timers() noexcept { return sd_order.size(); };
+    int get_num_timers() noexcept { return sd_order.size(); };
 };
+
+// TODO: move it somewhere else, for example, to `global_utils.h`
+namespace global
+{
+
+extern Profiler profiler;
+
+}
 
 }
 #endif

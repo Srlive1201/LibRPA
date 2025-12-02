@@ -4,6 +4,7 @@
 #include <cstdio>
 #include <iostream>
 #include <string>
+#include "../utils/error.h"
 
 namespace librpa_int
 {
@@ -25,37 +26,46 @@ static bool librpa_io_initialized = false;
  * Private variables ends
  ============================================== */
 
-void init_global_io(bool redirect_stdout, const char *filename)
+void init_global_io(bool redirect_stdout, const char *redirect_path, bool enable_task_output)
 {
     using namespace librpa_int::global;
     if (!is_mpi_initialized())
     {
-        throw std::runtime_error(
-            std::string(__FILE__) + ":" + std::to_string(__LINE__) + ":" + std::string(__FUNCTION__) + ": "
-            "initialize_mpi must be called before " + std::string(__FUNCTION__));
+        throw LIBRPA_RUNTIME_ERROR("init_global_mpi must be called before init_global_io");
     }
 
-    std::string fn = "librpa_para_nprocs_" + std::to_string(size_global) +  "_myid_" + std::to_string(myid_global) + ".out";
-    ofs_myid.open(fn);
+    std::string s_fn(redirect_path);
+    // Invalid redirect path
+    if (redirect_stdout && s_fn == "")
+    {
+        throw LIBRPA_RUNTIME_ERROR("stdout redirection specified, but redirect path is empty");
+    }
+
+    if (enable_task_output)
+    {
+        std::string fn = "librpa_para_nprocs_" + std::to_string(size_global) +  "_myid_" + std::to_string(myid_global) + ".out";
+        ofs_myid.open(fn);
+    }
 
     // Redirect output
-    if (redirect_stdout)
+    if (redirect_stdout && s_fn != "stdout")
     {
         // Rank 0 touches the output file
         MPI_Barrier(mpi_comm_global);
         if (myid_global == 0)
         {
-            std::ofstream ofs(filename);
+            std::ofstream ofs(redirect_path);
             ofs.close();
         }
         MPI_Barrier(mpi_comm_global);
 
-        ofs.open(filename, std::ios::out | std::ios::app);
+        ofs.open(redirect_path, std::ios::out | std::ios::app);
+        if (!ofs.is_open()) throw LIBRPA_RUNTIME_ERROR("failed to redirect stdout to " + s_fn);
         cout_buf_old = std::cout.rdbuf();
         std::cout.rdbuf(ofs.rdbuf());
 
         // redirecting printf
-        pfile_redirect = fopen(filename, "a");
+        pfile_redirect = fopen(redirect_path, "a");
     }
 
     librpa_io_initialized = true;
@@ -65,7 +75,7 @@ inline bool is_io_initialized() { return librpa_io_initialized; }
 
 void finalize_global_io()
 {
-    ofs_myid.close();
+    if (ofs_myid.is_open()) ofs_myid.close();
 
     // Recover original stdout behavior
     if (pfile_redirect != nullptr)

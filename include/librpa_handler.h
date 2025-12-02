@@ -20,23 +20,3 @@ void librpa_destroy_handler(LibrpaHandler *h);
 #ifdef __cplusplus
 }
 #endif
-
-// C++ APIs
-#ifdef __cplusplus
-
-namespace librpa
-{
-
-class Handler
-{
-private:
-    LibrpaHandler *h;
-public:
-    Handler(int comm);
-    LibrpaHandler *get_c_handler() const { return h; }
-    ~Handler();
-};
-
-} /* namespace librpa */
-
-#endif

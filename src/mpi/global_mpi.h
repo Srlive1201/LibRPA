@@ -2,6 +2,7 @@
 #include <string>
 
 #include "../mpi/base_mpi.h"
+#include "librpa_enums.h"
 
 namespace librpa_int
 {
@@ -44,6 +45,9 @@ void init_global_mpi();
 bool is_mpi_initialized();
 
 void finalize_global_mpi();
+
+//! Return the actual routing inside LibRPA when auto is selected
+LibrpaParallelRouting decide_auto_routing(const int &atpais_num, const int &Rt_num);
 
 }
 

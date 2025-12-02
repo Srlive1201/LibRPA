@@ -1,6 +1,7 @@
 #include "global_mpi.h"
 
 #include <stdexcept>
+#include "librpa_enums.h"
 
 namespace librpa_int
 {
@@ -91,6 +92,11 @@ void finalize_global_mpi()
     MPI_Comm_free(&mpi_comm_inter);
 
     mpi_initialized = false;
+}
+
+LibrpaParallelRouting decide_auto_routing(const int &atpais_num, const int &Rt_num)
+{
+    return atpais_num < Rt_num ? LibrpaParallelRouting::RTAU : LibrpaParallelRouting::ATOMPAIR;
 }
 
 }

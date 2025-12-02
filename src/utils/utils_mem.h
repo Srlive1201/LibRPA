@@ -5,9 +5,6 @@
 namespace librpa_int
 {
 
-namespace utils
-{
-
 /*!
  * @brief Display the free memory of the system.
  */
@@ -56,9 +53,6 @@ int get_node_free_mem(double &free_mem_gb);
  *   Currently only works with Linux operating system.
  */
 void report_virtual_pages(std::ostream &os);
-
-
-} /* end of namespace utils */
 
 } /* end of namespace librpa_int */
 

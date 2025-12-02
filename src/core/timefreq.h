@@ -10,6 +10,7 @@
 
 #include "../math/complexmatrix.h"
 #include "../math/matrix.h"
+#include "librpa_enums.h"
 
 namespace librpa_int {
 
@@ -22,26 +23,18 @@ namespace librpa_int {
 class TFGrids
 {
     public:
-        enum GRID_TYPES { GaussLegendre,
-                          GaussChebyshevI,
-                          GaussChebyshevII,
-                          Minimax,
-                          EvenSpaced, EvenSpaced_TF,
-                          COUNT, // NOTE: always the last
-        };
-        static const string GRID_TYPES_NOTES[GRID_TYPES::COUNT];
-        static const bool SUPPORT_TIME_GRIDS[GRID_TYPES::COUNT];
-        static GRID_TYPES get_grid_type(const string& grid_str);
+        static const string GRID_TYPES_NOTES[LIBRPA_TFGRID_COUNT];
+        static const bool SUPPORT_TIME_GRIDS[LIBRPA_TFGRID_COUNT];
     private:
         //! Internal storage of grid type
-        GRID_TYPES grid_type;
+        LibrpaTimeFreqGrid grid_type;
         //! whether to use time grids, i.e. space-time method
         bool _has_time_grids;
         unsigned n_grids;
-        vector<double> freq_nodes;
-        vector<double> freq_weights;
-        vector<double> time_nodes;
-        vector<double> time_weights;
+        std::vector<double> freq_nodes;
+        std::vector<double> freq_weights;
+        std::vector<double> time_nodes;
+        std::vector<double> time_weights;
         /*! Cosine transformation matrix from (imaginary) time to frequency, i.e. gamma in Eq.4 of LiuP16
          The row-column convention also follows the equation, i.e.
          Each row corresponds to a certain frequency k index.
@@ -64,7 +57,7 @@ class TFGrids
         //! delete the pointers
         void unset();
     public:
-        TFGrids::GRID_TYPES get_grid_type() const { return grid_type; }
+        LibrpaTimeFreqGrid get_grid_type() const { return grid_type; }
         TFGrids(): n_grids(0) {};
         TFGrids(const unsigned &N);
         // disable copy at present
@@ -75,10 +68,10 @@ class TFGrids
         size_t get_n_grids() const { return n_grids; }
         //! alias to get_n_grids
         size_t size() const { return n_grids; }
-        const vector<double> get_freq_nodes() const { return freq_nodes; }
-        const vector<double> get_freq_weights() const { return freq_weights; }
-        const vector<double> get_time_nodes() const { return time_nodes; }
-        const vector<double> get_time_weights() const { return time_weights; }
+        const std::vector<double> get_freq_nodes() const { return freq_nodes; }
+        const std::vector<double> get_freq_weights() const { return freq_weights; }
+        const std::vector<double> get_time_nodes() const { return time_nodes; }
+        const std::vector<double> get_time_weights() const { return time_weights; }
         // NOTE: use reference for return matrix?
         const matrix &get_costrans_t2f() const { return costrans_t2f; }
         const matrix &get_sintrans_t2f() const { return sintrans_t2f; }
@@ -86,14 +79,14 @@ class TFGrids
         const matrix &get_sintrans_f2t() const { return sintrans_f2t; }
         int get_time_index(const double &time) const;
         int get_freq_index(const double &freq) const;
-        const pair<int, int> get_tf_index(const pair<double, double> &tf) const;
+        const std::pair<int, int> get_tf_index(const std::pair<double, double> &tf) const;
         //! obtain the integral weight from the frequency value
         // NOTE:(ZMY) attempt to use a map<double, double> to store,
         //      but will lead to a segfault in chi0tauR calculation, not knowing why
         double find_freq_weight(const double &freq) const;
 
         //! A wrapper around all grids generators
-        double generate(TFGrids::GRID_TYPES gtype,
+        double generate(LibrpaTimeFreqGrid gtype,
                         double emin = -1, double eintveral = -1,
                         double emax = -1, double tmin = -1, double tinterval = -1);
 

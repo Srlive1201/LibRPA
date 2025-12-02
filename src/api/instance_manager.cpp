@@ -1,6 +1,7 @@
 #include "instance_manager.h"
 
 #include <cstddef>
+#include "librpa.hpp"
 
 namespace librpa_int
 {
@@ -21,6 +22,11 @@ librpa_int::Dataset* get_dataset_instance(const LibrpaHandler *h)
         if (id >= 0 && id < total_size) p = manager[id];
     }
     return p;
+}
+
+librpa_int::Dataset* get_dataset_instance(const librpa::Handler &h)
+{
+    return get_dataset_instance(h.get_c_handler());
 }
 
 LibrpaHandler* push_back_dataset(int comm)
