@@ -77,8 +77,15 @@ CorrEnergy compute_RPA_correlation_blacs_2d_gamma_only(Chi0 &chi0, atpair_k_cplx
     auto coul_chi0_block = init_local_mat<double>(desc_nabf_nabf, MAJOR::COL);
 
     vector<Vector3_Order<double>> qpts;
-    for (const auto &qMuNuchi : chi0.get_chi0_q().at(chi0.tfg.get_freq_nodes()[0]))
-        qpts.push_back(qMuNuchi.first);
+    // for (const auto &qMuNuchi : chi0.get_chi0_q().at(chi0.tfg.get_freq_nodes()[0]))
+    //     qpts.push_back(qMuNuchi.first);
+    for (const auto &q : chi0.klist)
+    {
+        qpts.push_back(q);
+#ifdef OPEN_TEST_FOR_LU_DECOMPOSITION
+        printf("processId:%d, q: (%f, %f, %f)\n", mpi_comm_global_h.myid, q.x, q.y, q.z);
+#endif
+    }
 
     const auto &klist = chi0.pbc.klist;
     const auto &map_ibzk_weight = chi0.pbc.map_ibzk_weight;
@@ -157,7 +164,9 @@ CorrEnergy compute_RPA_correlation_blacs_2d_gamma_only(Chi0 &chi0, atpair_k_cplx
                 double chi_begin_arr = omp_get_wtime();
                 std::map<int, std::map<std::pair<int, std::array<double, 3>>, Tensor<double>>>
                     chi0_libri;
-                const auto &chi0_wq = chi0.get_chi0_q().at(freq).at(q);
+                // const auto &chi0_wq = chi0.get_chi0_q().at(freq).at(q);
+                atom_mapping<ComplexMatrix>::pair_t_old chi0_wq;
+                if (!chi0.get_chi0_q().empty()) chi0_wq = chi0.get_chi0_q().at(freq).at(q);
 
                 for (const auto &M_Nchi : chi0_wq)
                 {
@@ -182,8 +191,7 @@ CorrEnergy compute_RPA_correlation_blacs_2d_gamma_only(Chi0 &chi0, atpair_k_cplx
                 //     system("free -m");
                 //     lib_printf("chi0_freq_q size: %d\n",chi0_wq.size());
                 // }
-
-                chi0.free_chi0_q(freq, q);
+                if (!chi0.get_chi0_q().empty()) chi0.free_chi0_q(freq, q);
 
                 release_free_mem();
 
