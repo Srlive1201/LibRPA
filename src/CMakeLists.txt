@@ -80,7 +80,8 @@ list(APPEND lib_sources
 
 if(USE_GREENX_API)
   list(APPEND lib_sources core/minimax_gx.cpp interface/gx_minimax_wrp.f90)
-  target_link_libraries(rpa_lib PRIVATE GXCommon LibGXMiniMax)
+  # target_link_libraries(rpa_lib PRIVATE GXCommon LibGXMiniMax)
+  target_link_libraries(rpa_lib PRIVATE LibGXMiniMax)
   target_include_directories(rpa_lib
     PRIVATE ${PROJECT_BINARY_DIR}/thirdparty/greenX-6ff8a00/modules
     )
@@ -89,15 +90,14 @@ else()
 endif()
 
 target_include_directories(rpa_lib
-  PRIVATE
+  PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}
     ${PROJECT_SOURCE_DIR}/include
-    # ${CMAKE_CURRENT_LIST_DIR}
-    ${PROJECT_SOURCE_DIR}/src
   )
 
 if(USE_LIBRI)
   target_include_directories(rpa_lib
-    PRIVATE
+    PUBLIC
       ${Cereal_INCLUDE_DIR}
       ${LibComm_INCLUDE_DIR}
       ${LibRI_INCLUDE_DIR}

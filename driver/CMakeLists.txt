@@ -23,20 +23,21 @@ list(APPEND exe_sources
   # task/test.cpp
   )
 
-target_include_directories(rpa_exe
-  PUBLIC
-    ${PROJECT_SOURCE_DIR}/src
-  )
+target_include_directories(rpa_exe PRIVATE rpa_lib)
+# target_include_directories(rpa_exe
+#   PUBLIC
+#     ${PROJECT_SOURCE_DIR}/src
+#   )
 
 target_sources(rpa_exe PRIVATE ${exe_sources})
-if(USE_LIBRI)
-  target_include_directories(rpa_exe
-    PRIVATE
-      ${Cereal_INCLUDE_DIR}
-      ${LibComm_INCLUDE_DIR}
-      ${LibRI_INCLUDE_DIR}
-    )
-endif()
+# if(USE_LIBRI)
+#   target_include_directories(rpa_exe
+#     PRIVATE
+#       ${Cereal_INCLUDE_DIR}
+#       ${LibComm_INCLUDE_DIR}
+#       ${LibRI_INCLUDE_DIR}
+#     )
+# endif()
 
 target_link_libraries(rpa_exe PRIVATE rpa_lib ${math_libs} ${parallel_libs})
 
