@@ -28,7 +28,7 @@ const char * libri_include_dir = "${LibRI_INCLUDE_DIR}";
 
 const char * libcomm_include_dir = "${LibComm_INCLUDE_DIR}";
 
-const char * use_greenx_api = "${USE_GREENX_API}";
+const char * greenx_commit_hash = "${GREENX_COMMIT_HASH}";
 
 } /* end of namespace envs */
 } /* end of namespace librpa_int */

@@ -38,7 +38,8 @@ if (DEFINED USE_GREENX_API)
     message(FATAL_ERROR "USE_GREENX_API is deprecated: GreenX is now always used. Please remove USE_GREENX_API")
   endif()
 endif()
-
+# Hash number of the bundled greenX. Keep it consistent with thirdparty/greenX
+set(BUNDLED_GREENX_COMMIT_HASH "6ff8a00")
 
 # Add cmake load files
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
@@ -196,9 +197,11 @@ endif()
 
 # Switch on GreenX
 if(NOT USE_EXTERNAL_GREENX)
-  message(STATUS "Generate MiniMax grids by using the GreenX library bundled (collected from commit 6ff8a00)")
-  add_subdirectory(./thirdparty/greenX-6ff8a00)
+  set(GREENX_COMMIT_HASH "${BUNDLED_GREENX_COMMIT_HASH}")
+  message(STATUS "Generate MiniMax grids by using the bundled GreenX library (collected from commit ${GREENX_COMMIT_HASH})")
+  add_subdirectory(./thirdparty/greenX)
 else()
+  set(GREENX_COMMIT_HASH "(EXTERNAL)")
 endif()
 
 if(ENABLE_FORTRAN_BIND)

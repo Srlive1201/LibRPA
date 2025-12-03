@@ -27,6 +27,9 @@ extern const char * cxx_compiler_flags;
 //! CMake Fortran compiler flags
 extern const char * fortran_compiler_flags;
 
+//! Commit hash of linked GreenX
+extern const char * greenx_commit_hash;
+
 // CMake Options
 //! CMake build type
 extern const char * cmake_build_type;
@@ -36,8 +39,6 @@ extern const char * use_libri;
 extern const char * libri_include_dir;
 
 extern const char * libcomm_include_dir;
-
-extern const char * use_greenx_api;
 
 } /* end of namespace envs */
 } /* end of namespace librpa_int */
