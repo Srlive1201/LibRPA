@@ -1,4 +1,11 @@
-""" Inputs and assertions for test_gx_minimax_grid.f90
+"""
+! **************************************************************************************************
+!  Copyright (C) 2020-2023 GreenX library
+!  This file is distributed under the terms of the APACHE2 License.
+!
+! **************************************************************************************************
+
+Inputs and assertions for test_gx_minimax_grid.f90
 
 Would be better if one had python API to GX, and avoid the need for this intermediate binary.
 Indeed, MUCH of the complication regarding running tests comes from this.
@@ -17,7 +24,6 @@ from pygreenx.run import BinaryRunner, BuildType
 
 
 @pytest.fixture()
-# @pytest.mark.usefixtures("get_binary", "greenx_build_root")
 def fortran_binary(get_binary, greenx_build_root):
     name = 'test_gx_minimax_grid.exe'
     _binary = get_binary(name)
@@ -75,7 +81,6 @@ e_transition_max  {}
     return np.genfromtxt(tau_file), np.genfromtxt(freq_file)
 
 
-# @pytest.mark.usefixtures("testdir")
 def test_get_grids_and_weights(fortran_binary):
     """
     TODO(Maryam) Issue 24. Extend the test inputs, and include fringe cases.

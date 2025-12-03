@@ -8,21 +8,37 @@
 cmake_minimum_required(VERSION 3.15.0)
 
 project(greenX
-    LANGUAGES Fortran
-    VERSION 0.0.1
+  LANGUAGES Fortran CXX
+  VERSION 2.2
+  DESCRIPTION "Library for Many-body Green Functions on HPC"
+  HOMEPAGE_URL "https://nomad-coe.github.io/greenX/"
 )
 
-#To use the Intel MKL implementation of BLAS, a project must enable at least one of the C or CXX languages.
-enable_language(CXX)
+# Set C++ standard
+set(CMAKE_CXX_STANDARD 17)
 
 # Set folder structure for build directory
 set(CMAKE_Fortran_BIN_DIRECTORY ${PROJECT_BINARY_DIR}/bin)
 set(CMAKE_Fortran_LIB_DIRECTORY ${PROJECT_BINARY_DIR}/lib)
-# Note, this will put modules of each library in <BUILD_DIR>/modules
 set(CMAKE_Fortran_MODULE_DIRECTORY ${PROJECT_BINARY_DIR}/modules)
+
+# Set installation location
+if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+  set(default_install_prefix "${PROJECT_SOURCE_DIR}/install")
+  set(CMAKE_INSTALL_PREFIX ${default_install_prefix}
+    CACHE STRING "Choose the installation directory. Default location is ${default_install_prefix}"
+    FORCE)
+endif()
 
 # Define GNU standard installation directories
 include(GNUInstallDirs)
+
+# the set the include directory where the mod files will be installed. the include directory is compiler dependent.
+if(NOT DEFINED CMAKE_INSTALL_Fortran_MODULES)
+  set(CMAKE_INSTALL_Fortran_MODULES
+      "${CMAKE_INSTALL_FULL_INCLUDEDIR}/${PROJECT_NAME}/${CMAKE_Fortran_COMPILER_ID}-${CMAKE_Fortran_COMPILER_VERSION}"
+  )
+endif()
 
 # CMake module directory
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
@@ -36,51 +52,113 @@ include(cmake/CompilerFlags.cmake)
 # Compiler warnings
 include(cmake/CompilerWarnings.cmake)
 
+# Allows CMake to compile external projects and submodules.
+include(ExternalProject)
+
 # External libraries
 # Note, for Blas and Lapack, this is also able to find vendor-specific versions:
 # https://cmake.org/cmake/help/v3.15/module/FindBLAS.html
 find_package(BLAS REQUIRED)
 find_package(LAPACK REQUIRED)
 
-# Python required for application testing
-include(cmake/python3.cmake)
-find_python_module(numpy)
-find_python_module(pytest)
+option(ENABLE_GREENX_CTEST "Enable GreenX CTest" ON)
+if (${ENABLE_GREENX_CTEST})
+   # Python required for application testing
+   include(cmake/python3.cmake)
+   find_package(Python3 3.7 COMPONENTS Interpreter Development)
+   if (Python3_FOUND)
+      message("-- Python 3 interpreter version: " ${Python3_VERSION})
+   else()
+      message("-- Python 3 interpreter not found")
+   endif()
 
-# Enable ctest
-enable_testing()
+   # Enable ctest
+   enable_testing()
+
+   # Application test python module
+   # Note, pygreenx dependencies should be handled pygreenx
+   # pygreenx version specified in its setup.cfg
+   find_python_module(pygreenx VERSION 0.0.1)
+   if (NOT pygreenx_FOUND)
+      message("-- pygreenx is required for application testing. To install it, cd <PROJECTROOT>/python and run `pip install -e .`")
+   endif ()
+endif()   
 
 # Optional unit testing lib
-option(ENABLE_UNITTESTS "Enable GreenX Unit Testing" OFF)
-if (${ENABLE_UNITTESTS})
-    # Function for generating unit test executables (assumes Zofu)
-    include(cmake/unit_test_functions.cmake)
-    # Calling find_package is equivalent to: include(cmake/Findzofu.cmake)
-    find_package(zofu REQUIRED)
-endif()
+option(ENABLE_GREENX_UNIT_TESTS "Enable GreenX Unit Testing" OFF)
 
 # Our library directories
-# MYZ: swicth off GreenX shared library such that librpa.so in install/lib directory
-# can work without GreenX libs at runtime
-option(BUILD_SHARED_LIBS "Build using shared libraries" OFF)
-add_subdirectory(GX-AnalyticContinuation)
+option(BUILD_SHARED_LIBS "Build using shared libraries" ON)
 add_subdirectory(GX-common)
-add_subdirectory(GX-TimeFrequency)
+option(AC_COMPONENT "Enable the Analytical Continuation component" ON)
+if (${AC_COMPONENT})
+   # Optional multiple precision arithmetic
+   option(ENABLE_GNU_GMP "Enable the GNU GMP library for multiple precision arithmetic" ON)
+   if (${ENABLE_GNU_GMP})
+      find_package(GMPXX)
+   endif()
+   add_subdirectory(GX-AnalyticContinuation)
+endif()
+option(MINIMAX_COMPONENT "Enable the minimax time-frequency grids component" ON)
+if (${MINIMAX_COMPONENT})
+   add_subdirectory(GX-TimeFrequency)
+endif ()
+
+option (LBASIS_COMPONENT "Enable the localized basis component" OFF) 
+if (${LBASIS_COMPONENT})
+   add_subdirectory(GX-LocalizedBasis)
+endif()
+
+# Elements to compile the libraries inside submodules
+option(COMPILE_SUBMODULES "Compile GreenX component contained inside submodules" OFF)
+if (${COMPILE_SUBMODULES})
+  # zofu is needed for IDieL regression tests
+  if (${ENABLE_GREENX_UNIT_TESTS})
+    # Function for generating unit test executables (assumes Zofu)
+    include(cmake/unit_test_functions.cmake)
+    # find ZOFU in $ZOFU_PATH or build on the fly
+    include(cmake/Findzofu.cmake)
+  endif()
+endif()
 
 # Documentation
-option(ENABLE_DOCS "Enable documentation" OFF)
-if (${ENABLE_DOCS})
-    find_program(DOXYGEN doxygen REQUIRED)
-    message("-- Doxygen documentation support enabled.")
-    set(doxy_output "documentation")
-    file(MAKE_DIRECTORY ${doxy_output})
-    add_custom_target(docs COMMAND ${DOXYGEN} ${PROJECT_SOURCE_DIR}/Doxyfile)
+option(ENABLE_GREENX_DOCS "Enable documentation" OFF)
+if (${ENABLE_GREENX_DOCS})
+  find_program(DOXYGEN doxygen REQUIRED)
+  message("-- Doxygen documentation support enabled.")
+  set(doxy_output "documentation")
+  file(MAKE_DIRECTORY ${doxy_output})
+  add_custom_target(docs COMMAND ${DOXYGEN} ${PROJECT_SOURCE_DIR}/Doxyfile)
 endif ()
 
 # Set installation location
-# if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
-#     set(default_install_prefix "${PROJECT_SOURCE_DIR}/install")
-#     set(CMAKE_INSTALL_PREFIX ${default_install_prefix}
-#             CACHE STRING "Choose the installation directory. Default location is ${default_install_prefix}"
-#             FORCE)
-# endif()
+if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+  set(default_install_prefix "${PROJECT_SOURCE_DIR}/install")
+  set(CMAKE_INSTALL_PREFIX ${default_install_prefix}
+    CACHE STRING "Choose the installation directory. Default location is ${default_install_prefix}"
+    FORCE)
+endif()
+
+install(
+    EXPORT      greenXTargets
+    NAMESPACE   greenX::
+    FILE        greenXTargets.cmake
+    DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/greenX"
+)
+
+configure_file("${PROJECT_SOURCE_DIR}/cmake/greenXConfig.cmake.in"
+               "${PROJECT_BINARY_DIR}/greenXConfig.cmake" @ONLY)
+
+install(
+    FILES "${PROJECT_BINARY_DIR}/greenXConfig.cmake"
+    DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/greenX"
+)
+
+install(
+  FILES "${PROJECT_SOURCE_DIR}/cmake/Findzofu.cmake"
+  DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/greenX"
+)
+install(
+  FILES "${PROJECT_SOURCE_DIR}/cmake/FindGMPXX.cmake"
+  DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/greenX"
+)

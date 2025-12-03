@@ -39,7 +39,7 @@ if (DEFINED USE_GREENX_API)
   endif()
 endif()
 # Hash number of the bundled greenX. Keep it consistent with thirdparty/greenX
-set(BUNDLED_GREENX_COMMIT_HASH "6ff8a00")
+set(BUNDLED_GREENX_COMMIT_HASH "c90d131")
 
 # Add cmake load files
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")

@@ -1,5 +1,13 @@
 # GreenX Library - TimeFrequency
 
+This library provides optimal quadrature grid points and weights for imaginary time-frequency transforms, commonly 
+occurring in MP2, RPA and Green's function methods. Optimisation is performed with the Minimax procedure, minimising the
+maximum error of the quadrature. This typically results in an error that is more evenly distributed across the interval 
+of interest. Grids are provided with n-points ranging from 6 to 34, and for different values of the transition energy 
+ratios Rm (on average 15 R-values for each grid point).
+
+For additional details, please refer to the corresponding JOSS paper, included [here](../JOSS).
+
 ## Building
 
 With CMake, change to the GreenX root, then type:
@@ -14,7 +22,7 @@ make install
 ## Running the Tests
 
 Application tests are run with the pytest framework. Having installed `pygreenx`
-(see the top-level README) change to `<GX_ROOT>/<BUILD_DIR>` and type `ctest`. 
+(see the top-level [README](../README.md)) change to `<GX_ROOT>/<BUILD_DIR>` and type `ctest`. 
 Additionally, one can change to the test folder and explicitly run the pytest 
 command from there:
 
@@ -27,42 +35,7 @@ pytest -s test_name.py
 
 ## Calling the MiniMax Library
 
-The minimax grid generation is called like so:
-
-```fortran
-use gx_minimax, only: gx_minimax_grid
-
-! Declarations
-integer :: n_mesh_points
-real(dp) :: e_transition_min, e_transition_max
-real(dp), allocatable :: tau_mesh(:), tau_weights(:)
-real(dp), allocatable :: freq_mesh(:), freq_weights(:)
-real(dp), allocatable :: cos_tau_to_freq_weights(:, :)
-real(dp), allocatable :: cos_freq_to_tau_weights(:, :)
-real(dp), allocatable :: sinft_tau_to_freq_weights(:, :)
-real(dp) :: max_errors(3)
-real(dp) :: cosft_duality_error
-integer :: ierr
-
-call gx_minimax_grid(n_mesh_points, e_transition_min, e_transition_max, &
-                     tau_mesh, tau_weights, &
-                     freq_mesh, freq_weights, &
-                     cos_tau_to_freq_weights, cos_freq_to_tau_weights, &
-                     sinft_tau_to_freq_weights, &
-                     max_errors, cosft_duality_error, ierr)
-```
-
-For a description of the variables, please consult `src/minimax_grids.F90`.
-For an example of how to call `gx_minimax_grid`, please consult `test/test_gx_minimax_grid.f90`.
-
-Additionally, one can also call a utility routine to query whether the 
-number of imaginary-time points has a corresponding grid tabulation:
-
-```fortran
-use api_utilites, only: gx_check_ntau, gx_get_error_message
-
-call gx_check_ntau(ntau, msg, ierr)
-```
+Information on how to use the library is always up-to-date on the [GreenX website](nomad-coe.github.io/greenX/).
 
 ## For Developers
 

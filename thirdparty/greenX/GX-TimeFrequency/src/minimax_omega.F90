@@ -1,5 +1,5 @@
 ! ***************************************************************************************************
-!  Copyright (C) 2020-2022 Green-X library                                                          
+!  Copyright (C) 2020-2023 GreenX library                                                          
 !  This file is distributed under the terms of the APACHE2 License.                                 
 !                                                                                                   
 ! ***************************************************************************************************
@@ -8,12 +8,14 @@
 !> The arrays containing the coefficients and weights are stored in the `er_aw_aux` derived type.
 !> To extend this module, add the new entries to `omega_npoints_supported`, `energy_ranges_grids`,
 !> and fill the corresponding arrays in the derived type.
+!> reference: [https://doi.org/10.1021/ct5001268](https://doi.org/10.1021/ct5001268)
+!> reference: [https://doi.org/10.1103/PhysRevB.94.165109](https://doi.org/10.1103/PhysRevB.94.165109)
 ! ***************************************************************************************************
 module minimax_omega
 #include "gx_common.h"
   use kinds,          only: dp
   use error_handling, only: register_exc
-  use minimax_utils,  only: find_erange, er_aw_aux
+  use minimax_utils,  only: er_aw_aux
   implicit none
 
   private
@@ -32,7 +34,7 @@ contains
   !> \brief Stores the minimax coefficients for all supported grid sizes
   !! @param[in]  grid_size - grid size
   !! @param[inout] aw - derived type of energy ranges and coefficients:weights
-  subroutine set_aw_array(grid_size, aw)
+  subroutine set_aw_array_omega(grid_size, aw)
     integer, intent(in)            :: grid_size
     type(er_aw_aux), intent(inout) :: aw
 
@@ -71,7 +73,7 @@ contains
     case(8)
        aw%energy_range(:) = [10.0000_dp,15.8489_dp,25.1189_dp,39.8107_dp,63.0957_dp,100.0000_dp,158.4893_dp,251.1886_dp,398.1072_dp,&
           630.9573_dp,1000.0000_dp,1584.8932_dp,2511.8864_dp]
-       aw%aw_erange_matrix(:,1) = [0.2071657943_dp,0.6610068185_dp,1.2441397724_dp,2.0831497522_dp,3.3887988553_dp,5.5847789422_dp,9.8270353946_dp,1.7281350381_dp,0.4207454390_dp,&
+       aw%aw_erange_matrix(:,1) = [0.2071657943_dp,0.6610068185_dp,1.2441397724_dp,2.0831497522_dp,3.3887988553_dp,5.5847789422_dp,9.8270353946_dp,21.7281350381_dp,0.4207454390_dp,&
           0.5014976440_dp,0.6851766586_dp,1.0262600603_dp,1.6496784456_dp,2.9041456023_dp,6.2037554522_dp,23.2093654407_dp]
        aw%aw_erange_matrix(:,2) = [0.2281975509_dp,0.7378108396_dp,1.4244318649_dp,2.4707104240_dp,4.1905418464_dp,7.2131597201_dp,13.1990042083_dp,29.9997176794_dp,0.4649882690_dp,&
           0.5742245008_dp,0.8283885406_dp,1.3139969363_dp,2.2222991557_dp,4.0573273175_dp,8.7886716040_dp,32.6307167054_dp]
@@ -2174,8 +2176,7 @@ contains
             809207.8445405798_dp,  2126855.0754410354_dp,  6223266.011027118_dp,  21236461.045184538_dp,  92901077.9747871_dp,  681507114.6255051_dp]
     end select
 
-  end subroutine set_aw_array
-
+  end subroutine set_aw_array_omega
 
   !> \brief Unpacks the minimax coefficients for the desired energy range
   !! @param[in] grid_size - size of the grid
@@ -2183,54 +2184,42 @@ contains
   !! @param[inout] ac_we - vector containing coefficients and weights
   !! @param[out] ierr - error code
   subroutine get_points_weights_omega(grid_size, e_range, ac_we, ierr)
-    integer, intent(in)                                         :: grid_size
-    real(kind=dp), intent(in)                                   :: e_range
-    real(kind=dp), dimension(2* grid_size), intent(inout)       :: ac_we
-    integer, intent(out)                                        :: ierr
+    integer, intent(in)                                    :: grid_size
+    real(kind=dp), intent(in)                              :: e_range
+    real(kind=dp), dimension(2* grid_size), intent(inout)  :: ac_we
+    integer, intent(out)                                   :: ierr
 
     !> Internal variables
-    integer                                                     :: ien, kloc, bup
-    type(er_aw_aux)                                             :: aw
-    real(kind=dp)                                               :: e_ratio
-
+    integer                                                :: kloc, bup
+    type(er_aw_aux)                                        :: aw
+    real(kind=dp)                                          :: e_ratio
 
     !> Begin work
     ierr = 0
-
-    if (any(omega_npoints_supported == grid_size)) then
-       ! Find location of grid size
-       kloc = findloc(omega_npoints_supported, grid_size, 1)
-       bup = energy_ranges_grids(kloc)
-
-       ! Allocate and set type elements
-       allocate(aw%energy_range(bup))
-       allocate(aw%aw_erange_matrix(2*grid_size, bup+1))
-       call set_aw_array(grid_size, aw)
-
-       ! Select energy region
-       ien = find_erange(bup, aw%energy_range, e_range)
-
-       ! Scale grids for large sizes when erange falls in the
-       ! first energy range
-       e_ratio = 1.0_dp
-       if (ien == 1 .and. grid_size > 20) then
-          e_ratio = aw%energy_range(1)/e_range
-          if (e_ratio > 1.5_dp) then
-             e_ratio = e_ratio/1.5_dp
-          endif
-       end if
-
-       ac_we(:) = aw%aw_erange_matrix(:, ien)
-
-       ac_we(:) = ac_we(:) / e_ratio
-
-       ! Deallocate
-       deallocate(aw%energy_range)
-       deallocate(aw%aw_erange_matrix)
-    else
+    if (.not. any(omega_npoints_supported == grid_size)) then
        ierr = 1
        _REGISTER_EXC("The grid size you chose is not available.")
+       return
     end if
+
+    ! Find location of grid size
+    kloc = findloc(omega_npoints_supported, grid_size, 1)
+    bup = energy_ranges_grids(kloc)
+
+    ! Allocate and set type elements
+    allocate(aw%energy_range(bup))
+    allocate(aw%aw_erange_matrix(2*grid_size, bup+1))
+    call set_aw_array_omega(grid_size, aw)
+
+    ! Get coefficients and weights
+    e_ratio = 1.0_dp
+    call aw%get_coeff_weight(grid_size, bup, e_range, ac_we, e_ratio)
+    ac_we(:) = ac_we(:) / e_ratio
+
+    ! Deallocate
+    deallocate(aw%energy_range)
+    deallocate(aw%aw_erange_matrix)
+
   end subroutine get_points_weights_omega
 
 end module minimax_omega

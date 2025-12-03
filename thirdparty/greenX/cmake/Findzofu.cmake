@@ -27,70 +27,58 @@
 #   work because there's no guarantee that the library has already been build at
 #   CMake configuration time.
 
-# Pass path to Zofu install location to CMake
-set(ZOFU_PATH "" CACHE STRING "Location of Zofu unit-testing library")
-
+# if ZOFU_PATH given, try to find it
 if (ZOFU_PATH)
-    find_library(LibZofu NAME "libzofu" "zofu" HINTS "${ZOFU_PATH}/lib")
-
-    # All targets get this added to their include path.
-    # Note, the default is `finclude` so this will break if instructions are not followed
-    set(ZOFU_INCLUDE_PATH ${ZOFU_PATH}/include)
-    include_directories(${ZOFU_INCLUDE_PATH})
-
-    # Program that generates a unit test driver given a test module.
-    set(ZOFU_DRIVER ${ZOFU_PATH}/bin/zofu-driver)
+  find_library(LibZofu NAME "libzofu" "zofu" HINTS "${ZOFU_PATH}/lib")
 endif()
 
-# NOTE(ALEX)
-# This all works, however line 72-73 in unit_test_functions.cmake will then require
-# `target_link_libraries(${FUNC_TEST_NAME} LibZofu ${FUNC_REQUIRED_LIBS})`
-# rather than
-# `target_link_libraries(${FUNC_TEST_NAME} ${LibZofu} ${FUNC_REQUIRED_LIBS})`
-# if ExternalProject_Add is used, and I do not immediately know how to reconcile this
-# Hence, I've commented it out and provided build instructions for Zofu
-
-# If the library is not found (either not installed, or the path is wrong) clone, build and install.
-#if (NOT LibZofu)
-#    if (NOT ZOFU_PATH STREQUAL "")
-#        message("-- ZOFU_PATH was set but Zofu library was not found at that location.")
-#    endif()
-#
-#    message("-- Cloning and installing Zofu")
-#    set(ZOFU_PATH "${CMAKE_SOURCE_DIR}/external/zofu/install")
-#
-#    include(ExternalProject)
-#
-#    # Note, this will run at build time, NOT configure time
-#    ExternalProject_Add(INTERAL_ZOFU
-#            GIT_REPOSITORY https://github.com/acroucher/zofu     # Repo https
-#            SOURCE_DIR     ${CMAKE_SOURCE_DIR}/external/zofu     # Location to clone to
-#            GIT_SHALLOW    TRUE                                  # git clone --depth 1 to avoid downloading the whole history
-#            GIT_PROGRESS   TRUE                                  # Report progress of git clone. More verbose CMake output
-#            BUILD_ALWAYS   TRUE
-#            CMAKE_ARGS -DCMAKE_BUILD_TYPE=release -DCMAKE_INSTALL_PREFIX=${ZOFU_PATH} -DZOFU_FORTRAN_MODULE_INSTALL_DIR:PATH=include
-#            BUILD_COMMAND make
-#            INSTALL_COMMAND make install
-#            )
-#
-#    set(ZOFU_INCLUDE_PATH ${ZOFU_PATH}/include)
-#    include_directories(${ZOFU_INCLUDE_PATH})
-#
-#    set(ZOFU_DRIVER ${ZOFU_PATH}/bin/zofu-driver)
-#
-#    add_library(LibZofu STATIC IMPORTED)
-#    add_dependencies(LibZofu INTERAL_ZOFU)
-#
-#    set_target_properties(LibZofu PROPERTIES
-#            IMPORTED_LOCATION "${ZOFU_PATH}/lib/libzofu.a"
-#            INTERFACE_INCLUDE_DIRECTORIES "${ZOFU_INCLUDE_PATH}"
-#            )
-#endif ()
-
-
+# if found, use it; else: build on the fly
 if (LibZofu)
-    message("-- Found LibZofu ${LibZofu}")
-    message("-- LibZofu's module path: ${ZOFU_INCLUDE_PATH}")
+  message("-- Found LibZofu ${LibZofu}")
+
+  # Check for multiple possible include directories
+  if (EXISTS "${ZOFU_PATH}/include")
+    set(ZOFU_INCLUDE_PATH "${ZOFU_PATH}/include")
+  elseif (EXISTS "${ZOFU_PATH}/finstall/zofu")
+    set(ZOFU_INCLUDE_PATH "${ZOFU_PATH}/finstall/zofu")
+  else()
+    message(FATAL_ERROR "No suitable Zofu include directory found.")
+  endif()
+  include_directories(${ZOFU_INCLUDE_PATH})
+
+  # Program that generates a unit test driver given a test module.
+  set(ZOFU_DRIVER ${ZOFU_PATH}/bin/zofu-driver)
+
+  message("-- LibZofu's module path: ${ZOFU_INCLUDE_PATH}")
 else()
-    message("-- LibZofu not built at configure time")
+  message("-- LibZofu not found")
+  # Build zofu at compile time
+  set(ZOFU_BUILD_ON_FLY TRUE) 
+  set(ZOFU_PATH_ROOT "${CMAKE_BINARY_DIR}/external/zofu")
+
+  ExternalProject_Add(
+      zofu
+      PREFIX ${ZOFU_PATH_ROOT}  # Directory to download and build the project
+      GIT_REPOSITORY https://github.com/acroucher/zofu.git  # GitHub repository URL
+      GIT_TAG master  # Specific branch, tag, or commit
+      CMAKE_ARGS
+          -DCMAKE_BUILD_TYPE=release
+          -DCMAKE_INSTALL_PREFIX=${ZOFU_PATH_ROOT}/install
+          -DZOFU_FORTRAN_MODULE_INSTALL_DIR:PATH=include
+      UPDATE_COMMAND ""  # Leave this empty to avoid re-downloading on every build
+      TEST_COMMAND ""  # No test step
+  )
+
+  # set the zofu library 
+  set(LibZofu "${ZOFU_PATH_ROOT}/install/lib/libzofu.a")
+
+  # set the zofu library include directory
+  set(ZOFU_INCLUDE_PATH "${ZOFU_PATH_ROOT}/install/include")
+  include_directories(${ZOFU_INCLUDE_PATH})
+
+  # Program that generates a unit test driver given a test module.
+  set(ZOFU_DRIVER ${ZOFU_PATH_ROOT}/install/bin/zofu-driver)
+
+  message("-- LibZofu will be built in ${ZOFU_PATH_ROOT}")
+  message("-- LibZofu's module path: ${ZOFU_INCLUDE_PATH}")
 endif()
