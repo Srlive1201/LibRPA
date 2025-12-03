@@ -76,7 +76,7 @@ jobs:
         run: |
           source /opt/intel/oneapi/setvars.sh
           export BUILDDIR="build_fortran_bind"
-          CXX=mpiicpx FC=ifx cmake -DUSE_LIBRI=OFF -DBUILD_SHARED_LIBS=OFF -DENABLE_FORTRAN_BIND=ON -B $BUILDDIR -DENABLE_TEST=OFF
+          CXX=mpiicpx FC=mpiifx cmake -DUSE_LIBRI=OFF -DBUILD_SHARED_LIBS=OFF -DENABLE_FORTRAN_BIND=ON -B $BUILDDIR -DENABLE_TEST=OFF
           cmake --build $BUILDDIR -j 2
       - name: Save last test log for check
         if: always()
