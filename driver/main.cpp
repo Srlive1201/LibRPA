@@ -69,7 +69,7 @@ static void finalize(bool success)
     mpi_comm_global_h.barrier();
     librpa::finalize_global();
 
-    if (is_root)
+    if (is_root == 0)
     {
         profiler.display();
         if (success)
