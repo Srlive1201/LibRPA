@@ -22,7 +22,6 @@ set(FORTRAN_LIB_NAME    "rpa_f03")
 # options setup
 option(USE_LIBRI            "Use LibRI for tensor contraction" OFF)
 option(USE_CMAKE_INC        "Use cmake.inc for configure" OFF)
-option(USE_GREENX_API       "Use GreenX API for minimax grids generation" OFF)
 option(USE_EXTERNAL_GREENX  "Use external GreenX library rather than the packaged one" OFF)
 option(ENABLE_TEST          "Flag to build unit tests" ON)
 option(ENABLE_DRIVER        "Flag to build driver executables" ON)
@@ -32,8 +31,14 @@ option(VERBOSE_OUTPUT       "Flag to print verbose information in stdout and pro
 option(BUILD_LIBRPA_SHARED  "Flag to build shared libraries" ON)
 
 if (DEFINED USE_GREENX_MINIMAX)
-  message(FATAL_ERROR "USE_GREENX_MINIMAX is deprecated. Please use USE_GREENX_API")
+  message(FATAL_ERROR "USE_GREENX_MINIMAX is deprecated: GreenX is now always used. Please remove USE_GREENX_MINIMAX")
 endif()
+if (DEFINED USE_GREENX_API)
+  if (NOT USE_GREENX_API)
+    message(FATAL_ERROR "USE_GREENX_API is deprecated: GreenX is now always used. Please remove USE_GREENX_API")
+  endif()
+endif()
+
 
 # Add cmake load files
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
@@ -56,11 +61,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 # enable_language later than cmake.inc to take the variables therein into accout
 # require Fortran for GreenX library and Fortran binding
-if(USE_GREENX_API OR ENABLE_FORTRAN_BIND)
-  enable_language(CXX Fortran)
-else()
-  enable_language(CXX)
-endif()
+enable_language(CXX Fortran)
 
 # bypass the deprecation warning of classic C++ of oneAPI
 if(CMAKE_CXX_COMPILER_ID MATCHES Intel)
@@ -194,13 +195,9 @@ if(VERBOSE_OUTPUT)
 endif()
 
 # Switch on GreenX
-if(USE_GREENX_API)
-  if(NOT USE_EXTERNAL_GREENX)
-    message(STATUS "Generate MiniMax grids by using API of GreenX library")
-    add_subdirectory(./thirdparty/greenX-6ff8a00)
-  endif()
-else()
-  message(STATUS "Generate MiniMax grids by loading plain data accessed from old GreenX repository")
+if(NOT USE_EXTERNAL_GREENX)
+  message(STATUS "Generate MiniMax grids by using the GreenX library bundled (collected from commit 6ff8a00)")
+  add_subdirectory(./thirdparty/greenX-6ff8a00)
 endif()
 
 if(ENABLE_FORTRAN_BIND)
