@@ -86,7 +86,7 @@ int get_node_free_mem(double &free_mem)
     {
         while (fgets(line, sizeof(line), fp))
         {
-            if (sscanf(line, "MemAvailable: %d kB", &value) == 1)
+            if (sscanf(line, "MemAvailable: %ld kB", &value) == 1)
             {
                 retcode = 0;
                 break;
