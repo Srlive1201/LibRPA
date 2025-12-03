@@ -4,7 +4,12 @@
 # - https://stackoverflow.com/questions/19278510/cmake-ctest-add-test-command-appends-extra-quotes-to-my-command-parameters
 macro(config_test TARGET NUMPROC)
   add_executable(${TARGET} ${TARGET}.cpp)
-  target_link_libraries(${TARGET} PRIVATE rpa_lib ${math_libs} ${parallel_libs})
+  target_link_libraries(${TARGET} PRIVATE rpa_lib)
+  # Math and MPI symbols will have been included in rpa_lib for static library case.
+  # Only link them when shared library is built.
+  if(BUILD_SHARED_LIBS)
+    target_link_libraries(${TARGET} PRIVATE ${math_libs} ${parallel_libs})
+  endif()
   # TODO: separate libri test targets
   if(USE_LIBRI)
     target_include_directories(${TARGET}

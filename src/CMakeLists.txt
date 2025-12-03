@@ -6,11 +6,13 @@
 #   LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}
 #   RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
 
-if (BUILD_LIBRPA_SHARED)
+if (BUILD_SHARED_LIBS)
   add_library(rpa_lib SHARED)
 else()
   add_library(rpa_lib STATIC)
 endif()
+
+add_dependencies(rpa_lib LibGXMiniMax)
 
 set_target_properties(rpa_lib PROPERTIES
   OUTPUT_NAME ${LIB_NAME}
@@ -18,8 +20,18 @@ set_target_properties(rpa_lib PROPERTIES
   SOVERSION ${CMAKE_PROJECT_VERSION}
 )
 
+target_link_libraries(rpa_lib PRIVATE LibGXMiniMax)
+target_include_directories(rpa_lib PRIVATE
+  $<TARGET_PROPERTY:LibGXMiniMax,Fortran_MODULE_DIRECTORY>
+)
+
+target_include_directories(rpa_lib
+  PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${PROJECT_SOURCE_DIR}/include
+  )
 configure_file(utils/envs_cmake.cpp.in envs_cmake.cpp)
-configure_file(utils/envs_cmake.h envs_cmake.h)
+configure_file(utils/envs_cmake.h envs_cmake.h)  # only to make the configured envs_cmake.cpp compile
 
 list(APPEND lib_sources
         ${CMAKE_CURRENT_BINARY_DIR}/envs_cmake.cpp
@@ -46,6 +58,7 @@ list(APPEND lib_sources
         core/geometry.cpp
         core/gw.cpp
         core/meanfield.cpp
+        core/minimax_gx.cpp
         core/pbc.cpp
         core/qpe_solver.cpp
         core/ri.cpp
@@ -54,6 +67,8 @@ list(APPEND lib_sources
 
         io/global_io.cpp
         io/fs.cpp
+
+        interface/gx_minimax_wrp.f90
 
         math/complexmatrix.cpp
         math/fitting.cpp
@@ -75,19 +90,6 @@ list(APPEND lib_sources
         utils/utils_mem.cpp
 )
 
-  list(APPEND lib_sources core/minimax_gx.cpp interface/gx_minimax_wrp.f90)
-  # target_link_libraries(rpa_lib PRIVATE GXCommon LibGXMiniMax)
-  target_link_libraries(rpa_lib PRIVATE LibGXMiniMax)
-  target_include_directories(rpa_lib
-    PRIVATE ${PROJECT_BINARY_DIR}/thirdparty/greenX-6ff8a00/modules
-    )
-
-target_include_directories(rpa_lib
-  PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}
-    ${PROJECT_SOURCE_DIR}/include
-  )
-
 if(USE_LIBRI)
   target_include_directories(rpa_lib
     PUBLIC
@@ -99,13 +101,12 @@ endif()
 
 # source must be PRIVATE to avoid recompilation when linking driver to this library
 target_sources(rpa_lib PRIVATE ${lib_sources})
-target_link_libraries(rpa_lib PUBLIC ${math_libs} ${parallel_libs})
+target_link_libraries(rpa_lib PRIVATE ${math_libs} ${parallel_libs})
 
 install(TARGETS rpa_lib
         ARCHIVE
         DESTINATION ${CMAKE_INSTALL_LIBDIR})
 install(FILES
-        ${PROJECT_SOURCE_DIR}/src/api/librpa.h
         DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
 if(ENABLE_TEST)
