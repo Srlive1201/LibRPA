@@ -88,9 +88,9 @@ endif()
 option(ENABLE_GREENX_UNIT_TESTS "Enable GreenX Unit Testing" OFF)
 
 # Our library directories
-option(BUILD_SHARED_LIBS "Build using shared libraries" ON)
+# option(BUILD_SHARED_LIBS "Build using shared libraries" ON)
 add_subdirectory(GX-common)
-option(AC_COMPONENT "Enable the Analytical Continuation component" ON)
+option(AC_COMPONENT "Enable the Analytical Continuation component" OFF)
 if (${AC_COMPONENT})
    # Optional multiple precision arithmetic
    option(ENABLE_GNU_GMP "Enable the GNU GMP library for multiple precision arithmetic" ON)

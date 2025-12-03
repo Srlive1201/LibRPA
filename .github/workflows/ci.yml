@@ -45,7 +45,7 @@ jobs:
       - name: Install python dependency
         run: |
           pip install --user pytest scipy
-          cd thirdparty/greenX-6ff8a00/python && python setup.py install --verbose --user
+          cd thirdparty/greenX/python && python setup.py install --verbose --user
       - name: Install tools including oneAPI
         if: steps.cache-install.outputs.cache-hit != 'true'
         run: |
