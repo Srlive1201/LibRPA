@@ -1,4 +1,4 @@
-if (BUILD_LIBRPA_SHARED)
+if (BUILD_SHARED_LIBS)
   add_library(rpa_f03_lib SHARED)
 else()
   add_library(rpa_f03_lib STATIC)
