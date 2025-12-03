@@ -67,6 +67,7 @@ public:
     void set(int ns, int nk, int nb, int nao, int nk_local, int nb_local, int nao_local);
     MeanField(const MeanField&);
     inline int get_n_bands() const { return n_bands; }
+    inline int get_n_states() const { return n_bands; } // alias
     inline int get_n_spins() const { return n_spins; }
     inline int get_n_kpoints() const { return n_kpoints; }
     inline int get_n_aos() const { return n_aos; }
