@@ -11,7 +11,7 @@ int librpa_get_major_version(void);
 
 int librpa_get_minor_version(void);
 
-int librpa_get_micro_version(void);
+int librpa_get_patch_version(void);
 
 void librpa_init_global(LibrpaSwitch switch_redirect_stdout = LIBRPA_SWITCH_OFF, const char *redirect_path = "stdout",
                         LibrpaSwitch switch_process_output = LIBRPA_SWITCH_ON);

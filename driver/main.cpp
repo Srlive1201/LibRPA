@@ -65,21 +65,22 @@ static void finalize(bool success)
     driver::h.free();
     profiler.stop("driver_total");
 
+    int is_root = mpi_comm_global_h.myid;
     mpi_comm_global_h.barrier();
-    if (mpi_comm_global_h.is_root())
+    librpa::finalize_global();
+
+    if (is_root)
     {
         profiler.display();
         if (success)
         {
-            lib_printf("libRPA finished successfully\n");
+            printf("libRPA finished successfully\n");
         }
         else
         {
-            lib_printf("libRPA failed\n");
+            printf("libRPA failed\n");
         }
     }
-    mpi_comm_global_h.barrier();
-    librpa::finalize_global();
 
     MPI_Finalize();
 }

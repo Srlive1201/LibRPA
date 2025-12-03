@@ -1,7 +1,11 @@
 #include "global_mpi.h"
 
-#include <stdexcept>
 #include "librpa_enums.h"
+
+#include <stdexcept>
+#include <iostream>
+
+#include "../utils/error.h"
 
 namespace librpa_int
 {
@@ -34,9 +38,7 @@ void init_global_mpi()
     MPI_Initialized(&flag);
     if (flag == 0)
     {
-        throw std::runtime_error(
-            std::string(__FILE__) + ":" + std::to_string(__LINE__) + ":" + std::string(__FUNCTION__) + ": "
-            "MPI_Init or MPI_Init_thread must be called before " + std::string(__FUNCTION__));
+        throw LIBRPA_RUNTIME_ERROR("MPI_Init or MPI_Init_thread must be called before init_global_mpi");
     }
 
     mpi_comm_global = MPI_COMM_WORLD;
@@ -84,6 +86,8 @@ bool is_mpi_initialized()
 
 void finalize_global_mpi()
 {
+    // Not initialized, just return
+    if (!is_mpi_initialized()) return;
     procname = "not-init";
     mpi_comm_global_h.reset_comm();
     mpi_comm_inter_h.reset_comm();

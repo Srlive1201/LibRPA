@@ -41,7 +41,7 @@ int get_major_version(void);
 
 int get_minor_version(void);
 
-int get_micro_version(void);
+int get_patch_version(void);
 
 void init_global(Switch switch_redirect_stdout = LIBRPA_SWITCH_OFF, const char *redirect_path = "stdout",
                  Switch switch_process_output = LIBRPA_SWITCH_ON);

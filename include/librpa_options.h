@@ -8,6 +8,9 @@ extern "C" {
 
 #define LIBRPA_MAX_STRLEN 200
 
+// NOTE: in case the data layout of LibrpaOptions is changed,
+// its Fortran binding should be adapted acoordingly.
+
 typedef struct
 {
     /* ============================================================================= */

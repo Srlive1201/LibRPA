@@ -1,234 +1,207 @@
 module librpa_f03
 
-   use iso_c_binding, only: c_char, c_int, c_double
+   use iso_c_binding, only: c_char, c_ptr, c_int, c_double, c_null_ptr
    implicit none
 
    private
-   public :: LibRPAParams
-   public :: initialize_librpa_environment
-   public :: finalize_librpa_environment
-   public :: get_rpa_correlation_energy
-   public :: set_dimension
-   public :: set_wg_ekb_efermi
-   public :: set_ao_basis_wfc
-   public :: set_latvec_and_G
-   public :: set_kgrids_kvec_tot
-   public :: set_ibz2bz_index_and_weight
-   public :: set_ao_basis_aux
-   public :: set_aux_bare_coulomb_k_2D_block
-   public :: set_aux_cut_coulomb_k_atom_pair
-   public :: set_aux_bare_coulomb_k_atom_pair
-   public :: set_aux_cut_coulomb_k_2D_block
-   public :: set_librpa_params
-   public :: get_default_librpa_params
-   public :: run_librpa_main
 
-   !!! Interface declaration
+   !=======================================================================
+   ! Public types, constants, and functions
+   !=======================================================================
+   public :: LibrpaOptions
+   public :: LibrpaHandler
 
-   !> @brief User interface for control parameters in LibRPA
-   type :: LibRPAParams
-      character(len=100) :: output_file
-      character(len=100) :: output_dir
-      character(len=20)  :: parallel_routing
-      character(len=20)  :: tfgrids_type
-      character(len=20)  :: DFT_software
+   integer, parameter, public :: LIBRPA_MAX_STRLEN = 200
 
-      integer :: nfreq
+   integer, parameter, public :: LIBRPA_VERBOSE_DEBUG = 4
+   integer, parameter, public :: LIBRPA_VERBOSE_WARN = 3
+   integer, parameter, public :: LIBRPA_VERBOSE_INFO = 2
+   integer, parameter, public :: LIBRPA_VERBOSE_CRITICAL = 1
+   integer, parameter, public :: LIBRPA_VERBOSE_SILENT = 0
 
-      logical :: debug
-      logical :: use_scalapack_ecrpa
+   integer, parameter :: LIBRPA_UNSET = -101
+   integer, parameter :: LIBRPA_AUTO = -51
 
-      real*8 :: gf_R_threshold
-      real*8 :: cs_threshold
-      real*8 :: vq_threshold
-      real*8 :: sqrt_coulomb_threshold
-      real*8 :: libri_chi0_threshold_C
-      real*8 :: libri_chi0_threshold_G
-      real*8 :: libri_exx_threshold_C
-      real*8 :: libri_exx_threshold_D
-      real*8 :: libri_exx_threshold_V
-      real*8 :: libri_gw_threshold_C
-      real*8 :: libri_gw_threshold_G
-      real*8 :: libri_gw_threshold_W
-   end type LibRPAParams
+   ! Parallel routing
+   integer, parameter, public :: LIBRPA_ROUTING_UNSET = LIBRPA_UNSET
+   integer, parameter, public :: LIBRPA_ROUTING_AUTO = LIBRPA_AUTO
+   integer, parameter, public :: LIBRPA_ROUTING_RTAU = 0
+   integer, parameter, public :: LIBRPA_ROUTING_ATOMPAIR = 1
+   integer, parameter, public :: LIBRPA_ROUTING_LIBRI = 2
 
-   !> @brief C interface to the LibRPAParams struct
-   type, bind(c) :: LibRPAParams_c
-      character(kind=c_char, len=1) :: output_file(100)
-      character(kind=c_char, len=1) :: output_dir(100)
-      character(kind=c_char, len=1) :: parallel_routing(20)
-      character(kind=c_char, len=1) :: tfgrids_type(20)
-      character(kind=c_char, len=1) :: DFT_software(20)
+   ! Time-frequency grid types
+   integer, parameter, public :: LIBRPA_TFGRID_UNSET = LIBRPA_UNSET
+   integer, parameter, public :: LIBRPA_TFGRID_GL = 0
+   integer, parameter, public :: LIBRPA_TFGRID_GCI= 1
+   integer, parameter, public :: LIBRPA_TFGRID_GCII = 2
+   integer, parameter, public :: LIBRPA_TFGRID_MINIMAX = 3
+   integer, parameter, public :: LIBRPA_TFGRID_EVENSPACED = 4
+   integer, parameter, public :: LIBRPA_TFGRID_EVENSPACED_TF = 5
 
-      integer(c_int) :: nfreq
+   public :: librpa_init_global
+   public :: librpa_finalize_global
+   public :: librpa_get_major_version
+   public :: librpa_get_minor_version
+   public :: librpa_get_patch_version
 
-      integer(c_int) :: debug
-      integer(c_int) :: use_scalapack_ecrpa
+   !=======================================================================
+   integer(c_int), parameter :: LIBRPA_SWITCH_OFF = 0
+   integer(c_int), parameter :: LIBRPA_SWITCH_ON = 1
+   character(kind=c_char), allocatable, target, save :: redirect_path_buf(:)
 
-      real(c_double) :: gf_R_threshold
+   !===== C-side options type =====
+   ! Must have the same data layout as the struct in include/librpa_options.h
+   type, bind(c) :: LibrpaOptions_c
+      ! Common runtime control
+      character(kind=c_char, len=1) :: output_dir(LIBRPA_MAX_STRLEN)
+      integer(c_int) :: parallel_routing
+      integer(c_int) :: output_level
       real(c_double) :: cs_threshold
       real(c_double) :: vq_threshold
+      integer(c_int) :: use_soc
+      integer(c_int) :: tfgrids_type
+      integer(c_int) :: nfreq
+      real(c_double) :: tfgrids_freq_min
+      real(c_double) :: tfgrids_freq_interval
+      real(c_double) :: tfgrids_freq_max
+      real(c_double) :: tfgrids_time_min
+      real(c_double) :: tfgrids_time_interval
+
+      ! RPA specific
+      real(c_double) :: gf_threshold
+      integer(c_int) :: use_scalapack_ecrpa
+
+      ! GW specific
+      integer(c_int) :: n_params_anacon
+      integer(c_int) :: use_scalapack_gw_wc
+      integer(c_int) :: replace_w_head
+      integer(c_int) :: option_dielect_func
       real(c_double) :: sqrt_coulomb_threshold
       real(c_double) :: libri_chi0_threshold_C
       real(c_double) :: libri_chi0_threshold_G
       real(c_double) :: libri_exx_threshold_C
       real(c_double) :: libri_exx_threshold_D
       real(c_double) :: libri_exx_threshold_V
-      real(c_double) :: libri_gw_threshold_C
-      real(c_double) :: libri_gw_threshold_G
-      real(c_double) :: libri_gw_threshold_W
-   end type LibRPAParams_c
+      real(c_double) :: libri_g0w0_threshold_C
+      real(c_double) :: libri_g0w0_threshold_G
+      real(c_double) :: libri_g0w0_threshold_Wc
+
+      ! Output controls
+      integer(c_int) :: output_gw_sigc_mat
+      integer(c_int) :: output_gw_sigc_mat_rt
+      integer(c_int) :: output_gw_sigc_mat_rf
+   end type LibrpaOptions_c
+
+   ! High-level Fortran wrapper
+   type :: LibrpaOptions
+      type(LibrpaOptions_c), private :: opts_c
+
+      character(len=LIBRPA_MAX_STRLEN) :: output_dir
+      integer :: parallel_routing
+      integer :: output_level
+      real(8) :: cs_threshold
+      real(8) :: vq_threshold
+      logical :: use_soc
+      integer :: tfgrids_type
+      integer :: nfreq
+      real(8) :: tfgrids_freq_min
+      real(8) :: tfgrids_freq_interval
+      real(8) :: tfgrids_freq_max
+      real(8) :: tfgrids_time_min
+      real(8) :: tfgrids_time_interval
+      real(8) :: gf_threshold
+      logical :: use_scalapack_ecrpa
+      integer :: n_params_anacon
+      logical :: use_scalapack_gw_wc
+      logical :: replace_w_head
+      integer :: option_dielect_func
+      real(8) :: sqrt_coulomb_threshold
+      real(8) :: libri_chi0_threshold_C
+      real(8) :: libri_chi0_threshold_G
+      real(8) :: libri_exx_threshold_C
+      real(8) :: libri_exx_threshold_D
+      real(8) :: libri_exx_threshold_V
+      real(8) :: libri_g0w0_threshold_C
+      real(8) :: libri_g0w0_threshold_G
+      real(8) :: libri_g0w0_threshold_Wc
+      logical :: output_gw_sigc_mat
+      logical :: output_gw_sigc_mat_rt
+      logical :: output_gw_sigc_mat_rf
+
+      contains
+         procedure :: init => librpa_init_options
+   end type LibrpaOptions
 
    interface
-      subroutine initialize_librpa_environment( &
-         redirect_stdout, output_filename) bind(c, name="initialize_librpa_environment")
-         use, intrinsic :: iso_c_binding, only: c_int, c_char
-         integer(c_int), value :: redirect_stdout
-         character(kind=c_char), dimension(*), intent(in) :: output_filename
-      end subroutine
+      ! void librpa_init_options(LibrpaOptions *opts);
+      subroutine librpa_init_options_c(opts_c) bind(c, name="librpa_init_options")
+         import :: LibrpaOptions_c
+         type(LibrpaOptions_c) :: opts_c
+      end subroutine librpa_init_options_c
+   end interface
+
+   integer, parameter :: SYNC_OPTS_C2F = 1
+   integer, parameter :: SYNC_OPTS_F2C = -1
+
+   ! Global environment
+   interface
+      subroutine librpa_init_global_c(sw_redirect, path, sw_process) bind(c, name="librpa_init_global")
+         import :: c_int, c_char
+         integer(c_int), value :: sw_redirect
+         character(kind=c_char), dimension(*), intent(in) :: path
+         integer(c_int), value :: sw_process
+      end subroutine librpa_init_global_c
+
+      subroutine librpa_finalize_global_c() bind(c, name="librpa_finalize_global")
+      end subroutine librpa_finalize_global_c
+   end interface
+
+   ! Version information
+   interface
+      function librpa_get_major_version_c() bind(c, name="librpa_get_major_version")
+         import :: c_int
+         integer(c_int) :: librpa_get_major_version_c
+      end function librpa_get_major_version_c
+
+      function librpa_get_minor_version_c() bind(c, name="librpa_get_minor_version")
+         import :: c_int
+         integer(c_int) :: librpa_get_minor_version_c
+      end function librpa_get_minor_version_c
+
+      function librpa_get_patch_version_c() bind(c, name="librpa_get_patch_version")
+         import :: c_int
+         integer(c_int) :: librpa_get_patch_version_c
+      end function librpa_get_patch_version_c
+   end interface
+
+   ! High-level Fortran wrapper
+   type :: LibrpaHandler
+      type(c_ptr) :: ptr_c_handle = c_null_ptr
+      contains
+         procedure :: create  => librpa_create_handler
+         procedure :: destroy => librpa_destroy_handler
+   end type LibrpaHandler
+
+   interface
+      function librpa_create_handler_c(comm_c) bind(c, name="librpa_create_handler")
+         import :: c_ptr, c_int
+         integer(c_int), value :: comm_c
+         type(c_ptr) :: librpa_create_handler_c
+      end function librpa_create_handler_c
    end interface
 
    interface
-      subroutine finalize_librpa_environment() bind(c, name="finalize_librpa_environment")
-      end subroutine
-   end interface
-
-   interface
-      subroutine set_dimension(nspins, nkpts, nstates, nbasis, natoms) bind(c, name="set_dimension")
-         use, intrinsic :: iso_c_binding
-         integer(c_int), value :: nspins, nkpts, nstates, nbasis, natoms
-      end subroutine
-   end interface
-
-   interface
-      subroutine set_wg_ekb_efermi(nspins, nkpts, nstates, wg, ekb, efermi) bind(c, name="set_wg_ekb_efermi")
-         use, intrinsic :: iso_c_binding
-         integer(c_int), value :: nspins, nkpts, nstates
-         real(c_double), dimension(*), intent(inout) :: wg
-         real(c_double), dimension(*), intent(inout) :: ekb
-         real(c_double), value :: efermi
-      end subroutine
-   end interface
-
-   interface
-      subroutine set_ao_basis_wfc(nspins, nkpts, wfc_real, wfc_imag) bind(c, name="set_ao_basis_wfc")
-         use, intrinsic :: iso_c_binding
-         integer(c_int), value :: nspins, nkpts
-         real(c_double), dimension(*), intent(inout) :: wfc_real
-         real(c_double), dimension(*), intent(inout) :: wfc_imag
-      end subroutine
-   end interface
-
-   interface
-      subroutine set_latvec_and_G(lat_mat, G_mat) bind(c, name="set_latvec_and_G")
-         use, intrinsic :: iso_c_binding
-         real(c_double), dimension(*), intent(inout) :: lat_mat
-         real(c_double), dimension(*), intent(inout) :: G_mat
-      end subroutine
-   end interface
-
-   interface
-      subroutine set_kgrids_kvec_tot(nkx, nky, nkz, kvecs) bind(c, name="set_kgrids_kvec_tot")
-         use, intrinsic :: iso_c_binding
-         integer(c_int), value :: nkx, nky, nkz
-         real(c_double), dimension(*), intent(inout) :: kvecs
-      end subroutine
-   end interface
-
-   interface
-      subroutine set_ibz2bz_index_and_weight(nk_irk, ibz2bz_index, wk_irk) bind(c, name="set_ibz2bz_index_and_weight")
-         use, intrinsic :: iso_c_binding
-         integer(c_int), value :: nk_irk
-         integer(c_int), dimension(*), intent(inout) :: ibz2bz_index
-         real(c_double), dimension(*), intent(inout) :: wk_irk
-      end subroutine
-   end interface
-
-   interface
-      subroutine set_ao_basis_aux(I, J, nbasis_i, nbasis_j, naux_mu, R, Cs_in, insert_index_only) &
-            bind(c, name="set_ao_basis_aux")
-         use, intrinsic :: iso_c_binding
-         integer(c_int), value :: I, J, nbasis_i, nbasis_j, naux_mu
-         integer(c_int), dimension(3), intent(inout) :: R
-         real(c_double), dimension(*), intent(inout) :: Cs_in
-         integer(c_int), value :: insert_index_only
-      end subroutine
-   end interface
-
-   interface
-      subroutine set_aux_bare_coulomb_k_atom_pair(ik, I, J, naux_mu, naux_nu, Vq_real_in, Vq_imag_in) &
-            bind(c, name="set_aux_bare_coulomb_k_atom_pair")
-         use, intrinsic :: iso_c_binding
-         integer(c_int), value :: I, J, naux_mu, naux_nu, ik
-         real(c_double), dimension(*), intent(inout) :: Vq_real_in
-         real(c_double), dimension(*), intent(inout) :: Vq_imag_in
-      end subroutine
-   end interface
-
-   interface
-      subroutine set_aux_cut_coulomb_k_atom_pair(ik, I, J, naux_mu, naux_nu, Vq_real_in, Vq_imag_in) &
-            bind(c, name="set_aux_cut_coulomb_k_atom_pair")
-         use, intrinsic :: iso_c_binding
-         integer(c_int), value :: I, J, naux_mu, naux_nu, ik
-         real(c_double), dimension(*), intent(inout) :: Vq_real_in
-         real(c_double), dimension(*), intent(inout) :: Vq_imag_in
-      end subroutine
-   end interface
-
-   interface
-      subroutine set_aux_bare_coulomb_k_2D_block(ik, max_naux, mu_begin, mu_end, nu_begin, nu_end, Vq_real_in, Vq_imag_in) &
-            bind(c, name="set_aux_bare_coulomb_k_2D_block")
-         use, intrinsic :: iso_c_binding
-         integer(c_int), value :: ik, max_naux, mu_begin, mu_end, nu_begin, nu_end
-         real(c_double), dimension(*), intent(inout) :: Vq_real_in
-         real(c_double), dimension(*), intent(inout) :: Vq_imag_in
-      end subroutine
-   end interface
-
-   interface
-      subroutine set_aux_cut_coulomb_k_2D_block(ik, max_naux, mu_begin, mu_end, nu_begin, nu_end, Vq_real_in, Vq_imag_in) &
-            bind(c, name="set_aux_cut_coulomb_k_2D_block")
-         use, intrinsic :: iso_c_binding
-         integer(c_int), value :: ik, max_naux, mu_begin, mu_end, nu_begin, nu_end
-         real(c_double), dimension(*), intent(inout) :: Vq_real_in
-         real(c_double), dimension(*), intent(inout) :: Vq_imag_in
-      end subroutine
-   end interface
-
-   interface
-      subroutine run_librpa_main() bind(c, name="run_librpa_main")
-      end subroutine
-   end interface
-
-   interface
-      subroutine set_librpa_params_c(params_c) bind(c, name="set_librpa_params")
-         use, intrinsic :: iso_c_binding
-         import :: LibRPAParams_c
-         type(LibRPAParams_c), intent(in) :: params_c
-      end subroutine
-   end interface
-
-   interface
-      subroutine get_default_librpa_params_c(params_c) bind(c, name="get_default_librpa_params")
-         use, intrinsic :: iso_c_binding
-         import :: LibRPAParams_c
-         type(LibRPAParams_c), intent(inout) :: params_c
-      end subroutine
-   end interface
-
-   interface
-      subroutine get_rpa_correlation_energy(rpa_corr, rpa_corr_irk_contrib) bind(c, name="get_rpa_correlation_energy")
-         import :: c_double
-         real(c_double), dimension(2), intent(out) :: rpa_corr
-         real(c_double), dimension(*), intent(out) :: rpa_corr_irk_contrib
-      end subroutine
+      subroutine librpa_destroy_handler_c(h) bind(c, name="librpa_destroy_handler")
+         import :: c_ptr
+         type(c_ptr), value :: h
+      end subroutine librpa_destroy_handler_c
    end interface
 
 contains
 
    !> @brief Copy a Fortran character varaible to C char array
    !!
-   !> adapted from https://fortranwiki.org/fortran/show/c_interface_module
+   !> Adapted from https://fortranwiki.org/fortran/show/c_interface_module
    subroutine f_c_string_chars(f_string, c_string, c_string_len, trim_f)
       use iso_c_binding, only: c_null_char
       implicit none
@@ -241,8 +214,12 @@ contains
 
       integer :: i, strlen
 
-      if (present(trim_f) .and. trim_f) then
-         strlen = len(trim(f_string))
+      if (present(trim_f)) then
+         if (trim_f) then
+            strlen = len(trim(f_string))
+         else
+            strlen = len(f_string)
+         end if
       else
          strlen = len(f_string)
       end if
@@ -258,7 +235,6 @@ contains
 
       c_string(strlen + 1) = c_null_char
    end subroutine f_c_string_chars
-
 
    !> @brief Copy a C string, passed as a char-array reference, to a Fortran string.
    !!
@@ -282,118 +258,197 @@ contains
    !> @brief Convert Fortran logical to C integer as boolean
    subroutine f_c_bool(f_logical, c_bi)
       implicit none
-
       logical, intent(in) :: f_logical
       integer(kind=c_int), intent(out) :: c_bi
 
       if (f_logical) then
-         c_bi = 1
+         c_bi = LIBRPA_SWITCH_ON
       else
-         c_bi = 0
+         c_bi = LIBRPA_SWITCH_OFF
       endif
-
    end subroutine f_c_bool
-
 
    !> @brief Convert C integer as boolean to Fortran logical
    subroutine c_f_bool(c_bi, f_logical)
       implicit none
-
       integer(kind=c_int), intent(in) :: c_bi
       logical, intent(out) :: f_logical
 
-      f_logical = (c_bi .ne. 0)
-
+      f_logical = (c_bi .eq. LIBRPA_SWITCH_ON)
    end subroutine c_f_bool
 
+   ! Synchronize option values between the Fortran object and the containing C object
+   ! Everytime opts_c used through any C interface, its value should be synchronized from opts
+   !   call sync_opts(opts, .false.)
+   subroutine sync_opts(opts, direction)
+      type(LibrpaOptions), intent(inout) :: opts
+      integer, intent(in) :: direction
 
-   !> @brief helper function to convert data between Fortran and C derived type
-   subroutine communicate_librpa_params(params, params_c, f2c)
-      implicit none
-
-      type(LibRPAParams), intent(inout)   :: params
-      type(LibRPAParams_c), intent(inout) :: params_c
-      logical, intent(in) :: f2c
-
-      if (f2c) then
-         ! Copy Fortran parameters to C
-         call f_c_string_chars(params%output_file      , params_c%output_file     , trim_f=.true.)
-         call f_c_string_chars(params%output_dir       , params_c%output_dir      , trim_f=.true.)
-         call f_c_string_chars(params%parallel_routing , params_c%parallel_routing, trim_f=.true.)
-         call f_c_string_chars(params%tfgrids_type     , params_c%tfgrids_type    , trim_f=.true.)
-         call f_c_string_chars(params%DFT_software     , params_c%DFT_software    , trim_f=.true.)
-
-         params_c%nfreq = params%nfreq
-
-         call f_c_bool(params%debug,               params_c%debug)
-         call f_c_bool(params%use_scalapack_ecrpa, params_c%use_scalapack_ecrpa)
-
-         params_c%gf_R_threshold           = params%gf_R_threshold
-         params_c%cs_threshold             = params%cs_threshold
-         params_c%vq_threshold             = params%vq_threshold
-         params_c%sqrt_coulomb_threshold   = params%sqrt_coulomb_threshold
-         params_c%libri_chi0_threshold_C   = params%libri_chi0_threshold_C
-         params_c%libri_chi0_threshold_G   = params%libri_chi0_threshold_G
-         params_c%libri_exx_threshold_C    = params%libri_exx_threshold_C
-         params_c%libri_exx_threshold_D    = params%libri_exx_threshold_D
-         params_c%libri_exx_threshold_V    = params%libri_exx_threshold_V
-         params_c%libri_gw_threshold_C     = params%libri_gw_threshold_C
-         params_c%libri_gw_threshold_G     = params%libri_gw_threshold_G
-         params_c%libri_gw_threshold_W     = params%libri_gw_threshold_W
+      if (direction .eq. SYNC_OPTS_C2F) then
+         ! From C object to Fortran. This case is rare, usually only for initialization
+         call c_f_string_chars(opts%opts_c%output_dir, opts%output_dir)
+         opts%parallel_routing = opts%opts_c%parallel_routing
+         opts%output_level = opts%opts_c%output_level
+         opts%cs_threshold = opts%opts_c%cs_threshold
+         opts%vq_threshold = opts%opts_c%vq_threshold
+         call c_f_bool(opts%opts_c%use_soc, opts%use_soc)
+         opts%tfgrids_type = opts%opts_c%tfgrids_type
+         opts%nfreq = opts%opts_c%nfreq
+         opts%tfgrids_freq_min = opts%opts_c%tfgrids_freq_min
+         opts%tfgrids_freq_interval = opts%opts_c%tfgrids_freq_interval
+         opts%tfgrids_freq_max = opts%opts_c%tfgrids_freq_max
+         opts%tfgrids_time_min = opts%opts_c%tfgrids_time_min
+         opts%tfgrids_time_interval = opts%opts_c%tfgrids_time_interval
+         opts%gf_threshold = opts%opts_c%gf_threshold
+         call c_f_bool(opts%opts_c%use_scalapack_ecrpa, opts%use_scalapack_ecrpa)
+         opts%n_params_anacon = opts%opts_c%n_params_anacon
+         call c_f_bool(opts%opts_c%use_scalapack_gw_wc, opts%use_scalapack_gw_wc)
+         call c_f_bool(opts%opts_c%replace_w_head, opts%replace_w_head)
+         opts%option_dielect_func = opts%opts_c%option_dielect_func
+         opts%sqrt_coulomb_threshold = opts%opts_c%sqrt_coulomb_threshold
+         opts%libri_chi0_threshold_C = opts%opts_c%libri_chi0_threshold_C
+         opts%libri_chi0_threshold_G = opts%opts_c%libri_chi0_threshold_G
+         opts%libri_exx_threshold_C = opts%opts_c%libri_exx_threshold_C
+         opts%libri_exx_threshold_D = opts%opts_c%libri_exx_threshold_D
+         opts%libri_exx_threshold_V = opts%opts_c%libri_exx_threshold_V
+         opts%libri_g0w0_threshold_C = opts%opts_c%libri_g0w0_threshold_C
+         opts%libri_g0w0_threshold_G = opts%opts_c%libri_g0w0_threshold_G
+         opts%libri_g0w0_threshold_Wc = opts%opts_c%libri_g0w0_threshold_Wc
+         call c_f_bool(opts%opts_c%output_gw_sigc_mat, opts%output_gw_sigc_mat)
+         call c_f_bool(opts%opts_c%output_gw_sigc_mat_rt, opts%output_gw_sigc_mat_rt)
+         call c_f_bool(opts%opts_c%output_gw_sigc_mat_rf, opts%output_gw_sigc_mat_rf)
+      else if (direction .eq. SYNC_OPTS_F2C) then
+         ! From Fortran object to C, should be called at the beginning of each compute API function
+         call f_c_string_chars(opts%output_dir, opts%opts_c%output_dir, trim_f=.true.)
+         opts%opts_c%parallel_routing = opts%parallel_routing
+         opts%opts_c%output_level = opts%output_level
+         opts%opts_c%cs_threshold = opts%cs_threshold
+         opts%opts_c%vq_threshold = opts%vq_threshold
+         call f_c_bool(opts%use_soc, opts%opts_c%use_soc)
+         opts%opts_c%tfgrids_type = opts%tfgrids_type
+         opts%opts_c%nfreq = opts%nfreq
+         opts%opts_c%tfgrids_freq_min = opts%tfgrids_freq_min
+         opts%opts_c%tfgrids_freq_interval = opts%tfgrids_freq_interval
+         opts%opts_c%tfgrids_freq_max = opts%tfgrids_freq_max
+         opts%opts_c%tfgrids_time_min = opts%tfgrids_time_min
+         opts%opts_c%tfgrids_time_interval = opts%tfgrids_time_interval
+         opts%opts_c%gf_threshold = opts%gf_threshold
+         call f_c_bool(opts%use_scalapack_ecrpa, opts%opts_c%use_scalapack_ecrpa)
+         opts%opts_c%n_params_anacon = opts%n_params_anacon
+         call f_c_bool(opts%use_scalapack_gw_wc, opts%opts_c%use_scalapack_gw_wc)
+         call f_c_bool(opts%replace_w_head, opts%opts_c%replace_w_head)
+         opts%opts_c%option_dielect_func = opts%option_dielect_func
+         opts%opts_c%sqrt_coulomb_threshold = opts%sqrt_coulomb_threshold
+         opts%opts_c%libri_chi0_threshold_C = opts%libri_chi0_threshold_C
+         opts%opts_c%libri_chi0_threshold_G = opts%libri_chi0_threshold_G
+         opts%opts_c%libri_exx_threshold_C = opts%libri_exx_threshold_C
+         opts%opts_c%libri_exx_threshold_D = opts%libri_exx_threshold_D
+         opts%opts_c%libri_exx_threshold_V = opts%libri_exx_threshold_V
+         opts%opts_c%libri_g0w0_threshold_C = opts%libri_g0w0_threshold_C
+         opts%opts_c%libri_g0w0_threshold_G = opts%libri_g0w0_threshold_G
+         opts%opts_c%libri_g0w0_threshold_Wc = opts%libri_g0w0_threshold_Wc
+         call f_c_bool(opts%output_gw_sigc_mat, opts%opts_c%output_gw_sigc_mat)
+         call f_c_bool(opts%output_gw_sigc_mat_rt, opts%opts_c%output_gw_sigc_mat_rt)
+         call f_c_bool(opts%output_gw_sigc_mat_rf, opts%opts_c%output_gw_sigc_mat_rf)
       else
-         ! Copy C parameters to Fortran
-         call c_f_string_chars(params_c%output_file      , params%output_file)
-         call c_f_string_chars(params_c%output_dir       , params%output_dir)
-         call c_f_string_chars(params_c%parallel_routing , params%parallel_routing)
-         call c_f_string_chars(params_c%tfgrids_type     , params%tfgrids_type)
-         call c_f_string_chars(params_c%DFT_software     , params%DFT_software)
+         stop "internal error - illegal direction value"
+      end if
+   end subroutine
 
-         params%nfreq = params_c%nfreq
-
-         call c_f_bool(params_c%debug,               params%debug)
-         call c_f_bool(params_c%use_scalapack_ecrpa, params%use_scalapack_ecrpa)
-
-         params%gf_R_threshold           = params_c%gf_R_threshold
-         params%cs_threshold             = params_c%cs_threshold
-         params%vq_threshold             = params_c%vq_threshold
-         params%sqrt_coulomb_threshold   = params_c%sqrt_coulomb_threshold
-         params%libri_chi0_threshold_C   = params_c%libri_chi0_threshold_C
-         params%libri_chi0_threshold_G   = params_c%libri_chi0_threshold_G
-         params%libri_exx_threshold_C    = params_c%libri_exx_threshold_C
-         params%libri_exx_threshold_D    = params_c%libri_exx_threshold_D
-         params%libri_exx_threshold_V    = params_c%libri_exx_threshold_V
-         params%libri_gw_threshold_C     = params_c%libri_gw_threshold_C
-         params%libri_gw_threshold_G     = params_c%libri_gw_threshold_G
-         params%libri_gw_threshold_W     = params_c%libri_gw_threshold_W
-      endif
-
-   end subroutine communicate_librpa_params
-
-
-   subroutine set_librpa_params(params)
-
+   subroutine librpa_init_options(opts)
       implicit none
-      type(LibRPAParams), intent(inout) :: params
+      class(LibrpaOptions), intent(inout) :: opts
+      call librpa_init_options_c(opts%opts_c)
+      call sync_opts(opts, SYNC_OPTS_C2F)
+   end subroutine librpa_init_options
 
-      type(LibRPAParams_c) :: params_c
-
-      call communicate_librpa_params(params, params_c, .true.)
-      call set_librpa_params_c(params_c)
-
-   end subroutine set_librpa_params
-
-
-   subroutine get_default_librpa_params(params)
-
+   subroutine librpa_init_global(sw_redirect, redirect_path, sw_process)
+      use iso_c_binding, only: c_null_char
       implicit none
-      type(LibRPAParams), intent(inout) :: params
 
-      type(LibRPAParams_c) :: params_c
+      logical, intent(in), optional :: sw_redirect, sw_process
+      character(len=*), intent(in), optional :: redirect_path
 
-      call get_default_librpa_params_c(params_c)
-      call communicate_librpa_params(params, params_c, .false.)
+      character(len=*), parameter :: def = "stdout"
+      integer(c_int) :: s1, s2
+      character(kind=c_char), allocatable, target :: path_c(:)
+      character(len=:), allocatable :: tmp
+      integer :: n, i
 
-   end subroutine get_default_librpa_params
+      s1 = LIBRPA_SWITCH_OFF
+      if (present(sw_redirect)) then
+         if (sw_redirect) s1 = LIBRPA_SWITCH_ON
+      end if
 
+      s2 = LIBRPA_SWITCH_ON
+      if (present(sw_process)) then
+         if (.not. sw_process) s2 = LIBRPA_SWITCH_OFF
+      end if
 
-end module
+      if (present(redirect_path)) then
+        tmp = trim(redirect_path)
+      else
+        tmp = trim(def)
+      end if
+
+      n = len(tmp)
+      if (allocated(redirect_path_buf)) deallocate(redirect_path_buf)
+      allocate(redirect_path_buf(n+1))
+      do i = 1, n
+         redirect_path_buf(i) = tmp(i:i)
+      end do
+      redirect_path_buf(n+1) = c_null_char
+
+      call librpa_init_global_c(s1, redirect_path_buf, s2)
+      !if (allocated(path_c)) deallocate(path_c)
+   end subroutine librpa_init_global
+
+   subroutine librpa_finalize_global()
+      implicit none
+      call librpa_finalize_global_c()
+      if (allocated(redirect_path_buf)) deallocate(redirect_path_buf)
+   end subroutine librpa_finalize_global
+
+   integer function librpa_get_major_version() result(v)
+      integer(c_int) :: v_c
+      v_c = librpa_get_major_version_c()
+      v = int(v_c)
+   end function librpa_get_major_version
+
+   integer function librpa_get_minor_version() result(v)
+      integer(c_int) :: v_c
+      v_c = librpa_get_minor_version_c()
+      v = int(v_c)
+   end function librpa_get_minor_version
+
+   integer function librpa_get_patch_version() result(v)
+      integer(c_int) :: v_c
+      v_c = librpa_get_patch_version_c()
+      v = int(v_c)
+   end function librpa_get_patch_version
+
+   subroutine librpa_create_handler(this, comm)
+      use iso_c_binding, only: c_associated
+      implicit none
+      class(LibrpaHandler), intent(inout) :: this
+      integer, intent(in) :: comm
+      integer(c_int) :: comm_c = 0
+
+      if (c_associated(this%ptr_c_handle)) call this%destroy()
+
+      comm_c = int(comm, kind=c_int)
+      this%ptr_c_handle = librpa_create_handler_c(comm_c)
+   end subroutine librpa_create_handler
+
+   subroutine librpa_destroy_handler(this)
+      use iso_c_binding, only: c_associated
+      implicit none
+      class(LibrpaHandler), intent(inout) :: this
+
+      if (c_associated(this%ptr_c_handle)) then
+         call librpa_destroy_handler_c(this%ptr_c_handle)
+         this%ptr_c_handle = c_null_ptr
+      end if
+   end subroutine librpa_destroy_handler
+
+end module librpa_f03

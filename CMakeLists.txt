@@ -9,9 +9,9 @@ string(REGEX MATCH "LIBRPA_MAJOR_VERSION ([0-9]+)" librpa_major_version ${versio
 set(librpa_major_version ${CMAKE_MATCH_1})
 string(REGEX MATCH "LIBRPA_MINOR_VERSION ([0-9]+)" librpa_minor_version ${version_file})
 set(librpa_minor_version ${CMAKE_MATCH_1})
-string(REGEX MATCH "LIBRPA_MICRO_VERSION ([0-9]+)" librpa_micro_version ${version_file})
-set(librpa_micro_version ${CMAKE_MATCH_1})
-set(version "${librpa_major_version}.${librpa_minor_version}.${librpa_micro_version}")
+string(REGEX MATCH "LIBRPA_PATCH_VERSION ([0-9]+)" librpa_patch_version ${version_file})
+set(librpa_patch_version ${CMAKE_MATCH_1})
+set(version "${librpa_major_version}.${librpa_minor_version}.${librpa_patch_version}")
 
 set(CMAKE_PROJECT_VERSION "${version}")
 
@@ -202,7 +202,7 @@ else()
 endif()
 
 if(ENABLE_FORTRAN_BIND)
-  # add_subdirectory(./binding/fortran)
+  add_subdirectory(./binding/fortran)
 endif()
 
 if(ENABLE_TEST)

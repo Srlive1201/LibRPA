@@ -14,8 +14,8 @@ static void test_get_R_index()
 {
     Vector3_Order<int> period{2, 2, 2};
     std::vector<Vector3_Order<int>> sc222 = construct_R_grid(period);
-    for ( int i = 0; i != sc222.size(); i++ )
-        printf("i=%d: x %d, y %d, z %d\n", i, sc222[i].x, sc222[i].y, sc222[i].z);
+    for (size_t i = 0; i != sc222.size(); i++ )
+        printf("i=%zu: x %d, y %d, z %d\n", i, sc222[i].x, sc222[i].y, sc222[i].z);
     Vector3_Order<int> R {-1, -1, -1};
     printf(" R: x %d, y %d, z %d\n", R.x, R.y, R.z);
     auto mR = -R;

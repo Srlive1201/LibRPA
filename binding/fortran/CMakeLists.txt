@@ -16,8 +16,14 @@ target_sources(rpa_f03_lib
 )
 target_link_libraries(rpa_f03_lib PRIVATE rpa_lib)
 
+target_include_directories(rpa_f03_lib PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
+
 install(TARGETS rpa_f03_lib
         ARCHIVE
         DESTINATION ${CMAKE_INSTALL_LIBDIR})
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/librpa_f03.mod
         DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+
+if(ENABLE_TEST)
+  add_subdirectory(test)
+endif()
