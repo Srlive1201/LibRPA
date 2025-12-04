@@ -54,7 +54,8 @@ void read_scf_occ_eigenvalues(const string &file_path)
     infile >> efermi;
 
     // TODO: replace it with set_dimension
-    driver::h.set_scf_dimension(n_spins, n_kpoints, n_states, n_basis_wfc);
+    driver::h.set_scf_dimension(n_spins, n_kpoints, n_states, n_basis_wfc,
+                                0, n_states, 0, n_basis_wfc);
     driver::n_ibz_kpoints = n_kpoints;
 
     // Load the file data
@@ -197,7 +198,7 @@ static int handle_KS_file(const string &file_path)
         }
         for (int is = 0; is != nspin; is++)
         {
-            driver::h.set_wfc(is, ik, re.data() + is * n, im.data() + is * n);
+            driver::h.set_wfc(is, ik, driver::n_states, driver::n_basis_wfc, re.data() + is * n, im.data() + is * n);
         }
         // for abacus
         // for (int ib = 0; ib != NBANDS; ib++)
@@ -1768,6 +1769,8 @@ MeanField read_meanfield_band(const string &dir_path, int n_basis, int n_states,
 
         for (int i_spin = 0; i_spin < n_spin; i_spin++)
         {
+            auto &wfc = mf_band.get_eigenvectors()[i_spin][ik];
+            wfc.create(n_states, n_basis);
             const size_t nbytes = n_basis * n_states * sizeof(std::complex<double>);
             infile.read((char *) mf_band.get_eigenvectors()[i_spin][ik].c, nbytes);
         }

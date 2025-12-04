@@ -426,7 +426,7 @@ void G0W0::build_spacetime(
     }
 }
 
-void G0W0::build_sigc_matrix_KS(const std::vector<std::vector<ComplexMatrix>> &wfc_target,
+void G0W0::build_sigc_matrix_KS(const std::map<int, std::map<int, ComplexMatrix>> &wfc_target,
                                 const std::vector<Vector3_Order<double>> &kfrac_target,
                                 const Atoms &geometry,
                                 const BlacsCtxtHandler &blacs_ctxt_h)
@@ -574,7 +574,7 @@ void G0W0::build_sigc_matrix_KS(const std::vector<std::vector<ComplexMatrix>> &w
                         this->atbasis_wfc, this->atbasis_wfc,
                         fourier, sigc_I_JR_local);
                 // prepare wave function BLACS
-                const auto &wfc_isp_k = wfc_target[ispin][ik];
+                const auto &wfc_isp_k = wfc_target.at(ispin).at(ik);
                 blacs_ctxt_h.barrier();
                 const auto wfc_block = get_local_mat(wfc_isp_k.c, MAJOR::ROW, desc_nband_nao, MAJOR::COL).conj();
                 auto temp_nband_nao = multiply_scalapack(wfc_block, desc_nband_nao, sigc_nao_nao, desc_nao_nao, desc_nband_nao);
@@ -609,7 +609,7 @@ void G0W0::build_sigc_matrix_KS_kgrid(const Atoms &geometry, const BlacsCtxtHand
     this->build_sigc_matrix_KS(this->mf.get_eigenvectors(), this->pbc.kfrac_list, geometry, blacs_ctxt_h);
 }
 
-void G0W0::build_sigc_matrix_KS_band(const std::vector<std::vector<ComplexMatrix>> &wfc,
+void G0W0::build_sigc_matrix_KS_band(const std::map<int, std::map<int, ComplexMatrix>> &wfc,
                                      const std::vector<Vector3_Order<double>> &kfrac_band,
                                      const Atoms &geometry,
                                      const BlacsCtxtHandler &blacs_ctxt_h)

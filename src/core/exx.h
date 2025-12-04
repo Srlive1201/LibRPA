@@ -32,7 +32,7 @@ class Exx
                          const vector<Vector3_Order<int>> &Rlist,
                          const atpair_R_mat_t& coul_mat);
 
-        void build_KS(const std::vector<std::vector<ComplexMatrix>> &wfc_target,
+        void build_KS(const std::map<int, std::map<int, ComplexMatrix>> &wfc_target,
                       const std::vector<Vector3_Order<double>> &kfrac_target,
                       const Atoms &geometry,
                       const BlacsCtxtHandler &blacs_ctxt_h);
@@ -67,7 +67,7 @@ class Exx
                    const atpair_R_mat_t& coul_mat);
 
         void build_KS_kgrid(const Atoms &geometry, const BlacsCtxtHandler &blacs_ctxt_h);
-        void build_KS_band(const std::vector<std::vector<ComplexMatrix>> &wfc_band,
+        void build_KS_band(const std::map<int, std::map<int, ComplexMatrix>> &wfc_band,
                            const std::vector<Vector3_Order<double>> &kfrac_band,
                            const Atoms &geometry,
                            const BlacsCtxtHandler &blacs_ctxt_h);

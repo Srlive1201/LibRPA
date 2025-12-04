@@ -304,7 +304,7 @@ void Exx::build(const LibrpaParallelRouting routing,
 }
 
 
-void Exx::build_KS(const std::vector<std::vector<ComplexMatrix>> &wfc_target,
+void Exx::build_KS(const std::map<int, std::map<int, ComplexMatrix>> &wfc_target,
                    const std::vector<Vector3_Order<double>> &kfrac_target,
                    const Atoms &geometry,
                    const BlacsCtxtHandler &blacs_ctxt_h)
@@ -453,7 +453,7 @@ void Exx::build_KS(const std::vector<std::vector<ComplexMatrix>> &wfc_target,
                     this->atbasis_wfc, this->atbasis_wfc, fourier, exx_I_JR_local);
             global::profiler.stop("build_real_space_exx_6");
             // global::lib_printf("%s\n", str(Hexx_nao_nao).c_str());
-            const auto &wfc_isp_k = wfc_target[isp][ik];
+            const auto &wfc_isp_k = wfc_target.at(isp).at(ik);
             blacs_ctxt_h.barrier();
             const auto wfc_block = get_local_mat(wfc_isp_k.c, MAJOR::ROW, desc_nband_nao, MAJOR::COL).conj();
             // global::lib_printf("%s\n", str(wfc_block).c_str());
@@ -495,7 +495,7 @@ void Exx::build_KS_kgrid(const Atoms &geometry, const BlacsCtxtHandler &blacs_ct
     this->build_KS(this->mf.get_eigenvectors(), this->pbc.kfrac_list, geometry, blacs_ctxt_h);
 }
 
-void Exx::build_KS_band(const std::vector<std::vector<ComplexMatrix>> &wfc_band,
+void Exx::build_KS_band(const std::map<int, std::map<int, ComplexMatrix>> &wfc_band,
                         const std::vector<Vector3_Order<double>> &kfrac_band, const Atoms &geometry,
                         const BlacsCtxtHandler &blacs_ctxt_h)
 {

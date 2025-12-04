@@ -165,10 +165,11 @@ void Chi0::build_gf_Rt(Vector3_Order<int> R, double tau)
             double ang = - pbc.klist[ik] * (R * pbc.latvec) * TWO_PI;
             complex<double> kphase = complex<double>(cos(ang), sin(ang));
             /* librpa_int::global::lib_printf("kphase %f %fj\n", kphase.real(), kphase.imag()); */
-            auto scaled_wfc_conj = conj(mf.get_eigenvectors()[is][ik]);
+            const auto &ev = mf.get_eigenvectors().at(is).at(ik);
+            auto scaled_wfc_conj = conj(ev);
             for ( int ib = 0; ib != nbands; ib++)
                 LapackConnector::scal(naos, scale(ik, ib), scaled_wfc_conj.c + naos * ib, 1);
-            gf_Rt_is_global += (kphase * transpose(mf.get_eigenvectors()[is][ik], false) * scaled_wfc_conj).real();
+            gf_Rt_is_global += (kphase * transpose(ev, false) * scaled_wfc_conj).real();
         }
         if ( tau < 0 ) gf_Rt_is_global *= -1.;
         omp_lock_t gf_lock;
@@ -310,10 +311,11 @@ static void build_gf_Rt_libri(
         {
             double ang = - klist[ik] * (R * latvec) * TWO_PI;
             complex<double> kphase = complex<double>(cos(ang), sin(ang));
-            auto scaled_wfc_conj = conj(mf.get_eigenvectors()[ispin][ik]);
+            const auto &ev = mf.get_eigenvectors().at(ispin).at(ik);
+            auto scaled_wfc_conj = conj(ev);
             for (int ib = 0; ib != nbands; ib++)
                 LapackConnector::scal(naos, scale(ik, ib), scaled_wfc_conj.c + naos * ib, 1);
-            auto mat = (kphase * transpose(mf.get_eigenvectors()[ispin][ik], false) * scaled_wfc_conj).real();
+            auto mat = (kphase * transpose(ev, false) * scaled_wfc_conj).real();
 #pragma omp critical
             {
                 gf_global += mat;

@@ -1,6 +1,6 @@
 module librpa_f03
 
-   use iso_c_binding, only: c_char, c_ptr, c_int, c_double, c_null_ptr
+   use iso_c_binding, only: c_char, c_ptr, c_int, c_double, c_null_ptr, c_size_t
    implicit none
 
    private
@@ -182,6 +182,9 @@ module librpa_f03
          procedure :: destroy => librpa_destroy_handler
          procedure :: set_scf_dimension => librpa_set_scf_dimension
          procedure :: set_wg_ekb_efermi => librpa_set_wg_ekb_efermi
+         procedure :: set_wfc => librpa_set_wfc
+         procedure :: set_ao_basis_wfc => librpa_set_ao_basis_wfc
+         procedure :: set_ao_basis_aux => librpa_set_ao_basis_aux
    end type LibrpaHandler
 
    interface
@@ -201,20 +204,44 @@ module librpa_f03
 
    ! Input functions interface
    interface
-      subroutine librpa_set_scf_dimension_c(h, nspins, nkpts, nstates, nbasis) bind(c, name="librpa_set_scf_dimension")
+      subroutine librpa_set_scf_dimension_c(h, nspins, nkpts, nstates, nbasis, &
+                                            st_istate, nstates_local, st_ibasis, nbasis_local) &
+                                            bind(c, name="librpa_set_scf_dimension")
          import :: c_ptr, c_int
          type(c_ptr), value :: h
-         integer(c_int), value :: nspins, nkpts, nstates, nbasis
+         integer(c_int), value :: nspins, nkpts, nstates, nbasis, st_istate, nstates_local, st_ibasis, nbasis_local
       end subroutine librpa_set_scf_dimension_c
 
       subroutine librpa_set_wg_ekb_efermi_c(h, nspins, nkpts, nstates, wg, ekb, efermi) bind(c, name="librpa_set_wg_ekb_efermi")
          import :: c_ptr, c_int, c_double
          type(c_ptr), value :: h
          integer(c_int), value :: nspins, nkpts, nstates
-         real(c_double), dimension(*), intent(inout) :: wg
-         real(c_double), dimension(*), intent(inout) :: ekb
+         real(c_double), dimension(*), intent(in) :: wg
+         real(c_double), dimension(*), intent(in) :: ekb
          real(c_double), value :: efermi
       end subroutine librpa_set_wg_ekb_efermi_c
+
+      subroutine librpa_set_wfc_c(h, ispin, ik, nstates_local, nbasis_local, wfc_real, wfc_imag) bind(c, name="librpa_set_wfc")
+         import :: c_ptr, c_int, c_double
+         type(c_ptr), value :: h
+         integer(c_int), value :: ispin, ik, nstates_local, nbasis_local
+         real(c_double), dimension(*), intent(in) :: wfc_real
+         real(c_double), dimension(*), intent(in) :: wfc_imag
+      end subroutine librpa_set_wfc_c
+
+      subroutine librpa_set_ao_basis_wfc_c(h, natoms, nbs_wfc) bind(c, name="librpa_set_ao_basis_wfc")
+         import :: c_ptr, c_int, c_size_t
+         type(c_ptr), value :: h
+         integer(c_int), value :: natoms
+         integer(c_size_t), dimension(*), intent(in) :: nbs_wfc
+      end subroutine librpa_set_ao_basis_wfc_c
+
+      subroutine librpa_set_ao_basis_aux_c(h, natoms, nbs_aux) bind(c, name="librpa_set_ao_basis_aux")
+         import :: c_ptr, c_int, c_size_t
+         type(c_ptr), value :: h
+         integer(c_int), value :: natoms
+         integer(c_size_t), dimension(*), intent(in) :: nbs_aux
+      end subroutine librpa_set_ao_basis_aux_c
    end interface
 
 contains
@@ -472,19 +499,27 @@ contains
    end subroutine librpa_destroy_handler
 
    ! Input functions
-   subroutine librpa_set_scf_dimension(this, nspins, nkpts, nstates, nbasis)
+   subroutine librpa_set_scf_dimension(this, nspins, nkpts, nstates, nbasis, st_istate, nstates_local, st_ibasis, nbasis_local)
       use iso_c_binding, only: c_associated
       implicit none
       class(LibrpaHandler), intent(inout) :: this
       integer, intent(in) :: nspins, nkpts, nstates, nbasis
+      integer, intent(in) :: st_istate, nstates_local, st_ibasis, nbasis_local
 
       integer(c_int) :: nspins_c, nkpts_c, nstates_c, nbasis_c
+      integer(c_int) :: st_istate_c, nstates_local_c, st_ibasis_c, nbasis_local_c
 
       nspins_c = int(nspins, kind=c_int)
       nkpts_c = int(nkpts, kind=c_int)
       nstates_c = int(nstates, kind=c_int)
       nbasis_c = int(nbasis, kind=c_int)
-      call librpa_set_scf_dimension_c(this%ptr_c_handle, nspins_c, nkpts_c, nstates_c, nbasis_c)
+      st_istate_c = int(st_istate, kind=c_int) - 1
+      nstates_local_c = int(nstates_local, kind=c_int)
+      st_ibasis_c = int(st_ibasis, kind=c_int) - 1
+      nbasis_local_c = int(nbasis_local, kind=c_int)
+
+      call librpa_set_scf_dimension_c(this%ptr_c_handle, nspins_c, nkpts_c, nstates_c, nbasis_c, &
+                                      st_istate_c, nstates_local_c, st_ibasis_c, nbasis_local_c)
    end subroutine librpa_set_scf_dimension
 
    subroutine librpa_set_wg_ekb_efermi(this, nspins, nkpts, nstates, wg, ekb, efermi)
@@ -525,5 +560,68 @@ contains
       call librpa_set_wg_ekb_efermi_c(this%ptr_c_handle, nspins_c, nkpts_c, nstates_c, wg_c, ekb_c, efermi_c)
       deallocate(wg_c, ekb_c)
    end subroutine librpa_set_wg_ekb_efermi
+
+   subroutine librpa_set_wfc(this, ispin, ik, nstates_local, nbasis_local, wfc_cplx)
+      implicit none
+      class(LibrpaHandler), intent(inout) :: this
+      integer, intent(in) :: ispin, ik, nstates_local, nbasis_local
+      complex(kind=8), intent(in) :: wfc_cplx(nbasis_local, nstates_local)
+
+      integer(c_int) :: ispin_c, ik_c, nstates_local_c, nbasis_local_c
+      real(c_double), allocatable :: wfc_real(:,:), wfc_imag(:,:)
+
+      ispin_c = int(ispin, kind=c_int) - 1
+      ik_c = int(ik, kind=c_int) - 1
+
+      allocate(wfc_real(nbasis_local, nstates_local))
+      allocate(wfc_imag(nbasis_local, nstates_local))
+      wfc_real(:,:) = real(wfc_cplx, kind=c_double)
+      wfc_imag(:,:) = real(aimag(wfc_cplx), kind=c_double)
+
+      call librpa_set_wfc_c(this%ptr_c_handle, ispin, ik, nstates_local, nbasis_local, wfc_real, wfc_imag)
+      deallocate(wfc_real, wfc_imag)
+   end subroutine librpa_set_wfc
+
+   subroutine librpa_set_ao_basis_wfc(this, natoms, nbs_wfc)
+      implicit none
+      class(LibrpaHandler), intent(inout) :: this
+      integer, intent(in) :: natoms
+      integer, intent(in) :: nbs_wfc(natoms)
+
+      integer(c_int) :: natoms_c
+      integer(c_size_t), allocatable :: nbs_c(:)
+      integer :: iatom
+
+      natoms_c = int(natoms, kind=c_int)
+      allocate(nbs_c(natoms))
+
+      do iatom = 1, natoms
+         nbs_c(iatom) = int(nbs_wfc(iatom), kind=c_size_t)
+      end do
+
+      call librpa_set_ao_basis_wfc_c(this%ptr_c_handle, natoms_c, nbs_c)
+      deallocate(nbs_c)
+   end subroutine librpa_set_ao_basis_wfc
+
+   subroutine librpa_set_ao_basis_aux(this, natoms, nbs_aux)
+      implicit none
+      class(LibrpaHandler), intent(inout) :: this
+      integer, intent(in) :: natoms
+      integer, intent(in) :: nbs_aux(natoms)
+
+      integer(c_int) :: natoms_c
+      integer(c_size_t), allocatable :: nbs_c(:)
+      integer :: iatom
+
+      natoms_c = int(natoms, kind=c_int)
+      allocate(nbs_c(natoms))
+
+      do iatom = 1, natoms
+         nbs_c(iatom) = int(nbs_aux(iatom), kind=c_size_t)
+      end do
+
+      call librpa_set_ao_basis_aux_c(this%ptr_c_handle, natoms_c, nbs_c)
+      deallocate(nbs_c)
+   end subroutine librpa_set_ao_basis_aux
 
 end module librpa_f03

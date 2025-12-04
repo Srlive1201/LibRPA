@@ -25,35 +25,38 @@ private:
     //! number of atomic orbitals
     int n_aos;
     //! number of bands
-    int n_bands;
+    int n_states;
     //! number of kpoints
     int n_kpoints;
 
-    // Relevant local dimensions within parallel distribution.
-    // Only for saving eigenvectors
+    // Local dimensions for parallel distribution of eigenvectors
     int n_aos_local;
-    int n_bands_local;
+    int i_ao_start;
+    int n_states_local;
+    int i_state_start;
     int n_kpoints_local;
     std::vector<int> iks_local;
 
-    //! eigenvalues, (n_spins, n_kpoints, n_bands)
+    //! eigenvalues, (n_spins, n_kpoints, n_states)
     std::vector<matrix> eskb;
-    //! occupation weight, scaled by n_kpoints. (n_spins, n_kpoints, n_bands)
+    //! occupation weight, scaled by n_kpoints. (n_spins, n_kpoints, n_states)
     std::vector<matrix> wg;
-    //! eigenvector, (n_spins, n_kpoint, n_bands, n_aos)
+    //! eigenvector, (n_spins, n_kpoints_local, n_states_local, n_aos_local)
     // TODO: parallelize
-    std::vector<std::vector<ComplexMatrix>> wfc;
+    std::map<int, std::map<int, ComplexMatrix>> wfc;
     //! Fermi energy
     double efermi;
-    void resize(int ns, int nk, int nb, int nao, int nk_local, int nb_local, int nao_local);
+    void resize(int ns, int nk, int nb, int nao, int st_ib, int nb_local, int st_iao, int nao_local);
 public:
     MeanField()
         : n_spins(0),
         n_aos(0),
-        n_bands(0),
+        n_states(0),
         n_kpoints(0),
         n_aos_local(0),
-        n_bands_local(0),
+        i_ao_start(-1),
+        n_states_local(0),
+        i_state_start(-1),
         n_kpoints_local(0),
         iks_local(),
         eskb(),
@@ -61,13 +64,13 @@ public:
         wfc(),
         efermi(0) {};
     MeanField(int ns, int nk, int nb, int nao);
-    MeanField(int ns, int nk, int nb, int nao, int nk_local, int nb_local, int nao_local);
+    MeanField(int ns, int nk, int nb, int nao, int st_ib, int nb_local, int st_iao, int nao_local);
     ~MeanField() {};
     void set(int ns, int nk, int nb, int nao);
-    void set(int ns, int nk, int nb, int nao, int nk_local, int nb_local, int nao_local);
+    void set(int ns, int nk, int nb, int nao, int st_ib, int nb_local, int st_iao, int nao_local);
     MeanField(const MeanField&);
-    inline int get_n_bands() const { return n_bands; }
-    inline int get_n_states() const { return n_bands; } // alias
+    inline int get_n_bands() const { return n_states; }
+    inline int get_n_states() const { return n_states; } // alias
     inline int get_n_spins() const { return n_spins; }
     inline int get_n_kpoints() const { return n_kpoints; }
     inline int get_n_aos() const { return n_aos; }
@@ -81,8 +84,8 @@ public:
     ComplexMatrix get_dmat_cplx(int ispin, int ikpt) const;
     ComplexMatrix get_dmat_cplx_R(int ispin, const std::vector<Vector3_Order<double>>& kfrac_list,
                                 const Vector3_Order<int>& R) const;
-    std::vector<std::vector<ComplexMatrix>>& get_eigenvectors() { return wfc; }
-    const std::vector<std::vector<ComplexMatrix>>& get_eigenvectors() const { return wfc; }
+    std::map<int, std::map<int, ComplexMatrix>>& get_eigenvectors() { return wfc; }
+    const std::map<int, std::map<int, ComplexMatrix>>& get_eigenvectors() const { return wfc; }
     double get_E_min_max(double& emin, double& emax) const;
     double get_band_gap() const;
     std::map<double, std::map<Vector3_Order<int>, ComplexMatrix>> get_gf_cplx_imagtimes_Rs(

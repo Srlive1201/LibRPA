@@ -11,13 +11,15 @@ extern "C" {
 #endif
 
 LIBRPA_C_H_FUNC_WRAP(void, librpa_set_scf_dimension,
-                     int nspins, int nkpts, int nstates, int nbasis);
+                     int nspins, int nkpts, int nstates, int nbasis,
+                     int st_istate, int nstates_local, int st_ibasis, int nbasis_local);
 
 LIBRPA_C_H_FUNC_WRAP(void, librpa_set_wg_ekb_efermi,
                      int nspins, int nkpts, int nstates, const double* wg, const double* ekb, double efermi);
 
 LIBRPA_C_H_FUNC_WRAP(void, librpa_set_wfc,
-                     int ispin, int ik, const double* wfc_real, const double* wfc_imag);
+                     int ispin, int ik, int nstates_local, int nbasis_local,
+                     const double* wfc_real, const double* wfc_imag);
 
 LIBRPA_C_H_FUNC_WRAP(void, librpa_set_ao_basis_wfc, int natoms, const size_t *nbs_wfc);
 

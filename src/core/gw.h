@@ -48,7 +48,7 @@ public:
     //! correlation self-energy matrix in the basis of KS states, indices [ispin][ik][freq](n_bands, n_bands)
     std::map<int, std::map<int, std::map<double, Matz>>> sigc_is_ik_f_KS;
 
-    void build_sigc_matrix_KS(const std::vector<std::vector<ComplexMatrix>> &wfc_target,
+    void build_sigc_matrix_KS(const std::map<int, std::map<int, ComplexMatrix>> &wfc_target,
                               const std::vector<Vector3_Order<double>> &kfrac_target,
                               const Atoms &geometry,
                               const BlacsCtxtHandler &blacs_ctxt_h);
@@ -84,7 +84,7 @@ public:
     void build_sigc_matrix_KS_kgrid(const Atoms &geometry, const BlacsCtxtHandler &blacs_ctxt_h);
 
     //! build the correlation self-energy matrix in Kohn-Sham basis at the SCF k-points
-    void build_sigc_matrix_KS_band(const std::vector<std::vector<ComplexMatrix>> &wfc_band,
+    void build_sigc_matrix_KS_band(const std::map<int, std::map<int, ComplexMatrix>> &wfc_band,
                                    const std::vector<Vector3_Order<double>> &kfrac_band,
                                    const Atoms &geometry,
                                    const BlacsCtxtHandler &blacs_ctxt_h);

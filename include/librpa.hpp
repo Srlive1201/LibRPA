@@ -70,11 +70,13 @@ public:
     /* Input (set) functions */
 
     LIBRPA_CPP_H_METHOD_DECL_WRAP(void, set_scf_dimension,
-                                  int nspins, int nkpts, int nstates, int nbasis);
+                                  int nspins, int nkpts, int nstates, int nbasis,
+                                  int st_istate, int nstates_local, int st_ibasis, int nbasis_local);
     LIBRPA_CPP_H_METHOD_DECL_WRAP(void, set_wg_ekb_efermi,
                                   int nspins, int nkpts, int nstates, const double* wg, const double* ekb, double efermi);
     LIBRPA_CPP_H_METHOD_DECL_WRAP(void, set_wfc,
-                                  int ispin, int ik, const double* wfc_real, const double* wfc_imag);
+                                  int ispin, int ik, int nstates_local, int nbasis_local,
+                                  const double* wfc_real, const double* wfc_imag);
     LIBRPA_CPP_H_METHOD_DECL_WRAP(void, set_ao_basis_wfc, const std::vector<size_t> &nbs_wfc);
     LIBRPA_CPP_H_METHOD_DECL_WRAP(void, set_ao_basis_aux, const std::vector<size_t> &nbs_aux);
     LIBRPA_CPP_H_METHOD_DECL_WRAP(void, set_latvec_and_G,

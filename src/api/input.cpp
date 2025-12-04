@@ -23,7 +23,10 @@
 #include "../utils/libri_stub.h"
 #endif
 
-LIBRPA_C_H_FUNC_WRAP(void, librpa_set_scf_dimension, int nspins, int nkpts, int nstates, int nbasis)
+LIBRPA_C_H_FUNC_WRAP(void, librpa_set_scf_dimension,
+                     int nspins, int nkpts, int nstates, int nbasis,
+                     int st_istate, int nstates_local,
+                     int st_ibasis, int nbasis_local)
 {
     using librpa_int::api::get_dataset_instance;
     using librpa_int::global::mpi_comm_global_h;
@@ -32,7 +35,8 @@ LIBRPA_C_H_FUNC_WRAP(void, librpa_set_scf_dimension, int nspins, int nkpts, int 
     auto ds = librpa_int::api::get_dataset_instance(h);
 
     auto &meanfield = ds->mf;
-    meanfield.set(nspins, nkpts, nstates, nbasis);
+    meanfield.set(nspins, nkpts, nstates, nbasis,
+                  st_istate, nstates_local, st_ibasis, nbasis_local);
     ds->comm_h.barrier();
     if (ds->comm_h.is_root())
     {
@@ -78,17 +82,21 @@ LIBRPA_C_H_FUNC_WRAP(void, librpa_set_wg_ekb_efermi, int nspins, int nkpts, int 
     ds->comm_h.barrier();
 }
 
-LIBRPA_C_H_FUNC_WRAP(void, librpa_set_wfc, int ispin, int ik, const double* wfc_real, const double* wfc_imag)
+LIBRPA_C_H_FUNC_WRAP(void, librpa_set_wfc, int ispin, int ik,
+                     int nstates_local, int nbasis_local,
+                     const double *wfc_real, const double *wfc_imag)
 {
     auto ds = librpa_int::api::get_dataset_instance(h);
     auto &meanfield = ds->mf;
 
-    auto& wfc = meanfield.get_eigenvectors().at(ispin).at(ik);
-    const auto n = meanfield.get_n_bands() * meanfield.get_n_aos();
-    for (int i = 0; i != n; i++)
+    auto& wfc = meanfield.get_eigenvectors()[ispin][ik];
+    wfc.create(nstates_local, nbasis_local);
+    const size_t n = meanfield.get_n_bands() * meanfield.get_n_aos();
+    for (size_t i = 0; i < n; i++)
     {
         wfc.c[i] = std::complex<double>(wfc_real[i], wfc_imag[i]);
     }
+    // std::cout << "Maxabs: " << wfc.get_max_abs() << std::endl;
 }
 
 LIBRPA_C_H_FUNC_WRAP(void, librpa_set_ao_basis_wfc, const int natoms, const size_t *nbs_wfc)

@@ -13,7 +13,7 @@
 
 namespace librpa_int {
 
-void MeanField::resize(int ns, int nk, int nb, int nao, int nk_local, int nb_local, int nao_local)
+void MeanField::resize(int ns, int nk, int nb, int nao, int st_ib, int nb_local, int st_iao, int nao_local)
 {
     if (ns == 0 || nk == 0 || nb == 0 || nao == 0)
         throw LIBRPA_RUNTIME_ERROR("encounter zero dimension");
@@ -26,62 +26,61 @@ void MeanField::resize(int ns, int nk, int nb, int nao, int nk_local, int nb_loc
 
     n_spins = ns;
     n_kpoints = nk;
-    n_bands = nb;
+    n_states = nb;
     n_aos = nao;
-    n_kpoints_local = nk_local;
-    n_bands_local = nb_local;
+    i_ao_start = st_iao;
     n_aos_local = nao_local;
+    i_state_start = st_ib;
+    n_states_local = nb_local;
 
     eskb.resize(n_spins);
     wg.resize(n_spins);
-    wfc.resize(n_spins);
+    wfc.clear();
 
     for (int is = 0; is < n_spins; is++)
     {
-        eskb[is].create(n_kpoints, n_bands);
-        wg[is].create(n_kpoints, n_bands);
-        wfc[is].resize(n_kpoints_local);
-        for (int ik = 0; ik < n_kpoints_local; ik++)
-            wfc[is][ik].create(n_bands_local, n_aos_local);
+        eskb[is].create(n_kpoints, n_states);
+        wg[is].create(n_kpoints, n_states);
     }
 }
 
 MeanField::MeanField(int ns, int nk, int nb, int nao)
 {
-    resize(ns, nk, nb, nao, nk, nb, nao);
+    resize(ns, nk, nb, nao, 0, nb, 0, nao);
 }
 
-MeanField::MeanField(int ns, int nk, int nb, int nao, int nk_local, int nb_local, int nao_local)
+MeanField::MeanField(int ns, int nk, int nb, int nao, int st_ib, int nb_local, int st_iao, int nao_local)
 {
-    resize(ns, nk, nb, nao, nk_local, nb_local, nao_local);
+    resize(ns, nk, nb, nao, st_ib, nb_local, st_iao, nao_local);
 }
 
 void MeanField::set(int ns, int nk, int nb, int nao)
 {
-    if (n_spins != 0 || n_kpoints != 0 || n_bands != 0 || n_aos != 0)
+    if (n_spins != 0 || n_kpoints != 0 || n_states != 0 || n_aos != 0)
     {
-        std::cout << n_spins << n_kpoints << n_bands << n_aos << std::endl;
+        std::cout << n_spins << n_kpoints << n_states << n_aos << std::endl;
         throw LIBRPA_RUNTIME_ERROR("MeanField object already set");
     }
-    resize(ns, nk, nb, nao, nk, nb, nao);
+    resize(ns, nk, nb, nao, 0, nb, 0, nao);
 }
 
-void MeanField::set(int ns, int nk, int nb, int nao, int nk_local, int nb_local, int nao_local)
+void MeanField::set(int ns, int nk, int nb, int nao, int st_ib, int nb_local, int st_iao, int nao_local)
 {
-    if (n_spins != 0 || n_kpoints != 0 || n_bands != 0 || n_aos != 0)
+    if (n_spins != 0 || n_kpoints != 0 || n_states != 0 || n_aos != 0)
     {
-        std::cout << n_spins << n_kpoints << n_bands << n_aos << std::endl;
+        std::cout << n_spins << n_kpoints << n_states << n_aos << std::endl;
         throw LIBRPA_RUNTIME_ERROR("MeanField object already set");
     }
-    resize(ns, nk, nb, nao, nk_local, nb_local, nao_local);
+    resize(ns, nk, nb, nao, st_ib, nb_local, st_iao, nao_local);
 }
 
 MeanField::MeanField(const MeanField &mf)
 {
-    resize(mf.n_spins, mf.n_kpoints, mf.n_bands, mf.n_aos, mf.n_kpoints_local, mf.n_bands_local,
-           mf.n_aos_local);
+    resize(mf.n_spins, mf.n_kpoints, mf.n_states, mf.n_aos,
+           mf.i_state_start, mf.n_states_local, mf.i_ao_start, mf.n_aos_local);
     // FIXME: copy data, not tested
     iks_local = mf.iks_local;
+    n_kpoints_local = mf.n_kpoints_local;
     eskb = mf.eskb;
     wg = mf.wg;
     wfc = mf.wfc;
@@ -91,14 +90,14 @@ MeanField::MeanField(const MeanField &mf)
 double MeanField::get_E_min_max(double &emin, double &emax) const
 {
     // double lb = eskb[0](0, 0);
-    // double ub = eskb[0](0, n_bands - 1);
+    // double ub = eskb[0](0, n_states - 1);
     double lb = std::numeric_limits<double>::max();
     double ub = std::numeric_limits<double>::min();
     for (int is = 0; is != n_spins; is++)
         for (int ik = 0; ik != n_kpoints; ik++)
         {
             lb = (lb > eskb[is](ik, 0)) ? eskb[is](ik, 0) : lb;
-            ub = (ub < eskb[is](ik, n_bands-1)) ? eskb[is](ik, n_bands-1) : ub;
+            ub = (ub < eskb[is](ik, n_states-1)) ? eskb[is](ik, n_states-1) : ub;
         }
     double gap = get_band_gap();
     emax = ub - lb;
@@ -118,7 +117,7 @@ double MeanField::get_band_gap() const
         for (int ik = 0; ik != n_kpoints; ik++)
         {
             int homo_level = -1;
-            for (int n = 0; n != n_bands; n++)
+            for (int n = 0; n != n_states; n++)
             {
                 if (wg[is](ik, n) >= midpoint)
                 {
@@ -141,10 +140,10 @@ ComplexMatrix MeanField::get_dmat_cplx(int ispin, int ikpt) const
 {
     assert(ispin < this->n_spins);
     assert(ikpt < this->n_kpoints);
-    auto scaled_wfc_conj = conj(wfc[ispin][ikpt]);
-    for (int ib = 0; ib != this->n_bands; ib++)
+    auto scaled_wfc_conj = conj(wfc.at(ispin).at(ikpt));
+    for (int ib = 0; ib != this->n_states; ib++)
         LapackConnector::scal(this->n_aos, this->wg[ispin](ikpt, ib), scaled_wfc_conj.c + n_aos * ib, 1);
-    auto dmat_cplx = transpose(this->wfc[ispin][ikpt], false) * scaled_wfc_conj;
+    auto dmat_cplx = transpose(this->wfc.at(ispin).at(ikpt), false) * scaled_wfc_conj;
     return dmat_cplx;
 }
 
@@ -168,7 +167,7 @@ std::map<double, std::map<Vector3_Order<int>, ComplexMatrix>> MeanField::get_gf_
     // NOTE: occupation must be copied here, not reference
     auto wg_empty = wg[ispin];
     // cout << "In get_gf_cplx_imagtimes_Rs ispin " << ispin << endl << wg_empty << endl;
-    for (int i = 0; i != wg_empty.size; i++)
+    for (size_t i = 0; i != wg_empty.size; i++)
     {
         wg_empty.c[i] = 1.0 / n_kpoints - wg_empty.c[i] * (0.5 * n_spins);
         if (wg_empty.c[i] < 0) wg_empty.c[i] = 0;
@@ -186,7 +185,7 @@ std::map<double, std::map<Vector3_Order<int>, ComplexMatrix>> MeanField::get_gf_
         const auto &prefac_occ = tau > 0 ? wg_empty : wg_occ;
         // cout << "prefac_occ " << prefac_occ << endl;
         const auto scale = -tau * (eskb[ispin] - efermi);
-        for (int ie = 0; ie != scale.size; ie++)
+        for (size_t ie = 0; ie != scale.size; ie++)
         {
             if (scale.c[ie] > 0) scale.c[ie] = 0;
             scale.c[ie] = std::exp(scale.c[ie]) * prefac_occ.c[ie];
@@ -194,10 +193,10 @@ std::map<double, std::map<Vector3_Order<int>, ComplexMatrix>> MeanField::get_gf_
         // ofs_myid cout << "tau " << tau << endl << scale << endl;
         for (int ik = 0; ik != n_kpoints; ik++)
         {
-            auto scaled_wfc_conj = conj(wfc[ispin][ik]);
-            for (int ib = 0; ib != n_bands; ib++)
+            auto scaled_wfc_conj = conj(wfc.at(ispin).at(ik));
+            for (int ib = 0; ib != n_states; ib++)
                 LapackConnector::scal(n_aos, scale(ik, ib), scaled_wfc_conj.c + n_aos * ib, 1);
-            const auto gf_k = transpose(wfc[ispin][ik], false) * scaled_wfc_conj;
+            const auto gf_k = transpose(wfc.at(ispin).at(ik), false) * scaled_wfc_conj;
             for (const auto &R : Rs)
             {
                 double ang = -kfrac_list[ik] * R * TWO_PI;
@@ -247,8 +246,8 @@ std::map<double, std::map<Vector3_Order<int>, matrix>> MeanField::get_gf_real_im
 //     for(int is=0;is!=n_spins;is++)
 //         for(int ik=0;ik!=n_kpoints;ik++)
 //             {
-//                 ComplexMatrix loc_wfc(n_bands,n_aos);
-//                 ComplexMatrix glo_wfc(n_bands,n_aos);
+//                 ComplexMatrix loc_wfc(n_states,n_aos);
+//                 ComplexMatrix glo_wfc(n_states,n_aos);
 //                 // if(mpi_comm_world_h.is_root())
 //                 // {
 //                 //     loc_wfc=wfc[is][ik];
