@@ -82,6 +82,9 @@ struct Params
     //! switch of using full Coulomb interaction in EXX
     //! test for abacus 2d system
     static bool use_fullcoul_exx;
+    //! switch of using full Coulomb interaction in Wc=eps-1v
+    //! test for abacus 2d system
+    static bool use_fullcoul_wc;
 
     //! switch of using ScaLAPACK for computing Wc from chi0
     static bool use_scalapack_gw_wc;

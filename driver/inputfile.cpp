@@ -238,6 +238,7 @@ void parse_inputfile_to_params(const std::string &fn)
 
     // EXX specific
     parser.parse_bool("use_fullcoul_exx", Params::use_fullcoul_exx, false, flag);
+    parser.parse_bool("use_fullcoul_wc", Params::use_fullcoul_wc, false, flag);
     _parse_double(opts, libri_exx_threshold_C);
     _parse_double(opts, libri_exx_threshold_D);
     _parse_double(opts, libri_exx_threshold_V);

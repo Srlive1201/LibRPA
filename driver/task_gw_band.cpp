@@ -156,11 +156,25 @@ void task_g0w0_band(std::map<Vector3_Order<double>, ComplexMatrix> &sinvS)
         Wc_freq_q;
     if (Params::use_scalapack_gw_wc)
     {
-        Wc_freq_q = compute_Wc_freq_q_blacs(chi0, Vq, Vq_cut, epsmac_LF_imagfreq);
+        if (Params::use_fullcoul_wc)
+        {
+            Wc_freq_q = compute_Wc_freq_q_blacs(chi0, Vq, Vq, epsmac_LF_imagfreq);
+        }
+        else
+        {
+            Wc_freq_q = compute_Wc_freq_q_blacs(chi0, Vq, Vq_cut, epsmac_LF_imagfreq);
+        }
     }
     else
     {
-        Wc_freq_q = compute_Wc_freq_q(chi0, Vq, Vq_cut, epsmac_LF_imagfreq);
+        if (Params::use_fullcoul_wc)
+        {
+            Wc_freq_q = compute_Wc_freq_q(chi0, Vq, Vq, epsmac_LF_imagfreq);
+        }
+        else
+        {
+            Wc_freq_q = compute_Wc_freq_q(chi0, Vq, Vq_cut, epsmac_LF_imagfreq);
+        }
     }
     Profiler::stop("g0w0_wc");
     if (Params::debug)
