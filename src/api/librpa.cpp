@@ -139,7 +139,7 @@ LIBRPA_CPP_H_METHOD_DEF_WRAP_VOID(
 LIBRPA_CPP_H_METHOD_DEF_WRAP_VOID(
     set_ibz_mapping,
     (const std::vector<int> &map_ibzk),
-    (map_ibzk.data())
+    (map_ibzk.size(), map_ibzk.data())
 )
 
 LIBRPA_CPP_H_METHOD_DEF_WRAP_VOID(
@@ -162,14 +162,14 @@ LIBRPA_CPP_H_METHOD_DEF_WRAP_VOID(
 
 LIBRPA_CPP_H_METHOD_DEF_WRAP_VOID(
     set_aux_bare_coulomb_k_2d_block,
-    (int ik, int max_naux, int mu_begin, int mu_end, int nu_begin, int nu_end, const double* Vq_real_in, const double* Vq_imag_in),
-    (ik, max_naux, mu_begin, mu_end, nu_begin, nu_end, Vq_real_in, Vq_imag_in)
+    (int ik, int mu_begin, int mu_end, int nu_begin, int nu_end, const double* Vq_real_in, const double* Vq_imag_in),
+    (ik, mu_begin, mu_end, nu_begin, nu_end, Vq_real_in, Vq_imag_in)
 )
 
 LIBRPA_CPP_H_METHOD_DEF_WRAP_VOID(
     set_aux_cut_coulomb_k_2d_block,
-    (int ik, int max_naux, int mu_begin, int mu_end, int nu_begin, int nu_end, const double* Vq_real_in, const double* Vq_imag_in),
-    (ik, max_naux, mu_begin, mu_end, nu_begin, nu_end, Vq_real_in, Vq_imag_in)
+    (int ik, int mu_begin, int mu_end, int nu_begin, int nu_end, const double* Vq_real_in, const double* Vq_imag_in),
+    (ik, mu_begin, mu_end, nu_begin, nu_end, Vq_real_in, Vq_imag_in)
 )
 
 LIBRPA_CPP_H_METHOD_DEF_WRAP_RET_WOPT(

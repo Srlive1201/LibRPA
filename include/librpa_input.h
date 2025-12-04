@@ -34,8 +34,16 @@ LIBRPA_C_H_FUNC_WRAP(void, librpa_set_atoms,
 LIBRPA_C_H_FUNC_WRAP(void, librpa_set_kgrids_kvec,
                      int nk1, int nk2, int nk3, const double* kvecs);
 
+/*! @brief Set the mapping from full k-point list to the irreducbile sector.
+ *
+ * @param nkpts     number of k-points in the full Brillouin zone
+ * @param map_ibzk  mapping to the k-point in the irreducible sector
+
+ * Example: four-k-point case where the first two and last points are in the irreducbile sector,
+ *          and the third point is mapped to the second, then map_ibzk should be (0, 1, 1, 3)
+ */
 LIBRPA_C_H_FUNC_WRAP(void, librpa_set_ibz_mapping,
-                     const int* map_ibzk);
+                     int nkpts, const int* map_ibzk);
 
 LIBRPA_C_H_FUNC_WRAP(void, librpa_set_lri_coeff,
                      LibrpaParallelRouting routing,
@@ -50,11 +58,11 @@ LIBRPA_C_H_FUNC_WRAP(void, librpa_set_aux_cut_coulomb_k_atom_pair,
                      const double* Vq_real_in, const double* Vq_imag_in, double vq_threshold);
 
 LIBRPA_C_H_FUNC_WRAP(void, librpa_set_aux_bare_coulomb_k_2d_block,
-                     int ik, int max_naux, int mu_begin, int mu_end, int nu_begin, int nu_end,
-                     const double* Vq_real_in,const  double* Vq_imag_in);
+                     int ik, int mu_begin, int mu_end, int nu_begin, int nu_end,
+                     const double* Vq_real_in, const double* Vq_imag_in);
 
 LIBRPA_C_H_FUNC_WRAP(void, librpa_set_aux_cut_coulomb_k_2d_block,
-                     int ik, int max_naux, int mu_begin, int mu_end, int nu_begin, int nu_end,
+                     int ik, int mu_begin, int mu_end, int nu_begin, int nu_end,
                      const double* Vq_real_in, const double* Vq_imag_in);
 
 // LIBRPA_C_H_FUNC_WRAP(void, get_rpa_correlation_energy,

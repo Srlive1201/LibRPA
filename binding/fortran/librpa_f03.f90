@@ -45,12 +45,15 @@ module librpa_f03
    public :: librpa_get_patch_version
 
    !=======================================================================
+   ! Switch as bool type, defined as in include/librpa_enums.h
    integer(c_int), parameter :: LIBRPA_SWITCH_OFF = 0
    integer(c_int), parameter :: LIBRPA_SWITCH_ON = 1
    character(kind=c_char), allocatable, target, save :: redirect_path_buf(:)
 
+   complex(8), parameter :: CIMAG = (0.0d0, 1.0d0)
+
    !===== C-side options type =====
-   ! Must have the same data layout as the struct in include/librpa_options.h
+   ! Must have the same data layout as the struct defined in include/librpa_options.h
    type, bind(c) :: LibrpaOptions_c
       ! Common runtime control
       character(kind=c_char, len=1) :: output_dir(LIBRPA_MAX_STRLEN)
@@ -178,13 +181,26 @@ module librpa_f03
    type :: LibrpaHandler
       type(c_ptr) :: ptr_c_handle = c_null_ptr
       contains
+         ! Initialization and destruction
          procedure :: create  => librpa_create_handler
          procedure :: destroy => librpa_destroy_handler
+         ! Input
          procedure :: set_scf_dimension => librpa_set_scf_dimension
          procedure :: set_wg_ekb_efermi => librpa_set_wg_ekb_efermi
          procedure :: set_wfc => librpa_set_wfc
          procedure :: set_ao_basis_wfc => librpa_set_ao_basis_wfc
          procedure :: set_ao_basis_aux => librpa_set_ao_basis_aux
+         procedure :: set_latvec_and_G => librpa_set_latvec_and_G
+         procedure :: set_atoms => librpa_set_atoms
+         procedure :: set_kgrids_kvec => librpa_set_kgrids_kvec
+         procedure :: set_ibz_mapping => librpa_set_ibz_mapping
+         procedure :: set_lri_coeff => librpa_set_lri_coeff
+         procedure :: set_aux_bare_coulomb_k_atom_pair => librpa_set_aux_bare_coulomb_k_atom_pair
+         procedure :: set_aux_cut_coulomb_k_atom_pair => librpa_set_aux_cut_coulomb_k_atom_pair
+         procedure :: set_aux_bare_coulomb_k_2d_block => librpa_set_aux_bare_coulomb_k_2d_block
+         procedure :: set_aux_cut_coulomb_k_2d_block => librpa_set_aux_cut_coulomb_k_2d_block
+         ! Compute
+         procedure :: get_rpa_correlation_energy => librpa_get_rpa_correlation_energy
    end type LibrpaHandler
 
    interface
@@ -193,9 +209,7 @@ module librpa_f03
          integer(c_int), value :: comm_c
          type(c_ptr) :: librpa_create_handler_c
       end function librpa_create_handler_c
-   end interface
 
-   interface
       subroutine librpa_destroy_handler_c(h) bind(c, name="librpa_destroy_handler")
          import :: c_ptr
          type(c_ptr), value :: h
@@ -242,6 +256,92 @@ module librpa_f03
          integer(c_int), value :: natoms
          integer(c_size_t), dimension(*), intent(in) :: nbs_aux
       end subroutine librpa_set_ao_basis_aux_c
+
+      subroutine librpa_set_latvec_and_G_c(h, latt, recplatt) bind(c, name="librpa_set_latvec_and_G")
+         import :: c_ptr, c_double
+         type(c_ptr), value :: h
+         real(c_double), dimension(9), intent(in) :: latt, recplatt
+      end subroutine librpa_set_latvec_and_G_c
+
+      subroutine librpa_set_atoms_c(h, natoms, types, posi_cart) bind(c, name="librpa_set_atoms")
+         import :: c_ptr, c_int, c_double
+         type(c_ptr), value :: h
+         integer(c_int), value :: natoms
+         integer(c_int), dimension(*), intent(in) :: types
+         real(c_double), dimension(*), intent(in) :: posi_cart
+      end subroutine librpa_set_atoms_c
+
+      subroutine librpa_set_kgrids_kvec_c(h, nk1, nk2, nk3, kvecs) bind(c, name="librpa_set_kgrids_kvec")
+         import :: c_ptr, c_int, c_double
+         type(c_ptr), value :: h
+         integer(c_int), value :: nk1, nk2, nk3
+         real(c_double), dimension(*), intent(in) :: kvecs
+      end subroutine librpa_set_kgrids_kvec_c
+
+      subroutine librpa_set_ibz_mapping_c(h, nkpts, map_ibzk) bind(c, name="librpa_set_ibz_mapping")
+         import :: c_ptr, c_int
+         type(c_ptr), value :: h
+         integer(c_int), value :: nkpts
+         integer(c_int), dimension(*), intent(in) :: map_ibzk
+      end subroutine librpa_set_ibz_mapping_c
+
+      subroutine librpa_set_lri_coeff_c(h, routing, i_atom, j_atom, nao_i, nao_j, naux_i, &
+                                        r, coeff) &
+            bind(c, name="librpa_set_lri_coeff")
+         import :: c_ptr, c_int, c_double
+         type(c_ptr), value :: h
+         integer(c_int), value :: routing, i_atom, j_atom, nao_i, nao_j, naux_i
+         integer(c_int), dimension(3), intent(in) :: r
+         real(c_double), dimension(*), intent(in) :: coeff
+      end subroutine librpa_set_lri_coeff_c
+
+      subroutine librpa_set_aux_bare_coulomb_k_atom_pair_c &
+            (h, ik, i_atom, j_atom, naux_i, naux_j, vq_real, vq_imag, vq_threshold) &
+            bind(c, name="librpa_set_aux_bare_coulomb_k_atom_pair")
+         import :: c_ptr, c_int, c_double
+         type(c_ptr), value :: h
+         integer(c_int), value :: ik, i_atom, j_atom, naux_i, naux_j
+         real(c_double), dimension(*), intent(in) :: vq_real, vq_imag
+         real(c_double), value :: vq_threshold
+      end subroutine librpa_set_aux_bare_coulomb_k_atom_pair_c
+
+      subroutine librpa_set_aux_cut_coulomb_k_atom_pair_c &
+            (h, ik, i_atom, j_atom, naux_i, naux_j, vq_real, vq_imag, vq_threshold) &
+            bind(c, name="librpa_set_aux_cut_coulomb_k_atom_pair")
+         import :: c_ptr, c_int, c_double
+         type(c_ptr), value :: h
+         integer(c_int), value :: ik, i_atom, j_atom, naux_i, naux_j
+         real(c_double), dimension(*), intent(in) :: vq_real, vq_imag
+         real(c_double), value :: vq_threshold
+      end subroutine librpa_set_aux_cut_coulomb_k_atom_pair_c
+
+      subroutine librpa_set_aux_bare_coulomb_k_2d_block_c &
+            (h, ik, mu_begin, mu_end, nu_begin, nu_end, vq_real, vq_imag) &
+            bind(c, name="librpa_set_aux_bare_coulomb_k_2d_block")
+         import :: c_ptr, c_int, c_double
+         type(c_ptr), value :: h
+         integer(c_int), value :: ik, mu_begin, mu_end, nu_begin, nu_end
+         real(c_double), dimension(*), intent(in) :: vq_real, vq_imag
+      end subroutine librpa_set_aux_bare_coulomb_k_2d_block_c
+
+      subroutine librpa_set_aux_cut_coulomb_k_2d_block_c &
+            (h, ik, mu_begin, mu_end, nu_begin, nu_end, vq_real, vq_imag) &
+            bind(c, name="librpa_set_aux_cut_coulomb_k_2d_block")
+         import :: c_ptr, c_int, c_double
+         type(c_ptr), value :: h
+         integer(c_int), value :: ik, mu_begin, mu_end, nu_begin, nu_end
+         real(c_double), dimension(*), intent(in) :: vq_real, vq_imag
+      end subroutine librpa_set_aux_cut_coulomb_k_2d_block_c
+
+      function librpa_get_rpa_correlation_energy_c(h, opts, nkpts_ibz, contrib_ibzk_re, contrib_ibzk_im) &
+            bind(c, name="librpa_get_rpa_correlation_energy")
+         import :: LibrpaOptions_c, c_ptr, c_int, c_double
+         type(c_ptr), value :: h
+         type(LibrpaOptions_c), intent(in) :: opts
+         integer(c_int), intent(in) :: nkpts_ibz
+         real(c_double), dimension(*), intent(inout) :: contrib_ibzk_re, contrib_ibzk_im
+         real(c_double) :: librpa_get_rpa_correlation_energy_c
+      end function librpa_get_rpa_correlation_energy_c
    end interface
 
 contains
@@ -326,7 +426,7 @@ contains
 
    ! Synchronize option values between the Fortran object and the containing C object
    ! Everytime opts_c used through any C interface, its value should be synchronized from opts
-   !   call sync_opts(opts, .false.)
+   !   call sync_opts(opts, SYNC_OPTS_F2C)
    subroutine sync_opts(opts, direction)
       type(LibrpaOptions), intent(inout) :: opts
       integer, intent(in) :: direction
@@ -561,6 +661,12 @@ contains
       deallocate(wg_c, ekb_c)
    end subroutine librpa_set_wg_ekb_efermi
 
+   !> @brief Set the wave-function expansion coefficients
+   !> @param ispin          spin index (starting from 1) of the wave function
+   !> @param ik             k-point index (starting from 1) of the wave function
+   !> @param nstates_local  local dimenstion (number of states) of the parsed wave-function
+   !> @param nbasis_local   local dimenstion (number of basis functions) of the parsed wave-function
+   !> @param wfc_cplx       Complex-valued wave function to parse
    subroutine librpa_set_wfc(this, ispin, ik, nstates_local, nbasis_local, wfc_cplx)
       implicit none
       class(LibrpaHandler), intent(inout) :: this
@@ -582,6 +688,10 @@ contains
       deallocate(wfc_real, wfc_imag)
    end subroutine librpa_set_wfc
 
+   !> @brief Set the wave-function atomic basis
+   !>
+   !> @param natoms   number of atoms
+   !> @param nbs_aux  number of wave-function basis on each atom
    subroutine librpa_set_ao_basis_wfc(this, natoms, nbs_wfc)
       implicit none
       class(LibrpaHandler), intent(inout) :: this
@@ -603,6 +713,10 @@ contains
       deallocate(nbs_c)
    end subroutine librpa_set_ao_basis_wfc
 
+   !> @brief Set the auxiliary atomic basis
+   !>
+   !> @param natoms   number of atoms
+   !> @param nbs_aux  number of auxiliary basis functions on each atom
    subroutine librpa_set_ao_basis_aux(this, natoms, nbs_aux)
       implicit none
       class(LibrpaHandler), intent(inout) :: this
@@ -623,5 +737,197 @@ contains
       call librpa_set_ao_basis_aux_c(this%ptr_c_handle, natoms_c, nbs_c)
       deallocate(nbs_c)
    end subroutine librpa_set_ao_basis_aux
+
+   !> @brief Set the direct and reciprocal lattice vectors
+   !>
+   !> Each column is a lattice/reciprocal lattice vector.
+   !>
+   !> @param latt     lattice vectors (in Bohr)
+   !> @param recplatt reciprocal lattice vectors (in Bohr^-1)
+   subroutine librpa_set_latvec_and_G(this, latt, recplatt)
+      implicit none
+      class(LibrpaHandler), intent(inout) :: this
+      real(8), dimension(3, 3), intent(in) :: latt, recplatt
+
+      real(c_double), allocatable :: latt_c(:), recplatt_c(:)
+      integer :: ir, ic, idx
+
+      allocate(latt_c(9), recplatt_c(9))
+      idx = 0
+      do ic = 1, 3
+         do ir = 1, 3
+            idx = idx + 1
+            latt_c(idx) = real(latt(ir, ic), kind=c_double)
+            recplatt_c(idx) = real(recplatt(ir, ic), kind=c_double)
+         end do
+      end do
+      call librpa_set_latvec_and_G_c(this%ptr_c_handle, latt_c, recplatt_c)
+      deallocate(latt_c, recplatt_c)
+   end subroutine librpa_set_latvec_and_G
+
+   !> @brief Set types and coordinates of the atoms in the model
+   !>
+   !> @param natoms     number of atoms
+   !> @param types      species type of each atom
+   !> @param pos_cart   Cartesian coordinates of each atom
+   subroutine librpa_set_atoms(this, natoms, types, posi_cart)
+      implicit none
+      class(LibrpaHandler), intent(inout) :: this
+      integer, intent(in) :: natoms
+      integer, dimension(natoms), intent(in) :: types
+      real(8), dimension(3, natoms), intent(in) :: posi_cart
+
+      call librpa_set_atoms_c(this%ptr_c_handle, int(natoms, kind=c_int), &
+                              int(types, kind=c_int), real(posi_cart, kind=c_double))
+   end subroutine librpa_set_atoms
+
+   subroutine librpa_set_kgrids_kvec(this, nk1, nk2, nk3, kvecs)
+      implicit none
+      class(LibrpaHandler), intent(inout) :: this
+      integer, intent(in) :: nk1, nk2, nk3
+      real(8), intent(in) :: kvecs(3, nk1*nk2*nk3)
+
+      call librpa_set_kgrids_kvec_c(this%ptr_c_handle, &
+         int(nk1, kind=c_int), int(nk2, kind=c_int), int(nk3, kind=c_int), real(kvecs, kind=c_double))
+   end subroutine librpa_set_kgrids_kvec
+
+   !> @brief Set the mapping from full k-point list to the irreducbile sector
+   !>
+   !> @param nkpts     number of k-points in the full Brillouin zone
+   !> @param map_ibzk  mapping to the k-point in the irreducible sector
+   !>
+   !>
+   !> Example: four-k-point case where the first two and last points are in the irreducbile sector,
+   !>          and the third point is mapped to the second, then map_ibzk should be (1, 2, 2, 4)
+   subroutine librpa_set_ibz_mapping(this, nkpts, map_ibzk)
+      implicit none
+      class(LibrpaHandler), intent(inout) :: this
+      integer, intent(in) :: nkpts
+      integer, dimension(nkpts), intent(in) :: map_ibzk
+
+      integer :: ik
+      integer(c_int), allocatable :: map_ibzk_c(:)
+
+      allocate(map_ibzk_c(nkpts))
+      do ik = 1, nkpts
+         map_ibzk_c(ik) = int(map_ibzk(ik), kind=c_int) - 1
+      end do
+      call librpa_set_ibz_mapping_c(this%ptr_c_handle, int(nkpts, kind=c_int), map_ibzk_c)
+      deallocate(map_ibzk_c)
+   end subroutine librpa_set_ibz_mapping
+
+   !> @brief Set the local RI coefficients
+   !>
+   !> @param routing  Parallel routing, should be one of the `LIBRPA_ROUTING_*` parameters
+   !> @param i_atom   Index of atom I (starting from 1)
+   !> @param j_atom   Index of atom J (starting from 1)
+   !> @param nao_i    Number of wave-functions basis on atom I
+   !> @param nao_j    Number of wave-functions basis on atom J
+   !> @param naux_i   Number of auxiliary basis on atom I
+   !> @param r        Index of unit cell in the crystal, with (0,0,0) at the origin
+   !> @param coeff    Local RI coefficients associated with atom pair I-J, with auxiliary basis on I.
+   !>
+   subroutine librpa_set_lri_coeff(this, routing, i_atom, j_atom, nao_i, nao_j, naux_i, r, coeff)
+      implicit none
+      class(LibrpaHandler), intent(inout) :: this
+      integer, intent(in) :: routing, i_atom, j_atom, nao_i, nao_j, naux_i
+      integer, dimension(3), intent(in) :: r
+      real(8), intent(in) :: coeff(naux_i, nao_j, nao_i)
+
+      ! Check if the routing is a valid LIBRPA_ROUTING_ parameter
+      select case (routing)
+         case (LIBRPA_ROUTING_AUTO)
+         case (LIBRPA_ROUTING_RTAU)
+         case (LIBRPA_ROUTING_ATOMPAIR)
+         case (LIBRPA_ROUTING_LIBRI)
+         case default
+            write(*,*) "Invalid routing parameter:", routing
+            stop
+      end select
+
+      call librpa_set_lri_coeff_c(this%ptr_c_handle, &
+         int(routing, kind=c_int), int(i_atom-1, kind=c_int), int(j_atom-1, kind=c_int), &
+         int(nao_i, kind=c_int), int(nao_j, kind=c_int), int(naux_i, kind=c_int), &
+         int(r, kind=c_int), real(coeff, kind=c_double) &
+         )
+   end subroutine librpa_set_lri_coeff
+
+   subroutine librpa_set_aux_bare_coulomb_k_atom_pair &
+         (this, ik, i_atom, j_atom, naux_i, naux_j, vq, vq_threshold)
+      implicit none
+      class(LibrpaHandler), intent(inout) :: this
+      integer, intent(in) :: ik, i_atom, j_atom, naux_i, naux_j
+      complex(8), intent(in) :: vq(naux_i, naux_j)
+      real(8), intent(in) :: vq_threshold
+
+      call librpa_set_aux_bare_coulomb_k_atom_pair_c(this%ptr_c_handle, &
+         int(ik-1, kind=c_int), int(i_atom-1, kind=c_int), int(j_atom-1, kind=c_int), &
+         int(naux_i, kind=c_int), int(naux_j, kind=c_int), &
+         transpose(real(vq, kind=c_double)), &
+         transpose(real(aimag(vq), kind=c_double)), &
+         real(vq_threshold, kind=c_double))
+   end subroutine librpa_set_aux_bare_coulomb_k_atom_pair
+
+   subroutine librpa_set_aux_cut_coulomb_k_atom_pair &
+         (this, ik, i_atom, j_atom, naux_i, naux_j, vq, vq_threshold)
+      implicit none
+      class(LibrpaHandler), intent(inout) :: this
+      integer, intent(in) :: ik, i_atom, j_atom, naux_i, naux_j
+      complex(8), intent(in) :: vq(naux_i, naux_j)
+      real(8), intent(in) :: vq_threshold
+
+      call librpa_set_aux_cut_coulomb_k_atom_pair_c(this%ptr_c_handle, &
+         int(ik-1, kind=c_int), int(i_atom-1, kind=c_int), int(j_atom-1, kind=c_int), &
+         int(naux_i, kind=c_int), int(naux_j, kind=c_int), &
+         transpose(real(vq, kind=c_double)), &
+         transpose(real(aimag(vq), kind=c_double)), &
+         real(vq_threshold, kind=c_double))
+   end subroutine librpa_set_aux_cut_coulomb_k_atom_pair
+
+   subroutine librpa_set_aux_bare_coulomb_k_2d_block &
+         (this, ik, mu_begin, mu_end, nu_begin, nu_end, vq)
+      implicit none
+      class(LibrpaHandler), intent(inout) :: this
+      integer, intent(in) :: ik, mu_begin, mu_end, nu_begin, nu_end
+      complex(8), intent(in) :: vq(mu_end-mu_begin+1, nu_end-nu_begin+1)
+
+      call librpa_set_aux_bare_coulomb_k_2d_block_c(this%ptr_c_handle, &
+         int(ik-1, kind=c_int), int(mu_begin-1, kind=c_int), int(mu_end-1, kind=c_int), &
+         int(nu_begin-1, kind=c_int), int(nu_end-1, kind=c_int), &
+         transpose(real(vq, kind=c_double)), &
+         transpose(real(aimag(vq), kind=c_double)))
+   end subroutine librpa_set_aux_bare_coulomb_k_2d_block
+
+   subroutine librpa_set_aux_cut_coulomb_k_2d_block &
+         (this, ik, mu_begin, mu_end, nu_begin, nu_end, vq)
+      implicit none
+      class(LibrpaHandler), intent(inout) :: this
+      integer, intent(in) :: ik, mu_begin, mu_end, nu_begin, nu_end
+      complex(8), intent(in) :: vq(mu_end-mu_begin+1, nu_end-nu_begin+1)
+
+      call librpa_set_aux_cut_coulomb_k_2d_block_c(this%ptr_c_handle, &
+         int(ik-1, kind=c_int), int(mu_begin-1, kind=c_int), int(mu_end-1, kind=c_int), &
+         int(nu_begin-1, kind=c_int), int(nu_end-1, kind=c_int), &
+         transpose(real(vq, kind=c_double)), &
+         transpose(real(aimag(vq), kind=c_double)))
+   end subroutine librpa_set_aux_cut_coulomb_k_2d_block
+
+   real(8) function librpa_get_rpa_correlation_energy(this, opts, nkpts_ibz, contrib_ibzk)
+      class(LibrpaHandler), intent(inout) :: this
+      type(LibrpaOptions), intent(inout) :: opts
+      integer, intent(in) :: nkpts_ibz
+      complex(8), dimension(nkpts_ibz), intent(inout) :: contrib_ibzk
+
+      real(8), allocatable :: contrib_ibzk_re(:), contrib_ibzk_im(:)
+
+      call sync_opts(opts, SYNC_OPTS_F2C)
+      allocate(contrib_ibzk_re(nkpts_ibz), contrib_ibzk_im(nkpts_ibz))
+
+      librpa_get_rpa_correlation_energy = &
+         librpa_get_rpa_correlation_energy_c( &
+            this%ptr_c_handle, opts%opts_c, nkpts_ibz, contrib_ibzk_re, contrib_ibzk_im)
+      contrib_ibzk = contrib_ibzk_re + contrib_ibzk_im * CIMAG
+      deallocate(contrib_ibzk_re, contrib_ibzk_im)
+   end function librpa_get_rpa_correlation_energy
 
 end module librpa_f03

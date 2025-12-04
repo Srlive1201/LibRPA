@@ -97,10 +97,10 @@ public:
                                   int ik, int I, int J, int naux_mu, int naux_nu,
                                   const double* Vq_real_in, const double* Vq_imag_in, double vq_threshold);
     LIBRPA_CPP_H_METHOD_DECL_WRAP(void, set_aux_bare_coulomb_k_2d_block,
-                                  int ik, int max_naux, int mu_begin, int mu_end, int nu_begin, int nu_end,
+                                  int ik, int mu_begin, int mu_end, int nu_begin, int nu_end,
                                   const double* Vq_real_in, const double* Vq_imag_in);
     LIBRPA_CPP_H_METHOD_DECL_WRAP(void, set_aux_cut_coulomb_k_2d_block,
-                                  int ik, int max_naux, int mu_begin, int mu_end, int nu_begin, int nu_end,
+                                  int ik, int mu_begin, int mu_end, int nu_begin, int nu_end,
                                   const double* Vq_real_in, const double* Vq_imag_in);
 
     /* Compute (get) functions */

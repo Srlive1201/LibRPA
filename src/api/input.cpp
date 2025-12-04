@@ -160,10 +160,13 @@ LIBRPA_C_H_FUNC_WRAP(void, librpa_set_latvec_and_G, const double lat_mat[9], con
     ds->comm_h.barrier();
     if (ds->comm_h.is_root())
     {
-        cout << "Lattice vectors (Bohr)" << endl;
+        cout << "Lattice vectors (Bohr): latt" << endl;
         pbc.latvec.print(16);
-        cout << "Reciprocal lattice vectors (2PI Bohr^-1)" << endl;
+        cout << "Reciprocal lattice vectors (2PI Bohr^-1): G" << endl;
         pbc.G.print(16);
+        const auto iden_test = pbc.latvec * pbc.G.Transpose();
+        cout << "Consistency check: latt * G.T" << endl;
+        iden_test.print(16);
     }
     ds->comm_h.barrier();
 }
@@ -198,7 +201,7 @@ LIBRPA_C_H_FUNC_WRAP(void, librpa_set_atoms, int natoms, const int *types, const
         ds->comm_h.barrier();
         if (ds->comm_h.is_root())
         {
-            cout << "Atom positions read (Cartisian in Bohr | fractional):" << endl;
+            cout << "Atom positions read (Cartesian in Bohr | fractional):" << endl;
             for (int i = 0; i != natoms; i++)
             {
                 const auto i_at = librpa_int::as_atom(i);
@@ -217,7 +220,7 @@ LIBRPA_C_H_FUNC_WRAP(void, librpa_set_atoms, int natoms, const int *types, const
         ds->comm_h.barrier();
         if (ds->comm_h.is_root())
         {
-            cout << "Atom positions read (Cartisian in Bohr, fractional not set due to uninitialized lattice):" << endl;
+            cout << "Atom positions read (Cartesian in Bohr, fractional not set due to uninitialized lattice):" << endl;
             for (int i = 0; i != natoms; i++)
             {
                 const auto i_at = librpa_int::as_atom(i);
@@ -249,7 +252,7 @@ LIBRPA_C_H_FUNC_WRAP(void, librpa_set_kgrids_kvec, int nk1, int nk2, int nk3, co
     if (ds->comm_h.is_root())
     {
         librpa_int::global::lib_printf("kgrids: %3d %3d %3d\n", pbc.period.x, pbc.period.y, pbc.period.z);
-        cout << "k-points read (Cartisian in 2Pi Bohr^-1 | fractional):" << endl;
+        cout << "k-points read (Cartesian in 2Pi Bohr^-1 | fractional):" << endl;
 
         const auto &klist = pbc.klist;
         const auto &kfrac_list = pbc.kfrac_list;
@@ -271,7 +274,7 @@ LIBRPA_C_H_FUNC_WRAP(void, librpa_set_kgrids_kvec, int nk1, int nk2, int nk3, co
     ds->comm_h.barrier();
 }
 
-LIBRPA_C_H_FUNC_WRAP(void, librpa_set_ibz_mapping, const int* map_ibzk)
+LIBRPA_C_H_FUNC_WRAP(void, librpa_set_ibz_mapping, int nkpts, const int* map_ibzk)
 {
     using std::cout;
     using std::endl;
@@ -279,7 +282,7 @@ LIBRPA_C_H_FUNC_WRAP(void, librpa_set_ibz_mapping, const int* map_ibzk)
 
     auto ds = librpa_int::api::get_dataset_instance(h);
     auto &pbc = ds->pbc;
-    const int nkpts = pbc.get_n_cells_bvk();
+    assert(nkpts == pbc.get_n_cells_bvk());
 
     std::vector<int> map(nkpts);
     memcpy(map.data(), map_ibzk, nkpts * sizeof(double));
@@ -326,6 +329,10 @@ LIBRPA_C_H_FUNC_WRAP(void, librpa_set_lri_coeff, LibrpaParallelRouting routing, 
 
     const size_t cs_size = nbasis_i * nbasis_j * naux_mu;
     const size_t n_ij = nbasis_i * nbasis_j;
+
+    assert(ds->basis_aux[I] == as_size(naux_mu));
+    assert(ds->basis_wfc[I] == as_size(nbasis_i));
+    assert(ds->basis_wfc[J] == as_size(nbasis_j));
 
     if (routing == LibrpaParallelRouting::LIBRI)
     {
@@ -400,7 +407,7 @@ LIBRPA_C_H_FUNC_WRAP(void, librpa_set_aux_cut_coulomb_k_atom_pair,
 }
 
 static void _set_aux_coulomb_k_2D_block(
-    const librpa_int::Vector3_Order<double>& qvec, int naux_total, int mu_begin, int mu_end,
+    const librpa_int::Vector3_Order<double>& qvec, int mu_begin, int mu_end,
     int nu_begin, int nu_end, const double* Vq_real_in, const double* Vq_imag_in,
     std::map<librpa_int::Vector3_Order<double>, librpa_int::ComplexMatrix>& vq_block)
 {
@@ -412,10 +419,6 @@ static void _set_aux_coulomb_k_2D_block(
     int erow = mu_end - 1;
     int bcol = nu_begin - 1;
     int ecol = nu_end - 1;
-
-    // librpa_int::global::lib_printf("qvec: %f,%f,%f\n",qvec.x,qvec.y,qvec.z);
-    shared_ptr<ComplexMatrix> vq_ptr = make_shared<ComplexMatrix>();
-    vq_ptr->create(naux_total, naux_total);
 
     size_t ii = 0;
     for (int i_mu = brow; i_mu <= erow; i_mu++)
@@ -429,21 +432,21 @@ static void _set_aux_coulomb_k_2D_block(
 }
 
 LIBRPA_C_H_FUNC_WRAP(void, librpa_set_aux_bare_coulomb_k_2d_block,
-                     int ik, int max_naux, int mu_begin, int mu_end, int nu_begin, int nu_end,
+                     int ik, int mu_begin, int mu_end, int nu_begin, int nu_end,
                      const double* Vq_real_in, const double* Vq_imag_in)
 {
     auto ds = librpa_int::api::get_dataset_instance(h);
     const auto &qvec = ds->pbc.klist[ik];
-    _set_aux_coulomb_k_2D_block(qvec, max_naux, mu_begin, mu_end, nu_begin, nu_end, Vq_real_in,
+    _set_aux_coulomb_k_2D_block(qvec, mu_begin, mu_end, nu_begin, nu_end, Vq_real_in,
                                 Vq_imag_in, ds->vq_block_loc);
 }
 
 LIBRPA_C_H_FUNC_WRAP(void, librpa_set_aux_cut_coulomb_k_2d_block,
-                     int ik, int max_naux, int mu_begin, int mu_end, int nu_begin, int nu_end,
+                     int ik, int mu_begin, int mu_end, int nu_begin, int nu_end,
                      const double* Vq_real_in, const double* Vq_imag_in)
 {
     auto ds = librpa_int::api::get_dataset_instance(h);
     const auto &qvec = ds->pbc.klist[ik];
-    _set_aux_coulomb_k_2D_block(qvec, max_naux, mu_begin, mu_end, nu_begin, nu_end, Vq_real_in,
+    _set_aux_coulomb_k_2D_block(qvec, mu_begin, mu_end, nu_begin, nu_end, Vq_real_in,
                                 Vq_imag_in, ds->vq_cut_block_loc);
 }
