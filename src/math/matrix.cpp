@@ -128,12 +128,12 @@ matrix::~matrix()
 // minyez change 2022-05-05
 void matrix::create( const int nrow, const int ncol, const bool flag_zero )
 {
-    size = nrow * ncol;
+    size = as_size(nrow) * as_size(ncol);
 	if( size )
 	{
 		if(c)
 		{
-			if( size != nr*nc )
+			if( size != as_size(nr*nc) )
 			{
 				delete[] c;
 				auto handler_old = std::set_new_handler(matrixAlloc);			
@@ -483,7 +483,7 @@ matrix power_symat(matrix &mat, double power, double threshold)
             w[i] = pow(w[i], power);
     }
     matrix evtrans = transpose(mat);
-    for ( size_t i = 0; i != mat.nr; i++ )
+    for ( int i = 0; i != mat.nr; i++ )
         for ( int j = 0; j != mat.nc; j++ )
             evtrans.c[i*mat.nc+j] *= w[i];
 

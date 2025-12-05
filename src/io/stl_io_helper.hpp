@@ -113,11 +113,11 @@ template <typename Tkey1, typename Tkey2, typename Tkey3, typename Tkey4, typena
 void print_keys(std::ostream& os, const std::map<Tkey1, std::map<Tkey2, std::map<Tkey3, std::map<Tkey4, Tval>>>> &nested_map)
 {
     os << "{";
-    for (const auto& k1k2k3k4v: nested_map)
-        for (const auto& k2k3k4v: k1k2k3k4v.second)
-            for (const auto& k3k4v: k2k3k4v.second)
-                for (const auto& k4v: k3k4v.second)
-                    os << k1k2k3k4v.first << " " << k2k3k4v.first << " " << k3k4v.first << " " << k4v.first << "\n";
+    for (const auto& [k1, k2k3k4v]: nested_map)
+        for (const auto& [k2, k3k4v]: k2k3k4v)
+            for (const auto& [k3, k4v]: k3k4v)
+                for (const auto& [k4, _]: k4v)
+                    os << k1 << " " << k2 << " " << k3 << " " << k4 << "\n";
     os << "}";
 }
 
@@ -126,9 +126,8 @@ template <typename Tkey1, typename Tkey2, typename Tval>
 int get_num_keys(const std::map<Tkey1, std::map<Tkey2, Tval>> &nested_map)
 {
     int nkeys = 0;
-    for (const auto& k1k2v: nested_map)
-        for (const auto& k2v: k1k2v.second)
-            nkeys++;
+    for (const auto& [_, k2v]: nested_map)
+        nkeys += k2v.size();
     return nkeys;
 }
 
@@ -137,10 +136,9 @@ template <typename Tkey1, typename Tkey2, typename Tkey3, typename Tval>
 int get_num_keys(const std::map<Tkey1, std::map<Tkey2, std::map<Tkey3, Tval>>> &nested_map)
 {
     int nkeys = 0;
-    for (const auto& k1k2k3v: nested_map)
-        for (const auto& k2k3v: k1k2k3v.second)
-            for (const auto& k3v: k2k3v.second)
-                nkeys++;
+    for (const auto& [_, k2k3v]: nested_map)
+        for (const auto& [_, k3v]: k2k3v)
+            nkeys += k3v.size();
     return nkeys;
 }
 

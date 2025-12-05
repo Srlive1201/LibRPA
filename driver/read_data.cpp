@@ -1661,7 +1661,7 @@ void read_basis(const std::string &file_path)
     ifstream infile;
     infile.open(file_path);
 
-    int n_atoms = driver::atom_types.size();
+    auto n_atoms = driver::atom_types.size();
     if (n_atoms != driver::n_atoms)
         throw std::runtime_error("Number of atoms not consistent with the geometry file!");
     std::map<int, size_t> map_at_wfc;
