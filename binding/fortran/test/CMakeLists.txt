@@ -5,7 +5,7 @@ macro(config_test_f03 TARGET NUMPROC)
   if(BUILD_SHARED_LIBS)
     target_link_libraries(${TARGET} PRIVATE ${math_libs} ${parallel_libs})
   endif()
-  target_include_directories(test_f03_binding PRIVATE
+  target_include_directories(${TARGET} PRIVATE
     $<TARGET_PROPERTY:rpa_f03_lib,Fortran_MODULE_DIRECTORY>
   )
   if(${NUMPROC} GREATER 1)
