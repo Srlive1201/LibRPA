@@ -1,4 +1,4 @@
-program test_f03_binding
+program test_f03_binding_libri
 
    use mpi
    use librpa_f03

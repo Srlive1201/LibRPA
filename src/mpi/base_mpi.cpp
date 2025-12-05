@@ -151,16 +151,16 @@ std::vector<int> dispatcher(int ist, int ied, unsigned myid, unsigned size, bool
     if (ist >= ied) return ilist;
     assert(size > 0);
     unsigned dist = ied - ist;
-    int n = dist / size;
-    int extra = dist % size;
+    auto n = dist / size;
+    auto extra = dist % size;
     bool has_extra = myid < extra;
     /* librpa_int::global::lib_printf("%u %d\n", myid, size); */
     unsigned id;
-    for (int i = 0; i != n + has_extra; i++)
+    for (unsigned i = 0; i != n + has_extra; i++)
     {
         if (sequential)
             // sequential mode: ist, ist+1, ist+2, ...
-            id = i + n * myid + std::min(extra, int(myid));
+            id = i + n * myid + std::min(extra, myid);
         else
             // even mode: ist, ist+size, ist+2*size, ...
             id = size * i + myid;
@@ -177,16 +177,16 @@ std::vector<std::pair<int, int>> dispatcher(int i1st, int i1ed, int i2st, int i2
     if ( (i1st >= i1ed) || (i2st >= i2ed) ) return ilist;
     unsigned dist1 = i1ed - i1st;
     unsigned dist2 = i2ed - i2st;
-    int n = dist1 * dist2 / size;
-    int extra = (dist1 * dist2) % size;
+    auto n = dist1 * dist2 / size;
+    auto extra = (dist1 * dist2) % size;
     bool has_extra = myid < extra;
     /* librpa_int::global::lib_printf("%u %d\n", myid, size); */
     unsigned id, id1, id2;
-    for ( int i = 0; i != n + has_extra; i++)
+    for (unsigned i = 0; i != n + has_extra; i++)
     {
         if (sequential)
             // sequential mode: ist, ist+1, ist+2, ...
-            id = i + n * myid + std::min(extra, int(myid));
+            id = i + n * myid + std::min(extra, myid);
         else
             // even mode: ist, ist+size, ist+2*size, ...
             id = size * i + myid;
@@ -294,7 +294,7 @@ std::vector<std::pair<int, int>> find_duplicate_ordered_pair(
     {
         ordered_pairs_flatten.insert(op.first * n + op.second);
     }
-    for (int ib = 0; ib != nbatch; ib++)
+    for (size_t ib = 0; ib != nbatch; ib++)
     {
         const size_t pair_start_batch = ib * npairs_batch;
         const size_t npairs_batch_current = ib == nbatch - 1?
@@ -333,7 +333,7 @@ std::vector<std::pair<int, int>> find_duplicate_ordered_pair(
             // if (i_v.second.size() == 0) cout << "Warning! " << i_v.first << " has no copy across\n";
             if (i_v.second.size() == 1) continue;
             std::vector<size_t> sizes(i_v.second.size());
-            for (int i = 0; i < sizes.size(); i++)
+            for (size_t i = 0; i < sizes.size(); i++)
             {
                 sizes[i] = npairs[i_v.second[i]];
             }

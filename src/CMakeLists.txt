@@ -15,7 +15,7 @@ endif()
 add_dependencies(rpa_lib LibGXMiniMax)
 
 set_target_properties(rpa_lib PROPERTIES
-  OUTPUT_NAME ${LIB_NAME}
+  OUTPUT_NAME ${LIBRPA_LIB_NAME}
   VERSION ${CMAKE_PROJECT_VERSION}
   SOVERSION ${CMAKE_PROJECT_VERSION}
 )
@@ -90,7 +90,7 @@ list(APPEND lib_sources
         utils/utils_mem.cpp
 )
 
-if(USE_LIBRI)
+if(LIBRPA_USE_LIBRI)
   target_include_directories(rpa_lib
     PUBLIC
       ${Cereal_INCLUDE_DIR}
@@ -106,9 +106,7 @@ target_link_libraries(rpa_lib PRIVATE ${math_libs} ${parallel_libs})
 install(TARGETS rpa_lib
         ARCHIVE
         DESTINATION ${CMAKE_INSTALL_LIBDIR})
-install(FILES
-        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
-if(ENABLE_TEST)
+if(ENABLE_LIBRPA_TEST AND ENABLE_LIBRPA_CPP_TEST)
   add_subdirectory(test)
 endif()

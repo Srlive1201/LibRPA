@@ -62,21 +62,21 @@ jobs:
         run: |
           source /opt/intel/oneapi/setvars.sh
           export BUILDDIR="build"
-          CXX=mpiicpx FC=ifx cmake -DUSE_LIBRI=OFF -DBUILD_SHARED_LIBS=ON -B $BUILDDIR -DCMAKE_BUILD_TYPE=Debug -DENABLE_TEST=ON
+          CXX=mpiicpx FC=ifx cmake -DLIBRPA_USE_LIBRI=OFF -DBUILD_SHARED_LIBS=ON -B $BUILDDIR -DCMAKE_BUILD_TYPE=Debug -DENABLE_LIBRPA_FORTRAN_BIND=OFF -DENABLE_LIBRPA_TEST=ON
           cmake --build $BUILDDIR -j 2
           cmake --build $BUILDDIR --target test
       - name: Build/test LibRPA with LibRI
         run: |
           source /opt/intel/oneapi/setvars.sh
           export BUILDDIR="build_libri"
-          CXX=mpiicpx FC=ifx cmake -DUSE_LIBRI=ON -DBUILD_SHARED_LIBS=ON -B $BUILDDIR -DCMAKE_BUILD_TYPE=Debug -DENABLE_TEST=ON
+          CXX=mpiicpx FC=ifx cmake -DLIBRPA_USE_LIBRI=ON -DBUILD_SHARED_LIBS=ON -B $BUILDDIR -DCMAKE_BUILD_TYPE=Debug -DENABLE_LIBRPA_FORTRAN_BIND=OFF -DENABLE_LIBRPA_TEST=ON
           cmake --build $BUILDDIR -j 2
           cmake --build $BUILDDIR --target test
-      - name: Build Fortran binding, static library
+      - name: Build Fortran binding (with LibRI), static library, and binding test
         run: |
           source /opt/intel/oneapi/setvars.sh
           export BUILDDIR="build_fortran_bind"
-          CXX=mpiicpx FC=mpiifx cmake -DUSE_LIBRI=OFF -DBUILD_SHARED_LIBS=OFF -DENABLE_FORTRAN_BIND=ON -B $BUILDDIR -DENABLE_TEST=OFF
+          CXX=mpiicpx FC=mpiifx cmake -DLIBRPA_USE_LIBRI=ON -DBUILD_SHARED_LIBS=OFF -B $BUILDDIR -DCMAKE_BUILD_TYPE=Debug -DENABLE_LIBRPA_FORTRAN_BIND=ON -DENABLE_LIBRPA_TEST=ON -DENABLE_LIBRPA_CPP_TEST=OFF -DENABLE_GREENX_CTEST=OFF
           cmake --build $BUILDDIR -j 2
       - name: Save last test log for check
         if: always()

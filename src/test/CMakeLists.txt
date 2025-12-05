@@ -11,7 +11,7 @@ macro(config_test TARGET NUMPROC)
     target_link_libraries(${TARGET} PRIVATE ${math_libs} ${parallel_libs})
   endif()
   # TODO: separate libri test targets
-  if(USE_LIBRI)
+  if(LIBRPA_USE_LIBRI)
     target_include_directories(${TARGET}
       PRIVATE
         ${Cereal_INCLUDE_DIR}

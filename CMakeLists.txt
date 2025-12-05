@@ -15,21 +15,26 @@ set(version "${librpa_major_version}.${librpa_minor_version}.${librpa_patch_vers
 
 set(CMAKE_PROJECT_VERSION "${version}")
 
-set(DRIVER_NAME         "chi0_main.exe")
-set(LIB_NAME            "rpa")
-set(FORTRAN_LIB_NAME    "rpa_f03")
-set(LIBRPA_FORTRAN_DP   "c_double" CACHE STRING "Kind of double precision that the Fortran binding uses to interface the user code")
+set(LIBRPA_DRIVER_NAME         "chi0_main.exe")
+set(LIBRPA_LIB_NAME            "rpa")
+set(LIBRPA_FORTRAN_LIB_NAME    "rpa_f03")
 
-# options setup
-option(USE_LIBRI            "Use LibRI for tensor contraction" OFF)
-option(USE_CMAKE_INC        "Use cmake.inc for configure" OFF)
-option(USE_EXTERNAL_GREENX  "Use external GreenX library rather than the packaged one" OFF)
-option(ENABLE_TEST          "Flag to build unit tests" ON)
-option(ENABLE_DRIVER        "Flag to build driver executable" ON)
-option(ENABLE_FORTRAN_BIND  "Flag to build Fotran binding" OFF)
-option(VERBOSE_OUTPUT       "Flag to print verbose information in stdout and process output" OFF)
+# Public options setup
+option(LIBRPA_USE_LIBRI            "Use LibRI for tensor contraction in LiBRPA" OFF)
+option(LIBRPA_USE_CMAKE_INC        "Use cmake.inc for configure" OFF)
+option(LIBRPA_USE_EXTERNAL_GREENX  "Use external GreenX library rather than the packaged one in LibRPA" OFF)
+option(ENABLE_LIBRPA_TEST          "Flag to build LibRPA tests" ON)
+option(ENABLE_LIBRPA_DRIVER        "Flag to build LibRPA driver executable" ON)
+option(ENABLE_LIBRPA_FORTRAN_BIND  "Flag to build LibRPA Fotran binding" OFF)
+option(LIBRPA_VERBOSE_OUTPUT       "Flag to print verbose information in stdout and process output of LibRPA" OFF)
 # NOTE: static library not tested
 # option(BUILD_LIBRPA_SHARED  "Flag to build shared libraries" ON)
+
+option(ENABLE_LIBRPA_CPP_TEST      "Flag to build tests for C++ components" ON)
+option(ENABLE_LIBRPA_FORTRAN_TEST  "Flag to build tests for Fortran bindings" ON)
+
+# Customizable cmake macro
+set(LIBRPA_FORTRAN_DP "c_double" CACHE STRING "Kind of double precision that the Fortran binding uses to interface the user code")
 
 if (DEFINED USE_GREENX_MINIMAX)
   message(FATAL_ERROR "USE_GREENX_MINIMAX is deprecated: GreenX is now always used. Please remove USE_GREENX_MINIMAX")
@@ -40,7 +45,7 @@ if (DEFINED USE_GREENX_API)
   endif()
 endif()
 # Hash number of the bundled greenX. Keep it consistent with thirdparty/greenX
-set(BUNDLED_GREENX_COMMIT_HASH "c90d131")
+set(_BUNDLED_GREENX_COMMIT_HASH "c90d131")
 
 # Add cmake load files
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
@@ -50,11 +55,11 @@ set(parallel_libs "")
 set(_loaded_cmake_inc OFF)
 
 # TODO: maybe better way to customize environments?
-if(EXISTS "${PROJECT_SOURCE_DIR}/cmake.inc" AND USE_CMAKE_INC)
-  include("${PROJECT_SOURCE_DIR}/cmake.inc")
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/cmake.inc" AND LIBRPA_USE_CMAKE_INC)
+  include("${CMAKE_CURRENT_SOURCE_DIR}/cmake.inc")
   list(APPEND math_libs ${LAPACK_LIBRARIES})
   set(_loaded_cmake_inc ON)
-  message(STATUS "Using customize environemnt variables from ${PROJECT_SOURCE_DIR}/cmake.inc")
+  message(STATUS "Using customize environemnt variables from ${CMAKE_CURRENT_SOURCE_DIR}/cmake.inc")
 endif()
 
 # C++ standard requirement
@@ -132,7 +137,7 @@ include_directories(src)
 # When USE_LIBRI is switched on but the include direcotires of the required dependenccies are not specified
 # by command line or environment variables, the internal packages are used.
 # If any of the include directory is specified but not found, a fatal error will be raised.
-if(USE_LIBRI)
+if(LIBRPA_USE_LIBRI)
   message(STATUS "Build with LibRI and dependeicies")
 
   # Check Cereal
@@ -141,7 +146,7 @@ if(USE_LIBRI)
   endif()
   if("${CEREAL_INCLUDE_DIR}" STREQUAL "")
     message(STATUS "Use internal Cereal  : thirdparty/cereal-1.3.0")
-    set(Cereal_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/./thirdparty/cereal-1.3.0/include)
+    set(Cereal_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/cereal-1.3.0/include)
   else()
     find_package(Cereal)
     if(NOT Cereal_FOUND)
@@ -157,7 +162,7 @@ if(USE_LIBRI)
   endif()
   if("${LIBCOMM_INCLUDE_DIR}" STREQUAL "")
     message(STATUS "Use internal LibComm : thirdparty/LibComm")
-    set(LibComm_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/./thirdparty/LibComm/include)
+    set(LibComm_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/LibComm/include)
   else()
     find_package(LibComm)
     if(NOT LibComm_FOUND)
@@ -173,7 +178,7 @@ if(USE_LIBRI)
   endif()
   if("${LIBRI_INCLUDE_DIR}" STREQUAL "")
     message(STATUS "Use internal LibRI   : thirdparty/LibRI")
-    set(LibRI_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/./thirdparty/LibRI/include)
+    set(LibRI_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/LibRI/include)
   else()
     find_package(LibRI)
     if(NOT LibRI_FOUND)
@@ -189,28 +194,28 @@ endif()
 if(CMAKE_BUILD_TYPE MATCHES "Debug")
   message(STATUS "Build type set to Debug, adding LIBRPA_DEBUG preprocessor directive")
   add_compile_definitions("LIBRPA_DEBUG")
-  set(VERBOSE_OUTPUT ON)
+  set(LIBRPA_VERBOSE_OUTPUT ON)
 endif()
 
-if(VERBOSE_OUTPUT)
+if(LIBRPA_VERBOSE_OUTPUT)
   add_compile_definitions("LIBRPA_VERBOSE")
 endif()
 
 # Switch on GreenX
-if(NOT USE_EXTERNAL_GREENX)
-  set(GREENX_COMMIT_HASH "${BUNDLED_GREENX_COMMIT_HASH}")
-  message(STATUS "Generate MiniMax grids by using the bundled GreenX library (collected from commit ${GREENX_COMMIT_HASH})")
+if(NOT LIBRPA_USE_EXTERNAL_GREENX)
+  set(LIBRPA_GREENX_COMMIT_HASH "${_BUNDLED_GREENX_COMMIT_HASH}")
+  message(STATUS "Generate MiniMax grids by using the bundled GreenX library (collected from commit ${LIBRPA_GREENX_COMMIT_HASH})")
   add_subdirectory(./thirdparty/greenX)
 else()
-  set(GREENX_COMMIT_HASH "(EXTERNAL)")
+  set(LIBRPA_GREENX_COMMIT_HASH "(EXTERNAL)")
 endif()
 
-if(ENABLE_FORTRAN_BIND)
+if(ENABLE_LIBRPA_FORTRAN_BIND)
   message(STATUS "LibRPA Fortran binding enabled")
   add_subdirectory(./binding/fortran)
 endif()
 
-if(ENABLE_TEST)
+if(ENABLE_LIBRPA_TEST)
   # FetchContent_Declare(
   #   googletest
   #   GIT_REPOSITORY https://github.com/google/googletest.git
@@ -222,25 +227,24 @@ if(ENABLE_TEST)
   enable_testing()
 endif()
 
-if(ENABLE_DRIVER)
+if(ENABLE_LIBRPA_DRIVER)
   message(STATUS "Build driver")
   list(APPEND CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR})
-  message(STATUS "CMAKE_INSTALL_RPATH: ${CMAKE_INSTALL_RPATH}")
   add_subdirectory(driver)
 endif()
 
 add_subdirectory(src)
 install(FILES
-        ${PROJECT_SOURCE_DIR}/include/librpa_compute.h
-        ${PROJECT_SOURCE_DIR}/include/librpa_enums.h
-        ${PROJECT_SOURCE_DIR}/include/librpa_global.h
-        ${PROJECT_SOURCE_DIR}/include/librpa_handler.h
-        ${PROJECT_SOURCE_DIR}/include/librpa_input.h
-        ${PROJECT_SOURCE_DIR}/include/librpa_func.h
-        ${PROJECT_SOURCE_DIR}/include/librpa_options.h
-        ${PROJECT_SOURCE_DIR}/include/librpa.h
-        ${PROJECT_SOURCE_DIR}/include/librpa.hpp
-        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/librpa_compute.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/librpa_enums.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/librpa_global.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/librpa_handler.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/librpa_input.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/librpa_func.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/librpa_options.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/librpa.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/librpa.hpp
+  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
-
+message(STATUS "CMAKE_INSTALL_RPATH: ${CMAKE_INSTALL_RPATH}")
 message(STATUS "CMAKE_CXX_FLAGS: ${CMAKE_CXX_FLAGS}")

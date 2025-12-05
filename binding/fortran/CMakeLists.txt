@@ -5,12 +5,14 @@ else()
 endif()
 
 set_target_properties(rpa_f03_lib PROPERTIES
-  OUTPUT_NAME ${FORTRAN_LIB_NAME}
+  OUTPUT_NAME ${LIBRPA_FORTRAN_LIB_NAME}
   VERSION ${CMAKE_PROJECT_VERSION}
   SOVERSION ${CMAKE_PROJECT_VERSION}
 )
 
-configure_file(librpa_f03.f90 ${CMAKE_CURRENT_BINARY_DIR}/librpa_f03.f90)
+configure_file(
+  ${CMAKE_CURRENT_SOURCE_DIR}/librpa_f03.f90
+  ${CMAKE_CURRENT_BINARY_DIR}/librpa_f03.f90)
 
 target_sources(rpa_f03_lib
   PRIVATE
@@ -27,6 +29,6 @@ install(TARGETS rpa_f03_lib
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/librpa_f03.mod
         DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
-if(ENABLE_TEST)
+if(ENABLE_LIBRPA_TEST AND ENABLE_LIBRPA_FORTRAN_TEST)
   add_subdirectory(test)
 endif()

@@ -24,4 +24,6 @@ macro(config_test_f03 TARGET NUMPROC)
 endmacro()
 
 
-config_test_f03(test_f03_binding 1)
+if(LIBRPA_USE_LIBRI)
+  config_test_f03(test_f03_binding_libri 1)
+endif()
