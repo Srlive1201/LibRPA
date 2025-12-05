@@ -5,11 +5,13 @@
 
 // Standard headers
 #include <cstring>
+#include <ios>
 #include <memory>
 #include <vector>
 
 // Internal headers
 #include "../io/global_io.h"
+#include "../io/stl_io_helper.h"
 #include "../math/matrix.h"
 #include "../math/vector3_order.h"
 #include "../utils/error.h"
@@ -123,7 +125,13 @@ LIBRPA_C_H_FUNC_WRAP(void, librpa_set_ao_basis_aux, int natoms, const size_t *nb
     using librpa_int::global::lib_printf;
 
     std::vector<size_t> nbs(natoms);
-    for (int i = 0; i < natoms; i++) nbs[i] = librpa_int::as_size(nbs_aux[i]);
+    librpa_int::global::ofs_myid << "Parsing basis: ";
+    for (int i = 0; i < natoms; i++)
+    {
+        nbs[i] = librpa_int::as_size(nbs_aux[i]);
+        librpa_int::global::ofs_myid << nbs[i] << " ";
+    }
+    librpa_int::global::ofs_myid << std::endl;
 
     auto ds = librpa_int::api::get_dataset_instance(h);
     ds->basis_aux.set(nbs);
@@ -316,9 +324,12 @@ LIBRPA_C_H_FUNC_WRAP(void, librpa_set_ibz_mapping, int nkpts, const int* map_ibz
 LIBRPA_C_H_FUNC_WRAP(void, librpa_set_lri_coeff, LibrpaParallelRouting routing, int I, int J,
                      int nbasis_i, int nbasis_j, int naux_mu, const int R[3], const double* Cs_in)
 {
+    using std::endl;
+    using namespace librpa_int;
     using librpa_int::matrix;
     using librpa_int::Vector3_Order;
     using librpa_int::as_size;
+    using librpa_int::global::ofs_myid;
 
     auto ds = librpa_int::api::get_dataset_instance(h);
     auto &cs_data = ds->cs_data;
@@ -329,6 +340,22 @@ LIBRPA_C_H_FUNC_WRAP(void, librpa_set_lri_coeff, LibrpaParallelRouting routing, 
 
     const size_t cs_size = nbasis_i * nbasis_j * naux_mu;
     const size_t n_ij = nbasis_i * nbasis_j;
+
+    ofs_myid << "Parsing I J " << I << " " << J << " "
+             << "ds->basis_aux " << ds->basis_aux.nbs_ << " "
+             << "ds->basis_wfc " << ds->basis_wfc.nbs_ << endl;
+    ofs_myid << "ds->basis_aux[I] == naux_mu ? " 
+             << ds->basis_aux[I] << " " << as_size(naux_mu) << " "
+             << std::boolalpha << (ds->basis_aux[I] == as_size(naux_mu))
+             << endl;
+    ofs_myid << "ds->basis_wfc[I] == nbasis_i ? "
+             << ds->basis_wfc[I] << " " << as_size(nbasis_i) << " "
+             << std::boolalpha << (ds->basis_wfc[I] == as_size(nbasis_i))
+             << endl;
+    ofs_myid << "ds->basis_wfc[J] == nbasis_j ? "
+             << ds->basis_wfc[J] << " " << as_size(nbasis_j) << " "
+             << std::boolalpha << (ds->basis_wfc[J] == as_size(nbasis_j))
+             << endl;
 
     assert(ds->basis_aux[I] == as_size(naux_mu));
     assert(ds->basis_wfc[I] == as_size(nbasis_i));

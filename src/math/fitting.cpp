@@ -17,11 +17,9 @@ static double error_func(const std::vector<double> &par,
                          const std::vector<double> &ys,
                          const std::function<double(double, const std::vector<double>&)> &func)
 {
-    int i;
     double res, e = 0;
     const std::size_t n = ys.size();
-
-    for (i = 0; i < n; i++)
+    for (size_t i = 0; i < n; i++)
     {
         res = func(xs[i], par) - ys[i];
         e += res * res;
@@ -105,7 +103,7 @@ void LevMarqFitting::fit(
 {
     const int npars = pars.size();
     const std::size_t n = xs.size();
-    if (xs.size() != ys.size())
+    if (n != ys.size())
     {
         global::lib_printf("Warning: inconsistent x and y size of data\n");
     }
@@ -136,7 +134,7 @@ void LevMarqFitting::fit(
             d[i] = 0;
             for (int j = 0; j <= i; j++) h[i][j] = 0;
         }
-        for (int ix = 0; ix < n; ix++)
+        for (size_t ix = 0; ix < n; ix++)
         {
             grad(g, xs[ix], pars);
             for (int i = 0; i < npars; i++)
@@ -204,7 +202,7 @@ std::vector<double> LevMarqFitting::fit_eval(std::vector<double> &pars, const st
 {
     fit(pars, xs, ys, func, grad);
     std::vector<double> ys_eval(xs_eval.size());
-    for (int i = 0; i != ys_eval.size(); i++)
+    for (size_t i = 0; i != ys_eval.size(); i++)
     {
         ys_eval[i] = func(xs_eval[i], pars);
     }

@@ -18,6 +18,7 @@ set(CMAKE_PROJECT_VERSION "${version}")
 set(DRIVER_NAME         "chi0_main.exe")
 set(LIB_NAME            "rpa")
 set(FORTRAN_LIB_NAME    "rpa_f03")
+set(LIBRPA_FORTRAN_DP   "c_double" CACHE STRING "Kind of double precision that the Fortran binding uses to interface the user code")
 
 # options setup
 option(USE_LIBRI            "Use LibRI for tensor contraction" OFF)
@@ -205,6 +206,7 @@ else()
 endif()
 
 if(ENABLE_FORTRAN_BIND)
+  message(STATUS "LibRPA Fortran binding enabled")
   add_subdirectory(./binding/fortran)
 endif()
 

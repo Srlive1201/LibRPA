@@ -22,7 +22,7 @@ LIBRPA_C_H_FUNC_WRAP_WOPT(double, librpa_get_rpa_correlation_energy,
 
     double rpa_corr = 0.0;
 
-    profiler.start("g0w0", "G0W0 quasi-particle calculation");
+    profiler.start("api_get_rpa_correlation_energy");
     auto ds = librpa_int::api::get_dataset_instance(h);
 
     const auto &opts = *p_opts;
@@ -127,7 +127,7 @@ LIBRPA_C_H_FUNC_WRAP_WOPT(double, librpa_get_rpa_correlation_energy,
         {
             lib_printf(
                 "WARNING: parsed n_ibz_kpoints is not consistent with generated CorrEne object: %d != %zu\n",
-                n_ibz_kpoints, corr.qcontrib.size());
+                as_size(n_ibz_kpoints), corr.qcontrib.size());
         }
     }
 
@@ -143,6 +143,7 @@ LIBRPA_C_H_FUNC_WRAP_WOPT(double, librpa_get_rpa_correlation_energy,
 
     // Works done, free the object and reset the pointer to nullptr
     ds->p_chi0.reset();
+    profiler.stop("api_get_rpa_correlation_energy");
 
     return rpa_corr;
 }

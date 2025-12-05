@@ -4,8 +4,10 @@
 #include <cassert>
 #include <numeric>
 #include <stdexcept>
+#include <iostream>
 
 #include "../utils/base_utility.h"
+#include "../io/stl_io_helper.h"
 
 namespace librpa_int {
 
@@ -60,6 +62,7 @@ void AtomicBasis::set(const std::vector<std::size_t>& nbs)
 {
     nbs_.clear();
     nbs_ = nbs;
+    // std::cout << "nbs_ " << nbs_ << std::endl;
     initialize();
 }
 

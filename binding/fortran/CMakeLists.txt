@@ -10,10 +10,13 @@ set_target_properties(rpa_f03_lib PROPERTIES
   SOVERSION ${CMAKE_PROJECT_VERSION}
 )
 
+configure_file(librpa_f03.f90 ${CMAKE_CURRENT_BINARY_DIR}/librpa_f03.f90)
+
 target_sources(rpa_f03_lib
   PRIVATE
-  librpa_f03.f90
+  ${CMAKE_CURRENT_BINARY_DIR}/librpa_f03.f90
 )
+
 target_link_libraries(rpa_f03_lib PRIVATE rpa_lib)
 
 target_include_directories(rpa_f03_lib PUBLIC ${CMAKE_CURRENT_BINARY_DIR})

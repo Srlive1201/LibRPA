@@ -37,7 +37,9 @@ class AtomicBasis
 {
 private:
     bool initialized_;
+public:
     std::vector<std::size_t> nbs_;
+private:
     std::vector<std::size_t> part_range_;
     std::vector<int> glo2iat_;
     std::vector<std::size_t> glo2loc_;
@@ -111,8 +113,8 @@ public:
         return {glo2iat_[i_glo_b], as_int(glo2loc_[i_glo_b])};
     }
 
-    inline std::size_t get_atom_nb(const int& i_atom) const noexcept { return nbs_[i_atom]; }
-    inline std::size_t operator[](const int& i_atom) const noexcept { return nbs_[i_atom]; }
+    inline std::size_t get_atom_nb(const int &i_atom) const { return nbs_.at(as_size(i_atom)); }
+    inline std::size_t operator[](const int &i_atom) const { return nbs_.at(as_size(i_atom)); }
     inline std::vector<std::size_t> get_atom_nbs() const noexcept { return nbs_; }
     inline const std::vector<std::size_t>& get_part_range() const noexcept { return part_range_; }
     inline bool initialized() const noexcept { return initialized_; }

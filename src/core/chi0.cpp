@@ -99,13 +99,13 @@ void Chi0::build(LibrpaParallelRouting routing,
                     build_gf_Rt(R, -tau);
                 }
             }
-        }
-        if (comm_h.is_root())
-        {
-            // cout << " Green threshold: " << gf_R_threshold << endl;
-            global::lib_printf("Finished construction of R-space Green's function\n");
-            global::lib_printf("| Saved Green's function:     %zu\n", gf_save);
-            global::lib_printf("| Discarded Green's function: %zu\n\n", gf_discard);
+            if (comm_h.is_root())
+            {
+                // cout << " Green threshold: " << gf_R_threshold << endl;
+                global::lib_printf("Finished construction of R-space Green's function\n");
+                global::lib_printf("| Saved Green's function:     %zu\n", gf_save);
+                global::lib_printf("| Discarded Green's function: %zu\n\n", gf_discard);
+            }
         }
         build_chi0_q_space_time(routing, Cs, atpairs_ABF);
     }
@@ -275,6 +275,7 @@ static void build_gf_Rt_libri(
         const auto &R = IJR.second;
         map_R_IJs[R].push_back(IJR.first);
     }
+    global::ofs_myid << "map_R_IJs " << map_R_IJs << std::endl;
 
     auto wg = mf.get_weight()[ispin];
     if (tau > 0)
@@ -304,6 +305,7 @@ static void build_gf_Rt_libri(
         const auto R = R_IJs.first;
         const auto IJs = R_IJs.second;
         const std::array<int,3> Ra{R.x,R.y,R.z};
+        global::ofs_myid << "Chi0 Handling IJs: " << IJs << " - R " << Ra << std::endl;
 
         // Compute the full G(R, tau) matrix
 #pragma omp parallel for schedule(dynamic)

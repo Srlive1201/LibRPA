@@ -293,14 +293,14 @@ void collect_block_from_ALL_IJ_Tensor(
     matrix_m<Tdst> tmp_loc(mat_lo.nr(),mat_lo.nc(), MAJOR::ROW);
     size_t cp_size= ad.n_loc()*sizeof(Tdst);
 
-#ifdef LIBRPA_DEBUG
-    librpa_int::global::ofs_myid << "cp_size: " << cp_size << std::endl;
-    librpa_int::global::ofs_myid << "Available TMAP keys: ";
-    print_keys(librpa_int::global::ofs_myid, TMAP);
-    librpa_int::global::ofs_myid << std::endl;
-    librpa_int::global::ofs_myid << "mat_lo dims: " << mat_lo.nr() << " " << mat_lo.nc() << std::endl;
-    librpa_int::global::ofs_myid << "ad_loc dims: " << ad.m_loc() << " " << ad.n_loc() << std::endl;
-#endif
+// #ifdef LIBRPA_DEBUG
+//     librpa_int::global::ofs_myid << "cp_size: " << cp_size << std::endl;
+//     librpa_int::global::ofs_myid << "Available TMAP keys: ";
+//     print_keys(librpa_int::global::ofs_myid, TMAP);
+//     librpa_int::global::ofs_myid << std::endl;
+//     librpa_int::global::ofs_myid << "mat_lo dims: " << mat_lo.nr() << " " << mat_lo.nc() << std::endl;
+//     librpa_int::global::ofs_myid << "ad_loc dims: " << ad.m_loc() << " " << ad.n_loc() << std::endl;
+// #endif
 
     omp_lock_t mat_lock;
     omp_init_lock(&mat_lock);

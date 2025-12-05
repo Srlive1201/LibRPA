@@ -274,17 +274,19 @@ CorrEnergy compute_RPA_correlation_blacs_2d(Chi0 &chi0, atpair_k_cplx_mat_t &cou
 {
     using librpa_int::global::ofs_myid;
     using librpa_int::global::lib_printf;
+    using librpa_int::global::profiler;
+
+    profiler.start("compute_RPA_correlation_blacs_2d");
 
     const auto &comm_h = blacs_h.comm_h();
     lib_printf("Begin to compute_RPA_correlation_blacs_2d  myid: %d\n", comm_h.myid );
-    system("free -m");
+    release_free_mem();
     CorrEnergy corr;
     if (comm_h.myid == 0)
         lib_printf("Calculating EcRPA with BLACS/ScaLAPACK 2D\n");
     // lib_printf("Calculating EcRPA with BLACS, pid:  %d\n", comm_h.myid);
-    const auto & mf = chi0.mf;
+    // const auto & mf = chi0.mf;
     const auto &klist = chi0.pbc.klist;
-    const complex<double> CONE{1.0, 0.0};
     const int n_abf = chi0.atbasis_abf.nb_total;
     const auto part_range = chi0.atbasis_abf.get_part_range();
 
@@ -296,8 +298,8 @@ CorrEnergy compute_RPA_correlation_blacs_2d(Chi0 &chi0, atpair_k_cplx_mat_t &cou
     const auto set_IJ_nabf_nabf = get_necessary_IJ_from_block_2D_sy('U', chi0.atbasis_abf, desc_nabf_nabf);
     const auto s0_s1 = get_s0_s1_for_comm_map2_first(set_IJ_nabf_nabf);
     auto chi0_block = init_local_mat<complex<double>>(desc_nabf_nabf, MAJOR::COL);
-    auto coul_block = init_local_mat<complex<double>>(desc_nabf_nabf, MAJOR::COL);
-    auto coul_chi0_block = init_local_mat<complex<double>>(desc_nabf_nabf, MAJOR::COL);
+    auto coul_block = chi0_block.copy();
+    auto coul_chi0_block = chi0_block.copy();
     // ofs_myid << "Iset Jset " << s0_s1 << endl;
     // ofs_myid << "atpair_unordered_local of myid " << blacs_h.myid << " " << atpair_unordered_local << endl;
 
@@ -306,17 +308,19 @@ CorrEnergy compute_RPA_correlation_blacs_2d(Chi0 &chi0, atpair_k_cplx_mat_t &cou
     vector<Vector3_Order<double>> qpts;
     for (const auto &qMuNuchi: chi0.get_chi0_q().at(chi0.tfg.get_freq_nodes()[0]))
         qpts.push_back(qMuNuchi.first);
+    ofs_myid << "compute_RPA_correlation_blacs_2d handling qpts: " << qpts.size() << std::endl;
+    // return corr;
 
     complex<double> tot_RPA_energy(0.0, 0.0);
     map<Vector3_Order<double>, complex<double>> cRPA_q;
-    if(comm_h.is_root())
-        lib_printf("Finish init RPA blacs 2d\n");
+    if(comm_h.is_root()) lib_printf("Finish init RPA blacs 2d\n");
+    comm_h.barrier();
 #ifdef LIBRPA_USE_LIBRI
     for (const auto &q: qpts)
     {
         coul_block.zero_out();
 
-        int iq = std::distance(klist.begin(), std::find(klist.begin(), klist.end(), q));
+        // int iq = chi0.pbc.get_k_index_full(q);
         std::array<double, 3> qa = {q.x, q.y, q.z};
         // collect the block elements of coulomb matrices
         {
@@ -324,6 +328,7 @@ CorrEnergy compute_RPA_correlation_blacs_2d(Chi0 &chi0, atpair_k_cplx_mat_t &cou
             // LibRI tensor for communication, release once done
             std::map<int, std::map<std::pair<int, std::array<double, 3>>, Tensor<complex<double>>>> coul_libri;
             coul_libri.clear();
+            ofs_myid << "Initializing coul_libri Tensors" << std::endl;
             for (const auto &Mu_Nu: local_atpair)
             {
                 const auto Mu = Mu_Nu.first;
@@ -335,11 +340,14 @@ CorrEnergy compute_RPA_correlation_blacs_2d(Chi0 &chi0, atpair_k_cplx_mat_t &cou
                 const auto &Vq = coulmat.at(Mu).at(Nu).at(q);
                 const auto n_mu = chi0.atbasis_abf.get_atom_nb(Mu);
                 const auto n_nu = chi0.atbasis_abf.get_atom_nb(Nu);
+                ofs_myid << "- coul_libri Tensor Mu " << Mu << " Nu " << Nu
+                         << " address " << Vq->c << " " << Vq->size << " shape " << n_mu << " x " << n_nu << std::endl;
                 std::valarray<complex<double>> Vq_va(Vq->c, Vq->size);
                 auto pvq = std::make_shared<std::valarray<complex<double>>>();
                 *pvq = Vq_va;
                 coul_libri[Mu][{Nu, qa}] = Tensor<complex<double>>({n_mu, n_nu}, pvq);
             }
+            ofs_myid << "Done initializing coul_libri Tensors" << std::endl;
             //printf("Finish RPA blacs 2d  vq arr\n");
             double arr_end = omp_get_wtime();
             comm_h.barrier();
@@ -365,8 +373,12 @@ CorrEnergy compute_RPA_correlation_blacs_2d(Chi0 &chi0, atpair_k_cplx_mat_t &cou
             //     //        coul_block.nr(), coul_block.nc(),
             //     //        str(coul_block).c_str());
             // }
-            collect_block_from_ALL_IJ_Tensor(coul_block, desc_nabf_nabf, chi0.atbasis_abf,
-                                             qa, true, CONE, IJq_coul, MAJOR::ROW);
+
+            if (IJq_coul.size() > 0)
+            {
+                collect_block_from_ALL_IJ_Tensor(coul_block, desc_nabf_nabf, chi0.atbasis_abf,
+                                                qa, true, C_ONE, IJq_coul, MAJOR::ROW);
+            }
             double block_end = omp_get_wtime();
             lib_printf("Vq Time  myid: %d  arr_time: %f  comm_time: %f   block_time: %f   pair_size: %d\n",comm_h.myid,arr_end-vq_begin, comm_end-comm_begin, block_end-block_begin,set_IJ_nabf_nabf.size());
             comm_h.barrier();
@@ -416,7 +428,7 @@ CorrEnergy compute_RPA_correlation_blacs_2d(Chi0 &chi0, atpair_k_cplx_mat_t &cou
                 if(comm_h.is_root())
                 {
                     lib_printf("Begin to clean chi0 !!! \n");
-                    display_free_mem();
+                    // display_free_mem();
                     lib_printf("chi0_freq_q size: %d,  freq: %f, q:( %f, %f, %f )\n",chi0_wq.size(),freq, q.x,q.y,q.z );
                 }
                 chi0.free_chi0_q(freq,q);
@@ -436,7 +448,7 @@ CorrEnergy compute_RPA_correlation_blacs_2d(Chi0 &chi0, atpair_k_cplx_mat_t &cou
                 // ofs_myid << "IJq_chi0" << endl << IJq_chi0;
                 double chi_end_comm = omp_get_wtime();
                 collect_block_from_ALL_IJ_Tensor(chi0_block, desc_nabf_nabf, chi0.atbasis_abf,
-                                                 qa, true, CONE, IJq_chi0, MAJOR::ROW);
+                                                 qa, true, C_ONE, IJq_chi0, MAJOR::ROW);
                 comm_h.barrier();
                 double chi_end_2d = omp_get_wtime();
 
@@ -474,7 +486,7 @@ CorrEnergy compute_RPA_correlation_blacs_2d(Chi0 &chi0, atpair_k_cplx_mat_t &cou
                 const int ilo = desc_nabf_nabf.indx_g2l_r(i);
                 const int jlo = desc_nabf_nabf.indx_g2l_c(i);
                 if (ilo >= 0 && jlo >= 0)
-                    coul_chi0_block(ilo,jlo)+=CONE;
+                    coul_chi0_block(ilo,jlo)+=C_ONE;
             }
             // if( ifreq== 0 && comm_h.is_root() )
             //     print_whole_matrix("pi-2D-loc", coul_chi0_block);
@@ -517,6 +529,7 @@ CorrEnergy compute_RPA_correlation_blacs_2d(Chi0 &chi0, atpair_k_cplx_mat_t &cou
     corr.value = tot_RPA_energy;
 
     corr.etype = CorrEnergy::type::RPA;
+    profiler.stop("compute_RPA_correlation_blacs_2d");
     return corr;
 }
 
@@ -2292,9 +2305,9 @@ std::map<double, std::map<Vector3_Order<int>, Matz>> CT_FT_Wc_freq_q(
 
     // initialize inverse consine tranform matrix.
     Matz coeff_f2t(n_freq, n_freq, MAJOR::COL);
-    for (int itau = 0; itau < n_freq; itau++)
+    for (size_t itau = 0; itau < n_freq; itau++)
     {
-        for (int ifreq = 0; ifreq < n_freq; ifreq++)
+        for (size_t ifreq = 0; ifreq < n_freq; ifreq++)
         {
             coeff_f2t(ifreq, itau) = tfg.get_costrans_f2t()(itau, ifreq);
         }
@@ -2333,13 +2346,13 @@ std::map<double, std::map<Vector3_Order<int>, Matz>> CT_FT_Wc_freq_q(
     global::ofs_myid << "row_max " << row_max << endl;
 
     // Loop over R-vector batches
-    for (int i_r_batch = 0; i_r_batch < n_r_batches; i_r_batch++)
+    for (size_t i_r_batch = 0; i_r_batch < n_r_batches; i_r_batch++)
     {
         const size_t disp_r = i_r_batch * n_r_batch_max;
         const size_t n_r_this_batch = std::min(n_r_batch_max, as_size(n_k_points) - disp_r);
 
         // Initialize tau blocks for these R vectors
-        for (int ir_this = 0; ir_this < n_r_this_batch; ir_this++)
+        for (size_t ir_this = 0; ir_this < n_r_this_batch; ir_this++)
         {
             const auto ir = disp_r + ir_this;
             const auto &R = Rlist[ir];
@@ -2378,7 +2391,7 @@ std::map<double, std::map<Vector3_Order<int>, Matz>> CT_FT_Wc_freq_q(
             #pragma omp parallel for collapse(2) schedule(dynamic)
             for (size_t itau = 0; itau < n_freq; itau++)
             {
-                for (int ir_this = 0; ir_this < n_r_this_batch; ir_this++)
+                for (size_t ir_this = 0; ir_this < n_r_this_batch; ir_this++)
                 {
                     const auto tau = tfg.get_time_nodes()[itau];
                     const auto &R = Rlist[disp_r + ir_this];
@@ -2390,7 +2403,7 @@ std::map<double, std::map<Vector3_Order<int>, Matz>> CT_FT_Wc_freq_q(
         }
 
         // Data at these R-vector will not be used any more, release them
-        for (int ir_this = 0; ir_this < n_r_this_batch; ir_this++)
+        for (size_t ir_this = 0; ir_this < n_r_this_batch; ir_this++)
         {
             const auto ir = disp_r + ir_this;
             const auto &R = Rlist[ir];

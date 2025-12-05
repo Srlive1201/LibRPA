@@ -60,7 +60,7 @@ void check_minimax_ng6_HF_123()
     auto i_tf = tfg.get_tf_index({tfg.get_time_nodes()[2], tfg.get_freq_nodes()[1]});
     assert(i_tf.first  == tfg.get_time_index(tfg.get_time_nodes()[2]));
     assert(i_tf.second  == tfg.get_time_index(tfg.get_time_nodes()[1]));
-    for ( int i = 0; i != tfg.size(); i++ )
+    for ( size_t i = 0; i != tfg.size(); i++ )
     {
         assert( fabs(freq_node[i] - tfg.get_freq_nodes()[i]) < 1e-5);
         assert( fabs(freq_weight[i] - tfg.get_freq_weights()[i]) < 1e-5);

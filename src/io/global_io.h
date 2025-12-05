@@ -2,6 +2,7 @@
 #include <fstream>
 
 #include "../mpi/global_mpi.h"
+#include "librpa_enums.h"
 
 namespace librpa_int
 {
@@ -34,7 +35,7 @@ void finalize_global_io();
 
 //! printf that handles the stdout redirect
 template <typename... Args>
-void lib_printf(const char* s, Args&&... args)
+void lib_printf(const char* s, Args&&... args) noexcept
 {
     if (pfile_redirect != nullptr)
     {
@@ -48,7 +49,7 @@ void lib_printf(const char* s, Args&&... args)
 }
 
 // raw string, no formatting at all
-inline void lib_printf(const char* s)
+inline void lib_printf(const char* s) noexcept
 {
     if (pfile_redirect)
     {
@@ -63,7 +64,7 @@ inline void lib_printf(const char* s)
 
 //! simlar to global::printf, but only proc 0 of global communicator will dump
 template <typename... Args>
-void lib_printf_root(const char* s, Args&&... args)
+void lib_printf_root(const char* s, Args&&... args) noexcept
 {
     if (myid_global == 0)
     {
@@ -73,7 +74,7 @@ void lib_printf_root(const char* s, Args&&... args)
 
 //! simlar to global::printf, but all processes will print in the order of myid
 template <typename... Args>
-void lib_printf_coll(const char* s, Args&&... args)
+void lib_printf_coll(const char* s, Args&&... args) noexcept
 {
     for (int i = 0; i < size_global; i++)
     {
@@ -87,9 +88,14 @@ void lib_printf_coll(const char* s, Args&&... args)
 
 } /* end of namespace global */
 
+inline bool verbalize(LibrpaVerbose current_level, LibrpaVerbose verbose_level) noexcept
+{
+    return current_level >= verbose_level;
+}
+
 //! Similar to lib_printf_root, but one can specify any communicator
 template <typename... Args>
-void printf_comm_root(const librpa_int::MpiCommHandler &comm_h, const char* s, Args&&... args)
+void printf_comm_root(const librpa_int::MpiCommHandler &comm_h, const char* s, Args&&... args) noexcept
 {
     comm_h.check_initialized();
     if (0 == comm_h.myid)
@@ -100,7 +106,7 @@ void printf_comm_root(const librpa_int::MpiCommHandler &comm_h, const char* s, A
 
 //! Similar to lib_printf_coll, but one can specify any communicator
 template <typename... Args>
-void printf_comm_coll(const librpa_int::MpiCommHandler &comm_h, const char* s, Args&&... args)
+void printf_comm_coll(const librpa_int::MpiCommHandler &comm_h, const char* s, Args&&... args) noexcept
 {
     comm_h.check_initialized();
     for (int i = 0; i < comm_h.nprocs; i++)
