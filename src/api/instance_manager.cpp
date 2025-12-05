@@ -1,6 +1,7 @@
 #include "instance_manager.h"
 
 #include <cstddef>
+#include <memory>
 #include "librpa.hpp"
 
 namespace librpa_int
@@ -10,21 +11,15 @@ namespace api
 {
 
 // manager[0] is a reserved sentinel (always nullptr); real instances start at 1.
-std::vector<Dataset *> manager{nullptr};
+std::vector<std::shared_ptr<Dataset>> manager{nullptr};
 
-librpa_int::Dataset* get_dataset_instance(const LibrpaHandler *h)
+std::shared_ptr<Dataset> get_dataset_instance(const LibrpaHandler *h)
 {
-    librpa_int::Dataset* p = nullptr;
-    const int total_size = manager.size();
-    if (h != nullptr)
-    {
-        const auto id = h->instance_id_;
-        if (id >= 0 && id < total_size) p = manager[id];
-    }
-    return p;
+    if (h == nullptr) return nullptr;
+    return manager.at(h->instance_id_);
 }
 
-librpa_int::Dataset* get_dataset_instance(const librpa::Handler &h)
+std::shared_ptr<Dataset> get_dataset_instance(const librpa::Handler &h)
 {
     return get_dataset_instance(h.get_c_handler());
 }
@@ -33,8 +28,8 @@ LibrpaHandler* push_back_dataset(int comm)
 {
     // create a new instance and append it to the manager
     int instance_id = manager.size();
-    librpa_int::Dataset *obj = new librpa_int::Dataset(comm);
-    manager.emplace_back(obj);
+    auto p = std::make_shared<Dataset>(comm);
+    manager.emplace_back(p);
 
     // initialize a binding handler
     LibrpaHandler* h = new LibrpaHandler {instance_id};
@@ -52,11 +47,10 @@ void destroy_dataset(LibrpaHandler* h)
         // Invalid handler that was manually created with hand-picked id,
         // either oversubscription
         if (id >= total_size) return;
-        auto &p = manager[id];
+        auto p = manager[id];
         // or pointed to an already released instance
-        if (!p) return;
+        p.reset();
         // free the instance and point it to null pointer
-        delete p;
         manager[id] = nullptr;
     }
 }

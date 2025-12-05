@@ -123,9 +123,9 @@ program test_f03_binding
                   r(1) = ik1
                   r(2) = ik2
                   r(3) = ik3
-                  ! call h%set_lri_coeff(opts%parallel_routing, ia1, ia2, &
-                  !                      nbs_wfc(ia1), nbs_wfc(ia2), nbs_aux(ia1), &
-                  !                      r, ri_coeff)
+                  call h%set_lri_coeff(opts%parallel_routing, ia1, ia2, &
+                                       nbs_wfc(ia1), nbs_wfc(ia2), nbs_aux(ia1), &
+                                       r, ri_coeff)
                end do
             end do
          end do
@@ -133,19 +133,19 @@ program test_f03_binding
       end do
    end do
 
-   ! ! Set Coulomb through atom pair interface
-   ! do ia1 = 1, natoms
-   !    do ia2 = 1, natoms
-   !       allocate(vq(nbs_aux(ia1), nbs_aux(ia2)))
-   !       do ik = 1, nkpts
-   !          vq(1, 1) = real(10 * ik + ia1 + 0.1_dp * ia2, kind=dp)
-   !          call h%set_aux_bare_coulomb_k_atom_pair(ik, ia1, ia2, nbs_aux(ia1), nbs_aux(ia2), vq, 0.0_dp)
-   !          vq(1, 1) = -vq(1, 1)
-   !          call h%set_aux_cut_coulomb_k_atom_pair(ik, ia1, ia2, nbs_aux(ia1), nbs_aux(ia2), vq, 0.0_dp)
-   !       end do
-   !       deallocate(vq)
-   !    end do
-   ! end do
+   ! Set Coulomb through atom pair interface
+   do ia1 = 1, natoms
+      do ia2 = 1, natoms
+         allocate(vq(nbs_aux(ia1), nbs_aux(ia2)))
+         do ik = 1, nkpts
+            vq(1, 1) = real(10 * ik + ia1 + 0.1_dp * ia2, kind=dp)
+            call h%set_aux_bare_coulomb_k_atom_pair(ik, ia1, ia2, nbs_aux(ia1), nbs_aux(ia2), vq, 0.0_dp)
+            vq(1, 1) = -vq(1, 1)
+            call h%set_aux_cut_coulomb_k_atom_pair(ik, ia1, ia2, nbs_aux(ia1), nbs_aux(ia2), vq, 0.0_dp)
+         end do
+         deallocate(vq)
+      end do
+   end do
 
    allocate(contrib_ibzk(2))
    opts%tfgrids_type = LIBRPA_TFGRID_MINIMAX

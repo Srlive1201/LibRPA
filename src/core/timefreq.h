@@ -30,7 +30,7 @@ class TFGrids
         LibrpaTimeFreqGrid grid_type;
         //! whether to use time grids, i.e. space-time method
         bool _has_time_grids;
-        unsigned n_grids;
+        size_t n_grids;
         std::vector<double> freq_nodes;
         std::vector<double> freq_weights;
         std::vector<double> time_nodes;

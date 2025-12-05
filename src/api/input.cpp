@@ -158,10 +158,8 @@ LIBRPA_C_H_FUNC_WRAP(void, librpa_set_latvec_and_G, const double lat_mat[9], con
     auto ds = librpa_int::api::get_dataset_instance(h);
     auto &pbc = ds->pbc;
 
-    std::vector<double> latt(9);
-    memcpy(latt.data(), lat_mat, 9 * sizeof(double));
-    std::vector<double> recp(9);
-    memcpy(recp.data(), G_mat, 9 * sizeof(double));
+    std::vector<double> latt(lat_mat, lat_mat + 9);
+    std::vector<double> recp(G_mat, G_mat + 9);
 
     pbc.set_latvec_and_G(latt, recp);
 
@@ -190,9 +188,8 @@ LIBRPA_C_H_FUNC_WRAP(void, librpa_set_atoms, int natoms, const int *types, const
     auto &pbc = ds->pbc;
     auto &atoms = ds->atoms;
 
-    std::vector<int> v_types(natoms);
+    std::vector<int> v_types(types, types + natoms);
     std::vector<coord_t> v_coords(natoms);
-    memcpy(v_types.data(), types, natoms * sizeof(int));
     for (int i = 0; i < natoms; i++)
     {
         v_coords[i][0] = posi_cart[3 * i];
@@ -251,8 +248,7 @@ LIBRPA_C_H_FUNC_WRAP(void, librpa_set_kgrids_kvec, int nk1, int nk2, int nk3, co
     auto &pbc = ds->pbc;
 
     const int nkpts = nk1 * nk2 * nk3;
-    std::vector<double> v_kvecs(3 * nkpts);
-    memcpy(v_kvecs.data(), kvecs, 3 * nkpts * sizeof(double));
+    std::vector<double> v_kvecs(kvecs, kvecs + 3 * nkpts);
 
     pbc.set_kgrids_kvec(nk1, nk2, nk3, v_kvecs);
 
@@ -292,9 +288,7 @@ LIBRPA_C_H_FUNC_WRAP(void, librpa_set_ibz_mapping, int nkpts, const int* map_ibz
     auto &pbc = ds->pbc;
     assert(nkpts == pbc.get_n_cells_bvk());
 
-    std::vector<int> map(nkpts);
-    memcpy(map.data(), map_ibzk, nkpts * sizeof(double));
-
+    std::vector<int> map(map_ibzk, map_ibzk + nkpts);
     pbc.set_ibz_mapping(map, {});
     ds->comm_h.barrier();
     if (ds->comm_h.is_root())

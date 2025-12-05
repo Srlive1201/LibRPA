@@ -56,12 +56,12 @@ void TFGrids::show() const
     cout << "Grid type: " << TFGrids::GRID_TYPES_NOTES[grid_type] << endl;
     cout << "Grid size: " << n_grids << endl;
     cout << "Frequency node & weight: " << endl;
-    for ( int i = 0; i != n_grids; i++ )
+    for ( size_t i = 0; i != n_grids; i++ )
         lib_printf("%2d %23.16f %23.16f\n", i, freq_nodes[i], freq_weights[i]);
     if (has_time_grids())
     {
         cout << "Time node & weight: " << endl;
-        for ( int i = 0; i != n_grids; i++ )
+        for ( size_t i = 0; i != n_grids; i++ )
             lib_printf("%2d %23.16f %23.16f\n", i, time_nodes[i], time_weights[i]);
         cout << "t->f transform: " << endl;
         if (costrans_t2f.size)
@@ -157,7 +157,7 @@ void TFGrids::generate_evenspaced(double emin, double interval)
     if ( interval < 0 )
         throw LIBRPA_RUNTIME_ERROR("emin must be non-negative");
     double weight = 1.0 / n_grids;
-    for ( int i = 0; i != n_grids; i++)
+    for (size_t i = 0; i != n_grids; i++)
     {
         freq_nodes[i] = emin + interval * i;
         freq_weights[i] = weight;
@@ -174,7 +174,7 @@ void TFGrids::generate_evenspaced_tf(double emin, double eintv, double tmin, dou
     if ( tintv < 0 )
         throw LIBRPA_RUNTIME_ERROR("tintv must be non-negative");
     double weight = 1.0 / n_grids;
-    for ( int i = 0; i != n_grids; i++)
+    for (size_t i = 0; i != n_grids; i++)
     {
         time_nodes[i] = tmin + tintv * i;
         time_weights[i] = weight;
@@ -235,7 +235,7 @@ void TFGrids::generate_GaussChebyshevI()
     GaussChebyshevI_unit(n_grids, nodes.data(), weights.data());
     // transform from [-1,1] to [0, infinity]
     transform_GaussQuad_unit2x0inf(0.0, n_grids, nodes.data(), weights.data());
-    for ( int i = 0; i != n_grids; i++ )
+    for (size_t i = 0; i != n_grids; i++ )
     {
         freq_nodes[i] = nodes[i];
         freq_weights[i] = weights[i];
@@ -249,7 +249,7 @@ void TFGrids::generate_GaussChebyshevII()
     GaussChebyshevII_unit(n_grids, nodes.data(), weights.data());
     // transform from [-1,1] to [0, infinity]
     transform_GaussQuad_unit2x0inf(0.0, n_grids, nodes.data(), weights.data());
-    for ( int i = 0; i != n_grids; i++ )
+    for (size_t i = 0; i != n_grids; i++ )
     {
         freq_nodes[i] = nodes[i];
         freq_weights[i] = weights[i];
@@ -263,7 +263,7 @@ void TFGrids::generate_GaussLegendre()
     GaussLegendre_unit(n_grids, nodes.data(), weights.data());
     // transform from [-1,1] to [0, infinity]
     transform_GaussQuad_unit2x0inf(0.0, n_grids, nodes.data(), weights.data());
-    for ( int i = 0; i != n_grids; i++ )
+    for (size_t i = 0; i != n_grids; i++ )
     {
         freq_nodes[i] = nodes[i];
         freq_weights[i] = weights[i];

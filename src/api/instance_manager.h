@@ -1,5 +1,6 @@
 #pragma once
 #include <vector>
+#include <memory>
 
 // Public headers
 #include "librpa_handler.h"
@@ -14,9 +15,9 @@ namespace api
 {
 
 //! Manager of dataset instances created by user
-extern std::vector<Dataset*> manager;
+extern std::vector<std::shared_ptr<Dataset>> manager;
 
-Dataset* get_dataset_instance(const LibrpaHandler *h);
+std::shared_ptr<Dataset> get_dataset_instance(const LibrpaHandler *h);
 
 LibrpaHandler* push_back_dataset(int comm);
 
