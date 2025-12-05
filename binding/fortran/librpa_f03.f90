@@ -347,7 +347,68 @@ module librpa_f03
       end function librpa_get_rpa_correlation_energy_c
    end interface
 
+   ! Helper to communicate runtime options between C and Fortran types
+   interface sync_opt
+      module procedure sync_opt_string
+      module procedure sync_opt_switch
+      module procedure sync_opt_int
+      module procedure sync_opt_dp
+   end interface
+
 contains
+
+   subroutine sync_opt_string(f_string, c_string, direction)
+      implicit none
+      character(len=*), intent(inout) :: f_string
+      character(len=1, kind=c_char), dimension(*), intent(inout) :: c_string
+      integer, intent(in) :: direction
+
+      if (direction .eq. SYNC_OPTS_C2F) then
+         call c_f_string_chars(c_string, f_string)
+      else if (direction .eq. SYNC_OPTS_F2C) then
+         call f_c_string_chars(f_string, c_string, trim_f=.true.)
+      end if
+   end subroutine sync_opt_string
+
+   subroutine sync_opt_switch(f_logical, c_switch, direction)
+      implicit none
+      integer(kind=c_int), intent(inout) :: c_switch
+      logical, intent(inout) :: f_logical
+      integer, intent(in) :: direction
+
+      if (direction .eq. SYNC_OPTS_C2F) then
+         f_logical = (c_switch .eq. LIBRPA_SWITCH_ON)
+      else if (direction .eq. SYNC_OPTS_F2C) then
+         c_switch = LIBRPA_SWITCH_OFF
+         if (f_logical) c_switch = LIBRPA_SWITCH_ON
+      end if
+   end subroutine sync_opt_switch
+
+   subroutine sync_opt_int(f_integer, c_int_value, direction)
+      implicit none
+      integer, intent(inout) :: f_integer
+      integer(kind=c_int), intent(inout) :: c_int_value
+      integer, intent(in) :: direction
+
+      if (direction .eq. SYNC_OPTS_C2F) then
+         f_integer = int(c_int_value)
+      else if (direction .eq. SYNC_OPTS_F2C) then
+         c_int_value = int(f_integer, kind=c_int)
+      end if
+   end subroutine sync_opt_int
+
+   subroutine sync_opt_dp(f_dp, c_double_value, direction)
+      implicit none
+      real(dp), intent(inout) :: f_dp
+      real(c_double), intent(inout) :: c_double_value
+      integer, intent(in) :: direction
+
+      if (direction .eq. SYNC_OPTS_C2F) then
+         f_dp = real(c_double_value, kind=dp)
+      else if (direction .eq. SYNC_OPTS_F2C) then
+         c_double_value = real(f_dp, kind=c_double)
+      end if
+   end subroutine sync_opt_dp
 
    !> @brief Copy a Fortran character varaible to C char array
    !!
@@ -434,75 +495,41 @@ contains
       type(LibrpaOptions), intent(inout) :: opts
       integer, intent(in) :: direction
 
-      if (direction .eq. SYNC_OPTS_C2F) then
-         ! From C object to Fortran. This case is rare, usually only for initialization
-         call c_f_string_chars(opts%opts_c%output_dir, opts%output_dir)
-         opts%parallel_routing = opts%opts_c%parallel_routing
-         opts%output_level = opts%opts_c%output_level
-         opts%cs_threshold = opts%opts_c%cs_threshold
-         opts%vq_threshold = opts%opts_c%vq_threshold
-         call c_f_bool(opts%opts_c%use_soc, opts%use_soc)
-         opts%tfgrids_type = opts%opts_c%tfgrids_type
-         opts%nfreq = opts%opts_c%nfreq
-         opts%tfgrids_freq_min = opts%opts_c%tfgrids_freq_min
-         opts%tfgrids_freq_interval = opts%opts_c%tfgrids_freq_interval
-         opts%tfgrids_freq_max = opts%opts_c%tfgrids_freq_max
-         opts%tfgrids_time_min = opts%opts_c%tfgrids_time_min
-         opts%tfgrids_time_interval = opts%opts_c%tfgrids_time_interval
-         opts%gf_threshold = opts%opts_c%gf_threshold
-         call c_f_bool(opts%opts_c%use_scalapack_ecrpa, opts%use_scalapack_ecrpa)
-         opts%n_params_anacon = opts%opts_c%n_params_anacon
-         call c_f_bool(opts%opts_c%use_scalapack_gw_wc, opts%use_scalapack_gw_wc)
-         call c_f_bool(opts%opts_c%replace_w_head, opts%replace_w_head)
-         opts%option_dielect_func = opts%opts_c%option_dielect_func
-         opts%sqrt_coulomb_threshold = opts%opts_c%sqrt_coulomb_threshold
-         opts%libri_chi0_threshold_C = opts%opts_c%libri_chi0_threshold_C
-         opts%libri_chi0_threshold_G = opts%opts_c%libri_chi0_threshold_G
-         opts%libri_exx_threshold_C = opts%opts_c%libri_exx_threshold_C
-         opts%libri_exx_threshold_D = opts%opts_c%libri_exx_threshold_D
-         opts%libri_exx_threshold_V = opts%opts_c%libri_exx_threshold_V
-         opts%libri_g0w0_threshold_C = opts%opts_c%libri_g0w0_threshold_C
-         opts%libri_g0w0_threshold_G = opts%opts_c%libri_g0w0_threshold_G
-         opts%libri_g0w0_threshold_Wc = opts%opts_c%libri_g0w0_threshold_Wc
-         call c_f_bool(opts%opts_c%output_gw_sigc_mat, opts%output_gw_sigc_mat)
-         call c_f_bool(opts%opts_c%output_gw_sigc_mat_rt, opts%output_gw_sigc_mat_rt)
-         call c_f_bool(opts%opts_c%output_gw_sigc_mat_rf, opts%output_gw_sigc_mat_rf)
-      else if (direction .eq. SYNC_OPTS_F2C) then
-         ! From Fortran object to C, should be called at the beginning of each compute API function
-         call f_c_string_chars(opts%output_dir, opts%opts_c%output_dir, trim_f=.true.)
-         opts%opts_c%parallel_routing = opts%parallel_routing
-         opts%opts_c%output_level = opts%output_level
-         opts%opts_c%cs_threshold = opts%cs_threshold
-         opts%opts_c%vq_threshold = opts%vq_threshold
-         call f_c_bool(opts%use_soc, opts%opts_c%use_soc)
-         opts%opts_c%tfgrids_type = opts%tfgrids_type
-         opts%opts_c%nfreq = opts%nfreq
-         opts%opts_c%tfgrids_freq_min = opts%tfgrids_freq_min
-         opts%opts_c%tfgrids_freq_interval = opts%tfgrids_freq_interval
-         opts%opts_c%tfgrids_freq_max = opts%tfgrids_freq_max
-         opts%opts_c%tfgrids_time_min = opts%tfgrids_time_min
-         opts%opts_c%tfgrids_time_interval = opts%tfgrids_time_interval
-         opts%opts_c%gf_threshold = opts%gf_threshold
-         call f_c_bool(opts%use_scalapack_ecrpa, opts%opts_c%use_scalapack_ecrpa)
-         opts%opts_c%n_params_anacon = opts%n_params_anacon
-         call f_c_bool(opts%use_scalapack_gw_wc, opts%opts_c%use_scalapack_gw_wc)
-         call f_c_bool(opts%replace_w_head, opts%opts_c%replace_w_head)
-         opts%opts_c%option_dielect_func = opts%option_dielect_func
-         opts%opts_c%sqrt_coulomb_threshold = opts%sqrt_coulomb_threshold
-         opts%opts_c%libri_chi0_threshold_C = opts%libri_chi0_threshold_C
-         opts%opts_c%libri_chi0_threshold_G = opts%libri_chi0_threshold_G
-         opts%opts_c%libri_exx_threshold_C = opts%libri_exx_threshold_C
-         opts%opts_c%libri_exx_threshold_D = opts%libri_exx_threshold_D
-         opts%opts_c%libri_exx_threshold_V = opts%libri_exx_threshold_V
-         opts%opts_c%libri_g0w0_threshold_C = opts%libri_g0w0_threshold_C
-         opts%opts_c%libri_g0w0_threshold_G = opts%libri_g0w0_threshold_G
-         opts%opts_c%libri_g0w0_threshold_Wc = opts%libri_g0w0_threshold_Wc
-         call f_c_bool(opts%output_gw_sigc_mat, opts%opts_c%output_gw_sigc_mat)
-         call f_c_bool(opts%output_gw_sigc_mat_rt, opts%opts_c%output_gw_sigc_mat_rt)
-         call f_c_bool(opts%output_gw_sigc_mat_rf, opts%opts_c%output_gw_sigc_mat_rf)
-      else
+      if ((direction .ne. SYNC_OPTS_C2F) .and. (direction .ne. SYNC_OPTS_F2C)) then
          stop "internal error - illegal direction value"
       end if
+
+      call sync_opt(opts%output_dir,              opts%opts_c%output_dir,              direction)
+      call sync_opt(opts%parallel_routing,        opts%opts_c%parallel_routing,        direction)
+      call sync_opt(opts%output_level,            opts%opts_c%output_level,            direction)
+      call sync_opt(opts%cs_threshold,            opts%opts_c%cs_threshold,            direction)
+      call sync_opt(opts%vq_threshold,            opts%opts_c%vq_threshold,            direction)
+      call sync_opt(opts%use_soc,                 opts%opts_c%use_soc,                 direction)
+      call sync_opt(opts%tfgrids_type,            opts%opts_c%tfgrids_type,            direction)
+      call sync_opt(opts%nfreq,                   opts%opts_c%nfreq,                   direction)
+      call sync_opt(opts%tfgrids_freq_min,        opts%opts_c%tfgrids_freq_min,        direction)
+      call sync_opt(opts%tfgrids_freq_interval,   opts%opts_c%tfgrids_freq_interval,   direction)
+      call sync_opt(opts%tfgrids_freq_max,        opts%opts_c%tfgrids_freq_max,        direction)
+      call sync_opt(opts%tfgrids_time_min,        opts%opts_c%tfgrids_time_min,        direction)
+      call sync_opt(opts%tfgrids_time_interval,   opts%opts_c%tfgrids_time_interval,   direction)
+      call sync_opt(opts%gf_threshold,            opts%opts_c%gf_threshold,            direction)
+      call sync_opt(opts%use_scalapack_ecrpa,     opts%opts_c%use_scalapack_ecrpa,     direction)
+      call sync_opt(opts%n_params_anacon,         opts%opts_c%n_params_anacon,         direction)
+      call sync_opt(opts%option_dielect_func,     opts%opts_c%option_dielect_func,     direction)
+      call sync_opt(opts%use_scalapack_gw_wc,     opts%opts_c%use_scalapack_gw_wc,     direction)
+      call sync_opt(opts%sqrt_coulomb_threshold,  opts%opts_c%sqrt_coulomb_threshold,  direction)
+      call sync_opt(opts%replace_w_head,          opts%opts_c%replace_w_head,          direction)
+      call sync_opt(opts%libri_chi0_threshold_C,  opts%opts_c%libri_chi0_threshold_C,  direction)
+      call sync_opt(opts%libri_chi0_threshold_G,  opts%opts_c%libri_chi0_threshold_G,  direction)
+      call sync_opt(opts%libri_exx_threshold_C,   opts%opts_c%libri_exx_threshold_C,   direction)
+      call sync_opt(opts%libri_exx_threshold_D,   opts%opts_c%libri_exx_threshold_D,   direction)
+      call sync_opt(opts%libri_exx_threshold_V,   opts%opts_c%libri_exx_threshold_V,   direction)
+      call sync_opt(opts%libri_g0w0_threshold_C,  opts%opts_c%libri_g0w0_threshold_C,  direction)
+      call sync_opt(opts%libri_g0w0_threshold_G,  opts%opts_c%libri_g0w0_threshold_G,  direction)
+      call sync_opt(opts%libri_g0w0_threshold_Wc, opts%opts_c%libri_g0w0_threshold_Wc, direction)
+      call sync_opt(opts%output_gw_sigc_mat,      opts%opts_c%output_gw_sigc_mat,      direction)
+      call sync_opt(opts%output_gw_sigc_mat_rt,   opts%opts_c%output_gw_sigc_mat_rt,   direction)
+      call sync_opt(opts%output_gw_sigc_mat_rf,   opts%opts_c%output_gw_sigc_mat_rf,   direction)
    end subroutine
 
    subroutine librpa_init_options(opts)
