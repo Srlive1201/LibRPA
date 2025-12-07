@@ -18,8 +18,6 @@
 namespace librpa_int
 {
 
-#define is_null_dataset_ptr(p) p == nullptr
-
 /*!
  * Core object to hold runtime environemtn, input and output data
  */
@@ -70,5 +68,7 @@ public:
     Dataset(const Dataset &) = delete;
     Dataset &operator=(const Dataset &) = delete;
 };
+
+typedef std::shared_ptr<Dataset> dataset_ptr_t;
 
 }

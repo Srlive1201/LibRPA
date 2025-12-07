@@ -41,6 +41,7 @@ list(APPEND lib_sources
         # api/app_gw.cpp
         api/compute_rpa.cpp
         api/dataset.cpp
+        api/dataset_helper.cpp
         api/global.cpp
         api/handler.cpp
         api/input.cpp
