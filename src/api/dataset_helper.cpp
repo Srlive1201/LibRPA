@@ -1,3 +1,6 @@
+// Public API headers
+#include "librpa_enums.h"
+
 // Internal headers
 #include "dataset_helper.h"
 
@@ -65,6 +68,10 @@ void initialize_ds_g0w0(Dataset &ds, const LibrpaOptions &opts) noexcept
     ds.p_g0w0->libri_threshold_C = opts.libri_g0w0_threshold_C;
     ds.p_g0w0->libri_threshold_G = opts.libri_g0w0_threshold_G;
     ds.p_g0w0->libri_threshold_Wc = opts.libri_g0w0_threshold_Wc;
+    ds.p_g0w0->output_dir = opts.output_dir;
+    ds.p_g0w0->output_sigc_mat = opts.output_gw_sigc_mat == LIBRPA_SWITCH_ON;
+    ds.p_g0w0->output_sigc_mat_rt = opts.output_gw_sigc_mat_rt == LIBRPA_SWITCH_ON;
+    ds.p_g0w0->output_sigc_mat_rf = opts.output_gw_sigc_mat_rf == LIBRPA_SWITCH_ON;
 }
 
 }

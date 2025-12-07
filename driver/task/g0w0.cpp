@@ -46,6 +46,7 @@ void driver::task_g0w0()
 
     profiler.start("read_vq_cut", "Load truncated Coulomb");
 
+    // Prepare input specific to G0W0
     auto routing = opts.parallel_routing;
     if (routing == LibrpaParallelRouting::AUTO) routing = librpa_int::decide_auto_routing(n_atoms, n_kpoints * opts.nfreq);
 
@@ -69,13 +70,13 @@ void driver::task_g0w0()
         h.set_dielect_func_imagfreq(omegas_dielect, dielect_func);
     }
 
-    auto ds = librpa_int::api::get_dataset_instance(h.get_c_handler());
-    const bool debug = opts.output_level >= LIBRPA_VERBOSE_DEBUG;
-
+    // Build the self-energy matrix
     h.build_g0w0_sigma(opts);
+
+    auto ds = librpa_int::api::get_dataset_instance(h.get_c_handler());
     auto &chi0 = *(ds->p_chi0);
 
-    // if (debug)
+    // if (opts.output_level >= LIBRPA_VERBOSE_DEBUG)
     // { // debug, check chi0
     //     for (const auto &chi0q: chi0.get_chi0_q())
     //     {

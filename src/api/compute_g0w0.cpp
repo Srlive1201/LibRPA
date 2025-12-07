@@ -138,6 +138,7 @@ LIBRPA_C_H_FUNC_WRAP_WOPT_NOPAR(void, librpa_build_g0w0_sigma)
 
     initialize_ds_g0w0(*pds, opts);
     profiler.start("g0w0_sigc_IJ", "Build real-space correlation self-energy");
+    // HACK: choice of space-time is hard-coded. May need to change when more approaches are implemented
     pds->p_g0w0->build_spacetime(routing, pds->basis_aux, pds->cs_data, Wc_freq_q, pds->desc_abf);
     profiler.stop("g0w0_sigc_IJ");
 

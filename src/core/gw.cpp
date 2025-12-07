@@ -47,6 +47,7 @@ G0W0::G0W0(const MeanField &mf_in, const AtomicBasis &atbasis_wfc_in,
     libri_threshold_Wc = 0.0;
     libri_threshold_G = 0.0;
 
+    output_dir = "./";  // POSIX
     output_sigc_mat = false;
     output_sigc_mat_rt = false;
     output_sigc_mat_rf = false;
@@ -452,7 +453,7 @@ void G0W0::build_sigc_matrix_KS(const std::map<int, std::map<int, ComplexMatrix>
         std::cout << "Please recompile LibRPA with -DUSE_LIBRI and optionally configure include path" << std::endl;
     }
     global::mpi_comm_global_h.barrier();
-    throw LIBRPA_RUNTIME_ERROR("compilation");
+    throw LIBRPA_RUNTIME_ERROR("G0W0 needs compilation with LibRI");
 #else
     // char fn[80];
     ArrayDesc desc_nband_nao(blacs_ctxt_h);

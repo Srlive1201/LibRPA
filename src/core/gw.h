@@ -58,19 +58,22 @@ public:
          const AtomicBasis& atbasis_wfc_in,
          const PeriodicBoundaryData &pbc_in,
          const TFGrids &tfg_in, const MpiCommHandler &comm_h_in);
-    // delete copy/move constructors
-    G0W0(const G0W0 &s_g0w0) = delete;
-    G0W0(G0W0 &&s_g0w0) = delete;
+    // // delete copy/move constructors
+    // G0W0(const G0W0 &s_g0w0) = delete;
+    // G0W0(G0W0 &&s_g0w0) = delete;
 
-    // delete assignment copy/move
-    G0W0 operator=(const G0W0 &s_g0w0) const = delete;
-    G0W0 operator=(G0W0 &&s_g0w0) = delete;
+    // // delete assignment copy/move
+    // G0W0 operator=(const G0W0 &s_g0w0) const = delete;
+    // G0W0 operator=(G0W0 &&s_g0w0) = delete;
 
     //! Reset the real-space matrices
     void reset_rspace();
 
     //! Reset the k-space matrices
     void reset_kspace();
+
+    //! Check if the real-space self-energy matrix is built
+    bool is_rspace_built() const { return is_rspace_built_; }
 
     //! Build the real-space correlation self-energy matrix on imaginary frequencies with space-time method using LibRI
     void build_spacetime(

@@ -93,7 +93,12 @@ void PeriodicBoundaryData::set_kgrids_kvec(int nk1, int nk2, int nk3, std::vecto
         Vector3_Order<double> kvec{kx, ky, kz};
         kvec /= TWO_PI;
         klist.emplace_back(kvec);
-        kfrac_list.emplace_back(latvec * kvec);
+        auto kfrac = latvec * kvec;
+        // clean up -0.000
+        if (std::abs(kfrac.x) < 1e-8) kfrac.x = 0.0e0;
+        if (std::abs(kfrac.y) < 1e-8) kfrac.y = 0.0e0;
+        if (std::abs(kfrac.z) < 1e-8) kfrac.z = 0.0e0;
+        kfrac_list.emplace_back(kfrac);
     }
 
     // Initialize the irreducible k points: same as the full ones
