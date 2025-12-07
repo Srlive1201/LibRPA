@@ -41,6 +41,7 @@ void BlacsCtxtHandler::reset_comm(MPI_Comm comm_in, bool init_on_reset)
 void BlacsCtxtHandler::set_grid(const int &nprows_in, const int &npcols_in,
                                 CTXT_LAYOUT layout_in)
 {
+    assert(this->initialized_);
     // if the grid has been set, exit it first
     if (pgrid_set_) exit();
     if (nprocs != nprows_in * npcols_in)

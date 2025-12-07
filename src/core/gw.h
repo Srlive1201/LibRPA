@@ -25,6 +25,7 @@ private:
     std::map<int, std::map<double, std::map<Vector3_Order<int>, Matz>>> sigc_is_f_R_blacs;
 
     //! frequency-domain reciprocal-space correlation self-energy, indices [ispin][freq][R][I][J](n_I, n_J)
+    // Sparse storage
     std::map<int, std::map<double, std::map<Vector3_Order<int>, ap_p_map<Matz>>>> sigc_is_f_R_IJ;
 
 public:
@@ -78,6 +79,8 @@ public:
     bool is_rspace_built() const { return is_rspace_built_; }
 
     //! Build the real-space correlation self-energy matrix on imaginary frequencies with space-time method using LibRI
+    //!
+    //! Wc_freq_q is destroyed on exit.
     void build_spacetime(
         const LibrpaParallelRouting parallel_routing,
         const AtomicBasis &atbasis_abf,

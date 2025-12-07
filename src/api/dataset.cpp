@@ -33,6 +33,7 @@ Dataset::Dataset(MPI_Comm comm)
 
 void Dataset::free()
 {
+    // blacs_ctxt_h.exit();
 }
 
 }

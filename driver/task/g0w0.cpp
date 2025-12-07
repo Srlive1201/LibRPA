@@ -192,7 +192,7 @@ void driver::task_g0w0()
                 for (int i_kpoint = 0; i_kpoint < ds->mf.get_n_kpoints(); i_kpoint++)
                 {
                     const auto &sigc_sk = ds->p_g0w0->sigc_is_ik_f_KS[i_spin][i_kpoint];
-                    ofs_myid << sigc_sk.size() << endl;
+                    // ofs_myid << sigc_sk.size() << endl;
                     for (int i_state = 0; i_state < ds->mf.get_n_bands(); i_state++)
                     {
                         const auto &eks_state = ds->mf.get_eigenvals()[i_spin](i_kpoint, i_state);
@@ -215,8 +215,8 @@ void driver::task_g0w0()
                         }
                         else
                         {
-                            printf("Warning! QPE solver failed for spin %d, kpoint %d, state %d\n",
-                                    i_spin+1, i_kpoint+1, i_state+1);
+                            lib_printf("Warning! QPE solver failed for spin %d, kpoint %d, state %d\n",
+                                       i_spin+1, i_kpoint+1, i_state+1);
                             e_qp_all[i_spin][i_kpoint][i_state] = std::numeric_limits<double>::quiet_NaN();
                             sigc_all[i_spin][i_kpoint][i_state] = std::numeric_limits<cplxdb>::quiet_NaN();
                         }
@@ -226,17 +226,17 @@ void driver::task_g0w0()
 
             // display results
             const std::string banner(124, '-');
-            printf("Printing quasi-particle energy [unit: eV]\n\n");
+            lib_printf("Printing quasi-particle energy [unit: eV]\n\n");
             for (int i_spin = 0; i_spin < ds->mf.get_n_spins(); i_spin++)
             {
                 for (int i_kpoint = 0; i_kpoint < ds->mf.get_n_kpoints(); i_kpoint++)
                 {
                     const auto &k = ds->pbc.kfrac_list[i_kpoint];
-                    printf("spin %2d, k-point %4d: (%.5f, %.5f, %.5f) \n",
-                            i_spin+1, i_kpoint+1, k.x, k.y, k.z);
-                    printf("%124s\n", banner.c_str());
-                    printf("%5s %16s %16s %16s %16s %16s %16s %16s\n", "State", "occ", "e_mf", "v_xc", "v_exx", "ReSigc", "ImSigc", "e_qp");
-                    printf("%124s\n", banner.c_str());
+                    lib_printf("spin %2d, k-point %4d: (%.5f, %.5f, %.5f) \n",
+                               i_spin+1, i_kpoint+1, k.x, k.y, k.z);
+                    lib_printf("%124s\n", banner.c_str());
+                    lib_printf("%5s %16s %16s %16s %16s %16s %16s %16s\n", "State", "occ", "e_mf", "v_xc", "v_exx", "ReSigc", "ImSigc", "e_qp");
+                    lib_printf("%124s\n", banner.c_str());
                     for (int i_state = 0; i_state < ds->mf.get_n_bands(); i_state++)
                     {
                         const auto &occ_state = ds->mf.get_weight()[i_spin](i_kpoint, i_state) * ds->mf.get_n_kpoints();
@@ -246,10 +246,10 @@ void driver::task_g0w0()
                         const auto &resigc = sigc_all[i_spin][i_kpoint][i_state].real() * HA2EV;
                         const auto &imsigc = sigc_all[i_spin][i_kpoint][i_state].imag() * HA2EV;
                         const auto &eqp = e_qp_all[i_spin][i_kpoint][i_state] * HA2EV;
-                        printf("%5d %16.5f %16.5f %16.5f %16.5f %16.5f %16.5f %16.5f\n",
-                               i_state+1, occ_state, eks_state, vxc_state, exx_state, resigc, imsigc, eqp);
+                        lib_printf("%5d %16.5f %16.5f %16.5f %16.5f %16.5f %16.5f %16.5f\n",
+                                   i_state+1, occ_state, eks_state, vxc_state, exx_state, resigc, imsigc, eqp);
                     }
-                    printf("\n");
+                    lib_printf("\n");
                 }
             }
         }

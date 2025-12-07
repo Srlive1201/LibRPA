@@ -41,6 +41,8 @@ G0W0::G0W0(const MeanField &mf_in, const AtomicBasis &atbasis_wfc_in,
       pbc(pbc_in),
       tfg(tfg_in), comm_h(comm_h_in)
 {
+    comm_h.check_initialized();
+
     is_rspace_built_ = false;
     is_kspace_built_ = false;
     libri_threshold_C = 0.0;
@@ -88,6 +90,10 @@ void G0W0::build_spacetime(
         throw LIBRPA_RUNTIME_ERROR("input TFGrids object has no time grids");
     }
     mpi_comm_global_h.barrier();
+
+    assert(ad_Wc.initialized());
+    // assert(blacs_sigc_h.initialized());
+    // blacs_sigc_h_ = blacs_sigc_h;
 
     const int natom = this->atbasis_wfc.n_atoms;
 
@@ -454,6 +460,7 @@ void G0W0::build_sigc_matrix_KS(const std::map<int, std::map<int, ComplexMatrix>
     throw LIBRPA_RUNTIME_ERROR("G0W0 needs compilation with LibRI");
 #else
     // char fn[80];
+    // const auto &blacs_ctxt_h = this->blacs_sigc_h_;
     ArrayDesc desc_nband_nao(blacs_ctxt_h);
     desc_nband_nao.init_1b1p(n_bands, n_aos, 0, 0);
     ArrayDesc desc_nao_nao(blacs_ctxt_h);
@@ -505,13 +512,12 @@ void G0W0::build_sigc_matrix_KS(const std::map<int, std::map<int, ComplexMatrix>
             // Reuse the cleared-up sigc_I_JR_local object
             if (coord_frac.size() > 0)
             {
-                for (auto &I_sigcJR: sigc_I_JR)
+                for (const auto &[I, JR_sigc]: sigc_I_JR)
                 {
-                    const auto &I = I_sigcJR.first;
-                    for (auto &JR_sigc: I_sigcJR.second)
+                    for (auto &[JR, sigc]: JR_sigc)
                     {
-                        const auto &J = JR_sigc.first.first;
-                        const auto &R = JR_sigc.first.second;
+                        const auto &J = JR.first;
+                        const auto &R = JR.second;
 
                         auto distsq = std::numeric_limits<double>::max();
                         Vector3<int> R_IJ;
@@ -542,7 +548,7 @@ void G0W0::build_sigc_matrix_KS(const std::map<int, std::map<int, ComplexMatrix>
                                 }
                             }
                         }
-                        sigc_I_JR_local[I][{J, R_bvk}] = std::move(JR_sigc.second);
+                        sigc_I_JR_local[I][{J, R_bvk}] = std::move(sigc);
                     }
                 }
             }
@@ -551,7 +557,7 @@ void G0W0::build_sigc_matrix_KS(const std::map<int, std::map<int, ComplexMatrix>
                 sigc_I_JR_local = std::move(sigc_I_JR);
             }
 
-            // Perform Fourier transform
+            // Perform Fourier transform and rotate
             for (size_t ik = 0; ik < kfrac_target.size(); ik++)
             {
                 const auto kfrac = kfrac_target[ik];
