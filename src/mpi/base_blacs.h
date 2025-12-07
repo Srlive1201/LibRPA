@@ -37,6 +37,10 @@ public:
     BlacsCtxtHandler(MPI_Comm comm_in): mpi_comm_h(comm_in) { comm_set_ = true; pgrid_set_ = initialized_ = false; }
     ~BlacsCtxtHandler() { this->exit(); }
 
+    // Disable copy
+    BlacsCtxtHandler(const BlacsCtxtHandler &) = delete;
+    BlacsCtxtHandler operator=(const BlacsCtxtHandler &) = delete;
+
     void init();
     void reset_comm(MPI_Comm comm_in, bool init_on_reset = true);
     void set_grid(const int &nprows_in, const int &npcols_in, CTXT_LAYOUT layout_in = CTXT_LAYOUT::R);

@@ -72,6 +72,17 @@ void test_arraydesc()
     blacs_ctxt_h.exit();
 }
 
+void test_multi_blacs_h_to_same_comm()
+{
+    using namespace librpa_int;
+    using namespace librpa_int::global;
+    BlacsCtxtHandler blacs_global_2(mpi_comm_global);
+    blacs_global_2.init();
+    blacs_global_2.set_square_grid();
+    blacs_global_2.exit();
+    blacs_ctxt_h.exit();
+}
+
 int main (int argc, char *argv[])
 {
     using namespace librpa_int::global;
@@ -87,6 +98,7 @@ int main (int argc, char *argv[])
 
     test_proc_indices();
     test_arraydesc();
+    test_multi_blacs_h_to_same_comm();
 
     finalize_global_mpi();
     MPI_Finalize();
