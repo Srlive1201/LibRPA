@@ -35,8 +35,9 @@ namespace librpa_int
 {
 
 G0W0::G0W0(const MeanField &mf_in, const AtomicBasis &atbasis_wfc_in,
-           const PeriodicBoundaryData &pbc_in, const TFGrids &tfg_in, const MpiCommHandler &comm_h_in)
-    : mf(mf_in),
+           const PeriodicBoundaryData &pbc_in, const TFGrids &tfg_in,
+           const MpiCommHandler &comm_h_in, const BlacsCtxtHandler &blacs_h_sigc)
+    : blacs_h_sigc_(blacs_h_sigc), mf(mf_in),
       atbasis_wfc(atbasis_wfc_in),
       pbc(pbc_in),
       tfg(tfg_in), comm_h(comm_h_in)
@@ -63,8 +64,7 @@ void G0W0::reset_rspace()
 
 void G0W0::reset_kspace()
 {
-    sigc_is_ik_f_KS.clear();
-    is_kspace_built_ = false;
+    sigc_is_ik_f_KS.clear(); is_kspace_built_ = false;
 }
 
 void G0W0::build_spacetime(
@@ -433,8 +433,7 @@ void G0W0::build_spacetime(
 
 void G0W0::build_sigc_matrix_KS(const std::map<int, std::map<int, ComplexMatrix>> &wfc_target,
                                 const std::vector<Vector3_Order<double>> &kfrac_target,
-                                const Atoms &geometry,
-                                const BlacsCtxtHandler &blacs_ctxt_h)
+                                const Atoms &geometry)
 {
     assert(this->is_rspace_built_);
     if (this->is_kspace_built_)
@@ -459,6 +458,8 @@ void G0W0::build_sigc_matrix_KS(const std::map<int, std::map<int, ComplexMatrix>
     global::mpi_comm_global_h.barrier();
     throw LIBRPA_RUNTIME_ERROR("G0W0 needs compilation with LibRI");
 #else
+    const auto &blacs_ctxt_h = this->blacs_h_sigc_;
+
     // char fn[80];
     // const auto &blacs_ctxt_h = this->blacs_sigc_h_;
     ArrayDesc desc_nband_nao(blacs_ctxt_h);
@@ -601,27 +602,26 @@ void G0W0::build_sigc_matrix_KS(const std::map<int, std::map<int, ComplexMatrix>
     global::profiler.stop("g0w0_build_sigc_KS");
 }
 
-void G0W0::build_sigc_matrix_KS_kgrid(const Atoms &geometry, const BlacsCtxtHandler &blacs_ctxt_h)
+void G0W0::build_sigc_matrix_KS_kgrid()
 {
     librpa_int::global::mpi_comm_global_h.barrier();
     if (librpa_int::global::mpi_comm_global_h.myid == 0)
     {
         librpa_int::global::lib_printf("build_sigc_matrix_KS_kgrid: constructing self-energy matrix for SCF k-grid\n");
     }
-    this->build_sigc_matrix_KS(this->mf.get_eigenvectors(), this->pbc.kfrac_list, geometry, blacs_ctxt_h);
+    this->build_sigc_matrix_KS(this->mf.get_eigenvectors(), this->pbc.kfrac_list, {});
 }
 
 void G0W0::build_sigc_matrix_KS_band(const std::map<int, std::map<int, ComplexMatrix>> &wfc,
                                      const std::vector<Vector3_Order<double>> &kfrac_band,
-                                     const Atoms &geometry,
-                                     const BlacsCtxtHandler &blacs_ctxt_h)
+                                     const Atoms &geometry)
 {
     librpa_int::global::mpi_comm_global_h.barrier();
     if (librpa_int::global::mpi_comm_global_h.myid == 0)
     {
         librpa_int::global::lib_printf("build_sigc_matrix_KS_kgrid: constructing self-energy matrix for band k-path\n");
     }
-    this->build_sigc_matrix_KS(wfc, kfrac_band, geometry, blacs_ctxt_h);
+    this->build_sigc_matrix_KS(wfc, kfrac_band, geometry);
 }
 
 } // namespace librpa_int

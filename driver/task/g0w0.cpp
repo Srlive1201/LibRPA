@@ -165,7 +165,7 @@ void driver::task_g0w0()
     // }
 
     profiler.start("g0w0_sigc_rotate_KS", "Construct self-energy in Kohn-Sham space");
-    ds->p_g0w0->build_sigc_matrix_KS_kgrid(ds->atoms, ds->blacs_ctxt_h);
+    ds->p_g0w0->build_sigc_matrix_KS_kgrid();
     profiler.stop("g0w0_sigc_rotate_KS");
 
     if (flag_read_vxc == 0)

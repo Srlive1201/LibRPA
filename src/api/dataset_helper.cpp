@@ -64,7 +64,7 @@ void initialize_ds_chi0(Dataset &ds, const LibrpaOptions &opts) noexcept
 
 void initialize_ds_g0w0(Dataset &ds, const LibrpaOptions &opts) noexcept
 {
-    ds.p_g0w0 = std::make_unique<librpa_int::G0W0>(ds.mf, ds.basis_wfc, ds.pbc, ds.tfg, ds.comm_h);
+    ds.p_g0w0 = std::make_unique<librpa_int::G0W0>(ds.mf, ds.basis_wfc, ds.pbc, ds.tfg, ds.comm_h, ds.blacs_ctxt_h);
     ds.p_g0w0->libri_threshold_C = opts.libri_g0w0_threshold_C;
     ds.p_g0w0->libri_threshold_G = opts.libri_g0w0_threshold_G;
     ds.p_g0w0->libri_threshold_Wc = opts.libri_g0w0_threshold_Wc;

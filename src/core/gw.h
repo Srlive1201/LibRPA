@@ -28,6 +28,7 @@ private:
     // Sparse storage
     std::map<int, std::map<double, std::map<Vector3_Order<int>, ap_p_map<Matz>>>> sigc_is_f_R_IJ;
 
+    const BlacsCtxtHandler &blacs_h_sigc_;
 public:
     const MeanField &mf;
     const AtomicBasis& atbasis_wfc;
@@ -53,14 +54,13 @@ public:
 
     void build_sigc_matrix_KS(const std::map<int, std::map<int, ComplexMatrix>> &wfc_target,
                               const std::vector<Vector3_Order<double>> &kfrac_target,
-                              const Atoms &geometry,
-                              const BlacsCtxtHandler &blacs_ctxt_h);
+                              const Atoms &geometry);
 public:
     // Constructors
     G0W0(const MeanField &mf_in,
          const AtomicBasis& atbasis_wfc_in,
          const PeriodicBoundaryData &pbc_in,
-         const TFGrids &tfg_in, const MpiCommHandler &comm_h_in);
+         const TFGrids &tfg_in, const MpiCommHandler &comm_h_in, const BlacsCtxtHandler &blacs_sigc_h);
     // // delete copy/move constructors
     // G0W0(const G0W0 &s_g0w0) = delete;
     // G0W0(G0W0 &&s_g0w0) = delete;
@@ -89,13 +89,12 @@ public:
         const ArrayDesc &ad_Wc);
 
     //! build the correlation self-energy matrix in Kohn-Sham basis at the SCF k-points
-    void build_sigc_matrix_KS_kgrid(const Atoms &geometry, const BlacsCtxtHandler &blacs_ctxt_h);
+    void build_sigc_matrix_KS_kgrid();
 
     //! build the correlation self-energy matrix in Kohn-Sham basis at the SCF k-points
     void build_sigc_matrix_KS_band(const std::map<int, std::map<int, ComplexMatrix>> &wfc_band,
                                    const std::vector<Vector3_Order<double>> &kfrac_band,
-                                   const Atoms &geometry,
-                                   const BlacsCtxtHandler &blacs_ctxt_h);
+                                   const Atoms &geometry);
 };
 
 } /* end of namespace librpa_int */
