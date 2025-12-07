@@ -5,7 +5,7 @@
 #include "../math/matrix_m.h"
 #include "../math/lapack_connector.h"
 #include "../utils/constants.h"
-#include "mpi_proto.h"
+#include "../io/stl_io_helper.h"
 
 namespace librpa_int
 {
@@ -16,13 +16,17 @@ std::map<Vector3_Order<int>, ComplexMatrix> get_dmat_cplx_Rs_kpara(
 {
     std::map<Vector3_Order<int>, ComplexMatrix> dmat_local;
     const auto iks_local = mf.get_iks_local();
+    // global::ofs_myid << "iks_local " << iks_local << std::endl;
     const int nk_local = iks_local.size();
     const int n_aos = mf.get_n_aos();
 
     // Collect Rs requested by each process
     std::vector<int> n_Rs_all(comm_h.nprocs, 0);
     n_Rs_all[comm_h.myid] = Rs.size();
+    // global::ofs_myid << global::myid_global << " " << global::size_global << std::endl;
+    comm_h.barrier();
     MPI_Allreduce(MPI_IN_PLACE, n_Rs_all.data(), comm_h.nprocs, mpi_datatype<int>::value, MPI_SUM, comm_h.comm);
+    global::ofs_myid << "get_dmat_cplx_Rs_kpara nRs_all " << n_Rs_all << std::endl;
     const int nR_max = *std::max_element(n_Rs_all.cbegin(), n_Rs_all.cend());
     std::vector<int> Rs_all(comm_h.nprocs * nR_max * 3, 0);
     for (int iR = 0; iR < n_Rs_all[comm_h.myid]; iR++)
@@ -32,6 +36,7 @@ std::map<Vector3_Order<int>, ComplexMatrix> get_dmat_cplx_Rs_kpara(
         Rs_all[comm_h.myid * nR_max * 3 + iR * 3 + 2] = Rs[iR].z;
     }
     MPI_Allreduce(MPI_IN_PLACE, Rs_all.data(), comm_h.nprocs * nR_max * 3, mpi_datatype<int>::value, MPI_SUM, comm_h.comm);
+    // global::ofs_myid << "Rs_all " << Rs_all << std::endl;
 
     const size_t size = n_aos * n_aos;
 
@@ -50,7 +55,10 @@ std::map<Vector3_Order<int>, ComplexMatrix> get_dmat_cplx_Rs_kpara(
     for (int pid = 0; pid < comm_h.nprocs; pid++)
     {
         const auto nR_this = n_Rs_all[pid];
-        rmat = 0.0;
+        // NOTE: MPI_Reduce requires all processes use the same sendcount, but rmat is simply zero where nk_local == 0.
+        const size_t count = size * nR_this;
+        global::ofs_myid << "get_dmat_cplx_Rs_kpara pid " << pid << " nR_this " << nR_this << " count " << count << " matsize " << rmat.size() << std::endl;
+
         if (nR_this < 1) continue;
         for (int iR = 0; iR <nR_this; iR++)
         {
@@ -62,21 +70,28 @@ std::map<Vector3_Order<int>, ComplexMatrix> get_dmat_cplx_Rs_kpara(
                 transmat(ik, iR) = cplxdb{cos(ang), sin(ang)};
             }
         }
+        rmat = 0.0;
         if (nk_local > 0)
+        {
             LapackConnector::gemm_f('N', 'N', size, nR_this, nk_local, 1.0,
                                     kmat.ptr(), size, transmat.ptr(), nk_local, 0.0, rmat.ptr(), size);
-        const size_t count = nk_local > 0? size * nR_this : 0;
-        MPI_Reduce(MPI_IN_PLACE, rmat.ptr(), count, mpi_datatype<cplxdb>::value, MPI_SUM, pid, comm_h.comm);
+        }
+        global::ofs_myid << rmat << std::endl;
         if (comm_h.myid == pid)
         {
-            for (int iR = 0; iR <nR_this; iR++)
+            MPI_Reduce(MPI_IN_PLACE, rmat.ptr(), count, mpi_datatype<cplxdb>::value, MPI_SUM, pid, comm_h.comm);
+            for (int iR = 0; iR < nR_this; iR++)
             {
                 const auto R_this = Rs_all.data() + pid * nR_max * 3 + iR * 3;
                 ComplexMatrix m(n_aos, n_aos);
                 memcpy(m.c, rmat.ptr() + size * iR, size * sizeof(cplxdb));
                 Vector3_Order<int> R{R_this[0], R_this[1], R_this[2]};
-                dmat_local.emplace(R, m);
+                dmat_local.emplace(R, std::move(m));
             }
+        }
+        else
+        {
+            MPI_Reduce(rmat.ptr(), rmat.ptr(), count, mpi_datatype<cplxdb>::value, MPI_SUM, pid, comm_h.comm);
         }
         comm_h.barrier(); // May try out non-blocking later
     }
