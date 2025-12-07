@@ -98,11 +98,6 @@ void finalize_global_mpi()
     mpi_initialized = false;
 }
 
-LibrpaParallelRouting decide_auto_routing(const int &atpais_num, const int &Rt_num)
-{
-    return atpais_num < Rt_num ? LibrpaParallelRouting::RTAU : LibrpaParallelRouting::ATOMPAIR;
-}
-
 }
 
 }

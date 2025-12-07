@@ -102,12 +102,16 @@ public:
     LIBRPA_CPP_H_METHOD_DECL_WRAP(void, set_aux_cut_coulomb_k_2d_block,
                                   int ik, int mu_begin, int mu_end, int nu_begin, int nu_end,
                                   const double* Vq_real_in, const double* Vq_imag_in);
+    LIBRPA_CPP_H_METHOD_DECL_WRAP(void, set_dielect_func_imagfreq,
+                                  const std::vector<double> &omegas_imag, const std::vector<double> &dielect_func);
 
-    /* Compute (get) functions */
+    /* Compute (build/get) functions */
 
     //! Compute RPA correlation energy
     LIBRPA_CPP_H_METHOD_DECL_WRAP_WOPTS(double, get_rpa_correlation_energy,
                                         std::vector<std::complex<double>> &rpa_corr_ibzk_contrib);
+    //! G0W0 self-energy matrix
+    void build_g0w0_sigma(const Options &opts);
 };
 
 #undef LIBRPA_CPP_H_METHOD_DECL_WRAP

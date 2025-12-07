@@ -48,8 +48,6 @@ void Handler::free()
 
 Handler::~Handler() { free(); }
 
-/* Input methods definition for the C++ handler object */
-
 // The following macros are helper to implement the methods of the C++ handler class
 // that wraps the corresponding `librpa_` prefixed C-API functions.
 #define LIBRPA_C_NAME(name) librpa_##name
@@ -68,18 +66,21 @@ Handler::~Handler() { free(); }
         ::LIBRPA_C_NAME(cpp_name)(this->h_, &opts, LIBRPA_UNPAREN(args));      \
     }
 
-#define LIBRPA_CPP_H_METHOD_DEF_WRAP_RET(ret, cpp_name, params, args)     \
-    ret Handler::cpp_name(LIBRPA_UNPAREN(params))                         \
-    {                                                                     \
-        return ::LIBRPA_C_NAME(cpp_name)(this->h_, LIBRPA_UNPAREN(args)); \
+#define LIBRPA_CPP_H_METHOD_DEF_WRAP_RET(ret, cpp_name, params, pre, args, post)   \
+    ret Handler::cpp_name(LIBRPA_UNPAREN(params))                                  \
+    {                                                                              \
+        pre auto retc = ::LIBRPA_C_NAME(cpp_name)(this->h_, LIBRPA_UNPAREN(args)); \
+        post return retc;                                                          \
     }
 
-#define LIBRPA_CPP_H_METHOD_DEF_WRAP_RET_WOPT(ret, cpp_name, params, pre, args, post)    \
-    ret Handler::cpp_name(const librpa::Options& opts, LIBRPA_UNPAREN(params))             \
-    {                                                                                    \
+#define LIBRPA_CPP_H_METHOD_DEF_WRAP_RET_WOPT(ret, cpp_name, params, pre, args, post)     \
+    ret Handler::cpp_name(const librpa::Options& opts, LIBRPA_UNPAREN(params))            \
+    {                                                                                     \
         pre auto retc = ::LIBRPA_C_NAME(cpp_name)(this->h_, &opts, LIBRPA_UNPAREN(args)); \
-        post return retc;                                                                \
+        post return retc;                                                                 \
     }
+
+/* Input (set) functions */
 
 // LIBRPA_CPP_H_METHOD_DEF_WRAP_VOID(
 //     set_dimension,
@@ -172,6 +173,14 @@ LIBRPA_CPP_H_METHOD_DEF_WRAP_VOID(
     (ik, mu_begin, mu_end, nu_begin, nu_end, Vq_real_in, Vq_imag_in)
 )
 
+LIBRPA_CPP_H_METHOD_DEF_WRAP_VOID(
+    set_dielect_func_imagfreq,
+    (const std::vector<double> &omegas_imag, const std::vector<double> &dielect_func),
+    (omegas_imag.size(), omegas_imag.data(), dielect_func.data())
+)
+
+/* Compute (build/get) functions */
+
 LIBRPA_CPP_H_METHOD_DEF_WRAP_RET_WOPT(
     double, get_rpa_correlation_energy,
     (std::vector<std::complex<double>> &rpa_corr_ibzk_contrib),
@@ -179,5 +188,10 @@ LIBRPA_CPP_H_METHOD_DEF_WRAP_RET_WOPT(
     (nq, re.data(), im.data()),
     {for (int iq = 0; iq < nq; iq++) { rpa_corr_ibzk_contrib[iq] = re[iq] + im[iq] * 1.0i;}}
 )
+
+void Handler::build_g0w0_sigma(const Options &opts)
+{
+    ::librpa_build_g0w0_sigma(this->h_, &opts);
+}
 
 }

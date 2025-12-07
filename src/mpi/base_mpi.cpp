@@ -131,6 +131,12 @@ std::string MpiCommHandler::str() const
 //         throw std::invalid_argument("Unsupported parallel type option: " + option);
 // }
 
+LibrpaParallelRouting decide_auto_routing(const int n_atoms, const int Rt_num)
+{
+    const auto atpairs_num = n_atoms * (n_atoms + 1) / 2;
+    return atpairs_num < Rt_num ? LibrpaParallelRouting::RTAU : LibrpaParallelRouting::ATOMPAIR;
+}
+
 int get_mpi_rank(const MPI_Comm &comm)
 {
     int myid;

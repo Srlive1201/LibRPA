@@ -18,7 +18,6 @@ LIBRPA_C_H_FUNC_WRAP_WOPT(double, librpa_get_rpa_correlation_energy,
     using namespace librpa_int;
     using librpa_int::global::lib_printf;
     using librpa_int::global::profiler;
-    using librpa_int::global::decide_auto_routing;
 
     double rpa_corr = 0.0;
 
@@ -29,42 +28,28 @@ LIBRPA_C_H_FUNC_WRAP_WOPT(double, librpa_get_rpa_correlation_energy,
     const bool debug = opts.output_level >= LIBRPA_VERBOSE_DEBUG;
 
     // Prepare time-frequency grids
-    initialize_tfgrids(*pds, opts);
+    initialize_ds_tfgrids(*pds, opts);
 
-    pds->atpairs_local.clear();
-    // Determine the actual routing and atom pairs that this process is responsible for
+    // Decide actual routing
     LibrpaParallelRouting routing = opts.parallel_routing;
-    const int n_atoms = pds->atoms.size();
     if (routing == LibrpaParallelRouting::AUTO)
     {
-        const auto tot_atpair = generate_atom_pair_from_nat(n_atoms, false);
-        routing = decide_auto_routing(tot_atpair.size(), opts.nfreq * pds->pbc.get_n_cells_bvk());
+        const int n_atoms = pds->atoms.size();
+        routing = decide_auto_routing(n_atoms, opts.nfreq * pds->pbc.get_n_cells_bvk());
     }
-    if(routing == LibrpaParallelRouting::ATOMPAIR || routing == LibrpaParallelRouting::LIBRI)
-    {
-        auto tri_local_atpair = librpa_int::dispatch_upper_triangular_tasks(
-            n_atoms, pds->blacs_ctxt_h.myid, pds->blacs_ctxt_h.nprows, pds->blacs_ctxt_h.npcols,
-            pds->blacs_ctxt_h.myprow, pds->blacs_ctxt_h.mypcol);
-        for (const auto &p: tri_local_atpair)
-            pds->atpairs_local.emplace_back(p);
-    }
-    else
-    {
-        pds->atpairs_local = generate_atom_pair_from_nat(n_atoms, false);
-    }
+
+    // Determine the atom pairs that this process is responsible for
+    initialize_ds_atpairs_local(*pds, routing);
 
     // Initialize response function object
-    pds->p_chi0 = std::make_unique<librpa_int::Chi0>(pds->mf, pds->basis_wfc, pds->basis_aux, pds->pbc, pds->tfg, pds->comm_h);
-    pds->p_chi0->gf_threshold = opts.gf_threshold;
-    pds->p_chi0->libri_threshold_C = opts.libri_chi0_threshold_C;
-    pds->p_chi0->libri_threshold_G = opts.libri_chi0_threshold_G;
-
+    initialize_ds_chi0(*pds, opts);
     auto &chi0 = *(pds->p_chi0);
+
     // std::cout << "n_abf & " << chi0.atbasis_abf.nb_total;
     // std::cout << "n_abf * " << ds->p_chi0->atbasis_abf.nb_total;
 
     profiler.start("chi0_build", "Build response function chi0");
-    chi0.build(opts.parallel_routing, pds->cs_data, pds->atpairs_local);
+    chi0.build(routing, pds->cs_data, pds->atpairs_local);
     profiler.stop("chi0_build");
 
     if (debug)
@@ -98,7 +83,7 @@ LIBRPA_C_H_FUNC_WRAP_WOPT(double, librpa_get_rpa_correlation_energy,
     profiler.start("EcRPA", "Compute RPA correlation Energy");
     CorrEnergy corr;
 
-    const bool use_blacs = opts.use_scalapack_ecrpa && (opts.parallel_routing == LibrpaParallelRouting::ATOMPAIR || opts.parallel_routing == LibrpaParallelRouting::LIBRI);
+    const bool use_blacs = opts.use_scalapack_ecrpa && (routing == LibrpaParallelRouting::ATOMPAIR || routing == LibrpaParallelRouting::LIBRI);
 
     if (use_blacs)
     {
@@ -108,7 +93,7 @@ LIBRPA_C_H_FUNC_WRAP_WOPT(double, librpa_get_rpa_correlation_energy,
             corr = compute_RPA_correlation_blacs_2d(chi0, pds->vq, pds->atpairs_local, pds->blacs_ctxt_h);
     }
     else
-        corr = compute_RPA_correlation(opts.parallel_routing, *(pds->p_chi0), pds->vq);
+        corr = compute_RPA_correlation(routing, *(pds->p_chi0), pds->vq);
 
     rpa_corr = corr.value.real();
     if (corr.qcontrib.size() != as_size(n_ibz_kpoints))

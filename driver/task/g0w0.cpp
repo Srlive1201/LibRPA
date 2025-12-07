@@ -44,68 +44,57 @@ void driver::task_g0w0()
 
     profiler.start("g0w0", "G0W0 quasi-particle calculation");
 
-    auto ds = librpa_int::api::get_dataset_instance(h.get_c_handler());
-    const bool debug = opts.output_level >= LIBRPA_VERBOSE_DEBUG;
-
-    ds->tfg.reset(opts.nfreq);
-    double emin = opts.tfgrids_freq_min;
-    double eintv = opts.tfgrids_freq_interval;
-    double emax = opts.tfgrids_freq_max;
-    double tmin = opts.tfgrids_time_min;
-    double tintv = opts.tfgrids_time_interval;
-    if (opts.tfgrids_type == LibrpaTimeFreqGrid::Minimax)
-    {
-        ds->mf.get_E_min_max(emin, emax);
-    }
-    ds->tfg.generate(opts.tfgrids_type, emin, eintv, emax, tmin, tintv);
-
-    ds->p_chi0 = std::make_unique<librpa_int::Chi0>(ds->mf, ds->basis_wfc, ds->basis_aux, ds->pbc, ds->tfg, ds->comm_h);
-    ds->p_chi0->gf_threshold = opts.gf_threshold;
-
-    profiler.start("chi0_build", "Build response function chi0");
-    ds->p_chi0->build(opts.parallel_routing, ds->cs_data, local_atpair);
-    profiler.stop("chi0_build");
-
-    std::flush(ofs_myid);
-    mpi_comm_global_h.barrier();
-
-    auto &chi0 = *(ds->p_chi0);
-
-    if (debug)
-    { // debug, check chi0
-        for (const auto &chi0q: chi0.get_chi0_q())
-        {
-            const int ifreq = chi0.tfg.get_freq_index(chi0q.first);
-            for (const auto &[q, IJchi0]: chi0q.second)
-            {
-                const int iq = ds->pbc.get_k_index_full(q);
-                for (const auto &[I, J_chi0]: IJchi0)
-                {
-                    for (const auto &[J, chi0]: J_chi0)
-                    {
-                        std::stringstream ss;
-                        ss << "chi0fq_ifreq_" << ifreq << "_iq_" << iq << "_I_" << I << "_J_" << J << "_id_" << ds->comm_h.myid << ".mtx";
-                        print_complex_matrix_mm(chi0, librpa_int::path_as_directory(opts.output_dir) + ss.str(), 1e-15);
-                    }
-                }
-            }
-        }
-    }
-
     profiler.start("read_vq_cut", "Load truncated Coulomb");
-    if (opts.parallel_routing == LibrpaParallelRouting::RTAU)
+
+    auto routing = opts.parallel_routing;
+    if (routing == LibrpaParallelRouting::AUTO) routing = librpa_int::decide_auto_routing(n_atoms, n_kpoints * opts.nfreq);
+
+    if (routing == LibrpaParallelRouting::RTAU)
     {
         read_Vq_full(driver_params.input_dir, "coulomb_cut_", true);
     }
     else
     {
-        // NOTE: local_atpair already set in the main.cpp.
-        //       It can consists of distributed atom pairs of only upper half.
-        //       Setup of local_atpair may be better to extracted as some util function,
-        //       instead of in the main driver.
+        // NOTE: local_atpair set during read_data::read_ri.
         read_Vq_row(driver_params.input_dir, "coulomb_cut_", opts.vq_threshold, local_atpair, true);
     }
     profiler.stop("read_vq_cut");
+
+    const auto file_df = driver_params.input_dir + "dielecfunc_out";
+    if (driver::get_bool(opts.replace_w_head) && librpa_int::path_exists(file_df.c_str()))
+    {
+        std::vector<double> omegas_dielect;
+        std::vector<double> dielect_func;
+        read_dielec_func(file_df, omegas_dielect, dielect_func);
+        h.set_dielect_func_imagfreq(omegas_dielect, dielect_func);
+    }
+
+    auto ds = librpa_int::api::get_dataset_instance(h.get_c_handler());
+    const bool debug = opts.output_level >= LIBRPA_VERBOSE_DEBUG;
+
+    h.build_g0w0_sigma(opts);
+    auto &chi0 = *(ds->p_chi0);
+
+    // if (debug)
+    // { // debug, check chi0
+    //     for (const auto &chi0q: chi0.get_chi0_q())
+    //     {
+    //         const int ifreq = chi0.tfg.get_freq_index(chi0q.first);
+    //         for (const auto &[q, IJchi0]: chi0q.second)
+    //         {
+    //             const int iq = ds->pbc.get_k_index_full(q);
+    //             for (const auto &[I, J_chi0]: IJchi0)
+    //             {
+    //                 for (const auto &[J, chi0]: J_chi0)
+    //                 {
+    //                     std::stringstream ss;
+    //                     ss << "chi0fq_ifreq_" << ifreq << "_iq_" << iq << "_I_" << I << "_J_" << J << "_id_" << ds->comm_h.myid << ".mtx";
+    //                     print_complex_matrix_mm(chi0, librpa_int::path_as_directory(opts.output_dir) + ss.str(), 1e-15);
+    //                 }
+    //             }
+    //         }
+    //     }
+    // }
 
     profiler.start("read_vxc", "Load DFT xc potential");
     std::vector<matrix> vxc;
@@ -124,102 +113,25 @@ void driver::task_g0w0()
     profiler.stop("read_vxc");
     std::flush(ofs_myid);
 
-    std::vector<double> epsmac_LF_imagfreq_re;
-
-    if (driver::get_bool(opts.replace_w_head))
-    {
-        std::vector<double> omegas_dielect;
-        std::vector<double> dielect_func;
-        read_dielec_func(driver_params.input_dir + "dielecfunc_out", omegas_dielect, dielect_func);
-
-        epsmac_LF_imagfreq_re = librpa_int::interpolate_dielec_func(
-                opts.option_dielect_func, omegas_dielect, dielect_func,
-                chi0.tfg.get_freq_nodes());
-
-        if (debug)
-        {
-            if (mpi_comm_global_h.is_root())
-            {
-                lib_printf("Dielectric function parsed:\n");
-                for (int i = 0; i < opts.nfreq; i++)
-                    lib_printf("%d %f %f\n", i+1, chi0.tfg.get_freq_nodes()[i], epsmac_LF_imagfreq_re[i]);
-            }
-            mpi_comm_global_h.barrier();
-        }
-    }
-
-    profiler.start("g0w0_exx", "Build exchange self-energy");
-    ds->p_exx = std::make_unique<librpa_int::Exx>(ds->mf, ds->basis_wfc, ds->pbc, ds->comm_h);
-    {
-        profiler.start("ft_vq_cut", "Fourier transform truncated Coulomb");
-        const auto VR = librpa_int::FT_Vq(ds->basis_aux, ds->vq_cut, ds->pbc, true);
-        profiler.stop("ft_vq_cut");
-
-        profiler.start("g0w0_exx_real_work");
-        ds->p_exx->build(opts.parallel_routing, ds->basis_aux, ds->cs_data, VR);
-        ds->p_exx->build_KS_kgrid(ds->atoms, ds->blacs_ctxt_h);
-        profiler.stop("g0w0_exx_real_work");
-    }
-    profiler.stop("g0w0_exx");
-    std::flush(ofs_myid);
-
-    // Since EXX contribution will be printed along with sigma_c when Vxc is read
-    // we print it here when Vxc read failed
-    if (flag_read_vxc != 0 && mpi_comm_global_h.is_root())
-    {
-        for (int isp = 0; isp != ds->mf.get_n_spins(); isp++)
-        {
-            lib_printf("Spin channel %1d\n", isp+1);
-            for (int ik = 0; ik != ds->mf.get_n_kpoints(); ik++)
-            {
-                cout << "k-point " << ik + 1 << ": " << ds->pbc.klist[ik] << endl;
-                lib_printf("%-4s  %-10s  %-10s\n", "Band", "e_exx (Ha)", "e_exx (eV)");
-                for (int ib = 0; ib != ds->mf.get_n_bands(); ib++)
-                    lib_printf("%4d  %10.5f  %10.5f\n", ib+1, ds->p_exx->Eexx[isp][ik][ib],
-                               HA2EV * ds->p_exx->Eexx[isp][ik][ib]);
-                lib_printf("\n");
-            }
-        }
-    }
-    mpi_comm_global_h.barrier();
-
-    profiler.start("g0w0_wc", "Build screened interaction");
-    std::vector<std::complex<double>> epsmac_LF_imagfreq(epsmac_LF_imagfreq_re.cbegin(), epsmac_LF_imagfreq_re.cend());
-    std::map<double, std::map<Vector3_Order<double>, librpa_int::matrix_m<std::complex<double>>>> Wc_freq_q;
-    if (driver::get_bool(opts.use_scalapack_gw_wc))
-    {
-        Wc_freq_q = librpa_int::compute_Wc_freq_q_blacs(
-            chi0, ds->vq, ds->vq_cut, opts.sqrt_coulomb_threshold, epsmac_LF_imagfreq,
-            ds->blacs_ctxt_h, ds->desc_abf, debug, opts.output_dir);
-    }
-    else
-    {
-        Wc_freq_q =
-            librpa_int::compute_Wc_freq_q(chi0, ds->vq, ds->vq_cut, opts.sqrt_coulomb_threshold,
-                                          epsmac_LF_imagfreq, debug, opts.output_dir);
-    }
-    profiler.stop("g0w0_wc");
-
-    if (opts.output_level >= LIBRPA_VERBOSE_DEBUG)
-    { // debug, check Wc
-        for (const auto &[freq, q_Wc]: Wc_freq_q)
-        {
-            const int ifreq = chi0.tfg.get_freq_index(freq);
-            for (const auto &[q, Wc]: q_Wc)
-            {
-                const int iq = ds->pbc.get_k_index_full(q);
-                std::stringstream ss;
-                ss << "Wcfq_ifreq_" << ifreq << "_iq_" << iq << ".csc";
-                const auto fn = librpa_int::path_as_directory(opts.output_dir) + ss.str();
-                librpa_int::write_matrix_elsi_csc_parallel(fn, Wc, ds->desc_abf, 1e-15);
-            }
-        }
-    }
-
-    ds->p_g0w0 = std::make_unique<librpa_int::G0W0>(ds->mf, ds->basis_wfc, ds->pbc, ds->tfg, ds->comm_h);
-    profiler.start("g0w0_sigc_IJ", "Build real-space correlation self-energy");
-    ds->p_g0w0->build_spacetime(opts.parallel_routing, ds->basis_aux, ds->cs_data, Wc_freq_q, ds->desc_abf);
-    profiler.stop("g0w0_sigc_IJ");
+    // // Since EXX contribution will be printed along with sigma_c when Vxc is read
+    // // we print it here when Vxc read failed
+    // if (flag_read_vxc != 0 && mpi_comm_global_h.is_root())
+    // {
+    //     for (int isp = 0; isp != ds->mf.get_n_spins(); isp++)
+    //     {
+    //         lib_printf("Spin channel %1d\n", isp+1);
+    //         for (int ik = 0; ik != ds->mf.get_n_kpoints(); ik++)
+    //         {
+    //             cout << "k-point " << ik + 1 << ": " << ds->pbc.klist[ik] << endl;
+    //             lib_printf("%-4s  %-10s  %-10s\n", "Band", "e_exx (Ha)", "e_exx (eV)");
+    //             for (int ib = 0; ib != ds->mf.get_n_bands(); ib++)
+    //                 lib_printf("%4d  %10.5f  %10.5f\n", ib+1, ds->p_exx->Eexx[isp][ik][ib],
+    //                            HA2EV * ds->p_exx->Eexx[isp][ik][ib]);
+    //             lib_printf("\n");
+    //         }
+    //     }
+    // }
+    // mpi_comm_global_h.barrier();
 
     // if (Params::debug)
     // { // debug, check sigc_ij

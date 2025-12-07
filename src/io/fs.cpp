@@ -24,6 +24,11 @@ std::string path_as_directory(const std::string &path)
     return path;
 }
 
+bool path_exists(const char *path_cstr)
+{
+    return std::filesystem::exists(path_cstr);
+}
+
 void create_directories(const char *dname, int root_process)
 {
     if (std::filesystem::is_directory(dname)) return;

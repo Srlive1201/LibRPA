@@ -51,6 +51,9 @@ public:
     // 2D distribution of Coulomb matrices
     std::map<Vector3_Order<double>, ComplexMatrix> vq_block_loc;
     std::map<Vector3_Order<double>, ComplexMatrix> vq_cut_block_loc;
+    // Macroscopic dielectric functions at imaginary frequencies
+    std::vector<double> epsmacs_imagfreq;
+    std::vector<double> omegas_imagfreq;
 
     // Output data, held by computation objects
     // All computation data objects should be contained here as pointers

@@ -253,12 +253,13 @@ int read_eigenvector(const string &dir_path)
     return ret;
 }
 
-void read_ri(const string &dir_path, librpa::ParallelRouting routing)
+void read_ri(const string &dir_path, librpa::ParallelRouting &routing)
 {
     using driver::n_atoms;
     using driver::n_kpoints;
     using driver::local_atpair;
     using librpa_int::generate_atom_pair_from_nat;
+    using librpa_int::decide_auto_routing;
     using librpa_int::dispatch_upper_triangular_tasks;
     using namespace librpa_int::global;
 
@@ -270,7 +271,7 @@ void read_ri(const string &dir_path, librpa::ParallelRouting routing)
 
     if (routing == librpa::ParallelRouting::AUTO)
     {
-        routing = decide_auto_routing(tot_atpair.size(), driver::opts.nfreq * n_kpoints);
+        routing = decide_auto_routing(n_atoms, driver::opts.nfreq * n_kpoints);
     }
 
     auto ds = librpa_int::api::get_dataset_instance(driver::h.get_c_handler());
@@ -279,6 +280,9 @@ void read_ri(const string &dir_path, librpa::ParallelRouting routing)
 
     local_atpair.clear();
 
+    // HACK: local_atpair should be set in the same mechanism as inside the dataset object,
+    //       which is implemented in initialize_ds_atpairs_local in dataset_helper.cpp.
+    //       It consists of distributed atom pairs of only upper half, since repsonse function matrix is Hermitian.
     if(routing == librpa::ParallelRouting::ATOMPAIR)
     {
         lib_printf_root("Triangular dispatching of atom pairs\n");

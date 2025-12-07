@@ -279,7 +279,7 @@ get_balanced_ap_distribution_for_consec_descriptor(const AtomicBasis &atbasis_r,
         prows_at_center[iat] = ad.g2p_r()[(atbasis_r.get_part_range()[iat] + atbasis_r.get_part_range()[iat+1])/2];
     }
 
-    std::vector<size_t> pcols_at_center(atbasis_c.n_atoms);
+    std::vector<int> pcols_at_center(atbasis_c.n_atoms);
     for (size_t iat = 0; iat < atbasis_c.n_atoms; iat++)
     {
         pcols_at_center[iat] = ad.g2p_c()[(atbasis_c.get_part_range()[iat]+atbasis_c.get_part_range()[iat+1])/2];

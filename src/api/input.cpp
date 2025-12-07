@@ -471,3 +471,11 @@ LIBRPA_C_H_FUNC_WRAP(void, librpa_set_aux_cut_coulomb_k_2d_block,
     _set_aux_coulomb_k_2D_block(qvec, mu_begin, mu_end, nu_begin, nu_end, Vq_real_in,
                                 Vq_imag_in, ds->vq_cut_block_loc);
 }
+
+LIBRPA_C_H_FUNC_WRAP(void, librpa_set_dielect_func_imagfreq, int nfreq, const double *omegas_imag, const double *dielect_func)
+{
+    using namespace librpa_int;
+    auto pds = librpa_int::api::get_dataset_instance(h);
+    pds->omegas_imagfreq = std::vector<double>(omegas_imag, omegas_imag + nfreq);
+    pds->epsmacs_imagfreq = std::vector<double>(dielect_func, dielect_func + nfreq);
+}

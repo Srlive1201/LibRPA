@@ -6,6 +6,8 @@ namespace librpa_int
 
 std::string path_as_directory(const std::string &path);
 
+bool path_exists(const char *path_cstr);
+
 /*!
  * @brief Create directory and its parent directories if necessary.
  *

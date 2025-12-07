@@ -1,6 +1,6 @@
 #include "interpolate.h"
 #include <cmath>
-#include <cstdio>
+// #include <cstdio>
 #include <stdexcept>
 
 namespace librpa_int
@@ -76,7 +76,7 @@ double CubicSpline::operator()(double x) const
     {
         // Extrapolate the natural cubic spline polynomial
         double x0, x1, y0, y1, m0, m1, h;
-        int i;
+        // int i;
 
         if (x < d_xs[0])
         {
@@ -88,7 +88,7 @@ double CubicSpline::operator()(double x) const
             m0 = d_b[0];
             m1 = d_b[1];
             h = x1 - x0;
-            i = 0;
+            // i = 0;
         }
         else
         {
@@ -100,7 +100,7 @@ double CubicSpline::operator()(double x) const
             m0 = d_b[n - 2];
             m1 = d_b[n - 1];
             h = x1 - x0;
-            i = n - 2;
+            // i = n - 2;
         }
 
         double x_minus_xi = x - x0;
@@ -119,7 +119,7 @@ double CubicSpline::operator()(double x) const
             if (x >= d_xs[i] && x <= d_xs[i + 1])
             {
                 double xi = d_xs[i];
-                double hi = d_xs[i + 1] - d_xs[i];
+                // double hi = d_xs[i + 1] - d_xs[i];
                 double yi = d_a[i];
                 double bi = d_b[i];
                 double ci = d_c[i];

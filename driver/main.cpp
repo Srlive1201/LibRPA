@@ -160,6 +160,7 @@ int main(int argc, char **argv)
 
         profiler.start("driver_read_ri");
         read_ri(driver_params.input_dir, driver::opts.parallel_routing);
+        lib_printf_root("Actual parallel routing used: %s\n", get_routing_string(driver::opts.parallel_routing).c_str());
         profiler.stop("driver_read_ri");
     }
 

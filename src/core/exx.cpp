@@ -33,9 +33,9 @@ Exx::Exx(const MeanField &mf_in,
 {
     is_rspace_build_ = false;
     is_kspace_built_ = false;
-    libri_exx_threshold_C = 0.0;
-    libri_exx_threshold_V = 0.0;
-    libri_exx_threshold_D = 0.0;
+    libri_threshold_C = 0.0;
+    libri_threshold_V = 0.0;
+    libri_threshold_D = 0.0;
 };
 
 ComplexMatrix Exx::get_dmat_cplx_R_global(const int& ispin, const Vector3_Order<int>& R)
@@ -153,7 +153,7 @@ void Exx::build(const LibrpaParallelRouting routing,
     global::profiler.start("build_real_space_exx_1", "Prepare C libRI object");
     global::ofs_myid << "Number of Cs keys: " << get_num_keys(Cs.data_libri) << "\n";
     // print_keys(global::ofs_myid, Cs.data_libri);
-    exx_libri.set_Cs(Cs.data_libri, libri_exx_threshold_C);
+    exx_libri.set_Cs(Cs.data_libri, libri_threshold_C);
     global::profiler.stop("build_real_space_exx_1");
     global::ofs_myid << "Finished setup Cs for EXX\n";
     std::flush(global::ofs_myid);
@@ -205,7 +205,7 @@ void Exx::build(const LibrpaParallelRouting routing,
     global::profiler.stop("build_real_space_exx_2_1");
     global::ofs_myid << "Number of V keys: " << get_num_keys(V_libri) << "\n";
     global::profiler.start("build_real_space_exx_2_2");
-    exx_libri.set_Vs(V_libri, libri_exx_threshold_V);
+    exx_libri.set_Vs(V_libri, libri_threshold_V);
     V_libri.clear();
     global::profiler.stop("build_real_space_exx_2_2");
     global::profiler.stop("build_real_space_exx_2");
@@ -214,8 +214,8 @@ void Exx::build(const LibrpaParallelRouting routing,
 
     // initialize density matrix
     vector<atpair_t> atpair_dmat;
-    for (atom_t I = 0; I < n_atoms; I++)
-        for (atom_t J = 0; J < n_atoms; J++)
+    for (atom_t I = 0; I < as_atom(n_atoms); I++)
+        for (atom_t J = 0; J < as_atom(n_atoms); J++)
             atpair_dmat.push_back({I, J});
     const auto dmat_IJRs_local = dispatch_vector_prod(atpair_dmat, Rlist, comm_h.myid, comm_h.nprocs, true, true);
 
@@ -244,7 +244,7 @@ void Exx::build(const LibrpaParallelRouting routing,
         }
         global::ofs_myid << "Number of Dmat keys: " << get_num_keys(dmat_libri) << "\n";
         // print_keys(global::ofs_myid, dmat_libri);
-        exx_libri.set_Ds(dmat_libri, libri_exx_threshold_D);
+        exx_libri.set_Ds(dmat_libri, libri_threshold_D);
         global::profiler.stop("build_real_space_exx_3");
         global::lib_printf("Task %4d: DM setup for EXX\n", comm_h.myid);
 

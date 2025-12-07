@@ -43,9 +43,9 @@ class Exx
         const PeriodicBoundaryData &pbc;
         const MpiCommHandler &comm_h;
 
-        double libri_exx_threshold_C;
-        double libri_exx_threshold_V;
-        double libri_exx_threshold_D;
+        double libri_threshold_C;
+        double libri_threshold_V;
+        double libri_threshold_D;
 
         //! Density matrix in lattice vector space, dimension (nspins, I, J, R, nao_I, nao_J)
         map<int, atpair_R_mat_t> dmat;

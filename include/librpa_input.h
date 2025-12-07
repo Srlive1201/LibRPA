@@ -65,8 +65,7 @@ LIBRPA_C_H_FUNC_WRAP(void, librpa_set_aux_cut_coulomb_k_2d_block,
                      int ik, int mu_begin, int mu_end, int nu_begin, int nu_end,
                      const double* Vq_real_in, const double* Vq_imag_in);
 
-// LIBRPA_C_H_FUNC_WRAP(void, get_rpa_correlation_energy,
-//                          double *rpa_corr, double *rpa_corr_irk_contrib);
+LIBRPA_C_H_FUNC_WRAP(void, librpa_set_dielect_func_imagfreq, int nfreq, const double *omegas_imag, const double *dielect_func);
 
 #ifdef __cplusplus
 }

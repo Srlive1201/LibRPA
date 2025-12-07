@@ -36,7 +36,7 @@ int read_vxc(const string &file_path, std::vector<matrix> &vxc);
 int read_eigenvector(const string &dir_path);
 
 // high-level reader for RI coefficients and bare Coulomb interactions
-void read_ri(const string &dir_path, librpa::ParallelRouting routing);
+void read_ri(const string &dir_path, librpa::ParallelRouting &routing);
 
 size_t read_Cs(const string &dir_path, double threshold, const std::vector<atpair_t> &local_atpair);
 

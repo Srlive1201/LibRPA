@@ -59,6 +59,9 @@ public:
 
 // void set_parallel_routing(const std::string &option, const int &atpais_num, const int &Rt_num, ParallelRouting &routing);
 
+//! Return the actual routing inside LibRPA when auto is selected
+LibrpaParallelRouting decide_auto_routing(const int n_atoms, const int Rt_num);
+
 //! Wrapper of MPI_Comm_rank
 int get_mpi_rank(const MPI_Comm &comm);
 
