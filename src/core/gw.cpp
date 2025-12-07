@@ -336,23 +336,22 @@ void G0W0::build_spacetime(
                         const auto t2f_sin = tfg.get_sintrans_t2f()(iomega, itau);
                         const auto t2f_cos = tfg.get_costrans_t2f()(iomega, itau);
                         // row-major used here for libRI communication when building sigc_KS
-                        matrix_m<complex<double>> sigc_temp(n_I, n_J, MAJOR::ROW);
+                        Matz sigc_temp(n_I, n_J, MAJOR::ROW);
                         for (size_t i = 0; i != n_I; i++)
                             for (size_t j = 0; j != n_J; j++)
                             {
                                 sigc_temp(i, j) = std::complex<double>{sigc_cos(i, j) * t2f_cos, sigc_sin(i, j) * t2f_sin};
                             }
-                        if (sigc_is_f_R_IJ.count(ispin) == 0 ||
-                            sigc_is_f_R_IJ.at(ispin).count(omega) == 0 ||
-                            sigc_is_f_R_IJ.at(ispin).at(omega).count(R) == 0 ||
-                            sigc_is_f_R_IJ.at(ispin).at(omega).at(R).count(I) == 0 ||
-                            sigc_is_f_R_IJ.at(ispin).at(omega).at(R).at(I).count(J) == 0)
+                        auto &m_R = sigc_is_f_R_IJ[ispin][omega][R];
+                        atpair_t IJ{I, J};
+                        auto it = m_R.find(IJ);
+                        if (it == m_R.cend())
                         {
-                            sigc_is_f_R_IJ[ispin][omega][R][I][J] = std::move(sigc_temp);
+                            m_R.emplace(IJ, std::move(sigc_temp));
                         }
                         else
                         {
-                            sigc_is_f_R_IJ[ispin][omega][R][I][J] += sigc_temp;
+                            it->second += sigc_temp;
                         }
                     }
                 }
@@ -366,7 +365,7 @@ void G0W0::build_spacetime(
             if (this->output_sigc_mat_rt)
             {
                 ofs_sigmac_r.seekp(0);
-                ofs_sigmac_r.write((char *) &n_IJR_myid, sizeof(size_t)); // placeholder
+                ofs_sigmac_r.write((char *) &n_IJR_myid, sizeof(size_t)); // overwrite
                 ofs_sigmac_r.close();
             }
         }
@@ -400,23 +399,22 @@ void G0W0::build_spacetime(
                 for (const auto &[R, IJsigc]: sigc_RIJ)
                 {
                     const auto iR = this->pbc.get_R_index(R);
-                    for (const auto &[I, Jsigc]: IJsigc)
+                    for (const auto &[IJ, sigc]: IJsigc)
                     {
+                        const int I = IJ.first;
+                        const int J = IJ.second;
                         const auto &n_I = this->atbasis_wfc.get_atom_nb(I);
-                        for (const auto &[J, sigc]: Jsigc)
-                        {
-                            const auto &n_J = this->atbasis_wfc.get_atom_nb(J);
-                            n_IJR_myid++;
-                            size_t dims[5];
-                            dims[0] = iR;
-                            dims[1] = I;
-                            dims[2] = J;
-                            dims[3] = n_I;
-                            dims[4] = n_J;
-                            assert (sigc.size() == n_I * n_J);
-                            ofs_sigmac_r.write((char *) dims, 5 * sizeof(size_t));
-                            ofs_sigmac_r.write((char *) sigc.ptr(), sigc.size() * 2 * sizeof(double));
-                        }
+                        const auto &n_J = this->atbasis_wfc.get_atom_nb(J);
+                        n_IJR_myid++;
+                        size_t dims[5];
+                        dims[0] = iR;
+                        dims[1] = I;
+                        dims[2] = J;
+                        dims[3] = n_I;
+                        dims[4] = n_J;
+                        assert (sigc.size() == n_I * n_J);
+                        ofs_sigmac_r.write((char *) dims, 5 * sizeof(size_t));
+                        ofs_sigmac_r.write((char *) sigc.ptr(), sigc.size() * 2 * sizeof(double));
                     }
                 }
                 ofs_sigmac_r.seekp(0);
@@ -488,17 +486,14 @@ void G0W0::build_sigc_matrix_KS(const std::map<int, std::map<int, ComplexMatrix>
                 for (const auto &R_IJ_sigc: sigc_is_freq)
                 {
                     const auto R = R_IJ_sigc.first;
-                    for (const auto &I_J_sigc: R_IJ_sigc.second)
+                    const std::array<int, 3> Ra{R.x, R.y, R.z};
+                    for (const auto &[IJ, sigc]: R_IJ_sigc.second)
                     {
-                        const auto I = I_J_sigc.first;
+                        const int I = IJ.first;
+                        const int J = IJ.second;
                         const auto &n_I = this->atbasis_wfc.get_atom_nb(I);
-                        for (const auto &J_sigc: I_J_sigc.second)
-                        {
-                            const auto J = J_sigc.first;
-                            const auto &n_J = this->atbasis_wfc.get_atom_nb(J);
-                            const std::array<int, 3> Ra{R.x, R.y, R.z};
-                            sigc_I_JR_local[I][{J, Ra}] = Tensor<complex<double>>({n_I, n_J}, J_sigc.second.sptr());
-                        }
+                        const auto &n_J = this->atbasis_wfc.get_atom_nb(J);
+                        sigc_I_JR_local[I][{J, Ra}] = Tensor<complex<double>>({n_I, n_J}, sigc.sptr());
                     }
                 }
             }
