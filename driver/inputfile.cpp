@@ -153,6 +153,8 @@ void parse_inputfile_to_params(const std::string& fn)
     std::string stmp;
     bool btmp;
 
+    // TODO: invalid parameters checker
+
     // driver parameters
     parser.parse_string("task", driver_params.task, "rpa", flag);
     parser.parse_string("input_dir", stmp, "./", flag);
@@ -189,7 +191,7 @@ void parse_inputfile_to_params(const std::string& fn)
     parser.parse_bool("use_scalapack_ecrpa", btmp, false, flag);
     opts.use_scalapack_ecrpa = get_switch(btmp);
 
-    parser.parse_bool("use_scalapack_gw_wc", btmp, false, flag);
+    parser.parse_bool("use_scalapack_gw_wc", btmp, true, flag);
     opts.use_scalapack_gw_wc = get_switch(btmp);
 
     parser.parse_double("cs_threshold", opts.cs_threshold, 1e-6, flag);

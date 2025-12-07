@@ -12,7 +12,7 @@ void librpa_init_options(LibrpaOptions *opts)
 {
     librpa_set_output_dir(opts, ".");
 
-    opts->parallel_routing = LibrpaParallelRouting::ROUTING_UNSET;
+    opts->parallel_routing = LibrpaParallelRouting::AUTO;
     opts->output_level = LIBRPA_VERBOSE_INFO;
     opts->cs_threshold = 0.0e0;
     opts->vq_threshold = 0.0e0;
@@ -30,7 +30,7 @@ void librpa_init_options(LibrpaOptions *opts)
     opts->use_scalapack_ecrpa = LIBRPA_SWITCH_OFF;
 
     opts->n_params_anacon = -1;
-    opts->use_scalapack_gw_wc = LIBRPA_SWITCH_OFF;
+    opts->use_scalapack_gw_wc = LIBRPA_SWITCH_ON;
     opts->replace_w_head = LIBRPA_SWITCH_OFF;
     opts->option_dielect_func = 0;
     opts->sqrt_coulomb_threshold = 0.0e0;
