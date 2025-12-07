@@ -210,11 +210,6 @@ else()
   set(LIBRPA_GREENX_COMMIT_HASH "(EXTERNAL)")
 endif()
 
-if(ENABLE_LIBRPA_FORTRAN_BIND)
-  message(STATUS "LibRPA Fortran binding enabled")
-  add_subdirectory(./binding/fortran)
-endif()
-
 if(ENABLE_LIBRPA_TEST)
   # FetchContent_Declare(
   #   googletest
@@ -225,6 +220,11 @@ if(ENABLE_LIBRPA_TEST)
   # include(GoogleTest)
   message(STATUS "Test enabled")
   enable_testing()
+endif()
+
+if(ENABLE_LIBRPA_FORTRAN_BIND)
+  message(STATUS "LibRPA Fortran binding enabled")
+  add_subdirectory(./binding/fortran)
 endif()
 
 if(ENABLE_LIBRPA_DRIVER)
