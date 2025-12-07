@@ -7,10 +7,11 @@ void test_BCC_He_gamma_minimal_basis_aims()
 {
     using namespace librpa_int;
 
+    const int nk = 1;
     MeanField mf(1, 1, 8, 8);
     mf.get_efermi() = 0.240386888648512;
     mf.get_weight()[0].zero_out();
-    mf.get_weight()[0](0, 0) = mf.get_weight()[0](0, 1) = 2.0;
+    mf.get_weight()[0](0, 0) = mf.get_weight()[0](0, 1) = 2.0 / nk;
     std::vector<double> eig {
          -0.649240864,
          -0.577333356,
@@ -42,10 +43,10 @@ void test_BCC_He_gamma_minimal_basis_aims()
     // test density matrix
     const auto dmat_gamma = mf.get_dmat_cplx(0, 0);
     const complex<double> thres = 1e-10;
-    assert(fequal(dmat_gamma(0, 0), { 1.924748044018415e+00, 0}, thres));
-    assert(fequal(dmat_gamma(4, 0), {-3.098398823937398e-01, 0}, thres));
-    assert(fequal(dmat_gamma(0, 4), {-3.098398823937398e-01, 0}, thres));
-    assert(fequal(dmat_gamma(4, 4), { 1.924748044018417e+00, 0}, thres));
+    assert(fequal(dmat_gamma(0, 0), { 0.962374022009208e-00, 0}, thres));
+    assert(fequal(dmat_gamma(4, 0), {-1.549199411968699e-01, 0}, thres));
+    assert(fequal(dmat_gamma(0, 4), {-1.549199411968699e-01, 0}, thres));
+    assert(fequal(dmat_gamma(4, 4), { 0.962374022009208e+00, 0}, thres));
 }
 
 int main (int argc, char *argv[])

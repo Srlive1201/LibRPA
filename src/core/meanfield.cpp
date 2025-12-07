@@ -159,7 +159,8 @@ ComplexMatrix MeanField::get_dmat_cplx(int ispin, int ikpt) const
     int nocc;
     for (nocc = 0; nocc != this->n_states; nocc++)
     {
-        const auto weight = this->wg[ispin](ikpt, nocc);
+        // Renormalize to single spin channel. Need to adpat SOC case (n_spins = 1 but remove 0.5)
+        const auto weight = this->wg[ispin](ikpt, nocc) * 0.5 * n_spins;
         if (weight < occ_thres) break;
         LapackConnector::scal(this->n_aos, weight, scaled_wfc_conj.c + n_aos * nocc, 1);
     }
@@ -212,17 +213,18 @@ std::map<double, std::map<Vector3_Order<int>, ComplexMatrix>> MeanField::get_gf_
     const std::vector<Vector3_Order<int>> &Rs) const
 {
     std::map<double, std::map<Vector3_Order<int>, ComplexMatrix>> gf_tau_R;
+    const double scale_spin = 0.5 * n_spins;  // TODO: adapt SOC
     // NOTE: occupation must be copied here, not reference
     auto wg_empty = wg[ispin];
     // cout << "In get_gf_cplx_imagtimes_Rs ispin " << ispin << endl << wg_empty << endl;
     for (size_t i = 0; i != wg_empty.size; i++)
     {
-        wg_empty.c[i] = 1.0 / n_kpoints - wg_empty.c[i] * (0.5 * n_spins);
+        wg_empty.c[i] = 1.0 / n_kpoints - wg_empty.c[i] * scale_spin;
         if (wg_empty.c[i] < 0) wg_empty.c[i] = 0;
         // printf("%d %f\n", i, wg_empty.c[i]);
     }
     // cout << "wg_empty " << wg_empty << endl;
-    const auto wg_occ = wg[ispin] * (0.5 * n_spins);
+    const auto wg_occ = wg[ispin] * scale_spin;
     // cout << "wg_occ " << wg_occ << endl;
     for (const auto &tau : imagtimes)
     {

@@ -40,11 +40,7 @@ Exx::Exx(const MeanField &mf_in,
 
 ComplexMatrix Exx::get_dmat_cplx_R_global(const int& ispin, const Vector3_Order<int>& R)
 {
-    const auto nspins = this->mf.get_n_spins();
-    auto dmat_cplx = this->mf.get_dmat_cplx_R(ispin, pbc.kfrac_list, R);
-    // renormalize to single spin channel
-    dmat_cplx *= 0.5 * nspins;
-    return dmat_cplx;
+    return this->mf.get_dmat_cplx_R(ispin, pbc.kfrac_list, R);
 }
 
 
