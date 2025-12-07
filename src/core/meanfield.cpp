@@ -44,6 +44,21 @@ void MeanField::resize(int ns, int nk, int nb, int nao, int st_ib, int nb_local,
     }
 }
 
+std::vector<int> MeanField::get_iks_local() const
+{
+    std::vector<int> iks_local;
+    iks_local.clear();
+    auto it = this->wfc.find(0);  // assume same k-points in all spin channels
+    if (it == this->wfc.cend())
+    {
+        for (const auto &[ik, _]: it->second)
+        {
+            iks_local.push_back(ik);
+        }
+    }
+    return iks_local;
+}
+
 MeanField::MeanField(int ns, int nk, int nb, int nao)
 {
     resize(ns, nk, nb, nao, 0, nb, 0, nao);
@@ -79,8 +94,6 @@ MeanField::MeanField(const MeanField &mf)
     resize(mf.n_spins, mf.n_kpoints, mf.n_states, mf.n_aos,
            mf.i_state_start, mf.n_states_local, mf.i_ao_start, mf.n_aos_local);
     // FIXME: copy data, not tested
-    iks_local = mf.iks_local;
-    n_kpoints_local = mf.n_kpoints_local;
     eskb = mf.eskb;
     wg = mf.wg;
     wfc = mf.wfc;
@@ -136,14 +149,26 @@ double MeanField::get_band_gap() const
     return gap;
 }
 
+// get_dmat_cplx can be used for both serial and k-porallel version
 ComplexMatrix MeanField::get_dmat_cplx(int ispin, int ikpt) const
 {
     assert(ispin < this->n_spins);
     assert(ikpt < this->n_kpoints);
     auto scaled_wfc_conj = conj(wfc.at(ispin).at(ikpt));
-    for (int ib = 0; ib != this->n_states; ib++)
-        LapackConnector::scal(this->n_aos, this->wg[ispin](ikpt, ib), scaled_wfc_conj.c + n_aos * ib, 1);
-    auto dmat_cplx = transpose(this->wfc.at(ispin).at(ikpt), false) * scaled_wfc_conj;
+    const double occ_thres = 1e-4 / n_kpoints;
+    int nocc;
+    for (nocc = 0; nocc != this->n_states; nocc++)
+    {
+        const auto weight = this->wg[ispin](ikpt, nocc);
+        if (weight < occ_thres) break;
+        LapackConnector::scal(this->n_aos, weight, scaled_wfc_conj.c + n_aos * nocc, 1);
+    }
+    ComplexMatrix dmat_cplx(n_aos, n_aos);
+    const auto &wfc_sk = this->wfc.at(ispin).at(ikpt);
+    LapackConnector::gemm('T', 'N', n_aos, n_aos, nocc, 1.0,
+                          wfc_sk.c, n_aos, scaled_wfc_conj.c, n_aos,
+                          0.0, dmat_cplx.c, n_aos);
+    // auto dmat_cplx = transpose(wfc_sk, false) * scaled_wfc_conj;
     return dmat_cplx;
 }
 
@@ -157,6 +182,29 @@ ComplexMatrix MeanField::get_dmat_cplx_R(int ispin, const std::vector<Vector3_Or
         dmat_cplx += kphase * this->get_dmat_cplx(ispin, ik);
     }
     return dmat_cplx;
+}
+
+std::map<Vector3_Order<int>, ComplexMatrix> MeanField::get_dmat_cplx_Rs(
+    int ispin, const std::vector<Vector3_Order<double>> &kfrac_list,
+    const std::vector<Vector3_Order<int>> &Rs) const
+{
+    std::map<Vector3_Order<int>, ComplexMatrix> dmat_cplx_all;
+    if (Rs.size() == 0) return dmat_cplx_all;
+    for (const auto &R: Rs)
+    {
+        dmat_cplx_all[R] = ComplexMatrix(this->n_aos, this->n_aos);
+    }
+    for (int ik = 0; ik != this->n_kpoints; ik++)
+    {
+        const auto &kmat = this->get_dmat_cplx(ispin, ik);
+        for (auto &[R, rmat]: dmat_cplx_all)
+        {
+            auto ang = - (kfrac_list[ik] * R) * TWO_PI;
+            complex<double> kphase = complex<double>(cos(ang), sin(ang));
+            rmat += kphase * rmat;
+        }
+    }
+    return dmat_cplx_all;
 }
 
 std::map<double, std::map<Vector3_Order<int>, ComplexMatrix>> MeanField::get_gf_cplx_imagtimes_Rs(

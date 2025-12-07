@@ -758,6 +758,9 @@ void matmul(const matrix_m<T> &m1, const matrix_m<T> &m2, matrix_m<T> &prod)
     assert(m2.nc() == prod.nc());
     assert(m1.major() == m2.major() && m1.major() == prod.major());
 
+    // Nothing needs to be done if any of the dimension is zero.
+    if (m1.nr() == 0 || m1.nc() == 0 || m2.nc() == 0) return;
+
     if (m1.is_row_major())
     {
         LapackConnector::gemm('N', 'N', m1.nr(), m2.nc(), m1.nc(),

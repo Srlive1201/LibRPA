@@ -61,6 +61,7 @@ foreach(target
   test_base_mpi
   test_blacs
   test_matrix_m_mpi
+  test_meanfield_mpi
   )
   config_test(${target} 4)
 endforeach()

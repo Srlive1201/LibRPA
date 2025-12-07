@@ -60,6 +60,7 @@ list(APPEND lib_sources
         core/geometry.cpp
         core/gw.cpp
         core/meanfield.cpp
+        core/meanfield_mpi.cpp
         core/minimax_gx.cpp
         core/pbc.cpp
         core/qpe_solver.cpp
