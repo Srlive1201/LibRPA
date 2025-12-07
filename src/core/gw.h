@@ -45,6 +45,8 @@ public:
     //! frequency-domain reciprocal-space correlation self-energy, indices [ispin][freq][R][I][J](n_I, n_J)
     std::map<int, std::map<double, std::map<Vector3_Order<int>, atom_mapping<Matz>::pair_t_old>>> sigc_is_f_R_IJ;
 
+    std::map<int, std::map<double, std::map<Vector3_Order<int>, Matz>>> sigc_is_f_R_blacs;
+
     //! correlation self-energy matrix in the basis of KS states, indices [ispin][ik][freq](n_bands, n_bands)
     std::map<int, std::map<int, std::map<double, Matz>>> sigc_is_ik_f_KS;
 

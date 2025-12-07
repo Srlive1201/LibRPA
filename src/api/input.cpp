@@ -110,6 +110,9 @@ LIBRPA_C_H_FUNC_WRAP(void, librpa_set_ao_basis_wfc, const int natoms, const size
 
     auto ds = librpa_int::api::get_dataset_instance(h);
     ds->basis_wfc.set(nbs);
+    ds->desc_wfc.reset_handler(ds->blacs_ctxt_h);
+    const auto n = ds->basis_wfc.nb_total;
+    ds->desc_wfc.init_1b1p(n, n, 0, 0);
 
     ds->comm_h.barrier();
     if (ds->comm_h.is_root())

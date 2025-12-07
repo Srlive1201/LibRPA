@@ -335,7 +335,10 @@ module librpa_f03
          integer(c_int), value :: ik, mu_begin, mu_end, nu_begin, nu_end
          real(c_double), dimension(*), intent(in) :: vq_real, vq_imag
       end subroutine librpa_set_aux_cut_coulomb_k_2d_block_c
+   end interface
 
+   ! Compute functions interface
+   interface
       function librpa_get_rpa_correlation_energy_c(h, opts, nkpts_ibz, contrib_ibzk_re, contrib_ibzk_im) &
             bind(c, name="librpa_get_rpa_correlation_energy")
          import :: LibrpaOptions_c, c_ptr, c_int, c_double
@@ -345,6 +348,12 @@ module librpa_f03
          real(c_double), dimension(*), intent(inout) :: contrib_ibzk_re, contrib_ibzk_im
          real(c_double) :: librpa_get_rpa_correlation_energy_c
       end function librpa_get_rpa_correlation_energy_c
+
+      subroutine librpa_build_g0w0_sigma_c(h, opts) bind(c, name="librpa_build_g0w0_sigma")
+         import :: LibrpaOptions_c, c_ptr
+         type(c_ptr), value :: h
+         type(LibrpaOptions_c), intent(in) :: opts
+      end subroutine librpa_build_g0w0_sigma_c
    end interface
 
    ! Helper to communicate runtime options between C and Fortran types
@@ -1010,6 +1019,7 @@ contains
       call set_aux_coulomb_k_2d_block(this, ik, mu_begin, mu_end, nu_begin, nu_end, vq, .true.)
    end subroutine librpa_set_aux_cut_coulomb_k_2d_block
 
+   ! Compute functions
    real(dp) function librpa_get_rpa_correlation_energy(this, opts, nkpts_ibz, contrib_ibzk) result(e)
       implicit none
       class(LibrpaHandler), intent(inout) :: this
@@ -1033,5 +1043,13 @@ contains
       end if
       deallocate(contrib_ibzk_re, contrib_ibzk_im)
    end function librpa_get_rpa_correlation_energy
+
+   subroutine librpa_build_g0w0_sigma(this, opts)
+      implicit none
+      class(LibrpaHandler), intent(inout) :: this
+      type(LibrpaOptions), intent(inout) :: opts
+
+      call librpa_build_g0w0_sigma_c(this%ptr_c_handle, opts%opts_c)
+   end subroutine librpa_build_g0w0_sigma
 
 end module librpa_f03

@@ -28,15 +28,17 @@ public:
     // Environment control
     MpiCommHandler comm_h;
     BlacsCtxtHandler blacs_ctxt_h;
+    //! Array descriptor for matrices of wave-function basis
+    ArrayDesc desc_wfc;
     //! Array descriptor for matrices of auxiliary basis set size
     ArrayDesc desc_abf;
     //! Distribution of atom-pairs on current process for atomic-basis matrix data
     std::vector<atpair_t> atpairs_local;
 
     // Physical system.
-    //! Handliing boject for basic set functions for wave function expansion.
+    //! Handling object for basic set functions for wave function expansion.
     AtomicBasis basis_wfc;
-    //! Handliing boject for auxiliary basic set functions for RI
+    //! Handling object for auxiliary basic set functions for RI
     AtomicBasis basis_aux;
     Atoms atoms;
     PeriodicBoundaryData pbc;

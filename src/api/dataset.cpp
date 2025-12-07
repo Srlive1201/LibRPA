@@ -6,6 +6,7 @@ namespace librpa_int
 Dataset::Dataset(MPI_Comm comm)
     : comm_h(comm, true),
       blacs_ctxt_h(comm),
+      desc_wfc(),
       desc_abf(),
       atpairs_local(),
       basis_wfc(),
