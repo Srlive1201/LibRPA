@@ -3,10 +3,10 @@
 #include <algorithm>
 #include <complex>
 
-#include "../math/matrix_m.h"
+// #include "../io/stl_io_helper.h"
 #include "../math/lapack_connector.h"
+#include "../math/matrix_m.h"
 #include "../utils/constants.h"
-#include "../io/stl_io_helper.h"
 
 namespace librpa_int
 {
@@ -48,6 +48,14 @@ std::map<Vector3_Order<int>, ComplexMatrix> get_dmat_cplx_Rs_kpara(
     const auto iks_local = mf.get_iks_local();
     // global::ofs_myid << "iks_local " << iks_local << std::endl;
     const int nk_local = iks_local.size();
+    // Check if there is duplicate k-point data
+    int nk_local_sum;
+    MPI_Allreduce(&nk_local, &nk_local_sum, 1, MPI_INT, MPI_SUM, comm_h.comm);
+    if (nk_local_sum > mf.get_n_kpoints())
+        throw LIBRPA_RUNTIME_ERROR("found duplicated k-point eigenvectors data");
+    else if (nk_local_sum < mf.get_n_kpoints())
+        throw LIBRPA_RUNTIME_ERROR("missing k-point eigenvectors data");
+
     Matz kmat(size, nk_local, MAJOR::COL);
     Matz transmat(nk_local, nR_max, MAJOR::COL);
     Matz rmat(size, nR_max, MAJOR::COL);
@@ -124,7 +132,15 @@ std::map<double, std::map<Vector3_Order<int>, ComplexMatrix>> get_gf_cplx_imagti
 
     const auto iks_local = mf.get_iks_local();
     // global::ofs_myid << "iks_local " << iks_local << std::endl;
+    // Check if there is duplicate k-point data
     const int nk_local = iks_local.size();
+    int nk_local_sum;
+    MPI_Allreduce(&nk_local, &nk_local_sum, 1, MPI_INT, MPI_SUM, comm_h.comm);
+    if (nk_local_sum > mf.get_n_kpoints())
+        throw LIBRPA_RUNTIME_ERROR("found duplicated k-point eigenvectors data");
+    else if (nk_local_sum < mf.get_n_kpoints())
+        throw LIBRPA_RUNTIME_ERROR("missing k-point eigenvectors data");
+
     Matz kmat(size, nk_local, MAJOR::COL);
     Matz transmat(nk_local, nR_max, MAJOR::COL);
     Matz rmat(size, nR_max, MAJOR::COL);
