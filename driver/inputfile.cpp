@@ -191,6 +191,9 @@ void parse_inputfile_to_params(const std::string& fn)
     parser.parse_bool("use_scalapack_ecrpa", btmp, false, flag);
     opts.use_scalapack_ecrpa = get_switch(btmp);
 
+    parser.parse_bool("use_kpara_scf_eigvec", btmp, false, flag);
+    opts.use_kpara_scf_eigvec = get_switch(btmp);
+
     parser.parse_bool("use_scalapack_gw_wc", btmp, true, flag);
     opts.use_scalapack_gw_wc = get_switch(btmp);
 

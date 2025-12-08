@@ -151,6 +151,8 @@ int read_vxc(const string &file_path, std::vector<matrix> &vxc)
 
 static int handle_KS_file(const string &file_path)
 {
+    using librpa_int::global::myid_global;
+    using librpa_int::global::size_global;
     int ret = 0;
     // cout<<file_path<<endl;
     ifstream infile;
@@ -169,6 +171,15 @@ static int handle_KS_file(const string &file_path)
     std::vector<double> re(nspin * nband * nao);
     std::vector<double> im(nspin * nband * nao);
 
+    std::vector<int> iks_local;
+    if (driver::opts.use_kpara_scf_eigvec)
+    {
+        for (int ik = 0; ik < driver::n_kpoints; ik++)
+        {
+            if (ik % size_global == myid_global) iks_local.emplace_back(ik);
+        }
+    }
+
     while (infile.peek() != EOF)
     {
         infile >> kstr;
@@ -177,6 +188,8 @@ static int handle_KS_file(const string &file_path)
         if (infile.peek() == EOF)
             break;
         // for aims !!!
+        const auto it = std::find(iks_local.cbegin(), iks_local.cend(), ik);
+        bool skip_ik_this = driver::opts.use_kpara_scf_eigvec && it == iks_local.cend();
         for (int iw = 0; iw != nao; iw++)
         {
             for (int ib = 0; ib != nband; ib++)
@@ -190,12 +203,16 @@ static int handle_KS_file(const string &file_path)
                         ret = 1;
                         break;
                     }
-                    // cout<<rvalue<<ivalue<<endl;
-                    re[is * n + ib * nao + iw] = stod(rvalue);
-                    im[is * n + ib * nao + iw] = stod(ivalue);
+                    if (!skip_ik_this)
+                    {
+                        // cout<<rvalue<<ivalue<<endl;
+                        re[is * n + ib * nao + iw] = stod(rvalue);
+                        im[is * n + ib * nao + iw] = stod(ivalue);
+                    }
                 }
             }
         }
+        if (skip_ik_this) continue;
         for (int is = 0; is != nspin; is++)
         {
             driver::h.set_wfc(is, ik, driver::n_states, driver::n_basis_wfc, re.data() + is * n, im.data() + is * n);
