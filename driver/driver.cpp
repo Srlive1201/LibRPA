@@ -50,6 +50,8 @@ int n_ibz_kpoints = 0;
 int n_states = 0;
 int n_basis_wfc = 0;
 
+std::vector<int> iks_eigvec_local;
+
 // Used to read Coulomb matrix data.
 // Should be consistent with the internal `atpairs_local` of the Dataset object
 std::vector<std::pair<size_t, size_t>> local_atpair;
@@ -60,6 +62,9 @@ librpa::Handler h;
 
 librpa::Options opts;
 
+#define normal_pair(name) {#name, opts.name}
+#define bool_pair(name) {#name, get_bool(opts.name)}
+
 std::string format_runtime_options(const librpa::Options &opts) noexcept
 {
     std::stringstream ss;
@@ -67,28 +72,29 @@ std::string format_runtime_options(const librpa::Options &opts) noexcept
         {
             {"gf_R_threshold", opts.gf_threshold},
             {"cs_R_threshold", opts.cs_threshold},
-            {"vq_threshold", opts.vq_threshold},
-            {"sqrt_coulomb_threshold", opts.sqrt_coulomb_threshold},
-            {"libri_chi0_threshold_C", opts.libri_chi0_threshold_C},
-            {"libri_chi0_threshold_G", opts.libri_chi0_threshold_G},
-            {"libri_exx_threshold_C", opts.libri_exx_threshold_C},
-            {"libri_exx_threshold_D", opts.libri_exx_threshold_D},
-            {"libri_exx_threshold_V", opts.libri_exx_threshold_V},
-            {"libri_g0w0_threshold_C", opts.libri_g0w0_threshold_C},
-            {"libri_g0w0_threshold_G", opts.libri_g0w0_threshold_G},
-            {"libri_g0w0_threshold_Wc", opts.libri_g0w0_threshold_Wc},
+            normal_pair(vq_threshold),
+            normal_pair(sqrt_coulomb_threshold),
+            normal_pair(libri_chi0_threshold_C),
+            normal_pair(libri_chi0_threshold_G),
+            normal_pair(libri_exx_threshold_C),
+            normal_pair(libri_exx_threshold_D),
+            normal_pair(libri_exx_threshold_V),
+            normal_pair(libri_g0w0_threshold_C),
+            normal_pair(libri_g0w0_threshold_G),
+            normal_pair(libri_g0w0_threshold_Wc),
         };
 
     const std::vector<std::pair<std::string, int>> int_params
         {
-            {"nfreq", opts.nfreq},
-            {"n_params_anacon", opts.n_params_anacon},
-            {"option_dielect_func", opts.option_dielect_func},
+            normal_pair(nfreq),
+            normal_pair(n_params_anacon),
+            normal_pair(option_dielect_func),
         };
 
     const std::vector<std::pair<std::string, std::string>> str_params
         {
             {"output_dir", opts.output_dir},
+            {"output_level", get_verbose_string(opts.output_level)},
             {"tfgrids_type", get_tfgrid_string(opts.tfgrids_type)},
             {"parallel_routing", get_routing_string(opts.parallel_routing)},
         };
@@ -96,12 +102,13 @@ std::string format_runtime_options(const librpa::Options &opts) noexcept
     const std::vector<std::pair<std::string, bool>> bool_params
         {
             {"debug", opts.output_level >= LIBRPA_VERBOSE_DEBUG},
-            {"replace_w_head", get_bool(opts.replace_w_head)},
-            {"use_scalapack_ecrpa", get_bool(opts.use_scalapack_ecrpa)},
-            {"use_scalapack_gw_wc", get_bool(opts.use_scalapack_gw_wc)},
-            {"output_gw_sigc_mat",  get_bool(opts.output_gw_sigc_mat)},
-            {"output_gw_sigc_mat_rf",  get_bool(opts.output_gw_sigc_mat_rf)},
-            {"output_gw_sigc_mat_rt",  get_bool(opts.output_gw_sigc_mat_rt)},
+            bool_pair(replace_w_head),
+            bool_pair(use_scalapack_ecrpa),
+            bool_pair(use_scalapack_gw_wc),
+            bool_pair(use_kpara_scf_eigvec),
+            bool_pair(output_gw_sigc_mat),
+            bool_pair(output_gw_sigc_mat_rf),
+            bool_pair(output_gw_sigc_mat_rt),
         };
 
     for (const auto &param: str_params)
@@ -118,6 +125,9 @@ std::string format_runtime_options(const librpa::Options &opts) noexcept
 
     return ss.str();
 }
+
+#undef normal_pair
+#undef bool_pair
 
 LibrpaTimeFreqGrid get_tfgrid_type(const std::string& grid_str)
 {
@@ -173,13 +183,24 @@ std::string get_routing_string(LibrpaParallelRouting routing)
     return "unset";
 }
 
-std::string get_verbose_string(LibrpaVerbose output_level)
+std::string get_verbose_string(LibrpaVerbose verbose)
 {
-    if (output_level == LIBRPA_VERBOSE_DEBUG) return "DEBUG";
-    if (output_level == LIBRPA_VERBOSE_WARN) return "WARN";
-    if (output_level == LIBRPA_VERBOSE_INFO) return "INFO";
-    if (output_level == LIBRPA_VERBOSE_CRITICAL) return "CRITICAL";
+    if (verbose == LIBRPA_VERBOSE_DEBUG) return "debug";
+    if (verbose == LIBRPA_VERBOSE_WARN) return "warn";
+    if (verbose == LIBRPA_VERBOSE_INFO) return "info";
+    if (verbose == LIBRPA_VERBOSE_CRITICAL) return "critical";
     return "silent";
+}
+
+LibrpaVerbose get_verbose(const std::string& verbose_str_low)
+{
+    if (verbose_str_low == "debug") return LIBRPA_VERBOSE_DEBUG;
+    if (verbose_str_low == "warn") return LIBRPA_VERBOSE_WARN;
+    if (verbose_str_low == "warning") return LIBRPA_VERBOSE_WARN;
+    if (verbose_str_low == "info") return LIBRPA_VERBOSE_INFO;
+    if (verbose_str_low == "critical") return LIBRPA_VERBOSE_CRITICAL;
+    if (verbose_str_low == "silent") return LIBRPA_VERBOSE_SILENT;
+    throw std::runtime_error("Unknown verbose level string: " + verbose_str_low);
 }
 
 }

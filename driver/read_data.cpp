@@ -36,6 +36,9 @@ void read_scf_occ_eigenvalues(const string &file_path)
     using driver::n_kpoints;
     using driver::n_states;
     using driver::n_basis_wfc;
+    using driver::iks_eigvec_local;
+    using librpa_int::global::myid_global;
+    using librpa_int::global::size_global;
 
     // cout << "Begin to read aims-band_out" << endl;
     ifstream infile;
@@ -53,7 +56,12 @@ void read_scf_occ_eigenvalues(const string &file_path)
     infile >> n_basis_wfc;
     infile >> efermi;
 
-    // TODO: replace it with set_dimension
+    iks_eigvec_local.clear();
+    for (int ik = 0; ik < driver::n_kpoints; ik++)
+    {
+        if (ik % size_global == myid_global) iks_eigvec_local.emplace_back(ik);
+    }
+
     driver::h.set_scf_dimension(n_spins, n_kpoints, n_states, n_basis_wfc,
                                 0, n_states, 0, n_basis_wfc);
     driver::n_ibz_kpoints = n_kpoints;
@@ -90,7 +98,7 @@ void read_scf_occ_eigenvalues(const string &file_path)
                     throw std::logic_error("Error in reading band energy and occupation: line " + to_string(iline) +
                                            ", file: " + file_path);
                 }
-            iline++;
+                iline++;
                 wskb[is * n_kb + k_index * n_states + i] = stod(ws); // different with abacus!
                 eskb[is * n_kb + k_index * n_states + i] = stod(es);
                 //cout<<" i_band: "<<i<<"    eskb: "<<eskb[is](k_index, i)<<endl;
@@ -113,7 +121,7 @@ int read_vxc(const string &file_path, std::vector<matrix> &vxc)
     infile.open(file_path);
     double ha, ev;
     int n_spins, n_kpoints, n_states;
-    int retcode;
+    // int retcode;
 
     // dimension information
     infile >> n_kpoints;
@@ -151,8 +159,8 @@ int read_vxc(const string &file_path, std::vector<matrix> &vxc)
 
 static int handle_KS_file(const string &file_path)
 {
-    using librpa_int::global::myid_global;
-    using librpa_int::global::size_global;
+    using driver::iks_eigvec_local;
+
     int ret = 0;
     // cout<<file_path<<endl;
     ifstream infile;
@@ -171,15 +179,6 @@ static int handle_KS_file(const string &file_path)
     std::vector<double> re(nspin * nband * nao);
     std::vector<double> im(nspin * nband * nao);
 
-    std::vector<int> iks_local;
-    if (driver::opts.use_kpara_scf_eigvec)
-    {
-        for (int ik = 0; ik < driver::n_kpoints; ik++)
-        {
-            if (ik % size_global == myid_global) iks_local.emplace_back(ik);
-        }
-    }
-
     while (infile.peek() != EOF)
     {
         infile >> kstr;
@@ -188,8 +187,13 @@ static int handle_KS_file(const string &file_path)
         if (infile.peek() == EOF)
             break;
         // for aims !!!
-        const auto it = std::find(iks_local.cbegin(), iks_local.cend(), ik);
-        bool skip_ik_this = driver::opts.use_kpara_scf_eigvec && it == iks_local.cend();
+        bool skip_this_ik = false;
+        if (driver::opts.use_kpara_scf_eigvec)
+        {
+            const auto it = std::find(iks_eigvec_local.cbegin(), iks_eigvec_local.cend(), ik);
+            // this k does not belong to this process
+            skip_this_ik = (it == iks_eigvec_local.cend());
+        }
         for (int iw = 0; iw != nao; iw++)
         {
             for (int ib = 0; ib != nband; ib++)
@@ -203,7 +207,7 @@ static int handle_KS_file(const string &file_path)
                         ret = 1;
                         break;
                     }
-                    if (!skip_ik_this)
+                    if (!skip_this_ik)
                     {
                         // cout<<rvalue<<ivalue<<endl;
                         re[is * n + ib * nao + iw] = stod(rvalue);
@@ -212,7 +216,7 @@ static int handle_KS_file(const string &file_path)
                 }
             }
         }
-        if (skip_ik_this) continue;
+        if (skip_this_ik) continue;
         for (int is = 0; is != nspin; is++)
         {
             driver::h.set_wfc(is, ik, driver::n_states, driver::n_basis_wfc, re.data() + is * n, im.data() + is * n);
@@ -419,8 +423,8 @@ static size_t handle_Cs_file(const string &file_path, double threshold, const st
     ifstream infile;
     infile.open(file_path);
     infile >> natom_s >> ncell_s;
-    int natom = stoi(natom_s);
-    int ncell = stoi(ncell_s);
+    // int natom = stoi(natom_s);
+    // int ncell = stoi(ncell_s);
 
     /* cout<<"  Natom  Ncell  "<<natom<<"  "<<ncell<<endl; */
     // for(int loop=0;loop!=natom*natom*ncell;loop++)
@@ -608,8 +612,8 @@ std::vector<size_t> handle_Cs_file_dry(const string &file_path, double threshold
     ifstream infile;
     infile.open(file_path);
     infile >> natom_s >> ncell_s;
-    int natom = stoi(natom_s);
-    int ncell = stoi(ncell_s);
+    // int natom = stoi(natom_s);
+    // int ncell = stoi(ncell_s);
 
     size_t id = 0;
     int R[3];
@@ -623,13 +627,11 @@ std::vector<size_t> handle_Cs_file_dry(const string &file_path, double threshold
         int n_i = stoi(i_s);
         int n_j = stoi(j_s);
         int n_mu = stoi(mu_s);
-        int ia1 = stoi(ia1_s);
-        int ia2 = stoi(ia2_s);
+        // int ia1 = stoi(ia1_s);
+        // int ia2 = stoi(ia2_s);
         R[0] = stoi(ic_1);
         R[1] = stoi(ic_2);
         R[2] = stoi(ic_3);
-        // assign basis
-        // set_ao_basis_aux(ia1, ia2, n_i, n_j, n_mu, R, nullptr, 1); // FIXME: here the basis is set. Should do it earlier
 
         double maxval = -1.0;
         for (int i = 0; i != n_i; i++)
@@ -655,7 +657,7 @@ std::vector<size_t> handle_Cs_file_binary_dry(const string &file_path, double th
     ifstream infile;
     int dims[8];
     int n_apcell_file;
-    int n_processed = 0;
+    // int n_processed = 0;
     int R[3];
     int natom, ncell;
 
@@ -668,8 +670,8 @@ std::vector<size_t> handle_Cs_file_binary_dry(const string &file_path, double th
     {
         infile.read((char *) &dims[0], 8 * sizeof(int));
         // cout<<ic_1<<mu_s<<endl;
-        const int ia1 = dims[0] - 1;
-        const int ia2 = dims[1] - 1;
+        // const int ia1 = dims[0] - 1;
+        // const int ia2 = dims[1] - 1;
         R[0] = dims[2];
         R[1] = dims[3];
         R[2] = dims[4];
@@ -681,7 +683,7 @@ std::vector<size_t> handle_Cs_file_binary_dry(const string &file_path, double th
         matrix mat(n_i * n_j, n_mu);
         infile.read((char *) mat.c, n_i * n_j * n_mu * sizeof(double));
         double maxval = mat.absmax();
-        n_processed++;
+        // n_processed++;
         if (maxval >= threshold)
         {
             Cs_ids_keep.push_back(i_file);
@@ -845,7 +847,7 @@ size_t read_Cs_evenly_distribute(const string &dir_path, double threshold, int m
         }
     }
 
-    const auto nfiles = files.size();
+    const int nfiles = files.size();
     // cout << nfiles << "\n";
 
     // TODO: the IO can be improved, in two possible ways
@@ -1355,8 +1357,8 @@ static int handle_Vq_row_file(const string &file_path, double threshold,
             // cout << "vq range: " << begin_row << " ~ " << end_row << "  ,   " << begin_col << " ~ " << end_col << endl;
             infile >> q_num >> q_weight;
             if (!infile.good()) return 3;
-            int mu = stoi(nbasbas);
-            int nu = stoi(nbasbas);
+            // int mu = stoi(nbasbas);
+            // int nu = stoi(nbasbas);
             int brow = stoi(begin_row) - 1;
             int erow = stoi(end_row) - 1;
             int bcol = stoi(begin_col) - 1;
@@ -1682,8 +1684,8 @@ void read_basis(const std::string &file_path)
     ifstream infile;
     infile.open(file_path);
 
-    auto n_atoms = driver::atom_types.size();
-    if (n_atoms != driver::n_atoms)
+    int n_atoms = driver::atom_types.size();
+    if (as_size(n_atoms) != driver::n_atoms)
         throw std::runtime_error("Number of atoms not consistent with the geometry file!");
     std::map<int, size_t> map_at_wfc;
     std::map<int, size_t> map_at_aux;

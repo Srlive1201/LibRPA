@@ -142,6 +142,11 @@ static std::string check_dirpath(const std::string &dirpath)
     return std::string(dirpath);
 }
 
+#define _parse_int(obj, name, de) parser.parse_int(#name, obj.name, de, flag)
+#define _parse_double(obj, name, de) parser.parse_double(#name, obj.name, de, flag)
+#define _parse_switch(obj, name, de) parser.parse_bool(#name, btmp, de, flag); obj.name = get_switch(btmp);
+#define _parse_string(obj, name, de, post) parser.parse_string(#name, stmp, de, flag); obj.name = post(stmp);
+
 void parse_inputfile_to_params(const std::string& fn)
 {
     using namespace driver;
@@ -157,71 +162,67 @@ void parse_inputfile_to_params(const std::string& fn)
 
     // driver parameters
     parser.parse_string("task", driver_params.task, "rpa", flag);
-    parser.parse_string("input_dir", stmp, "./", flag);
-    driver_params.input_dir = check_dirpath(stmp);
+    _parse_string(driver_params, input_dir, "./", check_dirpath);
     parser.parse_bool("output_gw_spec_func", driver_params.output_gw_spec_func, false, flag);
 
     // TODO: implement a function to read multiple double values in one line
     if (driver_params.output_gw_spec_func)
     {
-        parser.parse_double("sf_omega_start", driver_params.sf_omega_start, -10.0, flag);
-        parser.parse_double("sf_omega_end", driver_params.sf_omega_end, 0.0, flag);
-        parser.parse_double("sf_omega_step", driver_params.sf_omega_step, 0.005, flag);
-        parser.parse_int("sf_state_start", driver_params.sf_state_start, 0, flag);
-        parser.parse_int("sf_state_end", driver_params.sf_state_end, 10000, flag);
-        parser.parse_double("sf_gf_omega_shift", driver_params.sf_gf_omega_shift, 0.01, flag);
-        parser.parse_double("sf_sigc_omega_shift", driver_params.sf_sigc_omega_shift, 0.01, flag);
+        _parse_double(driver_params, sf_omega_start, -10.0);
+        _parse_double(driver_params, sf_omega_end, 0.0);
+        _parse_double(driver_params, sf_omega_step, 0.005);
+        _parse_int(driver_params, sf_state_start, 0);
+        _parse_int(driver_params, sf_state_end, 10000);
+        _parse_double(driver_params, sf_gf_omega_shift, 0.01);
+        _parse_double(driver_params, sf_sigc_omega_shift, 0.01);
     }
 
     // general parameters
     parser.parse_string("output_dir", stmp, "librpa.d/", flag);
     opts.set_output_dir(stmp.c_str());
+    _parse_string(opts, parallel_routing, "auto", get_parallel_routing);
 
     parser.parse_bool("debug", btmp, false, flag);  // backward-compatible
     if (btmp) opts.output_level = LIBRPA_VERBOSE_DEBUG;
+    parser.parse_string("output_level", stmp, "info", flag);
+    if (flag == 0) opts.output_level = get_verbose(stmp);
+    _parse_double(opts, cs_threshold, 1e-6);
+    _parse_double(opts, vq_threshold, 0);
+    _parse_switch(opts, use_kpara_scf_eigvec, false);
 
-    // chi0 related
-    parser.parse_string("tfgrid_type", stmp, "minimax", flag);
-    opts.tfgrids_type = get_tfgrid_type(stmp);
-    parser.parse_string("parallel_routing", stmp, "auto", flag);
-    std::transform(stmp.begin(), stmp.end(), stmp.begin(), ::tolower);
-    opts.parallel_routing = get_parallel_routing(stmp);
-    parser.parse_int("nfreq", opts.nfreq, 6, flag);
+    _parse_string(opts, tfgrids_type, "minimax", get_tfgrid_type);
+    if (flag != 0) // backward compatible
+    {
+        parser.parse_string("tfgrid_type", stmp, "minimax", flag);
+        opts.tfgrids_type = get_tfgrid_type(stmp);
+    }
+    _parse_int(opts, nfreq, 6);
 
-    parser.parse_bool("use_scalapack_ecrpa", btmp, false, flag);
-    opts.use_scalapack_ecrpa = get_switch(btmp);
-
-    parser.parse_bool("use_kpara_scf_eigvec", btmp, false, flag);
-    opts.use_kpara_scf_eigvec = get_switch(btmp);
-
-    parser.parse_bool("use_scalapack_gw_wc", btmp, true, flag);
-    opts.use_scalapack_gw_wc = get_switch(btmp);
-
-    parser.parse_double("cs_threshold", opts.cs_threshold, 1e-6, flag);
-    parser.parse_double("vq_threshold", opts.vq_threshold, 0, flag);
-    parser.parse_double("sqrt_coulomb_threshold", opts.sqrt_coulomb_threshold, 1e-4, flag);
+    // RPA specific
     parser.parse_double("gf_R_threshold", opts.gf_threshold, 1e-4, flag);
-    parser.parse_double("libri_chi0_threshold_C", opts.libri_chi0_threshold_C, 0.0, flag);
-    parser.parse_double("libri_chi0_threshold_G", opts.libri_chi0_threshold_G, 0.0, flag);
+    _parse_double(opts, libri_chi0_threshold_C, 0.0);
+    _parse_double(opts, libri_chi0_threshold_G, 0.0);
+    _parse_switch(opts, use_scalapack_ecrpa, false);
 
-    // exx related
-    parser.parse_double("libri_exx_threshold_C", opts.libri_exx_threshold_C, 0.0, flag);
-    parser.parse_double("libri_exx_threshold_D", opts.libri_exx_threshold_D, 0.0, flag);
-    parser.parse_double("libri_exx_threshold_V", opts.libri_exx_threshold_V, 0.0, flag);
+    // EXX specific
+    _parse_double(opts, libri_exx_threshold_C, 0.0);
+    _parse_double(opts, libri_exx_threshold_D, 0.0);
+    _parse_double(opts, libri_exx_threshold_V, 0.0);
 
-    // gw related
-    parser.parse_double("libri_g0w0_threshold_C",  opts.libri_g0w0_threshold_C, 0.0, flag);
-    parser.parse_double("libri_g0w0_threshold_G",  opts.libri_g0w0_threshold_G, 0.0, flag);
-    parser.parse_double("libri_g0w0_threshold_Wc", opts.libri_g0w0_threshold_Wc, 0.0, flag);
-
-    parser.parse_bool("replace_w_head", btmp, true, flag);
-    opts.replace_w_head = get_switch(btmp);
-    parser.parse_int("option_dielect_func", opts.option_dielect_func, 2, flag);
-
-    parser.parse_bool("output_gw_sigc_mat",    btmp, false, flag);
-    opts.output_gw_sigc_mat = get_switch(btmp);
-    parser.parse_bool("output_gw_sigc_mat_rt", btmp, false, flag);
-    opts.output_gw_sigc_mat_rt = get_switch(btmp);
-    parser.parse_bool("output_gw_sigc_mat_rf", btmp, false, flag);
-    opts.output_gw_sigc_mat_rf = get_switch(btmp);
+    // GW specific
+    _parse_double(opts, sqrt_coulomb_threshold, 1e-4);
+    _parse_switch(opts, use_scalapack_gw_wc, true);
+    _parse_double(opts, libri_g0w0_threshold_C, 0.0);
+    _parse_double(opts, libri_g0w0_threshold_G, 0.0);
+    _parse_double(opts, libri_g0w0_threshold_Wc, 0.0);
+    _parse_switch(opts, replace_w_head, true);
+    _parse_int(opts, option_dielect_func, 2);
+    _parse_switch(opts, output_gw_sigc_mat, false);
+    _parse_switch(opts, output_gw_sigc_mat_rt, false);
+    _parse_switch(opts, output_gw_sigc_mat_rf, false);
 }
+
+#undef _parse_int
+#undef _parse_double
+#undef _parse_switch
+#undef _parse_string

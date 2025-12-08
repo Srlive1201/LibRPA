@@ -47,6 +47,9 @@ extern int n_ibz_kpoints;
 extern int n_states;
 extern int n_basis_wfc;
 
+// Used for parallel distribution of input SCF KS eigenvectors over k-points
+extern std::vector<int> iks_eigvec_local;
+
 extern std::vector<std::pair<size_t, size_t>> local_atpair;
 extern std::vector<librpa_int::Vector3_Order<double>> ibz_kpoints;
 
@@ -76,5 +79,9 @@ inline bool get_bool(LibrpaSwitch switch_in) noexcept
 LibrpaParallelRouting get_parallel_routing(const std::string& routing_str_low);
 
 std::string get_routing_string(LibrpaParallelRouting routing);
+
+LibrpaVerbose get_verbose(const std::string& verbose_str_low);
+
+std::string get_verbose_string(LibrpaVerbose verbose);
 
 }
