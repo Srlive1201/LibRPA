@@ -65,6 +65,7 @@ module librpa_f03
       real(c_double) :: cs_threshold
       real(c_double) :: vq_threshold
       integer(c_int) :: use_soc
+      integer(c_int) :: use_kpara_scf_eigvec
       integer(c_int) :: tfgrids_type
       integer(c_int) :: nfreq
       real(c_double) :: tfgrids_freq_min
@@ -108,6 +109,7 @@ module librpa_f03
       real(dp) :: cs_threshold
       real(dp) :: vq_threshold
       logical :: use_soc
+      logical :: use_kpara_scf_eigvec
       integer :: tfgrids_type
       integer :: nfreq
       real(dp) :: tfgrids_freq_min
@@ -514,6 +516,7 @@ contains
       call sync_opt(opts%cs_threshold,            opts%opts_c%cs_threshold,            direction)
       call sync_opt(opts%vq_threshold,            opts%opts_c%vq_threshold,            direction)
       call sync_opt(opts%use_soc,                 opts%opts_c%use_soc,                 direction)
+      call sync_opt(opts%use_kpara_scf_eigvec,    opts%opts_c%use_kpara_scf_eigvec,    direction)
       call sync_opt(opts%tfgrids_type,            opts%opts_c%tfgrids_type,            direction)
       call sync_opt(opts%nfreq,                   opts%opts_c%nfreq,                   direction)
       call sync_opt(opts%tfgrids_freq_min,        opts%opts_c%tfgrids_freq_min,        direction)

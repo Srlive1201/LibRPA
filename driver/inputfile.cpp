@@ -177,7 +177,7 @@ void parse_inputfile_to_params(const std::string& fn)
     parser.parse_string("output_dir", stmp, "librpa.d/", flag);
     opts.set_output_dir(stmp.c_str());
 
-    parser.parse_bool("debug", btmp, false, flag);
+    parser.parse_bool("debug", btmp, false, flag);  // backward-compatible
     if (btmp) opts.output_level = LIBRPA_VERBOSE_DEBUG;
 
     // chi0 related

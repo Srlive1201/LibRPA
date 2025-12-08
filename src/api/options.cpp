@@ -17,6 +17,7 @@ void librpa_init_options(LibrpaOptions *opts)
     opts->cs_threshold = 0.0e0;
     opts->vq_threshold = 0.0e0;
     opts->use_soc = LIBRPA_SWITCH_OFF;
+    opts->use_kpara_scf_eigvec = LIBRPA_SWITCH_OFF;
 
     opts->tfgrids_type = LibrpaTimeFreqGrid::TFGRID_UNSET;
     opts->nfreq = 6;

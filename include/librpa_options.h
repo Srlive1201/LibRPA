@@ -34,6 +34,9 @@ typedef struct
     //! Flag of parsing input and performing calculation in spin-orbit coupling formalism
     LibrpaSwitch use_soc;
 
+    //! Flag to specify parallel distribution of eigenvectors of SCF starting point
+    LibrpaSwitch use_kpara_scf_eigvec;
+
     //! Type of time/frequency grids.
     LibrpaTimeFreqGrid tfgrids_type;
 
