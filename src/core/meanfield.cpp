@@ -228,12 +228,12 @@ ComplexMatrix MeanField::get_gf_cplx_imagtime(int ispin, int ikpt, double tau) c
         scale[ib] = -tau * (scale[ib] - efermi);
         if (scale[ib] > 0) scale[ib] = 0.0;
         scale[ib] = std::exp(scale[ib]) * prefac_occ[ib];
+        if (tau <= 0) scale[ib] *= -1.0;
     }
     auto scaled_wfc_conj = conj(wfc.at(ispin).at(ikpt));
     for (int ib = 0; ib < n_states; ib++)
         LapackConnector::scal(n_aos, scale[ib], scaled_wfc_conj.c + n_aos * ib, 1);
-    const auto gf_k = transpose(wfc.at(ispin).at(ikpt), false) * scaled_wfc_conj;
-    return gf_k;
+    return transpose(wfc.at(ispin).at(ikpt), false) * scaled_wfc_conj;
 }
 
 std::map<double, std::map<Vector3_Order<int>, ComplexMatrix>> MeanField::get_gf_cplx_imagtimes_Rs(

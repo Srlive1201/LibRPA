@@ -100,7 +100,7 @@ static void test_gf_cplx_Rs_kpara(int nk, int nb, int nocc, double gap, double t
     const auto gf_Rs = get_gf_cplx_imagtimes_Rs_kpara(0, mf, kfrac_list, {tau}, Rs, mpi_comm_global_h);
     assert(gf_Rs.size() == 1);
     assert(gf_Rs.at(tau).size() == Rs.size());
-    const double coeff = std::exp(- 0.5 * std::abs(gap * tau));
+    const double coeff = std::exp(- 0.5 * std::abs(gap * tau)) * (tau > 0? 1.0: -1.0);
     for (const auto &[tau, trmat]: gf_Rs)
     {
         for (const auto &[R, rmat]: trmat)
