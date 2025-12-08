@@ -36,7 +36,7 @@ namespace librpa_int
 
 G0W0::G0W0(const MeanField &mf_in, const AtomicBasis &atbasis_wfc_in,
            const PeriodicBoundaryData &pbc_in, const TFGrids &tfg_in,
-           const MpiCommHandler &comm_h_in, const BlacsCtxtHandler &blacs_h_sigc)
+           const MpiCommHandler &comm_h_in, bool is_mf_eigvec_k_distributed, const BlacsCtxtHandler &blacs_h_sigc)
     : blacs_h_sigc_(blacs_h_sigc), mf(mf_in),
       atbasis_wfc(atbasis_wfc_in),
       pbc(pbc_in),
@@ -44,12 +44,14 @@ G0W0::G0W0(const MeanField &mf_in, const AtomicBasis &atbasis_wfc_in,
 {
     comm_h.check_initialized();
 
+    is_mf_eigvec_k_distributed_ = is_mf_eigvec_k_distributed;
     is_rspace_built_ = false;
     is_kspace_built_ = false;
+
+    // Public runtime options
     libri_threshold_C = 0.0;
     libri_threshold_Wc = 0.0;
     libri_threshold_G = 0.0;
-
     output_dir = "./";  // POSIX
     output_sigc_mat = false;
     output_sigc_mat_rt = false;

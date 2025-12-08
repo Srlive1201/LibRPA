@@ -23,8 +23,24 @@ LIBRPA_C_H_FUNC_WRAP_WOPT(double, librpa_get_rpa_correlation_energy,
 
     profiler.start("api_get_rpa_correlation_energy");
     auto pds = librpa_int::api::get_dataset_instance(h);
-
     const auto &opts = *p_opts;
+
+    const auto ks_local = pds->mf.get_iks_local();
+    const bool seems_k_para = as_int(ks_local.size()) < pds->mf.get_n_kpoints();
+    if (seems_k_para)
+    {
+        global::ofs_myid << "KS eigenvectors of SCF start point seem distributed over k-points" << std::endl;
+        if (opts.use_kpara_scf_eigvec == LIBRPA_SWITCH_ON)
+        {
+            global::ofs_myid << "Option use_kpara_scf_eigvec is on: input consistent" << std::endl;
+        }
+        else
+        {
+            global::ofs_myid << "Option use_kpara_scf_eigvec is off while the eigenvectors are distributed" << std::endl;
+            throw LIBRPA_RUNTIME_ERROR("inconsistent input");
+        }
+    }
+
     const bool debug = opts.output_level >= LIBRPA_VERBOSE_DEBUG;
 
     // Prepare time-frequency grids

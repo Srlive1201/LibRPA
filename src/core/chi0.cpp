@@ -21,6 +21,7 @@
 #include "../utils/profiler.h"
 #include "../utils/utils_mem.h"
 #include "atomic_basis.h"
+#include "meanfield_mpi.h"
 #include "pbc.h"
 #include "ri.h"
 #ifdef LIBRPA_USE_LIBRI
@@ -36,7 +37,7 @@ using librpa_int::global::lib_printf;
 
 Chi0::Chi0(const MeanField &mf_in, const AtomicBasis &atbasis_wfc_in,
            const AtomicBasis &atbasis_abf_in, const PeriodicBoundaryData &pbc_in,
-           const TFGrids &tfg_in, const MpiCommHandler &comm_h_in)
+           const TFGrids &tfg_in, const MpiCommHandler &comm_h_in, bool is_mf_eigvec_k_distributed)
     : mf(mf_in),
       atbasis_wfc(atbasis_wfc_in),
       atbasis_abf(atbasis_abf_in),
@@ -45,6 +46,8 @@ Chi0::Chi0(const MeanField &mf_in, const AtomicBasis &atbasis_wfc_in,
       comm_h(comm_h_in)
 {
     comm_h_in.check_initialized();
+    is_mf_eigvec_k_distributed_ = is_mf_eigvec_k_distributed;
+    // Runtime options
     gf_threshold = 1e-9;
     libri_threshold_C = 0.0;
     libri_threshold_G = 0.0;
@@ -137,41 +140,49 @@ void Chi0::build_gf_Rt(Vector3_Order<int> R, double tau)
     for (int is = 0; is != nspins; is++)
     {
         gf_Rt_is_global.zero_out();
-        auto wg = mf.get_weight()[is];
-        if ( tau > 0)
-            for (size_t i = 0; i != wg.size; i++)
-            {
-                //wg.c[i] = 1.0 / nkpts *nspins - wg.c[i];
-                wg.c[i] = 1.0 / nkpts  - wg.c[i]/2*nspins;//
-                if (wg.c[i] < 0) wg.c[i] = 0;
-            }
+        if (is_mf_eigvec_k_distributed_)
+        {
+            const auto gf_tau_R = get_gf_cplx_imagtimes_Rs_kpara(is, this->mf, pbc.kfrac_list, {tau}, {R}, comm_h);
+            gf_Rt_is_global += gf_tau_R.at(tau).at(R).real();
+        }
         else
         {
-            wg *=0.5 *nspins;
+            auto wg = mf.get_weight()[is];
+            if ( tau > 0)
+                for (size_t i = 0; i != wg.size; i++)
+                {
+                    //wg.c[i] = 1.0 / nkpts *nspins - wg.c[i];
+                    wg.c[i] = 1.0 / nkpts  - wg.c[i]/2*nspins;//
+                    if (wg.c[i] < 0) wg.c[i] = 0;
+                }
+            else
+            {
+                wg *=0.5 *nspins;
+            }
+            matrix scale(nkpts, nbands);
+            // tau-energy phase
+            scale = - tau * (mf.get_eigenvals()[is] - mf.get_efermi());
+            /* print_matrix("-(e-ef)*tau", scale); */
+            for (size_t ie = 0; ie != scale.size; ie++)
+            {
+                // NOTE: enforce non-positive phase
+                if ( scale.c[ie] > 0) scale.c[ie] = 0;
+                scale.c[ie] = std::exp(scale.c[ie]) * wg.c[ie];
+            }
+            /* print_matrix("exp(-dE*tau)", scale); */
+            for (int ik = 0; ik != nkpts; ik++)
+            {
+                double ang = - pbc.klist[ik] * (R * pbc.latvec) * TWO_PI;
+                complex<double> kphase = complex<double>(cos(ang), sin(ang));
+                /* librpa_int::global::lib_printf("kphase %f %fj\n", kphase.real(), kphase.imag()); */
+                const auto &ev = mf.get_eigenvectors().at(is).at(ik);
+                auto scaled_wfc_conj = conj(ev);
+                for ( int ib = 0; ib != nbands; ib++)
+                    LapackConnector::scal(naos, scale(ik, ib), scaled_wfc_conj.c + naos * ib, 1);
+                gf_Rt_is_global += (kphase * transpose(ev, false) * scaled_wfc_conj).real();
+            }
+            if ( tau < 0 ) gf_Rt_is_global *= -1.;
         }
-        matrix scale(nkpts, nbands);
-        // tau-energy phase
-        scale = - tau * (mf.get_eigenvals()[is] - mf.get_efermi());
-        /* print_matrix("-(e-ef)*tau", scale); */
-        for (size_t ie = 0; ie != scale.size; ie++)
-        {
-            // NOTE: enforce non-positive phase
-            if ( scale.c[ie] > 0) scale.c[ie] = 0;
-            scale.c[ie] = std::exp(scale.c[ie]) * wg.c[ie];
-        }
-        /* print_matrix("exp(-dE*tau)", scale); */
-        for (int ik = 0; ik != nkpts; ik++)
-        {
-            double ang = - pbc.klist[ik] * (R * pbc.latvec) * TWO_PI;
-            complex<double> kphase = complex<double>(cos(ang), sin(ang));
-            /* librpa_int::global::lib_printf("kphase %f %fj\n", kphase.real(), kphase.imag()); */
-            const auto &ev = mf.get_eigenvectors().at(is).at(ik);
-            auto scaled_wfc_conj = conj(ev);
-            for ( int ib = 0; ib != nbands; ib++)
-                LapackConnector::scal(naos, scale(ik, ib), scaled_wfc_conj.c + naos * ib, 1);
-            gf_Rt_is_global += (kphase * transpose(ev, false) * scaled_wfc_conj).real();
-        }
-        if ( tau < 0 ) gf_Rt_is_global *= -1.;
         omp_lock_t gf_lock;
         omp_init_lock(&gf_lock);
 #pragma omp parallel for schedule(dynamic)
@@ -250,24 +261,23 @@ void Chi0::build_chi0_q_space_time(const LibrpaParallelRouting routing,
 }
 
 #ifdef LIBRPA_USE_LIBRI
-static void build_gf_Rt_libri(
+static void build_gf_Rt_libri_serial(
     const MeanField &mf,
     const AtomicBasis &atbasis_wfc,
     int ispin,
-    const vector<Vector3_Order<double>> &klist,
-    const Matrix3 &latvec,
+    const vector<Vector3_Order<double>> &kfrac_list,
     const std::vector<std::pair<atpair_t, Vector3_Order<int>>> IJRs, 
-    const double &tau,
+    double tau,
     std::map<int, std::map<std::pair<int, std::array<int, 3>>, RI::Tensor<double>>> &gf_libri)
 {
-    global::profiler.start("build_gf_Rt_libri");
+    global::profiler.start("build_gf_Rt_libri_serial");
 
     const auto nkpts = mf.get_n_kpoints();
     const auto nspins = mf.get_n_spins();
     const auto nbands = mf.get_n_bands();
     const auto naos = mf.get_n_aos();
 
-    assert(klist.size() == as_size(nkpts));
+    assert(kfrac_list.size() == as_size(nkpts));
 
     std::map<Vector3_Order<int>, std::vector<atpair_t>> map_R_IJs;
     for (const auto &IJR: IJRs)
@@ -311,7 +321,7 @@ static void build_gf_Rt_libri(
 #pragma omp parallel for schedule(dynamic)
         for (int ik = 0; ik != nkpts; ik++)
         {
-            double ang = - klist[ik] * (R * latvec) * TWO_PI;
+            double ang = - (kfrac_list[ik] * R) * TWO_PI;
             complex<double> kphase = complex<double>(cos(ang), sin(ang));
             const auto &ev = mf.get_eigenvectors().at(ispin).at(ik);
             auto scaled_wfc_conj = conj(ev);
@@ -354,7 +364,71 @@ static void build_gf_Rt_libri(
         omp_destroy_lock(&gf_lock);
     }
 
-    global::profiler.stop("build_gf_Rt_libri");
+    global::profiler.stop("build_gf_Rt_libri_serial");
+}
+
+static void build_gf_Rt_libri_kpara(
+    const MeanField &mf,
+    const MpiCommHandler &comm_h,
+    const AtomicBasis &atbasis_wfc,
+    int ispin,
+    const vector<Vector3_Order<double>> &kfrac_list,
+    const std::vector<std::pair<atpair_t, Vector3_Order<int>>> IJRs, 
+    double tau,
+    std::map<int, std::map<std::pair<int, std::array<int, 3>>, RI::Tensor<double>>> &gf_libri)
+{
+    using namespace global;
+    profiler.start("build_gf_Rt_libri_kpara");
+    std::map<Vector3_Order<int>, std::vector<atpair_t>> map_R_IJs;
+    for (const auto &[IJ, R]: IJRs)
+    {
+        map_R_IJs[R].emplace_back(IJ);
+    }
+    std::vector<Vector3_Order<int>> Rs_this;
+    for (const auto &[R, _]: map_R_IJs)
+        Rs_this.emplace_back(R);
+    ofs_myid << "map_R_IJs " << map_R_IJs << std::endl;
+    const int n_Rs_this = map_R_IJs.size();
+    int n_Rs_max = n_Rs_this;
+    MPI_Allreduce(MPI_IN_PLACE, &n_Rs_max, 1, MPI_INT, MPI_MAX, comm_h.comm);
+    // Compute the full G({R}, tau) matrices
+    const auto gf_Rs_cplx = get_gf_cplx_imagtimes_Rs_kpara(ispin, mf, kfrac_list, {tau}, Rs_this, comm_h).at(tau);
+
+    for (const auto &[R, gf_cplx]: gf_Rs_cplx)
+    {
+        const std::array<int,3> Ra{R.x,R.y,R.z};
+        const auto gf_global = gf_cplx.real();
+        const auto IJs = map_R_IJs.at(R);
+        global::ofs_myid << "Chi0 Handling IJs: " << IJs << " - R " << Ra << std::endl;
+        // Divide the full matrix to atom-pair blocks
+        omp_lock_t gf_lock;
+        omp_init_lock(&gf_lock);
+#pragma omp parallel for schedule(dynamic)
+        for (const auto &IJ: IJs)
+        {
+            const auto &I = IJ.first;
+            const auto &J = IJ.second;
+            const auto nI = atbasis_wfc[I];
+            const auto nJ = atbasis_wfc[J];
+            // 1D representation for row-major 2D array
+            auto ptr = std::make_shared<std::valarray<double>>(nI * nJ);
+            for (size_t i = 0; i != nI; i++)
+            {
+                size_t i_glo = atbasis_wfc.get_global_index(I, i);
+                for (size_t j = 0; j != nJ; j++)
+                {
+                    size_t j_glo = atbasis_wfc.get_global_index(J, j);
+                    (*ptr)[i*nJ+j] = gf_global(i_glo, j_glo);
+                }
+            }
+            omp_set_lock(&gf_lock);
+            gf_libri[I][{J, Ra}] = RI::Tensor<double>({nI, nJ}, ptr);
+            omp_unset_lock(&gf_lock);
+        }
+#pragma omp barrier
+        omp_destroy_lock(&gf_lock);
+    }
+    profiler.stop("build_gf_Rt_libri_kpara");
 }
 
 // Perform both R-k Fourier transform and time-freq cosine transform of chi0
@@ -533,11 +607,21 @@ void Chi0::build_chi0_q_space_time_LibRI_routing(const Cs_LRI &Cs,
             double wtime_start_isp_tau = omp_get_wtime();
 
             // On-the-fly build of Green's function at specific spin channel and imaginary time
-            build_gf_Rt_libri(this->mf, this->atbasis_wfc, isp, this->pbc.klist, this->pbc.latvec,
-                              this->IJRs_gf_local, tau, gf_po_libri);
+            if (this->is_mf_eigvec_k_distributed_)
+            {
+                build_gf_Rt_libri_kpara(this->mf, this->comm_h, this->atbasis_wfc, isp, this->pbc.kfrac_list,
+                                        this->IJRs_gf_local, tau, gf_po_libri);
+                build_gf_Rt_libri_kpara(this->mf, this->comm_h, this->atbasis_wfc, isp, this->pbc.kfrac_list,
+                                        this->IJRs_gf_local, -tau, gf_ne_libri);
+            }
+            else
+            {
+                build_gf_Rt_libri_serial(this->mf, this->atbasis_wfc, isp, this->pbc.kfrac_list,
+                                         this->IJRs_gf_local, tau, gf_po_libri);
+                build_gf_Rt_libri_serial(this->mf, this->atbasis_wfc, isp, this->pbc.kfrac_list,
+                                         this->IJRs_gf_local, -tau, gf_ne_libri);
+            }
             rpa.set_Gs_pos(gf_po_libri, libri_threshold_G);
-            build_gf_Rt_libri(this->mf, this->atbasis_wfc, isp, this->pbc.klist, this->pbc.latvec,
-                              this->IJRs_gf_local, -tau, gf_ne_libri);
             rpa.set_Gs_neg(gf_ne_libri, libri_threshold_G);
             // ofs_myid << "gf_po_libri\n" << gf_po_libri << "\n";
             // ofs_myid << "gf_ne_libri\n" << gf_ne_libri << "\n";

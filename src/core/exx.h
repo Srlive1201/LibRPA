@@ -16,6 +16,7 @@ namespace librpa_int
 class Exx
 {
     private:
+        bool is_mf_eigvec_k_distributed_;
         bool is_rspace_build_;
         bool is_kspace_built_;
 
@@ -59,7 +60,8 @@ class Exx
         Exx(const MeanField& mf_in,
             const AtomicBasis &atbasis_wfc_in,
             const PeriodicBoundaryData &pbc_in,
-            const MpiCommHandler &comm_h_in);
+            const MpiCommHandler &comm_h_in,
+            bool is_mf_eigvec_k_distributed);
 
         //! Build and store the real-space exchange matrix
         void build(const LibrpaParallelRouting routing,

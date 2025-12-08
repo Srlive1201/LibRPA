@@ -22,6 +22,7 @@ using std::vector;
 class Chi0
 {
     private:
+        bool is_mf_eigvec_k_distributed_;
         size_t gf_save;
         size_t gf_discard;
         //! space-time Green's function in occupied space, [ispin][I][J][R][tau]
@@ -91,7 +92,7 @@ class Chi0
 
         Chi0(const MeanField &mf_in, const AtomicBasis &atbasis_wfc_in,
              const AtomicBasis &atbasis_abf_in, const PeriodicBoundaryData &pbc_in,
-             const TFGrids &tfg_in, const MpiCommHandler &comm_h_in);
+             const TFGrids &tfg_in, const MpiCommHandler &comm_h_in, bool is_mf_eigvec_k_distributed);
         ~Chi0() {};
         //! Build the independent response function in q-omega domain for ABFs on the atom pairs atpair_ABF and q-vectors in qlist
         void build(LibrpaParallelRouting routing,

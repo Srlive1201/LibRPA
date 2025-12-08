@@ -19,6 +19,7 @@ namespace librpa_int
 class G0W0
 {
 private:
+    bool is_mf_eigvec_k_distributed_;
     bool is_rspace_built_;
     bool is_kspace_built_;
 
@@ -60,7 +61,8 @@ public:
     G0W0(const MeanField &mf_in,
          const AtomicBasis& atbasis_wfc_in,
          const PeriodicBoundaryData &pbc_in,
-         const TFGrids &tfg_in, const MpiCommHandler &comm_h_in, const BlacsCtxtHandler &blacs_sigc_h);
+         const TFGrids &tfg_in, const MpiCommHandler &comm_h_in,
+         bool is_mf_eigvec_k_distributed, const BlacsCtxtHandler &blacs_sigc_h);
     // // delete copy/move constructors
     // G0W0(const G0W0 &s_g0w0) = delete;
     // G0W0(G0W0 &&s_g0w0) = delete;

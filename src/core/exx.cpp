@@ -28,11 +28,15 @@ namespace librpa_int
 Exx::Exx(const MeanField &mf_in,
          const AtomicBasis &atbasis_wfc_in,
          const PeriodicBoundaryData &pbc_in,
-         const MpiCommHandler &comm_h_in)
+         const MpiCommHandler &comm_h_in,
+         bool is_mf_eigvec_k_distributed)
     : mf(mf_in), atbasis_wfc(atbasis_wfc_in), pbc(pbc_in), comm_h(comm_h_in)
 {
+    is_mf_eigvec_k_distributed_ = is_mf_eigvec_k_distributed;
     is_rspace_build_ = false;
     is_kspace_built_ = false;
+
+    // Runtime options
     libri_threshold_C = 0.0;
     libri_threshold_V = 0.0;
     libri_threshold_D = 0.0;

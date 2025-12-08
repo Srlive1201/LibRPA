@@ -76,11 +76,12 @@ std::map<Vector3_Order<int>, ComplexMatrix> get_dmat_cplx_Rs_kpara(
         // global::ofs_myid << "get_dmat_cplx_Rs_kpara pid " << pid << " nR_this " << nR_this << " count " << count << " matsize " << rmat.size() << std::endl;
 
         if (nR_this < 1) continue;
+        #pragma omp parallel for collapse(2) schedule(dynamic)
         for (int iR = 0; iR <nR_this; iR++)
         {
-            const auto R_this = Rs_all.data() + pid * nR_max * 3 + iR * 3;
             for (int ik = 0; ik < nk_local; ik++)
             {
+                const auto R_this = Rs_all.data() + pid * nR_max * 3 + iR * 3;
                 const auto &kf = kfrac_list[iks_local[ik]];
                 auto ang = - (kf.x * R_this[0] + kf.y * R_this[1] + kf.z * R_this[0]) * TWO_PI;
                 transmat(ik, iR) = cplxdb{cos(ang), sin(ang)};
@@ -163,11 +164,12 @@ std::map<double, std::map<Vector3_Order<int>, ComplexMatrix>> get_gf_cplx_imagti
             // global::ofs_myid << "get_dmat_cplx_Rs_kpara pid " << pid << " nR_this " << nR_this << " count " << count << " matsize " << rmat.size() << std::endl;
 
             if (nR_this < 1) continue;
+            #pragma omp parallel for collapse(2) schedule(dynamic)
             for (int iR = 0; iR <nR_this; iR++)
             {
-                const auto R_this = Rs_all.data() + pid * nR_max * 3 + iR * 3;
                 for (int ik = 0; ik < nk_local; ik++)
                 {
+                    const auto R_this = Rs_all.data() + pid * nR_max * 3 + iR * 3;
                     const auto &kf = kfrac_list[iks_local[ik]];
                     auto ang = - (kf.x * R_this[0] + kf.y * R_this[1] + kf.z * R_this[0]) * TWO_PI;
                     transmat(ik, iR) = cplxdb{cos(ang), sin(ang)};
