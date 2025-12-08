@@ -33,7 +33,10 @@ program test_f03_binding_libri
 
    write(*,*) "Host code output: initialize default options"
    call opts%init()
-   write(*,*) "Default frequency numbers:", opts%nfreq
+   call opts%set_output_dir("librpa_f03.d")
+
+   write(*,*) "Default frequency numbers: ", opts%nfreq
+   write(*,*) "Output directory: ", opts%output_dir
    opts%parallel_routing = LIBRPA_ROUTING_LIBRI
 
    call h%create(MPI_COMM_WORLD)

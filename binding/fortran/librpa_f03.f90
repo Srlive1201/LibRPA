@@ -138,6 +138,7 @@ module librpa_f03
 
       contains
          procedure :: init => librpa_init_options
+         procedure :: set_output_dir => librpa_set_output_dir
    end type LibrpaOptions
 
    interface
@@ -146,6 +147,12 @@ module librpa_f03
          import :: LibrpaOptions_c
          type(LibrpaOptions_c) :: opts_c
       end subroutine librpa_init_options_c
+
+      subroutine librpa_set_output_dir_c(opts_c, output_dir) bind(c, name="librpa_set_output_dir")
+         import :: LibrpaOptions_c, c_char
+         type(LibrpaOptions_c) :: opts_c
+         character(kind=c_char, len=1), dimension(*), intent(in) :: output_dir
+      end subroutine librpa_set_output_dir_c
    end interface
 
    integer, parameter :: SYNC_OPTS_C2F = 1
@@ -550,6 +557,14 @@ contains
       call librpa_init_options_c(opts%opts_c)
       call sync_opts(opts, SYNC_OPTS_C2F)
    end subroutine librpa_init_options
+
+   subroutine librpa_set_output_dir(opts, output_dir)
+      implicit none
+      class(LibrpaOptions), intent(inout) :: opts
+      character(len=*), intent(in) :: output_dir
+      opts%output_dir = trim(output_dir)
+      call sync_opt(opts%output_dir, opts%opts_c%output_dir, SYNC_OPTS_F2C)
+   end subroutine librpa_set_output_dir
 
    !> @brief Initialize the global computing environment of LibRPA
    !>
