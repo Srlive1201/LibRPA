@@ -2,8 +2,6 @@
 
 #include <iostream>
 #include <limits>
-#include <stdexcept>
-#include <numeric>
 
 #include "../utils/constants.h"
 #include "../utils/error.h"
@@ -205,6 +203,37 @@ std::map<Vector3_Order<int>, ComplexMatrix> MeanField::get_dmat_cplx_Rs(
         }
     }
     return dmat_cplx_all;
+}
+
+ComplexMatrix MeanField::get_gf_cplx_imagtime(int ispin, int ikpt, double tau) const
+{
+    assert(ispin < this->n_spins);
+    assert(ikpt < this->n_kpoints);
+
+    const double scale_spin = 0.5 * n_spins;  // TODO: adapt SOC
+
+    std::vector<double> wg_sk(wg[ispin].c + n_states * ikpt, wg[ispin].c + n_states * (ikpt + 1));
+    std::vector<double> wg_empty_sk(wg_sk);
+    for (int ib = 0; ib < n_states; ib++)
+    {
+        wg_sk[ib] *= scale_spin;
+        wg_empty_sk[ib] = 1.0 / n_kpoints - wg_empty_sk[ib] * scale_spin;
+        if (wg_empty_sk[ib] < 0.0) wg_empty_sk[ib] = 0.0;
+    }
+    const auto &prefac_occ = tau > 0 ? wg_empty_sk : wg_sk;
+
+    std::vector<double> scale(eskb[ispin].c + n_states * ikpt, eskb[ispin].c + n_states * (ikpt + 1));
+    for (int ib = 0; ib < n_states; ib++)
+    {
+        scale[ib] = -tau * (scale[ib] - efermi);
+        if (scale[ib] > 0) scale[ib] = 0.0;
+        scale[ib] = std::exp(scale[ib]) * prefac_occ[ib];
+    }
+    auto scaled_wfc_conj = conj(wfc.at(ispin).at(ikpt));
+    for (int ib = 0; ib < n_states; ib++)
+        LapackConnector::scal(n_aos, scale[ib], scaled_wfc_conj.c + n_aos * ib, 1);
+    const auto gf_k = transpose(wfc.at(ispin).at(ikpt), false) * scaled_wfc_conj;
+    return gf_k;
 }
 
 std::map<double, std::map<Vector3_Order<int>, ComplexMatrix>> MeanField::get_gf_cplx_imagtimes_Rs(

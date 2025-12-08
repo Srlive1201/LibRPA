@@ -94,6 +94,8 @@ public:
     std::map<Vector3_Order<int>, ComplexMatrix> get_dmat_cplx_Rs(
         int ispin, const std::vector<Vector3_Order<double>>& kfrac_list,
         const std::vector<Vector3_Order<int>>& Rs) const;
+
+    ComplexMatrix get_gf_cplx_imagtime(int ispin, int ikpt, double tau) const;
     std::map<double, std::map<Vector3_Order<int>, ComplexMatrix>> get_gf_cplx_imagtimes_Rs(
         int ispin, const std::vector<Vector3_Order<double>>& kfrac_list,
         std::vector<double> imagtimes, const std::vector<Vector3_Order<int>>& Rs) const;

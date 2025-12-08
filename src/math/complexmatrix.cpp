@@ -10,6 +10,7 @@
 #include <cstring>
 #include <iostream>
 #include <iomanip>
+#include <ostream>
 #include "../io/global_io.h"
 #include "complexmatrix.h"
 #include "lapack_connector.h"
@@ -645,7 +646,7 @@ void print_complex_matrix(const char *desc, const ComplexMatrix &mat)
 }
 
 
-void print_complex_matrix_file(const char *desc, const ComplexMatrix &mat, ofstream &fs, bool use_scientific)
+void print_complex_matrix(const char *desc, const ComplexMatrix &mat, std::ostream &os, bool use_scientific)
 {
     using std::fixed;
     using std::scientific;
@@ -661,14 +662,14 @@ void print_complex_matrix_file(const char *desc, const ComplexMatrix &mat, ofstr
     auto format = fixed;
     if (use_scientific)
         format = scientific;
-    fs << "#" << desc << endl;
+    os << "#" << desc << endl;
     // c for complex
-    fs << "# c " << nr << " " << nc << endl;
+    os << "# c " << nr << " " << nc << endl;
     for (int i = 0; i < nr; i++)
     {
         for (int j = 0; j < nc - 1; j++)
-            fs << setw(w) << showpoint << format << setprecision(prec) << mat.c[i * nc + j].real() << " " << setw(w) << showpoint << format << setprecision(prec) << mat.c[i * nc + j].imag() << " ";
-        fs << setw(w) << showpoint << format << setprecision(prec) << mat.c[i * nc + nc - 1].real() << " " << setw(w) << showpoint << format << setprecision(prec) << mat.c[i * nc + nc - 1].imag() << "\n";
+            os << setw(w) << showpoint << format << setprecision(prec) << mat.c[i * nc + j].real() << " " << setw(w) << showpoint << format << setprecision(prec) << mat.c[i * nc + j].imag() << " ";
+        os << setw(w) << showpoint << format << setprecision(prec) << mat.c[i * nc + nc - 1].real() << " " << setw(w) << showpoint << format << setprecision(prec) << mat.c[i * nc + nc - 1].imag() << "\n";
     }
 }
 
@@ -728,7 +729,7 @@ void print_complex_matrix_file(const char *desc, const ComplexMatrix &mat, const
 {
     ofstream fs;
     fs.open(fn);
-    print_complex_matrix_file(desc, mat, fs, use_scientific);
+    print_complex_matrix(desc, mat, fs, use_scientific);
     fs.close();
 }
 

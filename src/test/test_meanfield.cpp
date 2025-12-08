@@ -47,6 +47,13 @@ void test_BCC_He_gamma_minimal_basis_aims()
     assert(fequal(dmat_gamma(4, 0), {-1.549199411968699e-01, 0}, thres));
     assert(fequal(dmat_gamma(0, 4), {-1.549199411968699e-01, 0}, thres));
     assert(fequal(dmat_gamma(4, 4), { 0.962374022009208e+00, 0}, thres));
+
+    // test Green's function G(i \tau). approaches to density matrix for \tau -> 0^-
+    const auto gf_gamma = mf.get_gf_cplx_imagtime(0, 0, -1e-12);
+    assert(fequal(gf_gamma(0, 0), { 0.962374022009208e-00, 0}, thres));
+    assert(fequal(gf_gamma(4, 0), {-1.549199411968699e-01, 0}, thres));
+    assert(fequal(gf_gamma(0, 4), {-1.549199411968699e-01, 0}, thres));
+    assert(fequal(gf_gamma(4, 4), { 0.962374022009208e+00, 0}, thres));
 }
 
 int main (int argc, char *argv[])

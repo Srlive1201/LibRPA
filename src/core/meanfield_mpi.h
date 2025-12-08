@@ -11,4 +11,8 @@ std::map<Vector3_Order<int>, ComplexMatrix> get_dmat_cplx_Rs_kpara(
     int ispin, const MeanField &mf, const std::vector<Vector3_Order<double>>& kfrac_list,
     const std::vector<Vector3_Order<int>>& Rs, const MpiCommHandler &comm_h);
 
+std::map<double, std::map<Vector3_Order<int>, ComplexMatrix>> get_gf_cplx_imagtimes_Rs_kpara(
+    int ispin, const MeanField &mf, const std::vector<Vector3_Order<double>> &kfrac_list, std::vector<double> imagtimes,
+    const std::vector<Vector3_Order<int>> &Rs, const MpiCommHandler &comm_h);
+
 }
