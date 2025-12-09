@@ -79,7 +79,15 @@ void task_g0w0_band(std::map<Vector3_Order<double>, ComplexMatrix> &sinvS)
 
     chi0.set_input_dir(driver_params.input_dir);
     Profiler::start("chi0_build", "Build response function chi0");
-    chi0.build(Cs_data, Rlist, period, local_atpair, qlist, sinvS);
+    if (Params::use_shrink_chi)
+    {
+        chi0.build(Cs_data, Rlist, period, local_atpair, qlist, sinvS);
+    }
+    else
+    {
+        chi0.build(Cs_shrinked_data, Rlist, period, local_atpair, qlist, sinvS);
+    }
+
     Profiler::stop("chi0_build");
 
     std::flush(ofs_myid);

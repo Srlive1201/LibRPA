@@ -1002,9 +1002,10 @@ void Chi0::build_chi0_q_space_time_LibRI_routing(const Cs_LRI &Cs,
     throw LIBRPA_RUNTIME_ERROR("compilation");
 #else
     const bool use_shrink_abfs = false;
+    const bool use_shrink_chi = false;
     global::profiler.start("LibRI_routing", "Loop over LibRI");
 
-    if (use_shrink_abfs)
+    if (use_shrink_abfs && use_shrink_chi)
     {
         // replace atom_mu by atom_mu_l to construct chi0 due to LRI error
         atom_mu = atom_mu_l;
@@ -1225,7 +1226,7 @@ void Chi0::build_chi0_q_space_time_LibRI_routing(const Cs_LRI &Cs,
             std::clock_t cpu_clock_done_chi0s = clock();
 
             // parse back to chi0
-            if (use_shrink_abfs)
+            if (use_shrink_abfs && use_shrink_chi)
             {
                 map<double, map<Vector3_Order<double>, atom_mapping<ComplexMatrix>::pair_t_old>>
                     chi0_tau_q;

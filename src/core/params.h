@@ -96,6 +96,11 @@ struct Params
     static bool replace_w_head;
     //! switch of shrinking number of auxiliary basis by reading shrink_sinvS_0.txt
     static bool use_shrink_abfs;
+    //! switch of shrinking chi0 matrix
+    //! if false, chi0 will be calculated in small abfs
+    //! and only unfold Wc
+    //! faster 10 times and accurate in most cases
+    static bool use_shrink_chi;
     //! switch of using spin-orbit coupling correction
     static bool use_soc;
 

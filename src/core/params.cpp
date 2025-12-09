@@ -41,6 +41,7 @@ bool Params::use_scalapack_ecrpa = true;
 bool Params::use_scalapack_gw_wc = false;
 bool Params::debug = false;
 bool Params::replace_w_head = true;
+bool Params::use_shrink_chi = true;
 bool Params::use_shrink_abfs = false;
 bool Params::use_soc = false;
 
@@ -105,6 +106,7 @@ void Params::print()
         {"output_gw_sigc_mat", output_gw_sigc_mat},
         {"replace_w_head", replace_w_head},
         {"use_shrink_abfs", use_shrink_abfs},
+        {"use_shrink_chi", use_shrink_chi},
         {"use_soc", use_soc},
         {"use_fullcoul_exx", use_fullcoul_exx},
         {"use_fullcoul_wc", use_fullcoul_wc},
