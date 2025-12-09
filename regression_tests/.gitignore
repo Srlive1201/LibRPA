@@ -1,2 +1,2 @@
-!refs/*/aims.out
-!refs/*/librpa.out
+!refs/*/aims.out*
+!refs/*/librpa*.out*
