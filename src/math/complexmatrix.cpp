@@ -669,7 +669,7 @@ void print_complex_matrix(const char *desc, const ComplexMatrix &mat, std::ostre
     {
         for (int j = 0; j < nc - 1; j++)
             os << setw(w) << showpoint << format << setprecision(prec) << mat.c[i * nc + j].real() << " " << setw(w) << showpoint << format << setprecision(prec) << mat.c[i * nc + j].imag() << " ";
-        os << setw(w) << showpoint << format << setprecision(prec) << mat.c[i * nc + nc - 1].real() << " " << setw(w) << showpoint << format << setprecision(prec) << mat.c[i * nc + nc - 1].imag() << "\n";
+        os << setw(w) << showpoint << format << setprecision(prec) << mat.c[i * nc + nc - 1].real() << " " << setw(w) << showpoint << format << setprecision(prec) << mat.c[i * nc + nc - 1].imag() << endl;
     }
 }
 

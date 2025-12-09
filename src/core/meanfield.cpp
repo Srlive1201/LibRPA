@@ -177,6 +177,7 @@ ComplexMatrix MeanField::get_dmat_cplx_R(int ispin, const std::vector<Vector3_Or
     {
         auto ang = - (kfrac_list[ik] * R) * TWO_PI;
         complex<double> kphase = complex<double>(cos(ang), sin(ang));
+        global::ofs_myid << "R " << R << " ik " << ik << " kfrac " << kfrac_list[ik] << " phase " << kphase << std::endl;
         dmat_cplx += kphase * this->get_dmat_cplx(ispin, ik);
     }
     return dmat_cplx;

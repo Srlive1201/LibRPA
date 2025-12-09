@@ -505,6 +505,32 @@ void print_matrix(const char *desc, const matrix &mat)
         librpa_int::global::lib_printf("\n");
     }
 }
+
+void print_matrix(const char *desc, const matrix &mat, std::ostream &os, bool use_scientific)
+{
+    using std::fixed;
+    using std::scientific;
+    using std::endl;
+    using std::showpoint;
+    using std::setw;
+    using std::setprecision;
+    using std::endl;
+
+    int nr = mat.nr;
+    int nc = mat.nc;
+    int w = 22;
+    int prec = 15;
+    auto format = fixed;
+    if (use_scientific) format = scientific;
+    os << "#" << desc << endl;
+    os << "# r " << nr << " " << nc << endl;
+    for (int i = 0; i < nr; i++)
+    {
+        for (int j = 0; j < nc - 1; j++)
+            os << setw(w) << showpoint << format << setprecision(prec) << mat.c[i * nc + j] << " ";
+        os << setw(w) << showpoint << format << setprecision(prec) << mat.c[i * nc + nc - 1] << endl;
+    }
+}
 // double matrix::norm() const
 // {
 	// return LapackConnector::nrm2(nr*nc,c,1);

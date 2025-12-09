@@ -79,6 +79,11 @@ static void build_dmat_libri_serial(
     const std::vector<std::pair<atpair_t, Vector3_Order<int>>> IJRs,
     std::map<int, std::map<std::pair<int,std::array<int,3>>,RI::Tensor<double>>> &dmat_libri)
 {
+    // for (const auto &[ik, mat]: mf.get_eigenvectors().at(ispin))
+    // {
+    //     global::ofs_myid << ik << std::endl;
+    //     print_complex_matrix("eigenvector", mat, global::ofs_myid, true);
+    // }
     global::profiler.start("exx_build_dmat_libri_serial");
     std::map<Vector3_Order<int>, std::vector<atpair_t>> map_R_IJs;
     for (const auto &IJR: IJRs)
@@ -91,7 +96,7 @@ static void build_dmat_libri_serial(
         std::array<int,3> Ra{R.x,R.y,R.z};
         const auto dmat_cplx = mf.get_dmat_cplx_R(ispin, kfrac_list, R);
         global::ofs_myid << R << std::endl;
-        print_complex_matrix("test", dmat_cplx, global::ofs_myid, true);
+        print_complex_matrix("dmat_cplx[R]", dmat_cplx, global::ofs_myid, true);
         omp_lock_t dmat_lock;
         omp_init_lock(&dmat_lock);
 #pragma omp parallel for schedule(dynamic)
