@@ -61,8 +61,8 @@ void driver::task_exx()
     const int i_state_high = meanfield.get_n_bands();
     const int n_states_calc = i_state_high - i_state_low;
 
-    ofs_myid << "n_states_calc " << n_states_calc << endl;
-    ofs_myid << "n_kpoints " << n_kpoints << endl;
+    // ofs_myid << "n_states_calc " << n_states_calc << endl;
+    // ofs_myid << "n_kpoints " << n_kpoints << endl;
 
     pds->comm_h.barrier();
     for (int isp = 0; isp != meanfield.get_n_spins(); isp++)
@@ -72,7 +72,7 @@ void driver::task_exx()
         for (const auto &[ik, exx]: exx_isp)
         {
             const int index = ik * n_states_calc;
-            ofs_myid << "ik " << ik << " index " << index << endl;
+            // ofs_myid << "ik " << ik << " index " << index << endl;
             for (int i = 0; i < n_states_calc; i++)
                 exx_sp_collected[index + i] = exx.at(i_state_low + i);
         }

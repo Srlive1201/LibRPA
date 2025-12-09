@@ -48,7 +48,7 @@ std::map<Vector3_Order<int>, ComplexMatrix> get_dmat_cplx_Rs_kpara(
     const size_t size = n_aos * n_aos;
 
     const auto iks_local = mf.get_iks_local();
-    global::ofs_myid << "iks_local " << iks_local << std::endl;
+    // global::ofs_myid << "iks_local " << iks_local << std::endl;
     const int nk_local = iks_local.size();
     // Check if there is duplicate k-point data
     int nk_local_sum;
@@ -83,12 +83,14 @@ std::map<Vector3_Order<int>, ComplexMatrix> get_dmat_cplx_Rs_kpara(
         {
             for (int ik = 0; ik < nk_local; ik++)
             {
-                const auto R_this = Rs_all.data() + pid * nR_max * 3 + iR * 3;
+                const int index = pid * nR_max * 3 + iR * 3;
                 const auto &kf = kfrac_list[iks_local[ik]];
-                auto ang = - (kf.x * R_this[0] + kf.y * R_this[1] + kf.z * R_this[0]) * TWO_PI;
+                auto ang = - (kf.x * Rs_all[index] + kf.y * Rs_all[index+1] + kf.z * Rs_all[index+2]) * TWO_PI;
                 transmat(ik, iR) = cplxdb{cos(ang), sin(ang)};
             }
         }
+        // global::ofs_myid << "transmat pid" << std::endl;
+        // global::ofs_myid << transmat << std::endl;
         rmat = 0.0;
         if (nk_local > 0)
         {
@@ -101,10 +103,11 @@ std::map<Vector3_Order<int>, ComplexMatrix> get_dmat_cplx_Rs_kpara(
             MPI_Reduce(MPI_IN_PLACE, rmat.ptr(), count, mpi_datatype<Matz::type>::value, MPI_SUM, pid, comm_h.comm);
             for (int iR = 0; iR < nR_this; iR++)
             {
-                const auto R_this = Rs_all.data() + pid * nR_max * 3 + iR * 3;
+                const int index = pid * nR_max * 3 + iR * 3;
                 ComplexMatrix m(n_aos, n_aos);
                 memcpy(m.c, rmat.ptr() + size * iR, size * sizeof(Matz::type));
-                Vector3_Order<int> R{R_this[0], R_this[1], R_this[2]};
+                Vector3_Order<int> R{Rs_all[index], Rs_all[index+1], Rs_all[index+2]};
+                // global::ofs_myid << "iR " << iR << " R " << R << std::endl;
                 dmat_local.emplace(R, std::move(m));
             }
         }

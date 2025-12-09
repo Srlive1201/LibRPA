@@ -95,7 +95,7 @@ static void build_dmat_libri_serial(
     {
         std::array<int,3> Ra{R.x,R.y,R.z};
         const auto dmat_cplx = mf.get_dmat_cplx_R(ispin, kfrac_list, R);
-        global::ofs_myid << R << std::endl;
+        // global::ofs_myid << R << std::endl;
         print_complex_matrix("dmat_cplx[R]", dmat_cplx, global::ofs_myid, true);
         omp_lock_t dmat_lock;
         omp_init_lock(&dmat_lock);
@@ -140,11 +140,11 @@ static void build_dmat_libri_kpara(
     int n_Rs_max = n_Rs_this;
     MPI_Allreduce(MPI_IN_PLACE, &n_Rs_max, 1, MPI_INT, MPI_MAX, comm_h.comm);
     const auto dmat_Rs_cplx = get_dmat_cplx_Rs_kpara(ispin, mf, kfrac_list, Rs_this, comm_h);
-    global::ofs_myid << kfrac_list << std::endl;
+    // global::ofs_myid << kfrac_list << std::endl;
     for (const auto &[R, dmat_cplx]: dmat_Rs_cplx)
     {
-        global::ofs_myid << R << std::endl;
-        print_complex_matrix("test", dmat_cplx, global::ofs_myid, true);
+        // global::ofs_myid << R << std::endl;
+        // print_complex_matrix("test", dmat_cplx, global::ofs_myid, true);
         std::array<int,3> Ra{R.x,R.y,R.z};
         omp_lock_t dmat_lock;
         omp_init_lock(&dmat_lock);
