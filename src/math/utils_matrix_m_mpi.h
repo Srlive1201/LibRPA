@@ -171,6 +171,64 @@ void collect_block_from_IJ_storage_tensor(
     mat_lo = tmp_loc;
 }
 
+// Assume the matrix_m in TMAP are row major
+// TODO: merge it with collect_block_from_IJ_storage_tensor_transform
+template <typename Tdst, typename Tsrc, typename TA, typename TC>
+void collect_block_from_IJ_storage_matrix_transform(
+    matrix_m<Tdst> &mat_lo,
+    const librpa_int::ArrayDesc &ad,
+    const librpa_int::AtomicBasis &atbasis_row,
+    const librpa_int::AtomicBasis &atbasis_col,
+    const std::function<Tdst(const TA, const TA, const TC &)> &transform,
+    const std::map<TA, std::map<TA, std::map<TC, matrix_m<Tsrc>>>> &TMAP)
+{
+    // assert(mat_lo.nr() == ad.m_loc() && mat_lo.nc() == ad.n_loc());
+    assert(as_size(ad.m()) == atbasis_row.nb_total && as_size(ad.n()) == atbasis_col.nb_total );
+
+    matrix_m<Tdst> tmp_loc(mat_lo.nr(),mat_lo.nc(), MAJOR::ROW);
+    size_t cp_size= ad.n_loc()*sizeof(Tdst);
+
+    omp_lock_t mat_lock;
+    omp_init_lock(&mat_lock);
+
+    #pragma omp parallel for
+    for (int ilo = 0; ilo != ad.m_loc(); ilo++)
+    {
+        int I_loc, J_loc, i_ab, j_ab;
+        int i_gl = ad.indx_l2g_r(ilo);
+        atbasis_row.get_local_index(i_gl, I_loc, i_ab);
+        vector<Tdst> tmp_loc_row(ad.n_loc(), 0);
+        for (int jlo = 0; jlo != ad.n_loc(); jlo++)
+        {
+            int j_gl = ad.indx_l2g_c(jlo);
+            atbasis_col.get_local_index(j_gl, J_loc, j_ab);
+            auto it_I = TMAP.find(I_loc);
+            if (it_I != TMAP.cend())
+            {
+                const auto &JMAP = it_I->second;
+                auto it_J = JMAP.find(J_loc);
+                if (it_J != JMAP.cend())
+                {
+                    for (const auto &[cell, mat]: it_J->second)
+                        tmp_loc_row[jlo] += mat(i_ab, j_ab) * transform(I_loc, J_loc, cell);
+                }
+            }
+        }
+        Tdst *row_ptr=tmp_loc.ptr() + ilo* ad.n_loc();
+        omp_set_lock(&mat_lock);
+        memcpy(row_ptr,&tmp_loc_row[0],cp_size);
+        omp_unset_lock(&mat_lock);
+    }
+    #pragma omp barrier
+    omp_destroy_lock(&mat_lock);
+    if(mat_lo.is_col_major())
+    {
+        tmp_loc.swap_to_col_major();
+    }
+    mat_lo = tmp_loc;
+}
+
+// TMAP tensor is always row major
 template <typename Tdst, typename Tsrc, typename TA, typename TAC>
 void collect_block_from_IJ_storage_tensor_transform(
     matrix_m<Tdst> &mat_lo,

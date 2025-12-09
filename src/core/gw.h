@@ -23,9 +23,7 @@ private:
     bool is_rspace_built_;
     bool is_kspace_built_;
     bool is_respace_redist_for_KS_;
-
-    // Redistributed sigc mat for further transformation to KS space
-    std::map<int, std::map<double, std::map<Vector3_Order<int>, Matz>>> sigc_is_f_R;
+    bool is_rspace_redist_blacs_;
 
     //! frequency-domain reciprocal-space correlation self-energy, indices [ispin][freq][R][I][J](n_I, n_J)
     // Sparse storage from LibRI calculation

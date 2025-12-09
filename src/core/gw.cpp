@@ -48,6 +48,7 @@ G0W0::G0W0(const MeanField &mf_in, const AtomicBasis &atbasis_wfc_in,
     is_rspace_built_ = false;
     is_kspace_built_ = false;
     is_respace_redist_for_KS_ = false;
+    is_rspace_redist_blacs_ = false;
 
     // Public runtime options
     libri_threshold_C = 0.0;

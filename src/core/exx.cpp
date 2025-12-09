@@ -37,6 +37,7 @@ Exx::Exx(const MeanField &mf_in,
     is_rspace_built_ = false;
     is_kspace_built_ = false;
     is_rspace_redist_for_KS_ = false;
+    is_rspace_redist_blacs_ = false;
 
     // Runtime options
     libri_threshold_C = 0.0;
@@ -69,50 +70,13 @@ static void warn_dmat_IJR_nonzero_imag(const ComplexMatrix& dmat_cplx, const int
 }
 
 
-void Exx::build_dmat_R(const Vector3_Order<int> &R)
-{
-    const auto nspins = this->mf.get_n_spins();
-    const int natom = this->atbasis_wfc.n_atoms;
-
-    for (int is = 0; is != nspins; is++)
-    {
-        auto dmat_cplx = mf.get_dmat_cplx_R(is, pbc.kfrac_list, R);
-        for ( int I = 0; I != natom; I++)
-        {
-            for (int J = 0; J != natom; J++)
-            {
-                const auto dmat_cplx_IJR = extract_dmat_cplx_R_IJblock(dmat_cplx, atbasis_wfc, I, J);
-                warn_dmat_IJR_nonzero_imag(dmat_cplx_IJR, is, I, J, R);
-                this->dmat[is][I][J][R] = std::make_shared<matrix>();
-                *(this->dmat[is][I][J][R]) = dmat_cplx_IJR.real();
-            }
-        }
-    }
-}
-
-
-void Exx::build_dmat_R(const atom_t& I, const atom_t& J, const Vector3_Order<int> &R)
-{
-    const auto nspins = this->mf.get_n_spins();
-
-    for (int is = 0; is != nspins; is++)
-    {
-        auto dmat_cplx = mf.get_dmat_cplx_R(is, pbc.kfrac_list, R);
-        const auto dmat_cplx_IJR = extract_dmat_cplx_R_IJblock(dmat_cplx, atbasis_wfc, I, J);
-        warn_dmat_IJR_nonzero_imag(dmat_cplx_IJR, is, I, J, R);
-        this->dmat[is][I][J][R] = std::make_shared<matrix>();
-        *(this->dmat[is][I][J][R]) = dmat_cplx_IJR.real();
-    }
-}
-
-
 #ifdef LIBRPA_USE_LIBRI
 static void build_dmat_libri_serial(
     const MeanField &mf,
     const AtomicBasis &atbasis_wfc,
     int ispin,
     const vector<Vector3_Order<double>> &kfrac_list,
-    const std::vector<std::pair<atpair_t, Vector3_Order<int>>> IJRs, 
+    const std::vector<std::pair<atpair_t, Vector3_Order<int>>> IJRs,
     std::map<int, std::map<std::pair<int,std::array<int,3>>,RI::Tensor<double>>> &dmat_libri)
 {
     global::profiler.start("exx_build_dmat_libri_serial");
@@ -152,7 +116,7 @@ static void build_dmat_libri_kpara(
     const AtomicBasis &atbasis_wfc,
     int ispin,
     const vector<Vector3_Order<double>> &kfrac_list,
-    const std::vector<std::pair<atpair_t, Vector3_Order<int>>> IJRs, 
+    const std::vector<std::pair<atpair_t, Vector3_Order<int>>> IJRs,
     std::map<int, std::map<std::pair<int,std::array<int,3>>,RI::Tensor<double>>> &dmat_libri)
 {
     global::profiler.start("exx_build_dmat_libri_kpara");
@@ -339,7 +303,7 @@ void Exx::build(const LibrpaParallelRouting routing,
                 const auto &Ra = JR_exx.first.second;
                 const auto R = Vector3_Order<int>{Ra[0], Ra[1], Ra[2]};
                 Matd exx_temp(n_I, n_J, JR_exx.second.ptr(), MAJOR::ROW);
-                this->exx[isp][R][I][J] = exx_temp;
+                this->exx_IJR[isp][I][J][R] = exx_temp;
             }
         }
     }
@@ -421,37 +385,65 @@ void Exx::build_KS_blacs(const std::map<int, std::map<int, ComplexMatrix>> &wfc_
         this->atbasis_wfc, this->atbasis_wfc, desc_nao_nao);
     const auto Iset_Jset = convert_IJset_to_Iset_Jset(set_IJ_naonao);
 
-    for (int isp = 0; isp < n_spins; isp++)
+    if (!is_rspace_redist_for_KS_)
     {
-        // collect necessary data
-        global::profiler.start("build_real_space_exx_5", "Collect Hexx IJ from world");
-        std::map<int, std::map<std::pair<int, std::array<int, 3>>, RI::Tensor<double>>> exx_I_JR_local;
-
-        if (this->exx.count(isp))
+        for (int isp = 0; isp < n_spins; isp++)
         {
-            const auto &exx_is = this->exx.at(isp);
-            for (const auto &R_IJ_exx: exx_is)
+            // collect necessary data
+            global::profiler.start("build_real_space_exx_5", "Collect Hexx IJ from world");
+            std::map<int, std::map<std::pair<int, std::array<int, 3>>, RI::Tensor<double>>> exx_is_tensor;
+
+            auto it = this->exx_IJR.find(isp);
+            if (it != this->exx_IJR.cend())
             {
-                const auto R = R_IJ_exx.first;
-                for (const auto &I_J_exx: R_IJ_exx.second)
+                const auto &exx_is = it->second;
+                for (const auto &[I, J_Rexx]: exx_is)
                 {
-                    const auto I = I_J_exx.first;
                     const auto &n_I = this->atbasis_wfc.get_atom_nb(I);
-                    for (const auto &J_exx: I_J_exx.second)
+                    for (const auto &[J, R_exx]: J_Rexx)
                     {
-                        const auto J = J_exx.first;
-                        const auto &n_J = this->atbasis_wfc.get_atom_nb(J);
-                        const std::array<int, 3> Ra{R.x, R.y, R.z};
-                        exx_I_JR_local[I][{J, Ra}] = RI::Tensor<double>({n_I, n_J}, J_exx.second.sptr());
+                        for (const auto &[R, mat]: R_exx)
+                        {
+                            const auto &n_J = this->atbasis_wfc.get_atom_nb(J);
+                            const std::array<int, 3> Ra{R.x, R.y, R.z};
+                            exx_is_tensor[I][{J, Ra}] = RI::Tensor<double>({n_I, n_J}, mat.sptr());
+                        }
                     }
                 }
             }
+            // Collect the IJ pair of Hs with all R for Fourier transform
+            auto exx_is_IJR_for_blacs = comm_map2_first(comm_h.comm, exx_is_tensor, Iset_Jset.first, Iset_Jset.second);
+            exx_is_tensor.clear();
+            // Now each process should have all Rs corresponding to atom-pairs that required for BLACS matrix operation
+            // Swap with the original
+            map<atom_t, map<atom_t, map<Vector3_Order<int>, Matd>>> exx_is_new;
+            for (const auto &[I, JRmat]: exx_is_IJR_for_blacs)
+            {
+                const int n_I = this->atbasis_wfc.get_atom_nb(I);
+                for (const auto &[JR, mat]: JRmat)
+                {
+                    const atom_t J = JR.first;
+                    const int n_J = this->atbasis_wfc.get_atom_nb(J);
+                    const auto &Ra = JR.second;
+                    const Vector3_Order<int> R{Ra[0], Ra[1], Ra[2]};
+                    exx_is_new[I][J][R] = Matd{n_I, n_J, mat.data, MAJOR::ROW};
+                }
+            }
+            this->exx_IJR.at(isp).swap(exx_is_new);
+            exx_is_IJR_for_blacs.clear();
         }
+        is_rspace_redist_for_KS_ = true;
+        is_rspace_redist_blacs_ = true;
+    }
+    else
+    {
+        if (!is_rspace_redist_blacs_)
+            throw LIBRPA_RUNTIME_ERROR("");
+    }
 
-        // Collect the IJ pair of Hs with all R for Fourier transform
-        auto exx_I_JR = comm_map2_first(comm_h.comm,exx_I_JR_local, Iset_Jset.first, Iset_Jset.second);
-        exx_I_JR_local.clear();
-
+    for (int isp = 0; isp < n_spins; isp++)
+    {
+        map<atom_t, map<atom_t, map<Vector3_Order<int>, Matd>>> exx_is_local;
         // Convert each <I,<J, R>> pair to the nearest neighbour to speed up later Fourier transform
         // while keep the accuracy in further band interpolation.
         // Reuse the cleared-up exx_I_JR_local object
@@ -460,53 +452,49 @@ void Exx::build_KS_blacs(const std::map<int, std::map<int, ComplexMatrix>> &wfc_
             const auto &coords_frac = geometry.coords_frac;
             const auto &period = this->pbc.period;
 
-            for (auto &I_exxJR: exx_I_JR)
+            for (const auto &[I, J_Rexx]: exx_IJR.at(isp))
             {
-                const auto &I = I_exxJR.first;
-                for (auto &JR_exx: I_exxJR.second)
+                for (const auto &[J, R_exx]: J_Rexx)
                 {
-                    const auto &J = JR_exx.first.first;
-                    const auto &R = JR_exx.first.second;
-
-                    auto distsq = std::numeric_limits<double>::max();
-                    Vector3<int> R_IJ;
-                    std::array<int, 3> R_bvk;
-                    for (int i = -1; i < 2; i++)
+                    for (const auto &[R, mat]: R_exx)
                     {
-                        R_IJ.x = i * period.x + R[0];
-                        for (int j = -1; j < 2; j++)
+                        auto distsq = std::numeric_limits<double>::max();
+                        Vector3<int> R_IJ;
+                        Vector3<int> R_bvk;
+                        for (int i = -1; i < 2; i++)
                         {
-                            R_IJ.y = j * period.y + R[1];
-                            for (int k = -1; k < 2; k++)
+                            R_IJ.x = i * period.x + R.x;
+                            for (int j = -1; j < 2; j++)
                             {
-                                R_IJ.z = k * period.z + R[2];
-                                const auto diff =
-                                    (Vector3<double>(coords_frac.at(I)[0], coords_frac.at(I)[1],
-                                                     coords_frac.at(I)[2]) -
-                                     Vector3<double>(coords_frac.at(J)[0], coords_frac.at(J)[1],
-                                                     coords_frac.at(J)[2]) -
-                                     Vector3<double>(R_IJ.x, R_IJ.y, R_IJ.z)) * this->pbc.latvec;
-                                const auto norm2 = diff.norm2();
-                                if (norm2 < distsq)
+                                R_IJ.y = j * period.y + R.x;
+                                for (int k = -1; k < 2; k++)
                                 {
-                                    distsq = norm2;
-                                    R_bvk[0] = R_IJ.x;
-                                    R_bvk[1] = R_IJ.y;
-                                    R_bvk[2] = R_IJ.z;
+                                    R_IJ.z = k * period.z + R.z;
+                                    const auto diff =
+                                        (Vector3<double>(coords_frac.at(I)[0], coords_frac.at(I)[1],
+                                                        coords_frac.at(I)[2]) -
+                                        Vector3<double>(coords_frac.at(J)[0], coords_frac.at(J)[1],
+                                                        coords_frac.at(J)[2]) -
+                                        Vector3<double>(R_IJ.x, R_IJ.y, R_IJ.z)) * this->pbc.latvec;
+                                    const auto norm2 = diff.norm2();
+                                    if (norm2 < distsq)
+                                    {
+                                        distsq = norm2;
+                                        R_bvk = R_IJ;
+                                    }
                                 }
                             }
                         }
+                        exx_is_local[I][J][R_bvk] = mat;
                     }
-                    exx_I_JR_local[I][{J, R_bvk}] = std::move(JR_exx.second);
                 }
             }
         }
         else
         {
-            exx_I_JR_local = std::move(exx_I_JR);
+            exx_is_local = exx_IJR.at(isp);
         }
 
-        exx_I_JR.clear();
         global::profiler.stop("build_real_space_exx_5");
 
         global::lib_printf("Task %4d: tensor communicate elapsed time: %f\n", comm_h.myid, global::profiler.get_wall_time_last("build_real_space_exx_5"));
@@ -517,16 +505,14 @@ void Exx::build_KS_blacs(const std::map<int, std::map<int, ComplexMatrix>> &wfc_
             Hexx_nao_nao.zero_out();
             global::profiler.start("build_real_space_exx_6", "Hexx IJ -> 2D block");
             const auto& kfrac = kfrac_target[ik];
-            const std::function<complex<double>(const int &, const std::pair<int, std::array<int, 3>> &)>
-                fourier = [kfrac](const int &I, const std::pair<int, std::array<int, 3>> &J_Ra)
+            const std::function<complex<double>(const atom_t, const atom_t, const Vector3_Order<int> &)>
+                fourier = [kfrac](const atom_t I, const atom_t J, const Vector3_Order<int> &R)
                 {
-                    const auto &Ra = J_Ra.second;
-                    Vector3<double> R_IJ(Ra[0], Ra[1], Ra[2]);
-                    const auto ang = (kfrac * R_IJ) * TWO_PI;
+                    const auto ang = (kfrac * R) * TWO_PI;
                     return complex<double>{std::cos(ang), std::sin(ang)};
                 };
-            collect_block_from_IJ_storage_tensor_transform(Hexx_nao_nao, desc_nao_nao, 
-                    this->atbasis_wfc, this->atbasis_wfc, fourier, exx_I_JR_local);
+            collect_block_from_IJ_storage_matrix_transform(Hexx_nao_nao, desc_nao_nao,
+                    this->atbasis_wfc, this->atbasis_wfc, fourier, exx_is_local);
             global::profiler.stop("build_real_space_exx_6");
             // global::lib_printf("%s\n", str(Hexx_nao_nao).c_str());
             const auto &wfc_isp_k = wfc_target.at(isp).at(ik);
@@ -554,7 +540,7 @@ void Exx::build_KS_blacs(const std::map<int, std::map<int, ComplexMatrix>> &wfc_
                                           Hexx_nband_nband.ptr(), 1, 1, desc_nband_nband.desc,
                                           Hexx_nband_nband_fb.ptr(), 1, 1, desc_nband_nband_fb.desc,
                                           desc_nband_nband_fb.ictxt());
-            this->exx_is_ik_KS[isp][ik] = Hexx_nband_nband_fb;
+            this->exx_KS[isp][ik] = Hexx_nband_nband_fb;
             // cout << "Hexx_nband_nband_fb isp " << isp  << " ik " << ik << endl << Hexx_nband_nband_fb;
             if (blacs_ctxt_h.myid == 0)
             {
@@ -591,13 +577,13 @@ void Exx::build_KS_band_blacs(const std::map<int, std::map<int, ComplexMatrix>> 
 
 void Exx::reset_rspace()
 {
-    this->exx.clear();
+    this->exx_IJR.clear();
     this->is_rspace_built_ = false;
 }
 
 void Exx::reset_kspace()
 {
-    this->exx_is_ik_KS.clear();
+    this->exx_KS.clear();
     this->Eexx.clear();
     this->is_kspace_built_ = false;
 }

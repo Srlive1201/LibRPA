@@ -100,6 +100,7 @@ public:
     //! Flag of whether the instantialized matrix class is complex-typed
     static constexpr bool is_complex = is_complex_t<T>::value;
     static constexpr bool is_double = std::is_same<T, double>::value;
+    using container_t = std::shared_ptr<std::valarray<T>>;
 private:
     //! Major of matrix data storage, either row- or column-major
     MAJOR major_;
@@ -111,7 +112,7 @@ private:
     int mrank_;
     //! Flag whether a dummy data of size 1 is allocated to avoid null pointer when size is 0
     bool data_dummy_;
-    std::shared_ptr<std::valarray<T>> data_;
+    container_t data_;
 
 public:
     // access to private variables
