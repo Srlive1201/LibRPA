@@ -96,12 +96,14 @@ static void build_dmat_libri_serial(
         std::array<int,3> Ra{R.x,R.y,R.z};
         const auto dmat_cplx = mf.get_dmat_cplx_R(ispin, kfrac_list, R);
         // global::ofs_myid << R << std::endl;
-        print_complex_matrix("dmat_cplx[R]", dmat_cplx, global::ofs_myid, true);
+        // print_complex_matrix("dmat_cplx[R]", dmat_cplx, global::ofs_myid, true);
         omp_lock_t dmat_lock;
         omp_init_lock(&dmat_lock);
 #pragma omp parallel for schedule(dynamic)
-        for (const auto &[I, J]: IJs)
+        for (const auto &IJ: IJs)
         {
+            const auto &I = IJ.first;
+            const auto &J = IJ.second;
             const auto dmat_IJR = extract_dmat_cplx_R_IJblock(dmat_cplx, atbasis_wfc, I, J);
             warn_dmat_IJR_nonzero_imag(dmat_IJR, ispin, I, J, R);
             std::valarray<double> dmat_va(dmat_IJR.real().c, dmat_IJR.size);
@@ -146,11 +148,14 @@ static void build_dmat_libri_kpara(
         // global::ofs_myid << R << std::endl;
         // print_complex_matrix("test", dmat_cplx, global::ofs_myid, true);
         std::array<int,3> Ra{R.x,R.y,R.z};
+        const auto &map_IJs = map_R_IJs.at(R);
         omp_lock_t dmat_lock;
         omp_init_lock(&dmat_lock);
 #pragma omp parallel for schedule(dynamic)
-        for (const auto &[I, J]: map_R_IJs.at(R))
+        for (const auto &IJ: map_IJs)
         {
+            const auto &I = IJ.first;
+            const auto &J = IJ.second;
             const auto dm_block = extract_dmat_cplx_R_IJblock(dmat_cplx, atbasis_wfc, I, J);
             warn_dmat_IJR_nonzero_imag(dm_block, ispin, I, J, R);
             std::valarray<double> dmat_va(dm_block.real().c, dm_block.size);
