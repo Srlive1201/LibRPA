@@ -39,6 +39,7 @@ list(APPEND lib_sources
         # api/app_exx.cpp
         # api/app_rpa.cpp
         # api/app_gw.cpp
+        api/compute_exx.cpp
         api/compute_g0w0.cpp
         api/compute_rpa.cpp
         api/dataset.cpp

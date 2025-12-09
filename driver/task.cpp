@@ -56,7 +56,7 @@ static std::map<task_t, std::function<void(void)>> map_task_func_impl{
     {task_t::print_minimax, task_print_minimax},
     {task_t::G0W0, task_g0w0},
     {task_t::RPA, task_rpa},
-    // {task_t::EXX, task_exx},
+    {task_t::EXX, task_exx},
 };
 
 void run_task(const task_t &task)

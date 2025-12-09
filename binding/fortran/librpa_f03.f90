@@ -358,6 +358,12 @@ module librpa_f03
          real(c_double) :: librpa_get_rpa_correlation_energy_c
       end function librpa_get_rpa_correlation_energy_c
 
+      subroutine librpa_build_exx_c(h, opts) bind(c, name="librpa_build_exx")
+         import :: LibrpaOptions_c, c_ptr
+         type(c_ptr), value :: h
+         type(LibrpaOptions_c), intent(in) :: opts
+      end subroutine librpa_build_exx_c
+
       subroutine librpa_build_g0w0_sigma_c(h, opts) bind(c, name="librpa_build_g0w0_sigma")
          import :: LibrpaOptions_c, c_ptr
          type(c_ptr), value :: h
@@ -1061,6 +1067,14 @@ contains
       end if
       deallocate(contrib_ibzk_re, contrib_ibzk_im)
    end function librpa_get_rpa_correlation_energy
+
+   subroutine librpa_build_exx(this, opts)
+      implicit none
+      class(LibrpaHandler), intent(inout) :: this
+      type(LibrpaOptions), intent(inout) :: opts
+
+      call librpa_build_exx_c(this%ptr_c_handle, opts%opts_c)
+   end subroutine librpa_build_exx
 
    subroutine librpa_build_g0w0_sigma(this, opts)
       implicit none

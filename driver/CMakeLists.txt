@@ -13,7 +13,7 @@ list(APPEND exe_sources
   write_aims.cpp
   task.cpp
   # Specific task implementations
-  # task/exx.cpp
+  task/exx.cpp
   # task/exx_band.cpp
   task/g0w0.cpp
   # task/gw_band.cpp

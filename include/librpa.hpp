@@ -110,7 +110,10 @@ public:
     //! Compute RPA correlation energy
     LIBRPA_CPP_H_METHOD_DECL_WRAP_WOPTS(double, get_rpa_correlation_energy,
                                         std::vector<std::complex<double>> &rpa_corr_ibzk_contrib);
-    //! G0W0 self-energy matrix
+    //! Compute real-space exact-exchange matrix
+    void build_exx(const Options &opts);
+
+    //! Compute real-space G0W0 self-energy matrix
     void build_g0w0_sigma(const Options &opts);
 };
 

@@ -194,4 +194,9 @@ void Handler::build_g0w0_sigma(const Options &opts)
     ::librpa_build_g0w0_sigma(this->h_, &opts);
 }
 
+void Handler::build_exx(const Options &opts)
+{
+    ::librpa_build_exx(this->h_, &opts);
+}
+
 }

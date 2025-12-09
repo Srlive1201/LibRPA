@@ -14,6 +14,9 @@ LIBRPA_C_H_FUNC_WRAP_WOPT(double, librpa_get_rpa_correlation_energy,
 //! Build self-energy matrix of G0W0
 LIBRPA_C_H_FUNC_WRAP_WOPT_NOPAR(void, librpa_build_g0w0_sigma);
 
+//! Build exact-exchange matrix
+LIBRPA_C_H_FUNC_WRAP_WOPT_NOPAR(void, librpa_build_exx);
+
 LIBRPA_C_H_FUNC_WRAP_WOPT(void, librpa_get_g0w0_qpe_kgrid,
                           const int n_kpoints_local, const int *iks_local,
                           int i_state_low, int i_state_high, const double *vxc,
