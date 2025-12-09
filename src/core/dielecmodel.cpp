@@ -821,6 +821,16 @@ void diele_func::test_head()
             lib_printf("%2d %15.8f %15.8f %15.8f\n", iomega, this->omega[iomega], df.real() / 3.0,
                        df.imag() / 3.0);
         }
+        std::cout << "The first freqency head tensor: " << std::endl;
+        for (int alpha = 0; alpha != 3; alpha++)
+        {
+            const auto &c0 = this->head.at(0)(alpha, 0);
+            const auto &c1 = this->head.at(0)(alpha, 1);
+            const auto &c2 = this->head.at(0)(alpha, 2);
+
+            lib_printf("(%8.4f, %8.4f)  (%8.4f, %8.4f)  (%8.4f, %8.4f)\n", c0.real(), c0.imag(),
+                       c1.real(), c1.imag(), c2.real(), c2.imag());
+        }
     }
     // std::exit(0);
 };
