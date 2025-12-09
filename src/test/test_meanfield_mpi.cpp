@@ -130,6 +130,7 @@ static void test_gf_cplx_Rs_kpara(int nk, int nb, int nocc, double gap, double t
         }
     }
 }
+
 int main (int argc, char *argv[])
 {
     int provided;

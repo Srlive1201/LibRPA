@@ -1,4 +1,5 @@
 // driver headers
+#include <ostream>
 #include "../task.h"
 #include "../driver.h"
 #include "../read_data.h"
@@ -60,41 +61,45 @@ void driver::task_exx()
     const int i_state_high = meanfield.get_n_bands();
     const int n_states_calc = i_state_high - i_state_low;
 
-    std::vector<double> exx_ks(meanfield.get_n_states());
-    const int n_kpoints_task = n_kpoints;
+    ofs_myid << "n_states_calc " << n_states_calc << endl;
+    ofs_myid << "n_kpoints " << n_kpoints << endl;
+
+    pds->comm_h.barrier();
     for (int isp = 0; isp != meanfield.get_n_spins(); isp++)
     {
-        for (int i_ik = 0; i_ik < n_kpoints_task; i_ik++)
+        std::vector<double> exx_sp_collected(n_states_calc * n_kpoints, 0.0);
+        const auto exx_isp = pexx->Eexx.at(isp);
+        for (const auto &[ik, exx]: exx_isp)
         {
-            // const auto ik = i_kpoints_compute[i_ik];
-            const auto ik = i_ik;
-            for (int ib = i_state_low; ib < i_state_high; ib++)
+            const int index = ik * n_states_calc;
+            ofs_myid << "ik " << ik << " index " << index << endl;
+            for (int i = 0; i < n_states_calc; i++)
+                exx_sp_collected[index + i] = exx.at(i_state_low + i);
+        }
+        if (pds->comm_h.myid == 0)
+        {
+            MPI_Reduce(MPI_IN_PLACE, exx_sp_collected.data(), n_states_calc * n_kpoints, MPI_DOUBLE, MPI_SUM, 0, pds->comm_h.comm);
+            cout << "Spin channel " << isp+1 << endl;
+            for (int ik = 0; ik < n_kpoints; ik++)
             {
-                const int index = isp * n_kpoints_task * n_states_calc + ik * n_states_calc + ib - i_state_low;
-                exx_ks[index] = pexx->Eexx[isp][ik][ib];
+                const int index = ik * n_states_calc;
+                cout << "k-point " << ik + 1 << ": " << pds->pbc.kfrac_list[ik] << endl;
+                lib_printf("%-4s  %-10s  %-10s\n", "Band", "e_exx (Ha)", "e_exx (eV)");
+                for (int ib = 0; ib != n_states_calc; ib++)
+                {
+                    const auto &e = exx_sp_collected[index + ib];
+                    lib_printf("%4d  %10.5f  %10.5f\n", i_state_low + ib + 1, e, HA2EV * e);
+                }
+                cout << endl;
             }
         }
+        else
+        {
+            MPI_Reduce(exx_sp_collected.data(), exx_sp_collected.data(), n_states_calc * n_kpoints, MPI_DOUBLE, MPI_SUM, 0, pds->comm_h.comm);
+        }
+        pds->comm_h.barrier();
     }
 
     // auto exx_ks = librpa_int::app::compute_exx_orbital_energy_(i_state_low, i_state_high, -1, nullptr);
-
-    if (exx_ks.size() > 0 && mpi_comm_global_h.is_root())
-    {
-        for (int isp = 0; isp != meanfield.get_n_spins(); isp++)
-        {
-            lib_printf("Spin channel %1d\n", isp+1);
-            for (int ik = 0; ik != meanfield.get_n_kpoints(); ik++)
-            {
-                cout << "k-point " << ik + 1 << ": " << pds->pbc.kfrac_list[ik] << endl;
-                lib_printf("%-4s  %-10s  %-10s\n", "Band", "e_exx (Ha)", "e_exx (eV)");
-                for (int ib = i_state_low; ib != i_state_high; ib++)
-                {
-                    const int index = isp * n_kpoints * n_states_calc + ik * n_states_calc + ib - i_state_low;
-                    const auto e = exx_ks[index];
-                    lib_printf("%4d  %10.5f  %10.5f\n", ib + 1, e, HA2EV * e);
-                }
-                lib_printf("\n");
-            }
-        }
-    }
+    profiler.stop("exx");
 }

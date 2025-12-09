@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <complex>
 
-// #include "../io/stl_io_helper.h"
+#include "../io/stl_io_helper.h"
 #include "../math/lapack_connector.h"
 #include "../math/matrix_m.h"
 #include "../utils/constants.h"
@@ -15,13 +15,15 @@ static void collect_Rs(const std::vector<Vector3_Order<int>> &Rs, std::vector<in
                        std::vector<int> &Rs_all, int &nR_max, const MpiCommHandler &comm_h)
 {
     n_Rs_all.resize(comm_h.nprocs);
-    n_Rs_all[comm_h.myid] = Rs.size();
+    for (int pid = 0; pid < comm_h.nprocs; pid++) n_Rs_all[pid] = 0;
+    const int n_Rs_this = Rs.size();
+    n_Rs_all[comm_h.myid] = n_Rs_this;
     // global::ofs_myid << global::myid_global << " " << global::size_global << std::endl;
     // comm_h.barrier();
     MPI_Allreduce(MPI_IN_PLACE, n_Rs_all.data(), comm_h.nprocs, mpi_datatype<int>::value, MPI_SUM, comm_h.comm);
     nR_max = *std::max_element(n_Rs_all.cbegin(), n_Rs_all.cend());
     Rs_all.resize(3 * nR_max * comm_h.nprocs);
-    for (int iR = 0; iR < n_Rs_all[comm_h.myid]; iR++)
+    for (int iR = 0; iR < n_Rs_this; iR++)
     {
         Rs_all[comm_h.myid * nR_max * 3 + iR * 3] = Rs[iR].x;
         Rs_all[comm_h.myid * nR_max * 3 + iR * 3 + 1] = Rs[iR].y;
@@ -46,7 +48,7 @@ std::map<Vector3_Order<int>, ComplexMatrix> get_dmat_cplx_Rs_kpara(
     const size_t size = n_aos * n_aos;
 
     const auto iks_local = mf.get_iks_local();
-    // global::ofs_myid << "iks_local " << iks_local << std::endl;
+    global::ofs_myid << "iks_local " << iks_local << std::endl;
     const int nk_local = iks_local.size();
     // Check if there is duplicate k-point data
     int nk_local_sum;
@@ -77,7 +79,7 @@ std::map<Vector3_Order<int>, ComplexMatrix> get_dmat_cplx_Rs_kpara(
 
         if (nR_this < 1) continue;
         #pragma omp parallel for collapse(2) schedule(dynamic)
-        for (int iR = 0; iR <nR_this; iR++)
+        for (int iR = 0; iR < nR_this; iR++)
         {
             for (int ik = 0; ik < nk_local; ik++)
             {
@@ -96,12 +98,12 @@ std::map<Vector3_Order<int>, ComplexMatrix> get_dmat_cplx_Rs_kpara(
         // global::ofs_myid << rmat << std::endl;
         if (comm_h.myid == pid)
         {
-            MPI_Reduce(MPI_IN_PLACE, rmat.ptr(), count, mpi_datatype<cplxdb>::value, MPI_SUM, pid, comm_h.comm);
+            MPI_Reduce(MPI_IN_PLACE, rmat.ptr(), count, mpi_datatype<Matz::type>::value, MPI_SUM, pid, comm_h.comm);
             for (int iR = 0; iR < nR_this; iR++)
             {
                 const auto R_this = Rs_all.data() + pid * nR_max * 3 + iR * 3;
                 ComplexMatrix m(n_aos, n_aos);
-                memcpy(m.c, rmat.ptr() + size * iR, size * sizeof(cplxdb));
+                memcpy(m.c, rmat.ptr() + size * iR, size * sizeof(Matz::type));
                 Vector3_Order<int> R{R_this[0], R_this[1], R_this[2]};
                 dmat_local.emplace(R, std::move(m));
             }

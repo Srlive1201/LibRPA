@@ -22,12 +22,6 @@ class Exx
         bool is_rspace_redist_for_KS_;
         bool is_rspace_redist_blacs_;
 
-        void build_dmat_R(const Vector3_Order<int>& R);
-        void build_dmat_R(const atom_t& I, const atom_t& J, const Vector3_Order<int>& R);
-        void build_LibRI(const Cs_LRI &Cs,
-                         const vector<Vector3_Order<int>> &Rlist,
-                         const atpair_R_mat_t& coul_mat);
-
         void build_KS(const std::map<int, std::map<int, ComplexMatrix>> &wfc_target,
                       const std::vector<Vector3_Order<double>> &kfrac_target,
                       const Atoms &geometry);

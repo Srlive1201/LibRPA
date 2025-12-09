@@ -90,6 +90,8 @@ static void build_dmat_libri_serial(
     {
         std::array<int,3> Ra{R.x,R.y,R.z};
         const auto dmat_cplx = mf.get_dmat_cplx_R(ispin, kfrac_list, R);
+        global::ofs_myid << R << std::endl;
+        print_complex_matrix("test", dmat_cplx, global::ofs_myid, true);
         omp_lock_t dmat_lock;
         omp_init_lock(&dmat_lock);
 #pragma omp parallel for schedule(dynamic)
@@ -133,8 +135,11 @@ static void build_dmat_libri_kpara(
     int n_Rs_max = n_Rs_this;
     MPI_Allreduce(MPI_IN_PLACE, &n_Rs_max, 1, MPI_INT, MPI_MAX, comm_h.comm);
     const auto dmat_Rs_cplx = get_dmat_cplx_Rs_kpara(ispin, mf, kfrac_list, Rs_this, comm_h);
+    global::ofs_myid << kfrac_list << std::endl;
     for (const auto &[R, dmat_cplx]: dmat_Rs_cplx)
     {
+        global::ofs_myid << R << std::endl;
+        print_complex_matrix("test", dmat_cplx, global::ofs_myid, true);
         std::array<int,3> Ra{R.x,R.y,R.z};
         omp_lock_t dmat_lock;
         omp_init_lock(&dmat_lock);
@@ -278,6 +283,7 @@ void Exx::build(const LibrpaParallelRouting routing,
             build_dmat_libri_serial(mf, atbasis_wfc, isp, this->pbc.kfrac_list, dmat_IJRs_local, dmat_libri);
         }
         global::ofs_myid << "Number of Dmat keys: " << get_num_keys(dmat_libri) << "\n";
+        // global::ofs_myid << dmat_libri << std::endl;
         // print_keys(global::ofs_myid, dmat_libri);
         exx_libri.set_Ds(dmat_libri, libri_threshold_D);
         global::profiler.stop("build_real_space_exx_3");
@@ -342,6 +348,7 @@ void Exx::build_KS(const std::map<int, std::map<int, ComplexMatrix>> &wfc_target
                    const std::vector<Vector3_Order<double>> &kfrac_target,
                    const Atoms &geometry)
 {
+    throw LIBRPA_RUNTIME_ERROR("not implemented");
 }
 
 void Exx::build_KS_blacs(const std::map<int, std::map<int, ComplexMatrix>> &wfc_target,
@@ -351,6 +358,8 @@ void Exx::build_KS_blacs(const std::map<int, std::map<int, ComplexMatrix>> &wfc_
 {
     using RI::Communicate_Tensors_Map_Judge::comm_map2_first;
 
+    // Ensure the communicator of BLACS context is the same as that parsed when constructed
+    assert(blacs_ctxt_h.comm() == this->comm_h.comm);
     assert(this->is_rspace_built_);
 
     // Reset k-space matrices built from last call
@@ -368,25 +377,26 @@ void Exx::build_KS_blacs(const std::map<int, std::map<int, ComplexMatrix>> &wfc_
     ArrayDesc desc_nao_nao(blacs_ctxt_h);
     ArrayDesc desc_nband_nao(blacs_ctxt_h);
     ArrayDesc desc_nband_nband(blacs_ctxt_h);
+
+    // For communication of eigenvectors and final KS matrices
+    ArrayDesc desc_nao_nband_fb(blacs_ctxt_h);  // emulate ComplexMatrix storage
     ArrayDesc desc_nband_nband_fb(blacs_ctxt_h);
 
     desc_nao_nao.init_1b1p(n_aos, n_aos, 0, 0);
     desc_nband_nao.init_1b1p(n_bands, n_aos, 0, 0);
     desc_nband_nband.init_1b1p(n_bands, n_bands, 0, 0);
-    desc_nband_nband_fb.init(n_bands, n_bands, n_bands, n_bands, 0, 0);
 
     // local 2D-block submatrices
     auto Hexx_nao_nao = init_local_mat<complex<double>>(desc_nao_nao, MAJOR::COL);
-    auto temp_nband_nao = init_local_mat<complex<double>>(desc_nband_nao, MAJOR::COL);
     auto Hexx_nband_nband = init_local_mat<complex<double>>(desc_nband_nband, MAJOR::COL);
-    auto Hexx_nband_nband_fb = init_local_mat<complex<double>>(desc_nband_nband_fb, MAJOR::COL);
-
-    const auto set_IJ_naonao = get_necessary_IJ_from_block_2D(
-        this->atbasis_wfc, this->atbasis_wfc, desc_nao_nao);
-    const auto Iset_Jset = convert_IJset_to_Iset_Jset(set_IJ_naonao);
+    auto temp_nband_nao = init_local_mat<complex<double>>(desc_nband_nao, MAJOR::COL);
 
     if (!is_rspace_redist_for_KS_)
     {
+        const auto set_IJ_naonao = get_necessary_IJ_from_block_2D(
+            this->atbasis_wfc, this->atbasis_wfc, desc_nao_nao);
+        const auto Iset_Jset = convert_IJset_to_Iset_Jset(set_IJ_naonao);
+
         for (int isp = 0; isp < n_spins; isp++)
         {
             // collect necessary data
@@ -443,6 +453,8 @@ void Exx::build_KS_blacs(const std::map<int, std::map<int, ComplexMatrix>> &wfc_
 
     for (int isp = 0; isp < n_spins; isp++)
     {
+        this->exx_KS[isp] = {};
+        this->Eexx[isp] = {};
         map<atom_t, map<atom_t, map<Vector3_Order<int>, Matd>>> exx_is_local;
         // Convert each <I,<J, R>> pair to the nearest neighbour to speed up later Fourier transform
         // while keep the accuracy in further band interpolation.
@@ -494,60 +506,147 @@ void Exx::build_KS_blacs(const std::map<int, std::map<int, ComplexMatrix>> &wfc_
         {
             exx_is_local = exx_IJR.at(isp);
         }
-
         global::profiler.stop("build_real_space_exx_5");
-
         global::lib_printf("Task %4d: tensor communicate elapsed time: %f\n", comm_h.myid, global::profiler.get_wall_time_last("build_real_space_exx_5"));
-        // cout << I_JallR_Hs << endl;
 
-        for (size_t ik = 0; ik < kfrac_target.size(); ik++)
+        if (is_mf_eigvec_k_distributed_)
         {
-            Hexx_nao_nao.zero_out();
-            global::profiler.start("build_real_space_exx_6", "Hexx IJ -> 2D block");
-            const auto& kfrac = kfrac_target[ik];
-            const std::function<complex<double>(const atom_t, const atom_t, const Vector3_Order<int> &)>
-                fourier = [kfrac](const atom_t I, const atom_t J, const Vector3_Order<int> &R)
-                {
-                    const auto ang = (kfrac * R) * TWO_PI;
-                    return complex<double>{std::cos(ang), std::sin(ang)};
-                };
-            collect_block_from_IJ_storage_matrix_transform(Hexx_nao_nao, desc_nao_nao,
-                    this->atbasis_wfc, this->atbasis_wfc, fourier, exx_is_local);
-            global::profiler.stop("build_real_space_exx_6");
-            // global::lib_printf("%s\n", str(Hexx_nao_nao).c_str());
-            const auto &wfc_isp_k = wfc_target.at(isp).at(ik);
-            blacs_ctxt_h.barrier();
-            const auto wfc_block = get_local_mat(wfc_isp_k.c, MAJOR::ROW, desc_nband_nao, MAJOR::COL).conj();
-            // global::lib_printf("%s\n", str(wfc_block).c_str());
-            // global::lib_printf("%s\n", desc_nao_nao.info_desc().c_str());
-            // global::lib_printf("%s\n", desc_nband_nao.info_desc().c_str());
-            global::profiler.start("build_real_space_exx_7", "Rotate Hexx ij -> KS");
-            ScalapackConnector::pgemm_f('N', 'N', n_bands, n_aos, n_aos, 1.0,
-                                        wfc_block.ptr(), 1, 1, desc_nband_nao.desc,
-                                        Hexx_nao_nao.ptr(), 1, 1, desc_nao_nao.desc,
-                                        0.0,
-                                        temp_nband_nao.ptr(), 1, 1, desc_nband_nao.desc);
-            ScalapackConnector::pgemm_f('N', 'C', n_bands, n_bands, n_aos, -1.0,
-                                        temp_nband_nao.ptr(), 1, 1, desc_nband_nao.desc,
-                                        wfc_block.ptr(), 1, 1, desc_nband_nao.desc,
-                                        0.0,
-                                        Hexx_nband_nband.ptr(), 1, 1, desc_nband_nband.desc);
-            global::profiler.stop("build_real_space_exx_7");
-
-            // collect to master
-            global::profiler.start("build_real_space_exx_8", "Collect Eexx to root process");
-            ScalapackConnector::pgemr2d_f(n_bands, n_bands,
-                                          Hexx_nband_nband.ptr(), 1, 1, desc_nband_nband.desc,
-                                          Hexx_nband_nband_fb.ptr(), 1, 1, desc_nband_nband_fb.desc,
-                                          desc_nband_nband_fb.ictxt());
-            this->exx_KS[isp][ik] = Hexx_nband_nband_fb;
-            // cout << "Hexx_nband_nband_fb isp " << isp  << " ik " << ik << endl << Hexx_nband_nband_fb;
-            if (blacs_ctxt_h.myid == 0)
+            // collect parsed eigenvectors all all processes
+            const auto &wfc_sp = wfc_target.at(isp);
+            std::vector<int> nks_all(comm_h.nprocs, 0);
+            nks_all[comm_h.myid] = wfc_sp.size();
+            MPI_Allreduce(MPI_IN_PLACE, nks_all.data(), comm_h.nprocs, mpi_datatype<int>::value, MPI_SUM, comm_h.comm);
+            const int nk_max = *std::max_element(nks_all.cbegin(), nks_all.cend());
+            std::vector<int> iks_all(nk_max * comm_h.nprocs, 0);
+            std::vector<int> iks_local;
+            for (const auto &[ik, _]: wfc_sp)
             {
-                for (int ib = 0; ib != n_bands; ib++)
-                    this->Eexx[isp][ik][ib] = Hexx_nband_nband_fb(ib, ib).real();
+                iks_local.emplace_back(ik);
             }
-            global::profiler.stop("build_real_space_exx_8");
+            for (int i = 0; i < nks_all[comm_h.myid]; i++)
+            {
+                iks_all[comm_h.myid * nk_max + i] = iks_local[i];
+            }
+            MPI_Allreduce(MPI_IN_PLACE, iks_all.data(), comm_h.nprocs * nk_max, mpi_datatype<int>::value, MPI_SUM, comm_h.comm);
+
+            for (int pid = 0; pid < comm_h.nprocs; pid++)
+            {
+                const int nk_this = nks_all[pid];
+                if (nk_this == 0) continue;  // no eigenvector on this process
+                auto [irsrc, icsrc] = blacs_ctxt_h.get_pcoord(pid);
+                desc_nao_nband_fb.init(n_aos, n_bands, n_aos, n_bands, irsrc, icsrc);
+                desc_nband_nband_fb.init(n_bands, n_bands, n_bands, n_bands, irsrc, icsrc);
+                auto Hexx_nband_nband_fb = init_local_mat<complex<double>>(desc_nband_nband_fb, MAJOR::COL);
+                for (int ik_this = 0; ik_this < nk_this; ik_this++)
+                {
+                    global::profiler.start("build_real_space_exx_6", "Hexx IJ -> 2D block");
+                    Hexx_nao_nao.zero_out();
+                    const int ik = iks_all[pid * nk_max + ik_this];
+                    const auto& kfrac = kfrac_target[ik];
+                    const std::function<complex<double>(const atom_t, const atom_t, const Vector3_Order<int> &)>
+                        fourier = [kfrac](const atom_t I, const atom_t J, const Vector3_Order<int> &R)
+                        {
+                            const auto ang = (kfrac * R) * TWO_PI;
+                            return complex<double>{std::cos(ang), std::sin(ang)};
+                        };
+                    collect_block_from_IJ_storage_matrix_transform(Hexx_nao_nao, desc_nao_nao,
+                            this->atbasis_wfc, this->atbasis_wfc, fourier, exx_is_local);
+                    global::profiler.stop("build_real_space_exx_6");
+
+                    std::vector<complex<double>> dummy(1);
+                    global::profiler.start("build_real_space_exx_7", "Rotate Hexx ij -> KS");
+                    if (pid == comm_h.myid)
+                    {
+                        // processing the k-point eigenvector on this process
+                        ScalapackConnector::pgemm_f('C', 'N', n_bands, n_aos, n_aos, 1.0,
+                                                    wfc_sp.at(ik).c, 1, 1, desc_nao_nband_fb.desc,
+                                                    Hexx_nao_nao.ptr(), 1, 1, desc_nao_nao.desc,
+                                                    0.0,
+                                                    temp_nband_nao.ptr(), 1, 1, desc_nband_nao.desc);
+                        ScalapackConnector::pgemm_f('N', 'N', n_bands, n_bands, n_aos, -1.0,
+                                                    temp_nband_nao.ptr(), 1, 1, desc_nband_nao.desc,
+                                                    wfc_sp.at(ik).c, 1, 1, desc_nao_nband_fb.desc,
+                                                    0.0,
+                                                    Hexx_nband_nband_fb.ptr(), 1, 1, desc_nband_nband_fb.desc);
+                        this->exx_KS[isp][ik] = Hexx_nband_nband_fb.copy();
+                        // cout << "Hexx_nband_nband_fb isp " << isp  << " ik " << ik << endl << Hexx_nband_nband_fb;
+                        for (int ib = 0; ib != n_bands; ib++)
+                            this->Eexx[isp][ik][ib] = Hexx_nband_nband_fb(ib, ib).real();
+                    }
+                    else
+                    {
+                        // processing the k-point eigenvector at other processes
+                        ScalapackConnector::pgemm_f('C', 'N', n_bands, n_aos, n_aos, 1.0,
+                                                    dummy.data(), 1, 1, desc_nao_nband_fb.desc,
+                                                    Hexx_nao_nao.ptr(), 1, 1, desc_nao_nao.desc,
+                                                    0.0,
+                                                    temp_nband_nao.ptr(), 1, 1, desc_nband_nao.desc);
+                        ScalapackConnector::pgemm_f('N', 'N', n_bands, n_bands, n_aos, -1.0,
+                                                    temp_nband_nao.ptr(), 1, 1, desc_nband_nao.desc,
+                                                    dummy.data(), 1, 1, desc_nao_nband_fb.desc,
+                                                    0.0,
+                                                    Hexx_nband_nband_fb.ptr(), 1, 1, desc_nband_nband_fb.desc);
+                    }
+                    global::profiler.stop("build_real_space_exx_7");
+                }
+            }
+        }
+        else
+        {
+            // Everything will be collected to rank 0
+            desc_nband_nband_fb.init(n_bands, n_bands, n_bands, n_bands, 0, 0);
+            auto Hexx_nband_nband_fb = init_local_mat<complex<double>>(desc_nband_nband_fb, MAJOR::COL);
+
+            // Each process have all KS eigenvectors, extract local blocks
+            for (size_t ik = 0; ik < kfrac_target.size(); ik++)
+            {
+                global::profiler.start("build_real_space_exx_6", "Hexx IJ -> 2D block");
+                Hexx_nao_nao.zero_out();
+                const auto& kfrac = kfrac_target[ik];
+                const std::function<complex<double>(const atom_t, const atom_t, const Vector3_Order<int> &)>
+                    fourier = [kfrac](const atom_t I, const atom_t J, const Vector3_Order<int> &R)
+                    {
+                        const auto ang = (kfrac * R) * TWO_PI;
+                        return complex<double>{std::cos(ang), std::sin(ang)};
+                    };
+                collect_block_from_IJ_storage_matrix_transform(Hexx_nao_nao, desc_nao_nao,
+                        this->atbasis_wfc, this->atbasis_wfc, fourier, exx_is_local);
+                global::profiler.stop("build_real_space_exx_6");
+                // global::lib_printf("%s\n", str(Hexx_nao_nao).c_str());
+                const auto &wfc_isp_k = wfc_target.at(isp).at(ik);
+                blacs_ctxt_h.barrier();
+                const auto wfc_block = get_local_mat(wfc_isp_k.c, MAJOR::ROW, desc_nband_nao, MAJOR::COL).conj();
+                // global::lib_printf("%s\n", str(wfc_block).c_str());
+                // global::lib_printf("%s\n", desc_nao_nao.info_desc().c_str());
+                // global::lib_printf("%s\n", desc_nband_nao.info_desc().c_str());
+                global::profiler.start("build_real_space_exx_7", "Rotate Hexx ij -> KS");
+                ScalapackConnector::pgemm_f('N', 'N', n_bands, n_aos, n_aos, 1.0,
+                                            wfc_block.ptr(), 1, 1, desc_nband_nao.desc,
+                                            Hexx_nao_nao.ptr(), 1, 1, desc_nao_nao.desc,
+                                            0.0,
+                                            temp_nband_nao.ptr(), 1, 1, desc_nband_nao.desc);
+                ScalapackConnector::pgemm_f('N', 'C', n_bands, n_bands, n_aos, -1.0,
+                                            temp_nband_nao.ptr(), 1, 1, desc_nband_nao.desc,
+                                            wfc_block.ptr(), 1, 1, desc_nband_nao.desc,
+                                            0.0,
+                                            Hexx_nband_nband.ptr(), 1, 1, desc_nband_nband.desc);
+                global::profiler.stop("build_real_space_exx_7");
+
+                // collect to master
+                global::profiler.start("build_real_space_exx_8", "Collect Eexx to root process");
+                ScalapackConnector::pgemr2d_f(n_bands, n_bands,
+                                            Hexx_nband_nband.ptr(), 1, 1, desc_nband_nband.desc,
+                                            Hexx_nband_nband_fb.ptr(), 1, 1, desc_nband_nband_fb.desc,
+                                            desc_nband_nband_fb.ictxt());
+                this->exx_KS[isp][ik] = Hexx_nband_nband_fb;
+                // cout << "Hexx_nband_nband_fb isp " << isp  << " ik " << ik << endl << Hexx_nband_nband_fb;
+                if (blacs_ctxt_h.myid == 0)
+                {
+                    for (int ib = 0; ib != n_bands; ib++)
+                        this->Eexx[isp][ik][ib] = Hexx_nband_nband_fb(ib, ib).real();
+                }
+                global::profiler.stop("build_real_space_exx_8");
+            }
         }
     }
 }
