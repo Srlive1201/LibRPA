@@ -616,7 +616,7 @@ std::vector<size_t> handle_Cs_file_dry(const string &file_path, double threshold
     // int ncell = stoi(ncell_s);
 
     size_t id = 0;
-    int R[3];
+    // int R[3];
 
     while (infile.peek() != EOF)
     {
@@ -629,9 +629,9 @@ std::vector<size_t> handle_Cs_file_dry(const string &file_path, double threshold
         int n_mu = stoi(mu_s);
         // int ia1 = stoi(ia1_s);
         // int ia2 = stoi(ia2_s);
-        R[0] = stoi(ic_1);
-        R[1] = stoi(ic_2);
-        R[2] = stoi(ic_3);
+        // R[0] = stoi(ic_1);
+        // R[1] = stoi(ic_2);
+        // R[2] = stoi(ic_3);
 
         double maxval = -1.0;
         for (int i = 0; i != n_i; i++)
@@ -658,7 +658,7 @@ std::vector<size_t> handle_Cs_file_binary_dry(const string &file_path, double th
     int dims[8];
     int n_apcell_file;
     // int n_processed = 0;
-    int R[3];
+    // int R[3];
     int natom, ncell;
 
     infile.open(file_path, std::ios::in | std::ios::binary);
@@ -672,9 +672,9 @@ std::vector<size_t> handle_Cs_file_binary_dry(const string &file_path, double th
         // cout<<ic_1<<mu_s<<endl;
         // const int ia1 = dims[0] - 1;
         // const int ia2 = dims[1] - 1;
-        R[0] = dims[2];
-        R[1] = dims[3];
-        R[2] = dims[4];
+        // R[0] = dims[2];
+        // R[1] = dims[3];
+        // R[2] = dims[4];
         const int n_i = dims[5];
         const int n_j = dims[6];
         const int n_mu = dims[7];
@@ -706,11 +706,11 @@ static size_t handle_Cs_file_by_ids(const string &file_path, double threshold, c
     size_t cs_discard = 0;
     string natom_s, ncell_s, ia1_s, ia2_s, ic_1, ic_2, ic_3, i_s, j_s, mu_s, Cs_ele;
     ifstream infile;
-    int natom, ncell;
+    // int natom, ncell;
     infile.open(file_path);
     infile >> natom_s >> ncell_s;
-    natom = stoi(natom_s);
-    ncell = stoi(ncell_s);
+    // natom = stoi(natom_s);
+    // ncell = stoi(ncell_s);
     /* cout<<"  Natom  Ncell  "<<natom<<"  "<<ncell<<endl; */
     // for(int loop=0;loop!=natom*natom*ncell;loop++)
     size_t id = 0;
@@ -872,12 +872,13 @@ size_t read_Cs_evenly_distribute(const string &dir_path, double threshold, int m
     }
 
     // Filter out the Cs to be actually read in each process
-    size_t id_total = 0;
+    int id_total = 0;
     for (int i_fn = 0; i_fn < nfiles; i_fn++)
     {
         const auto &fn = files[i_fn];
         const auto &ids_this_file = files_Cs_ids[fn];
-        for (int id = 0; id != ids_this_file.size(); id++)
+        const int n_ids = ids_this_file.size();
+        for (int id = 0; id != n_ids; id++)
         {
             if (id_total % nprocs == myid) files_Cs_ids_this_proc[fn].push_back(ids_this_file[id]);
             id_total++;
@@ -1187,9 +1188,9 @@ size_t read_Vq_full(const string &dir_path, const string &vq_fprefix, bool is_cu
 
                 // vq_ptr_tran->create(atom_mu[J],atom_mu[I]);
                 // cout << "I J: " << I << "  " << J << "   mu,nu: " << atom_mu[I] << "  " << atom_mu[J] << endl;
-                for (int i_mu = 0; i_mu != basis_aux[I]; i_mu++)
+                for (size_t i_mu = 0; i_mu != basis_aux[I]; i_mu++)
                 {
-                    for (int i_nu = 0; i_nu != basis_aux[J]; i_nu++)
+                    for (size_t i_nu = 0; i_nu != basis_aux[J]; i_nu++)
                     {
                         //(*vq_ptr)(i_mu, i_nu) = vf_p.second(atom_mu_loc2glo(J, i_nu), atom_mu_loc2glo(I, i_mu)); ////for aims
                         re(i_mu, i_nu) = vf_p.second(basis_aux.get_global_index(I, i_mu), basis_aux.get_global_index(J, i_nu)).real(); // for abacus
@@ -1268,11 +1269,11 @@ static int handle_Vq_row_file(const string &file_path, double threshold,
     if (binary)
     {
         std::set<int> coulomb_row_need;
-        for (const auto &ap: local_atpair)
+        for (const auto &[I, _]: local_atpair)
         {
-            const auto brow = atom_mu_part_range[ap.first];
-            const auto nb = basis_aux[ap.first];
-            for (int ir = 0; ir < nb; ir++)
+            const auto brow = atom_mu_part_range[I];
+            const auto nb = basis_aux[I];
+            for (size_t ir = 0; ir < nb; ir++)
             {
                 coulomb_row_need.insert(brow + ir);
             }
@@ -1384,10 +1385,12 @@ static int handle_Vq_row_file(const string &file_path, double threshold,
             }   
 
             std::set<int> coulomb_row_need;
-            for(auto &Ip:coulomb)
-                for (int ir = atom_mu_part_range[Ip.first];
-                     ir != atom_mu_part_range[Ip.first] + basis_aux[Ip.first]; ir++)
-                    coulomb_row_need.insert(ir);
+            for (auto &[I, _] : coulomb)
+            {
+                const int st = atom_mu_part_range[I];
+                const int ed = atom_mu_part_range[I] + basis_aux[I];
+                for (int ir = st; ir < ed; ir++) coulomb_row_need.insert(ir);
+            }
 
             //printf("   |process %d, coulomb_begin:  %d, size: %d\n",para_mpi.get_myid(),*coulomb_row_need.begin(),coulomb_row_need.size());
             for (int i_mu = brow; i_mu <= erow; i_mu++)

@@ -36,8 +36,8 @@ namespace librpa_int
 
 G0W0::G0W0(const MeanField &mf_in, const AtomicBasis &atbasis_wfc_in,
            const PeriodicBoundaryData &pbc_in, const TFGrids &tfg_in,
-           const MpiCommHandler &comm_h_in, bool is_mf_eigvec_k_distributed, const BlacsCtxtHandler &blacs_h_sigc)
-    : blacs_h_sigc_(blacs_h_sigc), mf(mf_in),
+           const MpiCommHandler &comm_h_in, bool is_mf_eigvec_k_distributed)
+    : mf(mf_in),
       atbasis_wfc(atbasis_wfc_in),
       pbc(pbc_in),
       tfg(tfg_in), comm_h(comm_h_in)
@@ -47,6 +47,7 @@ G0W0::G0W0(const MeanField &mf_in, const AtomicBasis &atbasis_wfc_in,
     is_mf_eigvec_k_distributed_ = is_mf_eigvec_k_distributed;
     is_rspace_built_ = false;
     is_kspace_built_ = false;
+    is_respace_redist_for_KS_ = false;
 
     // Public runtime options
     libri_threshold_C = 0.0;
@@ -62,6 +63,7 @@ void G0W0::reset_rspace()
 {
     sigc_is_f_R_IJ.clear();
     is_rspace_built_ = false;
+    is_respace_redist_for_KS_ = false;
 }
 
 void G0W0::reset_kspace()
@@ -437,6 +439,12 @@ void G0W0::build_sigc_matrix_KS(const std::map<int, std::map<int, ComplexMatrix>
                                 const std::vector<Vector3_Order<double>> &kfrac_target,
                                 const Atoms &geometry)
 {
+}
+
+void G0W0::build_sigc_matrix_KS_blacs(const std::map<int, std::map<int, ComplexMatrix>> &wfc_target,
+                                      const std::vector<Vector3_Order<double>> &kfrac_target,
+                                      const Atoms &geometry, const BlacsCtxtHandler &blacs_ctxt_h)
+{
     assert(this->is_rspace_built_);
     if (this->is_kspace_built_)
     {
@@ -460,7 +468,6 @@ void G0W0::build_sigc_matrix_KS(const std::map<int, std::map<int, ComplexMatrix>
     global::mpi_comm_global_h.barrier();
     throw LIBRPA_RUNTIME_ERROR("G0W0 needs compilation with LibRI");
 #else
-    const auto &blacs_ctxt_h = this->blacs_h_sigc_;
 
     // char fn[80];
     // const auto &blacs_ctxt_h = this->blacs_sigc_h_;
@@ -513,7 +520,7 @@ void G0W0::build_sigc_matrix_KS(const std::map<int, std::map<int, ComplexMatrix>
             // Convert each <I,<J, R>> pair to the nearest neighbour to speed up later Fourier transform
             // while keep the accuracy in further band interpolation.
             // Reuse the cleared-up sigc_I_JR_local object
-            if (coord_frac.size() > 0)
+            if (geometry.is_frac_set())
             {
                 for (const auto &[I, JR_sigc]: sigc_I_JR)
                 {
@@ -624,6 +631,28 @@ void G0W0::build_sigc_matrix_KS_band(const std::map<int, std::map<int, ComplexMa
         librpa_int::global::lib_printf("build_sigc_matrix_KS_kgrid: constructing self-energy matrix for band k-path\n");
     }
     this->build_sigc_matrix_KS(wfc, kfrac_band, geometry);
+}
+
+void G0W0::build_sigc_matrix_KS_kgrid_blacs(const BlacsCtxtHandler &blacs_ctxt_h)
+{
+    librpa_int::global::mpi_comm_global_h.barrier();
+    if (librpa_int::global::mpi_comm_global_h.myid == 0)
+    {
+        librpa_int::global::lib_printf("build_sigc_matrix_KS_kgrid: constructing self-energy matrix for SCF k-grid\n");
+    }
+    this->build_sigc_matrix_KS_blacs(this->mf.get_eigenvectors(), this->pbc.kfrac_list, {}, blacs_ctxt_h);
+}
+
+void G0W0::build_sigc_matrix_KS_band_blacs(const std::map<int, std::map<int, ComplexMatrix>> &wfc,
+                                     const std::vector<Vector3_Order<double>> &kfrac_band,
+                                     const Atoms &geometry, const BlacsCtxtHandler &blacs_ctxt_h)
+{
+    librpa_int::global::mpi_comm_global_h.barrier();
+    if (librpa_int::global::mpi_comm_global_h.myid == 0)
+    {
+        librpa_int::global::lib_printf("build_sigc_matrix_KS_kgrid: constructing self-energy matrix for band k-path\n");
+    }
+    this->build_sigc_matrix_KS_blacs(wfc, kfrac_band, geometry, blacs_ctxt_h);
 }
 
 } // namespace librpa_int

@@ -17,26 +17,23 @@ class Exx
 {
     private:
         bool is_mf_eigvec_k_distributed_;
-        bool is_rspace_build_;
+        bool is_rspace_built_;
         bool is_kspace_built_;
-
-        ComplexMatrix get_dmat_cplx_R_global(const int& ispin, const Vector3_Order<int>& R);
-        ComplexMatrix extract_dmat_cplx_R_IJblock(const ComplexMatrix& dmat_cplx, const atom_t& I, const atom_t& J);
+        bool is_rspace_redist_for_KS_;
 
         void build_dmat_R(const Vector3_Order<int>& R);
         void build_dmat_R(const atom_t& I, const atom_t& J, const Vector3_Order<int>& R);
-        void warn_dmat_IJR_nonzero_imag(const ComplexMatrix& dmat_cplx,
-                                        const int& ispin, const atom_t& I, const atom_t& J,
-                                        const Vector3_Order<int> R);
-
         void build_LibRI(const Cs_LRI &Cs,
                          const vector<Vector3_Order<int>> &Rlist,
                          const atpair_R_mat_t& coul_mat);
 
         void build_KS(const std::map<int, std::map<int, ComplexMatrix>> &wfc_target,
                       const std::vector<Vector3_Order<double>> &kfrac_target,
-                      const Atoms &geometry,
-                      const BlacsCtxtHandler &blacs_ctxt_h);
+                      const Atoms &geometry);
+        void build_KS_blacs(const std::map<int, std::map<int, ComplexMatrix>> &wfc_target,
+                            const std::vector<Vector3_Order<double>> &kfrac_target,
+                            const Atoms &geometry,
+                            const BlacsCtxtHandler &blacs_ctxt_h);
     public:
         //! refenrence to the MeanField object to compute density matrix
         const MeanField& mf;
@@ -68,11 +65,15 @@ class Exx
                    const AtomicBasis &atbasis_abf, const Cs_LRI &Cs,
                    const atpair_R_mat_t& coul_mat);
 
-        void build_KS_kgrid(const Atoms &geometry, const BlacsCtxtHandler &blacs_ctxt_h);
+        void build_KS_kgrid();
         void build_KS_band(const std::map<int, std::map<int, ComplexMatrix>> &wfc_band,
                            const std::vector<Vector3_Order<double>> &kfrac_band,
-                           const Atoms &geometry,
-                           const BlacsCtxtHandler &blacs_ctxt_h);
+                           const Atoms &geometry);
+        void build_KS_kgrid_blacs(const BlacsCtxtHandler &blacs_ctxt_h);
+        void build_KS_band_blacs(const std::map<int, std::map<int, ComplexMatrix>> &wfc_band,
+                                 const std::vector<Vector3_Order<double>> &kfrac_band,
+                                 const Atoms &geometry,
+                                 const BlacsCtxtHandler &blacs_ctxt_h);
         void reset_rspace();
         void reset_kspace();
 };

@@ -73,8 +73,8 @@ void driver::task_g0w0()
     // Build the self-energy matrix
     h.build_g0w0_sigma(opts);
 
-    auto ds = librpa_int::api::get_dataset_instance(h.get_c_handler());
-    auto &chi0 = *(ds->p_chi0);
+    auto pds = librpa_int::api::get_dataset_instance(h.get_c_handler());
+    auto &chi0 = *(pds->p_chi0);
 
     // if (opts.output_level >= LIBRPA_VERBOSE_DEBUG)
     // { // debug, check chi0
@@ -165,13 +165,13 @@ void driver::task_g0w0()
     // }
 
     profiler.start("g0w0_sigc_rotate_KS", "Construct self-energy in Kohn-Sham space");
-    ds->p_g0w0->build_sigc_matrix_KS_kgrid();
+    pds->p_g0w0->build_sigc_matrix_KS_kgrid_blacs(pds->blacs_ctxt_h);
     profiler.stop("g0w0_sigc_rotate_KS");
 
     if (flag_read_vxc == 0)
     {
         profiler.start("g0w0_solve_qpe", "Solve quasi-particle equation");
-        if (ds->comm_h.is_root())
+        if (pds->comm_h.is_root())
         {
             std::cout << "Solving quasi-particle equation\n";
         }
@@ -186,17 +186,17 @@ void driver::task_g0w0()
         {
             map<int, map<int, map<int, double>>> e_qp_all;
             map<int, map<int, map<int, cplxdb>>> sigc_all;
-            const auto efermi = ds->mf.get_efermi();
-            for (int i_spin = 0; i_spin < ds->mf.get_n_spins(); i_spin++)
+            const auto efermi = pds->mf.get_efermi();
+            for (int i_spin = 0; i_spin < pds->mf.get_n_spins(); i_spin++)
             {
-                for (int i_kpoint = 0; i_kpoint < ds->mf.get_n_kpoints(); i_kpoint++)
+                for (int i_kpoint = 0; i_kpoint < pds->mf.get_n_kpoints(); i_kpoint++)
                 {
-                    const auto &sigc_sk = ds->p_g0w0->sigc_is_ik_f_KS[i_spin][i_kpoint];
+                    const auto &sigc_sk = pds->p_g0w0->sigc_is_ik_f_KS[i_spin][i_kpoint];
                     // ofs_myid << sigc_sk.size() << endl;
-                    for (int i_state = 0; i_state < ds->mf.get_n_bands(); i_state++)
+                    for (int i_state = 0; i_state < pds->mf.get_n_bands(); i_state++)
                     {
-                        const auto &eks_state = ds->mf.get_eigenvals()[i_spin](i_kpoint, i_state);
-                        const auto &exx_state = ds->p_exx->Eexx[i_spin][i_kpoint][i_state];
+                        const auto &eks_state = pds->mf.get_eigenvals()[i_spin](i_kpoint, i_state);
+                        const auto &exx_state = pds->p_exx->Eexx[i_spin][i_kpoint][i_state];
                         const auto &vxc_state = vxc[i_spin](i_kpoint, i_state);
                         std::vector<cplxdb> sigc_state;
                         for (const auto &freq: chi0.tfg.get_freq_nodes())
@@ -227,21 +227,21 @@ void driver::task_g0w0()
             // display results
             const std::string banner(124, '-');
             lib_printf("Printing quasi-particle energy [unit: eV]\n\n");
-            for (int i_spin = 0; i_spin < ds->mf.get_n_spins(); i_spin++)
+            for (int i_spin = 0; i_spin < pds->mf.get_n_spins(); i_spin++)
             {
-                for (int i_kpoint = 0; i_kpoint < ds->mf.get_n_kpoints(); i_kpoint++)
+                for (int i_kpoint = 0; i_kpoint < pds->mf.get_n_kpoints(); i_kpoint++)
                 {
-                    const auto &k = ds->pbc.kfrac_list[i_kpoint];
+                    const auto &k = pds->pbc.kfrac_list[i_kpoint];
                     lib_printf("spin %2d, k-point %4d: (%.5f, %.5f, %.5f) \n",
                                i_spin+1, i_kpoint+1, k.x, k.y, k.z);
                     lib_printf("%124s\n", banner.c_str());
                     lib_printf("%5s %16s %16s %16s %16s %16s %16s %16s\n", "State", "occ", "e_mf", "v_xc", "v_exx", "ReSigc", "ImSigc", "e_qp");
                     lib_printf("%124s\n", banner.c_str());
-                    for (int i_state = 0; i_state < ds->mf.get_n_bands(); i_state++)
+                    for (int i_state = 0; i_state < pds->mf.get_n_bands(); i_state++)
                     {
-                        const auto &occ_state = ds->mf.get_weight()[i_spin](i_kpoint, i_state) * ds->mf.get_n_kpoints();
-                        const auto &eks_state = ds->mf.get_eigenvals()[i_spin](i_kpoint, i_state) * HA2EV;
-                        const auto &exx_state = ds->p_exx->Eexx[i_spin][i_kpoint][i_state] * HA2EV;
+                        const auto &occ_state = pds->mf.get_weight()[i_spin](i_kpoint, i_state) * pds->mf.get_n_kpoints();
+                        const auto &eks_state = pds->mf.get_eigenvals()[i_spin](i_kpoint, i_state) * HA2EV;
+                        const auto &exx_state = pds->p_exx->Eexx[i_spin][i_kpoint][i_state] * HA2EV;
                         const auto &vxc_state = vxc[i_spin](i_kpoint, i_state) * HA2EV;
                         const auto &resigc = sigc_all[i_spin][i_kpoint][i_state].real() * HA2EV;
                         const auto &imsigc = sigc_all[i_spin][i_kpoint][i_state].imag() * HA2EV;
@@ -257,11 +257,11 @@ void driver::task_g0w0()
     }
 
     profiler.start("g0w0_export_sigc_KS", "Export self-energy in KS basis");
-    ds->comm_h.barrier();
-    if (driver::get_bool(opts.output_gw_sigc_mat) && ds->comm_h.is_root())
+    pds->comm_h.barrier();
+    if (driver::get_bool(opts.output_gw_sigc_mat) && pds->comm_h.is_root())
     {
         char fn[100];
-        for (const auto &ispin_sigc: ds->p_g0w0->sigc_is_ik_f_KS)
+        for (const auto &ispin_sigc: pds->p_g0w0->sigc_is_ik_f_KS)
         {
             const auto &ispin = ispin_sigc.first;
             for (const auto &ik_sigc: ispin_sigc.second)
@@ -269,7 +269,7 @@ void driver::task_g0w0()
                 const auto &ik = ik_sigc.first;
                 for (const auto &freq_sigc: ik_sigc.second)
                 {
-                    const auto ifreq = ds->p_g0w0->tfg.get_freq_index(freq_sigc.first);
+                    const auto ifreq = pds->p_g0w0->tfg.get_freq_index(freq_sigc.first);
                     sprintf(fn, "Sigc_fk_mn_ispin_%d_ik_%d_ifreq_%d.mtx", ispin, ik, ifreq);
                     print_matrix_mm_file(freq_sigc.second, librpa_int::path_as_directory(opts.output_dir) + fn, 1e-10);
                 }
@@ -278,9 +278,9 @@ void driver::task_g0w0()
         // for aims analytic continuation reader
     }
     // Limit writing of file to the master process (it has all the data)
-    if (ds->comm_h.is_root())
+    if (pds->comm_h.is_root())
     {
-        write_self_energy_omega("self_energy_omega.dat", *(ds->p_g0w0));
+        write_self_energy_omega("self_energy_omega.dat", *(pds->p_g0w0));
     }
     profiler.stop("g0w0_export_sigc_KS");
 

@@ -81,7 +81,7 @@ LIBRPA_C_H_FUNC_WRAP_WOPT_NOPAR(void, librpa_build_g0w0_sigma)
 
         profiler.start("g0w0_exx_real_work");
         pds->p_exx->build(routing, pds->basis_aux, pds->cs_data, VR);
-        pds->p_exx->build_KS_kgrid(pds->atoms, pds->blacs_ctxt_h);
+        pds->p_exx->build_KS_kgrid_blacs(pds->blacs_ctxt_h);
         profiler.stop("g0w0_exx_real_work");
     }
     profiler.stop("g0w0_exx");

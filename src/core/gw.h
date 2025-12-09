@@ -22,14 +22,23 @@ private:
     bool is_mf_eigvec_k_distributed_;
     bool is_rspace_built_;
     bool is_kspace_built_;
+    bool is_respace_redist_for_KS_;
 
-    std::map<int, std::map<double, std::map<Vector3_Order<int>, Matz>>> sigc_is_f_R_blacs;
+    // Redistributed sigc mat for further transformation to KS space
+    std::map<int, std::map<double, std::map<Vector3_Order<int>, Matz>>> sigc_is_f_R;
 
     //! frequency-domain reciprocal-space correlation self-energy, indices [ispin][freq][R][I][J](n_I, n_J)
-    // Sparse storage
+    // Sparse storage from LibRI calculation
     std::map<int, std::map<double, std::map<Vector3_Order<int>, ap_p_map<Matz>>>> sigc_is_f_R_IJ;
 
-    const BlacsCtxtHandler &blacs_h_sigc_;
+    void build_sigc_matrix_KS(const std::map<int, std::map<int, ComplexMatrix>> &wfc_target,
+                              const std::vector<Vector3_Order<double>> &kfrac_target,
+                              const Atoms &geometry);
+
+    void build_sigc_matrix_KS_blacs(const std::map<int, std::map<int, ComplexMatrix>> &wfc_target,
+                                    const std::vector<Vector3_Order<double>> &kfrac_target,
+                                    const Atoms &geometry, const BlacsCtxtHandler &blacs_ctxt_h);
+
 public:
     const MeanField &mf;
     const AtomicBasis& atbasis_wfc;
@@ -53,16 +62,13 @@ public:
     //! correlation self-energy matrix in the basis of KS states, indices [ispin][ik][freq](n_bands, n_bands)
     std::map<int, std::map<int, std::map<double, Matz>>> sigc_is_ik_f_KS;
 
-    void build_sigc_matrix_KS(const std::map<int, std::map<int, ComplexMatrix>> &wfc_target,
-                              const std::vector<Vector3_Order<double>> &kfrac_target,
-                              const Atoms &geometry);
 public:
     // Constructors
     G0W0(const MeanField &mf_in,
          const AtomicBasis& atbasis_wfc_in,
          const PeriodicBoundaryData &pbc_in,
          const TFGrids &tfg_in, const MpiCommHandler &comm_h_in,
-         bool is_mf_eigvec_k_distributed, const BlacsCtxtHandler &blacs_sigc_h);
+         bool is_mf_eigvec_k_distributed);
     // // delete copy/move constructors
     // G0W0(const G0W0 &s_g0w0) = delete;
     // G0W0(G0W0 &&s_g0w0) = delete;
@@ -90,13 +96,14 @@ public:
         std::map<double, std::map<Vector3_Order<double>, Matz>> &Wc_freq_q,
         const ArrayDesc &ad_Wc);
 
-    //! build the correlation self-energy matrix in Kohn-Sham basis at the SCF k-points
     void build_sigc_matrix_KS_kgrid();
-
-    //! build the correlation self-energy matrix in Kohn-Sham basis at the SCF k-points
     void build_sigc_matrix_KS_band(const std::map<int, std::map<int, ComplexMatrix>> &wfc_band,
                                    const std::vector<Vector3_Order<double>> &kfrac_band,
                                    const Atoms &geometry);
+    void build_sigc_matrix_KS_kgrid_blacs(const BlacsCtxtHandler &blacs_ctxt_h);
+    void build_sigc_matrix_KS_band_blacs(const std::map<int, std::map<int, ComplexMatrix>> &wfc_band,
+                                         const std::vector<Vector3_Order<double>> &kfrac_band,
+                                         const Atoms &geometry, const BlacsCtxtHandler &blacs_ctxt_h);
 };
 
 } /* end of namespace librpa_int */

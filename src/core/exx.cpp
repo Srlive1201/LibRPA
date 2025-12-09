@@ -1,18 +1,19 @@
 #include "exx.h"
 
+#include "../io/global_io.h"
+#include "../io/stl_io_helper.h"
 #include "../math/lapack_connector.h"
 #include "../math/utils_matrix_m_mpi.h"
 #include "../math/vector3_order.h"
 #include "../mpi/global_mpi.h"
-#include "../io/global_io.h"
+#include "../utils/constants.h"
 #include "../utils/libri_utils.h"
 #include "../utils/profiler.h"
-#include "../io/stl_io_helper.h"
-#include "../utils/constants.h"
 #include "atomic_basis.h"
+#include "meanfield_mpi.h"
 #include "geometry.h"
 #include "librpa_enums.h"
-#include "params.h"
+// #include "params.h"
 #include "pbc.h"
 #include "utils_atomic_basis_blacs.h"
 #ifdef LIBRPA_USE_LIBRI
@@ -33,8 +34,9 @@ Exx::Exx(const MeanField &mf_in,
     : mf(mf_in), atbasis_wfc(atbasis_wfc_in), pbc(pbc_in), comm_h(comm_h_in)
 {
     is_mf_eigvec_k_distributed_ = is_mf_eigvec_k_distributed;
-    is_rspace_build_ = false;
+    is_rspace_built_ = false;
     is_kspace_built_ = false;
+    is_rspace_redist_for_KS_ = false;
 
     // Runtime options
     libri_threshold_C = 0.0;
@@ -42,28 +44,28 @@ Exx::Exx(const MeanField &mf_in,
     libri_threshold_D = 0.0;
 };
 
-ComplexMatrix Exx::get_dmat_cplx_R_global(const int& ispin, const Vector3_Order<int>& R)
+static ComplexMatrix extract_dmat_cplx_R_IJblock(const ComplexMatrix& dmat_cplx, const AtomicBasis &ab_wfc, const atom_t& I, const atom_t& J)
 {
-    return this->mf.get_dmat_cplx_R(ispin, pbc.kfrac_list, R);
-}
-
-
-ComplexMatrix Exx::extract_dmat_cplx_R_IJblock(const ComplexMatrix& dmat_cplx, const atom_t& I, const atom_t& J)
-{
-    const auto &ab = this->atbasis_wfc;
-    const auto I_num = ab.get_atom_nb(I);
-    const auto J_num = ab.get_atom_nb(J);
+    const auto I_num = ab_wfc.get_atom_nb(I);
+    const auto J_num = ab_wfc.get_atom_nb(J);
     ComplexMatrix dmat_cplx_IJR(I_num, J_num);
     for (size_t i = 0; i != I_num; i++)
     {
-        size_t i_glo = ab.get_global_index(I, i);
+        size_t i_glo = ab_wfc.get_global_index(I, i);
         for (size_t j = 0; j != J_num; j++)
         {
-            size_t j_glo = ab.get_global_index(J, j);
+            size_t j_glo = ab_wfc.get_global_index(J, j);
             dmat_cplx_IJR(i, j) = dmat_cplx(i_glo, j_glo);
         }
     }
     return dmat_cplx_IJR;
+}
+
+
+static void warn_dmat_IJR_nonzero_imag(const ComplexMatrix& dmat_cplx, const int& ispin, const atom_t& I, const atom_t& J, const Vector3_Order<int> R)
+{
+    if (dmat_cplx.get_max_abs_imag() > 1e-2)
+        global::lib_printf("Warning: complex-valued density matrix, spin %d IJR %zu %zu (%d, %d, %d)\n", ispin, I, J, R.x, R.y, R.z);
 }
 
 
@@ -74,13 +76,13 @@ void Exx::build_dmat_R(const Vector3_Order<int> &R)
 
     for (int is = 0; is != nspins; is++)
     {
-        auto dmat_cplx = this->get_dmat_cplx_R_global(is, R);
+        auto dmat_cplx = mf.get_dmat_cplx_R(is, pbc.kfrac_list, R);
         for ( int I = 0; I != natom; I++)
         {
             for (int J = 0; J != natom; J++)
             {
-                const auto dmat_cplx_IJR = this->extract_dmat_cplx_R_IJblock(dmat_cplx, I, J);
-                this->warn_dmat_IJR_nonzero_imag(dmat_cplx_IJR, is, I, J, R);
+                const auto dmat_cplx_IJR = extract_dmat_cplx_R_IJblock(dmat_cplx, atbasis_wfc, I, J);
+                warn_dmat_IJR_nonzero_imag(dmat_cplx_IJR, is, I, J, R);
                 this->dmat[is][I][J][R] = std::make_shared<matrix>();
                 *(this->dmat[is][I][J][R]) = dmat_cplx_IJR.real();
             }
@@ -95,21 +97,101 @@ void Exx::build_dmat_R(const atom_t& I, const atom_t& J, const Vector3_Order<int
 
     for (int is = 0; is != nspins; is++)
     {
-        auto dmat_cplx = this->get_dmat_cplx_R_global(is, R);
-        const auto dmat_cplx_IJR = this->extract_dmat_cplx_R_IJblock(dmat_cplx, I, J);
-        this->warn_dmat_IJR_nonzero_imag(dmat_cplx_IJR, is, I, J, R);
+        auto dmat_cplx = mf.get_dmat_cplx_R(is, pbc.kfrac_list, R);
+        const auto dmat_cplx_IJR = extract_dmat_cplx_R_IJblock(dmat_cplx, atbasis_wfc, I, J);
+        warn_dmat_IJR_nonzero_imag(dmat_cplx_IJR, is, I, J, R);
         this->dmat[is][I][J][R] = std::make_shared<matrix>();
         *(this->dmat[is][I][J][R]) = dmat_cplx_IJR.real();
     }
 }
 
 
-void Exx::warn_dmat_IJR_nonzero_imag(const ComplexMatrix& dmat_cplx, const int& ispin, const atom_t& I, const atom_t& J, const Vector3_Order<int> R)
+#ifdef LIBRPA_USE_LIBRI
+static void build_dmat_libri_serial(
+    const MeanField &mf,
+    const AtomicBasis &atbasis_wfc,
+    int ispin,
+    const vector<Vector3_Order<double>> &kfrac_list,
+    const std::vector<std::pair<atpair_t, Vector3_Order<int>>> IJRs, 
+    std::map<int, std::map<std::pair<int,std::array<int,3>>,RI::Tensor<double>>> &dmat_libri)
 {
-    if (dmat_cplx.get_max_abs_imag() > 1e-2)
-        global::lib_printf("Warning: complex-valued density matrix, spin %d IJR %zu %zu (%d, %d, %d)\n", ispin, I, J, R.x, R.y, R.z);
+    global::profiler.start("exx_build_dmat_libri_serial");
+    std::map<Vector3_Order<int>, std::vector<atpair_t>> map_R_IJs;
+    for (const auto &IJR: IJRs)
+    {
+        const auto &R = IJR.second;
+        map_R_IJs[R].push_back(IJR.first);
+    }
+    for (const auto &[R, IJs]: map_R_IJs)
+    {
+        std::array<int,3> Ra{R.x,R.y,R.z};
+        const auto dmat_cplx = mf.get_dmat_cplx_R(ispin, kfrac_list, R);
+        omp_lock_t dmat_lock;
+        omp_init_lock(&dmat_lock);
+#pragma omp parallel for schedule(dynamic)
+        for (const auto &[I, J]: IJs)
+        {
+            const auto dmat_IJR = extract_dmat_cplx_R_IJblock(dmat_cplx, atbasis_wfc, I, J);
+            warn_dmat_IJR_nonzero_imag(dmat_IJR, ispin, I, J, R);
+            std::valarray<double> dmat_va(dmat_IJR.real().c, dmat_IJR.size);
+            auto pdmat = std::make_shared<std::valarray<double>>();
+            *pdmat = dmat_va;
+            omp_set_lock(&dmat_lock);
+            dmat_libri[I][{J, Ra}] = RI::Tensor<double>({size_t(dmat_IJR.nr), size_t(dmat_IJR.nc)}, pdmat);
+            omp_unset_lock(&dmat_lock);
+        }
+#pragma omp barrier
+        omp_destroy_lock(&dmat_lock);
+    }
+    global::profiler.stop("exx_build_dmat_libri_serial");
 }
 
+static void build_dmat_libri_kpara(
+    const MeanField &mf,
+    const MpiCommHandler &comm_h,
+    const AtomicBasis &atbasis_wfc,
+    int ispin,
+    const vector<Vector3_Order<double>> &kfrac_list,
+    const std::vector<std::pair<atpair_t, Vector3_Order<int>>> IJRs, 
+    std::map<int, std::map<std::pair<int,std::array<int,3>>,RI::Tensor<double>>> &dmat_libri)
+{
+    global::profiler.start("exx_build_dmat_libri_kpara");
+
+    std::map<Vector3_Order<int>, std::vector<atpair_t>> map_R_IJs;
+    for (const auto &[IJ, R]: IJRs)
+    {
+        map_R_IJs[R].emplace_back(IJ);
+    }
+    std::vector<Vector3_Order<int>> Rs_this;
+    for (const auto &[R, _]: map_R_IJs)
+        Rs_this.emplace_back(R);
+    const int n_Rs_this = map_R_IJs.size();
+    int n_Rs_max = n_Rs_this;
+    MPI_Allreduce(MPI_IN_PLACE, &n_Rs_max, 1, MPI_INT, MPI_MAX, comm_h.comm);
+    const auto dmat_Rs_cplx = get_dmat_cplx_Rs_kpara(ispin, mf, kfrac_list, Rs_this, comm_h);
+    for (const auto &[R, dmat_cplx]: dmat_Rs_cplx)
+    {
+        std::array<int,3> Ra{R.x,R.y,R.z};
+        omp_lock_t dmat_lock;
+        omp_init_lock(&dmat_lock);
+#pragma omp parallel for schedule(dynamic)
+        for (const auto &[I, J]: map_R_IJs.at(R))
+        {
+            const auto dm_block = extract_dmat_cplx_R_IJblock(dmat_cplx, atbasis_wfc, I, J);
+            warn_dmat_IJR_nonzero_imag(dm_block, ispin, I, J, R);
+            std::valarray<double> dmat_va(dm_block.real().c, dm_block.size);
+            auto pdmat = std::make_shared<std::valarray<double>>();
+            *pdmat = dmat_va;
+            omp_set_lock(&dmat_lock);
+            dmat_libri[I][{J, Ra}] = RI::Tensor<double>({size_t(dm_block.nr), size_t(dm_block.nc)}, pdmat);
+            omp_unset_lock(&dmat_lock);
+        }
+#pragma omp barrier
+        omp_destroy_lock(&dmat_lock);
+    }
+    global::profiler.stop("exx_build_dmat_libri_kpara");
+}
+#endif
 
 void Exx::build(const LibrpaParallelRouting routing,
                 const AtomicBasis &atbasis_abf, const Cs_LRI &Cs,
@@ -117,7 +199,7 @@ void Exx::build(const LibrpaParallelRouting routing,
 {
     assert(routing == LibrpaParallelRouting::LIBRI);
 
-    if (this->is_rspace_build_)
+    if (this->is_rspace_built_)
     {
         return;
     }
@@ -223,24 +305,13 @@ void Exx::build(const LibrpaParallelRouting routing,
     {
         global::profiler.start("build_real_space_exx_3", "Prepare DM libRI object");
         std::map<int, std::map<std::pair<int,std::array<int,3>>,RI::Tensor<double>>> dmat_libri;
-        for (const auto &R: Rlist)
+        if (is_mf_eigvec_k_distributed_)
         {
-            std::array<int,3> Ra{R.x,R.y,R.z};
-            const auto dmat_cplx = this->get_dmat_cplx_R_global(isp, R);
-            for (const auto& IJR: dmat_IJRs_local)
-            {
-                if (IJR.second == R)
-                {
-                    const auto& I = IJR.first.first;
-                    const auto& J = IJR.first.second;
-                    const auto dmat_IJR = this->extract_dmat_cplx_R_IJblock(dmat_cplx, I, J);
-                    this->warn_dmat_IJR_nonzero_imag(dmat_IJR, isp, I, J, R);
-                    std::valarray<double> dmat_va(dmat_IJR.real().c, dmat_IJR.size);
-                    auto pdmat = std::make_shared<std::valarray<double>>();
-                    *pdmat = dmat_va;
-                    dmat_libri[I][{J, Ra}] = RI::Tensor<double>({size_t(dmat_IJR.nr), size_t(dmat_IJR.nc)}, pdmat);
-                }
-            }
+            build_dmat_libri_kpara(mf, comm_h, atbasis_wfc, isp, this->pbc.kfrac_list, dmat_IJRs_local, dmat_libri);
+        }
+        else
+        {
+            build_dmat_libri_serial(mf, atbasis_wfc, isp, this->pbc.kfrac_list, dmat_IJRs_local, dmat_libri);
         }
         global::ofs_myid << "Number of Dmat keys: " << get_num_keys(dmat_libri) << "\n";
         // print_keys(global::ofs_myid, dmat_libri);
@@ -300,18 +371,23 @@ void Exx::build(const LibrpaParallelRouting routing,
     comm_h.barrier();
 #endif
 
-    is_rspace_build_= true;
+    is_rspace_built_= true;
 }
-
 
 void Exx::build_KS(const std::map<int, std::map<int, ComplexMatrix>> &wfc_target,
                    const std::vector<Vector3_Order<double>> &kfrac_target,
-                   const Atoms &geometry,
-                   const BlacsCtxtHandler &blacs_ctxt_h)
+                   const Atoms &geometry)
+{
+}
+
+void Exx::build_KS_blacs(const std::map<int, std::map<int, ComplexMatrix>> &wfc_target,
+                         const std::vector<Vector3_Order<double>> &kfrac_target,
+                         const Atoms &geometry,
+                         const BlacsCtxtHandler &blacs_ctxt_h)
 {
     using RI::Communicate_Tensors_Map_Judge::comm_map2_first;
 
-    assert(this->is_rspace_build_);
+    assert(this->is_rspace_built_);
 
     // Reset k-space matrices built from last call
     if (this->is_kspace_built_)
@@ -490,22 +566,33 @@ void Exx::build_KS(const std::map<int, std::map<int, ComplexMatrix>> &wfc_target
     }
 }
 
-void Exx::build_KS_kgrid(const Atoms &geometry, const BlacsCtxtHandler &blacs_ctxt_h)
+void Exx::build_KS_kgrid()
 {
-    this->build_KS(this->mf.get_eigenvectors(), this->pbc.kfrac_list, geometry, blacs_ctxt_h);
+    this->build_KS(this->mf.get_eigenvectors(), this->pbc.kfrac_list, {});
 }
 
 void Exx::build_KS_band(const std::map<int, std::map<int, ComplexMatrix>> &wfc_band,
-                        const std::vector<Vector3_Order<double>> &kfrac_band, const Atoms &geometry,
-                        const BlacsCtxtHandler &blacs_ctxt_h)
+                        const std::vector<Vector3_Order<double>> &kfrac_band, const Atoms &geometry)
 {
-    this->build_KS(wfc_band, kfrac_band, geometry, blacs_ctxt_h);
+    this->build_KS(wfc_band, kfrac_band, geometry);
+}
+
+void Exx::build_KS_kgrid_blacs(const BlacsCtxtHandler &blacs_ctxt_h)
+{
+    this->build_KS_blacs(this->mf.get_eigenvectors(), this->pbc.kfrac_list, {}, blacs_ctxt_h);
+}
+
+void Exx::build_KS_band_blacs(const std::map<int, std::map<int, ComplexMatrix>> &wfc_band,
+                              const std::vector<Vector3_Order<double>> &kfrac_band, const Atoms &geometry,
+                              const BlacsCtxtHandler &blacs_ctxt_h)
+{
+    this->build_KS_blacs(wfc_band, kfrac_band, geometry, blacs_ctxt_h);
 }
 
 void Exx::reset_rspace()
 {
     this->exx.clear();
-    this->is_rspace_build_ = false;
+    this->is_rspace_built_ = false;
 }
 
 void Exx::reset_kspace()
