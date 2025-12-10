@@ -1,5 +1,7 @@
 #include "exx.h"
 
+#include <omp.h>
+
 #include "../io/global_io.h"
 #include "../io/stl_io_helper.h"
 #include "../math/lapack_connector.h"
@@ -91,8 +93,10 @@ static void build_dmat_libri_serial(
         const auto &R = IJR.second;
         map_R_IJs[R].push_back(IJR.first);
     }
-    for (const auto &[R, IJs]: map_R_IJs)
+    for (const auto &R_IJs: map_R_IJs)
     {
+        const auto &R = R_IJs.first;
+        const auto &IJs = R_IJs.second;
         std::array<int,3> Ra{R.x,R.y,R.z};
         const auto dmat_cplx = mf.get_dmat_cplx_R(ispin, kfrac_list, R);
         // global::ofs_myid << R << std::endl;
@@ -143,8 +147,10 @@ static void build_dmat_libri_kpara(
     MPI_Allreduce(MPI_IN_PLACE, &n_Rs_max, 1, MPI_INT, MPI_MAX, comm_h.comm);
     const auto dmat_Rs_cplx = get_dmat_cplx_Rs_kpara(ispin, mf, kfrac_list, Rs_this, comm_h);
     // global::ofs_myid << kfrac_list << std::endl;
-    for (const auto &[R, dmat_cplx]: dmat_Rs_cplx)
+    for (const auto &R_dmat_cplx: dmat_Rs_cplx)
     {
+        const auto &R = R_dmat_cplx.first;
+        const auto &dmat_cplx = R_dmat_cplx.second;
         // global::ofs_myid << R << std::endl;
         // print_complex_matrix("test", dmat_cplx, global::ofs_myid, true);
         std::array<int,3> Ra{R.x,R.y,R.z};
