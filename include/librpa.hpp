@@ -113,6 +113,10 @@ public:
     //! Compute real-space exact-exchange matrix
     void build_exx(const Options &opts);
 
+    std::vector<double>
+    get_exx_pot_kgrid(const Options &opts, const int n_spins, const std::vector<int> &iks_local,
+                      int i_state_low, int i_state_high);
+
     //! Compute real-space G0W0 self-energy matrix
     void build_g0w0_sigma(const Options &opts);
 };

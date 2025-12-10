@@ -5,11 +5,8 @@
 
 // Internal headers
 #include "../core/coulmat.h"
-#include "../core/dielecmodel.h"
-#include "../core/epsilon.h"
 #include "../io/fs.h"
-#include "../math/complexmatrix.h"
-#include "../math/utils_matrix_m_mpi.h"
+#include "../utils/error.h"
 #include "../utils/profiler.h"
 #include "../utils/utils_mem.h"
 #include "dataset_helper.h"
@@ -23,7 +20,7 @@ LIBRPA_C_H_FUNC_WRAP_WOPT_NOPAR(void, librpa_build_exx)
 
     auto pds = librpa_int::api::get_dataset_instance(h);
     const auto &opts = *p_opts;
-    const bool debug = opts.output_level >= LIBRPA_VERBOSE_DEBUG;
+    // const bool debug = opts.output_level >= LIBRPA_VERBOSE_DEBUG;
 
     profiler.start("api_build_exx");
 
@@ -48,4 +45,54 @@ LIBRPA_C_H_FUNC_WRAP_WOPT_NOPAR(void, librpa_build_exx)
     }
 
     profiler.stop("api_build_exx");
+}
+
+LIBRPA_C_H_FUNC_WRAP_WOPT(void, librpa_get_exx_pot_kgrid, const int n_spins, const int n_kpoints_local,
+                          const int *iks_local, int i_state_low, int i_state_high, double *vexx)
+{
+    using namespace librpa_int;
+    using librpa_int::global::profiler;
+    using librpa_int::global::lib_printf;
+
+    auto pds = librpa_int::api::get_dataset_instance(h);
+    i_state_low = std::max(0, i_state_low);
+    i_state_high = std::min(pds->mf.get_n_states(), i_state_high);
+    if (n_spins != pds->mf.get_n_spins())
+    {
+        throw LIBRPA_RUNTIME_ERROR("parsed nspins is not consitent with the SCF starting poing");
+    }
+    if (i_state_high <= i_state_low)
+    {
+        return;
+    }
+    const int n_states_calc = i_state_high - i_state_low;
+
+    if (!pds->p_exx)
+    {
+        librpa_build_exx(h, p_opts);
+    }
+
+    const auto &opts = *p_opts;
+    // const bool debug = opts.output_level >= LIBRPA_VERBOSE_DEBUG;
+
+    profiler.start("api_get_exx_pot_kgrid");
+    auto &pexx = pds->p_exx;
+    // TODO: make choosing blacs/non-blacs method a run time option
+    pexx->build_KS_kgrid_blacs(pds->blacs_ctxt_h);
+    for (int isp = 0; isp < n_spins; isp++)
+    {
+        const int start_isp = isp * n_kpoints_local * n_states_calc;
+        const auto exx_isp = pexx->Eexx.at(isp);
+        for (int ik_local = 0; ik_local < n_kpoints_local; ik_local++)
+        {
+            const int start_k = start_isp + ik_local * n_states_calc;
+            const int ik = *(iks_local + ik_local);
+            const auto &exx_k = exx_isp.at(ik);
+            for (int i = 0; i < n_states_calc; i++)
+            {
+                vexx[start_k+i] = exx_k.at(i_state_low+i);
+            }
+        }
+    }
+    profiler.stop("api_get_exx_pot_kgrid");
 }

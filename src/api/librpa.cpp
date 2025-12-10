@@ -189,14 +189,26 @@ LIBRPA_CPP_H_METHOD_DEF_WRAP_RET_WOPT(
     {for (int iq = 0; iq < nq; iq++) { rpa_corr_ibzk_contrib[iq] = re[iq] + im[iq] * 1.0i;}}
 )
 
-void Handler::build_g0w0_sigma(const Options &opts)
-{
-    ::librpa_build_g0w0_sigma(this->h_, &opts);
-}
-
 void Handler::build_exx(const Options &opts)
 {
     ::librpa_build_exx(this->h_, &opts);
+}
+
+std::vector<double> Handler::get_exx_pot_kgrid(const Options& opts, const int n_spins,
+                                               const std::vector<int> &iks_local, int i_state_low,
+                                               int i_state_high)
+{
+    const int n_kpoints_local = iks_local.size();
+    const int n_states_calc = i_state_high - i_state_low;
+    std::vector<double> vexx(n_spins * n_kpoints_local * n_states_calc);
+    ::librpa_get_exx_pot_kgrid(this->h_, &opts, n_spins, n_kpoints_local, iks_local.data(),
+                                i_state_low, i_state_high, vexx.data());
+    return vexx;
+}
+
+void Handler::build_g0w0_sigma(const Options &opts)
+{
+    ::librpa_build_g0w0_sigma(this->h_, &opts);
 }
 
 }

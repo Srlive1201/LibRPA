@@ -364,6 +364,17 @@ module librpa_f03
          type(LibrpaOptions_c), intent(in) :: opts
       end subroutine librpa_build_exx_c
 
+      subroutine librpa_get_exx_pot_kgrid_c(h, opts, n_spins, n_kpoints_local, iks_local, &
+                                            i_state_low, i_state_high, vexx) &
+            bind(c, name="librpa_get_exx_pot_kgrid")
+         import :: LibrpaOptions_c, c_ptr, c_int, c_double
+         type(c_ptr), value :: h
+         type(LibrpaOptions_c), intent(in) :: opts
+         integer(c_int), value :: n_spins, n_kpoints_local, i_state_low, i_state_high
+         integer(c_int), dimension(*), intent(in) :: iks_local
+         real(c_double), dimension(*), intent(inout) :: vexx
+      end subroutine librpa_get_exx_pot_kgrid_c
+
       subroutine librpa_build_g0w0_sigma_c(h, opts) bind(c, name="librpa_build_g0w0_sigma")
          import :: LibrpaOptions_c, c_ptr
          type(c_ptr), value :: h
@@ -1075,6 +1086,37 @@ contains
 
       call librpa_build_exx_c(this%ptr_c_handle, opts%opts_c)
    end subroutine librpa_build_exx
+
+   subroutine librpa_get_exx_pot_kgrid(this, opts, n_spins, n_kpoints_local, iks_local, &
+                                       i_state_low, i_state_high, vexx)
+      implicit none
+      class(LibrpaHandler), intent(inout) :: this
+      type(LibrpaOptions), intent(inout) :: opts
+      integer, dimension(n_kpoints_local), intent(in) :: iks_local
+      integer, intent(in) :: n_spins, n_kpoints_local, i_state_low, i_state_high
+      real(dp), dimension(i_state_high - i_state_low + 1, n_kpoints_local, n_spins), intent(inout) :: vexx
+
+      integer(c_int), allocatable :: iks_local_c(:)
+      real(c_double), allocatable :: vexx_c(:,:,:)
+      integer(c_int) :: n_spins_c, n_kpoints_local_c, i_state_low_c, i_state_high_c
+      integer :: n_states_calc
+
+      n_states_calc = i_state_high - i_state_low + 1
+      i_state_low_c = i_state_low - 1
+      i_state_high_c = i_state_high
+      n_kpoints_local_c = n_kpoints_local
+      iks_local_c = iks_local
+
+      allocate(iks_local_c(n_kpoints_local))
+      allocate(vexx_c(n_states_calc, n_kpoints_local, n_spins))
+
+      call librpa_get_exx_pot_kgrid_c(this%ptr_c_handle, opts%opts_c, n_spins_c, n_kpoints_local_c, &
+                                      iks_local_c, i_state_low_c, i_state_high_c, vexx_c)
+      vexx = real(vexx_c, kind=dp)
+
+      deallocate(iks_local_c, vexx_c)
+
+   end subroutine librpa_get_exx_pot_kgrid
 
    subroutine librpa_build_g0w0_sigma(this, opts)
       implicit none
