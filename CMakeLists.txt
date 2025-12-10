@@ -1,10 +1,14 @@
 # main CMake file for LibRPA
 cmake_minimum_required(VERSION 3.13)
 
-project(LibRPA NONE)
+project(librpa NONE)
+
+set(PROJECT_NAME "rpa")
+
+# message(STATUS "Project name: ${PROJECT_NAME}")  # => "rpa"
 
 # extract version number from version.h file
-file(READ ${PROJECT_SOURCE_DIR}/src/version.h version_file)
+file(READ ${CMAKE_CURRENT_SOURCE_DIR}/src/version.h version_file)
 string(REGEX MATCH "LIBRPA_MAJOR_VERSION ([0-9]+)" librpa_major_version ${version_file})
 set(librpa_major_version ${CMAKE_MATCH_1})
 string(REGEX MATCH "LIBRPA_MINOR_VERSION ([0-9]+)" librpa_minor_version ${version_file})
@@ -16,11 +20,9 @@ set(version "${librpa_major_version}.${librpa_minor_version}.${librpa_patch_vers
 set(CMAKE_PROJECT_VERSION "${version}")
 
 set(LIBRPA_DRIVER_NAME         "chi0_main.exe")
-set(LIBRPA_LIB_NAME            "rpa")
-set(LIBRPA_FORTRAN_LIB_NAME    "rpa_f03")
 
 # Public options setup
-option(LIBRPA_USE_LIBRI            "Use LibRI for tensor contraction in LiBRPA" OFF)
+option(LIBRPA_USE_LIBRI            "Use LibRI for tensor contraction in LibRPA" OFF)
 option(LIBRPA_USE_CMAKE_INC        "Use cmake.inc for configure" OFF)
 option(LIBRPA_USE_EXTERNAL_GREENX  "Use external GreenX library rather than the packaged one in LibRPA" OFF)
 option(ENABLE_LIBRPA_TEST          "Flag to build LibRPA tests" ON)
@@ -48,7 +50,7 @@ endif()
 set(_BUNDLED_GREENX_COMMIT_HASH "c90d131")
 
 # Add cmake load files
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 set(math_libs "")
 set(parallel_libs "")
@@ -83,10 +85,11 @@ endif()
 # Setup installation paths
 include(GNUInstallDirs)
 if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
-  set(default_install_prefix "${CMAKE_BINARY_DIR}/install")
+  set(default_install_prefix "${CMAKE_SOURCE_DIR}/install")  # default to install at the root project
   set(CMAKE_INSTALL_PREFIX ${default_install_prefix}
       CACHE STRING "The installation directory is not set, default to ${default_install_prefix}"
       FORCE)
+  set(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT OFF)
 endif()
 
 # Get git commit number
@@ -130,8 +133,6 @@ endif()
 
 # TODO: always switch on MPI, until test program for MPI is implemented
 add_compile_definitions("LIBRPA_USE_MPI")
-
-include_directories(src)
 
 # Switch on LibRI functionalities, which requires Cereal, LibComm and LibRI
 # When USE_LIBRI is switched on but the include direcotires of the required dependenccies are not specified
@@ -205,7 +206,7 @@ endif()
 if(NOT LIBRPA_USE_EXTERNAL_GREENX)
   set(LIBRPA_GREENX_COMMIT_HASH "${_BUNDLED_GREENX_COMMIT_HASH}")
   message(STATUS "Generate MiniMax grids by using the bundled GreenX library (collected from commit ${LIBRPA_GREENX_COMMIT_HASH})")
-  add_subdirectory(./thirdparty/greenX)
+  add_subdirectory(thirdparty/greenX)
 else()
   set(LIBRPA_GREENX_COMMIT_HASH "(EXTERNAL)")
 endif()
@@ -224,16 +225,17 @@ endif()
 
 if(ENABLE_LIBRPA_FORTRAN_BIND)
   message(STATUS "LibRPA Fortran binding enabled")
-  add_subdirectory(./binding/fortran)
+  add_subdirectory(binding/fortran)
 endif()
 
 if(ENABLE_LIBRPA_DRIVER)
-  message(STATUS "Build driver")
+  message(STATUS "LibRPA driver enabled")
   list(APPEND CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR})
   add_subdirectory(driver)
 endif()
 
 add_subdirectory(src)
+
 install(FILES
   ${CMAKE_CURRENT_SOURCE_DIR}/include/librpa_compute.h
   ${CMAKE_CURRENT_SOURCE_DIR}/include/librpa_enums.h
@@ -244,8 +246,9 @@ install(FILES
   ${CMAKE_CURRENT_SOURCE_DIR}/include/librpa_options.h
   ${CMAKE_CURRENT_SOURCE_DIR}/include/librpa.h
   ${CMAKE_CURRENT_SOURCE_DIR}/include/librpa.hpp
-  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/librpa)
 
+message(STATUS "CMAKE_INSTALL_PREFIX ${CMAKE_INSTALL_PREFIX}")
 message(STATUS "CMAKE_INSTALL_RPATH: ${CMAKE_INSTALL_RPATH}")
 message(STATUS "CMAKE_CXX_FLAGS: ${CMAKE_CXX_FLAGS}")
 message(STATUS "CMAKE_Fortran_FLAGS: ${CMAKE_Fortran_FLAGS}")

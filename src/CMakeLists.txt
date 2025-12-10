@@ -7,36 +7,35 @@
 #   RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
 
 if (BUILD_SHARED_LIBS)
-  add_library(rpa_lib SHARED)
+  add_library(${PROJECT_NAME}_lib SHARED)
 else()
-  add_library(rpa_lib STATIC)
+  add_library(${PROJECT_NAME}_lib STATIC)
 endif()
 
-add_dependencies(rpa_lib LibGXMiniMax)
+add_dependencies(${PROJECT_NAME}_lib LibGXMiniMax)
 
-set_target_properties(rpa_lib PROPERTIES
-  OUTPUT_NAME ${LIBRPA_LIB_NAME}
+set_target_properties(${PROJECT_NAME}_lib PROPERTIES
+  OUTPUT_NAME ${PROJECT_NAME}
   VERSION ${CMAKE_PROJECT_VERSION}
   SOVERSION ${CMAKE_PROJECT_VERSION}
 )
 
-target_link_libraries(rpa_lib PRIVATE LibGXMiniMax)
-target_include_directories(rpa_lib PRIVATE
+target_link_libraries(${PROJECT_NAME}_lib PRIVATE LibGXMiniMax)
+target_include_directories(${PROJECT_NAME}_lib PRIVATE
   $<TARGET_PROPERTY:LibGXMiniMax,Fortran_MODULE_DIRECTORY>
 )
 
-target_include_directories(rpa_lib
+target_include_directories(${PROJECT_NAME}_lib
   PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
-    ${PROJECT_SOURCE_DIR}/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/../include
   )
-configure_file(utils/envs_cmake.cpp.in envs_cmake.cpp)
-configure_file(utils/envs_cmake.h envs_cmake.h)  # only to make the configured envs_cmake.cpp compile
+configure_file(utils/envs_cmake.cpp.in ${CMAKE_CURRENT_BINARY_DIR}/envs_cmake.cpp)
+configure_file(utils/envs_cmake.h ${CMAKE_CURRENT_BINARY_DIR}/envs_cmake.h)  # only to make the configured envs_cmake.cpp compile
 
 list(APPEND lib_sources
         ${CMAKE_CURRENT_BINARY_DIR}/envs_cmake.cpp
 
-        # api/app_exx.cpp
         # api/app_rpa.cpp
         # api/app_gw.cpp
         api/compute_exx.cpp
@@ -95,7 +94,7 @@ list(APPEND lib_sources
 )
 
 if(LIBRPA_USE_LIBRI)
-  target_include_directories(rpa_lib
+  target_include_directories(${PROJECT_NAME}_lib
     PUBLIC
       ${Cereal_INCLUDE_DIR}
       ${LibComm_INCLUDE_DIR}
@@ -104,10 +103,10 @@ if(LIBRPA_USE_LIBRI)
 endif()
 
 # source must be PRIVATE to avoid recompilation when linking driver to this library
-target_sources(rpa_lib PRIVATE ${lib_sources})
-target_link_libraries(rpa_lib PRIVATE ${math_libs} ${parallel_libs})
+target_sources(${PROJECT_NAME}_lib PRIVATE ${lib_sources})
+target_link_libraries(${PROJECT_NAME}_lib PRIVATE ${math_libs} ${parallel_libs})
 
-install(TARGETS rpa_lib
+install(TARGETS ${PROJECT_NAME}_lib
         ARCHIVE
         DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
