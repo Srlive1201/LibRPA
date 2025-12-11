@@ -70,7 +70,7 @@ void driver::task_g0w0()
         h.set_dielect_func_imagfreq(omegas_dielect, dielect_func);
     }
 
-    // Build the self-energy matrix
+    // Build the self-energy matrix (including exchange and correlation)
     h.build_g0w0_sigma(opts);
 
     auto pds = librpa_int::api::get_dataset_instance(h.get_c_handler());
@@ -164,7 +164,12 @@ void driver::task_g0w0()
     //     }
     // }
 
-    profiler.start("g0w0_sigc_rotate_KS", "Construct self-energy in Kohn-Sham space");
+
+    profiler.start("g0w0_exx_rotate_KS", "Exchange self-energy in K-S space");
+    pds->p_exx->build_KS_kgrid_blacs(pds->blacs_ctxt_h);
+    profiler.stop("g0w0_exx_rotate_KS");
+
+    profiler.start("g0w0_sigc_rotate_KS", "Correlation self-energy in K-S space");
     pds->p_g0w0->build_sigc_matrix_KS_kgrid_blacs(pds->blacs_ctxt_h);
     profiler.stop("g0w0_sigc_rotate_KS");
 

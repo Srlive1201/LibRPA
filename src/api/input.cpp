@@ -285,6 +285,7 @@ LIBRPA_C_H_FUNC_WRAP(void, librpa_set_ibz_mapping, int nkpts, const int* map_ibz
 {
     using std::cout;
     using std::endl;
+    using namespace librpa_int;  // for STL io
     using namespace librpa_int::global;
 
     auto ds = librpa_int::api::get_dataset_instance(h);
@@ -293,6 +294,7 @@ LIBRPA_C_H_FUNC_WRAP(void, librpa_set_ibz_mapping, int nkpts, const int* map_ibz
 
     std::vector<int> map(map_ibzk, map_ibzk + nkpts);
     pbc.set_ibz_mapping(map, {});
+    // ofs_myid << map << std::endl;
     ds->comm_h.barrier();
     if (ds->comm_h.is_root())
     {
