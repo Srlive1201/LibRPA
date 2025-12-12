@@ -305,9 +305,11 @@ CorrEnergy compute_RPA_correlation_blacs_2d(Chi0 &chi0, atpair_k_cplx_mat_t &cou
 
     const auto &map_ibzk_weight = chi0.pbc.map_ibzk_weight;
 
-    vector<Vector3_Order<double>> qpts;
-    for (const auto &qMuNuchi: chi0.get_chi0_q().at(chi0.tfg.get_freq_nodes()[0]))
-        qpts.push_back(qMuNuchi.first);
+    // NOTE: this may change later when q-points are parallelized
+    vector<Vector3_Order<double>> qpts(chi0.pbc.klist_ibz);
+    // const auto &chi0q = chi0.get_chi0_q();
+    // for (const auto &qMuNuchi: chi0q.at(chi0.tfg.get_freq_nodes()[0]))
+    //     qpts.push_back(qMuNuchi.first);
     ofs_myid << "compute_RPA_correlation_blacs_2d handling qpts: " << qpts.size() << std::endl;
     // return corr;
 
@@ -408,30 +410,38 @@ CorrEnergy compute_RPA_correlation_blacs_2d(Chi0 &chi0, atpair_k_cplx_mat_t &cou
             {
                 double chi_begin_arr = omp_get_wtime();
                 std::map<int, std::map<std::pair<int, std::array<double, 3>>, Tensor<complex<double>>>> chi0_libri;
-                const auto &chi0_wq = chi0.get_chi0_q().at(freq).at(q);
                 chi0_libri.clear();
-                for (const auto &M_Nchi: chi0_wq)
+                auto it_freq = chi0.get_chi0_q().find(freq);
+                if (it_freq != chi0.get_chi0_q().cend())
                 {
-                    const auto &M = M_Nchi.first;
-                    const auto n_mu = chi0.atbasis_abf.get_atom_nb(M);
-                    for (const auto &N_chi: M_Nchi.second)
+                    auto it_fq = it_freq->second.find(q);
+                    if (it_fq != it_freq->second.cend())
                     {
-                        const auto &N = N_chi.first;
-                        const auto n_nu = chi0.atbasis_abf.get_atom_nb(N);
-                        const auto &chi = N_chi.second;
-                        std::valarray<complex<double>> chi_va(chi.c, chi.size);
-                        auto pchi = std::make_shared<std::valarray<complex<double>>>();
-                        *pchi = chi_va;
-                        chi0_libri[M][{N,qa}] = Tensor<complex<double>>({n_mu, n_nu}, pchi);
+                        const auto &chi0_wq = it_fq->second;
+                        for (const auto &M_Nchi: chi0_wq)
+                        {
+                            const auto &M = M_Nchi.first;
+                            const auto n_mu = chi0.atbasis_abf.get_atom_nb(M);
+                            for (const auto &N_chi: M_Nchi.second)
+                            {
+                                const auto &N = N_chi.first;
+                                const auto n_nu = chi0.atbasis_abf.get_atom_nb(N);
+                                const auto &chi = N_chi.second;
+                                std::valarray<complex<double>> chi_va(chi.c, chi.size);
+                                auto pchi = std::make_shared<std::valarray<complex<double>>>();
+                                *pchi = chi_va;
+                                chi0_libri[M][{N,qa}] = Tensor<complex<double>>({n_mu, n_nu}, pchi);
+                            }
+                        }
+                        if(comm_h.is_root())
+                        {
+                            lib_printf("Begin to clean chi0 !!! \n");
+                            // display_free_mem();
+                            lib_printf("chi0_freq_q size: %d,  freq: %f, q:( %f, %f, %f )\n",chi0_wq.size(),freq, q.x,q.y,q.z );
+                        }
+                        chi0.free_chi0_q(freq,q);
                     }
                 }
-                if(comm_h.is_root())
-                {
-                    lib_printf("Begin to clean chi0 !!! \n");
-                    // display_free_mem();
-                    lib_printf("chi0_freq_q size: %d,  freq: %f, q:( %f, %f, %f )\n",chi0_wq.size(),freq, q.x,q.y,q.z );
-                }
-                chi0.free_chi0_q(freq,q);
 
                 release_free_mem();
                 // if(comm_h.is_root())
@@ -447,8 +457,11 @@ CorrEnergy compute_RPA_correlation_blacs_2d(Chi0 &chi0, atpair_k_cplx_mat_t &cou
                 const auto IJq_chi0 = comm_map2_first(comm_h.comm, chi0_libri, s0_s1.first, s0_s1.second);
                 // ofs_myid << "IJq_chi0" << endl << IJq_chi0;
                 double chi_end_comm = omp_get_wtime();
-                collect_block_from_ALL_IJ_Tensor(chi0_block, desc_nabf_nabf, chi0.atbasis_abf,
-                                                 qa, true, C_ONE, IJq_chi0, MAJOR::ROW);
+                if (IJq_chi0.size() > 0)
+                {
+                    collect_block_from_ALL_IJ_Tensor(chi0_block, desc_nabf_nabf, chi0.atbasis_abf,
+                                                    qa, true, C_ONE, IJq_chi0, MAJOR::ROW);
+                }
                 comm_h.barrier();
                 double chi_end_2d = omp_get_wtime();
 
