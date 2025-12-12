@@ -91,12 +91,14 @@ void Dataset::initialize_comm_blacs_coul()
         std::sort(iqs.begin(), iqs.end());
         MPI_Comm_split(comm_coul_h.comm, iqs[0], comm_coul_h.myid, &comm_intra_q);
         comm_coul_intra_q_h.reset_comm(comm_intra_q, true);
-        ofs_myid << "Coulomb intra-q comm myid/nprocs: "
+        ofs_myid << "Coulomb intra-q comm/myid/nprocs: "
+                 << comm_coul_intra_q_h.comm << " "
                  << comm_coul_intra_q_h.myid << " "
                  << comm_coul_intra_q_h.nprocs << endl;
         MPI_Comm_split(comm_coul_h.comm, comm_coul_intra_q_h.myid, comm_coul_h.myid, &comm_inter_q);
         comm_coul_inter_q_h.reset_comm(comm_inter_q, true);
-        ofs_myid << "Coulomb inter-q comm myid/nprocs: "
+        ofs_myid << "Coulomb inter-q comm/myid/nprocs: "
+                 << comm_coul_inter_q_h.comm << " "
                  << comm_coul_inter_q_h.myid << " "
                  << comm_coul_inter_q_h.nprocs << endl;
     }

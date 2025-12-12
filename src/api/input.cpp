@@ -340,21 +340,21 @@ LIBRPA_C_H_FUNC_WRAP(void, librpa_set_lri_coeff, LibrpaParallelRouting routing, 
     const size_t cs_size = nbasis_i * nbasis_j * naux_mu;
     const size_t n_ij = nbasis_i * nbasis_j;
 
-    ofs_myid << "Parsing I J " << I << " " << J << " "
-             << "ds->basis_aux " << pds->basis_aux.nbs_ << " "
-             << "ds->basis_wfc " << pds->basis_wfc.nbs_ << endl;
-    ofs_myid << "ds->basis_aux[I] == naux_mu ? " 
-             << pds->basis_aux[I] << " " << as_size(naux_mu) << " "
-             << std::boolalpha << (pds->basis_aux[I] == as_size(naux_mu))
-             << endl;
-    ofs_myid << "ds->basis_wfc[I] == nbasis_i ? "
-             << pds->basis_wfc[I] << " " << as_size(nbasis_i) << " "
-             << std::boolalpha << (pds->basis_wfc[I] == as_size(nbasis_i))
-             << endl;
-    ofs_myid << "ds->basis_wfc[J] == nbasis_j ? "
-             << pds->basis_wfc[J] << " " << as_size(nbasis_j) << " "
-             << std::boolalpha << (pds->basis_wfc[J] == as_size(nbasis_j))
-             << endl;
+    // ofs_myid << "Parsing I J " << I << " " << J << " "
+    //          << "ds->basis_aux " << pds->basis_aux.nbs_ << " "
+    //          << "ds->basis_wfc " << pds->basis_wfc.nbs_ << endl;
+    // ofs_myid << "ds->basis_aux[I] == naux_mu ? "
+    //          << pds->basis_aux[I] << " " << as_size(naux_mu) << " "
+    //          << std::boolalpha << (pds->basis_aux[I] == as_size(naux_mu))
+    //          << endl;
+    // ofs_myid << "ds->basis_wfc[I] == nbasis_i ? "
+    //          << pds->basis_wfc[I] << " " << as_size(nbasis_i) << " "
+    //          << std::boolalpha << (pds->basis_wfc[I] == as_size(nbasis_i))
+    //          << endl;
+    // ofs_myid << "ds->basis_wfc[J] == nbasis_j ? "
+    //          << pds->basis_wfc[J] << " " << as_size(nbasis_j) << " "
+    //          << std::boolalpha << (pds->basis_wfc[J] == as_size(nbasis_j))
+    //          << endl;
 
     assert(pds->basis_aux[I] == as_size(naux_mu));
     assert(pds->basis_wfc[I] == as_size(nbasis_i));
