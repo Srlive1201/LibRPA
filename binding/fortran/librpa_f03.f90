@@ -211,6 +211,7 @@ module librpa_f03
          procedure :: set_aux_cut_coulomb_k_atom_pair => librpa_set_aux_cut_coulomb_k_atom_pair
          procedure :: set_aux_bare_coulomb_k_2d_block => librpa_set_aux_bare_coulomb_k_2d_block
          procedure :: set_aux_cut_coulomb_k_2d_block => librpa_set_aux_cut_coulomb_k_2d_block
+         procedure :: set_dielect_func_imagfreq => librpa_set_dielect_func_imagfreq
          ! Compute
          procedure :: get_rpa_correlation_energy => librpa_get_rpa_correlation_energy
          procedure :: build_exx => librpa_build_exx
@@ -347,6 +348,15 @@ module librpa_f03
          integer(c_int), value :: ik, mu_begin, mu_end, nu_begin, nu_end
          real(c_double), dimension(*), intent(in) :: vq_real, vq_imag
       end subroutine librpa_set_aux_cut_coulomb_k_2d_block_c
+
+      subroutine librpa_set_dielect_func_imagfreq_c(h, nfreq, omegas_imag, dielect_func) &
+            bind(c, name="librpa_set_dielect_func_imagfreq")
+         import :: c_ptr, c_int, c_double
+         type(c_ptr), value :: h
+         integer(c_int), value :: nfreq
+         real(c_double), dimension(*), intent(in) :: omegas_imag
+         real(c_double), dimension(*), intent(in) :: dielect_func
+      end subroutine librpa_set_dielect_func_imagfreq_c
    end interface
 
    ! Compute functions interface
@@ -1020,7 +1030,8 @@ contains
       integer(c_int) :: ik_c, mb, me, nb, ne
       real(c_double), allocatable :: vq_real(:,:), vq_imag(:,:)
 
-      allocate(vq_real(ne-nb+1, me-mb+1), vq_imag(ne-nb+1, me-mb+1))
+      allocate(vq_real(ne-nb+1, me-mb+1))
+      allocate(vq_imag(ne-nb+1, me-mb+1))
 
       ik_c = int(ik-1, kind=c_int)
       ! The C interface uses included beginning and excluded ending.
@@ -1036,6 +1047,8 @@ contains
       else
          call librpa_set_aux_bare_coulomb_k_2d_block_c(h%ptr_c_handle, ik_c, mb, me, nb, ne, vq_real, vq_imag)
       end if
+      deallocate(vq_real)
+      deallocate(vq_imag)
    end subroutine set_aux_coulomb_k_2d_block
 
    subroutine librpa_set_aux_bare_coulomb_k_2d_block &
@@ -1057,6 +1070,29 @@ contains
 
       call set_aux_coulomb_k_2d_block(this, ik, mu_begin, mu_end, nu_begin, nu_end, vq, .true.)
    end subroutine librpa_set_aux_cut_coulomb_k_2d_block
+
+   subroutine librpa_set_dielect_func_imagfreq(this, nfreq, omegas_imag, dielect_func)
+      implicit none
+      class(LibrpaHandler), intent(inout) :: this
+      integer, intent(in) :: nfreq
+      real(dp), dimension(nfreq), intent(in) :: omegas_imag
+      real(dp), dimension(nfreq), intent(in) :: dielect_func
+
+      integer(c_int) :: nfreq_c
+      real(c_double), allocatable :: omegas_c(:), df_c(:)
+
+      nfreq_c = int(nfreq, kind=c_int)
+      if (dp == c_double) then
+         call librpa_set_dielect_func_imagfreq_c(this%ptr_c_handle, nfreq_c, omegas_imag, dielect_func)
+      else
+         allocate(omegas_c(nfreq))
+         allocate(df_c(nfreq))
+         omegas_c(:) = real(omegas_imag(:), kind=c_double)
+         df_c(:) = real(dielect_func(:), kind=c_double)
+         call librpa_set_dielect_func_imagfreq_c(this%ptr_c_handle, nfreq_c, omegas_c, df_c)
+         deallocate(omegas_c, df_c)
+      end if
+   end subroutine librpa_set_dielect_func_imagfreq
 
    ! Compute functions
    real(dp) function librpa_get_rpa_correlation_energy(this, opts, nkpts_ibz, contrib_ibzk) result(e)

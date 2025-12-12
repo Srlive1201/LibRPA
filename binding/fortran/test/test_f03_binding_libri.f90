@@ -12,13 +12,14 @@ program test_f03_binding_libri
    integer, parameter :: nbasis = nstates
    integer, parameter :: naux = 9
    integer, parameter :: natoms = 2
+   integer, parameter :: nfreq = 8
    character(len=*), parameter :: prog = "test_f03_binding"
    real(dp), parameter :: pi = atan(1.0_dp) * 4.0
 
    integer :: i, j, ierr, ispin, ik, ik1, ik2, ik3, istate, ibasis, ia1, ia2, r(3)
    type(LibrpaHandler) :: h
    type(LibrpaOptions) :: opts
-   real(dp), allocatable :: wg(:,:,:), ekb(:,:,:), ri_coeff(:,:,:)
+   real(dp), allocatable :: wg(:,:,:), ekb(:,:,:), ri_coeff(:,:,:), omegas(:), df(:)
    real(dp) :: latt(3, 3), recplatt(3, 3), posi_cart(3, natoms), kpoints(3,nkpts)
    integer :: nbs_wfc(natoms), nbs_aux(natoms), types(natoms), map_ibzk(nkpts)
    complex(dp) :: wfc(nbasis, nstates, nkpts, nspins)
@@ -38,6 +39,7 @@ program test_f03_binding_libri
    write(*,*) "Default frequency numbers: ", opts%nfreq
    write(*,*) "Output directory: ", opts%output_dir
    opts%parallel_routing = LIBRPA_ROUTING_LIBRI
+   opts%nfreq = nfreq
 
    call h%create(MPI_COMM_WORLD)
 
@@ -149,6 +151,10 @@ program test_f03_binding_libri
          deallocate(vq)
       end do
    end do
+
+   allocate(omegas(nfreq), df(nfreq))
+   call h%set_dielect_func_imagfreq(nfreq, omegas, df)
+   deallocate(omegas, df)
 
    allocate(contrib_ibzk(2))
    opts%tfgrids_type = LIBRPA_TFGRID_MINIMAX

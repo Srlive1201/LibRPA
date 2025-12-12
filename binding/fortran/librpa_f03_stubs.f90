@@ -108,6 +108,7 @@ module librpa_f03
          procedure :: set_aux_cut_coulomb_k_atom_pair => librpa_set_aux_cut_coulomb_k_atom_pair
          procedure :: set_aux_bare_coulomb_k_2d_block => librpa_set_aux_bare_coulomb_k_2d_block
          procedure :: set_aux_cut_coulomb_k_2d_block => librpa_set_aux_cut_coulomb_k_2d_block
+         procedure :: set_dielect_func_imagfreq => librpa_set_dielect_func_imagfreq
          ! Compute
          procedure :: get_rpa_correlation_energy => librpa_get_rpa_correlation_energy
          procedure :: build_exx => librpa_build_exx
@@ -307,6 +308,15 @@ contains
       complex(dp), intent(in) :: vq(mu_end-mu_begin+1, nu_end-nu_begin+1)
       call error_on_call("librpa_set_aux_cut_coulomb_k_2d_block")
    end subroutine librpa_set_aux_cut_coulomb_k_2d_block
+
+   subroutine librpa_set_dielect_func_imagfreq(this, nfreq, omegas_imag, dielect_func)
+      implicit none
+      class(LibrpaHandler), intent(inout) :: this
+      integer, intent(in) :: nfreq
+      real(dp), dimension(nfreq), intent(in) :: omegas_imag
+      real(dp), dimension(nfreq), intent(in) :: dielect_func
+      call error_on_call("librpa_set_dielect_func_imagfreq")
+   end subroutine librpa_set_dielect_func_imagfreq
 
    ! Compute functions
    real(dp) function librpa_get_rpa_correlation_energy(this, opts, nkpts_ibz, contrib_ibzk) result(e)
