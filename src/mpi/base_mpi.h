@@ -2,7 +2,6 @@
 #include "librpa_enums.h"
 
 #include "../interface/mpi.h"
-#include "mpi_proto.h"
 
 #include <string>
 #include <vector>
