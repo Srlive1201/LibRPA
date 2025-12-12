@@ -1,11 +1,11 @@
 #include "base_blacs.h"
+
 #include <string>
 
 #include "../interface/blacs_scalapack.h"
 #include "../io/global_io.h"
 #include "../utils/base_utility.h"
 #include "../utils/error.h"
-
 
 namespace librpa_int
 {
@@ -106,7 +106,7 @@ void BlacsCtxtHandler::exit()
     {
         Cblacs_gridexit(ictxt);
         if (mpi_comm_h.comm == MPI_COMM_NULL)
-            ictxt = MPI_COMM_NULL;
+            ictxt = -1;
         else
             ictxt = Csys2blacs_handle(mpi_comm_h.comm);
         pgrid_set_ = false;
@@ -335,7 +335,7 @@ void ArrayDesc::reset_handler()
 {
     // BLACS
     comm_ = MPI_COMM_NULL;
-    ictxt_ = MPI_COMM_NULL;
+    ictxt_ = -1;
     nprocs_ = 1;
     myid_ = 0;
     nprows_ = 1;
@@ -343,13 +343,14 @@ void ArrayDesc::reset_handler()
     npcols_ = 1;
     mypcol_ = 0;
     // Array specific
-    m_ = 0;
-    n_ = 0;
-    mb_ = 0;
-    nb_ = 0;
-    irsrc_ = 0;
-    icsrc_ = 0;
-    lld_ = 0; 
+    desc[1] = ictxt_;
+    desc[2] = m_ = 0;
+    desc[3] = n_ = 0;
+    desc[4] = mb_ = 0;
+    desc[5] = nb_ = 0;
+    desc[6] = irsrc_ = 0;
+    desc[7] = icsrc_ = 0;
+    desc[8] = lld_ = 0;
     m_local_ = 0;
     n_local_ = 0;
     is_loc_consecutive_r_ = false;
@@ -361,7 +362,7 @@ void ArrayDesc::reset_handler()
 
 void ArrayDesc::reset_handler(const BlacsCtxtHandler &blacs_h)
 {
-    assert(blacs_h.initialized());
+    assert(blacs_h.is_initialized());
     // clean up current indices if the descriptor is already initialized
     if (initialized_)
     {
