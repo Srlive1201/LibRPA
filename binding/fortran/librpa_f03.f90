@@ -213,6 +213,9 @@ module librpa_f03
          procedure :: set_aux_cut_coulomb_k_2d_block => librpa_set_aux_cut_coulomb_k_2d_block
          ! Compute
          procedure :: get_rpa_correlation_energy => librpa_get_rpa_correlation_energy
+         procedure :: build_exx => librpa_build_exx
+         procedure :: get_exx_pot_kgrid => librpa_get_exx_pot_kgrid
+         procedure :: build_g0w0_sigma => librpa_build_g0w0_sigma
    end type LibrpaHandler
 
    interface
