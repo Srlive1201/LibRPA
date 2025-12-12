@@ -4,7 +4,7 @@
 #include "../mpi/global_mpi.h"
 #include "../io/global_io.h"
 
-static void test_set_comm_blacs_coul_single_blacs()
+static void test_set_comm_blacs_coul_np4()
 {
     using namespace librpa_int;
 
@@ -90,6 +90,38 @@ static void test_set_comm_blacs_coul_single_blacs()
     ds.finalize_comm_blacs_coul();
     ds.vq_block_loc.clear();
 
+    // 1x1 process grid (major never mind), only on process 0 (not optimal distribution, but possible)
+    if (ds.comm_h.myid == 0)
+    {
+        lbrow = 0, ubrow = m;
+        lbcol = 0, ubcol = n;
+        ds.vq_lbrow = lbrow;
+        ds.vq_ubrow = ubrow;
+        ds.vq_lbcol = lbcol;
+        ds.vq_ubcol = ubcol;
+        for (int ik = 0; ik < nkpts; ik++)
+        {
+            const auto &k = ds.pbc.klist[ik];
+            ds.vq_block_loc[k].create(ubrow - lbrow, ubcol - lbcol);
+        }
+    }
+    ds.initialize_comm_blacs_coul();
+    if (ds.comm_h.myid == 0)
+    {
+        assert(ds.blacs_coul_intra_q_h.nprows == 1);
+        assert(ds.blacs_coul_intra_q_h.npcols == 1);
+        assert(ds.comm_coul_inter_q_h.nprocs == 1);
+    }
+    else
+    {
+        assert(!ds.blacs_coul_intra_q_h.is_initialized());
+        assert(!ds.comm_coul_inter_q_h.is_initialized());
+        assert(!ds.comm_coul_intra_q_h.is_initialized());
+        assert(!ds.comm_coul_h.is_initialized());
+    }
+    ds.finalize_comm_blacs_coul();
+    ds.vq_block_loc.clear();
+
     ds.free();
 }
 
@@ -105,7 +137,7 @@ int main (int argc, char *argv[])
     global::init_global_mpi();
     global::init_global_io();
 
-    test_set_comm_blacs_coul_single_blacs();
+    test_set_comm_blacs_coul_np4();
 
     global::finalize_global_io();
     global::finalize_global_mpi();

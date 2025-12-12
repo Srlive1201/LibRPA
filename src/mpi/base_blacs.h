@@ -57,7 +57,8 @@ public:
     void barrier(CTXT_SCOPE scope = CTXT_SCOPE::A) const;
     //! call gridexit to reset process grid
     void exit();
-    inline bool initialized() const { return initialized_; }
+    inline bool initialized() const { return initialized_; }  // To deprecate
+    inline bool is_initialized() const { return initialized_; }
     const MPI_Comm &get_comm() const { return this->mpi_comm_h.comm; };
 };
 

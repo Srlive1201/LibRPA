@@ -52,12 +52,15 @@ void Dataset::initialize_comm_blacs_coul()
     using global::ofs_myid;
     // Reset first
     if (comm_blacs_coul_initialized_) finalize_comm_blacs_coul();
-    // Check if local Coulomb matrices are available
-    if (vq_block_loc.size() < 1 && vq_cut_block_loc.size() < 1)
+    // Check if local Coulomb matrices are available on one of the processes
+    const int has_coul = (vq_block_loc.size() > 0 || vq_cut_block_loc.size() > 0);
+    int has_coul_somewhere;
+    comm_h.allreduce(&has_coul, &has_coul_somewhere, 1, MPI_MAX);
+    if (has_coul_somewhere == 0)
     {
+        // No process has Coulomb local blocks, data not parsed
         // NOTE: this immediate return may be changed in the future,
         //       depending on how we want to use the block-cyclic local matrices.
-        //       Currently we only use the atom-pair blocks.
         return;
     }
 
@@ -69,13 +72,13 @@ void Dataset::initialize_comm_blacs_coul()
 
     // Below we try to restore the two-level parallel distribution of matrices from input
     MPI_Comm comm_coul;
-    const int has_coul = (vq_block_loc.size() > 0 || vq_cut_block_loc.size() > 0);
     MPI_Comm_split(comm_h.comm, has_coul, comm_h.myid, &comm_coul);
     if (has_coul)
         comm_coul_h.reset_comm(comm_coul, true);
     else
         MPI_Comm_free(&comm_coul);
 
+    ofs_myid << "Initializing Coulomb BLACS communicators, context and array descriptor" << endl;
     if (comm_coul_h.is_initialized())
     {
         MPI_Comm comm_intra_q, comm_inter_q;
