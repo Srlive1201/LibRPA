@@ -59,6 +59,7 @@ void init_global_io(bool redirect_stdout, const char *redirect_path, bool enable
         }
         MPI_Barrier(mpi_comm_global);
 
+        // All process appending to the refreshed buffer
         ofs.open(redirect_path, std::ios::out | std::ios::app);
         if (!ofs.is_open()) throw LIBRPA_RUNTIME_ERROR("failed to redirect stdout to " + s_fn);
         cout_buf_old = std::cout.rdbuf();

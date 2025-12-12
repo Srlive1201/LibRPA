@@ -1,8 +1,10 @@
 #include "base_blacs.h"
-#include "../utils/base_utility.h"
+#include <string>
 
 #include "../interface/blacs_scalapack.h"
 #include "../io/global_io.h"
+#include "../utils/base_utility.h"
+#include "../utils/error.h"
 
 
 namespace librpa_int
@@ -23,9 +25,11 @@ void CTXT_barrier(int ictxt, CTXT_SCOPE scope)
 
 void BlacsCtxtHandler::init()
 {
+    assert(this->comm_set_);
     this->mpi_comm_h.init();
     this->ictxt = Csys2blacs_handle(this->mpi_comm_h.comm);
-    Cblacs_pinfo(&this->myid, &this->nprocs);
+    this->myid = mpi_comm_h.myid;
+    this->nprocs = mpi_comm_h.nprocs;
     this->initialized_ = true;
 }
 
@@ -33,15 +37,22 @@ void BlacsCtxtHandler::reset_comm()
 {
     this->mpi_comm_h.reset_comm();
     if (this->pgrid_set_) this->exit();
+    this->myid = 0;
+    this->nprocs = 0;
+    this->comm_set_ = false;
     this->initialized_ = false;
+    this->pgrid_set_ = false;
 }
 
 void BlacsCtxtHandler::reset_comm(MPI_Comm comm_in, bool init_on_reset)
 {
     this->mpi_comm_h.reset_comm(comm_in, false);
+    if (this->pgrid_set_) exit();
+    this->myid = mpi_comm_h.myid;
+    this->nprocs = mpi_comm_h.nprocs;
+    this->initialized_ = false;
     this->comm_set_ = true;
     this->pgrid_set_ = false;
-    this->initialized_ = false;
     if (init_on_reset) this->init();
 }
 
@@ -52,7 +63,10 @@ void BlacsCtxtHandler::set_grid(const int &nprows_in, const int &npcols_in,
     // if the grid has been set, exit it first
     if (pgrid_set_) exit();
     if (nprocs != nprows_in * npcols_in)
-        throw std::invalid_argument("nprocs != nprows * npcols");
+    {
+        throw LIBRPA_RUNTIME_ERROR("nprocs != nprows * npcols :" + std::to_string(nprocs) + " != " +
+                                   std::to_string(nprows_in) + " + " + std::to_string(npcols_in));
+    }
     layout = layout_in;
     if (layout == CTXT_LAYOUT::C)
         layout_ch = 'C';

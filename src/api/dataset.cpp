@@ -47,6 +47,9 @@ void Dataset::free()
 
 void Dataset::initialize_comm_blacs_coul()
 {
+    using std::cout;
+    using std::endl;
+    using global::ofs_myid;
     // Reset first
     if (comm_blacs_coul_initialized_) finalize_comm_blacs_coul();
     // Check if local Coulomb matrices are available
@@ -84,9 +87,15 @@ void Dataset::initialize_comm_blacs_coul()
         // we use the first q-point index to identify different groups
         std::sort(iqs.begin(), iqs.end());
         MPI_Comm_split(comm_coul_h.comm, iqs[0], comm_coul_h.myid, &comm_intra_q);
-        this->comm_coul_intra_q_h.reset_comm(comm_intra_q, true);
-        MPI_Comm_split(comm_coul_h.comm, this->comm_coul_intra_q_h.myid, comm_coul_h.myid, &comm_inter_q);
-        this->comm_coul_inter_q_h.reset_comm(comm_inter_q, true);
+        comm_coul_intra_q_h.reset_comm(comm_intra_q, true);
+        ofs_myid << "Coulomb intra-q comm myid/nprocs: "
+                 << comm_coul_intra_q_h.myid << " "
+                 << comm_coul_intra_q_h.nprocs << endl;
+        MPI_Comm_split(comm_coul_h.comm, comm_coul_intra_q_h.myid, comm_coul_h.myid, &comm_inter_q);
+        comm_coul_inter_q_h.reset_comm(comm_inter_q, true);
+        ofs_myid << "Coulomb inter-q comm myid/nprocs: "
+                 << comm_coul_inter_q_h.myid << " "
+                 << comm_coul_inter_q_h.nprocs << endl;
     }
     // Till now, the communicators are initialized.
     // Now try to restore the BLACS context and the array descriptor
@@ -99,8 +108,8 @@ void Dataset::initialize_comm_blacs_coul()
         lbcol_all[myid] = vq_lbcol;
         comm_coul_intra_q_h.allreduce(MPI_IN_PLACE, lbrow_all.data(), nprocs, MPI_SUM);
         comm_coul_intra_q_h.allreduce(MPI_IN_PLACE, lbcol_all.data(), nprocs, MPI_SUM);
-        global::ofs_myid << "Collected lbrow: " << lbrow_all << std::endl;
-        global::ofs_myid << "Collected lbcol: " << lbcol_all << std::endl;
+        ofs_myid << "Collected lbrow: " << lbrow_all << endl;
+        ofs_myid << "Collected lbcol: " << lbcol_all << endl;
         // Get number of rows and columns, as well as the process which stores the head of the matrix
         int nprows = 0, npcols = 0, myid_src = 0;
         for (int pid = 0; pid < nprocs; pid++)
@@ -118,10 +127,11 @@ void Dataset::initialize_comm_blacs_coul()
         {
             if (lbrow_all[0] != lbrow_all[1]) layout = CTXT_LAYOUT::C;
         }
+        ofs_myid << "Coulomb BLACS context nprows/npcols/layout: " << nprows << " " << npcols;
         if (layout == CTXT_LAYOUT::C)
-            global::ofs_myid << "Coulomb BLACS context layout: column-major" << std::endl;
+            ofs_myid << " column-major" << endl;
         else
-            global::ofs_myid << "Coulomb BLACS context layout: row-major" << std::endl;
+            ofs_myid << " row-major" << endl;
         blacs_coul_intra_q_h.reset_comm(comm_coul_intra_q_h.comm, true);
         blacs_coul_intra_q_h.set_grid(nprows, npcols, layout);
         // Now we have restored the BLACS communicator
@@ -133,22 +143,22 @@ void Dataset::initialize_comm_blacs_coul()
         int mb, nb;
         comm_coul_intra_q_h.allreduce(&nbrows, &mb, 1, MPI_MAX);
         comm_coul_intra_q_h.allreduce(&nbcols, &nb, 1, MPI_MAX);
-        global::ofs_myid << "Coulomb array descriptor block size (mb/nb): " << mb << " " << nb << std::endl;
+        ofs_myid << "Coulomb array descriptor block size (mb/nb): " << mb << " " << nb << endl;
         int irsrc = 0, icsrc = 0;
         blacs_coul_intra_q_h.get_pcoord(myid_src, irsrc, icsrc);
-        global::ofs_myid << "Coulomb array descriptor source pid (ir/ic): " << irsrc << " " << icsrc << std::endl;
+        ofs_myid << "Coulomb array descriptor source pid (ir/ic): " << irsrc << " " << icsrc << endl;
         desc_coul.reset_handler(blacs_coul_intra_q_h);
         const int n_aux = this->basis_aux.nb_total;
         desc_coul.init(n_aux, n_aux, mb, nb, irsrc, icsrc);
     }
 
-    global::ofs_myid << "comm_coul_h.is_initialized() = " << std::boolalpha << comm_coul_h.is_initialized() << std::endl;
+    ofs_myid << "comm_coul_h.is_initialized() = " << std::boolalpha << comm_coul_h.is_initialized() << std::endl;
 
     if (comm_coul_h.is_initialized())
     {
         if (comm_coul_h.is_root())
         {
-            std::cout << "BLACS environment of 2D Coulomb matrices is restored" << std::endl;
+            cout << "BLACS environment of 2D Coulomb matrices is restored" << endl;
         }
         comm_coul_h.barrier();
         for (int pid = 0; pid < comm_coul_h.nprocs; pid++)

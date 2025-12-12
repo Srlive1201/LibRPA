@@ -26,6 +26,8 @@ MpiCommHandler::MpiCommHandler(MPI_Comm comm_in, bool init_on_construct)
 void MpiCommHandler::reset_comm()
 {
     this->comm = MPI_COMM_NULL;
+    this->myid = 0;
+    this->nprocs = 0;
     this->comm_set_ = false;
     this->initialized_ = false;
     this->procname = mpi_procname_uninit;
