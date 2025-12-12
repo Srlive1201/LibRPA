@@ -6,6 +6,7 @@
 
 #include <vector>
 #include <complex>
+#include <utility>
 
 namespace librpa
 {
@@ -106,6 +107,9 @@ public:
                                   const std::vector<double> &omegas_imag, const std::vector<double> &dielect_func);
 
     /* Compute (build/get) functions */
+    //! Construct and return frequency grids
+    std::pair<std::vector<double>, std::vector<double>>
+    get_imaginary_frequency_grids(const Options &opts);
 
     //! Compute RPA correlation energy
     LIBRPA_CPP_H_METHOD_DECL_WRAP_WOPTS(double, get_rpa_correlation_energy,

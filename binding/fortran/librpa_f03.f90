@@ -213,6 +213,7 @@ module librpa_f03
          procedure :: set_aux_cut_coulomb_k_2d_block => librpa_set_aux_cut_coulomb_k_2d_block
          procedure :: set_dielect_func_imagfreq => librpa_set_dielect_func_imagfreq
          ! Compute
+         procedure :: get_imaginary_frequency_grids => librpa_get_imaginary_frequency_grids
          procedure :: get_rpa_correlation_energy => librpa_get_rpa_correlation_energy
          procedure :: build_exx => librpa_build_exx
          procedure :: get_exx_pot_kgrid => librpa_get_exx_pot_kgrid
@@ -361,6 +362,14 @@ module librpa_f03
 
    ! Compute functions interface
    interface
+      subroutine librpa_get_imaginary_frequency_grids_c(h, opts, omegas, weights) &
+            bind(c, name="librpa_get_imaginary_frequency_grids")
+         import :: LibrpaOptions_c, c_ptr, c_double
+         type(c_ptr), value :: h
+         type(LibrpaOptions_c), intent(in) :: opts
+         real(c_double), dimension(*), intent(inout) :: omegas, weights
+      end subroutine librpa_get_imaginary_frequency_grids_c
+
       function librpa_get_rpa_correlation_energy_c(h, opts, nkpts_ibz, contrib_ibzk_re, contrib_ibzk_im) &
             bind(c, name="librpa_get_rpa_correlation_energy")
          import :: LibrpaOptions_c, c_ptr, c_int, c_double
@@ -1095,6 +1104,34 @@ contains
    end subroutine librpa_set_dielect_func_imagfreq
 
    ! Compute functions
+   subroutine librpa_get_imaginary_frequency_grids(this, opts, omegas, weights)
+      class(LibrpaHandler), intent(inout) :: this
+      type(LibrpaOptions), intent(inout) :: opts
+      real(dp), allocatable, intent(inout) :: omegas(:), weights(:)
+
+      real(c_double), allocatable :: omegas_c(:), weights_c(:)
+
+      if (allocated(omegas) .and. size(omegas) .ne. opts%nfreq) deallocate(omegas)
+      if (.not. allocated(omegas)) allocate(omegas(opts%nfreq))
+
+      if (allocated(weights) .and. size(weights) .ne. opts%nfreq) deallocate(weights)
+      if (.not. allocated(weights)) allocate(weights(opts%nfreq))
+
+      ! write(*, *) "size(omegas): ", size(omegas), " size(weights): ", size(weights)
+
+      call sync_opts(opts, SYNC_OPTS_F2C)
+      if (c_double == dp) then
+         call librpa_get_imaginary_frequency_grids_c(this%ptr_c_handle, opts%opts_c, omegas, weights)
+      else
+         allocate(omegas_c(opts%nfreq))
+         allocate(weights_c(opts%nfreq))
+         call librpa_get_imaginary_frequency_grids_c(this%ptr_c_handle, opts%opts_c, omegas_c, weights_c)
+         omegas(:) = real(omegas_c(:), kind=dp)
+         weights(:) = real(weights_c(:), kind=dp)
+         deallocate(omegas_c, weights_c)
+      end if
+   end subroutine librpa_get_imaginary_frequency_grids
+
    real(dp) function librpa_get_rpa_correlation_energy(this, opts, nkpts_ibz, contrib_ibzk) result(e)
       implicit none
       class(LibrpaHandler), intent(inout) :: this
@@ -1124,6 +1161,7 @@ contains
       class(LibrpaHandler), intent(inout) :: this
       type(LibrpaOptions), intent(inout) :: opts
 
+      call sync_opts(opts, SYNC_OPTS_F2C)
       call librpa_build_exx_c(this%ptr_c_handle, opts%opts_c)
    end subroutine librpa_build_exx
 
@@ -1150,6 +1188,7 @@ contains
       allocate(iks_local_c(n_kpoints_local))
       allocate(vexx_c(n_states_calc, n_kpoints_local, n_spins))
 
+      call sync_opts(opts, SYNC_OPTS_F2C)
       call librpa_get_exx_pot_kgrid_c(this%ptr_c_handle, opts%opts_c, n_spins_c, n_kpoints_local_c, &
                                       iks_local_c, i_state_low_c, i_state_high_c, vexx_c)
       vexx = real(vexx_c, kind=dp)
@@ -1163,6 +1202,7 @@ contains
       class(LibrpaHandler), intent(inout) :: this
       type(LibrpaOptions), intent(inout) :: opts
 
+      call sync_opts(opts, SYNC_OPTS_F2C)
       call librpa_build_g0w0_sigma_c(this%ptr_c_handle, opts%opts_c)
    end subroutine librpa_build_g0w0_sigma
 

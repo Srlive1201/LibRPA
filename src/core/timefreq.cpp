@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "../io/global_io.h"
+// #include "../io/stl_io_helper.h"
 #include "../math/mathtools.h"
 #include "../utils/base_utility.h"
 #include "../utils/error.h"
@@ -196,9 +197,12 @@ double TFGrids::generate_minimax(double emin, double emax)
     double cosft_duality_error = 1e8;
     int ierr = -1;
 
+    // global::ofs_myid << "Before generate_minimax" << std::endl;
     auto n = as_int(n_grids);
     get_minimax_grid(n, emin, emax, time_nodes.data(), time_weights.data(), freq_nodes.data(), freq_weights.data(),
                      costrans_t2f.c, costrans_f2t.c, sintrans_t2f.c, max_errors, cosft_duality_error, ierr);
+    // global::ofs_myid << "After generate_minimax" << std::endl;
+    // global::ofs_myid << freq_nodes << std::endl;
 
     switch (ierr) {
         case 0: /* success */

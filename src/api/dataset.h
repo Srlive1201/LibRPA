@@ -12,6 +12,7 @@
 #include "../core/pbc.h"
 #include "../core/ri.h"
 #include "../core/timefreq.h"
+#include "../math/matrix_m.h"
 #include "../mpi/base_blacs.h"
 #include "../mpi/base_mpi.h"
 
@@ -25,6 +26,7 @@ class Dataset
 {
 private:
     bool comm_blacs_coul_initialized_;
+    bool coul_blacs2ap_redistributed_;
 public:
     /* Member variables */
     // Environment control
@@ -66,8 +68,8 @@ public:
     // Bare and cut Coulombs are enforced to use the same layout.
     int vq_lbrow = -1, vq_ubrow = -1;
     int vq_lbcol = -1, vq_ubcol = -1;
-    std::map<Vector3_Order<double>, ComplexMatrix> vq_block_loc;
-    std::map<Vector3_Order<double>, ComplexMatrix> vq_cut_block_loc;
+    std::map<Vector3_Order<double>, Matz> vq_block_loc;
+    std::map<Vector3_Order<double>, Matz> vq_cut_block_loc;
     // Macroscopic dielectric functions at imaginary frequencies
     // Only used for head correction of GW calculation
     std::vector<double> epsmacs_imagfreq;
@@ -86,6 +88,7 @@ public:
     void free();
 
     void initialize_comm_blacs_coul();
+    void redistribute_coulomb_blacs2ap();
     void finalize_comm_blacs_coul();
 
     /* Disable copy */

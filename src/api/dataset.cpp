@@ -50,8 +50,9 @@ void Dataset::initialize_comm_blacs_coul()
     using std::cout;
     using std::endl;
     using global::ofs_myid;
-    // Reset first
-    if (comm_blacs_coul_initialized_) finalize_comm_blacs_coul();
+    // Already initialized, do not do it again since 2D blocks may have been released.
+    // To run it again, manually finalize it first
+    if (comm_blacs_coul_initialized_) return;
     // Check if local Coulomb matrices are available on one of the processes
     const int has_coul = (vq_block_loc.size() > 0 || vq_cut_block_loc.size() > 0);
     int has_coul_somewhere;
@@ -178,6 +179,13 @@ void Dataset::initialize_comm_blacs_coul()
 
     comm_blacs_coul_initialized_ = true;
     global::profiler.stop(__FUNCTION__);
+}
+
+void Dataset::redistribute_coulomb_blacs2ap()
+{
+    // Already redistributed, or blacs data has been parsed
+    if (vq_block_loc.size() == 0 && vq_cut_block_loc.size() == 0) return;
+    initialize_comm_blacs_coul();
 }
 
 void Dataset::finalize_comm_blacs_coul()

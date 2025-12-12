@@ -24,8 +24,6 @@ LIBRPA_C_H_FUNC_WRAP_WOPT_NOPAR(void, librpa_build_exx)
 
     profiler.start("api_build_exx");
 
-    pds->initialize_comm_blacs_coul();
-
     // Decide actual routing
     LibrpaParallelRouting routing = opts.parallel_routing;
     if (routing == LibrpaParallelRouting::AUTO)
@@ -33,6 +31,9 @@ LIBRPA_C_H_FUNC_WRAP_WOPT_NOPAR(void, librpa_build_exx)
         const int n_atoms = pds->atoms.size();
         routing = decide_auto_routing(n_atoms, opts.nfreq * pds->pbc.get_n_cells_bvk());
     }
+
+    initialize_ds_atpairs_local(*pds, routing);
+    pds->redistribute_coulomb_blacs2ap();
 
     initialize_ds_exx(*pds, opts);
     {

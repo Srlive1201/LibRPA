@@ -435,7 +435,7 @@ LIBRPA_C_H_FUNC_WRAP(void, librpa_set_aux_cut_coulomb_k_atom_pair,
 static void _set_aux_coulomb_k_2D_block(
     const librpa_int::Vector3_Order<double>& qvec, int mu_begin, int mu_end,
     int nu_begin, int nu_end, const double* Vq_real_in, const double* Vq_imag_in,
-    std::map<librpa_int::Vector3_Order<double>, librpa_int::ComplexMatrix>& vq_block)
+    std::map<librpa_int::Vector3_Order<double>, librpa_int::Matz>& vq_block)
 {
     using namespace librpa_int;
     using std::shared_ptr;
@@ -445,8 +445,8 @@ static void _set_aux_coulomb_k_2D_block(
     int n_nu_loc = nu_end - nu_begin;
     if (n_mu_loc < 1 || n_nu_loc < 1) return;
 
+    vq_block[qvec] = Matz(n_mu_loc, n_nu_loc, MAJOR::ROW);
     auto &block = vq_block[qvec];
-    block.create(n_mu_loc, n_nu_loc);
 
     size_t ii = 0;
     for (int i_mu = 0; i_mu < n_mu_loc; i_mu++)

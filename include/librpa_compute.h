@@ -8,6 +8,9 @@
 extern "C" {
 #endif
 
+LIBRPA_C_H_FUNC_WRAP_WOPT(void, librpa_get_imaginary_frequency_grids,
+                          double *omegas, double *weights);
+
 LIBRPA_C_H_FUNC_WRAP_WOPT(double, librpa_get_rpa_correlation_energy,
                           int n_ibz_kpoints, double *rpa_corr_ibzk_contrib_re,  double *rpa_corr_ibzk_contrib_im);
 

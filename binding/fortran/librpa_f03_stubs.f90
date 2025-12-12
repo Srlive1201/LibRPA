@@ -110,6 +110,7 @@ module librpa_f03
          procedure :: set_aux_cut_coulomb_k_2d_block => librpa_set_aux_cut_coulomb_k_2d_block
          procedure :: set_dielect_func_imagfreq => librpa_set_dielect_func_imagfreq
          ! Compute
+         procedure :: get_imaginary_frequency_grids => librpa_get_imaginary_frequency_grids
          procedure :: get_rpa_correlation_energy => librpa_get_rpa_correlation_energy
          procedure :: build_exx => librpa_build_exx
          procedure :: get_exx_pot_kgrid => librpa_get_exx_pot_kgrid
@@ -319,6 +320,13 @@ contains
    end subroutine librpa_set_dielect_func_imagfreq
 
    ! Compute functions
+   subroutine librpa_get_imaginary_frequency_grids(this, opts, omegas, weights)
+      class(LibrpaHandler), intent(inout) :: this
+      type(LibrpaOptions), intent(inout) :: opts
+      real(dp), allocatable, intent(inout) :: omegas(:), weights(:)
+      call error_on_call("librpa_get_imaginary_frequency_grids")
+   end subroutine librpa_get_imaginary_frequency_grids
+
    real(dp) function librpa_get_rpa_correlation_energy(this, opts, nkpts_ibz, contrib_ibzk) result(e)
       implicit none
       class(LibrpaHandler), intent(inout) :: this

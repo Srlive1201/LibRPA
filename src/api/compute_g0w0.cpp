@@ -40,6 +40,7 @@ LIBRPA_C_H_FUNC_WRAP_WOPT_NOPAR(void, librpa_build_g0w0_sigma)
 
     // Determine the atom pairs that this process is responsible for
     initialize_ds_atpairs_local(*pds, routing);
+    pds->redistribute_coulomb_blacs2ap();
 
     // Initialize response function object
     initialize_ds_chi0(*pds, opts);

@@ -4,13 +4,35 @@
 #include "librpa_compute.h"
 
 // Internal headers
-#include "instance_manager.h"
-#include "dataset_helper.h"
 #include "../core/epsilon.h"
 #include "../io/fs.h"
+// #include "../io/stl_io_helper.h"
 #include "../math/complexmatrix.h"
 #include "../utils/profiler.h"
 #include "../utils/utils_mem.h"
+#include "dataset_helper.h"
+#include "instance_manager.h"
+
+LIBRPA_C_H_FUNC_WRAP_WOPT(void, librpa_get_imaginary_frequency_grids,
+                          double *omegas, double *weights)
+{
+    using namespace librpa_int;
+    using librpa_int::global::lib_printf;
+    using librpa_int::global::profiler;
+
+    profiler.start("api_get_imaginary_freq_grids");
+
+    auto pds = librpa_int::api::get_dataset_instance(h);
+    const auto &opts = *p_opts;
+    initialize_ds_tfgrids(*pds, opts);
+    const auto v_freqs = pds->tfg.get_freq_nodes();
+    const auto v_wegihts = pds->tfg.get_freq_weights();
+    // global::ofs_myid << v_freqs << std::endl;
+    memcpy(omegas, v_freqs.data(), opts.nfreq * sizeof(double));
+    memcpy(weights, v_wegihts.data(), opts.nfreq * sizeof(double));
+
+    profiler.stop("api_get_imaginary_freq_grids");
+}
 
 LIBRPA_C_H_FUNC_WRAP_WOPT(double, librpa_get_rpa_correlation_energy,
                           int n_ibz_kpoints, double *rpa_corr_ibzk_contrib_re,  double *rpa_corr_ibzk_contrib_im)
@@ -56,6 +78,9 @@ LIBRPA_C_H_FUNC_WRAP_WOPT(double, librpa_get_rpa_correlation_energy,
 
     // Determine the atom pairs that this process is responsible for
     initialize_ds_atpairs_local(*pds, routing);
+
+    // Redistribute 2D Coulomb matrices to atom-pair blocks if they are parsed
+    pds->redistribute_coulomb_blacs2ap();
 
     // Initialize response function object
     initialize_ds_chi0(*pds, opts);

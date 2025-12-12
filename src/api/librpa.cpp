@@ -180,6 +180,12 @@ LIBRPA_CPP_H_METHOD_DEF_WRAP_VOID(
 )
 
 /* Compute (build/get) functions */
+std::pair<std::vector<double>, std::vector<double>> Handler::get_imaginary_frequency_grids(const Options& opts)
+{
+    std::vector<double> omegas(opts.nfreq), weights(opts.nfreq);
+    ::librpa_get_imaginary_frequency_grids(this->h_, &opts, omegas.data(), weights.data());
+    return {omegas, weights};
+}
 
 LIBRPA_CPP_H_METHOD_DEF_WRAP_RET_WOPT(
     double, get_rpa_correlation_energy,

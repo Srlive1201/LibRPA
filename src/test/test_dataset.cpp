@@ -35,7 +35,7 @@ static void test_set_comm_blacs_coul_np4()
     ds.vq_ubcol = ubcol;
     for (const auto &k: ds.pbc.klist)
     {
-        ds.vq_block_loc[k].create(ubrow - lbrow, ubcol - lbcol);
+        ds.vq_block_loc[k] = Matz(ubrow - lbrow, ubcol - lbcol, MAJOR::ROW);
     }
     ds.initialize_comm_blacs_coul();
     assert(ds.blacs_coul_intra_q_h.layout == CTXT_LAYOUT::C);
@@ -58,7 +58,7 @@ static void test_set_comm_blacs_coul_np4()
     ds.vq_ubcol = ubcol;
     for (const auto &k: ds.pbc.klist)
     {
-        ds.vq_block_loc[k].create(ubrow - lbrow, ubcol - lbcol);
+        ds.vq_block_loc[k] = Matz(ubrow - lbrow, ubcol - lbcol, MAJOR::ROW);
     }
     ds.initialize_comm_blacs_coul();
     assert(ds.blacs_coul_intra_q_h.layout == CTXT_LAYOUT::R);
@@ -80,7 +80,7 @@ static void test_set_comm_blacs_coul_np4()
         if (ik % ds.comm_h.nprocs == ds.comm_h.myid)
         {
             const auto &k = ds.pbc.klist[ik];
-            ds.vq_block_loc[k].create(ubrow - lbrow, ubcol - lbcol);
+            ds.vq_block_loc[k] = Matz(ubrow - lbrow, ubcol - lbcol, MAJOR::ROW);
         }
     }
     ds.initialize_comm_blacs_coul();
@@ -102,7 +102,7 @@ static void test_set_comm_blacs_coul_np4()
         for (int ik = 0; ik < nkpts; ik++)
         {
             const auto &k = ds.pbc.klist[ik];
-            ds.vq_block_loc[k].create(ubrow - lbrow, ubcol - lbcol);
+            ds.vq_block_loc[k] = Matz(ubrow - lbrow, ubcol - lbcol, MAJOR::ROW);
         }
     }
     ds.initialize_comm_blacs_coul();
