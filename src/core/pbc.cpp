@@ -76,7 +76,7 @@ void PeriodicBoundaryData::set_latvec_and_G(const std::vector<double> &latt_mat,
     this->G /= TWO_PI;
 }
 
-void PeriodicBoundaryData::set_kgrids_kvec(int nk1, int nk2, int nk3, std::vector<double> &kvecs)
+void PeriodicBoundaryData::set_kgrids_kvec(int nk1, int nk2, int nk3, const std::vector<double> &kvecs)
 {
     this->period = {nk1, nk2, nk3};
     this->period_array = {nk1, nk2, nk3};

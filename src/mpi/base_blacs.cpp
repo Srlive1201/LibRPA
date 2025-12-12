@@ -29,9 +29,16 @@ void BlacsCtxtHandler::init()
     this->initialized_ = true;
 }
 
+void BlacsCtxtHandler::reset_comm()
+{
+    this->mpi_comm_h.reset_comm();
+    if (this->pgrid_set_) this->exit();
+    this->initialized_ = false;
+}
+
 void BlacsCtxtHandler::reset_comm(MPI_Comm comm_in, bool init_on_reset)
 {
-    this->mpi_comm_h.reset_comm(comm_in);
+    this->mpi_comm_h.reset_comm(comm_in, false);
     this->comm_set_ = true;
     this->pgrid_set_ = false;
     this->initialized_ = false;
@@ -84,8 +91,10 @@ void BlacsCtxtHandler::exit()
     if (pgrid_set_)
     {
         Cblacs_gridexit(ictxt);
-        // recollect the system context
-        ictxt = Csys2blacs_handle(mpi_comm_h.comm);
+        if (mpi_comm_h.comm == MPI_COMM_NULL)
+            ictxt = MPI_COMM_NULL;
+        else
+            ictxt = Csys2blacs_handle(mpi_comm_h.comm);
         pgrid_set_ = false;
     }
 }
@@ -209,10 +218,15 @@ int ArrayDesc::set_desc_indices_(const int &m, const int &n, const int &mb, cons
     irsrc_ = desc[6];
     icsrc_ = desc[7];
     lld_ = desc[8];
+    this->build_index_();
+    initialized_ = true;
+    return info;
+}
 
-    // precompute indices
-    g2l_r_.resize(m, -1);
-    g2p_r_.resize(m, -1);
+void ArrayDesc::build_index_()
+{
+    g2l_r_.resize(m_, -1);
+    g2p_r_.resize(m_, -1);
     for (int i = 0; i < m_; i++)
     {
         int row = ScalapackConnector::indxg2p(i, mb_, myprow_, irsrc_, nprows_);
@@ -222,8 +236,8 @@ int ArrayDesc::set_desc_indices_(const int &m, const int &n, const int &mb, cons
             g2l_r_[i] = ScalapackConnector::indxg2l(i, mb_, myprow_, irsrc_, nprows_);
         }
     }
-    g2l_c_.resize(n, -1);
-    g2p_c_.resize(n, -1);
+    g2l_c_.resize(n_, -1);
+    g2p_c_.resize(n_, -1);
     for (int j = 0; j < n_; j++)
     {
         int col = ScalapackConnector::indxg2p(j, nb_, mypcol_, icsrc_, npcols_);
@@ -249,9 +263,16 @@ int ArrayDesc::set_desc_indices_(const int &m, const int &n, const int &mb, cons
             l2g_c_[j] = ScalapackConnector::indxl2g(j, nb_, mypcol_, icsrc_, npcols_);
         }
     }
+}
 
-    initialized_ = true;
-    return info;
+void ArrayDesc::clear_index_()
+{
+    g2l_r_.clear();
+    g2l_c_.clear();
+    l2g_r_.clear();
+    l2g_c_.clear();
+    g2p_r_.clear();
+    g2p_c_.clear();
 }
 
 ArrayDesc::ArrayDesc()
@@ -296,19 +317,42 @@ ArrayDesc::ArrayDesc(const int &ictxt)
                       mypcol);
 }
 
+void ArrayDesc::reset_handler()
+{
+    // BLACS
+    comm_ = MPI_COMM_NULL;
+    ictxt_ = MPI_COMM_NULL;
+    nprocs_ = 1;
+    myid_ = 0;
+    nprows_ = 1;
+    myprow_ = 0;
+    npcols_ = 1;
+    mypcol_ = 0;
+    // Array specific
+    m_ = 0;
+    n_ = 0;
+    mb_ = 0;
+    nb_ = 0;
+    irsrc_ = 0;
+    icsrc_ = 0;
+    lld_ = 0; 
+    m_local_ = 0;
+    n_local_ = 0;
+    is_loc_consecutive_r_ = false;
+    is_loc_consecutive_c_ = false;
+    empty_local_mat_ = false;
+    initialized_ = false;
+    this->clear_index_();
+}
+
 void ArrayDesc::reset_handler(const BlacsCtxtHandler &blacs_h)
 {
     assert(blacs_h.initialized());
     // clean up current indices if the descriptor is already initialized
     if (initialized_)
     {
+        clear_index_();
         initialized_ = false;
-        g2l_r_.clear();
-        g2l_c_.clear();
-        l2g_r_.clear();
-        l2g_c_.clear();
-        g2p_r_.clear();
-        g2p_c_.clear();
     }
     set_blacs_params_(blacs_h.get_comm(), blacs_h.ictxt, blacs_h.nprocs, blacs_h.myid,
                       blacs_h.nprows, blacs_h.myprow, blacs_h.npcols,

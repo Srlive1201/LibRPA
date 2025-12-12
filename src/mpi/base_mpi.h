@@ -2,6 +2,7 @@
 #include "librpa_enums.h"
 
 #include "../interface/mpi.h"
+#include "mpi_proto.h"
 
 #include <string>
 #include <vector>
@@ -25,8 +26,11 @@ template <> struct mpi_datatype<std::complex<float>>
 template <> struct mpi_datatype<std::complex<double>>
 { static constexpr MPI_Datatype value = MPI_C_DOUBLE_COMPLEX; };
 
+extern const char *mpi_procname_uninit;
+
 class MpiCommHandler
 {
+public:
 private:
     bool initialized_;
     bool comm_set_;
@@ -42,10 +46,22 @@ public:
     void init();
     void reset_comm();
     void reset_comm(MPI_Comm comm_in, bool init_on_reset = false);
-    bool is_root() const { return this->myid == 0; }
+    // Free the wrapped communicator.
+    // It should not be called within the destructor,
+    // since the MPI communicator may be still used by other handlers.
+    void free_comm();
+    bool is_root() const { return initialized_ && this->myid == 0; }
     void barrier() const;
     std::string str() const;
+    bool is_initialized() const { return initialized_; }
     void check_initialized() const;
+
+    // T1 is for cases where MPI_IN_PLACE is used at sendbuf
+    template <typename T1, typename T2>
+    inline void allreduce(const T1 *sendbuf, T2 *recvbuf, int count, MPI_Op op) const
+    {
+        MPI_Allreduce(sendbuf, recvbuf, count, mpi_datatype<T2>::value, op, this->comm);
+    }
 
     // void allreduce_matrix(matrix &mat_send, matrix &mat_recv) const;
     // void allreduce_ComplexMatrix(ComplexMatrix &cmat_send, ComplexMatrix & cmat_recv) const;

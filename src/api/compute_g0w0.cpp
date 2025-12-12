@@ -81,7 +81,7 @@ LIBRPA_C_H_FUNC_WRAP_WOPT_NOPAR(void, librpa_build_g0w0_sigma)
 
         profiler.start("g0w0_exx_real_work");
         pds->p_exx->build(routing, pds->basis_aux, pds->cs_data, VR);
-        // pds->p_exx->build_KS_kgrid_blacs(pds->blacs_ctxt_h);
+        // pds->p_exx->build_KS_kgrid_blacs(pds->blacs_h);
         profiler.stop("g0w0_exx_real_work");
     }
     profiler.stop("g0w0_exx");
@@ -110,7 +110,7 @@ LIBRPA_C_H_FUNC_WRAP_WOPT_NOPAR(void, librpa_build_g0w0_sigma)
     if (opts.use_scalapack_gw_wc == LIBRPA_SWITCH_ON)
     {
         Wc_freq_q = compute_Wc_freq_q_blacs(chi0, pds->vq, pds->vq_cut, opts.sqrt_coulomb_threshold,
-                                            epsmac_LF_imagfreq, pds->blacs_ctxt_h, pds->desc_abf,
+                                            epsmac_LF_imagfreq, pds->blacs_h, pds->desc_abf,
                                             debug, opts.output_dir);
     }
     else

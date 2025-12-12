@@ -23,14 +23,23 @@ namespace librpa_int
  */
 class Dataset
 {
+private:
+    bool comm_blacs_coul_initialized_;
 public:
     /* Member variables */
     // Environment control
+    // Global MPI communicators and BLACS context handlers
     MpiCommHandler comm_h;
-    BlacsCtxtHandler blacs_ctxt_h;
-    //! Array descriptor for matrices of wave-function basis
+    BlacsCtxtHandler blacs_h;
+    // Communicators for Coulomb matrices 2D input and re-distribution
+    MpiCommHandler comm_coul_h;
+    MpiCommHandler comm_coul_inter_q_h;
+    MpiCommHandler comm_coul_intra_q_h;
+    BlacsCtxtHandler blacs_coul_intra_q_h;
+    ArrayDesc desc_coul;
+    //! Array descriptor for matrices of wave-function basis (using blacs_h)
     ArrayDesc desc_wfc;
-    //! Array descriptor for matrices of auxiliary basis set size
+    //! Array descriptor for matrices of auxiliary basis set size (using blacs_h)
     ArrayDesc desc_abf;
     //! Distribution of atom-pairs on current process for atomic-basis matrix data
     std::vector<atpair_t> atpairs_local;
@@ -50,10 +59,17 @@ public:
     // atom-pair distribution of Coulomb matrices
     atpair_k_cplx_mat_t vq;
     atpair_k_cplx_mat_t vq_cut;
-    // 2D distribution of Coulomb matrices
+    // Local index boundaries and 2D distribution of Coulomb matrices
+    // Indices are just for data parsing and blacs context initialization.
+    // Further handling should rely on comm_coul_*/blacs_coul_* communicators.
+    // Lower bounds are included, and upper bounds are excluded.
+    // Bare and cut Coulombs are enforced to use the same layout.
+    int vq_lbrow = -1, vq_ubrow = -1;
+    int vq_lbcol = -1, vq_ubcol = -1;
     std::map<Vector3_Order<double>, ComplexMatrix> vq_block_loc;
     std::map<Vector3_Order<double>, ComplexMatrix> vq_cut_block_loc;
     // Macroscopic dielectric functions at imaginary frequencies
+    // Only used for head correction of GW calculation
     std::vector<double> epsmacs_imagfreq;
     std::vector<double> omegas_imagfreq;
 
@@ -68,6 +84,9 @@ public:
     Dataset(MPI_Comm comm);
     ~Dataset() { free(); }
     void free();
+
+    void initialize_comm_blacs_coul();
+    void finalize_comm_blacs_coul();
 
     /* Disable copy */
     Dataset(const Dataset &) = delete;

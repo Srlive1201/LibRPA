@@ -42,6 +42,7 @@ public:
     BlacsCtxtHandler operator=(const BlacsCtxtHandler &) = delete;
 
     void init();
+    void reset_comm();
     void reset_comm(MPI_Comm comm_in, bool init_on_reset = true);
     void set_grid(const int &nprows_in, const int &npcols_in, CTXT_LAYOUT layout_in = CTXT_LAYOUT::R);
     void set_square_grid(bool more_rows = true, CTXT_LAYOUT layout_in = CTXT_LAYOUT::R);
@@ -110,6 +111,8 @@ private:
     // Process location of index
     std::vector<int> g2p_r_;
     std::vector<int> g2p_c_;
+    void build_index_();
+    void clear_index_();
 
     //! flag to indicate whether the local row indices correspond to consecutive global indices
     bool is_loc_consecutive_r_;
@@ -167,13 +170,15 @@ public:
     inline pcoord_t get_pcoord(int pid) const { int prow, pcol; Cblacs_pcoord(ictxt_, myid_, &prow, &pcol); return {prow, pcol}; };
     inline int get_pnum(int prow, int pcol) const { return Cblacs_pnum(ictxt_, prow, pcol); };
     inline int get_pnum(const pcoord_t &pc) const { return Cblacs_pnum(ictxt_, pc.first, pc.second); };
+    void reset_handler();
     void reset_handler(const BlacsCtxtHandler &blacs_h);
     std::string info() const;
     std::string info_desc() const;
     bool is_src() const { return myprow_ == irsrc_ && mypcol_ == icsrc_; }
     bool is_row_consec() const { return is_loc_consecutive_r_; }
     bool is_col_consec() const { return is_loc_consecutive_c_; }
-    bool initialized() const { return this->initialized_; };
+    bool initialized() const { return this->initialized_; };  // to deprecate
+    bool is_initialized() const { return this->initialized_; };
     void barrier(CTXT_SCOPE scope = CTXT_SCOPE::A) const;
 };
 

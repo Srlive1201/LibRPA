@@ -848,7 +848,7 @@ CorrEnergy compute_RPA_correlation_blacs(const Chi0 &chi0, const atpair_k_cplx_m
             {
                 double Mu_begin=omp_get_wtime();
                // lib_printf(" |process %d,  Mu:  %d\n",comm_h.myid,Mu);
-                const size_t n_mu = chi0.atbasis_abf[Mu];
+                const int n_mu = chi0.atbasis_abf[Mu];
                 atom_mapping<ComplexMatrix>::pair_t_old Vq_row = gather_vq_row_q(chi0.atbasis_abf, comm_h, Mu, coulmat, q);
                 double Mu_after_vq=omp_get_wtime();
                 // atom_mapping<ComplexMatrix>::pair_t_old Vq_row;
@@ -1336,11 +1336,12 @@ ComplexMatrix compute_Pi_freq_q_row(const AtomicBasis &atbasis_abf, const Vector
     auto I_mu = atbasis_abf[I];
     const int natom = as_int(atbasis_abf.n_atoms);
     for (int J = 0; J != natom; J++) pi[J].create(I_mu, atbasis_abf[J]);
+    const auto n_ap = local_atpair.size();
 
     omp_lock_t pi_lock;
     omp_init_lock(&pi_lock);
 #pragma omp parallel for schedule(dynamic)
-    for (int iap=0;iap!=local_atpair.size();iap++)
+    for (size_t iap = 0; iap < n_ap; iap++)
     {
         const size_t J = local_atpair[iap].first;
         const size_t Q = local_atpair[iap].second;
@@ -1387,7 +1388,7 @@ ComplexMatrix compute_Pi_freq_q_row(const AtomicBasis &atbasis_abf, const Vector
     const auto atom_mu_part_range = atbasis_abf.get_part_range();
     for (int i = 0; i != pi_row.nr; i++)
         for (int J = 0; J != natom; J++)
-            for (int j = 0; j != atbasis_abf[J]; j++)
+            for (int j = 0; j != as_int(atbasis_abf[J]); j++)
                 pi_row(i, atom_mu_part_range[J]+j)=pi.at(J)(i,j);
     return pi_row;
 }
@@ -1399,11 +1400,12 @@ ComplexMatrix compute_Pi_freq_q_row_ri(const AtomicBasis &atbasis_abf, const Vec
     const int natom = atbasis_abf.n_atoms;
     auto I_mu = atbasis_abf[I];
     for (int J = 0; J != natom; J++) pi[J].create(I_mu, atbasis_abf[J]);
+    const auto n_ap = local_atpair.size();
 
     omp_lock_t pi_lock;
     omp_init_lock(&pi_lock);
 #pragma omp parallel for schedule(dynamic)
-    for (int iap=0;iap!=local_atpair.size();iap++)
+    for (size_t iap = 0; iap != n_ap; iap++)
     {
         const size_t J = local_atpair[iap].first;
         const size_t Q = local_atpair[iap].second;
@@ -1451,7 +1453,7 @@ ComplexMatrix compute_Pi_freq_q_row_ri(const AtomicBasis &atbasis_abf, const Vec
     const auto atom_mu_part_range = atbasis_abf.get_part_range();
     for (int i = 0; i != pi_row.nr; i++)
         for (int J = 0; J != natom; J++)
-            for (int j = 0; j != atbasis_abf[J]; j++)
+            for (int j = 0; j != as_int(atbasis_abf[J]); j++)
                 pi_row(i, atom_mu_part_range[J] + j) = pi.at(J)(i, j);
     return pi_row;
 }
@@ -1521,12 +1523,12 @@ compute_Wc_freq_q(
         for (const auto &Mu_NuqVq: coulmat_eps)
         {
             auto Mu = Mu_NuqVq.first;
-            auto n_mu = abf[Mu];
+            int n_mu = abf[Mu];
             for ( auto &Nu_qVq: Mu_NuqVq.second )
             {
                 auto Nu = Nu_qVq.first;
                 if ( 0 == Nu_qVq.second.count(q) ) continue;
-                auto n_nu = abf[Nu];
+                int n_nu = abf[Nu];
                 for ( int i_mu = 0; i_mu != n_mu; i_mu++ )
                     for ( int i_nu = 0; i_nu != n_nu; i_nu++ )
                     {
@@ -1560,12 +1562,12 @@ compute_Wc_freq_q(
         for ( auto &Mu_NuqVq: coulmat_wc )
         {
             auto Mu = Mu_NuqVq.first;
-            auto n_mu = abf[Mu];
+            int n_mu = abf[Mu];
             for ( auto &Nu_qVq: Mu_NuqVq.second )
             {
                 auto Nu = Nu_qVq.first;
                 if ( 0 == Nu_qVq.second.count(q) ) continue;
-                auto n_nu = abf[Nu];
+                int n_nu = abf[Nu];
                 for ( int i_mu = 0; i_mu != n_mu; i_mu++ )
                     for ( int i_nu = 0; i_nu != n_nu; i_nu++ )
                     {
@@ -1584,12 +1586,12 @@ compute_Wc_freq_q(
         for ( auto &Mu_NuqVq: coulmat_wc )
         {
             auto Mu = Mu_NuqVq.first;
-            auto n_mu = abf[Mu];
+            int n_mu = abf[Mu];
             for ( auto &Nu_qVq: Mu_NuqVq.second )
             {
                 auto Nu = Nu_qVq.first;
                 if ( 0 == Nu_qVq.second.count(q) ) continue;
-                auto n_nu = abf[Nu];
+                int n_nu = abf[Nu];
                 for ( int i_mu = 0; i_mu != n_mu; i_mu++ )
                     for ( int i_nu = 0; i_nu != n_nu; i_nu++ )
                         (*Nu_qVq.second.at(q))(i_mu, i_nu) = Vqcut_all(part_range[Mu] + i_mu, part_range[Nu] + i_nu);
@@ -1605,11 +1607,11 @@ compute_Wc_freq_q(
             for (const auto &Mu_Nuchi: MuNuchi)
             {
                 auto Mu = Mu_Nuchi.first;
-                auto n_mu = abf[Mu];
+                int n_mu = abf[Mu];
                 for ( auto &Nu_chi: Mu_Nuchi.second )
                 {
                     auto Nu = Nu_chi.first;
-                    auto n_nu = abf[Nu];
+                    int n_nu = abf[Nu];
                     for ( int i_mu = 0; i_mu != n_mu; i_mu++ )
                         for ( int i_nu = 0; i_nu != n_nu; i_nu++ )
                         {

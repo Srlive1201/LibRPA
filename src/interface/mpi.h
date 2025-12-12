@@ -13,6 +13,10 @@
 // their code compilable with serial compiler.
 // I do not know better solution at present, so finger crossed when it is not the case.
 
+#ifndef MPI_Op
+#define MPI_Op int
+#endif
+
 #ifndef MPI_Comm
 #define MPI_Comm int
 #endif

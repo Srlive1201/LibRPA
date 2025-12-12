@@ -24,6 +24,8 @@ LIBRPA_C_H_FUNC_WRAP_WOPT_NOPAR(void, librpa_build_exx)
 
     profiler.start("api_build_exx");
 
+    pds->initialize_comm_blacs_coul();
+
     // Decide actual routing
     LibrpaParallelRouting routing = opts.parallel_routing;
     if (routing == LibrpaParallelRouting::AUTO)
@@ -40,7 +42,7 @@ LIBRPA_C_H_FUNC_WRAP_WOPT_NOPAR(void, librpa_build_exx)
 
         profiler.start("exx_real_work");
         pds->p_exx->build(routing, pds->basis_aux, pds->cs_data, VR);
-        // pds->p_exx->build_KS_kgrid_blacs(pds->blacs_ctxt_h);
+        // pds->p_exx->build_KS_kgrid_blacs(pds->blacs_h);
         profiler.stop("exx_real_work");
     }
 
@@ -72,13 +74,13 @@ LIBRPA_C_H_FUNC_WRAP_WOPT(void, librpa_get_exx_pot_kgrid, const int n_spins, con
         librpa_build_exx(h, p_opts);
     }
 
-    const auto &opts = *p_opts;
+    // const auto &opts = *p_opts; // TODO: add a flag to control whether to use blacs or lapack
     // const bool debug = opts.output_level >= LIBRPA_VERBOSE_DEBUG;
 
     profiler.start("api_get_exx_pot_kgrid");
     auto &pexx = pds->p_exx;
     // TODO: make choosing blacs/non-blacs method a run time option
-    pexx->build_KS_kgrid_blacs(pds->blacs_ctxt_h);
+    pexx->build_KS_kgrid_blacs(pds->blacs_h);
     for (int isp = 0; isp < n_spins; isp++)
     {
         const int start_isp = isp * n_kpoints_local * n_states_calc;

@@ -13,11 +13,6 @@
 
 #include "driver.h"
 #include "librpa.hpp"
-// #include "../src/core/atomic_basis.h"
-// #include "../src/core/atom.h"
-// #include "../src/core/geometry.h"
-// #include "../src/core/pbc.h"
-// #include "../src/core/ri.h"
 #include "../src/mpi/global_mpi.h"
 // #include "../src/utils/constants.h"
 #include "../src/api/instance_manager.h"
@@ -295,9 +290,9 @@ void read_ri(const string &dir_path, librpa::ParallelRouting &routing)
         routing = decide_auto_routing(n_atoms, driver::opts.nfreq * n_kpoints);
     }
 
-    auto ds = librpa_int::api::get_dataset_instance(driver::h.get_c_handler());
-    const auto &Cs_data = ds->cs_data;
-    const auto &blacs_ctxt_h = ds->blacs_ctxt_h;
+    auto pds = librpa_int::api::get_dataset_instance(driver::h.get_c_handler());
+    const auto &Cs_data = pds->cs_data;
+    const auto &blacs_h = pds->blacs_h;
 
     local_atpair.clear();
 
@@ -308,8 +303,8 @@ void read_ri(const string &dir_path, librpa::ParallelRouting &routing)
     {
         lib_printf_root("Triangular dispatching of atom pairs\n");
         auto tri_local_atpair = librpa_int::dispatch_upper_triangular_tasks(
-            n_atoms, blacs_ctxt_h.myid, blacs_ctxt_h.nprows, blacs_ctxt_h.npcols,
-            blacs_ctxt_h.myprow, blacs_ctxt_h.mypcol);
+            n_atoms, blacs_h.myid, blacs_h.nprows, blacs_h.npcols,
+            blacs_h.myprow, blacs_h.mypcol);
         for (const auto &p: tri_local_atpair)
             local_atpair.push_back(p);
         profiler.start("driver_read_Cs");
@@ -337,8 +332,8 @@ void read_ri(const string &dir_path, librpa::ParallelRouting &routing)
 
         librpa_int::global::profiler.start("driver_read_Vq");
         auto trangular_loc_atpair = librpa_int::dispatch_upper_triangular_tasks(
-            n_atoms, blacs_ctxt_h.myid, blacs_ctxt_h.nprows, blacs_ctxt_h.npcols,
-            blacs_ctxt_h.myprow, blacs_ctxt_h.mypcol);
+            n_atoms, blacs_h.myid, blacs_h.nprows, blacs_h.npcols,
+            blacs_h.myprow, blacs_h.mypcol);
         for(auto &iap:trangular_loc_atpair)
             local_atpair.push_back(iap);
         read_Vq_row(dir_path, "coulomb_mat", driver::opts.vq_threshold, local_atpair, false);

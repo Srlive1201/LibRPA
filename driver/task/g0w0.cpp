@@ -166,11 +166,11 @@ void driver::task_g0w0()
 
 
     profiler.start("g0w0_exx_rotate_KS", "Exchange self-energy in K-S space");
-    pds->p_exx->build_KS_kgrid_blacs(pds->blacs_ctxt_h);
+    pds->p_exx->build_KS_kgrid_blacs(pds->blacs_h);
     profiler.stop("g0w0_exx_rotate_KS");
 
     profiler.start("g0w0_sigc_rotate_KS", "Correlation self-energy in K-S space");
-    pds->p_g0w0->build_sigc_matrix_KS_kgrid_blacs(pds->blacs_ctxt_h);
+    pds->p_g0w0->build_sigc_matrix_KS_kgrid_blacs(pds->blacs_h);
     profiler.stop("g0w0_sigc_rotate_KS");
 
     if (flag_read_vxc == 0)

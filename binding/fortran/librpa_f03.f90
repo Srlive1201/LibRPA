@@ -951,7 +951,6 @@ contains
                routing_c, i_atom_c, j_atom_c, nao_i_c, nao_j_c, naux_i_c, r_c, coeff_c)
          deallocate(coeff_c)
       end if
-
    end subroutine librpa_set_lri_coeff
 
    subroutine set_aux_coulomb_k_atom_pair(h, ik, i_atom, j_atom, naux_i, naux_j, vq, vq_threshold, is_cut)
@@ -1021,10 +1020,12 @@ contains
       allocate(vq_real(ne-nb+1, me-mb+1), vq_imag(ne-nb+1, me-mb+1))
 
       ik_c = int(ik-1, kind=c_int)
+      ! The C interface uses included beginning and excluded ending.
+      ! In Fortran, it is more common that both of two ends are included
       mb = int(mu_begin-1, kind=c_int)
-      me = int(mu_end-1, kind=c_int)
+      me = int(mu_end, kind=c_int)
       nb = int(nu_begin-1, kind=c_int)
-      ne = int(nu_end-1, kind=c_int)
+      ne = int(nu_end, kind=c_int)
       vq_real = transpose(real(vq, kind=c_double))
       vq_imag = transpose(real(aimag(vq), kind=c_double))
       if (is_cut) then

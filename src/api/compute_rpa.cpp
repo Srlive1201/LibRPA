@@ -62,7 +62,7 @@ LIBRPA_C_H_FUNC_WRAP_WOPT(double, librpa_get_rpa_correlation_energy,
     auto &chi0 = *(pds->p_chi0);
 
     // std::cout << "n_abf & " << chi0.atbasis_abf.nb_total;
-    // std::cout << "n_abf * " << ds->p_chi0->atbasis_abf.nb_total;
+    // std::cout << "n_abf * " << pds->p_chi0->atbasis_abf.nb_total;
 
     profiler.start("chi0_build", "Build response function chi0");
     chi0.build(routing, pds->cs_data, pds->atpairs_local);
@@ -104,9 +104,9 @@ LIBRPA_C_H_FUNC_WRAP_WOPT(double, librpa_get_rpa_correlation_energy,
     if (use_blacs)
     {
         if(pds->mf.get_n_kpoints() == 1)
-            corr = compute_RPA_correlation_blacs_2d_gamma_only(chi0, pds->vq, pds->atpairs_local, pds->blacs_ctxt_h);
+            corr = compute_RPA_correlation_blacs_2d_gamma_only(chi0, pds->vq, pds->atpairs_local, pds->blacs_h);
         else
-            corr = compute_RPA_correlation_blacs_2d(chi0, pds->vq, pds->atpairs_local, pds->blacs_ctxt_h);
+            corr = compute_RPA_correlation_blacs_2d(chi0, pds->vq, pds->atpairs_local, pds->blacs_h);
     }
     else
         corr = compute_RPA_correlation(routing, *(pds->p_chi0), pds->vq);

@@ -38,8 +38,8 @@ void initialize_ds_atpairs_local(Dataset &ds, LibrpaParallelRouting routing)
     else if(routing == LibrpaParallelRouting::ATOMPAIR || routing == LibrpaParallelRouting::LIBRI)
     {
         auto tri_local_atpair = librpa_int::dispatch_upper_triangular_tasks(
-            n_atoms, ds.blacs_ctxt_h.myid, ds.blacs_ctxt_h.nprows, ds.blacs_ctxt_h.npcols,
-            ds.blacs_ctxt_h.myprow, ds.blacs_ctxt_h.mypcol);
+            n_atoms, ds.blacs_h.myid, ds.blacs_h.nprows, ds.blacs_h.npcols,
+            ds.blacs_h.myprow, ds.blacs_h.mypcol);
         for (const auto &p: tri_local_atpair)
             ds.atpairs_local.emplace_back(p);
     }

@@ -1,11 +1,13 @@
 #include "global_mpi.h"
 
+// Public API headers
 #include "librpa_enums.h"
 
 #include <stdexcept>
 #include <iostream>
 
 #include "../utils/error.h"
+#include "base_mpi.h"
 
 namespace librpa_int
 {
@@ -18,7 +20,7 @@ MpiCommHandler mpi_comm_global_h;
 int myid_global = 0;
 int size_global = 1;
 
-std::string procname = "not-init";
+std::string procname(mpi_procname_uninit);
 
 MPI_Comm mpi_comm_intra;
 MpiCommHandler mpi_comm_intra_h;
@@ -88,7 +90,7 @@ void finalize_global_mpi()
 {
     // Not initialized, just return
     if (!is_mpi_initialized()) return;
-    procname = "not-init";
+    procname = mpi_procname_uninit;
     mpi_comm_global_h.reset_comm();
     mpi_comm_inter_h.reset_comm();
     mpi_comm_intra_h.reset_comm();

@@ -34,13 +34,13 @@ LIBRPA_C_H_FUNC_WRAP(void, librpa_set_scf_dimension,
     using librpa_int::global::mpi_comm_global_h;
     using librpa_int::global::lib_printf;
 
-    auto ds = librpa_int::api::get_dataset_instance(h);
+    auto pds = librpa_int::api::get_dataset_instance(h);
 
-    auto &meanfield = ds->mf;
+    auto &meanfield = pds->mf;
     meanfield.set(nspins, nkpts, nstates, nbasis,
                   st_istate, nstates_local, st_ibasis, nbasis_local);
-    ds->comm_h.barrier();
-    if (ds->comm_h.is_root())
+    pds->comm_h.barrier();
+    if (pds->comm_h.is_root())
     {
         lib_printf("Mean-field dimensions set:\n");
         lib_printf("| number of spins    : %d\n", meanfield.get_n_spins());
@@ -48,7 +48,7 @@ LIBRPA_C_H_FUNC_WRAP(void, librpa_set_scf_dimension,
         lib_printf("| number of bands    : %d\n", meanfield.get_n_bands());
         lib_printf("| number of NAOs     : %d\n", meanfield.get_n_aos());
     }
-    ds->comm_h.barrier();
+    pds->comm_h.barrier();
 }
 
 LIBRPA_C_H_FUNC_WRAP(void, librpa_set_wg_ekb_efermi, int nspins, int nkpts, int nstates, const double* wg,
@@ -56,8 +56,8 @@ LIBRPA_C_H_FUNC_WRAP(void, librpa_set_wg_ekb_efermi, int nspins, int nkpts, int 
 {
     using librpa_int::global::lib_printf;
 
-    auto ds = librpa_int::api::get_dataset_instance(h);
-    auto &meanfield = ds->mf;
+    auto pds = librpa_int::api::get_dataset_instance(h);
+    auto &meanfield = pds->mf;
 
     meanfield.get_efermi() = efermi;
     auto& eskb = meanfield.get_eigenvals();
@@ -72,24 +72,24 @@ LIBRPA_C_H_FUNC_WRAP(void, librpa_set_wg_ekb_efermi, int nspins, int nkpts, int 
     }
 
     double emin, emax;
-    ds->mf.get_E_min_max(emin, emax);
+    pds->mf.get_E_min_max(emin, emax);
 
-    ds->comm_h.barrier();
-    if (ds->comm_h.is_root())
+    pds->comm_h.barrier();
+    if (pds->comm_h.is_root())
     {
         lib_printf("Mean-field eigenvalues and occupation numbers set:\n");
         lib_printf("| Minimal transition energy (Ha): %f\n", emin);
         lib_printf("| Maximal transition energy (Ha): %f\n", emax);
     }
-    ds->comm_h.barrier();
+    pds->comm_h.barrier();
 }
 
 LIBRPA_C_H_FUNC_WRAP(void, librpa_set_wfc, int ispin, int ik,
                      int nstates_local, int nbasis_local,
                      const double *wfc_real, const double *wfc_imag)
 {
-    auto ds = librpa_int::api::get_dataset_instance(h);
-    auto &meanfield = ds->mf;
+    auto pds = librpa_int::api::get_dataset_instance(h);
+    auto &meanfield = pds->mf;
 
     auto& wfc = meanfield.get_eigenvectors()[ispin][ik];
     wfc.create(nstates_local, nbasis_local);
@@ -108,19 +108,19 @@ LIBRPA_C_H_FUNC_WRAP(void, librpa_set_ao_basis_wfc, const int natoms, const size
     std::vector<size_t> nbs(natoms);
     for (int i = 0; i < natoms; i++) nbs[i] = librpa_int::as_size(nbs_wfc[i]);
 
-    auto ds = librpa_int::api::get_dataset_instance(h);
-    ds->basis_wfc.set(nbs);
-    ds->desc_wfc.reset_handler(ds->blacs_ctxt_h);
-    const auto n = ds->basis_wfc.nb_total;
-    ds->desc_wfc.init_1b1p(n, n, 0, 0);
+    auto pds = librpa_int::api::get_dataset_instance(h);
+    pds->basis_wfc.set(nbs);
+    pds->desc_wfc.reset_handler(pds->blacs_h);
+    const auto n = pds->basis_wfc.nb_total;
+    pds->desc_wfc.init_1b1p(n, n, 0, 0);
 
-    ds->comm_h.barrier();
-    if (ds->comm_h.is_root())
+    pds->comm_h.barrier();
+    if (pds->comm_h.is_root())
     {
         lib_printf("Wave-function basis functions set:\n");
-        lib_printf("| total number of basis: %lu\n", ds->basis_wfc.nb_total);
+        lib_printf("| total number of basis: %lu\n", pds->basis_wfc.nb_total);
     }
-    ds->comm_h.barrier();
+    pds->comm_h.barrier();
 }
 
 LIBRPA_C_H_FUNC_WRAP(void, librpa_set_ao_basis_aux, int natoms, const size_t *nbs_aux)
@@ -136,21 +136,21 @@ LIBRPA_C_H_FUNC_WRAP(void, librpa_set_ao_basis_aux, int natoms, const size_t *nb
     }
     librpa_int::global::ofs_myid << std::endl;
 
-    auto ds = librpa_int::api::get_dataset_instance(h);
-    ds->basis_aux.set(nbs);
+    auto pds = librpa_int::api::get_dataset_instance(h);
+    pds->basis_aux.set(nbs);
 
     // After auxiliary basis is set, we can initialize the global (continous) array descriptor for N_abf size basis.
-    ds->desc_abf.reset_handler(ds->blacs_ctxt_h);
-    const auto n = ds->basis_aux.nb_total;
-    ds->desc_abf.init_1b1p(n, n, 0, 0);
+    pds->desc_abf.reset_handler(pds->blacs_h);
+    const auto n = pds->basis_aux.nb_total;
+    pds->desc_abf.init_1b1p(n, n, 0, 0);
 
-    ds->comm_h.barrier();
-    if (ds->comm_h.is_root())
+    pds->comm_h.barrier();
+    if (pds->comm_h.is_root())
     {
         lib_printf("Auxiliary basis functions set:\n");
-        lib_printf("| total number of basis: %lu\n", ds->basis_aux.nb_total);
+        lib_printf("| total number of basis: %lu\n", pds->basis_aux.nb_total);
     }
-    ds->comm_h.barrier();
+    pds->comm_h.barrier();
 }
 
 LIBRPA_C_H_FUNC_WRAP(void, librpa_set_latvec_and_G, const double lat_mat[9], const double G_mat[9])
@@ -158,16 +158,16 @@ LIBRPA_C_H_FUNC_WRAP(void, librpa_set_latvec_and_G, const double lat_mat[9], con
     using std::cout;
     using std::endl;
 
-    auto ds = librpa_int::api::get_dataset_instance(h);
-    auto &pbc = ds->pbc;
+    auto pds = librpa_int::api::get_dataset_instance(h);
+    auto &pbc = pds->pbc;
 
     std::vector<double> latt(lat_mat, lat_mat + 9);
     std::vector<double> recp(G_mat, G_mat + 9);
 
     pbc.set_latvec_and_G(latt, recp);
 
-    ds->comm_h.barrier();
-    if (ds->comm_h.is_root())
+    pds->comm_h.barrier();
+    if (pds->comm_h.is_root())
     {
         cout << "Lattice vectors (Bohr): latt" << endl;
         pbc.latvec.print(16);
@@ -177,7 +177,7 @@ LIBRPA_C_H_FUNC_WRAP(void, librpa_set_latvec_and_G, const double lat_mat[9], con
         cout << "Consistency check: latt * G.T" << endl;
         iden_test.print(16);
     }
-    ds->comm_h.barrier();
+    pds->comm_h.barrier();
 }
 
 LIBRPA_C_H_FUNC_WRAP(void, librpa_set_atoms, int natoms, const int *types, const double *posi_cart)
@@ -187,9 +187,9 @@ LIBRPA_C_H_FUNC_WRAP(void, librpa_set_atoms, int natoms, const int *types, const
     using librpa_int::coord_t;
     using librpa_int::global::lib_printf;
 
-    auto ds = librpa_int::api::get_dataset_instance(h);
-    auto &pbc = ds->pbc;
-    auto &atoms = ds->atoms;
+    auto pds = librpa_int::api::get_dataset_instance(h);
+    auto &pbc = pds->pbc;
+    auto &atoms = pds->atoms;
 
     std::vector<int> v_types(types, types + natoms);
     std::vector<coord_t> v_coords(natoms);
@@ -206,8 +206,8 @@ LIBRPA_C_H_FUNC_WRAP(void, librpa_set_atoms, int natoms, const int *types, const
         atoms.set(v_types, v_coords, pbc.latvec);
         const auto &coords = atoms.coords;
         const auto &coords_frac = atoms.coords_frac;
-        ds->comm_h.barrier();
-        if (ds->comm_h.is_root())
+        pds->comm_h.barrier();
+        if (pds->comm_h.is_root())
         {
             cout << "Atom positions read (Cartesian in Bohr | fractional):" << endl;
             for (int i = 0; i != natoms; i++)
@@ -219,14 +219,14 @@ LIBRPA_C_H_FUNC_WRAP(void, librpa_set_atoms, int natoms, const int *types, const
                         c[2], cf[0], cf[1], cf[2]);
             }
         }
-        ds->comm_h.barrier();
+        pds->comm_h.barrier();
     }
     else
     {
         atoms.set(v_types, v_coords);
         const auto &coords = atoms.coords;
-        ds->comm_h.barrier();
-        if (ds->comm_h.is_root())
+        pds->comm_h.barrier();
+        if (pds->comm_h.is_root())
         {
             cout << "Atom positions read (Cartesian in Bohr, fractional not set due to uninitialized lattice):" << endl;
             for (int i = 0; i != natoms; i++)
@@ -236,7 +236,7 @@ LIBRPA_C_H_FUNC_WRAP(void, librpa_set_atoms, int natoms, const int *types, const
                 lib_printf("ia %4d: %12.7f %12.7f %12.7f\n", i + 1, c[0], c[1], c[2]);
             }
         }
-        ds->comm_h.barrier();
+        pds->comm_h.barrier();
     }
 
 }
@@ -247,16 +247,16 @@ LIBRPA_C_H_FUNC_WRAP(void, librpa_set_kgrids_kvec, int nk1, int nk2, int nk3, co
     using std::cout;
     using std::endl;
 
-    auto ds = librpa_int::api::get_dataset_instance(h);
-    auto &pbc = ds->pbc;
+    auto pds = librpa_int::api::get_dataset_instance(h);
+    auto &pbc = pds->pbc;
 
     const int nkpts = nk1 * nk2 * nk3;
     std::vector<double> v_kvecs(kvecs, kvecs + 3 * nkpts);
 
     pbc.set_kgrids_kvec(nk1, nk2, nk3, v_kvecs);
 
-    ds->comm_h.barrier();
-    if (ds->comm_h.is_root())
+    pds->comm_h.barrier();
+    if (pds->comm_h.is_root())
     {
         librpa_int::global::lib_printf("kgrids: %3d %3d %3d\n", pbc.period.x, pbc.period.y, pbc.period.z);
         cout << "k-points read (Cartesian in 2Pi Bohr^-1 | fractional):" << endl;
@@ -278,7 +278,7 @@ LIBRPA_C_H_FUNC_WRAP(void, librpa_set_kgrids_kvec, int nk1, int nk2, int nk3, co
         }
         cout << endl;
     }
-    ds->comm_h.barrier();
+    pds->comm_h.barrier();
 }
 
 LIBRPA_C_H_FUNC_WRAP(void, librpa_set_ibz_mapping, int nkpts, const int* map_ibzk)
@@ -288,15 +288,15 @@ LIBRPA_C_H_FUNC_WRAP(void, librpa_set_ibz_mapping, int nkpts, const int* map_ibz
     using namespace librpa_int;  // for STL io
     using namespace librpa_int::global;
 
-    auto ds = librpa_int::api::get_dataset_instance(h);
-    auto &pbc = ds->pbc;
+    auto pds = librpa_int::api::get_dataset_instance(h);
+    auto &pbc = pds->pbc;
     assert(nkpts == pbc.get_n_cells_bvk());
 
     std::vector<int> map(map_ibzk, map_ibzk + nkpts);
     pbc.set_ibz_mapping(map, {});
     // ofs_myid << map << std::endl;
-    ds->comm_h.barrier();
-    if (ds->comm_h.is_root())
+    pds->comm_h.barrier();
+    if (pds->comm_h.is_root())
     {
         const int nkpt = pbc.irk_point_id_mapping.size();
         cout << "Irreducible Brillouin mapping:" << endl;
@@ -317,7 +317,7 @@ LIBRPA_C_H_FUNC_WRAP(void, librpa_set_ibz_mapping, int nkpts, const int* map_ibz
             }
         }
     }
-    ds->comm_h.barrier();
+    pds->comm_h.barrier();
 }
 
 LIBRPA_C_H_FUNC_WRAP(void, librpa_set_lri_coeff, LibrpaParallelRouting routing, int I, int J,
@@ -330,35 +330,35 @@ LIBRPA_C_H_FUNC_WRAP(void, librpa_set_lri_coeff, LibrpaParallelRouting routing, 
     using librpa_int::as_size;
     using librpa_int::global::ofs_myid;
 
-    auto ds = librpa_int::api::get_dataset_instance(h);
-    auto &cs_data = ds->cs_data;
-    if (!ds->basis_wfc.initialized())
+    auto pds = librpa_int::api::get_dataset_instance(h);
+    auto &cs_data = pds->cs_data;
+    if (!pds->basis_wfc.initialized())
         throw LIBRPA_RUNTIME_ERROR("wave function basis not set, call (librpa_)set_ao_basis_wfc first");
-    if (!ds->basis_aux.initialized())
+    if (!pds->basis_aux.initialized())
         throw LIBRPA_RUNTIME_ERROR("auxiliary basis not set, call (librpa_)set_ao_basis_aux first");
 
     const size_t cs_size = nbasis_i * nbasis_j * naux_mu;
     const size_t n_ij = nbasis_i * nbasis_j;
 
     ofs_myid << "Parsing I J " << I << " " << J << " "
-             << "ds->basis_aux " << ds->basis_aux.nbs_ << " "
-             << "ds->basis_wfc " << ds->basis_wfc.nbs_ << endl;
+             << "ds->basis_aux " << pds->basis_aux.nbs_ << " "
+             << "ds->basis_wfc " << pds->basis_wfc.nbs_ << endl;
     ofs_myid << "ds->basis_aux[I] == naux_mu ? " 
-             << ds->basis_aux[I] << " " << as_size(naux_mu) << " "
-             << std::boolalpha << (ds->basis_aux[I] == as_size(naux_mu))
+             << pds->basis_aux[I] << " " << as_size(naux_mu) << " "
+             << std::boolalpha << (pds->basis_aux[I] == as_size(naux_mu))
              << endl;
     ofs_myid << "ds->basis_wfc[I] == nbasis_i ? "
-             << ds->basis_wfc[I] << " " << as_size(nbasis_i) << " "
-             << std::boolalpha << (ds->basis_wfc[I] == as_size(nbasis_i))
+             << pds->basis_wfc[I] << " " << as_size(nbasis_i) << " "
+             << std::boolalpha << (pds->basis_wfc[I] == as_size(nbasis_i))
              << endl;
     ofs_myid << "ds->basis_wfc[J] == nbasis_j ? "
-             << ds->basis_wfc[J] << " " << as_size(nbasis_j) << " "
-             << std::boolalpha << (ds->basis_wfc[J] == as_size(nbasis_j))
+             << pds->basis_wfc[J] << " " << as_size(nbasis_j) << " "
+             << std::boolalpha << (pds->basis_wfc[J] == as_size(nbasis_j))
              << endl;
 
-    assert(ds->basis_aux[I] == as_size(naux_mu));
-    assert(ds->basis_wfc[I] == as_size(nbasis_i));
-    assert(ds->basis_wfc[J] == as_size(nbasis_j));
+    assert(pds->basis_aux[I] == as_size(naux_mu));
+    assert(pds->basis_wfc[I] == as_size(nbasis_i));
+    assert(pds->basis_wfc[J] == as_size(nbasis_j));
 
     if (routing == LibrpaParallelRouting::LIBRI)
     {
@@ -418,18 +418,18 @@ LIBRPA_C_H_FUNC_WRAP(void, librpa_set_aux_bare_coulomb_k_atom_pair,
                      int ik, int I, int J, int naux_mu, int naux_nu,
                      const double* Vq_real_in, const double* Vq_imag_in, double vq_threshold)
 {
-    auto ds = librpa_int::api::get_dataset_instance(h);
-    const auto &qvec = ds->pbc.klist[ik];
-    _set_aux_coulomb_k_atom_pair(qvec, I, J, naux_mu, naux_nu, Vq_real_in, Vq_imag_in, ds->vq, vq_threshold);
+    auto pds = librpa_int::api::get_dataset_instance(h);
+    const auto &qvec = pds->pbc.klist[ik];
+    _set_aux_coulomb_k_atom_pair(qvec, I, J, naux_mu, naux_nu, Vq_real_in, Vq_imag_in, pds->vq, vq_threshold);
 }
 
 LIBRPA_C_H_FUNC_WRAP(void, librpa_set_aux_cut_coulomb_k_atom_pair,
                      int ik, int I, int J, int naux_mu, int naux_nu,
                      const double* Vq_real_in, const double* Vq_imag_in, double vq_threshold)
 {
-    auto ds = librpa_int::api::get_dataset_instance(h);
-    const auto &qvec = ds->pbc.klist[ik];
-    _set_aux_coulomb_k_atom_pair(qvec, I, J, naux_mu, naux_nu, Vq_real_in, Vq_imag_in, ds->vq_cut, vq_threshold);
+    auto pds = librpa_int::api::get_dataset_instance(h);
+    const auto &qvec = pds->pbc.klist[ik];
+    _set_aux_coulomb_k_atom_pair(qvec, I, J, naux_mu, naux_nu, Vq_real_in, Vq_imag_in, pds->vq_cut, vq_threshold);
 }
 
 static void _set_aux_coulomb_k_2D_block(
@@ -441,19 +441,39 @@ static void _set_aux_coulomb_k_2D_block(
     using std::shared_ptr;
     using std::make_shared;
 
-    int brow = mu_begin - 1;
-    int erow = mu_end - 1;
-    int bcol = nu_begin - 1;
-    int ecol = nu_end - 1;
+    int n_mu_loc = mu_end - mu_begin;
+    int n_nu_loc = nu_end - nu_begin;
+    if (n_mu_loc < 1 || n_nu_loc < 1) return;
+
+    auto &block = vq_block[qvec];
+    block.create(n_mu_loc, n_nu_loc);
 
     size_t ii = 0;
-    for (int i_mu = brow; i_mu <= erow; i_mu++)
+    for (int i_mu = 0; i_mu < n_mu_loc; i_mu++)
     {
-        for (int i_nu = bcol; i_nu <= ecol; i_nu++)
+        for (int i_nu = 0; i_nu < n_nu_loc; i_nu++)
         {
-            vq_block[qvec](i_mu, i_nu) = complex<double>(Vq_real_in[ii], Vq_imag_in[ii]);
+            block(i_mu, i_nu) = complex<double>(Vq_real_in[ii], Vq_imag_in[ii]);
             ii += 1;
         }
+    }
+}
+
+static void _parse_vq_dims(int &lbrow, int &ubrow, int &lbcol, int &ubcol,
+                          const int lbrow_in, const int ubrow_in, const int lbcol_in, const int ubcol_in)
+{
+    if (lbrow < 0 || ubrow < 0 || lbcol < 0 || ubcol < 0)
+    {
+        lbrow = lbrow_in;
+        ubrow = ubrow_in;
+        lbcol = lbcol_in;
+        ubcol = ubcol_in;
+        return;
+    }
+
+    if (lbrow != lbrow_in || ubrow != ubrow_in || lbcol != lbcol_in || ubcol != ubcol_in)
+    {
+        throw LIBRPA_RUNTIME_ERROR("{lb,ub}{row,col} input is inconsistent from previous value");
     }
 }
 
@@ -461,20 +481,24 @@ LIBRPA_C_H_FUNC_WRAP(void, librpa_set_aux_bare_coulomb_k_2d_block,
                      int ik, int mu_begin, int mu_end, int nu_begin, int nu_end,
                      const double* Vq_real_in, const double* Vq_imag_in)
 {
-    auto ds = librpa_int::api::get_dataset_instance(h);
-    const auto &qvec = ds->pbc.klist[ik];
+    auto pds = librpa_int::api::get_dataset_instance(h);
+    const auto &qvec = pds->pbc.klist[ik];
+    _parse_vq_dims(pds->vq_lbrow, pds->vq_ubrow, pds->vq_lbcol, pds->vq_ubcol,
+                   mu_begin, mu_end, nu_begin, nu_end);
     _set_aux_coulomb_k_2D_block(qvec, mu_begin, mu_end, nu_begin, nu_end, Vq_real_in,
-                                Vq_imag_in, ds->vq_block_loc);
+                                Vq_imag_in, pds->vq_block_loc);
 }
 
 LIBRPA_C_H_FUNC_WRAP(void, librpa_set_aux_cut_coulomb_k_2d_block,
                      int ik, int mu_begin, int mu_end, int nu_begin, int nu_end,
                      const double* Vq_real_in, const double* Vq_imag_in)
 {
-    auto ds = librpa_int::api::get_dataset_instance(h);
-    const auto &qvec = ds->pbc.klist[ik];
+    auto pds = librpa_int::api::get_dataset_instance(h);
+    const auto &qvec = pds->pbc.klist[ik];
+    _parse_vq_dims(pds->vq_lbrow, pds->vq_ubrow, pds->vq_lbcol, pds->vq_ubcol,
+                   mu_begin, mu_end, nu_begin, nu_end);
     _set_aux_coulomb_k_2D_block(qvec, mu_begin, mu_end, nu_begin, nu_end, Vq_real_in,
-                                Vq_imag_in, ds->vq_cut_block_loc);
+                                Vq_imag_in, pds->vq_cut_block_loc);
 }
 
 LIBRPA_C_H_FUNC_WRAP(void, librpa_set_dielect_func_imagfreq, int nfreq, const double *omegas_imag, const double *dielect_func)

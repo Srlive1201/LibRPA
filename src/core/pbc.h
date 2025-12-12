@@ -56,7 +56,7 @@ public:
     void set_latvec_and_G(const std::vector<double> &latt_mat,
                           const std::vector<double> &recp_mat);
     //! Set the full k-points list. kvecs should be in Bohr^-1 unit.
-    void set_kgrids_kvec(int nk1, int nk2, int nk3, std::vector<double> &kvecs);
+    void set_kgrids_kvec(int nk1, int nk2, int nk3, const std::vector<double> &kvecs);
     //! Set the mapping of full k-points to irreducible k-points
     void set_ibz_mapping(const std::vector<int> &irk_point_id_mapping_in,
                          const std::vector<int> &isymops_in = {});

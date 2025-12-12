@@ -52,7 +52,7 @@ void driver::task_exx()
     auto pds = librpa_int::api::get_dataset_instance(h.get_c_handler());
     const auto meanfield = pds->mf;
     auto &pexx = pds->p_exx;
-    pexx->build_KS_kgrid_blacs(pds->blacs_ctxt_h);
+    pexx->build_KS_kgrid_blacs(pds->blacs_h);
 
     // NOTE: since the internal object does not support parallel calculation with different k-points on each process
     // we compute all and only let master process print

@@ -10,17 +10,16 @@
 namespace librpa_int
 {
 
+const char *mpi_procname_uninit = "unknown";
+
 MpiCommHandler::MpiCommHandler()
+    : initialized_(false), comm_set_(false), comm(MPI_COMM_NULL), myid(0), nprocs(0), procname(mpi_procname_uninit)
 {
-    this->comm_set_ = false;
-    this->initialized_ = false;
 }
 
 MpiCommHandler::MpiCommHandler(MPI_Comm comm_in, bool init_on_construct)
-        : comm(comm_in)
+        : initialized_(false), comm_set_(true), comm(comm_in), myid(0), nprocs(0), procname(mpi_procname_uninit)
 {
-    this->comm_set_ = true;
-    this->initialized_ = false;
     if (init_on_construct) this->init();
 }
 
@@ -29,13 +28,18 @@ void MpiCommHandler::reset_comm()
     this->comm = MPI_COMM_NULL;
     this->comm_set_ = false;
     this->initialized_ = false;
+    this->procname = mpi_procname_uninit;
 }
 
 void MpiCommHandler::reset_comm(MPI_Comm comm_in, bool init_on_reset)
 {
+    if (comm_in == MPI_COMM_NULL)
+        throw LIBRPA_RUNTIME_ERROR(
+            "input communicator is null, to reset please use reset_comm instead");
     this->comm = comm_in;
     this->comm_set_ = true;
     this->initialized_ = false;
+    this->procname = mpi_procname_uninit;
     if (init_on_reset) this->init();
 }
 
@@ -63,11 +67,16 @@ void MpiCommHandler::init()
     }
 }
 
+void MpiCommHandler::free_comm()
+{
+    if (this->comm != MPI_COMM_WORLD && this->comm != MPI_COMM_NULL)
+        MPI_Comm_free(&this->comm);
+    this->reset_comm();
+}
+
 void MpiCommHandler::barrier() const
 {
-#ifdef LIBRPA_DEBUG
-    this->check_initialized();
-#endif
+    if (!initialized_) return;
     MPI_Barrier(this->comm);
 }
 

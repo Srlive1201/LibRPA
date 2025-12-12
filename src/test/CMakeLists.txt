@@ -60,6 +60,7 @@ foreach(target
   test_atomic_basis_blacs
   test_base_mpi
   test_blacs
+  test_dataset
   test_matrix_m_mpi
   test_meanfield_mpi
   )
