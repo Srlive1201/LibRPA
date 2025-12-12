@@ -2,7 +2,6 @@ module librpa_f03
    !=======================================================================
    ! Stub Fortran module for using LibRPA
    !=======================================================================
-
    implicit none
 
    private
@@ -118,7 +117,7 @@ module librpa_f03
 
 contains
 
-   ! Can be customized by actual code
+   ! Can be customized by actual hosting code
    subroutine error_on_call(func)
       implicit none
       character(len=*), intent(in) :: func
@@ -128,7 +127,11 @@ contains
          trim(func), '. Make sure you have linked LibRPA library.'
       write(*,'(A)') info_str
       stop
-   end subroutine error_on_call()
+   end subroutine error_on_call
+
+   !=======================================================================
+   ! Usually no need change things below
+   !=======================================================================
 
    subroutine librpa_init_options(opts)
       implicit none

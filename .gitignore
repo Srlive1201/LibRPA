@@ -84,3 +84,7 @@ install/
 regression_tests/testcases/*/*out
 regression_tests/testcases/*/*dat
 regression_tests/testcases/*/*txt
+
+utilities/*
+!utilities/*.sh
+!utilities/*.py
