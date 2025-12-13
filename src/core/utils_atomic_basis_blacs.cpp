@@ -65,16 +65,10 @@ std::set<std::pair<int, int>> get_necessary_IJ_from_block_2D_sy(const char &uplo
 }
 
 void
-IndexScheduler::init(const std::unordered_map<int, std::set<atpair_t>> &map_proc_IJs,
-                     const AtomicBasis &atbasis_r, const AtomicBasis &atbasis_c,
-                     const ArrayDesc &ad, const bool row_major) noexcept
+IndexScheduler::init_impl_(const ap_p_map<int> &map_IJ_proc,
+                           const AtomicBasis &atbasis_r, const AtomicBasis &atbasis_c,
+                           const ArrayDesc &ad, const bool row_major) noexcept
 {
-    if (initialized_) reset();
-
-    assert(ad.m() > 0 && atbasis_r.nb_total == as_size(ad.m()));
-    assert(ad.n() > 0 && atbasis_c.nb_total == as_size(ad.n()));
-    assert(atbasis_r.n_atoms == atbasis_c.n_atoms);
-
     // process -> local 1D indices in atomic basis context to send when converting from AP->BLACS
     std::unordered_map<int, std::vector<size_t>> proc_ap_ipair;
     std::unordered_map<int, std::vector<size_t>> proc_ap_locid;
@@ -83,29 +77,7 @@ IndexScheduler::init(const std::unordered_map<int, std::set<atpair_t>> &map_proc
 
     const auto m = as_size(ad.m());
     const auto n = as_size(ad.n());
-
-    global::profiler.start("index_scheduler_init_pairs_map");
-    ap_p_map<int> map_IJ_proc;
-    for (const auto &proc_IJs: map_proc_IJs)
-    {
-        const auto id = proc_IJs.first;
-        const auto &IJs = proc_IJs.second;
-        for (const auto &IJ: IJs)
-        {
-            assert(map_IJ_proc.count(IJ) == 0); // check atom-pair overlap
-            map_IJ_proc[IJ] = id;
-        }
-    }
-
     const auto myid = ad.myid();
-    if (map_proc_IJs.count(myid))
-    {
-        const auto row_fast = !row_major;
-        const auto &IJs = map_proc_IJs.at(myid);
-        atpairs = std::vector<atpair_t>(IJs.cbegin(), IJs.cend());
-        std::sort(atpairs.begin(), atpairs.end(), FastLess<atpair_t>{row_fast});
-    }
-    global::profiler.stop("index_scheduler_init_pairs_map");
 
     global::profiler.start("index_scheduler_ids_rc");
     // std::unordered_map<atom_t, std::vector<size_t>> row_ids_ap;
@@ -251,6 +223,76 @@ IndexScheduler::init(const std::unordered_map<int, std::set<atpair_t>> &map_proc
 }
 
 void
+IndexScheduler::init(const std::unordered_map<int, std::set<atpair_t>> &map_proc_IJs,
+                     const AtomicBasis &atbasis_r, const AtomicBasis &atbasis_c,
+                     const ArrayDesc &ad, const bool row_major) noexcept
+{
+    if (initialized_) reset();
+    assert(ad.m() > 0 && atbasis_r.nb_total == as_size(ad.m()));
+    assert(ad.n() > 0 && atbasis_c.nb_total == as_size(ad.n()));
+    assert(atbasis_r.n_atoms == atbasis_c.n_atoms);
+
+    global::profiler.start("index_scheduler_init_pairs_unordered_map");
+    ap_p_map<int> map_IJ_proc;
+    for (const auto &proc_IJs: map_proc_IJs)
+    {
+        const auto id = proc_IJs.first;
+        const auto &IJs = proc_IJs.second;
+        for (const auto &IJ: IJs)
+        {
+            assert(map_IJ_proc.count(IJ) == 0); // check atom-pair overlap
+            map_IJ_proc[IJ] = id;
+        }
+    }
+
+    const auto myid = ad.myid();
+    if (map_proc_IJs.count(myid))
+    {
+        const auto row_fast = !row_major;
+        const auto &IJs = map_proc_IJs.at(myid);
+        atpairs = std::vector<atpair_t>(IJs.cbegin(), IJs.cend());
+        std::sort(atpairs.begin(), atpairs.end(), FastLess<atpair_t>{row_fast});
+    }
+    global::profiler.stop("index_scheduler_init_pairs_unordered_map");
+    this->init_impl_(map_IJ_proc, atbasis_r, atbasis_c, ad, row_major);
+}
+
+void
+IndexScheduler::init(const std::map<int, std::set<atpair_t>> &map_proc_IJs,
+                     const AtomicBasis &atbasis_r, const AtomicBasis &atbasis_c,
+                     const ArrayDesc &ad, const bool row_major) noexcept
+{
+    if (initialized_) reset();
+    assert(ad.m() > 0 && atbasis_r.nb_total == as_size(ad.m()));
+    assert(ad.n() > 0 && atbasis_c.nb_total == as_size(ad.n()));
+    assert(atbasis_r.n_atoms == atbasis_c.n_atoms);
+
+    global::profiler.start("index_scheduler_init_pairs_map");
+    ap_p_map<int> map_IJ_proc;
+    for (const auto &proc_IJs: map_proc_IJs)
+    {
+        const auto id = proc_IJs.first;
+        const auto &IJs = proc_IJs.second;
+        for (const auto &IJ: IJs)
+        {
+            assert(map_IJ_proc.count(IJ) == 0); // check atom-pair overlap
+            map_IJ_proc[IJ] = id;
+        }
+    }
+
+    const auto myid = ad.myid();
+    if (map_proc_IJs.count(myid))
+    {
+        const auto row_fast = !row_major;
+        const auto &IJs = map_proc_IJs.at(myid);
+        atpairs = std::vector<atpair_t>(IJs.cbegin(), IJs.cend());
+        std::sort(atpairs.begin(), atpairs.end(), FastLess<atpair_t>{row_fast});
+    }
+    global::profiler.stop("index_scheduler_init_pairs_map");
+    this->init_impl_(map_IJ_proc, atbasis_r, atbasis_c, ad, row_major);
+}
+
+void
 IndexScheduler::reset()
 {
     atpairs.clear();
@@ -316,7 +358,7 @@ get_balanced_ap_distribution_for_consec_descriptor(const AtomicBasis &atbasis_r,
 
 
 // indices computation backend for AP<->BLACS conversion of general matrix
-static 
+static
 std::pair<std::unordered_map<int, std::vector<std::pair<atpair_t, std::vector<std::pair<size_t, size_t>>>>>,
           std::unordered_map<int, std::vector<std::pair<size_t, size_t>>>>
 _get_communicate_ids_list_ap_and_blacs(const int &myid,

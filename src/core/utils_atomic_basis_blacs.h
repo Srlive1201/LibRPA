@@ -68,11 +68,20 @@ public:
 
     inline bool initialized() const noexcept { return initialized_; }
 
+    void init(const std::map<int, std::set<atpair_t>> &map_proc_IJs,
+              const AtomicBasis &atbasis_r, const AtomicBasis &atbasis_c,
+              const ArrayDesc &ad, const bool row_major) noexcept;
+
     void init(const std::unordered_map<int, std::set<atpair_t>> &map_proc_IJs,
               const AtomicBasis &atbasis_r, const AtomicBasis &atbasis_c,
               const ArrayDesc &ad, const bool row_major) noexcept;
 
     void reset();
+
+private:
+    void init_impl_(const ap_p_map<int> &map_IJ_proc,
+                    const AtomicBasis &atbasis_r, const AtomicBasis &atbasis_c,
+                    const ArrayDesc &ad, const bool row_major) noexcept;
 };
 
 std::unordered_map<int, std::set<atpair_t>>
