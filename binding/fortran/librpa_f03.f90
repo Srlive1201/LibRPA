@@ -1039,9 +1039,6 @@ contains
       integer(c_int) :: ik_c, mb, me, nb, ne
       real(c_double), allocatable :: vq_real(:,:), vq_imag(:,:)
 
-      allocate(vq_real(ne-nb+1, me-mb+1))
-      allocate(vq_imag(ne-nb+1, me-mb+1))
-
       ik_c = int(ik-1, kind=c_int)
       ! The C interface uses included beginning and excluded ending.
       ! In Fortran, it is more common that both of two ends are included
@@ -1049,6 +1046,9 @@ contains
       me = int(mu_end, kind=c_int)
       nb = int(nu_begin-1, kind=c_int)
       ne = int(nu_end, kind=c_int)
+
+      allocate(vq_real(ne-nb, me-mb))
+      allocate(vq_imag(ne-nb, me-mb))
       vq_real = transpose(real(vq, kind=c_double))
       vq_imag = transpose(real(aimag(vq), kind=c_double))
       if (is_cut) then
