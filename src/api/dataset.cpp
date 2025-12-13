@@ -337,13 +337,19 @@ void Dataset::redistribute_coulomb_blacs2ap()
             {
                 const auto IJ = it_ap->first;
                 const auto I = IJ.first;
+                const auto n_I = basis_aux[I];
                 const auto J = IJ.second;
+                const auto n_J = basis_aux[J];
                 auto &cmat_new = vq_dst[I][J][q];
-                cmat_new = std::make_shared<ComplexMatrix>(basis_aux[I], basis_aux[J]);
-                const size_t n = basis_aux[I] * basis_aux[J];
+                cmat_new = std::make_shared<ComplexMatrix>(n_I, n_J);
+                const size_t n = n_I * n_J;
                 auto &matz = it_ap->second;
+                assert(as_size(matz.nr()) == n_I);
+                assert(as_size(matz.nc()) == n_J);
                 matz.swap_to_row_major();
                 memcpy(cmat_new->c, matz.ptr(), n * sizeof(cplxdb));
+                assert(as_size(matz.nr()) == n_J);
+                assert(as_size(matz.nc()) == n_I);
                 it_ap = IJmap.erase(it_ap);
             }
             it_q = vq_src.erase(it_q);
