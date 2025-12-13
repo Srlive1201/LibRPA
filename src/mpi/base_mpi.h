@@ -20,6 +20,8 @@ template <> struct mpi_datatype<double>
 { static constexpr MPI_Datatype value = MPI_DOUBLE; };
 template <> struct mpi_datatype<long>
 { static constexpr MPI_Datatype value = MPI_LONG; };
+template <> struct mpi_datatype<unsigned long>
+{ static constexpr MPI_Datatype value = MPI_UNSIGNED_LONG; };
 template <> struct mpi_datatype<std::complex<float>>
 { static constexpr MPI_Datatype value = MPI_C_FLOAT_COMPLEX; };
 template <> struct mpi_datatype<std::complex<double>>
@@ -60,6 +62,12 @@ public:
     inline void allreduce(const T1 *sendbuf, T2 *recvbuf, int count, MPI_Op op) const
     {
         MPI_Allreduce(sendbuf, recvbuf, count, mpi_datatype<T2>::value, op, this->comm);
+    }
+
+    template <typename T>
+    inline void bcast(T *buf, int count, int root) const
+    {
+        MPI_Bcast(buf, count, mpi_datatype<T>::value, root, this->comm);
     }
 
     // void allreduce_matrix(matrix &mat_send, matrix &mat_recv) const;

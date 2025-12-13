@@ -1,9 +1,9 @@
+#pragma once
 #include <complex>
 #include <iostream>
 #include <vector>
 #include <map>
 #include <utility>
-
 
 #ifdef LIBRPA_DEBUG
 constexpr bool print_mat_equal = true;
@@ -279,13 +279,15 @@ template <typename T>
 bool is_matmul_AB_equal_C(const int m, const int n, const int k,
                           const T *A, const T *B, const T *C, bool transpose_C = false, bool print = false, T thres = 1e-14)
 {
-    T AB[m][n];
+    std::vector<T> AB(m * n);
+    size_t index = 0;
     for ( int im = 0; im != m; im++)
         for ( int in = 0; in != n; in++)
         {
-            AB[im][in] = 0;
+            AB[index] = 0;
             for ( int ik = 0; ik != k; ik++)
-                AB[im][in] += A[im*k+ik] * B[ik*n+in];
+                AB[index] += A[im*k+ik] * B[ik*n+in];
+            index++;
         }
-    return is_mat_A_equal_B(m, n, *AB, C, transpose_C, print, thres, "AB", "C");
+    return is_mat_A_equal_B(m, n, AB.data(), C, transpose_C, print, thres, "AB", "C");
 }

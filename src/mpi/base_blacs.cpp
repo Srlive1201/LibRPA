@@ -207,7 +207,11 @@ int ArrayDesc::set_desc_indices_(const int &m, const int &n, const int &mb, cons
     int info = 0;
     m_local_ = ScalapackConnector::numroc(m, mb, myprow_, irsrc, nprows_);
     // leading dimension
-    lld_ = std::max(m_local_, 1);
+    // NOTE: use number of rows as leading dimension by default, i.e. for column-major
+    if (row_leading_)
+        lld_ = std::max(m_local_, 1);
+    else
+        lld_ = std::max(n_local_, 1);
     n_local_ = ScalapackConnector::numroc(n, nb, mypcol_, icsrc, npcols_);
     if (m_local_ < 1 || n_local_ < 1)
     {
@@ -225,16 +229,40 @@ int ArrayDesc::set_desc_indices_(const int &m, const int &n, const int &mb, cons
     }
     // else
     //     librpa_int::global::lib_printf("SUCCE DESCINIT! PROC %d (%d,%d) PARAMS: DESC %d %d %d %d %d %d %d %d\n", myid_, myprow_, mypcol_, m, n, mb, nb, irsrc, icsrc, ictxt_, m_local_);
+    // Safety check (really necessary?)
+    assert(ictxt_ == desc[1]);
+    assert(m == desc[2]);
+    assert(n == desc[3]);
+    assert(mb == desc[4]);
+    assert(nb == desc[5]);
+    assert(irsrc == desc[6]);
+    assert(icsrc == desc[7]);
+    assert(lld_ == desc[8]);
     m_ = desc[2];
     n_ = desc[3];
     mb_ = desc[4];
     nb_ = desc[5];
     irsrc_ = desc[6];
     icsrc_ = desc[7];
-    lld_ = desc[8];
     this->build_index_();
     initialized_ = true;
     return info;
+}
+
+void ArrayDesc::switch_to_row_leading() noexcept
+{
+    if (row_leading_) return;
+    if (initialized_)
+        desc[8] = lld_ = std::max(m_local_, 1);
+    row_leading_ = true;
+}
+
+void ArrayDesc::switch_to_col_leading() noexcept
+{
+    if (!row_leading_) return;  // already column leading
+    if (initialized_)
+        desc[8] = lld_ = std::max(n_local_, 1);
+    row_leading_ = false;
 }
 
 void ArrayDesc::build_index_()
@@ -294,16 +322,18 @@ ArrayDesc::ArrayDesc()
       nprows_(0), myprow_(0), npcols_(0), mypcol_(0),
       m_(0), n_(0), mb_(0), nb_(0), irsrc_(0), icsrc_(0),
       lld_(0), m_local_(0), n_local_(0),
+      row_leading_(true),
       g2l_r_(), g2l_c_(), l2g_r_(), l2g_c_(),
       is_loc_consecutive_r_(false), is_loc_consecutive_c_(false),
       empty_local_mat_(false), initialized_(false)
 {}
 
-ArrayDesc::ArrayDesc(const BlacsCtxtHandler &blacs_h)
+ArrayDesc::ArrayDesc(const BlacsCtxtHandler &blacs_h, bool row_leading)
     : ictxt_(0), nprocs_(0), myid_(0),
       nprows_(0), myprow_(0), npcols_(0), mypcol_(0),
       m_(0), n_(0), mb_(0), nb_(0), irsrc_(0), icsrc_(0),
       lld_(0), m_local_(0), n_local_(0),
+      row_leading_(row_leading),
       g2l_r_(), g2l_c_(), l2g_r_(), l2g_c_(),
       is_loc_consecutive_r_(false), is_loc_consecutive_c_(false),
       empty_local_mat_(false), initialized_(false)
@@ -311,11 +341,12 @@ ArrayDesc::ArrayDesc(const BlacsCtxtHandler &blacs_h)
     this->reset_handler(blacs_h);
 }
 
-ArrayDesc::ArrayDesc(const int &ictxt)
+ArrayDesc::ArrayDesc(const int &ictxt, bool row_leading)
     : ictxt_(0), nprocs_(0), myid_(0),
       nprows_(0), myprow_(0), npcols_(0), mypcol_(0),
       m_(0), n_(0), mb_(0), nb_(0), irsrc_(0), icsrc_(0),
       lld_(0), m_local_(0), n_local_(0),
+      row_leading_(row_leading),
       g2l_r_(), g2l_c_(), l2g_r_(), l2g_c_(),
       is_loc_consecutive_r_(false), is_loc_consecutive_c_(false),
       empty_local_mat_(false), initialized_(false)
@@ -353,6 +384,7 @@ void ArrayDesc::reset_handler()
     desc[8] = lld_ = 0;
     m_local_ = 0;
     n_local_ = 0;
+    // row_leading_ = true;  // no need to change it
     is_loc_consecutive_r_ = false;
     is_loc_consecutive_c_ = false;
     empty_local_mat_ = false;

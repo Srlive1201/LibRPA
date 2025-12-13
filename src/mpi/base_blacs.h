@@ -103,6 +103,7 @@ private:
     int lld_;
     int m_local_;
     int n_local_;
+    bool row_leading_;
 
     // Precomputed indices
     std::vector<int> g2l_r_;
@@ -129,8 +130,8 @@ private:
 public:
     int desc[9];
     ArrayDesc();
-    ArrayDesc(const BlacsCtxtHandler &blacs_ctxt_h);
-    ArrayDesc(const int &ictxt);
+    ArrayDesc(const BlacsCtxtHandler &blacs_ctxt_h, bool row_leading = true);
+    ArrayDesc(const int &ictxt, bool row_leading = true);
     //! Initialize the array descriptor
     int init(const int &m, const int &n,
              const int &mb, const int &nb,
@@ -150,23 +151,23 @@ public:
     inline const std::vector<int> &g2p_c() const noexcept { return g2p_c_; }
     inline const std::vector<int> &l2g_r() const noexcept { return l2g_r_; }
     inline const std::vector<int> &l2g_c() const noexcept { return l2g_c_; }
-    const int& myid() const { return myid_; }
-    const int& ictxt() const { return ictxt_; }
-    const MPI_Comm& comm() const { return comm_; }
-    const int& m() const { return m_; }
-    const int& n() const { return n_; }
-    const int& mb() const { return mb_; }
-    const int& nb() const { return nb_; }
-    const int& lld() const { return lld_; }
-    const int& irsrc() const { return irsrc_; }
-    const int& icsrc() const { return icsrc_; }
-    const int& m_loc() const { return m_local_; }
-    const int& n_loc() const { return n_local_; }
-    const int& myprow() const { return myprow_; }
-    const int& mypcol() const { return mypcol_; }
-    const int& nprocs() const { return nprocs_; }
-    const int& nprows() const { return nprows_; }
-    const int& npcols() const { return npcols_; }
+    inline int myid() const noexcept { return myid_; }
+    inline int ictxt() const noexcept { return ictxt_; }
+    inline MPI_Comm comm() const noexcept { return comm_; }
+    inline int m() const noexcept { return m_; }
+    inline int n() const noexcept { return n_; }
+    inline int mb() const noexcept { return mb_; }
+    inline int nb() const noexcept { return nb_; }
+    inline int lld() const noexcept { return lld_; }
+    inline int irsrc() const noexcept { return irsrc_; }
+    inline int icsrc() const noexcept { return icsrc_; }
+    inline int m_loc() const noexcept { return m_local_; }
+    inline int n_loc() const noexcept { return n_local_; }
+    inline int myprow() const noexcept { return myprow_; }
+    inline int mypcol() const noexcept { return mypcol_; }
+    inline int nprocs() const noexcept { return nprocs_; }
+    inline int nprows() const noexcept { return nprows_; }
+    inline int npcols() const noexcept { return npcols_; }
     inline void get_pcoord(int pid, int &prow, int &pcol) const { Cblacs_pcoord(ictxt_, myid_, &prow, &pcol); };
     inline pcoord_t get_pcoord(int pid) const { int prow, pcol; Cblacs_pcoord(ictxt_, myid_, &prow, &pcol); return {prow, pcol}; };
     inline int get_pnum(int prow, int pcol) const { return Cblacs_pnum(ictxt_, prow, pcol); };
@@ -175,11 +176,15 @@ public:
     void reset_handler(const BlacsCtxtHandler &blacs_h);
     std::string info() const;
     std::string info_desc() const;
-    bool is_src() const { return myprow_ == irsrc_ && mypcol_ == icsrc_; }
-    bool is_row_consec() const { return is_loc_consecutive_r_; }
-    bool is_col_consec() const { return is_loc_consecutive_c_; }
-    bool initialized() const { return this->initialized_; };  // to deprecate
-    bool is_initialized() const { return this->initialized_; };
+    inline bool is_row_leading() const noexcept { return row_leading_; }
+    inline bool is_col_leading() const noexcept { return !row_leading_; }
+    void switch_to_row_leading() noexcept;
+    void switch_to_col_leading() noexcept;
+    bool is_src() const noexcept { return myprow_ == irsrc_ && mypcol_ == icsrc_; }
+    bool is_row_consec() const noexcept { return is_loc_consecutive_r_; }
+    bool is_col_consec() const noexcept { return is_loc_consecutive_c_; }
+    bool initialized() const noexcept { return this->initialized_; };  // to deprecate
+    bool is_initialized() const noexcept { return this->initialized_; };
     void barrier(CTXT_SCOPE scope = CTXT_SCOPE::A) const;
 };
 

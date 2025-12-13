@@ -1,5 +1,4 @@
 #include "../mpi/base_mpi.h"
-#include "../io/global_io.h"
 
 #include "testutils.h"
 
@@ -7,6 +6,9 @@
 #include <cassert>
 
 using namespace librpa_int;
+
+int myid_global;
+int size_global;
 
 void test_dispatcher_1d()
 {
@@ -242,18 +244,41 @@ void test_dispatcher_2d()
     }
 }
 
+void test_handler_allreduce()
+{
+    MpiCommHandler comm_h(MPI_COMM_WORLD, true);
+    std::vector<int> v_this(comm_h.nprocs, 0);
+    v_this[comm_h.myid] = comm_h.myid + 1;
+    comm_h.allreduce(MPI_IN_PLACE, v_this.data(), comm_h.nprocs, MPI_MAX);
+    const std::vector<int> v_ref({1, 2, 3, 4});
+    assert(equal_array(comm_h.nprocs, v_this.data(), v_ref.data()));
+}
+
+void test_handler_bcast()
+{
+    MpiCommHandler comm_h(MPI_COMM_WORLD, true);
+    int v = comm_h.myid;
+    int root = 2;
+    comm_h.bcast(&v, 1, root);
+    assert(v == root);
+}
+
 int main (int argc, char *argv[])
 {
     int provided;
     MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
 
-    int size_global = get_mpi_size(MPI_COMM_WORLD);
+    size_global = get_mpi_size(MPI_COMM_WORLD);
 
     if ( size_global != 4 )
         throw std::runtime_error("test imposes 4 MPI processes");
 
+    myid_global = get_mpi_rank(MPI_COMM_WORLD);
+
     test_dispatcher_1d();
     test_dispatcher_2d();
+    test_handler_allreduce();
+    test_handler_bcast();
 
     MPI_Finalize();
 
