@@ -348,8 +348,9 @@ void Dataset::redistribute_coulomb_blacs2ap()
                 assert(as_size(matz.nc()) == n_J);
                 matz.swap_to_row_major();
                 memcpy(cmat_new->c, matz.ptr(), n * sizeof(cplxdb));
-                assert(as_size(matz.nr()) == n_J);
-                assert(as_size(matz.nc()) == n_I);
+                assert(as_size(matz.nr()) == n_I);
+                assert(as_size(matz.nc()) == n_J);
+                assert(as_size(matz.size()) == n);
                 it_ap = IJmap.erase(it_ap);
             }
             it_q = vq_src.erase(it_q);
