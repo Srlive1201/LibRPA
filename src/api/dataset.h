@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <unordered_map>
 
 #include "../core/atom.h"
 #include "../core/atomic_basis.h"
@@ -38,13 +39,15 @@ public:
     MpiCommHandler comm_coul_inter_q_h;
     MpiCommHandler comm_coul_intra_q_h;
     BlacsCtxtHandler blacs_coul_intra_q_h;
-    ArrayDesc desc_coul;
+    ArrayDesc desc_coul_intra_q;
     //! Array descriptor for matrices of wave-function basis (using blacs_h)
     ArrayDesc desc_wfc;
     //! Array descriptor for matrices of auxiliary basis set size (using blacs_h)
     ArrayDesc desc_abf;
-    //! Distribution of atom-pairs on current process for atomic-basis matrix data
+    //! Atom pairs on current process for atomic-basis matrix data
     std::vector<atpair_t> atpairs_local;
+    //! Distribution of unique atom-pairs on all processes for atomic-basis matrix data
+    std::unordered_map<int, std::set<atpair_t>> atpairs_unique_all;
 
     // Physical system.
     //! Handling object for basic set functions for wave function expansion.

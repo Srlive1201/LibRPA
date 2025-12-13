@@ -9,13 +9,14 @@ namespace librpa_int
 
 Dataset::Dataset(MPI_Comm comm)
     : comm_blacs_coul_initialized_(false),
+      coul_blacs2ap_redistributed_(false),
       comm_h(comm, true),
       blacs_h(comm),
       comm_coul_h(),
       comm_coul_inter_q_h(),
       comm_coul_intra_q_h(),
       blacs_coul_intra_q_h(),
-      desc_coul(),
+      desc_coul_intra_q(),
       desc_wfc(),
       desc_abf(),
       atpairs_local(),
@@ -122,10 +123,10 @@ void Dataset::initialize_comm_blacs_coul()
         {
             if (lbrow_all[pid] == 0)
             {
-                nprows++;
+                npcols++;
                 if (lbcol_all[pid] == 0) myid_src = pid;
             }
-            if (lbcol_all[pid] == 0) npcols++;
+            if (lbcol_all[pid] == 0) nprows++;
         }
         // Checking the boundary of the first two processes for the 2D layout
         CTXT_LAYOUT layout = CTXT_LAYOUT::R;
@@ -153,9 +154,9 @@ void Dataset::initialize_comm_blacs_coul()
         int irsrc = 0, icsrc = 0;
         blacs_coul_intra_q_h.get_pcoord(myid_src, irsrc, icsrc);
         ofs_myid << "Coulomb array descriptor source pid (ir/ic): " << irsrc << " " << icsrc << endl;
-        desc_coul.reset_handler(blacs_coul_intra_q_h);
+        desc_coul_intra_q.reset_handler(blacs_coul_intra_q_h);
         const int n_aux = this->basis_aux.nb_total;
-        desc_coul.init(n_aux, n_aux, mb, nb, irsrc, icsrc);
+        desc_coul_intra_q.init(n_aux, n_aux, mb, nb, irsrc, icsrc);
     }
 
     ofs_myid << "comm_coul_h.is_initialized() = " << std::boolalpha << comm_coul_h.is_initialized() << std::endl;
@@ -192,7 +193,7 @@ void Dataset::finalize_comm_blacs_coul()
 {
     if (!comm_blacs_coul_initialized_) return;
     global::profiler.start(__FUNCTION__);
-    desc_coul.reset_handler();
+    desc_coul_intra_q.reset_handler();
     blacs_coul_intra_q_h.reset_comm();
     comm_coul_inter_q_h.free_comm();
     comm_coul_intra_q_h.free_comm();

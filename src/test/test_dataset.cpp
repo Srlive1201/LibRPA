@@ -122,6 +122,31 @@ static void test_set_comm_blacs_coul_np4()
     ds.finalize_comm_blacs_coul();
     ds.vq_block_loc.clear();
 
+    // 1x2 process grid (major never mind), 2 BLACS each with 2 q-points
+    lbrow = 0, ubrow = m;
+    lbcol = 0, ubcol = n;
+    if (ds.comm_h.myid % 2 == 0) ubcol = nb;
+    else lbcol = nb;
+    ds.vq_lbrow = lbrow;
+    ds.vq_ubrow = ubrow;
+    ds.vq_lbcol = lbcol;
+    ds.vq_ubcol = ubcol;
+
+    for (int ik = 0; ik < nkpts; ik++)
+    {
+        if ((ik % ds.comm_h.nprocs) / 2 == ds.comm_h.myid / 2)
+        {
+            const auto &k = ds.pbc.klist[ik];
+            ds.vq_block_loc[k] = Matz(ubrow - lbrow, ubcol - lbcol, MAJOR::ROW);
+        }
+    }
+    ds.initialize_comm_blacs_coul();
+    assert(ds.blacs_coul_intra_q_h.nprows == 1);
+    assert(ds.blacs_coul_intra_q_h.npcols == 2);
+    assert(ds.comm_coul_inter_q_h.nprocs == 2);
+    ds.finalize_comm_blacs_coul();
+    ds.vq_block_loc.clear();
+
     ds.free();
 }
 
