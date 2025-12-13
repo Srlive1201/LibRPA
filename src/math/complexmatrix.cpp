@@ -540,7 +540,7 @@ ComplexMatrix power_hemat(ComplexMatrix &cmat, double power, bool keep_ev, bool 
     const char jobz = 'V';
     const char uplo = 'U';
 
-    int nb = LapackConnector::ilaenv(1, "zheev", "VU", cmat.nc, -1, -1, -1);
+    int nb = LapackConnector::ilaenv(1, "zheev", "VU", cmat.nc, 1, 1, 1);
     int lwork = cmat.nc * (nb+1);
     int info = 0;
     std::vector<double> w(cmat.nc), wpow(cmat.nc), rwork(3*cmat.nc-2);

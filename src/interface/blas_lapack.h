@@ -91,7 +91,7 @@ extern "C" {
 /* LAPACK bindings */
 /////////////////////
     int ilaenv_(int *ispec, const char *name, const char *opts,
-                const int *n1, const int *n2, const int *n3, const int *n4);
+                const int *n1, const int *n2, const int *n3, const int *n4, int name_len, int opts_len);
     void sgeev_(const char *jobvl, const char *jobvr, const int *n, double *a,
                 const int *lda, float *wr, float *wi, float *vl, const int *ldvl,
                 float *vr, const int *ldvr, float *work, const int *lwork, int *info);

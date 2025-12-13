@@ -6,6 +6,7 @@
 #include <stdexcept>
 #include <iostream>
 #include <cassert>
+#include <cstring>
 #include "../utils/base_utility.h"
 #include "matrix.h"
 #include "complexmatrix.h"
@@ -157,7 +158,9 @@ public:
     int ilaenv( int ispec, const char *name,const char *opts,const int n1,const int n2,
                 const int n3,const int n4)
     {
-        const int nb = ilaenv_(&ispec, name, opts, &n1, &n2, &n3, &n4);
+        const int name_len = int(std::strlen(name));
+        const int opts_len = int(std::strlen(opts));
+        const int nb = ilaenv_(&ispec, name, opts, &n1, &n2, &n3, &n4, name_len, opts_len);
         return nb;
     }
 
