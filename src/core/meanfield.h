@@ -65,7 +65,7 @@ public:
     ~MeanField() {};
     void set(int ns, int nk, int nb, int nao);
     void set(int ns, int nk, int nb, int nao, int st_ib, int nb_local, int st_iao, int nao_local);
-    MeanField(const MeanField&);
+    MeanField(const MeanField&) = default;
     inline int get_n_bands() const { return n_states; }
     inline int get_n_states() const { return n_states; } // alias
     inline int get_n_spins() const { return n_spins; }

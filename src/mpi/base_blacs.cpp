@@ -22,6 +22,39 @@ void CTXT_barrier(int ictxt, CTXT_SCOPE scope)
     Cblacs_barrier(ictxt, &scope_ch);
 }
 
+BlacsCtxtHandler::BlacsCtxtHandler()
+    : mpi_comm_h(),
+      layout_ch(),
+      initialized_(false),
+      pgrid_set_(false),
+      comm_set_(false),
+      ictxt(-1),
+      layout(),
+      myid(0),
+      nprocs(0),
+      nprows(0),
+      npcols(0),
+      myprow(0),
+      mypcol(0)
+{
+}
+
+BlacsCtxtHandler::BlacsCtxtHandler(MPI_Comm comm_in)
+    : mpi_comm_h(comm_in),
+      layout_ch(),
+      initialized_(false),
+      pgrid_set_(false),
+      comm_set_(true),
+      ictxt(-1),
+      layout(),
+      myid(0),
+      nprocs(0),
+      nprows(0),
+      npcols(0),
+      myprow(0),
+      mypcol(0)
+{
+}
 
 void BlacsCtxtHandler::init()
 {

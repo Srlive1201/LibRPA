@@ -57,11 +57,35 @@ std::vector<int> MeanField::get_iks_local() const
 }
 
 MeanField::MeanField(int ns, int nk, int nb, int nao)
+    : n_spins(ns),
+      n_aos(nao),
+      n_states(nb),
+      n_kpoints(nk),
+      n_aos_local(nao),
+      i_ao_start(0),
+      n_states_local(nb),
+      i_state_start(0),
+      eskb(),
+      wg(),
+      wfc(),
+      efermi(0)
 {
     resize(ns, nk, nb, nao, 0, nb, 0, nao);
 }
 
 MeanField::MeanField(int ns, int nk, int nb, int nao, int st_ib, int nb_local, int st_iao, int nao_local)
+    : n_spins(ns),
+      n_aos(nao),
+      n_states(nb),
+      n_kpoints(nk),
+      n_aos_local(nao_local),
+      i_ao_start(st_iao),
+      n_states_local(nb_local),
+      i_state_start(st_ib),
+      eskb(),
+      wg(),
+      wfc(),
+      efermi(0)
 {
     resize(ns, nk, nb, nao, st_ib, nb_local, st_iao, nao_local);
 }
@@ -86,16 +110,16 @@ void MeanField::set(int ns, int nk, int nb, int nao, int st_ib, int nb_local, in
     resize(ns, nk, nb, nao, st_ib, nb_local, st_iao, nao_local);
 }
 
-MeanField::MeanField(const MeanField &mf)
-{
-    resize(mf.n_spins, mf.n_kpoints, mf.n_states, mf.n_aos,
-           mf.i_state_start, mf.n_states_local, mf.i_ao_start, mf.n_aos_local);
-    // FIXME: copy data, not tested
-    eskb = mf.eskb;
-    wg = mf.wg;
-    wfc = mf.wfc;
-    efermi = mf.efermi;
-}
+// MeanField::MeanField(const MeanField &mf)
+// {
+//     resize(mf.n_spins, mf.n_kpoints, mf.n_states, mf.n_aos,
+//            mf.i_state_start, mf.n_states_local, mf.i_ao_start, mf.n_aos_local);
+//     // FIXME: copy data, not tested
+//     eskb = mf.eskb;
+//     wg = mf.wg;
+//     wfc = mf.wfc;
+//     efermi = mf.efermi;
+// }
 
 double MeanField::get_E_min_max(double &emin, double &emax) const
 {

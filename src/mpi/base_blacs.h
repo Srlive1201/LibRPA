@@ -31,10 +31,10 @@ public:
     int nprocs;
     int nprows;
     int npcols;
-    int mypcol;
     int myprow;
-    BlacsCtxtHandler() { comm_set_ = pgrid_set_ = initialized_ = false; }
-    BlacsCtxtHandler(MPI_Comm comm_in): mpi_comm_h(comm_in) { comm_set_ = true; pgrid_set_ = initialized_ = false; }
+    int mypcol;
+    BlacsCtxtHandler();
+    BlacsCtxtHandler(MPI_Comm comm_in);
     ~BlacsCtxtHandler() { this->exit(); }
 
     // Disable copy
