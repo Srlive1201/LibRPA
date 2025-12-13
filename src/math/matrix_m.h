@@ -288,7 +288,7 @@ public:
     }
 
     //! Randomize the matrix elements with lower and upper bound and symmetry constraint
-    void randomize(const T &lb = 0, const T &ub = 1, bool symmetrize = false, bool hermitian = false) noexcept
+    matrix_m& randomize(const T &lb = 0, const T &ub = 1, bool symmetrize = false, bool hermitian = false) noexcept
     {
         static std::default_random_engine e(time(0));
         const auto nr = nr_;
@@ -364,6 +364,7 @@ public:
                     (*this->data_)[i] = dr(e);
             }
         }
+        return *this;
     }
 
     inline matrix_m<T> copy() const

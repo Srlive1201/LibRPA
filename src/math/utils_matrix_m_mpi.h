@@ -1323,11 +1323,13 @@ void fill_ap_map_from_blacs_dist_scheduler(ap_p_map<matrix_m<T>> &data,
     // Map the received data to the correct location in the atom-pair mapping
     global::profiler.start("assign_blacs2ap");
     // Allocate the required atom-pair block first
+    // global::ofs_myid << "sched.total_count_ap " << sched.total_count_ap << std::endl;
     #pragma omp parallel for
     for (MPI_Count i = 0; i < sched.total_count_ap; i++)
     {
         const auto &atpair = sched.atpairs[sched.ids_ap_ipair[i]];
         const auto &locid = sched.ids_ap_locid[i];
+        // global::ofs_myid << "pair " << atpair.first << " " << atpair.second << " locid " << locid << " at? " << std::boolalpha << data.count(atpair) << std::endl;
         data.at(atpair).ptr()[locid] = recvbuff[i];
     }
     global::profiler.stop("assign_blacs2ap");

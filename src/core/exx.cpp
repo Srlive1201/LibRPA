@@ -182,6 +182,10 @@ void Exx::build(const LibrpaParallelRouting routing,
                 const AtomicBasis &atbasis_abf, const Cs_LRI &Cs,
                 const atpair_R_mat_t &coul_mat)
 {
+    using std::endl;
+    using global::profiler;
+    using global::ofs_myid;
+
     assert(routing == LibrpaParallelRouting::LIBRI);
 
     if (this->is_rspace_built_)
@@ -217,12 +221,12 @@ void Exx::build(const LibrpaParallelRouting routing,
     //         Cs is already distributed across all processes.
     //         Pass the all Cs to libRI container.
 
-    global::profiler.start("build_real_space_exx_1", "Prepare C libRI object");
-    global::ofs_myid << "Number of Cs keys: " << get_num_keys(Cs.data_libri) << "\n";
+    profiler.start("build_real_space_exx_1", "Prepare C libRI object");
+    ofs_myid << "Number of Cs keys: " << get_num_keys(Cs.data_libri) << endl;
     // print_keys(global::ofs_myid, Cs.data_libri);
     exx_libri.set_Cs(Cs.data_libri, libri_threshold_C);
-    global::profiler.stop("build_real_space_exx_1");
-    global::ofs_myid << "Finished setup Cs for EXX\n";
+    profiler.stop("build_real_space_exx_1");
+    ofs_myid << "Finished setup Cs for EXX\n";
     std::flush(global::ofs_myid);
 
     // initialize Coulomb matrix
@@ -270,7 +274,7 @@ void Exx::build(const LibrpaParallelRouting routing,
         }
     }
     global::profiler.stop("build_real_space_exx_2_1");
-    global::ofs_myid << "Number of V keys: " << get_num_keys(V_libri) << "\n";
+    global::ofs_myid << "Number of V keys: " << get_num_keys(V_libri) << endl;
     global::profiler.start("build_real_space_exx_2_2");
     exx_libri.set_Vs(V_libri, libri_threshold_V);
     V_libri.clear();

@@ -40,6 +40,7 @@ LIBRPA_C_H_FUNC_WRAP_WOPT_NOPAR(void, librpa_build_g0w0_sigma)
 
     // Determine the atom pairs that this process is responsible for
     initialize_ds_atpairs_local(*pds, routing);
+    // Redistribute 2D Coulomb matrices to atom-pair blocks if they are parsed
     pds->redistribute_coulomb_blacs2ap();
 
     // Initialize response function object
@@ -73,19 +74,22 @@ LIBRPA_C_H_FUNC_WRAP_WOPT_NOPAR(void, librpa_build_g0w0_sigma)
         }
     }
 
-    profiler.start("g0w0_exx", "Build exchange self-energy");
-    initialize_ds_exx(*pds, opts);
+    if (!pds->p_exx)
     {
-        profiler.start("ft_vq_cut", "Fourier transform truncated Coulomb");
-        const auto VR = librpa_int::FT_Vq(pds->basis_aux, pds->vq_cut, pds->pbc, true);
-        profiler.stop("ft_vq_cut");
+        profiler.start("g0w0_exx", "Build exchange self-energy");
+        initialize_ds_exx(*pds, opts);
+        {
+            profiler.start("ft_vq_cut", "Fourier transform truncated Coulomb");
+            const auto VR = librpa_int::FT_Vq(pds->basis_aux, pds->vq_cut, pds->pbc, true);
+            profiler.stop("ft_vq_cut");
 
-        profiler.start("g0w0_exx_real_work");
-        pds->p_exx->build(routing, pds->basis_aux, pds->cs_data, VR);
-        // pds->p_exx->build_KS_kgrid_blacs(pds->blacs_h);
-        profiler.stop("g0w0_exx_real_work");
+            profiler.start("g0w0_exx_real_work");
+            pds->p_exx->build(routing, pds->basis_aux, pds->cs_data, VR);
+            // pds->p_exx->build_KS_kgrid_blacs(pds->blacs_h);
+            profiler.stop("g0w0_exx_real_work");
+        }
+        profiler.stop("g0w0_exx");
     }
-    profiler.stop("g0w0_exx");
 
     profiler.start("g0w0_wc", "Build screened interaction");
 

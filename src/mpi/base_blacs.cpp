@@ -249,21 +249,21 @@ int ArrayDesc::set_desc_indices_(const int &m, const int &n, const int &mb, cons
     return info;
 }
 
-void ArrayDesc::switch_to_row_leading() noexcept
-{
-    if (row_leading_) return;
-    if (initialized_)
-        desc[8] = lld_ = std::max(m_local_, 1);
-    row_leading_ = true;
-}
+// void ArrayDesc::switch_to_row_leading() noexcept
+// {
+//     if (row_leading_) return;
+//     if (initialized_)
+//         desc[8] = lld_ = std::max(m_local_, 1);
+//     row_leading_ = true;
+// }
 
-void ArrayDesc::switch_to_col_leading() noexcept
-{
-    if (!row_leading_) return;  // already column leading
-    if (initialized_)
-        desc[8] = lld_ = std::max(n_local_, 1);
-    row_leading_ = false;
-}
+// void ArrayDesc::switch_to_col_leading() noexcept
+// {
+//     if (!row_leading_) return;  // already column leading
+//     if (initialized_)
+//         desc[8] = lld_ = std::max(n_local_, 1);
+//     row_leading_ = false;
+// }
 
 void ArrayDesc::build_index_()
 {
@@ -328,12 +328,12 @@ ArrayDesc::ArrayDesc()
       empty_local_mat_(false), initialized_(false)
 {}
 
-ArrayDesc::ArrayDesc(const BlacsCtxtHandler &blacs_h, bool row_leading)
+ArrayDesc::ArrayDesc(const BlacsCtxtHandler &blacs_h)
     : ictxt_(0), nprocs_(0), myid_(0),
       nprows_(0), myprow_(0), npcols_(0), mypcol_(0),
       m_(0), n_(0), mb_(0), nb_(0), irsrc_(0), icsrc_(0),
       lld_(0), m_local_(0), n_local_(0),
-      row_leading_(row_leading),
+      row_leading_(true),
       g2l_r_(), g2l_c_(), l2g_r_(), l2g_c_(),
       is_loc_consecutive_r_(false), is_loc_consecutive_c_(false),
       empty_local_mat_(false), initialized_(false)
@@ -341,12 +341,12 @@ ArrayDesc::ArrayDesc(const BlacsCtxtHandler &blacs_h, bool row_leading)
     this->reset_handler(blacs_h);
 }
 
-ArrayDesc::ArrayDesc(const int &ictxt, bool row_leading)
+ArrayDesc::ArrayDesc(const int &ictxt)
     : ictxt_(0), nprocs_(0), myid_(0),
       nprows_(0), myprow_(0), npcols_(0), mypcol_(0),
       m_(0), n_(0), mb_(0), nb_(0), irsrc_(0), icsrc_(0),
       lld_(0), m_local_(0), n_local_(0),
-      row_leading_(row_leading),
+      row_leading_(true),
       g2l_r_(), g2l_c_(), l2g_r_(), l2g_c_(),
       is_loc_consecutive_r_(false), is_loc_consecutive_c_(false),
       empty_local_mat_(false), initialized_(false)

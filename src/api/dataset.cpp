@@ -1,6 +1,10 @@
 #include "dataset.h"
 #include <ios>
+#include <memory>
+#include <vector>
 
+#include "../core/utils_atomic_basis_blacs.h"
+#include "../math/utils_matrix_m_mpi.h"
 #include "../utils/profiler.h"
 #include "../io/stl_io_helper.h"
 
@@ -19,7 +23,7 @@ Dataset::Dataset(MPI_Comm comm)
       desc_coul_intra_q(),
       desc_wfc(),
       desc_abf(),
-      atpairs_local(),
+      atpairs_local(), atpairs_unique_all(),
       basis_wfc(),
       basis_aux(),
       atoms(),
@@ -184,9 +188,170 @@ void Dataset::initialize_comm_blacs_coul()
 
 void Dataset::redistribute_coulomb_blacs2ap()
 {
+    using std::endl;
+    using global::ofs_myid;
+    using global::profiler;
+
     // Already redistributed, or blacs data has been parsed
-    if (vq_block_loc.size() == 0 && vq_cut_block_loc.size() == 0) return;
+    if (coul_blacs2ap_redistributed_) return;
     initialize_comm_blacs_coul();
+    profiler.start(__FUNCTION__);
+    // Step 1: redistribute to global blacs_h if
+    // - some process does not have block data
+    // - there are more than one comm_coul_inter_q_h, meaning Nabs x Nabs matrix is distributed only on a subset of all processes
+    // - the shape and layout of blacs_coul_intra_q_h is different from blacs_h
+    // - the descriptor is different from the global one
+    // Otherwise, blacs_coul_intra_q_h is equivalent to blacs_h, no need to redistribute
+    const int same_shape_blacs = blacs_h.nprows == blacs_coul_intra_q_h.nprows &&
+                                 blacs_h.npcols == blacs_coul_intra_q_h.npcols &&
+                                 blacs_h.layout == blacs_coul_intra_q_h.layout;
+    int same_shape_blacs_all;
+    comm_h.allreduce(&same_shape_blacs, &same_shape_blacs_all, 1, MPI_MIN);
+    const int same_desc = desc_abf.m() == desc_coul_intra_q.m() &&
+                          desc_abf.n() == desc_coul_intra_q.n() &&
+                          desc_abf.mb() == desc_coul_intra_q.mb() &&
+                          desc_abf.nb() == desc_coul_intra_q.nb() &&
+                          desc_abf.irsrc() == desc_coul_intra_q.irsrc() &&
+                          desc_abf.icsrc() == desc_coul_intra_q.icsrc();
+    int same_desc_all;
+    comm_h.allreduce(&same_desc, &same_desc_all, 1, MPI_MIN);
+
+    const int n_comms_q = comm_coul_inter_q_h.nprocs;
+    int n_comms_q_min, n_comms_q_max;
+    comm_h.allreduce(&n_comms_q, &n_comms_q_min, 1, MPI_MIN);
+    comm_h.allreduce(&n_comms_q, &n_comms_q_max, 1, MPI_MAX);
+    // No block matrix data parsed, no need to redistribute
+    if (n_comms_q_max == 0)
+    {
+        profiler.stop(__FUNCTION__);
+        return;
+    }
+
+    const int n_aux = basis_aux.nb_total;
+    // Major for communication with p?gemr2d
+    const MAJOR major_comm = MAJOR::COL;
+    std::map<Vector3_Order<double>, Matz> vq_redist;
+    std::map<Vector3_Order<double>, Matz> vq_cut_redist;
+    if (n_comms_q_min == 0 || n_comms_q_max > 1 || !same_shape_blacs_all || !same_desc_all)
+    {
+        auto mat_local = init_local_mat<cplxdb>(desc_abf, major_comm);
+        for (int i_comm_q = 0; i_comm_q < n_comms_q_max; i_comm_q++)
+        {
+            std::vector<int> desc(9, n_aux);
+            desc[6] = 0;
+            desc[7] = 0;
+            if (comm_coul_inter_q_h.nprocs > 0 && comm_coul_inter_q_h.myid == i_comm_q)
+            {
+                // source, copy the descriptor
+                desc = std::vector<int>(desc_coul_intra_q.desc, desc_coul_intra_q.desc + 9);
+            }
+            else
+            {
+                // not source, use a dummy descriptor: dtype = 1, ctxt = -1;
+                desc[0] = 1;
+                desc[1] = -1;
+            }
+            std::vector<std::pair<std::map<Vector3_Order<double>, Matz>&, std::map<Vector3_Order<double>, Matz>&>>
+                vq_src_dist_pair{ { vq_block_loc, vq_redist}, {vq_cut_block_loc, vq_cut_redist} };
+            for (auto [vq_src, vq_dst]: vq_src_dist_pair)
+            {
+                // Get the number and coordinates of q-points for this communicator
+                int nq_this = vq_src.size();
+                comm_coul_inter_q_h.bcast(&nq_this, 1, i_comm_q);
+                // Let processes out of comm_coul know what are going to be processed
+                int pid_comm_coul_root_in_global = 0;
+                if (comm_coul_h.is_initialized() && comm_coul_h.myid == 0)
+                    pid_comm_coul_root_in_global = comm_h.myid;
+                comm_h.allreduce(MPI_IN_PLACE, &pid_comm_coul_root_in_global, 1, MPI_MAX);
+                if (n_comms_q_min == 0) comm_h.bcast(&nq_this, 1, pid_comm_coul_root_in_global);
+                if (nq_this < 1) continue;
+                ofs_myid << "vq_src nq_this for i_inter_q " << i_comm_q << " = " << nq_this << endl; 
+                ofs_myid << "Array desc for source         : " << desc << endl;
+                ofs_myid << "Array desc for dest (desc_abf): " << desc_abf.info_desc() << endl;
+                std::vector<double> qs(nq_this * 3);
+                map<int, Matz> mat_q;
+                Matz mat_comm(0, 0, major_comm);
+                if (i_comm_q == comm_coul_inter_q_h.myid)
+                {
+                    int iq = 0;
+                    for (const auto &[q, mat]: vq_src)
+                    {
+                        qs[iq * 3] = q.x;
+                        qs[iq * 3 + 1] = q.y;
+                        qs[iq * 3 + 2] = q.z;
+                        mat_q[iq] = mat;
+                        iq++;
+                    }
+                }
+                else
+                {
+                    // Dummy matrix
+                    for (int iq = 0; iq < nq_this; iq++)
+                        mat_q[iq] = Matz(0, 0, major_comm);
+                }
+                comm_coul_inter_q_h.bcast(qs.data(), nq_this * 3, i_comm_q);
+                if (n_comms_q_min == 0) comm_h.bcast(qs.data(), nq_this * 3, pid_comm_coul_root_in_global);
+                ofs_myid << "broadcasting coulomb matrices on q-points: " << qs << endl; 
+                for (int iq = 0; iq < nq_this; iq++)
+                {
+                    const auto &mat_lo_src = mat_q.at(iq);
+                    ScalapackConnector::pgemr2d(n_aux, n_aux, mat_lo_src.ptr(), 1, 1, desc.data(),
+                                                mat_local.ptr(), 1, 1, desc_abf.desc,
+                                                blacs_h.ictxt);
+                    Vector3_Order<double> q{qs[iq*3], qs[iq*3+1], qs[iq*3+2]};
+                    vq_dst[q] = mat_local.copy();
+                    mat_q.erase(iq);
+                }
+            }
+            // Do the same for cut Coulomb
+            // int nq_cut = vq_cut_block_loc.size();
+        }
+    }
+    else
+    {
+        vq_redist = std::move(vq_block_loc);
+        vq_cut_redist = std::move(vq_cut_block_loc);
+    }
+    // Till now, every process has Coulomb matrices at all q-points, but only one BLACS block
+    // Consistency check
+    ofs_myid << "vq_redist size after pzgemr2d    : " << vq_redist.size() << endl;
+    ofs_myid << "vq_cut_redist size after pzgemr2d: " << vq_cut_redist.size() << endl;
+    assert(vq_redist.size() == 0 || vq_redist.size() == this->pbc.klist_ibz.size());
+    assert(vq_cut_redist.size() == 0 || vq_cut_redist.size() == this->pbc.klist_ibz.size());
+
+    // Step 2: redistribute BLACS 2D layout to atom-pair layout, and copy from column-major Matz to ComplexMatrix
+    IndexScheduler sched;
+    ofs_myid << "atpairs_unique_all:" << this->atpairs_unique_all << endl;
+    sched.init(this->atpairs_unique_all, this->basis_aux, this->basis_aux, desc_abf, false);
+    std::vector<std::pair<std::map<Vector3_Order<double>, Matz> &, atpair_k_cplx_mat_t &>>
+        vq_src_dst_pair{{vq_redist, vq}, {vq_cut_redist, vq_cut}};
+    // both bare and cut coulomb
+    for (auto &[vq_src, vq_dst]: vq_src_dst_pair)
+    {
+        for (auto it_q = vq_src.begin(); it_q != vq_src.end();)
+        {
+            const auto &q = it_q->first;
+            const auto &mat_loc = it_q->second;
+            auto IJmap = get_ap_map_from_blacs_dist_scheduler(mat_loc, sched, basis_aux, basis_aux, desc_abf);
+            for (auto it_ap = IJmap.begin(); it_ap != IJmap.end();)
+            {
+                const auto IJ = it_ap->first;
+                const auto I = IJ.first;
+                const auto J = IJ.second;
+                auto &cmat_new = vq_dst[I][J][q];
+                cmat_new = std::make_shared<ComplexMatrix>(basis_aux[I], basis_aux[J]);
+                const size_t n = basis_aux[I] * basis_aux[J];
+                auto &matz = it_ap->second;
+                matz.swap_to_row_major();
+                memcpy(cmat_new->c, matz.ptr(), n * sizeof(cplxdb));
+                it_ap = IJmap.erase(it_ap);
+            }
+            it_q = vq_src.erase(it_q);
+        }
+    }
+
+    coul_blacs2ap_redistributed_ = true;
+    profiler.stop(__FUNCTION__);
 }
 
 void Dataset::finalize_comm_blacs_coul()

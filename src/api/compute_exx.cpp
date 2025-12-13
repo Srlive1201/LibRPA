@@ -32,7 +32,9 @@ LIBRPA_C_H_FUNC_WRAP_WOPT_NOPAR(void, librpa_build_exx)
         routing = decide_auto_routing(n_atoms, opts.nfreq * pds->pbc.get_n_cells_bvk());
     }
 
+    // Determine the atom pairs that this process is responsible for
     initialize_ds_atpairs_local(*pds, routing);
+    // Redistribute 2D Coulomb matrices to atom-pair blocks if they are parsed
     pds->redistribute_coulomb_blacs2ap();
 
     initialize_ds_exx(*pds, opts);

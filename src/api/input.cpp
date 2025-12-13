@@ -445,18 +445,19 @@ static void _set_aux_coulomb_k_2D_block(
     int n_nu_loc = nu_end - nu_begin;
     if (n_mu_loc < 1 || n_nu_loc < 1) return;
 
-    vq_block[qvec] = Matz(n_mu_loc, n_nu_loc, MAJOR::ROW);
-    auto &block = vq_block[qvec];
+    Matz mat(n_mu_loc, n_nu_loc, MAJOR::ROW);
 
     size_t ii = 0;
     for (int i_mu = 0; i_mu < n_mu_loc; i_mu++)
     {
         for (int i_nu = 0; i_nu < n_nu_loc; i_nu++)
         {
-            block(i_mu, i_nu) = complex<double>(Vq_real_in[ii], Vq_imag_in[ii]);
+            mat(i_mu, i_nu) = complex<double>(Vq_real_in[ii], Vq_imag_in[ii]);
             ii += 1;
         }
     }
+    mat.swap_to_col_major();
+    vq_block[qvec] = std::move(mat);
 }
 
 static void _parse_vq_dims(int &lbrow, int &ubrow, int &lbcol, int &ubcol,

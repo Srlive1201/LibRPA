@@ -103,7 +103,9 @@ private:
     int lld_;
     int m_local_;
     int n_local_;
-    bool row_leading_;
+    bool row_leading_;  // For now it is always True:
+                        // the leading dimension is the number of local rows,
+                        // for column-major matrices.
 
     // Precomputed indices
     std::vector<int> g2l_r_;
@@ -130,8 +132,8 @@ private:
 public:
     int desc[9];
     ArrayDesc();
-    ArrayDesc(const BlacsCtxtHandler &blacs_ctxt_h, bool row_leading = true);
-    ArrayDesc(const int &ictxt, bool row_leading = true);
+    ArrayDesc(const BlacsCtxtHandler &blacs_ctxt_h);
+    ArrayDesc(const int &ictxt);
     //! Initialize the array descriptor
     int init(const int &m, const int &n,
              const int &mb, const int &nb,
@@ -176,10 +178,10 @@ public:
     void reset_handler(const BlacsCtxtHandler &blacs_h);
     std::string info() const;
     std::string info_desc() const;
-    inline bool is_row_leading() const noexcept { return row_leading_; }
-    inline bool is_col_leading() const noexcept { return !row_leading_; }
-    void switch_to_row_leading() noexcept;
-    void switch_to_col_leading() noexcept;
+    // inline bool is_row_leading() const noexcept { return row_leading_; }
+    // inline bool is_col_leading() const noexcept { return !row_leading_; }
+    // void switch_to_row_leading() noexcept;
+    // void switch_to_col_leading() noexcept;
     bool is_src() const noexcept { return myprow_ == irsrc_ && mypcol_ == icsrc_; }
     bool is_row_consec() const noexcept { return is_loc_consecutive_r_; }
     bool is_col_consec() const noexcept { return is_loc_consecutive_c_; }

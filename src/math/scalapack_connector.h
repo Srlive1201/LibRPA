@@ -335,6 +335,7 @@ public:
                 C, &IC, &JC, DESCC);
     }
 
+    // Matrix redistribution for Fortran (column-major) matrices.
     static inline
     void pgemr2d_f(const int m, const int n,
                    const float *a, const int ia, const int ja, const int *desca,
@@ -368,6 +369,50 @@ public:
                    std::complex<double> *b, const int ib, const int jb, const int *descb,
                    const int ictxt)
     {
+        pzgemr2d_(&m, &n, a, &ia, &ja, desca, b, &ib, &jb, descb, &ictxt);
+    }
+
+    // Matrix redistribution for C (row-major) matrices.
+    // For now it is the same as Fortran (column-major) case.
+    // The user should take care of local leading dimension in desca and descb.
+    // NOT WORKING, DO NOT USE for now. Use Fortran (column-major) matrices to communicate
+    static inline
+    void pgemr2d(const int m, const int n,
+                 const float *a, const int ia, const int ja, const int *desca,
+                 float *b, const int ib, const int jb, const int *descb,
+                 const int ictxt)
+    {
+        psgemr2d_(&m, &n, a, &ia, &ja, desca, b, &ib, &jb, descb, &ictxt);
+    }
+
+    static inline
+    void pgemr2d(const int m, const int n,
+                 const double *a, const int ia, const int ja, const int *desca,
+                 double *b, const int ib, const int jb, const int *descb,
+                 const int ictxt)
+    {
+        pdgemr2d_(&m, &n, a, &ia, &ja, desca, b, &ib, &jb, descb, &ictxt);
+    }
+
+    static inline
+    void pgemr2d(const int m, const int n,
+                 const std::complex<float> *a, const int ia, const int ja, const int *desca,
+                 std::complex<float> *b, const int ib, const int jb, const int *descb,
+                 const int ictxt)
+    {
+        pcgemr2d_(&m, &n, a, &ia, &ja, desca, b, &ib, &jb, descb, &ictxt);
+    }
+
+    static inline
+    void pgemr2d(const int m, const int n,
+                 const std::complex<double> *a, const int ia, const int ja, const int *desca,
+                 std::complex<double> *b, const int ib, const int jb, const int *descb,
+                 const int ictxt)
+    {
+        // int desca_t[9], descb_t[9];
+        // transpose_desc(desca_t, desca);
+        // transpose_desc(descb_t, descb);
+        // pzgemr2d_(&n, &m, a, &ja, &ia, desca_t, b, &jb, &ib, descb_t, &ictxt);
         pzgemr2d_(&m, &n, a, &ia, &ja, desca, b, &ib, &jb, descb, &ictxt);
     }
 

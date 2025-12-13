@@ -25,11 +25,57 @@ void initialize_ds_tfgrids(Dataset &ds, const LibrpaOptions &opts)
     global::profiler.stop("initialize_ds_tfgrids");
 }
 
+static void collect_atpairs_all(Dataset &ds)
+{
+    const auto &comm_h = ds.comm_h;
+    const auto &atpairs_local = ds.atpairs_local;
+    const int np_this = atpairs_local.size();
+    std::vector<int> np_all(comm_h.nprocs, 0);
+    np_all[comm_h.myid] = np_this;
+    int np_max;
+    comm_h.allreduce(&np_this, &np_max, 1, MPI_MAX);
+    comm_h.allreduce(MPI_IN_PLACE, np_all.data(), comm_h.nprocs, MPI_SUM);
+    if (np_max == 0) return;
+    std::vector<size_t> pairs_all(comm_h.nprocs * np_max * 2, 0);
+    const int st = comm_h.myid * np_max * 2;
+    for (int ip = 0; ip < np_this; ip++)
+    {
+        pairs_all[st + ip * 2] = atpairs_local[ip].first;
+        pairs_all[st + ip * 2 + 1] = atpairs_local[ip].second;
+    }
+    comm_h.allreduce(MPI_IN_PLACE, pairs_all.data(), pairs_all.size(), MPI_SUM);
+    for (int pid = 0; pid < comm_h.nprocs; pid++)
+    {
+        if (pid == comm_h.myid)
+        {
+            std::set<atpair_t> atpairs_this(atpairs_local.cbegin(), atpairs_local.cend());
+            ds.atpairs_unique_all.emplace(pid, atpairs_this);
+        }
+        else
+        {
+            const int np_this = np_all[pid];
+            std::set<atpair_t> atpairs_this;
+            const int st = pid * np_max * 2;
+            for (int ip = 0; ip < np_this; ip++)
+            {
+                atpairs_this.insert({pairs_all[st + ip * 2], pairs_all[st + ip * 2 + 1]});
+            }
+            ds.atpairs_unique_all.emplace(pid, atpairs_this);
+        }
+    }
+}
+
 void initialize_ds_atpairs_local(Dataset &ds, LibrpaParallelRouting routing)
 {
-    const int n_atoms = ds.atoms.size();
+    global::profiler.start(__FUNCTION__);
 
     ds.atpairs_local.clear();
+    const int n_atoms_basis_wfc = ds.basis_wfc.n_atoms;
+    const int n_atoms_basis_aux = ds.basis_aux.n_atoms;
+    const int n_atoms_struc = ds.atoms.size();
+    const int n_atoms = n_atoms_struc > 0? n_atoms_struc : std::max(n_atoms_basis_aux, n_atoms_basis_wfc);
+    if (n_atoms == 0)
+        throw LIBRPA_RUNTIME_ERROR("Number of atoms can not be extracted, please set structure or basis first");
 
     if (routing == LibrpaParallelRouting::AUTO)
     {
@@ -47,6 +93,8 @@ void initialize_ds_atpairs_local(Dataset &ds, LibrpaParallelRouting routing)
     {
         ds.atpairs_local = generate_atom_pair_from_nat(n_atoms, false);
     }
+    collect_atpairs_all(ds);
+    global::profiler.stop(__FUNCTION__);
 }
 
 void initialize_ds_exx(Dataset &ds, const LibrpaOptions &opts) noexcept
