@@ -541,17 +541,22 @@ void Exx::build_KS_blacs(const std::map<int, std::map<int, ComplexMatrix>> &wfc_
         if (is_mf_eigvec_k_distributed_)
         {
             // collect parsed eigenvectors all all processes
-            const auto &wfc_sp = wfc_target.at(isp);
+            // global::ofs_myid << "isp " << isp << std::endl;
             std::vector<int> nks_all(comm_h.nprocs, 0);
-            nks_all[comm_h.myid] = wfc_sp.size();
+            std::vector<int> iks_local;
+            auto it = wfc_target.find(isp);
+            if (it != wfc_target.cend())
+            {
+                const auto &wfc_sp = it->second;
+                nks_all[comm_h.myid] = wfc_sp.size();
+                for (const auto &[ik, _]: wfc_sp)
+                {
+                    iks_local.emplace_back(ik);
+                }
+            }
             MPI_Allreduce(MPI_IN_PLACE, nks_all.data(), comm_h.nprocs, mpi_datatype<int>::value, MPI_SUM, comm_h.comm);
             const int nk_max = *std::max_element(nks_all.cbegin(), nks_all.cend());
             std::vector<int> iks_all(nk_max * comm_h.nprocs, 0);
-            std::vector<int> iks_local;
-            for (const auto &[ik, _]: wfc_sp)
-            {
-                iks_local.emplace_back(ik);
-            }
             for (int i = 0; i < nks_all[comm_h.myid]; i++)
             {
                 iks_all[comm_h.myid * nk_max + i] = iks_local[i];
@@ -586,15 +591,17 @@ void Exx::build_KS_blacs(const std::map<int, std::map<int, ComplexMatrix>> &wfc_
                     global::profiler.start("build_real_space_exx_7", "Rotate Hexx ij -> KS");
                     if (pid == comm_h.myid)
                     {
+                        // global::ofs_myid << "isp " << isp << " ik " << ik << std::endl;
+                        const auto &wfc_sk = wfc_target.at(isp).at(ik);
                         // processing the k-point eigenvector on this process
                         ScalapackConnector::pgemm_f('C', 'N', n_bands, n_aos, n_aos, 1.0,
-                                                    wfc_sp.at(ik).c, 1, 1, desc_nao_nband_fb.desc,
+                                                    wfc_sk.c, 1, 1, desc_nao_nband_fb.desc,
                                                     Hexx_nao_nao.ptr(), 1, 1, desc_nao_nao.desc,
                                                     0.0,
                                                     temp_nband_nao.ptr(), 1, 1, desc_nband_nao.desc);
                         ScalapackConnector::pgemm_f('N', 'N', n_bands, n_bands, n_aos, -1.0,
                                                     temp_nband_nao.ptr(), 1, 1, desc_nband_nao.desc,
-                                                    wfc_sp.at(ik).c, 1, 1, desc_nao_nband_fb.desc,
+                                                    wfc_sk.c, 1, 1, desc_nao_nband_fb.desc,
                                                     0.0,
                                                     Hexx_nband_nband_fb.ptr(), 1, 1, desc_nband_nband_fb.desc);
                         this->exx_KS[isp][ik] = Hexx_nband_nband_fb.copy();

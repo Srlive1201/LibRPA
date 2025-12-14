@@ -944,11 +944,16 @@ contains
       class(LibrpaHandler), intent(inout) :: this
       integer, intent(in) :: routing, i_atom, j_atom, nao_i, nao_j, naux_i
       integer, dimension(3), intent(in) :: r
-      real(dp), intent(in) :: coeff(naux_i, nao_j, nao_i)
+      real(dp), contiguous, intent(in) :: coeff(:, :, :)
 
       integer(c_int) :: r_c(3)
       integer(c_int) :: routing_c, i_atom_c, j_atom_c, nao_i_c, nao_j_c, naux_i_c
       real(c_double), allocatable :: coeff_c(:,:,:)
+
+      ! Sanity check
+      if (size(coeff,1) /= naux_i .or. size(coeff,2) /= nao_j .or. size(coeff,3) /= nao_i) then
+         error stop "librpa_set_lri_coeff: coeff has wrong shape"
+      end if
 
       ! Check if the routing is a valid LIBRPA_ROUTING_ parameter
       select case (routing)
@@ -958,7 +963,7 @@ contains
          case (LIBRPA_ROUTING_LIBRI)
          case default
             write(*,*) "Invalid routing parameter:", routing
-            stop
+            error stop
       end select
 
       r_c = int(r, kind=c_int)
@@ -1179,7 +1184,7 @@ contains
       implicit none
       class(LibrpaHandler), intent(inout) :: this
       type(LibrpaOptions), intent(inout) :: opts
-      integer, dimension(n_kpoints_local), intent(in) :: iks_local
+      integer, contiguous, dimension(:), intent(in) :: iks_local
       integer, intent(in) :: n_spins, n_kpoints_local, i_state_low, i_state_high
       real(dp), dimension(i_state_high - i_state_low + 1, n_kpoints_local, n_spins), intent(inout) :: vexx
 
@@ -1191,9 +1196,14 @@ contains
       n_spins_c = int(n_spins, kind=c_int)
       i_state_low_c = int(i_state_low - 1, kind=c_int)
       i_state_high_c = int(i_state_high, kind=c_int)
+
       n_kpoints_local_c = int(n_kpoints_local, kind=c_int)
-      allocate(iks_local_c(n_kpoints_local))
-      iks_local_c = int(iks_local, kind=c_int) - 1
+      if (n_kpoints_local > 0) then
+         allocate(iks_local_c(n_kpoints_local))
+         iks_local_c = int(iks_local, kind=c_int) - 1
+      else
+         allocate(iks_local_c(1))
+      end if
 
       call sync_opts(opts, SYNC_OPTS_F2C)
       if (dp == c_double) then
@@ -1201,10 +1211,10 @@ contains
                                          iks_local_c, i_state_low_c, i_state_high_c, vexx)
       else
          n_states_calc = i_state_high - i_state_low + 1
-         allocate(vexx_c(n_states_calc, n_kpoints_local, n_spins))
+         allocate(vexx_c(n_states_calc, max(n_kpoints_local, 1), n_spins))
          call librpa_get_exx_pot_kgrid_c(this%ptr_c_handle, opts%opts_c, n_spins_c, n_kpoints_local_c, &
                                          iks_local_c, i_state_low_c, i_state_high_c, vexx_c)
-         vexx = real(vexx_c, kind=dp)
+         if (n_kpoints_local > 0) vexx = real(vexx_c, kind=dp)
          deallocate(vexx_c)
       end if
 
