@@ -12,16 +12,24 @@ set_target_properties(${PROJECT_NAME}_f03_lib PROPERTIES
 
 configure_file(
   ${CMAKE_CURRENT_SOURCE_DIR}/lib${PROJECT_NAME}_f03.f90
-  ${CMAKE_CURRENT_BINARY_DIR}/lib${PROJECT_NAME}_f03.f90)
+  ${CMAKE_CURRENT_BINARY_DIR}/lib${PROJECT_NAME}_f03.f90
+)
 
 target_sources(${PROJECT_NAME}_f03_lib
   PRIVATE
   ${CMAKE_CURRENT_BINARY_DIR}/lib${PROJECT_NAME}_f03.f90
 )
 
+set_target_properties(${PROJECT_NAME}_f03_lib PROPERTIES
+  Fortran_MODULE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+
 target_link_libraries(${PROJECT_NAME}_f03_lib PRIVATE ${PROJECT_NAME}_lib)
 
-target_include_directories(${PROJECT_NAME}_f03_lib PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
+target_include_directories(${PROJECT_NAME}_f03_lib
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>  # only if you truly need it
+)
 
 install(TARGETS ${PROJECT_NAME}_f03_lib
         ARCHIVE

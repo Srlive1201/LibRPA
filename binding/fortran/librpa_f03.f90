@@ -685,6 +685,8 @@ contains
 
       comm_c = int(comm, kind=c_int)
       this%ptr_c_handle = librpa_create_handler_c(comm_c)
+      ! this%ptr_c_handle = librpa_create_handler_c(mpi_comm_f2c(comm))
+      ! this%ptr_c_handle = librpa_create_handler_c(comm)
    end subroutine librpa_create_handler
 
    subroutine librpa_destroy_handler(this)
@@ -1114,10 +1116,14 @@ contains
 
       real(c_double), allocatable :: omegas_c(:), weights_c(:)
 
-      if (allocated(omegas) .and. size(omegas) .ne. opts%nfreq) deallocate(omegas)
+      if (allocated(omegas)) then
+         if (size(omegas) .ne. opts%nfreq) deallocate(omegas)
+      end if
       if (.not. allocated(omegas)) allocate(omegas(opts%nfreq))
 
-      if (allocated(weights) .and. size(weights) .ne. opts%nfreq) deallocate(weights)
+      if (allocated(weights)) then
+         if (size(weights) .ne. opts%nfreq) deallocate(weights)
+      end if
       if (.not. allocated(weights)) allocate(weights(opts%nfreq))
 
       ! write(*, *) "size(omegas): ", size(omegas), " size(weights): ", size(weights)
