@@ -224,7 +224,11 @@ void Exx::build(const LibrpaParallelRouting routing,
     profiler.start("build_real_space_exx_1", "Prepare C libRI object");
     ofs_myid << "Number of Cs keys: " << get_num_keys(Cs.data_libri) << endl;
     // print_keys(global::ofs_myid, Cs.data_libri);
+    global::ofs_myid << "Before set_Cs" << std::endl;
+    // global::ofs_myid << Cs.data_libri << std::endl;
     exx_libri.set_Cs(Cs.data_libri, libri_threshold_C);
+    global::ofs_myid << "Finish  set_Cs" << std::endl;
+    // exx_libri.set_Cs({}, libri_threshold_C);
     profiler.stop("build_real_space_exx_1");
     ofs_myid << "Finished setup Cs for EXX\n";
     std::flush(global::ofs_myid);
@@ -444,6 +448,7 @@ void Exx::build_KS_blacs(const std::map<int, std::map<int, ComplexMatrix>> &wfc_
             // Collect the IJ pair of Hs with all R for Fourier transform
             auto exx_is_IJR_for_blacs = comm_map2_first(comm_h.comm, exx_is_tensor, Iset_Jset.first, Iset_Jset.second);
             exx_is_tensor.clear();
+            if (exx_is_IJR_for_blacs.size() == 0) continue;
             // Now each process should have all Rs corresponding to atom-pairs that required for BLACS matrix operation
             // Swap with the original
             map<atom_t, map<atom_t, map<Vector3_Order<int>, Matd>>> exx_is_new;
@@ -479,52 +484,56 @@ void Exx::build_KS_blacs(const std::map<int, std::map<int, ComplexMatrix>> &wfc_
         // Convert each <I,<J, R>> pair to the nearest neighbour to speed up later Fourier transform
         // while keep the accuracy in further band interpolation.
         // Reuse the cleared-up exx_I_JR_local object
-        if (geometry.is_frac_set())
+        auto it = exx_IJR.find(isp);
+        if (it != exx_IJR.cend())
         {
-            const auto &coords_frac = geometry.coords_frac;
-            const auto &period = this->pbc.period;
-
-            for (const auto &[I, J_Rexx]: exx_IJR.at(isp))
+            if (geometry.is_frac_set())
             {
-                for (const auto &[J, R_exx]: J_Rexx)
+                const auto &coords_frac = geometry.coords_frac;
+                const auto &period = this->pbc.period;
+
+                for (const auto &[I, J_Rexx]: it->second)
                 {
-                    for (const auto &[R, mat]: R_exx)
+                    for (const auto &[J, R_exx]: J_Rexx)
                     {
-                        auto distsq = std::numeric_limits<double>::max();
-                        Vector3<int> R_IJ;
-                        Vector3<int> R_bvk;
-                        for (int i = -1; i < 2; i++)
+                        for (const auto &[R, mat]: R_exx)
                         {
-                            R_IJ.x = i * period.x + R.x;
-                            for (int j = -1; j < 2; j++)
+                            auto distsq = std::numeric_limits<double>::max();
+                            Vector3<int> R_IJ;
+                            Vector3<int> R_bvk;
+                            for (int i = -1; i < 2; i++)
                             {
-                                R_IJ.y = j * period.y + R.x;
-                                for (int k = -1; k < 2; k++)
+                                R_IJ.x = i * period.x + R.x;
+                                for (int j = -1; j < 2; j++)
                                 {
-                                    R_IJ.z = k * period.z + R.z;
-                                    const auto diff =
-                                        (Vector3<double>(coords_frac.at(I)[0], coords_frac.at(I)[1],
-                                                        coords_frac.at(I)[2]) -
-                                        Vector3<double>(coords_frac.at(J)[0], coords_frac.at(J)[1],
-                                                        coords_frac.at(J)[2]) -
-                                        Vector3<double>(R_IJ.x, R_IJ.y, R_IJ.z)) * this->pbc.latvec;
-                                    const auto norm2 = diff.norm2();
-                                    if (norm2 < distsq)
+                                    R_IJ.y = j * period.y + R.x;
+                                    for (int k = -1; k < 2; k++)
                                     {
-                                        distsq = norm2;
-                                        R_bvk = R_IJ;
+                                        R_IJ.z = k * period.z + R.z;
+                                        const auto diff =
+                                            (Vector3<double>(coords_frac.at(I)[0], coords_frac.at(I)[1],
+                                                            coords_frac.at(I)[2]) -
+                                            Vector3<double>(coords_frac.at(J)[0], coords_frac.at(J)[1],
+                                                            coords_frac.at(J)[2]) -
+                                            Vector3<double>(R_IJ.x, R_IJ.y, R_IJ.z)) * this->pbc.latvec;
+                                        const auto norm2 = diff.norm2();
+                                        if (norm2 < distsq)
+                                        {
+                                            distsq = norm2;
+                                            R_bvk = R_IJ;
+                                        }
                                     }
                                 }
                             }
+                            exx_is_local[I][J][R_bvk] = mat;
                         }
-                        exx_is_local[I][J][R_bvk] = mat;
                     }
                 }
             }
-        }
-        else
-        {
-            exx_is_local = exx_IJR.at(isp);
+            else
+            {
+                exx_is_local = it->second;
+            }
         }
         global::profiler.stop("build_real_space_exx_5");
         global::lib_printf("Task %4d: tensor communicate elapsed time: %f\n", comm_h.myid, global::profiler.get_wall_time_last("build_real_space_exx_5"));

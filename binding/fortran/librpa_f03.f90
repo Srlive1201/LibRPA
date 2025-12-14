@@ -718,6 +718,9 @@ contains
       st_ibasis_c = int(st_ibasis, kind=c_int) - 1
       nbasis_local_c = int(nbasis_local, kind=c_int)
 
+      write(*,*) "nspins nspins_c", nspins, nspins_c
+      write(*,*) "nspins nspins_c", nspins, nspins_c
+
       call librpa_set_scf_dimension_c(this%ptr_c_handle, nspins_c, nkpts_c, nstates_c, nbasis_c, &
                                       st_istate_c, nstates_local_c, st_ibasis_c, nbasis_local_c)
    end subroutine librpa_set_scf_dimension
@@ -943,7 +946,7 @@ contains
 
       integer(c_int) :: r_c(3)
       integer(c_int) :: routing_c, i_atom_c, j_atom_c, nao_i_c, nao_j_c, naux_i_c
-      real(dp), allocatable :: coeff_c(:,:,:)
+      real(c_double), allocatable :: coeff_c(:,:,:)
 
       ! Check if the routing is a valid LIBRPA_ROUTING_ parameter
       select case (routing)
@@ -1179,22 +1182,27 @@ contains
       integer(c_int) :: n_spins_c, n_kpoints_local_c, i_state_low_c, i_state_high_c
       integer :: n_states_calc
 
-      n_states_calc = i_state_high - i_state_low + 1
-      i_state_low_c = i_state_low - 1
-      i_state_high_c = i_state_high
-      n_kpoints_local_c = n_kpoints_local
-      iks_local_c = iks_local
-
+      n_spins_c = int(n_spins, kind=c_int)
+      i_state_low_c = int(i_state_low - 1, kind=c_int)
+      i_state_high_c = int(i_state_high, kind=c_int)
+      n_kpoints_local_c = int(n_kpoints_local, kind=c_int)
       allocate(iks_local_c(n_kpoints_local))
-      allocate(vexx_c(n_states_calc, n_kpoints_local, n_spins))
+      iks_local_c = int(iks_local, kind=c_int) - 1
 
       call sync_opts(opts, SYNC_OPTS_F2C)
-      call librpa_get_exx_pot_kgrid_c(this%ptr_c_handle, opts%opts_c, n_spins_c, n_kpoints_local_c, &
-                                      iks_local_c, i_state_low_c, i_state_high_c, vexx_c)
-      vexx = real(vexx_c, kind=dp)
+      if (dp == c_double) then
+         call librpa_get_exx_pot_kgrid_c(this%ptr_c_handle, opts%opts_c, n_spins_c, n_kpoints_local_c, &
+                                         iks_local_c, i_state_low_c, i_state_high_c, vexx)
+      else
+         n_states_calc = i_state_high - i_state_low + 1
+         allocate(vexx_c(n_states_calc, n_kpoints_local, n_spins))
+         call librpa_get_exx_pot_kgrid_c(this%ptr_c_handle, opts%opts_c, n_spins_c, n_kpoints_local_c, &
+                                         iks_local_c, i_state_low_c, i_state_high_c, vexx_c)
+         vexx = real(vexx_c, kind=dp)
+         deallocate(vexx_c)
+      end if
 
-      deallocate(iks_local_c, vexx_c)
-
+      deallocate(iks_local_c)
    end subroutine librpa_get_exx_pot_kgrid
 
    subroutine librpa_build_g0w0_sigma(this, opts)

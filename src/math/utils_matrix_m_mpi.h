@@ -184,6 +184,7 @@ void collect_block_from_IJ_storage_matrix_transform(
 {
     // assert(mat_lo.nr() == ad.m_loc() && mat_lo.nc() == ad.n_loc());
     assert(as_size(ad.m()) == atbasis_row.nb_total && as_size(ad.n()) == atbasis_col.nb_total );
+    if (TMAP.size() == 0) return;
 
     matrix_m<Tdst> tmp_loc(mat_lo.nr(),mat_lo.nc(), MAJOR::ROW);
     size_t cp_size= ad.n_loc()*sizeof(Tdst);

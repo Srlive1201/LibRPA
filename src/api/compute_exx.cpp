@@ -55,8 +55,10 @@ LIBRPA_C_H_FUNC_WRAP_WOPT_NOPAR(void, librpa_build_exx)
 LIBRPA_C_H_FUNC_WRAP_WOPT(void, librpa_get_exx_pot_kgrid, const int n_spins, const int n_kpoints_local,
                           const int *iks_local, int i_state_low, int i_state_high, double *vexx)
 {
+    using std::endl;
     using namespace librpa_int;
     using librpa_int::global::profiler;
+    using librpa_int::global::ofs_myid;
     using librpa_int::global::lib_printf;
 
     auto pds = librpa_int::api::get_dataset_instance(h);
@@ -64,6 +66,7 @@ LIBRPA_C_H_FUNC_WRAP_WOPT(void, librpa_get_exx_pot_kgrid, const int n_spins, con
     i_state_high = std::min(pds->mf.get_n_states(), i_state_high);
     if (n_spins != pds->mf.get_n_spins())
     {
+        global::ofs_myid << "n_spins != pds->mf.get_n_spins(): " << n_spins << " != " << pds->mf.get_n_spins() << endl;
         throw LIBRPA_RUNTIME_ERROR("parsed nspins is not consitent with the SCF starting poing");
     }
     if (i_state_high <= i_state_low)
