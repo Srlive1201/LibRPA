@@ -64,6 +64,15 @@ public:
         MPI_Allreduce(sendbuf, recvbuf, count, mpi_datatype<T2>::value, op, this->comm);
     }
 
+    template <typename T1, typename T2>
+    inline void reduce(const T1 *sendbuf, T2 *recvbuf, int count, int root, MPI_Op op) const
+    {
+        if (sendbuf == MPI_IN_PLACE && myid != root)
+            MPI_Reduce(recvbuf, recvbuf, count, mpi_datatype<T2>::value, op, root, this->comm);
+        else
+            MPI_Reduce(sendbuf, recvbuf, count, mpi_datatype<T2>::value, op, root, this->comm);
+    }
+
     template <typename T>
     inline void bcast(T *buf, int count, int root) const
     {

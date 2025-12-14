@@ -16,12 +16,9 @@
 #include "../write_aims.h"
 #include "../../src/core/analycont.h"
 #include "../../src/core/qpe_solver.h"
-#include "../../src/core/epsilon.h"
 #include "../../src/io/global_io.h"
 #include "../../src/io/fs.h"
-#include "../../src/core/dielecmodel.h"
 #include "../../src/utils/profiler.h"
-#include "../../src/core/coulmat.h"
 #include "../../src/api/instance_manager.h"
 #include "../../src/utils/constants.h"
 #include "../../src/math/utils_matrix_m_mpi.h"
@@ -73,7 +70,8 @@ void driver::task_g0w0()
     // Build the self-energy matrix (including exchange and correlation)
     h.build_g0w0_sigma(opts);
 
-    auto pds = librpa_int::api::get_dataset_instance(h.get_c_handler());
+    // TODO: hide things below to API
+    auto pds = librpa_int::api::get_dataset_instance(h);
     auto &chi0 = *(pds->p_chi0);
 
     // if (opts.output_level >= LIBRPA_VERBOSE_DEBUG)

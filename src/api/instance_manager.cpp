@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <memory>
+#include "dataset.h"
 #include "librpa.hpp"
 
 namespace librpa_int
@@ -13,13 +14,13 @@ namespace api
 // manager[0] is a reserved sentinel (always nullptr); real instances start at 1.
 std::vector<std::shared_ptr<Dataset>> manager{nullptr};
 
-std::shared_ptr<Dataset> get_dataset_instance(const LibrpaHandler *h)
+dataset_ptr_t get_dataset_instance(const LibrpaHandler *h)
 {
     if (h == nullptr) return nullptr;
     return manager.at(h->instance_id_);
 }
 
-std::shared_ptr<Dataset> get_dataset_instance(const librpa::Handler &h)
+dataset_ptr_t  get_dataset_instance(const librpa::Handler &h)
 {
     return get_dataset_instance(h.get_c_handler());
 }

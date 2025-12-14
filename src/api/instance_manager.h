@@ -4,6 +4,7 @@
 #include <memory>
 
 // Public headers
+#include "librpa.hpp"
 #include "librpa_handler.h"
 
 // Internal headers
@@ -19,6 +20,8 @@ namespace api
 extern std::vector<dataset_ptr_t> manager;
 
 dataset_ptr_t get_dataset_instance(const LibrpaHandler *h);
+
+dataset_ptr_t get_dataset_instance(const librpa::Handler &h);
 
 LibrpaHandler* push_back_dataset(int comm);
 

@@ -7,6 +7,7 @@
 #include "../math/lapack_connector.h"
 #include "../math/matrix_m.h"
 #include "../utils/constants.h"
+#include "../utils/profiler.h"
 
 namespace librpa_int
 {
@@ -36,6 +37,7 @@ std::map<Vector3_Order<int>, ComplexMatrix> get_dmat_cplx_Rs_kpara(
     int ispin, const MeanField &mf, const std::vector<Vector3_Order<double>>& kfrac_list,
     const std::vector<Vector3_Order<int>>& Rs, const MpiCommHandler &comm_h)
 {
+    global::profiler.start(__FUNCTION__);
     std::map<Vector3_Order<int>, ComplexMatrix> dmat_local;
 
     // Collect Rs requested by each process
@@ -118,6 +120,7 @@ std::map<Vector3_Order<int>, ComplexMatrix> get_dmat_cplx_Rs_kpara(
         comm_h.barrier(); // May try out non-blocking later
     }
 
+    global::profiler.stop(__FUNCTION__);
     return dmat_local;
 }
 

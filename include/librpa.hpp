@@ -123,6 +123,8 @@ public:
 
     //! Compute real-space G0W0 self-energy matrix
     void build_g0w0_sigma(const Options &opts);
+
+    /* Utility functions */
 };
 
 #undef LIBRPA_CPP_H_METHOD_DECL_WRAP
