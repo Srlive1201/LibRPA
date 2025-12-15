@@ -175,7 +175,16 @@ ComplexMatrix MeanField::get_dmat_cplx(int ispin, int ikpt) const
 {
     assert(ispin < this->n_spins);
     assert(ikpt < this->n_kpoints);
-    auto scaled_wfc_conj = conj(wfc.at(ispin).at(ikpt));
+
+    ComplexMatrix dmat_cplx(n_aos, n_aos);
+    dmat_cplx.zero_out();
+
+    auto it_sp = wfc.find(ispin);
+    if (it_sp == wfc.cend()) return dmat_cplx;
+    auto it_sp_k = it_sp->second.find(ikpt);
+    if (it_sp_k == it_sp->second.cend()) return dmat_cplx;
+
+    auto scaled_wfc_conj = conj(it_sp_k->second);
     const double occ_thres = 1e-4 / n_kpoints;
     int nocc;
     for (nocc = 0; nocc != this->n_states; nocc++)
@@ -185,8 +194,7 @@ ComplexMatrix MeanField::get_dmat_cplx(int ispin, int ikpt) const
         if (weight < occ_thres) break;
         LapackConnector::scal(this->n_aos, weight, scaled_wfc_conj.c + n_aos * nocc, 1);
     }
-    ComplexMatrix dmat_cplx(n_aos, n_aos);
-    const auto &wfc_sk = this->wfc.at(ispin).at(ikpt);
+    const auto &wfc_sk = it_sp_k->second;
     LapackConnector::gemm('T', 'N', n_aos, n_aos, nocc, 1.0,
                           wfc_sk.c, n_aos, scaled_wfc_conj.c, n_aos,
                           0.0, dmat_cplx.c, n_aos);
