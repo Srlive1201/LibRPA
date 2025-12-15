@@ -30,6 +30,7 @@ void init_global(LibrpaSwitch switch_redirect_stdout, const char *redirect_path,
 
 void finalize_global(void) { ::librpa_finalize_global(); }
 
+void test(void) { ::librpa_test(); }
 
 /* Constructor and destructor definition for the C++ handler object */
 Handler::Handler(int comm) : h_(nullptr) { this->create(comm); }

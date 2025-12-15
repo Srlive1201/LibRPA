@@ -18,6 +18,8 @@ void librpa_init_global(LibrpaSwitch switch_redirect_stdout = LIBRPA_SWITCH_OFF,
 
 void librpa_finalize_global(void);
 
+void librpa_test(void);
+
 #ifdef __cplusplus
 }
 #endif

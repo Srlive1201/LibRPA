@@ -45,3 +45,7 @@ void librpa_finalize_global(void)
     finalize_global_io();
     finalize_global_mpi();
 }
+
+void librpa_test(void)
+{
+}

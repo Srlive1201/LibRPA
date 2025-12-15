@@ -49,6 +49,7 @@ void init_global(Switch switch_redirect_stdout = LIBRPA_SWITCH_OFF, const char *
 
 void finalize_global(void);
 
+void test(void);
 
 /* C++ handler definition, input and compute methods declarations */
 

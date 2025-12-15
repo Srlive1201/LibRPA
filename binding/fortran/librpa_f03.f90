@@ -43,6 +43,7 @@ module librpa_f03
 
    public :: librpa_init_global
    public :: librpa_finalize_global
+   public :: librpa_test
    public :: librpa_get_major_version
    public :: librpa_get_minor_version
    public :: librpa_get_patch_version
@@ -169,6 +170,9 @@ module librpa_f03
 
       subroutine librpa_finalize_global_c() bind(c, name="librpa_finalize_global")
       end subroutine librpa_finalize_global_c
+
+      subroutine librpa_test_c() bind(c, name="librpa_test")
+      end subroutine librpa_test_c
    end interface
 
    ! Version information
@@ -661,6 +665,11 @@ contains
       call librpa_finalize_global_c()
       if (allocated(redirect_path_buf)) deallocate(redirect_path_buf)
    end subroutine librpa_finalize_global
+
+   subroutine librpa_test()
+      implicit none
+      call librpa_test_c()
+   end subroutine librpa_test
 
    integer function librpa_get_major_version() result(v)
       v = librpa_get_major_version_c()
