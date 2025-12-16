@@ -8,6 +8,7 @@
 #include "librpa_handler.h"
 
 // Internal headers
+#include "../interface/mpi.h"
 #include "dataset.h"
 
 namespace librpa_int
@@ -23,7 +24,7 @@ dataset_ptr_t get_dataset_instance(const LibrpaHandler *h);
 
 dataset_ptr_t get_dataset_instance(const librpa::Handler &h);
 
-LibrpaHandler* push_back_dataset(int comm);
+LibrpaHandler* push_back_dataset(MPI_Comm comm);
 
 //! Free the data instance that the handler binds
 void destroy_dataset(LibrpaHandler* h);

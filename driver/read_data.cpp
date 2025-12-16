@@ -1317,7 +1317,7 @@ static int handle_Vq_row_file(const string &file_path, double threshold,
                     basis_aux.get_local_index(i_mu, I_loc, mu_loc);
                     for (auto &Jp : coulomb[I_loc])
                     {
-                        auto J = Jp.first;
+                        int J = Jp.first;
                         int Jb = atom_mu_part_range[J];
                         int Je = atom_mu_part_range[J] + basis_aux[J] - 1;
 
@@ -1406,7 +1406,7 @@ static int handle_Vq_row_file(const string &file_path, double threshold,
                     // int bI=atom_mu_part_range[I_loc];
                     for(auto &Jp:coulomb[I_loc] )
                     {
-                        auto J=Jp.first;
+                        int J=Jp.first;
                         int Jb=atom_mu_part_range[J];
                         int Je=atom_mu_part_range[J]+basis_aux[J]-1;
 

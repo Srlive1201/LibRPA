@@ -25,7 +25,7 @@ dataset_ptr_t  get_dataset_instance(const librpa::Handler &h)
     return get_dataset_instance(h.get_c_handler());
 }
 
-LibrpaHandler* push_back_dataset(int comm)
+LibrpaHandler* push_back_dataset(MPI_Comm comm)
 {
     // create a new instance and append it to the manager
     int instance_id = manager.size();

@@ -225,7 +225,7 @@ int main (int argc, char *argv[])
 {
     int provided;
     MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
-    init_global_mpi();
+    init_global_mpi(MPI_COMM_WORLD);
     init_global_io();
 
     test_dmat_cplx_Rs_kpara(3, 8, 2);

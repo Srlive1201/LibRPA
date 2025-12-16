@@ -27,4 +27,5 @@ endmacro()
 
 if(LIBRPA_USE_LIBRI)
   config_test_f03(test_f03_binding_libri 1)
+  config_test_f03(test_f03_binding_call_internal_test 2)
 endif()

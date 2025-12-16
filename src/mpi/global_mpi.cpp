@@ -34,7 +34,7 @@ int size_inter = 1;
 
 static bool mpi_initialized = false;
 
-void init_global_mpi()
+void init_global_mpi(MPI_Comm comm)
 {
     int flag;
     MPI_Initialized(&flag);
@@ -43,7 +43,7 @@ void init_global_mpi()
         throw LIBRPA_RUNTIME_ERROR("MPI_Init or MPI_Init_thread must be called before init_global_mpi");
     }
 
-    mpi_comm_global = MPI_COMM_WORLD;
+    mpi_comm_global = comm;
     // Initialize handlers of global MPI communicator
     mpi_comm_global_h.reset_comm(mpi_comm_global);
     mpi_comm_global_h.init();

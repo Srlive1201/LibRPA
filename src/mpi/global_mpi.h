@@ -40,7 +40,7 @@ extern int myid_inter;
 //! Number of processes in the intra-node communciator
 extern int size_inter;
 
-void init_global_mpi();
+void init_global_mpi(MPI_Comm comm);
 
 bool is_mpi_initialized();
 

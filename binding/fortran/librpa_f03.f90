@@ -161,8 +161,10 @@ module librpa_f03
 
    ! Global environment
    interface
-      subroutine librpa_init_global_c(sw_redirect, path, sw_process) bind(c, name="librpa_init_global")
+      subroutine librpa_init_global_c(f_comm, sw_redirect, path, sw_process) &
+            bind(c, name="librpa_init_global_fortran")
          import :: c_int, c_char
+         integer(c_int) :: f_comm
          integer(c_int), value :: sw_redirect
          character(kind=c_char), dimension(*), intent(in) :: path
          integer(c_int), value :: sw_process
@@ -225,9 +227,9 @@ module librpa_f03
    end type LibrpaHandler
 
    interface
-      function librpa_create_handler_c(comm_c) bind(c, name="librpa_create_handler")
+      function librpa_create_handler_c(f_comm) bind(c, name="librpa_create_handler_fortran")
          import :: c_ptr, c_int
-         integer(c_int), value :: comm_c
+         integer(c_int) :: f_comm
          type(c_ptr) :: librpa_create_handler_c
       end function librpa_create_handler_c
 
@@ -618,13 +620,14 @@ contains
    !> @param  sw_process     Switch of writing per-process output (default true)
    subroutine librpa_init_global(sw_redirect, redirect_path, sw_process)
       use iso_c_binding, only: c_null_char
+      use mpi
       implicit none
 
       logical, intent(in), optional :: sw_redirect, sw_process
       character(len=*), intent(in), optional :: redirect_path
 
       character(len=*), parameter :: def = "stdout"
-      integer(c_int) :: s1, s2
+      integer(c_int) :: s1, s2, f_comm
       character(kind=c_char), allocatable, target :: path_c(:)
       character(len=:), allocatable :: tmp
       integer :: n, i
@@ -653,7 +656,11 @@ contains
       end do
       redirect_path_buf(n+1) = c_null_char
 
-      call librpa_init_global_c(s1, redirect_path_buf, s2)
+      f_comm = int(MPI_COMM_WORLD, kind=c_int)
+
+      call librpa_init_global_c(f_comm, s1, redirect_path_buf, s2)
+
+      !call librpa_init_global_c(s1, redirect_path_buf, s2)
       !if (allocated(path_c)) deallocate(path_c)
    end subroutine librpa_init_global
 
@@ -688,12 +695,12 @@ contains
       implicit none
       class(LibrpaHandler), intent(inout) :: this
       integer, intent(in) :: comm
-      integer(c_int) :: comm_c = 0
+      integer(c_int) :: f_comm = 0
 
       if (c_associated(this%ptr_c_handle)) call this%destroy()
 
-      comm_c = int(comm, kind=c_int)
-      this%ptr_c_handle = librpa_create_handler_c(comm_c)
+      f_comm = int(comm, kind=c_int)
+      this%ptr_c_handle = librpa_create_handler_c(f_comm)
       ! this%ptr_c_handle = librpa_create_handler_c(mpi_comm_f2c(comm))
       ! this%ptr_c_handle = librpa_create_handler_c(comm)
    end subroutine librpa_create_handler

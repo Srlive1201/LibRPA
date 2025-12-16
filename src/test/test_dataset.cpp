@@ -211,22 +211,23 @@ static void test_redistribute_blacs2ap_np4(const std::vector<size_t> &nbs)
 int main (int argc, char *argv[])
 {
     using namespace librpa_int;
+    using namespace librpa_int::global;
     int provided;
     MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
 
     int size_global = get_mpi_size(MPI_COMM_WORLD);
     if (size_global != 4) throw std::runtime_error("test imposes 4 MPI processes");
 
-    global::init_global_mpi();
-    global::init_global_io();
+    init_global_mpi(MPI_COMM_WORLD);
+    init_global_io();
 
-    // test_set_comm_blacs_coul_np4();
+    test_set_comm_blacs_coul_np4();
 
     test_redistribute_blacs2ap_np4({2, 3});
     test_redistribute_blacs2ap_np4({10, 4, 5});
 
-    global::finalize_global_io();
-    global::finalize_global_mpi();
+    finalize_global_io();
+    finalize_global_mpi();
 
     MPI_Finalize();
     return 0;

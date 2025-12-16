@@ -124,7 +124,7 @@ int main (int argc, char **argv)
     using namespace librpa_int::global;
     int provided;
     MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
-    init_global_mpi();
+    init_global_mpi(MPI_COMM_WORLD);
     init_global_io();
 
     check_initialize();

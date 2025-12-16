@@ -90,7 +90,7 @@ int main (int argc, char *argv[])
     int provided;
     MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
 
-    init_global_mpi();
+    init_global_mpi(MPI_COMM_WORLD);
     blacs_ctxt_h.reset_comm(mpi_comm_global);
 
     if ( size_global != 4 )

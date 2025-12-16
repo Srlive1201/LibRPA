@@ -160,6 +160,11 @@ contains
       call error_on_call("librpa_finalize_global")
    end subroutine librpa_finalize_global
 
+   subroutine librpa_test()
+      implicit none
+      call error_on_call("librpa_test")
+   end subroutine librpa_test
+
    integer function librpa_get_major_version() result(v)
       v = -1
       call error_on_call("librpa_get_major_version")

@@ -1030,7 +1030,7 @@ void test_restore_local_mat_sy(const std::vector<size_t> &nbs, MAJOR major)
 
 static void initialize()
 {
-    init_global_mpi();
+    init_global_mpi(MPI_COMM_WORLD);
     blacs_ctxt_h.reset_comm(global::mpi_comm_global);
     init_global_io();
 }

@@ -28,7 +28,7 @@ target_link_libraries(${PROJECT_NAME}_f03_lib PRIVATE ${PROJECT_NAME}_lib)
 
 target_include_directories(${PROJECT_NAME}_f03_lib
   PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>  # only if you truly need it
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
 )
 
 install(TARGETS ${PROJECT_NAME}_f03_lib
