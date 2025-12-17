@@ -18,14 +18,10 @@
 
 void driver::task_exx()
 {
-    using librpa_int::global::mpi_comm_global_h;
-    using librpa_int::global::lib_printf;
-
     using std::cout;
     using std::endl;
     using std::map;
     using namespace librpa_int::global;
-    using librpa_int::global::lib_printf;
     using librpa_int::cplxdb;
     using librpa_int::HA2EV;
 

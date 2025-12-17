@@ -73,7 +73,7 @@ static void warn_dmat_IJR_nonzero_imag(const ComplexMatrix& dmat_cplx, const int
 
 
 #ifdef LIBRPA_USE_LIBRI
-static void build_dmat_libri_serial(
+static void build_dmat_libri_kserial(
     const MeanField &mf,
     const AtomicBasis &atbasis_wfc,
     int ispin,
@@ -86,7 +86,7 @@ static void build_dmat_libri_serial(
     //     global::ofs_myid << ik << std::endl;
     //     print_complex_matrix("eigenvector", mat, global::ofs_myid, true);
     // }
-    global::profiler.start("exx_build_dmat_libri_serial");
+    global::profiler.start("exx_build_dmat_libri_kserial");
     std::map<Vector3_Order<int>, std::vector<atpair_t>> map_R_IJs;
     for (const auto &IJR: IJRs)
     {
@@ -120,7 +120,7 @@ static void build_dmat_libri_serial(
 #pragma omp barrier
         omp_destroy_lock(&dmat_lock);
     }
-    global::profiler.stop("exx_build_dmat_libri_serial");
+    global::profiler.stop("exx_build_dmat_libri_kserial");
 }
 
 static void build_dmat_libri_kpara(
@@ -233,8 +233,8 @@ void Exx::build(const LibrpaParallelRouting routing,
     global::ofs_myid << "comm_h.comm " << comm_h.comm << " global::mpi_comm_global_h.comm " << global::mpi_comm_global_h.comm << std::endl;
     global::ofs_myid << "Before set_Cs" << std::endl;
     // global::ofs_myid << Cs.data_libri << std::endl;
-    // exx_libri.set_Cs(Cs.data_libri, libri_threshold_C);
-    exx_libri.set_Cs({}, libri_threshold_C);
+    exx_libri.set_Cs(Cs.data_libri, libri_threshold_C);
+    // exx_libri.set_Cs({}, libri_threshold_C);
     global::ofs_myid << "Finish  set_Cs" << std::endl;
     profiler.stop("build_real_space_exx_1");
     ofs_myid << "Finished setup Cs for EXX\n";
@@ -286,9 +286,10 @@ void Exx::build(const LibrpaParallelRouting routing,
     }
     global::profiler.stop("build_real_space_exx_2_1");
     global::ofs_myid << "Number of V keys: " << get_num_keys(V_libri) << endl;
+    // global::ofs_myid << V_libri << endl;
     global::profiler.start("build_real_space_exx_2_2");
-    // exx_libri.set_Vs(V_libri, libri_threshold_V);
-    exx_libri.set_Vs({}, libri_threshold_V);
+    exx_libri.set_Vs(V_libri, libri_threshold_V);
+    // exx_libri.set_Vs({}, libri_threshold_V);
     V_libri.clear();
     global::profiler.stop("build_real_space_exx_2_2");
     global::profiler.stop("build_real_space_exx_2");
@@ -312,13 +313,13 @@ void Exx::build(const LibrpaParallelRouting routing,
         }
         else
         {
-            build_dmat_libri_serial(mf, atbasis_wfc, isp, this->pbc.kfrac_list, dmat_IJRs_local, dmat_libri);
+            build_dmat_libri_kserial(mf, atbasis_wfc, isp, this->pbc.kfrac_list, dmat_IJRs_local, dmat_libri);
         }
         global::ofs_myid << "Number of Dmat keys: " << get_num_keys(dmat_libri) << "\n";
         // global::ofs_myid << dmat_libri << std::endl;
         // print_keys(global::ofs_myid, dmat_libri);
-        // exx_libri.set_Ds(dmat_libri, libri_threshold_D);
-        exx_libri.set_Ds({}, libri_threshold_D);
+        exx_libri.set_Ds(dmat_libri, libri_threshold_D);
+        // exx_libri.set_Ds({}, libri_threshold_D);
         global::profiler.stop("build_real_space_exx_3");
         global::lib_printf("Task %4d: DM setup for EXX\n", comm_h.myid);
 

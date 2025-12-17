@@ -4,15 +4,16 @@
 #ifdef LIBRPA_USE_LIBRI
 #include <RI/physics/Exx.h>
 #endif
-#include "../core/exx.h"
 
 // Public API headers
 #include "librpa_global.h"
 #include "librpa_enums.h"
 
 // Internal headers
+#include "../core/exx.h"
 #include "../utils/utils_cmake.h"
 #include "../version.h"
+#include "../utils/constants.h"
 
 const char* librpa_get_build_info(void)
 {
@@ -99,7 +100,7 @@ static void test_bccHe_exx()
     librpa_int::AtomicBasis wfc(std::vector<size_t>{4,4});
     librpa_int::AtomicBasis aux(std::vector<size_t>{13,13});
     librpa_int::PeriodicBoundaryData pbc;
-    pbc.set_latvec({5.7, 0.0, 0.0, 0.0, 5.7, 0.0, 0.0, 0.0, 5.7});
+    pbc.set_latvec({TWO_PI, 0.0, 0.0, 0.0, TWO_PI, 0.0, 0.0, 0.0, TWO_PI});
     pbc.set_kgrids_kvec(2, 2, 2,
                         {
                             0.0, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.5, 0.0, 0.0, 0.5, 0.5,
@@ -112,6 +113,6 @@ static void test_bccHe_exx()
 void librpa_test(void)
 {
     std::cout << "Hello " << __FUNCTION__ << std::endl;
-    test_bccHe_libri_exx();
-    // test_bccHe_exx();
+    // test_bccHe_libri_exx();
+    test_bccHe_exx();
 }

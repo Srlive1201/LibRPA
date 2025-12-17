@@ -6,6 +6,7 @@
 // Internal headers
 #include "../core/coulmat.h"
 #include "../io/fs.h"
+#include "../io/stl_io_helper.h"
 #include "../utils/error.h"
 #include "../utils/profiler.h"
 #include "../utils/utils_mem.h"
@@ -48,6 +49,7 @@ LIBRPA_C_H_FUNC_WRAP_WOPT_NOPAR(void, librpa_build_exx)
         // pds->p_exx->build_KS_kgrid_blacs(pds->blacs_h);
         profiler.stop("exx_real_work");
     }
+    // global::ofs_myid << pds->p_exx->exx_IJR << std::endl;
 
     profiler.stop("api_build_exx");
 }
@@ -85,12 +87,14 @@ LIBRPA_C_H_FUNC_WRAP_WOPT(void, librpa_get_exx_pot_kgrid, const int n_spins, con
 
     profiler.start("api_get_exx_pot_kgrid");
     auto &pexx = pds->p_exx;
+    // ofs_myid << pexx->exx_IJR << endl;
     // TODO: make choosing blacs/non-blacs method a run time option
     pexx->build_KS_kgrid_blacs(pds->blacs_h);
     for (int isp = 0; isp < n_spins; isp++)
     {
         const int start_isp = isp * n_kpoints_local * n_states_calc;
         const auto exx_isp = pexx->Eexx.at(isp);
+        // ofs_myid << exx_isp << endl;
         for (int ik_local = 0; ik_local < n_kpoints_local; ik_local++)
         {
             const int start_k = start_isp + ik_local * n_states_calc;

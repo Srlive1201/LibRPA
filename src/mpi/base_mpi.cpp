@@ -71,8 +71,12 @@ void MpiCommHandler::init()
 
 void MpiCommHandler::free_comm()
 {
-    if (this->comm != MPI_COMM_WORLD && this->comm != MPI_COMM_NULL)
-        MPI_Comm_free(&this->comm);
+    if (this->comm != MPI_COMM_WORLD && this->comm != MPI_COMM_NULL && this->comm != MPI_COMM_SELF)
+    {
+        int rank;
+        int ierr = MPI_Comm_rank(comm, &rank);
+        if (ierr == MPI_SUCCESS) MPI_Comm_free(&this->comm);
+    }
     this->reset_comm();
 }
 

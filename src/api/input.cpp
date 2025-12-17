@@ -99,6 +99,10 @@ LIBRPA_C_H_FUNC_WRAP(void, librpa_set_wfc, int ispin, int ik,
         wfc.c[i] = std::complex<double>(wfc_real[i], wfc_imag[i]);
     }
     // std::cout << "Maxabs: " << wfc.get_max_abs() << std::endl;
+    librpa_int::global::ofs_myid
+        << "Wave-function set : ispin = " << ispin << " ik = " << ik
+        << " nstates_local = " << nstates_local << " nbasis_local = " << nbasis_local
+        << std::endl;
 }
 
 LIBRPA_C_H_FUNC_WRAP(void, librpa_set_ao_basis_wfc, const int natoms, const size_t *nbs_wfc)

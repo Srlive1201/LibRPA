@@ -620,7 +620,7 @@ contains
    !> @param  sw_process     Switch of writing per-process output (default true)
    subroutine librpa_init_global(sw_redirect, redirect_path, sw_process)
       use iso_c_binding, only: c_null_char
-      use mpi
+      use mpi, only: MPI_COMM_WORLD
       implicit none
 
       logical, intent(in), optional :: sw_redirect, sw_process
@@ -968,6 +968,8 @@ contains
 
       ! Sanity check
       if (size(coeff,1) /= naux_i .or. size(coeff,2) /= nao_j .or. size(coeff,3) /= nao_i) then
+         write(*,*) "wrong coeff shape: input (", naux_i, nao_i , nao_j, ") | ", &
+                    "internal (", size(coeff,1), size(coeff,2), size(coeff,3), ")"
          error stop "librpa_set_lri_coeff: coeff has wrong shape"
       end if
 
@@ -1216,7 +1218,10 @@ contains
       n_kpoints_local_c = int(n_kpoints_local, kind=c_int)
       if (n_kpoints_local > 0) then
          allocate(iks_local_c(n_kpoints_local))
-         iks_local_c = int(iks_local, kind=c_int) - 1
+         iks_local_c = int(iks_local(1:n_kpoints_local), kind=c_int) - 1
+         ! write(*,*) "size(iks_local) ", size(iks_local)
+         ! write(*,*) "size(iks_local_c) ", size(iks_local_c)
+         ! write(*,*) "iks_local_c ", iks_local_c
       else
          allocate(iks_local_c(1))
       end if
