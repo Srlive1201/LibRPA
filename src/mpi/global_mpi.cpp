@@ -42,6 +42,18 @@ void init_global_mpi(MPI_Comm comm)
     {
         throw LIBRPA_RUNTIME_ERROR("MPI_Init or MPI_Init_thread must be called before init_global_mpi");
     }
+#ifdef LIBRPA_USE_LIBRI
+    else
+    {
+        // Check thread support when LibRI is used
+        int provided = 0;
+        MPI_Query_thread(&provided);
+        if (provided < MPI_THREAD_MULTIPLE)
+            throw LIBRPA_RUNTIME_ERROR(
+                "LIBRPA_USE_LIBRI switched on, but MPI_Init_thread was called with thread support "
+                "below MPI_THREAD_MULTIPLE");
+    }
+#endif
 
     mpi_comm_global = comm;
     // Initialize handlers of global MPI communicator
