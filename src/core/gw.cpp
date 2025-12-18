@@ -1,5 +1,8 @@
 #include "gw.h"
 
+// Public API headers
+#include "librpa_enums.h"
+
 #include <fstream>
 #include <functional>
 #include <map>
@@ -19,7 +22,6 @@
 #include "atomic_basis.h"
 #include "epsilon.h"
 #include "geometry.h"
-#include "librpa_enums.h"
 #include "pbc.h"
 #include "ri.h"
 #include "utils_atomic_basis_blacs.h"
@@ -71,6 +73,56 @@ void G0W0::reset_kspace()
 {
     sigc_is_ik_f_KS.clear(); is_kspace_built_ = false;
 }
+
+#ifdef LIBRPA_USE_LIBRI
+static void build_gf_libri_kserial(
+    const MeanField &mf,
+    const AtomicBasis &atbasis_wfc,
+    int ispin,
+    const vector<Vector3_Order<double>> &kfrac_list,
+    const std::vector<double> &taus,
+    const std::vector<std::pair<atpair_t, Vector3_Order<int>>> IJRs,
+    std::map<double, std::map<int, std::map<std::pair<int,std::array<int,3>>,RI::Tensor<double>>>> &tau_gf_libri)
+{
+    std::set<Vector3_Order<int>> Rs_local;
+    for (const auto &IJR: IJRs)
+    {
+        Rs_local.insert(IJR.second);
+    }
+    auto gf = mf.get_gf_real_imagtimes_Rs(ispin, kfrac_list, taus, {Rs_local.cbegin(), Rs_local.cend()});
+    tau_gf_libri.clear();
+    for (auto t: taus)
+    {
+        tau_gf_libri[t] = {};
+    }
+    for (const auto &IJR: IJRs)
+    {
+        const auto &I = IJR.first.first;
+        const auto &n_I = atbasis_wfc.get_atom_nb(I);
+        const auto &J = IJR.first.second;
+        const auto &n_J = atbasis_wfc.get_atom_nb(J);
+        const auto &R = IJR.second;
+        for (auto t: taus)
+        {
+            // skip when this process does not have any local GF data, i.e. Rs_local is empty
+            if (gf.count(t) == 0 || gf.at(t).count(R) == 0) continue;
+            const auto &gf_global = gf.at(t).at(R);
+            matrix gf_IJ_block(n_I, n_J);
+            {
+                for (size_t i = 0; i != n_I; i++)
+                    for (size_t j = 0; j != n_J; j++)
+                    {
+                        gf_IJ_block(i, j) = gf_global(atbasis_wfc.get_global_index(I, i),
+                                                        atbasis_wfc.get_global_index(J, j));
+                    }
+                std::shared_ptr<std::valarray<double>> mat_ptr = std::make_shared<std::valarray<double>>(gf_IJ_block.c, gf_IJ_block.size);
+                tau_gf_libri[t][as_int(I)][{as_int(J), {R.x, R.y, R.z}}] = RI::Tensor<double>({n_I, n_J}, mat_ptr);
+            }
+        }
+    }
+    gf.clear();
+}
+#endif
 
 void G0W0::build_spacetime(
     const LibrpaParallelRouting parallel_routing,
@@ -186,11 +238,6 @@ void G0W0::build_spacetime(
     const auto &Rlist = this->pbc.Rlist;
     auto IJR_local_gf = dispatch_vector_prod(tot_atpair_ordered, Rlist, ad_Wc.myid(), ad_Wc.nprocs(), true, false);
     global::ofs_myid << "IJR_local_gf: " << IJR_local_gf << std::endl;
-    std::set<Vector3_Order<int>> Rs_local;
-    for (const auto &IJR: IJR_local_gf)
-    {
-        Rs_local.insert(IJR.second);
-    }
 
     const int nfreq = tfg.get_n_grids();
 
@@ -217,40 +264,19 @@ void G0W0::build_spacetime(
             std::map<int, std::map<std::pair<int, std::array<int, 3>>, Tensor<double>>> sigc_nega_tau;
 
             global::profiler.start("g0w0_build_spacetime_4", "Compute G(R,t) and G(R,-t)");
-            auto gf = mf.get_gf_real_imagtimes_Rs(ispin, this->pbc.kfrac_list, {tau, -tau}, {Rs_local.cbegin(), Rs_local.cend()});
             // global::ofs_myid << "gf size " << gf.size() << endl;
             // global::ofs_myid << "t " << gf[tau].size() << " ; -t " << gf[-tau].size() << endl;
             std::map<double, std::map<int, std::map<std::pair<int, std::array<int, 3>>, RI::Tensor<double>>>> tau_gf_libri;
-            for (auto t: {tau, -tau})
+            if (this->is_mf_eigvec_k_distributed_)
             {
-                tau_gf_libri[t] = {};
+                // build_gf_libri_kpara(mf, comm_h, atbasis_wfc, ispin, this->pbc.kfrac_list,
+                //                      {tau, -tau}, IJR_local_gf, tau_gf_libri);
             }
-            for (const auto &IJR: IJR_local_gf)
+            else
             {
-                const auto &I = IJR.first.first;
-                const auto &n_I = this->atbasis_wfc.get_atom_nb(I);
-                const auto &J = IJR.first.second;
-                const auto &n_J = this->atbasis_wfc.get_atom_nb(J);
-                const auto &R = IJR.second;
-                for (auto t: {tau, -tau})
-                {
-                    // skip when this process does not have any local GF data, i.e. Rs_local is empty
-                    if (gf.count(t) == 0 || gf.at(t).count(R) == 0) continue;
-                    const auto &gf_global = gf.at(t).at(R);
-                    matrix gf_IJ_block(n_I, n_J);
-                    {
-                        for (size_t i = 0; i != n_I; i++)
-                            for (size_t j = 0; j != n_J; j++)
-                            {
-                                gf_IJ_block(i, j) = gf_global(this->atbasis_wfc.get_global_index(I, i),
-                                                              this->atbasis_wfc.get_global_index(J, j));
-                            }
-                        std::shared_ptr<std::valarray<double>> mat_ptr = std::make_shared<std::valarray<double>>(gf_IJ_block.c, gf_IJ_block.size);
-                        tau_gf_libri[t][as_int(I)][{as_int(J), {R.x, R.y, R.z}}] = RI::Tensor<double>({n_I, n_J}, mat_ptr);
-                    }
-                }
+                build_gf_libri_kserial(mf, atbasis_wfc, ispin, this->pbc.kfrac_list,
+                                       {tau, -tau}, IJR_local_gf, tau_gf_libri);
             }
-            gf.clear();
             global::profiler.stop("g0w0_build_spacetime_4");
             librpa_int::global::lib_printf_root("Time for Green's function, i_spin %d i_tau %d (seconds, Wall/CPU): %f %f\n",
                     ispin + 1, itau + 1,
@@ -440,6 +466,7 @@ void G0W0::build_sigc_matrix_KS(const std::map<int, std::map<int, ComplexMatrix>
                                 const std::vector<Vector3_Order<double>> &kfrac_target,
                                 const Atoms &geometry)
 {
+    throw LIBRPA_RUNTIME_ERROR("Not implemented yet");
 }
 
 void G0W0::build_sigc_matrix_KS_blacs(const std::map<int, std::map<int, ComplexMatrix>> &wfc_target,
@@ -464,14 +491,11 @@ void G0W0::build_sigc_matrix_KS_blacs(const std::map<int, std::map<int, ComplexM
     if (global::mpi_comm_global_h.myid == 0)
     {
         std::cout << "LIBRA::G0W0::build_sigc_matrix_KS is only implemented on top of LibRI" << std::endl;
-        std::cout << "Please recompile LibRPA with -DUSE_LIBRI and optionally configure include path" << std::endl;
+        std::cout << "Please recompile LibRPA with -DLIBRPA_USE_LIBRI and optionally configure include path" << std::endl;
     }
     global::mpi_comm_global_h.barrier();
     throw LIBRPA_RUNTIME_ERROR("G0W0 needs compilation with LibRI");
 #else
-
-    // char fn[80];
-    // const auto &blacs_ctxt_h = this->blacs_sigc_h_;
     ArrayDesc desc_nband_nao(blacs_ctxt_h);
     desc_nband_nao.init_1b1p(n_bands, n_aos, 0, 0);
     ArrayDesc desc_nao_nao(blacs_ctxt_h);

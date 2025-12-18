@@ -736,9 +736,6 @@ contains
       st_ibasis_c = int(st_ibasis, kind=c_int) - 1
       nbasis_local_c = int(nbasis_local, kind=c_int)
 
-      write(*,*) "nspins nspins_c", nspins, nspins_c
-      write(*,*) "nspins nspins_c", nspins, nspins_c
-
       call librpa_set_scf_dimension_c(this%ptr_c_handle, nspins_c, nkpts_c, nstates_c, nbasis_c, &
                                       st_istate_c, nstates_local_c, st_ibasis_c, nbasis_local_c)
    end subroutine librpa_set_scf_dimension

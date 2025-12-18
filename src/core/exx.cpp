@@ -210,13 +210,7 @@ void Exx::build(const LibrpaParallelRouting routing,
     for (int i = 0; i < n_atoms; i++)
         atoms_pos.insert(pair<int, std::array<double, 3>>{i, {0, 0, 0}});
 
-    std::array<std::array<double, 3>, 3> latvec_array;
-    latvec_array[0] = {0.0, 2.5, 2.5};
-    latvec_array[1] = {2.5, 0.0, 2.5};
-    latvec_array[2] = {2.5, 2.5, 0.0};
-    // exx_libri.set_parallel(comm_h.comm, atoms_pos, this->pbc.latvec_array, this->pbc.period_array);
-    // exx_libri.set_parallel(comm_h.comm, atoms_pos, latvec_array, {2, 2, 2});
-    exx_libri.set_parallel(MPI_COMM_WORLD, atoms_pos, latvec_array, {2, 2, 2});
+    exx_libri.set_parallel(comm_h.comm, atoms_pos, this->pbc.latvec_array, this->pbc.period_array);
 
     // Initialize Cs libRI container on each process
     // Note: we use different treatment in different routings
@@ -231,13 +225,11 @@ void Exx::build(const LibrpaParallelRouting routing,
     ofs_myid << "Number of Cs keys: " << get_num_keys(Cs.data_libri) << endl;
     // print_keys(global::ofs_myid, Cs.data_libri);
     global::ofs_myid << "comm_h.comm " << comm_h.comm << " global::mpi_comm_global_h.comm " << global::mpi_comm_global_h.comm << std::endl;
-    global::ofs_myid << "Before set_Cs" << std::endl;
     // global::ofs_myid << Cs.data_libri << std::endl;
     exx_libri.set_Cs(Cs.data_libri, libri_threshold_C);
     // exx_libri.set_Cs({}, libri_threshold_C);
-    global::ofs_myid << "Finish  set_Cs" << std::endl;
     profiler.stop("build_real_space_exx_1");
-    ofs_myid << "Finished setup Cs for EXX\n";
+    ofs_myid << "Finished setup Cs for EXX" << endl;
     std::flush(global::ofs_myid);
 
     // initialize Coulomb matrix
@@ -248,6 +240,7 @@ void Exx::build(const LibrpaParallelRouting routing,
     if (routing == LibrpaParallelRouting::RTAU)
     {
         // Full Coulomb case, have to re-distribute
+        // TODO: remove as libri routing is enforced above
         for (auto IJR: dispatch_vector_prod(get_atom_pair(coul_mat), Rlist, comm_h.myid, comm_h.nprocs, true, true))
         {
             const auto I = IJR.first.first;
