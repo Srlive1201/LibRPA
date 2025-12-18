@@ -67,6 +67,7 @@ list(APPEND lib_sources
         core/ri.cpp
         core/timefreq.cpp
         core/utils_atomic_basis_blacs.cpp
+        core/utils_complexmatrix.cpp
 
         io/global_io.cpp
         io/fs.cpp

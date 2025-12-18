@@ -7,10 +7,12 @@
 #include <functional>
 #include <map>
 #include <sstream>
+#include <vector>
 
 #include "../io/fs.h"
 #include "../io/global_io.h"
 #include "../io/stl_io_helper.h"
+#include "../math/utils_matrix_m.h"
 #include "../math/utils_matrix_m_mpi.h"
 #include "../mpi/global_mpi.h"
 #include "../utils/constants.h"
@@ -22,9 +24,11 @@
 #include "atomic_basis.h"
 #include "epsilon.h"
 #include "geometry.h"
+#include "meanfield_mpi.h"
 #include "pbc.h"
 #include "ri.h"
 #include "utils_atomic_basis_blacs.h"
+#include "utils_complexmatrix.h"
 
 #ifdef LIBRPA_USE_LIBRI
 #include <RI/global/Tensor.h>
@@ -75,6 +79,62 @@ void G0W0::reset_kspace()
 }
 
 #ifdef LIBRPA_USE_LIBRI
+static void build_gf_libri_kpara(
+    const MeanField &mf,
+    const MpiCommHandler &comm_h,
+    const AtomicBasis &atbasis_wfc,
+    int ispin,
+    const vector<Vector3_Order<double>> &kfrac_list,
+    const std::vector<double> &taus,
+    const std::vector<std::pair<atpair_t, Vector3_Order<int>>> IJRs,
+    std::map<double, std::map<int, std::map<std::pair<int,std::array<int,3>>,RI::Tensor<double>>>> &tau_gf_libri)
+{
+    global::profiler.start("g0w0_build_gf_libri_kpara");
+    std::map<Vector3_Order<int>, std::vector<atpair_t>> map_R_IJs;
+    for (const auto &[IJ, R]: IJRs)
+    {
+        map_R_IJs[R].emplace_back(IJ);
+    }
+    std::vector<Vector3_Order<int>> Rs_this;
+    for (const auto &[R, _]: map_R_IJs)
+        Rs_this.emplace_back(R);
+    const int n_Rs_this = map_R_IJs.size();
+    int n_Rs_max = n_Rs_this;
+    comm_h.allreduce(MPI_IN_PLACE, &n_Rs_max, 1, MPI_MAX);
+    auto gf_taus_Rs_cplx = get_gf_cplx_imagtimes_Rs_kpara(ispin, mf, kfrac_list, taus, Rs_this, comm_h);
+    for (const auto &tau_gf_R_cplx: gf_taus_Rs_cplx)
+    {
+        const auto &tau = tau_gf_R_cplx.first;
+        const auto &gf_R_cplx = tau_gf_R_cplx.second;
+        for (const auto &R_gf_cplx: gf_R_cplx)
+        {
+            const auto &R = R_gf_cplx.first;
+            const auto &gf_cplx = R_gf_cplx.second;
+            std::array<int,3> Ra{R.x,R.y,R.z};
+            const auto &map_IJs = map_R_IJs.at(R);
+            omp_lock_t gf_lock;
+            omp_init_lock(&gf_lock);
+#pragma omp parallel for schedule(dynamic)
+            for (const auto &IJ: map_IJs)
+            {
+                const auto &I = IJ.first;
+                const auto &J = IJ.second;
+                const auto gf_block = get_ap_block_from_global(gf_cplx, IJ, atbasis_wfc, atbasis_wfc);
+                auto p_gfmat = std::make_shared<std::valarray<double>>(gf_block.real().c, gf_block.size);
+                omp_set_lock(&gf_lock);
+                tau_gf_libri[tau][I][{J, Ra}] = RI::Tensor<double>({as_size(gf_block.nr), as_size(gf_block.nc)}, p_gfmat);
+                omp_unset_lock(&gf_lock);
+            }
+#pragma omp barrier
+            omp_destroy_lock(&gf_lock);
+        }
+        // global::ofs_myid << R << std::endl;
+        // print_complex_matrix("test", dmat_cplx, global::ofs_myid, true);
+    }
+
+    global::profiler.stop("g0w0_build_gf_libri_kpara");
+}
+
 static void build_gf_libri_kserial(
     const MeanField &mf,
     const AtomicBasis &atbasis_wfc,
@@ -84,6 +144,7 @@ static void build_gf_libri_kserial(
     const std::vector<std::pair<atpair_t, Vector3_Order<int>>> IJRs,
     std::map<double, std::map<int, std::map<std::pair<int,std::array<int,3>>,RI::Tensor<double>>>> &tau_gf_libri)
 {
+    global::profiler.start("g0w0_build_gf_libri_kserial");
     std::set<Vector3_Order<int>> Rs_local;
     for (const auto &IJR: IJRs)
     {
@@ -97,9 +158,10 @@ static void build_gf_libri_kserial(
     }
     for (const auto &IJR: IJRs)
     {
-        const auto &I = IJR.first.first;
+        const auto &IJ = IJR.first;
+        const auto &I = IJ.first;
         const auto &n_I = atbasis_wfc.get_atom_nb(I);
-        const auto &J = IJR.first.second;
+        const auto &J = IJ.second;
         const auto &n_J = atbasis_wfc.get_atom_nb(J);
         const auto &R = IJR.second;
         for (auto t: taus)
@@ -121,6 +183,7 @@ static void build_gf_libri_kserial(
         }
     }
     gf.clear();
+    global::profiler.stop("g0w0_build_gf_libri_kserial");
 }
 #endif
 
@@ -267,15 +330,16 @@ void G0W0::build_spacetime(
             // global::ofs_myid << "gf size " << gf.size() << endl;
             // global::ofs_myid << "t " << gf[tau].size() << " ; -t " << gf[-tau].size() << endl;
             std::map<double, std::map<int, std::map<std::pair<int, std::array<int, 3>>, RI::Tensor<double>>>> tau_gf_libri;
+            const std::vector<double> taus{tau, -tau};
             if (this->is_mf_eigvec_k_distributed_)
             {
-                // build_gf_libri_kpara(mf, comm_h, atbasis_wfc, ispin, this->pbc.kfrac_list,
-                //                      {tau, -tau}, IJR_local_gf, tau_gf_libri);
+                build_gf_libri_kpara(mf, comm_h, atbasis_wfc, ispin, this->pbc.kfrac_list,
+                                     taus, IJR_local_gf, tau_gf_libri);
             }
             else
             {
                 build_gf_libri_kserial(mf, atbasis_wfc, ispin, this->pbc.kfrac_list,
-                                       {tau, -tau}, IJR_local_gf, tau_gf_libri);
+                                       taus, IJR_local_gf, tau_gf_libri);
             }
             global::profiler.stop("g0w0_build_spacetime_4");
             librpa_int::global::lib_printf_root("Time for Green's function, i_spin %d i_tau %d (seconds, Wall/CPU): %f %f\n",
@@ -283,7 +347,7 @@ void G0W0::build_spacetime(
                     global::profiler.get_wall_time_last("g0w0_build_spacetime_4"),
                     global::profiler.get_cpu_time_last("g0w0_build_spacetime_4"));
 
-            for (auto t: {tau, -tau})
+            for (auto t: taus)
             {
                 const auto &gf_libri = tau_gf_libri.at(t);
                 size_t n_obj_gf_libri = 0;
