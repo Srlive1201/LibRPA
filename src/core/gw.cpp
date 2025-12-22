@@ -12,7 +12,7 @@
 #include "../io/fs.h"
 #include "../io/global_io.h"
 #include "../io/stl_io_helper.h"
-#include "../math/utils_matrix_m.h"
+// #include "../math/utils_matrix_m.h"
 #include "../math/utils_matrix_m_mpi.h"
 #include "../mpi/global_mpi.h"
 #include "../utils/constants.h"
@@ -53,7 +53,7 @@ G0W0::G0W0(const MeanField &mf_in, const AtomicBasis &atbasis_wfc_in,
     is_mf_eigvec_k_distributed_ = is_mf_eigvec_k_distributed;
     is_rspace_built_ = false;
     is_kspace_built_ = false;
-    is_respace_redist_for_KS_ = false;
+    is_rspace_redist_for_KS_ = false;
     is_rspace_redist_blacs_ = false;
 
     // Public runtime options
@@ -68,9 +68,10 @@ G0W0::G0W0(const MeanField &mf_in, const AtomicBasis &atbasis_wfc_in,
 
 void G0W0::reset_rspace()
 {
-    sigc_is_f_R_IJ.clear();
+    sigc_is_f_IJ_R.clear();
     is_rspace_built_ = false;
-    is_respace_redist_for_KS_ = false;
+    is_rspace_redist_for_KS_ = false;
+    is_rspace_redist_blacs_ = false;
 }
 
 void G0W0::reset_kspace()
@@ -443,12 +444,12 @@ void G0W0::build_spacetime(
                             {
                                 sigc_temp(i, j) = std::complex<double>{sigc_cos(i, j) * t2f_cos, sigc_sin(i, j) * t2f_sin};
                             }
-                        auto &m_R = sigc_is_f_R_IJ[ispin][omega][R];
                         atpair_t IJ{I, J};
-                        auto it = m_R.find(IJ);
-                        if (it == m_R.cend())
+                        auto &m_IJ = sigc_is_f_IJ_R[ispin][omega][IJ];
+                        auto it = m_IJ.find(R);
+                        if (it == m_IJ.cend())
                         {
-                            m_R.emplace(IJ, std::move(sigc_temp));
+                            m_IJ.emplace(R, std::move(sigc_temp));
                         }
                         else
                         {
@@ -496,14 +497,14 @@ void G0W0::build_spacetime(
                 ofs_sigmac_r.write((char *) &n_IJR_myid, sizeof(size_t)); // placeholder
 
                 const auto omega = tfg.get_freq_nodes()[iomega];
-                const auto &sigc_RIJ = sigc_is_f_R_IJ[ispin][omega];
-                for (const auto &[R, IJsigc]: sigc_RIJ)
+                const auto &sigc_IJ_R = sigc_is_f_IJ_R[ispin][omega];
+                for (const auto &[IJ, R_sigc]: sigc_IJ_R)
                 {
-                    const auto iR = this->pbc.get_R_index(R);
-                    for (const auto &[IJ, sigc]: IJsigc)
+                    const int I = IJ.first;
+                    const int J = IJ.second;
+                    for (const auto &[R, sigc]: R_sigc)
                     {
-                        const int I = IJ.first;
-                        const int J = IJ.second;
+                        const auto iR = this->pbc.get_R_index(R);
                         const auto &n_I = this->atbasis_wfc.get_atom_nb(I);
                         const auto &n_J = this->atbasis_wfc.get_atom_nb(J);
                         n_IJR_myid++;
@@ -537,7 +538,9 @@ void G0W0::build_sigc_matrix_KS_blacs(const std::map<int, std::map<int, ComplexM
                                       const std::vector<Vector3_Order<double>> &kfrac_target,
                                       const Atoms &geometry, const BlacsCtxtHandler &blacs_ctxt_h)
 {
+    assert(blacs_ctxt_h.comm() == this->comm_h.comm);
     assert(this->is_rspace_built_);
+
     if (this->is_kspace_built_)
     {
         global::lib_printf("Warning: reset Sigmac_c k-space matrices\n");
@@ -546,7 +549,8 @@ void G0W0::build_sigc_matrix_KS_blacs(const std::map<int, std::map<int, ComplexM
 
     const int n_aos = mf.get_n_aos();
     const int n_bands = mf.get_n_bands();
-    const auto period = pbc.period;
+    const int n_spins = mf.get_n_spins();
+    const auto &period = pbc.period;
     const auto &coord_frac = geometry.coords_frac;
 
     global::profiler.start("g0w0_build_sigc_KS");
@@ -566,132 +570,275 @@ void G0W0::build_sigc_matrix_KS_blacs(const std::map<int, std::map<int, ComplexM
     desc_nao_nao.init_1b1p(n_aos, n_aos, 0, 0);
     ArrayDesc desc_nband_nband(blacs_ctxt_h);
     desc_nband_nband.init_1b1p(n_bands, n_bands, 0, 0);
+    ArrayDesc desc_nao_nband_fb(blacs_ctxt_h);  // For k-parallel
     ArrayDesc desc_nband_nband_fb(blacs_ctxt_h);
-    desc_nband_nband_fb.init(n_bands, n_bands, n_bands, n_bands, 0, 0);
-
-    // local 2D-block submatrices
-    auto sigc_nao_nao = init_local_mat<complex<double>>(desc_nao_nao, MAJOR::COL);
-    auto sigc_nband_nband = init_local_mat<complex<double>>(desc_nband_nband, MAJOR::COL);
 
     const auto set_IJ_nao_nao = get_necessary_IJ_from_block_2D(
         this->atbasis_wfc, this->atbasis_wfc, desc_nao_nao);
     const auto s0_s1 = get_s0_s1_for_comm_map2_first(set_IJ_nao_nao);
 
-    // NOTE: With many MPI tasks, matrix at a particular k point
-    // can have contributions from many tasks. The same happens for EXX.
-    for (int ispin = 0; ispin < this->mf.get_n_spins(); ispin++)
+    // Check Sigmac matrix distribution
+    if (!is_rspace_redist_for_KS_)
     {
-        for (const auto& freq: this->tfg.get_freq_nodes())
+        for (int isp = 0; isp < n_spins; isp++)
         {
-            // Communicate to obtain sub-matrices for necessary I-J pairs at all Rs
-            std::map<int, std::map<std::pair<int, std::array<int, 3>>, Tensor<complex<double>>>>
-                sigc_I_JR_local;
-            if (this->sigc_is_f_R_IJ.count(ispin))
+            for (const auto& freq: this->tfg.get_freq_nodes())
             {
-                const auto& sigc_is_freq = this->sigc_is_f_R_IJ.at(ispin).at(freq);
-                for (const auto &R_IJ_sigc: sigc_is_freq)
+                std::map<int, std::map<std::pair<int, std::array<int, 3>>, Tensor<complex<double>>>> sigc_I_JR_local;
+                auto it_sp = sigc_is_f_IJ_R.find(isp);
+                if (it_sp != sigc_is_f_IJ_R.cend())
                 {
-                    const auto R = R_IJ_sigc.first;
-                    const std::array<int, 3> Ra{R.x, R.y, R.z};
-                    for (const auto &[IJ, sigc]: R_IJ_sigc.second)
+                    auto it_sp_f = it_sp->second.find(freq);
+                    if (it_sp_f != it_sp->second.cend())
                     {
-                        const int I = IJ.first;
-                        const int J = IJ.second;
-                        const auto &n_I = this->atbasis_wfc.get_atom_nb(I);
-                        const auto &n_J = this->atbasis_wfc.get_atom_nb(J);
-                        sigc_I_JR_local[I][{J, Ra}] = Tensor<complex<double>>({n_I, n_J}, sigc.sptr());
+                        for (const auto &IJ_R_sigc: it_sp_f->second)
+                        {
+                            const auto IJ = IJ_R_sigc.first;
+                            const int I = IJ.first;
+                            const int J = IJ.second;
+                            const auto &n_I = this->atbasis_wfc.get_atom_nb(I);
+                            const auto &n_J = this->atbasis_wfc.get_atom_nb(J);
+                            for (const auto &[R, sigc]: IJ_R_sigc.second)
+                            {
+                                const std::array<int, 3> Ra{R.x, R.y, R.z};
+                                sigc_I_JR_local[I][{J, Ra}] = Tensor<complex<double>>({n_I, n_J}, sigc.sptr());
+                            }
+                        }
                     }
                 }
+                // for certain spin and frequency
+                auto sigc_I_JR = comm_map2_first(blacs_ctxt_h.comm(), sigc_I_JR_local, s0_s1.first, s0_s1.second);
+                sigc_I_JR_local.clear();
+                if (sigc_I_JR.size() == 0) continue;
+                ap_p_map<map<Vector3_Order<int>, Matz>> sigc_sp_f_new;
+                for (const auto &[I, JRmat]: sigc_I_JR)
+                {
+                    const int n_I = this->atbasis_wfc.get_atom_nb(I);
+                    for (const auto &[JR, mat]: JRmat)
+                    {
+                        const atom_t J = JR.first;
+                        atpair_t IJ{I, J};
+                        const int n_J = this->atbasis_wfc.get_atom_nb(J);
+                        const auto &Ra = JR.second;
+                        const Vector3_Order<int> R{Ra[0], Ra[1], Ra[2]};
+                        sigc_sp_f_new[IJ][R] = Matz{n_I, n_J, mat.data, MAJOR::ROW};
+                    }
+                }
+                if (it_sp == this->sigc_is_f_IJ_R.cend())
+                    sigc_is_f_IJ_R[isp][freq] = sigc_sp_f_new;
+                else
+                {
+                    auto it_sp_f = it_sp->second.find(freq);
+                    if (it_sp_f == it_sp->second.cend())
+                        it_sp->second.emplace(freq, sigc_sp_f_new);
+                    else
+                        it_sp_f->second.swap(sigc_sp_f_new);
+                }
+                sigc_I_JR.clear();
             }
-            auto sigc_I_JR = comm_map2_first(blacs_ctxt_h.comm(), sigc_I_JR_local, s0_s1.first, s0_s1.second);
-            sigc_I_JR_local.clear();
-            
+        }
+
+        is_rspace_redist_for_KS_ = true;
+        is_rspace_redist_blacs_ = true;
+    }
+    else
+    {
+        if (!is_rspace_redist_blacs_)
+            throw LIBRPA_RUNTIME_ERROR("has redistributed for non-BLACS");
+    }
+
+    sigc_is_ik_f_KS.clear();
+
+    // local 2D-block submatrices
+    auto sigc_nao_nao = init_local_mat<complex<double>>(desc_nao_nao, MAJOR::COL);
+    auto sigc_nband_nband = init_local_mat<complex<double>>(desc_nband_nband, MAJOR::COL);
+
+    for (int isp = 0; isp < n_spins; isp++)
+    {
+        map<double, map<atom_t, map<atom_t, map<Vector3_Order<int>, Matz>>>> sigc_isp_local;
+        for (const auto& freq: this->tfg.get_freq_nodes())
+        {
+            const auto &sigc_IJ_R = sigc_is_f_IJ_R.at(isp).at(freq);
+            sigc_isp_local[freq] = {};
             // Convert each <I,<J, R>> pair to the nearest neighbour to speed up later Fourier transform
             // while keep the accuracy in further band interpolation.
             // Reuse the cleared-up sigc_I_JR_local object
             if (geometry.is_frac_set())
             {
-                for (const auto &[I, JR_sigc]: sigc_I_JR)
+                // NOTE: from redistribution, sigc_is_f_IJ_R is ensured to have all [spin][freq] keys,
+                // but each value (atom-pair map) can be empty.
+                for (const auto &[IJ, R_sigc]: sigc_IJ_R)
                 {
-                    for (auto &[JR, sigc]: JR_sigc)
+                    const auto &I = IJ.first;
+                    const auto &J = IJ.second;
+                    for (auto &[R, sigc]: R_sigc)
                     {
-                        const auto &J = JR.first;
-                        const auto &R = JR.second;
-
                         auto distsq = std::numeric_limits<double>::max();
                         Vector3<int> R_IJ;
-                        std::array<int, 3> R_bvk;
+                        Vector3_Order<int> R_bvk;
                         for (int i = -1; i < 2; i++)
                         {
-                            R_IJ.x = i * period.x + R[0];
+                            R_IJ.x = i * period.x + R.x;
                             for (int j = -1; j < 2; j++)
                             {
-                                R_IJ.y = j * period.y + R[1];
+                                R_IJ.y = j * period.y + R.y;
                                 for (int k = -1; k < 2; k++)
                                 {
-                                    R_IJ.z = k * period.z + R[2];
+                                    R_IJ.z = k * period.z + R.z;
                                     const auto diff =
                                         (Vector3<double>(coord_frac.at(I)[0], coord_frac.at(I)[1],
-                                                         coord_frac.at(I)[2]) -
-                                         Vector3<double>(coord_frac.at(J)[0], coord_frac.at(J)[1],
-                                                         coord_frac.at(J)[2]) -
-                                         Vector3<double>(R_IJ.x, R_IJ.y, R_IJ.z)) * pbc.latvec;
+                                                        coord_frac.at(I)[2]) -
+                                        Vector3<double>(coord_frac.at(J)[0], coord_frac.at(J)[1],
+                                                        coord_frac.at(J)[2]) -
+                                        Vector3<double>(R_IJ.x, R_IJ.y, R_IJ.z)) * pbc.latvec;
                                     const auto norm2 = diff.norm2();
                                     if (norm2 < distsq)
                                     {
                                         distsq = norm2;
-                                        R_bvk[0] = R_IJ.x;
-                                        R_bvk[1] = R_IJ.y;
-                                        R_bvk[2] = R_IJ.z;
+                                        R_bvk = R_IJ;
                                     }
                                 }
                             }
                         }
-                        sigc_I_JR_local[I][{J, R_bvk}] = std::move(sigc);
+                        sigc_isp_local[freq][I][J][R_bvk] = sigc;
                     }
                 }
             }
             else
             {
-                sigc_I_JR_local = std::move(sigc_I_JR);
+                for (const auto &[IJ, R_sigc]: sigc_IJ_R)
+                {
+                    const auto &I = IJ.first;
+                    const auto &J = IJ.second;
+                    sigc_isp_local[freq][I][J] = R_sigc;
+                }
             }
+        }
 
-            // Perform Fourier transform and rotate
-            for (size_t ik = 0; ik < kfrac_target.size(); ik++)
+        this->sigc_is_ik_f_KS[isp] = {};
+
+        if (is_mf_eigvec_k_distributed_)
+        {
+            auto temp_nband_nao = init_local_mat<complex<double>>(desc_nband_nao, MAJOR::COL);
+            // collect parsed eigenvectors all all processes
+            std::vector<int> nks_all(comm_h.nprocs, 0);
+            std::vector<int> iks_local;
+            auto it = wfc_target.find(isp);
+            if (it != wfc_target.cend())
             {
-                const auto kfrac = kfrac_target[ik];
-
-                const std::function<complex<double>(const int &, const std::pair<int, std::array<int, 3>> &)>
-                    fourier = [kfrac](const int &I, const std::pair<int, std::array<int, 3>> &J_Ra)
-                    {
-                        const auto &Ra = J_Ra.second;
-                        Vector3<double> R_IJ(Ra[0], Ra[1], Ra[2]);
-                        const auto ang = (kfrac * R_IJ) * TWO_PI;
-                        return complex<double>{std::cos(ang), std::sin(ang)};
-                    };
-
-                sigc_nao_nao.zero_out();
-                collect_block_from_IJ_storage_tensor_transform(sigc_nao_nao, desc_nao_nao, 
-                        this->atbasis_wfc, this->atbasis_wfc,
-                        fourier, sigc_I_JR_local);
-                // prepare wave function BLACS
-                const auto &wfc_isp_k = wfc_target.at(ispin).at(ik);
-                blacs_ctxt_h.barrier();
-                const auto wfc_block = get_local_mat(wfc_isp_k.c, MAJOR::ROW, desc_nband_nao, MAJOR::COL).conj();
-                auto temp_nband_nao = multiply_scalapack(wfc_block, desc_nband_nao, sigc_nao_nao, desc_nao_nao, desc_nband_nao);
-                ScalapackConnector::pgemm_f('N', 'C', n_bands, n_bands, n_aos, 1.0,
-                                            temp_nband_nao.ptr(), 1, 1, desc_nband_nao.desc,
-                                            wfc_block.ptr(), 1, 1, desc_nband_nao.desc, 0.0,
-                                            sigc_nband_nband.ptr(), 1, 1, desc_nband_nband.desc);
-                // collect the full matrix to master
-                // TODO: would need a different strategy for large system
+                const auto &wfc_sp = it->second;
+                nks_all[comm_h.myid] = wfc_sp.size();
+                for (const auto &[ik, _]: wfc_sp)
+                {
+                    iks_local.emplace_back(ik);
+                }
+            }
+            MPI_Allreduce(MPI_IN_PLACE, nks_all.data(), comm_h.nprocs, mpi_datatype<int>::value, MPI_SUM, comm_h.comm);
+            const int nk_max = *std::max_element(nks_all.cbegin(), nks_all.cend());
+            std::vector<int> iks_all(nk_max * comm_h.nprocs, 0);
+            for (int i = 0; i < nks_all[comm_h.myid]; i++)
+            {
+                iks_all[comm_h.myid * nk_max + i] = iks_local[i];
+            }
+            MPI_Allreduce(MPI_IN_PLACE, iks_all.data(), comm_h.nprocs * nk_max, mpi_datatype<int>::value, MPI_SUM, comm_h.comm);
+            for (int pid = 0; pid < comm_h.nprocs; pid++)
+            {
+                const int nk_this = nks_all[pid];
+                if (nk_this == 0) continue;  // no eigenvector on this process
+                auto [irsrc, icsrc] = blacs_ctxt_h.get_pcoord(pid);
+                desc_nao_nband_fb.init(n_aos, n_bands, n_aos, n_bands, irsrc, icsrc);
+                desc_nband_nband_fb.init(n_bands, n_bands, n_bands, n_bands, irsrc, icsrc);
                 auto sigc_nband_nband_fb = init_local_mat<complex<double>>(desc_nband_nband_fb, MAJOR::COL);
-                ScalapackConnector::pgemr2d_f(n_bands, n_bands,
-                                              sigc_nband_nband.ptr(), 1, 1, desc_nband_nband.desc,
-                                              sigc_nband_nband_fb.ptr(), 1, 1, desc_nband_nband_fb.desc,
-                                              desc_nband_nband_fb.ictxt());
-                // NOTE: only the matrices at master process is meaningful
-                sigc_is_ik_f_KS[ispin][ik][freq] = sigc_nband_nband_fb;
+                for (int ik_this = 0; ik_this < nk_this; ik_this++)
+                {
+                    const int ik = iks_all[pid * nk_max + ik_this];
+                    const auto& kfrac = kfrac_target[ik];
+                    const std::function<complex<double>(const atom_t, const atom_t, const Vector3_Order<int> &)>
+                        fourier = [kfrac](const atom_t I, const atom_t J, const Vector3_Order<int> &R)
+                        {
+                            const auto ang = (kfrac * R) * TWO_PI;
+                            return complex<double>{std::cos(ang), std::sin(ang)};
+                        };
+                    std::vector<complex<double>> dummy(1);
+                    for (const auto& freq: this->tfg.get_freq_nodes())
+                    {
+                        sigc_nao_nao.zero_out();
+                        collect_block_from_IJ_storage_matrix_transform(sigc_nao_nao, desc_nao_nao,
+                                this->atbasis_wfc, this->atbasis_wfc, fourier, sigc_isp_local.at(freq));
+                        if (pid == comm_h.myid)
+                        {
+                            const auto &wfc_sk = wfc_target.at(isp).at(ik);
+                            // processing the k-point eigenvector on this process
+                            ScalapackConnector::pgemm_f('C', 'N', n_bands, n_aos, n_aos, 1.0,
+                                                        wfc_sk.c, 1, 1, desc_nao_nband_fb.desc,
+                                                        sigc_nao_nao.ptr(), 1, 1, desc_nao_nao.desc,
+                                                        0.0,
+                                                        temp_nband_nao.ptr(), 1, 1, desc_nband_nao.desc);
+                            ScalapackConnector::pgemm_f('N', 'N', n_bands, n_bands, n_aos, 1.0,
+                                                        temp_nband_nao.ptr(), 1, 1, desc_nband_nao.desc,
+                                                        wfc_sk.c, 1, 1, desc_nao_nband_fb.desc,
+                                                        0.0,
+                                                        sigc_nband_nband_fb.ptr(), 1, 1, desc_nband_nband_fb.desc);
+                            this->sigc_is_ik_f_KS[isp][ik][freq] = sigc_nband_nband_fb.copy();
+                        }
+                        else
+                        {
+                            // processing the k-point eigenvector at other processes
+                            ScalapackConnector::pgemm_f('C', 'N', n_bands, n_aos, n_aos, 1.0,
+                                                        dummy.data(), 1, 1, desc_nao_nband_fb.desc,
+                                                        sigc_nao_nao.ptr(), 1, 1, desc_nao_nao.desc,
+                                                        0.0,
+                                                        temp_nband_nao.ptr(), 1, 1, desc_nband_nao.desc);
+                            ScalapackConnector::pgemm_f('N', 'N', n_bands, n_bands, n_aos, -1.0,
+                                                        temp_nband_nao.ptr(), 1, 1, desc_nband_nao.desc,
+                                                        dummy.data(), 1, 1, desc_nao_nband_fb.desc,
+                                                        0.0,
+                                                        sigc_nband_nband_fb.ptr(), 1, 1, desc_nband_nband_fb.desc);
+                        }
+                    }
+                }
+            }
+        }
+        else
+        {
+            desc_nband_nband_fb.init(n_bands, n_bands, n_bands, n_bands, 0, 0);
+            auto sigc_nband_nband_fb = init_local_mat<complex<double>>(desc_nband_nband_fb, MAJOR::COL);
+            for (const auto& freq: this->tfg.get_freq_nodes())
+            {
+                // Perform Fourier transform and rotate
+                for (size_t ik = 0; ik < kfrac_target.size(); ik++)
+                {
+                    sigc_nband_nband_fb.zero_out();
+                    const auto kfrac = kfrac_target[ik];
+                    // const std::function<complex<double>(const atom_t, const atom_t, const Vector3_Order<int> &)>
+                    const std::function<complex<double>(const atom_t, const atom_t, const Vector3_Order<int> &)>
+                        fourier = [kfrac](const atom_t I, const atom_t J, const Vector3_Order<int> &R)
+                        {
+                            const auto ang = (kfrac * R) * TWO_PI;
+                            return complex<double>{std::cos(ang), std::sin(ang)};
+                        };
+
+                    sigc_nao_nao.zero_out();
+                    collect_block_from_IJ_storage_matrix_transform(sigc_nao_nao, desc_nao_nao,
+                            this->atbasis_wfc, this->atbasis_wfc, fourier, sigc_isp_local.at(freq));
+                    // prepare wave function BLACS
+                    const auto &wfc_isp_k = wfc_target.at(isp).at(ik);
+                    blacs_ctxt_h.barrier();
+                    const auto wfc_block = get_local_mat(wfc_isp_k.c, MAJOR::ROW, desc_nband_nao, MAJOR::COL).conj();
+                    auto temp_nband_nao = multiply_scalapack(wfc_block, desc_nband_nao, sigc_nao_nao, desc_nao_nao, desc_nband_nao);
+                    ScalapackConnector::pgemm_f('N', 'C', n_bands, n_bands, n_aos, 1.0,
+                                                temp_nband_nao.ptr(), 1, 1, desc_nband_nao.desc,
+                                                wfc_block.ptr(), 1, 1, desc_nband_nao.desc, 0.0,
+                                                sigc_nband_nband.ptr(), 1, 1, desc_nband_nband.desc);
+                    // collect the full matrix to master
+                    // TODO: would need a different strategy for large system
+                    ScalapackConnector::pgemr2d_f(n_bands, n_bands,
+                                                sigc_nband_nband.ptr(), 1, 1, desc_nband_nband.desc,
+                                                sigc_nband_nband_fb.ptr(), 1, 1, desc_nband_nband_fb.desc,
+                                                desc_nband_nband_fb.ictxt());
+                    // NOTE: only the matrices at master process is meaningful
+                    sigc_is_ik_f_KS[isp][ik][freq] = sigc_nband_nband_fb.copy();
+                }
             }
         }
     }

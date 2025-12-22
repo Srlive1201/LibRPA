@@ -22,12 +22,12 @@ private:
     bool is_mf_eigvec_k_distributed_;
     bool is_rspace_built_;
     bool is_kspace_built_;
-    bool is_respace_redist_for_KS_;
+    bool is_rspace_redist_for_KS_;
     bool is_rspace_redist_blacs_;
 
     //! frequency-domain reciprocal-space correlation self-energy, indices [ispin][freq][R][I][J](n_I, n_J)
     // Sparse storage from LibRI calculation
-    std::map<int, std::map<double, std::map<Vector3_Order<int>, ap_p_map<Matz>>>> sigc_is_f_R_IJ;
+    std::map<int, std::map<double, ap_p_map<std::map<Vector3_Order<int>, Matz>>>> sigc_is_f_IJ_R;
 
     void build_sigc_matrix_KS(const std::map<int, std::map<int, ComplexMatrix>> &wfc_target,
                               const std::vector<Vector3_Order<double>> &kfrac_target,
