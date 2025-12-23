@@ -224,6 +224,7 @@ module librpa_f03
          procedure :: build_exx => librpa_build_exx
          procedure :: get_exx_pot_kgrid => librpa_get_exx_pot_kgrid
          procedure :: build_g0w0_sigma => librpa_build_g0w0_sigma
+         procedure :: get_g0w0_qpe_kgrid => librpa_get_g0w0_qpe_kgrid
    end type LibrpaHandler
 
    interface
@@ -408,6 +409,18 @@ module librpa_f03
          type(c_ptr), value :: h
          type(LibrpaOptions_c), intent(in) :: opts
       end subroutine librpa_build_g0w0_sigma_c
+
+      subroutine librpa_get_g0w0_qpe_kgrid_c(h, opts, n_spins, n_kpoints_local, iks_local, &
+                                             i_state_low, i_state_high, vxc, vexx, sigc_re, sigc_im) &
+            bind(c, name="librpa_get_g0w0_qpe_kgrid")
+         import :: LibrpaOptions_c, c_ptr, c_int, c_double
+         type(c_ptr), value :: h
+         type(LibrpaOptions_c), intent(in) :: opts
+         integer(c_int), value :: n_spins, n_kpoints_local, i_state_low, i_state_high
+         integer(c_int), dimension(*), intent(in) :: iks_local
+         real(c_double), dimension(*), intent(in) :: vxc, vexx
+         real(c_double), dimension(*), intent(inout) :: sigc_re, sigc_im
+      end subroutine librpa_get_g0w0_qpe_kgrid_c
    end interface
 
    ! Helper to communicate runtime options between C and Fortran types
@@ -1247,5 +1260,64 @@ contains
       call sync_opts(opts, SYNC_OPTS_F2C)
       call librpa_build_g0w0_sigma_c(this%ptr_c_handle, opts%opts_c)
    end subroutine librpa_build_g0w0_sigma
+
+   subroutine librpa_get_g0w0_qpe_kgrid(this, opts, n_spins, n_kpoints_local, iks_local, &
+                                        i_state_low, i_state_high, vxc, vexx, sigc)
+      implicit none
+      class(LibrpaHandler), intent(inout) :: this
+      type(LibrpaOptions), intent(inout) :: opts
+      integer, contiguous, dimension(:), intent(in) :: iks_local
+      integer, intent(in) :: n_spins, n_kpoints_local, i_state_low, i_state_high
+      real(dp), dimension(i_state_high - i_state_low + 1, n_kpoints_local, n_spins), intent(in) :: vxc
+      real(dp), dimension(i_state_high - i_state_low + 1, n_kpoints_local, n_spins), intent(in) :: vexx
+      complex(dp), dimension(i_state_high - i_state_low + 1, n_kpoints_local, n_spins), intent(inout) :: sigc
+
+      integer(c_int), allocatable :: iks_local_c(:)
+      real(c_double), allocatable :: vxc_c(:,:,:), vexx_c(:,:,:)
+      real(c_double), allocatable :: sigc_re_c(:,:,:), sigc_im_c(:,:,:)
+      integer(c_int) :: n_spins_c, n_kpoints_local_c, i_state_low_c, i_state_high_c
+      integer :: n_states_calc
+
+      n_spins_c = int(n_spins, kind=c_int)
+      i_state_low_c = int(i_state_low - 1, kind=c_int)
+      i_state_high_c = int(i_state_high, kind=c_int)
+
+      n_kpoints_local_c = int(n_kpoints_local, kind=c_int)
+      if (n_kpoints_local > 0) then
+         allocate(iks_local_c(n_kpoints_local))
+         iks_local_c = int(iks_local(1:n_kpoints_local), kind=c_int) - 1
+      else
+         allocate(iks_local_c(1))
+      end if
+
+      n_states_calc = i_state_high - i_state_low + 1
+      allocate(sigc_re_c(n_states_calc, max(n_kpoints_local, 1), n_spins))
+      allocate(sigc_im_c(n_states_calc, max(n_kpoints_local, 1), n_spins))
+
+      call sync_opts(opts, SYNC_OPTS_F2C)
+      if (dp == c_double) then
+         call librpa_get_g0w0_qpe_kgrid_c(this%ptr_c_handle, opts%opts_c, n_spins_c, n_kpoints_local_c, &
+                                          iks_local_c, i_state_low_c, i_state_high_c, vxc, vexx, sigc_re_c, sigc_im_c)
+      else
+         allocate(vexx_c(n_states_calc, max(n_kpoints_local, 1), n_spins))
+         allocate(vxc_c(n_states_calc, max(n_kpoints_local, 1), n_spins))
+         if (n_kpoints_local > 0) then
+            vxc_c = real(vxc, kind=c_double)
+            vexx_c = real(vexx, kind=c_double)
+         end if
+         call librpa_get_g0w0_qpe_kgrid_c(this%ptr_c_handle, opts%opts_c, n_spins_c, n_kpoints_local_c, &
+                                          iks_local_c, i_state_low_c, i_state_high_c, vxc_c, vexx_c, sigc_re_c, sigc_im_c)
+         if (allocated(vxc_c)) deallocate(vxc_c)
+         if (allocated(vexx_c)) deallocate(vexx_c)
+      end if
+
+      if (n_kpoints_local > 0) then
+         sigc(:,:,:) = cmplx(sigc_re_c, sigc_im_c, kind=dp)
+      end if
+
+      deallocate(sigc_re_c)
+      deallocate(sigc_im_c)
+      deallocate(iks_local_c)
+   end subroutine librpa_get_g0w0_qpe_kgrid
 
 end module librpa_f03

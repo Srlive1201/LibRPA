@@ -46,6 +46,7 @@ module librpa_f03
    public :: librpa_get_major_version
    public :: librpa_get_minor_version
    public :: librpa_get_patch_version
+   public :: librpa_test
 
    ! High-level Fortran wrapper
    type :: LibrpaOptions
@@ -115,6 +116,7 @@ module librpa_f03
          procedure :: build_exx => librpa_build_exx
          procedure :: get_exx_pot_kgrid => librpa_get_exx_pot_kgrid
          procedure :: build_g0w0_sigma => librpa_build_g0w0_sigma
+         procedure :: get_g0w0_qpe_kgrid => librpa_get_g0w0_qpe_kgrid
    end type LibrpaHandler
 
 contains
@@ -160,11 +162,6 @@ contains
       call error_on_call("librpa_finalize_global")
    end subroutine librpa_finalize_global
 
-   subroutine librpa_test()
-      implicit none
-      call error_on_call("librpa_test")
-   end subroutine librpa_test
-
    integer function librpa_get_major_version() result(v)
       v = -1
       call error_on_call("librpa_get_major_version")
@@ -179,6 +176,11 @@ contains
       v = -1
       call error_on_call("librpa_get_patch_version")
    end function librpa_get_patch_version
+
+   subroutine librpa_test()
+      implicit none
+      call error_on_call("librpa_test")
+   end subroutine librpa_test
 
    subroutine librpa_create_handler(this, comm)
       implicit none
@@ -367,5 +369,18 @@ contains
       type(LibrpaOptions), intent(inout) :: opts
       call error_on_call("librpa_build_g0w0_sigma")
    end subroutine librpa_build_g0w0_sigma
+
+   subroutine librpa_get_g0w0_qpe_kgrid(this, opts, n_spins, n_kpoints_local, iks_local, &
+                                        i_state_low, i_state_high, vxc, vexx, sigc)
+      implicit none
+      class(LibrpaHandler), intent(inout) :: this
+      type(LibrpaOptions), intent(inout) :: opts
+      integer, contiguous, dimension(:), intent(in) :: iks_local
+      integer, intent(in) :: n_spins, n_kpoints_local, i_state_low, i_state_high
+      real(dp), dimension(i_state_high - i_state_low + 1, n_kpoints_local, n_spins), intent(in) :: vxc
+      real(dp), dimension(i_state_high - i_state_low + 1, n_kpoints_local, n_spins), intent(in) :: vexx
+      complex(dp), dimension(i_state_high - i_state_low + 1, n_kpoints_local, n_spins), intent(inout) :: sigc
+      call error_on_call("librpa_get_g0w0_qpe_kgrid")
+   end subroutine librpa_get_g0w0_qpe_kgrid
 
 end module librpa_f03
