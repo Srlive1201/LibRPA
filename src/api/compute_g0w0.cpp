@@ -4,9 +4,11 @@
 #include "librpa_compute.h"
 
 // Internal headers
+#include "../core/analycont.h"
 #include "../core/coulmat.h"
 #include "../core/dielecmodel.h"
 #include "../core/epsilon.h"
+#include "../core/qpe_solver.h"
 #include "../io/fs.h"
 #include "../math/complexmatrix.h"
 #include "../math/utils_matrix_m_mpi.h"
@@ -148,4 +150,91 @@ LIBRPA_C_H_FUNC_WRAP_WOPT_NOPAR(void, librpa_build_g0w0_sigma)
     profiler.stop("g0w0_sigc_IJ");
 
     profiler.stop("api_build_g0w0_sigma");
+}
+
+LIBRPA_C_H_FUNC_WRAP_WOPT(void, librpa_get_g0w0_qpe_kgrid,
+                          const int n_spins,
+                          const int n_kpoints_local, const int *iks_local,
+                          int i_state_low, int i_state_high, const double *vxc, const double *vexx,
+                          double *sigc_re, double *sigc_im)
+{
+    using namespace librpa_int;
+    using librpa_int::global::profiler;
+    using librpa_int::global::lib_printf;
+
+    auto pds = librpa_int::api::get_dataset_instance(h);
+    const auto &opts = *p_opts;
+    const bool debug = opts.output_level >= LIBRPA_VERBOSE_DEBUG;
+    i_state_low = std::max(0, i_state_low);
+    i_state_high = std::min(pds->mf.get_n_states(), i_state_high);
+    if (n_spins != pds->mf.get_n_spins())
+    {
+        global::ofs_myid << "n_spins != pds->mf.get_n_spins(): " << n_spins << " != " << pds->mf.get_n_spins() << std::endl;
+        throw LIBRPA_RUNTIME_ERROR("parsed nspins is not consitent with the SCF starting poing");
+    }
+    if (i_state_high <= i_state_low) return;
+    const int n_states_calc = i_state_high - i_state_low;
+
+    if (!pds->p_g0w0) librpa_build_g0w0_sigma(h, p_opts);
+
+    profiler.start("api_get_g0w0_qpe_kgrid");
+
+    // Decide actual routing
+    LibrpaParallelRouting routing = opts.parallel_routing;
+    if (routing == LibrpaParallelRouting::AUTO)
+    {
+        const int n_atoms = pds->atoms.size();
+        routing = decide_auto_routing(n_atoms, opts.nfreq * pds->pbc.get_n_cells_bvk());
+    }
+
+    profiler.start("g0w0_sigc_rotate_KS", "Correlation self-energy in K-S space");
+    pds->p_g0w0->build_sigc_matrix_KS_kgrid_blacs(pds->blacs_h);
+    profiler.stop("g0w0_sigc_rotate_KS");
+
+    profiler.start("g0w0_solve_qpe", "Solve quasi-particle equation");
+    const auto efermi = pds->mf.get_efermi();
+    std::vector<cplxdb> imagfreqs;
+    for (const auto &freq: pds->tfg.get_freq_nodes())
+    {
+        imagfreqs.push_back(cplxdb{0.0, freq});
+    }
+
+    for (int isp = 0; isp < n_spins; isp++)
+    {
+        const int start_isp = isp * n_kpoints_local * n_states_calc;
+        // ofs_myid << exx_isp << endl;
+        for (int ik_local = 0; ik_local < n_kpoints_local; ik_local++)
+        {
+            const int start_k = start_isp + ik_local * n_states_calc;
+            const int ik = *(iks_local + ik_local);
+            for (int i = 0; i < n_states_calc; i++)
+            {
+                const int i_state = i + i_state_low;
+                const auto &eks_state = pds->mf.get_eigenvals()[isp](ik, i_state);
+                const auto &exx_state = vexx[start_k+i];
+                const auto &vxc_state = vxc[start_k+i];
+                std::vector<cplxdb> sigc_state;
+                auto it = pds->p_g0w0->sigc_is_ik_f_KS[isp].find(ik);
+                for (const auto &[freq, mat]: it->second)
+                {
+                    sigc_state.emplace_back(mat(i_state, i_state));
+                }
+                double e_qp;
+                cplxdb sigc;
+                sigc_re[start_k+i] = std::numeric_limits<double>::quiet_NaN();
+                sigc_im[start_k+i] = std::numeric_limits<double>::quiet_NaN();
+                librpa_int::AnalyContPade pade(opts.n_params_anacon, imagfreqs, sigc_state);
+                int flag_qpe_solver = librpa_int::qpe_solver_pade_self_consistent(
+                    pade, eks_state, efermi, vxc_state, exx_state, e_qp, sigc);
+                if (flag_qpe_solver == 0)
+                {
+                    sigc_re[start_k+i] = sigc.real();
+                    sigc_im[start_k+i] = sigc.imag();
+                }
+            }
+        }
+    }
+    profiler.stop("g0w0_solve_qpe");
+
+    profiler.stop("api_get_g0w0_qpe_kgrid");
 }
