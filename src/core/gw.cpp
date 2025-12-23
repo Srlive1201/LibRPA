@@ -103,6 +103,7 @@ static void build_gf_libri_kpara(
     int n_Rs_max = n_Rs_this;
     comm_h.allreduce(MPI_IN_PLACE, &n_Rs_max, 1, MPI_MAX);
     auto gf_taus_Rs_cplx = get_gf_cplx_imagtimes_Rs_kpara(ispin, mf, kfrac_list, taus, Rs_this, comm_h);
+    // global::ofs_myid << "gf_taus_Rs_cplx " << gf_taus_Rs_cplx << std::endl;
     for (const auto &tau_gf_R_cplx: gf_taus_Rs_cplx)
     {
         const auto &tau = tau_gf_R_cplx.first;
@@ -152,6 +153,7 @@ static void build_gf_libri_kserial(
         Rs_local.insert(IJR.second);
     }
     auto gf = mf.get_gf_real_imagtimes_Rs(ispin, kfrac_list, taus, {Rs_local.cbegin(), Rs_local.cend()});
+    // global::ofs_myid << "gf " << gf << std::endl;
     tau_gf_libri.clear();
     for (auto t: taus)
     {
@@ -342,6 +344,10 @@ void G0W0::build_spacetime(
                 build_gf_libri_kserial(mf, atbasis_wfc, ispin, this->pbc.kfrac_list,
                                        taus, IJR_local_gf, tau_gf_libri);
             }
+            // if (itau == 0 && ispin == 0)  // debug
+            // {
+            //     global::ofs_myid << tau_gf_libri << std::endl;
+            // }
             global::profiler.stop("g0w0_build_spacetime_4");
             librpa_int::global::lib_printf_root("Time for Green's function, i_spin %d i_tau %d (seconds, Wall/CPU): %f %f\n",
                     ispin + 1, itau + 1,
@@ -570,6 +576,7 @@ void G0W0::build_sigc_matrix_KS_blacs(const std::map<int, std::map<int, ComplexM
     desc_nao_nao.init_1b1p(n_aos, n_aos, 0, 0);
     ArrayDesc desc_nband_nband(blacs_ctxt_h);
     desc_nband_nband.init_1b1p(n_bands, n_bands, 0, 0);
+
     ArrayDesc desc_nao_nband_fb(blacs_ctxt_h);  // For k-parallel
     ArrayDesc desc_nband_nband_fb(blacs_ctxt_h);
 
@@ -763,6 +770,7 @@ void G0W0::build_sigc_matrix_KS_blacs(const std::map<int, std::map<int, ComplexM
                     for (const auto& freq: this->tfg.get_freq_nodes())
                     {
                         sigc_nao_nao.zero_out();
+                        sigc_nband_nband_fb.zero_out();
                         collect_block_from_IJ_storage_matrix_transform(sigc_nao_nao, desc_nao_nao,
                                 this->atbasis_wfc, this->atbasis_wfc, fourier, sigc_isp_local.at(freq));
                         if (pid == comm_h.myid)
@@ -789,7 +797,7 @@ void G0W0::build_sigc_matrix_KS_blacs(const std::map<int, std::map<int, ComplexM
                                                         sigc_nao_nao.ptr(), 1, 1, desc_nao_nao.desc,
                                                         0.0,
                                                         temp_nband_nao.ptr(), 1, 1, desc_nband_nao.desc);
-                            ScalapackConnector::pgemm_f('N', 'N', n_bands, n_bands, n_aos, -1.0,
+                            ScalapackConnector::pgemm_f('N', 'N', n_bands, n_bands, n_aos, 1.0,
                                                         temp_nband_nao.ptr(), 1, 1, desc_nband_nao.desc,
                                                         dummy.data(), 1, 1, desc_nao_nband_fb.desc,
                                                         0.0,
@@ -808,7 +816,6 @@ void G0W0::build_sigc_matrix_KS_blacs(const std::map<int, std::map<int, ComplexM
                 // Perform Fourier transform and rotate
                 for (size_t ik = 0; ik < kfrac_target.size(); ik++)
                 {
-                    sigc_nband_nband_fb.zero_out();
                     const auto kfrac = kfrac_target[ik];
                     // const std::function<complex<double>(const atom_t, const atom_t, const Vector3_Order<int> &)>
                     const std::function<complex<double>(const atom_t, const atom_t, const Vector3_Order<int> &)>
@@ -819,6 +826,7 @@ void G0W0::build_sigc_matrix_KS_blacs(const std::map<int, std::map<int, ComplexM
                         };
 
                     sigc_nao_nao.zero_out();
+                    sigc_nband_nband_fb.zero_out();
                     collect_block_from_IJ_storage_matrix_transform(sigc_nao_nao, desc_nao_nao,
                             this->atbasis_wfc, this->atbasis_wfc, fourier, sigc_isp_local.at(freq));
                     // prepare wave function BLACS

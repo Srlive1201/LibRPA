@@ -149,6 +149,7 @@ void power_hemat_onsite(ComplexMatrix &cmat, double power, double threshold = -1
 
 void print_complex_matrix(const char *desc, const ComplexMatrix &mat);
 void print_complex_matrix(const char *desc, const ComplexMatrix &mat, std::ostream &os, bool use_scientific);
+std::ostream & operator<<( std::ostream & os, const ComplexMatrix & m);
 
 void print_complex_matrix_mm(const ComplexMatrix &mat, ofstream &fs, double threshold = 1e-15, bool row_first = true);
 void print_complex_matrix_file(const char *desc, const ComplexMatrix &mat, const string &fn, bool use_scientific);

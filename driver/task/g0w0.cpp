@@ -18,6 +18,7 @@
 #include "../../src/core/qpe_solver.h"
 #include "../../src/io/global_io.h"
 #include "../../src/io/fs.h"
+#include "../../src/io/stl_io_helper.h"
 #include "../../src/utils/profiler.h"
 #include "../../src/api/instance_manager.h"
 #include "../../src/utils/constants.h"
@@ -34,10 +35,9 @@ void driver::task_g0w0()
     using std::cout;
     using std::endl;
     using std::map;
+    using namespace librpa_int;
     using namespace librpa_int::global;
     using librpa_int::global::lib_printf;
-    using librpa_int::cplxdb;
-    using librpa_int::HA2EV;
 
     profiler.start("g0w0", "G0W0 quasi-particle calculation");
 
@@ -194,7 +194,8 @@ void driver::task_g0w0()
             {
                 for (int i_kpoint = 0; i_kpoint < pds->mf.get_n_kpoints(); i_kpoint++)
                 {
-                    const auto &sigc_sk = pds->p_g0w0->sigc_is_ik_f_KS[i_spin][i_kpoint];
+                    auto it = pds->p_g0w0->sigc_is_ik_f_KS[i_spin].find(i_kpoint);
+                    if (it == pds->p_g0w0->sigc_is_ik_f_KS[i_spin].cend()) continue;
                     // ofs_myid << sigc_sk.size() << endl;
                     for (int i_state = 0; i_state < pds->mf.get_n_bands(); i_state++)
                     {
@@ -204,8 +205,9 @@ void driver::task_g0w0()
                         std::vector<cplxdb> sigc_state;
                         for (const auto &freq: chi0.tfg.get_freq_nodes())
                         {
-                            sigc_state.push_back(sigc_sk.at(freq)(i_state, i_state));
+                            sigc_state.push_back(it->second.at(freq)(i_state, i_state));
                         }
+                        // cout << "i_kpoint " << i_kpoint << "i_state " << i_state << " " << sigc_state << endl;
                         librpa_int::AnalyContPade pade(opts.n_params_anacon, imagfreqs, sigc_state);
                         double e_qp;
                         cplxdb sigc;
@@ -234,6 +236,8 @@ void driver::task_g0w0()
             {
                 for (int i_kpoint = 0; i_kpoint < pds->mf.get_n_kpoints(); i_kpoint++)
                 {
+                    auto it = sigc_all[i_spin].find(i_kpoint);
+                    if (it == sigc_all[i_spin].cend()) continue;
                     const auto &k = pds->pbc.kfrac_list[i_kpoint];
                     lib_printf("spin %2d, k-point %4d: (%.5f, %.5f, %.5f) \n",
                                i_spin+1, i_kpoint+1, k.x, k.y, k.z);

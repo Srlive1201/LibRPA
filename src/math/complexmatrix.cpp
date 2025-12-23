@@ -645,6 +645,11 @@ void print_complex_matrix(const char *desc, const ComplexMatrix &mat)
     }
 }
 
+std::ostream & operator<<( std::ostream & os, const ComplexMatrix & m)
+{
+    print_complex_matrix("", m, os, true);
+    return os;
+}
 
 void print_complex_matrix(const char *desc, const ComplexMatrix &mat, std::ostream &os, bool use_scientific)
 {

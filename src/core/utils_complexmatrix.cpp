@@ -8,7 +8,7 @@ ComplexMatrix get_ap_block_from_global(const ComplexMatrix &cm_global,
                                        const AtomicBasis &atbasis_r, const AtomicBasis &atbasis_c)
 {
     const auto I = IJ.first;
-    const auto J = IJ.first;
+    const auto J = IJ.second;
     const auto I_num = atbasis_r.get_atom_nb(I);
     const auto J_num = atbasis_c.get_atom_nb(J);
     ComplexMatrix cm_IJ(I_num, J_num);

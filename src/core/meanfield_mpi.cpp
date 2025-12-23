@@ -179,7 +179,7 @@ std::map<double, std::map<Vector3_Order<int>, ComplexMatrix>> get_gf_cplx_imagti
                 {
                     const auto R_this = Rs_all.data() + pid * nR_max * 3 + iR * 3;
                     const auto &kf = kfrac_list[iks_local[ik]];
-                    auto ang = - (kf.x * R_this[0] + kf.y * R_this[1] + kf.z * R_this[0]) * TWO_PI;
+                    auto ang = - (kf.x * R_this[0] + kf.y * R_this[1] + kf.z * R_this[2]) * TWO_PI;
                     transmat(ik, iR) = cplxdb{cos(ang), sin(ang)};
                 }
             }
