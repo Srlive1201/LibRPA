@@ -231,6 +231,12 @@ LIBRPA_C_H_FUNC_WRAP_WOPT(void, librpa_get_g0w0_qpe_kgrid,
                     sigc_re[start_k+i] = sigc.real();
                     sigc_im[start_k+i] = sigc.imag();
                 }
+                else
+                {
+                    global::ofs_myid << "Warning! QPE solver failed for spin " << isp + 1
+                                     << " kpoint " << ik + 1 << " state " << i_state + 1
+                                     << std::endl;
+                }
             }
         }
     }

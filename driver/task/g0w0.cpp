@@ -67,13 +67,6 @@ void driver::task_g0w0()
         h.set_dielect_func_imagfreq(omegas_dielect, dielect_func);
     }
 
-    // Build the self-energy matrix (including exchange and correlation)
-    h.build_g0w0_sigma(opts);
-
-    // TODO: hide things below to API
-    auto pds = librpa_int::api::get_dataset_instance(h);
-    auto &chi0 = *(pds->p_chi0);
-
     // if (opts.output_level >= LIBRPA_VERBOSE_DEBUG)
     // { // debug, check chi0
     //     for (const auto &chi0q: chi0.get_chi0_q())
@@ -98,19 +91,85 @@ void driver::task_g0w0()
     profiler.start("read_vxc", "Load DFT xc potential");
     std::vector<matrix> vxc;
     int flag_read_vxc = read_vxc(driver_params.input_dir + "vxc_out", vxc);
-    if (mpi_comm_global_h.myid == 0)
+    if (flag_read_vxc == 0)
     {
-        if (flag_read_vxc == 0)
+        if (mpi_comm_global_h.is_root())
+            std::cout << "* Success: Read DFT xc potential, solve quasi-particle equation" << std::endl;
+    }
+    else
+        throw LIBRPA_RUNTIME_ERROR("Failed to read DFT xc potential");
+    profiler.stop("read_vxc");
+    std::flush(ofs_myid);
+
+    // Build the self-energy matrix (including exchange and correlation)
+    h.build_g0w0_sigma(opts);
+
+    const int i_state_low = 0;
+    const int i_state_high = n_states;
+    const int n_states_calc = i_state_high - i_state_low;
+    const size_t n_local = n_states_calc * n_spins * iks_eigvec_local.size();
+    std::vector<double> vexx_all;
+    std::vector<cplxdb> sigc_all;
+    {
+        const auto vexx = h.get_exx_pot_kgrid(opts, n_spins, iks_eigvec_local, i_state_low, i_state_high);
+        std::vector<double> vxc_flat(n_local);
+        for (int isp = 0; isp != n_spins; isp++)
         {
-            std::cout << "* Success: Read DFT xc potential, will solve quasi-particle equation\n";
+            const auto start_isp = isp * iks_eigvec_local.size() * n_states_calc;
+            for (size_t ik_local = 0; ik_local < iks_eigvec_local.size(); ik_local++)
+            {
+                const auto ik = iks_eigvec_local[ik_local];
+                const auto start_k = start_isp + ik_local * n_states_calc;
+                for (int i = 0; i < n_states_calc; i++)
+                {
+                    vxc_flat[start_k+i] = vxc[isp](ik, i+i_state_low);
+                }
+            }
+        }
+        const auto sigc = h.get_g0w0_qpe_kgrid(opts, n_spins, iks_eigvec_local, i_state_low, i_state_high, vxc_flat, vexx);
+        if (!opts.use_kpara_scf_eigvec)
+        {
+            // master process already has all data
+            if (myid_global == 0)
+            {
+                vexx_all = vexx;
+                sigc_all = sigc;
+            }
         }
         else
         {
-            std::cout << "*   Error: Read DFT xc potential, switch off solving quasi-particle equation\n";
+            // data parallelized over k-point, collect them to master process
+            const size_t n_all = n_states_calc * n_spins * n_kpoints;
+            vexx_all.resize(n_all);
+            sigc_all.resize(n_all);
+            for (int isp = 0; isp != n_spins; isp++)
+            {
+                const auto st_isp_local = isp * iks_eigvec_local.size() * n_states_calc;
+                const auto st_isp = isp * n_kpoints * n_states_calc;
+                for (size_t ik_local = 0; ik_local < iks_eigvec_local.size(); ik_local++)
+                {
+                    const auto ik = iks_eigvec_local[ik_local];
+                    const auto st_local = st_isp_local + ik_local * n_states_calc;
+                    const auto st = st_isp + ik * n_states_calc;
+                    memcpy(sigc_all.data() + st, sigc.data() + st_local, n_states_calc * sizeof(cplxdb));
+                    memcpy(vexx_all.data() + st, vexx.data() + st_local, n_states_calc * sizeof(double));
+                }
+            }
+            mpi_comm_global_h.reduce(MPI_IN_PLACE, vexx_all.data(), n_all, 0, MPI_SUM);
+            mpi_comm_global_h.reduce(MPI_IN_PLACE, sigc_all.data(), n_all, 0, MPI_SUM);
+            if (myid_global != 0)
+            {
+                vexx_all.clear();
+                sigc_all.clear();
+            }
         }
     }
-    profiler.stop("read_vxc");
-    std::flush(ofs_myid);
+
+    // Now, master process has all the data
+
+    auto pds = librpa_int::api::get_dataset_instance(h);
+    // TODO: hide things below to API
+    // auto &chi0 = *(pds->p_chi0);
 
     // // Since EXX contribution will be printed along with sigma_c when Vxc is read
     // // we print it here when Vxc read failed
@@ -162,68 +221,33 @@ void driver::task_g0w0()
     //     }
     // }
 
-
-    profiler.start("g0w0_exx_rotate_KS", "Exchange self-energy in K-S space");
-    pds->p_exx->build_KS_kgrid_blacs(pds->blacs_h);
-    profiler.stop("g0w0_exx_rotate_KS");
-
-    profiler.start("g0w0_sigc_rotate_KS", "Correlation self-energy in K-S space");
-    pds->p_g0w0->build_sigc_matrix_KS_kgrid_blacs(pds->blacs_h);
-    profiler.stop("g0w0_sigc_rotate_KS");
-
     if (flag_read_vxc == 0)
     {
-        profiler.start("g0w0_solve_qpe", "Solve quasi-particle equation");
-        if (pds->comm_h.is_root())
-        {
-            std::cout << "Solving quasi-particle equation\n";
-        }
-        std::vector<cplxdb> imagfreqs;
-        for (const auto &freq: chi0.tfg.get_freq_nodes())
-        {
-            imagfreqs.push_back(cplxdb{0.0, freq});
-        }
+        // profiler.start("g0w0_solve_qpe", "Solve quasi-particle equation");
+        // if (pds->comm_h.is_root())
+        // {
+        //     std::cout << "Solving quasi-particle equation\n";
+        // }
+        // std::vector<cplxdb> imagfreqs;
+        // for (const auto &freq: chi0.tfg.get_freq_nodes())
+        // {
+        //     imagfreqs.push_back(cplxdb{0.0, freq});
+        // }
 
-        // TODO: parallelize analytic continuation and QPE solver among tasks
         if (mpi_comm_global_h.is_root())
         {
-            map<int, map<int, map<int, double>>> e_qp_all;
-            map<int, map<int, map<int, cplxdb>>> sigc_all;
-            const auto efermi = pds->mf.get_efermi();
-            for (int i_spin = 0; i_spin < pds->mf.get_n_spins(); i_spin++)
+            for (int i_spin = 0; i_spin < n_spins; i_spin++)
             {
-                for (int i_kpoint = 0; i_kpoint < pds->mf.get_n_kpoints(); i_kpoint++)
+                for (int i_kpoint = 0; i_kpoint < n_kpoints; i_kpoint++)
                 {
-                    auto it = pds->p_g0w0->sigc_is_ik_f_KS[i_spin].find(i_kpoint);
-                    if (it == pds->p_g0w0->sigc_is_ik_f_KS[i_spin].cend()) continue;
-                    // ofs_myid << sigc_sk.size() << endl;
-                    for (int i_state = 0; i_state < pds->mf.get_n_bands(); i_state++)
+                    const size_t start_k = (i_spin * n_kpoints + i_kpoint) * n_states_calc;
+                    for (int i = 0; i < n_states_calc; i++)
                     {
-                        const auto &eks_state = pds->mf.get_eigenvals()[i_spin](i_kpoint, i_state);
-                        const auto &exx_state = pds->p_exx->Eexx[i_spin][i_kpoint][i_state];
-                        const auto &vxc_state = vxc[i_spin](i_kpoint, i_state);
-                        std::vector<cplxdb> sigc_state;
-                        for (const auto &freq: chi0.tfg.get_freq_nodes())
-                        {
-                            sigc_state.push_back(it->second.at(freq)(i_state, i_state));
-                        }
-                        // cout << "i_kpoint " << i_kpoint << "i_state " << i_state << " " << sigc_state << endl;
-                        librpa_int::AnalyContPade pade(opts.n_params_anacon, imagfreqs, sigc_state);
-                        double e_qp;
-                        cplxdb sigc;
-                        int flag_qpe_solver = librpa_int::qpe_solver_pade_self_consistent(
-                            pade, eks_state, efermi, vxc_state, exx_state, e_qp, sigc);
-                        if (flag_qpe_solver == 0)
-                        {
-                            e_qp_all[i_spin][i_kpoint][i_state] = e_qp;
-                            sigc_all[i_spin][i_kpoint][i_state] = sigc;
-                        }
-                        else
+                        const int i_state = i + i_state_low;
+                        if (sigc_all[start_k+i].real() == std::numeric_limits<double>::quiet_NaN())
                         {
                             lib_printf("Warning! QPE solver failed for spin %d, kpoint %d, state %d\n",
                                        i_spin+1, i_kpoint+1, i_state+1);
-                            e_qp_all[i_spin][i_kpoint][i_state] = std::numeric_limits<double>::quiet_NaN();
-                            sigc_all[i_spin][i_kpoint][i_state] = std::numeric_limits<cplxdb>::quiet_NaN();
                         }
                     }
                 }
@@ -232,27 +256,32 @@ void driver::task_g0w0()
             // display results
             const std::string banner(124, '-');
             lib_printf("Printing quasi-particle energy [unit: eV]\n\n");
-            for (int i_spin = 0; i_spin < pds->mf.get_n_spins(); i_spin++)
+            for (int i_spin = 0; i_spin < n_spins; i_spin++)
             {
-                for (int i_kpoint = 0; i_kpoint < pds->mf.get_n_kpoints(); i_kpoint++)
+                for (int i_kpoint = 0; i_kpoint < n_kpoints; i_kpoint++)
                 {
-                    auto it = sigc_all[i_spin].find(i_kpoint);
-                    if (it == sigc_all[i_spin].cend()) continue;
                     const auto &k = pds->pbc.kfrac_list[i_kpoint];
                     lib_printf("spin %2d, k-point %4d: (%.5f, %.5f, %.5f) \n",
                                i_spin+1, i_kpoint+1, k.x, k.y, k.z);
                     lib_printf("%124s\n", banner.c_str());
                     lib_printf("%5s %16s %16s %16s %16s %16s %16s %16s\n", "State", "occ", "e_mf", "v_xc", "v_exx", "ReSigc", "ImSigc", "e_qp");
                     lib_printf("%124s\n", banner.c_str());
-                    for (int i_state = 0; i_state < pds->mf.get_n_bands(); i_state++)
+                    const size_t start_k = (i_spin * n_kpoints + i_kpoint) * n_states_calc;
+                    for (int i = 0; i < n_states_calc; i++)
                     {
+                        const int i_state = i + i_state_low;
+                        if (sigc_all[start_k+i].real() == std::numeric_limits<double>::quiet_NaN())
+                        {
+                            lib_printf("Warning! QPE solver failed for spin %d, kpoint %d, state %d\n",
+                                       i_spin+1, i_kpoint+1, i_state+1);
+                        }
                         const auto &occ_state = pds->mf.get_weight()[i_spin](i_kpoint, i_state) * pds->mf.get_n_kpoints();
                         const auto &eks_state = pds->mf.get_eigenvals()[i_spin](i_kpoint, i_state) * HA2EV;
-                        const auto &exx_state = pds->p_exx->Eexx[i_spin][i_kpoint][i_state] * HA2EV;
                         const auto &vxc_state = vxc[i_spin](i_kpoint, i_state) * HA2EV;
-                        const auto &resigc = sigc_all[i_spin][i_kpoint][i_state].real() * HA2EV;
-                        const auto &imsigc = sigc_all[i_spin][i_kpoint][i_state].imag() * HA2EV;
-                        const auto &eqp = e_qp_all[i_spin][i_kpoint][i_state] * HA2EV;
+                        const auto &exx_state = vexx_all[start_k+i] * HA2EV;
+                        const auto &resigc = sigc_all[start_k+i].real() * HA2EV;
+                        const auto &imsigc = sigc_all[start_k+i].imag() * HA2EV;
+                        const auto &eqp = eks_state - vxc_state + exx_state + resigc;
                         lib_printf("%5d %16.5f %16.5f %16.5f %16.5f %16.5f %16.5f %16.5f\n",
                                    i_state+1, occ_state, eks_state, vxc_state, exx_state, resigc, imsigc, eqp);
                     }
@@ -263,33 +292,33 @@ void driver::task_g0w0()
         profiler.stop("g0w0_solve_qpe");
     }
 
-    profiler.start("g0w0_export_sigc_KS", "Export self-energy in KS basis");
-    pds->comm_h.barrier();
-    if (driver::get_bool(opts.output_gw_sigc_mat) && pds->comm_h.is_root())
-    {
-        char fn[100];
-        for (const auto &ispin_sigc: pds->p_g0w0->sigc_is_ik_f_KS)
-        {
-            const auto &ispin = ispin_sigc.first;
-            for (const auto &ik_sigc: ispin_sigc.second)
-            {
-                const auto &ik = ik_sigc.first;
-                for (const auto &freq_sigc: ik_sigc.second)
-                {
-                    const auto ifreq = pds->p_g0w0->tfg.get_freq_index(freq_sigc.first);
-                    sprintf(fn, "Sigc_fk_mn_ispin_%d_ik_%d_ifreq_%d.mtx", ispin, ik, ifreq);
-                    print_matrix_mm_file(freq_sigc.second, librpa_int::path_as_directory(opts.output_dir) + fn, 1e-10);
-                }
-            }
-        }
-        // for aims analytic continuation reader
-    }
-    // Limit writing of file to the master process (it has all the data)
-    if (pds->comm_h.is_root())
-    {
-        write_self_energy_omega("self_energy_omega.dat", *(pds->p_g0w0));
-    }
-    profiler.stop("g0w0_export_sigc_KS");
+    // profiler.start("g0w0_export_sigc_KS", "Export self-energy in KS basis");
+    // pds->comm_h.barrier();
+    // if (driver::get_bool(opts.output_gw_sigc_mat) && pds->comm_h.is_root())
+    // {
+    //     char fn[100];
+    //     for (const auto &ispin_sigc: pds->p_g0w0->sigc_is_ik_f_KS)
+    //     {
+    //         const auto &ispin = ispin_sigc.first;
+    //         for (const auto &ik_sigc: ispin_sigc.second)
+    //         {
+    //             const auto &ik = ik_sigc.first;
+    //             for (const auto &freq_sigc: ik_sigc.second)
+    //             {
+    //                 const auto ifreq = pds->p_g0w0->tfg.get_freq_index(freq_sigc.first);
+    //                 sprintf(fn, "Sigc_fk_mn_ispin_%d_ik_%d_ifreq_%d.mtx", ispin, ik, ifreq);
+    //                 print_matrix_mm_file(freq_sigc.second, librpa_int::path_as_directory(opts.output_dir) + fn, 1e-10);
+    //             }
+    //         }
+    //     }
+    //     // for aims analytic continuation reader
+    // }
+    // // Limit writing of file to the master process (it has all the data)
+    // if (pds->comm_h.is_root())
+    // {
+    //     write_self_energy_omega("self_energy_omega.dat", *(pds->p_g0w0));
+    // }
+    // profiler.stop("g0w0_export_sigc_KS");
 
     profiler.stop("g0w0");
 }
