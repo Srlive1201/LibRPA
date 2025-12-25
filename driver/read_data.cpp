@@ -52,9 +52,17 @@ void read_scf_occ_eigenvalues(const string &file_path)
     infile >> efermi;
 
     iks_eigvec_local.clear();
-    for (int ik = 0; ik < driver::n_kpoints; ik++)
+    if (driver::get_bool(driver::opts.use_kpara_scf_eigvec))
     {
-        if (ik % size_global == myid_global) iks_eigvec_local.emplace_back(ik);
+        for (int ik = 0; ik < driver::n_kpoints; ik++)
+        {
+            if (ik % size_global == myid_global) iks_eigvec_local.emplace_back(ik);
+        }
+    }
+    else
+    {
+        for (int ik = 0; ik < driver::n_kpoints; ik++)
+            iks_eigvec_local.emplace_back(ik);
     }
 
     driver::h.set_scf_dimension(n_spins, n_kpoints, n_states, n_basis_wfc,
@@ -183,7 +191,7 @@ static int handle_KS_file(const string &file_path)
             break;
         // for aims !!!
         bool skip_this_ik = false;
-        if (driver::opts.use_kpara_scf_eigvec)
+        if (driver::get_bool(driver::opts.use_kpara_scf_eigvec))
         {
             const auto it = std::find(iks_eigvec_local.cbegin(), iks_eigvec_local.cend(), ik);
             // this k does not belong to this process

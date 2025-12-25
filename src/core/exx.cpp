@@ -1,6 +1,7 @@
 #include "exx.h"
 
 #include <omp.h>
+#include <fstream>
 
 #include "../io/global_io.h"
 #include "../io/stl_io_helper.h"
@@ -673,21 +674,25 @@ void Exx::build_KS_blacs(const std::map<int, std::map<int, ComplexMatrix>> &wfc_
 
                 // collect to master
                 global::profiler.start("build_real_space_exx_8", "Collect Eexx to root process");
+                global::ofs_myid << "before pgemr2d_f" << std::endl;
                 ScalapackConnector::pgemr2d_f(n_bands, n_bands,
                                             Hexx_nband_nband.ptr(), 1, 1, desc_nband_nband.desc,
                                             Hexx_nband_nband_fb.ptr(), 1, 1, desc_nband_nband_fb.desc,
                                             desc_nband_nband_fb.ictxt());
-                this->exx_KS[isp][ik] = Hexx_nband_nband_fb;
+                global::ofs_myid << "after pgemr2d_f" << std::endl;
+                this->exx_KS[isp][ik] = Hexx_nband_nband_fb.copy();
                 // cout << "Hexx_nband_nband_fb isp " << isp  << " ik " << ik << endl << Hexx_nband_nband_fb;
                 if (blacs_ctxt_h.myid == 0)
                 {
                     for (int ib = 0; ib != n_bands; ib++)
                         this->Eexx[isp][ik][ib] = Hexx_nband_nband_fb(ib, ib).real();
                 }
+                global::ofs_myid << "after Hexx_nband_nband_fb assign" << std::endl;
                 global::profiler.stop("build_real_space_exx_8");
             }
         }
     }
+    global::ofs_myid << "Done Exx::build_KS_blacs" << std::endl;
 }
 
 void Exx::build_KS_kgrid()

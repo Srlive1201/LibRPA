@@ -92,14 +92,17 @@ LIBRPA_C_H_FUNC_WRAP_WOPT(void, librpa_get_exx_pot_kgrid, const int n_spins, con
     pexx->build_KS_kgrid_blacs(pds->blacs_h);
     for (int isp = 0; isp < n_spins; isp++)
     {
+        const auto it = pexx->Eexx.find(isp);
+        if (it == pexx->Eexx.cend()) continue;
         const int start_isp = isp * n_kpoints_local * n_states_calc;
-        const auto exx_isp = pexx->Eexx.at(isp);
         // ofs_myid << exx_isp << endl;
         for (int ik_local = 0; ik_local < n_kpoints_local; ik_local++)
         {
             const int start_k = start_isp + ik_local * n_states_calc;
-            const int ik = *(iks_local + ik_local);
-            const auto &exx_k = exx_isp.at(ik);
+            const int ik = iks_local[ik_local];
+            const auto it_k = it->second.find(ik);
+            if (it_k == it->second.cend()) continue;
+            const auto &exx_k = it_k->second;
             for (int i = 0; i < n_states_calc; i++)
             {
                 vexx[start_k+i] = exx_k.at(i_state_low+i);

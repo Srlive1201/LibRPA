@@ -113,6 +113,9 @@ void driver::task_g0w0()
     {
         const auto vexx = h.get_exx_pot_kgrid(opts, n_spins, iks_eigvec_local, i_state_low, i_state_high);
         std::vector<double> vxc_flat(n_local);
+        ofs_myid << "k_para " << opts.use_kpara_scf_eigvec << endl;
+        ofs_myid << "iks_eigvec_local " << iks_eigvec_local << endl;
+        ofs_myid << "n_local " << n_local << endl;
         for (int isp = 0; isp != n_spins; isp++)
         {
             const auto start_isp = isp * iks_eigvec_local.size() * n_states_calc;
@@ -126,6 +129,7 @@ void driver::task_g0w0()
                 }
             }
         }
+        ofs_myid << "Before get_g0w0_qpe_kgrid" << std::endl;
         const auto sigc = h.get_g0w0_qpe_kgrid(opts, n_spins, iks_eigvec_local, i_state_low, i_state_high, vxc_flat, vexx);
         if (!opts.use_kpara_scf_eigvec)
         {
