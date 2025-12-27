@@ -61,9 +61,14 @@ void driver::task_g0w0()
     const auto file_df = driver_params.input_dir + "dielecfunc_out";
     if (driver::get_bool(opts.replace_w_head) && librpa_int::path_exists(file_df.c_str()))
     {
+        if (mpi_comm_global_h.is_root())
+            std::cout << "Reading dielectric function for head correction" << std::endl;
         std::vector<double> omegas_dielect;
         std::vector<double> dielect_func;
         read_dielec_func(file_df, omegas_dielect, dielect_func);
+        ofs_myid << "Dielectric functions read:" << std::endl;
+        ofs_myid << "omegas_dielect: " << omegas_dielect << std::endl;
+        ofs_myid << "dielect_func:   " << dielect_func << std::endl;
         h.set_dielect_func_imagfreq(omegas_dielect, dielect_func);
     }
 
