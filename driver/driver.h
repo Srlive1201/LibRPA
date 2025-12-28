@@ -14,6 +14,7 @@ namespace driver
 struct DriverParams
 {
     std::string task;
+    std::string constants_choice = "internal";
     std::string input_dir = "./";
 
     // TODO: Move the following to the public LibrpaOptions class

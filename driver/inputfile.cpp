@@ -7,7 +7,9 @@
 #include <stdexcept>
 
 #include "driver.h"
+
 #include "librpa_enums.h"
+#include "../src/utils/constants.h"
 
 static const std::string SPACE_SEP = "[ \r\f\t]*";
 
@@ -162,6 +164,11 @@ void parse_inputfile_to_params(const std::string& fn)
 
     // driver parameters
     parser.parse_string("task", driver_params.task, "unset", flag);
+    parser.parse_string("constants_choice", driver_params.constants_choice, "internal", flag);
+    if (driver_params.constants_choice == "aims")
+    {
+        librpa_int::set_aims_constants();
+    }
     _parse_string(driver_params, input_dir, "./", check_dirpath);
     parser.parse_bool("output_gw_spec_func", driver_params.output_gw_spec_func, false, flag);
 

@@ -10,6 +10,7 @@ namespace driver
 
 DriverParams::DriverParams():
     task("rpa"),
+    constants_choice("internal"),
     input_dir(""),
     output_gw_spec_func(false),
     sf_omega_start(0.0),
@@ -27,6 +28,7 @@ std::string DriverParams::format()
     std::stringstream ss;
     ss << "task = " << task << std::endl;
     ss << "input_dir = " << input_dir << std::endl;
+    ss << "constants_choice = " << constants_choice << std::endl;
     ss << "output_gw_spec_func = " << std::boolalpha << output_gw_spec_func << std::endl;
     if (output_gw_spec_func)
     {
