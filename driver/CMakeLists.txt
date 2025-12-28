@@ -10,7 +10,6 @@ list(APPEND exe_sources
   inputfile.cpp
   main.cpp
   read_data.cpp
-  write_aims.cpp
   task.cpp
   # Specific task implementations
   task/exx.cpp

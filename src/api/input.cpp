@@ -80,6 +80,7 @@ LIBRPA_C_H_FUNC_WRAP(void, librpa_set_wg_ekb_efermi, int nspins, int nkpts, int 
         lib_printf("Mean-field eigenvalues and occupation numbers set:\n");
         lib_printf("| Minimal transition energy (Ha): %f\n", emin);
         lib_printf("| Maximal transition energy (Ha): %f\n", emax);
+        lib_printf("| Fermi level               (Ha): %f\n", efermi);
     }
     pds->comm_h.barrier();
 }

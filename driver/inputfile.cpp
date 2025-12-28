@@ -161,7 +161,7 @@ void parse_inputfile_to_params(const std::string& fn)
     // TODO: invalid parameters checker
 
     // driver parameters
-    parser.parse_string("task", driver_params.task, "rpa", flag);
+    parser.parse_string("task", driver_params.task, "unset", flag);
     _parse_string(driver_params, input_dir, "./", check_dirpath);
     parser.parse_bool("output_gw_spec_func", driver_params.output_gw_spec_func, false, flag);
 
@@ -216,7 +216,7 @@ void parse_inputfile_to_params(const std::string& fn)
     _parse_double(opts, libri_g0w0_threshold_G, 0.0);
     _parse_double(opts, libri_g0w0_threshold_Wc, 0.0);
     _parse_switch(opts, replace_w_head, true);
-    _parse_int(opts, option_dielect_func, 2);
+    _parse_int(opts, option_dielect_func, 0);
     _parse_switch(opts, output_gw_sigc_mat, false);
     _parse_switch(opts, output_gw_sigc_mat_rt, false);
     _parse_switch(opts, output_gw_sigc_mat_rf, false);

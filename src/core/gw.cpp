@@ -11,6 +11,7 @@
 
 #include "../io/fs.h"
 #include "../io/global_io.h"
+#include "../io/output_aims.h"
 #include "../io/stl_io_helper.h"
 // #include "../math/utils_matrix_m.h"
 #include "../math/utils_matrix_m_mpi.h"
@@ -857,12 +858,13 @@ void G0W0::build_sigc_matrix_KS_blacs(const std::map<int, std::map<int, ComplexM
 
 void G0W0::build_sigc_matrix_KS_kgrid()
 {
-    librpa_int::global::mpi_comm_global_h.barrier();
-    if (librpa_int::global::mpi_comm_global_h.myid == 0)
-    {
-        librpa_int::global::lib_printf("build_sigc_matrix_KS_kgrid: constructing self-energy matrix for SCF k-grid\n");
-    }
+    comm_h.barrier();
+    librpa_int::global::ofs_myid << "build_sigc_matrix_KS_kgrid: constructing self-energy matrix for SCF k-grid" << std::endl;
     this->build_sigc_matrix_KS(this->mf.get_eigenvectors(), this->pbc.kfrac_list, {});
+    // if (comm_h.is_root())
+    // {
+    //     write_self_energy_omega("self_energy_omega.dat", *this);
+    // }
 }
 
 void G0W0::build_sigc_matrix_KS_band(const std::map<int, std::map<int, ComplexMatrix>> &wfc,
@@ -879,12 +881,13 @@ void G0W0::build_sigc_matrix_KS_band(const std::map<int, std::map<int, ComplexMa
 
 void G0W0::build_sigc_matrix_KS_kgrid_blacs(const BlacsCtxtHandler &blacs_ctxt_h)
 {
-    librpa_int::global::mpi_comm_global_h.barrier();
-    if (librpa_int::global::mpi_comm_global_h.myid == 0)
-    {
-        librpa_int::global::lib_printf("build_sigc_matrix_KS_kgrid: constructing self-energy matrix for SCF k-grid\n");
-    }
+    comm_h.barrier();
+    librpa_int::global::ofs_myid << "build_sigc_matrix_KS_kgrid: constructing self-energy matrix for SCF k-grid with BLACS" << std::endl;
     this->build_sigc_matrix_KS_blacs(this->mf.get_eigenvectors(), this->pbc.kfrac_list, {}, blacs_ctxt_h);
+    // if (comm_h.is_root())
+    // {
+    //     write_self_energy_omega("self_energy_omega.dat", *this);
+    // }
 }
 
 void G0W0::build_sigc_matrix_KS_band_blacs(const std::map<int, std::map<int, ComplexMatrix>> &wfc,

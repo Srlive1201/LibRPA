@@ -13,7 +13,6 @@
 #include "../task.h"
 #include "../driver.h"
 #include "../read_data.h"
-#include "../write_aims.h"
 #include "../../src/core/analycont.h"
 #include "../../src/core/qpe_solver.h"
 #include "../../src/io/global_io.h"

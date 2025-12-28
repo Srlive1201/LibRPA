@@ -69,8 +69,9 @@ list(APPEND lib_sources
         core/utils_atomic_basis_blacs.cpp
         core/utils_complexmatrix.cpp
 
-        io/global_io.cpp
         io/fs.cpp
+        io/global_io.cpp
+        io/output_aims.cpp
 
         interface/gx_minimax_wrp.f90
 

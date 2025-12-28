@@ -1,11 +1,13 @@
-#include "write_aims.h"
-
-#include "../src/core/gw.h"
+#include "output_aims.h"
 
 #include <fstream>
 #include <iomanip>
 
-void write_self_energy_omega(const char *fn, const librpa_int::G0W0 &s_g0w0)
+namespace librpa_int
+{
+
+// HACK: Not parallelized yet
+void write_self_energy_omega(const char *fn, const G0W0 &s_g0w0)
 {
     using std::fixed;
     using std::setprecision;
@@ -36,11 +38,12 @@ void write_self_energy_omega(const char *fn, const librpa_int::G0W0 &s_g0w0)
                 {
                     const auto &sigc_mat = s_g0w0.sigc_is_ik_f_KS.at(ispin).at(ik).at(freq);
                     const auto sigc = sigc_mat(ib, ib);
-                    // NOTE: sprintf in GCC 14 somehow may lead to segfault. Use ofstream instead.
                     ofs << fixed << setw(23) << setprecision(16) << sigc.real() << setw(23) << setprecision(16) << sigc.imag() << "\n";
                 }
             }
         }
     }
     ofs.close();
+}
+
 }
