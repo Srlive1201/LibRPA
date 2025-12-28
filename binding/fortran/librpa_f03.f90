@@ -44,6 +44,7 @@ module librpa_f03
    public :: librpa_init_global
    public :: librpa_finalize_global
    public :: librpa_test
+   public :: librpa_print_profile
    public :: librpa_get_major_version
    public :: librpa_get_minor_version
    public :: librpa_get_patch_version
@@ -175,6 +176,9 @@ module librpa_f03
 
       subroutine librpa_test_c() bind(c, name="librpa_test")
       end subroutine librpa_test_c
+
+      subroutine librpa_print_profile_c() bind(c, name="librpa_print_profile")
+      end subroutine librpa_print_profile_c
    end interface
 
    ! Version information
@@ -690,6 +694,11 @@ contains
       implicit none
       call librpa_test_c()
    end subroutine librpa_test
+
+   subroutine librpa_print_profile()
+      implicit none
+      call librpa_print_profile_c()
+   end subroutine librpa_print_profile
 
    integer function librpa_get_major_version() result(v)
       v = librpa_get_major_version_c()

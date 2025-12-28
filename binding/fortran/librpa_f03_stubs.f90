@@ -47,6 +47,7 @@ module librpa_f03
    public :: librpa_get_minor_version
    public :: librpa_get_patch_version
    public :: librpa_test
+   public :: librpa_print_profile
 
    ! High-level Fortran wrapper
    type :: LibrpaOptions
@@ -181,6 +182,11 @@ contains
       implicit none
       call error_on_call("librpa_test")
    end subroutine librpa_test
+
+   subroutine librpa_print_profile()
+      implicit none
+      call error_on_call("librpa_print_profile")
+   end subroutine librpa_print_profile
 
    subroutine librpa_create_handler(this, comm)
       implicit none

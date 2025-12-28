@@ -51,6 +51,8 @@ void finalize_global(void);
 
 void test(void);
 
+void print_profile(void);
+
 /* C++ handler definition, input and compute methods declarations */
 
 // Declaration wrapper macro, without and with options

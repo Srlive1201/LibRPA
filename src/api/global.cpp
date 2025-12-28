@@ -11,9 +11,10 @@
 
 // Internal headers
 #include "../core/exx.h"
+#include "../utils/constants.h"
+#include "../utils/profiler.h"
 #include "../utils/utils_cmake.h"
 #include "../version.h"
-#include "../utils/constants.h"
 
 const char* librpa_get_build_info(void)
 {
@@ -114,5 +115,10 @@ void librpa_test(void)
 {
     std::cout << "Hello " << __FUNCTION__ << std::endl;
     // test_bccHe_libri_exx();
-    test_bccHe_exx();
+    // test_bccHe_exx();
+}
+
+void librpa_print_profile()
+{
+    librpa_int::global::profiler.display();
 }

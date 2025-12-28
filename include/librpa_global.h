@@ -20,6 +20,8 @@ void librpa_finalize_global(void);
 
 void librpa_test(void);
 
+void librpa_print_profile(void);
+
 #ifdef __cplusplus
 }
 #endif

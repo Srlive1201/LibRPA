@@ -71,7 +71,7 @@ static void finalize(bool success)
 
     if (is_root == 0)
     {
-        profiler.display();
+        librpa::print_profile();
         if (success)
         {
             printf("libRPA finished successfully\n");

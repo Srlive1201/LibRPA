@@ -32,6 +32,8 @@ void finalize_global(void) { ::librpa_finalize_global(); }
 
 void test(void) { ::librpa_test(); }
 
+void print_profile(void) { ::librpa_print_profile(); }
+
 /* Constructor and destructor definition for the C++ handler object */
 Handler::Handler(int comm) : h_(nullptr) { this->create(comm); }
 
