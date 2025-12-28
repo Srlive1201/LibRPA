@@ -790,6 +790,7 @@ void fill_local_mat_from_ap_dist_scheduler(matrix_m<T> &m_loc,
                                            const AtomicBasis &atbasis_c,
                                            const ArrayDesc &ad)
 {
+    global::profiler.start(__FUNCTION__);
     assert(sched.initialized());
     assert(ad.initialized());
     const auto major_data = m_loc.major();
@@ -802,7 +803,7 @@ void fill_local_mat_from_ap_dist_scheduler(matrix_m<T> &m_loc,
     const auto nc = m_loc.nc();
 
     // Fill in data that is already available before communication
-    global::profiler.start("assign_self_ap2blacs");
+    // global::profiler.start("assign_self_ap2blacs");
     if (row_major)
     {
         #pragma omp parallel for collapse(2) schedule(static)
@@ -835,10 +836,10 @@ void fill_local_mat_from_ap_dist_scheduler(matrix_m<T> &m_loc,
             }
         }
     }
-    global::profiler.stop("assign_self_ap2blacs");
+    // global::profiler.stop("assign_self_ap2blacs");
 
     // prepare send buffer (from AP blocks)
-    global::profiler.start("prep_send_ap2blacs");
+    // global::profiler.start("prep_send_ap2blacs");
     // global::ofs_myid << "prep_send_ap2blacs total_count_ap " << sched.total_count_ap << endl;
     std::vector<T> sendbuff(sched.total_count_ap);
     #pragma omp parallel for
@@ -848,7 +849,7 @@ void fill_local_mat_from_ap_dist_scheduler(matrix_m<T> &m_loc,
         const auto &locid = sched.ids_ap_locid[i];
         sendbuff[i] = data.at(atpair).ptr()[locid];
     }
-    global::profiler.stop("prep_send_ap2blacs");
+    // global::profiler.stop("prep_send_ap2blacs");
 
     // prepare recv buffer (to BLACS mapping), just allocate
     std::vector<T> recvbuff(sched.total_count_blacs);
@@ -858,7 +859,7 @@ void fill_local_mat_from_ap_dist_scheduler(matrix_m<T> &m_loc,
     std::vector<MPI_Request> reqs;
     MPI_Request req;
 
-    global::profiler.start("comm_ap2blacs");
+    // global::profiler.start("comm_ap2blacs");
     // First non-blocking receive
     for (int pid = 0; pid < nprocs; pid++)
     {
@@ -882,10 +883,10 @@ void fill_local_mat_from_ap_dist_scheduler(matrix_m<T> &m_loc,
 
     // Wait for all non-blocking communication to finish
     if (!reqs.empty()) MPI_Waitall((int)reqs.size(), reqs.data(), MPI_STATUSES_IGNORE);
-    global::profiler.stop("comm_ap2blacs");
+    // global::profiler.stop("comm_ap2blacs");
 
     // Map the received data to the correct location in the BLACS sub-block
-    global::profiler.start("assign_ap2blacs");
+    // global::profiler.start("assign_ap2blacs");
     // global::ofs_myid << "assign_ap2blacs total_count_blacs " << sched.total_count_blacs << endl;
     #pragma omp parallel for
     for (MPI_Count i = 0; i < sched.total_count_blacs; i++)
@@ -893,7 +894,8 @@ void fill_local_mat_from_ap_dist_scheduler(matrix_m<T> &m_loc,
         const auto &locid = sched.ids_blacs_locid[i];
         m_loc.ptr()[locid] = recvbuff[i];
     }
-    global::profiler.stop("assign_ap2blacs");
+    // global::profiler.stop("assign_ap2blacs");
+    global::profiler.stop(__FUNCTION__);
 }
 
 /*!
@@ -1211,6 +1213,8 @@ void fill_ap_map_from_blacs_dist_scheduler(ap_p_map<matrix_m<T>> &data,
                                            const AtomicBasis &atbasis_c,
                                            const ArrayDesc &ad)
 {
+    global::profiler.start(__FUNCTION__);
+
     assert(ad.initialized());
     assert(sched.initialized());
     const auto major_data = m_loc.major();
@@ -1223,7 +1227,7 @@ void fill_ap_map_from_blacs_dist_scheduler(ap_p_map<matrix_m<T>> &data,
 
     const auto &row_major = major_data == MAJOR::ROW ? true : false;
 
-    global::profiler.start("assign_self_blacs2ap");
+    // global::profiler.start("assign_self_blacs2ap");
     // Fill in data that is already available before communication
     // atom pairs required by this process
     const auto IJs = std::unordered_set<atpair_t, atpair_hash>(sched.atpairs.cbegin(), sched.atpairs.cend());
@@ -1272,11 +1276,11 @@ void fill_ap_map_from_blacs_dist_scheduler(ap_p_map<matrix_m<T>> &data,
             }
         }
     }
-    global::profiler.stop("assign_self_blacs2ap");
+    // global::profiler.stop("assign_self_blacs2ap");
     // return;
 
     // prepare send buffer (from BLACS block)
-    global::profiler.start("prep_send_blacs2ap");
+    // global::profiler.start("prep_send_blacs2ap");
     std::vector<T> sendbuff(sched.total_count_blacs);
     #pragma omp parallel for
     for (MPI_Count i = 0; i < sched.total_count_blacs; i++)
@@ -1284,13 +1288,13 @@ void fill_ap_map_from_blacs_dist_scheduler(ap_p_map<matrix_m<T>> &data,
         const auto &id = sched.ids_blacs_locid[i];
         sendbuff[i] = m_loc.ptr()[id];
     }
-    global::profiler.stop("prep_send_blacs2ap");
+    // global::profiler.stop("prep_send_blacs2ap");
 
     // prepare recv buffer (to AP mapping)
     std::vector<T> recvbuff(sched.total_count_ap);
 
     // Begin communication
-    global::profiler.start("comm_blacs2ap");
+    // global::profiler.start("comm_blacs2ap");
     std::vector<MPI_Request> reqs;
     MPI_Request req;
 
@@ -1319,10 +1323,10 @@ void fill_ap_map_from_blacs_dist_scheduler(ap_p_map<matrix_m<T>> &data,
 
     // Wait for all non-blocking communication to finish
     if (!reqs.empty()) MPI_Waitall((int)reqs.size(), reqs.data(), MPI_STATUSES_IGNORE);
-    global::profiler.stop("comm_blacs2ap");
+    // global::profiler.stop("comm_blacs2ap");
 
     // Map the received data to the correct location in the atom-pair mapping
-    global::profiler.start("assign_blacs2ap");
+    // global::profiler.start("assign_blacs2ap");
     // Allocate the required atom-pair block first
     // global::ofs_myid << "sched.total_count_ap " << sched.total_count_ap << std::endl;
     #pragma omp parallel for
@@ -1333,7 +1337,8 @@ void fill_ap_map_from_blacs_dist_scheduler(ap_p_map<matrix_m<T>> &data,
         // global::ofs_myid << "pair " << atpair.first << " " << atpair.second << " locid " << locid << " at? " << std::boolalpha << data.count(atpair) << std::endl;
         data.at(atpair).ptr()[locid] = recvbuff[i];
     }
-    global::profiler.stop("assign_blacs2ap");
+    // global::profiler.stop("assign_blacs2ap");
+    global::profiler.stop(__FUNCTION__);
 }
 
 /*!
