@@ -897,6 +897,13 @@ ArrayDesc diele_func::get_body_inv(matrix_m<std::complex<double>> &chi0_block,
                                   desc_body.desc, blacs_ctxt_global_h.ictxt);
     invert_scalapack(this->body_inv, desc_body);
 
+    if (Params::debug)
+    {
+        const int ilo = desc_body.indx_g2l_r(0);
+        const int jlo = desc_body.indx_g2l_c(0);
+        if (ilo >= 0 && jlo >= 0) std::cout << "inv_body(0,0)=" << body_inv(ilo, jlo) << endl;
+    }
+
     // std::cout << "* Success: get inverse body of chi0.\n";
     profiler.stop("get_inverse_body_of_chi0");
     return desc_body;

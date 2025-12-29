@@ -2132,6 +2132,14 @@ std::map<double, std::map<Vector3_Order<double>, Matz>> compute_Wc_freq_q_blacs(
                     ofs_myid << get_timestamp() << "Perform the head & wing element overwrite"
                              << endl;
                     df_headwing.rewrite_eps(chi0_block, ifreq, desc_nabf_nabf_opt);
+
+                    if (Params::debug)
+                    {
+                        const int ilo = desc_nabf_nabf_opt.indx_g2l_r(0);
+                        const int jlo = desc_nabf_nabf_opt.indx_g2l_c(0);
+                        if (ilo >= 0 && jlo >= 0)
+                            std::cout << "inv_eps(0,0)=" << chi0_block(ilo, jlo) << endl;
+                    }
                 }
                 else
                 {
