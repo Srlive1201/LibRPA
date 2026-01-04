@@ -148,9 +148,17 @@ void diele_func::init_wing()
         wing[iomega].resize(n_nonsingular - 1, 3, MAJOR::COL);
     }
     get_Leb_points();
-    // get_g_enclosing_gamma();
-    get_g_enclosing_gamma_2d();
-    calculate_q_gamma();
+    if (Params::use_2d_dielectric)
+    {
+        get_g_enclosing_gamma_2d();
+        calculate_q_gamma_2d();
+    }
+    else
+    {
+        get_g_enclosing_gamma();
+        calculate_q_gamma();
+    }
+
     if (mpi_comm_global_h.is_root())
         std::cout << "* Success: initalize and calculate lebdev points and q_gamma." << std::endl;
 }
@@ -981,33 +989,39 @@ void diele_func::construct_L(const int ifreq, ArrayDesc &desc_body)
 
 void diele_func::get_Leb_points()
 {
-    // auto quad_order = lebedev::QuadratureOrder::order_5810;
-    // auto quad_points = lebedev::QuadraturePoints(quad_order);
-    // qx_leb = quad_points.get_x();
-    // qy_leb = quad_points.get_y();
-    // qz_leb = quad_points.get_z();
-    // qw_leb = quad_points.get_weights();
-    // for (int ileb = 0; ileb != qw_leb.size(); ileb++)
-    // {
-    //     qw_leb[ileb] *= 2 * TWO_PI;
-    // }
-    const int n = 5000;
-    qx_leb.clear();
-    qy_leb.clear();
-    qz_leb.clear();
-    qw_leb.clear();
-
-    qx_leb.reserve(n);
-    qy_leb.reserve(n);
-    qz_leb.reserve(n);
-    qw_leb.reserve(n);
-    for (int ileb = 0; ileb != n; ileb++)
+    if (Params::use_2d_dielectric)
     {
-        double ang = TWO_PI * ileb / n;
-        qx_leb[ileb] = std::cos(ang);
-        qy_leb[ileb] = std::sin(ang);
-        qz_leb[ileb] = 0.0;
-        qw_leb[ileb] = TWO_PI / n;
+        const int n = 5000;
+        qx_leb.clear();
+        qy_leb.clear();
+        qz_leb.clear();
+        qw_leb.clear();
+
+        qx_leb.resize(n);
+        qy_leb.resize(n);
+        qz_leb.resize(n);
+        qw_leb.resize(n);
+        for (int ileb = 0; ileb != n; ileb++)
+        {
+            double ang = TWO_PI * ileb / n;
+            qx_leb[ileb] = std::cos(ang);
+            qy_leb[ileb] = std::sin(ang);
+            qz_leb[ileb] = 0.0;
+            qw_leb[ileb] = TWO_PI / n;
+        }
+    }
+    else
+    {
+        auto quad_order = lebedev::QuadratureOrder::order_5810;
+        auto quad_points = lebedev::QuadraturePoints(quad_order);
+        qx_leb = quad_points.get_x();
+        qy_leb = quad_points.get_y();
+        qz_leb = quad_points.get_z();
+        qw_leb = quad_points.get_weights();
+        for (int ileb = 0; ileb != qw_leb.size(); ileb++)
+        {
+            qw_leb[ileb] *= 2 * TWO_PI;
+        }
     }
 };
 
@@ -1062,20 +1076,9 @@ void diele_func::calculate_q_gamma()
     {
         double qmax = 1.0e10;
         Vector3_Order<double> q_quta = {qx_leb[ileb], qy_leb[ileb], qz_leb[ileb]};
-        // for (int ik = 0; ik != 26; ik++)
-        // {
-        //     double denominator = q_quta * g_enclosing_gamma[ik];
-        //     if (denominator > 1.0e-10)
-        //     {
-        //         double numerator = 0.5 * g_enclosing_gamma[ik] * g_enclosing_gamma[ik];
-        //         double temp = numerator / denominator;
-        //         qmax = min(qmax, temp);
-        //     }
-        // }
-        for (int ik = 0; ik != 8; ik++)
+        for (int ik = 0; ik != 26; ik++)
         {
-            double denominator =
-                q_quta.x * g_enclosing_gamma[ik].x + q_quta.y * g_enclosing_gamma[ik].y;
+            double denominator = q_quta * g_enclosing_gamma[ik];
             if (denominator > 1.0e-10)
             {
                 double numerator = 0.5 * g_enclosing_gamma[ik] * g_enclosing_gamma[ik];
@@ -1083,27 +1086,139 @@ void diele_func::calculate_q_gamma()
                 qmax = std::min(qmax, temp);
             }
         }
+
         q_gamma[ileb] = qmax;
     }
 };
+
+void diele_func::calculate_q_gamma_2d()
+{
+    q_gamma.clear();
+    q_gamma.resize(qw_leb.size());
+#pragma omp parallel for schedule(dynamic)
+    for (int ileb = 0; ileb != qw_leb.size(); ileb++)
+    {
+        double qmax = 1.0e10;
+        Vector3_Order<double> q_quta = {qx_leb[ileb], qy_leb[ileb], qz_leb[ileb]};
+        if (Params::use_2d_dielectric)
+        {
+            for (int ik = 0; ik != 8; ik++)
+            {
+                double denominator =
+                    q_quta.x * g_enclosing_gamma[ik].x + q_quta.y * g_enclosing_gamma[ik].y;
+                if (denominator > 1.0e-10)
+                {
+                    double numerator = 0.5 * g_enclosing_gamma[ik] * g_enclosing_gamma[ik];
+                    double temp = numerator / denominator;
+                    qmax = min(qmax, temp);
+                }
+            }
+        }
+        q_gamma[ileb] = qmax;
+    }
+};
+
+/**
+ * Compute
+ * I(q1) = ∫_0^{q1} q / (1 - exp(-q L / 2)) dq
+ * using the analytic series representation.
+ *
+ * Numerically stable for small q1*L.
+ */
+double diele_func::I_q_series(const double q_gamma, const double L, const int nmax)
+{
+    // trivial cases
+    assert(q_gamma >= 0.0);
+    assert(L > 0.0);
+
+    const double pref = 4.0 / (L * L);
+
+    double sum = 0.0;
+    for (int n = 1; n <= nmax; ++n)
+    {
+        double x = 0.5 * n * L * q_gamma;
+
+        // expm1(-x) = exp(-x) - 1, stable for small x
+        double em1 = std::expm1(-x);
+
+        // term = 1 - (1 + x) * exp(-x)
+        //       = -em1 - x * (em1 + 1)
+        double term = -em1 - x * (em1 + 1.0);
+
+        sum += pref * term / (n * n);
+    }
+
+    // n = 0 contribution
+    return 0.5 * q_gamma * q_gamma + sum;
+}
+
+inline double diele_func::integrand(double q, double L)
+{
+    if (q == 0.0) return 2.0 / L;  // 极限值
+
+    double x = -0.5 * q * L;
+    // 1 - exp(-qL/2) = -expm1(-qL/2)
+    return q / (-std::expm1(x));
+}
+
+double diele_func::I_q_simpson(double q1, double L, int N)
+{
+    // N 必须是偶数
+    if (N % 2 != 0) ++N;
+
+    double h = q1 / N;
+    double sum = integrand(0.0, L) + integrand(q1, L);
+
+    // 奇数点
+    for (int i = 1; i < N; i += 2)
+    {
+        double q = i * h;
+        sum += 4.0 * integrand(q, L);
+    }
+
+    // 偶数点
+    for (int i = 2; i < N; i += 2)
+    {
+        double q = i * h;
+        sum += 2.0 * integrand(q, L);
+    }
+
+    return sum * h / 3.0;
+}
 
 void diele_func::cal_eps(const int ifreq, ArrayDesc &desc_nabf_nabf_opt, ArrayDesc &desc_body)
 {
     using global::mpi_comm_global_h;
     using global::profiler;
 
+    const bool use_2d_dielectric = false;
     profiler.start("cal_inverse_dielectric_matrix");
     this->chi0 = init_local_mat<complex<double>>(desc_nabf_nabf_opt, MAJOR::COL);
+    double k_volume;
+    if (use_2d_dielectric)
+        k_volume = std::abs(pbc_.G.e11 * pbc_.G.e22 - pbc_.G.e12 * pbc_.G.e21);
+    else
+        k_volume = std::abs(pbc_.G.Det());
 
-    const double k_volume = std::abs(pbc_.G.Det());
     this->vol_gamma = k_volume / nk;
     double vol_gamma_numeric = 0.0;
     if (ifreq == 0 && mpi_comm_global_h.is_root())
     {
-        for (int ileb = 0; ileb != qw_leb.size(); ileb++)
+        if (Params::use_2d_dielectric)
         {
-            // vol_gamma_numeric += qw_leb[ileb] * std::pow(q_gamma[ileb], 3) / 3.0;
-            vol_gamma_numeric += qw_leb[ileb] * std::pow(q_gamma[ileb], 2) / 2.0;
+            std::cout << "Using 2D average inverse dielectric matrix." << std::endl;
+            std::cout << "Height is " << std::abs(latvec.e33) << " Bohr." << std::endl;
+            for (int ileb = 0; ileb != qw_leb.size(); ileb++)
+            {
+                vol_gamma_numeric += qw_leb[ileb] * std::pow(q_gamma[ileb], 2) / 2.0;
+            }
+        }
+        else
+        {
+            for (int ileb = 0; ileb != qw_leb.size(); ileb++)
+            {
+                vol_gamma_numeric += qw_leb[ileb] * std::pow(q_gamma[ileb], 3) / 3.0;
+            }
         }
         std::cout << "Number of angular grids for average inverse dielectric matrix: "
                   << qw_leb.size() << std::endl;
@@ -1121,6 +1236,7 @@ void diele_func::cal_eps(const int ifreq, ArrayDesc &desc_nabf_nabf_opt, ArrayDe
 
     const size_t nleb = qw_leb.size();
     std::vector<std::complex<double>> weights(nleb);
+    std::vector<std::complex<double>> weights_head(nleb);
     std::vector<std::array<double, 3>> q_vectors(nleb);
 
     const auto L00 = Lind(0, 0), L01 = Lind(0, 1), L02 = Lind(0, 2);
@@ -1140,8 +1256,17 @@ void diele_func::cal_eps(const int ifreq, ArrayDesc &desc_nabf_nabf_opt, ArrayDe
                          qy * (qx * L10 + qy * L11 + qz * L12) +
                          qz * (qx * L20 + qy * L21 + qz * L22);
 
-        // weights[ileb] = qw_leb[ileb] * std::pow(q_gamma[ileb], 3) / (3.0 * vol_gamma) / qLq;
-        weights[ileb] = qw_leb[ileb] * std::pow(q_gamma[ileb], 2) / (2.0 * vol_gamma) / qLq;
+        if (Params::use_2d_dielectric)
+        {
+            weights[ileb] = qw_leb[ileb] * std::pow(q_gamma[ileb], 2) / (2.0 * vol_gamma) / qLq;
+            // Assume z-direction e33 is the vaccum height
+            // weights_head[ileb] =
+            //     qw_leb[ileb] * I_q_series(q_gamma[ileb], std::abs(latvec.e33)) / vol_gamma / qLq;
+            weights_head[ileb] =
+                qw_leb[ileb] * I_q_simpson(q_gamma[ileb], std::abs(latvec.e33)) / vol_gamma / qLq;
+        }
+        else
+            weights[ileb] = qw_leb[ileb] * std::pow(q_gamma[ileb], 3) / (3.0 * vol_gamma) / qLq;
     }
     profiler.stop("precompute_q_data");
 
@@ -1162,9 +1287,19 @@ void diele_func::cal_eps(const int ifreq, ArrayDesc &desc_nabf_nabf_opt, ArrayDe
 
             if (i == 0 && j == 0)
             {
-                for (int ileb = 0; ileb < nleb; ++ileb)
+                if (Params::use_2d_dielectric)
                 {
-                    result += weights[ileb];
+                    for (int ileb = 0; ileb < nleb; ++ileb)
+                    {
+                        result += weights_head[ileb];
+                    }
+                }
+                else
+                {
+                    for (int ileb = 0; ileb < nleb; ++ileb)
+                    {
+                        result += weights[ileb];
+                    }
                 }
             }
             else if (i == 0 || j == 0)

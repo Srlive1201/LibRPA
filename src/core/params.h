@@ -103,6 +103,8 @@ struct Params
     static bool use_shrink_chi;
     //! switch of using spin-orbit coupling correction
     static bool use_soc;
+    //! switch of using 2D dielectric function
+    static bool use_2d_dielectric;
 
     //! option of computing dielectric function on imaginary axis
     /*!

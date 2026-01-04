@@ -44,6 +44,7 @@ bool Params::replace_w_head = true;
 bool Params::use_shrink_chi = true;
 bool Params::use_shrink_abfs = false;
 bool Params::use_soc = false;
+bool Params::use_2d_dielectric = false;
 
 /* ==========================================================
  * output options begin
@@ -111,6 +112,7 @@ void Params::print()
         {"use_fullcoul_exx", use_fullcoul_exx},
         {"use_fullcoul_wc", use_fullcoul_wc},
         {"output_hamgnn", output_hamgnn},
+        {"use_2d_dielectric", use_2d_dielectric},
     };
 
     for (const auto &param: str_params)
