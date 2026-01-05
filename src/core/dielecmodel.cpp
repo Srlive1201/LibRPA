@@ -1152,35 +1152,67 @@ double diele_func::I_q_series(const double q_gamma, const double L, const int nm
     return 0.5 * q_gamma * q_gamma + sum;
 }
 
-inline double diele_func::integrand(double q, double L)
+inline std::complex<double> diele_func::integrand_head(double q, double L, std::complex<double> qLq)
 {
-    if (q == 0.0) return 2.0 / L;  // 极限值
-
     double x = -0.5 * q * L;
     // 1 - exp(-qL/2) = -expm1(-qL/2)
-    return q / (-std::expm1(x));
+    return q / (1.0 + (qLq - 1.0) * (-std::expm1(x)));
 }
 
-double diele_func::I_q_simpson(double q1, double L, int N)
+inline std::complex<double> diele_func::integrand_wing(double q, double L, std::complex<double> qLq)
 {
-    // N 必须是偶数
+    double x = -0.5 * q * L;
+    // 1 - exp(-qL/2) = -expm1(-qL/2)
+    return q * (-std::expm1(x)) / (1.0 + (qLq - 1.0) * (-std::expm1(x)));
+}
+
+std::complex<double> diele_func::I_q_simpson_head(double q1, double L, std::complex<double> qLq,
+                                                  int N)
+{
+    // N must be even
     if (N % 2 != 0) ++N;
 
     double h = q1 / N;
-    double sum = integrand(0.0, L) + integrand(q1, L);
+    std::complex<double> sum = integrand_head(0.0, L, qLq) + integrand_head(q1, L, qLq);
 
-    // 奇数点
+    // odd
     for (int i = 1; i < N; i += 2)
     {
         double q = i * h;
-        sum += 4.0 * integrand(q, L);
+        sum += 4.0 * integrand_head(q, L, qLq);
     }
 
-    // 偶数点
+    // even
     for (int i = 2; i < N; i += 2)
     {
         double q = i * h;
-        sum += 2.0 * integrand(q, L);
+        sum += 2.0 * integrand_head(q, L, qLq);
+    }
+
+    return sum * h / 3.0;
+}
+
+std::complex<double> diele_func::I_q_simpson_wing(double q1, double L, std::complex<double> qLq,
+                                                  int N)
+{
+    // N must be even
+    if (N % 2 != 0) ++N;
+
+    double h = q1 / N;
+    std::complex<double> sum = integrand_wing(0.0, L, qLq) + integrand_wing(q1, L, qLq);
+
+    // odd
+    for (int i = 1; i < N; i += 2)
+    {
+        double q = i * h;
+        sum += 4.0 * integrand_wing(q, L, qLq);
+    }
+
+    // even
+    for (int i = 2; i < N; i += 2)
+    {
+        double q = i * h;
+        sum += 2.0 * integrand_wing(q, L, qLq);
     }
 
     return sum * h / 3.0;
@@ -1235,8 +1267,17 @@ void diele_func::cal_eps(const int ifreq, ArrayDesc &desc_nabf_nabf_opt, ArrayDe
     profiler.start("precompute_q_data");
 
     const size_t nleb = qw_leb.size();
-    std::vector<std::complex<double>> weights(nleb);
-    std::vector<std::complex<double>> weights_head(nleb);
+    std::vector<std::complex<double>> weights;
+    std::vector<std::complex<double>> weights_head;
+    std::vector<std::complex<double>> weights_wing;
+    if (Params::use_2d_dielectric)
+    {
+        weights_head.resize(nleb);
+        weights_wing.resize(nleb);
+    }
+    else
+        weights.resize(nleb);
+
     std::vector<std::array<double, 3>> q_vectors(nleb);
 
     const auto L00 = Lind(0, 0), L01 = Lind(0, 1), L02 = Lind(0, 2);
@@ -1258,12 +1299,13 @@ void diele_func::cal_eps(const int ifreq, ArrayDesc &desc_nabf_nabf_opt, ArrayDe
 
         if (Params::use_2d_dielectric)
         {
-            weights[ileb] = qw_leb[ileb] * std::pow(q_gamma[ileb], 2) / (2.0 * vol_gamma) / qLq;
             // Assume z-direction e33 is the vaccum height
-            // weights_head[ileb] =
-            //     qw_leb[ileb] * I_q_series(q_gamma[ileb], std::abs(latvec.e33)) / vol_gamma / qLq;
-            weights_head[ileb] =
-                qw_leb[ileb] * I_q_simpson(q_gamma[ileb], std::abs(latvec.e33)) / vol_gamma / qLq;
+            weights_head[ileb] = qw_leb[ileb] *
+                                 I_q_simpson_head(q_gamma[ileb], std::abs(latvec.e33), qLq) /
+                                 vol_gamma;
+            weights_wing[ileb] = qw_leb[ileb] *
+                                 I_q_simpson_wing(q_gamma[ileb], std::abs(latvec.e33), qLq) /
+                                 vol_gamma;
         }
         else
             weights[ileb] = qw_leb[ileb] * std::pow(q_gamma[ileb], 3) / (3.0 * vol_gamma) / qLq;
@@ -1319,7 +1361,8 @@ void diele_func::cal_eps(const int ifreq, ArrayDesc &desc_nabf_nabf_opt, ArrayDe
                     const auto bwq = bw_i0 * qx + bw_i1 * qy + bw_i2 * qz;
                     const auto qwb = qx * wb_j0 + qy * wb_j1 + qz * wb_j2;
 
-                    result += weights[ileb] * bwq * qwb;
+                    result += Params::use_2d_dielectric ? weights_wing[ileb] * bwq * qwb
+                                                        : weights[ileb] * bwq * qwb;
                 }
             }
             chi0(ilo, jlo) = result;
