@@ -381,6 +381,7 @@ LIBRPA_C_H_FUNC_WRAP(void, librpa_set_lri_coeff, LibrpaParallelRouting routing, 
         const std::initializer_list<std::size_t> shape{as_size(naux_mu), as_size(nbasis_i),
                                                        as_size(nbasis_j)};
         cs_data.data_libri[I][{J, Ra}] = RI::Tensor<double>(shape, data);
+        cs_data.use_libri = true;
     }
     else
     {
@@ -389,6 +390,7 @@ LIBRPA_C_H_FUNC_WRAP(void, librpa_set_lri_coeff, LibrpaParallelRouting routing, 
         cs_ptr->create(nbasis_i * nbasis_j, naux_mu);
         memcpy((*cs_ptr).c, Cs_in, sizeof(double) * cs_size);
         cs_data.data_IJR[I][J][box] = cs_ptr;
+        cs_data.use_libri = false;
     }
 }
 

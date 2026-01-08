@@ -411,6 +411,7 @@ void G0W0::build_spacetime(
                     const auto &n_J = this->atbasis_wfc.get_atom_nb(J);
                     const auto &Ra = JR_sigc_posi.first.second;
                     const auto &sigc_posi_block = JR_sigc_posi.second;
+                    // FIXME: could missing contributions when Sigc(-t) exists but Sigc(t) does not.
                     if (sigc_nega_tau.count(I) == 0 || sigc_nega_tau.at(I).count(JR_sigc_posi.first) == 0)
                     {
                         continue;
