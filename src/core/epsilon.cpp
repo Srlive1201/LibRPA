@@ -2086,7 +2086,7 @@ map<double, std::map<Vector3_Order<double>, Matz>> compute_Wc_freq_q_blacs(
 
 std::map<double, std::map<Vector3_Order<int>, Matz>> FT_Wc_freq_q(
     const MpiCommHandler &comm_h, map<double, std::map<Vector3_Order<double>, Matz>> &Wc_freq_q,
-    const PeriodicBoundaryData &pbc, bool remove_freq_q, MAJOR major_out)
+    const PeriodicBoundaryData &pbc, bool remove_freq_q)
 {
     using librpa_int::global::ofs_myid;
     using librpa_int::global::lib_printf;
@@ -2142,7 +2142,6 @@ std::map<double, std::map<Vector3_Order<int>, Matz>> FT_Wc_freq_q(
             break;
         }
     }
-    if (major_out == MAJOR::AUTO) major_out = major_orig;
 
     const auto &latvec = pbc.latvec;
     // initialize conversion matrix.
@@ -2231,11 +2230,6 @@ std::map<double, std::map<Vector3_Order<int>, Matz>> FT_Wc_freq_q(
                 }
             }
         }
-        // Swap to intended major
-        for (auto &[R, mat]: Wc_freq_R.at(freq))
-        {
-            mat.swap_major(major_out);
-        }
         if (remove_freq_q)
         {
             // Remove data for this frequency
@@ -2259,7 +2253,7 @@ std::map<double, std::map<Vector3_Order<int>, Matz>> FT_Wc_freq_q(
 std::map<double, std::map<Vector3_Order<int>, Matz>> CT_FT_Wc_freq_q(
     const MpiCommHandler &comm_h,
     std::map<double, std::map<Vector3_Order<double>, Matz>> &Wc_freq_q,
-    const PeriodicBoundaryData &pbc, const TFGrids &tfg, bool remove_freq_q, MAJOR major_out)
+    const PeriodicBoundaryData &pbc, const TFGrids &tfg, bool remove_freq_q)
 {
     using std::endl;
 
@@ -2291,13 +2285,14 @@ std::map<double, std::map<Vector3_Order<int>, Matz>> CT_FT_Wc_freq_q(
         }
     }
     assert(major_orig != MAJOR::AUTO);
-    if (major_out == MAJOR::AUTO) major_out = major_orig;
 
     librpa_int::global::lib_printf_root("Converting Wc(q,w) -> W(R,t)\n");
+    global::ofs_myid << "Converting Wc(q,w) -> W(R,t)" << std::endl;
+    global::ofs_myid << "major_orig_row ? " << std::boolalpha << (major_orig == MAJOR::ROW) << std::endl;
     comm_h.barrier();
 
     // Perform Fourier transform first, then inverse cosine transform
-    auto Wc_freq_R = FT_Wc_freq_q(comm_h, Wc_freq_q, pbc, remove_freq_q, major_out);
+    auto Wc_freq_R = FT_Wc_freq_q(comm_h, Wc_freq_q, pbc, remove_freq_q);
     // if (Params::debug)
     // {
     //     const auto &Wc = Wc_freq_R.at(tfg.get_freq_nodes()[0]).at(Rlist[0]);
@@ -2373,7 +2368,7 @@ std::map<double, std::map<Vector3_Order<int>, Matz>> CT_FT_Wc_freq_q(
             const auto &R = Rlist[ir];
             for (const auto &tau: tfg.get_time_nodes())
             {
-                Wc_tau_R[tau][R] = Matz(nr, nc, major_out);
+                Wc_tau_R[tau][R] = Matz(nr, nc, major_orig);
             }
         }
 

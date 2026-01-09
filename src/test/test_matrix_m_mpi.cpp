@@ -694,14 +694,7 @@ void test_restore_local_mat_scheduler(const std::vector<size_t> &nbs, MAJOR majo
     matrix_m<T> global(ab.nb_total, ab.nb_total, major);
     if (myid_global == 0)
     {
-        if (is_complex<T>())
-        {
-             global.randomize(0, 1, false, true);
-        }
-        else
-        {
-             global.randomize(0, 1, true, false);
-        }
+        global.randomize(0, 1, false, false);
     }
     // broadcast
     MPI_Bcast(global.ptr(), m * n, mpi_datatype<T>::value, 0, ad.comm());
@@ -736,11 +729,11 @@ void test_restore_local_mat_scheduler(const std::vector<size_t> &nbs, MAJOR majo
                 const auto mat_ref = get_ap_block_from_global(global, IJ, ab, ab);
                 if (print)
                 {
-                    fequal_array(mat_ref.size(), mat_ref.ptr(), mat.ptr(), print);
+                    fequal_array(mat_ref.size(), mat_ref.ptr(), mat.ptr(), true);
                 }
                 else
                 {
-                    assert(fequal_array(mat_ref.size(), mat_ref.ptr(), mat.ptr(), print));
+                    assert(fequal_array(mat_ref.size(), mat_ref.ptr(), mat.ptr(), false));
                 }
             }
         }
@@ -750,14 +743,20 @@ void test_restore_local_mat_scheduler(const std::vector<size_t> &nbs, MAJOR majo
     for (int i = 0; i < size_global; i++)
     {
         blacs_ctxt_h.barrier();
-        if (print && myid_global == i)
+        if (myid_global == i)
         {
-            std::cout << "myid " << i << " local matrix reference" << std::endl;
-            std::cout << mat_loc_ref;
-            std::cout << "myid " << i << " local matrix" << std::endl;
-            std::cout << mat_loc << std::endl;
-            assert(fequal_array(mat_loc.size(), mat_loc.ptr(), mat_loc_ref.ptr(), false));
-            // fequal_array(mat_loc.size(), mat_loc.ptr(), mat_loc_ref.ptr(), true);
+            if (print)
+            {
+                std::cout << "myid " << i << " local matrix reference" << std::endl;
+                std::cout << mat_loc_ref;
+                std::cout << "myid " << i << " local matrix" << std::endl;
+                std::cout << mat_loc << std::endl;
+                fequal_array(mat_loc.size(), mat_loc.ptr(), mat_loc_ref.ptr(), true);
+            }
+            else
+            {
+                assert(fequal_array(mat_loc.size(), mat_loc.ptr(), mat_loc_ref.ptr(), false));
+            }
         }
     }
 
@@ -882,14 +881,7 @@ void test_restore_ap_map_scheduler(const std::vector<size_t> &nbs, MAJOR major, 
     matrix_m<T> global(ab.nb_total, ab.nb_total, major);
     if (myid_global == 0)
     {
-        if (is_complex<T>())
-        {
-             global.randomize(0, 1, false, true);
-        }
-        else
-        {
-             global.randomize(0, 1, true, false);
-        }
+        global.randomize(0, 1, false, false);
     }
     if (print && myid_global == 0) std::cout << "global matrix" << std::endl << global;
 
@@ -1108,6 +1100,8 @@ int main (int argc, char *argv[])
     test_restore_ap_map<complex<double>>({3, 5, 1}, MAJOR::ROW);
 
     // large cases
+    test_restore_ap_map_scheduler<complex<double>>({13, 13, 18}, MAJOR::ROW);
+    test_restore_local_mat_scheduler<complex<double>>({13, 13, 18}, MAJOR::ROW);
     test_restore_ap_map_scheduler<complex<double>>(std::vector<size_t>(50, 20), MAJOR::ROW);
     test_restore_local_mat_scheduler<complex<double>>({418, 643}, MAJOR::COL);
     test_restore_ap_map_scheduler<double>({200, 150, 401, 300}, MAJOR::COL);

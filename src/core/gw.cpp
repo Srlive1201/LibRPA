@@ -236,7 +236,19 @@ void G0W0::build_spacetime(
     global::profiler.start("g0w0_build_spacetime_ct_ft_wc", "Tranform Wc (q,w) -> (R,t)");
     global::profiler.start("g0w0_build_spacetime_ct_ft_real_work", "Perform transformation");
     // global::ofs_myid << Wc_freq_q.at(tfg.get_freq_nodes()[0]) << endl;
-    auto Wc_tau_R_blacs = CT_FT_Wc_freq_q(comm_h, Wc_freq_q, pbc, tfg, true, MAJOR::ROW);
+    // for (const auto &[freq, qWc]: Wc_freq_q)
+    // {
+    //     int iomega = tfg.get_freq_index(freq);
+    //     for (const auto &[q, Wc]: qWc)
+    //     {
+    //         std::stringstream ss;
+    //         ss << "Wc_omega_q"
+    //             << "_iw_" << std::setfill('0') << std::setw(5) << iomega
+    //             << "_iq_" << std::setfill('0') << std::setw(5) << pbc.get_k_index_full(q) << ".csc";
+    //         write_matrix_elsi_csc_parallel(ss.str(), Wc, ad_Wc);
+    //     }
+    // }
+    auto Wc_tau_R_blacs = CT_FT_Wc_freq_q(comm_h, Wc_freq_q, pbc, tfg, true);
     release_free_mem();
     global::profiler.stop("g0w0_build_spacetime_ct_ft_real_work");
 
@@ -245,8 +257,9 @@ void G0W0::build_spacetime(
     std::map<double, tensor_map> tau_Wc_libri;
     // NOTE: for case of a few atoms, some process may have much more memory load than others
     global::profiler.start("g0w0_build_spacetime_get_ap", "Compute balance atom-pairs distribution");
-    const auto &map_atpairs_balanced = get_balanced_ap_distribution_for_consec_descriptor(
+    const auto map_atpairs_balanced = get_balanced_ap_distribution_for_consec_descriptor(
         atbasis_abf, atbasis_abf, ad_Wc);
+    global::ofs_myid << map_atpairs_balanced.at(ad_Wc.myid()) << std::endl;
     global::profiler.stop("g0w0_build_spacetime_get_ap");
     IndexScheduler sched;
     sched.init(map_atpairs_balanced, atbasis_abf, atbasis_abf, ad_Wc, MAJOR::ROW);
@@ -255,9 +268,17 @@ void G0W0::build_spacetime(
         for (auto &[R, mat_blacs]: map_R_mat)
         {
             auto pair_mat = get_ap_map_from_blacs_dist_scheduler(mat_blacs, sched, atbasis_abf, atbasis_abf, ad_Wc);
-            // if (tau == tfg.get_time_nodes()[0])
+            auto itau = tfg.get_time_index(tau);
+            // if (itau == 0)
             // {
-            //     librpa_int::global::ofs_myid << pair_mat << endl;
+            //     librpa_int::global::ofs_myid << "R: " << R << " tau: " << tau << std::endl;
+            //     librpa_int::global::ofs_myid << "BLACS: " << std::endl << mat_blacs << std::endl;
+            //     librpa_int::global::ofs_myid << "pair: " << std::endl << pair_mat << std::endl;
+            //     std::stringstream ss;
+            //     ss << "Wc_tau_R"
+            //         << "_itau_" << std::setfill('0') << std::setw(5) << itau
+            //         << "_iR_" << std::setfill('0') << std::setw(5) << get_R_index(pbc.Rlist, R) << ".csc";
+            //     write_matrix_elsi_csc_parallel(ss.str(), mat_blacs, ad_Wc);
             // }
             // if (Params::debug)
             // {
@@ -274,7 +295,21 @@ void G0W0::build_spacetime(
                 const auto &J = as_int(pair.second);
                 const auto &nabf_I = atbasis_abf.get_atom_nb(I);
                 const auto &nabf_J = atbasis_abf.get_atom_nb(J);
+                // LibRI Tensor is fixed to row major
+                if (mat_ap.is_col_major()) mat_ap.swap_to_row_major();
                 tau_Wc_libri[tau][I][{J, {R.x, R.y, R.z}}] = RI::Tensor<double>({nabf_I, nabf_J}, mat_ap.get_real().sptr());
+                // std::stringstream ss;
+                // ss << "tau_Wc_libri_"
+                //     << "_itau_" << std::setfill('0') << std::setw(5) << itau
+                //     << "_I_" << std::setfill('0') << std::setw(5) << I
+                //     << "_J_" << std::setfill('0') << std::setw(5) << J
+                //     << "_iR_" << std::setfill('0') << std::setw(5) << get_R_index(pbc.Rlist, R) << ".dat";
+                // librpa_int::global::ofs_myid << "Writing to " << ss.str() << " " << tau << " " << I << " " << J << " " << R << std::endl;
+                // std::ofstream ofs(ss.str());
+                // // ofs << tau_Wc_libri[tau][I][{J, {R.x, R.y, R.z}}] << std::endl;
+                // global::ofs_myid << "mat_ap row major? " << std::boolalpha << mat_ap.is_row_major() << std::endl;
+                // ofs << mat_ap.get_real() << std::endl;
+                // ofs.close();
             }
             // global::ofs_myid << "tau " << tau << endl << tau_Wc_libri[tau] << endl;
             mat_blacs.clear();
@@ -294,7 +329,7 @@ void G0W0::build_spacetime(
         atoms_pos.insert(pair<int, std::array<double, 3>>{i, {0, 0, 0}});
 
     global::profiler.start("g0w0_build_spacetime_2", "Setup LibRI G0W0 object and C data");
-    gw_libri.set_parallel(ad_Wc.comm(), atoms_pos, pbc.latvec_array, pbc.period_array);
+    gw_libri.set_parallel(comm_h.comm, atoms_pos, pbc.latvec_array, pbc.period_array);
     gw_libri.set_Cs(LRI_Cs.data_libri, this->libri_threshold_C);
     global::profiler.stop("g0w0_build_spacetime_2");
     librpa_int::global::lib_printf_root("Time for LibRI G0W0 setup (seconds, Wall/CPU): %f %f\n",
@@ -347,6 +382,7 @@ void G0W0::build_spacetime(
             }
             // if (itau == 0 && ispin == 0)  // debug
             // {
+            //     global::ofs_myid << "tau_gf_libri itau=0 ispin=0" << std::endl;
             //     global::ofs_myid << tau_gf_libri << std::endl;
             // }
             global::profiler.stop("g0w0_build_spacetime_4");
@@ -361,6 +397,52 @@ void G0W0::build_spacetime(
                 size_t n_obj_gf_libri = 0;
                 for (const auto &gf: gf_libri)
                     n_obj_gf_libri += gf.second.size();
+                // if (t > 0)  // debug
+                // {
+                //     global::ofs_myid << "gf_libri posi ispin=0 itau " << itau << " " << get_num_keys(gf_libri)  << std::endl;
+                //     print_keys(global::ofs_myid, gf_libri);
+                //     // global::ofs_myid << gf_libri << std::endl;
+                //     for (const auto &[I, JR_gf]: gf_libri)
+                //     {
+                //         for (const auto &[JR, gf]: JR_gf)
+                //         {
+                //             std::stringstream ss;
+                //             Vector3_Order<int> R(JR.second[0], JR.second[1], JR.second[2]);
+                //             ss << "gf_libri_posi"
+                //                 << "_itau_" << std::setfill('0') << std::setw(5) << itau
+                //                 << "_I_" << std::setfill('0') << std::setw(5) << I
+                //                 << "_J_" << std::setfill('0') << std::setw(5) << JR.first
+                //                 << "_iR_" << std::setfill('0') << std::setw(5) << get_R_index(pbc.Rlist, R) << ".dat";
+                //             librpa_int::global::ofs_myid << "Writing GF to " << ss.str() << " " << tau << " " << I << " " << JR.second << " " << R << std::endl;
+                //             std::ofstream ofs(ss.str());
+                //             ofs << gf << std::endl;
+                //             ofs.close();
+                //         }
+                //     }
+                // }
+                // else
+                // {
+                //     global::ofs_myid << "gf_libri nega ispin=0 itau " << itau << " " << get_num_keys(gf_libri) << std::endl;
+                //     print_keys(global::ofs_myid, gf_libri);
+                //     // global::ofs_myid << gf_libri << std::endl;
+                //     for (const auto &[I, JR_gf]: gf_libri)
+                //     {
+                //         for (const auto &[JR, gf]: JR_gf)
+                //         {
+                //             std::stringstream ss;
+                //             Vector3_Order<int> R(JR.second[0], JR.second[1], JR.second[2]);
+                //             ss << "gf_libri_nega"
+                //                 << "_itau_" << std::setfill('0') << std::setw(5) << itau
+                //                 << "_I_" << std::setfill('0') << std::setw(5) << I
+                //                 << "_J_" << std::setfill('0') << std::setw(5) << JR.first
+                //                 << "_iR_" << std::setfill('0') << std::setw(5) << get_R_index(pbc.Rlist, R) << ".dat";
+                //             librpa_int::global::ofs_myid << "Writing GF to " << ss.str() << " " << tau << " " << I << " " << JR.second << " " << R << std::endl;
+                //             std::ofstream ofs(ss.str());
+                //             ofs << gf << std::endl;
+                //             ofs.close();
+                //         }
+                //     }
+                // }
 
                 double wtime_g0w0_cal_sigc = omp_get_wtime();
                 gw_libri.set_Gs(gf_libri, this->libri_threshold_G);
@@ -380,6 +462,21 @@ void G0W0::build_spacetime(
                 else
                     sigc_nega_tau = std::move(gw_libri.Sigmas);
                 gw_libri.Sigmas.clear();
+                // if (itau == 0 && ispin == 0)
+                // {
+                //     if (t > 0)
+                //     {
+                //         global::ofs_myid << "sigc_posi_tau itau=0 ispin=0 " << get_num_keys(sigc_posi_tau) << std::endl;
+                //         print_keys(global::ofs_myid, sigc_posi_tau);
+                //         global::ofs_myid << sigc_posi_tau << std::endl;
+                //     }
+                //     if (t < 0)
+                //     {
+                //         global::ofs_myid << "sigc_nega_tau itau=0 ispin=0 " << get_num_keys(sigc_nega_tau) << std::endl;
+                //         print_keys(global::ofs_myid, sigc_nega_tau);
+                //         global::ofs_myid << sigc_nega_tau << std::endl;
+                //     }
+                // }
 
                 wtime_g0w0_cal_sigc = omp_get_wtime() - wtime_g0w0_cal_sigc;
                 librpa_int::global::lib_printf("Task %4d. libRI G0W0, spin %1d, time grid %12.6f. Wc size %zu, GF size %zu. Wall time %f\n",
