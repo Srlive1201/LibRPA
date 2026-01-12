@@ -99,7 +99,7 @@ void task_screened_coulomb_real_freq(std::map<Vector3_Order<double>, ComplexMatr
                 if (iatom_row == iatom_col) continue;
                 for (const auto &Wc_q : Wc.at(iatom_row).at(iatom_col))
                 {
-                    Wc[iatom_col][iatom_row][Wc_q.first] = conj(Wc_q.second);
+                    Wc[iatom_col][iatom_row][Wc_q.first] = Wc_q.second.get_transpose(true);
                 }
             }
         }

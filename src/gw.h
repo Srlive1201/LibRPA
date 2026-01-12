@@ -29,7 +29,7 @@ class G0W0
     // std::map<int, std::map<double, std::map<Vector3_Order<double>,
     // atom_mapping<Matz>::pair_t_old>>> sigc_is_f_k_IJ;
 
-    //! frequency-domain reciprocal-space correlation self-energy, indices
+    //! frequency-domain real-space correlation self-energy, indices
     //! [ispin][isoc1][isoc2][freq][R][I][J](n_I, n_J)
     std::map<
         int,
@@ -74,10 +74,12 @@ class G0W0
         const vector<Vector3_Order<int>> &Rlist, const vector<Vector3_Order<double>> &qlist,
         std::map<Vector3_Order<double>, ComplexMatrix> &sinvS);
 
+    //! read the real-space correlation self-energy matrix on imaginary frequencies from disk
+    void read_sigc(const std::string &input_dir, const vector<Vector3_Order<int>> &Rlist);
     //! build the correlation self-energy matrix in Kohn-Sham basis at the SCF k-points
     void build_sigc_matrix_KS_kgrid();
     void build_sigc_matrix_KS_kgrid0();
-    //! build the correlation self-energy matrix in Kohn-Sham basis at the SCF k-points
+    //! build the correlation self-energy matrix in Kohn-Sham basis at the band k-points
     void build_sigc_matrix_KS_band(
         const std::vector<std::vector<std::vector<ComplexMatrix>>> &wfc_target,
         const std::vector<Vector3_Order<double>> &kfrac_band);

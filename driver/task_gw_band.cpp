@@ -41,13 +41,6 @@ void task_g0w0_band(std::map<Vector3_Order<double>, ComplexMatrix> &sinvS)
         qlist.push_back(q_weight.first);
     }
 
-    // Prepare time-frequency grids
-    auto tfg =
-        LIBRPA::utils::generate_timefreq_grids(Params::nfreq, Params::tfgrids_type, meanfield);
-
-    Chi0 chi0(meanfield, klist, tfg);
-    chi0.gf_R_threshold = Params::gf_R_threshold;
-
     Profiler::start("read_vq_cut", "Load truncated Coulomb");
     if (LIBRPA::parallel_routing == LIBRPA::ParallelRouting::R_TAU)
     {
@@ -64,61 +57,21 @@ void task_g0w0_band(std::map<Vector3_Order<double>, ComplexMatrix> &sinvS)
     }
     Profiler::cease("read_vq_cut");
 
-    std::vector<double> epsmac_LF_imagfreq_re;
-    if (Params::replace_w_head)
+    Profiler::start("read_vxc", "Load DFT xc potential");
+    std::vector<matrix> vxc;
+    int flag_read_vxc = read_vxc(driver_params.input_dir + "vxc_out", vxc);
+    Profiler::stop("read_vxc");
+
+    if (flag_read_vxc != 0)
     {
-        std::vector<double> omegas_dielect;
-        std::vector<double> dielect_func;
-        if (Params::option_dielect_func != 3 && Params::option_dielect_func != 4)
-            read_dielec_func(driver_params.input_dir + "dielecfunc_out", omegas_dielect,
-                             dielect_func);
-
-        epsmac_LF_imagfreq_re = interpolate_dielec_func(Params::option_dielect_func, omegas_dielect,
-                                                        dielect_func, chi0.tfg.get_freq_nodes());
-    }
-
-    chi0.set_input_dir(driver_params.input_dir);
-    Profiler::start("chi0_build", "Build response function chi0");
-    if (Params::use_shrink_chi)
-    {
-        chi0.build(Cs_data, Rlist, period, local_atpair, qlist, sinvS);
-    }
-    else
-    {
-        chi0.build(Cs_shrinked_data, Rlist, period, local_atpair, qlist, sinvS);
-    }
-
-    Profiler::stop("chi0_build");
-
-    std::flush(ofs_myid);
-    mpi_comm_global_h.barrier();
-
-    if (Params::debug)
-    {  // debug, check chi0
-        char fn[80];
-        for (const auto &chi0q : chi0.get_chi0_q())
+        if (mpi_comm_global_h.myid == 0)
         {
-            const int ifreq = chi0.tfg.get_freq_index(chi0q.first);
-            for (const auto &q_IJchi0 : chi0q.second)
-            {
-                const int iq = std::distance(klist.begin(),
-                                             std::find(klist.begin(), klist.end(), q_IJchi0.first));
-                for (const auto &I_Jchi0 : q_IJchi0.second)
-                {
-                    const auto &I = I_Jchi0.first;
-                    for (const auto &J_chi0 : I_Jchi0.second)
-                    {
-                        const auto &J = J_chi0.first;
-                        sprintf(fn, "chi0fq_ifreq_%d_iq_%d_I_%zu_J_%zu_id_%d.mtx", ifreq, iq, I, J,
-                                mpi_comm_global_h.myid);
-                        print_complex_matrix_mm(J_chi0.second, Params::output_dir + "/" + fn,
-                                                1e-15);
-                    }
-                }
-            }
+            lib_printf("Error in reading Vxc on kgrid, task failed!\n");
         }
+        Profiler::stop("g0w0_band");
+        return;
     }
-
+    // ================== EXX part: Compute Hexx(R) ==================
     Profiler::start("g0w0_exx", "Build exchange self-energy");
     auto exx = LIBRPA::Exx(meanfield, kfrac_list, period);
     {
@@ -156,97 +109,151 @@ void task_g0w0_band(std::map<Vector3_Order<double>, ComplexMatrix> &sinvS)
     Profiler::stop("g0w0_exx");
     std::flush(ofs_myid);
 
-    Profiler::start("g0w0_wc", "Build screened interaction");
-    vector<std::complex<double>> epsmac_LF_imagfreq(epsmac_LF_imagfreq_re.cbegin(),
-                                                    epsmac_LF_imagfreq_re.cend());
-    map<double,
-        atom_mapping<std::map<Vector3_Order<double>, matrix_m<complex<double>>>>::pair_t_old>
-        Wc_freq_q;
-    if (Params::use_scalapack_gw_wc)
+    // ================== GW part: Compute Sigma_c(R, iw)  ==================
+    // Prepare time-frequency grids
+    auto tfg =
+        LIBRPA::utils::generate_timefreq_grids(Params::nfreq, Params::tfgrids_type, meanfield);
+    
+    LIBRPA::G0W0 s_g0w0(meanfield, kfrac_list, tfg, period);
+    
+    if (Params::band_continue)
     {
-        if (Params::use_fullcoul_wc)
-        {
-            Wc_freq_q = compute_Wc_freq_q_blacs(chi0, Vq, Vq, epsmac_LF_imagfreq);
-        }
-        else
-        {
-            Wc_freq_q = compute_Wc_freq_q_blacs(chi0, Vq, Vq_cut, epsmac_LF_imagfreq);
-        }
+        s_g0w0.read_sigc(driver_params.input_dir + "librpa.d/", Rlist);
     }
     else
     {
-        if (Params::use_fullcoul_wc)
+        Chi0 chi0(meanfield, klist, tfg);
+        chi0.gf_R_threshold = Params::gf_R_threshold;
+
+        std::vector<double> epsmac_LF_imagfreq_re;
+        if (Params::replace_w_head)
         {
-            Wc_freq_q = compute_Wc_freq_q(chi0, Vq, Vq, epsmac_LF_imagfreq);
+            std::vector<double> omegas_dielect;
+            std::vector<double> dielect_func;
+            if (Params::option_dielect_func != 3 && Params::option_dielect_func != 4)
+                read_dielec_func(driver_params.input_dir + "dielecfunc_out", omegas_dielect,
+                                dielect_func);
+
+            epsmac_LF_imagfreq_re = interpolate_dielec_func(Params::option_dielect_func, omegas_dielect,
+                                                            dielect_func, chi0.tfg.get_freq_nodes());
+        }
+
+        chi0.set_input_dir(driver_params.input_dir);
+        Profiler::start("chi0_build", "Build response function chi0");
+        if (Params::use_shrink_chi)
+        {
+            chi0.build(Cs_data, Rlist, period, local_atpair, qlist, sinvS);
         }
         else
         {
-            Wc_freq_q = compute_Wc_freq_q(chi0, Vq, Vq_cut, epsmac_LF_imagfreq);
+            chi0.build(Cs_shrinked_data, Rlist, period, local_atpair, qlist, sinvS);
         }
-    }
-    Profiler::stop("g0w0_wc");
-    if (Params::debug)
-    {  // debug, check Wc
-        char fn[80];
-        for (const auto &Wc : Wc_freq_q)
-        {
-            const int ifreq = chi0.tfg.get_freq_index(Wc.first);
-            for (const auto &I_JqWc : Wc.second)
+
+        Profiler::stop("chi0_build");
+
+        std::flush(ofs_myid);
+        mpi_comm_global_h.barrier();
+
+        if (Params::debug)
+        {  // debug, check chi0
+            char fn[80];
+            for (const auto &chi0q : chi0.get_chi0_q())
             {
-                const auto &I = I_JqWc.first;
-                for (const auto &J_qWc : I_JqWc.second)
+                const int ifreq = chi0.tfg.get_freq_index(chi0q.first);
+                for (const auto &q_IJchi0 : chi0q.second)
                 {
-                    const auto &J = J_qWc.first;
-                    for (const auto &q_Wc : J_qWc.second)
+                    const int iq = std::distance(klist.begin(),
+                                                std::find(klist.begin(), klist.end(), q_IJchi0.first));
+                    for (const auto &I_Jchi0 : q_IJchi0.second)
                     {
-                        const int iq = std::distance(
-                            klist.begin(), std::find(klist.begin(), klist.end(), q_Wc.first));
-                        sprintf(fn, "Wcfq_ifreq_%d_iq_%d_I_%zu_J_%zu_id_%d.mtx", ifreq, iq, I, J,
-                                mpi_comm_global_h.myid);
-                        print_matrix_mm_file(q_Wc.second, Params::output_dir + "/" + fn, 1e-15);
+                        const auto &I = I_Jchi0.first;
+                        for (const auto &J_chi0 : I_Jchi0.second)
+                        {
+                            const auto &J = J_chi0.first;
+                            sprintf(fn, "chi0fq_ifreq_%d_iq_%d_I_%zu_J_%zu_id_%d.mtx", ifreq, iq, I, J,
+                                    mpi_comm_global_h.myid);
+                            print_complex_matrix_mm(J_chi0.second, Params::output_dir + "/" + fn,
+                                                    1e-15);
+                        }
                     }
                 }
             }
         }
-    }
 
-    if (Params::use_shrink_abfs)
-    {
-        Profiler::start("read_shrink_sinvS_fold", "Load shrink transformation");
-        // change atom_mu: number of {Mu,mu} in the later calculations
-        read_shrink_sinvS(driver_params.input_dir, "shrink_sinvS_", sinvS);
-        Profiler::stop("read_shrink_sinvS_fold");
-    }
-
-    LIBRPA::G0W0 s_g0w0(meanfield, kfrac_list, chi0.tfg, period);
-    Profiler::start("g0w0_sigc_IJ", "Build real-space correlation self-energy");
-
-    if (Params::use_soc)
-        s_g0w0.build_spacetime<std::complex<double>>(Cs_data, Wc_freq_q, Rlist, qlist, sinvS);
-    else
-        s_g0w0.build_spacetime<double>(Cs_data, Wc_freq_q, Rlist, qlist, sinvS);
-
-    Profiler::stop("g0w0_sigc_IJ");
-    std::flush(ofs_myid);
-
-    /*
-     * Compute the QP energies on k-grid
-     */
-    Profiler::start("read_vxc", "Load DFT xc potential");
-    std::vector<matrix> vxc;
-    int flag_read_vxc = read_vxc(driver_params.input_dir + "vxc_out", vxc);
-    Profiler::stop("read_vxc");
-
-    if (flag_read_vxc != 0)
-    {
-        if (mpi_comm_global_h.myid == 0)
+        Profiler::start("g0w0_wc", "Build screened interaction");
+        vector<std::complex<double>> epsmac_LF_imagfreq(epsmac_LF_imagfreq_re.cbegin(),
+                                                        epsmac_LF_imagfreq_re.cend());
+        map<double,
+            atom_mapping<std::map<Vector3_Order<double>, matrix_m<complex<double>>>>::pair_t_old>
+            Wc_freq_q;
+        if (Params::use_scalapack_gw_wc)
         {
-            lib_printf("Error in reading Vxc on kgrid, task failed!\n");
+            if (Params::use_fullcoul_wc)
+            {
+                Wc_freq_q = compute_Wc_freq_q_blacs(chi0, Vq, Vq, epsmac_LF_imagfreq);
+            }
+            else
+            {
+                Wc_freq_q = compute_Wc_freq_q_blacs(chi0, Vq, Vq_cut, epsmac_LF_imagfreq);
+            }
         }
-        Profiler::stop("g0w0_band");
-        return;
+        else
+        {
+            if (Params::use_fullcoul_wc)
+            {
+                Wc_freq_q = compute_Wc_freq_q(chi0, Vq, Vq, epsmac_LF_imagfreq);
+            }
+            else
+            {
+                Wc_freq_q = compute_Wc_freq_q(chi0, Vq, Vq_cut, epsmac_LF_imagfreq);
+            }
+        }
+        Profiler::stop("g0w0_wc");
+        if (Params::debug)
+        {  // debug, check Wc(q, iw)
+            char fn[80];
+            for (const auto &Wc : Wc_freq_q)
+            {
+                const int ifreq = chi0.tfg.get_freq_index(Wc.first);
+                for (const auto &I_JqWc : Wc.second)
+                {
+                    const auto &I = I_JqWc.first;
+                    for (const auto &J_qWc : I_JqWc.second)
+                    {
+                        const auto &J = J_qWc.first;
+                        for (const auto &q_Wc : J_qWc.second)
+                        {
+                            const int iq = std::distance(
+                                klist.begin(), std::find(klist.begin(), klist.end(), q_Wc.first));
+                            sprintf(fn, "Wcfq_ifreq_%d_iq_%d_I_%zu_J_%zu_id_%d.mtx", ifreq, iq, I, J,
+                                    mpi_comm_global_h.myid);
+                            print_matrix_mm_file(q_Wc.second, Params::output_dir + "/" + fn, 1e-15);
+                        }
+                    }
+                }
+            }
+        }
+
+        if (Params::use_shrink_abfs)
+        {
+            Profiler::start("read_shrink_sinvS_fold", "Load shrink transformation");
+            // change atom_mu: number of {Mu,mu} in the later calculations
+            read_shrink_sinvS(driver_params.input_dir, "shrink_sinvS_", sinvS);
+            Profiler::stop("read_shrink_sinvS_fold");
+        }
+
+        Profiler::start("g0w0_sigc_IJ", "Build real-space correlation self-energy");
+
+        if (Params::use_soc)
+            s_g0w0.build_spacetime<std::complex<double>>(Cs_data, Wc_freq_q, Rlist, qlist, sinvS);
+        else
+            s_g0w0.build_spacetime<double>(Cs_data, Wc_freq_q, Rlist, qlist, sinvS);
+
+        Profiler::stop("g0w0_sigc_IJ");
+        std::flush(ofs_myid);
     }
 
+    // ================== Compute the QP energies on k-grid ==================
     Profiler::start("g0w0_exx_ks_kgrid");
     exx.build_KS_kgrid();
     Profiler::stop("g0w0_exx_ks_kgrid");
@@ -256,7 +263,7 @@ void task_g0w0_band(std::map<Vector3_Order<double>, ComplexMatrix> &sinvS)
 
     // imaginary freqencies for analytic continuation
     std::vector<cplxdb> imagfreqs;
-    for (const auto &freq : chi0.tfg.get_freq_nodes())
+    for (const auto &freq : tfg.get_freq_nodes())
     {
         imagfreqs.push_back(cplxdb{0.0, freq});
     }
@@ -284,7 +291,7 @@ void task_g0w0_band(std::map<Vector3_Order<double>, ComplexMatrix> &sinvS)
                     const auto &exx_state = exx.Eexx[i_spin][i_kpoint][i_state];
                     const auto &vxc_state = vxc[i_spin](i_kpoint, i_state);
                     std::vector<cplxdb> sigc_state;
-                    for (const auto &freq : chi0.tfg.get_freq_nodes())
+                    for (const auto &freq : tfg.get_freq_nodes())
                     {
                         sigc_state.push_back(sigc_sk.at(freq)(i_state, i_state));
                     }
@@ -342,7 +349,36 @@ void task_g0w0_band(std::map<Vector3_Order<double>, ComplexMatrix> &sinvS)
                 printf("\n");
             }
         }
-
+        if (Params::output_energy_qp) {
+            std::ofstream ofs("energy_qp");
+            ofs << "  state     occ_num        e_gs(Ha)        e_qp(Ha)"<<std::endl;
+            ofs << banner << std::endl;
+            for (int i_spin = 0; i_spin < meanfield.get_n_spins(); i_spin++)
+            {
+                for (int i_kpoint = 0; i_kpoint < meanfield.get_n_kpoints(); i_kpoint++)
+                {
+                    const auto &k = kfrac_list[i_kpoint];
+                    ofs << " K_point " << i_kpoint + 1 << " :" << std::setw(10) << std::setprecision(7)
+                        << k.x << std::setw(10) << k.y << std::setw(10) << k.z << std::setw(10)
+                        <<" Spin " << i_spin + 1 << std::endl;
+                    ofs << banner << std::endl;
+                    for (int i_state = 0; i_state < meanfield.get_n_bands(); i_state++)
+                    {
+                        const auto &occ_state =
+                            meanfield.get_weight()[i_spin](i_kpoint, i_state) * meanfield.get_n_kpoints();
+                        const auto &eks_state =
+                            meanfield.get_eigenvals()[i_spin](i_kpoint, i_state);
+                        const auto &eqp = e_qp_all[i_spin][i_kpoint][i_state];
+                        ofs << std::setw(7) << i_state + 1 << std::setw(10) << std::setprecision(5)
+                            << occ_state << std::setw(18) << std::setprecision(10) << eks_state
+                            << std::setw(18) << std::setprecision(10) << eqp << std::endl;
+                    }
+                    ofs << banner << std::endl;
+                    ofs << std::endl;
+                }
+            }
+            ofs.close();
+        }
         // output for HamGNN
         if (Params::output_hamgnn)
         {
@@ -380,9 +416,7 @@ void task_g0w0_band(std::map<Vector3_Order<double>, ComplexMatrix> &sinvS)
     }
     Profiler::stop("g0w0_solve_qpe_kgrid");
 
-    /*
-     * Compute the QP energies on band k-paths
-     */
+    // ================== Compute the QP energies on k-path ==================
     // Reset k-space EXX and Sigmac matrices to avoid warning from internal reset
     exx.reset_kspace();
     s_g0w0.reset_kspace();
@@ -472,7 +506,7 @@ void task_g0w0_band(std::map<Vector3_Order<double>, ComplexMatrix> &sinvS)
                     const auto &exx_state = exx.Eexx[i_spin][i_kpoint][i_state];
                     const auto &vxc_state = vxc_band[i_spin](i_kpoint, i_state);
                     std::vector<cplxdb> sigc_state;
-                    for (const auto &freq : chi0.tfg.get_freq_nodes())
+                    for (const auto &freq : tfg.get_freq_nodes())
                     {
                         sigc_state.push_back(sigc_sk.at(freq)(i_state, i_state));
                     }
@@ -565,7 +599,7 @@ void task_g0w0_band(std::map<Vector3_Order<double>, ComplexMatrix> &sinvS)
                        << std::setprecision(7) << k.z;
                 for (int i_state = 0; i_state < meanfield.get_n_bands(); i_state++)
                 {
-                    const auto &occ_state = mf.get_weight()[i_spin](i_kpoint, i_state);
+                    const auto &occ_state = mf.get_weight()[i_spin](i_kpoint, i_state) * mf.get_n_kpoints();
                     const auto &eks_state = mf.get_eigenvals()[i_spin](i_kpoint, i_state) * HA2EV;
                     const auto &exx_state = exx.Eexx[i_spin][i_kpoint][i_state] * HA2EV;
                     const auto &vxc_state = vxc_band[i_spin](i_kpoint, i_state) * HA2EV;

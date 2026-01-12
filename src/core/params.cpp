@@ -46,9 +46,13 @@ bool Params::use_shrink_abfs = false;
 bool Params::use_soc = false;
 bool Params::use_2d_dielectric = false;
 
+bool Params::band_continue = false;
+
 /* ==========================================================
  * output options begin
  * ========================================================== */
+int Params::output_Wc_Rf_mat = 0;
+bool Params::output_energy_qp = false;
 bool Params::output_gw_sigc_mat = false;
 bool Params::output_gw_sigc_mat_rt = false;
 bool Params::output_gw_sigc_mat_rf = false;
@@ -89,6 +93,7 @@ void Params::print()
         {"nfreq", nfreq},
         {"n_params_anacon", n_params_anacon},
         {"option_dielect_func", option_dielect_func},
+        {"output_Wc_Rf_mat", output_Wc_Rf_mat},
         {"nbands_G", nbands_G},
     };
 
@@ -102,9 +107,13 @@ void Params::print()
 
     const std::vector<std::pair<std::string, bool>> bool_params{
         {"debug", debug},
+        {"band_continue", band_continue},
         {"use_scalapack_ecrpa", use_scalapack_ecrpa},
         {"use_scalapack_gw_wc", use_scalapack_gw_wc},
+        {"output_energy_qp", output_energy_qp},
         {"output_gw_sigc_mat", output_gw_sigc_mat},
+        {"output_gw_sigc_mat_rt", output_gw_sigc_mat_rt},
+        {"output_gw_sigc_mat_rf", output_gw_sigc_mat_rf},
         {"replace_w_head", replace_w_head},
         {"use_shrink_abfs", use_shrink_abfs},
         {"use_shrink_chi", use_shrink_chi},

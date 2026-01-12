@@ -324,8 +324,55 @@ void G0W0::build_spacetime(
     // Transform
     if (Params::use_shrink_abfs)
     {
+        if (Params::output_Wc_Rf_mat == 1)
+        {
+            Profiler::start("unfold_Wc_q", "Unfold Wc (q,w=0)");
+            const double freq = tfg.get_freq_nodes()[0];
+            auto Wc_q_f0 = Wc_freq_q.at(freq);
+            unfold_abfs_Wc(sinvS, Wc_q_f0, qlist, atom_mu_l, atom_mu_s);
+            Profiler::stop("unfold_Wc_q");
+            Profiler::start("construct_Wc_lower_half", "Construct Lower Half of Wc(q,w)");
+            // NOTE: only upper half of Wc is built now
+            //       here we recover the other half before transform to R space using the Hermitian property
+            //       and Hermitize the diagonal blocks (due to numerical noise)
+            vector<atom_t> iatoms_row;
+            for (const auto &Mu_NuqWc : Wc_q_f0) iatoms_row.push_back(Mu_NuqWc.first);
+            for (auto iatom_row: iatoms_row)
+            {
+                vector<atom_t> iatoms_col;
+                for (const auto &Nu_qWc : Wc_q_f0.at(iatom_row))
+                {
+                    iatoms_col.push_back(Nu_qWc.first);
+                }
+                for (auto iatom_col : iatoms_col)
+                {
+                    for (const auto &q_Wc : Wc_q_f0.at(iatom_row).at(iatom_col))
+                    {
+                        assert(q_Wc.second.major() == MAJOR::ROW);
+                        if(iatom_row != iatom_col)
+                            Wc_q_f0[iatom_col][iatom_row][q_Wc.first] = q_Wc.second.get_transpose(true);
+                        else // Hermitize the diagonal blocks
+                        {
+                            auto Wc_mat = q_Wc.second;
+                            Wc_mat = (Wc_mat + Wc_mat.get_transpose(true)) * 0.5;
+                            Wc_q_f0[iatom_row][iatom_row][q_Wc.first] = Wc_mat;
+                        }
+                    }
+                }
+            }
+
+            mpi_comm_global_h.barrier();
+            Profiler::stop("construct_Wc_lower_half");
+            FT_Wc_q2R(Wc_q_f0, tfg, meanfield.get_n_kpoints(), Rlist, true);
+            Wc_q_f0.clear();
+        }
+        else if (Params::output_Wc_Rf_mat > 1)
+        {
+            throw std::logic_error("use_shrink_abfs doesn't support output_Wc_Rf_mat > 1");
+        }
         Profiler::start("g0w0_build_spacetime_wt_ft_wc", "Tranform Wc (q,w) -> (q,t)");
-        Wc_tau_q = CT_FT_Wc_freq2time_q(Wc_freq_q, tfg, meanfield.get_n_kpoints(), Rlist, qlist);
+        Wc_tau_q = CT_Wc_freq2time_q(Wc_freq_q, tfg, meanfield.get_n_kpoints(), Rlist, qlist);
+
         // HACK: Free up Wc_freq_q to save memory, especially for large Coulomb matrix case and many
         // minimax grids
         Wc_freq_q.clear();
@@ -339,11 +386,18 @@ void G0W0::build_spacetime(
     else
     {
         Profiler::start("g0w0_build_spacetime_ct_ft_wc", "Tranform Wc (q,w) -> (R,t)");
-        Wc_tau_R = CT_FT_Wc_freq_q(Wc_freq_q, tfg, meanfield.get_n_kpoints(), Rlist);
-        // HACK: Free up Wc_freq_q to save memory, especially for large Coulomb matrix case and many
-        // minimax grids
-        Wc_freq_q.clear();
-        utils::release_free_mem();
+        if (Params::output_Wc_Rf_mat > 0)
+        {
+            Wc_tau_R = CT_FT_Wc_q2R_freq2time(Wc_freq_q, tfg, meanfield.get_n_kpoints(), Rlist);
+        }
+        else
+        {
+            Wc_tau_R = CT_FT_Wc_freq_q(Wc_freq_q, tfg, meanfield.get_n_kpoints(), Rlist);
+            // HACK: Free up Wc_freq_q to save memory, especially for large Coulomb matrix case and many
+            // minimax grids
+            Wc_freq_q.clear();
+            utils::release_free_mem();
+        }
         Profiler::stop("g0w0_build_spacetime_ct_ft_wc");
         LIBRPA::utils::lib_printf_root(
             "Time for Fourier transform of Wc in GW (seconds, Wall/CPU): %f %f\n",
@@ -404,7 +458,7 @@ void G0W0::build_spacetime(
             Profiler::stop("unfold_Wc_abfs");
             Profiler::start("g0w0_build_spacetime_Rq_ft_wc", "Tranform Wc (q,t) -> (R,t)");
             Wc_tau_R[tau] =
-                CT_FT_Wc_tau_R2q(Wc_tau_q[tau], tfg, meanfield.get_n_kpoints(), Rlist, itau);
+                FT_Wc_q2R(Wc_tau_q[tau], tfg, meanfield.get_n_kpoints(), Rlist, false);
             Profiler::stop("g0w0_build_spacetime_Rq_ft_wc");
             Wc_tau_q[tau].clear();
             atom_mu = atom_mu_l;
@@ -446,9 +500,11 @@ void G0W0::build_spacetime(
                         else
                             Wc_libri[static_cast<int>(I)][{static_cast<int>(J), {R.x, R.y, R.z}}] =
                                 RI::Tensor<double>({nabf_I, nabf_J}, R_Wc.second.get_real().sptr());
-                        // cout << "I " << I << " J " << J <<  " R " << R << " tau " << tau << endl
-                        // ; cout << Wc_libri[I][{J, {R.x, R.y, R.z}}] << endl; handle the <JI(R)>
-                        // block
+                        // cout << "I " << I << " J " << J <<  " R " << R << " tau " << tau << endl; 
+                        // cout << Wc_libri[static_cast<int>(I)][{static_cast<int>(J), {R.x, R.y, R.z}}] << endl; 
+                        // std::cout << "R_Wc.second: " << R_Wc.second << std::endl;
+                        // handle the <JI(R)> block
+                        if (Params::output_Wc_Rf_mat > 0 && !Params::use_shrink_abfs) continue; // full atom-pair has been constructed
                         if (I == J) continue;
                         auto minusR = (-R) % this->period_;
                         if (J_RWc.second.count(minusR) == 0) continue;
@@ -613,6 +669,7 @@ void G0W0::build_spacetime(
                                         std::shared_ptr<std::valarray<Tdata>> mat_ptr =
                                             std::make_shared<std::valarray<Tdata>>(
                                                 gf_IJ_block.c, gf_IJ_block.size);
+
                                         tau_gf_libri[t][static_cast<int>(I)]
                                                     [{static_cast<int>(J), {R.x, R.y, R.z}}] =
                                                         RI::Tensor<Tdata>({n_I, n_J}, mat_ptr);
@@ -884,6 +941,60 @@ void G0W0::build_spacetime(
             }
         }
     }
+}
+
+void G0W0::read_sigc(const std::string &input_dir, const vector<Vector3_Order<int>> &Rlist)
+{
+    using LIBRPA::envs::mpi_comm_global_h;
+
+    LIBRPA::utils::lib_printf_root("Reading real-space imaginary-frequency NAO sigma_c matrices\n");
+    Profiler::start("g0w0_read_sigc(R,iw) in NAO");
+    for (int ispin = 0; ispin != mf.get_n_spins(); ispin++)
+    {
+        for (int isoc1 = 0; isoc1 != mf.get_n_soc(); isoc1++)
+        {
+            for (int isoc2 = 0; isoc2 != mf.get_n_soc(); isoc2++)
+            {
+                for (auto iomega = 0; iomega != tfg.get_n_grids(); iomega++)
+                {
+                    size_t n_IJR_myid = 0;
+                    std::stringstream ss;
+                    ss << input_dir << "SigcRF_ispin_" << std::setfill('0') << std::setw(2) << ispin
+                       << "_s_" << std::setw(1) << isoc1 << std::setw(1) << isoc2 << "_iomega_"
+                       << std::setfill('0') << std::setw(3) << iomega << "_myid_"
+                       << std::setfill('0') << std::setw(5) << envs::myid_global << ".dat";
+                    std::ifstream ifs_sigmac_r(ss.str(), std::ios::in | std::ios::binary);
+                    if (!ifs_sigmac_r.is_open())
+                    {
+                        throw std::runtime_error("Cannot open file " + ss.str());
+                    }
+                    ifs_sigmac_r.read((char *)&n_IJR_myid, sizeof(size_t));
+
+                    const auto omega = tfg.get_freq_nodes()[iomega];
+                    for (size_t idx = 0; idx != n_IJR_myid; idx++)
+                    {
+                        size_t dims[5];
+                        ifs_sigmac_r.read((char *)dims, 5 * sizeof(size_t));
+                        const auto iR = dims[0];
+                        const auto I = dims[1];
+                        const auto J = dims[2];
+                        const auto n_I = dims[3];
+                        const auto n_J = dims[4];
+                        Matz sigc(n_I, n_J, MAJOR::ROW);
+                        ifs_sigmac_r.read((char *)sigc.ptr(), n_I * n_J * 2 * sizeof(double));
+                        const auto R = Rlist[iR];
+                        sigc_is_f_R_IJ[ispin][isoc1][isoc2][omega][R][I][J] = std::move(sigc);
+                    }
+                    ifs_sigmac_r.close();
+                }
+            }
+        }
+    }
+
+    is_rspace_built_ = true;
+    mpi_comm_global_h.barrier();
+    LIBRPA::utils::lib_printf_root("Finished reading real-space imaginary-frequency NAO sigma_c matrices.\n");
+    Profiler::stop("g0w0_read_sigc(R,iw) in NAO");
 }
 
 void G0W0::build_sigc_matrix_KS(

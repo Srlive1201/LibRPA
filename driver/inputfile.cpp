@@ -259,6 +259,10 @@ void parse_inputfile_to_params(const std::string &fn)
     parser.parse_double("minimax_min_gap", Params::minimax_min_gap, -1.0, flag);
     parser.parse_double("minimax_max_transition", Params::minimax_max_transition, -1.0, flag);
 
+    parser.parse_bool("band_continue", Params::band_continue, false, flag);
+
+    parser.parse_int("output_Wc_Rf_mat", Params::output_Wc_Rf_mat, false, flag);
+    parser.parse_bool("output_energy_qp", Params::output_energy_qp, false, flag);
     parser.parse_bool("output_hamgnn", Params::output_hamgnn, false, flag);
     parser.parse_int("nbands_G", Params::nbands_G, -1, flag);
 }

@@ -1224,6 +1224,18 @@ void print_matrix_mm_file(const matrix_m<T> &mat, const std::string &fn, Treal t
     fs.close();
 }
 
+template <typename T, typename Treal = typename to_real<T>::type>
+void print_matrix_mm_file(const matrix_m<T> &mat, const std::string &fn, const std::string& header_comment, Treal threshold = 1e-15, bool row_first = true)
+{
+    ofstream fs;
+    fs.open(fn);
+    if (!header_comment.empty()){
+        fs << header_comment << std::endl;
+    }
+    print_matrix_mm(mat, fs, threshold, row_first);
+    fs.close();
+}
+
 //! Write the matrix to file in ELSI CSC format
 template <typename T, typename Treal = typename to_real<T>::type>
 void write_matrix_elsi_csc(const matrix_m<T> &mat, const std::string &fn, Treal threshold = 1e-15)
