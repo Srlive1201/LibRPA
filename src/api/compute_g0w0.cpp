@@ -1,7 +1,14 @@
 // Public API headers
+#include "librpa_compute.h"
 #include "librpa_enums.h"
 #include "librpa_func.h"
-#include "librpa_compute.h"
+
+// Standard C++ headers
+#include <string>
+
+// Headers for API
+#include "dataset_helper.h"
+#include "instance_manager.h"
 
 // Internal headers
 #include "../core/analycont.h"
@@ -14,8 +21,6 @@
 #include "../math/utils_matrix_m_mpi.h"
 #include "../utils/profiler.h"
 #include "../utils/utils_mem.h"
-#include "dataset_helper.h"
-#include "instance_manager.h"
 
 LIBRPA_C_H_FUNC_WRAP_WOPT_NOPAR(void, librpa_build_g0w0_sigma)
 {
@@ -214,7 +219,10 @@ LIBRPA_C_H_FUNC_WRAP_WOPT(void, librpa_get_g0w0_qpe_kgrid,
                 const auto &exx_state = vexx[start_k+i];
                 const auto &vxc_state = vxc[start_k+i];
                 std::vector<cplxdb> sigc_state;
-                auto it = pds->p_g0w0->sigc_is_ik_f_KS[isp].find(ik);
+                const auto &sigc_isp = pds->p_g0w0->sigc_is_ik_f_KS[isp];
+                auto it = sigc_isp.find(ik);
+                if (it == sigc_isp.cend())
+                    throw LIBRPA_RUNTIME_ERROR("fail to locate sigc at ik = " + std::to_string(ik));
                 for (const auto &[freq, mat]: it->second)
                 {
                     sigc_state.emplace_back(mat(i_state, i_state));
