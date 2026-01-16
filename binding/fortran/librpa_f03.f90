@@ -43,11 +43,11 @@ module librpa_f03
 
    public :: librpa_init_global
    public :: librpa_finalize_global
-   public :: librpa_test
-   public :: librpa_print_profile
    public :: librpa_get_major_version
    public :: librpa_get_minor_version
    public :: librpa_get_patch_version
+   public :: librpa_test
+   public :: librpa_print_profile
 
    !=======================================================================
    ! Switch as bool type, defined as in include/librpa_enums.h
@@ -437,6 +437,7 @@ module librpa_f03
 
 contains
 
+   ! Synchronize C/C++ and Fortran strings
    subroutine sync_opt_string(f_string, c_string, direction)
       implicit none
       character(len=*), intent(inout) :: f_string
@@ -450,6 +451,7 @@ contains
       end if
    end subroutine sync_opt_string
 
+   ! Synchronize LibrpaSwitch with Fortran logical
    subroutine sync_opt_switch(f_logical, c_switch, direction)
       implicit none
       integer(kind=c_int), intent(inout) :: c_switch
@@ -464,6 +466,7 @@ contains
       end if
    end subroutine sync_opt_switch
 
+   ! Synchronize C/C++ int with Fortran integer
    subroutine sync_opt_int(f_integer, c_int_value, direction)
       implicit none
       integer, intent(inout) :: f_integer
@@ -477,6 +480,7 @@ contains
       end if
    end subroutine sync_opt_int
 
+   ! Synchronize C/C++ and Fortran double precision numbers
    subroutine sync_opt_dp(f_dp, c_double_value, direction)
       implicit none
       real(dp), intent(inout) :: f_dp
@@ -690,6 +694,21 @@ contains
       if (allocated(redirect_path_buf)) deallocate(redirect_path_buf)
    end subroutine librpa_finalize_global
 
+   integer function librpa_get_major_version() result(v)
+      implicit none
+      v = librpa_get_major_version_c()
+   end function librpa_get_major_version
+
+   integer function librpa_get_minor_version() result(v)
+      implicit none
+      v = librpa_get_minor_version_c()
+   end function librpa_get_minor_version
+
+   integer function librpa_get_patch_version() result(v)
+      implicit none
+      v = librpa_get_patch_version_c()
+   end function librpa_get_patch_version
+
    subroutine librpa_test()
       implicit none
       call librpa_test_c()
@@ -700,24 +719,12 @@ contains
       call librpa_print_profile_c()
    end subroutine librpa_print_profile
 
-   integer function librpa_get_major_version() result(v)
-      v = librpa_get_major_version_c()
-   end function librpa_get_major_version
-
-   integer function librpa_get_minor_version() result(v)
-      v = librpa_get_minor_version_c()
-   end function librpa_get_minor_version
-
-   integer function librpa_get_patch_version() result(v)
-      v = librpa_get_patch_version_c()
-   end function librpa_get_patch_version
-
    subroutine librpa_create_handler(this, comm)
       use iso_c_binding, only: c_associated
       implicit none
       class(LibrpaHandler), intent(inout) :: this
       integer, intent(in) :: comm
-      integer(c_int) :: f_comm = 0
+      integer(c_int) :: f_comm
 
       if (c_associated(this%ptr_c_handle)) call this%destroy()
 
@@ -1232,17 +1239,16 @@ contains
 
       n_spins_c = int(n_spins, kind=c_int)
       i_state_low_c = int(i_state_low - 1, kind=c_int)
+      ! i_state_high is not included in the C interface, so no minus 1 here
       i_state_high_c = int(i_state_high, kind=c_int)
 
       n_kpoints_local_c = int(n_kpoints_local, kind=c_int)
+      allocate(iks_local_c(max(1, n_kpoints_local)))
       if (n_kpoints_local > 0) then
-         allocate(iks_local_c(n_kpoints_local))
          iks_local_c = int(iks_local(1:n_kpoints_local), kind=c_int) - 1
          ! write(*,*) "size(iks_local) ", size(iks_local)
          ! write(*,*) "size(iks_local_c) ", size(iks_local_c)
          ! write(*,*) "iks_local_c ", iks_local_c
-      else
-         allocate(iks_local_c(1))
       end if
 
       call sync_opts(opts, SYNC_OPTS_F2C)
