@@ -766,6 +766,38 @@ public:
                &ldc);
     }
 
+    // eigenvector of symmetric matrix, row-major
+    static inline
+    void syev(const char jobz, const char uplo, const int n, float *a,
+              const int lda, float *w, float *work, const int lwork, int &info)
+    {
+        const char uplo_changed = change_uplo(uplo);
+        ssyev_(&jobz, &uplo_changed, &n, a, &lda, w, work, &lwork, &info);
+    }
+
+    static inline
+    void syev(const char jobz, const char uplo, const int n, double *a,
+              const int lda, double *w, double *work, const int lwork, int &info)
+    {
+        const char uplo_changed = change_uplo(uplo);
+        dsyev_(&jobz, &uplo_changed, &n, a, &lda, w, work, &lwork, &info);
+    }
+
+    // eigenvector of symmetric matrix, column-major
+    static inline
+    void syev_f(const char jobz, const char uplo, const int n, float *a,
+              const int lda, float *w, float *work, const int lwork, int &info)
+    {
+        ssyev_(&jobz, &uplo, &n, a, &lda, w, work, &lwork, &info);
+    }
+
+    static inline
+    void syev_f(const char jobz, const char uplo, const int n, double *a,
+              const int lda, double *w, double *work, const int lwork, int &info)
+    {
+        dsyev_(&jobz, &uplo, &n, a, &lda, w, work, &lwork, &info);
+    }
+
     // eigenvector of hermitian matrix, row-major
     static inline
     void heev(const char &jobz, const char &uplo, const int &n,
