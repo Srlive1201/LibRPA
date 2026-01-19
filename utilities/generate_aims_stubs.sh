@@ -14,8 +14,8 @@ fi
 FILE_AIMS_STUB="librpa_f03_stubs_aims.f90"
 
 if "$SED" -e "s/write(\*,'(A)') info_str/call localorb_info(info_str,use_unit,'(A)')/" \
-  -e '0,/implicit none/{/implicit none/i\
-   use localorb_io, only: localorb_info, use_unit
+  -e '0,/subroutine error_on_call/{/subroutine error_on_call/a\
+      use localorb_io, only: localorb_info, use_unit
 }' \
   "${FILE_STUB}" >"${FILE_AIMS_STUB}"; then
   echo "done"
