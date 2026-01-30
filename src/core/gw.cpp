@@ -255,13 +255,20 @@ void G0W0::build_spacetime(
     // Build the Wc LibRI object by redistributing the BLACS submatrices
     typedef std::map<int, std::map<std::pair<int, std::array<int, 3>>, RI::Tensor<double>>> tensor_map;
     std::map<double, tensor_map> tau_Wc_libri;
+
     // NOTE: for case of a few atoms, some process may have much more memory load than others
     global::profiler.start("g0w0_build_spacetime_get_ap", "Compute balance atom-pairs distribution");
     const auto map_atpairs_balanced = get_balanced_ap_distribution_for_consec_descriptor(
         atbasis_abf, atbasis_abf, ad_Wc);
-    global::ofs_myid << map_atpairs_balanced.at(ad_Wc.myid()) << std::endl;
+    const auto it_ap_myid = map_atpairs_balanced.find(ad_Wc.myid());
+    if (it_ap_myid != map_atpairs_balanced.cend())
+        global::ofs_myid << it_ap_myid->second << std::endl;
+    else
+        global::ofs_myid << "No atom pairs for Wc on this process" << std::endl;
     global::profiler.stop("g0w0_build_spacetime_get_ap");
+
     IndexScheduler sched;
+    // Force row-major as LibRI requires
     sched.init(map_atpairs_balanced, atbasis_abf, atbasis_abf, ad_Wc, MAJOR::ROW);
     for (auto &[tau, map_R_mat]: Wc_tau_R_blacs)
     {

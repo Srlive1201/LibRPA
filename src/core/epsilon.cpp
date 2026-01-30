@@ -2322,7 +2322,7 @@ std::map<double, std::map<Vector3_Order<int>, Matz>> CT_FT_Wc_freq_q(
             coeff_f2t(ifreq, itau) = tfg.get_costrans_f2t()(itau, ifreq);
         }
     }
-    global::ofs_myid << coeff_f2t << std::endl;
+    // global::ofs_myid << coeff_f2t << std::endl;
 
     // To balance performance and memory consumption, we divide basis x Rlist into batches as row indices.
     // Maximal 1GB per process for HPC usage ~ 4 R-vector with 16 frequency points for 1000x1000 matrix.

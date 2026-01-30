@@ -87,7 +87,7 @@ private:
 std::unordered_map<int, std::set<atpair_t>>
 get_balanced_ap_distribution_for_consec_descriptor(const AtomicBasis &atbasis_r,
                                                    const AtomicBasis &atbasis_c,
-                                                   const ArrayDesc &ad);
+                                                   const ArrayDesc &ad, bool create_empty = false);
 
 /*!
  * @brief Get the list of global matrix indices (1D) to communicate for
