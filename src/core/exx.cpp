@@ -421,6 +421,7 @@ void Exx::build_KS_blacs(const std::map<int, std::map<int, ComplexMatrix>> &wfc_
 
     if (!is_rspace_redist_for_KS_)
     {
+        global::profiler.start("build_real_space_exx_5", "Collect Hexx IJ from world");
         const auto set_IJ_naonao = get_necessary_IJ_from_block_2D(
             this->atbasis_wfc, this->atbasis_wfc, desc_nao_nao);
         const auto Iset_Jset = convert_IJset_to_Iset_Jset(set_IJ_naonao);
@@ -428,7 +429,6 @@ void Exx::build_KS_blacs(const std::map<int, std::map<int, ComplexMatrix>> &wfc_
         for (int isp = 0; isp < n_spins; isp++)
         {
             // collect necessary data
-            global::profiler.start("build_real_space_exx_5", "Collect Hexx IJ from world");
             std::map<int, std::map<std::pair<int, std::array<int, 3>>, RI::Tensor<double>>> exx_is_tensor;
 
             auto it = this->exx_IJR.find(isp);
@@ -449,9 +449,11 @@ void Exx::build_KS_blacs(const std::map<int, std::map<int, ComplexMatrix>> &wfc_
                     }
                 }
             }
+            global::profiler.start("build_real_space_exx_5_1");
             // Collect the IJ pair of Hs with all R for Fourier transform
             auto exx_is_IJR_for_blacs = comm_map2_first(comm_h.comm, exx_is_tensor, Iset_Jset.first, Iset_Jset.second);
             exx_is_tensor.clear();
+            global::profiler.stop("build_real_space_exx_5_1");
             if (exx_is_IJR_for_blacs.size() == 0) continue;
             // Now each process should have all Rs corresponding to atom-pairs that required for BLACS matrix operation
             // Swap with the original
@@ -468,11 +470,13 @@ void Exx::build_KS_blacs(const std::map<int, std::map<int, ComplexMatrix>> &wfc_
                     exx_is_new[I][J][R] = Matd{n_I, n_J, mat.data, MAJOR::ROW};
                 }
             }
-            this->exx_IJR.at(isp).swap(exx_is_new);
+            if (it != this->exx_IJR.cend()) it->second.swap(exx_is_new);
             exx_is_IJR_for_blacs.clear();
         }
         is_rspace_redist_for_KS_ = true;
         is_rspace_redist_blacs_ = true;
+        global::profiler.stop("build_real_space_exx_5");
+        global::lib_printf("Task %4d: tensor communicate elapsed time: %f\n", comm_h.myid, global::profiler.get_wall_time_last("build_real_space_exx_5"));
     }
     else
     {
@@ -539,8 +543,6 @@ void Exx::build_KS_blacs(const std::map<int, std::map<int, ComplexMatrix>> &wfc_
                 exx_is_local = it->second;
             }
         }
-        global::profiler.stop("build_real_space_exx_5");
-        global::lib_printf("Task %4d: tensor communicate elapsed time: %f\n", comm_h.myid, global::profiler.get_wall_time_last("build_real_space_exx_5"));
 
         if (is_mf_eigvec_k_distributed_)
         {

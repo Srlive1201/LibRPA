@@ -693,6 +693,7 @@ void G0W0::build_sigc_matrix_KS_blacs(const std::map<int, std::map<int, ComplexM
     // Check Sigmac matrix distribution
     if (!is_rspace_redist_for_KS_)
     {
+        global::profiler.start("g0w0_build_sigc_KS_rspace_redist");
         for (int isp = 0; isp < n_spins; isp++)
         {
             for (const auto& freq: this->tfg.get_freq_nodes())
@@ -753,6 +754,7 @@ void G0W0::build_sigc_matrix_KS_blacs(const std::map<int, std::map<int, ComplexM
 
         is_rspace_redist_for_KS_ = true;
         is_rspace_redist_blacs_ = true;
+        global::profiler.stop("g0w0_build_sigc_KS_rspace_redist");
     }
     else
     {
@@ -769,6 +771,7 @@ void G0W0::build_sigc_matrix_KS_blacs(const std::map<int, std::map<int, ComplexM
     for (int isp = 0; isp < n_spins; isp++)
     {
         map<double, map<atom_t, map<atom_t, map<Vector3_Order<int>, Matz>>>> sigc_isp_local;
+        global::profiler.start("g0w0_build_sigc_KS_find_bvk");
         for (const auto& freq: this->tfg.get_freq_nodes())
         {
             const auto &sigc_IJ_R = sigc_is_f_IJ_R.at(isp).at(freq);
@@ -827,11 +830,13 @@ void G0W0::build_sigc_matrix_KS_blacs(const std::map<int, std::map<int, ComplexM
                 }
             }
         }
+        global::profiler.stop("g0w0_build_sigc_KS_find_bvk");
 
         this->sigc_is_ik_f_KS[isp] = {};
 
         if (is_mf_eigvec_k_distributed_)
         {
+            global::profiler.start("g0w0_build_sigc_KS_rotate_kpara");
             auto temp_nband_nao = init_local_mat<complex<double>>(desc_nband_nao, MAJOR::COL);
             // collect parsed eigenvectors all all processes
             std::vector<int> nks_all(comm_h.nprocs, 0);
@@ -912,9 +917,11 @@ void G0W0::build_sigc_matrix_KS_blacs(const std::map<int, std::map<int, ComplexM
                     }
                 }
             }
+            global::profiler.stop("g0w0_build_sigc_KS_rotate_kpara");
         }
         else
         {
+            global::profiler.start("g0w0_build_sigc_KS_rotate_kserial");
             desc_nband_nband_fb.init(n_bands, n_bands, n_bands, n_bands, 0, 0);
             auto sigc_nband_nband_fb = init_local_mat<complex<double>>(desc_nband_nband_fb, MAJOR::COL);
             for (const auto& freq: this->tfg.get_freq_nodes())
@@ -954,6 +961,7 @@ void G0W0::build_sigc_matrix_KS_blacs(const std::map<int, std::map<int, ComplexM
                     sigc_is_ik_f_KS[isp][ik][freq] = sigc_nband_nband_fb.copy();
                 }
             }
+            global::profiler.stop("g0w0_build_sigc_KS_rotate_kserial");
         }
     }
 #endif
