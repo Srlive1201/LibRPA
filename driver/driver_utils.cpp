@@ -41,44 +41,70 @@ std::vector<double> interpolate_dielec_func(int option, const std::vector<double
         {
             int n_basis, n_states, n_spin;
 
-            std::string file_abacus = driver_params.input_dir + "velocity_matrix";
-            std::string file_aims = driver_params.input_dir + "moment_KS_spin_01_kpt_000001.dat";
-            ifstream infile_abacus;
-            ifstream infile_aims;
-            infile_abacus.open(file_abacus);
-            infile_aims.open(file_aims);
-            if (infile_abacus.is_open())
+            if (Params::use_pyatb)
             {
-                // read_scf_occ_eigenvalues(driver_params.input_dir + "pyatb_librpa_df/band_out",
-                //                          pyatb_meanfield);
-                // read_eigenvector(driver_params.input_dir + "pyatb_librpa_df/", pyatb_meanfield);
-
-                read_velocity(file_abacus, meanfield);
-                n_basis = meanfield.get_n_aos();
-                n_states = meanfield.get_n_bands();
-                n_spin = meanfield.get_n_spins();
-                // int flag;
-                // std::vector<Vector3_Order<double>> kfrac_band =
-                //     read_band_kpath_info(driver_params.input_dir + "pyatb_librpa_df/k_path_info",
-                //                          n_basis, n_states, n_spin, flag);
-                df_headwing.set(meanfield, kfrac_list, frequencies_target, n_basis, n_states,
-                                n_spin);
-            }
-            else if (infile_aims.is_open())
-            {
-                read_velocity_aims(meanfield, driver_params.input_dir);
-                n_basis = meanfield.get_n_aos();
-                n_states = meanfield.get_n_bands();
-                n_spin = meanfield.get_n_spins();
-                df_headwing.set(meanfield, kfrac_list, frequencies_target, n_basis, n_states,
-                                n_spin);
+                // Use pyatb_meanfield mode (pyatb_librpa_df directory)
+                std::string file_pyatb = driver_params.input_dir + "pyatb_librpa_df/velocity_matrix";
+                ifstream infile_pyatb;
+                infile_pyatb.open(file_pyatb);
+                if (infile_pyatb.is_open())
+                {
+                    read_scf_occ_eigenvalues(driver_params.input_dir + "pyatb_librpa_df/band_out",
+                                             pyatb_meanfield);
+                    read_eigenvector(driver_params.input_dir + "pyatb_librpa_df/", pyatb_meanfield);
+                    read_velocity(file_pyatb, pyatb_meanfield);
+                    int flag;
+                    std::vector<Vector3_Order<double>> kfrac_band =
+                        read_band_kpath_info(driver_params.input_dir + "pyatb_librpa_df/k_path_info",
+                                             n_basis, n_states, n_spin, flag);
+                    if (Params::use_soc)
+                    {
+                        assert(n_basis % 2 == 0 && "Error: nbasis is not even when SOC!");
+                        n_basis = n_basis / 2;
+                    }
+                    df_headwing.set(pyatb_meanfield, kfrac_band, frequencies_target, n_basis, n_states,
+                                    n_spin);
+                    infile_pyatb.close();
+                }
+                else
+                {
+                    throw std::runtime_error("use_pyatb is enabled but cannot find pyatb_librpa_df/velocity_matrix!");
+                }
             }
             else
             {
-                throw std::runtime_error("Cannot find moment files for head/wing!");
+                // Use velocity_matrix mode (current method)
+                std::string file_abacus = driver_params.input_dir + "velocity_matrix";
+                std::string file_aims = driver_params.input_dir + "moment_KS_spin_01_kpt_000001.dat";
+                ifstream infile_abacus;
+                ifstream infile_aims;
+                infile_abacus.open(file_abacus);
+                infile_aims.open(file_aims);
+                if (infile_abacus.is_open())
+                {
+                    read_velocity(file_abacus, meanfield);
+                    n_basis = meanfield.get_n_aos();
+                    n_states = meanfield.get_n_bands();
+                    n_spin = meanfield.get_n_spins();
+                    df_headwing.set(meanfield, kfrac_list, frequencies_target, n_basis, n_states,
+                                    n_spin);
+                }
+                else if (infile_aims.is_open())
+                {
+                    read_velocity_aims(meanfield, driver_params.input_dir);
+                    n_basis = meanfield.get_n_aos();
+                    n_states = meanfield.get_n_bands();
+                    n_spin = meanfield.get_n_spins();
+                    df_headwing.set(meanfield, kfrac_list, frequencies_target, n_basis, n_states,
+                                    n_spin);
+                }
+                else
+                {
+                    throw std::runtime_error("Cannot find moment files for head/wing!");
+                }
+                infile_abacus.close();
+                infile_aims.close();
             }
-            infile_abacus.close();
-            infile_aims.close();
 
             df_headwing.cal_head();
             df_target = df_headwing.get_head_vec();
@@ -94,39 +120,70 @@ std::vector<double> interpolate_dielec_func(int option, const std::vector<double
         {
             int n_basis, n_states, n_spin;
 
-            std::string file_abacus = driver_params.input_dir + "velocity_matrix";
-            std::string file_aims = driver_params.input_dir + "moment_KS_spin_01_kpt_000001.dat";
-            ifstream infile_abacus;
-            ifstream infile_aims;
-            infile_abacus.open(file_abacus);
-            infile_aims.open(file_aims);
-            if (infile_abacus.is_open())
+            if (Params::use_pyatb)
             {
-                read_velocity(file_abacus, meanfield);
-                n_basis = meanfield.get_n_aos();
-                n_states = meanfield.get_n_bands();
-                n_spin = meanfield.get_n_spins();
-                // int flag;
-                // std::vector<Vector3_Order<double>> kfrac_band =
-                //     read_band_kpath_info(driver_params.input_dir + "pyatb_librpa_df/k_path_info",
-                //                          n_basis, n_states, n_spin, flag);
-                df_headwing.set(meanfield, kfrac_list, frequencies_target, n_basis, n_states, n_spin);
-            }
-            else if (infile_aims.is_open())
-            {
-                read_velocity_aims(meanfield, driver_params.input_dir);
-                n_basis = meanfield.get_n_aos();
-                n_states = meanfield.get_n_bands();
-                n_spin = meanfield.get_n_spins();
-                df_headwing.set(meanfield, kfrac_list, frequencies_target, n_basis, n_states,
-                                n_spin);
+                // Use pyatb_meanfield mode (pyatb_librpa_df directory)
+                std::string file_pyatb = driver_params.input_dir + "pyatb_librpa_df/velocity_matrix";
+                ifstream infile_pyatb;
+                infile_pyatb.open(file_pyatb);
+                if (infile_pyatb.is_open())
+                {
+                    read_scf_occ_eigenvalues(driver_params.input_dir + "pyatb_librpa_df/band_out",
+                                             pyatb_meanfield);
+                    read_eigenvector(driver_params.input_dir + "pyatb_librpa_df/", pyatb_meanfield);
+                    read_velocity(file_pyatb, pyatb_meanfield);
+                    int flag;
+                    std::vector<Vector3_Order<double>> kfrac_band =
+                        read_band_kpath_info(driver_params.input_dir + "pyatb_librpa_df/k_path_info",
+                                             n_basis, n_states, n_spin, flag);
+                    if (Params::use_soc)
+                    {
+                        assert(n_basis % 2 == 0 && "Error: nbasis is not even when SOC!");
+                        n_basis = n_basis / 2;
+                    }
+                    df_headwing.set(pyatb_meanfield, kfrac_band, frequencies_target, n_basis, n_states,
+                                    n_spin);
+                    infile_pyatb.close();
+                }
+                else
+                {
+                    throw std::runtime_error("use_pyatb is enabled but cannot find pyatb_librpa_df/velocity_matrix!");
+                }
             }
             else
             {
-                throw std::runtime_error("Cannot find moment files for head!");
+                // Use velocity_matrix mode (current method)
+                std::string file_abacus = driver_params.input_dir + "velocity_matrix";
+                std::string file_aims = driver_params.input_dir + "moment_KS_spin_01_kpt_000001.dat";
+                ifstream infile_abacus;
+                ifstream infile_aims;
+                infile_abacus.open(file_abacus);
+                infile_aims.open(file_aims);
+                if (infile_abacus.is_open())
+                {
+                    read_velocity(file_abacus, meanfield);
+                    n_basis = meanfield.get_n_aos();
+                    n_states = meanfield.get_n_bands();
+                    n_spin = meanfield.get_n_spins();
+                    df_headwing.set(meanfield, kfrac_list, frequencies_target, n_basis, n_states,
+                                    n_spin);
+                }
+                else if (infile_aims.is_open())
+                {
+                    read_velocity_aims(meanfield, driver_params.input_dir);
+                    n_basis = meanfield.get_n_aos();
+                    n_states = meanfield.get_n_bands();
+                    n_spin = meanfield.get_n_spins();
+                    df_headwing.set(meanfield, kfrac_list, frequencies_target, n_basis, n_states,
+                                    n_spin);
+                }
+                else
+                {
+                    throw std::runtime_error("Cannot find moment files for head!");
+                }
+                infile_abacus.close();
+                infile_aims.close();
             }
-            infile_abacus.close();
-            infile_aims.close();
 
             df_headwing.cal_head();
 

@@ -105,6 +105,8 @@ struct Params
     static bool use_soc;
     //! switch of using 2D dielectric function
     static bool use_2d_dielectric;
+    //! switch of using pyatb_meanfield for head/wing calculation
+    static bool use_pyatb;
 
     //! in task "g0w0_band", continue from previous self-energy matrix in NAO (R, iw)
     static bool band_continue;

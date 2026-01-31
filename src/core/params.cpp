@@ -45,6 +45,7 @@ bool Params::use_shrink_chi = true;
 bool Params::use_shrink_abfs = false;
 bool Params::use_soc = false;
 bool Params::use_2d_dielectric = false;
+bool Params::use_pyatb = true;
 
 bool Params::band_continue = false;
 
@@ -122,6 +123,7 @@ void Params::print()
         {"use_fullcoul_wc", use_fullcoul_wc},
         {"output_hamgnn", output_hamgnn},
         {"use_2d_dielectric", use_2d_dielectric},
+        {"use_pyatb", use_pyatb},
     };
 
     for (const auto &param: str_params)

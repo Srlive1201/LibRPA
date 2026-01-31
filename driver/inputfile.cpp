@@ -230,6 +230,7 @@ void parse_inputfile_to_params(const std::string &fn)
     parser.parse_bool("use_shrink_chi", Params::use_shrink_chi, true, flag);
     parser.parse_bool("use_soc", Params::use_soc, false, flag);
     parser.parse_bool("use_2d_dielectric", Params::use_2d_dielectric, false, flag);
+    parser.parse_bool("use_pyatb", Params::use_pyatb, true, flag);
 
     // RPA specific
     parser.parse_double("gf_R_threshold", opts.gf_threshold, flag); // backward compatible
