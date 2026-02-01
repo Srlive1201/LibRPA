@@ -164,8 +164,7 @@ std::string Profiler::get_profile_string(int verbose) noexcept
             continue;
 
         // Decide level indentation
-        std::string indent = "";
-        while (i--) indent += "  ";
+        std::string indent(2 * sd_map_level[tname], ' ');
 
         const auto name = indent + sd_map_note[tname];
         const auto& t = sd_map_timer[tname];
