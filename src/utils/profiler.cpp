@@ -145,28 +145,44 @@ static std::string banner(char c, int n)
 
 void Profiler::display(int verbose) noexcept
 {
-    global::lib_printf("%-49s %-12s %-18s %-18s\n", "Entry", "#calls", "CPU time (s)", "Wall time (s)");
-    global::lib_printf("%100s\n", banner('-', 100).c_str());
+    global::lib_printf("%s", this->get_profile_string(verbose).c_str());
+}
+
+std::string Profiler::get_profile_string(int verbose) noexcept
+{
+    std::ostringstream output;
+    output << std::left;
+
+    output << std::setw(49) << "Entry" << " " << std::setw(12) << "#calls" << " "
+        << std::setw(18) << "CPU time (s)" << " " << std::setw(18) << "Wall time (s)" << "\n";
+    output << banner('-', 100) << "\n";
+
     for (auto &tname: sd_order)
     {
-        // decide level indentation
-        std::string s = "";
         int i = sd_map_level[tname];
-        while(i--) s += "  ";
         if (verbose > 0 && i > verbose)
             continue;
 
-        const auto name = s + sd_map_note[tname];
+        // Decide level indentation
+        std::string indent = "";
+        while (i--) indent += "  ";
+
+        const auto name = indent + sd_map_note[tname];
         const auto& t = sd_map_timer[tname];
-        char cstr_cputime[100];
-        char cstr_walltime[100];
-        sprintf(cstr_cputime, "%.4f", t.get_cpu_time());
-        sprintf(cstr_walltime, "%.4f", t.get_wall_time());
-        // skip timers that have not been called
-        if(!t.get_ncalls()) continue;
-        global::lib_printf("%-49s %-12zu %-18s %-18s\n", name.c_str(), t.get_ncalls(),
-               (s + cstr_cputime).c_str(), (s + cstr_walltime).c_str());
+        std::ostringstream cstr_cputime, cstr_walltime;
+
+        cstr_cputime << std::fixed << std::setprecision(4) << t.get_cpu_time();
+        cstr_walltime << std::fixed << std::setprecision(4) << t.get_wall_time();
+
+        // Skip timers that have not been called
+        if (!t.get_ncalls()) continue;
+
+        output << std::setw(49) << name << " " << std::setw(12) << t.get_ncalls() << " "
+            << std::setw(18) << (indent + cstr_cputime.str()) << " "
+            << std::setw(18) << (indent + cstr_walltime.str()) << "\n";
     }
+
+    return output.str();
 }
 
 namespace global

@@ -75,6 +75,7 @@ public:
     double get_wall_time_last(const char *tname) noexcept;
     //! Display the current profiling result
     void display(int verbose = 0) noexcept;
+    std::string get_profile_string(int verbose = 0) noexcept;
     //! Get the number of created timers
     int get_num_timers() noexcept { return sd_order.size(); };
 };
