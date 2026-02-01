@@ -235,9 +235,9 @@ void Exx::build(const LibrpaParallelRouting routing,
 
     // initialize Coulomb matrix
     global::profiler.start("build_real_space_exx_2", "Prepare V libRI object");
+
     std::map<int, std::map<std::pair<int,std::array<int,3>>, RI::Tensor<double>>> V_libri;
     global::profiler.start("build_real_space_exx_2_1");
-
     if (routing == LibrpaParallelRouting::RTAU)
     {
         // Full Coulomb case, have to re-distribute
@@ -280,6 +280,7 @@ void Exx::build(const LibrpaParallelRouting routing,
     }
     global::profiler.stop("build_real_space_exx_2_1");
     global::ofs_myid << "Number of V keys: " << get_num_keys(V_libri) << endl;
+
     // global::ofs_myid << V_libri << endl;
     global::profiler.start("build_real_space_exx_2_2");
     exx_libri.set_Vs(V_libri, libri_threshold_V);
@@ -326,6 +327,7 @@ void Exx::build(const LibrpaParallelRouting routing,
         // print_keys(global::ofs_myid, exx_libri.Hs);
         // ofs_myid << "exx_libri.Hs:\n" << exx_libri.Hs << endl;
 
+        global::profiler.start("build_real_space_exx_5");
         for (const auto &I_JR_exx: exx_libri.Hs)
         {
             const auto &I = I_JR_exx.first;
@@ -340,6 +342,7 @@ void Exx::build(const LibrpaParallelRouting routing,
                 this->exx_IJR[isp][I][J][R] = exx_temp;
             }
         }
+        global::profiler.stop("build_real_space_exx_5");
     }
     // debug, print the Hexx matrices
     // for (const auto& isp_IJkH: this->Hexx)

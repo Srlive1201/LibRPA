@@ -621,11 +621,13 @@ void Chi0::build_chi0_q_space_time_LibRI_routing(const Cs_LRI &Cs,
                 build_gf_Rt_libri_serial(this->mf, this->atbasis_wfc, isp, this->pbc.kfrac_list,
                                          this->IJRs_gf_local, -tau, gf_ne_libri);
             }
+            global::profiler.start("chi0_set_Gs");
             rpa.set_Gs_pos(gf_po_libri, libri_threshold_G);
             rpa.set_Gs_neg(gf_ne_libri, libri_threshold_G);
+            global::profiler.stop("chi0_set_Gs");
             // ofs_myid << "gf_po_libri\n" << gf_po_libri << "\n";
             // ofs_myid << "gf_ne_libri\n" << gf_ne_libri << "\n";
-            comm_h.barrier();
+            // comm_h.barrier();
             // std::clock_t cpu_clock_done_init_gf = clock();
             global::ofs_myid << "rpa.cal_chi0s begin,    tau = " << tau << "\n";
             global::profiler.start("chi0_libri_routing_cal_chi0s", "Call cal_chi0s");

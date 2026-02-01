@@ -39,17 +39,16 @@ LIBRPA_C_H_FUNC_WRAP_WOPT_NOPAR(void, librpa_build_exx)
     pds->redistribute_coulomb_blacs2ap();
 
     initialize_ds_exx(*pds, opts);
-    {
-        profiler.start("ft_vq_cut", "Fourier transform truncated Coulomb");
-        const auto VR = librpa_int::FT_Vq(pds->basis_aux, pds->vq_cut, pds->pbc, true);
-        profiler.stop("ft_vq_cut");
+    profiler.start("ft_vq_cut", "Fourier transform truncated Coulomb");
+    const auto VR = librpa_int::FT_Vq(pds->basis_aux, pds->vq_cut, pds->pbc, true);
+    profiler.stop("ft_vq_cut");
 
-        profiler.start("exx_real_work");
-        pds->p_exx->build(routing, pds->basis_aux, pds->cs_data, VR);
-        // pds->p_exx->build_KS_kgrid_blacs(pds->blacs_h);
-        profiler.stop("exx_real_work");
-    }
+    profiler.start("exx_real_work");
+    pds->p_exx->build(routing, pds->basis_aux, pds->cs_data, VR);
+    // pds->p_exx->build_KS_kgrid_blacs(pds->blacs_h);
+    profiler.stop("exx_real_work");
     // global::ofs_myid << pds->p_exx->exx_IJR << std::endl;
+    pds->comm_h.barrier();
 
     profiler.stop("api_build_exx");
 }
@@ -69,13 +68,12 @@ LIBRPA_C_H_FUNC_WRAP_WOPT(void, librpa_get_exx_pot_kgrid, const int n_spins, con
     if (n_spins != pds->mf.get_n_spins())
     {
         global::ofs_myid << "n_spins != pds->mf.get_n_spins(): " << n_spins << " != " << pds->mf.get_n_spins() << endl;
-        throw LIBRPA_RUNTIME_ERROR("parsed nspins is not consitent with the SCF starting poing");
+        throw LIBRPA_RUNTIME_ERROR("parsed nspins is not consitent with the SCF starting point");
     }
     if (i_state_high <= i_state_low)
     {
         return;
     }
-    const int n_states_calc = i_state_high - i_state_low;
 
     if (!pds->p_exx)
     {
@@ -90,9 +88,12 @@ LIBRPA_C_H_FUNC_WRAP_WOPT(void, librpa_get_exx_pot_kgrid, const int n_spins, con
     // ofs_myid << pexx->exx_IJR << endl;
     // TODO: make choosing blacs/non-blacs method a run time option
     pexx->build_KS_kgrid_blacs(pds->blacs_h);
+    const int n_states_calc = i_state_high - i_state_low;
     for (int isp = 0; isp < n_spins; isp++)
     {
         const auto it = pexx->Eexx.find(isp);
+        // NOTE: Without use_kpara_scf_eigvec, exx data is only collected to master.
+        // This policy might need to be adjusted later.
         if (it == pexx->Eexx.cend()) continue;
         const int start_isp = isp * n_kpoints_local * n_states_calc;
         // ofs_myid << exx_isp << endl;

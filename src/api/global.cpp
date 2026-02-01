@@ -64,6 +64,13 @@ void librpa_finalize_global(void)
     lib_printf_root("Finalizing LibRPA global environment\n");
     mpi_comm_global_h.barrier();
 
+    // print per-process profiling
+    if (ofs_myid.is_open())
+    {
+        ofs_myid << "Print per-process profiling data" << std::endl;
+        ofs_myid << profiler.get_profile_string();
+    }
+
     finalize_global_io();
     finalize_global_mpi();
 }
