@@ -56,40 +56,48 @@ void Profiler::Timer::stop() noexcept
     clock_start = 0;
 }
 
-void Profiler::add(const char *tname, const char *tnote, int level) noexcept
+void Profiler::add(const std::string &tname, const std::string &tnote) noexcept
 {
-    if (sd_map_timer.count(tname) == 0)
+    auto new_timer = std::make_shared<Timer>(tname, tnote);
+
+    if (!root)
     {
-        // when level is negative, set the level according to status of previous timers
-        if (level < 0)
-        {
-            level = 0;
-            for (auto it = sd_order.crbegin(); it != sd_order.crend(); it++)
-            {
-                const auto t = sd_map_timer[*it];
-                if (t.is_on())
-                {
-                    level = sd_map_level[*it] + 1;
-                    break;
-                }
-            }
-        }
-        sd_map_timer[tname] = Timer();
-        sd_map_level[tname] = level;
-        if (strcmp(tnote, "") == 0)
-            sd_map_note[tname] = tname;
-        else
-            sd_map_note[tname] = tnote;
-        sd_order.push_back(tname);
+        root = new_timer;
     }
+    else
+    {
+        if (current)
+        {
+            if (current->child)
+            {
+                auto sibling = current->child;
+                while (sibling->next) sibling = sibling->next;
+                sibling->next = new_timer;
+                new_timer->prev = sibling;
+            }
+            else
+            {
+                current->child = new_timer;
+            }
+            new_timer->parent = current;
+        }
+    }
+
+    current = new_timer;
 }
 
-void Profiler::start(const char *tname, const char *tnote, int level) noexcept
+void Profiler::start(const std::string &tname, const std::string &tnote) noexcept
 {
-    if(omp_get_thread_num()!=0) return;
-    if (sd_map_timer.count(tname) == 0)
+    if (omp_get_thread_num() != 0) return;
+    auto timer = find_timer_in_hierarchy(tname);
+    // create a new timer if it is not found, otherwise we move to that timer and start
+    if (!timer)
     {
-        add(tname, tnote, level);
+        add(tname, tnote);
+    }
+    else
+    {
+        current = timer;
     }
 #ifdef LIBRPA_VERBOSE
     double free_mem_gb;
@@ -98,42 +106,105 @@ void Profiler::start(const char *tname, const char *tnote, int level) noexcept
                            << "Free memory on node [GB]: " << free_mem_gb << "\n";
     std::flush(librpa_int::global::ofs_myid);
 #endif
-    sd_map_timer.at(tname).start();
+    current->start();
 }
 
-void Profiler::stop(const char *tname) noexcept
+void Profiler::stop(const std::string &tname) noexcept
 {
-    if(omp_get_thread_num()!=0) return;
-    if (sd_map_timer.count(tname))
+    if (omp_get_thread_num() != 0) return;
+    if (current)
     {
+        // Check if the current timer matches the given timer name
+        if (current->name == tname)
+        {
 #ifdef LIBRPA_VERBOSE
-        double free_mem_gb;
-        get_node_free_mem(free_mem_gb);
-        global::ofs_myid << get_timestamp() << " Timer stop:  " << tname << ". "
-                               << "Free memory on node [GB]: " << free_mem_gb << "\n";
+            double free_mem_gb;
+            get_node_free_mem(free_mem_gb);
+            global::ofs_myid << get_timestamp() << " Timer stop:  " << tname << ". "
+                             << "Free memory on node [GB]: " << free_mem_gb << "\n";
 #endif
-        sd_map_timer.at(tname).stop();
+            current->stop();
+            current = current->parent;
+        }
+        else
+        {
+             global::ofs_myid << "Warning: Attempting to stop timer '" << tname
+                              << "' but current active timer is '" << current->name << "'" << std::endl;
+        }
     }
     else
     {
-        librpa_int::global::lib_printf("Warning!!! Timer %s not found, profiling is very likely wrong!\n", tname);
+        global::ofs_myid << "Warning: No timer is currently active" << std::endl;
     }
 }
 
-double Profiler::get_cpu_time_last(const char *tname) noexcept
+std::shared_ptr<Profiler::Timer> Profiler::find_timer_in_hierarchy(const std::string &tname)
 {
-    std::string sname(tname);
-    if (sd_map_timer.count(sname))
-        return sd_map_timer.at(sname).get_cpu_time_last();
+    return search_timer_in_hierarchy(current, tname);
+}
+
+std::shared_ptr<Profiler::Timer> Profiler::search_timer_in_hierarchy(std::shared_ptr<Timer> timer,
+                                                                     const std::string &tname)
+{
+    if (!timer) return nullptr;
+    if (timer->name == tname) return timer;
+
+    // Recursively check child timers
+    if (timer->child)
+    {
+        auto found_timer = search_timer_in_hierarchy(timer->child, tname);
+        if (found_timer)
+        {
+            return found_timer;
+        }
+    }
+
+    // Check the next sibling timer
+    if (timer->next)
+    {
+        return search_timer_in_hierarchy(timer->next, tname);
+    }
+
+    return nullptr;
+}
+
+double Profiler::get_cpu_time_last(const std::string &tname) noexcept
+{
+    auto timer = this->find_timer_in_hierarchy(tname);
+    if (timer)
+        return timer->get_cpu_time_last();
     return -1.0;
 }
 
-double Profiler::get_wall_time_last(const char *tname) noexcept
+double Profiler::get_wall_time_last(const std::string &tname) noexcept
 {
-    std::string sname(tname);
-    if (sd_map_timer.count(sname))
-        return sd_map_timer.at(sname).get_wall_time_last();
+    auto timer = this->find_timer_in_hierarchy(tname);
+    if (timer)
+        return timer->get_wall_time_last();
     return 0.0;
+}
+
+std::string Profiler::get_profile_string_of_timer(std::shared_ptr<Profiler::Timer> timer, int level)
+{
+    std::ostringstream ss;
+    // std::string indent(2 * level, ' ');
+    std::string indent(level, ' ');
+    const auto note = indent + (timer->note == "" ? timer->name : timer->note);
+    std::ostringstream cstr_cputime, cstr_walltime;
+    cstr_cputime << std::fixed << std::setprecision(4) << timer->get_cpu_time();
+    cstr_walltime << std::fixed << std::setprecision(4) << timer->get_wall_time();
+
+    // Print self
+    ss << std::left;
+    ss << std::setw(49) << note << " " << std::setw(12) << timer->ncalls << " "
+        << std::setw(18) << (indent + cstr_cputime.str()) << " "
+        << std::setw(18) << (indent + cstr_walltime.str()) << "\n";
+    // Print child, then sibling
+    if (timer->child)
+        ss << get_profile_string_of_timer(timer->child, level + 1);
+    if (timer->next)
+        ss << get_profile_string_of_timer(timer->next, level);
+    return ss.str();
 }
 
 static std::string banner(char c, int n)
@@ -156,30 +227,7 @@ std::string Profiler::get_profile_string(int verbose) noexcept
     output << std::setw(49) << "Entry" << " " << std::setw(12) << "#calls" << " "
         << std::setw(18) << "CPU time (s)" << " " << std::setw(18) << "Wall time (s)" << "\n";
     output << banner('-', 100) << "\n";
-
-    for (auto &tname: sd_order)
-    {
-        int i = sd_map_level[tname];
-        if (verbose > 0 && i > verbose)
-            continue;
-
-        // Decide level indentation
-        std::string indent(2 * sd_map_level[tname], ' ');
-
-        const auto name = indent + sd_map_note[tname];
-        const auto& t = sd_map_timer[tname];
-        std::ostringstream cstr_cputime, cstr_walltime;
-
-        cstr_cputime << std::fixed << std::setprecision(4) << t.get_cpu_time();
-        cstr_walltime << std::fixed << std::setprecision(4) << t.get_wall_time();
-
-        // Skip timers that have not been called
-        if (!t.get_ncalls()) continue;
-
-        output << std::setw(49) << name << " " << std::setw(12) << t.get_ncalls() << " "
-            << std::setw(18) << (indent + cstr_cputime.str()) << " "
-            << std::setw(18) << (indent + cstr_walltime.str()) << "\n";
-    }
+    output << get_profile_string_of_timer(root, 0);
 
     return output.str();
 }

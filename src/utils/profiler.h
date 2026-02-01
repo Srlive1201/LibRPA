@@ -4,6 +4,8 @@
  */
 #ifndef PROFILER_H
 #define PROFILER_H
+#include <cstddef>
+#include <memory>
 #include <vector>
 #include <ctime>
 #include <string>
@@ -23,7 +25,7 @@ private:
     //! Class to track timing of a particular part of code
     class Timer
     {
-    private:
+    public:
         //! the number of timer calls
         size_t ncalls;
         //! clock when the timer is started
@@ -38,10 +40,34 @@ private:
         double cpu_time_last;
         //! wall time during last call
         double wall_time_last;
+        //! Timer name
+        std::string name;
+        //! Side note for the timer, not used as timer identification
+        std::string note;
 
-        // private functions
-    public:
-        Timer(): ncalls(0), clock_start(0), wt_start(0), cpu_time_accu(0), wall_time_accu(0), cpu_time_last(0), wall_time_last(0) {}
+        std::shared_ptr<Timer> parent;
+        std::shared_ptr<Timer> prev;
+        std::shared_ptr<Timer> next;
+        // First child
+        std::shared_ptr<Timer> child;
+
+        Timer(const std::string &tname, const std::string &tnote)
+            : ncalls(0),
+              clock_start(0),
+              wt_start(0),
+              cpu_time_accu(0),
+              wall_time_accu(0),
+              cpu_time_last(0),
+              wall_time_last(0),
+              name(tname),
+              note(tnote),
+              parent(nullptr),
+              prev(nullptr),
+              next(nullptr),
+              child(nullptr)
+        {
+        }
+
         //! start the timer
         void start() noexcept;
         //! stop the timer and record the timing
@@ -53,31 +79,33 @@ private:
         double get_cpu_time_last() const { return cpu_time_last; };
         double get_wall_time_last() const { return wall_time_last; };
     };
-    //! Container of Timer objects
-    std::map<std::string, Timer> sd_map_timer;
-    //! Level of each timer to account for hierarchy
-    std::map<std::string, int> sd_map_level;
-    //! Explanatory note of the timer
-    std::map<std::string, std::string> sd_map_note;
-    //! Order of timers
-    std::vector<std::string> sd_order;
+
+    std::shared_ptr<Timer> root;
+    std::shared_ptr<Timer> current;
+
+    // Find child timer with timer name
+    std::shared_ptr<Timer> find_timer_in_hierarchy(const std::string &tname);
+    std::shared_ptr<Timer> search_timer_in_hierarchy(std::shared_ptr<Timer> timer, const std::string& tname);
+
+    std::string get_profile_string_of_timer(std::shared_ptr<Timer> timer, int level);
 
 public:
+    Profiler(): root(nullptr), current(nullptr) {};
     //! Add a timer
-    void add(const char *tname, const char *tnote = "", int level = -1) noexcept;
+    void add(const std::string &tname, const std::string &tnote = "") noexcept;
     //! Start a timer. If the timer is not added before, add it.
-    void start(const char *tname, const char *tnote = "", int level = -1) noexcept;
+    void start(const std::string &tname, const std::string &tnote = "") noexcept;
     //! Stop a timer and record the timing
-    void stop(const char *tname) noexcept;
+    void stop(const std::string &tname) noexcept;
     //! Get cpu time of last call of timer
-    double get_cpu_time_last(const char *tname) noexcept;
+    double get_cpu_time_last(const std::string &tname) noexcept;
     //! Get wall time of last call of timer
-    double get_wall_time_last(const char *tname) noexcept;
+    double get_wall_time_last(const std::string &tname) noexcept;
     //! Display the current profiling result
     void display(int verbose = 0) noexcept;
     std::string get_profile_string(int verbose = 0) noexcept;
     //! Get the number of created timers
-    int get_num_timers() noexcept { return sd_order.size(); };
+    int get_num_timers() noexcept;
 };
 
 // TODO: move it somewhere else, for example, to `global_utils.h`
