@@ -135,6 +135,7 @@ void driver::task_g0w0()
         }
         ofs_myid << "Before get_g0w0_qpe_kgrid" << std::endl;
         const auto sigc = h.get_g0w0_qpe_kgrid(opts, n_spins, iks_eigvec_local, i_state_low, i_state_high, vxc_flat, vexx);
+        ofs_myid << "Finish get_g0w0_qpe_kgrid" << std::endl;
         if (!opts.use_kpara_scf_eigvec)
         {
             // master process already has all data
@@ -242,7 +243,7 @@ void driver::task_g0w0()
         //     imagfreqs.push_back(cplxdb{0.0, freq});
         // }
 
-        if (mpi_comm_global_h.is_root())
+        if (myid_global == 0)
         {
             for (int i_spin = 0; i_spin < n_spins; i_spin++)
             {
@@ -278,11 +279,6 @@ void driver::task_g0w0()
                     for (int i = 0; i < n_states_calc; i++)
                     {
                         const int i_state = i + i_state_low;
-                        if (sigc_all[start_k+i].real() == std::numeric_limits<double>::quiet_NaN())
-                        {
-                            lib_printf("Warning! QPE solver failed for spin %d, kpoint %d, state %d\n",
-                                       i_spin+1, i_kpoint+1, i_state+1);
-                        }
                         const auto &occ_state = pds->mf.get_weight()[i_spin](i_kpoint, i_state) * pds->mf.get_n_kpoints();
                         const auto &eks_state = pds->mf.get_eigenvals()[i_spin](i_kpoint, i_state) * HA2EV;
                         const auto &vxc_state = vxc[i_spin](i_kpoint, i_state) * HA2EV;
@@ -297,7 +293,7 @@ void driver::task_g0w0()
                 }
             }
         }
-        profiler.stop("g0w0_solve_qpe");
+        // profiler.stop("g0w0_solve_qpe");
     }
 
     // profiler.start("g0w0_export_sigc_KS", "Export self-energy in KS basis");

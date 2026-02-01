@@ -210,8 +210,14 @@ LIBRPA_C_H_FUNC_WRAP_WOPT(void, librpa_get_g0w0_qpe_kgrid,
         // ofs_myid << exx_isp << endl;
         for (int ik_local = 0; ik_local < n_kpoints_local; ik_local++)
         {
+            // When eigenvectors are not parallelized over k, the resulted k-matrices sigc_is_ik_f_KS are collected to master.
+	    // Other processes only have dummy data, so we skip AC for them.
+            if (!opts.use_kpara_scf_eigvec && pds->blacs_h.myid != 0) continue;
+
             const int start_k = start_isp + ik_local * n_states_calc;
             const int ik = *(iks_local + ik_local);
+            global::ofs_myid << "Start QPE solver for spin " << isp + 1
+                             << " kpoint " << ik + 1 << std::endl;
             for (int i = 0; i < n_states_calc; i++)
             {
                 const int i_state = i + i_state_low;

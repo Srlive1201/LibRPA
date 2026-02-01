@@ -832,6 +832,7 @@ void G0W0::build_sigc_matrix_KS_blacs(const std::map<int, std::map<int, ComplexM
         }
         global::profiler.stop("g0w0_build_sigc_KS_find_bvk");
 
+	// Initialize, make sure the map on every access has the isp key
         this->sigc_is_ik_f_KS[isp] = {};
 
         if (is_mf_eigvec_k_distributed_)
@@ -954,9 +955,9 @@ void G0W0::build_sigc_matrix_KS_blacs(const std::map<int, std::map<int, ComplexM
                     // collect the full matrix to master
                     // TODO: would need a different strategy for large system
                     ScalapackConnector::pgemr2d_f(n_bands, n_bands,
-                                                sigc_nband_nband.ptr(), 1, 1, desc_nband_nband.desc,
-                                                sigc_nband_nband_fb.ptr(), 1, 1, desc_nband_nband_fb.desc,
-                                                desc_nband_nband_fb.ictxt());
+                                                  sigc_nband_nband.ptr(), 1, 1, desc_nband_nband.desc,
+                                                  sigc_nband_nband_fb.ptr(), 1, 1, desc_nband_nband_fb.desc,
+                                                  desc_nband_nband_fb.ictxt());
                     // NOTE: only the matrices at master process is meaningful
                     sigc_is_ik_f_KS[isp][ik][freq] = sigc_nband_nband_fb.copy();
                 }
