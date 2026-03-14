@@ -21,7 +21,7 @@ namespace librpa_int
 {
 
 /*!
- * Core object to hold runtime environemtn, input and output data
+ * Core object to hold runtime environment, input and output data
  */
 class Dataset
 {
@@ -40,6 +40,12 @@ public:
     MpiCommHandler comm_coul_intra_q_h;
     BlacsCtxtHandler blacs_coul_intra_q_h;
     ArrayDesc desc_coul_intra_q;
+    // Communicators for (unordered) atom pairs.
+    // All atom pairs are distributed among processes in the communicator.
+    MpiCommHandler comm_ap_h;
+    // Communicators among unit cell vectors.
+    // All BvK cell vectors are distributed among processes in the communicator.
+    MpiCommHandler comm_R_h;
     //! Array descriptor for matrices of wave-function basis (using blacs_h)
     ArrayDesc desc_wfc;
     //! Array descriptor for matrices of auxiliary basis set size (using blacs_h)
@@ -48,18 +54,25 @@ public:
     std::vector<atpair_t> atpairs_local;
     //! Distribution of unique atom-pairs on all processes for atomic-basis matrix data
     std::unordered_map<int, std::set<atpair_t>> atpairs_unique_all;
+    //! Unit cell vectors on current process
+    std::vector<Vector3_Order<int>> Rs_local;
 
     // Physical system.
     //! Handling object for basic set functions for wave function expansion.
     AtomicBasis basis_wfc;
     //! Handling object for auxiliary basic set functions for RI
     AtomicBasis basis_aux;
+    //! Atomic structure
     Atoms atoms;
+    //! Periodic boundary setting
     PeriodicBoundaryData pbc;
 
     // Input data.
+    //! Mean-field starting point
     MeanField mf;
+    //! Time-frequency grids
     TFGrids tfg;
+    //! Real-space RI coefficient tensors (local RI)
     Cs_LRI cs_data;
     // atom-pair distribution of Coulomb matrices
     atpair_k_cplx_mat_t vq;
@@ -93,6 +106,10 @@ public:
     void initialize_comm_blacs_coul();
     void redistribute_coulomb_blacs2ap();
     void finalize_comm_blacs_coul();
+
+    // Splitting global communicators to atom pairs and unit cell vectors
+    void initialize_comm_ap_r();
+    void finalize_comm_ap_r();
 
     /* Disable copy */
     Dataset(const Dataset &) = delete;

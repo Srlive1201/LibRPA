@@ -523,9 +523,9 @@ void Chi0::build_chi0_q_space_time_LibRI_routing(const Cs_LRI &Cs,
 #else
     global::profiler.start("LibRI_routing", "Loop over LibRI");
     map<int,std::array<double,3>> atoms_pos;
-    for(int i=0;i!=atbasis_wfc.n_atoms;i++)
+    for (int i = 0; i != atbasis_wfc.n_atoms; i++)
     {
-        atoms_pos.insert(pair<int,std::array<double,3>>{i,{0,0,0}});
+        atoms_pos.insert(pair<int, std::array<double, 3>>{i, {0, 0, 0}});
     }
 
     // Estimate memory consumption of chi0_q
@@ -593,7 +593,7 @@ void Chi0::build_chi0_q_space_time_LibRI_routing(const Cs_LRI &Cs,
 
     // omp_lock_t lock_chi0_fourier_cosine;
     // omp_init_lock(&lock_chi0_fourier_cosine);
-    int count_gf=0;
+    int count_gf = 0;
     for (size_t it = 0; it != tfg.size(); it++)
     {
         const double tau = tfg.get_time_nodes()[it];
@@ -645,12 +645,12 @@ void Chi0::build_chi0_q_space_time_LibRI_routing(const Cs_LRI &Cs,
             std::map<int, std::map<std::pair<int,std::array<int,3>>,RI::Tensor<double>>> chi0s_IJR;
             if (comm_h.nprocs > 1)
             {
-                // Single MPI task, no need to perform communication
                 chi0s_IJR = RI::Communicate_Tensors_Map_Judge::comm_map2_first(comm_h.comm, rpa.chi0s, s0_s1.first, s0_s1.second);
                 rpa.chi0s.clear(); // release chi0s at this tau
             }
             else
             {
+                // Single MPI task, no need to perform communication
                 chi0s_IJR = std::move(rpa.chi0s);
             }
             global::profiler.stop("chi0_libri_routing_collect_Rs");

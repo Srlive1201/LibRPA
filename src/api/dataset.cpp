@@ -21,9 +21,12 @@ Dataset::Dataset(MPI_Comm comm)
       comm_coul_intra_q_h(),
       blacs_coul_intra_q_h(),
       desc_coul_intra_q(),
+      comm_ap_h(),
+      comm_R_h(),
       desc_wfc(),
       desc_abf(),
       atpairs_local(), atpairs_unique_all(),
+      Rs_local(),
       basis_wfc(),
       basis_aux(),
       atoms(),
@@ -43,6 +46,7 @@ Dataset::Dataset(MPI_Comm comm)
     blacs_h.init();
     // TODO more flexible process grid initialization
     blacs_h.set_square_grid();
+    // TODO: two-level-parallelization initialization
 }
 
 void Dataset::free()
