@@ -8,3 +8,5 @@ myst-parser
 sphinx_rtd_theme
 # doxyphinx is not available on conda, use pip to install
 # doxysphinx
+# Note: doxyphinx currently does not support doxygen>=1.15.0
+# see https://github.com/boschglobal/doxysphinx/issues/175

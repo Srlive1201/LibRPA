@@ -6,12 +6,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
       - name: Install documentation dependencies
         run: |
           pip3 install -r docs/requirements.txt
           pip3 install doxysphinx
-          sudo apt-get install doxygen -y
+      - uses: ssciwr/doxygen-install@v1
+        with:
+          version: "1.13.2"
       - name: Build documentation
         run: cd docs && make html
       - name: Configure GitHub Pages
