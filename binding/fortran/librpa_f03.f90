@@ -270,6 +270,14 @@ module librpa_f03
          real(c_double), dimension(*), intent(in) :: wfc_imag
       end subroutine librpa_set_wfc_c
 
+      subroutine librpa_set_wfc_packed_c(h, ispin, ik, nstates_local, nbasis_local, wfc) &
+            bind(c, name="librpa_set_wfc_packed")
+         import :: c_ptr, c_int
+         type(c_ptr), value :: h
+         integer(c_int), value :: ispin, ik, nstates_local, nbasis_local
+         type(c_ptr), value :: wfc
+      end subroutine librpa_set_wfc_packed_c
+
       subroutine librpa_set_ao_basis_wfc_c(h, natoms, nbs_wfc) bind(c, name="librpa_set_ao_basis_wfc")
          import :: c_ptr, c_int, c_size_t
          type(c_ptr), value :: h
@@ -801,10 +809,11 @@ contains
    !> @param nbasis_local   local dimenstion (number of basis functions) of the parsed wave-function
    !> @param wfc_cplx       Complex-valued wave function to parse
    subroutine librpa_set_wfc(this, ispin, ik, nstates_local, nbasis_local, wfc_cplx)
+      use iso_c_binding, only: c_int, c_double, c_loc
       implicit none
       class(LibrpaHandler), intent(inout) :: this
       integer, intent(in) :: ispin, ik, nstates_local, nbasis_local
-      complex(dp), intent(in) :: wfc_cplx(nbasis_local, nstates_local)
+      complex(dp), intent(in), target :: wfc_cplx(nbasis_local, nstates_local)
 
       real(c_double), allocatable :: wfc_real(:,:), wfc_imag(:,:)
       integer(c_int) :: ispin_c, ik_c, nstates_local_c, nbasis_local_c
@@ -814,13 +823,20 @@ contains
       nstates_local_c = int(nstates_local, kind=c_int)
       nbasis_local_c = int(nbasis_local, kind=c_int)
 
-      allocate(wfc_real(nbasis_local, nstates_local))
-      allocate(wfc_imag(nbasis_local, nstates_local))
-      wfc_real = real(wfc_cplx, kind=c_double)
-      wfc_imag = real(aimag(wfc_cplx), kind=c_double)
-      call librpa_set_wfc_c(this%ptr_c_handle, ispin_c, ik_c, &
-         nstates_local_c, nbasis_local_c, wfc_real, wfc_imag)
-      deallocate(wfc_real, wfc_imag)
+      if (dp == c_double) then
+         ! Fast path without create intermediate Fortran arrays
+         call librpa_set_wfc_packed_c(&
+            this%ptr_c_handle, ispin_c, ik_c, &
+            nstates_local_c, nbasis_local_c, c_loc(wfc_cplx))
+      else
+         allocate(wfc_real(nbasis_local, nstates_local))
+         allocate(wfc_imag(nbasis_local, nstates_local))
+         wfc_real = real(wfc_cplx, kind=c_double)
+         wfc_imag = real(aimag(wfc_cplx), kind=c_double)
+         call librpa_set_wfc_c(this%ptr_c_handle, ispin_c, ik_c, &
+            nstates_local_c, nbasis_local_c, wfc_real, wfc_imag)
+         deallocate(wfc_real, wfc_imag)
+      end if
    end subroutine librpa_set_wfc
 
    subroutine set_ao_basis(h, natoms, nbs, is_aux)

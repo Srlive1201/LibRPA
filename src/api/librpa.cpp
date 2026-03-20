@@ -109,6 +109,12 @@ LIBRPA_CPP_H_METHOD_DEF_WRAP_VOID(
 )
 
 LIBRPA_CPP_H_METHOD_DEF_WRAP_VOID(
+    set_wfc_packed,
+    (int ispin, int ik, int nstates_local, int nbasis_local, const std::complex<double> *wfc),
+    (ispin, ik, nstates_local, nbasis_local, reinterpret_cast<const double*>(wfc))
+)
+
+LIBRPA_CPP_H_METHOD_DEF_WRAP_VOID(
     set_ao_basis_wfc,
     (const std::vector<size_t> &nbs_wfc),
     (nbs_wfc.size(), nbs_wfc.data())

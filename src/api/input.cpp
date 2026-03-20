@@ -108,6 +108,27 @@ LIBRPA_C_H_FUNC_WRAP(void, librpa_set_wfc, int ispin, int ik,
         << std::endl;
 }
 
+LIBRPA_C_H_FUNC_WRAP(void, librpa_set_wfc_packed, int ispin, int ik,
+                     int nstates_local, int nbasis_local,
+                     const double *wfc_ri)
+{
+    auto pds = librpa_int::api::get_dataset_instance(h);
+    auto &meanfield = pds->mf;
+
+    auto& wfc = meanfield.get_eigenvectors()[ispin][ik];
+    wfc.create(nstates_local, nbasis_local);
+    const size_t n = meanfield.get_n_bands() * meanfield.get_n_aos();
+    for (size_t i = 0; i < n; i++)
+    {
+        wfc.c[i] = std::complex<double>(wfc_ri[2*i], wfc_ri[2*i+1]);
+    }
+    // std::cout << "Maxabs: " << wfc.get_max_abs() << std::endl;
+    librpa_int::global::ofs_myid
+        << "Wave-function set : ispin = " << ispin << " ik = " << ik
+        << " nstates_local = " << nstates_local << " nbasis_local = " << nbasis_local
+        << std::endl;
+}
+
 LIBRPA_C_H_FUNC_WRAP(void, librpa_set_ao_basis_wfc, const int natoms, const size_t *nbs_wfc)
 {
     using librpa_int::global::lib_printf;

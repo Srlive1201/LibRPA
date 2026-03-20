@@ -80,6 +80,8 @@ public:
     LIBRPA_CPP_H_METHOD_DECL_WRAP(void, set_wfc,
                                   int ispin, int ik, int nstates_local, int nbasis_local,
                                   const double* wfc_real, const double* wfc_imag);
+    LIBRPA_CPP_H_METHOD_DECL_WRAP(void, set_wfc_packed,
+                                  int ispin, int ik, int nstates_local, int nbasis_local, const std::complex<double> *wfc);
     LIBRPA_CPP_H_METHOD_DECL_WRAP(void, set_ao_basis_wfc, const std::vector<size_t> &nbs_wfc);
     LIBRPA_CPP_H_METHOD_DECL_WRAP(void, set_ao_basis_aux, const std::vector<size_t> &nbs_aux);
     LIBRPA_CPP_H_METHOD_DECL_WRAP(void, set_latvec_and_G,

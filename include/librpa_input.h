@@ -20,6 +20,10 @@ LIBRPA_C_H_FUNC_WRAP(void, librpa_set_wfc,
                      int ispin, int ik, int nstates_local, int nbasis_local,
                      const double* wfc_real, const double* wfc_imag);
 
+LIBRPA_C_H_FUNC_WRAP(void, librpa_set_wfc_packed,
+                     int ispin, int ik, int nstates_local, int nbasis_local,
+                     const double* wfc_ri);
+
 LIBRPA_C_H_FUNC_WRAP(void, librpa_set_ao_basis_wfc, int natoms, const size_t *nbs_wfc);
 
 LIBRPA_C_H_FUNC_WRAP(void, librpa_set_ao_basis_aux, int natoms, const size_t *nbs_aux);
