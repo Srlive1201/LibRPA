@@ -91,11 +91,9 @@ Handler::~Handler() { free(); }
 //     (nspins, nkpts, nstates, nbasis)
 // )
 // // Equivalent, write it explicitly to tell the language server that librpa_input.h is needed
-void Handler::set_scf_dimension(int nspins, int nkpts, int nstates, int nbasis,
-                                int st_istate, int nstates_local, int st_ibasis, int nbasis_local)
+void Handler::set_scf_dimension(int nspins, int nkpts, int nstates, int nbasis)
 {
-    ::librpa_set_scf_dimension(this->h_, nspins, nkpts, nstates, nbasis,
-                               st_istate, nstates_local, st_ibasis, nbasis_local);
+    ::librpa_set_scf_dimension(this->h_, nspins, nkpts, nstates, nbasis);
 }
 
 LIBRPA_CPP_H_METHOD_DEF_WRAP_VOID(

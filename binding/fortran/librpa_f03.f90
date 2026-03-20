@@ -246,12 +246,11 @@ module librpa_f03
 
    ! Input functions interface
    interface
-      subroutine librpa_set_scf_dimension_c(h, nspins, nkpts, nstates, nbasis, &
-                                            st_istate, nstates_local, st_ibasis, nbasis_local) &
+      subroutine librpa_set_scf_dimension_c(h, nspins, nkpts, nstates, nbasis) &
                                             bind(c, name="librpa_set_scf_dimension")
          import :: c_ptr, c_int
          type(c_ptr), value :: h
-         integer(c_int), value :: nspins, nkpts, nstates, nbasis, st_istate, nstates_local, st_ibasis, nbasis_local
+         integer(c_int), value :: nspins, nkpts, nstates, nbasis
       end subroutine librpa_set_scf_dimension_c
 
       subroutine librpa_set_wg_ekb_efermi_c(h, nspins, nkpts, nstates, wg, ekb, efermi) bind(c, name="librpa_set_wg_ekb_efermi")
@@ -746,27 +745,25 @@ contains
    end subroutine librpa_destroy_handler
 
    ! Input functions
-   subroutine librpa_set_scf_dimension(this, nspins, nkpts, nstates, nbasis, st_istate, nstates_local, st_ibasis, nbasis_local)
+   subroutine librpa_set_scf_dimension(this, nspins, nkpts, nstates, nbasis)
       use iso_c_binding, only: c_associated
       implicit none
       class(LibrpaHandler), intent(inout) :: this
       integer, intent(in) :: nspins, nkpts, nstates, nbasis
-      integer, intent(in) :: st_istate, nstates_local, st_ibasis, nbasis_local
 
       integer(c_int) :: nspins_c, nkpts_c, nstates_c, nbasis_c
-      integer(c_int) :: st_istate_c, nstates_local_c, st_ibasis_c, nbasis_local_c
+      ! integer(c_int) :: st_istate_c, nstates_local_c, st_ibasis_c, nbasis_local_c
 
       nspins_c = int(nspins, kind=c_int)
       nkpts_c = int(nkpts, kind=c_int)
       nstates_c = int(nstates, kind=c_int)
       nbasis_c = int(nbasis, kind=c_int)
-      st_istate_c = int(st_istate, kind=c_int) - 1
-      nstates_local_c = int(nstates_local, kind=c_int)
-      st_ibasis_c = int(st_ibasis, kind=c_int) - 1
-      nbasis_local_c = int(nbasis_local, kind=c_int)
+      ! st_istate_c = int(st_istate, kind=c_int) - 1
+      ! nstates_local_c = int(nstates_local, kind=c_int)
+      ! st_ibasis_c = int(st_ibasis, kind=c_int) - 1
+      ! nbasis_local_c = int(nbasis_local, kind=c_int)
 
-      call librpa_set_scf_dimension_c(this%ptr_c_handle, nspins_c, nkpts_c, nstates_c, nbasis_c, &
-                                      st_istate_c, nstates_local_c, st_ibasis_c, nbasis_local_c)
+      call librpa_set_scf_dimension_c(this%ptr_c_handle, nspins_c, nkpts_c, nstates_c, nbasis_c)
    end subroutine librpa_set_scf_dimension
 
    subroutine librpa_set_wg_ekb_efermi(this, nspins, nkpts, nstates, wg, ekb, efermi)

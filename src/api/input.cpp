@@ -26,9 +26,7 @@
 #endif
 
 LIBRPA_C_H_FUNC_WRAP(void, librpa_set_scf_dimension,
-                     int nspins, int nkpts, int nstates, int nbasis,
-                     int st_istate, int nstates_local,
-                     int st_ibasis, int nbasis_local)
+                     int nspins, int nkpts, int nstates, int nbasis)
 {
     using librpa_int::api::get_dataset_instance;
     using librpa_int::global::mpi_comm_global_h;
@@ -37,8 +35,12 @@ LIBRPA_C_H_FUNC_WRAP(void, librpa_set_scf_dimension,
     auto pds = librpa_int::api::get_dataset_instance(h);
 
     auto &meanfield = pds->mf;
+    int st_ib = 0;
+    int nb_local = nstates;
+    int st_iao = 0;
+    int nao_local = nbasis;
     meanfield.set(nspins, nkpts, nstates, nbasis,
-                  st_istate, nstates_local, st_ibasis, nbasis_local);
+                  st_ib, nb_local, st_iao, nao_local);
     pds->comm_h.barrier();
     if (pds->comm_h.is_root())
     {

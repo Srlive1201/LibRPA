@@ -74,8 +74,7 @@ public:
     /* Input (set) functions */
 
     LIBRPA_CPP_H_METHOD_DECL_WRAP(void, set_scf_dimension,
-                                  int nspins, int nkpts, int nstates, int nbasis,
-                                  int st_istate, int nstates_local, int st_ibasis, int nbasis_local);
+                                  int nspins, int nkpts, int nstates, int nbasis);
     LIBRPA_CPP_H_METHOD_DECL_WRAP(void, set_wg_ekb_efermi,
                                   int nspins, int nkpts, int nstates, const double* wg, const double* ekb, double efermi);
     LIBRPA_CPP_H_METHOD_DECL_WRAP(void, set_wfc,

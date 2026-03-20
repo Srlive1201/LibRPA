@@ -218,11 +218,10 @@ contains
    end subroutine librpa_destroy_handler
 
    ! Input functions
-   subroutine librpa_set_scf_dimension(this, nspins, nkpts, nstates, nbasis, st_istate, nstates_local, st_ibasis, nbasis_local)
+   subroutine librpa_set_scf_dimension(this, nspins, nkpts, nstates, nbasis)
       implicit none
       class(LibrpaHandler), intent(inout) :: this
       integer, intent(in) :: nspins, nkpts, nstates, nbasis
-      integer, intent(in) :: st_istate, nstates_local, st_ibasis, nbasis_local
       call error_on_call("librpa_set_scf_dimension")
    end subroutine librpa_set_scf_dimension
 

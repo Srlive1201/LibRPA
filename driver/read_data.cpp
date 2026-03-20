@@ -65,8 +65,7 @@ void read_scf_occ_eigenvalues(const string &file_path)
             iks_eigvec_local.emplace_back(ik);
     }
 
-    driver::h.set_scf_dimension(n_spins, n_kpoints, n_states, n_basis_wfc,
-                                0, n_states, 0, n_basis_wfc);
+    driver::h.set_scf_dimension(n_spins, n_kpoints, n_states, n_basis_wfc);
     driver::n_ibz_kpoints = n_kpoints;
 
     // Load the file data

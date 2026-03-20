@@ -45,7 +45,7 @@ program test_f03_binding_libri
 
    ! Play with the handler
    ! Initialize dimensions
-   call h%set_scf_dimension(nspins, nkpts, nstates, nbasis, 1, nstates, 1, nbasis)
+   call h%set_scf_dimension(nspins, nkpts, nstates, nbasis)
    ! Parse the energy levels and occupation numbers
    allocate(wg(nstates, nkpts, nspins), ekb(nstates, nkpts, nspins))
    ! only the first state is occupied

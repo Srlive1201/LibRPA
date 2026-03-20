@@ -11,8 +11,7 @@ extern "C" {
 #endif
 
 LIBRPA_C_H_FUNC_WRAP(void, librpa_set_scf_dimension,
-                     int nspins, int nkpts, int nstates, int nbasis,
-                     int st_istate, int nstates_local, int st_ibasis, int nbasis_local);
+                     int nspins, int nkpts, int nstates, int nbasis);
 
 LIBRPA_C_H_FUNC_WRAP(void, librpa_set_wg_ekb_efermi,
                      int nspins, int nkpts, int nstates, const double* wg, const double* ekb, double efermi);

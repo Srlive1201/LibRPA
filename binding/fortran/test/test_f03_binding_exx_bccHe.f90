@@ -43,7 +43,7 @@ program test_f03_binding_exx_bccHe
    call opts%init()
 
    call h%create(MPI_COMM_WORLD)
-   call h%set_scf_dimension(nspins, nkpts, nstates, nbasis, 1, nstates, 1, nbasis)
+   call h%set_scf_dimension(nspins, nkpts, nstates, nbasis)
 
    efermi = 0.00609624851934464917_dp
    call initialize_wg_ekb

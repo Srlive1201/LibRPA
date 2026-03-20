@@ -1,27 +1,14 @@
-// #include "../src/core/exx.h"
-// #include "../src/core/gw.h"
-// #include "../src/core/meanfield.h"
-// #include "../src/core/ri.h"
-// #include "../src/core/utils_timefreq.h"
-// #include "../src/math/utils_matrix_m_mpi.h"
-// #include "../src/mpi/envs_blacs.h"
-// #include "../src/mpi/global_mpi.h"
-// #include "../src/utils/constants.h"
-
 #include <memory>
-#include <sstream>
+//#include <sstream>
 #include "../task.h"
 #include "../driver.h"
 #include "../read_data.h"
-#include "../../src/core/analycont.h"
-#include "../../src/core/qpe_solver.h"
 #include "../../src/io/global_io.h"
 #include "../../src/io/fs.h"
 #include "../../src/io/stl_io_helper.h"
 #include "../../src/utils/profiler.h"
 #include "../../src/api/instance_manager.h"
 #include "../../src/utils/constants.h"
-#include "../../src/math/utils_matrix_m_mpi.h"
 
 #include "librpa_enums.h"
 // #include "driver_params.h"
