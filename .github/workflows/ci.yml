@@ -78,6 +78,7 @@ jobs:
           export BUILDDIR="build_fortran_bind"
           CXX=mpiicpx FC=mpiifx cmake -DLIBRPA_USE_LIBRI=ON -DBUILD_SHARED_LIBS=OFF -B $BUILDDIR -DCMAKE_BUILD_TYPE=Debug -DENABLE_LIBRPA_FORTRAN_BIND=ON -DENABLE_LIBRPA_TEST=ON -DENABLE_LIBRPA_CPP_TEST=OFF -DENABLE_GREENX_CTEST=OFF
           cmake --build $BUILDDIR -j 2
+          cmake --build $BUILDDIR --target test
       - name: Save last test log for check
         if: always()
         uses: actions/upload-artifact@v4
