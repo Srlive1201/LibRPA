@@ -114,6 +114,10 @@ module librpa_f03
          procedure :: set_aux_bare_coulomb_k_2d_block => librpa_set_aux_bare_coulomb_k_2d_block
          procedure :: set_aux_cut_coulomb_k_2d_block => librpa_set_aux_cut_coulomb_k_2d_block
          procedure :: set_dielect_func_imagfreq => librpa_set_dielect_func_imagfreq
+         procedure :: set_band_kvec => librpa_set_band_kvec
+         procedure :: set_wfc_band => librpa_set_wfc_band
+         procedure :: set_band_occ_eigval => librpa_set_band_occ_eigval
+         procedure :: reset_band_data => librpa_reset_band_data
          ! Compute
          procedure :: get_imaginary_frequency_grids => librpa_get_imaginary_frequency_grids
          procedure :: get_rpa_correlation_energy => librpa_get_rpa_correlation_energy
@@ -237,7 +241,7 @@ contains
 
    !> @brief Set the wave-function expansion coefficients
    !> @param ispin          spin index (starting from 1) of the wave function
-   !> @param ik             k-point index (starting from 1) of the wave function
+   !> @param ik             (global) k-point index (starting from 1) of the wave function
    !> @param nstates_local  local dimenstion (number of states) of the parsed wave-function
    !> @param nbasis_local   local dimenstion (number of basis functions) of the parsed wave-function
    !> @param wfc_cplx       Complex-valued wave function to parse
@@ -245,7 +249,7 @@ contains
       implicit none
       class(LibrpaHandler), intent(inout) :: this
       integer, intent(in) :: ispin, ik, nstates_local, nbasis_local
-      complex(dp), intent(in) :: wfc_cplx(nbasis_local, nstates_local)
+      complex(dp), intent(in), target :: wfc_cplx(nbasis_local, nstates_local)
       call error_on_call("librpa_set_wfc")
    end subroutine librpa_set_wfc
 
@@ -389,6 +393,43 @@ contains
       real(dp), dimension(nfreq), intent(in) :: dielect_func
       call error_on_call("librpa_set_dielect_func_imagfreq")
    end subroutine librpa_set_dielect_func_imagfreq
+
+   subroutine librpa_set_band_kvec(this, nkpts_band, kfrac_band)
+      implicit none
+      class(LibrpaHandler), intent(inout) :: this
+      integer, intent(in) :: nkpts_band
+      real(dp), intent(in) :: kfrac_band(3, nkpts_band)
+      call error_on_call("librpa_set_band_kvec")
+   end subroutine librpa_set_band_kvec
+
+   subroutine librpa_set_band_occ_eigval(this, nspins, nkpts_band, nstates, occ, eig)
+      implicit none
+      class(LibrpaHandler), intent(inout) :: this
+      integer, intent(in) :: nspins, nkpts_band, nstates
+      real(dp), intent(in) :: occ(nstates, nkpts_band, nspins)
+      real(dp), intent(in) :: eig(nstates, nkpts_band, nspins)
+      call error_on_call("librpa_set_band_occ_eigval")
+   end subroutine librpa_set_band_occ_eigval
+
+   !> @brief Set the wave-function expansion coefficients for band calculation
+   !> @param ispin          spin index (starting from 1) of the wave function
+   !> @param ik_band        (global) k-point index (starting from 1) of the wave function
+   !> @param nstates_local  local dimenstion (number of states) of the parsed wave-function
+   !> @param nbasis_local   local dimenstion (number of basis functions) of the parsed wave-function
+   !> @param wfc_cplx       Complex-valued wave function to parse
+   subroutine librpa_set_wfc_band(this, ispin, ik_band, nstates_local, nbasis_local, wfc_cplx)
+      implicit none
+      class(LibrpaHandler), intent(inout) :: this
+      integer, intent(in) :: ispin, ik_band, nstates_local, nbasis_local
+      complex(dp), intent(in), target :: wfc_cplx(nbasis_local, nstates_local)
+      call error_on_call("librpa_set_wfc_band")
+   end subroutine librpa_set_wfc_band
+
+   subroutine librpa_reset_band_data(this)
+      implicit none
+      class(LibrpaHandler), intent(inout) :: this
+      call error_on_call("librpa_reset_band_data")
+   end subroutine librpa_reset_band_data
 
    ! Compute functions
    subroutine librpa_get_imaginary_frequency_grids(this, opts, omegas, weights)

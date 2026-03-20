@@ -539,3 +539,94 @@ LIBRPA_C_H_FUNC_WRAP(void, librpa_set_dielect_func_imagfreq, int nfreq, const do
     pds->omegas_imagfreq = std::vector<double>(omegas_imag, omegas_imag + nfreq);
     pds->epsmacs_imagfreq = std::vector<double>(dielect_func, dielect_func + nfreq);
 }
+
+LIBRPA_C_H_FUNC_WRAP(void, librpa_set_band_kvec,
+                     int n_kpts_band, const double* kfrac_list_band)
+{
+    using librpa_int::global::lib_printf;
+    using librpa_int::Vector3_Order;
+    using std::cout;
+    using std::endl;
+
+    auto pds = librpa_int::api::get_dataset_instance(h);
+    pds->kfrac_band_list.clear();
+    const auto &kf = kfrac_list_band;
+    for (int ik = 0; ik < n_kpts_band; ik++)
+    {
+        const int i = ik * 3;
+        Vector3_Order<double> kfrac{kf[i], kf[i+1], kf[i+2]};
+        pds->kfrac_band_list.emplace_back(kfrac);
+    }
+}
+
+LIBRPA_C_H_FUNC_WRAP(void, librpa_set_band_occ_eigval,
+                     int n_spins, int n_kpts_band, int n_states,
+                     const double* occ, const double* eig)
+{
+    auto pds = librpa_int::api::get_dataset_instance(h);
+    const int n_basis = pds->mf.get_n_aos();
+    const double efermi = pds->mf.get_efermi();
+
+    auto &mfb = pds->mf_band;
+    pds->mf_band.get_efermi() = efermi;
+    pds->mf_band.set(n_spins, n_kpts_band, n_states, n_basis);
+    auto& eskb = mfb.get_eigenvals();
+    auto& swg = mfb.get_weight();
+    int length_kb = n_kpts_band * n_states;
+    for (int is = 0; is != n_spins; is++)
+    {
+        memcpy(eskb[is].c, eig + length_kb * is, length_kb * sizeof(double));
+        memcpy(swg[is].c, occ + length_kb * is, length_kb * sizeof(double));
+        // wg[is](k_index, i) = stod(ws) / n_kpoints; // different with abacus!
+        swg[is] *= (1.0 / n_kpts_band);
+    }
+}
+
+LIBRPA_C_H_FUNC_WRAP(void, librpa_set_wfc_band, int ispin, int ik_band,
+                     int nstates_local, int nbasis_local,
+                     const double *wfc_real, const double *wfc_imag)
+{
+    auto pds = librpa_int::api::get_dataset_instance(h);
+    auto &mfb = pds->mf_band;
+
+    auto& wfc = mfb.get_eigenvectors()[ispin][ik_band];
+    wfc.create(nstates_local, nbasis_local);
+    const size_t n = mfb.get_n_bands() * mfb.get_n_aos();
+    for (size_t i = 0; i < n; i++)
+    {
+        wfc.c[i] = std::complex<double>(wfc_real[i], wfc_imag[i]);
+    }
+    // std::cout << "Maxabs: " << wfc.get_max_abs() << std::endl;
+    librpa_int::global::ofs_myid
+        << "Wave-function (band) set : ispin = " << ispin << " ik = " << ik_band
+        << " nstates_local = " << nstates_local << " nbasis_local = " << nbasis_local
+        << std::endl;
+}
+
+LIBRPA_C_H_FUNC_WRAP(void, librpa_set_wfc_band_packed, int ispin, int ik_band,
+                     int nstates_local, int nbasis_local,
+                     const double *wfc_ri)
+{
+    auto pds = librpa_int::api::get_dataset_instance(h);
+    auto &mfb = pds->mf_band;
+
+    auto& wfc = mfb.get_eigenvectors()[ispin][ik_band];
+    wfc.create(nstates_local, nbasis_local);
+    const size_t n = mfb.get_n_bands() * mfb.get_n_aos();
+    for (size_t i = 0; i < n; i++)
+    {
+        wfc.c[i] = std::complex<double>(wfc_ri[2*i], wfc_ri[2*i+1]);
+    }
+    // std::cout << "Maxabs: " << wfc.get_max_abs() << std::endl;
+    librpa_int::global::ofs_myid
+        << "Wave-function (band) set : ispin = " << ispin << " ik = " << ik_band
+        << " nstates_local = " << nstates_local << " nbasis_local = " << nbasis_local
+        << std::endl;
+}
+
+LIBRPA_C_H_FUNC_WRAP_NOPAR(void, librpa_reset_band_data)
+{
+    auto pds = librpa_int::api::get_dataset_instance(h);
+    pds->kfrac_band_list = {};
+    pds->mf_band = librpa_int::MeanField();
+}

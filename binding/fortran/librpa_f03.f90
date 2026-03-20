@@ -222,6 +222,10 @@ module librpa_f03
          procedure :: set_aux_bare_coulomb_k_2d_block => librpa_set_aux_bare_coulomb_k_2d_block
          procedure :: set_aux_cut_coulomb_k_2d_block => librpa_set_aux_cut_coulomb_k_2d_block
          procedure :: set_dielect_func_imagfreq => librpa_set_dielect_func_imagfreq
+         procedure :: set_band_kvec => librpa_set_band_kvec
+         procedure :: set_wfc_band => librpa_set_wfc_band
+         procedure :: set_band_occ_eigval => librpa_set_band_occ_eigval
+         procedure :: reset_band_data => librpa_reset_band_data
          ! Compute
          procedure :: get_imaginary_frequency_grids => librpa_get_imaginary_frequency_grids
          procedure :: get_rpa_correlation_energy => librpa_get_rpa_correlation_energy
@@ -376,6 +380,45 @@ module librpa_f03
          real(c_double), dimension(*), intent(in) :: omegas_imag
          real(c_double), dimension(*), intent(in) :: dielect_func
       end subroutine librpa_set_dielect_func_imagfreq_c
+
+      subroutine librpa_set_band_kvec_c(h, nkpts_band, kfrac_band) &
+            bind(c, name="librpa_set_band_kvec")
+         import :: c_ptr, c_int, c_double
+         type(c_ptr), value :: h
+         integer(c_int), value :: nkpts_band
+         real(c_double), dimension(*), intent(in) :: kfrac_band
+      end subroutine librpa_set_band_kvec_c
+
+      subroutine librpa_set_band_occ_eigval_c(h, nspins, nkpts_band, nstates, occ, eig) &
+            bind(c, name="librpa_set_band_occ_eigval")
+         import :: c_ptr, c_int, c_double
+         type(c_ptr), value :: h
+         integer(c_int), value :: nspins, nkpts_band, nstates
+         real(c_double), dimension(*), intent(in) :: occ
+         real(c_double), dimension(*), intent(in) :: eig
+      end subroutine librpa_set_band_occ_eigval_c
+
+      subroutine librpa_set_wfc_band_c(h, ispin, ik_band, nstates_local, nbasis_local, wfc_real, wfc_imag) &
+            bind(c, name="librpa_set_wfc_band")
+         import :: c_ptr, c_int, c_double
+         type(c_ptr), value :: h
+         integer(c_int), value :: ispin, ik_band, nstates_local, nbasis_local
+         real(c_double), dimension(*), intent(in) :: wfc_real
+         real(c_double), dimension(*), intent(in) :: wfc_imag
+      end subroutine librpa_set_wfc_band_c
+
+      subroutine librpa_set_wfc_band_packed_c(h, ispin, ik_band, nstates_local, nbasis_local, wfc) &
+            bind(c, name="librpa_set_wfc_band_packed")
+         import :: c_ptr, c_int
+         type(c_ptr), value :: h
+         integer(c_int), value :: ispin, ik_band, nstates_local, nbasis_local
+         type(c_ptr), value :: wfc
+      end subroutine librpa_set_wfc_band_packed_c
+
+      subroutine librpa_reset_band_data_c(h) bind(c, name="librpa_reset_band_data")
+         import :: c_ptr
+         type(c_ptr), value :: h
+      end subroutine librpa_reset_band_data_c
    end interface
 
    ! Compute functions interface
@@ -754,7 +797,6 @@ contains
 
    ! Input functions
    subroutine librpa_set_scf_dimension(this, nspins, nkpts, nstates, nbasis)
-      use iso_c_binding, only: c_associated
       implicit none
       class(LibrpaHandler), intent(inout) :: this
       integer, intent(in) :: nspins, nkpts, nstates, nbasis
@@ -775,7 +817,6 @@ contains
    end subroutine librpa_set_scf_dimension
 
    subroutine librpa_set_wg_ekb_efermi(this, nspins, nkpts, nstates, wg, ekb, efermi)
-      use iso_c_binding, only: c_associated
       implicit none
       class(LibrpaHandler), intent(inout) :: this
       integer, intent(in) :: nspins, nkpts, nstates
@@ -804,7 +845,7 @@ contains
 
    !> @brief Set the wave-function expansion coefficients
    !> @param ispin          spin index (starting from 1) of the wave function
-   !> @param ik             k-point index (starting from 1) of the wave function
+   !> @param ik             (global) k-point index (starting from 1) of the wave function
    !> @param nstates_local  local dimenstion (number of states) of the parsed wave-function
    !> @param nbasis_local   local dimenstion (number of basis functions) of the parsed wave-function
    !> @param wfc_cplx       Complex-valued wave function to parse
@@ -1169,6 +1210,98 @@ contains
          deallocate(omegas_c, df_c)
       end if
    end subroutine librpa_set_dielect_func_imagfreq
+
+   subroutine librpa_set_band_kvec(this, nkpts_band, kfrac_band)
+      implicit none
+      class(LibrpaHandler), intent(inout) :: this
+      integer, intent(in) :: nkpts_band
+      real(dp), intent(in) :: kfrac_band(3, nkpts_band)
+
+      integer(c_int) :: nkb_c
+      real(c_double), allocatable :: kfb_c(:,:)
+
+      nkb_c = int(nkpts_band, kind=c_int)
+
+      if (dp == c_double) then
+         call librpa_set_band_kvec_c(this%ptr_c_handle, nkb_c, kfrac_band)
+      else
+         allocate(kfb_c(3, nkpts_band))
+         kfb_c = real(kfrac_band, kind=c_double)
+         call librpa_set_band_kvec_c(this%ptr_c_handle, nkb_c, kfb_c)
+         deallocate(kfb_c)
+      end if
+   end subroutine librpa_set_band_kvec
+
+   subroutine librpa_set_band_occ_eigval(this, nspins, nkpts_band, nstates, occ, eig)
+      implicit none
+      class(LibrpaHandler), intent(inout) :: this
+      integer, intent(in) :: nspins, nkpts_band, nstates
+      real(dp), intent(in) :: occ(nstates, nkpts_band, nspins)
+      real(dp), intent(in) :: eig(nstates, nkpts_band, nspins)
+
+      integer(c_int) :: nspins_c, nkpts_band_c, nstates_c
+      real(c_double), allocatable :: occ_c(:,:,:), eig_c(:,:,:)
+
+      nspins_c = int(nspins, kind=c_int)
+      nkpts_band_c = int(nkpts_band, kind=c_int)
+      nstates_c = int(nstates, kind=c_int)
+
+      if (dp == c_double) then
+         call librpa_set_band_occ_eigval_c(this%ptr_c_handle, nspins_c, nkpts_band_c, nstates_c, occ, eig)
+      else
+         allocate(occ_c(nstates, nkpts_band, nspins))
+         allocate(eig_c(nstates, nkpts_band, nspins))
+         occ_c = real(occ, kind=c_double)
+         eig_c = real(eig, kind=c_double)
+         call librpa_set_band_occ_eigval_c(this%ptr_c_handle, nspins_c, nkpts_band_c, nstates_c, occ_c, eig_c)
+         deallocate(occ_c, eig_c)
+      end if
+   end subroutine librpa_set_band_occ_eigval
+
+   !> @brief Set the wave-function expansion coefficients for band calculation
+   !> @param ispin          spin index (starting from 1) of the wave function
+   !> @param ik_band        (global) k-point index (starting from 1) of the wave function
+   !> @param nstates_local  local dimenstion (number of states) of the parsed wave-function
+   !> @param nbasis_local   local dimenstion (number of basis functions) of the parsed wave-function
+   !> @param wfc_cplx       Complex-valued wave function to parse
+   subroutine librpa_set_wfc_band(this, ispin, ik_band, nstates_local, nbasis_local, wfc_cplx)
+      use iso_c_binding, only: c_int, c_double, c_loc
+      implicit none
+
+      class(LibrpaHandler), intent(inout) :: this
+      integer, intent(in) :: ispin, ik_band, nstates_local, nbasis_local
+      complex(dp), intent(in), target :: wfc_cplx(nbasis_local, nstates_local)
+
+      real(c_double), allocatable :: wfc_real(:,:), wfc_imag(:,:)
+      integer(c_int) :: ispin_c, ikb_c, nstates_local_c, nbasis_local_c
+
+      ispin_c = int(ispin-1, kind=c_int)
+      ikb_c = int(ik_band-1, kind=c_int)
+      nstates_local_c = int(nstates_local, kind=c_int)
+      nbasis_local_c = int(nbasis_local, kind=c_int)
+
+      if (dp == c_double) then
+         ! Fast path without create intermediate Fortran arrays
+         call librpa_set_wfc_band_packed_c(&
+            this%ptr_c_handle, ispin_c, ikb_c, &
+            nstates_local_c, nbasis_local_c, c_loc(wfc_cplx))
+      else
+         allocate(wfc_real(nbasis_local, nstates_local))
+         allocate(wfc_imag(nbasis_local, nstates_local))
+         wfc_real = real(wfc_cplx, kind=c_double)
+         wfc_imag = real(aimag(wfc_cplx), kind=c_double)
+         call librpa_set_wfc_band_c(this%ptr_c_handle, ispin_c, ikb_c, &
+            nstates_local_c, nbasis_local_c, wfc_real, wfc_imag)
+         deallocate(wfc_real, wfc_imag)
+      end if
+   end subroutine librpa_set_wfc_band
+
+   subroutine librpa_reset_band_data(this)
+      implicit none
+      class(LibrpaHandler), intent(inout) :: this
+
+      call librpa_reset_band_data_c(this%ptr_c_handle)
+   end subroutine librpa_reset_band_data
 
    ! Compute functions
    subroutine librpa_get_imaginary_frequency_grids(this, opts, omegas, weights)

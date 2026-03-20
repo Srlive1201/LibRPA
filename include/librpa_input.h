@@ -70,6 +70,23 @@ LIBRPA_C_H_FUNC_WRAP(void, librpa_set_aux_cut_coulomb_k_2d_block,
 
 LIBRPA_C_H_FUNC_WRAP(void, librpa_set_dielect_func_imagfreq, int nfreq, const double *omegas_imag, const double *dielect_func);
 
+LIBRPA_C_H_FUNC_WRAP(void, librpa_set_band_kvec,
+                     int n_kpts_band, const double* kfrac_band);
+
+LIBRPA_C_H_FUNC_WRAP(void, librpa_set_band_occ_eigval,
+                     int n_spins, int n_kpts_band, int n_states,
+                     const double* occ, const double* eig);
+
+LIBRPA_C_H_FUNC_WRAP(void, librpa_set_wfc_band,
+                     int ispin, int ik_band, int nstates_local, int nbasis_local,
+                     const double* wfc_real, const double* wfc_imag);
+
+LIBRPA_C_H_FUNC_WRAP(void, librpa_set_wfc_band_packed,
+                     int ispin, int ik_band, int nstates_local, int nbasis_local,
+                     const double* wfc_ri);
+
+LIBRPA_C_H_FUNC_WRAP_NOPAR(void, librpa_reset_band_data);
+
 #ifdef __cplusplus
 }
 #endif

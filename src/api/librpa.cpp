@@ -186,6 +186,35 @@ LIBRPA_CPP_H_METHOD_DEF_WRAP_VOID(
     (omegas_imag.size(), omegas_imag.data(), dielect_func.data())
 )
 
+LIBRPA_CPP_H_METHOD_DEF_WRAP_VOID(
+    set_band_kvec,
+    (int n_kpts_band, const double* kfrac_band),
+    (n_kpts_band, kfrac_band)
+)
+
+LIBRPA_CPP_H_METHOD_DEF_WRAP_VOID(
+    set_band_occ_eigval,
+    (int n_spins, int n_kpts_band, int n_states, const double* occ, const double* eig),
+    (n_spins, n_kpts_band, n_states, occ, eig)
+)
+
+LIBRPA_CPP_H_METHOD_DEF_WRAP_VOID(
+    set_wfc_band,
+    (int ispin, int ik_band, int nstates_local, int nbasis_local, const double* wfc_real, const double* wfc_imag),
+    (ispin, ik_band, nstates_local, nbasis_local, wfc_real, wfc_imag)
+)
+
+LIBRPA_CPP_H_METHOD_DEF_WRAP_VOID(
+    set_wfc_band_packed,
+    (int ispin, int ik_band, int nstates_local, int nbasis_local, const std::complex<double> *wfc),
+    (ispin, ik_band, nstates_local, nbasis_local, reinterpret_cast<const double*>(wfc))
+)
+
+void Handler::reset_band_data()
+{
+    ::librpa_reset_band_data(this->h_);
+}
+
 /* Compute (build/get) functions */
 std::pair<std::vector<double>, std::vector<double>> Handler::get_imaginary_frequency_grids(const Options& opts)
 {

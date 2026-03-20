@@ -66,10 +66,14 @@ public:
     Atoms atoms;
     //! Periodic boundary setting
     PeriodicBoundaryData pbc;
+    //! Fractional coordiantes of k-points for band calculation
+    std::vector<Vector3_Order<double>> kfrac_band_list;
 
     // Input data.
     //! Mean-field starting point
     MeanField mf;
+    //! Mean-field object for band calculation
+    MeanField mf_band;
     //! Time-frequency grids
     TFGrids tfg;
     //! Real-space RI coefficient tensors (local RI)

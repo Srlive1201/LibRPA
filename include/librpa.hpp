@@ -110,6 +110,18 @@ public:
     LIBRPA_CPP_H_METHOD_DECL_WRAP(void, set_dielect_func_imagfreq,
                                   const std::vector<double> &omegas_imag, const std::vector<double> &dielect_func);
 
+    LIBRPA_CPP_H_METHOD_DECL_WRAP(void, set_band_kvec,
+                                  int n_kpts_band, const double* kfrac_band);
+    LIBRPA_CPP_H_METHOD_DECL_WRAP(void, set_band_occ_eigval,
+                                  int n_spins, int n_kpts_band, int n_states,
+                                  const double* occ, const double* eig);
+    LIBRPA_CPP_H_METHOD_DECL_WRAP(void, set_wfc_band,
+                                  int ispin, int ik_band, int nstates_local, int nbasis_local,
+                                  const double* wfc_real, const double* wfc_imag);
+    LIBRPA_CPP_H_METHOD_DECL_WRAP(void, set_wfc_band_packed,
+                                  int ispin, int ik_band, int nstates_local, int nbasis_local, const std::complex<double> *wfc);
+    LIBRPA_CPP_H_METHOD_DECL_WRAP(void, reset_band_data);
+
     /* Compute (build/get) functions */
     //! Construct and return frequency grids
     std::pair<std::vector<double>, std::vector<double>>
