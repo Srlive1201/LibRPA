@@ -45,14 +45,17 @@ extern size_t n_atoms;
 extern int n_spins;
 extern int n_kpoints;
 extern int n_ibz_kpoints;
+extern int n_kpoints_band;
 extern int n_states;
 extern int n_basis_wfc;
 
 // Used for parallel distribution of input SCF KS eigenvectors over k-points
-extern std::vector<int> iks_eigvec_local;
+extern std::vector<int> iks_eigvec_this;
+extern std::vector<int> iks_band_eigvec_this;
 
 extern std::vector<std::pair<size_t, size_t>> local_atpair;
 extern std::vector<librpa_int::Vector3_Order<double>> ibz_kpoints;
+extern std::vector<librpa_int::Vector3_Order<double>> kfrac_band;
 
 // Working handle
 extern librpa::Handler h;

@@ -48,17 +48,20 @@ size_t n_atoms;
 
 int n_spins = 0;
 int n_kpoints = 0;
+int n_kpoints_band = 0;
 int n_ibz_kpoints = 0;
 int n_states = 0;
 int n_basis_wfc = 0;
 
-std::vector<int> iks_eigvec_local;
+std::vector<int> iks_eigvec_this;
+std::vector<int> iks_band_eigvec_this;
 
 // Used to read Coulomb matrix data.
 // Should be consistent with the internal `atpairs_local` of the Dataset object
 std::vector<std::pair<size_t, size_t>> local_atpair;
 
 std::vector<librpa_int::Vector3_Order<double>> ibz_kpoints;
+std::vector<librpa_int::Vector3_Order<double>> kfrac_band;
 
 librpa::Handler h;
 

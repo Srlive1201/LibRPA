@@ -98,21 +98,21 @@ void driver::task_g0w0()
     const int i_state_low = 0;
     const int i_state_high = n_states;
     const int n_states_calc = i_state_high - i_state_low;
-    const size_t n_local = n_states_calc * n_spins * iks_eigvec_local.size();
+    const size_t n_local = n_states_calc * n_spins * iks_eigvec_this.size();
     std::vector<double> vexx_all;
     std::vector<cplxdb> sigc_all;
     {
-        const auto vexx = h.get_exx_pot_kgrid(opts, n_spins, iks_eigvec_local, i_state_low, i_state_high);
+        const auto vexx = h.get_exx_pot_kgrid(opts, n_spins, iks_eigvec_this, i_state_low, i_state_high);
         std::vector<double> vxc_flat(n_local);
         ofs_myid << "k_para " << opts.use_kpara_scf_eigvec << endl;
-        ofs_myid << "iks_eigvec_local " << iks_eigvec_local << endl;
+        ofs_myid << "iks_eigvec_this " << iks_eigvec_this << endl;
         ofs_myid << "n_local " << n_local << endl;
         for (int isp = 0; isp != n_spins; isp++)
         {
-            const auto start_isp = isp * iks_eigvec_local.size() * n_states_calc;
-            for (size_t ik_local = 0; ik_local < iks_eigvec_local.size(); ik_local++)
+            const auto start_isp = isp * iks_eigvec_this.size() * n_states_calc;
+            for (size_t ik_local = 0; ik_local < iks_eigvec_this.size(); ik_local++)
             {
-                const auto ik = iks_eigvec_local[ik_local];
+                const auto ik = iks_eigvec_this[ik_local];
                 const auto start_k = start_isp + ik_local * n_states_calc;
                 for (int i = 0; i < n_states_calc; i++)
                 {
@@ -121,7 +121,7 @@ void driver::task_g0w0()
             }
         }
         ofs_myid << "Before get_g0w0_qpe_kgrid" << std::endl;
-        const auto sigc = h.get_g0w0_qpe_kgrid(opts, n_spins, iks_eigvec_local, i_state_low, i_state_high, vxc_flat, vexx);
+        const auto sigc = h.get_g0w0_qpe_kgrid(opts, n_spins, iks_eigvec_this, i_state_low, i_state_high, vxc_flat, vexx);
         ofs_myid << "Finish get_g0w0_qpe_kgrid" << std::endl;
         if (!opts.use_kpara_scf_eigvec)
         {
@@ -140,11 +140,11 @@ void driver::task_g0w0()
             sigc_all.resize(n_all);
             for (int isp = 0; isp != n_spins; isp++)
             {
-                const auto st_isp_local = isp * iks_eigvec_local.size() * n_states_calc;
+                const auto st_isp_local = isp * iks_eigvec_this.size() * n_states_calc;
                 const auto st_isp = isp * n_kpoints * n_states_calc;
-                for (size_t ik_local = 0; ik_local < iks_eigvec_local.size(); ik_local++)
+                for (size_t ik_local = 0; ik_local < iks_eigvec_this.size(); ik_local++)
                 {
-                    const auto ik = iks_eigvec_local[ik_local];
+                    const auto ik = iks_eigvec_this[ik_local];
                     const auto st_local = st_isp_local + ik_local * n_states_calc;
                     const auto st = st_isp + ik * n_states_calc;
                     memcpy(sigc_all.data() + st, sigc.data() + st_local, n_states_calc * sizeof(cplxdb));

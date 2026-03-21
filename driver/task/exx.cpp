@@ -48,7 +48,7 @@ void driver::task_exx()
     const int i_state_low = 0;
     const int i_state_high = n_states;
     const int n_states_calc = i_state_high - i_state_low;
-    const auto exx_ks = h.get_exx_pot_kgrid(opts, n_spins, iks_eigvec_local, i_state_low, i_state_high);
+    const auto exx_ks = h.get_exx_pot_kgrid(opts, n_spins, iks_eigvec_this, i_state_low, i_state_high);
 
     const auto &kfrac_list = librpa_int::api::get_dataset_instance(h)->pbc.kfrac_list;
 
@@ -56,13 +56,13 @@ void driver::task_exx()
     for (int isp = 0; isp != n_spins; isp++)
     {
         std::vector<double> exx_sp_collected(n_states_calc * n_kpoints, 0.0);
-        const int st = isp * n_states_calc * iks_eigvec_local.size();
-        for (size_t ik_local = 0; ik_local < iks_eigvec_local.size(); ik_local++)
+        const int st = isp * n_states_calc * iks_eigvec_this.size();
+        for (size_t ik_this = 0; ik_this < iks_eigvec_this.size(); ik_this++)
         {
-            const int ik = iks_eigvec_local[ik_local];
+            const int ik = iks_eigvec_this[ik_this];
             const int index_collect = ik * n_states_calc;
-            const int index_local = st + ik_local * n_states_calc;
-            memcpy(exx_sp_collected.data() + index_collect, exx_ks.data() + index_local, n_states_calc * sizeof(double));
+            const int index = st + ik_this * n_states_calc;
+            memcpy(exx_sp_collected.data() + index_collect, exx_ks.data() + index, n_states_calc * sizeof(double));
         }
         mpi_comm_global_h.reduce(MPI_IN_PLACE, exx_sp_collected.data(), n_states_calc * n_kpoints, 0, MPI_SUM);
         if (mpi_comm_global_h.myid == 0)

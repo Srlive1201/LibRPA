@@ -7,7 +7,6 @@
 #include <string>
 #include <vector>
 
-#include "../src/core/meanfield.h"
 #include "../src/core/ri.h"
 #include "../src/math/matrix.h"
 #include "../src/math/vector3_order.h"
@@ -16,9 +15,8 @@
 using std::string;
 using librpa_int::matrix;
 using librpa_int::atpair_t;
-using librpa_int::MeanField;
 using librpa_int::Vector3_Order;
-using librpa_int::atpair_R_mat_t ;
+using librpa_int::atpair_R_mat_t;
 
 /*!
  * @brief Read occupation numbers and eigenvalues of SCF calculation
@@ -60,9 +58,9 @@ void erase_Cs_from_local_atp(atpair_R_mat_t &Cs, std::vector<atpair_t> &local_at
 
 void get_natom_ncell_from_first_Cs_file(int &n_atom, int &n_cell, const string &dir_path);
 
-std::vector<Vector3_Order<double>> read_band_kpath_info(const string &file_path, int &n_basis, int &n_states, int &n_spin);
+void read_band_kpath_info(const string &file_path);
 
-MeanField read_meanfield_band(const string &dir_path, int n_basis, int n_states, int n_spin, int n_kpoints_band);
+void read_band_meanfield_data(const string &dir_path);
 
 std::vector<matrix> read_vxc_band(const string &dir_path, int n_states, int n_spin, int n_kpoints_band);
 

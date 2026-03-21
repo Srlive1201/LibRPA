@@ -10,6 +10,7 @@
 #include <sstream>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 #include "driver.h"
 #include "librpa.hpp"
@@ -18,6 +19,7 @@
 #include "../src/api/instance_manager.h"
 #include "../src/io/global_io.h"
 #include "../src/io/stl_io_helper.h"
+#include "../src/utils/error.h"
 #include "../src/utils/profiler.h"
 #include "../src/utils/utils_mem.h"
 
@@ -31,7 +33,7 @@ void read_scf_occ_eigenvalues(const string &file_path)
     using driver::n_kpoints;
     using driver::n_states;
     using driver::n_basis_wfc;
-    using driver::iks_eigvec_local;
+    using driver::iks_eigvec_this;
     using librpa_int::global::myid_global;
     using librpa_int::global::size_global;
 
@@ -51,18 +53,18 @@ void read_scf_occ_eigenvalues(const string &file_path)
     infile >> n_basis_wfc;
     infile >> efermi;
 
-    iks_eigvec_local.clear();
+    iks_eigvec_this.clear();
     if (driver::get_bool(driver::opts.use_kpara_scf_eigvec))
     {
         for (int ik = 0; ik < driver::n_kpoints; ik++)
         {
-            if (ik % size_global == myid_global) iks_eigvec_local.emplace_back(ik);
+            if (ik % size_global == myid_global) iks_eigvec_this.emplace_back(ik);
         }
     }
     else
     {
         for (int ik = 0; ik < driver::n_kpoints; ik++)
-            iks_eigvec_local.emplace_back(ik);
+            iks_eigvec_this.emplace_back(ik);
     }
 
     driver::h.set_scf_dimension(n_spins, n_kpoints, n_states, n_basis_wfc);
@@ -161,7 +163,7 @@ int read_vxc(const string &file_path, std::vector<matrix> &vxc)
 
 static int handle_KS_file(const string &file_path)
 {
-    using driver::iks_eigvec_local;
+    using driver::iks_eigvec_this;
 
     int ret = 0;
     // cout<<file_path<<endl;
@@ -192,9 +194,9 @@ static int handle_KS_file(const string &file_path)
         bool skip_this_ik = false;
         if (driver::get_bool(driver::opts.use_kpara_scf_eigvec))
         {
-            const auto it = std::find(iks_eigvec_local.cbegin(), iks_eigvec_local.cend(), ik);
+            const auto it = std::find(iks_eigvec_this.cbegin(), iks_eigvec_this.cend(), ik);
             // this k does not belong to this process
-            skip_this_ik = (it == iks_eigvec_local.cend());
+            skip_this_ik = (it == iks_eigvec_this.cend());
         }
         for (int iw = 0; iw != nao; iw++)
         {
@@ -1729,9 +1731,15 @@ void read_basis(const std::string &file_path)
 }
 
 
-std::vector<Vector3_Order<double>> read_band_kpath_info(const string &file_path, int &n_basis, int &n_states, int &n_spin)
+void read_band_kpath_info(const string &file_path)
 {
-    std::vector<Vector3_Order<double>> kfrac_band;
+    using driver::n_spins;
+    using driver::n_basis_wfc;
+    using driver::n_states;
+    using driver::n_kpoints_band;
+    using driver::kfrac_band;
+
+    int n_basis_band, n_states_band, n_spin_band;
 
     ifstream infile;
     infile.open(file_path);
@@ -1741,74 +1749,120 @@ std::vector<Vector3_Order<double>> read_band_kpath_info(const string &file_path,
     }
 
     string x, y, z;
-    int n_kpoints_band;
 
     // Read dimensions in the first row
     infile >> x;
-    n_basis = stoi(x);
+    n_basis_band = stoi(x);
+    if (n_basis_band != n_basis_wfc)
+        throw LIBRPA_RUNTIME_ERROR("band & SCF #basis inconsistent");
     infile >> x;
-    n_states = stoi(x);
+    n_states_band = stoi(x);
+    if (n_states_band != n_states)
+        throw LIBRPA_RUNTIME_ERROR("band & SCF #state inconsistent");
     infile >> x;
-    n_spin = stoi(x);
+    n_spin_band = stoi(x);
+    if (n_spin_band != n_spins)
+        throw LIBRPA_RUNTIME_ERROR("band & SCF #spin inconsistent");
     infile >> x;
     n_kpoints_band = stoi(x);
 
+    kfrac_band.clear();
+    std::vector<double> vector_kfrac_band(n_kpoints_band * 3); // For API parsing
     for (int i = 0; i < n_kpoints_band; i++)
     {
         infile >> x >> y >> z;
-        kfrac_band.push_back({stod(x), stod(y), stod(z)});
+        Vector3_Order<double> kfrac{stod(x), stod(y), stod(z)};
+        kfrac_band.emplace_back(kfrac);
+        vector_kfrac_band[3*i] = kfrac.x;
+        vector_kfrac_band[3*i+1] = kfrac.y;
+        vector_kfrac_band[3*i+2] = kfrac.z;
     }
 
     infile.close();
 
-    return kfrac_band;
+    driver::h.set_band_kvec(n_kpoints_band, vector_kfrac_band.data());
 }
 
-MeanField read_meanfield_band(const string &dir_path, int n_basis, int n_states, int n_spin, int n_kpoints_band)
+void read_band_meanfield_data(const string &dir_path)
 {
-    MeanField mf_band(n_spin, n_kpoints_band, n_states, n_basis);
+    using driver::n_spins;
+    using driver::n_kpoints_band;
+    using driver::n_states;
+    using driver::n_basis_wfc;
+    using driver::iks_band_eigvec_this;
+    using librpa_int::global::myid_global;
+    using librpa_int::global::size_global;
+
+    iks_band_eigvec_this.clear();
+
+    if (driver::get_bool(driver::opts.use_kpara_scf_eigvec))
+    {
+        for (int ik = 0; ik < driver::n_kpoints_band; ik++)
+        {
+            if (ik % size_global == myid_global) iks_band_eigvec_this.emplace_back(ik);
+        }
+    }
+    else
+    {
+        for (int ik = 0; ik < driver::n_kpoints_band; ik++)
+            iks_band_eigvec_this.emplace_back(ik);
+    }
+
+    std::vector<double> eskb(n_spins * n_kpoints_band * n_states);
+    std::vector<double> wskb(n_spins * n_kpoints_band * n_states);
+
+    const int n_kb = n_kpoints_band * n_states;
     std::string s1, s2, s3, s4, s5;
 
+    // Load occupation weights and eigenvalues
     for (int ik = 0; ik < n_kpoints_band; ik++)
     {
-        // Load occupation weights and eigenvalues
         std::stringstream ss;
         ss << dir_path << "band_KS_eigenvalue_k_" << std::setfill('0') << std::setw(5) << ik + 1 << ".txt";
+
         ifstream infile;
         infile.open(ss.str());
-
-        for (int i_spin = 0; i_spin < n_spin; i_spin++)
+        for (int i_spin = 0; i_spin < n_spins; i_spin++)
         {
             for (int i_state = 0; i_state < n_states; i_state++)
             {
                 infile >> s1 >> s2 >> s3 >> s4 >> s5;
-                mf_band.get_weight()[i_spin](ik, i_state) = stod(s3);
-                mf_band.get_eigenvals()[i_spin](ik, i_state) = stod(s4);
+                const int index = i_spin * n_kb + ik * n_states + i_state;
+                wskb[index] = stod(s3);
+                eskb[index] = stod(s4);
             }
         }
-
-        infile.close();
-
-        // Load eigenvectors
-        ss.str("");
-        ss.clear();
-        ss << dir_path << "band_KS_eigenvector_k_" << std::setfill('0') << std::setw(5) << ik + 1 << ".txt";
-        infile.open(ss.str(), std::ios::in | std::ios::binary);
-
-        for (int i_spin = 0; i_spin < n_spin; i_spin++)
-        {
-            auto &wfc = mf_band.get_eigenvectors()[i_spin][ik];
-            wfc.create(n_states, n_basis);
-            const size_t nbytes = n_basis * n_states * sizeof(std::complex<double>);
-            infile.read((char *) mf_band.get_eigenvectors()[i_spin][ik].c, nbytes);
-        }
-
         infile.close();
     }
+    driver::h.set_band_occ_eigval(n_spins, n_kpoints_band, n_states, wskb.data(), eskb.data());
 
-    // TODO: Fermi energy is not set
+    // Load eigenvectors
+    for (int ik = 0; ik < n_kpoints_band; ik++)
+    {
+        bool skip_this_ik = false;
+        if (driver::get_bool(driver::opts.use_kpara_scf_eigvec))
+        {
+            const auto it =
+                std::find(iks_band_eigvec_this.cbegin(), iks_band_eigvec_this.cend(), ik);
+            // this k does not belong to this process
+            skip_this_ik = (it == iks_band_eigvec_this.cend());
+        }
+        if (skip_this_ik) continue;
 
-    return mf_band;
+        std::stringstream ss;
+        ss << dir_path << "band_KS_eigenvector_k_" << std::setfill('0') << std::setw(5) << ik + 1 << ".txt";
+
+        ifstream infile;
+        infile.open(ss.str(), std::ios::in | std::ios::binary);
+        std::vector<std::complex<double>> wfc(n_states * n_basis_wfc);
+        for (int i_spin = 0; i_spin < n_spins; i_spin++)
+        {
+            const size_t nbytes = n_basis_wfc * n_states * sizeof(std::complex<double>);
+            infile.read((char *) wfc.data(), nbytes);
+            driver::h.set_wfc_band_packed(i_spin, ik, driver::n_states, driver::n_basis_wfc, wfc.data());
+        }
+        infile.close();
+    }
 }
 
 std::vector<matrix> read_vxc_band(const string &dir_path, int n_states, int n_spin, int n_kpoints_band)

@@ -1,188 +1,183 @@
 #include <fstream>
 #include <sstream>
 
-#include "../src/core/coulmat.h"
-#include "../src/core/exx.h"
-#include "../src/core/meanfield.h"
-#include "../src/core/pbc.h"
-#include "../src/core/ri.h"
-#include "../src/mpi/global_mpi.h"
-#include "../src/utils/constants.h"
-#include "../src/io/global_io.h"
-#include "../src/utils/profiler.h"
-#include "driver_params.h"
-#include "read_data.h"
+#include "../task.h"
+#include "../driver.h"
+#include "../read_data.h"
 
-void task_exx_band()
+#include "../../src/utils/profiler.h"
+#include "../../src/utils/constants.h"
+#include "../../src/io/global_io.h"
+
+#include "../../src/api/instance_manager.h"
+
+void driver::task_exx_band()
 {
-    using librpa_int::global::mpi_comm_global_h;
-    using librpa_int::global::ofs_myid;
-    using librpa_int::global::lib_printf;
+    using std::cout;
+    using std::endl;
+    using std::setw;
+    using std::map;
+    using librpa_int::HA2EV;
+    using namespace librpa_int::global;
 
-    Profiler::start("exx_band");
+    profiler.start("exx_band", "Exact-exchange-only calculation of band structure");
 
-    Vector3_Order<int> period {kv_nmp[0], kv_nmp[1], kv_nmp[2]};
-    auto Rlist = construct_R_grid(period);
+    profiler.start("read_vq_cut", "Load truncated Coulomb");
+    auto routing = opts.parallel_routing;
+    if (routing == LibrpaParallelRouting::AUTO) routing = librpa_int::decide_auto_routing(n_atoms, n_kpoints * opts.nfreq);
 
-    vector<Vector3_Order<double>> qlist;
-    for ( auto q_weight: irk_weight)
+    if (routing == LibrpaParallelRouting::RTAU)
     {
-        qlist.push_back(q_weight.first);
+        read_Vq_full(driver_params.input_dir, "coulomb_cut_", true);
     }
-
-    // Prepare time-frequency grids
-    Profiler::start("read_vq_cut", "Load truncated Coulomb");
-    read_Vq_full(driver_params.input_dir, "coulomb_cut_", true);
-    Profiler::stop("read_vq_cut");
-
-    std::vector<double> epsmac_LF_imagfreq_re;
-
-    Profiler::start("exx_real_space", "Build exchange self-energy");
-    auto exx = librpa_int::Exx(meanfield, kfrac_list, period);
+    else
     {
-        Profiler::start("ft_vq_cut", "Fourier transform truncated Coulomb");
-        const auto VR = FT_Vq(Vq_cut, meanfield.get_n_kpoints(), Rlist, true);
-        Profiler::stop("ft_vq_cut");
-
-        Profiler::start("exx_real_work");
-        exx.build(Cs_data, Rlist, VR);
-        Profiler::stop("exx_real_work");
+        // NOTE: local_atpair set during read_data::read_ri.
+        read_Vq_row(driver_params.input_dir, "coulomb_cut_", opts.vq_threshold, local_atpair, true);
     }
-    Profiler::stop("exx_real_space");
-    std::flush(ofs_myid);
+    profiler.stop("read_vq_cut");
 
-    Profiler::start("read_vxc", "Load DFT xc potential");
+    profiler.start("read_vxc", "Load DFT xc potential");
     std::vector<matrix> vxc;
     int flag_read_vxc = read_vxc(driver_params.input_dir + "vxc_out", vxc);
-    Profiler::stop("read_vxc");
-
+    profiler.stop("read_vxc");
     if (flag_read_vxc != 0)
     {
         if (mpi_comm_global_h.myid == 0)
         {
             lib_printf("Error in reading Vxc on kgrid, task failed!\n");
         }
-        Profiler::stop("exx_band");
+        profiler.stop("exx_band");
         return;
     }
 
-    Profiler::start("exx_ks_kgrid");
-    exx.build_KS_kgrid();
-    Profiler::stop("exx_ks_kgrid");
+    h.build_exx(opts);
 
+    const int i_state_low = 0;
+    const int i_state_high = n_states;
+    const int n_states_calc = i_state_high - i_state_low;
+
+    const auto exx_ks = h.get_exx_pot_kgrid(opts, n_spins, iks_eigvec_this, i_state_low, i_state_high);
+
+    mpi_comm_global_h.barrier();
+    const std::string banner(90, '-');
     if (mpi_comm_global_h.is_root())
     {
-        // display results
-        const std::string banner(90, '-');
-        printf("Printing EXX@DFT energy [unit: eV]\n\n");
-        for (int i_spin = 0; i_spin < meanfield.get_n_spins(); i_spin++)
+        cout << banner << endl;
+        cout << "Printing orbital energy [unit: eV]" << endl << endl;
+    }
+    mpi_comm_global_h.barrier();
+
+    // Access meanfield data from the database
+    const auto &mf = librpa_int::api::get_dataset_instance(h)->mf;
+    const auto &kfrac_list = librpa_int::api::get_dataset_instance(h)->pbc.kfrac_list;
+
+    for (int isp = 0; isp != n_spins; isp++)
+    {
+        std::vector<double> exx_sp_collected(n_states_calc * n_kpoints, 0.0);
+        const int st = isp * n_states_calc * iks_eigvec_this.size();
+        for (size_t ik_this = 0; ik_this < iks_eigvec_this.size(); ik_this++)
         {
-            for (int i_kpoint = 0; i_kpoint < meanfield.get_n_kpoints(); i_kpoint++)
+            const int ik = iks_eigvec_this[ik_this];
+            const int index_collect = ik * n_states_calc;
+            const int index = st + ik_this * n_states_calc;
+            memcpy(exx_sp_collected.data() + index_collect, exx_ks.data() + index, n_states_calc * sizeof(double));
+        }
+        mpi_comm_global_h.reduce(MPI_IN_PLACE, exx_sp_collected.data(), n_states_calc * n_kpoints, 0, MPI_SUM);
+        if (mpi_comm_global_h.myid == 0)
+        {
+            for (int ik = 0; ik < n_kpoints; ik++)
             {
-                const auto &k = kfrac_list[i_kpoint];
-                printf("spin %2d, k-point %4d: (%.5f, %.5f, %.5f) \n",
-                        i_spin+1, i_kpoint+1, k.x, k.y, k.z);
-                printf("%90s\n", banner.c_str());
-                printf("%5s %16s %16s %16s %16s %16s\n", "State", "occ", "e_mf", "v_xc", "v_exx", "e_exx");
-                printf("%90s\n", banner.c_str());
-                for (int i_state = 0; i_state < meanfield.get_n_bands(); i_state++)
+                const auto &k = kfrac_list[ik];
+                cout << "Spin channel " << setw(2) << isp + 1 << ", k-point " << setw(4) << ik + 1
+                     << ": (" << std::fixed << std::setprecision(5) << k.x << ", " << k.y << ", " << k.z << ")" << endl;
+                cout << banner << endl;
+                cout << setw(5) << "State" << setw(16) << "occ" << setw(16) << "e_mf"
+                     << setw(16) << "v_xc" << setw(16) << "v_exx" << setw(16) << "e_exx" << endl;
+                cout << banner << endl;
+                const int index = ik * n_states_calc;
+                for (int ib = 0; ib != n_states_calc; ib++)
                 {
-                    const auto &occ_state = meanfield.get_weight()[i_spin](i_kpoint, i_state) * meanfield.get_n_kpoints();
-                    const auto &eks_state = meanfield.get_eigenvals()[i_spin](i_kpoint, i_state) * HA2EV;
-                    const auto &exx_state = exx.Eexx[i_spin][i_kpoint][i_state] * HA2EV;
-                    const auto &vxc_state = vxc[i_spin](i_kpoint, i_state) * HA2EV;
+                    const int i_state = ib + i_state_low;
+                    const auto &occ_state = mf.get_weight()[isp](ik, i_state) * mf.get_n_kpoints();
+                    const auto &eks_state = mf.get_eigenvals()[isp](ik, i_state) * HA2EV;
+                    const auto &exx_state = exx_sp_collected[index + ib] * HA2EV;
+                    const auto &vxc_state = vxc[isp](ik, i_state) * HA2EV;
                     printf("%5d %16.5f %16.5f %16.5f %16.5f %16.5f\n",
                            i_state+1, occ_state, eks_state, vxc_state, exx_state, eks_state - vxc_state + exx_state);
                 }
-                printf("\n");
+                cout << endl;
             }
         }
+        mpi_comm_global_h.barrier();
     }
-
-    /*
-     * Compute the EXX energies on band k-paths
-     */
-    // Reset k-space EXX and Sigmac matrices to avoid warning from internal reset
-    exx.reset_kspace();
 
     /* Below we handle the band k-points data
      * First load the information of k-points along the k-path */
-    Profiler::start("exx_band_load_band_mf");
-    int n_basis_band, n_states_band, n_spin_band;
-    std::vector<Vector3_Order<double>> kfrac_band = read_band_kpath_info(
-        driver_params.input_dir + "band_kpath_info", n_basis_band, n_states_band, n_spin_band);
+    profiler.start("exx_band_load_band_mf");
+    read_band_kpath_info(driver_params.input_dir + "band_kpath_info");
+    const int nkpts_band = kfrac_band.size();
     if (mpi_comm_global_h.is_root())
     {
         std::cout << "Band k-points to compute:\n";
-        for (int ik = 0; ik < kfrac_band.size(); ik++)
+        for (int ik = 0; ik < nkpts_band; ik++)
         {
             const auto &k = kfrac_band[ik];
             lib_printf("%5d %12.7f %12.7f %12.7f\n", ik + 1, k.x, k.y, k.z);
         }
     }
     mpi_comm_global_h.barrier();
+    read_band_meanfield_data(driver_params.input_dir);
+    profiler.stop("exx_band_load_band_mf");
 
-    auto meanfield_band = read_meanfield_band(driver_params.input_dir,
-            n_basis_band, n_states_band, n_spin_band, kfrac_band.size());
+    profiler.start("read_vxc_band", "Load DFT xc potential");
+    auto vxc_band = read_vxc_band(driver_params.input_dir, n_states, n_spins, kfrac_band.size());
+    profiler.stop("read_vxc_band");
 
-    /* Set the same Fermi energy as in SCF */
-    meanfield_band.get_efermi() = meanfield.get_efermi();
-    Profiler::stop("exx_band_load_band_mf");
+    const auto exx_ks_band = h.get_exx_pot_band_k(opts, n_spins, iks_band_eigvec_this, i_state_low, i_state_high);
 
-    Profiler::start("exx_rotate_KS");
-    exx.build_KS_band(meanfield_band.get_eigenvectors(), kfrac_band);
-    Profiler::stop("exx_rotate_KS");
-    std::flush(ofs_myid);
+    // if (mpi_comm_global_h.is_root())
+    // {
+    //     const auto &mf = meanfield_band;
+    //     // display results
+    //     for (int i_spin = 0; i_spin < mf.get_n_spins(); i_spin++)
+    //     {
+    //         std::ofstream ofs_ks;
+    //         std::ofstream ofs_hf;
+    //         std::stringstream fn;
+    //
+    //         fn << "EXX_band_spin_" << i_spin + 1 << ".dat";
+    //         ofs_hf.open(fn.str());
+    //
+    //         fn.str("");
+    //         fn.clear();
+    //         fn << "KS_band_spin_" << i_spin + 1 << ".dat";
+    //         ofs_ks.open(fn.str());
+    //
+    //         ofs_hf << std::fixed;
+    //         ofs_ks << std::fixed;
+    //
+    //         for (int i_kpoint = 0; i_kpoint < mf.get_n_kpoints(); i_kpoint++)
+    //         {
+    //             const auto &k = kfrac_band[i_kpoint];
+    //             ofs_ks << std::setw(5) << i_kpoint + 1 << std::setw(15) << std::setprecision(7) << k.x << std::setw(15) << std::setprecision(7) << k.y << std::setw(15) << std::setprecision(7) << k.z;
+    //             ofs_hf << std::setw(5) << i_kpoint + 1 << std::setw(15) << std::setprecision(7) << k.x << std::setw(15) << std::setprecision(7) << k.y << std::setw(15) << std::setprecision(7) << k.z;
+    //             for (int i_state = 0; i_state < meanfield.get_n_bands(); i_state++)
+    //             {
+    //                 const auto &occ_state = mf.get_weight()[i_spin](i_kpoint, i_state);
+    //                 const auto &eks_state = mf.get_eigenvals()[i_spin](i_kpoint, i_state) * HA2EV;
+    //                 const auto &exx_state = exx.Eexx[i_spin][i_kpoint][i_state] * HA2EV;
+    //                 const auto &vxc_state = vxc_band[i_spin](i_kpoint, i_state) * HA2EV;
+    //                 // const auto &resigc = sigc_all[i_spin][i_kpoint][i_state].real() * HA2EV;
+    //                 // const auto &imsigc = sigc_all[i_spin][i_kpoint][i_state].imag() * HA2EV;
+    //                 ofs_ks << std::setw(15) << std::setprecision(5) << occ_state << std::setw(15) << std::setprecision(5) << eks_state;
+    //                 ofs_hf << std::setw(15) << std::setprecision(5) << occ_state << std::setw(15) << std::setprecision(5) << eks_state - vxc_state + exx_state;
+    //             }
+    //             ofs_hf << "\n";
+    //             ofs_ks << "\n";
+    //         }
+    //     }
+    // }
 
-    Profiler::start("read_vxc", "Load DFT xc potential");
-    auto vxc_band = read_vxc_band(driver_params.input_dir, n_states_band, n_spin_band, kfrac_band.size());
-    Profiler::stop("read_vxc");
-    std::flush(ofs_myid);
-
-    // TODO: parallelize analytic continuation and QPE solver among tasks
-    if (mpi_comm_global_h.is_root())
-    {
-        const auto &mf = meanfield_band;
-        // display results
-        for (int i_spin = 0; i_spin < mf.get_n_spins(); i_spin++)
-        {
-            std::ofstream ofs_ks;
-            std::ofstream ofs_hf;
-            std::stringstream fn;
-
-            fn << "EXX_band_spin_" << i_spin + 1 << ".dat";
-            ofs_hf.open(fn.str());
-
-            fn.str("");
-            fn.clear();
-            fn << "KS_band_spin_" << i_spin + 1 << ".dat";
-            ofs_ks.open(fn.str());
-
-            ofs_hf << std::fixed;
-            ofs_ks << std::fixed;
-
-            for (int i_kpoint = 0; i_kpoint < mf.get_n_kpoints(); i_kpoint++)
-            {
-                const auto &k = kfrac_band[i_kpoint];
-                ofs_ks << std::setw(5) << i_kpoint + 1 << std::setw(15) << std::setprecision(7) << k.x << std::setw(15) << std::setprecision(7) << k.y << std::setw(15) << std::setprecision(7) << k.z;
-                ofs_hf << std::setw(5) << i_kpoint + 1 << std::setw(15) << std::setprecision(7) << k.x << std::setw(15) << std::setprecision(7) << k.y << std::setw(15) << std::setprecision(7) << k.z;
-                for (int i_state = 0; i_state < meanfield.get_n_bands(); i_state++)
-                {
-                    const auto &occ_state = mf.get_weight()[i_spin](i_kpoint, i_state);
-                    const auto &eks_state = mf.get_eigenvals()[i_spin](i_kpoint, i_state) * HA2EV;
-                    const auto &exx_state = exx.Eexx[i_spin][i_kpoint][i_state] * HA2EV;
-                    const auto &vxc_state = vxc_band[i_spin](i_kpoint, i_state) * HA2EV;
-                    // const auto &resigc = sigc_all[i_spin][i_kpoint][i_state].real() * HA2EV;
-                    // const auto &imsigc = sigc_all[i_spin][i_kpoint][i_state].imag() * HA2EV;
-                    ofs_ks << std::setw(15) << std::setprecision(5) << occ_state << std::setw(15) << std::setprecision(5) << eks_state;
-                    ofs_hf << std::setw(15) << std::setprecision(5) << occ_state << std::setw(15) << std::setprecision(5) << eks_state - vxc_state + exx_state;
-                }
-                ofs_hf << "\n";
-                ofs_ks << "\n";
-            }
-        }
-    }
-
-
-    Profiler::stop("exx_band");
+    profiler.stop("exx_band");
 }
