@@ -134,8 +134,12 @@ public:
     void build_exx(const Options &opts);
 
     std::vector<double>
-    get_exx_pot_kgrid(const Options &opts, const int n_spins, const std::vector<int> &iks_local,
+    get_exx_pot_kgrid(const Options &opts, const int n_spins, const std::vector<int> &iks_this,
                       int i_state_low, int i_state_high);
+
+    std::vector<double>
+    get_exx_pot_band_k(const Options &opts, const int n_spins, const std::vector<int> &iks_band_this,
+                       int i_state_low, int i_state_high);
 
     //! Compute real-space G0W0 self-energy matrix
     void build_g0w0_sigma(const Options &opts);

@@ -123,6 +123,7 @@ module librpa_f03
          procedure :: get_rpa_correlation_energy => librpa_get_rpa_correlation_energy
          procedure :: build_exx => librpa_build_exx
          procedure :: get_exx_pot_kgrid => librpa_get_exx_pot_kgrid
+         procedure :: get_exx_pot_band_k => librpa_get_exx_pot_band_k
          procedure :: build_g0w0_sigma => librpa_build_g0w0_sigma
          procedure :: get_g0w0_qpe_kgrid => librpa_get_g0w0_qpe_kgrid
    end type LibrpaHandler
@@ -457,16 +458,27 @@ contains
       call error_on_call("librpa_build_exx")
    end subroutine librpa_build_exx
 
-   subroutine librpa_get_exx_pot_kgrid(this, opts, n_spins, n_kpoints_local, iks_local, &
+   subroutine librpa_get_exx_pot_kgrid(this, opts, n_spins, n_kpts_this, iks_this, &
                                        i_state_low, i_state_high, vexx)
       implicit none
       class(LibrpaHandler), intent(inout) :: this
       type(LibrpaOptions), intent(inout) :: opts
-      integer, contiguous, dimension(:), intent(in) :: iks_local
-      integer, intent(in) :: n_spins, n_kpoints_local, i_state_low, i_state_high
-      real(dp), dimension(i_state_high - i_state_low + 1, n_kpoints_local, n_spins), intent(inout) :: vexx
+      integer, contiguous, dimension(:), intent(in) :: iks_this
+      integer, intent(in) :: n_spins, n_kpts_this, i_state_low, i_state_high
+      real(dp), dimension(i_state_high - i_state_low + 1, n_kpts_this, n_spins), intent(inout) :: vexx
       call error_on_call("librpa_get_exx_pot_kgrid")
    end subroutine librpa_get_exx_pot_kgrid
+
+   subroutine librpa_get_exx_pot_band_k(this, opts, n_spins, n_kpts_band_this, iks_band_this, &
+                                        i_state_low, i_state_high, vexx_band)
+      implicit none
+      class(LibrpaHandler), intent(inout) :: this
+      type(LibrpaOptions), intent(inout) :: opts
+      integer, contiguous, dimension(:), intent(in) :: iks_band_this
+      integer, intent(in) :: n_spins, n_kpts_band_this, i_state_low, i_state_high
+      real(dp), dimension(i_state_high - i_state_low + 1, n_kpts_band_this, n_spins), intent(inout) :: vexx_band
+      call error_on_call("librpa_get_exx_pot_band_k")
+   end subroutine librpa_get_exx_pot_band_k
 
    subroutine librpa_build_g0w0_sigma(this, opts)
       implicit none

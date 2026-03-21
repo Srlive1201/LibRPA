@@ -26,19 +26,38 @@ LIBRPA_C_H_FUNC_WRAP_WOPT_NOPAR(void, librpa_build_exx);
  * @param[in]  h                Pointer to LibRPA handler.
  * @param[in]  opts             Pointer to runtime options.
  * @param[in]  n_spins          Number of spin channels.
- * @param[in]  n_kpoints_local  Number of local k-points.
- * @param[in]  iks_local        Index of local k-points.
+ * @param[in]  n_kpts_this      Number of k-points to compute on this process.
+ * @param[in]  iks_this         (Global) index of k-points that this process compute.
  *                              Each process can have different indices.
  *                              Must be a subset of k-points at which the eigenvetors are parsed.
  * @param[in]  i_state_low      Index of the first state to compute the potential (inclusive)
  * @param[in]  i_state_high     Index of the last state to compute the potential (exclusive)
  * @param[out] vexx             Exact-exchange potential for selected states.
- *                              It should be at least as long as n_spins * n_kpoints_local * (i_state_high - i_state_low).
+ *                              It should be at least as long as n_spins * n_kpts_local * (i_state_high - i_state_low).
  */
 LIBRPA_C_H_FUNC_WRAP_WOPT(void, librpa_get_exx_pot_kgrid,
-                          const int n_spins, const int n_kpoints_local,
-                          const int *iks_local, int i_state_low, int i_state_high,
+                          const int n_spins, const int n_kpts_this,
+                          const int *iks_this, int i_state_low, int i_state_high,
                           double *vexx);
+
+//! Obtain exact-exchange potential for selected states.
+/**
+ * @param[in]  h                Pointer to LibRPA handler.
+ * @param[in]  opts             Pointer to runtime options.
+ * @param[in]  n_spins          Number of spin channels.
+ * @param[in]  n_kpts_band_this Number of k-points to compute on this process.
+ * @param[in]  iks_band_this    (Global) index of k-points that this process compute.
+ *                              Each process can have different indices.
+ *                              Must be a subset of band k-points at which the eigenvetors are parsed.
+ * @param[in]  i_state_low      Index of the first state to compute the potential (inclusive)
+ * @param[in]  i_state_high     Index of the last state to compute the potential (exclusive)
+ * @param[out] vexx_band        Exact-exchange potential for selected states at band k-points.
+ *                              It should be at least as long as n_spins * n_kpts_band_this * (i_state_high - i_state_low).
+ */
+LIBRPA_C_H_FUNC_WRAP_WOPT(void, librpa_get_exx_pot_band_k,
+                          const int n_spins, const int n_kpts_band_this,
+                          const int *iks_band_this, int i_state_low, int i_state_high,
+                          double *vexx_band);
 
 //! Build self-energy matrix of G0W0, including the correlation and exchange contributions.
 /**
@@ -52,8 +71,8 @@ LIBRPA_C_H_FUNC_WRAP_WOPT_NOPAR(void, librpa_build_g0w0_sigma);
  * @param[in]  h                Pointer to LibRPA handler.
  * @param[in]  opts             Pointer to runtime options.
  * @param[in]  n_spins          Number of spin channels.
- * @param[in]  n_kpoints_local  Number of local k-points.
- * @param[in]  iks_local        Index of local k-points.
+ * @param[in]  n_kpts_this      Number of k-points to compute on this process.
+ * @param[in]  iks_this         (Global) index of k-points that this process compute.
  *                              Each process can have different indices.
  *                              Must be a subset of k-points at which the eigenvetors are parsed.
  * @param[in]  i_state_low      Index of the first state to compute the potential (inclusive)
@@ -67,8 +86,8 @@ LIBRPA_C_H_FUNC_WRAP_WOPT_NOPAR(void, librpa_build_g0w0_sigma);
  * @param[out] sigc_im          Same as sigc_re, but for imaginary part.
  */
 LIBRPA_C_H_FUNC_WRAP_WOPT(void, librpa_get_g0w0_qpe_kgrid,
-                          const int n_spins, const int n_kpoints_local,
-                          const int *iks_local, int i_state_low, int i_state_high,
+                          const int n_spins, const int n_kpts_this,
+                          const int *iks_this, int i_state_low, int i_state_high,
                           const double *vxc, const double *vexx, double *sigc_re, double *sigc_im);
 
 #ifdef __cplusplus

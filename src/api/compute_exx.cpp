@@ -53,8 +53,8 @@ LIBRPA_C_H_FUNC_WRAP_WOPT_NOPAR(void, librpa_build_exx)
     profiler.stop("api_build_exx");
 }
 
-LIBRPA_C_H_FUNC_WRAP_WOPT(void, librpa_get_exx_pot_kgrid, const int n_spins, const int n_kpoints_local,
-                          const int *iks_local, int i_state_low, int i_state_high, double *vexx)
+LIBRPA_C_H_FUNC_WRAP_WOPT(void, librpa_get_exx_pot_kgrid, const int n_spins, const int n_kpts_this,
+                          const int *iks_this, int i_state_low, int i_state_high, double *vexx)
 {
     using std::endl;
     using namespace librpa_int;
@@ -95,12 +95,12 @@ LIBRPA_C_H_FUNC_WRAP_WOPT(void, librpa_get_exx_pot_kgrid, const int n_spins, con
         // NOTE: Without use_kpara_scf_eigvec, exx data is only collected to master.
         // This policy might need to be adjusted later.
         if (it == pexx->Eexx.cend()) continue;
-        const int start_isp = isp * n_kpoints_local * n_states_calc;
+        const int start_isp = isp * n_kpts_this * n_states_calc;
         // ofs_myid << exx_isp << endl;
-        for (int ik_local = 0; ik_local < n_kpoints_local; ik_local++)
+        for (int ik_this = 0; ik_this < n_kpts_this; ik_this++)
         {
-            const int start_k = start_isp + ik_local * n_states_calc;
-            const int ik = iks_local[ik_local];
+            const int start_k = start_isp + ik_this * n_states_calc;
+            const int ik = iks_this[ik_this];
             const auto it_k = it->second.find(ik);
             if (it_k == it->second.cend()) continue;
             const auto &exx_k = it_k->second;
@@ -111,4 +111,69 @@ LIBRPA_C_H_FUNC_WRAP_WOPT(void, librpa_get_exx_pot_kgrid, const int n_spins, con
         }
     }
     profiler.stop("api_get_exx_pot_kgrid");
+}
+
+LIBRPA_C_H_FUNC_WRAP_WOPT(void, librpa_get_exx_pot_band_k, const int n_spins, const int n_kpts_band_this,
+                          const int *iks_band_this, int i_state_low, int i_state_high, double *vexx_band)
+{
+    using std::endl;
+    using namespace librpa_int;
+    using librpa_int::global::profiler;
+    using librpa_int::global::ofs_myid;
+    using librpa_int::global::lib_printf;
+
+    auto pds = librpa_int::api::get_dataset_instance(h);
+
+    if (pds->mf_band.get_n_spins() == 0)
+        throw LIBRPA_RUNTIME_ERROR("Meanfield data for band calculation is not set");
+
+    i_state_low = std::max(0, i_state_low);
+    i_state_high = std::min(pds->mf.get_n_states(), i_state_high);
+    if (n_spins != pds->mf.get_n_spins())
+    {
+        global::ofs_myid << "n_spins != pds->mf_band.get_n_spins(): " << n_spins << " != " << pds->mf_band.get_n_spins() << endl;
+        throw LIBRPA_RUNTIME_ERROR("parsed nspins is not consitent with the SCF starting point");
+    }
+    if (i_state_high <= i_state_low)
+    {
+        return;
+    }
+
+    if (!pds->p_exx)
+    {
+        librpa_build_exx(h, p_opts);
+    }
+
+    // const auto &opts = *p_opts; // TODO: add a flag to control whether to use blacs or lapack
+    // const bool debug = opts.output_level >= LIBRPA_VERBOSE_DEBUG;
+
+    profiler.start("api_get_exx_pot_band_k");
+    auto &pexx = pds->p_exx;
+    // ofs_myid << pexx->exx_IJR << endl;
+    // TODO: make choosing blacs/non-blacs method a run time option
+    pexx->build_KS_band_blacs(pds->mf_band.get_eigenvectors(), pds->kfrac_band_list,
+                              pds->atoms, pds->blacs_h);
+    const int n_states_calc = i_state_high - i_state_low;
+    for (int isp = 0; isp < n_spins; isp++)
+    {
+        const auto it = pexx->Eexx.find(isp);
+        // NOTE: Without use_kpara_scf_eigvec, exx data is only collected to master.
+        // This policy might need to be adjusted later.
+        if (it == pexx->Eexx.cend()) continue;
+        const int start_isp = isp * n_kpts_band_this * n_states_calc;
+        // ofs_myid << exx_isp << endl;
+        for (int ik_this = 0; ik_this < n_kpts_band_this; ik_this++)
+        {
+            const int start_k = start_isp + ik_this * n_states_calc;
+            const int ik = iks_band_this[ik_this];
+            const auto it_k = it->second.find(ik);
+            if (it_k == it->second.cend()) continue;
+            const auto &exx_k = it_k->second;
+            for (int i = 0; i < n_states_calc; i++)
+            {
+                vexx_band[start_k+i] = exx_k.at(i_state_low+i);
+            }
+        }
+    }
+    profiler.stop("api_get_exx_pot_band_k");
 }

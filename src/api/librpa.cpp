@@ -237,15 +237,27 @@ void Handler::build_exx(const Options &opts)
 }
 
 std::vector<double> Handler::get_exx_pot_kgrid(const Options& opts, const int n_spins,
-                                               const std::vector<int> &iks_local, int i_state_low,
+                                               const std::vector<int> &iks_this, int i_state_low,
                                                int i_state_high)
 {
-    const int n_kpoints_local = iks_local.size();
+    const int n_kpts_this = iks_this.size();
     const int n_states_calc = i_state_high - i_state_low;
-    std::vector<double> vexx(n_spins * n_kpoints_local * n_states_calc);
-    ::librpa_get_exx_pot_kgrid(this->h_, &opts, n_spins, n_kpoints_local, iks_local.data(),
+    std::vector<double> vexx(n_spins * n_kpts_this * n_states_calc);
+    ::librpa_get_exx_pot_kgrid(this->h_, &opts, n_spins, n_kpts_this, iks_this.data(),
                                 i_state_low, i_state_high, vexx.data());
     return vexx;
+}
+
+std::vector<double> Handler::get_exx_pot_band_k(const Options& opts, const int n_spins,
+                                               const std::vector<int> &iks_band_this, int i_state_low,
+                                               int i_state_high)
+{
+    const int n_kpts_band_this = iks_band_this.size();
+    const int n_states_calc = i_state_high - i_state_low;
+    std::vector<double> vexx_band(n_spins * n_kpts_band_this * n_states_calc);
+    ::librpa_get_exx_pot_band_k(this->h_, &opts, n_spins, n_kpts_band_this, iks_band_this.data(),
+                                i_state_low, i_state_high, vexx_band.data());
+    return vexx_band;
 }
 
 void Handler::build_g0w0_sigma(const Options &opts)

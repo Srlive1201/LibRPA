@@ -231,6 +231,7 @@ module librpa_f03
          procedure :: get_rpa_correlation_energy => librpa_get_rpa_correlation_energy
          procedure :: build_exx => librpa_build_exx
          procedure :: get_exx_pot_kgrid => librpa_get_exx_pot_kgrid
+         procedure :: get_exx_pot_band_k => librpa_get_exx_pot_band_k
          procedure :: build_g0w0_sigma => librpa_build_g0w0_sigma
          procedure :: get_g0w0_qpe_kgrid => librpa_get_g0w0_qpe_kgrid
    end type LibrpaHandler
@@ -447,16 +448,27 @@ module librpa_f03
          type(LibrpaOptions_c), intent(in) :: opts
       end subroutine librpa_build_exx_c
 
-      subroutine librpa_get_exx_pot_kgrid_c(h, opts, n_spins, n_kpoints_local, iks_local, &
+      subroutine librpa_get_exx_pot_kgrid_c(h, opts, n_spins, n_kpts_this, iks_this, &
                                             i_state_low, i_state_high, vexx) &
             bind(c, name="librpa_get_exx_pot_kgrid")
          import :: LibrpaOptions_c, c_ptr, c_int, c_double
          type(c_ptr), value :: h
          type(LibrpaOptions_c), intent(in) :: opts
-         integer(c_int), value :: n_spins, n_kpoints_local, i_state_low, i_state_high
-         integer(c_int), dimension(*), intent(in) :: iks_local
+         integer(c_int), value :: n_spins, n_kpts_this, i_state_low, i_state_high
+         integer(c_int), dimension(*), intent(in) :: iks_this
          real(c_double), dimension(*), intent(inout) :: vexx
       end subroutine librpa_get_exx_pot_kgrid_c
+
+      subroutine librpa_get_exx_pot_band_k_c(h, opts, n_spins, n_kpts_band_this, iks_band_this, &
+                                             i_state_low, i_state_high, vexx_band) &
+            bind(c, name="librpa_get_exx_pot_band_k")
+         import :: LibrpaOptions_c, c_ptr, c_int, c_double
+         type(c_ptr), value :: h
+         type(LibrpaOptions_c), intent(in) :: opts
+         integer(c_int), value :: n_spins, n_kpts_band_this, i_state_low, i_state_high
+         integer(c_int), dimension(*), intent(in) :: iks_band_this
+         real(c_double), dimension(*), intent(inout) :: vexx_band
+      end subroutine librpa_get_exx_pot_band_k_c
 
       subroutine librpa_build_g0w0_sigma_c(h, opts) bind(c, name="librpa_build_g0w0_sigma")
          import :: LibrpaOptions_c, c_ptr
@@ -1369,18 +1381,18 @@ contains
       call librpa_build_exx_c(this%ptr_c_handle, opts%opts_c)
    end subroutine librpa_build_exx
 
-   subroutine librpa_get_exx_pot_kgrid(this, opts, n_spins, n_kpoints_local, iks_local, &
+   subroutine librpa_get_exx_pot_kgrid(this, opts, n_spins, n_kpts_this, iks_this, &
                                        i_state_low, i_state_high, vexx)
       implicit none
       class(LibrpaHandler), intent(inout) :: this
       type(LibrpaOptions), intent(inout) :: opts
-      integer, contiguous, dimension(:), intent(in) :: iks_local
-      integer, intent(in) :: n_spins, n_kpoints_local, i_state_low, i_state_high
-      real(dp), dimension(i_state_high - i_state_low + 1, n_kpoints_local, n_spins), intent(inout) :: vexx
+      integer, contiguous, dimension(:), intent(in) :: iks_this
+      integer, intent(in) :: n_spins, n_kpts_this, i_state_low, i_state_high
+      real(dp), dimension(i_state_high - i_state_low + 1, n_kpts_this, n_spins), intent(inout) :: vexx
 
-      integer(c_int), allocatable :: iks_local_c(:)
+      integer(c_int), allocatable :: iks_this_c(:)
       real(c_double), allocatable :: vexx_c(:,:,:)
-      integer(c_int) :: n_spins_c, n_kpoints_local_c, i_state_low_c, i_state_high_c
+      integer(c_int) :: n_spins_c, n_kpts_this_c, i_state_low_c, i_state_high_c
       integer :: n_states_calc
 
       n_spins_c = int(n_spins, kind=c_int)
@@ -1388,10 +1400,10 @@ contains
       ! i_state_high is not included in the C interface, so no minus 1 here
       i_state_high_c = int(i_state_high, kind=c_int)
 
-      n_kpoints_local_c = int(n_kpoints_local, kind=c_int)
-      allocate(iks_local_c(max(1, n_kpoints_local)))
-      if (n_kpoints_local > 0) then
-         iks_local_c = int(iks_local(1:n_kpoints_local), kind=c_int) - 1
+      n_kpts_this_c = int(n_kpts_this, kind=c_int)
+      allocate(iks_this_c(max(1, n_kpts_this)))
+      if (n_kpts_this > 0) then
+         iks_this_c = int(iks_this(1:n_kpts_this), kind=c_int) - 1
          ! write(*,*) "size(iks_local) ", size(iks_local)
          ! write(*,*) "size(iks_local_c) ", size(iks_local_c)
          ! write(*,*) "iks_local_c ", iks_local_c
@@ -1399,19 +1411,63 @@ contains
 
       call sync_opts(opts, SYNC_OPTS_F2C)
       if (dp == c_double) then
-         call librpa_get_exx_pot_kgrid_c(this%ptr_c_handle, opts%opts_c, n_spins_c, n_kpoints_local_c, &
-                                         iks_local_c, i_state_low_c, i_state_high_c, vexx)
+         call librpa_get_exx_pot_kgrid_c(this%ptr_c_handle, opts%opts_c, n_spins_c, n_kpts_this_c, &
+                                         iks_this_c, i_state_low_c, i_state_high_c, vexx)
       else
          n_states_calc = i_state_high - i_state_low + 1
-         allocate(vexx_c(n_states_calc, max(n_kpoints_local, 1), n_spins))
-         call librpa_get_exx_pot_kgrid_c(this%ptr_c_handle, opts%opts_c, n_spins_c, n_kpoints_local_c, &
-                                         iks_local_c, i_state_low_c, i_state_high_c, vexx_c)
-         if (n_kpoints_local > 0) vexx = real(vexx_c, kind=dp)
+         allocate(vexx_c(n_states_calc, max(n_kpts_this, 1), n_spins))
+         call librpa_get_exx_pot_kgrid_c(this%ptr_c_handle, opts%opts_c, n_spins_c, n_kpts_this_c, &
+                                         iks_this_c, i_state_low_c, i_state_high_c, vexx_c)
+         if (n_kpts_this > 0) vexx = real(vexx_c, kind=dp)
          deallocate(vexx_c)
       end if
 
-      deallocate(iks_local_c)
+      deallocate(iks_this_c)
    end subroutine librpa_get_exx_pot_kgrid
+
+   subroutine librpa_get_exx_pot_band_k(this, opts, n_spins, n_kpts_band_this, iks_band_this, &
+                                        i_state_low, i_state_high, vexx_band)
+      implicit none
+      class(LibrpaHandler), intent(inout) :: this
+      type(LibrpaOptions), intent(inout) :: opts
+      integer, contiguous, dimension(:), intent(in) :: iks_band_this
+      integer, intent(in) :: n_spins, n_kpts_band_this, i_state_low, i_state_high
+      real(dp), dimension(i_state_high - i_state_low + 1, n_kpts_band_this, n_spins), intent(inout) :: vexx_band
+
+      integer(c_int), allocatable :: iks_band_this_c(:)
+      real(c_double), allocatable :: vexx_band_c(:,:,:)
+      integer(c_int) :: n_spins_c, n_kpts_this_c, i_state_low_c, i_state_high_c
+      integer :: n_states_calc
+
+      n_spins_c = int(n_spins, kind=c_int)
+      i_state_low_c = int(i_state_low - 1, kind=c_int)
+      ! i_state_high is not included in the C interface, so no minus 1 here
+      i_state_high_c = int(i_state_high, kind=c_int)
+
+      n_kpts_this_c = int(n_kpts_band_this, kind=c_int)
+      allocate(iks_band_this_c(max(1, n_kpts_band_this)))
+      if (n_kpts_band_this > 0) then
+         iks_band_this_c = int(iks_band_this(1:n_kpts_band_this), kind=c_int) - 1
+         ! write(*,*) "size(iks_local) ", size(iks_local)
+         ! write(*,*) "size(iks_local_c) ", size(iks_local_c)
+         ! write(*,*) "iks_local_c ", iks_local_c
+      end if
+
+      call sync_opts(opts, SYNC_OPTS_F2C)
+      if (dp == c_double) then
+         call librpa_get_exx_pot_band_k_c(this%ptr_c_handle, opts%opts_c, n_spins_c, n_kpts_this_c, &
+                                          iks_band_this_c, i_state_low_c, i_state_high_c, vexx_band)
+      else
+         n_states_calc = i_state_high - i_state_low + 1
+         allocate(vexx_band_c(n_states_calc, max(n_kpts_band_this, 1), n_spins))
+         call librpa_get_exx_pot_band_k_c(this%ptr_c_handle, opts%opts_c, n_spins_c, n_kpts_this_c, &
+                                          iks_band_this_c, i_state_low_c, i_state_high_c, vexx_band_c)
+         if (n_kpts_band_this > 0) vexx_band = real(vexx_band_c, kind=dp)
+         deallocate(vexx_band_c)
+      end if
+
+      deallocate(iks_band_this_c)
+   end subroutine librpa_get_exx_pot_band_k
 
    subroutine librpa_build_g0w0_sigma(this, opts)
       implicit none
