@@ -131,53 +131,63 @@ void driver::task_exx_band()
     profiler.stop("exx_band_load_band_mf");
 
     profiler.start("read_vxc_band", "Load DFT xc potential");
-    auto vxc_band = read_vxc_band(driver_params.input_dir, n_states, n_spins, kfrac_band.size());
+    const auto vxc_band = read_vxc_band(driver_params.input_dir, n_states, n_spins, kfrac_band.size());
     profiler.stop("read_vxc_band");
 
     const auto exx_ks_band = h.get_exx_pot_band_k(opts, n_spins, iks_band_eigvec_this, i_state_low, i_state_high);
 
-    // if (mpi_comm_global_h.is_root())
-    // {
-    //     const auto &mf = meanfield_band;
-    //     // display results
-    //     for (int i_spin = 0; i_spin < mf.get_n_spins(); i_spin++)
-    //     {
-    //         std::ofstream ofs_ks;
-    //         std::ofstream ofs_hf;
-    //         std::stringstream fn;
-    //
-    //         fn << "EXX_band_spin_" << i_spin + 1 << ".dat";
-    //         ofs_hf.open(fn.str());
-    //
-    //         fn.str("");
-    //         fn.clear();
-    //         fn << "KS_band_spin_" << i_spin + 1 << ".dat";
-    //         ofs_ks.open(fn.str());
-    //
-    //         ofs_hf << std::fixed;
-    //         ofs_ks << std::fixed;
-    //
-    //         for (int i_kpoint = 0; i_kpoint < mf.get_n_kpoints(); i_kpoint++)
-    //         {
-    //             const auto &k = kfrac_band[i_kpoint];
-    //             ofs_ks << std::setw(5) << i_kpoint + 1 << std::setw(15) << std::setprecision(7) << k.x << std::setw(15) << std::setprecision(7) << k.y << std::setw(15) << std::setprecision(7) << k.z;
-    //             ofs_hf << std::setw(5) << i_kpoint + 1 << std::setw(15) << std::setprecision(7) << k.x << std::setw(15) << std::setprecision(7) << k.y << std::setw(15) << std::setprecision(7) << k.z;
-    //             for (int i_state = 0; i_state < meanfield.get_n_bands(); i_state++)
-    //             {
-    //                 const auto &occ_state = mf.get_weight()[i_spin](i_kpoint, i_state);
-    //                 const auto &eks_state = mf.get_eigenvals()[i_spin](i_kpoint, i_state) * HA2EV;
-    //                 const auto &exx_state = exx.Eexx[i_spin][i_kpoint][i_state] * HA2EV;
-    //                 const auto &vxc_state = vxc_band[i_spin](i_kpoint, i_state) * HA2EV;
-    //                 // const auto &resigc = sigc_all[i_spin][i_kpoint][i_state].real() * HA2EV;
-    //                 // const auto &imsigc = sigc_all[i_spin][i_kpoint][i_state].imag() * HA2EV;
-    //                 ofs_ks << std::setw(15) << std::setprecision(5) << occ_state << std::setw(15) << std::setprecision(5) << eks_state;
-    //                 ofs_hf << std::setw(15) << std::setprecision(5) << occ_state << std::setw(15) << std::setprecision(5) << eks_state - vxc_state + exx_state;
-    //             }
-    //             ofs_hf << "\n";
-    //             ofs_ks << "\n";
-    //         }
-    //     }
-    // }
+    profiler.start("output_exx_band");
+    const auto &mf_band = librpa_int::api::get_dataset_instance(h)->mf_band;
+    for (int isp = 0; isp != n_spins; isp++)
+    {
+        std::vector<double> exx_sp_collected(n_states_calc * n_kpoints_band, 0.0);
+        const int st = isp * n_states_calc * iks_band_eigvec_this.size();
+        for (size_t ik_this = 0; ik_this < iks_band_eigvec_this.size(); ik_this++)
+        {
+            const int ik = iks_band_eigvec_this[ik_this];
+            const int index_collect = ik * n_states_calc;
+            const int index = st + ik_this * n_states_calc;
+            memcpy(exx_sp_collected.data() + index_collect, exx_ks.data() + index, n_states_calc * sizeof(double));
+        }
+        mpi_comm_global_h.reduce(MPI_IN_PLACE, exx_sp_collected.data(), n_states_calc * n_kpoints_band, 0, MPI_SUM);
+
+        if (mpi_comm_global_h.myid == 0)
+        {
+            std::ofstream ofs_ks, ofs_hf;
+            std::stringstream fn_ks, fn_hf;
+            fn_ks << "KS_band_spin_" << isp + 1 << ".dat";
+            fn_hf << "EXX_band_spin_" << isp + 1 << ".dat";
+            ofs_hf.open(fn_hf.str());
+            ofs_ks.open(fn_ks.str());
+            ofs_hf << std::fixed;
+            ofs_ks << std::fixed;
+
+            for (int ik = 0; ik < n_kpoints_band; ik++)
+            {
+                const int index_k = ik * n_states_calc;
+                const auto &k = kfrac_band[ik];
+                ofs_ks << std::setw(5) << ik + 1 << std::setw(15) << std::setprecision(7) << k.x << std::setw(15) << std::setprecision(7) << k.y << std::setw(15) << std::setprecision(7) << k.z;
+                ofs_hf << std::setw(5) << ik + 1 << std::setw(15) << std::setprecision(7) << k.x << std::setw(15) << std::setprecision(7) << k.y << std::setw(15) << std::setprecision(7) << k.z;
+                for (int ib = 0; ib < n_states_calc; ib++)
+                {
+                    const int i_state = i_state_low + ib;
+                    const auto &occ_state = mf_band.get_weight()[isp](ik, i_state) * n_kpoints_band;
+                    const auto &eks_state = mf_band.get_eigenvals()[isp](ik, i_state) * HA2EV;
+                    const auto &exx_state = exx_sp_collected[index_k+ib] * HA2EV;
+                    const auto &vxc_state = vxc_band[isp](ik, i_state) * HA2EV;
+                    ofs_ks << std::setw(15) << std::setprecision(5) << occ_state << std::setw(15) << std::setprecision(5) << eks_state;
+                    ofs_hf << std::setw(15) << std::setprecision(5) << occ_state << std::setw(15) << std::setprecision(5) << eks_state - vxc_state + exx_state;
+                }
+                ofs_hf << "\n";
+                ofs_ks << "\n";
+            }
+
+            ofs_hf.close();
+            ofs_ks.close();
+        }
+        mpi_comm_global_h.barrier();
+    }
+    profiler.stop("output_exx_band");
 
     profiler.stop("exx_band");
 }
