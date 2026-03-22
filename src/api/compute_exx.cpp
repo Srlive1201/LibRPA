@@ -151,6 +151,7 @@ LIBRPA_C_H_FUNC_WRAP_WOPT(void, librpa_get_exx_pot_band_k, const int n_spins, co
     auto &pexx = pds->p_exx;
     // ofs_myid << pexx->exx_IJR << endl;
     // TODO: make choosing blacs/non-blacs method a run time option
+    pexx->reset_kspace();
     pexx->build_KS_band_blacs(pds->mf_band.get_eigenvectors(), pds->kfrac_band_list,
                               pds->atoms, pds->blacs_h);
     const int n_states_calc = i_state_high - i_state_low;

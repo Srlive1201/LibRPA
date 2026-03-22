@@ -130,7 +130,7 @@ void driver::task_exx_band()
     read_band_meanfield_data(driver_params.input_dir);
     profiler.stop("exx_band_load_band_mf");
 
-    profiler.start("read_vxc_band", "Load DFT xc potential");
+    profiler.start("read_vxc_band", "Load DFT xc potential for band");
     const auto vxc_band = read_vxc_band(driver_params.input_dir, n_states, n_spins, kfrac_band.size());
     profiler.stop("read_vxc_band");
 

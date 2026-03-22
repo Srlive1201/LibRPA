@@ -212,7 +212,7 @@ void driver::task_g0w0_band()
     read_band_meanfield_data(driver_params.input_dir);
     profiler.stop("g0w0_band_load_band_mf");
 
-    profiler.start("read_vxc_band", "Load DFT xc potential");
+    profiler.start("read_vxc_band", "Load DFT xc potential for band");
     const auto vxc_band_all = read_vxc_band(driver_params.input_dir, n_states, n_spins, kfrac_band.size());
     profiler.stop("read_vxc_band");
 
@@ -224,21 +224,21 @@ void driver::task_g0w0_band()
         const auto &iks_this = iks_band_eigvec_this;
         const size_t n_local = n_states_calc * n_spins * iks_this.size();
         const auto vexx_band = h.get_exx_pot_band_k(opts, n_spins, iks_this, i_state_low, i_state_high);
+
         std::vector<double> vxc_this(n_local);
         for (int isp = 0; isp != n_spins; isp++)
         {
             const auto start_isp = isp * iks_this.size() * n_states_calc;
-            for (size_t ik_local = 0; ik_local < iks_this.size(); ik_local++)
+            for (size_t ik_this = 0; ik_this < iks_this.size(); ik_this++)
             {
-                const auto ik = iks_this[ik_local];
-                const auto start_k = start_isp + ik_local * n_states_calc;
+                const auto ik = iks_this[ik_this];
+                const auto start_k = start_isp + ik_this * n_states_calc;
                 for (int i = 0; i < n_states_calc; i++)
                 {
                     vxc_this[start_k+i] = vxc_band_all[isp](ik, i+i_state_low);
                 }
             }
         }
-
         const auto sigc_band = h.get_g0w0_sigc_band_k(opts, n_spins, iks_this, i_state_low, i_state_high, vxc_this, vexx_band);
 
         profiler.start("collect_exx_sigc_band");
@@ -333,13 +333,13 @@ void driver::task_g0w0_band()
                     for (int i = 0; i < n_states_calc; i++)
                     {
                         const int i_state = i + i_state_low;
-                        const auto &occ_state = mf_band.get_weight()[i_spin](i_kpoint, i_state) * mf_band.get_n_kpoints();
-                        const auto &eks_state = mf_band.get_eigenvals()[i_spin](i_kpoint, i_state) * HA2EV;
-                        const auto &vxc_state = vxc_band_all[i_spin](i_kpoint, i_state) * HA2EV;
-                        const auto &exx_state = vexx_band_all[start_k+i] * HA2EV;
-                        const auto &resigc = sigc_band_all[start_k+i].real() * HA2EV;
+                        const auto occ_state = mf_band.get_weight()[i_spin](i_kpoint, i_state) * mf_band.get_n_kpoints();
+                        const auto eks_state = mf_band.get_eigenvals()[i_spin](i_kpoint, i_state) * HA2EV;
+                        const auto vxc_state = vxc_band_all[i_spin](i_kpoint, i_state) * HA2EV;
+                        const auto exx_state = vexx_band_all[start_k+i] * HA2EV;
+                        const auto resigc = sigc_band_all[start_k+i].real() * HA2EV;
                         // const auto &imsigc = sigc_band_all[start_k+i].imag() * HA2EV;
-                        const auto &eqp = eks_state - vxc_state + exx_state + resigc;
+                        const auto eqp = eks_state - vxc_state + exx_state + resigc;
                         ofs_ks << setw(15) << std::setprecision(5) << occ_state << setw(15) << setprecision(5) << eks_state;
                         ofs_gw << setw(15) << std::setprecision(5) << occ_state << setw(15) << setprecision(5) << eqp;
                         ofs_hf << setw(15) << std::setprecision(5) << occ_state << setw(15) << setprecision(5) << eks_state - vxc_state + exx_state;
