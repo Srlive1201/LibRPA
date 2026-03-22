@@ -15,7 +15,7 @@ list(APPEND exe_sources
   task/exx.cpp
   task/exx_band.cpp
   task/g0w0.cpp
-  # task/gw_band.cpp
+  task/gw_band.cpp
   task/rpa.cpp
   # task/screened_coulomb.cpp
   task/print_minimax.cpp

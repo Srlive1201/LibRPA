@@ -55,6 +55,7 @@ std::string get_task_string(const task_t &task)
 static std::map<task_t, std::function<void(void)>> map_task_func_impl{
     {task_t::print_minimax, task_print_minimax},
     {task_t::G0W0, task_g0w0},
+    {task_t::G0W0_band, task_g0w0_band},
     {task_t::RPA, task_rpa},
     {task_t::EXX, task_exx},
     {task_t::EXX_band, task_exx_band},

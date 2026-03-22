@@ -23,7 +23,6 @@ void driver::task_g0w0()
     using std::map;
     using namespace librpa_int;
     using namespace librpa_int::global;
-    using librpa_int::global::lib_printf;
 
     profiler.start("g0w0", "G0W0 quasi-particle calculation");
 

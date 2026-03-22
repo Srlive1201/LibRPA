@@ -1011,7 +1011,7 @@ void G0W0::build_sigc_matrix_KS_band_blacs(const std::map<int, std::map<int, Com
     librpa_int::global::mpi_comm_global_h.barrier();
     if (librpa_int::global::mpi_comm_global_h.myid == 0)
     {
-        librpa_int::global::lib_printf("build_sigc_matrix_KS_kgrid: constructing self-energy matrix for band k-path\n");
+        librpa_int::global::lib_printf("build_sigc_matrix_KS_band: constructing self-energy matrix for band k-path with BLACS\n");
     }
     this->build_sigc_matrix_KS_blacs(wfc, kfrac_band, geometry, blacs_ctxt_h);
 }
