@@ -227,7 +227,8 @@ std::string Profiler::get_profile_string(int verbose) noexcept
     output << std::setw(49) << "Entry" << " " << std::setw(12) << "#calls" << " "
         << std::setw(18) << "CPU time (s)" << " " << std::setw(18) << "Wall time (s)" << "\n";
     output << banner('-', 100) << "\n";
-    output << get_profile_string_of_timer(root, 0);
+    if (root)
+        output << get_profile_string_of_timer(root, 0);
 
     return output.str();
 }
