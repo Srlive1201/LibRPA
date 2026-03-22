@@ -282,4 +282,22 @@ Handler::get_g0w0_qpe_kgrid(const Options &opts, const int n_spins, const std::v
     return sigc;
 }
 
+std::vector<std::complex<double>>
+Handler::get_g0w0_qpe_band_k(const Options &opts, const int n_spins, const std::vector<int> &iks_band_this,
+                       int i_state_low, int i_state_high, const std::vector<double> &vxc_band, const std::vector<double> &vexx_band)
+{
+    const int n_kpts_band_this = iks_band_this.size();
+    const int n_states_calc = i_state_high - i_state_low;
+    const size_t n = n_spins * n_kpts_band_this * n_states_calc;
+    std::vector<double> sigc_band_re(n);
+    std::vector<double> sigc_band_im(n);
+    ::librpa_get_g0w0_qpe_band_k(this->h_, &opts, n_spins, n_kpts_band_this, iks_band_this.data(),
+                                 i_state_low, i_state_high, vxc_band.data(), vexx_band.data(),
+                                 sigc_band_re.data(), sigc_band_im.data());
+    std::vector<std::complex<double>> sigc_band(n);
+    for (size_t i = 0; i < n; i++)
+        sigc_band[i] = std::complex<double>{sigc_band_re[i], sigc_band_im[i]};
+    return sigc_band;
+}
+
 }

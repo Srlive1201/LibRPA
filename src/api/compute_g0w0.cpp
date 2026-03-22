@@ -158,7 +158,7 @@ LIBRPA_C_H_FUNC_WRAP_WOPT_NOPAR(void, librpa_build_g0w0_sigma)
 
 LIBRPA_C_H_FUNC_WRAP_WOPT(void, librpa_get_g0w0_qpe_kgrid,
                           const int n_spins,
-                          const int n_kpoints_local, const int *iks_local,
+                          const int n_kpts_this, const int *iks_this,
                           int i_state_low, int i_state_high, const double *vxc, const double *vexx,
                           double *sigc_re, double *sigc_im)
 {
@@ -205,16 +205,16 @@ LIBRPA_C_H_FUNC_WRAP_WOPT(void, librpa_get_g0w0_qpe_kgrid,
 
     for (int isp = 0; isp < n_spins; isp++)
     {
-        const int start_isp = isp * n_kpoints_local * n_states_calc;
+        const int start_isp = isp * n_kpts_this * n_states_calc;
         // ofs_myid << exx_isp << endl;
-        for (int ik_local = 0; ik_local < n_kpoints_local; ik_local++)
+        for (int ik_this = 0; ik_this < n_kpts_this; ik_this++)
         {
             // When eigenvectors are not parallelized over k, the resulted k-matrices sigc_is_ik_f_KS are collected to master.
 	    // Other processes only have dummy data, so we skip AC for them.
             if (!opts.use_kpara_scf_eigvec && pds->blacs_h.myid != 0) continue;
 
-            const int start_k = start_isp + ik_local * n_states_calc;
-            const int ik = *(iks_local + ik_local);
+            const int start_k = start_isp + ik_this * n_states_calc;
+            const int ik = *(iks_this + ik_this);
             global::ofs_myid << "Start QPE solver for spin " << isp + 1
                              << " kpoint " << ik + 1 << std::endl;
             for (int i = 0; i < n_states_calc; i++)
@@ -256,4 +256,108 @@ LIBRPA_C_H_FUNC_WRAP_WOPT(void, librpa_get_g0w0_qpe_kgrid,
     profiler.stop("g0w0_solve_qpe");
 
     profiler.stop("api_get_g0w0_qpe_kgrid");
+}
+
+LIBRPA_C_H_FUNC_WRAP_WOPT(void, librpa_get_g0w0_qpe_band_k,
+                          const int n_spins,
+                          const int n_kpts_band_this, const int *iks_band_this,
+                          int i_state_low, int i_state_high, const double *vxc_band, const double *vexx_band,
+                          double *sigc_band_re, double *sigc_band_im)
+{
+    using namespace librpa_int;
+    using librpa_int::global::profiler;
+    using librpa_int::global::lib_printf;
+
+    auto pds = librpa_int::api::get_dataset_instance(h);
+    const auto &opts = *p_opts;
+    const bool debug = opts.output_level >= LIBRPA_VERBOSE_DEBUG;
+    i_state_low = std::max(0, i_state_low);
+    i_state_high = std::min(pds->mf_band.get_n_states(), i_state_high);
+    const int n_spins_band = pds->mf_band.get_n_spins();
+    if (n_spins != n_spins_band)
+    {
+        global::ofs_myid << "n_spins != pds->mf_band.get_n_spins(): " << n_spins << " != " << n_spins_band << std::endl;
+        throw LIBRPA_RUNTIME_ERROR("parsed n_spins is not consitent with the band input data");
+    }
+    if (i_state_high <= i_state_low) return;
+    const int n_states_calc = i_state_high - i_state_low;
+
+    if (!pds->p_g0w0) librpa_build_g0w0_sigma(h, p_opts);
+
+    profiler.start("api_get_g0w0_qpe_band_k");
+
+    // Decide actual routing
+    LibrpaParallelRouting routing = opts.parallel_routing;
+    if (routing == LibrpaParallelRouting::AUTO)
+    {
+        const int n_atoms = pds->atoms.size();
+        routing = decide_auto_routing(n_atoms, opts.nfreq * pds->pbc.get_n_cells_bvk());
+    }
+
+    profiler.start("g0w0_sigc_rotate_KS", "Correlation self-energy in K-S space");
+    pds->p_g0w0->build_sigc_matrix_KS_band_blacs(pds->mf_band.get_eigenvectors(),
+                                                 pds->kfrac_band_list, pds->atoms, pds->blacs_h);
+    profiler.stop("g0w0_sigc_rotate_KS");
+
+    profiler.start("g0w0_solve_qpe", "Solve quasi-particle equation");
+    const auto efermi = pds->mf_band.get_efermi();
+    std::vector<cplxdb> imagfreqs;
+    for (const auto &freq: pds->tfg.get_freq_nodes())
+    {
+        imagfreqs.push_back(cplxdb{0.0, freq});
+    }
+
+    for (int isp = 0; isp < n_spins; isp++)
+    {
+        const int start_isp = isp * n_kpts_band_this * n_states_calc;
+        // ofs_myid << exx_isp << endl;
+        for (int ik_this = 0; ik_this < n_kpts_band_this; ik_this++)
+        {
+            // When eigenvectors are not parallelized over k, the resulted k-matrices sigc_is_ik_f_KS are collected to master.
+	    // Other processes only have dummy data, so we skip AC for them.
+            if (!opts.use_kpara_scf_eigvec && pds->blacs_h.myid != 0) continue;
+
+            const int start_k = start_isp + ik_this * n_states_calc;
+            const int ik = *(iks_band_this + ik_this);
+            global::ofs_myid << "Start QPE solver for spin " << isp + 1
+                             << " kpoint " << ik + 1 << std::endl;
+            for (int i = 0; i < n_states_calc; i++)
+            {
+                const int i_state = i + i_state_low;
+                const auto &eks_state = pds->mf_band.get_eigenvals()[isp](ik, i_state);
+                const auto &exx_state = vexx_band[start_k+i];
+                const auto &vxc_state = vxc_band[start_k+i];
+                std::vector<cplxdb> sigc_state;
+                const auto &sigc_isp = pds->p_g0w0->sigc_is_ik_f_KS[isp];
+                auto it = sigc_isp.find(ik);
+                if (it == sigc_isp.cend())
+                    throw LIBRPA_RUNTIME_ERROR("fail to locate sigc at ik = " + std::to_string(ik));
+                for (const auto &[freq, mat]: it->second)
+                {
+                    sigc_state.emplace_back(mat(i_state, i_state));
+                }
+                double e_qp;
+                cplxdb sigc;
+                sigc_band_re[start_k+i] = std::numeric_limits<double>::quiet_NaN();
+                sigc_band_im[start_k+i] = std::numeric_limits<double>::quiet_NaN();
+                librpa_int::AnalyContPade pade(opts.n_params_anacon, imagfreqs, sigc_state);
+                int flag_qpe_solver = librpa_int::qpe_solver_pade_self_consistent(
+                    pade, eks_state, efermi, vxc_state, exx_state, e_qp, sigc);
+                if (flag_qpe_solver == 0)
+                {
+                    sigc_band_re[start_k+i] = sigc.real();
+                    sigc_band_im[start_k+i] = sigc.imag();
+                }
+                else
+                {
+                    global::ofs_myid << "Warning! QPE solver failed for spin " << isp + 1
+                                     << " kpoint " << ik + 1 << " state " << i_state + 1
+                                     << std::endl;
+                }
+            }
+        }
+    }
+    profiler.stop("g0w0_solve_qpe");
+
+    profiler.stop("api_get_g0w0_qpe_band_k");
 }
