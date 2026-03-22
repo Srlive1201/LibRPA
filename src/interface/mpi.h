@@ -41,6 +41,10 @@
 #define MPI_LONG 8
 #endif
 
+#ifndef MPI_UNSIGNED_LONG
+#define MPI_UNSIGNED_LONG 8
+#endif
+
 #ifndef MPI_C_FLOAT_COMPLEX
 #define MPI_C_FLOAT_COMPLEX 8
 #endif
@@ -49,9 +53,11 @@
 #define MPI_C_DOUBLE_COMPLEX 16
 #endif
 
-int MPI_Comm_rank(MPI_Comm comm, int *rank) { rank = 0; return 0; }
+inline int MPI_Barrier(MPI_Comm comm) { return 0; }
 
-int MPI_Comm_size(MPI_Comm comm, int *size) { size = 1; return 0; }
+inline int MPI_Comm_rank(MPI_Comm comm, int *rank) { *rank = 0; return 0; }
+
+inline int MPI_Comm_size(MPI_Comm comm, int *size) { *size = 1; return 0; }
 
 #endif
 

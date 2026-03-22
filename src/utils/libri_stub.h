@@ -9,6 +9,7 @@
 #include <vector>
 #include <memory>
 #include <set>
+#include <map>
 #include <valarray>
 #include <mpi.h>
 
