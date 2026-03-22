@@ -66,7 +66,7 @@ LIBRPA_C_H_FUNC_WRAP_WOPT(void, librpa_get_exx_pot_band_k,
  */
 LIBRPA_C_H_FUNC_WRAP_WOPT_NOPAR(void, librpa_build_g0w0_sigma);
 
-//! Obtain quasi-particle energies for selected states.
+//! Obtain correlation self-energies for selected states.
 /**
  * @param[in]  h                Pointer to LibRPA handler.
  * @param[in]  opts             Pointer to runtime options.
@@ -85,12 +85,12 @@ LIBRPA_C_H_FUNC_WRAP_WOPT_NOPAR(void, librpa_build_g0w0_sigma);
  *                              It should be at least as long as n_spins * n_kpoints_local * (i_state_high - i_state_low).
  * @param[out] sigc_im          Same as sigc_re, but for the imaginary part.
  */
-LIBRPA_C_H_FUNC_WRAP_WOPT(void, librpa_get_g0w0_qpe_kgrid,
+LIBRPA_C_H_FUNC_WRAP_WOPT(void, librpa_get_g0w0_sigc_kgrid,
                           const int n_spins, const int n_kpts_this,
                           const int *iks_this, int i_state_low, int i_state_high,
                           const double *vxc, const double *vexx, double *sigc_re, double *sigc_im);
 
-//! Obtain quasi-particle energies for selected states at band k-points.
+//! Obtain correlation self-energies for selected states at band k-points.
 /**
  * @param[in]  h                Pointer to LibRPA handler.
  * @param[in]  opts             Pointer to runtime options.
@@ -109,7 +109,7 @@ LIBRPA_C_H_FUNC_WRAP_WOPT(void, librpa_get_g0w0_qpe_kgrid,
  *                              It should be at least as long as n_spins * n_kpts_band_this * (i_state_high - i_state_low).
  * @param[out] sigc_band_im     Same as sigc_band_re, but for the imaginary part.
  */
-LIBRPA_C_H_FUNC_WRAP_WOPT(void, librpa_get_g0w0_qpe_band_k,
+LIBRPA_C_H_FUNC_WRAP_WOPT(void, librpa_get_g0w0_sigc_band_k,
                           const int n_spins, const int n_kpts_band_this,
                           const int *iks_band_this, int i_state_low, int i_state_high,
                           const double *vxc_band, const double *vexx_band, double *sigc_band_re, double *sigc_band_im);

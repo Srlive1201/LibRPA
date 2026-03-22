@@ -145,12 +145,12 @@ public:
     void build_g0w0_sigma(const Options &opts);
 
     std::vector<std::complex<double>>
-    get_g0w0_qpe_kgrid(const Options &opts, const int n_spins, const std::vector<int> &iks_this,
-                       int i_state_low, int i_state_high, const std::vector<double> &vxc, const std::vector<double> &vexx);
+    get_g0w0_sigc_kgrid(const Options &opts, const int n_spins, const std::vector<int> &iks_this,
+                        int i_state_low, int i_state_high, const std::vector<double> &vxc, const std::vector<double> &vexx);
 
     std::vector<std::complex<double>>
-    get_g0w0_qpe_band_k(const Options &opts, const int n_spins, const std::vector<int> &iks_band_this,
-                        int i_state_low, int i_state_high, const std::vector<double> &vxc_band, const std::vector<double> &vexx_band);
+    get_g0w0_sigc_band_k(const Options &opts, const int n_spins, const std::vector<int> &iks_band_this,
+                         int i_state_low, int i_state_high, const std::vector<double> &vxc_band, const std::vector<double> &vexx_band);
 
     /* Utility functions */
 };

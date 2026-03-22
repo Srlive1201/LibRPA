@@ -120,9 +120,9 @@ void driver::task_g0w0()
                 }
             }
         }
-        ofs_myid << "Before get_g0w0_qpe_kgrid" << std::endl;
-        const auto sigc = h.get_g0w0_qpe_kgrid(opts, n_spins, iks_eigvec_this, i_state_low, i_state_high, vxc_flat, vexx);
-        ofs_myid << "Finish get_g0w0_qpe_kgrid" << std::endl;
+        ofs_myid << "Before get_g0w0_sigc_kgrid" << std::endl;
+        const auto sigc = h.get_g0w0_sigc_kgrid(opts, n_spins, iks_eigvec_this, i_state_low, i_state_high, vxc_flat, vexx);
+        ofs_myid << "Finish get_g0w0_sigc_kgrid" << std::endl;
         if (!opts.use_kpara_scf_eigvec)
         {
             // master process already has all data

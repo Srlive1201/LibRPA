@@ -156,7 +156,7 @@ LIBRPA_C_H_FUNC_WRAP_WOPT_NOPAR(void, librpa_build_g0w0_sigma)
     profiler.stop("api_build_g0w0_sigma");
 }
 
-LIBRPA_C_H_FUNC_WRAP_WOPT(void, librpa_get_g0w0_qpe_kgrid,
+LIBRPA_C_H_FUNC_WRAP_WOPT(void, librpa_get_g0w0_sigc_kgrid,
                           const int n_spins,
                           const int n_kpts_this, const int *iks_this,
                           int i_state_low, int i_state_high, const double *vxc, const double *vexx,
@@ -181,7 +181,7 @@ LIBRPA_C_H_FUNC_WRAP_WOPT(void, librpa_get_g0w0_qpe_kgrid,
 
     if (!pds->p_g0w0) librpa_build_g0w0_sigma(h, p_opts);
 
-    profiler.start("api_get_g0w0_qpe_kgrid");
+    profiler.start("api_get_g0w0_sigc_kgrid");
 
     // Decide actual routing
     LibrpaParallelRouting routing = opts.parallel_routing;
@@ -255,10 +255,10 @@ LIBRPA_C_H_FUNC_WRAP_WOPT(void, librpa_get_g0w0_qpe_kgrid,
     }
     profiler.stop("g0w0_solve_qpe");
 
-    profiler.stop("api_get_g0w0_qpe_kgrid");
+    profiler.stop("api_get_g0w0_sigc_kgrid");
 }
 
-LIBRPA_C_H_FUNC_WRAP_WOPT(void, librpa_get_g0w0_qpe_band_k,
+LIBRPA_C_H_FUNC_WRAP_WOPT(void, librpa_get_g0w0_sigc_band_k,
                           const int n_spins,
                           const int n_kpts_band_this, const int *iks_band_this,
                           int i_state_low, int i_state_high, const double *vxc_band, const double *vexx_band,
@@ -284,7 +284,7 @@ LIBRPA_C_H_FUNC_WRAP_WOPT(void, librpa_get_g0w0_qpe_band_k,
 
     if (!pds->p_g0w0) librpa_build_g0w0_sigma(h, p_opts);
 
-    profiler.start("api_get_g0w0_qpe_band_k");
+    profiler.start("api_get_g0w0_sigc_band_k");
 
     // Decide actual routing
     LibrpaParallelRouting routing = opts.parallel_routing;
@@ -359,5 +359,5 @@ LIBRPA_C_H_FUNC_WRAP_WOPT(void, librpa_get_g0w0_qpe_band_k,
     }
     profiler.stop("g0w0_solve_qpe");
 
-    profiler.stop("api_get_g0w0_qpe_band_k");
+    profiler.stop("api_get_g0w0_sigc_band_k");
 }
