@@ -507,7 +507,7 @@ module librpa_f03
          integer(c_int), dimension(*), intent(in) :: iks_band_this
          real(c_double), dimension(*), intent(in) :: vxc_band, vexx_band
          real(c_double), dimension(*), intent(inout) :: sigc_band_re, sigc_band_im
-      end subroutine librpa_get_g0w0_sigc_bakd_k_c
+      end subroutine librpa_get_g0w0_sigc_band_k_c
    end interface
 
    ! Helper to communicate runtime options between C and Fortran types
