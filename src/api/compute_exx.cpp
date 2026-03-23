@@ -1,6 +1,4 @@
 // Public API headers
-#include "librpa_enums.h"
-#include "librpa_func.h"
 #include "librpa_compute.h"
 
 // Internal headers
@@ -13,7 +11,7 @@
 #include "dataset_helper.h"
 #include "instance_manager.h"
 
-LIBRPA_C_H_FUNC_WRAP_WOPT_NOPAR(void, librpa_build_exx)
+void librpa_build_exx(LibrpaHandler* h, const LibrpaOptions *p_opts)
 {
     using namespace librpa_int;
     using librpa_int::global::profiler;
@@ -53,8 +51,9 @@ LIBRPA_C_H_FUNC_WRAP_WOPT_NOPAR(void, librpa_build_exx)
     profiler.stop("api_build_exx");
 }
 
-LIBRPA_C_H_FUNC_WRAP_WOPT(void, librpa_get_exx_pot_kgrid, const int n_spins, const int n_kpts_this,
-                          const int *iks_this, int i_state_low, int i_state_high, double *vexx)
+void librpa_get_exx_pot_kgrid(LibrpaHandler *h, const LibrpaOptions *p_opts, const int n_spins,
+                              const int n_kpts_this, const int *iks_this, int i_state_low,
+                              int i_state_high, double *vexx)
 {
     using std::endl;
     using namespace librpa_int;
@@ -113,8 +112,9 @@ LIBRPA_C_H_FUNC_WRAP_WOPT(void, librpa_get_exx_pot_kgrid, const int n_spins, con
     profiler.stop("api_get_exx_pot_kgrid");
 }
 
-LIBRPA_C_H_FUNC_WRAP_WOPT(void, librpa_get_exx_pot_band_k, const int n_spins, const int n_kpts_band_this,
-                          const int *iks_band_this, int i_state_low, int i_state_high, double *vexx_band)
+void librpa_get_exx_pot_band_k(LibrpaHandler *h, const LibrpaOptions *p_opts, const int n_spins,
+                               const int n_kpts_band_this, const int *iks_band_this,
+                               int i_state_low, int i_state_high, double *vexx_band)
 {
     using std::endl;
     using namespace librpa_int;

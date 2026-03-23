@@ -242,7 +242,6 @@ install(FILES
   ${CMAKE_CURRENT_SOURCE_DIR}/include/librpa_global.h
   ${CMAKE_CURRENT_SOURCE_DIR}/include/librpa_handler.h
   ${CMAKE_CURRENT_SOURCE_DIR}/include/librpa_input.h
-  ${CMAKE_CURRENT_SOURCE_DIR}/include/librpa_func.h
   ${CMAKE_CURRENT_SOURCE_DIR}/include/librpa_options.h
   ${CMAKE_CURRENT_SOURCE_DIR}/include/librpa.h
   ${CMAKE_CURRENT_SOURCE_DIR}/include/librpa.hpp

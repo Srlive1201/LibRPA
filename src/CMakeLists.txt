@@ -36,8 +36,6 @@ configure_file(utils/envs_cmake.h ${CMAKE_CURRENT_BINARY_DIR}/envs_cmake.h)  # o
 list(APPEND lib_sources
         ${CMAKE_CURRENT_BINARY_DIR}/envs_cmake.cpp
 
-        # api/app_rpa.cpp
-        # api/app_gw.cpp
         api/compute_exx.cpp
         api/compute_g0w0.cpp
         api/compute_rpa.cpp

@@ -1,6 +1,5 @@
 // API headers
 #include "librpa_enums.h"
-#include "librpa_func.h"
 #include "librpa_input.h"
 
 // Standard headers
@@ -25,8 +24,7 @@
 #include "../utils/libri_stub.h"
 #endif
 
-LIBRPA_C_H_FUNC_WRAP(void, librpa_set_scf_dimension,
-                     int nspins, int nkpts, int nstates, int nbasis)
+void librpa_set_scf_dimension(LibrpaHandler* h, int nspins, int nkpts, int nstates, int nbasis)
 {
     using librpa_int::api::get_dataset_instance;
     using librpa_int::global::mpi_comm_global_h;
@@ -53,8 +51,8 @@ LIBRPA_C_H_FUNC_WRAP(void, librpa_set_scf_dimension,
     pds->comm_h.barrier();
 }
 
-LIBRPA_C_H_FUNC_WRAP(void, librpa_set_wg_ekb_efermi, int nspins, int nkpts, int nstates, const double* wg,
-                     const double* ekb, double efermi)
+void librpa_set_wg_ekb_efermi(LibrpaHandler* h, int nspins, int nkpts, int nstates,
+                              const double* wg, const double* ekb, double efermi)
 {
     using librpa_int::global::lib_printf;
 
@@ -87,9 +85,8 @@ LIBRPA_C_H_FUNC_WRAP(void, librpa_set_wg_ekb_efermi, int nspins, int nkpts, int 
     pds->comm_h.barrier();
 }
 
-LIBRPA_C_H_FUNC_WRAP(void, librpa_set_wfc, int ispin, int ik,
-                     int nstates_local, int nbasis_local,
-                     const double *wfc_real, const double *wfc_imag)
+void librpa_set_wfc(LibrpaHandler* h, int ispin, int ik, int nstates_local, int nbasis_local,
+                    const double* wfc_real, const double* wfc_imag)
 {
     auto pds = librpa_int::api::get_dataset_instance(h);
     auto &meanfield = pds->mf;
@@ -108,9 +105,8 @@ LIBRPA_C_H_FUNC_WRAP(void, librpa_set_wfc, int ispin, int ik,
         << std::endl;
 }
 
-LIBRPA_C_H_FUNC_WRAP(void, librpa_set_wfc_packed, int ispin, int ik,
-                     int nstates_local, int nbasis_local,
-                     const double *wfc_ri)
+void librpa_set_wfc_packed(LibrpaHandler* h, int ispin, int ik, int nstates_local, int nbasis_local,
+                           const double* wfc_ri)
 {
     auto pds = librpa_int::api::get_dataset_instance(h);
     auto &meanfield = pds->mf;
@@ -129,7 +125,7 @@ LIBRPA_C_H_FUNC_WRAP(void, librpa_set_wfc_packed, int ispin, int ik,
         << std::endl;
 }
 
-LIBRPA_C_H_FUNC_WRAP(void, librpa_set_ao_basis_wfc, const int natoms, const size_t *nbs_wfc)
+void librpa_set_ao_basis_wfc(LibrpaHandler* h, const int natoms, const size_t *nbs_wfc)
 {
     using librpa_int::global::lib_printf;
 
@@ -151,7 +147,7 @@ LIBRPA_C_H_FUNC_WRAP(void, librpa_set_ao_basis_wfc, const int natoms, const size
     pds->comm_h.barrier();
 }
 
-LIBRPA_C_H_FUNC_WRAP(void, librpa_set_ao_basis_aux, int natoms, const size_t *nbs_aux)
+void librpa_set_ao_basis_aux(LibrpaHandler* h, int natoms, const size_t *nbs_aux)
 {
     using librpa_int::global::lib_printf;
 
@@ -181,7 +177,7 @@ LIBRPA_C_H_FUNC_WRAP(void, librpa_set_ao_basis_aux, int natoms, const size_t *nb
     pds->comm_h.barrier();
 }
 
-LIBRPA_C_H_FUNC_WRAP(void, librpa_set_latvec_and_G, const double lat_mat[9], const double G_mat[9])
+void librpa_set_latvec_and_G(LibrpaHandler* h, const double lat_mat[9], const double G_mat[9])
 {
     using std::cout;
     using std::endl;
@@ -208,7 +204,7 @@ LIBRPA_C_H_FUNC_WRAP(void, librpa_set_latvec_and_G, const double lat_mat[9], con
     pds->comm_h.barrier();
 }
 
-LIBRPA_C_H_FUNC_WRAP(void, librpa_set_atoms, int natoms, const int *types, const double *posi_cart)
+void librpa_set_atoms(LibrpaHandler* h, int natoms, const int *types, const double *posi_cart)
 {
     using std::cout;
     using std::endl;
@@ -269,7 +265,7 @@ LIBRPA_C_H_FUNC_WRAP(void, librpa_set_atoms, int natoms, const int *types, const
 
 }
 
-LIBRPA_C_H_FUNC_WRAP(void, librpa_set_kgrids_kvec, int nk1, int nk2, int nk3, const double* kvecs)
+void librpa_set_kgrids_kvec(LibrpaHandler* h, int nk1, int nk2, int nk3, const double* kvecs)
 {
     using librpa_int::global::lib_printf;
     using std::cout;
@@ -309,7 +305,7 @@ LIBRPA_C_H_FUNC_WRAP(void, librpa_set_kgrids_kvec, int nk1, int nk2, int nk3, co
     pds->comm_h.barrier();
 }
 
-LIBRPA_C_H_FUNC_WRAP(void, librpa_set_ibz_mapping, int nkpts, const int* map_ibzk)
+void librpa_set_ibz_mapping(LibrpaHandler* h, int nkpts, const int* map_ibzk)
 {
     using std::cout;
     using std::endl;
@@ -348,8 +344,9 @@ LIBRPA_C_H_FUNC_WRAP(void, librpa_set_ibz_mapping, int nkpts, const int* map_ibz
     pds->comm_h.barrier();
 }
 
-LIBRPA_C_H_FUNC_WRAP(void, librpa_set_lri_coeff, LibrpaParallelRouting routing, int I, int J,
-                     int nbasis_i, int nbasis_j, int naux_mu, const int R[3], const double* Cs_in)
+void librpa_set_lri_coeff(LibrpaHandler* h, LibrpaParallelRouting routing, int I, int J,
+                          int nbasis_i, int nbasis_j, int naux_mu, const int R[3],
+                          const double* Cs_in)
 {
     using std::endl;
     using namespace librpa_int;
@@ -444,18 +441,18 @@ static void _set_aux_coulomb_k_atom_pair(const librpa_int::Vector3_Order<double>
     }
 }
 
-LIBRPA_C_H_FUNC_WRAP(void, librpa_set_aux_bare_coulomb_k_atom_pair,
-                     int ik, int I, int J, int naux_mu, int naux_nu,
-                     const double* Vq_real_in, const double* Vq_imag_in, double vq_threshold)
+void librpa_set_aux_bare_coulomb_k_atom_pair(LibrpaHandler* h, int ik, int I, int J, int naux_mu,
+                                             int naux_nu, const double* Vq_real_in,
+                                             const double* Vq_imag_in, double vq_threshold)
 {
     auto pds = librpa_int::api::get_dataset_instance(h);
     const auto &qvec = pds->pbc.klist[ik];
     _set_aux_coulomb_k_atom_pair(qvec, I, J, naux_mu, naux_nu, Vq_real_in, Vq_imag_in, pds->vq, vq_threshold);
 }
 
-LIBRPA_C_H_FUNC_WRAP(void, librpa_set_aux_cut_coulomb_k_atom_pair,
-                     int ik, int I, int J, int naux_mu, int naux_nu,
-                     const double* Vq_real_in, const double* Vq_imag_in, double vq_threshold)
+void librpa_set_aux_cut_coulomb_k_atom_pair(LibrpaHandler* h, int ik, int I, int J, int naux_mu,
+                                            int naux_nu, const double* Vq_real_in,
+                                            const double* Vq_imag_in, double vq_threshold)
 {
     auto pds = librpa_int::api::get_dataset_instance(h);
     const auto &qvec = pds->pbc.klist[ik];
@@ -491,7 +488,7 @@ static void _set_aux_coulomb_k_2D_block(
 }
 
 static void _parse_vq_dims(int &lbrow, int &ubrow, int &lbcol, int &ubcol,
-                          const int lbrow_in, const int ubrow_in, const int lbcol_in, const int ubcol_in)
+                           const int lbrow_in, const int ubrow_in, const int lbcol_in, const int ubcol_in)
 {
     if (lbrow < 0 || ubrow < 0 || lbcol < 0 || ubcol < 0)
     {
@@ -508,9 +505,9 @@ static void _parse_vq_dims(int &lbrow, int &ubrow, int &lbcol, int &ubcol,
     }
 }
 
-LIBRPA_C_H_FUNC_WRAP(void, librpa_set_aux_bare_coulomb_k_2d_block,
-                     int ik, int mu_begin, int mu_end, int nu_begin, int nu_end,
-                     const double* Vq_real_in, const double* Vq_imag_in)
+void librpa_set_aux_bare_coulomb_k_2d_block(LibrpaHandler* h, int ik, int mu_begin, int mu_end,
+                                            int nu_begin, int nu_end, const double* Vq_real_in,
+                                            const double* Vq_imag_in)
 {
     auto pds = librpa_int::api::get_dataset_instance(h);
     const auto &qvec = pds->pbc.klist[ik];
@@ -520,9 +517,9 @@ LIBRPA_C_H_FUNC_WRAP(void, librpa_set_aux_bare_coulomb_k_2d_block,
                                 Vq_imag_in, pds->vq_block_loc);
 }
 
-LIBRPA_C_H_FUNC_WRAP(void, librpa_set_aux_cut_coulomb_k_2d_block,
-                     int ik, int mu_begin, int mu_end, int nu_begin, int nu_end,
-                     const double* Vq_real_in, const double* Vq_imag_in)
+void librpa_set_aux_cut_coulomb_k_2d_block(LibrpaHandler* h, int ik, int mu_begin, int mu_end,
+                                           int nu_begin, int nu_end, const double* Vq_real_in,
+                                           const double* Vq_imag_in)
 {
     auto pds = librpa_int::api::get_dataset_instance(h);
     const auto &qvec = pds->pbc.klist[ik];
@@ -532,7 +529,7 @@ LIBRPA_C_H_FUNC_WRAP(void, librpa_set_aux_cut_coulomb_k_2d_block,
                                 Vq_imag_in, pds->vq_cut_block_loc);
 }
 
-LIBRPA_C_H_FUNC_WRAP(void, librpa_set_dielect_func_imagfreq, int nfreq, const double *omegas_imag, const double *dielect_func)
+void librpa_set_dielect_func_imagfreq(LibrpaHandler* h, int nfreq, const double *omegas_imag, const double *dielect_func)
 {
     using namespace librpa_int;
     auto pds = librpa_int::api::get_dataset_instance(h);
@@ -540,8 +537,7 @@ LIBRPA_C_H_FUNC_WRAP(void, librpa_set_dielect_func_imagfreq, int nfreq, const do
     pds->epsmacs_imagfreq = std::vector<double>(dielect_func, dielect_func + nfreq);
 }
 
-LIBRPA_C_H_FUNC_WRAP(void, librpa_set_band_kvec,
-                     int n_kpts_band, const double* kfrac_list_band)
+void librpa_set_band_kvec(LibrpaHandler* h, int n_kpts_band, const double* kfrac_list_band)
 {
     using librpa_int::global::lib_printf;
     using librpa_int::Vector3_Order;
@@ -559,9 +555,8 @@ LIBRPA_C_H_FUNC_WRAP(void, librpa_set_band_kvec,
     }
 }
 
-LIBRPA_C_H_FUNC_WRAP(void, librpa_set_band_occ_eigval,
-                     int n_spins, int n_kpts_band, int n_states,
-                     const double* occ, const double* eig)
+void librpa_set_band_occ_eigval(LibrpaHandler* h, int n_spins, int n_kpts_band, int n_states,
+                                const double* occ, const double* eig)
 {
     auto pds = librpa_int::api::get_dataset_instance(h);
     const int n_basis = pds->mf.get_n_aos();
@@ -582,9 +577,8 @@ LIBRPA_C_H_FUNC_WRAP(void, librpa_set_band_occ_eigval,
     }
 }
 
-LIBRPA_C_H_FUNC_WRAP(void, librpa_set_wfc_band, int ispin, int ik_band,
-                     int nstates_local, int nbasis_local,
-                     const double *wfc_real, const double *wfc_imag)
+void librpa_set_wfc_band(LibrpaHandler* h, int ispin, int ik_band, int nstates_local,
+                         int nbasis_local, const double* wfc_real, const double* wfc_imag)
 {
     auto pds = librpa_int::api::get_dataset_instance(h);
     auto &mfb = pds->mf_band;
@@ -603,9 +597,8 @@ LIBRPA_C_H_FUNC_WRAP(void, librpa_set_wfc_band, int ispin, int ik_band,
         << std::endl;
 }
 
-LIBRPA_C_H_FUNC_WRAP(void, librpa_set_wfc_band_packed, int ispin, int ik_band,
-                     int nstates_local, int nbasis_local,
-                     const double *wfc_ri)
+void librpa_set_wfc_band_packed(LibrpaHandler* h, int ispin, int ik_band, int nstates_local,
+                                int nbasis_local, const double* wfc_ri)
 {
     auto pds = librpa_int::api::get_dataset_instance(h);
     auto &mfb = pds->mf_band;
@@ -624,7 +617,7 @@ LIBRPA_C_H_FUNC_WRAP(void, librpa_set_wfc_band_packed, int ispin, int ik_band,
         << std::endl;
 }
 
-LIBRPA_C_H_FUNC_WRAP_NOPAR(void, librpa_reset_band_data)
+void librpa_reset_band_data(LibrpaHandler* h)
 {
     auto pds = librpa_int::api::get_dataset_instance(h);
     pds->kfrac_band_list = {};

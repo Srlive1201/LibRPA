@@ -1,25 +1,30 @@
 #pragma once
+/**
+ * @file librpa_compute.h
+ * @brief Computing data APIs for LibRPA.
+ */
+
 #include "librpa_handler.h"
 #include "librpa_options.h"
-#include "librpa_func.h"
 
 // C APIs
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-LIBRPA_C_H_FUNC_WRAP_WOPT(void, librpa_get_imaginary_frequency_grids,
-                          double *omegas, double *weights);
+void librpa_get_imaginary_frequency_grids(LibrpaHandler *h, const LibrpaOptions *p_opts,
+                                          double *omegas, double *weights);
 
-LIBRPA_C_H_FUNC_WRAP_WOPT(double, librpa_get_rpa_correlation_energy,
-                          int n_ibz_kpoints, double *rpa_corr_ibzk_contrib_re,  double *rpa_corr_ibzk_contrib_im);
+double librpa_get_rpa_correlation_energy(LibrpaHandler *h, const LibrpaOptions *p_opts,
+                                         int n_ibz_kpoints, double *rpa_corr_ibzk_contrib_re,
+                                         double *rpa_corr_ibzk_contrib_im);
 
 //! Build exact-exchange matrix
 /**
  * @param[in]  h                Pointer to LibRPA handler.
  * @param[in]  opts             Pointer to runtime options.
  */
-LIBRPA_C_H_FUNC_WRAP_WOPT_NOPAR(void, librpa_build_exx);
+void librpa_build_exx(LibrpaHandler *h, const LibrpaOptions *p_opts);
 
 //! Obtain exact-exchange potential for selected states.
 /**
@@ -35,10 +40,9 @@ LIBRPA_C_H_FUNC_WRAP_WOPT_NOPAR(void, librpa_build_exx);
  * @param[out] vexx             Exact-exchange potential for selected states.
  *                              It should be at least as long as n_spins * n_kpts_local * (i_state_high - i_state_low).
  */
-LIBRPA_C_H_FUNC_WRAP_WOPT(void, librpa_get_exx_pot_kgrid,
-                          const int n_spins, const int n_kpts_this,
-                          const int *iks_this, int i_state_low, int i_state_high,
-                          double *vexx);
+void librpa_get_exx_pot_kgrid(LibrpaHandler *h, const LibrpaOptions *p_opts,
+                              const int n_spins, const int n_kpts_this, const int *iks_this,
+                              int i_state_low, int i_state_high, double *vexx);
 
 //! Obtain exact-exchange potential for selected states at band k-points.
 /**
@@ -54,17 +58,16 @@ LIBRPA_C_H_FUNC_WRAP_WOPT(void, librpa_get_exx_pot_kgrid,
  * @param[out] vexx_band        Exact-exchange potential for selected states at band k-points.
  *                              It should be at least as long as n_spins * n_kpts_band_this * (i_state_high - i_state_low).
  */
-LIBRPA_C_H_FUNC_WRAP_WOPT(void, librpa_get_exx_pot_band_k,
-                          const int n_spins, const int n_kpts_band_this,
-                          const int *iks_band_this, int i_state_low, int i_state_high,
-                          double *vexx_band);
+void librpa_get_exx_pot_band_k(LibrpaHandler *h, const LibrpaOptions *p_opts,
+                               const int n_spins, const int n_kpts_band_this, const int *iks_band_this,
+                               int i_state_low, int i_state_high, double *vexx_band);
 
 //! Build self-energy matrix of G0W0, including the correlation and exchange contributions.
 /**
  * @param[in]  h                Pointer to LibRPA handler.
  * @param[in]  opts             Pointer to runtime options.
  */
-LIBRPA_C_H_FUNC_WRAP_WOPT_NOPAR(void, librpa_build_g0w0_sigma);
+void librpa_build_g0w0_sigma(LibrpaHandler *h, const LibrpaOptions *p_opts);
 
 //! Obtain correlation self-energies for selected states.
 /**
@@ -85,10 +88,10 @@ LIBRPA_C_H_FUNC_WRAP_WOPT_NOPAR(void, librpa_build_g0w0_sigma);
  *                              It should be at least as long as n_spins * n_kpoints_local * (i_state_high - i_state_low).
  * @param[out] sigc_im          Same as sigc_re, but for the imaginary part.
  */
-LIBRPA_C_H_FUNC_WRAP_WOPT(void, librpa_get_g0w0_sigc_kgrid,
-                          const int n_spins, const int n_kpts_this,
-                          const int *iks_this, int i_state_low, int i_state_high,
-                          const double *vxc, const double *vexx, double *sigc_re, double *sigc_im);
+void librpa_get_g0w0_sigc_kgrid(LibrpaHandler *h, const LibrpaOptions *p_opts,
+                                const int n_spins, const int n_kpts_this,
+                                const int *iks_this, int i_state_low, int i_state_high,
+                                const double *vxc, const double *vexx, double *sigc_re, double *sigc_im);
 
 //! Obtain correlation self-energies for selected states at band k-points.
 /**
@@ -109,10 +112,10 @@ LIBRPA_C_H_FUNC_WRAP_WOPT(void, librpa_get_g0w0_sigc_kgrid,
  *                              It should be at least as long as n_spins * n_kpts_band_this * (i_state_high - i_state_low).
  * @param[out] sigc_band_im     Same as sigc_band_re, but for the imaginary part.
  */
-LIBRPA_C_H_FUNC_WRAP_WOPT(void, librpa_get_g0w0_sigc_band_k,
-                          const int n_spins, const int n_kpts_band_this,
-                          const int *iks_band_this, int i_state_low, int i_state_high,
-                          const double *vxc_band, const double *vexx_band, double *sigc_band_re, double *sigc_band_im);
+void librpa_get_g0w0_sigc_band_k(LibrpaHandler *h, const LibrpaOptions *p_opts,
+                                 const int n_spins, const int n_kpts_band_this,
+                                 const int *iks_band_this, int i_state_low, int i_state_high,
+                                 const double *vxc_band, const double *vexx_band, double *sigc_band_re, double *sigc_band_im);
 
 #ifdef __cplusplus
 }

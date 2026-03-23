@@ -1,4 +1,12 @@
 #pragma once
+/**
+ * @file librpa_options.h
+ * @brief Runtime options for LibRPA calculations.
+ *
+ * This file defines the LibrpaOptions structure that controls runtime behavior
+ * for RPA, exact exchange, and G0W0 calculations.
+ */
+
 #include "librpa_enums.h"
 
 // C APIs
@@ -6,11 +14,23 @@
 extern "C" {
 #endif
 
+/** Maximum length for string parameters (e.g., output directory path). */
 #define LIBRPA_MAX_STRLEN 200
 
 // NOTE: in case the data layout of LibrpaOptions is changed,
-// its Fortran binding should be adapted acoordingly.
+// its Fortran binding should be adapted accordingly.
 
+/**
+ * @brief Runtime options structure for LibRPA calculations.
+ *
+ * This structure contains all configurable parameters for controlling
+ * RPA, exact exchange (EXX), and G0W0 calculations. Initialize with
+ * librpa_init_options() and modify as needed before passing to
+ * computation functions.
+ *
+ * @note The data layout must match the Fortran binding. Do not reorder
+ *       or change the size of existing members.
+ */
 typedef struct
 {
     /* ============================================================================= */
@@ -122,10 +142,22 @@ typedef struct
 
 } LibrpaOptions;
 
-//! Initialize runtime options to default values
+/**
+ * @brief Initialize runtime options to default values.
+ *
+ * Sets all options to their default settings. Must be called before
+ * modifying options and passing to computation functions.
+ *
+ * @param[out] opts Pointer to the options structure to initialize.
+ */
 void librpa_init_options(LibrpaOptions *opts);
 
-//! Helper function to set output directory in the runtime options
+/**
+ * @brief Set the output directory for LibRPA results.
+ *
+ * @param[in,out] opts      Pointer to the options structure.
+ * @param[in]     output_dir Path to directory where output files will be written.
+ */
 void librpa_set_output_dir(LibrpaOptions *opts, const char *output_dir);
 
 #ifdef __cplusplus

@@ -1,3 +1,41 @@
+!> @file librpa_f03.f90
+!> @brief Fortran 2003 binding for LibRPA
+!>
+!> This module provides Fortran interfaces to LibRPA functionality for
+!> performing RPA correlation energy, exact exchange, and G0W0 calculations.
+!>
+!> ## Usage
+!>
+!> Typical workflow:
+!> @code{.f90}
+!> use librpa_f03
+!> implicit none
+!>
+!> type(LibrpaOptions) :: opts
+!> type(LibrpaHandler) :: h
+!>
+!> ! Initialize LibRPA environment
+!> call librpa_init_global()
+!>
+!> ! Initialize options
+!> call opts%init()
+!> opts%output_level = LIBRPA_VERBOSE_INFO
+!>
+!> ! Create handler
+!> call h%create(MPI_COMM_WORLD)
+!>
+!> ! Set input data
+!> call h%set_scf_dimension(nspins, nkpts, nstates, nbasis)
+!> ! ... set more input data ...
+!>
+!> ! Perform calculation
+!> Ec = h%get_rpa_correlation_energy(h, opts, nkpts_ibz, contrib_ibzk(:))
+!>
+!> ! Clean up
+!> call h%destroy()
+!> call librpa_finalize_global()
+!> @endcode
+
 module librpa_f03
 
    use iso_c_binding, only: c_char, c_ptr, c_int, c_double, c_null_ptr, c_size_t
@@ -11,35 +49,51 @@ module librpa_f03
    public :: LibrpaOptions
    public :: LibrpaHandler
 
-   ! Double precision to connect to the user code. Control it through -DLIBRPA_FORTRAN_DP
+   !> @brief Double precision kind for user data.
+   !>
+   !> Control it through -DLIBRPA_FORTRAN_DP at compile time.
    integer, parameter, public :: dp = ${LIBRPA_FORTRAN_DP}
 
+   !> @brief Maximum length for string parameters.
    integer, parameter, public :: LIBRPA_MAX_STRLEN = 200
 
-   integer, parameter, public :: LIBRPA_VERBOSE_DEBUG = 4
-   integer, parameter, public :: LIBRPA_VERBOSE_WARN = 3
-   integer, parameter, public :: LIBRPA_VERBOSE_INFO = 2
-   integer, parameter, public :: LIBRPA_VERBOSE_CRITICAL = 1
-   integer, parameter, public :: LIBRPA_VERBOSE_SILENT = 0
+   !> @name Verbosity levels
+   !> @brief Controls the amount of output during computation.
+   !> @{
+   integer, parameter, public :: LIBRPA_VERBOSE_DEBUG = 4      !< Debug output
+   integer, parameter, public :: LIBRPA_VERBOSE_WARN = 3       !< Warnings and above
+   integer, parameter, public :: LIBRPA_VERBOSE_INFO = 2       !< Informational messages
+   integer, parameter, public :: LIBRPA_VERBOSE_CRITICAL = 1   !< Critical errors only
+   integer, parameter, public :: LIBRPA_VERBOSE_SILENT = 0     !< No output
+   !> @}
 
+   !> @brief Undefined or unset value for integer parameters.
    integer, parameter :: LIBRPA_UNSET = -101
+
+   !> @brief Automatic selection value. LibRPA will choose appropriate setting.
    integer, parameter :: LIBRPA_AUTO = -51
 
-   ! Parallel routing
-   integer, parameter, public :: LIBRPA_ROUTING_UNSET = LIBRPA_UNSET
-   integer, parameter, public :: LIBRPA_ROUTING_AUTO = LIBRPA_AUTO
-   integer, parameter, public :: LIBRPA_ROUTING_RTAU = 0
-   integer, parameter, public :: LIBRPA_ROUTING_ATOMPAIR = 1
-   integer, parameter, public :: LIBRPA_ROUTING_LIBRI = 2
+   !> @name Parallel routing strategies
+   !> @brief Specifies how computation is distributed across MPI processes.
+   !> @{
+   integer, parameter, public :: LIBRPA_ROUTING_UNSET = LIBRPA_UNSET  !< Unset
+   integer, parameter, public :: LIBRPA_ROUTING_AUTO = LIBRPA_AUTO    !< Auto-select
+   integer, parameter, public :: LIBRPA_ROUTING_RTAU = 0              !< Real-space tau decomposition
+   integer, parameter, public :: LIBRPA_ROUTING_ATOMPAIR = 1          !< Atom-pair parallelization
+   integer, parameter, public :: LIBRPA_ROUTING_LIBRI = 2             !< Use LibRI for RI basis
+   !> @}
 
-   ! Time-frequency grid types
-   integer, parameter, public :: LIBRPA_TFGRID_UNSET = LIBRPA_UNSET
-   integer, parameter, public :: LIBRPA_TFGRID_GL = 0
-   integer, parameter, public :: LIBRPA_TFGRID_GCI= 1
-   integer, parameter, public :: LIBRPA_TFGRID_GCII = 2
-   integer, parameter, public :: LIBRPA_TFGRID_MINIMAX = 3
-   integer, parameter, public :: LIBRPA_TFGRID_EVENSPACED = 4
-   integer, parameter, public :: LIBRPA_TFGRID_EVENSPACED_TF = 5
+   !> @name Time-frequency grid types
+   !> @brief Different grid types for numerical integration.
+   !> @{
+   integer, parameter, public :: LIBRPA_TFGRID_UNSET = LIBRPA_UNSET     !< Unset
+   integer, parameter, public :: LIBRPA_TFGRID_GL = 0                   !< Gauss-Legendre
+   integer, parameter, public :: LIBRPA_TFGRID_GCI= 1                   !< Gauss-Chebyshev type I
+   integer, parameter, public :: LIBRPA_TFGRID_GCII = 2                 !< Gauss-Chebyshev type II
+   integer, parameter, public :: LIBRPA_TFGRID_MINIMAX = 3              !< Minimax grid
+   integer, parameter, public :: LIBRPA_TFGRID_EVENSPACED = 4           !< Evenly spaced
+   integer, parameter, public :: LIBRPA_TFGRID_EVENSPACED_TF = 5        !< Evenly spaced in time-frequency
+   !> @}
 
    public :: librpa_init_global
    public :: librpa_finalize_global
@@ -50,15 +104,28 @@ module librpa_f03
    public :: librpa_print_profile
 
    !=======================================================================
-   ! Switch as bool type, defined as in include/librpa_enums.h
-   integer(c_int), parameter :: LIBRPA_SWITCH_OFF = 0
-   integer(c_int), parameter :: LIBRPA_SWITCH_ON = 1
+   !> @name Switch values
+   !> @brief Boolean switch as integer type (compatible with C).
+   !> @{
+   integer(c_int), parameter :: LIBRPA_SWITCH_OFF = 0  !< Disabled/off
+   integer(c_int), parameter :: LIBRPA_SWITCH_ON = 1  !< Enabled/on
+   !> @}
+
+   !> @brief Buffer for redirect path string (internal use).
    character(kind=c_char), allocatable, target, save :: redirect_path_buf(:)
 
+   !> @brief Imaginary unit (i = sqrt(-1)).
    complex(dp), parameter :: CIMAG = (0.0d0, 1.0d0)
 
+   !============================================================================
+   !> @name Type definitions
+   !============================================================================
+
    !===== C-side options type =====
-   ! Must have the same data layout as the struct defined in include/librpa_options.h
+   !> @brief C-compatible options structure (internal use).
+   !>
+   !> Must have the same data layout as the struct defined in include/librpa_options.h.
+   !> @note Do not use directly; use the Fortran wrapper type LibrpaOptions instead.
    type, bind(c) :: LibrpaOptions_c
       ! Common runtime control
       character(kind=c_char, len=1) :: output_dir(LIBRPA_MAX_STRLEN)
@@ -101,7 +168,12 @@ module librpa_f03
       integer(c_int) :: output_gw_sigc_mat_rf
    end type LibrpaOptions_c
 
-   ! High-level Fortran wrapper
+   !> @brief High-level Fortran wrapper for runtime options.
+   !>
+   !> This type provides a Fortran-friendly interface to LibRPA options.
+   !> Initialize with init() method or call librpa_init_options() before use.
+   !>
+   !> @note The data layout must match the C struct. Do not add or remove members.
    type :: LibrpaOptions
       type(LibrpaOptions_c), private :: opts_c
 
@@ -199,7 +271,20 @@ module librpa_f03
       end function librpa_get_patch_version_c
    end interface
 
-   ! High-level Fortran wrapper
+   !> @brief High-level Fortran wrapper for LibRPA handler.
+   !>
+   !> This type encapsulates the LibRPA handler and provides member procedures
+   !> for setting input data and performing calculations.
+   !>
+   !> Usage:
+   !> @code{.f90}
+   !> type(LibrpaHandler) :: h
+   !> call h%create(MPI_COMM_WORLD)
+   !> call h%set_scf_dimension(nspins, nkpts, nstates, nbasis)
+   !> ! ... set more input ...
+   !> Ec = h%get_rpa_correlation_energy(opts)
+   !> call h%destroy()
+   !> @endcode
    type :: LibrpaHandler
       type(c_ptr) :: ptr_c_handle = c_null_ptr
       contains
@@ -700,6 +785,12 @@ contains
       call sync_opt(opts%output_gw_sigc_mat_rf,   opts%opts_c%output_gw_sigc_mat_rf,   direction)
    end subroutine
 
+   !> @brief Initialize runtime options to default values.
+   !>
+   !> Sets all options to their default settings. Must be called before
+   !> modifying options and passing to computation functions.
+   !>
+   !> @param[in,out] opts Options structure to initialize.
    subroutine librpa_init_options(opts)
       implicit none
       class(LibrpaOptions), intent(inout) :: opts
@@ -707,6 +798,10 @@ contains
       call sync_opts(opts, SYNC_OPTS_C2F)
    end subroutine librpa_init_options
 
+   !> @brief Set the output directory for LibRPA results.
+   !>
+   !> @param[in,out] opts       Options structure.
+   !> @param[in]     output_dir Path to directory for output files.
    subroutine librpa_set_output_dir(opts, output_dir)
       implicit none
       class(LibrpaOptions), intent(inout) :: opts
@@ -777,31 +872,51 @@ contains
       if (allocated(redirect_path_buf)) deallocate(redirect_path_buf)
    end subroutine librpa_finalize_global
 
+   !> @brief Get major version number.
+   !> @return Major version (X in X.Y.Z).
    integer function librpa_get_major_version() result(v)
       implicit none
       v = librpa_get_major_version_c()
    end function librpa_get_major_version
 
+   !> @brief Get minor version number.
+   !> @return Minor version (Y in X.Y.Z).
    integer function librpa_get_minor_version() result(v)
       implicit none
       v = librpa_get_minor_version_c()
    end function librpa_get_minor_version
 
+   !> @brief Get patch version number.
+   !> @return Patch version (Z in X.Y.Z).
    integer function librpa_get_patch_version() result(v)
       implicit none
       v = librpa_get_patch_version_c()
    end function librpa_get_patch_version
 
+   !> @brief Run internal self-tests.
+   !>
+   !> Performs basic sanity checks on LibRPA functionality.
+   !> Useful for debugging issues.
    subroutine librpa_test()
       implicit none
       call librpa_test_c()
    end subroutine librpa_test
 
+   !> @brief Print profiling information.
+   !>
+   !> Outputs timing and memory usage statistics.
    subroutine librpa_print_profile()
       implicit none
       call librpa_print_profile_c()
    end subroutine librpa_print_profile
 
+   !> @brief Create a new LibRPA handler instance.
+   !>
+   !> Allocates and initializes a new LibRPA handler associated with the given
+   !> MPI communicator.
+   !>
+   !> @param[in,out] this  Handler to create.
+   !> @param[in]     comm  MPI communicator (e.g., MPI_COMM_WORLD).
    subroutine librpa_create_handler(this, comm)
       use iso_c_binding, only: c_associated
       implicit none
@@ -817,6 +932,11 @@ contains
       ! this%ptr_c_handle = librpa_create_handler_c(comm)
    end subroutine librpa_create_handler
 
+   !> @brief Destroy a LibRPA handler instance.
+   !>
+   !> Frees all internal resources associated with the handler.
+   !>
+   !> @param[in,out] this  Handler to destroy.
    subroutine librpa_destroy_handler(this)
       use iso_c_binding, only: c_associated
       implicit none
@@ -829,6 +949,14 @@ contains
    end subroutine librpa_destroy_handler
 
    ! Input functions
+
+   !> @brief Set SCF wavefunction dimension.
+   !>
+   !> @param[in,out] this     Handler.
+   !> @param[in]     nspins   Number of spin channels.
+   !> @param[in]     nkpts    Number of k-points.
+   !> @param[in]     nstates  Number of electronic states.
+   !> @param[in]     nbasis   Number of basis functions.
    subroutine librpa_set_scf_dimension(this, nspins, nkpts, nstates, nbasis)
       implicit none
       class(LibrpaHandler), intent(inout) :: this
@@ -849,6 +977,15 @@ contains
       call librpa_set_scf_dimension_c(this%ptr_c_handle, nspins_c, nkpts_c, nstates_c, nbasis_c)
    end subroutine librpa_set_scf_dimension
 
+   !> @brief Set occupation numbers, eigenvalues, and Fermi level.
+   !>
+   !> @param[in,out] this     Handler.
+   !> @param[in]     nspins   Number of spin channels.
+   !> @param[in]     nkpts    Number of k-points.
+   !> @param[in]     nstates  Number of electronic states.
+   !> @param[in]     wg       Occupation numbers (nstates x nkpts x nspins).
+   !> @param[in]     ekb      Eigenvalues (nstates x nkpts x nspins).
+   !> @param[in]     efermi   Fermi level.
    subroutine librpa_set_wg_ekb_efermi(this, nspins, nkpts, nstates, wg, ekb, efermi)
       implicit none
       class(LibrpaHandler), intent(inout) :: this
@@ -877,6 +1014,7 @@ contains
    end subroutine librpa_set_wg_ekb_efermi
 
    !> @brief Set the wave-function expansion coefficients
+   !>
    !> @param ispin          spin index (starting from 1) of the wave function
    !> @param ik             (global) k-point index (starting from 1) of the wave function
    !> @param nstates_local  local dimenstion (number of states) of the parsed wave-function
@@ -966,6 +1104,7 @@ contains
    !>
    !> @param latt     lattice vectors (in Bohr)
    !> @param recplatt reciprocal lattice vectors (in Bohr^-1)
+   !>
    subroutine librpa_set_latvec_and_G(this, latt, recplatt)
       implicit none
       class(LibrpaHandler), intent(inout) :: this
@@ -983,6 +1122,7 @@ contains
    !> @param natoms     number of atoms
    !> @param types      species type of each atom
    !> @param pos_cart   Cartesian coordinates of each atom
+   !>
    subroutine librpa_set_atoms(this, natoms, types, posi_cart)
       implicit none
       class(LibrpaHandler), intent(inout) :: this
@@ -1010,6 +1150,14 @@ contains
       deallocate(types_c)
    end subroutine librpa_set_atoms
 
+   !> @brief Set k-point grid vectors.
+   !>
+   !> @param[in,out] this  Handler.
+   !> @param[in]     nk1    Number of k-points along direction 1.
+   !> @param[in]     nk2    Number of k-points along direction 2.
+   !> @param[in]     nk3    Number of k-points along direction 3.
+   !> @param[in]     kvecs  K-point vectors (3 x nk1*nk2*nk3, Cartesian).
+   !>
    subroutine librpa_set_kgrids_kvec(this, nk1, nk2, nk3, kvecs)
       implicit none
       class(LibrpaHandler), intent(inout) :: this
@@ -1040,6 +1188,7 @@ contains
    !>
    !> @param nkpts     number of k-points in the full Brillouin zone
    !> @param map_ibzk  mapping to the k-point in the irreducible sector
+   !>
    subroutine librpa_set_ibz_mapping(this, nkpts, map_ibzk)
       implicit none
       class(LibrpaHandler), intent(inout) :: this
@@ -1116,6 +1265,17 @@ contains
       end if
    end subroutine librpa_set_lri_coeff
 
+   !> @brief Internal: set Coulomb matrix (atom-pair format).
+   !>
+   !> @param[in,out] h       Handler.
+   !> @param[in]     ik       K-point index (1-based).
+   !> @param[in]     i_atom   Atom I index (1-based).
+   !> @param[in]     j_atom   Atom J index (1-based).
+   !> @param[in]     naux_i   Number of aux functions for i.
+   !> @param[in]     naux_j   Number of aux functions for j.
+   !> @param[in]     vq       Coulomb matrix (complex).
+   !> @param[in]     vq_threshold Threshold.
+   !> @param[in]     is_cut   True for truncated Coulomb.
    subroutine set_aux_coulomb_k_atom_pair(h, ik, i_atom, j_atom, naux_i, naux_j, vq, vq_threshold, is_cut)
       type(LibrpaHandler), intent(inout) :: h
       integer, intent(in) :: ik, i_atom, j_atom, naux_i, naux_j
@@ -1146,8 +1306,18 @@ contains
       end if
 
       deallocate(vq_real, vq_imag)
-   end subroutine set_aux_coulomb_k_atom_pair 
+   end subroutine set_aux_coulomb_k_atom_pair
 
+   !> @brief Set bare Coulomb matrix elements (atom-pair format).
+   !>
+   !> @param[in,out] this         Handler.
+   !> @param[in]     ik           K-point index (1-based).
+   !> @param[in]     i_atom       Atom I index (1-based).
+   !> @param[in]     j_atom       Atom J index (1-based).
+   !> @param[in]     naux_i       Number of aux functions for i.
+   !> @param[in]     naux_j       Number of aux functions for j.
+   !> @param[in]     vq           Coulomb matrix (naux_i x naux_j, complex).
+   !> @param[in]     vq_threshold  Threshold for screening.
    subroutine librpa_set_aux_bare_coulomb_k_atom_pair &
          (this, ik, i_atom, j_atom, naux_i, naux_j, vq, vq_threshold)
       implicit none
@@ -1159,6 +1329,16 @@ contains
       call set_aux_coulomb_k_atom_pair(this, ik, i_atom, j_atom, naux_i, naux_j, vq, vq_threshold, .false.)
    end subroutine librpa_set_aux_bare_coulomb_k_atom_pair
 
+   !> @brief Set truncated Coulomb matrix elements (atom-pair format).
+   !>
+   !> @param[in,out] this         Handler.
+   !> @param[in]     ik           K-point index (1-based).
+   !> @param[in]     i_atom       Atom I index (1-based).
+   !> @param[in]     j_atom       Atom J index (1-based).
+   !> @param[in]     naux_i       Number of aux functions for i.
+   !> @param[in]     naux_j       Number of aux functions for j.
+   !> @param[in]     vq           Coulomb matrix (naux_i x naux_j, complex).
+   !> @param[in]     vq_threshold  Threshold for screening.
    subroutine librpa_set_aux_cut_coulomb_k_atom_pair &
          (this, ik, i_atom, j_atom, naux_i, naux_j, vq, vq_threshold)
       implicit none
@@ -1170,6 +1350,7 @@ contains
       call set_aux_coulomb_k_atom_pair(this, ik, i_atom, j_atom, naux_i, naux_j, vq, vq_threshold, .true.)
    end subroutine librpa_set_aux_cut_coulomb_k_atom_pair
 
+   !> @brief Internal: set Coulomb matrix (2D block format).
    subroutine set_aux_coulomb_k_2d_block(h, ik, mu_begin, mu_end, nu_begin, nu_end, vq, is_cut)
       implicit none
       type(LibrpaHandler), intent(inout) :: h
@@ -1201,6 +1382,15 @@ contains
       deallocate(vq_imag)
    end subroutine set_aux_coulomb_k_2d_block
 
+   !> @brief Set bare Coulomb matrix elements (2D block format).
+   !>
+   !> @param[in,out] this        Handler.
+   !> @param[in]     ik          K-point index (1-based).
+   !> @param[in]     mu_begin    Starting mu index (1-based).
+   !> @param[in]     mu_end      Ending mu index (inclusive).
+   !> @param[in]     nu_begin    Starting nu index (1-based).
+   !> @param[in]     nu_end      Ending nu index (inclusive).
+   !> @param[in]     vq          Coulomb matrix (complex).
    subroutine librpa_set_aux_bare_coulomb_k_2d_block &
          (this, ik, mu_begin, mu_end, nu_begin, nu_end, vq)
       implicit none
@@ -1211,6 +1401,15 @@ contains
       call set_aux_coulomb_k_2d_block(this, ik, mu_begin, mu_end, nu_begin, nu_end, vq, .false.)
    end subroutine librpa_set_aux_bare_coulomb_k_2d_block
 
+   !> @brief Set truncated Coulomb matrix elements (2D block format).
+   !>
+   !> @param[in,out] this        Handler.
+   !> @param[in]     ik          K-point index (1-based).
+   !> @param[in]     mu_begin    Starting mu index (1-based).
+   !> @param[in]     mu_end      Ending mu index (inclusive).
+   !> @param[in]     nu_begin    Starting nu index (1-based).
+   !> @param[in]     nu_end      Ending nu index (inclusive).
+   !> @param[in]     vq          Coulomb matrix (complex).
    subroutine librpa_set_aux_cut_coulomb_k_2d_block &
          (this, ik, mu_begin, mu_end, nu_begin, nu_end, vq)
       implicit none
@@ -1221,6 +1420,11 @@ contains
       call set_aux_coulomb_k_2d_block(this, ik, mu_begin, mu_end, nu_begin, nu_end, vq, .true.)
    end subroutine librpa_set_aux_cut_coulomb_k_2d_block
 
+   !> @brief Set dielectric function on imaginary frequency axis.
+   !> @param[in,out] this            Handler.
+   !> @param[in]     nfreq           Number of frequency points.
+   !> @param[in]     omegas_imag     Imaginary frequency values.
+   !> @param[in]     dielect_func    Dielectric function values.
    subroutine librpa_set_dielect_func_imagfreq(this, nfreq, omegas_imag, dielect_func)
       implicit none
       class(LibrpaHandler), intent(inout) :: this
@@ -1244,6 +1448,11 @@ contains
       end if
    end subroutine librpa_set_dielect_func_imagfreq
 
+   !> @brief Set k-points for band structure calculations.
+   !>
+   !> @param[in,out] this        Handler.
+   !> @param[in]     nkpts_band  Number of band k-points.
+   !> @param[in]     kfrac_band  Band k-point coordinates (3 x nkpts_band, fractional).
    subroutine librpa_set_band_kvec(this, nkpts_band, kfrac_band)
       implicit none
       class(LibrpaHandler), intent(inout) :: this
@@ -1265,6 +1474,14 @@ contains
       end if
    end subroutine librpa_set_band_kvec
 
+   !> @brief Set occupation numbers and eigenvalues for band k-points.
+   !>
+   !> @param[in,out] this         Handler.
+   !> @param[in]     nspins       Number of spin channels.
+   !> @param[in]     nkpts_band   Number of band k-points.
+   !> @param[in]     nstates      Number of states.
+   !> @param[in]     occ          Occupation numbers (nstates x nkpts_band x nspins).
+   !> @param[in]     eig          Eigenvalues (nstates x nkpts_band x nspins).
    subroutine librpa_set_band_occ_eigval(this, nspins, nkpts_band, nstates, occ, eig)
       implicit none
       class(LibrpaHandler), intent(inout) :: this
@@ -1292,6 +1509,7 @@ contains
    end subroutine librpa_set_band_occ_eigval
 
    !> @brief Set the wave-function expansion coefficients for band calculation
+   !>
    !> @param ispin          spin index (starting from 1) of the wave function
    !> @param ik_band        (global) k-point index (starting from 1) of the wave function
    !> @param nstates_local  local dimenstion (number of states) of the parsed wave-function
@@ -1329,6 +1547,8 @@ contains
       end if
    end subroutine librpa_set_wfc_band
 
+   !> @brief Reset band structure data.
+   !> @param[in,out] this  Handler.
    subroutine librpa_reset_band_data(this)
       implicit none
       class(LibrpaHandler), intent(inout) :: this
@@ -1336,7 +1556,17 @@ contains
       call librpa_reset_band_data_c(this%ptr_c_handle)
    end subroutine librpa_reset_band_data
 
-   ! Compute functions
+   !> @name Compute functions
+   !> @brief Functions for performing RPA, EXX, and G0W0 calculations.
+   !> @{
+
+   !> @brief Construct and return frequency grids.
+   !>
+   !> @param[in,out] this    Handler.
+   !> @param[in,out] opts    Runtime options.
+   !> @param[out]    omegas  Frequency values.
+   !>
+   !> @param[out]    weights Quadrature weights.
    subroutine librpa_get_imaginary_frequency_grids(this, opts, omegas, weights)
       class(LibrpaHandler), intent(inout) :: this
       type(LibrpaOptions), intent(inout) :: opts
@@ -1369,6 +1599,14 @@ contains
       end if
    end subroutine librpa_get_imaginary_frequency_grids
 
+   !> @brief Compute RPA correlation energy.
+   !>
+   !> @param[in,out] this          Handler.
+   !> @param[in,out] opts          Runtime options.
+   !> @param[in]     nkpts_ibz     Number of irreducible k-points.
+   !> @param[out]    contrib_ibzk  Complex correlation contribution per k-point.
+   !>
+   !> @return Total RPA correlation energy.
    real(dp) function librpa_get_rpa_correlation_energy(this, opts, nkpts_ibz, contrib_ibzk) result(e)
       implicit none
       class(LibrpaHandler), intent(inout) :: this
@@ -1393,6 +1631,9 @@ contains
       deallocate(contrib_ibzk_re, contrib_ibzk_im)
    end function librpa_get_rpa_correlation_energy
 
+   !> @brief Build exact-exchange matrix in real space.
+   !> @param[in,out] this  Handler.
+   !> @param[in,out] opts  Runtime options.
    subroutine librpa_build_exx(this, opts)
       implicit none
       class(LibrpaHandler), intent(inout) :: this
@@ -1402,6 +1643,15 @@ contains
       call librpa_build_exx_c(this%ptr_c_handle, opts%opts_c)
    end subroutine librpa_build_exx
 
+   !> @brief Get exact-exchange potential for k-grid states.
+   !> @param[in,out] this          Handler.
+   !> @param[in,out] opts          Runtime options.
+   !> @param[in]     n_spins       Number of spin channels.
+   !> @param[in]     n_kpts_this   Number of k-points on this process.
+   !> @param[in]     iks_this      List of k-point indices (1-based).
+   !> @param[in]     i_state_low   First state index (1-based, inclusive).
+   !> @param[in]     i_state_high  Last state index (1-based, inclusive).
+   !> @param[out]    vexx          Exact-exchange potentials.
    subroutine librpa_get_exx_pot_kgrid(this, opts, n_spins, n_kpts_this, iks_this, &
                                        i_state_low, i_state_high, vexx)
       implicit none
@@ -1446,6 +1696,15 @@ contains
       deallocate(iks_this_c)
    end subroutine librpa_get_exx_pot_kgrid
 
+   !> @brief Get exact-exchange potential for band k-points.
+   !> @param[in,out] this              Handler.
+   !> @param[in,out] opts              Runtime options.
+   !> @param[in]     n_spins           Number of spin channels.
+   !> @param[in]     n_kpts_band_this  Number of band k-points on this process.
+   !> @param[in]     iks_band_this     List of band k-point indices (1-based).
+   !> @param[in]     i_state_low       First state index (1-based, inclusive).
+   !> @param[in]     i_state_high      Last state index (1-based, inclusive).
+   !> @param[out]    vexx_band         Exact-exchange potentials for band k-points.
    subroutine librpa_get_exx_pot_band_k(this, opts, n_spins, n_kpts_band_this, iks_band_this, &
                                         i_state_low, i_state_high, vexx_band)
       implicit none
@@ -1490,6 +1749,9 @@ contains
       deallocate(iks_band_this_c)
    end subroutine librpa_get_exx_pot_band_k
 
+   !> @brief Build G0W0 self-energy matrix in real space.
+   !> @param[in,out] this  Handler.
+   !> @param[in,out] opts  Runtime options.
    subroutine librpa_build_g0w0_sigma(this, opts)
       implicit none
       class(LibrpaHandler), intent(inout) :: this
@@ -1499,6 +1761,17 @@ contains
       call librpa_build_g0w0_sigma_c(this%ptr_c_handle, opts%opts_c)
    end subroutine librpa_build_g0w0_sigma
 
+   !> @brief Get G0W0 correlation self-energy for k-grid states.
+   !> @param[in,out] this           Handler.
+   !> @param[in,out] opts           Runtime options.
+   !> @param[in]     n_spins        Number of spin channels.
+   !> @param[in]     n_kpts_this    Number of k-points on this process.
+   !> @param[in]     iks_this       List of k-point indices (1-based).
+   !> @param[in]     i_state_low    First state index (1-based, inclusive).
+   !> @param[in]     i_state_high   Last state index (1-based, inclusive).
+   !> @param[in]     vxc            XC potential for selected states.
+   !> @param[in]     vexx           Exact-exchange potential for selected states.
+   !> @param[out]    sigc           Correlation self-energy (complex).
    subroutine librpa_get_g0w0_sigc_kgrid(this, opts, n_spins, n_kpts_this, iks_this, &
                                          i_state_low, i_state_high, vxc, vexx, sigc)
       implicit none
@@ -1558,6 +1831,17 @@ contains
       deallocate(iks_this_c)
    end subroutine librpa_get_g0w0_sigc_kgrid
 
+   !> @brief Get G0W0 correlation self-energy for band k-points.
+   !> @param[in,out] this              Handler.
+   !> @param[in,out] opts              Runtime options.
+   !> @param[in]     n_spins           Number of spin channels.
+   !> @param[in]     n_kpts_band_this  Number of band k-points on this process.
+   !> @param[in]     iks_band_this     List of band k-point indices (1-based).
+   !> @param[in]     i_state_low       First state index (1-based, inclusive).
+   !> @param[in]     i_state_high      Last state index (1-based, inclusive).
+   !> @param[in]     vxc_band          XC potential for band states.
+   !> @param[in]     vexx_band         Exact-exchange potential for band states.
+   !> @param[out]    sigc_band        Correlation self-energy for band (complex).
    subroutine librpa_get_g0w0_sigc_band_k(this, opts, n_spins, n_kpts_band_this, iks_band_this, &
                                           i_state_low, i_state_high, vxc_band, vexx_band, sigc_band)
       implicit none
@@ -1616,5 +1900,6 @@ contains
       deallocate(sigc_im_c)
       deallocate(iks_band_this_c)
    end subroutine librpa_get_g0w0_sigc_band_k
+   !> @}
 
 end module librpa_f03

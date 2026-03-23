@@ -18,7 +18,7 @@ default: $(DOXYFILE) $(DOXYGEN_AWESOME_DIRECTORY)/doxygen-awesome.css
 
 $(DOXYFILE): $(DOXYFILE_TEMPLATE) Makefile
 	sed -e "s|\(OUTPUT_DIRECTORY *=\) *.*|\1 $(DOXY_OUTPUT_DIRECTORY)|g" \
-		-e "s|\(INPUT *=\) *.*|\1 README.md ../../src ../../driver|g" \
+		-e "s|\(INPUT *=\) *.*|\1 README.md ../../src ../../driver ../../include ../../binding|g" \
 		-e "s|\(GENERATE_TAGFILE *=\) *.*|\1 $(DOXY_OUTPUT_DIRECTORY)/$(HTML_OUTPUT)/tagfile.xml|g" \
 		-e "s|\(DOT_PATH *=\) *.*|\1 $(DOT_PATH)|g" $< > $@
 

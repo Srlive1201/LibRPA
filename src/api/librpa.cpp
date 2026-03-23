@@ -216,11 +216,11 @@ void Handler::reset_band_data()
 }
 
 /* Compute (build/get) functions */
-std::pair<std::vector<double>, std::vector<double>> Handler::get_imaginary_frequency_grids(const Options& opts)
+void Handler::get_imaginary_frequency_grids(const Options& opts, std::vector<double> &omegas, std::vector<double> &weights)
 {
-    std::vector<double> omegas(opts.nfreq), weights(opts.nfreq);
+    omegas.resize(opts.nfreq);
+    weights.resize(opts.nfreq);
     ::librpa_get_imaginary_frequency_grids(this->h_, &opts, omegas.data(), weights.data());
-    return {omegas, weights};
 }
 
 LIBRPA_CPP_H_METHOD_DEF_WRAP_RET_WOPT(

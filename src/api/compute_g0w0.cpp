@@ -1,7 +1,5 @@
 // Public API headers
 #include "librpa_compute.h"
-#include "librpa_enums.h"
-#include "librpa_func.h"
 
 // Standard C++ headers
 #include <string>
@@ -20,9 +18,9 @@
 #include "../math/complexmatrix.h"
 #include "../math/utils_matrix_m_mpi.h"
 #include "../utils/profiler.h"
-#include "../utils/utils_mem.h"
+// #include "../utils/utils_mem.h"
 
-LIBRPA_C_H_FUNC_WRAP_WOPT_NOPAR(void, librpa_build_g0w0_sigma)
+void librpa_build_g0w0_sigma(LibrpaHandler* h, const LibrpaOptions *p_opts)
 {
     using namespace librpa_int;
     using librpa_int::global::profiler;
@@ -156,11 +154,10 @@ LIBRPA_C_H_FUNC_WRAP_WOPT_NOPAR(void, librpa_build_g0w0_sigma)
     profiler.stop("api_build_g0w0_sigma");
 }
 
-LIBRPA_C_H_FUNC_WRAP_WOPT(void, librpa_get_g0w0_sigc_kgrid,
-                          const int n_spins,
-                          const int n_kpts_this, const int *iks_this,
-                          int i_state_low, int i_state_high, const double *vxc, const double *vexx,
-                          double *sigc_re, double *sigc_im)
+void librpa_get_g0w0_sigc_kgrid(LibrpaHandler *h, const LibrpaOptions *p_opts, const int n_spins,
+                                const int n_kpts_this, const int *iks_this, int i_state_low,
+                                int i_state_high, const double *vxc, const double *vexx,
+                                double *sigc_re, double *sigc_im)
 {
     using namespace librpa_int;
     using librpa_int::global::profiler;
@@ -258,11 +255,11 @@ LIBRPA_C_H_FUNC_WRAP_WOPT(void, librpa_get_g0w0_sigc_kgrid,
     profiler.stop("api_get_g0w0_sigc_kgrid");
 }
 
-LIBRPA_C_H_FUNC_WRAP_WOPT(void, librpa_get_g0w0_sigc_band_k,
-                          const int n_spins,
-                          const int n_kpts_band_this, const int *iks_band_this,
-                          int i_state_low, int i_state_high, const double *vxc_band, const double *vexx_band,
-                          double *sigc_band_re, double *sigc_band_im)
+void librpa_get_g0w0_sigc_band_k(LibrpaHandler *h, const LibrpaOptions *p_opts, const int n_spins,
+                                 const int n_kpts_band_this, const int *iks_band_this,
+                                 int i_state_low, int i_state_high, const double *vxc_band,
+                                 const double *vexx_band, double *sigc_band_re,
+                                 double *sigc_band_im)
 {
     using namespace librpa_int;
     using librpa_int::global::profiler;
