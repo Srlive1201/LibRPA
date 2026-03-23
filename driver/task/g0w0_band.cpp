@@ -199,6 +199,10 @@ void driver::task_g0w0_band()
     profiler.start("g0w0_band_load_band_mf", "Read eigen solutions at band kpoints");
     read_band_kpath_info(driver_params.input_dir + "band_kpath_info");
     const int nkpts_band = kfrac_band.size();
+    const int nkpts_band_this = iks_band_eigvec_this.size();
+    ofs_myid << "Number of band k-points on this process: " << nkpts_band_this << endl;
+    ofs_myid << "iks_band_eigvec_this: " << iks_band_eigvec_this << endl;
+
     if (mpi_comm_global_h.is_root())
     {
         std::cout << "Band k-points to compute:\n";

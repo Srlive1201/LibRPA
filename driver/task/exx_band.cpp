@@ -147,7 +147,7 @@ void driver::task_exx_band()
             const int ik = iks_band_eigvec_this[ik_this];
             const int index_collect = ik * n_states_calc;
             const int index = st + ik_this * n_states_calc;
-            memcpy(exx_sp_collected.data() + index_collect, exx_ks.data() + index, n_states_calc * sizeof(double));
+            memcpy(exx_sp_collected.data() + index_collect, exx_ks_band.data() + index, n_states_calc * sizeof(double));
         }
         mpi_comm_global_h.reduce(MPI_IN_PLACE, exx_sp_collected.data(), n_states_calc * n_kpoints_band, 0, MPI_SUM);
 

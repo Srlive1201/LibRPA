@@ -424,7 +424,7 @@ void Exx::build_KS_blacs(const std::map<int, std::map<int, ComplexMatrix>> &wfc_
 
     if (!is_rspace_redist_for_KS_)
     {
-        global::profiler.start("build_real_space_exx_5", "Collect Hexx IJ from world");
+        global::profiler.start("exx_build_KS_blacs_redist");
         const auto set_IJ_naonao = get_necessary_IJ_from_block_2D(
             this->atbasis_wfc, this->atbasis_wfc, desc_nao_nao);
         const auto Iset_Jset = convert_IJset_to_Iset_Jset(set_IJ_naonao);
@@ -452,11 +452,11 @@ void Exx::build_KS_blacs(const std::map<int, std::map<int, ComplexMatrix>> &wfc_
                     }
                 }
             }
-            global::profiler.start("build_real_space_exx_5_1");
+            global::profiler.start("exx_build_KS_blacs_redist_comm_map2");
             // Collect the IJ pair of Hs with all R for Fourier transform
             auto exx_is_IJR_for_blacs = comm_map2_first(comm_h.comm, exx_is_tensor, Iset_Jset.first, Iset_Jset.second);
             exx_is_tensor.clear();
-            global::profiler.stop("build_real_space_exx_5_1");
+            global::profiler.stop("exx_build_KS_blacs_redist_comm_map2");
             if (exx_is_IJR_for_blacs.size() == 0) continue;
             // Now each process should have all Rs corresponding to atom-pairs that required for BLACS matrix operation
             // Swap with the original
@@ -478,8 +478,9 @@ void Exx::build_KS_blacs(const std::map<int, std::map<int, ComplexMatrix>> &wfc_
         }
         is_rspace_redist_for_KS_ = true;
         is_rspace_redist_blacs_ = true;
-        global::profiler.stop("build_real_space_exx_5");
-        global::lib_printf("Task %4d: tensor communicate elapsed time: %f\n", comm_h.myid, global::profiler.get_wall_time_last("build_real_space_exx_5"));
+        global::profiler.stop("exx_build_KS_blacs_redist");
+        global::lib_printf("Task %4d: tensor communicate elapsed time: %f\n", comm_h.myid,
+                           global::profiler.get_wall_time_last("exx_build_KS_blacs_redist"));
     }
     else
     {
@@ -487,6 +488,10 @@ void Exx::build_KS_blacs(const std::map<int, std::map<int, ComplexMatrix>> &wfc_
             throw LIBRPA_RUNTIME_ERROR("");
     }
 
+    global::ofs_myid << "coords_frac explicitly set? " << std::boolalpha << geometry.is_frac_set() << std::endl;
+    global::ofs_myid << "period:      " << this->pbc.period << std::endl;
+    global::ofs_myid << "coords_frac: " << geometry.coords_frac << std::endl;
+    global::ofs_myid << "latvec:      " << this->pbc.latvec << std::endl;
     for (int isp = 0; isp < n_spins; isp++)
     {
         this->exx_KS[isp] = {};
@@ -496,6 +501,8 @@ void Exx::build_KS_blacs(const std::map<int, std::map<int, ComplexMatrix>> &wfc_
         // while keep the accuracy in further band interpolation.
         // Reuse the cleared-up exx_I_JR_local object
         auto it = exx_IJR.find(isp);
+        // global::ofs_myid << "exx_IJR.find(isp)" << std::endl;
+        // global::ofs_myid << it->second << std::endl;
         if (it != exx_IJR.cend())
         {
             if (geometry.is_frac_set())
@@ -546,6 +553,8 @@ void Exx::build_KS_blacs(const std::map<int, std::map<int, ComplexMatrix>> &wfc_
                 exx_is_local = it->second;
             }
         }
+        // global::ofs_myid << "exx_is_local" << std::endl;
+        // global::ofs_myid << exx_is_local << std::endl;
 
         if (is_mf_eigvec_k_distributed_)
         {

@@ -225,6 +225,7 @@ static int handle_KS_file(const string &file_path)
         {
             driver::h.set_wfc(is, ik, driver::n_states, driver::n_basis_wfc, re.data() + is * n, im.data() + is * n);
         }
+        // if (ik==0) librpa_int::global::ofs_myid << re << std::endl;
         // for abacus
         // for (int ib = 0; ib != NBANDS; ib++)
         //     for (int iw = 0; iw != NLOCAL; iw++)
@@ -1785,13 +1786,17 @@ void read_band_kpath_info(const string &file_path)
 
 void read_band_meanfield_data(const string &dir_path)
 {
+    using namespace librpa_int;
+    using namespace librpa_int::global;
+    using std::endl;
     using driver::n_spins;
     using driver::n_kpoints_band;
     using driver::n_states;
     using driver::n_basis_wfc;
     using driver::iks_band_eigvec_this;
-    using librpa_int::global::myid_global;
-    using librpa_int::global::size_global;
+
+    if (driver::n_kpoints_band == 0)
+        throw LIBRPA_RUNTIME_ERROR("Number of band k-points not set, run read_band_kpath_info first");
 
     iks_band_eigvec_this.clear();
 
@@ -1844,7 +1849,6 @@ void read_band_meanfield_data(const string &dir_path)
         {
             const auto it =
                 std::find(iks_band_eigvec_this.cbegin(), iks_band_eigvec_this.cend(), ik);
-            // this k does not belong to this process
             skip_this_ik = (it == iks_band_eigvec_this.cend());
         }
         if (skip_this_ik) continue;
@@ -1854,12 +1858,16 @@ void read_band_meanfield_data(const string &dir_path)
 
         ifstream infile;
         infile.open(ss.str(), std::ios::in | std::ios::binary);
+        if (!infile.good())
+            throw LIBRPA_RUNTIME_ERROR("Fail to open band eigenvector file " + ss.str());
+        else
+            ofs_myid << "Loading band eigenvector file " + ss.str() << endl;
         std::vector<std::complex<double>> wfc(n_states * n_basis_wfc);
         for (int i_spin = 0; i_spin < n_spins; i_spin++)
         {
             const size_t nbytes = n_basis_wfc * n_states * sizeof(std::complex<double>);
             infile.read((char *) wfc.data(), nbytes);
-            driver::h.set_wfc_band_packed(i_spin, ik, driver::n_states, driver::n_basis_wfc, wfc.data());
+            driver::h.set_wfc_band_packed(i_spin, ik, n_states, n_basis_wfc, wfc.data());
         }
         infile.close();
     }

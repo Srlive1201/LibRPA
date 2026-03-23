@@ -49,7 +49,7 @@ bool operator ==(const Matrix3 &m1, const Matrix3 &m2); //whether m1 == m2
 bool operator !=(const Matrix3 &m1, const Matrix3 &m2); //whethor m1 != m2
 
 
-
+std::ostream & operator <<( std::ostream &os, const Matrix3 &m);
 
 //m*u
 template<typename T>

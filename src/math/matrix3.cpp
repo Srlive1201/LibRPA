@@ -202,4 +202,12 @@ void Matrix3::print(int width, double eps) const
     return;
 }
 
+std::ostream & operator <<( std::ostream &os, const Matrix3 &m)
+{
+	os << "((" << std::setw(10) << m.e11 << " " << std::setw(10) << m.e12 << " " << std::setw(10) << m.e13  << ")"
+	   << " (" << std::setw(10) << m.e21 << " " << std::setw(10) << m.e22 << " " << std::setw(10) << m.e23  << ")"
+	   << " (" << std::setw(10) << m.e31 << " " << std::setw(10) << m.e32 << " " << std::setw(10) << m.e33  << "))";
+	return os;
+}
+
 }
