@@ -234,6 +234,7 @@ module librpa_f03
          procedure :: get_exx_pot_band_k => librpa_get_exx_pot_band_k
          procedure :: build_g0w0_sigma => librpa_build_g0w0_sigma
          procedure :: get_g0w0_sigc_kgrid => librpa_get_g0w0_sigc_kgrid
+         procedure :: get_g0w0_sigc_band_k => librpa_get_g0w0_sigc_band_k
    end type LibrpaHandler
 
    interface
@@ -252,13 +253,14 @@ module librpa_f03
    ! Input functions interface
    interface
       subroutine librpa_set_scf_dimension_c(h, nspins, nkpts, nstates, nbasis) &
-                                            bind(c, name="librpa_set_scf_dimension")
+            bind(c, name="librpa_set_scf_dimension")
          import :: c_ptr, c_int
          type(c_ptr), value :: h
          integer(c_int), value :: nspins, nkpts, nstates, nbasis
       end subroutine librpa_set_scf_dimension_c
 
-      subroutine librpa_set_wg_ekb_efermi_c(h, nspins, nkpts, nstates, wg, ekb, efermi) bind(c, name="librpa_set_wg_ekb_efermi")
+      subroutine librpa_set_wg_ekb_efermi_c(h, nspins, nkpts, nstates, wg, ekb, efermi) &
+            bind(c, name="librpa_set_wg_ekb_efermi")
          import :: c_ptr, c_int, c_double
          type(c_ptr), value :: h
          integer(c_int), value :: nspins, nkpts, nstates
@@ -267,7 +269,8 @@ module librpa_f03
          real(c_double), value :: efermi
       end subroutine librpa_set_wg_ekb_efermi_c
 
-      subroutine librpa_set_wfc_c(h, ispin, ik, nstates_local, nbasis_local, wfc_real, wfc_imag) bind(c, name="librpa_set_wfc")
+      subroutine librpa_set_wfc_c(h, ispin, ik, nstates_local, nbasis_local, wfc_real, wfc_imag) &
+            bind(c, name="librpa_set_wfc")
          import :: c_ptr, c_int, c_double
          type(c_ptr), value :: h
          integer(c_int), value :: ispin, ik, nstates_local, nbasis_local
@@ -283,27 +286,31 @@ module librpa_f03
          type(c_ptr), value :: wfc
       end subroutine librpa_set_wfc_packed_c
 
-      subroutine librpa_set_ao_basis_wfc_c(h, natoms, nbs_wfc) bind(c, name="librpa_set_ao_basis_wfc")
+      subroutine librpa_set_ao_basis_wfc_c(h, natoms, nbs_wfc) &
+            bind(c, name="librpa_set_ao_basis_wfc")
          import :: c_ptr, c_int, c_size_t
          type(c_ptr), value :: h
          integer(c_int), value :: natoms
          integer(c_size_t), dimension(*), intent(in) :: nbs_wfc
       end subroutine librpa_set_ao_basis_wfc_c
 
-      subroutine librpa_set_ao_basis_aux_c(h, natoms, nbs_aux) bind(c, name="librpa_set_ao_basis_aux")
+      subroutine librpa_set_ao_basis_aux_c(h, natoms, nbs_aux) &
+            bind(c, name="librpa_set_ao_basis_aux")
          import :: c_ptr, c_int, c_size_t
          type(c_ptr), value :: h
          integer(c_int), value :: natoms
          integer(c_size_t), dimension(*), intent(in) :: nbs_aux
       end subroutine librpa_set_ao_basis_aux_c
 
-      subroutine librpa_set_latvec_and_G_c(h, latt, recplatt) bind(c, name="librpa_set_latvec_and_G")
+      subroutine librpa_set_latvec_and_G_c(h, latt, recplatt) &
+            bind(c, name="librpa_set_latvec_and_G")
          import :: c_ptr, c_double
          type(c_ptr), value :: h
          real(c_double), dimension(9), intent(in) :: latt, recplatt
       end subroutine librpa_set_latvec_and_G_c
 
-      subroutine librpa_set_atoms_c(h, natoms, types, posi_cart) bind(c, name="librpa_set_atoms")
+      subroutine librpa_set_atoms_c(h, natoms, types, posi_cart) &
+            bind(c, name="librpa_set_atoms")
          import :: c_ptr, c_int, c_double
          type(c_ptr), value :: h
          integer(c_int), value :: natoms
@@ -311,14 +318,16 @@ module librpa_f03
          real(c_double), dimension(*), intent(in) :: posi_cart
       end subroutine librpa_set_atoms_c
 
-      subroutine librpa_set_kgrids_kvec_c(h, nk1, nk2, nk3, kvecs) bind(c, name="librpa_set_kgrids_kvec")
+      subroutine librpa_set_kgrids_kvec_c(h, nk1, nk2, nk3, kvecs) &
+            bind(c, name="librpa_set_kgrids_kvec")
          import :: c_ptr, c_int, c_double
          type(c_ptr), value :: h
          integer(c_int), value :: nk1, nk2, nk3
          real(c_double), dimension(*), intent(in) :: kvecs
       end subroutine librpa_set_kgrids_kvec_c
 
-      subroutine librpa_set_ibz_mapping_c(h, nkpts, map_ibzk) bind(c, name="librpa_set_ibz_mapping")
+      subroutine librpa_set_ibz_mapping_c(h, nkpts, map_ibzk) &
+            bind(c, name="librpa_set_ibz_mapping")
          import :: c_ptr, c_int
          type(c_ptr), value :: h
          integer(c_int), value :: nkpts
@@ -476,17 +485,29 @@ module librpa_f03
          type(LibrpaOptions_c), intent(in) :: opts
       end subroutine librpa_build_g0w0_sigma_c
 
-      subroutine librpa_get_g0w0_sigc_kgrid_c(h, opts, n_spins, n_kpoints_local, iks_local, &
+      subroutine librpa_get_g0w0_sigc_kgrid_c(h, opts, n_spins, n_kpts_this, iks_this, &
                                              i_state_low, i_state_high, vxc, vexx, sigc_re, sigc_im) &
             bind(c, name="librpa_get_g0w0_sigc_kgrid")
          import :: LibrpaOptions_c, c_ptr, c_int, c_double
          type(c_ptr), value :: h
          type(LibrpaOptions_c), intent(in) :: opts
-         integer(c_int), value :: n_spins, n_kpoints_local, i_state_low, i_state_high
-         integer(c_int), dimension(*), intent(in) :: iks_local
+         integer(c_int), value :: n_spins, n_kpts_this, i_state_low, i_state_high
+         integer(c_int), dimension(*), intent(in) :: iks_this
          real(c_double), dimension(*), intent(in) :: vxc, vexx
          real(c_double), dimension(*), intent(inout) :: sigc_re, sigc_im
       end subroutine librpa_get_g0w0_sigc_kgrid_c
+
+      subroutine librpa_get_g0w0_sigc_band_k_c(h, opts, n_spins, n_kpts_band_this, iks_band_this, &
+                                               i_state_low, i_state_high, vxc_band, vexx_band, sigc_band_re, sigc_band_im) &
+            bind(c, name="librpa_get_g0w0_sigc_band_k")
+         import :: LibrpaOptions_c, c_ptr, c_int, c_double
+         type(c_ptr), value :: h
+         type(LibrpaOptions_c), intent(in) :: opts
+         integer(c_int), value :: n_spins, n_kpts_band_this, i_state_low, i_state_high
+         integer(c_int), dimension(*), intent(in) :: iks_band_this
+         real(c_double), dimension(*), intent(in) :: vxc_band, vexx_band
+         real(c_double), dimension(*), intent(inout) :: sigc_band_re, sigc_band_im
+      end subroutine librpa_get_g0w0_sigc_bakd_k_c
    end interface
 
    ! Helper to communicate runtime options between C and Fortran types
@@ -1478,63 +1499,122 @@ contains
       call librpa_build_g0w0_sigma_c(this%ptr_c_handle, opts%opts_c)
    end subroutine librpa_build_g0w0_sigma
 
-   subroutine librpa_get_g0w0_sigc_kgrid(this, opts, n_spins, n_kpoints_local, iks_local, &
+   subroutine librpa_get_g0w0_sigc_kgrid(this, opts, n_spins, n_kpts_this, iks_this, &
                                          i_state_low, i_state_high, vxc, vexx, sigc)
       implicit none
       class(LibrpaHandler), intent(inout) :: this
       type(LibrpaOptions), intent(inout) :: opts
-      integer, contiguous, dimension(:), intent(in) :: iks_local
-      integer, intent(in) :: n_spins, n_kpoints_local, i_state_low, i_state_high
-      real(dp), dimension(i_state_high - i_state_low + 1, n_kpoints_local, n_spins), intent(in) :: vxc
-      real(dp), dimension(i_state_high - i_state_low + 1, n_kpoints_local, n_spins), intent(in) :: vexx
-      complex(dp), dimension(i_state_high - i_state_low + 1, n_kpoints_local, n_spins), intent(inout) :: sigc
+      integer, contiguous, dimension(:), intent(in) :: iks_this
+      integer, intent(in) :: n_spins, n_kpts_this, i_state_low, i_state_high
+      real(dp), dimension(i_state_high - i_state_low + 1, n_kpts_this, n_spins), intent(in) :: vxc
+      real(dp), dimension(i_state_high - i_state_low + 1, n_kpts_this, n_spins), intent(in) :: vexx
+      complex(dp), dimension(i_state_high - i_state_low + 1, n_kpts_this, n_spins), intent(inout) :: sigc
 
-      integer(c_int), allocatable :: iks_local_c(:)
+      integer(c_int), allocatable :: iks_this_c(:)
       real(c_double), allocatable :: vxc_c(:,:,:), vexx_c(:,:,:)
       real(c_double), allocatable :: sigc_re_c(:,:,:), sigc_im_c(:,:,:)
-      integer(c_int) :: n_spins_c, n_kpoints_local_c, i_state_low_c, i_state_high_c
+      integer(c_int) :: n_spins_c, n_kpts_this_c, i_state_low_c, i_state_high_c
       integer :: n_states_calc
 
       n_spins_c = int(n_spins, kind=c_int)
       i_state_low_c = int(i_state_low - 1, kind=c_int)
       i_state_high_c = int(i_state_high, kind=c_int)
 
-      n_kpoints_local_c = int(n_kpoints_local, kind=c_int)
-      if (n_kpoints_local > 0) then
-         allocate(iks_local_c(n_kpoints_local))
-         iks_local_c = int(iks_local(1:n_kpoints_local), kind=c_int) - 1
+      n_kpts_this_c = int(n_kpts_this, kind=c_int)
+      if (n_kpts_this > 0) then
+         allocate(iks_this_c(n_kpts_this))
+         iks_this_c = int(iks_this(1:n_kpts_this), kind=c_int) - 1
       else
-         allocate(iks_local_c(1))
+         allocate(iks_this_c(1))
       end if
 
       n_states_calc = i_state_high - i_state_low + 1
-      allocate(sigc_re_c(n_states_calc, max(n_kpoints_local, 1), n_spins))
-      allocate(sigc_im_c(n_states_calc, max(n_kpoints_local, 1), n_spins))
+      allocate(sigc_re_c(n_states_calc, max(n_kpts_this, 1), n_spins))
+      allocate(sigc_im_c(n_states_calc, max(n_kpts_this, 1), n_spins))
 
       call sync_opts(opts, SYNC_OPTS_F2C)
       if (dp == c_double) then
-         call librpa_get_g0w0_sigc_kgrid_c(this%ptr_c_handle, opts%opts_c, n_spins_c, n_kpoints_local_c, &
-                                           iks_local_c, i_state_low_c, i_state_high_c, vxc, vexx, sigc_re_c, sigc_im_c)
+         call librpa_get_g0w0_sigc_kgrid_c(this%ptr_c_handle, opts%opts_c, n_spins_c, n_kpts_this_c, &
+                                           iks_this_c, i_state_low_c, i_state_high_c, vxc, vexx, sigc_re_c, sigc_im_c)
       else
-         allocate(vexx_c(n_states_calc, max(n_kpoints_local, 1), n_spins))
-         allocate(vxc_c(n_states_calc, max(n_kpoints_local, 1), n_spins))
-         if (n_kpoints_local > 0) then
+         allocate(vexx_c(n_states_calc, max(n_kpts_this, 1), n_spins))
+         allocate(vxc_c(n_states_calc, max(n_kpts_this, 1), n_spins))
+         if (n_kpts_this > 0) then
             vxc_c = real(vxc, kind=c_double)
             vexx_c = real(vexx, kind=c_double)
          end if
-         call librpa_get_g0w0_sigc_kgrid_c(this%ptr_c_handle, opts%opts_c, n_spins_c, n_kpoints_local_c, &
-                                           iks_local_c, i_state_low_c, i_state_high_c, vxc_c, vexx_c, sigc_re_c, sigc_im_c)
+         call librpa_get_g0w0_sigc_kgrid_c(this%ptr_c_handle, opts%opts_c, n_spins_c, n_kpts_this_c, &
+                                           iks_this_c, i_state_low_c, i_state_high_c, vxc_c, vexx_c, sigc_re_c, sigc_im_c)
          if (allocated(vxc_c)) deallocate(vxc_c)
          if (allocated(vexx_c)) deallocate(vexx_c)
       end if
 
-      if (n_kpoints_local > 0) then
+      if (n_kpts_this > 0) then
          sigc(:,:,:) = cmplx(sigc_re_c, sigc_im_c, kind=dp)
       end if
 
       deallocate(sigc_re_c)
       deallocate(sigc_im_c)
-      deallocate(iks_local_c)
+      deallocate(iks_this_c)
    end subroutine librpa_get_g0w0_sigc_kgrid
+
+   subroutine librpa_get_g0w0_sigc_band_k(this, opts, n_spins, n_kpts_band_this, iks_band_this, &
+                                          i_state_low, i_state_high, vxc_band, vexx_band, sigc_band)
+      implicit none
+      class(LibrpaHandler), intent(inout) :: this
+      type(LibrpaOptions), intent(inout) :: opts
+      integer, contiguous, dimension(:), intent(in) :: iks_band_this
+      integer, intent(in) :: n_spins, n_kpts_band_this, i_state_low, i_state_high
+      real(dp), dimension(i_state_high - i_state_low + 1, n_kpts_band_this, n_spins), intent(in) :: vxc_band
+      real(dp), dimension(i_state_high - i_state_low + 1, n_kpts_band_this, n_spins), intent(in) :: vexx_band
+      complex(dp), dimension(i_state_high - i_state_low + 1, n_kpts_band_this, n_spins), intent(inout) :: sigc_band
+
+      integer(c_int), allocatable :: iks_band_this_c(:)
+      real(c_double), allocatable :: vxc_c(:,:,:), vexx_c(:,:,:)
+      real(c_double), allocatable :: sigc_re_c(:,:,:), sigc_im_c(:,:,:)
+      integer(c_int) :: n_spins_c, n_kpts_band_this_c, i_state_low_c, i_state_high_c
+      integer :: n_states_calc
+
+      n_spins_c = int(n_spins, kind=c_int)
+      i_state_low_c = int(i_state_low - 1, kind=c_int)
+      i_state_high_c = int(i_state_high, kind=c_int)
+
+      n_kpts_band_this_c = int(n_kpts_band_this, kind=c_int)
+      if (n_kpts_band_this > 0) then
+         allocate(iks_band_this_c(n_kpts_band_this))
+         iks_band_this_c = int(iks_band_this(1:n_kpts_band_this), kind=c_int) - 1
+      else
+         allocate(iks_band_this_c(1))
+      end if
+
+      n_states_calc = i_state_high - i_state_low + 1
+      allocate(sigc_re_c(n_states_calc, max(n_kpts_band_this, 1), n_spins))
+      allocate(sigc_im_c(n_states_calc, max(n_kpts_band_this, 1), n_spins))
+
+      call sync_opts(opts, SYNC_OPTS_F2C)
+      if (dp == c_double) then
+         call librpa_get_g0w0_sigc_band_k_c(this%ptr_c_handle, opts%opts_c, n_spins_c, n_kpts_band_this_c, &
+                                            iks_band_this_c, i_state_low_c, i_state_high_c, vxc_band, vexx_band, sigc_re_c, sigc_im_c)
+      else
+         allocate(vexx_c(n_states_calc, max(n_kpts_band_this, 1), n_spins))
+         allocate(vxc_c(n_states_calc, max(n_kpts_band_this, 1), n_spins))
+         if (n_kpts_band_this > 0) then
+            vxc_c = real(vxc_band, kind=c_double)
+            vexx_c = real(vexx_band, kind=c_double)
+         end if
+         call librpa_get_g0w0_sigc_band_k_c(this%ptr_c_handle, opts%opts_c, n_spins_c, n_kpts_band_this_c, &
+                                            iks_band_this_c, i_state_low_c, i_state_high_c, vxc_c, vexx_c, sigc_re_c, sigc_im_c)
+         if (allocated(vxc_c)) deallocate(vxc_c)
+         if (allocated(vexx_c)) deallocate(vexx_c)
+      end if
+
+      if (n_kpts_band_this > 0) then
+         sigc_band(:,:,:) = cmplx(sigc_re_c, sigc_im_c, kind=dp)
+      end if
+
+      deallocate(sigc_re_c)
+      deallocate(sigc_im_c)
+      deallocate(iks_band_this_c)
+   end subroutine librpa_get_g0w0_sigc_band_k
 
 end module librpa_f03

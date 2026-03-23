@@ -126,6 +126,7 @@ module librpa_f03
          procedure :: get_exx_pot_band_k => librpa_get_exx_pot_band_k
          procedure :: build_g0w0_sigma => librpa_build_g0w0_sigma
          procedure :: get_g0w0_sigc_kgrid => librpa_get_g0w0_sigc_kgrid
+         procedure :: get_g0w0_sigc_band_k => librpa_get_g0w0_sigc_band_k
    end type LibrpaHandler
 
 contains
@@ -487,17 +488,30 @@ contains
       call error_on_call("librpa_build_g0w0_sigma")
    end subroutine librpa_build_g0w0_sigma
 
-   subroutine librpa_get_g0w0_sigc_kgrid(this, opts, n_spins, n_kpoints_local, iks_local, &
+   subroutine librpa_get_g0w0_sigc_kgrid(this, opts, n_spins, n_kpts_this, iks_this, &
                                          i_state_low, i_state_high, vxc, vexx, sigc)
       implicit none
       class(LibrpaHandler), intent(inout) :: this
       type(LibrpaOptions), intent(inout) :: opts
-      integer, contiguous, dimension(:), intent(in) :: iks_local
-      integer, intent(in) :: n_spins, n_kpoints_local, i_state_low, i_state_high
-      real(dp), dimension(i_state_high - i_state_low + 1, n_kpoints_local, n_spins), intent(in) :: vxc
-      real(dp), dimension(i_state_high - i_state_low + 1, n_kpoints_local, n_spins), intent(in) :: vexx
-      complex(dp), dimension(i_state_high - i_state_low + 1, n_kpoints_local, n_spins), intent(inout) :: sigc
+      integer, contiguous, dimension(:), intent(in) :: iks_this
+      integer, intent(in) :: n_spins, n_kpts_this, i_state_low, i_state_high
+      real(dp), dimension(i_state_high - i_state_low + 1, n_kpts_this, n_spins), intent(in) :: vxc
+      real(dp), dimension(i_state_high - i_state_low + 1, n_kpts_this, n_spins), intent(in) :: vexx
+      complex(dp), dimension(i_state_high - i_state_low + 1, n_kpts_this, n_spins), intent(inout) :: sigc
       call error_on_call("librpa_get_g0w0_sigc_kgrid")
    end subroutine librpa_get_g0w0_sigc_kgrid
+
+   subroutine librpa_get_g0w0_sigc_band_k(this, opts, n_spins, n_kpts_band_this, iks_band_this, &
+                                          i_state_low, i_state_high, vxc_band, vexx_band, sigc_band)
+      implicit none
+      class(LibrpaHandler), intent(inout) :: this
+      type(LibrpaOptions), intent(inout) :: opts
+      integer, contiguous, dimension(:), intent(in) :: iks_band_this
+      integer, intent(in) :: n_spins, n_kpts_band_this, i_state_low, i_state_high
+      real(dp), dimension(i_state_high - i_state_low + 1, n_kpts_band_this, n_spins), intent(in) :: vxc_band
+      real(dp), dimension(i_state_high - i_state_low + 1, n_kpts_band_this, n_spins), intent(in) :: vexx_band
+      complex(dp), dimension(i_state_high - i_state_low + 1, n_kpts_band_this, n_spins), intent(inout) :: sigc_band
+      call error_on_call("librpa_get_g0w0_sigc_band_k")
+   end subroutine librpa_get_g0w0_sigc_band_k
 
 end module librpa_f03
