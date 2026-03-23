@@ -10,8 +10,10 @@
 #include "librpa_enums.h"
 
 // Internal headers
-#include "../core/exx.h"
-#include "../utils/constants.h"
+// #include "../core/exx.h"
+// #include "../utils/constants.h"
+#include "../mpi/global_mpi.h"
+#include "../io/global_io.h"
 #include "../utils/profiler.h"
 #include "../utils/utils_cmake.h"
 #include "../version.h"
@@ -75,48 +77,48 @@ void librpa_finalize_global(void)
     finalize_global_mpi();
 }
 
-static void test_bccHe_libri_exx()
-{
-    std::cout << "Hello " << __FUNCTION__ << std::endl;
-#ifdef LIBRPA_USE_LIBRI
-    RI::Exx<int, int, 3, double> exx_libri;
-    // int flag;
-    // MPI_Initialized(&flag);
-    // std::cout << " " << flag;
-    std::cout << std::endl;
-    std::map<int,std::array<double,3>> atoms_pos;
-    const int n_atoms = 2;
-    for (int i = 0; i < n_atoms; i++)
-        atoms_pos.insert(std::pair<int, std::array<double, 3>>{i, {0, 0, 0}});
-    std::array<std::array<double, 3>, 3> latvec_array;
-    latvec_array[0] = {5.7, 0.0, 0.0};
-    latvec_array[1] = {0.0, 5.7, 0.0};
-    latvec_array[2] = {0.0, 0.0, 5.7};
-    exx_libri.set_parallel(MPI_COMM_WORLD, atoms_pos, latvec_array, {2, 2, 2});
-    exx_libri.set_Cs({}, 0.0);
-    exx_libri.set_Vs({}, 0.0);
-    exx_libri.set_Ds({}, 0.0);
-#endif
-}
+// static void test_bccHe_libri_exx()
+// {
+//     std::cout << "Hello " << __FUNCTION__ << std::endl;
+// #ifdef LIBRPA_USE_LIBRI
+//     RI::Exx<int, int, 3, double> exx_libri;
+//     // int flag;
+//     // MPI_Initialized(&flag);
+//     // std::cout << " " << flag;
+//     std::cout << std::endl;
+//     std::map<int,std::array<double,3>> atoms_pos;
+//     const int n_atoms = 2;
+//     for (int i = 0; i < n_atoms; i++)
+//         atoms_pos.insert(std::pair<int, std::array<double, 3>>{i, {0, 0, 0}});
+//     std::array<std::array<double, 3>, 3> latvec_array;
+//     latvec_array[0] = {5.7, 0.0, 0.0};
+//     latvec_array[1] = {0.0, 5.7, 0.0};
+//     latvec_array[2] = {0.0, 0.0, 5.7};
+//     exx_libri.set_parallel(MPI_COMM_WORLD, atoms_pos, latvec_array, {2, 2, 2});
+//     exx_libri.set_Cs({}, 0.0);
+//     exx_libri.set_Vs({}, 0.0);
+//     exx_libri.set_Ds({}, 0.0);
+// #endif
+// }
 
-static void test_bccHe_exx()
-{
-    using namespace librpa_int;
-
-    std::cout << "Hello " << __FUNCTION__ << std::endl;
-    librpa_int::MeanField mf(1, 8, 8, 8);
-    librpa_int::AtomicBasis wfc(std::vector<size_t>{4,4});
-    librpa_int::AtomicBasis aux(std::vector<size_t>{13,13});
-    librpa_int::PeriodicBoundaryData pbc;
-    pbc.set_latvec({TWO_PI, 0.0, 0.0, 0.0, TWO_PI, 0.0, 0.0, 0.0, TWO_PI});
-    pbc.set_kgrids_kvec(2, 2, 2,
-                        {
-                            0.0, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.5, 0.0, 0.0, 0.5, 0.5,
-                            0.5, 0.0, 0.0, 0.5, 0.0, 0.5, 0.5, 0.5, 0.0, 0.5, 0.5, 0.5,
-                        });
-    librpa_int::Exx exx(mf, wfc, pbc, global::mpi_comm_global_h, false);
-    exx.build(LibrpaParallelRouting::LIBRI, aux, {}, {});
-}
+// static void test_bccHe_exx()
+// {
+//     using namespace librpa_int;
+//
+//     std::cout << "Hello " << __FUNCTION__ << std::endl;
+//     librpa_int::MeanField mf(1, 8, 8, 8);
+//     librpa_int::AtomicBasis wfc(std::vector<size_t>{4,4});
+//     librpa_int::AtomicBasis aux(std::vector<size_t>{13,13});
+//     librpa_int::PeriodicBoundaryData pbc;
+//     pbc.set_latvec({TWO_PI, 0.0, 0.0, 0.0, TWO_PI, 0.0, 0.0, 0.0, TWO_PI});
+//     pbc.set_kgrids_kvec(2, 2, 2,
+//                         {
+//                             0.0, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.5, 0.0, 0.0, 0.5, 0.5,
+//                             0.5, 0.0, 0.0, 0.5, 0.0, 0.5, 0.5, 0.5, 0.0, 0.5, 0.5, 0.5,
+//                         });
+//     librpa_int::Exx exx(mf, wfc, pbc, global::mpi_comm_global_h, false);
+//     exx.build(LibrpaParallelRouting::LIBRI, aux, {}, {});
+// }
 
 void librpa_test(void)
 {

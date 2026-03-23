@@ -21,6 +21,10 @@
 #define MPI_Comm int
 #endif
 
+#ifndef MPI_Fint
+#define MPI_Fint int
+#endif
+
 #ifndef MPI_Datatype
 #define MPI_Datatype int
 #endif

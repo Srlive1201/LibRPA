@@ -1,6 +1,9 @@
 #pragma once
 #include "librpa_enums.h"
 
+// Global functions that should work no matter the LibRPA environment is set or not,
+// except for the test function `librpa_test`.
+
 #ifdef __cplusplus
 extern "C" {
 #endif
