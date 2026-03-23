@@ -517,7 +517,7 @@ void Exx::build_KS_blacs(const std::map<int, std::map<int, ComplexMatrix>> &wfc_
                                 R_IJ.x = i * period.x + R.x;
                                 for (int j = -1; j < 2; j++)
                                 {
-                                    R_IJ.y = j * period.y + R.x;
+                                    R_IJ.y = j * period.y + R.y;
                                     for (int k = -1; k < 2; k++)
                                     {
                                         R_IJ.z = k * period.z + R.z;
