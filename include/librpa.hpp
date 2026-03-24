@@ -61,7 +61,11 @@ public:
     /** @brief Construct with default options. */
     Options() { ::librpa_init_options(this); }
 
-    /** @brief Set output directory. */
+    /**
+     * @brief Set output directory.
+     *
+     * @param[in] output_dir   Path for output data files (default: ".").
+     */
     void set_output_dir(const char *output_dir) { ::librpa_set_output_dir(this, output_dir); }
 };
 
@@ -170,10 +174,10 @@ public:
     const LibrpaHandler *get_c_handler() const { return h_; }
 
     /**
-     * @brief Create handler with given MPI communicator.
+     * @brief Initialize handler with given MPI communicator.
      * @param comm MPI communicator.
      */
-    void create(int comm);
+    void init(int comm);
 
     /**
      * @brief Free handler and release resources.

@@ -54,7 +54,7 @@ static void initialize(int argc, char **argv)
     mpi_comm_global_h.barrier();
 
     // Create the handler before parsing any data or computation
-    driver::h.create(MPI_COMM_WORLD);
+    driver::h.init(MPI_COMM_WORLD);
 }
 
 static void finalize(bool success)

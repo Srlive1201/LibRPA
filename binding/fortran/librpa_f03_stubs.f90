@@ -22,7 +22,7 @@
 !> opts%output_level = LIBRPA_VERBOSE_INFO
 !>
 !> ! Create handler
-!> call h%create(MPI_COMM_WORLD)
+!> call h%init(MPI_COMM_WORLD)
 !>
 !> ! Set input data
 !> call h%set_scf_dimension(nspins, nkpts, nstates, nbasis)
@@ -32,7 +32,7 @@
 !> Ec = h%get_rpa_correlation_energy(h, opts, nkpts_ibz, contrib_ibzk(:))
 !>
 !> ! Clean up
-!> call h%destroy()
+!> call h%free()
 !> call librpa_finalize_global()
 !> @endcode
 
@@ -111,7 +111,6 @@ module librpa_f03
       character(len=LIBRPA_MAX_STRLEN) :: output_dir
       integer :: parallel_routing
       integer :: output_level
-      real(dp) :: cs_threshold
       real(dp) :: vq_threshold
       logical :: use_soc
       logical :: use_kpara_scf_eigvec
@@ -163,8 +162,8 @@ module librpa_f03
    type :: LibrpaHandler
       contains
          ! Initialization and destruction
-         procedure :: create  => librpa_create_handler
-         procedure :: destroy => librpa_destroy_handler
+         procedure :: init => librpa_create_handler
+         procedure :: free => librpa_destroy_handler
          ! Input
          procedure :: set_scf_dimension => librpa_set_scf_dimension
          procedure :: set_wg_ekb_efermi => librpa_set_wg_ekb_efermi

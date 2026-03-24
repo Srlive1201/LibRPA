@@ -12,6 +12,7 @@ DriverParams::DriverParams():
     task("rpa"),
     constants_choice("internal"),
     input_dir(""),
+    cs_threshold(0.0),
     output_gw_spec_func(false),
     sf_omega_start(0.0),
     sf_omega_end(1.0),
@@ -27,6 +28,7 @@ std::string DriverParams::format()
 {
     std::stringstream ss;
     ss << "task = " << task << std::endl;
+    ss << "cs_R_threshold = " << cs_threshold << std::endl;
     ss << "input_dir = " << input_dir << std::endl;
     ss << "constants_choice = " << constants_choice << std::endl;
     ss << "output_gw_spec_func = " << std::boolalpha << output_gw_spec_func << std::endl;
@@ -76,7 +78,6 @@ std::string format_runtime_options(const librpa::Options &opts) noexcept
     const std::vector<std::pair<std::string, double>> double_params
         {
             {"gf_R_threshold", opts.gf_threshold},
-            {"cs_R_threshold", opts.cs_threshold},
             normal_pair(vq_threshold),
             normal_pair(sqrt_coulomb_threshold),
             normal_pair(libri_chi0_threshold_C),

@@ -58,4 +58,17 @@ void destroy_dataset(LibrpaHandler* h)
 
 } /* namespace api */
 
+namespace global
+{
+
+//! Free all dataset instances
+void finalize_instance_manager()
+{
+    api::manager.clear();
+    // reset the reserved sentinel
+    api::manager.push_back(nullptr);
+}
+
+} /* namespace global */
+
 } /* namespace librpa_int */

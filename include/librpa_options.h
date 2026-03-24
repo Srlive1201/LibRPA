@@ -28,8 +28,7 @@ extern "C" {
  * librpa_init_options() and modify as needed before passing to
  * computation functions.
  *
- * @note The data layout must match the Fortran binding. Do not reorder
- *       or change the size of existing members.
+ * @note The data layout must match the Fortran binding.
  */
 typedef struct
 {
@@ -44,9 +43,6 @@ typedef struct
 
     //! Verbose level for output
     LibrpaVerbose output_level;
-
-    //! Threshold for real-space LRI triple coefficients.
-    double cs_threshold;
 
     //! Threshold for real-space Coulomb matrices
     double vq_threshold;

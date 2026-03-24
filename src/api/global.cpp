@@ -10,6 +10,7 @@
 #include "librpa_enums.h"
 
 // Internal headers
+#include "instance_manager.h"
 // #include "../core/exx.h"
 // #include "../utils/constants.h"
 #include "../mpi/global_mpi.h"
@@ -73,6 +74,7 @@ void librpa_finalize_global(void)
         ofs_myid << profiler.get_profile_string();
     }
 
+    finalize_instance_manager();
     finalize_global_io();
     finalize_global_mpi();
 }

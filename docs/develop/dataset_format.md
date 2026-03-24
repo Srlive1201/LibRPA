@@ -1,21 +1,185 @@
 # Dataset Format
 
+This page documents the formats of the input data files required by the LibRPA driver.
+
 ## `stru_out`
 
-This file contains structure and k-mesh data.
-It should contain the following data in order
-- lattice vectors: 3 lines, 3 float number in each line, unit: Bohr radius
-- reciprocal lattice vectors: 3 lines, 3 float number in each line, unit: inverse Bohr radius
-- number of k-grids along each lattice vectors: 1 line, `nkx`, `nky`, `nkz`. The
-  total number of k-points `nkpts` equals to the product of `nkx`, `nky` and
-  `nkz`
-- Cartesian coordinates of each k-point: `nkpts` lines, 3 float number in each line, unit: inverse Bohr radius
-- mapping of k-point to its irreducible counterpart: `nkpts` lines, 1 integer in each line.
+The file `stru_out` contains structural information and k-point mesh data.
 
-The mapping should be considered as below:
-suppose the number on the `n`-th line is `m`, it means that
-the irreducible k-point corresponding to the `n`-th k-point in the full k-point set is the `m`-th
-k-point in the full set.
+Its contents are arranged in the following order:
+
+- **Lattice vectors**: 3 lines, each containing 3 floating-point numbers, in units of Bohr.
+- **Reciprocal lattice vectors**: 3 lines, each containing 3 floating-point numbers, in units of Bohr${}^{-1}$.
+- **Number of atoms**: 1 line containing the number of atoms in the unit cell, `n_atoms`.
+- **Atomic coordinates and types**: `n_atoms` lines, each containing the Cartesian coordinates and the atom type of one atom.
+
+The following entries describe the Brillouin-zone sampling.
+This information is now stored in [`bz_sampling_out`](#bz-sampling-out) and is retained here for backward compatibility.
+
+- **k-point grid dimensions**: 1 line containing three integers, `nkx`, `nky`, and `nkz`. The total number of k-points in the full grid is
+  ```text
+  nkpts = nkx * nky * nkz
+  ```
+- **Full k-point list**: `nkpts` lines, each containing 3 floating-point numbers giving the Cartesian coordinates of one k-point, in units of Bohr${}^{-1}$.
+- **Mapping to irreducible k-points**: `nkpts` lines, each containing 1 integer.
+  Suppose the integer on the n-th line is m.
+  This means that the irreducible representative of the n-th k-point in the full k-point set is the m-th k-point in the full set.
+
+## `basis_out`
+
+This file describes the atomic basis sets used in the calculation,
+including both the one-electron basis and the auxiliary basis.
+
+Its structure is as follows.
+
+The first line contains four entries:
+
+1. total number of atom types, `n_atom_types`
+2. total number of one-electron basis functions
+3. total number of auxiliary basis functions
+4. a string specifying the convention used for the ordering of azimuthal quantum numbers
+
+For example:
+
+```text
+1        10        36    aims
+```
+
+The next `n_atom_types` lines provide a summary for each atom type. Each line contains:
+
+1. atom type index
+2. number of one-electron basis functions for this atom type
+3. number of auxiliary basis functions for this atom type
+
+For example:
+
+```text
+1         5        18
+```
+
+Next comes the description of the one-electron basis. There are `n_atom_types` blocks, one for each atom type.
+
+In each block:
+
+- the first line contains the atom type index and the number of radial functions
+- the following lines list the angular momentum quantum number `l` for each radial function, one integer per line
+
+For example:
+
+```text
+1       3
+0
+0
+1
+```
+
+This means that atom type `1` has `5` radial functions in the one-electron basis, with angular momenta `0, 0, 0, 1, 1`.
+
+After the one-electron basis blocks, the same block structure is repeated for the auxiliary basis.
+
+Again, there are `n_atom_types` blocks. For each block:
+
+- the first line contains the atom type index and the number of radial functions
+- the following lines list the angular momentum quantum number `l` for each radial function in the auxiliary basis, one integer per line
+
+For example:
+
+```text
+1      8
+0
+0
+0
+0
+1
+1
+1
+2
+```
+
+This means that atom type `1` has `8` radial functions in the auxiliary basis, with angular momenta `0, 0, 0, 0, 1, 1, 1, 2`.
+
+(bz-sampling-out)=
+## `bz_sampling_out`
+
+This file describes the Brillouin-zone sampling used in the calculation,
+including the full k-point grid and its reduction to the irreducible set.
+
+Its structure is as follows.
+The first line contains three integers:
+
+1. `nk1`
+2. `nk2`
+3. `nk3`
+
+These specify the number of k-point divisions along the three reciprocal lattice directions.
+For example:
+
+```text
+3   3   3
+```
+
+The second line contains two integers:
+
+1. total number of k-points in the full Brillouin-zone grid
+2. number of k-points in the irreducible Brillouin zone
+
+For example:
+
+```text
+27     14
+```
+
+This means that the full k-point grid contains `27` points, of which `14` belong to the irreducible set.
+
+The next `n_k_points` lines describe all k-points in the full grid. Each line contains ten fields:
+
+1. k-point index in the full set (1-based)
+2. k-point weight
+3. fractional coordinate `k1`
+4. fractional coordinate `k2`
+5. fractional coordinate `k3`
+6. Cartesian coordinate `kx`
+7. Cartesian coordinate `ky`
+8. Cartesian coordinate `kz`
+9. index of the corresponding irreducible k-point in the irreducible set
+10. index of the corresponding irreducible k-point in the full k-point list
+
+For example:
+
+```text
+2   0.37037037037E-01   0.00000000000E+00   0.00000000000E+00   0.33333333333E+00   0.00000000000E+00   0.00000000000E+00   0.35439508162E+00   2   2
+```
+
+This line indicates that full-grid k-point `2`
+
+- has weight `0.037037037037`
+- has fractional coordinates `(0, 0, 1/3)`
+- has Cartesian coordinates `(0, 0, 0.35439508162)`
+- maps to irreducible k-point `2`
+- whose representative in the full k-point list is also point `2`
+
+After the full k-point list, the file contains `n_irkpoints` lines summarizing the irreducible k-points. Each line contains three fields:
+
+1. irreducible k-point index in the irreducible set (1-based)
+2. index of its representative in the full k-point list
+3. total weight of this irreducible k-point
+
+For example:
+
+```text
+3      4   0.74074074074E-01
+```
+
+This means that irreducible k-point `3`
+
+- is represented by full-grid k-point `4`
+- carries total weight `0.074074074074`
+
+A few remarks
+
+- The weights in the full k-point list are the weights assigned to individual points in the full grid.
+- The weights in the irreducible k-point summary are the accumulated weights of the corresponding symmetry-equivalent k-points.
+- The representative index stored in the last field of the full k-point list can be used to identify which full-grid point serves as the representative of the irreducible class.
 
 ## `Cs_data_xxx.txt`
 
@@ -131,3 +295,129 @@ where
 After the block header, there should be `(row_end-row_start+1)` times `(col_end-col_start+1)` lines
 for the actual matrix element data. Each line contains two float numbers, which are the real and imaginary
 parts of the element. The data is ordered in C-style row major.
+
+## `coulomb_cut_xxx.txt`
+
+There files are basically the same as `coulomb_mat_xxx.txt`, but store the truncated Coulomb to
+be used in the GW calculation.
+
+## `vxc_out`
+
+The file `vxc_out` stores the exchange-correlation potential for electronic states on the SCF k-point grid.
+
+The header consists of three lines:
+
+```text
+n_k_points
+n_spins
+n_states
+```
+
+The header is followed by n_k_points * n_spins * n_states data lines.
+Each line contains two columns and corresponds to one state identified by the tuple `(i_k, i_spin, i_state)`.
+The data are ordered such that `i_state` runs fastest, followed by `i_spin`, and then `i_k`. In other words, the lines are arranged as
+
+```
+# i_k       i_spin      i_state
+    0            0            0
+    0            0            1
+    0            0            2
+...
+    0            0   n_states-1
+    0            1            0
+...
+    1            0            0
+...
+```
+
+The two columns contain the same exchange-correlation potential,
+first in Hartree unit while the second in eV.
+
+## Input files for band structure calculation
+
+For band-structure calculations, LibRPA reads the following input files:
+
+- `band_kpath_info`
+- `band_KS_eigenvalue_k_{ik:05d}.txt`
+- `band_KS_eigenvector_k_{ik:05d}.txt`
+- `band_vxc_k_{ik:05d}.txt`
+
+Here `ik` is the 1-based index of the k-point along the band path, written with five digits.
+
+### `band_kpath_info`
+
+The file `band_kpath_info` defines the k-point path used for the band-structure calculation.
+
+The first line contains four integers:
+
+1. number of basis functions
+2. number of states
+3. number of spin channels
+4. number of k-points on the band path
+
+For example:
+
+```text
+18    18     1    10
+```
+
+The remaining `n_kpath_points` lines each contain three floating-point numbers, giving the fractional coordinates of one k-point on the band path.
+
+For example:
+
+```text
+0.500000000000000000E+00   0.500000000000000000E+00   0.500000000000000000E+00
+```
+
+Each such line represents one k-point in fractional reciprocal coordinates.
+
+### `band_KS_eigenvalue_k_{ik:05d}.txt`
+
+For each k-point on the band path, the file `band_KS_eigenvalue_k_{ik:05d}.txt` stores the Kohn-Sham eigenvalues used by LibRPA.
+Each line corresponds to one state and contains five columns:
+
+1. spin index
+2. state index
+3. occupation number
+4. Kohn-Sham eigenvalue in Hartree
+5. Kohn-Sham eigenvalue in eV
+
+For example:
+
+```text
+1       3   0.200000000000000000E+01  -0.658097773108510893E+02  -0.179077515426494506E+04
+```
+
+This line indicates that, at the selected k-point,
+
+- the spin index is `1`
+- the state index is `3`
+- the occupation number is `2.0`
+- the eigenvalue is given both in Hartree and in eV
+
+The data are ordered such that state index `i_state` runs fastest and followed by spin index `i_spin`.
+
+### `band_vxc_k_{ik:05d}.txt`
+
+For each k-point on the band path, the file `band_vxc_k_{ik:05d}.txt` stores the diagonal matrix elements of the exchange-correlation potential for the corresponding Kohn-Sham states.
+
+Each line contains three columns:
+
+1. spin index
+2. state index
+3. exchange-correlation potential in Hartree
+
+For example:
+
+```text
+1       3  -0.562542321738239171E+01
+```
+
+This line gives the exchange-correlation potential for state `3` in spin channel `1` at the selected k-point.
+The data are ordered such that state index `i_state` runs fastest and followed by spin index `i_spin`.
+
+### `band_KS_eigenvector_k_{ik:05d}.txt`
+
+For each k-point on the band path, the file `band_KS_eigenvector_k_{ik:05d}.txt` stores the Kohn-Sham eigenvectors at that k-point.
+The file contains a complex array of shape `(n_spins, n_states, n_basis)`,
+written in binary format using C-style ordering.

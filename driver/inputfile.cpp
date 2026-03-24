@@ -175,6 +175,7 @@ void parse_inputfile_to_params(const std::string& fn)
     // TODO: implement a function to read multiple double values in one line
     if (driver_params.output_gw_spec_func)
     {
+        _parse_double(driver_params, cs_threshold, 1e-6);
         _parse_double(driver_params, sf_omega_start, -10.0);
         _parse_double(driver_params, sf_omega_end, 0.0);
         _parse_double(driver_params, sf_omega_step, 0.005);
@@ -193,7 +194,6 @@ void parse_inputfile_to_params(const std::string& fn)
     if (btmp) opts.output_level = LIBRPA_VERBOSE_DEBUG;
     parser.parse_string("output_level", stmp, "info", flag);
     if (flag == 0) opts.output_level = get_verbose(stmp);
-    _parse_double(opts, cs_threshold, 1e-6);
     _parse_double(opts, vq_threshold, 0);
     _parse_switch(opts, use_kpara_scf_eigvec, false);
 
@@ -207,6 +207,7 @@ void parse_inputfile_to_params(const std::string& fn)
 
     // RPA specific
     parser.parse_double("gf_R_threshold", opts.gf_threshold, 1e-4, flag);
+    _parse_double(opts, gf_threshold, 1e-4);
     _parse_double(opts, libri_chi0_threshold_C, 0.0);
     _parse_double(opts, libri_chi0_threshold_G, 0.0);
     _parse_switch(opts, use_scalapack_ecrpa, false);

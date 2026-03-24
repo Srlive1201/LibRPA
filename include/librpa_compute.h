@@ -12,9 +12,33 @@
 extern "C" {
 #endif
 
+/**
+ * @brief Construct and return frequency grids for numerical integration.
+ *
+ * Generates the frequency points and quadrature weights based on the grid type
+ * specified in the options (e.g., Gauss-Legendre, Minimax, etc.).
+ *
+ * @param[in]  h        Handler.
+ * @param[in]  p_opts   Runtime options.
+ * @param[out] omegas  Array of frequency points (size: opts->nfreq).
+ * @param[out] weights Array of quadrature weights (size: opts->nfreq).
+ */
 void librpa_get_imaginary_frequency_grids(LibrpaHandler *h, const LibrpaOptions *p_opts,
                                           double *omegas, double *weights);
 
+/**
+ * @brief Compute RPA correlation energy.
+ *
+ * Calculates the RPA correlation energy using the input data (wavefunctions,
+ * Coulomb matrices, etc.) that has been set via the input parsing functions.
+ *
+ * @param[in]  h                           Handler.
+ * @param[in]  p_opts                      Runtime options.
+ * @param[in]  n_ibz_kpoints                Number of irreducible k-points.
+ * @param[out] rpa_corr_ibzk_contrib_re   Real part of correlation energy per IBZ k-point.
+ * @param[out] rpa_corr_ibzk_contrib_im   Imaginary part of correlation energy per IBZ k-point.
+ * @return Total RPA correlation energy (real part).
+ */
 double librpa_get_rpa_correlation_energy(LibrpaHandler *h, const LibrpaOptions *p_opts,
                                          int n_ibz_kpoints, double *rpa_corr_ibzk_contrib_re,
                                          double *rpa_corr_ibzk_contrib_im);

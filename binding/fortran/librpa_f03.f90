@@ -22,7 +22,7 @@
 !> opts%output_level = LIBRPA_VERBOSE_INFO
 !>
 !> ! Create handler
-!> call h%create(MPI_COMM_WORLD)
+!> call h%init(MPI_COMM_WORLD)
 !>
 !> ! Set input data
 !> call h%set_scf_dimension(nspins, nkpts, nstates, nbasis)
@@ -32,7 +32,7 @@
 !> Ec = h%get_rpa_correlation_energy(h, opts, nkpts_ibz, contrib_ibzk(:))
 !>
 !> ! Clean up
-!> call h%destroy()
+!> call h%free()
 !> call librpa_finalize_global()
 !> @endcode
 
@@ -132,7 +132,6 @@ module librpa_f03
       character(kind=c_char, len=1) :: output_dir(LIBRPA_MAX_STRLEN)
       integer(c_int) :: parallel_routing
       integer(c_int) :: output_level
-      real(c_double) :: cs_threshold
       real(c_double) :: vq_threshold
       integer(c_int) :: use_soc
       integer(c_int) :: use_kpara_scf_eigvec
@@ -181,7 +180,6 @@ module librpa_f03
       character(len=LIBRPA_MAX_STRLEN) :: output_dir
       integer :: parallel_routing
       integer :: output_level
-      real(dp) :: cs_threshold
       real(dp) :: vq_threshold
       logical :: use_soc
       logical :: use_kpara_scf_eigvec
@@ -294,8 +292,8 @@ module librpa_f03
       type(c_ptr) :: ptr_c_handle = c_null_ptr
       contains
          ! Initialization and destruction
-         procedure :: create  => librpa_create_handler
-         procedure :: destroy => librpa_destroy_handler
+         procedure :: init => librpa_create_handler
+         procedure :: free => librpa_destroy_handler
          ! Input
          procedure :: set_scf_dimension => librpa_set_scf_dimension
          procedure :: set_wg_ekb_efermi => librpa_set_wg_ekb_efermi
@@ -772,7 +770,6 @@ contains
       call sync_opt(opts%output_dir,              opts%opts_c%output_dir,              direction)
       call sync_opt(opts%parallel_routing,        opts%opts_c%parallel_routing,        direction)
       call sync_opt(opts%output_level,            opts%opts_c%output_level,            direction)
-      call sync_opt(opts%cs_threshold,            opts%opts_c%cs_threshold,            direction)
       call sync_opt(opts%vq_threshold,            opts%opts_c%vq_threshold,            direction)
       call sync_opt(opts%use_soc,                 opts%opts_c%use_soc,                 direction)
       call sync_opt(opts%use_kpara_scf_eigvec,    opts%opts_c%use_kpara_scf_eigvec,    direction)
@@ -942,7 +939,7 @@ contains
       integer, intent(in) :: comm
       integer(c_int) :: f_comm
 
-      if (c_associated(this%ptr_c_handle)) call this%destroy()
+      if (c_associated(this%ptr_c_handle)) call this%free()
 
       f_comm = int(comm, kind=c_int)
       this%ptr_c_handle = librpa_create_handler_c(f_comm)

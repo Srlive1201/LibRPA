@@ -31,3 +31,6 @@ help:
 
 clean:
 	rm -rf $(BUILDDIR)
+
+veryclean: clean
+	@cd $(DOXY_SOURCE) && $(MAKE) $@

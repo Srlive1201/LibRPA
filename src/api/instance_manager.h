@@ -31,4 +31,12 @@ void destroy_dataset(LibrpaHandler* h);
 
 }
 
+namespace global
+{
+
+//! Free all dataset instances
+void finalize_instance_manager();
+
+}
+
 }

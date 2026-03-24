@@ -318,7 +318,7 @@ void read_ri(const string &dir_path, librpa::ParallelRouting &routing)
         for (const auto &p: tri_local_atpair)
             local_atpair.push_back(p);
         profiler.start("driver_read_Cs");
-        read_Cs(dir_path, driver::opts.cs_threshold, local_atpair);
+        read_Cs(dir_path, driver::driver_params.cs_threshold, local_atpair);
         profiler.stop("driver_read_Cs");
         profiler.start("driver_read_Vq");
         read_Vq_row(dir_path, "coulomb_mat", driver::opts.vq_threshold, local_atpair, false);
@@ -328,7 +328,7 @@ void read_ri(const string &dir_path, librpa::ParallelRouting &routing)
     {
         lib_printf_root("Evenly distributed Cs and V for LibRI\n");
         profiler.start("driver_read_Cs");
-        read_Cs_evenly_distribute(dir_path, driver::opts.cs_threshold, mpi_comm_global_h.myid, mpi_comm_global_h.nprocs);
+        read_Cs_evenly_distribute(dir_path, driver::driver_params.cs_threshold, mpi_comm_global_h.myid, mpi_comm_global_h.nprocs);
         profiler.stop("driver_read_Cs");
 
         lib_printf_coll("| Process %5d: Cs with %14zu non-zero keys from local atpair size %7zu. "
@@ -359,7 +359,7 @@ void read_ri(const string &dir_path, librpa::ParallelRouting &routing)
         lib_printf_root("Complete copy of Cs and V on each process\n");
         local_atpair = generate_atom_pair_from_nat(n_atoms, false);
         profiler.start("driver_read_Cs");
-        read_Cs(dir_path, driver::opts.cs_threshold, local_atpair);
+        read_Cs(dir_path, driver::driver_params.cs_threshold, local_atpair);
         profiler.stop("driver_read_Cs");
 
         profiler.start("driver_read_Vq");

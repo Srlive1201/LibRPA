@@ -41,7 +41,7 @@ program test_f03_binding_libri
    opts%parallel_routing = LIBRPA_ROUTING_LIBRI
    opts%nfreq = nfreq
 
-   call h%create(MPI_COMM_WORLD)
+   call h%init(MPI_COMM_WORLD)
 
    ! Play with the handler
    ! Initialize dimensions
@@ -162,7 +162,7 @@ program test_f03_binding_libri
    rpa_corr = h%get_rpa_correlation_energy(opts, 2, contrib_ibzk)
    deallocate(contrib_ibzk)
 
-   call h%destroy()
+   call h%free()
 
    deallocate(wg, ekb)
 

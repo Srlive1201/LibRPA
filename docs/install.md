@@ -48,14 +48,15 @@ GCC/GFortran together with an open-source MPI implementation such as
 [MPICH](https://www.mpich.org) and an open-source ScaLAPACK library [Netlib ScaLAPACK](https://www.netlib.org/scalapack>).
 
 LibRPA uses CMake as its build system.
-Under the root directory of the source tree, run:
+Ensure that the compilers and required libraries can be found under directories specified
+by relevant environment variables, and under the root directory of the source tree:
 ```bash
 mkdir build
 cd build
 cmake ..
 make -j 4
 ```
-This builds the LibRPA library and the driver executable.
+This searches for the paths of required dependencies, and builds the LibRPA library and the driver executable.
 
 After a successful build, the driver executable `chi0_main.exe` and the shared
 library `src/librpa.so` (`src/librpa.dylib` on macOS, or `src/librpa.a` if `BUILD_SHARED_LIBS` is disabled)

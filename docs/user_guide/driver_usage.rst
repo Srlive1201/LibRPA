@@ -87,5 +87,5 @@ Without an input file ``librpa.in``, the above commands will all run the
 low-scaling RPA calculation.
 To perform other tasks such as exact-exchange or GW calculations or specify other parameters, you
 need an input file ``librpa.in``. Please refer to the
-:doc:`manual page of input parameters <input_parameters>` for more
+:doc:`manual page of runtime parameters <runtime_parameters>` for more
 information.
