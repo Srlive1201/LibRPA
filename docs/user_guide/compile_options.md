@@ -2,83 +2,148 @@
 
 ## Overview
 
-| Option                                        | Type   | Default |
-|-----------------------------------------------|--------|---------|
-| [`USE_LIBRI`](#use-libri)                     | Bool   | `OFF`   |
-| [`USE_CMAKE_INC`](#use-cmake-inc)             | Bool   | `OFF`   |
-| [`USE_GREENX_API`](#use-greenx-api)           | Bool   | `OFF`   |
-| [`ENABLE_FORTRAN_BIND`](#enable-fortran-bind) | Bool   | `OFF`   |
-| [`ENABLE_DRIVER`](#enable-driver)             | Bool   | `ON`    |
-| [`ENABLE_TEST`](#enable-test)                 | Bool   | `ON`    |
-| [`LIBRI_INCLUDE_DIR`](#libri-include-dir)     | String | empty   |
-| [`LIBCOMM_INCLUDE_DIR`](#libcomm-include-dir) | String | empty   |
+| Option                                                      | Type              | Default    |
+|-------------------------------------------------------------|-------------------|------------|
+| [`LIBRPA_USE_LIBRI`](#librpa-use-libri)                     | Bool              | `OFF`      |
+| [`LIBRPA_USE_CMAKE_INC`](#librpa-use-cmake-inc)             | Bool              | `OFF`      |
+| [`LIBRPA_USE_EXTERNAL_GREENX`](#librpa-use-external-greenx) | Bool              | `OFF`      |
+| [`LIBRPA_ENABLE_FORTRAN_BIND`](#librpa-enable-fortran-bind) | Bool              | `OFF`      |
+| [`LIBRPA_FORTRAN_DP`](#librpa-fortran-dp)                   | String or integer | `c_double` |
+| [`LIBRPA_ENABLE_DRIVER`](#librpa-enable-driver)             | Bool              | `ON`       |
+| [`LIBRPA_ENABLE_TEST`](#librpa-enable-test)                 | Bool              | `ON`       |
+| [`LIBRPA_ENABLE_CPP_TEST`](#librpa-enable-cpp-test)         | Bool              | `ON`       |
+| [`LIBRPA_ENABLE_FORTRAN_TEST`](#librpa-enable-fortran-test) | Bool              | `ON`       |
+| [`LIBRI_INCLUDE_DIR`](#libri-include-dir)                   | String            | empty      |
+| [`LIBCOMM_INCLUDE_DIR`](#libcomm-include-dir)               | String            | empty      |
+| [`CEREAL_INCLUDE_DIR`](#cereal-include-dir)                 | String            | empty      |
 
-The options should be parsed as cmake command line options, for example, `-DUSE_LIBRI=ON`.
+These options can be parsed on the CMake command line, for example:
 
-(use-libri)=
-## `USE_LIBRI`
+```sh
+cmake -DLIBRPA_USE_LIBRI=ON
+```
 
-When switching on, the code will be compiled with [LibRI](https://github.com/abacusmodeling/LibRI)
-to handle contraction of RI tensors.
+(librpa-use-libri)=
+## `LIBRPA_USE_LIBRI`
 
-Note that the *GW* and EXX functionality requires the code compiled with LibRI, i.e. `-DUSE_LIBRI=ON`.
-RPA correlation energy can be computed without this flag on.
+When enabled, LibRPA is compiled with [LibRI](https://github.com/abacusmodeling/LibRI)
+for RI tensor contractions.
 
-(use-cmake-inc)=
-## `USE_CMAKE_INC`
+The *GW* and EXX functionalities require LibRPA to be compiled with LibRI, i.e. `-DLIBRPA_USE_LIBRI=ON`.
+By contrast, the RPA correlation energy can also be computed without this option.
 
-When switched on, the `cmake.inc` file will be used to initialize the compilers and other options.
+(librpa-use-cmake-inc)=
+## `LIBRPA_USE_CMAKE_INC`
 
-This option would be deprecated in the future because it can be replaced by parsing `cmake.inc` to
-the command line option `-C` of cmake.
+When enabled, the `cmake.inc` file is used to initialize compilers and other build options.
 
-(use-greenx-api)=
-## `USE_GREENX_API`
+**Deprecated**. It is recommended to use standard CMake command-line options such as -C or -D to specify custom variables.
 
-The minimax grids are part of the [Green X](https://nomad-coe.github.io/greenX/) library.
-When `OFF`, the plain-text minimax grids stored under `src/minimax_grid/GreenX` will be used.
-The transform coefficients are then calculated by calling an Python script.
-Switching to `ON` will make the code link to the GreenX library and call the API to generate the minimax grids and transform matrices.
+(librpa-use-external-greenx)=
+## `LIBRPA_USE_EXTERNAL_GREENX`
 
-In principle these two ways to get the minimax grids should be essentially the same.
-However, the plain-text grids were extracted at the early stage of the Green X library,
-and the grids can be missing for certain energy range and number of grid points.
-Thus it is recommended to use the API.
+Controls whether LibRPA uses the bundled GreenX library or an external one.
 
-(enable-fortran-bind)=
-## `ENABLE_FORTRAN_BIND`
+The minimax grids used by LibRPA are provided through the
+[GreenX](https://nomad-coe.github.io/greenX/) library.
 
-When swicthed on, the Fortran binding for LibRPA will be built.
+When this option is `OFF` (default), LibRPA builds and links against the bundled GreenX source distributed with LibRPA under `thirdparty/greenX`.
 
-(enable-driver)=
-## `ENABLE_DRIVER`
+When this option is `ON`, LibRPA does not build the bundled GreenX copy
+Instead, it expects an external GreenX library to be provided by the parent or higher-level CMake project.
+In particular, the CMake target `LibGXMiniMax` must already be defined and available for linking.
 
-When swicthed on, the driver executable of LibRPA will be built.
+This option is mainly intended for developer workflows or project setups in which GreenX is managed outside LibRPA.
 
-(enable-test)=
-## `ENABLE_TEST`
+(librpa-enable-fortran-bind)=
+## `LIBRPA_ENABLE_FORTRAN_BIND`
 
-When swicthed on, the unit tests of LibRPA will be built.
-After successful compile of LibRPA, one can issue `make test` under the build directory
-to perform the unit tests.
+When enabled, the Fortran bindings of LibRPA are built.
+
+(librpa-fortran-dp)=
+## `LIBRPA_FORTRAN_DP`
+
+Specifies the Fortran kind used for double-precision real and complex data in the Fortran bindings.
+
+The default value is `c_double`, which is suitable when interoperability with C is desired.
+This option may also be set to an integer kind value if needed by the calling code.
+
+(librpa-enable-driver)=
+## `LIBRPA_ENABLE_DRIVER`
+
+When enabled, the LibRPA driver executable is built.
+
+(librpa-enable-test)=
+## `LIBRPA_ENABLE_TEST`
+
+When enabled, the unit tests of LibRPA are built.
+
+After LibRPA has been compiled successfully, the tests can be run from the build directory with:
+```sh
+ctest
+```
+or equivalently
+```sh
+make test
+```
 
 ```{note}
-At present the unit tests do not cover the whole code base.
-We are still working on it.
+At present, the unit tests do not cover the entire code base.
+Test coverage is still being expanded.
 ```
+
+(librpa-enable-cpp-test)=
+## `LIBRPA_ENABLE_CPP_TEST`
+
+When enabled, the C++ unit tests are built.
+
+This option is meaningful only if `LIBRPA_ENABLE_TEST=ON`.
+
+(librpa-enable-fortran-test)=
+## `LIBRPA_ENABLE_FORTRAN_TEST`
+
+When enabled, the Fortran unit tests are built.
+
+This option is meaningful only if both `LIBRPA_ENABLE_TEST=ON` and `LIBRPA_ENABLE_FORTRAN_BIND=ON`.
 
 (libri-include-dir)=
 ## `LIBRI_INCLUDE_DIR`
 
-The path to the include directory of LibRI.
-When empty, the internal LibRI will be used.
-Otherwise it will search for `RI/ri/RI_Tools.h` under the specified directory.
-Error will be raised if the search fails.
+Specifies the path to the LibRI include directory.
+
+If this variable is empty, the internal LibRI copy is used.
+Otherwise, CMake searches for `RI/ri/RI_Tools.h` under the specified directory.
+An error is raised if the file cannot be found.
+
+Example:
+```sh
+cmake -DLIBRI_INCLUDE_DIR=/path/to/LibRI/include
+```
 
 (libcomm-include-dir)=
 ## `LIBCOMM_INCLUDE_DIR`
 
-The path to the include directory of LibComm.
-When empty, the internal LibComm will be used.
-Otherwise it will search for `Comm/Comm_Tools.h` under the specified directory.
-Error will be raised if the search fails.
+Specifies the path to the LibComm include directory.
+
+If this variable is empty, the internal LibComm copy is used.
+Otherwise, CMake searches for `Comm/Comm_Tools.h` under the specified directory.
+An error is raised if the file cannot be found.
+
+Example:
+```sh
+cmake -DLIBCOMM_INCLUDE_DIR=/path/to/LibComm/include
+```
+
+(cereal-include-dir)=
+## `CEREAL_INCLUDE_DIR`
+
+Specifies the path to the cereal include directory.
+
+If this variable is empty, the bundled cereal copy is used.
+Otherwise, CMake searches for `cereal/cereal.hpp` under the specified directory.
+An error is raised if the file cannot be found.
+
+Example:
+```sh
+cmake -DCEREAL_INCLUDE_DIR=/path/to/cereal/include
+```

@@ -19,7 +19,8 @@ LibRPA
 **Quick Links:**
 
 - :doc:`Installation Guide <install>`
-- :doc:`Driver Usage <driver>`
+- :doc:`Quick Examples <quick_examples>`
+- :doc:`Driver Usage <user_guide/driver_usage>`
 - :doc:`Compile Options <user_guide/compile_options>`
 - :doc:`Input Parameters <user_guide/input_parameters>`
 
@@ -29,7 +30,16 @@ LibRPA
    :caption: Get Started
 
    install
-   driver
+   quick_examples
+
+.. toctree::
+   :hidden:
+   :maxdepth: 2
+   :caption: Examples
+
+   examples/build/index
+   examples/driver/index
+   examples/api/index
 
 .. toctree::
    :hidden:
@@ -38,12 +48,13 @@ LibRPA
 
    user_guide/compile_options
    user_guide/input_parameters
+   user_guide/driver_usage
    user_guide/api_usage
 
 .. toctree::
    :hidden:
    :maxdepth: 2
-   :caption: Tutorial
+   :caption: Tutorials
 
    tutorial/rpa/index
    tutorial/gw/index
@@ -56,6 +67,7 @@ LibRPA
    develop/documentation
    develop/design
    develop/dataset_format
+   develop/known_issues
 
 .. toctree::
    :hidden:

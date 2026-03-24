@@ -36,6 +36,7 @@
 !> call librpa_finalize_global()
 !> @endcode
 
+!> @brief Fortran 2003 module for LibRPA API
 module librpa_f03
 
    use iso_c_binding, only: c_char, c_ptr, c_int, c_double, c_null_ptr, c_size_t
@@ -215,8 +216,8 @@ module librpa_f03
          procedure :: set_output_dir => librpa_set_output_dir
    end type LibrpaOptions
 
+   !> \cond INTERNAL
    interface
-      ! void librpa_init_options(LibrpaOptions *opts);
       subroutine librpa_init_options_c(opts_c) bind(c, name="librpa_init_options")
          import :: LibrpaOptions_c
          type(LibrpaOptions_c) :: opts_c
@@ -228,9 +229,13 @@ module librpa_f03
          character(kind=c_char, len=1), dimension(*), intent(in) :: output_dir
       end subroutine librpa_set_output_dir_c
    end interface
+   !> \endcond
 
    integer, parameter :: SYNC_OPTS_C2F = 1
    integer, parameter :: SYNC_OPTS_F2C = -1
+
+   private :: SYNC_OPTS_F2C
+   private :: SYNC_OPTS_C2F
 
    ! Global environment
    interface
@@ -322,6 +327,7 @@ module librpa_f03
          procedure :: get_g0w0_sigc_band_k => librpa_get_g0w0_sigc_band_k
    end type LibrpaHandler
 
+   !> \cond INTERNAL
    interface
       function librpa_create_handler_c(f_comm) bind(c, name="librpa_create_handler_fortran")
          import :: c_ptr, c_int
@@ -334,8 +340,10 @@ module librpa_f03
          type(c_ptr), value :: h
       end subroutine librpa_destroy_handler_c
    end interface
+   !> \endcond
 
    ! Input functions interface
+   !> \cond INTERNAL
    interface
       subroutine librpa_set_scf_dimension_c(h, nspins, nkpts, nstates, nbasis) &
             bind(c, name="librpa_set_scf_dimension")
@@ -515,8 +523,10 @@ module librpa_f03
          type(c_ptr), value :: h
       end subroutine librpa_reset_band_data_c
    end interface
+   !> \endcond
 
    ! Compute functions interface
+   !> \cond INTERNAL
    interface
       subroutine librpa_get_imaginary_frequency_grids_c(h, opts, omegas, weights) &
             bind(c, name="librpa_get_imaginary_frequency_grids")
@@ -594,14 +604,22 @@ module librpa_f03
          real(c_double), dimension(*), intent(inout) :: sigc_band_re, sigc_band_im
       end subroutine librpa_get_g0w0_sigc_band_k_c
    end interface
+   !> \endcond
 
    ! Helper to communicate runtime options between C and Fortran types
+   !> \cond INTERNAL
    interface sync_opt
       module procedure sync_opt_string
       module procedure sync_opt_switch
       module procedure sync_opt_int
       module procedure sync_opt_dp
    end interface
+   !> \endcond
+
+   private :: sync_opt_string
+   private :: sync_opt_switch
+   private :: sync_opt_int
+   private :: sync_opt_dp
 
 contains
 

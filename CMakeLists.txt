@@ -24,16 +24,16 @@ set(LIBRPA_DRIVER_NAME         "chi0_main.exe")
 # Public options setup
 option(LIBRPA_USE_LIBRI            "Use LibRI for tensor contraction in LibRPA" OFF)
 option(LIBRPA_USE_CMAKE_INC        "Use cmake.inc for configure" OFF)
-option(LIBRPA_USE_EXTERNAL_GREENX  "Use external GreenX library rather than the packaged one in LibRPA" OFF)
-option(ENABLE_LIBRPA_TEST          "Flag to build LibRPA tests" ON)
-option(ENABLE_LIBRPA_DRIVER        "Flag to build LibRPA driver executable" ON)
-option(ENABLE_LIBRPA_FORTRAN_BIND  "Flag to build LibRPA Fotran binding" OFF)
+option(LIBRPA_USE_EXTERNAL_GREENX  "Use an external GreenX target provided by the parent project instead of the bundled copy" OFF)
+option(LIBRPA_ENABLE_TEST          "Flag to build LibRPA tests" ON)
+option(LIBRPA_ENABLE_DRIVER        "Flag to build LibRPA driver executable" ON)
+option(LIBRPA_ENABLE_FORTRAN_BIND  "Flag to build LibRPA Fotran binding" OFF)
 option(LIBRPA_VERBOSE_OUTPUT       "Flag to print verbose information in stdout and process output of LibRPA" OFF)
 # NOTE: static library not tested
 # option(BUILD_LIBRPA_SHARED  "Flag to build shared libraries" ON)
 
-option(ENABLE_LIBRPA_CPP_TEST      "Flag to build tests for C++ components" ON)
-option(ENABLE_LIBRPA_FORTRAN_TEST  "Flag to build tests for Fortran bindings" ON)
+option(LIBRPA_ENABLE_CPP_TEST      "Flag to build tests for C++ components" ON)
+option(LIBRPA_ENABLE_FORTRAN_TEST  "Flag to build tests for Fortran bindings" ON)
 
 # Customizable cmake macro
 set(LIBRPA_FORTRAN_DP "c_double" CACHE STRING "Kind of double precision that the Fortran binding uses to interface the user code")
@@ -211,7 +211,7 @@ else()
   set(LIBRPA_GREENX_COMMIT_HASH "(EXTERNAL)")
 endif()
 
-if(ENABLE_LIBRPA_TEST)
+if(LIBRPA_ENABLE_TEST)
   # FetchContent_Declare(
   #   googletest
   #   GIT_REPOSITORY https://github.com/google/googletest.git
@@ -223,12 +223,12 @@ if(ENABLE_LIBRPA_TEST)
   enable_testing()
 endif()
 
-if(ENABLE_LIBRPA_FORTRAN_BIND)
+if(LIBRPA_ENABLE_FORTRAN_BIND)
   message(STATUS "LibRPA Fortran binding enabled")
   add_subdirectory(binding/fortran)
 endif()
 
-if(ENABLE_LIBRPA_DRIVER)
+if(LIBRPA_ENABLE_DRIVER)
   message(STATUS "LibRPA driver enabled")
   list(APPEND CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR})
   add_subdirectory(driver)

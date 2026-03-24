@@ -27,9 +27,11 @@ BUILDDIR="${BUILDDIR:=build_intel_classic_mkl}"
 
 # # Or you might set it manually, which is not recommended.
 
-# The GreenX API is switched on. In this case, the Fortran compiler needs to be configured.
 export CXX=mpiicpc
 export FC=ifort
 
-cmake -B $BUILDDIR -DENABLE_TEST=ON -DUSE_LIBRI=OFF -DUSE_GREENX_API=ON
+cmake -B $BUILDDIR \
+  -DLIBRPA_ENABLE_TEST=ON \
+  -DLIBRPA_USE_LIBRI=OFF
+
 cd $BUILDDIR && make -j 4

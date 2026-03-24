@@ -1,14 +1,14 @@
-#!/bin/bash
+#!/bin/sh
 
 # This script uses Intel LLVM-based compilers, Intel MPI and MKL to build LibRPA
-# with LibRI support on Linux platform for develop and production use.
+# on Linux platform for develop and production use. Tested on Ubuntu and SUSE.
 
 # Intel compilers icpx (C++) and ifx (Fortran) needs to be found under directories
 # in environment variable PATH, as well as the C++ MPI wrapper mpiicpx.
 # Note that Fortran is used only when USE_GREENX_API or ENABLE_FORTRAN_BIND is on.
 # Intel MKL will be used as the working math library.
 
-BUILDDIR="${BUILDDIR:=build_intel_llvm_libri}"
+BUILDDIR="${BUILDDIR:=build_intel_llvm_mkl}"
 
 # # Ensure environment variables are correctly set.
 # # On PC, they can be set by sourcing setup script provided by the vendor.
@@ -20,22 +20,11 @@ BUILDDIR="${BUILDDIR:=build_intel_llvm_libri}"
 
 # # Or you might set it manually, which is not recommended.
 
-# Optionally, one can specify the path of their own LibRI and LibComm libraries.
-# If not set, those under thirdparty/ will be used.
-# Since they are hosted as git submodule, you may need to run "git submodule update --init --recursive"
-export LIBRI_DIR="$HOME/programs/LibRI"
-export LIBCOMM_DIR="$HOME/programs/LibComm"
-
-# The GreenX API is switched on. In this case, the Fortran compiler needs to be configured.
 export CXX=mpiicpx
 export FC=ifx
 
-if [[ -n $LIBRI_DIR ]]; then
-  cmake -B $BUILDDIR -DENABLE_TEST=ON -DUSE_LIBRI=ON -DUSE_GREENX_API=ON \
-    -DLIBRI_INCLUDE_DIR="$LIBRI_DIR/include" \
-    -DLIBCOMM_INCLUDE_DIR="$LIBCOMM_DIR/include"
-else
-  cmake -B $BUILDDIR -DENABLE_TEST=ON -DUSE_LIBRI=ON -DUSE_GREENX_API=ON
-fi
+cmake -B $BUILDDIR \
+  -DLIBRPA_ENABLE_TEST=ON \
+  -DLIBRPA_USE_LIBRI=OFF
 
 cd $BUILDDIR && make -j 4

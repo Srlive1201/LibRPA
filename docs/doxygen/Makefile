@@ -4,7 +4,7 @@ DOXY_OUTPUT_DIRECTORY = librpa
 HTML_OUTPUT = html
 DOT_PATH = $(shell which dot)
 
-DOXYGEN_AWESOME_VERSION = 2.3.3
+DOXYGEN_AWESOME_VERSION = 2.4.2
 DOXYGEN_AWESOME_DIRECTORY = doxygen-awesome-css
 
 .PHONY: default clean
@@ -18,7 +18,7 @@ default: $(DOXYFILE) $(DOXYGEN_AWESOME_DIRECTORY)/doxygen-awesome.css
 
 $(DOXYFILE): $(DOXYFILE_TEMPLATE) Makefile
 	sed -e "s|\(OUTPUT_DIRECTORY *=\) *.*|\1 $(DOXY_OUTPUT_DIRECTORY)|g" \
-		-e "s|\(INPUT *=\) *.*|\1 README.md ../../src ../../driver ../../include ../../binding|g" \
+		-e "s|\(INPUT *=\) *.*|\1 README.md ../../src ../../driver ../../include ../../binding/fortran |g" \
 		-e "s|\(GENERATE_TAGFILE *=\) *.*|\1 $(DOXY_OUTPUT_DIRECTORY)/$(HTML_OUTPUT)/tagfile.xml|g" \
 		-e "s|\(DOT_PATH *=\) *.*|\1 $(DOT_PATH)|g" $< > $@
 
@@ -29,6 +29,8 @@ $(DOXYGEN_AWESOME_DIRECTORY)/doxygen-awesome.css:
 	curl -sSL https://github.com/jothepro/doxygen-awesome-css/archive/refs/tags/v$(DOXYGEN_AWESOME_VERSION).tar.gz \
 		| tar -xzvf - --strip-components=1 -C $(DOXYGEN_AWESOME_DIRECTORY) \
 		doxygen-awesome-css-$(DOXYGEN_AWESOME_VERSION)/doxygen-awesome.css doxygen-awesome-css-$(DOXYGEN_AWESOME_VERSION)/LICENSE
+# comment row-reverse to align on the left
+	gsed -i 's|flex-direction: row-reverse;|/* flex-direction: row-reverse; */|' $@
 
 clean:
 	rm -rf $(DOXYFILE)

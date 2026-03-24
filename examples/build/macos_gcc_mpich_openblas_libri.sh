@@ -1,12 +1,12 @@
 #!/bin/sh
 
 # This script uses GCC, MPICH, OpenBLAS and ScaLAPACK to build LibRPA
-# on macOS for develop and test use. Tested for Sonoma and Ventura.
+# on macOS for develop and test use. LibRI is enabled using the bundled version.
+# Tested for Sequoia, Sonoma and Ventura.
 
 # GCC compilers (g++, gfortran), MPICH and OpenBLAS are installed using homebrew.
 # ScaLAPACK needs to be installed manually, because the homebrew ScaLAPACK is
 # built on OpenMPI.
-# Note that Fortran is used only when USE_GREENX_API or ENABLE_FORTRAN_BIND is on.
 
 BUILDDIR="${BUILDDIR:=build_macos_gcc_mpich}"
 
@@ -20,12 +20,13 @@ export MPICH_CXX=g++-14
 export CC=gcc-14
 export FC=gfortran-14
 
+# Note: -Wl,-ld_classic may not be necessary for Sequoia.
 export FCFLAGS="-Wl,-ld_classic"
-# The GreenX API is switched on. In this case, the Fortran compiler needs to be configured.
 export CXXFLAGS="-cxx=g++-14 -g -rdynamic -Wl,-lgfortran -Wl,-ld_classic"
 
-cmake -B $BUILDDIR -DUSE_LIBRI=OFF -DUSE_GREENX_API=ON \
-  -DENABLE_TEST=ON \
+cmake -B $BUILDDIR \
+  -DLIBRPA_USE_LIBRI=ON \
+  -DLIBRPA_ENABLE_TEST=ON \
   -DBLAS_LIBRARIES="-L${OPENBLAS_DIR} -lblas" \
   -DLAPACK_LIBRARIES="-L${OPENBLAS_DIR} -llapack" \
   -DSCALAPACK_DIR="$SCALAPACK_DIR" \

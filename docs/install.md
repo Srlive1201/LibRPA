@@ -2,90 +2,98 @@
 
 ## Dependencies
 
-LibRPA is built on top of several external libraries:
+LibRPA depends on the following core software components:
 
-* Minimax time-frequency grids: The original grids are obtained from the CP2K
-  code, but now they are available as a component of the [GreenX](https://github.com/nomad-coe/greenX) library.
-  If the original CP2K plain-text Minimax grids are
-  used, the Python package `scipy` is also used to calculate the transformation matrix.
+- a C++ compiler and an MPI library
+- a Fortran compiler (and MPI support if [`LIBRPA_ENABLE_FORTRAN_BIND`](<librpa-enable-fortran-bind>) is enabled)
+- BLAS and LAPACK libraries
+- a ScaLAPACK library
+- the [GreenX](https://github.com/nomad-coe/greenX) library for minimax
+  time-frequency grids
 
-For *GW*, the following packages are also required:
-* [LibRI](https://github.com/abacusmodeling/LibRI) for tensor contraction
-* [LibComm](https://github.com/abacusmodeling/LibComm)
-  as a dependency of LibRI for communication of tensor data between processes
-* [cereal](https://uscilab.github.io/cereal)
-  as a dependency of LibRI for data serialization.
+For *GW*, the following packages are additionally required:
 
-The dependencies can be found under the `thirdparty/` directory. Each
-dependency is included either as a submodule (LibRI and LibComm), or by storing
-the code of a release version (possibly with minor modification). One exception
-is the original Minimax grids from CP2K: the grids are stored as plain text
-files in the `src/minimax_grid/GreenX` directory.
+- [LibRI](https://github.com/abacusmodeling/LibRI) for tensor contractions
+- [LibComm](https://github.com/abacusmodeling/LibComm), which is required by LibRI for communication of tensor data between processes
+- [cereal](https://uscilab.github.io/cereal), which is required by LibRI for data serialization
+
+Some of these dependencies are located under the `thirdparty/` directory.
+Depending on the package, they are included either as Git submodules or as
+bundled source code distributed with LibRPA.
 
 ## Download
 
 You can obtain the LibRPA code by cloning the GitHub repository:
+
 ```bash
 git clone https://github.com/Srlive1201/LibRPA
 ```
-Then go to the cloned repository and download dependencies which are submodules
-of the project
-```bash
-cd LibRPA && git submodule update --init --recursive
-```
-When compiling LibRPA without linking the GreenX library, the `scipy` package
-is required. Its installation can be checked by running
-```bash
-python -c "import scipy"
-```
-If you get a non-zero return code, you may need to install it by following the
-[official documentation](https://scipy.org/install).
 
-That's all and you are ready to compile.
+Then enter the repository and initialize the submodules:
+```bash
+cd LibRPA
+git submodule update --init --recursive
+```
+
+After this step, the source tree is ready for compilation.
 
 ## Compile
 
-To compile LibRPA, you need a C++ compiler supporting MPI and a ScaLAPACK library.
-The Intel MPI compiler and MKL library from Intel oneAPI tools (both base and
-hpc toolkits) appear to be the most straightforward choice. Alternatively, you
-can use GNU Compiler Collection (GCC) along with open source MPI
-implementation (e.g. [MPICH](https://www.mpich.org)) and ScaLAPACK library ([Netlib](https://www.netlib.org/scalapack>)).
+To compile LibRPA, you need working compiler and library toolchains for C++,
+Fortran, MPI, BLAS/LAPACK, and ScaLAPACK.
 
-CMake build system is used to build LibRPA library and driver executable.
-Under the root directory of LibRPA, run the following commands
+The Intel compilers and Intel MPI together with MKL from Intel oneAPI are often
+the most straightforward choice. Alternatively, LibRPA can also be built with
+GCC/GFortran together with an open-source MPI implementation such as
+[MPICH](https://www.mpich.org) and an open-source ScaLAPACK library [Netlib ScaLAPACK](https://www.netlib.org/scalapack>).
+
+LibRPA uses CMake as its build system.
+Under the root directory of the source tree, run:
 ```bash
 mkdir build
 cd build
 cmake ..
 make -j 4
 ```
-This will build both the library and drivers of LibRPA.
-When the build process finished, you can find the driver `chi0_main.exe`
-and the shared library `src/librpa.so` in the `build` directory.
+This builds the LibRPA library and the driver executable.
 
-You can specify the compiler by prefixing the cmake command.
-For example, to use the Intel C++ classic compiler
+After a successful build, the driver executable `chi0_main.exe` and the shared
+library `src/librpa.so` (`src/librpa.dylib` on macOS, or `src/librpa.a` if `BUILD_SHARED_LIBS` is disabled)
+can be found in the **build directory**.
+
+You can specify the compilers through environment variables when invoking
+CMake. For example, to use the Intel classic C++ and Fortran compilers:
+
 ```bash
-CXX=mpiicpc cmake ..
+CXX=mpiicpc FC=mpiifort cmake ..
 ```
-Note that for CMake to find the correct ScaLAPACK libraries for linking, you
-may need to make sure the directory of the libraries can be found in  `LIBRARY_PATH` or
-`LD_LIBRARY_PATH`
-For example, to use the MKL libraries
+
+To help CMake find the correct BLAS/LAPACK and ScaLAPACK libraries at link
+time, you may need to ensure that the corresponding library directories are
+visible through `LIBRARY_PATH` or `LD_LIBRARY_PATH`. For example, when using
+MKL:
+
 ```bash
 export LD_LIBRARY_PATH="$MKLROOT/lib/intel64:$LD_LIBRARY_PATH"
-CXX=mpiicpc cmake ..
+CXX=mpiicpc FC=mpiifort cmake ..
 ```
 
-LibRPA compiled from the above commands will use the original Minimax grids
-from CP2K during calculations. To use the updated version of Minimax grids by calling
-the GreenX API, LibRPA should be built with the GreenX library by
+By default, LibRPA builds and links against the bundled GreenX source
+distributed under thirdparty/greenX.
+If you want to use an external GreenX instead, you should enable the CMake
+option [`LIBRPA_USE_EXTERNAL_GREENX`](<librpa-use-external-greenx>):
+
 ```bash
-CXX=mpiicpc FC=ifort cmake -DUSE_GREENX_API=ON ..
+cmake -DLIBRPA_USE_EXTERNAL_GREENX=ON ..
 ```
-Note that Fortran compiler is required when compiling the GreenX library.
 
-Several build scripts are provided in the [`platforms`](https://github.com/Srlive1201/LibRPA/tree/master/platforms) folder to help users
-build LibRPA. You may find and adapt them to build on your platform.
-For a comprehensive list of compile options, please refer to [this page](user_guide/compile_options)
-in the user guide.
+In this case, LibRPA does not build the bundled GreenX copy. Instead, the
+parent or higher-level CMake project must provide the external GreenX target
+`LibGXMiniMax`.
+
+Several build scripts are provided on the [`Build Examples`](examples/build/index)
+page to help users build LibRPA on different platforms and with different toolchains.
+You may use them as starting points and adapt them to your local environment.
+
+For a complete list of compile options, please refer to the
+[Compile Options](user_guide/compile_options) page.

@@ -36,6 +36,7 @@
 !> call librpa_finalize_global()
 !> @endcode
 
+!> @brief Fortran 2003 module for LibRPA API
 module librpa_f03
    implicit none
 
