@@ -3,6 +3,7 @@ DOXYFILE = Doxyfile
 DOXY_OUTPUT_DIRECTORY = librpa
 HTML_OUTPUT = html
 DOT_PATH = $(shell which dot)
+SED := $(shell command -v gsed >/dev/null 2>&1 && echo gsed || echo sed)
 
 DOXYGEN_AWESOME_VERSION = 2.4.2
 DOXYGEN_AWESOME_DIRECTORY = doxygen-awesome-css
@@ -17,7 +18,7 @@ default: $(DOXYFILE) $(DOXYGEN_AWESOME_DIRECTORY)/doxygen-awesome.css
 	CAIRO_DEBUG_PDF="1" doxygen $<
 
 $(DOXYFILE): $(DOXYFILE_TEMPLATE) Makefile
-	sed -e "s|\(OUTPUT_DIRECTORY *=\) *.*|\1 $(DOXY_OUTPUT_DIRECTORY)|g" \
+	$(SED) -e "s|\(OUTPUT_DIRECTORY *=\) *.*|\1 $(DOXY_OUTPUT_DIRECTORY)|g" \
 		-e "s|\(INPUT *=\) *.*|\1 README.md ../../src ../../driver ../../include ../../binding/fortran |g" \
 		-e "s|\(GENERATE_TAGFILE *=\) *.*|\1 $(DOXY_OUTPUT_DIRECTORY)/$(HTML_OUTPUT)/tagfile.xml|g" \
 		-e "s|\(DOT_PATH *=\) *.*|\1 $(DOT_PATH)|g" $< > $@
@@ -30,7 +31,7 @@ $(DOXYGEN_AWESOME_DIRECTORY)/doxygen-awesome.css:
 		| tar -xzvf - --strip-components=1 -C $(DOXYGEN_AWESOME_DIRECTORY) \
 		doxygen-awesome-css-$(DOXYGEN_AWESOME_VERSION)/doxygen-awesome.css doxygen-awesome-css-$(DOXYGEN_AWESOME_VERSION)/LICENSE
 # comment row-reverse to align on the left
-	gsed -i 's|flex-direction: row-reverse;|/* flex-direction: row-reverse; */|' $@
+	$(SED) -i 's|flex-direction: row-reverse;|/* flex-direction: row-reverse; */|' $@
 
 clean:
 	rm -rf $(DOXYFILE)
