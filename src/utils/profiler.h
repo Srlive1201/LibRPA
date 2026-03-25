@@ -89,10 +89,11 @@ private:
 
     std::string get_profile_string_of_timer(std::shared_ptr<Timer> timer, int level);
 
+    //! Add a timer as the last child of the current node
+    std::shared_ptr<Timer> add(const std::string &tname, const std::string &tnote = "") noexcept;
+
 public:
     Profiler(): root(nullptr), current(nullptr) {};
-    //! Add a timer
-    void add(const std::string &tname, const std::string &tnote = "") noexcept;
     //! Start a timer. If the timer is not added before, add it.
     void start(const std::string &tname, const std::string &tnote = "") noexcept;
     //! Stop a timer and record the timing

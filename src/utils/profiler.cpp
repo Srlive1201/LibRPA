@@ -1,6 +1,7 @@
 #include "profiler.h"
 
 #include <ctime>
+#include <memory>
 #include <string>
 #include <cstring>
 // #include <iostream>
@@ -56,7 +57,7 @@ void Profiler::Timer::stop() noexcept
     clock_start = 0;
 }
 
-void Profiler::add(const std::string &tname, const std::string &tnote) noexcept
+std::shared_ptr<Profiler::Timer> Profiler::add(const std::string &tname, const std::string &tnote) noexcept
 {
     auto new_timer = std::make_shared<Timer>(tname, tnote);
 
@@ -66,11 +67,12 @@ void Profiler::add(const std::string &tname, const std::string &tnote) noexcept
     }
     else
     {
+        std::shared_ptr<Timer> sibling;
         if (current)
         {
             if (current->child)
             {
-                auto sibling = current->child;
+                sibling = current->child;
                 while (sibling->next) sibling = sibling->next;
                 sibling->next = new_timer;
                 new_timer->prev = sibling;
@@ -79,11 +81,19 @@ void Profiler::add(const std::string &tname, const std::string &tnote) noexcept
             {
                 current->child = new_timer;
             }
-            new_timer->parent = current;
         }
+        else
+        {
+            // root exists while current is null => sibling of root
+            sibling = root;
+            while (sibling->next) sibling = sibling->next;
+            sibling->next = new_timer;
+            new_timer->prev = sibling;
+        }
+        new_timer->parent = current;
     }
 
-    current = new_timer;
+    return new_timer;
 }
 
 void Profiler::start(const std::string &tname, const std::string &tnote) noexcept
@@ -93,12 +103,10 @@ void Profiler::start(const std::string &tname, const std::string &tnote) noexcep
     // create a new timer if it is not found, otherwise we move to that timer and start
     if (!timer)
     {
-        add(tname, tnote);
+        timer = add(tname, tnote);
     }
-    else
-    {
-        current = timer;
-    }
+    // move to it
+    current = timer;
 #ifdef LIBRPA_VERBOSE
     double free_mem_gb;
     get_node_free_mem(free_mem_gb);
@@ -140,7 +148,9 @@ void Profiler::stop(const std::string &tname) noexcept
 
 std::shared_ptr<Profiler::Timer> Profiler::find_timer_in_hierarchy(const std::string &tname)
 {
-    return search_timer_in_hierarchy(current, tname);
+    if (current)
+        return search_timer_in_hierarchy(current, tname);
+    return search_timer_in_hierarchy(root, tname);
 }
 
 std::shared_ptr<Profiler::Timer> Profiler::search_timer_in_hierarchy(std::shared_ptr<Timer> timer,

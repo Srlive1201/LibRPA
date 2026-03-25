@@ -2,7 +2,7 @@
 
 LIBRPA_ROOT="$(dirname "$(dirname "$(realpath "${BASH_SOURCE[0]}")")")"
 FILE_STUB="${LIBRPA_ROOT}/binding/fortran/librpa_f03_stubs.f90"
-SED=gsed
+SED=$(command -v gsed >/dev/null 2>&1 && echo gsed || echo sed)
 
 if [[ ! -f "$FILE_STUB" ]]; then
   echo "Fortran stub file not found: $FILE_STUB"
