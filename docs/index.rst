@@ -12,7 +12,7 @@ It currently supports random-phase approximation (RPA) correlation-energy
 calculations and GW quasiparticle calculations for periodic systems. By
 leveraging the localized resolution of identity (LRI) technique, LibRPA
 achieves low-scaling algorithms suitable for large-scale systems. Implemented
-in C++ with MPI/OpenMP parallelism and equipped with Python and Fortran
+in C++ with MPI/OpenMP parallelism and equipped with C and Fortran
 interfaces, LibRPA can be integrated with density functional theory (DFT) codes
 through both file-based and API-based workflows.
 
