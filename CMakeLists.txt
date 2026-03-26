@@ -80,7 +80,9 @@ endif()
 
 # Setup installation paths
 include(GNUInstallDirs)
-if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+# Set to install/ when LibRPA is the root project and
+# CMAKE_INSTALL_PREFIX was not manually specified
+if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT AND (CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR))
   set(default_install_prefix "${CMAKE_SOURCE_DIR}/install")  # default to install at the root project
   set(CMAKE_INSTALL_PREFIX ${default_install_prefix}
       CACHE STRING "The installation directory is not set, default to ${default_install_prefix}"
@@ -88,9 +90,19 @@ if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
   set(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT OFF)
 endif()
 
-# Get git commit number
-include(GetGitRevisionDescription)
-get_git_head_revision(GIT_REF GIT_SHA1)
+# Get git commit number when LibRPA is the root project
+if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
+  include(GetGitRevisionDescription)
+  get_git_head_revision(LIBRPA_GIT_REF LIBRPA_GIT_SHA1)
+else()
+  # Otherwise get the checkpoint recorded in the root project
+  if (NOT DEFINED LIBRPA_GIT_REF)
+    set(LIBRPA_GIT_REF "GIT-REF-UNKNOWN")
+  endif()
+  if (NOT DEFINED LIBRPA_GIT_SHA1)
+    set(LIBRPA_GIT_SHA1 "GIT-SHA1-UNKNOWN")
+  endif()
+endif()
 
 if(NOT _loaded_cmake_inc)
   if(DEFINED ENV{MKLROOT} AND NOT DEFINED MKLROOT)
