@@ -3,10 +3,6 @@ cmake_minimum_required(VERSION 3.13)
 
 project(librpa NONE)
 
-set(PROJECT_NAME "rpa")
-
-# message(STATUS "Project name: ${PROJECT_NAME}")  # => "rpa"
-
 # extract version number from version.h file
 file(READ ${CMAKE_CURRENT_SOURCE_DIR}/src/version.h version_file)
 string(REGEX MATCH "LIBRPA_MAJOR_VERSION ([0-9]+)" librpa_major_version ${version_file})

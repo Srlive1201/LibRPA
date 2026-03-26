@@ -1,5 +1,5 @@
-add_executable(${PROJECT_NAME}_exe)
-set_target_properties(${PROJECT_NAME}_exe PROPERTIES
+add_executable(rpa_exe)
+set_target_properties(rpa_exe PROPERTIES
   OUTPUT_NAME ${LIBRPA_DRIVER_NAME}
   ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}
   LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}
@@ -22,12 +22,12 @@ list(APPEND exe_sources
   # task/test.cpp
 )
 
-target_include_directories(${PROJECT_NAME}_exe PRIVATE ${PROJECT_NAME}_lib)
-target_sources(${PROJECT_NAME}_exe PRIVATE ${exe_sources})
+target_include_directories(rpa_exe PRIVATE rpa_lib)
+target_sources(rpa_exe PRIVATE ${exe_sources})
 
-target_link_libraries(${PROJECT_NAME}_exe PRIVATE ${PROJECT_NAME}_lib)
+target_link_libraries(rpa_exe PRIVATE rpa_lib)
 if(BUILD_SHARED_LIBS)
-  target_link_libraries(${PROJECT_NAME}_exe PRIVATE ${math_libs} ${parallel_libs})
+  target_link_libraries(rpa_exe PRIVATE ${math_libs} ${parallel_libs})
 endif()
 
-install(TARGETS ${PROJECT_NAME}_exe DESTINATION ${CMAKE_INSTALL_BINDIR})
+install(TARGETS rpa_exe DESTINATION ${CMAKE_INSTALL_BINDIR})

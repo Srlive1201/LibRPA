@@ -7,28 +7,28 @@
 #   RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
 
 if (BUILD_SHARED_LIBS)
-  add_library(${PROJECT_NAME}_lib SHARED)
+  add_library(rpa_lib SHARED)
 else()
-  add_library(${PROJECT_NAME}_lib STATIC)
+  add_library(rpa_lib STATIC)
 endif()
 
-add_dependencies(${PROJECT_NAME}_lib LibGXMiniMax)
+add_dependencies(rpa_lib LibGXMiniMax)
 
-set_target_properties(${PROJECT_NAME}_lib PROPERTIES
-  OUTPUT_NAME ${PROJECT_NAME}
+set_target_properties(rpa_lib PROPERTIES
+  OUTPUT_NAME rpa
   VERSION ${CMAKE_PROJECT_VERSION}
   SOVERSION ${CMAKE_PROJECT_VERSION}
 )
 
-target_link_libraries(${PROJECT_NAME}_lib PRIVATE LibGXMiniMax)
-target_include_directories(${PROJECT_NAME}_lib PRIVATE
+target_link_libraries(rpa_lib PRIVATE LibGXMiniMax)
+target_include_directories(rpa_lib PRIVATE
   $<TARGET_PROPERTY:LibGXMiniMax,Fortran_MODULE_DIRECTORY>
 )
 
-target_include_directories(${PROJECT_NAME}_lib
+target_include_directories(rpa_lib
   PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}
-    ${CMAKE_CURRENT_SOURCE_DIR}/../include
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>
   )
 configure_file(utils/envs_cmake.cpp.in ${CMAKE_CURRENT_BINARY_DIR}/envs_cmake.cpp)
 configure_file(utils/envs_cmake.h ${CMAKE_CURRENT_BINARY_DIR}/envs_cmake.h)  # only to make the configured envs_cmake.cpp compile
@@ -94,21 +94,21 @@ list(APPEND lib_sources
 )
 
 if(LIBRPA_USE_LIBRI)
-  target_include_directories(${PROJECT_NAME}_lib
+  target_include_directories(rpa_lib
     PUBLIC
-      ${Cereal_INCLUDE_DIR}
-      ${LibComm_INCLUDE_DIR}
-      ${LibRI_INCLUDE_DIR}
+      $<BUILD_INTERFACE:${Cereal_INCLUDE_DIR}>
+      $<BUILD_INTERFACE:${LibComm_INCLUDE_DIR}>
+      $<BUILD_INTERFACE:${LibRI_INCLUDE_DIR}>
     )
 endif()
 
 # source must be PRIVATE to avoid recompilation when linking driver to this library
-target_sources(${PROJECT_NAME}_lib PRIVATE ${lib_sources})
-target_link_libraries(${PROJECT_NAME}_lib PRIVATE ${math_libs} ${parallel_libs})
+target_sources(rpa_lib PRIVATE ${lib_sources})
+target_link_libraries(rpa_lib PRIVATE ${math_libs} ${parallel_libs})
 
-install(TARGETS ${PROJECT_NAME}_lib
-        ARCHIVE
-        DESTINATION ${CMAKE_INSTALL_LIBDIR})
+install(TARGETS rpa_lib
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
 if(LIBRPA_ENABLE_TEST AND LIBRPA_ENABLE_CPP_TEST)
   add_subdirectory(test)
