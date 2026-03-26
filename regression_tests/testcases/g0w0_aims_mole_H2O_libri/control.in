@@ -13,6 +13,7 @@ k_grid 1 1 1
 
 output librpa binary develop fold_C
 
+# [insert species for H and O below]
 ################################################################################
 #
 #  FHI-aims code project

@@ -76,7 +76,6 @@ For example:
 This means that atom type `1` has `5` radial functions in the one-electron basis, with angular momenta `0, 0, 0, 1, 1`.
 
 After the one-electron basis blocks, the same block structure is repeated for the auxiliary basis.
-
 Again, there are `n_atom_types` blocks. For each block:
 
 - the first line contains the atom type index and the number of radial functions

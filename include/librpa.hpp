@@ -64,7 +64,7 @@ public:
     /**
      * @brief Set output directory.
      *
-     * @param[in] output_dir   Path for output data files (default: ".").
+     * @param[in] output_dir   Path for output data files.
      */
     void set_output_dir(const char *output_dir) { ::librpa_set_output_dir(this, output_dir); }
 };

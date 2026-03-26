@@ -67,7 +67,11 @@ myst_enable_extensions = [
     "dollarmath",  # Enable $ symbol for inline math
     "amsmath",     # Enable $$ symbol for display math
     "tasklist",    # Enable check list
+    "attrs_inline",  # Enable inline attributes
+    "colon_fence",   # Figure captions
 ]
+
+numfig = True
 
 # -- Options for todo extension -------------------------------------------------
 # todo_include_todos = True
@@ -79,6 +83,10 @@ myst_enable_extensions = [
 #
 # html_theme = 'sphinx_rtd_theme'
 html_theme = 'sphinx_book_theme'
+# options for sphinx_book_theme
+html_theme_options = {
+  "show_toc_level": 3
+}
 
 html_title = "LibRPA Documentation"
 

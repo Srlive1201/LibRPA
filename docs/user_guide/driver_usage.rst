@@ -22,70 +22,66 @@ Export of data required by LibRPA from FHI-aims is supported since the release v
 
 .. code-block:: text
 
-   # since 231212
-   print_librpa_input .true.
-   # since 240507
    output librpa
+   # legacy switch before 240507 release
+   print_librpa_input .true.
 
-For RPA calculation (``total_energy_method rpa`` in ``control.in``), this will dump a few text files:
-
-.. code-block:: text
-
-   stru_out
-   band_out
-   KS_eigenvector_<myid>.txt
-   Cs_data_<myid>.txt
-   coulomb_mat_<myid>.txt
-
-For *periodic* GW calculation (``qpe_calc gw_expt`` in ``control.in``), additional files will be created:
-
-.. code-block:: text
-
-   coulomb_cut_<myid>.txt
+It will dump necessary data files for many-body computation tasks.
+Please refer to the FHI-aims manual for more details of the ``output librpa`` tag.
 
 ABACUS
 ~~~~~~
 
-Similar to the case with FHI-aims, the latest master branch of ABACUS supports the export of files required by LibRPA. You only need to add the following line to the ``INPUT`` file of ABACUS:
+Similar to the case with FHI-aims, the latest master branch of ABACUS supports the export of files required by LibRPA.
+You only need to add the following line to the ``INPUT`` file of ABACUS:
 
 .. code-block:: text
 
    rpa 1
 
-LibRPA run
+LibRPA job
 ----------
 
-The LibRPA driver can be called using the following syntax:
+Input file
+~~~~~~~~~~
+
+Before triggering the LibRPA driver, an input file named ``librpa.in`` is required
+at the working directory. An example is below:
+
+.. code-block::
+
+   task = rpa
+   input_dir = .
+   nfreq = 16
+   cs_threshold = 1e-4
+
+The driver will read the parameters defined in the file and run the calculation
+Please refer to the :doc:`guide page of runtime parameters <runtime_parameters>`
+for more information about the driver and API parameters.
+
+Run the calculation
+~~~~~~~~~~~~~~~~~~~
+
+After setting up the input file ``librpa.in``, the LibRPA driver can be called by issuing:
 
 .. code-block:: bash
 
-   /path/to/LibRPA/build/chi0_main.exe <ngrids> <green-func-thres>
+   /path/to/LibRPA/build/chi0_main.exe
 
-where ``<ngrids>`` is the number of time/frequency grids to use and
-``<green-func-thres>`` is the threshold to prune the Green's function in
-time-domain and real-space. To run with MPI, you can simply invoke the relavant MPI driver,
+To run with multiple processes using MPI, you can simply invoke the relevant MPI driver,
 for example
 
 .. code-block:: bash
 
-   mpirun -np <nprocs> /path/to/LibRPA/build/chi0_main.exe <ngrids> <green-func-thres>
+   mpirun -np <nprocs> /path/to/LibRPA/build/chi0_main.exe
 
 where ``<nprocs>`` is the number of MPI processes.
-If additionaly you want to run with multiple threads, you need to specify the
+In addition, you want to run with multiple threads, you need to specify the
 environment variable ``OMP_NUM_THREADS``. For example
 
 .. code-block:: bash
 
    export OMP_NUM_THREADS=4
-   mpirun -np 4 /path/to/LibRPA/build/chi0_main.exe 16 1e-12
+   mpirun -np 4 /path/to/LibRPA/build/chi0_main.exe
 
-This will run the LibRPA RPA calculation with 16 time/frequency grids using
-4 MPI processes, each with 4 OpenMP threads.
-
-
-Without an input file ``librpa.in``, the above commands will all run the
-low-scaling RPA calculation.
-To perform other tasks such as exact-exchange or GW calculations or specify other parameters, you
-need an input file ``librpa.in``. Please refer to the
-:doc:`manual page of runtime parameters <runtime_parameters>` for more
-information.
+This will run the LibRPA calculation using 4 MPI processes, each with 4 OpenMP threads.

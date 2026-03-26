@@ -22,8 +22,7 @@ output librpa binary develop fold_C
 output band   0.50000  0.50000  0.50000   0.00000  0.00000  0.00000 5 L G
 output band   0.00000  0.00000  0.00000   0.50000  0.00000  0.50000 5 G X
 
-
-# insert species below
+# [insert species for Si below]
 ################################################################################
 #
 #  FHI-aims code project

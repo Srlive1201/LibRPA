@@ -10,23 +10,26 @@ Runtime parameters and options in LibRPA are generally managed through the `Libr
   For example:
   ```
   task = rpa
+  input_dir = ../librpa_dataset
   nfreq = 16
   cs_threshold = 1e-4
-  input_dir = ../librpa_dataset
   ```
 
   If `librpa.in` is not found, the driver stops with an error.
   Unlike the API, the driver requires `task` to be explicitly specified.
   For all other parameters, default values are used when the corresponding keywords are not provided.
+  Please refer to [manual page of driver usage](driver_usage) for more information.
 
+(additional-parameters-for-driver)=
 ## Additional Parameters for Driver
 
 | Parameter Name | Description                                              | Type   | Default Value (Options)                         |
 |----------------|----------------------------------------------------------|--------|-------------------------------------------------|
 | `task`         | Task type                                                | string | (required: rpa, g0w0, exx, g0w0_band, exx_band) |
-| `input_dir`    | Input directory to read the AO dataset                   | string | `.`                                             |
+| `input_dir`    | Input directory to find and read the AO dataset          | string | `.`                                             |
 | `cs_threshold` | Screening threshold when reading the RI coefficient data | double | 1e-6                                            |
 
+(common-parameter-settings-for-librpa)=
 ## Common Parameter Settings for LibRPA
 
 | Parameter Name          | Description                                        | Type   | Default Value (Options)                                     |
@@ -55,8 +58,8 @@ Runtime parameters and options in LibRPA are generally managed through the `Libr
 
 | Parameter Name           | Description                                                                  | Type   | Default Value (Options)             |
 |--------------------------|------------------------------------------------------------------------------|--------|-------------------------------------|
-| `n_params_anacon`        | Number of parameters for analytic continuation                               | int    | 16                                  |
-| `use_scalapack_gw_wc`    | Flag to use ScaLAPACK for computing Wc from chi0                             | bool   | `false`                             |
+| `n_params_anacon`        | Number of parameters for analytic continuation                               | int    | -1 (will use all `nfreq` data)      |
+| `use_scalapack_gw_wc`    | Flag to use ScaLAPACK for computing Wc from chi0                             | bool   | `true`                              |
 | `replace_w_head`         | Flag to replace head of dielectric matrix by macroscopic dielectric function | bool   | `false`                             |
 | `option_dielect_func`    | Option for computing dielectric function on imaginary axis                   | int    | 0 (0=direct, 1=model fit, 2=spline) |
 | `sqrt_coulomb_threshold` | Threshold for eigenvalues to perform square root of Coulomb matrices         | double | 1e-6                                |
@@ -65,14 +68,14 @@ Runtime parameters and options in LibRPA are generally managed through the `Libr
 
 | Parameter Name            | Description                                                           | Type   | Default Value (Options) |
 |---------------------------|-----------------------------------------------------------------------|--------|-------------------------|
-| `libri_chi0_threshold_C`  | Threshold of LRI triple coefficients for response function            | double | 1e-8                    |
-| `libri_chi0_threshold_G`  | Threshold of Green's function for response function                   | double | 1e-8                    |
-| `libri_exx_threshold_C`   | Threshold of LRI triple coefficients for exact exchange               | double | 1e-8                    |
-| `libri_exx_threshold_D`   | Threshold of density matrices for exact exchange                      | double | 1e-8                    |
-| `libri_exx_threshold_V`   | Threshold of Coulomb matrices for exact exchange                      | double | 1e-8                    |
-| `libri_g0w0_threshold_C`  | Threshold of LRI triple coefficients for G0W0 correlation self-energy | double | 1e-8                    |
-| `libri_g0w0_threshold_G`  | Threshold of Green's function for G0W0 correlation self-energy        | double | 1e-8                    |
-| `libri_g0w0_threshold_Wc` | Threshold of screened Coulomb matrix for G0W0 correlation self-energy | double | 1e-8                    |
+| `libri_chi0_threshold_C`  | Threshold of LRI triple coefficients for response function            | double | 0.0                     |
+| `libri_chi0_threshold_G`  | Threshold of Green's function for response function                   | double | 0.0                     |
+| `libri_exx_threshold_C`   | Threshold of LRI triple coefficients for exact exchange               | double | 0.0                     |
+| `libri_exx_threshold_D`   | Threshold of density matrices for exact exchange                      | double | 0.0                     |
+| `libri_exx_threshold_V`   | Threshold of Coulomb matrices for exact exchange                      | double | 0.0                     |
+| `libri_g0w0_threshold_C`  | Threshold of LRI triple coefficients for G0W0 correlation self-energy | double | 0.0                     |
+| `libri_g0w0_threshold_G`  | Threshold of Green's function for G0W0 correlation self-energy        | double | 0.0                     |
+| `libri_g0w0_threshold_Wc` | Threshold of screened Coulomb matrix for G0W0 correlation self-energy | double | 0.0                     |
 
 ## Output Control Parameters
 

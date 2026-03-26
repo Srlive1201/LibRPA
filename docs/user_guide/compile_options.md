@@ -4,18 +4,18 @@
 
 | Option                                                      | Type              | Default    |
 |-------------------------------------------------------------|-------------------|------------|
-| [`LIBRPA_USE_LIBRI`](#librpa-use-libri)                     | Bool              | `OFF`      |
-| [`LIBRPA_USE_CMAKE_INC`](#librpa-use-cmake-inc)             | Bool              | `OFF`      |
-| [`LIBRPA_USE_EXTERNAL_GREENX`](#librpa-use-external-greenx) | Bool              | `OFF`      |
-| [`LIBRPA_ENABLE_FORTRAN_BIND`](#librpa-enable-fortran-bind) | Bool              | `OFF`      |
-| [`LIBRPA_FORTRAN_DP`](#librpa-fortran-dp)                   | String or integer | `c_double` |
-| [`LIBRPA_ENABLE_DRIVER`](#librpa-enable-driver)             | Bool              | `ON`       |
-| [`LIBRPA_ENABLE_TEST`](#librpa-enable-test)                 | Bool              | `ON`       |
-| [`LIBRPA_ENABLE_CPP_TEST`](#librpa-enable-cpp-test)         | Bool              | `ON`       |
-| [`LIBRPA_ENABLE_FORTRAN_TEST`](#librpa-enable-fortran-test) | Bool              | `ON`       |
-| [`LIBRI_INCLUDE_DIR`](#libri-include-dir)                   | String            | empty      |
-| [`LIBCOMM_INCLUDE_DIR`](#libcomm-include-dir)               | String            | empty      |
-| [`CEREAL_INCLUDE_DIR`](#cereal-include-dir)                 | String            | empty      |
+| [`LIBRPA_USE_LIBRI`](#librpa-use-libri)                     | bool              | `OFF`      |
+| [`LIBRPA_USE_CMAKE_INC`](#librpa-use-cmake-inc)             | bool              | `OFF`      |
+| [`LIBRPA_USE_EXTERNAL_GREENX`](#librpa-use-external-greenx) | bool              | `OFF`      |
+| [`LIBRPA_ENABLE_FORTRAN_BIND`](#librpa-enable-fortran-bind) | bool              | `OFF`      |
+| [`LIBRPA_FORTRAN_DP`](#librpa-fortran-dp)                   | string or integer | `c_double` |
+| [`LIBRPA_ENABLE_DRIVER`](#librpa-enable-driver)             | bool              | `ON`       |
+| [`LIBRPA_ENABLE_TEST`](#librpa-enable-test)                 | bool              | `ON`       |
+| [`LIBRPA_ENABLE_CPP_TEST`](#librpa-enable-cpp-test)         | bool              | `ON`       |
+| [`LIBRPA_ENABLE_FORTRAN_TEST`](#librpa-enable-fortran-test) | bool              | `ON`       |
+| [`LIBRI_INCLUDE_DIR`](#libri-include-dir)                   | string            | empty      |
+| [`LIBCOMM_INCLUDE_DIR`](#libcomm-include-dir)               | string            | empty      |
+| [`CEREAL_INCLUDE_DIR`](#cereal-include-dir)                 | string            | empty      |
 
 These options can be parsed on the CMake command line, for example:
 
@@ -37,7 +37,7 @@ By contrast, the RPA correlation energy can also be computed without this option
 
 When enabled, the `cmake.inc` file is used to initialize compilers and other build options.
 
-**Deprecated**. It is recommended to use standard CMake command-line options such as -C or -D to specify custom variables.
+**Deprecated**. It is recommended to use standard CMake command-line options such as `-C` or `-D` to specify custom variables.
 
 (librpa-use-external-greenx)=
 ## `LIBRPA_USE_EXTERNAL_GREENX`
@@ -49,7 +49,7 @@ The minimax grids used by LibRPA are provided through the
 
 When this option is `OFF` (default), LibRPA builds and links against the bundled GreenX source distributed with LibRPA under `thirdparty/greenX`.
 
-When this option is `ON`, LibRPA does not build the bundled GreenX copy
+When this option is `ON`, LibRPA does not build the bundled GreenX copy.
 Instead, it expects an external GreenX library to be provided by the parent or higher-level CMake project.
 In particular, the CMake target `LibGXMiniMax` must already be defined and available for linking.
 

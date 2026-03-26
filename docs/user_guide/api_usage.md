@@ -265,5 +265,4 @@ call h%free()
 call librpa_finalize_global()
 
 call MPI_Finalize(ierr)
-end
 ```
