@@ -9,10 +9,10 @@ namespace driver
 {
 
 DriverParams::DriverParams():
-    task("rpa"),
+    task("unset"),
     constants_choice("internal"),
-    input_dir(""),
-    cs_threshold(0.0),
+    input_dir("./"),
+    cs_threshold(1e-6),
     output_gw_spec_func(false),
     sf_omega_start(0.0),
     sf_omega_end(1.0),

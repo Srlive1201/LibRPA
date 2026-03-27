@@ -27,7 +27,7 @@ void librpa_init_options(LibrpaOptions *opts)
     opts->tfgrids_time_interval = 0.0;
 
     opts->gf_threshold = 0.0e0;
-    opts->use_scalapack_ecrpa = LIBRPA_SWITCH_OFF;
+    opts->use_scalapack_ecrpa = LIBRPA_SWITCH_ON;
 
     opts->n_params_anacon = -1;
     opts->use_scalapack_gw_wc = LIBRPA_SWITCH_ON;

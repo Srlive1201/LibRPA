@@ -37,7 +37,7 @@ static std::string get_last_matched(const std::string &s,
     return sout;
 }
 
-void InputParser::parse_double(const std::string &vname, double &var, double de, int &flag) const
+void InputParser::parse_double(const std::string &vname, double &var, int &flag) const
 {
     flag = 0;
     std::string s = get_last_matched(params, vname,
@@ -56,10 +56,16 @@ void InputParser::parse_double(const std::string &vname, double &var, double de,
     }
     else
         flag = 1;
+}
+
+
+void InputParser::parse_double(const std::string &vname, double &var, double de, int &flag) const
+{
+    parse_double(vname, var, flag);
     if (flag) var = de;
 }
 
-void InputParser::parse_int(const std::string &vname, int &var, int de, int &flag) const
+void InputParser::parse_int(const std::string &vname, int &var, int &flag) const
 {
     flag = 0;
     std::string s = get_last_matched(params, vname, "(-?[\\d]+)", 1);
@@ -76,10 +82,15 @@ void InputParser::parse_int(const std::string &vname, int &var, int de, int &fla
     }
     else
         flag = 1;
+}
+
+void InputParser::parse_int(const std::string &vname, int &var, int de, int &flag) const
+{
+    parse_int(vname, var, flag);
     if (flag) var = de;
 }
 
-void InputParser::parse_string(const std::string &vname, std::string &var, const std::string &de, int &flag) const
+void InputParser::parse_string(const std::string &vname, std::string &var, int &flag) const
 {
     flag = 0;
     std::string s = get_last_matched(params, vname, "([\\w\\d_\\- ,:;./]+)", 1);
@@ -87,10 +98,15 @@ void InputParser::parse_string(const std::string &vname, std::string &var, const
         var = s;
     else
         flag = 1;
+}
+
+void InputParser::parse_string(const std::string &vname, std::string &var, const std::string &de, int &flag) const
+{
+    parse_string(vname, var, flag);
     if (flag) var = de;
 }
 
-void InputParser::parse_bool(const std::string &vname, bool &var, const bool &de, int &flag) const
+void InputParser::parse_bool(const std::string &vname, bool &var, int &flag) const
 {
     flag = 0;
     std::string s = get_last_matched(params, vname, "([\\w]+)", 1);
@@ -101,6 +117,11 @@ void InputParser::parse_bool(const std::string &vname, bool &var, const bool &de
         var = false;
     else
         flag = 1;
+}
+
+void InputParser::parse_bool(const std::string &vname, bool &var, const bool &de, int &flag) const
+{
+    parse_bool(vname, var, flag);
     if (flag) var = de;
 }
 
@@ -144,10 +165,10 @@ static std::string check_dirpath(const std::string &dirpath)
     return std::string(dirpath);
 }
 
-#define _parse_int(obj, name, de) parser.parse_int(#name, obj.name, de, flag)
-#define _parse_double(obj, name, de) parser.parse_double(#name, obj.name, de, flag)
-#define _parse_switch(obj, name, de) parser.parse_bool(#name, btmp, de, flag); obj.name = get_switch(btmp);
-#define _parse_string(obj, name, de, post) parser.parse_string(#name, stmp, de, flag); obj.name = post(stmp);
+#define _parse_int(obj, name) parser.parse_int(#name, obj.name, flag)
+#define _parse_double(obj, name) parser.parse_double(#name, obj.name, flag)
+#define _parse_switch(obj, name) parser.parse_bool(#name, btmp, flag); if (flag == 0) obj.name = get_switch(btmp);
+#define _parse_string_post(obj, name, post) parser.parse_string(#name, stmp, flag); if (flag == 0) obj.name = post(stmp);
 
 void parse_inputfile_to_params(const std::string& fn)
 {
@@ -169,68 +190,70 @@ void parse_inputfile_to_params(const std::string& fn)
     {
         librpa_int::set_aims_constants();
     }
-    _parse_string(driver_params, input_dir, "./", check_dirpath);
+    _parse_string_post(driver_params, input_dir, check_dirpath);
+    _parse_double(driver_params, cs_threshold);
     parser.parse_bool("output_gw_spec_func", driver_params.output_gw_spec_func, false, flag);
 
     // TODO: implement a function to read multiple double values in one line
     if (driver_params.output_gw_spec_func)
     {
-        _parse_double(driver_params, cs_threshold, 1e-6);
-        _parse_double(driver_params, sf_omega_start, -10.0);
-        _parse_double(driver_params, sf_omega_end, 0.0);
-        _parse_double(driver_params, sf_omega_step, 0.005);
-        _parse_int(driver_params, sf_state_start, 0);
-        _parse_int(driver_params, sf_state_end, 10000);
-        _parse_double(driver_params, sf_gf_omega_shift, 0.01);
-        _parse_double(driver_params, sf_sigc_omega_shift, 0.01);
+        _parse_double(driver_params, sf_omega_start);
+        _parse_double(driver_params, sf_omega_end);
+        _parse_double(driver_params, sf_omega_step);
+        _parse_int(driver_params, sf_state_start);
+        _parse_int(driver_params, sf_state_end);
+        _parse_double(driver_params, sf_gf_omega_shift);
+        _parse_double(driver_params, sf_sigc_omega_shift);
     }
 
     // general parameters
     parser.parse_string("output_dir", stmp, "librpa.d/", flag);
     opts.set_output_dir(stmp.c_str());
-    _parse_string(opts, parallel_routing, "auto", get_parallel_routing);
+    _parse_string_post(opts, parallel_routing, get_parallel_routing);
 
     parser.parse_bool("debug", btmp, false, flag);  // backward-compatible
     if (btmp) opts.output_level = LIBRPA_VERBOSE_DEBUG;
     parser.parse_string("output_level", stmp, "info", flag);
     if (flag == 0) opts.output_level = get_verbose(stmp);
-    _parse_double(opts, vq_threshold, 0);
-    _parse_switch(opts, use_kpara_scf_eigvec, false);
+    _parse_double(opts, vq_threshold);
+    _parse_switch(opts, use_kpara_scf_eigvec);
 
-    _parse_string(opts, tfgrids_type, "minimax", get_tfgrid_type);
+    _parse_string_post(opts, tfgrids_type, get_tfgrid_type);
     if (flag != 0) // backward compatible
     {
-        parser.parse_string("tfgrid_type", stmp, "minimax", flag);
-        opts.tfgrids_type = get_tfgrid_type(stmp);
+        parser.parse_string("tfgrid_type", stmp, flag);
+        if (flag == 0) opts.tfgrids_type = get_tfgrid_type(stmp);
     }
-    _parse_int(opts, nfreq, 6);
+    if (opts.tfgrids_type == LibrpaTimeFreqGrid::TFGRID_UNSET)
+        opts.tfgrids_type = LibrpaTimeFreqGrid::Minimax;
+    _parse_int(opts, nfreq);
 
     // RPA specific
-    parser.parse_double("gf_R_threshold", opts.gf_threshold, 1e-4, flag);
-    _parse_double(opts, gf_threshold, 1e-4);
-    _parse_double(opts, libri_chi0_threshold_C, 0.0);
-    _parse_double(opts, libri_chi0_threshold_G, 0.0);
-    _parse_switch(opts, use_scalapack_ecrpa, false);
+    parser.parse_double("gf_R_threshold", opts.gf_threshold, flag); // backward compatible
+    _parse_double(opts, gf_threshold);
+    _parse_double(opts, libri_chi0_threshold_C);
+    _parse_double(opts, libri_chi0_threshold_G);
+    _parse_switch(opts, use_scalapack_ecrpa);
 
     // EXX specific
-    _parse_double(opts, libri_exx_threshold_C, 0.0);
-    _parse_double(opts, libri_exx_threshold_D, 0.0);
-    _parse_double(opts, libri_exx_threshold_V, 0.0);
+    _parse_double(opts, libri_exx_threshold_C);
+    _parse_double(opts, libri_exx_threshold_D);
+    _parse_double(opts, libri_exx_threshold_V);
 
     // GW specific
-    _parse_double(opts, sqrt_coulomb_threshold, 1e-4);
-    _parse_switch(opts, use_scalapack_gw_wc, true);
-    _parse_double(opts, libri_g0w0_threshold_C, 0.0);
-    _parse_double(opts, libri_g0w0_threshold_G, 0.0);
-    _parse_double(opts, libri_g0w0_threshold_Wc, 0.0);
-    _parse_switch(opts, replace_w_head, true);
-    _parse_int(opts, option_dielect_func, 0);
-    _parse_switch(opts, output_gw_sigc_mat, false);
-    _parse_switch(opts, output_gw_sigc_mat_rt, false);
-    _parse_switch(opts, output_gw_sigc_mat_rf, false);
+    _parse_double(opts, sqrt_coulomb_threshold);
+    _parse_switch(opts, use_scalapack_gw_wc);
+    _parse_double(opts, libri_g0w0_threshold_C);
+    _parse_double(opts, libri_g0w0_threshold_G);
+    _parse_double(opts, libri_g0w0_threshold_Wc);
+    _parse_switch(opts, replace_w_head);
+    _parse_int(opts, option_dielect_func);
+    _parse_switch(opts, output_gw_sigc_mat);
+    _parse_switch(opts, output_gw_sigc_mat_rt);
+    _parse_switch(opts, output_gw_sigc_mat_rf);
 }
 
 #undef _parse_int
 #undef _parse_double
 #undef _parse_switch
-#undef _parse_string
+#undef _parse_string_post

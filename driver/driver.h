@@ -14,10 +14,10 @@ namespace driver
 struct DriverParams
 {
     std::string task;
-    std::string constants_choice = "internal";
-    std::string input_dir = "./";
+    std::string constants_choice;
+    std::string input_dir;
 
-    // Threshold for real-space LRI triple coefficients when reading the data
+    // Threshold for real-space LRI triple coefficients.
     double cs_threshold;
 
     // TODO: Move the following to the public LibrpaOptions class
