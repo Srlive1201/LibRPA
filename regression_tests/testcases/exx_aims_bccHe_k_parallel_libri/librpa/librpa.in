@@ -1,0 +1,6 @@
+# Driver parameters
+task = exx
+input_dir = ../dataset
+# API runtime
+parallel_routing = libri
+use_kpara_scf_eigvec = t

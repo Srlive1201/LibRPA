@@ -1,0 +1,6 @@
+# Driver parameters
+task = g0w0
+input_dir = ../dataset
+# API runtime
+nfreq = 32
+parallel_routing = libri

@@ -1,0 +1,286 @@
+Initialized LibRPA global environment
+Total number of tasks    :     1
+Total number of nodes    :     1
+Maximal number of threads:   1
+MPI tasks information:
+| Proc    0 of Size    1: taiyi
+| Global ID of master process of node     0 :     0
+
+LibRPA CMake build info:
+| Build type               : Release
+| Source code directory    : /Users/minyez/codes/LibRPA/src
+| Source code Git reference: refs/heads/develop_backup_before_soc
+| Source code Git hash     : a58b8e21b9576257924e22c3c3afe0a927fd2b71
+| C++ compiler             : /opt/homebrew/Cellar/mpich/4.3.0/bin/mpicxx
+| C++ compiler flags       : -cxx=g++-13 -fPIC -g -rdynamic -Wl,-lgfortran  -fopenmp
+| Fortran compiler         : /opt/homebrew/Cellar/mpich/4.3.0/bin/mpifort
+| Fortran compiler flags   : -fc=gfortran-13 -fPIC -g -fallow-argument-mismatch -ffree-line-length-none
+| GreenX commit hash       : 
+| Use LibRI                : 
+| LibRI include directory  : /Users/minyez/codes/LibRPA/thirdparty/LibRI/include
+| LibComm include directory: /Users/minyez/codes/LibComm-mygh/include
+
+===== Begin driver parameters  =====
+task = exx
+cs_R_threshold = 1e-06
+input_dir = ../dataset/
+constants_choice = internal
+output_gw_spec_func = false
+===== End driver parameters    =====
+
+===== Begin control parameters =====
+output_dir = librpa.d/
+output_level = info
+tfgrids_type = minimax
+parallel_routing = libri
+nfreq = 6
+n_params_anacon = -1
+option_dielect_func = 0
+gf_R_threshold = 0
+vq_threshold = 0
+sqrt_coulomb_threshold = 0
+libri_chi0_threshold_C = 0
+libri_chi0_threshold_G = 0
+libri_exx_threshold_C = 0
+libri_exx_threshold_D = 0
+libri_exx_threshold_V = 0
+libri_g0w0_threshold_C = 0
+libri_g0w0_threshold_G = 0
+libri_g0w0_threshold_Wc = 0
+debug = false
+replace_w_head = false
+use_scalapack_ecrpa = true
+use_scalapack_gw_wc = true
+use_kpara_scf_eigvec = true
+output_gw_sigc_mat = false
+output_gw_sigc_mat_rf = false
+output_gw_sigc_mat_rt = false
+===== End control parameters   =====
+
+Mean-field dimensions set:
+| number of spins    : 1
+| number of k-points : 8
+| number of bands    : 8
+| number of NAOs     : 8
+Mean-field eigenvalues and occupation numbers set:
+| Minimal transition energy (Ha): 1.110689
+| Maximal transition energy (Ha): 1.771445
+| Fermi level               (Ha): 0.006096
+Reading structure file: ../dataset/stru_out
+Lattice vectors (Bohr): latt
+         5.66918               0               0
+               0         5.66918               0
+               0               0         5.66918
+Reciprocal lattice vectors (2PI Bohr^-1): G
+        0.176392               0               0
+               0        0.176392               0
+               0               0        0.176392
+Consistency check: latt * G.T
+               1               0               0
+               0               1               0
+               0               0               1
+Atom positions read (Cartesian in Bohr | fractional):
+ia    1:    0.0000000    0.0000000    0.0000000 |    0.0000000    0.0000000    0.0000000
+ia    2:    2.8345892    2.8345892    2.8345892 |    0.5000000    0.5000000    0.5000000
+
+Reading Brillouin zone sampling file: ../dataset/bz_sampling_out
+kgrids:   2   2   2
+k-points read (Cartesian in 2Pi Bohr^-1 | fractional):
+ik    1:    0.0000000    0.0000000    0.0000000 |    0.0000000    0.0000000    0.0000000
+ik    2:    0.0000000    0.0000000    0.0881962 |    0.0000000    0.0000000    0.5000000
+ik    3:    0.0000000    0.0881962    0.0000000 |    0.0000000    0.5000000    0.0000000
+ik    4:    0.0000000    0.0881962    0.0881962 |    0.0000000    0.5000000    0.5000000
+ik    5:    0.0881962    0.0000000    0.0000000 |    0.5000000    0.0000000    0.0000000
+ik    6:    0.0881962    0.0000000    0.0881962 |    0.5000000    0.0000000    0.5000000
+ik    7:    0.0881962    0.0881962    0.0000000 |    0.5000000    0.5000000    0.0000000
+ik    8:    0.0881962    0.0881962    0.0881962 |    0.5000000    0.5000000    0.5000000
+R-points to compute:
+   1:  -1  -1  -1
+   2:  -1  -1   0
+   3:  -1   0  -1
+   4:  -1   0   0
+   5:   0  -1  -1
+   6:   0  -1   0
+   7:   0   0  -1
+   8:   0   0   0
+
+Irreducible Brillouin mapping:
+  ik:          k_1          k_2          k_3    ibzk
+   1:    0.0000000    0.0000000    0.0000000
+   2:    0.0000000    0.0000000    0.5000000
+   3:    0.0000000    0.5000000    0.0000000
+   4:    0.0000000    0.5000000    0.5000000
+   5:    0.5000000    0.0000000    0.0000000
+   6:    0.5000000    0.0000000    0.5000000
+   7:    0.5000000    0.5000000    0.0000000
+   8:    0.5000000    0.5000000    0.5000000
+
+Reading basis information file: ../dataset/basis_out
+Wave-function basis functions set:
+| total number of basis: 8
+Auxiliary basis functions set:
+| total number of basis: 26
+
+Successfully read eigenvector files
+Loading RI file from directory: ../dataset/
+Evenly distributed Cs and V for LibRI
+Finished Cs filtering
+| Process     0: Cs with             32 non-zero keys from local atpair size       0. Data memory:       0.05 MB. Wall/CPU time [min]:       0.0000       0.0000
+Begin READ_Vq_Row
+Unformatted binary V files detected
+| Process     0: coulomb_mat read. Wall/CPU time [min]:       0.0000       0.0000
+Actual parallel routing used: libri
+Initialization finished, Wall/CPU time [min]:       0.0000       0.0000
+Common data parsed, task exx will begin
+exx: Non-self-consistent exact-exchange (EXX) calculation
+Begin READ_Vq_Row
+Unformatted binary V files detected
+Computing EXX orbital energy using LibRI
+Task    0: V setup for EXX
+Task    0: DM setup for EXX
+Task    0: cal_Hs elapsed time: 0.003362
+Task    0: tensor communicate elapsed time: 0.000132
+Spin channel 1
+k-point 1: (         0,         0,         0)
+Band  e_exx (Ha)  e_exx (eV)
+   1    -0.95301   -25.93262
+   2    -1.04453   -28.42308
+   3    -0.12865    -3.50082
+   4    -0.12865    -3.50082
+   5    -0.12865    -3.50082
+   6    -0.13950    -3.79611
+   7    -0.13950    -3.79611
+   8    -0.13950    -3.79611
+
+k-point 2: (         0,         0,       0.5)
+Band  e_exx (Ha)  e_exx (eV)
+   1    -1.00734   -27.41099
+   2    -1.00734   -27.41099
+   3    -0.13685    -3.72399
+   4    -0.13685    -3.72399
+   5    -0.13387    -3.64269
+   6    -0.13387    -3.64269
+   7    -0.13387    -3.64269
+   8    -0.13387    -3.64269
+
+k-point 3: (         0,       0.5,         0)
+Band  e_exx (Ha)  e_exx (eV)
+   1    -1.00734   -27.41099
+   2    -1.00734   -27.41099
+   3    -0.13685    -3.72399
+   4    -0.13685    -3.72399
+   5    -0.13387    -3.64269
+   6    -0.13387    -3.64269
+   7    -0.13387    -3.64269
+   8    -0.13387    -3.64269
+
+k-point 4: (         0,       0.5,       0.5)
+Band  e_exx (Ha)  e_exx (eV)
+   1    -1.02417   -27.86917
+   2    -1.02417   -27.86917
+   3    -0.11836    -3.22069
+   4    -0.11836    -3.22069
+   5    -0.13478    -3.66748
+   6    -0.13478    -3.66748
+   7    -0.13837    -3.76523
+   8    -0.13837    -3.76523
+
+k-point 5: (       0.5,         0,         0)
+Band  e_exx (Ha)  e_exx (eV)
+   1    -1.00734   -27.41099
+   2    -1.00734   -27.41099
+   3    -0.13685    -3.72399
+   4    -0.13685    -3.72399
+   5    -0.13387    -3.64269
+   6    -0.13387    -3.64269
+   7    -0.13387    -3.64269
+   8    -0.13387    -3.64269
+
+k-point 6: (       0.5,         0,       0.5)
+Band  e_exx (Ha)  e_exx (eV)
+   1    -1.02417   -27.86917
+   2    -1.02417   -27.86917
+   3    -0.11836    -3.22069
+   4    -0.11836    -3.22069
+   5    -0.13478    -3.66748
+   6    -0.13478    -3.66748
+   7    -0.13837    -3.76523
+   8    -0.13837    -3.76523
+
+k-point 7: (       0.5,       0.5,         0)
+Band  e_exx (Ha)  e_exx (eV)
+   1    -1.02417   -27.86917
+   2    -1.02417   -27.86917
+   3    -0.11836    -3.22069
+   4    -0.11836    -3.22069
+   5    -0.13478    -3.66748
+   6    -0.13478    -3.66748
+   7    -0.13837    -3.76523
+   8    -0.13837    -3.76523
+
+k-point 8: (       0.5,       0.5,       0.5)
+Band  e_exx (Ha)  e_exx (eV)
+   1    -1.03551   -28.17770
+   2    -1.03551   -28.17770
+   3    -0.12659    -3.44473
+   4    -0.12659    -3.44473
+   5    -0.12659    -3.44473
+   6    -0.12659    -3.44473
+   7    -0.12659    -3.44473
+   8    -0.12659    -3.44473
+
+Finalizing LibRPA global environment
+Entry                                             #calls       CPU time (s)       Wall time (s)     
+----------------------------------------------------------------------------------------------------
+Total for driver                                  1            0.0098             0.0119            
+ Driver Read Input Parameters                     1             0.0029             0.0032           
+ Driver Read Task-Common Input Data               1             0.0012             0.0031           
+  DFT SCF eigenvalues/occupations                 1              0.0001             0.0003          
+   api_set_scf_dimension                          1               0.0000             0.0000         
+   api_set_wg_ekb_efermi                          1               0.0000             0.0000         
+  Structure                                       1              0.0001             0.0002          
+   api_set_latvec_and_G                           1               0.0000             0.0000         
+   api_set_atoms                                  1               0.0000             0.0000         
+  BZ sampling                                     1              0.0001             0.0002          
+   api_set_kgrids_kvec                            1               0.0000             0.0000         
+   api_set_ibz_mapping                            1               0.0000             0.0000         
+  Basis (wave-function and auxiliary)             1              0.0001             0.0002          
+   api_set_ao_basis_wfc                           1               0.0000             0.0000         
+   api_set_ao_basis_aux                           1               0.0000             0.0000         
+  SCF eigenvectors                                1              0.0002             0.0005          
+   api_set_wfc                                    8               0.0000             0.0000         
+  driver_read_ri                                  1              0.0006             0.0017          
+   driver_read_Cs                                 1               0.0003             0.0009         
+    handle_Cs_file_dry                            1                0.0001             0.0008        
+    handle_Cs_file                                1                0.0001             0.0001        
+     api_set_lri_coeff                            32                0.0000             0.0000       
+   driver_read_Vq                                 1               0.0003             0.0008         
+    handle_Vq_row_file                            1                0.0002             0.0007        
+    set_aux_coulomb_k_atom_pair_out               1                0.0001             0.0001        
+     api_set_aux_bare_coulomb_k_atom_pair         24                0.0000             0.0000       
+ Exact-exchange only calculation                  1             0.0055             0.0055           
+  Load truncated Coulomb                          1              0.0002             0.0006          
+   handle_Vq_row_file                             1               0.0002             0.0005         
+   set_aux_coulomb_k_atom_pair_out                1               0.0000             0.0000         
+    api_set_aux_cut_coulomb_k_atom_pair           24               0.0000             0.0000        
+  api_build_exx                                   1              0.0046             0.0043          
+   initialize_ds_atpairs_local                    1               0.0000             0.0000         
+   redistribute_coulomb_blacs2ap                  1               0.0000             0.0000         
+   initialize_ds_exx                              1               0.0000             0.0000         
+   Fourier transform truncated Coulomb            1               0.0001             0.0001         
+   exx_real_work                                  1               0.0044             0.0041         
+    Prepare C libRI object                        1                0.0000             0.0000        
+    Prepare V libRI object                        1                0.0000             0.0000        
+     build_real_space_exx_2_1                     1                 0.0000             0.0000       
+     build_real_space_exx_2_2                     1                 0.0000             0.0000       
+    Prepare DM libRI object                       1                0.0005             0.0003        
+     exx_build_dmat_libri_kpara                   1                 0.0001             0.0001       
+      get_dmat_cplx_Rs_kpara                      1                  0.0000             0.0000      
+    Call libRI Hexx calculation                   1                0.0035             0.0034        
+    build_real_space_exx_5                        1                0.0000             0.0000        
+  api_get_exx_pot_kgrid                           1              0.0006             0.0005          
+   exx_build_KS_blacs_redist                      1               0.0002             0.0001         
+    exx_build_KS_blacs_redist_comm_map2           1                0.0002             0.0001        
+   Hexx IJ -> 2D block                            8               0.0001             0.0001         
+   Rotate Hexx ij -> KS                           8               0.0002             0.0002         
+libRPA finished successfully

@@ -1,3 +1,0 @@
-task = exx
-parallel_routing = libri
-use_kpara_scf_eigvec = t

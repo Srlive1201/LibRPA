@@ -1,0 +1,5 @@
+# Driver parameters
+task = rpa
+input_dir = ../dataset
+# API runtime
+nfreq = 16

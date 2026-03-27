@@ -4,23 +4,15 @@ xc               pbe
 relativistic     atomic_zora scalar
 occupation_type  gaussian 0.0001
 basis_threshold  0.e-5
-qpe_calc         gw_expt  
-freq_grid_type minimax
-# freq_grid_type mod-GL
+qpe_calc         gw_expt
 frequency_points 16
-n_anacon_par 16
+n_anacon_par     16
 anacon_type pade
-k_grid 1 1 1  
-state_upper_limit 100000
+k_grid 1 1 1
 
-# print_input_librpa .true.
-output librpa binary
-symmetry_reduced_k_grid .false.  
+output librpa
 
-output gw_regular_kgrid
-# output self_energy
-
-
+# [insert species for H below]
 ################################################################################
 #
 #  FHI-aims code project

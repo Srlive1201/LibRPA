@@ -1,2 +1,9 @@
-!refs/*/aims.out*
-!refs/*/librpa*.out*
+testcases/*/*
+!testcases/*/*.in
+!testcases/*/*.py
+!testcases/*/librpa
+!testcases/*/dataset.tar.gz
+testcases/*/librpa/*
+!testcases/*/librpa/librpa.in
+
+!refs/*/*/*

@@ -11,7 +11,7 @@ anacon_type       1
 # Kgrids
 k_grid 1 1 1
 
-output librpa binary develop fold_C
+output librpa
 
 # [insert species for H and O below]
 ################################################################################

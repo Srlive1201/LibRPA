@@ -10,7 +10,7 @@ frequency_points 60
 # Kgrids
 k_grid 1 1 1
 
-output librpa binary develop fold_C
+output librpa
 
 ################################################################################
 #

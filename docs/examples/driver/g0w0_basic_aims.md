@@ -16,7 +16,7 @@ Folder structure
 
 `control.in` for FHI-aims dataset
 ```{literalinclude} ../../../regression_tests/testcases/g0w0_aims_mole_H2O_libri/control.in
-:lines: 1-16
+:end-at: [insert species
 ```
 
 `geometry.in` for FHI-aims dataset
@@ -24,14 +24,7 @@ Folder structure
 ```
 
 `librpa.in` for the LibRPA driver
-```
-# Driver parameters
-task = g0w0
-input_dir = ../dataset
-
-# API runtime
-nfreq = 32
-parallel_routing = libri
+```{literalinclude} ../../../regression_tests/testcases/g0w0_aims_mole_H2O_libri/librpa/librpa.in
 ```
 
 ## Quasi-particle band structure of Si
@@ -48,7 +41,7 @@ Folder structure
 
 `control.in` for FHI-aims dataset
 ```{literalinclude} ../../../regression_tests/testcases/g0w0_band_aims_Si_libri/control.in
-:lines: 1-25
+:end-at: [insert species
 ```
 
 `geometry.in` for FHI-aims dataset
@@ -56,14 +49,5 @@ Folder structure
 ```
 
 `librpa.in` for the LibRPA driver
-```
-# Driver parameters
-task = g0w0_band
-input_dir = ../dataset
-
-# API runtime
-nfreq = 6
-option_dielect_func = 0
-replace_w_head = t
-parallel_routing = libri
+```{literalinclude} ../../../regression_tests/testcases/g0w0_band_aims_Si_libri/librpa/librpa.in
 ```
