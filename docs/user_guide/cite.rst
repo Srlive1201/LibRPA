@@ -9,7 +9,7 @@ If you use LibRPA in your work, please consider citing:
 
   .. code-block:: bibtex
 
-     @article{ShiR2024,
+     @article{ShiR2024PRB,
        title = {Subquadratic-scaling real-space random phase approximation correlation energy calculations for periodic systems with numerical atomic orbitals},
        author = {Shi, Rong and Lin, Peize and Zhang, Min-Ye and He, Lixin and Ren, Xinguo},
        date = {2024-01-02},
@@ -27,7 +27,7 @@ If you use LibRPA in your work, please consider citing:
 
   .. code-block:: bibtex
 
-     @article{ShiR25,
+     @article{ShiR2025CPC,
        title = {{{LibRPA}}: {{A}} software package for low-scaling first-principles calculations of random phase approximation electron correlation energy based on numerical atomic orbitals},
        author = {Shi, Rong and Zhang, Min-Ye and Lin, Peize and He, Lixin and Ren, Xinguo},
        date = {2025-04-01},

@@ -96,11 +96,9 @@ examples, and tutorials, is available here: <https://srlive1201.github.io/LibRPA
 
 ## How to cite
 
-Please consider citing the following paper if you use LibRPA in your work:
+If you use LibRPA in published work, please consider citing the following papers:
 
 - R. Shi, P. Lin, M.-Y. Zhang, L. He, and X. Ren,
-  Subquadratic-scaling real-space random phase approximation correlation energy calculations for periodic systems with numerical atomic orbitals,
   *Phys. Rev. B* **109**, 035103 (2024).
 - R. Shi, M.-Y. Zhang, P. Lin, L. He, and X. Ren,
-  LibRPA: A software package for low-scaling first-principles calculations of random phase approximation electron correlation energy based on numerical atomic orbitals,
   *Comput. Phys. Commun.* **309**, 109496 (2025).
