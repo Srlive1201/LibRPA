@@ -1,5 +1,30 @@
 ## Regression tests
 
+This folder contains regression test cases used to verify LibRPA features.
+
+For each test case `CASE`, the input files are located under `testcases/${CASE}`,
+while the reference results are stored under `refs/${CASE}`.
+
+### Run a single test case manually
+
+The test cases in this directory must be run with the LibRPA driver enabled.
+After building LibRPA with the driver, you can run a test case as follows:
+
+```bash
+# The LibRPA driver executable built
+export myprog="/path/to/librpa/build/chi0_main.exe"
+export CASE=case_1
+
+cd testcases/${CASE}
+tar -zxf dataset.tar.gz
+cd librpa
+# Adjust OMP_NUM_THREADS and MPI tasks
+OMP_NUM_THREADS=1 mpirun -np 4 "$myprog" > librpa.out 2> librpa.err
+```
+
+After the run finishes, compare the standard output and any generated files with
+the reference results under `refs/${CASE}/librpa`.
+
 ### Create a regression test case data
 
 **Step 1**: create reference and testcase folder for the case
@@ -24,6 +49,7 @@ tar --exclude aims.out -zchf dataset.tar.gz dataset
 Step 3: prepare LibRPA input and run LibRPA to get reference data
 ```bash
 mkdir librpa
+cd librpa
 cat > librpa.in << EOF
 task = rpa
 input_dir = ../dataset
