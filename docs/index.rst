@@ -20,7 +20,6 @@ through both file-based and API-based workflows.
 
 - RPA correlation energy calculations and GW quasiparticle calculations for atomic basis framework.
 - Low-scaling algorithms based on the localized resolution of identity (LRI) technique.
-- Efficient treatment of large-scale periodic systems.
 - Hybrid MPI/OpenMP parallelism for scalability and performance.
 - Flexible integration with external DFT packages through driver-based and API-based interfaces.
 
