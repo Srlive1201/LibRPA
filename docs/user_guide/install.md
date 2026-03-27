@@ -29,13 +29,15 @@ You can obtain the LibRPA code by cloning the GitHub repository:
 git clone https://github.com/Srlive1201/LibRPA
 ```
 
-Then enter the repository and initialize the submodules:
+For commit hash before `28b7431` (including tag `v0.4.0` and older),
+LibRI and LibComm are included as Git submodules.
+In this case, you need to initialize the submodules in order to compile with LibRI
 ```bash
 cd LibRPA
 git submodule update --init --recursive
 ```
 
-After this step, the source tree is ready for compilation.
+The source tree is now ready for compilation.
 
 ## Compile
 

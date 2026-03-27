@@ -22,7 +22,6 @@ BUILDDIR="${BUILDDIR:=build_intel_llvm_libri}"
 
 # Optionally, one can specify the path of their own LibRI and LibComm libraries.
 # If not set, those under thirdparty/ will be used.
-# Since they are hosted as git submodule, you may need to run "git submodule update --init --recursive"
 export LIBRI_DIR="$HOME/programs/LibRI"
 export LIBCOMM_DIR="$HOME/programs/LibComm"
 
