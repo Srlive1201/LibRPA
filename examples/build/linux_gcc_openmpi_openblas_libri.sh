@@ -22,7 +22,7 @@ export OMPI_CC=gcc
 export OMPI_CXX=g++
 export OMPI_FC=gfortran
 
-# Compile flags
+# Compiler flags
 export FCFLAGS="-fPIC -g -fallow-argument-mismatch -ffree-line-length-none"
 export CXXFLAGS="-fPIC -g -rdynamic -Wl,-lgfortran"
 

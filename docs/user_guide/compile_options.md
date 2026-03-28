@@ -16,6 +16,7 @@
 | [`LIBRI_INCLUDE_DIR`](#libri-include-dir)                   | string            | empty      |
 | [`LIBCOMM_INCLUDE_DIR`](#libcomm-include-dir)               | string            | empty      |
 | [`CEREAL_INCLUDE_DIR`](#cereal-include-dir)                 | string            | empty      |
+| [`SCALAPACK_DIR`](#scalapack-dir)                           | string            | empty      |
 
 These options can be parsed on the CMake command line, for example:
 
@@ -67,6 +68,8 @@ Specifies the Fortran kind used for double-precision real and complex data in th
 
 The default value is `c_double`, which is suitable when interoperability with C is desired.
 This option may also be set to an integer kind value if needed by the calling code.
+
+This option is meaningful only if `LIBRPA_ENABLE_FORTRAN_BIND=ON`.
 
 (librpa-enable-driver)=
 ## `LIBRPA_ENABLE_DRIVER`
@@ -147,3 +150,27 @@ Example:
 ```sh
 cmake -DCEREAL_INCLUDE_DIR=/path/to/cereal/include
 ```
+
+(scalapack-dir)=
+## `SCALAPACK_DIR`
+
+`SCALAPACK_DIR` specifies the installation path of ScaLAPACK and is used to
+locate the ScaLAPACK libraries when `MKLROOT` is not defined.
+
+This variable can be provided in two ways:
+
+- as a CMake option:
+
+  ```bash
+  cmake -DSCALAPACK_DIR=/path/to/scalapack
+  ```
+
+- or as an environment variable:
+
+  ```bash
+  export SCALAPACK_DIR=/path/to/scalapack
+  cmake
+  ```
+
+This option is intended for environments where ScaLAPACK is provided as a
+standalone installation rather than through Intel MKL.

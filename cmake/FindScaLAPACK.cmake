@@ -7,8 +7,12 @@
 
 find_library(ScaLAPACK_LIBRARY
     NAMES scalapack scalapack-openmpi
-    HINTS ${SCALAPACK_DIR}
-    PATH_SUFFIXES "lib"
+    HINTS
+        ${SCALAPACK_DIR}
+        $ENV{SCALAPACK_DIR}
+    PATH_SUFFIXES
+        lib
+        lib64
 )
 
 # Handle the QUIET and REQUIRED arguments and
