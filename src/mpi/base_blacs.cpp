@@ -220,7 +220,7 @@ std::vector<int> get_proc_indices_blacs(const int &m, const int &n, const int &m
     return procids;
 }
 
-void ArrayDesc::set_blacs_params_(int comm, int ictxt, int nprocs, int myid, int nprows,
+void ArrayDesc::set_blacs_params_(MPI_Comm comm, int ictxt, int nprocs, int myid, int nprows,
                                   int myprow, int npcols, int mypcol)
 {
     assert(myid < nprocs && myprow < nprows && mypcol < npcols);

@@ -10,9 +10,9 @@ static LibrpaHandler* librpa_create_handler_common(MPI_Comm c_comm)
 }
 
 // C APIs
-LibrpaHandler* librpa_create_handler(int comm)
+LibrpaHandler* librpa_create_handler(MPI_Comm comm)
 {
-    return ::librpa_create_handler_common(static_cast<MPI_Comm>(comm));
+    return ::librpa_create_handler_common(comm);
 }
 
 void librpa_destroy_handler(LibrpaHandler *h)

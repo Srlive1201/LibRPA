@@ -13,19 +13,19 @@ namespace librpa_int
 // traits to decide MPI_Datatype for communication
 template <typename T> struct mpi_datatype;
 template <> struct mpi_datatype<int>
-{ static constexpr MPI_Datatype value = MPI_INT; };
+{ static inline const MPI_Datatype value = MPI_INT; };
 template <> struct mpi_datatype<float>
-{ static constexpr MPI_Datatype value = MPI_FLOAT; };
+{ static inline const MPI_Datatype value = MPI_FLOAT; };
 template <> struct mpi_datatype<double>
-{ static constexpr MPI_Datatype value = MPI_DOUBLE; };
+{ static inline const MPI_Datatype value = MPI_DOUBLE; };
 template <> struct mpi_datatype<long>
-{ static constexpr MPI_Datatype value = MPI_LONG; };
+{ static inline const MPI_Datatype value = MPI_LONG; };
 template <> struct mpi_datatype<unsigned long>
-{ static constexpr MPI_Datatype value = MPI_UNSIGNED_LONG; };
+{ static inline const MPI_Datatype value = MPI_UNSIGNED_LONG; };
 template <> struct mpi_datatype<std::complex<float>>
-{ static constexpr MPI_Datatype value = MPI_C_FLOAT_COMPLEX; };
+{ static inline const MPI_Datatype value = MPI_C_FLOAT_COMPLEX; };
 template <> struct mpi_datatype<std::complex<double>>
-{ static constexpr MPI_Datatype value = MPI_C_DOUBLE_COMPLEX; };
+{ static inline const MPI_Datatype value = MPI_C_DOUBLE_COMPLEX; };
 
 extern const char *mpi_procname_uninit;
 

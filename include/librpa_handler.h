@@ -5,6 +5,10 @@
  * @brief Handler management for LibRPA instances.
  */
 
+// MPI is required to compile LibRPA.
+// TODO: wrap around with LIBRPA_USE_MPI when non-MPI usage is maturer (for compatibility)
+#include <mpi.h>
+
 // C APIs
 #ifdef __cplusplus
 extern "C" {
@@ -38,7 +42,7 @@ typedef struct
  *
  * @see librpa_destroy_handler
  */
-LibrpaHandler* librpa_create_handler(int comm);
+LibrpaHandler* librpa_create_handler(MPI_Comm comm);
 
 /**
  * @brief Destroy a LibRPA handler instance.

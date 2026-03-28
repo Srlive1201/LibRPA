@@ -20,7 +20,6 @@
 
 #include <vector>
 #include <complex>
-#include <utility>
 
 /**
  * @brief Main namespace for LibRPA C++ API.
@@ -168,7 +167,7 @@ public:
      * @brief Construct and initialize handler with MPI communicator.
      * @param comm MPI communicator for parallel computation.
      */
-    Handler(int comm);
+    Handler(MPI_Comm comm);
 
     /** @brief Get underlying C handler (for internal use). */
     const LibrpaHandler *get_c_handler() const { return h_; }
@@ -177,7 +176,7 @@ public:
      * @brief Initialize handler with given MPI communicator.
      * @param comm MPI communicator.
      */
-    void init(int comm);
+    void init(MPI_Comm comm);
 
     /**
      * @brief Free handler and release resources.

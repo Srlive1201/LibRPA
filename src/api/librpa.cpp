@@ -35,9 +35,9 @@ void test(void) { ::librpa_test(); }
 void print_profile(void) { ::librpa_print_profile(); }
 
 /* Constructor and destructor definition for the C++ handler object */
-Handler::Handler(int comm) : h_(nullptr) { this->init(comm); }
+Handler::Handler(MPI_Comm comm) : h_(nullptr) { this->init(comm); }
 
-void Handler::init(int comm)
+void Handler::init(MPI_Comm comm)
 {
     if (h_) throw LIBRPA_RUNTIME_ERROR("double creating handler");  // safe guard
     h_ = ::librpa_create_handler(comm);

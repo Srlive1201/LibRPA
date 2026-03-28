@@ -141,7 +141,9 @@ if(NOT _loaded_cmake_inc)
   include_directories(${MPI_CXX_INCLUDE_PATH})
 endif()
 
-# TODO: always switch on MPI, until test program for MPI is implemented
+# TODO: always switch on MPI, until test program for non-MPI case is implemented.
+#       This will require a more comprehensive stub MPI library in LibRPA,
+#       and is actually low in priority because LibRPA targets large-scale computation.
 add_compile_definitions("LIBRPA_USE_MPI")
 
 # Switch on LibRI functionalities, which requires Cereal, LibComm and LibRI

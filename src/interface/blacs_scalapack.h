@@ -1,6 +1,7 @@
 #pragma once
 
 #include <complex>
+#include "./mpi.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -21,8 +22,8 @@ extern "C"
     int blacs_pnum_(const int *ictxt, const int *prow, const int *pcol);
     void blacs_gridexit_(int *ictxt);
 
-    int Csys2blacs_handle(int SysCtxt);
-    int Cblacs2sys_handle(int BlacsCtxt);
+    int Csys2blacs_handle(MPI_Comm SysCtxt);
+    MPI_Comm Cblacs2sys_handle(int BlacsCtxt);
     void Cblacs_pinfo(int *myid, int *nprocs);
     void Cblacs_gridmap(int* ictxt, int *usermap, int ldumap, int nprow, int npcol);
     void Cblacs_gridinfo(int ictxt, int *nprow, int *npcol, int *prow, int *pcol);
