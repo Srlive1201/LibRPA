@@ -16,6 +16,8 @@ in C++ with MPI/OpenMP parallelism and equipped with C and Fortran
 interfaces, LibRPA can be integrated with density functional theory (DFT) codes
 through both file-based and API-based workflows.
 
+LibRPA is :doc:`licensed <develop/licensing>` under LGPL-3.0.
+
 **Key Features**
 
 - RPA correlation energy calculations and GW quasiparticle calculations for atomic basis framework.
@@ -74,6 +76,7 @@ through both file-based and API-based workflows.
    develop/design
    develop/dataset_format
    develop/known_issues
+   develop/licensing
    API Documentation <doxygen/librpa/html/index>
 
 ..

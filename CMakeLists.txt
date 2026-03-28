@@ -44,8 +44,8 @@ if (DEFINED USE_GREENX_API)
 endif()
 # Hash number of the bundled greenX. Keep it consistent with thirdparty/greenX
 set(_BUNDLED_GREENX_COMMIT_HASH  "c90d131")
-set(_BUNDLED_LIBRI_COMMIT_HASH   "47beb11")
-set(_BUNDLED_LIBCOMM_COMMIT_HASH "c6606b3")
+set(_BUNDLED_LIBRI_COMMIT_HASH   "1f4200c")
+set(_BUNDLED_LIBCOMM_COMMIT_HASH "965bf90")
 
 # Add cmake load files
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
@@ -149,7 +149,7 @@ add_compile_definitions("LIBRPA_USE_MPI")
 # by command line or environment variables, the internal packages are used.
 # If any of the include directory is specified but not found, a fatal error will be raised.
 if(LIBRPA_USE_LIBRI)
-  message(STATUS "Build with LibRI and dependeicies")
+  message(STATUS "Build with LibRI and dependencies")
 
   # Check Cereal
   if(NOT CEREAL_INCLUDE_DIR)

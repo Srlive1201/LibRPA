@@ -102,3 +102,15 @@ If you use LibRPA in published work, please consider citing the following papers
   *Phys. Rev. B* **109**, 035103 (2024).
 - R. Shi, M.-Y. Zhang, P. Lin, L. He, and X. Ren,
   *Comput. Phys. Commun.* **309**, 109496 (2025).
+
+## Licensing
+
+LibRPA is licensed under the GNU Lesser General Public License v3.0
+(LGPL-3.0).
+
+The bundled or included third-party components are licensed as follows:
+
+- [greenX (`c90d131`)](https://github.com/nomad-coe/greenX/tree/c90d131873eeec68406c335dc22ae8ad4b445dd8): Apache-2.0
+- [cereal (1.3.0)](https://github.com/USCiLab/cereal/tree/v1.3.0): BSD-3-Clause
+- [LibRI (`1f4200c`)](https://github.com/abacusmodeling/LibRI/tree/1f4200cc96d64d3202629af27a518644e692f341): LGPL-3.0
+- [LibComm (`965bf90`)](https://github.com/abacusmodeling/LibComm/tree/965bf90713ce5598bae4fd957d417065f77ceb42): LGPL-3.0

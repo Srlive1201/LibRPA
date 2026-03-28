@@ -2,7 +2,7 @@
 
 ## Caveats
 
-To be added
+- [ ] `nan` is returned to `sigc` output when quasi-particle equation solver cannot find a stable solution.
 
 ## Planned Improvements
 
