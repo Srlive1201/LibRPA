@@ -47,7 +47,7 @@ Fortran, MPI, BLAS/LAPACK, and ScaLAPACK.
 The Intel compilers and Intel MPI together with MKL from Intel oneAPI are often
 the most straightforward choice. Alternatively, LibRPA can also be built with
 GCC/GFortran together with an open-source MPI implementation such as
-[MPICH](https://www.mpich.org) and an open-source ScaLAPACK library [Netlib ScaLAPACK](https://www.netlib.org/scalapack>).
+[MPICH](https://www.mpich.org) and an open-source ScaLAPACK library [Netlib ScaLAPACK](https://www.netlib.org/scalapack).
 
 LibRPA uses CMake as its build system.
 Ensure that the compilers and required libraries can be found under directories specified
