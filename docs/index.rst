@@ -29,7 +29,7 @@ LibRPA is :doc:`licensed <develop/licensing>` under LGPL-3.0.
 
 - :doc:`Installation guide <user_guide/install>` together with :doc:`example build scripts <examples/build/index>`
 - Tutorials by functionality: :doc:`RPA <tutorial/rpa/index>`, :doc:`one-shot GW <tutorial/g0w0/index>`, and more to come.
-- :doc:`Driver examples <examples/build/index>`
+- :doc:`Driver examples <examples/driver/index>`
 
 **User Guide**
 
