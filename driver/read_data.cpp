@@ -1593,6 +1593,8 @@ void read_stru(const std::string &file_path)
 
     ifstream infile;
     infile.open(file_path);
+    if (!infile.good())
+        throw LIBRPA_RUNTIME_ERROR("Fail to open structure file " + file_path);
     string x, y, z, tmp;
 
     std::vector<double> lat_mat(9);
@@ -1647,6 +1649,8 @@ void read_bz_sampling(const std::string &file_path)
 
     ifstream infile;
     infile.open(file_path);
+    if (!infile.good())
+        throw LIBRPA_RUNTIME_ERROR("Fail to open BZ sampling file " + file_path);
 
     string x, y, z, tmp;
 
@@ -1668,10 +1672,70 @@ void read_bz_sampling(const std::string &file_path)
         // id weight kfrac[3] kcart[3] ik_ibz map_ibz
         infile >> x >> y;
         infile >> x >> y >> z;
+        // kcart[3]
         infile >> kvecs[3 * i] >> kvecs[3 * i + 1] >> kvecs[3 * i + 2];
+        // ik_ibz map_ibz
         infile >> tmp >> map_ibzk[i];
         map_ibzk[i] -= 1;
         // Save a copy in the driver for information printing
+        Vector3_Order<double> kvec(kvecs[3 * i], kvecs[3 * i + 1], kvecs[3 * i + 2]);
+        auto it = std::find(driver::ibz_kpoints.cbegin(), driver::ibz_kpoints.cend(), kvec);
+        if (it == driver::ibz_kpoints.cend()) driver::ibz_kpoints.emplace_back(kvec);
+    }
+    infile.close();
+
+    driver::n_ibz_kpoints = driver::ibz_kpoints.size();
+
+    driver::h.set_kgrids_kvec(nk[0], nk[1], nk[2], kvecs.data());
+    driver::h.set_ibz_mapping(map_ibzk);
+}
+
+void read_bz_sampling_from_stru(const std::string &file_path)
+{
+    using namespace librpa_int;
+
+    global::lib_printf_root("Fallback reading Brillouin zone sampling from stru file: %s\n", file_path.c_str());
+
+    ifstream infile;
+    string x;
+    infile.open(file_path);
+    if (!infile.good())
+        throw LIBRPA_RUNTIME_ERROR("Fail to open structure file " + file_path);
+
+    // Skip direct and reciprocal lattice vectors
+    for (int i = 0; i < 6; i++)
+    {
+        infile >> x >> x >> x;
+    }
+    // Skip atom coordinates
+    int n_atoms;
+    infile >> n_atoms;
+    for (size_t iat = 0; iat < n_atoms; iat++)
+    {
+        for (int i = 0; i < 4; i++) infile >> x;
+    }
+
+    // Begin k-grid information
+    int nk[3];
+    for (int i = 0; i < 3; i++)
+    {
+        infile >> x;
+        nk[i] = stoi(x);
+    }
+    const int nk_full = nk[0] * nk[1] * nk[2];
+    std::vector<double> kvecs(3 * nk_full);
+    std::vector<int> map_ibzk(nk_full, -1);
+
+    for (int i = 0; i != 3 * nk_full; i++)
+    {
+        infile >> x;
+        kvecs[i] = stod(x);
+    }
+
+    for (int i = 0; i != nk_full; i++)
+    {
+        infile >> map_ibzk[i];
+        map_ibzk[i] -= 1;
         Vector3_Order<double> kvec(kvecs[3 * i], kvecs[3 * i + 1], kvecs[3 * i + 2]);
         auto it = std::find(driver::ibz_kpoints.cbegin(), driver::ibz_kpoints.cend(), kvec);
         if (it == driver::ibz_kpoints.cend()) driver::ibz_kpoints.emplace_back(kvec);
@@ -1694,7 +1758,7 @@ void read_basis(const std::string &file_path)
 
     int n_atoms = driver::atom_types.size();
     if (as_size(n_atoms) != driver::n_atoms)
-        throw std::runtime_error("Number of atoms not consistent with the geometry file!");
+        throw LIBRPA_RUNTIME_ERROR("Number of atoms not consistent with the geometry file!");
     std::map<int, size_t> map_at_wfc;
     std::map<int, size_t> map_at_aux;
     std::vector<size_t> nbs_wfc(n_atoms);
@@ -1729,6 +1793,15 @@ void read_basis(const std::string &file_path)
     driver::h.set_ao_basis_aux(nbs_aux);
 
     infile.close();
+}
+
+
+void read_basis_from_Cs(const string &dir_path)
+{
+    using namespace librpa_int;
+
+    global::lib_printf_root("Fallback reading basis information from Cs files under: %s\n", dir_path.c_str());
+    throw LIBRPA_RUNTIME_ERROR("Not implemented yet");
 }
 
 

@@ -48,8 +48,12 @@ size_t read_Vq_row(const string &dir_path, const string &vq_fprefix, double thre
 void read_stru(const std::string &file_path);
 
 void read_bz_sampling(const std::string &file_path);
+// Fallback method to read k-points mapping from stru_out files, for early dataset versions
+void read_bz_sampling_from_stru(const std::string &file_path);
 
 void read_basis(const std::string &file_path);
+// Fallback method to read basis dimensions from Cs files, for early dataset versions
+void read_basis_from_Cs(const string &dir_path);
 
 void read_dielec_func(const string &file_path, std::vector<double> &omegas,
                       std::vector<double> &dielec_func_imagfreq);

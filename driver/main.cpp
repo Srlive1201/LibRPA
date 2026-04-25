@@ -14,6 +14,7 @@
 // May move to public API later
 #include "../src/utils/profiler.h"
 #include "../src/utils/utils_mem.h"
+#include "../src/io/fs.h"
 
 static void initialize(int argc, char **argv)
 {
@@ -109,9 +110,14 @@ int main(int argc, char **argv)
     mpi_comm_global_h.barrier();
     profiler.stop("driver_read_params");
 
+    const string path_stru = driver_params.input_dir + "stru_out";
+    const string path_bz_sampling = driver_params.input_dir + "bz_sampling_out";
+    const string path_basis = driver_params.input_dir + "basis_out";
+    const string path_scf_eigen = driver_params.input_dir + "band_out";
+
     profiler.start("driver_read_common_input_data", "Driver Read Task-Common Input Data");
     profiler.start("driver_band_out", "DFT SCF eigenvalues/occupations");
-    read_scf_occ_eigenvalues(driver_params.input_dir + "band_out");
+    read_scf_occ_eigenvalues(path_scf_eigen);
     profiler.stop("driver_band_out");
 
     task_t task = get_task(driver_params.task);
@@ -120,17 +126,23 @@ int main(int argc, char **argv)
     if (task != task_t::print_minimax)
     {
         profiler.start("driver_struct", "Structure");
-        read_stru(driver_params.input_dir + "stru_out");
+        read_stru(path_stru);
         profiler.stop("driver_struct");
         lib_printf_root("\n");
 
         profiler.start("driver_bz", "BZ sampling");
-        read_bz_sampling(driver_params.input_dir + "bz_sampling_out");
+        if (librpa_int::path_exists(path_bz_sampling.c_str()))
+            read_bz_sampling(path_bz_sampling);
+        else
+            read_bz_sampling_from_stru(path_stru);
         lib_printf_root("\n");
         profiler.stop("driver_bz");
 
         profiler.start("driver_basis", "Basis (wave-function and auxiliary)");
-        read_basis(driver_params.input_dir + "basis_out");
+        if (librpa_int::path_exists(path_basis.c_str()))
+            read_basis(path_basis);
+        else
+            read_basis_from_Cs(driver_params.input_dir);
         lib_printf_root("\n");
         profiler.stop("driver_basis");
 
