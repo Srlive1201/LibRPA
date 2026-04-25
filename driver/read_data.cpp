@@ -1795,13 +1795,136 @@ void read_basis(const std::string &file_path)
     infile.close();
 }
 
+static void get_basis_from_Cs(const string &file_path, std::map<int, size_t> &map_at_wfc, std::map<int, size_t> &map_at_aux)
+{
+    string natom_s, ncell_s, ia1_s, ia2_s, ic_1, ic_2, ic_3, i_s, j_s, mu_s, Cs_ele;
+    ifstream infile;
+    infile.open(file_path);
+    infile >> natom_s >> ncell_s;
+
+    while (infile.peek() != EOF)
+    {
+        infile >> ia1_s >> ia2_s >> ic_1 >> ic_2 >> ic_3 >> i_s;
+        if (infile.peek() == EOF)
+            break;
+        // cout << " ia1_s,ia2_s: " << ia1_s << "  " << ia2_s << endl;
+        infile >> j_s >> mu_s;
+        // cout<<ic_1<<mu_s<<endl;
+        int ia1 = stoi(ia1_s) - 1;
+        int ia2 = stoi(ia2_s) - 1;
+        size_t n_i = stoi(i_s);
+        size_t n_j = stoi(j_s);
+        size_t n_mu = stoi(mu_s);
+        map_at_wfc[ia1] = n_i;
+        map_at_wfc[ia2] = n_j;
+        map_at_aux[ia1] = n_mu;
+
+        for (size_t i = 0; i != n_i; i++)
+            for (size_t j = 0; j != n_j; j++)
+                for (size_t mu = 0; mu != n_mu; mu++)
+                    infile >> Cs_ele;
+    }
+    infile.close();
+}
+
+static void get_basis_from_Cs_binary(const string &file_path, std::map<int, size_t> &map_at_wfc, std::map<int, size_t> &map_at_aux)
+{
+    ifstream infile;
+    int dims[8];
+    int n_apcell_file;
+    int natom, ncell;
+
+    infile.open(file_path, std::ios::in | std::ios::binary);
+    infile.read((char *) &natom, sizeof(int));
+    infile.read((char *) &ncell, sizeof(int));
+    infile.read((char *) &n_apcell_file, sizeof(int));
+
+    for (int i = 0; i < n_apcell_file; i++)
+    {
+        infile.read((char *) &dims[0], 8 * sizeof(int));
+        int ia1 = dims[0] - 1;
+        int ia2 = dims[1] - 1;
+        size_t n_i = dims[5];
+        size_t n_j = dims[6];
+        size_t n_mu = dims[7];
+        map_at_wfc[ia1] = n_i;
+        map_at_wfc[ia2] = n_j;
+        map_at_aux[ia1] = n_mu;
+        infile.seekg(n_i * n_j * n_mu * sizeof(double), std::ios::cur);
+    }
+}
+
+
 
 void read_basis_from_Cs(const string &dir_path)
 {
     using namespace librpa_int;
 
     global::lib_printf_root("Fallback reading basis information from Cs files under: %s\n", dir_path.c_str());
-    throw LIBRPA_RUNTIME_ERROR("Not implemented yet");
+
+    struct dirent *ptr;
+    DIR *dir;
+    std::vector<string> files;
+    bool binary;
+    bool binary_checked = false;
+
+    std::map<int, size_t> map_at_wfc;
+    std::map<int, size_t> map_at_aux;
+    int n_atoms;
+    std::vector<size_t> nbs_wfc;
+    std::vector<size_t> nbs_aux;
+
+    // Let the master process reads and then broadcasts to others
+    if (global::myid_global == 0)
+    {
+        dir = opendir(dir_path.c_str());
+        // Get the atom-basis mapping
+        while ((ptr = readdir(dir)) != NULL)
+        {
+            string fm(ptr->d_name);
+            if (fm.find("Cs_data") == 0)
+            {
+                const auto fn = dir_path + fm;
+                if (!binary_checked)
+                {
+                    binary = check_Cs_file_binary(fn);
+                    binary_checked = true;
+                }
+                if (binary)
+                {
+                    get_basis_from_Cs_binary(fn, map_at_wfc, map_at_aux);
+                }
+                else
+                {
+                    get_basis_from_Cs(fn, map_at_wfc, map_at_aux);
+                }
+            }
+        }
+        closedir(dir);
+        // Fill the basis vectors from the mappings
+        assert(map_at_wfc.size() == map_at_aux.size());
+        n_atoms = as_int(map_at_wfc.size());
+        nbs_wfc.resize(n_atoms);
+        nbs_aux.resize(n_atoms);
+        for (int ia = 0; ia < n_atoms; ia++)
+        {
+            nbs_wfc[ia] = map_at_wfc.at(ia);
+            nbs_aux[ia] = map_at_aux.at(ia);
+        }
+    }
+    dir = NULL;
+
+    // Broadcast
+    global::mpi_comm_global_h.bcast(&n_atoms, 1, 0);
+    if (global::myid_global != 0)
+    {
+        nbs_wfc.resize(n_atoms);
+        nbs_aux.resize(n_atoms);
+    }
+    global::mpi_comm_global_h.bcast(nbs_wfc.data(), n_atoms, 0);
+    global::mpi_comm_global_h.bcast(nbs_aux.data(), n_atoms, 0);
+    driver::h.set_ao_basis_wfc(nbs_wfc);
+    driver::h.set_ao_basis_aux(nbs_aux);
 }
 
 
