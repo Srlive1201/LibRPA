@@ -186,7 +186,7 @@ public:
     /**
      * @brief Defatul destructor - automatically frees handler if not already freed.
      *
-     * @note Reply on free() to explicitly release resources.
+     * @note Rely on free() to explicitly release resources.
      */
     ~Handler();
 
