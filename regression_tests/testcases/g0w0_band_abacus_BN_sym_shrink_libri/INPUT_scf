@@ -3,16 +3,10 @@ INPUT_PARAMETERS
 pseudo_dir		./
 orbital_dir		./
 out_mat_xc      1
-out_chg		1
-out_mat_hs2           1
-out_mat_r             1
-
-noncolin	0 
-lspinorb	1 
 
 calculation	scf
 ntype			2	
-nbands			76
+nbands			26
 #Parameters (Accuracy)
 ecutwfc			100
 
@@ -22,9 +16,10 @@ basis_type		lcao
 ks_solver  genelpa
 dft_functional			pbe
 rpa				1
-symmetry			-1
+symmetry            1
 exx_separate_loop		1
-exx_pca_threshold		5e-2
+exx_pca_threshold		1e-3
+shrink_abfs_pca_thr             1e-1
 
 #exx_v_threshold			0
 #exx_c_threshold			0	
@@ -32,10 +27,11 @@ exx_pca_threshold		5e-2
 #exx_schwarz_threshold	0	
 #exx_cauchy_threshold	1E-7
 
-exx_singularity_correction massidda
 exx_ccp_rmesh_times		1
 rpa_ccp_rmesh_times	    1
 exx_real_number         1
-
-shrink_abfs_pca_thr     2e-1
-shrink_lu_inv_thr       1e-4
+out_ri_cv          1
+out_wfc_lcao       1
+out_mat_hs2        1
+out_mat_r          1
+exx_singularity_correction massidda

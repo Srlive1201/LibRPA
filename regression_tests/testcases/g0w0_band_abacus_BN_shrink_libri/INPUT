@@ -27,7 +27,7 @@ shrink_abfs_pca_thr             1e-1
 #exx_schwarz_threshold	0	
 #exx_cauchy_threshold	1E-7
 
-exx_use_ewald           1
+exx_singularity_correction massidda
 exx_ccp_rmesh_times		1
 rpa_ccp_rmesh_times	    1
 exx_real_number         1
