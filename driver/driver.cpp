@@ -13,6 +13,9 @@ DriverParams::DriverParams():
     constants_choice("internal"),
     input_dir("./"),
     cs_threshold(1e-6),
+    output_energy_qp(false),
+    output_hamgnn(false),
+    use_pyatb(false),
     output_gw_spec_func(false),
     sf_omega_start(0.0),
     sf_omega_end(1.0),
@@ -28,10 +31,13 @@ std::string DriverParams::format()
 {
     std::stringstream ss;
     ss << "task = " << task << std::endl;
-    ss << "cs_R_threshold = " << cs_threshold << std::endl;
-    ss << "input_dir = " << input_dir << std::endl;
     ss << "constants_choice = " << constants_choice << std::endl;
+    ss << "input_dir = " << input_dir << std::endl;
+    ss << "cs_R_threshold = " << cs_threshold << std::endl;
+    ss << "output_energy_qp = " << std::boolalpha << output_energy_qp << std::endl;
     ss << "output_gw_spec_func = " << std::boolalpha << output_gw_spec_func << std::endl;
+    ss << "output_hamgnn = " << std::boolalpha << output_hamgnn << std::endl;
+    ss << "use_pyatb = " << std::boolalpha << use_pyatb << std::endl;
     if (output_gw_spec_func)
     {
         ss << "sf_omega_start = " << sf_omega_start << std::endl;
@@ -79,6 +85,8 @@ std::string format_runtime_options(const librpa::Options &opts) noexcept
         {
             {"gf_R_threshold", opts.gf_threshold},
             normal_pair(vq_threshold),
+            normal_pair(minimax_emin),
+            normal_pair(minimax_emax),
             normal_pair(sqrt_coulomb_threshold),
             normal_pair(libri_chi0_threshold_C),
             normal_pair(libri_chi0_threshold_G),
@@ -93,6 +101,8 @@ std::string format_runtime_options(const librpa::Options &opts) noexcept
     const std::vector<std::pair<std::string, int>> int_params
         {
             normal_pair(nfreq),
+            normal_pair(n_bands_chi0),
+            normal_pair(n_bands_sigc),
             normal_pair(n_params_anacon),
             normal_pair(option_dielect_func),
         };
@@ -109,6 +119,12 @@ std::string format_runtime_options(const librpa::Options &opts) noexcept
         {
             {"debug", opts.output_level >= LIBRPA_VERBOSE_DEBUG},
             bool_pair(replace_w_head),
+            bool_pair(use_spinor_wfc),
+            bool_pair(use_fullcoul_eps),
+            bool_pair(use_fullcoul_exx),
+            bool_pair(use_fullcoul_wc),
+            bool_pair(use_shrink_abfs),
+            bool_pair(use_shrink_chi),
             bool_pair(use_scalapack_ecrpa),
             bool_pair(use_scalapack_gw_wc),
             bool_pair(use_kpara_scf_eigvec),

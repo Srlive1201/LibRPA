@@ -190,7 +190,10 @@ void parse_inputfile_to_params(const std::string &fn)
     }
     _parse_string_post(driver_params, input_dir, check_dirpath);
     _parse_double(driver_params, cs_threshold);
-    parser.parse_bool("output_gw_spec_func", driver_params.output_gw_spec_func, false, flag);
+    parser.parse_bool("output_energy_qp", driver_params.output_energy_qp, flag);
+    parser.parse_bool("output_hamgnn", driver_params.output_hamgnn, flag);
+    parser.parse_bool("use_pyatb", driver_params.use_pyatb, flag);
+    parser.parse_bool("output_gw_spec_func", driver_params.output_gw_spec_func, flag);
 
     // TODO: implement a function to read multiple double values in one line
     if (driver_params.output_gw_spec_func)
@@ -211,9 +214,16 @@ void parse_inputfile_to_params(const std::string &fn)
 
     parser.parse_bool("debug", btmp, false, flag);  // backward-compatible
     if (btmp) opts.output_level = LIBRPA_VERBOSE_DEBUG;
+
     parser.parse_string("output_level", stmp, "info", flag);
     if (flag == 0) opts.output_level = get_verbose(stmp);
+
     _parse_double(opts, vq_threshold);
+
+    _parse_switch(opts, use_spinor_wfc);
+    parser.parse_bool("use_soc", btmp, false, flag);  // backward-compatible
+    if (btmp) opts.use_spinor_wfc = LIBRPA_SWITCH_ON;
+
     _parse_switch(opts, use_kpara_scf_eigvec);
 
     _parse_string_post(opts, tfgrids_type, get_tfgrid_type);
@@ -225,12 +235,25 @@ void parse_inputfile_to_params(const std::string &fn)
     if (opts.tfgrids_type == LibrpaTimeFreqGrid::TFGRID_UNSET)
         opts.tfgrids_type = LibrpaTimeFreqGrid::Minimax;
     _parse_int(opts, nfreq);
+    _parse_double(opts, tfgrids_freq_min);
+    _parse_double(opts, tfgrids_freq_interval);
+    _parse_double(opts, tfgrids_freq_max);
+    _parse_double(opts, tfgrids_time_min);
+    _parse_double(opts, tfgrids_time_interval);
+
+    _parse_double(opts, minimax_emin);
+    _parse_double(opts, minimax_emax);
+
+    _parse_switch(opts, use_fullcoul_eps);
+    _parse_switch(opts, use_fullcoul_exx);
+    _parse_switch(opts, use_fullcoul_wc);
+
+    _parse_int(opts, n_bands_chi0);
+    _parse_int(opts, n_bands_sigc);
+
     // chi0 related
-    parser.parse_bool("use_shrink_abfs", Params::use_shrink_abfs, false, flag);
-    parser.parse_bool("use_shrink_chi", Params::use_shrink_chi, true, flag);
-    parser.parse_bool("use_soc", Params::use_soc, false, flag);
-    parser.parse_bool("use_2d_dielectric", Params::use_2d_dielectric, false, flag);
-    parser.parse_bool("use_pyatb", Params::use_pyatb, true, flag);
+    _parse_switch(opts, use_shrink_abfs);
+    _parse_switch(opts, use_shrink_chi);
 
     // RPA specific
     parser.parse_double("gf_R_threshold", opts.gf_threshold, flag); // backward compatible
@@ -240,32 +263,25 @@ void parse_inputfile_to_params(const std::string &fn)
     _parse_switch(opts, use_scalapack_ecrpa);
 
     // EXX specific
-    parser.parse_bool("use_fullcoul_exx", Params::use_fullcoul_exx, false, flag);
-    parser.parse_bool("use_fullcoul_wc", Params::use_fullcoul_wc, false, flag);
     _parse_double(opts, libri_exx_threshold_C);
     _parse_double(opts, libri_exx_threshold_D);
     _parse_double(opts, libri_exx_threshold_V);
 
     // GW specific
+    _parse_int(opts, n_params_anacon);
     _parse_double(opts, sqrt_coulomb_threshold);
     _parse_switch(opts, use_scalapack_gw_wc);
+    _parse_switch(opts, load_sigc_from_file);
     _parse_double(opts, libri_g0w0_threshold_C);
     _parse_double(opts, libri_g0w0_threshold_G);
     _parse_double(opts, libri_g0w0_threshold_Wc);
     _parse_switch(opts, replace_w_head);
     _parse_int(opts, option_dielect_func);
+    _parse_switch(opts, use_2d_dielectric);
     _parse_switch(opts, output_gw_sigc_mat);
     _parse_switch(opts, output_gw_sigc_mat_rt);
     _parse_switch(opts, output_gw_sigc_mat_rf);
-    parser.parse_double("minimax_min_gap", Params::minimax_min_gap, -1.0, flag);
-    parser.parse_double("minimax_max_transition", Params::minimax_max_transition, -1.0, flag);
-
-    parser.parse_bool("band_continue", Params::band_continue, false, flag);
-
-    parser.parse_int("output_Wc_Rf_mat", Params::output_Wc_Rf_mat, false, flag);
-    parser.parse_bool("output_energy_qp", Params::output_energy_qp, false, flag);
-    parser.parse_bool("output_hamgnn", Params::output_hamgnn, false, flag);
-    parser.parse_int("nbands_G", Params::nbands_G, -1, flag);
+    _parse_int(opts, option_output_Wc_Rf_mat);
 }
 
 #undef _parse_int

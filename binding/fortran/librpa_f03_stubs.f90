@@ -112,7 +112,7 @@ module librpa_f03
       integer :: parallel_routing
       integer :: output_level
       real(dp) :: vq_threshold
-      logical :: use_soc
+      logical :: use_spinor_wfc
       logical :: use_kpara_scf_eigvec
       integer :: tfgrids_type
       integer :: nfreq
@@ -121,12 +121,23 @@ module librpa_f03
       real(dp) :: tfgrids_freq_max
       real(dp) :: tfgrids_time_min
       real(dp) :: tfgrids_time_interval
+      real(dp) :: minimax_emin
+      real(dp) :: minimax_emax
+      logical :: use_fullcoul_eps
+      logical :: use_fullcoul_exx
+      logical :: use_fullcoul_wc
+      integer :: n_bands_chi0
+      integer :: n_bands_sigc
       real(dp) :: gf_threshold
       logical :: use_scalapack_ecrpa
+      logical :: use_shrink_abfs
+      logical :: use_shrink_chi
       integer :: n_params_anacon
       logical :: use_scalapack_gw_wc
       logical :: replace_w_head
       integer :: option_dielect_func
+      logical :: use_2d_dielectric
+      logical :: load_sigc_from_file
       real(dp) :: sqrt_coulomb_threshold
       real(dp) :: libri_chi0_threshold_C
       real(dp) :: libri_chi0_threshold_G
@@ -139,6 +150,7 @@ module librpa_f03
       logical :: output_gw_sigc_mat
       logical :: output_gw_sigc_mat_rt
       logical :: output_gw_sigc_mat_rf
+      integer :: option_output_Wc_Rf_mat
 
       contains
          procedure :: init => librpa_init_options

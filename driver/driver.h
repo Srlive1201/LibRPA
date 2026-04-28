@@ -20,6 +20,15 @@ struct DriverParams
     // Threshold for real-space LRI triple coefficients.
     double cs_threshold;
 
+    // Output energy_qp file for external BSE calculation
+    bool output_energy_qp;
+
+    // Output gw energy for HamGNN machine learning
+    bool output_hamgnn;
+
+    // Switch of using pyatb meanfield for head/wing calculation
+    bool use_pyatb;
+
     // TODO: Move the following to the public LibrpaOptions class
     bool output_gw_spec_func;
     double sf_omega_start;

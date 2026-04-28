@@ -133,7 +133,7 @@ module librpa_f03
       integer(c_int) :: parallel_routing
       integer(c_int) :: output_level
       real(c_double) :: vq_threshold
-      integer(c_int) :: use_soc
+      integer(c_int) :: use_spinor_wfc
       integer(c_int) :: use_kpara_scf_eigvec
       integer(c_int) :: tfgrids_type
       integer(c_int) :: nfreq
@@ -143,15 +143,30 @@ module librpa_f03
       real(c_double) :: tfgrids_time_min
       real(c_double) :: tfgrids_time_interval
 
+      real(c_double) :: minimax_emin
+      real(c_double) :: minimax_emax
+
+      integer(c_int) :: use_fullcoul_eps
+      integer(c_int) :: use_fullcoul_exx
+      integer(c_int) :: use_fullcoul_wc
+
+      integer(c_int) :: n_bands_chi0
+      integer(c_int) :: n_bands_sigc
+
       ! RPA specific
       real(c_double) :: gf_threshold
       integer(c_int) :: use_scalapack_ecrpa
+
+      integer(c_int) :: use_shrink_abfs
+      integer(c_int) :: use_shrink_chi
 
       ! GW specific
       integer(c_int) :: n_params_anacon
       integer(c_int) :: use_scalapack_gw_wc
       integer(c_int) :: replace_w_head
       integer(c_int) :: option_dielect_func
+      integer(c_int) :: use_2d_dielectric
+      integer(c_int) :: load_sigc_from_file
       real(c_double) :: sqrt_coulomb_threshold
       real(c_double) :: libri_chi0_threshold_C
       real(c_double) :: libri_chi0_threshold_G
@@ -166,6 +181,7 @@ module librpa_f03
       integer(c_int) :: output_gw_sigc_mat
       integer(c_int) :: output_gw_sigc_mat_rt
       integer(c_int) :: output_gw_sigc_mat_rf
+      integer(c_int) :: option_output_Wc_Rf_mat
    end type LibrpaOptions_c
 
    !> @brief High-level Fortran wrapper for runtime options.
@@ -181,7 +197,7 @@ module librpa_f03
       integer :: parallel_routing
       integer :: output_level
       real(dp) :: vq_threshold
-      logical :: use_soc
+      logical :: use_spinor_wfc
       logical :: use_kpara_scf_eigvec
       integer :: tfgrids_type
       integer :: nfreq
@@ -190,12 +206,23 @@ module librpa_f03
       real(dp) :: tfgrids_freq_max
       real(dp) :: tfgrids_time_min
       real(dp) :: tfgrids_time_interval
+      real(dp) :: minimax_emin
+      real(dp) :: minimax_emax
+      logical :: use_fullcoul_eps
+      logical :: use_fullcoul_exx
+      logical :: use_fullcoul_wc
+      integer :: n_bands_chi0
+      integer :: n_bands_sigc
       real(dp) :: gf_threshold
       logical :: use_scalapack_ecrpa
+      logical :: use_shrink_abfs
+      logical :: use_shrink_chi
       integer :: n_params_anacon
       logical :: use_scalapack_gw_wc
       logical :: replace_w_head
       integer :: option_dielect_func
+      logical :: use_2d_dielectric
+      logical :: load_sigc_from_file
       real(dp) :: sqrt_coulomb_threshold
       real(dp) :: libri_chi0_threshold_C
       real(dp) :: libri_chi0_threshold_G
@@ -208,6 +235,7 @@ module librpa_f03
       logical :: output_gw_sigc_mat
       logical :: output_gw_sigc_mat_rt
       logical :: output_gw_sigc_mat_rf
+      integer :: option_output_Wc_Rf_mat
 
       contains
          procedure :: init => librpa_init_options
@@ -771,7 +799,7 @@ contains
       call sync_opt(opts%parallel_routing,        opts%opts_c%parallel_routing,        direction)
       call sync_opt(opts%output_level,            opts%opts_c%output_level,            direction)
       call sync_opt(opts%vq_threshold,            opts%opts_c%vq_threshold,            direction)
-      call sync_opt(opts%use_soc,                 opts%opts_c%use_soc,                 direction)
+      call sync_opt(opts%use_spinor_wfc,          opts%opts_c%use_spinor_wfc,          direction)
       call sync_opt(opts%use_kpara_scf_eigvec,    opts%opts_c%use_kpara_scf_eigvec,    direction)
       call sync_opt(opts%tfgrids_type,            opts%opts_c%tfgrids_type,            direction)
       call sync_opt(opts%nfreq,                   opts%opts_c%nfreq,                   direction)
@@ -780,10 +808,21 @@ contains
       call sync_opt(opts%tfgrids_freq_max,        opts%opts_c%tfgrids_freq_max,        direction)
       call sync_opt(opts%tfgrids_time_min,        opts%opts_c%tfgrids_time_min,        direction)
       call sync_opt(opts%tfgrids_time_interval,   opts%opts_c%tfgrids_time_interval,   direction)
+      call sync_opt(opts%minimax_emin,            opts%opts_c%minimax_emin,            direction)
+      call sync_opt(opts%minimax_emax,            opts%opts_c%minimax_emax,            direction)
+      call sync_opt(opts%use_fullcoul_eps,        opts%opts_c%use_fullcoul_eps,        direction)
+      call sync_opt(opts%use_fullcoul_exx,        opts%opts_c%use_fullcoul_exx,        direction)
+      call sync_opt(opts%use_fullcoul_wc,         opts%opts_c%use_fullcoul_wc,         direction)
+      call sync_opt(opts%n_bands_chi0,            opts%opts_c%n_bands_chi0,            direction)
+      call sync_opt(opts%n_bands_sigc,            opts%opts_c%n_bands_sigc,            direction)
       call sync_opt(opts%gf_threshold,            opts%opts_c%gf_threshold,            direction)
       call sync_opt(opts%use_scalapack_ecrpa,     opts%opts_c%use_scalapack_ecrpa,     direction)
+      call sync_opt(opts%use_shrink_abfs,         opts%opts_c%use_shrink_abfs,         direction)
+      call sync_opt(opts%use_shrink_chi,          opts%opts_c%use_shrink_chi,          direction)
       call sync_opt(opts%n_params_anacon,         opts%opts_c%n_params_anacon,         direction)
       call sync_opt(opts%option_dielect_func,     opts%opts_c%option_dielect_func,     direction)
+      call sync_opt(opts%use_2d_dielectric,       opts%opts_c%use_2d_dielectric,       direction)
+      call sync_opt(opts%load_sigc_from_file,     opts%opts_c%load_sigc_from_file,     direction)
       call sync_opt(opts%use_scalapack_gw_wc,     opts%opts_c%use_scalapack_gw_wc,     direction)
       call sync_opt(opts%sqrt_coulomb_threshold,  opts%opts_c%sqrt_coulomb_threshold,  direction)
       call sync_opt(opts%replace_w_head,          opts%opts_c%replace_w_head,          direction)
@@ -798,6 +837,7 @@ contains
       call sync_opt(opts%output_gw_sigc_mat,      opts%opts_c%output_gw_sigc_mat,      direction)
       call sync_opt(opts%output_gw_sigc_mat_rt,   opts%opts_c%output_gw_sigc_mat_rt,   direction)
       call sync_opt(opts%output_gw_sigc_mat_rf,   opts%opts_c%output_gw_sigc_mat_rf,   direction)
+      call sync_opt(opts%option_output_Wc_Rf_mat, opts%opts_c%option_output_Wc_Rf_mat, direction)
    end subroutine
 
    !> @brief Initialize runtime options to default values.
