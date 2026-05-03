@@ -95,24 +95,21 @@ CorrEnergy compute_RPA_correlation_blacs_2d_gamma_only(Chi0 &chi0, atpair_k_cplx
             std::map<int, std::map<std::pair<int, std::array<double, 3>>, Tensor<double>>>
                 coul_libri;
 
-            for (const auto &Mu_Nu : local_atpair)
+            for (const auto& Mu_coulmat: coulmat)
             {
-                const auto Mu = Mu_Nu.first;
-                const auto Nu = Mu_Nu.second;
-                // ofs_myid << "myid " << blacs_h.myid << "Mu " << Mu << " Nu " << Nu << endl;
-                if (coulmat.count(Mu) == 0 ||
-                    coulmat.at(Mu).count(Nu) == 0 ||
-                    coulmat.at(Mu).at(Nu).count(q) == 0) continue;
-                const auto &Vq = coulmat.at(Mu).at(Nu).at(q);
-                const auto n_mu = chi0.atbasis_abf.get_atom_nb(Mu);
-                const auto n_nu = chi0.atbasis_abf.get_atom_nb(Nu);
-                matrix tmp_vq_real = (*Vq).real();
-                std::valarray<double> Vq_va(tmp_vq_real.c, Vq->size);
-                auto pvq = std::make_shared<std::valarray<double>>();
-                *pvq = Vq_va;
-                coul_libri[Mu][{Nu, std::array<double, 3>{0, 0, 0}}] =
-                    Tensor<double>({n_mu, n_nu}, pvq);
-                coulmat.at(Mu).at(Nu).at(q).reset();
+                const auto Mu = Mu_coulmat.first;
+                for(const auto& Nu_coulmat : Mu_coulmat.second){
+                    const auto Nu = Nu_coulmat.first;
+                    const auto &Vq = coulmat.at(Mu).at(Nu).at(q);
+                    const auto n_mu = chi0.atbasis_abf.get_atom_nb(Mu);
+                    const auto n_nu = chi0.atbasis_abf.get_atom_nb(Nu);
+                    matrix tmp_vq_real=(*Vq).real();
+                    std::valarray<double> Vq_va(tmp_vq_real.c, Vq->size);
+                    auto pvq = std::make_shared<std::valarray<double>>();
+                    *pvq = Vq_va;
+                    coul_libri[Mu][{Nu, std::array<double, 3>{0,0,0}}] = Tensor<double>({n_mu, n_nu}, pvq);
+                    coulmat.at(Mu).at(Nu).at(q).reset();
+                }
             }
 
             release_free_mem();
