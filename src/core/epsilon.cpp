@@ -1889,21 +1889,38 @@ std::map<double, std::map<Vector3_Order<double>, Matz>> compute_Wc_freq_q_blacs(
             // LibRI tensor for communication, release once done
             std::map<int, std::map<std::pair<int, std::array<double, 3>>, RI::Tensor<complex<double>>>> couleps_libri;
             global::profiler.start("epsilon_prepare_coulwc_sqrt_1", "Setup libRI object");
-            for (const auto &Mu_Nu: atpair_local)
+            // for (const auto &Mu_Nu: atpair_local)
+            // {
+            //     const auto Mu = Mu_Nu.first;
+            //     const auto Nu = Mu_Nu.second;
+            //     // ofs_myid << "Mu " << Mu << " Nu " << Nu << endl;
+            //     if (coulmat_wc.count(Mu) == 0 ||
+            //         coulmat_wc.at(Mu).count(Nu) == 0 ||
+            //         coulmat_wc.at(Mu).at(Nu).count(q) == 0) continue;
+            //     const auto &Vq = coulmat_wc.at(Mu).at(Nu).at(q);
+            //     const auto n_mu = chi0.atbasis_abf.get_atom_nb(Mu);
+            //     const auto n_nu = chi0.atbasis_abf.get_atom_nb(Nu);
+            //     std::valarray<complex<double>> Vq_va(Vq->c, Vq->size);
+            //     auto pvq = std::make_shared<std::valarray<complex<double>>>();
+            //     *pvq = Vq_va;
+            //     couleps_libri[Mu][{Nu, qa}] = RI::Tensor<complex<double>>({n_mu, n_nu}, pvq);
+            // }
+
+            for (const auto& Mu_coulmat: coulmat_wc)
             {
-                const auto Mu = Mu_Nu.first;
-                const auto Nu = Mu_Nu.second;
-                // ofs_myid << "Mu " << Mu << " Nu " << Nu << endl;
-                if (coulmat_wc.count(Mu) == 0 || coulmat_wc.at(Mu).count(Nu) == 0 ||
-                    coulmat_wc.at(Mu).at(Nu).count(q) == 0)
-                    continue;
-                const auto &Vq = coulmat_wc.at(Mu).at(Nu).at(q);
-                const auto n_mu = chi0.atbasis_abf.get_atom_nb(Mu);
-                const auto n_nu = chi0.atbasis_abf.get_atom_nb(Nu);
-                std::valarray<complex<double>> Vq_va(Vq->c, Vq->size);
-                auto pvq = std::make_shared<std::valarray<complex<double>>>();
-                *pvq = Vq_va;
-                couleps_libri[Mu][{Nu, qa}] = RI::Tensor<complex<double>>({n_mu, n_nu}, pvq);
+                const auto Mu = Mu_coulmat.first;
+                for (const auto &Nu_coulmat : Mu_coulmat.second)
+                {
+                    const auto Nu = Nu_coulmat.first;
+                    const auto &Vq = coulmat_wc.at(Mu).at(Nu).at(q);
+                    const auto n_mu = chi0.atbasis_abf.get_atom_nb(Mu);
+                    const auto n_nu = chi0.atbasis_abf.get_atom_nb(Nu);
+                    std::valarray<complex<double>> Vq_va(Vq->c, Vq->size);
+                    auto pvq = std::make_shared<std::valarray<complex<double>>>();
+                    *pvq = Vq_va;
+                    couleps_libri[Mu][{Nu, qa}] = Tensor<complex<double>>({n_mu, n_nu}, pvq);
+                    // coulmat_wc.at(Mu).at(Nu).at(q).reset();
+                }
             }
             global::profiler.stop("epsilon_prepare_coulwc_sqrt_1");
 
@@ -1946,22 +1963,22 @@ std::map<double, std::map<Vector3_Order<double>, Matz>> compute_Wc_freq_q_blacs(
                      std::map<std::pair<int, std::array<double, 3>>, RI::Tensor<complex<double>>>>
                 couleps_libri;
             ofs_myid << get_timestamp() << " Start build couleps_libri" << endl;
-            for (const auto &Mu_Nu : atpair_local)
+
+            for (const auto& Mu_coulmat: coulmat_eps)
             {
-                const auto Mu = Mu_Nu.first;
-                const auto Nu = Mu_Nu.second;
-                // ofs_myid << "Mu " << Mu << " Nu " << Nu << endl;
-                if (coulmat_eps.count(Mu) == 0 || coulmat_eps.at(Mu).count(Nu) == 0 ||
-                    coulmat_eps.at(Mu).at(Nu).count(q) == 0)
-                    continue;
-                const auto &Vq = coulmat_eps.at(Mu).at(Nu).at(q);
-                const auto n_mu = chi0.atbasis_abf.get_atom_nb(Mu);
-                const auto n_nu = chi0.atbasis_abf.get_atom_nb(Nu);
-                std::valarray<complex<double>> Vq_va(Vq->c, Vq->size);
-                auto pvq = std::make_shared<std::valarray<complex<double>>>();
-                *pvq = Vq_va;
-                couleps_libri[Mu][{Nu, qa}] = RI::Tensor<complex<double>>({n_mu, n_nu}, pvq);
+                const auto Mu = Mu_coulmat.first;
+                for(const auto& Nu_coulmat : Mu_coulmat.second){
+                    const auto Nu = Nu_coulmat.first;
+                    const auto &Vq = coulmat_eps.at(Mu).at(Nu).at(q);
+                    const auto n_mu = chi0.atbasis_abf.get_atom_nb(Mu);
+                    const auto n_nu = chi0.atbasis_abf.get_atom_nb(Nu);
+                    std::valarray<complex<double>> Vq_va(Vq->c, Vq->size);
+                    auto pvq = std::make_shared<std::valarray<complex<double>>>();
+                    *pvq = Vq_va;
+                    couleps_libri[Mu][{Nu, qa}] = Tensor<complex<double>>({n_mu, n_nu}, pvq);
+                }
             }
+
             ofs_myid << get_timestamp() << " Done build couleps_libri" << endl;
             // ofs_myid << "Couleps_libri" << endl << couleps_libri;
             // if (couleps_libri.size() == 0)
