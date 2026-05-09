@@ -7,6 +7,7 @@
 #include <stdexcept>
 #include <unordered_map>
 #include <unordered_set>
+#include <vector>
 
 #include "../core/utils_atomic_basis_blacs.h"
 #include "../utils/profiler.h"
@@ -22,14 +23,14 @@ namespace librpa_int
 {
 
 template <typename T>
-matrix_m<T> init_local_mat(const librpa_int::ArrayDesc &ad, MAJOR major)
+matrix_m<T> init_local_mat(const ArrayDesc &ad, MAJOR major)
 {
     matrix_m<T> mat_lo(ad.m_loc(), ad.n_loc(), major);
     return mat_lo;
 }
 
 template <typename T>
-matrix_m<T> get_local_mat(const matrix_m<T> &mat_go, const librpa_int::ArrayDesc &ad,
+matrix_m<T> get_local_mat(const matrix_m<T> &mat_go, const ArrayDesc &ad,
                           MAJOR major = MAJOR::AUTO)
 {
     // assert the shape of global matrix conforms with the array descriptor
@@ -69,7 +70,7 @@ matrix_m<T> get_local_mat(const matrix_m<T> &mat_go, const librpa_int::ArrayDesc
 }
 
 template <typename T>
-matrix_m<T> get_local_mat(const T *pv, MAJOR major_pv, const librpa_int::ArrayDesc &ad, MAJOR major)
+matrix_m<T> get_local_mat(const T *pv, MAJOR major_pv, const ArrayDesc &ad, MAJOR major)
 {
     const int nr = ad.m(), nc = ad.n();
     matrix_m<T> mat_lo(ad.m_loc(), ad.n_loc(), major);
@@ -91,16 +92,13 @@ matrix_m<T> get_local_mat(const T *pv, MAJOR major_pv, const librpa_int::ArrayDe
 }
 
 template <typename Tdst, typename Tsrc>
-void collect_block_from_IJ_storage(
-    matrix_m<Tdst> &mat_lo,
-    const librpa_int::ArrayDesc &ad,
-    const librpa_int::AtomicBasis &atbasis_row,
-    const librpa_int::AtomicBasis &atbasis_col,
-    const int &I, const int &J,
-    Tdst alpha, const Tsrc *pvIJ, MAJOR major_pv)
+void collect_block_from_IJ_storage(matrix_m<Tdst> &mat_lo, const ArrayDesc &ad,
+                                   const AtomicBasis &atbasis_row,
+                                   const AtomicBasis &atbasis_col, const int &I,
+                                   const int &J, Tdst alpha, const Tsrc *pvIJ, MAJOR major_pv)
 {
     // assert(mat_lo.nr() == ad.m_loc() && mat_lo.nc() == ad.n_loc());
-    assert(ad.m() == atbasis_row.nb_total && ad.n() == atbasis_col.nb_total );
+    assert(ad.m() == atbasis_row.nb_total && ad.n() == atbasis_col.nb_total);
     const int row_start_id = atbasis_row.get_part_range()[I];
     const int col_start_id = atbasis_col.get_part_range()[J];
     const int row_nb = atbasis_row.get_atom_nb(I);
@@ -125,19 +123,17 @@ void collect_block_from_IJ_storage(
 }
 
 template <typename Tdst, typename Tsrc, typename TA, typename TC, typename TAC = std::pair<TA, TC>>
-void collect_block_from_IJ_storage_tensor(
-    matrix_m<Tdst> &mat_lo,
-    const librpa_int::ArrayDesc &ad,
-    const librpa_int::AtomicBasis &atbasis_row,
-    const librpa_int::AtomicBasis &atbasis_col,
-    const TC &cell,
-    Tdst alpha, const std::map<TA,std::map<TAC, RI::Tensor<Tsrc>>> &TMAP)
+void collect_block_from_IJ_storage_tensor(matrix_m<Tdst> &mat_lo, const ArrayDesc &ad,
+                                          const AtomicBasis &atbasis_row,
+                                          const AtomicBasis &atbasis_col, const TC &cell,
+                                          Tdst alpha,
+                                          const std::map<TA, std::map<TAC, RI::Tensor<Tsrc>>> &TMAP)
 {
     // assert(mat_lo.nr() == ad.m_loc() && mat_lo.nc() == ad.n_loc());
-    assert(ad.m() == atbasis_row.nb_total && ad.n() == atbasis_col.nb_total );
+    assert(ad.m() == atbasis_row.nb_total && ad.n() == atbasis_col.nb_total);
 
-    matrix_m<Tdst> tmp_loc(mat_lo.nr(),mat_lo.nc(), MAJOR::ROW);
-    size_t cp_size= ad.n_loc()*sizeof(Tdst);
+    matrix_m<Tdst> tmp_loc(mat_lo.nr(), mat_lo.nc(), MAJOR::ROW);
+    size_t cp_size = ad.n_loc() * sizeof(Tdst);
 
     omp_lock_t mat_lock;
     omp_init_lock(&mat_lock);
@@ -157,14 +153,14 @@ void collect_block_from_IJ_storage_tensor(
             // librpa_int::global::lib_printf("i_gl I_loc i_ab %d %d %d j_gl J_loc j_ab %d %d %d\n", i_gl, I_loc, i_ab, j_gl, J_loc, j_ab);
             tmp_loc_row[jlo] = TMAP.at(I_loc).at({J_loc, cell})(i_ab, j_ab);
         }
-        Tdst *row_ptr=tmp_loc.ptr() + ilo* ad.n_loc();
+        Tdst *row_ptr = tmp_loc.ptr() + ilo * ad.n_loc();
         omp_set_lock(&mat_lock);
-        memcpy(row_ptr,&tmp_loc_row[0],cp_size);
+        memcpy(row_ptr, &tmp_loc_row[0], cp_size);
         omp_unset_lock(&mat_lock);
     }
     #pragma omp barrier
     omp_destroy_lock(&mat_lock);
-    if(mat_lo.is_col_major())
+    if (mat_lo.is_col_major())
     {
         tmp_loc.swap_to_col_major();
     }
@@ -176,9 +172,9 @@ void collect_block_from_IJ_storage_tensor(
 template <typename Tdst, typename Tsrc, typename TA, typename TC>
 void collect_block_from_IJ_storage_matrix_transform(
     matrix_m<Tdst> &mat_lo,
-    const librpa_int::ArrayDesc &ad,
-    const librpa_int::AtomicBasis &atbasis_row,
-    const librpa_int::AtomicBasis &atbasis_col,
+    const ArrayDesc &ad,
+    const AtomicBasis &atbasis_row,
+    const AtomicBasis &atbasis_col,
     const std::function<Tdst(const TA, const TA, const TC &)> &transform,
     const std::map<TA, std::map<TA, std::map<TC, matrix_m<Tsrc>>>> &TMAP)
 {
@@ -232,18 +228,15 @@ void collect_block_from_IJ_storage_matrix_transform(
 // TMAP tensor is always row major
 template <typename Tdst, typename Tsrc, typename TA, typename TAC>
 void collect_block_from_IJ_storage_tensor_transform(
-    matrix_m<Tdst> &mat_lo,
-    const librpa_int::ArrayDesc &ad,
-    const librpa_int::AtomicBasis &atbasis_row,
-    const librpa_int::AtomicBasis &atbasis_col,
-    const std::function<Tdst(const TA &, const TAC &)> &transform,
-    const std::map<TA,std::map<TAC, RI::Tensor<Tsrc>>> &TMAP)
+    matrix_m<Tdst> &mat_lo, const ArrayDesc &ad, const AtomicBasis &atbasis_row,
+    const AtomicBasis &atbasis_col, const std::function<Tdst(const TA &, const TAC &)> &transform,
+    const std::map<TA, std::map<TAC, RI::Tensor<Tsrc>>> &TMAP)
 {
     // assert(mat_lo.nr() == ad.m_loc() && mat_lo.nc() == ad.n_loc());
-    assert(as_size(ad.m()) == atbasis_row.nb_total && as_size(ad.n()) == atbasis_col.nb_total );
+    assert(as_size(ad.m()) == atbasis_row.nb_total && as_size(ad.n()) == atbasis_col.nb_total);
 
-    matrix_m<Tdst> tmp_loc(mat_lo.nr(),mat_lo.nc(), MAJOR::ROW);
-    size_t cp_size= ad.n_loc()*sizeof(Tdst);
+    matrix_m<Tdst> tmp_loc(mat_lo.nr(), mat_lo.nc(), MAJOR::ROW);
+    size_t cp_size = ad.n_loc() * sizeof(Tdst);
 
     omp_lock_t mat_lock;
     omp_init_lock(&mat_lock);
@@ -273,14 +266,70 @@ void collect_block_from_IJ_storage_tensor_transform(
                 }
             }
         }
-        Tdst *row_ptr=tmp_loc.ptr() + ilo* ad.n_loc();
+        Tdst *row_ptr = tmp_loc.ptr() + ilo * ad.n_loc();
         omp_set_lock(&mat_lock);
-        memcpy(row_ptr,&tmp_loc_row[0],cp_size);
+        memcpy(row_ptr, &tmp_loc_row[0], cp_size);
         omp_unset_lock(&mat_lock);
     }
     #pragma omp barrier
     omp_destroy_lock(&mat_lock);
-    if(mat_lo.is_col_major())
+    if (mat_lo.is_col_major())
+    {
+        tmp_loc.swap_to_col_major();
+    }
+    mat_lo = tmp_loc;
+}
+
+// Used for tranformation from Cs[I][{J, R}](i,j,mu)
+// to 2d-block Cs[I][{J,k}](i,j)
+template <typename Tdst, typename Tsrc, typename TA, typename TAC>
+void collect_block_from_IJ_storage_tensor_transform_triple(
+    matrix_m<Tdst> &mat_lo, const ArrayDesc &ad, const AtomicBasis &atbasis_row,
+    const AtomicBasis &atbasis_col, const std::function<Tdst(const TA &, const TAC &)> &transform,
+    const std::map<TA, std::map<TAC, RI::Tensor<Tsrc>>> &TMAP, const TA &Mu, const int &mu_local)
+{
+    // assert(mat_lo.nr() == ad.m_loc() && mat_lo.nc() == ad.n_loc());
+    assert(ad.m() == atbasis_row.nb_total && ad.n() == atbasis_col.nb_total);
+
+    matrix_m<Tdst> tmp_loc(mat_lo.nr(), mat_lo.nc(), MAJOR::ROW);
+    size_t cp_size = ad.n_loc() * sizeof(Tdst);
+
+    omp_lock_t mat_lock;
+    omp_init_lock(&mat_lock);
+
+#pragma omp parallel for
+    for (int ilo = 0; ilo != ad.m_loc(); ilo++)
+    {
+        int I_loc, J_loc, i_ab, j_ab;
+        int i_gl = ad.indx_l2g_r(ilo);
+        atbasis_row.get_local_index(i_gl, I_loc, i_ab);
+        vector<Tdst> tmp_loc_row(ad.n_loc(), 0);
+        for (int jlo = 0; jlo != ad.n_loc(); jlo++)
+        {
+            int j_gl = ad.indx_l2g_c(jlo);
+            atbasis_col.get_local_index(j_gl, J_loc, j_ab);
+            if (TMAP.count(I_loc) > 0 && I_loc == Mu)
+            {
+                for (const auto &acell_mat : TMAP.at(I_loc))
+                {
+                    const auto &acell = acell_mat.first;
+                    const auto &mat = acell_mat.second;
+                    if (acell.first != J_loc)
+                    {
+                        continue;
+                    }
+                    tmp_loc_row[jlo] += mat(mu_local, i_ab, j_ab) * transform(Mu, acell);
+                }
+            }
+        }
+        Tdst *row_ptr = tmp_loc.ptr() + ilo * ad.n_loc();
+        omp_set_lock(&mat_lock);
+        memcpy(row_ptr, &tmp_loc_row[0], cp_size);
+        omp_unset_lock(&mat_lock);
+    }
+#pragma omp barrier
+    omp_destroy_lock(&mat_lock);
+    if (mat_lo.is_col_major())
     {
         tmp_loc.swap_to_col_major();
     }
@@ -289,12 +338,10 @@ void collect_block_from_IJ_storage_tensor_transform(
 
 //! collect 2D block from a IJ-pair storage exploiting its symmetric/Hermitian property
 template <typename Tdst, typename Tsrc>
-void collect_block_from_IJ_storage_syhe(
-    matrix_m<Tdst> &mat_lo,
-    const librpa_int::ArrayDesc &ad,
-    const librpa_int::AtomicBasis &atbasis,
-    const int &I, const int &J, bool conjugate,
-    Tdst alpha, const Tsrc *pvIJ, MAJOR major_pv)
+void collect_block_from_IJ_storage_syhe(matrix_m<Tdst> &mat_lo, const ArrayDesc &ad,
+                                        const AtomicBasis &atbasis, const int &I, const int &J,
+                                        bool conjugate, Tdst alpha, const Tsrc *pvIJ,
+                                        MAJOR major_pv)
 {
     // assert(mat_lo.nr() == ad.m_loc() && mat_lo.nc() == ad.n_loc());
     assert(ad.m() == atbasis.nb_total && ad.n() == atbasis.nb_total);
@@ -304,8 +351,8 @@ void collect_block_from_IJ_storage_syhe(
         collect_block_from_IJ_storage(mat_lo, ad, atbasis, atbasis, I, J, alpha, pvIJ, major_pv);
         return;
     }
-    const std::function<Tdst(Tdst)> filter = conjugate ? [](Tdst a) { return get_conj(a); }
-                                                 : [](Tdst a) { return a; };
+    const std::function<Tdst(Tdst)> filter =
+        conjugate ? [](Tdst a) { return get_conj(a); } : [](Tdst a) { return a; };
     const int I_nb = atbasis.get_atom_nb(I);
     const int J_nb = atbasis.get_atom_nb(J);
     const auto picker = Indx_pickers_2d[major_pv];
@@ -339,26 +386,25 @@ void collect_block_from_IJ_storage_syhe(
 }
 
 template <typename Tdst, typename TA, typename TC, typename TAC = std::pair<TA, TC>>
-void collect_block_from_ALL_IJ_Tensor(
-    matrix_m<Tdst> &mat_lo,
-    const librpa_int::ArrayDesc &ad,
-    const librpa_int::AtomicBasis &atbasis,
-    const TC &cell,
-    bool conjugate,
-    Tdst alpha, const std::map<TA,std::map<TAC, RI::Tensor<Tdst>>> &TMAP, MAJOR major_pv)
+void collect_block_from_ALL_IJ_Tensor(matrix_m<Tdst> &mat_lo, const ArrayDesc &ad,
+                                      const AtomicBasis &atbasis, const TC &cell, bool conjugate,
+                                      Tdst alpha,
+                                      const std::map<TA, std::map<TAC, RI::Tensor<Tdst>>> &TMAP,
+                                      MAJOR major_pv)
 {
     // assert(mat_lo.nr() == ad.m_loc() && mat_lo.nc() == ad.n_loc());
     assert(as_size(ad.m()) == atbasis.nb_total && as_size(ad.n()) == atbasis.nb_total);
-    matrix_m<Tdst> tmp_loc(mat_lo.nr(),mat_lo.nc(), MAJOR::ROW);
-    size_t cp_size= ad.n_loc()*sizeof(Tdst);
+    matrix_m<Tdst> tmp_loc(mat_lo.nr(), mat_lo.nc(), MAJOR::ROW);
+    size_t cp_size = ad.n_loc() * sizeof(Tdst);
 
 // #ifdef LIBRPA_DEBUG
 //     librpa_int::global::ofs_myid << "cp_size: " << cp_size << std::endl;
 //     librpa_int::global::ofs_myid << "Available TMAP keys: ";
 //     print_keys(librpa_int::global::ofs_myid, TMAP);
 //     librpa_int::global::ofs_myid << std::endl;
-//     librpa_int::global::ofs_myid << "mat_lo dims: " << mat_lo.nr() << " " << mat_lo.nc() << std::endl;
-//     librpa_int::global::ofs_myid << "ad_loc dims: " << ad.m_loc() << " " << ad.n_loc() << std::endl;
+//     librpa_int::global::ofs_myid << "mat_lo dims: " << mat_lo.nr() << " " << mat_lo.nc() <<
+//     std::endl; librpa_int::global::ofs_myid << "ad_loc dims: " << ad.m_loc() << " " <<
+//     ad.n_loc() << std::endl;
 // #endif
 
     omp_lock_t mat_lock;
@@ -386,20 +432,19 @@ void collect_block_from_ALL_IJ_Tensor(
             else
             {
                 Tdst tmp_ele;
-                tmp_ele= TMAP.at(J_loc).at({I_loc, cell})(j_ab,i_ab);
-                if(conjugate)
-                    tmp_ele=get_conj(tmp_ele);
-                tmp_loc_row[jlo]=tmp_ele;
+                tmp_ele = TMAP.at(J_loc).at({I_loc, cell})(j_ab, i_ab);
+                if (conjugate) tmp_ele = get_conj(tmp_ele);
+                tmp_loc_row[jlo] = tmp_ele;
             }
         }
-        Tdst *row_ptr=tmp_loc.ptr()+ilo* ad.n_loc();
+        Tdst *row_ptr = tmp_loc.ptr() + ilo * ad.n_loc();
         omp_set_lock(&mat_lock);
-        memcpy(row_ptr,&tmp_loc_row[0],cp_size);
+        memcpy(row_ptr, &tmp_loc_row[0], cp_size);
         omp_unset_lock(&mat_lock);
     }
     #pragma omp barrier
     omp_destroy_lock(&mat_lock);
-    if(mat_lo.is_col_major())
+    if (mat_lo.is_col_major())
     {
         tmp_loc.swap_to_col_major();
     }
@@ -410,10 +455,10 @@ void collect_block_from_ALL_IJ_Tensor(
 //! collect a IJ-pair storage from a 2D block local matrix
 template <typename T>
 void map_block_to_IJ_storage(map<int, map<int, matrix_m<T>>> &IJmap,
-                             const librpa_int::AtomicBasis &atbasis_row,
-                             const librpa_int::AtomicBasis &atbasis_col,
+                             const AtomicBasis &atbasis_row,
+                             const AtomicBasis &atbasis_col,
                              const matrix_m<T> &mat_lo,
-                             const librpa_int::ArrayDesc &desc, MAJOR major_map)
+                             const ArrayDesc &desc, MAJOR major_map)
 {
     assert(desc.m() == atbasis_row.nb_total && desc.n() == atbasis_col.nb_total);
     int I, J, iI, jJ;
@@ -426,7 +471,8 @@ void map_block_to_IJ_storage(map<int, map<int, matrix_m<T>>> &IJmap,
             int j_glo = desc.indx_l2g_c(j_lo);
             atbasis_col.get_local_index(j_glo, J, jJ);
             if (IJmap.count(I) == 0 || IJmap.at(I).count(J) == 0 || IJmap.at(I).at(J).size() == 0)
-                IJmap[I][J] = matrix_m<T>{as_int(atbasis_row.get_atom_nb(I)), as_int(atbasis_col.get_atom_nb(J)), major_map};
+                IJmap[I][J] = matrix_m<T>{as_int(atbasis_row.get_atom_nb(I)),
+                                          as_int(atbasis_col.get_atom_nb(J)), major_map};
             IJmap[I][J](iI, jJ) = mat_lo(i_lo, j_lo);
         }
     }
@@ -435,10 +481,10 @@ void map_block_to_IJ_storage(map<int, map<int, matrix_m<T>>> &IJmap,
 
 template <typename T>
 void map_block_to_IJ_storage_new(map<int, map<int, matrix_m<T>>> &IJmap,
-                                 const librpa_int::AtomicBasis &atbasis,
+                                 const AtomicBasis &atbasis,
                                  const map<int, vector<int>> &map_lor_I_is,
                                  const map<int, vector<int>> &map_loc_J_js,
-                                 const matrix_m<T> &mat_lo, const librpa_int::ArrayDesc &desc, MAJOR major_map)
+                                 const matrix_m<T> &mat_lo, const ArrayDesc &desc, MAJOR major_map)
 {
     // map<int, map<int, matrix_m<T>>> IJmap_local;
     int max_threads = omp_get_max_threads(); // Get the total number of available threads
@@ -545,13 +591,13 @@ void map_block_to_IJ_storage_new(map<int, map<int, matrix_m<T>>> &IJmap,
  */
 template <typename T>
 matrix_m<std::complex<T>> power_hemat_blacs(matrix_m<std::complex<T>> &A_local,
-                                            const librpa_int::ArrayDesc &ad_A,
+                                            const ArrayDesc &ad_A,
                                             matrix_m<std::complex<T>> &Z_local,
-                                            const librpa_int::ArrayDesc &ad_Z,
+                                            const ArrayDesc &ad_Z,
                                             size_t &n_filtered, T *W, T power,
                                             const T &threshold = -1.e5)
 {
-    using librpa_int::global::ofs_myid;
+    using global::ofs_myid;
 
     assert (A_local.is_col_major() && Z_local.is_col_major());
     const bool is_int_power = fabs(power - int(power)) < 1e-4;
@@ -564,7 +610,7 @@ matrix_m<std::complex<T>> power_hemat_blacs(matrix_m<std::complex<T>> &A_local,
     const int blocksize_col_opt = std::min(ad_A.nb(), 128);
 
     // initialize descriptor of array A for optimized block size
-    librpa_int::ArrayDesc ad_A_opt(ad_A.ictxt());
+    ArrayDesc ad_A_opt(ad_A.ictxt());
     ad_A_opt.init(n, n, blocksize_row_opt, blocksize_col_opt, 0, 0);
     auto A_local_opt = init_local_mat<std::complex<T>>(ad_A_opt, MAJOR::COL);
     // NOTE: imply A and Z should be in the same context
@@ -576,7 +622,7 @@ matrix_m<std::complex<T>> power_hemat_blacs(matrix_m<std::complex<T>> &A_local,
     {
         ofs_myid << "Warning(power_hemat_blacs): input contexts of A and Z are different!" << std::endl;
     }
-    librpa_int::ArrayDesc ad_Z_opt(ad_Z.ictxt());
+    ArrayDesc ad_Z_opt(ad_Z.ictxt());
     ad_Z_opt.init(n, n, blocksize_row_opt, blocksize_col_opt, 0, 0);
     auto Z_local_opt = init_local_mat<std::complex<T>>(ad_Z_opt, MAJOR::COL);
     // printf("Z_local_opt size: %d\n", Z_local_opt.size());
@@ -637,11 +683,17 @@ matrix_m<std::complex<T>> power_hemat_blacs(matrix_m<std::complex<T>> &A_local,
     {
         if (W[i] < 0 && !is_int_power)
         {
-            librpa_int::global::lib_printf("Warning! unfiltered negative eigenvalue with non-integer power: # %d ev = %f , pow = %f\n", i, W[i], power);
+            global::lib_printf(
+                "Warning! unfiltered negative eigenvalue with non-integer power: # %d ev = %f , "
+                "pow = %f\n",
+                i, W[i], power);
         }
         if (fabs(W[i]) < 1e-10 && power < 0)
         {
-            librpa_int::global::lib_printf("Warning! unfiltered nearly-singular eigenvalue with negative power: # %d ev = %f , pow = %f\n", i, W[i], power);
+            global::lib_printf(
+                "Warning! unfiltered nearly-singular eigenvalue with negative power: # %d ev = %f "
+                ", pow = %f\n",
+                i, W[i], power);
         }
         W_temp[i] = std::pow(W[i], power);
     }
@@ -659,26 +711,310 @@ matrix_m<std::complex<T>> power_hemat_blacs(matrix_m<std::complex<T>> &A_local,
     {
         ScalapackConnector::pscal_f(n, W_temp[i], scaled_opt.ptr(), 1, 1+i, ad_Z_opt.desc, 1);
     }
-    ScalapackConnector::pgemm_f('N', 'C', n, n, n, 1.0, Z_local_opt.ptr(), 1, 1, ad_Z_opt.desc, scaled_opt.ptr(), 1, 1, ad_Z_opt.desc, 0.0, A_local.ptr(), 1, 1, ad_A.desc);
+    ScalapackConnector::pgemm_f('N', 'C', n, n, n, 1.0, Z_local_opt.ptr(), 1, 1, ad_Z_opt.desc,
+                                scaled_opt.ptr(), 1, 1, ad_Z_opt.desc, 0.0, A_local.ptr(), 1, 1,
+                                ad_A.desc);
     auto scaled = Z_local.copy();
-    // send back the scaled eigenvector matrix with descriptor using optimized block size to that with input descriptor
-    ScalapackConnector::pgemr2d_f(n, n, scaled_opt.ptr(), 1, 1, ad_Z_opt.desc,
-                                  scaled.ptr(), 1, 1, ad_Z.desc, ad_Z.ictxt());
+    // send back the scaled eigenvector matrix with descriptor using optimized block size to that
+    // with input descriptor
+    ScalapackConnector::pgemr2d_f(n, n, scaled_opt.ptr(), 1, 1, ad_Z_opt.desc, scaled.ptr(), 1, 1,
+                                  ad_Z.desc, ad_Z.ictxt());
     global::profiler.stop("power_hemat_blacs_5");
 
     return scaled;
 }
 
-template <typename T, typename Treal = typename to_real<T>::type>
-void print_matrix_mm_parallel(std::ostream &os, const matrix_m<T> &mat_loc, const librpa_int::ArrayDesc &ad, Treal threshold = 1e-15, bool row_first = true)
+template <typename T>
+matrix_m<std::complex<T>> power_hemat_blacs_desc(matrix_m<std::complex<T>> &A_local,
+                                                 const ArrayDesc &ad_A,
+                                                 matrix_m<std::complex<T>> &Z_local,
+                                                 const ArrayDesc &ad_Z, size_t &n_filtered, T *W,
+                                                 T power, const T &threshold = -1.e5)
 {
-    librpa_int::ArrayDesc ad_fb(ad.ictxt());
+    using global::ofs_myid;
+    using global::profiler;
+
+    A_local *= -1.0;
+    assert(A_local.is_col_major() && Z_local.is_col_major());
+    const bool is_int_power = fabs(power - int(power)) < 1e-4;
+    const int n = ad_A.m();
+    const char jobz = 'V';
+    const char uplo = 'U';
+
+    // temporary array for heev with optmized block size
+    const int blocksize_row_opt = std::min(ad_A.mb(), 128);
+    const int blocksize_col_opt = std::min(ad_A.nb(), 128);
+
+    // initialize descriptor of array A for optimized block size
+    ArrayDesc ad_A_opt(ad_A.ictxt());
+    ad_A_opt.init(n, n, blocksize_row_opt, blocksize_col_opt, 0, 0);
+    auto A_local_opt = init_local_mat<std::complex<T>>(ad_A_opt, MAJOR::COL);
+    // NOTE: imply A and Z should be in the same context
+    ScalapackConnector::pgemr2d_f(n, n, A_local.ptr(), 1, 1, ad_A.desc, A_local_opt.ptr(), 1, 1,
+                                  ad_A_opt.desc, ad_A.ictxt());
+
+    // initialize descriptor of array Z for optimized block size
+    if (ad_A.ictxt() != ad_Z.ictxt())
+    {
+        ofs_myid << "Warning(power_hemat_blacs): input contexts of A and Z are different!\n";
+    }
+    ArrayDesc ad_Z_opt(ad_Z.ictxt());
+    ad_Z_opt.init(n, n, blocksize_row_opt, blocksize_col_opt, 0, 0);
+    auto Z_local_opt = init_local_mat<std::complex<T>>(ad_Z_opt, MAJOR::COL);
+    // printf("Z_local_opt size: %d\n", Z_local_opt.size());
+
+    profiler.start("power_hemat_blacs_1");
+    int lwork = -1, lrwork = -1, info = 0;
+    std::complex<T> *work;
+    T *rwork;
+    {
+        work = new std::complex<T>[1];
+        rwork = new T[1];
+        // query the optimal lwork and lrwork
+        T *Wquery = new T[1];
+        // LIBRPA::utils::lib_printf("power_hemat_blacs descA %s\n", ad_A.info_desc().c_str());
+        ScalapackConnector::pheev_f(jobz, uplo, n, A_local_opt.ptr(), 1, 1, ad_A_opt.desc, Wquery,
+                                    Z_local_opt.ptr(), 1, 1, ad_A_opt.desc, work, lwork, rwork,
+                                    lrwork, info);
+        lwork = int(work[0].real());
+        lrwork = int(rwork[0]);
+        delete[] work;
+        delete[] Wquery;
+        delete[] rwork;
+    }
+    profiler.stop("power_hemat_blacs_1");
+
+    profiler.start("power_hemat_blacs_2");
+    work = new std::complex<T>[lwork];
+    rwork = new T[lrwork];
+    ScalapackConnector::pheev_f(jobz, uplo, n, A_local_opt.ptr(), 1, 1, ad_A_opt.desc, W,
+                                Z_local_opt.ptr(), 1, 1, ad_Z_opt.desc, work, lwork, rwork, lrwork,
+                                info);
+    delete[] work;
+    delete[] rwork;
+    for (int i = 0; i != n; i++)
+    {
+        W[i] *= -1.0;
+    }
+    // Optimized A no longer used
+    A_local_opt.clear();
+
+    // change to descending order
+    /*auto Z_tmp = Z_local_opt.copy();
+    for (int i = 0; i != n; i++)
+    {
+        for (int j = 0; j != n; j++)
+            Z_local_opt.dataobj[i * n + j] = Z_tmp.dataobj[(n - i - 1) * n + j];
+    }*/
+
+    ScalapackConnector::pgemr2d_f(n, n, Z_local_opt.ptr(), 1, 1, ad_Z_opt.desc, Z_local.ptr(), 1, 1,
+                                  ad_Z.desc, ad_Z.ictxt());
+    profiler.stop("power_hemat_blacs_2");
+
+    // check the number of non-singular eigenvalues,
+    // using the fact that W is in descending order
+    n_filtered = n;
+    for (int i = 0; i != n; i++)
+        if (W[n - 1 - i] >= threshold)
+        {
+            n_filtered = i;
+            break;
+        }
+
+    // filter and scale the eigenvalues, store in a temp array
+    profiler.start("power_hemat_blacs_3");
+    T W_temp[n];
+    for (int i = n - n_filtered; i != n; i++) W_temp[i] = 0.0;
+    for (int i = 0; i != n - n_filtered; i++)
+    {
+        if (W[i] < 0 && !is_int_power)
+        {
+            global::lib_printf(
+                "Warning! unfiltered negative eigenvalue with non-integer power: # %d ev = %f , "
+                "pow = %f\n",
+                i, W[i], power);
+        }
+        if (fabs(W[i]) < 1e-10 && power < 0)
+        {
+            global::lib_printf(
+                "Warning! unfiltered nearly-singular eigenvalue with negative power: # %d ev = %f "
+                ", pow = %f\n",
+                i, W[i], power);
+        }
+        W_temp[i] = std::pow(W[i], power);
+    }
+    profiler.stop("power_hemat_blacs_3");
+    // debug print
+    // for (int i = 0; i != n; i++)
+    // {
+    //     LIBRPA::utils::lib_printf("%d %f %f\n", i, W[i], W_temp[i]);
+    // }
+
+    profiler.start("power_hemat_blacs_4");
+
+    // create scaled eigenvectors
+    auto scaled_opt = Z_local_opt.copy();
+    for (int i = 0; i != n; i++)
+    {
+        ScalapackConnector::pscal_f(n, W_temp[i], scaled_opt.ptr(), 1, 1 + i, ad_Z_opt.desc, 1);
+    }
+    ScalapackConnector::pgemm_f('N', 'C', n, n, n, 1.0, Z_local_opt.ptr(), 1, 1, ad_Z_opt.desc,
+                                scaled_opt.ptr(), 1, 1, ad_Z_opt.desc, 0.0, A_local.ptr(), 1, 1,
+                                ad_A.desc);
+    auto scaled = Z_local.copy();
+    // send back the scaled eigenvector matrix with descriptor using optimized block size to that
+    // with input descriptor
+    ScalapackConnector::pgemr2d_f(n, n, scaled_opt.ptr(), 1, 1, ad_Z_opt.desc, scaled.ptr(), 1, 1,
+                                  ad_Z.desc, ad_Z.ictxt());
+    profiler.stop("power_hemat_blacs_4");
+
+    return scaled;
+}
+
+template <typename T>
+matrix_m<std::complex<T>> power_hemat_blacs_real(matrix_m<std::complex<T>> &A_local,
+                                                 const ArrayDesc &ad_A,
+                                                 matrix_m<std::complex<T>> &Z_local,
+                                                 const ArrayDesc &ad_Z, size_t &n_filtered,
+                                                 T *W, T power, const T &threshold = -1.e5)
+{
+    using global::ofs_myid;
+    using global::profiler;
+
+    // Step 1: Extract real part of the complex matrix
+    auto A_local_real = A_local.get_real();
+    A_local_real *= -1.0;
+    assert(A_local.is_col_major() && Z_local.is_col_major());
+    const bool is_int_power = fabs(power - int(power)) < 1e-4;
+    const int n = ad_A.m();
+    const char jobz = 'V';
+    const char uplo = 'U';
+
+    // temporary array for syev with optimized block size
+    const int blocksize_row_opt = std::min(ad_A.mb(), 128);
+    const int blocksize_col_opt = std::min(ad_A.nb(), 128);
+
+    // initialize descriptor of array A for optimized block size
+    ArrayDesc ad_A_opt(ad_A.ictxt());
+    ad_A_opt.init(n, n, blocksize_row_opt, blocksize_col_opt, 0, 0);
+    // Initialize as real matrix for diagonalization
+    auto A_local_opt = init_local_mat<T>(ad_A_opt, MAJOR::COL);
+    ScalapackConnector::pgemr2d_f(n, n, A_local_real.ptr(), 1, 1, ad_A.desc, A_local_opt.ptr(), 1,
+                                  1, ad_A_opt.desc, ad_A.ictxt());
+
+    // initialize descriptor of array Z for optimized block size
+    if (ad_A.ictxt() != ad_Z.ictxt())
+    {
+        ofs_myid << "Warning(power_hemat_blacs): input contexts of A and Z are different!\n";
+    }
+    ArrayDesc ad_Z_opt(ad_Z.ictxt());
+    ad_Z_opt.init(n, n, blocksize_row_opt, blocksize_col_opt, 0, 0);
+    // Initialize Z as real matrix initially
+    auto Z_local_opt = init_local_mat<T>(ad_Z_opt, MAJOR::COL);
+
+    profiler.start("power_hemat_blacs_1");
+    int lwork = -1, lrwork = -1, info = 0;
+
+    // Query optimal workspace using the provided psyev_f interface
+    T work_query, rwork_query, Wquery;
+    ScalapackConnector::psyev_f(jobz, uplo, n, A_local_opt.ptr(), 1, 1, ad_A_opt.desc, &Wquery,
+                                Z_local_opt.ptr(), 1, 1, ad_A_opt.desc, &work_query, lwork, &rwork_query,
+                                lrwork, info);
+    lwork = static_cast<int>(work_query);
+    lrwork = static_cast<int>(rwork_query);
+    profiler.stop("power_hemat_blacs_1");
+
+    std::vector<T> work(lwork);
+    std::vector<T> rwork(lrwork);
+    profiler.start("power_hemat_blacs_2");
+    // Perform real symmetric diagonalization using the provided interface
+    ScalapackConnector::psyev_f(jobz, uplo, n, A_local_opt.ptr(), 1, 1, ad_A_opt.desc, W,
+                                Z_local_opt.ptr(), 1, 1, ad_Z_opt.desc, work, lwork, rwork, lrwork,
+                                info);
+    work.clear();
+    rwork.clear();
+    for (int i = 0; i < n; i++)
+    {
+        W[i] *= -1.0;
+    }
+    A_local_opt.clear();
+
+    // Convert real eigenvectors to complex (with zero imaginary part)
+    auto Z_local_opt_complex = Z_local_opt.to_complex();
+    // Transfer using complex matrix descriptor
+    ScalapackConnector::pgemr2d_f(n, n, Z_local_opt_complex.ptr(), 1, 1, ad_Z_opt.desc,
+                                  Z_local.ptr(), 1, 1, ad_Z.desc, ad_Z.ictxt());
+    profiler.stop("power_hemat_blacs_2");
+
+    // Check number of non-singular eigenvalues
+    n_filtered = n;
+    for (int i = 0; i < n; i++)
+    {
+        if (W[n - 1 - i] >= threshold)
+        {
+            n_filtered = i;
+            break;
+        }
+    }
+
+    // Filter and scale eigenvalues
+    profiler.start("power_hemat_blacs_3");
+    std::vector<T> W_temp(n, T(0));
+    for (int i = 0; i < n - n_filtered; i++)
+    {
+        if (W[i] < 0 && !is_int_power)
+        {
+            global::lib_printf(
+                "Warning! unfiltered negative eigenvalue with non-integer power: # %d ev = %f , "
+                "pow = %f\n",
+                i, W[i], power);
+        }
+        if (fabs(W[i]) < 1e-10 && power < 0)
+        {
+            global::lib_printf(
+                "Warning! unfiltered nearly-singular eigenvalue with negative power: # %d ev = %f "
+                ", pow = %f\n",
+                i, W[i], power);
+        }
+        W_temp[i] = std::pow(W[i], power);
+    }
+    profiler.stop("power_hemat_blacs_3");
+
+    profiler.start("power_hemat_blacs_4");
+    // Scale eigenvectors using complex matrix operations
+    auto scaled_opt = Z_local_opt_complex.copy();
+    for (int i = 0; i < n; i++)
+    {
+        // Use ScaLAPACK scaling function with complex matrix
+        ScalapackConnector::pscal_f(n, W_temp[i], scaled_opt.ptr(), 1, 1 + i, ad_Z_opt.desc, 1);
+    }
+
+    // Compute Z * diag(W_temp) * Z^H
+    ScalapackConnector::pgemm_f('N', 'C', n, n, n, 1.0, Z_local_opt_complex.ptr(), 1, 1,
+                                ad_Z_opt.desc, scaled_opt.ptr(), 1, 1, ad_Z_opt.desc, 0.0,
+                                A_local.ptr(), 1, 1, ad_A.desc);
+
+    auto scaled = Z_local.copy();
+    // Transfer back to original complex matrix
+    ScalapackConnector::pgemr2d_f(n, n, scaled_opt.ptr(), 1, 1, ad_Z_opt.desc, scaled.ptr(), 1, 1,
+                                  ad_Z.desc, ad_Z.ictxt());
+    profiler.stop("power_hemat_blacs_4");
+
+    return scaled;
+}
+
+template <typename T, typename Treal = typename to_real<T>::type>
+void print_matrix_mm_parallel(std::ostream &os, const matrix_m<T> &mat_loc, const ArrayDesc &ad,
+                              Treal threshold = 1e-15, bool row_first = true)
+{
+    ArrayDesc ad_fb(ad.ictxt());
     const int nr = ad.m(), nc = ad.n();
     const int irsrc = ad.irsrc(), icsrc = ad.icsrc();
     ad_fb.init(nr, nc, nr, nc, irsrc, icsrc);
     matrix_m<T> mat_glo = init_local_mat<T>(ad_fb, mat_loc.major());
 
-    ScalapackConnector::pgemr2d_f(nr, nc, mat_loc.ptr(), 1, 1, ad.desc, mat_glo.ptr(), 1, 1, ad_fb.desc, ad.ictxt());
+    ScalapackConnector::pgemr2d_f(nr, nc, mat_loc.ptr(), 1, 1, ad.desc, mat_glo.ptr(), 1, 1,
+                                  ad_fb.desc, ad.ictxt());
     if (ad_fb.is_src() && os.good())
     {
         print_matrix_mm(mat_glo, os, threshold, row_first);
@@ -686,7 +1022,7 @@ void print_matrix_mm_parallel(std::ostream &os, const matrix_m<T> &mat_loc, cons
 }
 
 template <typename T, typename Treal = typename to_real<T>::type>
-void print_matrix_mm_file_parallel(const string &fn, const matrix_m<T> &mat_loc, const librpa_int::ArrayDesc &ad, Treal threshold = 1e-15, bool row_first = true)
+void print_matrix_mm_file_parallel(const string &fn, const matrix_m<T> &mat_loc, const ArrayDesc &ad, Treal threshold = 1e-15, bool row_first = true)
 {
     ofstream fs;
     if (ad.is_src())
@@ -695,9 +1031,9 @@ void print_matrix_mm_file_parallel(const string &fn, const matrix_m<T> &mat_loc,
 }
 
 template <typename T, typename Treal = typename to_real<T>::type>
-void write_matrix_elsi_csc_parallel(const string &fn, const matrix_m<T> &mat_loc, const librpa_int::ArrayDesc &ad, Treal threshold = 1e-15)
+void write_matrix_elsi_csc_parallel(const string &fn, const matrix_m<T> &mat_loc, const ArrayDesc &ad, Treal threshold = 1e-15)
 {
-    librpa_int::ArrayDesc ad_fb(ad.ictxt());
+    ArrayDesc ad_fb(ad.ictxt());
     const int nr = ad.m(), nc = ad.n();
     const int irsrc = ad.irsrc(), icsrc = ad.icsrc();
     ad_fb.init(nr, nc, nr, nc, irsrc, icsrc);
@@ -709,9 +1045,9 @@ void write_matrix_elsi_csc_parallel(const string &fn, const matrix_m<T> &mat_loc
 }
 
 template <typename T>
-matrix_m<T> multiply_scalapack(const matrix_m<T> &m1_loc, const librpa_int::ArrayDesc &desc_m1,
-                               const matrix_m<T> &m2_loc, const librpa_int::ArrayDesc &desc_m2,
-                               const librpa_int::ArrayDesc &desc_prod)
+matrix_m<T> multiply_scalapack(const matrix_m<T> &m1_loc, const ArrayDesc &desc_m1,
+                               const matrix_m<T> &m2_loc, const ArrayDesc &desc_m2,
+                               const ArrayDesc &desc_prod)
 {
     if (m1_loc.major() != m2_loc.major())
     {
@@ -745,7 +1081,7 @@ matrix_m<T> multiply_scalapack(const matrix_m<T> &m1_loc, const librpa_int::Arra
 }
 
 template <typename T>
-void invert_scalapack(matrix_m<T> &m_loc, const librpa_int::ArrayDesc &desc_m)
+void invert_scalapack(matrix_m<T> &m_loc, const ArrayDesc &desc_m)
 {
     assert(m_loc.is_col_major());
     int info = 0;
@@ -754,13 +1090,15 @@ void invert_scalapack(matrix_m<T> &m_loc, const librpa_int::ArrayDesc &desc_m)
         // NOTE: use local leading dimension desc_m.lld() will lead to invalid pointer error
         int *ipiv = new int [desc_m.m()];
         // librpa_int::global::lib_printf("invert_scalpack desc %s\n", desc_m.info_desc().c_str());
-        ScalapackConnector::pgetrf_f(desc_m.m(), desc_m.n(), m_loc.ptr(), 1, 1, desc_m.desc, ipiv, info);
+        ScalapackConnector::pgetrf_f(desc_m.m(), desc_m.n(), m_loc.ptr(), 1, 1, desc_m.desc, ipiv,
+                                     info);
         // get optimized work size
         int lwork = -1, liwork = -1;
         {
             T *work = new T [1];
             int *iwork = new int [1];
-            ScalapackConnector::pgetri_f(desc_m.m(), m_loc.ptr(), 1, 1, desc_m.desc, ipiv, work, lwork, iwork, liwork, info);
+            ScalapackConnector::pgetri_f(desc_m.m(), m_loc.ptr(), 1, 1, desc_m.desc, ipiv, work,
+                                         lwork, iwork, liwork, info);
             lwork = int(get_real(work[0]));
             liwork = iwork[0];
             // librpa_int::global::lib_printf("lwork %d liwork %d\n", lwork, liwork);
@@ -770,7 +1108,8 @@ void invert_scalapack(matrix_m<T> &m_loc, const librpa_int::ArrayDesc &desc_m)
 
         T *work = new T[lwork];
         int *iwork = new int[liwork];
-        ScalapackConnector::pgetri_f(desc_m.m(), m_loc.ptr(), 1, 1, desc_m.desc, ipiv, work, lwork, iwork, liwork, info);
+        ScalapackConnector::pgetri_f(desc_m.m(), m_loc.ptr(), 1, 1, desc_m.desc, ipiv, work, lwork,
+                                     iwork, liwork, info);
         delete [] iwork;
         delete [] work;
         delete [] ipiv;
