@@ -125,6 +125,39 @@ void librpa_set_wfc(LibrpaHandler* h, int ispin, int ik, int nstates_local, int 
     profiler.stop(tname);
 }
 
+void librpa_set_wfc_spinor(LibrpaHandler* h, int ik, int nstates_local, int nbasis_local,
+                           const double* wfc_up_real, const double* wfc_up_imag,
+                           const double* wfc_dn_real, const double* wfc_dn_imag)
+{
+    using librpa_int::global::profiler;
+
+    const std::string tname = "api_set_wfc";
+    profiler.start(tname);
+
+    auto pds = librpa_int::api::get_dataset_instance(h);
+    auto &meanfield = pds->mf;
+
+    if (meanfield.get_n_spinor() != 2)
+        throw LIBRPA_RUNTIME_ERROR("spinor wfc set requires n_spinor initialized to 2");
+
+    auto& wfcs = meanfield.get_eigenvectors()[0][ik];
+    wfcs[0].create(nstates_local, nbasis_local);
+    wfcs[1].create(nstates_local, nbasis_local);
+    const size_t n = meanfield.get_n_bands() * meanfield.get_n_aos();
+    for (size_t i = 0; i < n; i++)
+    {
+        wfcs[0].c[i] = std::complex<double>(wfc_up_real[i], wfc_up_imag[i]);
+        wfcs[1].c[i] = std::complex<double>(wfc_dn_real[i], wfc_dn_imag[i]);
+    }
+    // std::cout << "Maxabs: " << wfc.get_max_abs() << std::endl;
+    librpa_int::global::ofs_myid
+        << "Spinor wave-function set : ik = " << ik
+        << " nstates_local = " << nstates_local << " nbasis_local = " << nbasis_local
+        << std::endl;
+
+    profiler.stop(tname);
+}
+
 void librpa_set_wfc_packed(LibrpaHandler* h, int ispin, int ik, int nstates_local, int nbasis_local,
                            const double* wfc_ri)
 {
@@ -146,6 +179,38 @@ void librpa_set_wfc_packed(LibrpaHandler* h, int ispin, int ik, int nstates_loca
     // std::cout << "Maxabs: " << wfc.get_max_abs() << std::endl;
     librpa_int::global::ofs_myid
         << "Wave-function set : ispin = " << ispin << " ik = " << ik
+        << " nstates_local = " << nstates_local << " nbasis_local = " << nbasis_local
+        << std::endl;
+
+    profiler.stop(tname);
+}
+
+void librpa_set_wfc_spinor_packed(LibrpaHandler* h, int ik, int nstates_local, int nbasis_local,
+                                  const double* wfc_up_ri, const double* wfc_dn_ri)
+{
+    using librpa_int::global::profiler;
+
+    const std::string tname = "api_set_wfc_packed";
+    profiler.start(tname);
+
+    auto pds = librpa_int::api::get_dataset_instance(h);
+    auto &meanfield = pds->mf;
+
+    if (meanfield.get_n_spinor() != 2)
+        throw LIBRPA_RUNTIME_ERROR("spinor wfc set requires n_spinor initialized to 2");
+
+    auto& wfcs = meanfield.get_eigenvectors()[0][ik];
+    wfcs[0].create(nstates_local, nbasis_local);
+    wfcs[1].create(nstates_local, nbasis_local);
+    const size_t n = meanfield.get_n_bands() * meanfield.get_n_aos();
+    for (size_t i = 0; i < n; i++)
+    {
+        wfcs[0].c[i] = std::complex<double>(wfc_up_ri[2*i], wfc_up_ri[2*i+1]);
+        wfcs[1].c[i] = std::complex<double>(wfc_dn_ri[2*i], wfc_dn_ri[2*i+1]);
+    }
+    // std::cout << "Maxabs: " << wfc.get_max_abs() << std::endl;
+    librpa_int::global::ofs_myid
+        << "Spinor wave-function set : ik = " << ik
         << " nstates_local = " << nstates_local << " nbasis_local = " << nbasis_local
         << std::endl;
 
@@ -718,6 +783,36 @@ void librpa_set_wfc_band(LibrpaHandler* h, int ispin, int ik_band, int nstates_l
     profiler.stop(tname);
 }
 
+void librpa_set_wfc_band_spinor(LibrpaHandler* h, int ik_band, int nstates_local, int nbasis_local,
+                                const double* wfc_up_real, const double* wfc_up_imag,
+                                const double* wfc_dn_real, const double* wfc_dn_imag)
+{
+    using librpa_int::global::profiler;
+
+    const std::string tname = "api_set_wfc_band";
+    profiler.start(tname);
+
+    auto pds = librpa_int::api::get_dataset_instance(h);
+    auto &mfb = pds->mf_band;
+
+    auto& wfcs = mfb.get_eigenvectors()[0][ik_band];
+    wfcs[0].create(nstates_local, nbasis_local);
+    wfcs[1].create(nstates_local, nbasis_local);
+    const size_t n = mfb.get_n_bands() * mfb.get_n_aos();
+    for (size_t i = 0; i < n; i++)
+    {
+        wfcs[0].c[i] = std::complex<double>(wfc_up_real[i], wfc_up_imag[i]);
+        wfcs[1].c[i] = std::complex<double>(wfc_dn_real[i], wfc_dn_imag[i]);
+    }
+    // std::cout << "Maxabs: " << wfc.get_max_abs() << std::endl;
+    librpa_int::global::ofs_myid
+        << "Spinor wave-function (band) set : ik = " << ik_band
+        << " nstates_local = " << nstates_local << " nbasis_local = " << nbasis_local
+        << std::endl;
+
+    profiler.stop(tname);
+}
+
 void librpa_set_wfc_band_packed(LibrpaHandler* h, int ispin, int ik_band, int nstates_local,
                                 int nbasis_local, const double* wfc_ri)
 {
@@ -739,6 +834,36 @@ void librpa_set_wfc_band_packed(LibrpaHandler* h, int ispin, int ik_band, int ns
     // std::cout << "Maxabs: " << wfc.get_max_abs() << std::endl;
     librpa_int::global::ofs_myid
         << "Wave-function (band) set : ispin = " << ispin << " ik = " << ik_band
+        << " nstates_local = " << nstates_local << " nbasis_local = " << nbasis_local
+        << std::endl;
+
+    profiler.stop(tname);
+}
+
+void librpa_set_wfc_band_spinor_packed(LibrpaHandler* h, int ik_band, int nstates_local,
+                                       int nbasis_local, const double* wfc_up_ri,
+                                       const double* wfc_dn_ri)
+{
+    using librpa_int::global::profiler;
+
+    const std::string tname = "api_set_wfc_band_packed";
+    profiler.start(tname);
+
+    auto pds = librpa_int::api::get_dataset_instance(h);
+    auto &mfb = pds->mf_band;
+
+    auto& wfcs = mfb.get_eigenvectors()[0][ik_band];
+    wfcs[0].create(nstates_local, nbasis_local);
+    wfcs[1].create(nstates_local, nbasis_local);
+    const size_t n = mfb.get_n_bands() * mfb.get_n_aos();
+    for (size_t i = 0; i < n; i++)
+    {
+        wfcs[0].c[i] = std::complex<double>(wfc_up_ri[2*i], wfc_up_ri[2*i+1]);
+        wfcs[1].c[i] = std::complex<double>(wfc_dn_ri[2*i], wfc_dn_ri[2*i+1]);
+    }
+    // std::cout << "Maxabs: " << wfc.get_max_abs() << std::endl;
+    librpa_int::global::ofs_myid
+        << "Spinor wave-function (band) set : ik = " << ik_band
         << " nstates_local = " << nstates_local << " nbasis_local = " << nbasis_local
         << std::endl;
 

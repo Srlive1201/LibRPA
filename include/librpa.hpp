@@ -203,9 +203,19 @@ public:
     void set_wfc(int ispin, int ik, int nstates_local, int nbasis_local, const double *wfc_real,
                  const double *wfc_imag);
 
+    /** @brief Set wavefunction coefficients of spinor format (separated real/imag arrays). */
+    void set_wfc_spinor(int ik, int nstates_local, int nbasis_local,
+                        const double* wfc_up_real, const double* wfc_up_imag,
+                        const double* wfc_dn_real, const double* wfc_dn_imag);
+
     /** @brief Set wavefunction coefficients (packed complex array). */
     void set_wfc_packed(int ispin, int ik, int nstates_local, int nbasis_local,
                         const std::complex<double> *wfc);
+
+    /** @brief Set wavefunction coefficients of spinor format (packed complex array). */
+    void set_wfc_spinor_packed(int ik, int nstates_local, int nbasis_local,
+                               const std::complex<double> *wfc_up,
+                               const std::complex<double> *wfc_dn);
 
     /** @brief Set atomic orbital basis size for wavefunctions. */
     void set_ao_basis_wfc(const std::vector<size_t> &nbs_wfc);

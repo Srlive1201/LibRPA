@@ -326,6 +326,7 @@ module librpa_f03
          procedure :: set_scf_dimension => librpa_set_scf_dimension
          procedure :: set_wg_ekb_efermi => librpa_set_wg_ekb_efermi
          procedure :: set_wfc => librpa_set_wfc
+         procedure :: set_wfc_spinor => librpa_set_wfc_spinor
          procedure :: set_ao_basis_wfc => librpa_set_ao_basis_wfc
          procedure :: set_ao_basis_aux => librpa_set_ao_basis_aux
          procedure :: set_latvec_and_G => librpa_set_latvec_and_G
@@ -340,6 +341,7 @@ module librpa_f03
          procedure :: set_dielect_func_imagfreq => librpa_set_dielect_func_imagfreq
          procedure :: set_band_kvec => librpa_set_band_kvec
          procedure :: set_wfc_band => librpa_set_wfc_band
+         procedure :: set_wfc_band_spinor => librpa_set_wfc_band_spinor
          procedure :: set_band_occ_eigval => librpa_set_band_occ_eigval
          procedure :: reset_band_data => librpa_reset_band_data
          ! Compute
@@ -397,6 +399,15 @@ module librpa_f03
          real(c_double), dimension(*), intent(in) :: wfc_imag
       end subroutine librpa_set_wfc_c
 
+      subroutine librpa_set_wfc_spinor_c(h, ik, nstates_local, nbasis_local, wfc_up_real, wfc_up_imag, wfc_dn_real, wfc_dn_imag) &
+            bind(c, name="librpa_set_wfc_spinor")
+         import :: c_ptr, c_int, c_double
+         type(c_ptr), value :: h
+         integer(c_int), value :: ik, nstates_local, nbasis_local
+         real(c_double), dimension(*), intent(in) :: wfc_up_real, wfc_up_imag
+         real(c_double), dimension(*), intent(in) :: wfc_dn_real, wfc_dn_imag
+      end subroutine librpa_set_wfc_spinor_c
+
       subroutine librpa_set_wfc_packed_c(h, ispin, ik, nstates_local, nbasis_local, wfc) &
             bind(c, name="librpa_set_wfc_packed")
          import :: c_ptr, c_int
@@ -404,6 +415,14 @@ module librpa_f03
          integer(c_int), value :: ispin, ik, nstates_local, nbasis_local
          type(c_ptr), value :: wfc
       end subroutine librpa_set_wfc_packed_c
+
+      subroutine librpa_set_wfc_spinor_packed_c(h, ik, nstates_local, nbasis_local, wfc_up, wfc_dn) &
+            bind(c, name="librpa_set_wfc_spinor_packed")
+         import :: c_ptr, c_int
+         type(c_ptr), value :: h
+         integer(c_int), value :: ik, nstates_local, nbasis_local
+         type(c_ptr), value :: wfc_up, wfc_dn
+      end subroutine librpa_set_wfc_spinor_packed_c
 
       subroutine librpa_set_ao_basis_wfc_c(h, natoms, nbs_wfc) &
             bind(c, name="librpa_set_ao_basis_wfc")
@@ -536,6 +555,15 @@ module librpa_f03
          real(c_double), dimension(*), intent(in) :: wfc_imag
       end subroutine librpa_set_wfc_band_c
 
+      subroutine librpa_set_wfc_band_spinor_c(h, ik_band, nstates_local, nbasis_local, wfc_up_real, wfc_up_imag, wfc_dn_real, wfc_dn_imag) &
+            bind(c, name="librpa_set_wfc_band_spinor")
+         import :: c_ptr, c_int, c_double
+         type(c_ptr), value :: h
+         integer(c_int), value :: ik_band, nstates_local, nbasis_local
+         real(c_double), dimension(*), intent(in) :: wfc_up_real, wfc_up_imag
+         real(c_double), dimension(*), intent(in) :: wfc_dn_real, wfc_dn_imag
+      end subroutine librpa_set_wfc_band_spinor_c
+
       subroutine librpa_set_wfc_band_packed_c(h, ispin, ik_band, nstates_local, nbasis_local, wfc) &
             bind(c, name="librpa_set_wfc_band_packed")
          import :: c_ptr, c_int
@@ -543,6 +571,14 @@ module librpa_f03
          integer(c_int), value :: ispin, ik_band, nstates_local, nbasis_local
          type(c_ptr), value :: wfc
       end subroutine librpa_set_wfc_band_packed_c
+
+      subroutine librpa_set_wfc_band_spinor_packed_c(h, ik_band, nstates_local, nbasis_local, wfc_up, wfc_dn) &
+            bind(c, name="librpa_set_wfc_band_spinor_packed")
+         import :: c_ptr, c_int
+         type(c_ptr), value :: h
+         integer(c_int), value :: ik_band, nstates_local, nbasis_local
+         type(c_ptr), value :: wfc_up, wfc_dn
+      end subroutine librpa_set_wfc_band_spinor_packed_c
 
       subroutine librpa_reset_band_data_c(h) bind(c, name="librpa_reset_band_data")
          import :: c_ptr
@@ -1113,6 +1149,50 @@ contains
       end if
    end subroutine librpa_set_wfc
 
+   !> @brief Set the wave-function expansion coefficients, spinor format
+   !>
+   !> @param ik             (global) k-point index (starting from 1) of the wave function
+   !> @param nstates_local  local dimenstion (number of states) of the parsed wave-function
+   !> @param nbasis_local   local dimenstion (number of basis functions) of the parsed wave-function
+   !> @param wfc_up_cplx    Complex-valued wave function to parse (spin-up component)
+   !> @param wfc_dn_cplx    Complex-valued wave function to parse (spin-down component)
+   subroutine librpa_set_wfc_spinor(this, ik, nstates_local, nbasis_local, wfc_up_cplx, wfc_dn_cplx)
+      use iso_c_binding, only: c_int, c_double, c_loc
+      implicit none
+      class(LibrpaHandler), intent(inout) :: this
+      integer, intent(in) :: ik, nstates_local, nbasis_local
+      complex(dp), intent(in), target :: wfc_up_cplx(nbasis_local, nstates_local)
+      complex(dp), intent(in), target :: wfc_dn_cplx(nbasis_local, nstates_local)
+
+      real(c_double), allocatable :: wfc_up_real(:,:), wfc_up_imag(:,:)
+      real(c_double), allocatable :: wfc_dn_real(:,:), wfc_dn_imag(:,:)
+      integer(c_int) :: ik_c, nstates_local_c, nbasis_local_c
+
+      ik_c = int(ik-1, kind=c_int)
+      nstates_local_c = int(nstates_local, kind=c_int)
+      nbasis_local_c = int(nbasis_local, kind=c_int)
+
+      if (dp == c_double) then
+         ! Fast path without create intermediate Fortran arrays
+         call librpa_set_wfc_spinor_packed_c(&
+            this%ptr_c_handle, ik_c, &
+            nstates_local_c, nbasis_local_c, c_loc(wfc_up_cplx), c_loc(wfc_dn_cplx))
+      else
+         allocate(wfc_up_real(nbasis_local, nstates_local))
+         allocate(wfc_up_imag(nbasis_local, nstates_local))
+         allocate(wfc_dn_real(nbasis_local, nstates_local))
+         allocate(wfc_dn_imag(nbasis_local, nstates_local))
+         wfc_up_real = real(wfc_up_cplx, kind=c_double)
+         wfc_up_imag = real(aimag(wfc_up_cplx), kind=c_double)
+         wfc_dn_real = real(wfc_dn_cplx, kind=c_double)
+         wfc_dn_imag = real(aimag(wfc_dn_cplx), kind=c_double)
+         call librpa_set_wfc_spinor_c(this%ptr_c_handle, ik_c, &
+            nstates_local_c, nbasis_local_c, wfc_up_real, wfc_up_imag, wfc_dn_real, wfc_dn_imag)
+         deallocate(wfc_up_real, wfc_up_imag)
+         deallocate(wfc_dn_real, wfc_dn_imag)
+      end if
+   end subroutine librpa_set_wfc_spinor
+
    subroutine set_ao_basis(h, natoms, nbs, is_aux)
       implicit none
       type(LibrpaHandler), intent(inout) :: h
@@ -1608,6 +1688,51 @@ contains
          deallocate(wfc_real, wfc_imag)
       end if
    end subroutine librpa_set_wfc_band
+
+   !> @brief Set the wave-function expansion coefficients for band calculation, spinor format
+   !>
+   !> @param ik_band        (global) k-point index (starting from 1) of the wave function
+   !> @param nstates_local  local dimenstion (number of states) of the parsed wave-function
+   !> @param nbasis_local   local dimenstion (number of basis functions) of the parsed wave-function
+   !> @param wfc_up_cplx    Complex-valued wave function to parse (spin-up component)
+   !> @param wfc_dn_cplx    Complex-valued wave function to parse (spin-down component)
+   subroutine librpa_set_wfc_band_spinor(this, ik_band, nstates_local, nbasis_local, wfc_up_cplx, wfc_dn_cplx)
+      use iso_c_binding, only: c_int, c_double, c_loc
+      implicit none
+
+      class(LibrpaHandler), intent(inout) :: this
+      integer, intent(in) :: ik_band, nstates_local, nbasis_local
+      complex(dp), intent(in), target :: wfc_up_cplx(nbasis_local, nstates_local)
+      complex(dp), intent(in), target :: wfc_dn_cplx(nbasis_local, nstates_local)
+
+      real(c_double), allocatable :: wfc_up_real(:,:), wfc_up_imag(:,:)
+      real(c_double), allocatable :: wfc_dn_real(:,:), wfc_dn_imag(:,:)
+      integer(c_int) :: ikb_c, nstates_local_c, nbasis_local_c
+
+      ikb_c = int(ik_band-1, kind=c_int)
+      nstates_local_c = int(nstates_local, kind=c_int)
+      nbasis_local_c = int(nbasis_local, kind=c_int)
+
+      if (dp == c_double) then
+         ! Fast path without create intermediate Fortran arrays
+         call librpa_set_wfc_band_spinor_packed_c(&
+            this%ptr_c_handle, ikb_c, &
+            nstates_local_c, nbasis_local_c, c_loc(wfc_up_cplx), c_loc(wfc_dn_cplx))
+      else
+         allocate(wfc_up_real(nbasis_local, nstates_local))
+         allocate(wfc_up_imag(nbasis_local, nstates_local))
+         allocate(wfc_dn_real(nbasis_local, nstates_local))
+         allocate(wfc_dn_imag(nbasis_local, nstates_local))
+         wfc_up_real = real(wfc_up_cplx, kind=c_double)
+         wfc_up_imag = real(aimag(wfc_up_cplx), kind=c_double)
+         wfc_dn_real = real(wfc_dn_cplx, kind=c_double)
+         wfc_dn_imag = real(aimag(wfc_dn_cplx), kind=c_double)
+         call librpa_set_wfc_band_spinor_c(this%ptr_c_handle, ikb_c, &
+            nstates_local_c, nbasis_local_c, wfc_up_real, wfc_up_imag, wfc_dn_real, wfc_dn_imag)
+         deallocate(wfc_up_real, wfc_up_imag)
+         deallocate(wfc_dn_real, wfc_dn_imag)
+      end if
+   end subroutine librpa_set_wfc_band_spinor
 
    !> @brief Reset band structure data.
    !> @param[in,out] this  Handler.

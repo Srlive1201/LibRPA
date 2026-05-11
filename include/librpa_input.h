@@ -51,6 +51,21 @@ void librpa_set_wfc(LibrpaHandler* h, int ispin, int ik, int nstates_local, int 
                     const double* wfc_real, const double* wfc_imag);
 
 /**
+ * @brief Set wavefunction coefficients of spinor format (real/imag separate arrays).
+ * @param[in] h              Handler.
+ * @param[in] ik             K-point index (0-based).
+ * @param[in] nstates_local  Local number of states.
+ * @param[in] nbasis_local   Local number of basis functions.
+ * @param[in] wfc_up_real    Real part of wavefunction coefficients (spin-up component).
+ * @param[in] wfc_up_imag    Imaginary part of wavefunction coefficients (spin-up component).
+ * @param[in] wfc_dn_real    Real part of wavefunction coefficients (spin-down component).
+ * @param[in] wfc_dn_imag    Imaginary part of wavefunction coefficients (spin-down component).
+ */
+void librpa_set_wfc_spinor(LibrpaHandler* h, int ik, int nstates_local, int nbasis_local,
+                           const double* wfc_up_real, const double* wfc_up_imag,
+                           const double* wfc_dn_real, const double* wfc_dn_imag);
+
+/**
  * @brief Set wavefunction coefficients (packed complex array).
  * @param[in] h              Handler.
  * @param[in] ispin          Spin index (0-based).
@@ -61,6 +76,19 @@ void librpa_set_wfc(LibrpaHandler* h, int ispin, int ik, int nstates_local, int 
  */
 void librpa_set_wfc_packed(LibrpaHandler* h, int ispin, int ik, int nstates_local, int nbasis_local,
                            const double* wfc_ri);
+
+/**
+ * @brief Set wavefunction coefficients (packed complex array).
+ * @param[in] h              Handler.
+ * @param[in] ik             K-point index (0-based).
+ * @param[in] nstates_local  Local number of states.
+ * @param[in] nbasis_local   Local number of basis functions.
+ * @param[in] wfc_up_ri      Complex wavefunction coefficients of spin-up component (packed).
+ * @param[in] wfc_dn_ri      Complex wavefunction coefficients of spin-down component (packed).
+ */
+void librpa_set_wfc_spinor_packed(LibrpaHandler* h, int ik, int nstates_local,
+                                  int nbasis_local, const double* wfc_up_ri,
+                                  const double* wfc_dn_ri);
 
 /**
  * @brief Set atomic orbital basis size for wavefunctions.
@@ -249,6 +277,21 @@ void librpa_set_wfc_band(LibrpaHandler* h, int ispin, int ik_band, int nstates_l
                          int nbasis_local, const double* wfc_real, const double* wfc_imag);
 
 /**
+ * @brief Set wavefunction for band k-point (spinor format, separate real/imag).
+ * @param[in] h              Handler.
+ * @param[in] ik_band        Band k-point index.
+ * @param[in] nstates_local  Local number of states.
+ * @param[in] nbasis_local   Local number of atomic basis functions.
+ * @param[in] wfc_up_real    Real part of wavefunction coefficients (spin-up component).
+ * @param[in] wfc_up_imag    Imaginary part of wavefunction coefficients (spin-up component).
+ * @param[in] wfc_dn_real    Real part of wavefunction coefficients (spin-down component).
+ * @param[in] wfc_dn_imag    Imaginary part of wavefunction coefficients (spin-down component).
+ */
+void librpa_set_wfc_band_spinor(LibrpaHandler* h, int ik_band, int nstates_local,
+                                int nbasis_local, const double* wfc_up_real, const double* wfc_up_imag,
+                                const double* wfc_dn_real, const double* wfc_dn_imag);
+
+/**
  * @brief Set wavefunction for band k-point (packed complex).
  *
  * @param[in] h              Handler.
@@ -260,6 +303,19 @@ void librpa_set_wfc_band(LibrpaHandler* h, int ispin, int ik_band, int nstates_l
  */
 void librpa_set_wfc_band_packed(LibrpaHandler* h, int ispin, int ik_band, int nstates_local,
                                 int nbasis_local, const double* wfc_ri);
+
+/**
+ * @brief Set wavefunction for band k-point (packed complex).
+ *
+ * @param[in] h              Handler.
+ * @param[in] ik_band        Band k-point index.
+ * @param[in] nstates_local  Local number of states.
+ * @param[in] nbasis_local   Local number of basis functions.
+ * @param[in] wfc_up_ri      Complex wavefunction of spin-up component (packed).
+ * @param[in] wfc_dn_ri      Complex wavefunction of spin-down component (packed).
+ */
+void librpa_set_wfc_band_spinor_packed(LibrpaHandler* h, int ik_band, int nstates_local,
+                                       int nbasis_local, const double* wfc_up_ri, const double* wfc_dn_ri);
 
 /**
  * @brief Reset band structure input data.

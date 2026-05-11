@@ -109,9 +109,25 @@ LIBRPA_CPP_H_METHOD_DEF_WRAP_VOID(
 )
 
 LIBRPA_CPP_H_METHOD_DEF_WRAP_VOID(
+    set_wfc_spinor,
+    (int ik, int nstates_local, int nbasis_local,
+     const double* wfc_up_real, const double* wfc_up_imag,
+     const double* wfc_dn_real, const double* wfc_dn_imag),
+    (ik, nstates_local, nbasis_local, wfc_up_real, wfc_up_imag, wfc_dn_real, wfc_dn_imag)
+)
+
+LIBRPA_CPP_H_METHOD_DEF_WRAP_VOID(
     set_wfc_packed,
     (int ispin, int ik, int nstates_local, int nbasis_local, const std::complex<double> *wfc),
     (ispin, ik, nstates_local, nbasis_local, reinterpret_cast<const double*>(wfc))
+)
+
+LIBRPA_CPP_H_METHOD_DEF_WRAP_VOID(
+    set_wfc_spinor_packed,
+    (int ik, int nstates_local, int nbasis_local,
+     const std::complex<double> *wfc_up, const std::complex<double> *wfc_dn),
+    (ik, nstates_local, nbasis_local,
+     reinterpret_cast<const double*>(wfc_up), reinterpret_cast<const double*>(wfc_dn))
 )
 
 LIBRPA_CPP_H_METHOD_DEF_WRAP_VOID(
