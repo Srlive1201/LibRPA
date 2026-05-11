@@ -120,6 +120,23 @@ public:
     inline bool initialized() const noexcept { return initialized_; }
 };
 
+inline bool operator==(const AtomicBasis &ab1, const AtomicBasis &ab2)
+{
+    if (ab1.n_atoms != ab2.n_atoms) return false;
+    if (ab1.nb_total != ab2.nb_total) return false;
+    const int n_atoms = ab1.n_atoms;
+    for (int ia = 0; ia < n_atoms; ia++)
+    {
+        if (ab1.get_atom_nb(ia) != ab2.get_atom_nb(ia)) return false;
+    }
+    return true;
+}
+
+inline bool operator!=(const AtomicBasis &ab1, const AtomicBasis &ab2)
+{
+    return !(ab1 == ab2);
+}
+
 /*!
  * @brief Get the size of matrix block corresponding to an atom pair.
  *

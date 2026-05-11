@@ -28,6 +28,8 @@ private:
     int n_states;
     //! number of kpoints
     int n_kpoints;
+    //! number of spinor components per wavefunction, e.g. 1 or 2
+    int n_spinor;
 
     // Local dimensions for parallel distribution of eigenvectors
     int n_aos_local;
@@ -39,46 +41,57 @@ private:
     std::vector<matrix> eskb;
     //! occupation weight, scaled by n_kpoints. (n_spins, n_kpoints, n_states)
     std::vector<matrix> wg;
-    //! eigenvector, (n_spins, n_kpoints_local, n_states_local, n_aos_local)
+    //! eigenvector, (n_spins, n_spinor, n_kpoints_local, n_states_local, n_aos_local)
     // TODO: parallelize
-    std::map<int, std::map<int, ComplexMatrix>> wfc;
+    std::map<int, std::map<int, std::map<int, ComplexMatrix>>> wfc;
     //! Fermi energy
     double efermi;
-    void resize(int ns, int nk, int nb, int nao, int st_ib, int nb_local, int st_iao, int nao_local);
+    void resize(int ns, int nk, int nb, int nao, int n_spinor, int st_ib, int nb_local, int st_iao, int nao_local);
 
 public:
     MeanField()
         : n_spins(0),
-        n_aos(0),
-        n_states(0),
-        n_kpoints(0),
-        n_aos_local(0),
-        i_ao_start(-1),
-        n_states_local(0),
-        i_state_start(-1),
-        eskb(),
-        wg(),
-        wfc(),
-        efermi(0) {};
-    MeanField(int ns, int nk, int nb, int nao);
-    MeanField(int ns, int nk, int nb, int nao, int st_ib, int nb_local, int st_iao, int nao_local);
+          n_aos(0),
+          n_states(0),
+          n_kpoints(0),
+          n_spinor(0),
+          n_aos_local(0),
+          i_ao_start(-1),
+          n_states_local(0),
+          i_state_start(-1),
+          eskb(),
+          wg(),
+          wfc(),
+          efermi(0) {};
+    MeanField(int ns, int nk, int nb, int nao, int n_spinor = 1);
+    MeanField(int ns, int nk, int nb, int nao, int n_spinor, int st_ib, int nb_local, int st_iao, int nao_local);
+    MeanField(int ns, int nk, int nb, int nao, int st_ib, int nb_local, int st_iao, int nao_local)  // backward compability
+        : MeanField(ns, nk, nb, nao, 1, st_ib, nb_local, st_iao, nao_local)
+    {}
     ~MeanField() {};
-    void set(int ns, int nk, int nb, int nao);
-    void set(int ns, int nk, int nb, int nao, int st_ib, int nb_local, int st_iao, int nao_local);
+    void set(int ns, int nk, int nb, int nao, int n_spinor = 1);
+    void set(int ns, int nk, int nb, int nao, int n_spinor, int st_ib, int nb_local, int st_iao, int nao_local);
+    void set(int ns, int nk, int nb, int nao, int st_ib, int nb_local, int st_iao, int nao_local)  // backward compability
+    {
+        set(ns, nk, nb, nao, 1, st_ib, nb_local, st_iao, nao_local);
+    }
     MeanField(const MeanField&) = default;
     inline int get_n_bands() const { return n_states; }
     inline int get_n_states() const { return n_states; } // alias
     inline int get_n_spins() const { return n_spins; }
     inline int get_n_kpoints() const { return n_kpoints; }
     inline int get_n_aos() const { return n_aos; }
+    inline int get_n_spinor() const { return n_spinor; }
     inline double& get_efermi() { return efermi; }
     inline const double& get_efermi() const { return efermi; }
     std::vector<matrix>& get_eigenvals() { return eskb; }
     const std::vector<matrix>& get_eigenvals() const { return eskb; }
     std::vector<matrix>& get_weight() { return wg; }
     const std::vector<matrix>& get_weight() const { return wg; }
-    std::map<int, std::map<int, ComplexMatrix>>& get_eigenvectors() { return wfc; }
-    const std::map<int, std::map<int, ComplexMatrix>>& get_eigenvectors() const { return wfc; }
+    std::map<int, std::map<int, std::map<int, ComplexMatrix>>>& get_eigenvectors() { return wfc; }
+    const std::map<int, std::map<int, std::map<int, ComplexMatrix>>>& get_eigenvectors() const { return wfc; }
+    ComplexMatrix* find_wfc(int ispin, int ispinor, int ikpt) noexcept;
+    const ComplexMatrix* find_wfc(int ispin, int ispinor, int ikpt) const noexcept;
     double get_E_min_max(double& emin, double& emax) const;
     double get_band_gap() const;
 
@@ -86,22 +99,27 @@ public:
     std::vector<int> get_iks_local() const;
 
     //! Get the density matrix of a particular spin and kpoint
-    ComplexMatrix get_dmat_cplx(int ispin, int ikpt) const;
+    ComplexMatrix get_dmat_cplx(int ispin, int ispinor_bra, int ispinor_ket, int ikpt) const;
 
     // Density matrix and green's function calculation, serial version
-    ComplexMatrix get_dmat_cplx_R(int ispin, const std::vector<Vector3_Order<double>>& kfrac_list,
+    ComplexMatrix get_dmat_cplx_R(int ispin, int ispinor_bra, int ispinor_ket,
+                                  const std::vector<Vector3_Order<double>>& kfrac_list,
                                   const Vector3_Order<int>& R) const;
     std::map<Vector3_Order<int>, ComplexMatrix> get_dmat_cplx_Rs(
-        int ispin, const std::vector<Vector3_Order<double>>& kfrac_list,
+        int ispin, int ispinor_bra, int ispinor_ket,
+        const std::vector<Vector3_Order<double>>& kfrac_list,
         const std::vector<Vector3_Order<int>>& Rs) const;
 
-    ComplexMatrix get_gf_cplx_imagtime(int ispin, int ikpt, double tau) const;
+    ComplexMatrix get_gf_cplx_imagtime(int ispin, int ispinor_bra, int ispinor_ket, int ikpt,
+                                       double tau) const;
     std::map<double, std::map<Vector3_Order<int>, ComplexMatrix>> get_gf_cplx_imagtimes_Rs(
-        int ispin, const std::vector<Vector3_Order<double>>& kfrac_list,
-        std::vector<double> imagtimes, const std::vector<Vector3_Order<int>>& Rs) const;
+        int ispin, int ispinor_bra, int ispinor_ket,
+        const std::vector<Vector3_Order<double>>& kfrac_list, std::vector<double> imagtimes,
+        const std::vector<Vector3_Order<int>>& Rs) const;
     std::map<double, std::map<Vector3_Order<int>, matrix>> get_gf_real_imagtimes_Rs(
-        int ispin, const std::vector<Vector3_Order<double>>& kfrac_list,
-        std::vector<double> imagtimes, const std::vector<Vector3_Order<int>>& Rs) const;
+        int ispin, int ispinor_bra, int ispinor_ket,
+        const std::vector<Vector3_Order<double>>& kfrac_list, std::vector<double> imagtimes,
+        const std::vector<Vector3_Order<int>>& Rs) const;
 
     // void allredue_wfc_isk();
 };

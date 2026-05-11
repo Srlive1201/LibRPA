@@ -58,10 +58,12 @@ public:
     std::vector<Vector3_Order<int>> Rs_local;
 
     // Physical system.
-    //! Handling object for basic set functions for wave function expansion.
+    //! Handling object for basis functions for wave function expansion.
     AtomicBasis basis_wfc;
-    //! Handling object for auxiliary basic set functions for RI
+    //! Handling object for auxiliary basis functions for RI
     AtomicBasis basis_aux;
+    //! Handling object for shrinked auxiliary basis functions for RI
+    AtomicBasis basis_aux_shrink;
     //! Atomic structure
     Atoms atoms;
     //! Periodic boundary setting
@@ -78,6 +80,8 @@ public:
     TFGrids tfg;
     //! Real-space RI coefficient tensors (local RI)
     Cs_LRI cs_data;
+    //! Real-space RI coefficient tensors (local RI) of shrinked auxiliary basis
+    Cs_LRI cs_data_shrink;
     // atom-pair distribution of Coulomb matrices
     atpair_k_cplx_mat_t vq;
     atpair_k_cplx_mat_t vq_cut;

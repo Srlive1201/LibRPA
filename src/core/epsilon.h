@@ -62,6 +62,32 @@ std::map<double, std::map<Vector3_Order<int>, Matz>> CT_FT_Wc_freq_q(
     std::map<double, std::map<Vector3_Order<double>, Matz>> &Wc_freq_q,
     const PeriodicBoundaryData &pbc, const TFGrids &tfg, bool remove_freq_q = true);
 
+// @brief Fourier transform screened Coulomb Wc(q,w) -> Wc(R,w) -> W(R,t)
+// @details transform step by step to output Wc_freq_R, and return full atom-pair matrix
+// @attention CT_FT_Wc_freq_q only return upper atom-pair, but final Wc_libri should be same
+std::map<double, atom_mapping<std::map<Vector3_Order<int>, matrix_m<complex<double>>>>::pair_t_old>
+CT_FT_Wc_q2R_freq2time(
+    map<double,
+        atom_mapping<std::map<Vector3_Order<double>, matrix_m<complex<double>>>>::pair_t_old>
+        &Wc_freq_q,  // upper atom-pair input
+    const TFGrids &tfg, const int &n_kpoints, const vector<Vector3_Order<int>> &Rlist);
+
+/// @brief Wc(q,w) -> Wc(q,t)
+map<double, atom_mapping<std::map<Vector3_Order<double>, matrix_m<complex<double>>>>::pair_t_old>
+CT_Wc_freq2time_q(
+    const map<double,
+              atom_mapping<std::map<Vector3_Order<double>, matrix_m<complex<double>>>>::pair_t_old>
+        &Wc_freq_q,
+    const TFGrids &tfg, const int &n_kpoints, const vector<Vector3_Order<int>> &Rlist,
+    const vector<Vector3_Order<double>> &qlist);
+
+/// @brief Wc(q,w) -> Wc(R,w) or Wc(q,t) -> W(R,t)
+atom_mapping<std::map<Vector3_Order<int>, matrix_m<complex<double>>>>::pair_t_old FT_Wc_q2R(
+    const atom_mapping<std::map<Vector3_Order<double>, matrix_m<complex<double>>>>::pair_t_old
+        &Wc_tau_q,
+    const TFGrids &tfg, const int &n_kpoints, const vector<Vector3_Order<int>> &Rlist,
+    const bool is_freq);
+
 ComplexMatrix compute_Pi_freq_q_row_ri(const AtomicBasis &atbasis_abf, const Vector3_Order<double> &ik_vec, const atom_mapping<ComplexMatrix>::pair_t_old &chi0_freq_q, const atpair_k_cplx_mat_t &Vq_loc, const vector<atpair_t> &local_atpair, const int &I, const Vector3_Order<double> &q);
 ComplexMatrix compute_Pi_freq_q_row(const AtomicBasis &atbasis_abf, const Vector3_Order<double> &ik_vec,
                                     const atom_mapping<ComplexMatrix>::pair_t_old &chi0_freq_q,

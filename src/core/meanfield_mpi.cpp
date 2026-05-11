@@ -34,7 +34,7 @@ static void collect_Rs(const std::vector<Vector3_Order<int>> &Rs, std::vector<in
 }
 
 std::map<Vector3_Order<int>, ComplexMatrix> get_dmat_cplx_Rs_kpara(
-    int ispin, const MeanField &mf, const std::vector<Vector3_Order<double>>& kfrac_list,
+    int ispin, int ispinor_bra, int ispinor_ket, const MeanField &mf, const std::vector<Vector3_Order<double>>& kfrac_list,
     const std::vector<Vector3_Order<int>>& Rs, const MpiCommHandler &comm_h)
 {
     global::profiler.start(__FUNCTION__);
@@ -68,7 +68,7 @@ std::map<Vector3_Order<int>, ComplexMatrix> get_dmat_cplx_Rs_kpara(
     //       Need division into batches for larger system, particularly for memory consideration
     for (int ik_local = 0; ik_local < nk_local; ik_local++)
     {
-        const auto dmat_k = mf.get_dmat_cplx(ispin, iks_local[ik_local]);
+        const auto dmat_k = mf.get_dmat_cplx(ispin, ispinor_bra, ispinor_ket, iks_local[ik_local]);
         memcpy(kmat.ptr() + size * ik_local, dmat_k.c, size * sizeof(Matz::type));
     }
 
@@ -125,7 +125,7 @@ std::map<Vector3_Order<int>, ComplexMatrix> get_dmat_cplx_Rs_kpara(
 }
 
 std::map<double, std::map<Vector3_Order<int>, ComplexMatrix>> get_gf_cplx_imagtimes_Rs_kpara(
-    int ispin, const MeanField &mf, const std::vector<Vector3_Order<double>> &kfrac_list, std::vector<double> imagtimes,
+    int ispin, int ispinor_bra, int ispinor_ket, const MeanField &mf, const std::vector<Vector3_Order<double>> &kfrac_list, std::vector<double> imagtimes,
     const std::vector<Vector3_Order<int>> &Rs, const MpiCommHandler &comm_h)
 {
     std::map<double, std::map<Vector3_Order<int>, ComplexMatrix>> gf;
@@ -160,7 +160,7 @@ std::map<double, std::map<Vector3_Order<int>, ComplexMatrix>> get_gf_cplx_imagti
         // TODO: this part is the same as denstiy matrix calculation, so it may be extracted to a common function
         for (int ik_local = 0; ik_local < nk_local; ik_local++)
         {
-            const auto dmat_k = mf.get_gf_cplx_imagtime(ispin, iks_local[ik_local], tau);
+            const auto dmat_k = mf.get_gf_cplx_imagtime(ispin, ispinor_bra, ispinor_ket, iks_local[ik_local], tau);
             memcpy(kmat.ptr() + size * ik_local, dmat_k.c, size * sizeof(Matz::type));
         }
 

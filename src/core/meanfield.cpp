@@ -6,12 +6,10 @@
 #include "../utils/constants.h"
 #include "../utils/error.h"
 #include "../math/lapack_connector.h"
-#include "../math/utils_matrix_mpi.h"
-#include "../mpi/global_mpi.h"
 
 namespace librpa_int {
 
-void MeanField::resize(int ns, int nk, int nb, int nao, int st_ib, int nb_local, int st_iao, int nao_local)
+void MeanField::resize(int ns, int nk, int nb, int nao, int nspinor, int st_ib, int nb_local, int st_iao, int nao_local)
 {
     if (ns == 0 || nk == 0 || nb == 0 || nao == 0)
         throw LIBRPA_RUNTIME_ERROR("encounter zero dimension");
@@ -30,6 +28,7 @@ void MeanField::resize(int ns, int nk, int nb, int nao, int st_ib, int nb_local,
     n_aos_local = nao_local;
     i_state_start = st_ib;
     n_states_local = nb_local;
+    n_spinor = nspinor;
 
     eskb.resize(n_spins);
     wg.resize(n_spins);
@@ -56,11 +55,12 @@ std::vector<int> MeanField::get_iks_local() const
     return iks_local;
 }
 
-MeanField::MeanField(int ns, int nk, int nb, int nao)
+MeanField::MeanField(int ns, int nk, int nb, int nao, int nspinor)
     : n_spins(ns),
       n_aos(nao),
       n_states(nb),
       n_kpoints(nk),
+      n_spinor(nspinor),
       n_aos_local(nao),
       i_ao_start(0),
       n_states_local(nb),
@@ -70,14 +70,15 @@ MeanField::MeanField(int ns, int nk, int nb, int nao)
       wfc(),
       efermi(0)
 {
-    resize(ns, nk, nb, nao, 0, nb, 0, nao);
+    resize(ns, nk, nb, nao, nspinor, 0, nb, 0, nao);
 }
 
-MeanField::MeanField(int ns, int nk, int nb, int nao, int st_ib, int nb_local, int st_iao, int nao_local)
+MeanField::MeanField(int ns, int nk, int nb, int nao, int nspinor, int st_ib, int nb_local, int st_iao, int nao_local)
     : n_spins(ns),
       n_aos(nao),
       n_states(nb),
       n_kpoints(nk),
+      n_spinor(nspinor),
       n_aos_local(nao_local),
       i_ao_start(st_iao),
       n_states_local(nb_local),
@@ -87,27 +88,49 @@ MeanField::MeanField(int ns, int nk, int nb, int nao, int st_ib, int nb_local, i
       wfc(),
       efermi(0)
 {
-    resize(ns, nk, nb, nao, st_ib, nb_local, st_iao, nao_local);
+    resize(ns, nk, nb, nao, nspinor, st_ib, nb_local, st_iao, nao_local);
 }
 
-void MeanField::set(int ns, int nk, int nb, int nao)
+void MeanField::set(int ns, int nk, int nb, int nao, int nspinor)
 {
     if (n_spins != 0 || n_kpoints != 0 || n_states != 0 || n_aos != 0)
     {
         std::cout << n_spins << n_kpoints << n_states << n_aos << std::endl;
         throw LIBRPA_RUNTIME_ERROR("MeanField object already set");
     }
-    resize(ns, nk, nb, nao, 0, nb, 0, nao);
+    resize(ns, nk, nb, nao, nspinor, 0, nb, 0, nao);
 }
 
-void MeanField::set(int ns, int nk, int nb, int nao, int st_ib, int nb_local, int st_iao, int nao_local)
+void MeanField::set(int ns, int nk, int nb, int nao, int nspinor, int st_ib, int nb_local, int st_iao, int nao_local)
 {
     if (n_spins != 0 || n_kpoints != 0 || n_states != 0 || n_aos != 0)
     {
         std::cout << n_spins << n_kpoints << n_states << n_aos << std::endl;
         throw LIBRPA_RUNTIME_ERROR("MeanField object already set");
     }
-    resize(ns, nk, nb, nao, st_ib, nb_local, st_iao, nao_local);
+    resize(ns, nk, nb, nao, nspinor, st_ib, nb_local, st_iao, nao_local);
+}
+
+ComplexMatrix *MeanField::find_wfc(int ispin, int ispinor, int ikpt) noexcept
+{
+    auto it_sp = wfc.find(ispin);
+    if (it_sp == wfc.cend()) return nullptr;
+    auto it_spinor = it_sp->second.find(ispinor);
+    if (it_spinor == it_sp->second.cend()) return nullptr;
+    auto it_k = it_spinor->second.find(ikpt);
+    if (it_k == it_spinor->second.cend()) return nullptr;
+    return &it_k->second;
+}
+
+const ComplexMatrix *MeanField::find_wfc(int ispin, int ispinor, int ikpt) const noexcept
+{
+    auto it_sp = wfc.find(ispin);
+    if (it_sp == wfc.cend()) return nullptr;
+    auto it_spinor = it_sp->second.find(ispinor);
+    if (it_spinor == it_sp->second.cend()) return nullptr;
+    auto it_k = it_spinor->second.find(ikpt);
+    if (it_k == it_spinor->second.cend()) return nullptr;
+    return &it_k->second;
 }
 
 // MeanField::MeanField(const MeanField &mf)
@@ -146,7 +169,7 @@ double MeanField::get_band_gap() const
     for (int is = 0; is != n_spins; is++)
     {
         // FIXME: should be nspins/nkpoints?
-        const double midpoint = 1.0 / (n_spins * n_kpoints);
+        const double midpoint = 1.0 / (n_spins * n_kpoints * n_spinor);
         //print_matrix("mf.eskb: ",this->eskb[is]);
         for (int ik = 0; ik != n_kpoints; ik++)
         {
@@ -171,7 +194,7 @@ double MeanField::get_band_gap() const
 }
 
 // get_dmat_cplx can be used for both serial and k-porallel version
-ComplexMatrix MeanField::get_dmat_cplx(int ispin, int ikpt) const
+ComplexMatrix MeanField::get_dmat_cplx(int ispin, int ispinor_bra, int ispinor_ket, int ikpt) const
 {
     assert(ispin < this->n_spins);
     assert(ikpt < this->n_kpoints);
@@ -179,30 +202,31 @@ ComplexMatrix MeanField::get_dmat_cplx(int ispin, int ikpt) const
     ComplexMatrix dmat_cplx(n_aos, n_aos);
     dmat_cplx.zero_out();
 
-    auto it_sp = wfc.find(ispin);
-    if (it_sp == wfc.cend()) return dmat_cplx;
-    auto it_sp_k = it_sp->second.find(ikpt);
-    if (it_sp_k == it_sp->second.cend()) return dmat_cplx;
+    const auto wfc_bra = find_wfc(ispin, ispinor_bra, ikpt);
+    const auto wfc_ket = find_wfc(ispin, ispinor_ket, ikpt);
 
-    auto scaled_wfc_conj = conj(it_sp_k->second);
+    if (wfc_bra == nullptr || wfc_ket == nullptr) return dmat_cplx;
+
+    auto scaled_wfc_conj = conj(*wfc_ket);
     const double occ_thres = 1e-4 / n_kpoints;
     int nocc;
     for (nocc = 0; nocc != this->n_states; nocc++)
     {
         // Renormalize to single spin channel. Need to adpat SOC case (n_spins = 1 but remove 0.5)
-        const auto weight = this->wg[ispin](ikpt, nocc) * 0.5 * n_spins;
+        const auto weight = this->wg[ispin](ikpt, nocc) * 0.5 * n_spins * n_spinor;
         if (weight < occ_thres) break;
         LapackConnector::scal(this->n_aos, weight, scaled_wfc_conj.c + n_aos * nocc, 1);
     }
-    const auto &wfc_sk = it_sp_k->second;
     LapackConnector::gemm('T', 'N', n_aos, n_aos, nocc, 1.0,
-                          wfc_sk.c, n_aos, scaled_wfc_conj.c, n_aos,
+                          wfc_bra->c, n_aos, scaled_wfc_conj.c, n_aos,
                           0.0, dmat_cplx.c, n_aos);
     // auto dmat_cplx = transpose(wfc_sk, false) * scaled_wfc_conj;
     return dmat_cplx;
 }
 
-ComplexMatrix MeanField::get_dmat_cplx_R(int ispin, const std::vector<Vector3_Order<double>>&kfrac_list, const Vector3_Order<int>& R) const
+ComplexMatrix MeanField::get_dmat_cplx_R(int ispin, int ispinor_bra, int ispinor_ket,
+                                         const std::vector<Vector3_Order<double>> &kfrac_list,
+                                         const Vector3_Order<int> &R) const
 {
     ComplexMatrix dmat_cplx(this->n_aos, this->n_aos);
     for (int ik = 0; ik != this->n_kpoints; ik++)
@@ -210,13 +234,14 @@ ComplexMatrix MeanField::get_dmat_cplx_R(int ispin, const std::vector<Vector3_Or
         auto ang = - (kfrac_list[ik] * R) * TWO_PI;
         complex<double> kphase = complex<double>(cos(ang), sin(ang));
         // global::ofs_myid << "R " << R << " ik " << ik << " kfrac " << kfrac_list[ik] << " phase " << kphase << std::endl;
-        dmat_cplx += kphase * this->get_dmat_cplx(ispin, ik);
+        dmat_cplx += kphase * this->get_dmat_cplx(ispin, ispinor_bra, ispinor_ket, ik);
     }
     return dmat_cplx;
 }
 
 std::map<Vector3_Order<int>, ComplexMatrix> MeanField::get_dmat_cplx_Rs(
-    int ispin, const std::vector<Vector3_Order<double>> &kfrac_list,
+    int ispin, int ispinor_bra, int ispinor_ket,
+    const std::vector<Vector3_Order<double>> &kfrac_list,
     const std::vector<Vector3_Order<int>> &Rs) const
 {
     std::map<Vector3_Order<int>, ComplexMatrix> dmat_cplx_all;
@@ -227,7 +252,7 @@ std::map<Vector3_Order<int>, ComplexMatrix> MeanField::get_dmat_cplx_Rs(
     }
     for (int ik = 0; ik != this->n_kpoints; ik++)
     {
-        const auto &kmat = this->get_dmat_cplx(ispin, ik);
+        const auto &kmat = this->get_dmat_cplx(ispin, ispinor_bra, ispinor_ket, ik);
         for (auto &[R, rmat]: dmat_cplx_all)
         {
             auto ang = - (kfrac_list[ik] * R) * TWO_PI;
@@ -238,12 +263,12 @@ std::map<Vector3_Order<int>, ComplexMatrix> MeanField::get_dmat_cplx_Rs(
     return dmat_cplx_all;
 }
 
-ComplexMatrix MeanField::get_gf_cplx_imagtime(int ispin, int ikpt, double tau) const
+ComplexMatrix MeanField::get_gf_cplx_imagtime(int ispin, int ispinor_bra, int ispinor_ket, int ikpt, double tau) const
 {
     assert(ispin < this->n_spins);
     assert(ikpt < this->n_kpoints);
 
-    const double scale_spin = 0.5 * n_spins;  // TODO: adapt SOC
+    const double scale_spin = 0.5 * n_spins * n_spinor;
 
     std::vector<double> wg_sk(wg[ispin].c + n_states * ikpt, wg[ispin].c + n_states * (ikpt + 1));
     std::vector<double> wg_empty_sk(wg_sk);
@@ -263,18 +288,26 @@ ComplexMatrix MeanField::get_gf_cplx_imagtime(int ispin, int ikpt, double tau) c
         scale[ib] = std::exp(scale[ib]) * prefac_occ[ib];
         if (tau <= 0) scale[ib] *= -1.0;
     }
-    auto scaled_wfc_conj = conj(wfc.at(ispin).at(ikpt));
+    const auto wfc_bra = find_wfc(ispin, ispinor_bra, ikpt);
+    const auto wfc_ket = find_wfc(ispin, ispinor_ket, ikpt);
+
+    if (wfc_bra == nullptr)
+        throw LIBRPA_RUNTIME_ERROR("wfc of ispinor_bra not found");
+    if (wfc_ket == nullptr)
+        throw LIBRPA_RUNTIME_ERROR("wfc of ispinor_ket not found");
+
+    auto scaled_wfc_conj = conj(*wfc_bra);
     for (int ib = 0; ib < n_states; ib++)
         LapackConnector::scal(n_aos, scale[ib], scaled_wfc_conj.c + n_aos * ib, 1);
-    return transpose(wfc.at(ispin).at(ikpt), false) * scaled_wfc_conj;
+    return transpose(*wfc_ket, false) * scaled_wfc_conj;
 }
 
 std::map<double, std::map<Vector3_Order<int>, ComplexMatrix>> MeanField::get_gf_cplx_imagtimes_Rs(
-    int ispin, const std::vector<Vector3_Order<double>> &kfrac_list, std::vector<double> imagtimes,
+    int ispin, int ispinor_bra, int ispinor_ket, const std::vector<Vector3_Order<double>> &kfrac_list, std::vector<double> imagtimes,
     const std::vector<Vector3_Order<int>> &Rs) const
 {
     std::map<double, std::map<Vector3_Order<int>, ComplexMatrix>> gf_tau_R;
-    const double scale_spin = 0.5 * n_spins;  // TODO: adapt SOC
+    const double scale_spin = 0.5 * n_spins * n_spinor;
     // NOTE: occupation must be copied here, not reference
     auto wg_empty = wg[ispin];
     // cout << "In get_gf_cplx_imagtimes_Rs ispin " << ispin << endl << wg_empty << endl;
@@ -304,10 +337,16 @@ std::map<double, std::map<Vector3_Order<int>, ComplexMatrix>> MeanField::get_gf_
         // ofs_myid cout << "tau " << tau << endl << scale << endl;
         for (int ik = 0; ik != n_kpoints; ik++)
         {
-            auto scaled_wfc_conj = conj(wfc.at(ispin).at(ik));
+            const auto wfc_bra = find_wfc(ispin, ispinor_bra, ik);
+            if (wfc_bra == nullptr)
+                throw LIBRPA_RUNTIME_ERROR("wfc of ispinor_bra not found");
+            auto scaled_wfc_conj = conj(*wfc_bra);
             for (int ib = 0; ib != n_states; ib++)
                 LapackConnector::scal(n_aos, scale(ik, ib), scaled_wfc_conj.c + n_aos * ib, 1);
-            const auto gf_k = transpose(wfc.at(ispin).at(ik), false) * scaled_wfc_conj;
+            const auto wfc_ket = find_wfc(ispin, ispinor_ket, ik);
+            if (wfc_ket == nullptr)
+                throw LIBRPA_RUNTIME_ERROR("wfc of ispinor_bra not found");
+            const auto gf_k = transpose(*wfc_ket, false) * scaled_wfc_conj;
             for (const auto &R : Rs)
             {
                 double ang = -kfrac_list[ik] * R * TWO_PI;
@@ -331,11 +370,13 @@ std::map<double, std::map<Vector3_Order<int>, ComplexMatrix>> MeanField::get_gf_
 }
 
 std::map<double, std::map<Vector3_Order<int>, matrix>> MeanField::get_gf_real_imagtimes_Rs(
-    int ispin, const std::vector<Vector3_Order<double>> &kfrac_list, std::vector<double> imagtimes,
+    int ispin, int ispinor_bra, int ispinor_ket,
+    const std::vector<Vector3_Order<double>> &kfrac_list, std::vector<double> imagtimes,
     const std::vector<Vector3_Order<int>> &Rs) const
 {
     std::map<double, std::map<Vector3_Order<int>, matrix>> gf_tau_R;
-    for (const auto &tau_gf_cplx_R: this->get_gf_cplx_imagtimes_Rs(ispin, kfrac_list, imagtimes, Rs))
+    for (const auto &tau_gf_cplx_R :
+         this->get_gf_cplx_imagtimes_Rs(ispin, ispinor_bra, ispinor_ket, kfrac_list, imagtimes, Rs))
     {
         const auto &tau = tau_gf_cplx_R.first;
         gf_tau_R[tau] = {};

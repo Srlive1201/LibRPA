@@ -113,8 +113,12 @@ void initialize_ds_chi0(Dataset &ds, const LibrpaOptions &opts) noexcept
 {
     global::profiler.start("initialize_ds_chi0");
     const bool is_eigvec_k_distributed = opts.use_kpara_scf_eigvec == LIBRPA_SWITCH_ON;
-    ds.p_chi0 = std::make_unique<librpa_int::Chi0>(ds.mf, ds.basis_wfc, ds.basis_aux, ds.pbc,
-                                                   ds.tfg, ds.comm_h, is_eigvec_k_distributed);
+    if (opts.use_shrink_abfs && opts.use_shrink_chi)
+        ds.p_chi0 = std::make_unique<librpa_int::Chi0>(ds.mf, ds.basis_wfc, ds.basis_aux_shrink, ds.pbc,
+                                                       ds.tfg, ds.comm_h, is_eigvec_k_distributed);
+    else
+        ds.p_chi0 = std::make_unique<librpa_int::Chi0>(ds.mf, ds.basis_wfc, ds.basis_aux, ds.pbc,
+                                                       ds.tfg, ds.comm_h, is_eigvec_k_distributed);
     ds.p_chi0->gf_threshold = opts.gf_threshold;
     ds.p_chi0->libri_threshold_C = opts.libri_chi0_threshold_C;
     ds.p_chi0->libri_threshold_G = opts.libri_chi0_threshold_G;

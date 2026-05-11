@@ -14,17 +14,18 @@ extern "C" {
 #endif
 
 /**
- * @brief Set SCF wavefunction dimension.
+ * @brief Set meanfield wavefunction dimension.
  * @param[in] h        Handler.
  * @param[in] nspins   Number of spin channels.
  * @param[in] nkpts    Number of k-points.
  * @param[in] nstates  Number of electronic states.
- * @param[in] nbasis   Number of basis functions.
+ * @param[in] nbasis   Number of atomic basis functions.
+ * @param[in] nspinor  Number of spin components per wavefunction
  */
-void librpa_set_scf_dimension(LibrpaHandler* h, int nspins, int nkpts, int nstates, int nbasis);
+void librpa_set_scf_dimension(LibrpaHandler* h, int nspins, int nkpts, int nstates, int nbasis, int nspinor = 1);
 
 /**
- * @brief Set occupation numbers, eigenvalues, and Fermi level.
+ * @brief Set occupation numbers, eigenvalues, and Fermi level of meanfield input.
  * @param[in] h        Handler.
  * @param[in] nspins   Number of spin channels.
  * @param[in] nkpts    Number of k-points.
@@ -236,13 +237,13 @@ void librpa_set_band_occ_eigval(LibrpaHandler* h, int n_spins, int n_kpts_band, 
 /**
  * @brief Set wavefunction for band k-point (separate real/imag).
  *
- * @param h              Handler.
- * @param ispin          Spin index.
- * @param ik_band        Band k-point index.
- * @param nstates_local  Local number of states.
- * @param nbasis_local   Local number of basis functions.
- * @param wfc_real       Real part of wavefunction.
- * @param wfc_imag       Imaginary part of wavefunction.
+ * @param[in] h              Handler.
+ * @param[in] ispin          Spin index.
+ * @param[in] ik_band        Band k-point index.
+ * @param[in] nstates_local  Local number of states.
+ * @param[in] nbasis_local   Local number of basis functions.
+ * @param[in] wfc_real       Real part of wavefunction.
+ * @param[in] wfc_imag       Imaginary part of wavefunction.
  */
 void librpa_set_wfc_band(LibrpaHandler* h, int ispin, int ik_band, int nstates_local,
                          int nbasis_local, const double* wfc_real, const double* wfc_imag);
@@ -250,12 +251,12 @@ void librpa_set_wfc_band(LibrpaHandler* h, int ispin, int ik_band, int nstates_l
 /**
  * @brief Set wavefunction for band k-point (packed complex).
  *
- * @param h              Handler.
- * @param ispin          Spin index.
- * @param ik_band        Band k-point index.
- * @param nstates_local  Local number of states.
- * @param nbasis_local   Local number of basis functions.
- * @param wfc_ri         Complex wavefunction (packed).
+ * @param[in] h              Handler.
+ * @param[in] ispin          Spin index.
+ * @param[in] ik_band        Band k-point index.
+ * @param[in] nstates_local  Local number of states.
+ * @param[in] nbasis_local   Local number of atomic basis functions.
+ * @param[in] wfc_ri         Complex wavefunction (packed).
  */
 void librpa_set_wfc_band_packed(LibrpaHandler* h, int ispin, int ik_band, int nstates_local,
                                 int nbasis_local, const double* wfc_ri);

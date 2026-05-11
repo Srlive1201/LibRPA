@@ -22,13 +22,14 @@ class Exx
         bool is_rspace_redist_for_KS_;
         bool is_rspace_redist_blacs_;
 
-        void build_KS(const std::map<int, std::map<int, ComplexMatrix>> &wfc_target,
+        void build_KS(const std::map<int, std::map<int, std::map<int, ComplexMatrix>>> &wfc_target,
                       const std::vector<Vector3_Order<double>> &kfrac_target,
                       const Atoms &geometry);
-        void build_KS_blacs(const std::map<int, std::map<int, ComplexMatrix>> &wfc_target,
-                            const std::vector<Vector3_Order<double>> &kfrac_target,
-                            const Atoms &geometry,
-                            const BlacsCtxtHandler &blacs_ctxt_h);
+        void build_KS_blacs(
+            const std::map<int, std::map<int, std::map<int, ComplexMatrix>>> &wfc_target,
+            const std::vector<Vector3_Order<double>> &kfrac_target, const Atoms &geometry,
+            const BlacsCtxtHandler &blacs_ctxt_h);
+
     public:
         //! refenrence to the MeanField object to compute density matrix
         const MeanField& mf;
@@ -40,10 +41,9 @@ class Exx
         double libri_threshold_V;
         double libri_threshold_D;
 
-        //! Density matrix in lattice vector space, dimension (nspins, I, J, R, nao_I, nao_J)
-        map<int, atpair_R_mat_t> dmat;
-        //! exact-exchange Hamiltonian in real space, dimension (nspins, I, J, R, nao_I, nao_J)
-        map<int, map<atom_t, map<atom_t, map<Vector3_Order<int>, Matd>>>> exx_IJR;
+        //! exact-exchange Hamiltonian in real space, dimension (nspins, nspinors, nspinors, I, J, R, nao_I, nao_J)
+        map<int, map<int, map<int, map<atom_t, map<atom_t, map<Vector3_Order<int>, Matd>>>>>> exx_IJR;
+        map<int, map<int, map<int, map<atom_t, map<atom_t, map<Vector3_Order<int>, Matz>>>>>> exx_IJR_cplx;
         //! exact-exchange Hamiltonian in the basis of KS states, dimension (nspins, n_kpoints, n_bands, n_bands)
         map<int, map<int, Matz>> exx_KS;
         //! exact-exchange energy of each state, dimension (nspins, n_kpoints, n_bands). This is actually the diagonal elements of Heex_KS.
@@ -61,11 +61,11 @@ class Exx
                    const atpair_R_mat_t& coul_mat);
 
         void build_KS_kgrid();
-        void build_KS_band(const std::map<int, std::map<int, ComplexMatrix>> &wfc_band,
+        void build_KS_band(const std::map<int, std::map<int, std::map<int, ComplexMatrix>>> &wfc_band,
                            const std::vector<Vector3_Order<double>> &kfrac_band,
                            const Atoms &geometry);
         void build_KS_kgrid_blacs(const BlacsCtxtHandler &blacs_ctxt_h);
-        void build_KS_band_blacs(const std::map<int, std::map<int, ComplexMatrix>> &wfc_band,
+        void build_KS_band_blacs(const std::map<int, std::map<int, std::map<int, ComplexMatrix>>> &wfc_band,
                                  const std::vector<Vector3_Order<double>> &kfrac_band,
                                  const Atoms &geometry,
                                  const BlacsCtxtHandler &blacs_ctxt_h);

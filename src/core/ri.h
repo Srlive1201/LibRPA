@@ -48,7 +48,7 @@ typedef atom_mapping<map<Vector3_Order<double>, std::shared_ptr<ComplexMatrix>>>
 
 struct Cs_LRI
 {
-   public:
+public:
     bool use_libri;
     // Tri-coefficient of localized RI (LRI) in real space. ABF on the first atom of the atom pair
     atpair_R_mat_t data_IJR;
@@ -67,7 +67,7 @@ struct Cs_LRI
 // extern Cs_LRI Cs_data;
 struct Cs_LRI_clx
 {
-   public:
+public:
     bool use_libri;
     // Tri-coefficient of localized RI (LRI) in real space. ABF on the first atom of the atom pair
     atpair_R_mat_t data_IJR;

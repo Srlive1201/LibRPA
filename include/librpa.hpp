@@ -192,8 +192,8 @@ public:
 
     /* Input (set) functions */
 
-    /** @brief Set SCF wavefunction dimension (numbers of spins, k-points, states, basis). */
-    void set_scf_dimension(int nspins, int nkpts, int nstates, int nbasis);
+    /** @brief Set mean-field wavefunction dimensions (numbers of spins, k-points, states, basis and spin components). */
+    void set_scf_dimension(int nspins, int nkpts, int nstates, int nbasis, int nspinor = 1);
 
     /** @brief Set occupation numbers, eigenvalues, and Fermi level. */
     void set_wg_ekb_efermi(int nspins, int nkpts, int nstates, const double *wg, const double *ekb,

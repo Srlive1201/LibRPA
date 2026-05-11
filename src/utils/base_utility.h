@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <vector>
 #include <complex>
+#include <map>
 
 namespace librpa_int {
 
@@ -18,7 +19,7 @@ template <typename T>
 struct is_complex_t<std::complex<T>>: public std::true_type {};
 
 template <typename T>
-bool is_complex() { return is_complex_t<T>::value; }
+constexpr bool is_complex() { return is_complex_t<T>::value; }
 
 template <typename T>
 struct to_real { using type = T; };
@@ -80,6 +81,50 @@ std::vector<TI> flatten_2d_indices(const std::vector<std::pair<TI, TI>> &indices
         }
     }
     return indices_1d;
+}
+
+template <typename T>
+T *find_nested_int_map_2(std::map<int, std::map<int, T>> &m, int i1, int i2) noexcept
+{
+    auto it_1 = m.find(i1);
+    if (it_1 == m.end()) return nullptr;
+    auto it_2 = it_1->second.find(i2);
+    if (it_2 == it_1->second.end()) return nullptr;
+    return &it_2->second;
+}
+
+template <typename T>
+const T *find_nested_int_map_2(const std::map<int, std::map<int, T>> &m, int i1, int i2) noexcept
+{
+    auto it_1 = m.find(i1);
+    if (it_1 == m.end()) return nullptr;
+    auto it_2 = it_1->second.find(i2);
+    if (it_2 == it_1->second.end()) return nullptr;
+    return &it_2->second;
+}
+
+template <typename T>
+T *find_nested_int_map_3(std::map<int, std::map<int, std::map<int, T>>> &m, int i1, int i2, int i3) noexcept
+{
+    auto it_1 = m.find(i1);
+    if (it_1 == m.end()) return nullptr;
+    auto it_2 = it_1->second.find(i2);
+    if (it_2 == it_1->second.end()) return nullptr;
+    auto it_3 = it_2->second.find(i3);
+    if (it_3 == it_2->second.end()) return nullptr;
+    return &it_3->second;
+}
+
+template <typename T>
+const T *find_nested_int_map_3(const std::map<int, std::map<int, std::map<int, T>>> &m, int i1, int i2, int i3) noexcept
+{
+    auto it_1 = m.find(i1);
+    if (it_1 == m.end()) return nullptr;
+    auto it_2 = it_1->second.find(i2);
+    if (it_2 == it_1->second.end()) return nullptr;
+    auto it_3 = it_2->second.find(i3);
+    if (it_3 == it_2->second.end()) return nullptr;
+    return &it_3->second;
 }
 
 template <typename T>

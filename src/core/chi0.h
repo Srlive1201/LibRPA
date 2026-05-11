@@ -8,6 +8,7 @@
 
 #include "../math/vector3_order.h"
 #include "../math/matrix_m.h"
+#include "../mpi/base_blacs.h"
 #include "atom.h"
 #include "atomic_basis.h"
 #include "meanfield.h"
@@ -56,7 +57,9 @@ private:
      */
     void build_chi0_q_space_time(const LibrpaParallelRouting routing, const Cs_LRI &Cs,
                                  const vector<atpair_t> &atpairs_ABF,
-                                 std::map<Vector3_Order<double>, ComplexMatrix> &sinvS);
+                                 const AtomicBasis &abf_Cs,
+                                 std::map<Vector3_Order<double>, ComplexMatrix> &sinvS,
+                                 const BlacsCtxtHandler &blacs_ctxt_h);
 
     // NOTE: the following three methods could be converted to static functions in chi0.cpp
     void build_chi0_q_space_time_atom_pair_routing(const Cs_LRI &Cs,
@@ -66,7 +69,9 @@ private:
     template <typename Tdata>
     void build_chi0_q_space_time_LibRI_routing(const Cs_LRI &Cs,
                                                const vector<atpair_t> &atpairs_ABF,
-                                               std::map<Vector3_Order<double>, ComplexMatrix> &sinvS);
+                                               const AtomicBasis &abf_Cs,
+                                               std::map<Vector3_Order<double>, ComplexMatrix> &sinvS,
+                                               const BlacsCtxtHandler &blacs_ctxt_h);
 
     //! Internal procedure to compute chi0_q in the conventional method, i.e. in frequency domain and reciprocal space
     // TODO: implement the conventional method
@@ -97,20 +102,27 @@ public:
     double libri_threshold_G;
     double gf_threshold;
 
+    int nbands_G;
+
     Chi0(const MeanField &mf_in, const AtomicBasis &atbasis_wfc_in,
-            const AtomicBasis &atbasis_abf_in, const PeriodicBoundaryData &pbc_in,
-            const TFGrids &tfg_in, const MpiCommHandler &comm_h_in, bool is_mf_eigvec_k_distributed);
+         const AtomicBasis &atbasis_abf_in, const PeriodicBoundaryData &pbc_in,
+         const TFGrids &tfg_in, const MpiCommHandler &comm_h_in, bool is_mf_eigvec_k_distributed);
     ~Chi0() {};
     //! Build the independent response function in q-omega domain for ABFs on the atom pairs atpair_ABF and q-vectors in qlist
     void build(LibrpaParallelRouting routing,
                const Cs_LRI &Cs,
                const vector<atpair_t> &atpair_ABF,
-               std::map<Vector3_Order<double>, ComplexMatrix> &sinvS);
+               const AtomicBasis &abf_Cs,
+               std::map<Vector3_Order<double>, ComplexMatrix> &sinvS,
+               const BlacsCtxtHandler &blacs_ctxt_h);
     const map<double, map<Vector3_Order<double>, atom_mapping<ComplexMatrix>::pair_t_old>> & get_chi0_q() const { return chi0_q; }
-    void shrink_abfs_chi0(map<Vector3_Order<double>, ComplexMatrix> &sinvS,
-                          const vector<Vector3_Order<double>> &qlist,
-                          map<atom_t, size_t> &atom_mu_large, map<atom_t, size_t> &atom_mu_small);
     void free_chi0_q(const double freq, const Vector3_Order<double> q);
+
+    void unfold_abfs_Wc(
+        map<Vector3_Order<double>, ComplexMatrix> &sinvS,
+        map<double, atom_mapping<std::map<Vector3_Order<double>, matrix_m<complex<double>>>>::pair_t_old> &Wc,
+        const vector<Vector3_Order<double>> &qlist, const AtomicBasis &abf_unfold,
+        const BlacsCtxtHandler &blacs_ctxt_h);
 };
 
 }

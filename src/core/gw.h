@@ -25,15 +25,15 @@ private:
     bool is_rspace_redist_for_KS_;
     bool is_rspace_redist_blacs_;
 
-    //! frequency-domain reciprocal-space correlation self-energy, indices [ispin][freq][R][I][J](n_I, n_J)
+    //! frequency-domain reciprocal-space correlation self-energy, indices [ispin][ispinor_bra][ispinor_ket][freq][R][I][J](n_I, n_J)
     // Sparse storage from LibRI calculation
-    std::map<int, std::map<double, ap_p_map<std::map<Vector3_Order<int>, Matz>>>> sigc_is_f_IJ_R;
+    std::map<int, std::map<int, std::map<int, std::map<double, ap_p_map<std::map<Vector3_Order<int>, Matz>>>>>> sigc_is_f_IJ_R;
 
-    void build_sigc_matrix_KS(const std::map<int, std::map<int, ComplexMatrix>> &wfc_target,
+    void build_sigc_matrix_KS(const std::map<int, std::map<int, std::map<int, ComplexMatrix>>> &wfc_target,
                               const std::vector<Vector3_Order<double>> &kfrac_target,
                               const Atoms &geometry);
 
-    void build_sigc_matrix_KS_blacs(const std::map<int, std::map<int, ComplexMatrix>> &wfc_target,
+    void build_sigc_matrix_KS_blacs(const std::map<int, std::map<int, std::map<int, ComplexMatrix>>> &wfc_target,
                                     const std::vector<Vector3_Order<double>> &kfrac_target,
                                     const Atoms &geometry, const BlacsCtxtHandler &blacs_ctxt_h);
 
@@ -95,11 +95,11 @@ public:
         const ArrayDesc &ad_Wc);
 
     void build_sigc_matrix_KS_kgrid();
-    void build_sigc_matrix_KS_band(const std::map<int, std::map<int, ComplexMatrix>> &wfc_band,
+    void build_sigc_matrix_KS_band(const std::map<int, std::map<int, std::map<int, ComplexMatrix>>> &wfc_band,
                                    const std::vector<Vector3_Order<double>> &kfrac_band,
                                    const Atoms &geometry);
     void build_sigc_matrix_KS_kgrid_blacs(const BlacsCtxtHandler &blacs_ctxt_h);
-    void build_sigc_matrix_KS_band_blacs(const std::map<int, std::map<int, ComplexMatrix>> &wfc_band,
+    void build_sigc_matrix_KS_band_blacs(const std::map<int, std::map<int, std::map<int, ComplexMatrix>>> &wfc_band,
                                          const std::vector<Vector3_Order<double>> &kfrac_band,
                                          const Atoms &geometry, const BlacsCtxtHandler &blacs_ctxt_h);
 };

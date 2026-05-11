@@ -8,11 +8,13 @@ namespace librpa_int
 
 // User should ensure that wave function at a certain k-point exists only on one MPI process
 std::map<Vector3_Order<int>, ComplexMatrix> get_dmat_cplx_Rs_kpara(
-    int ispin, const MeanField &mf, const std::vector<Vector3_Order<double>>& kfrac_list,
-    const std::vector<Vector3_Order<int>>& Rs, const MpiCommHandler &comm_h);
+    int ispin, int ispinor_bra, int ispinor_ket, const MeanField &mf,
+    const std::vector<Vector3_Order<double>> &kfrac_list, const std::vector<Vector3_Order<int>> &Rs,
+    const MpiCommHandler &comm_h);
 
 std::map<double, std::map<Vector3_Order<int>, ComplexMatrix>> get_gf_cplx_imagtimes_Rs_kpara(
-    int ispin, const MeanField &mf, const std::vector<Vector3_Order<double>> &kfrac_list, std::vector<double> imagtimes,
+    int ispin, int ispinor_bra, int ispinor_ket, const MeanField &mf,
+    const std::vector<Vector3_Order<double>> &kfrac_list, std::vector<double> imagtimes,
     const std::vector<Vector3_Order<int>> &Rs, const MpiCommHandler &comm_h);
 
-}
+}  // namespace librpa_int

@@ -4,7 +4,6 @@
 
 // Standard headers
 #include <cstring>
-#include <ios>
 #include <memory>
 #include <vector>
 
@@ -25,7 +24,7 @@
 #include "../utils/libri_stub.h"
 #endif
 
-void librpa_set_scf_dimension(LibrpaHandler* h, int nspins, int nkpts, int nstates, int nbasis)
+void librpa_set_scf_dimension(LibrpaHandler* h, int nspins, int nkpts, int nstates, int nbasis, int nspinor)
 {
     using librpa_int::api::get_dataset_instance;
     using librpa_int::global::mpi_comm_global_h;
@@ -38,20 +37,22 @@ void librpa_set_scf_dimension(LibrpaHandler* h, int nspins, int nkpts, int nstat
     auto pds = librpa_int::api::get_dataset_instance(h);
 
     auto &meanfield = pds->mf;
+    // Local dimensions, currently not used
     int st_ib = 0;
     int nb_local = nstates;
     int st_iao = 0;
     int nao_local = nbasis;
-    meanfield.set(nspins, nkpts, nstates, nbasis,
+    meanfield.set(nspins, nkpts, nstates, nbasis, nspinor,
                   st_ib, nb_local, st_iao, nao_local);
     pds->comm_h.barrier();
     if (pds->comm_h.is_root())
     {
         lib_printf("Mean-field dimensions set:\n");
-        lib_printf("| number of spins    : %d\n", meanfield.get_n_spins());
-        lib_printf("| number of k-points : %d\n", meanfield.get_n_kpoints());
-        lib_printf("| number of bands    : %d\n", meanfield.get_n_bands());
-        lib_printf("| number of NAOs     : %d\n", meanfield.get_n_aos());
+        lib_printf("| number of spins           : %d\n", meanfield.get_n_spins());
+        lib_printf("| number of k-points        : %d\n", meanfield.get_n_kpoints());
+        lib_printf("| number of bands           : %d\n", meanfield.get_n_bands());
+        lib_printf("| number of NAOs            : %d\n", meanfield.get_n_aos());
+        lib_printf("| number of spin components : %d\n", meanfield.get_n_aos());
     }
     pds->comm_h.barrier();
 
@@ -108,7 +109,7 @@ void librpa_set_wfc(LibrpaHandler* h, int ispin, int ik, int nstates_local, int 
     auto pds = librpa_int::api::get_dataset_instance(h);
     auto &meanfield = pds->mf;
 
-    auto& wfc = meanfield.get_eigenvectors()[ispin][ik];
+    auto& wfc = meanfield.get_eigenvectors()[ispin][ik][0];
     wfc.create(nstates_local, nbasis_local);
     const size_t n = meanfield.get_n_bands() * meanfield.get_n_aos();
     for (size_t i = 0; i < n; i++)
@@ -135,7 +136,7 @@ void librpa_set_wfc_packed(LibrpaHandler* h, int ispin, int ik, int nstates_loca
     auto pds = librpa_int::api::get_dataset_instance(h);
     auto &meanfield = pds->mf;
 
-    auto& wfc = meanfield.get_eigenvectors()[ispin][ik];
+    auto& wfc = meanfield.get_eigenvectors()[ispin][ik][0];
     wfc.create(nstates_local, nbasis_local);
     const size_t n = meanfield.get_n_bands() * meanfield.get_n_aos();
     for (size_t i = 0; i < n; i++)
@@ -670,11 +671,12 @@ void librpa_set_band_occ_eigval(LibrpaHandler* h, int n_spins, int n_kpts_band, 
 
     auto pds = librpa_int::api::get_dataset_instance(h);
     const int n_basis = pds->mf.get_n_aos();
+    const int n_spinor = pds->mf.get_n_spinor();
     const double efermi = pds->mf.get_efermi();
 
     auto &mfb = pds->mf_band;
     pds->mf_band.get_efermi() = efermi;
-    pds->mf_band.set(n_spins, n_kpts_band, n_states, n_basis);
+    pds->mf_band.set(n_spins, n_kpts_band, n_states, n_basis, n_spinor);
     auto& eskb = mfb.get_eigenvals();
     auto& swg = mfb.get_weight();
     int length_kb = n_kpts_band * n_states;
@@ -700,7 +702,7 @@ void librpa_set_wfc_band(LibrpaHandler* h, int ispin, int ik_band, int nstates_l
     auto pds = librpa_int::api::get_dataset_instance(h);
     auto &mfb = pds->mf_band;
 
-    auto& wfc = mfb.get_eigenvectors()[ispin][ik_band];
+    auto& wfc = mfb.get_eigenvectors()[ispin][0][ik_band];
     wfc.create(nstates_local, nbasis_local);
     const size_t n = mfb.get_n_bands() * mfb.get_n_aos();
     for (size_t i = 0; i < n; i++)
@@ -727,7 +729,7 @@ void librpa_set_wfc_band_packed(LibrpaHandler* h, int ispin, int ik_band, int ns
     auto pds = librpa_int::api::get_dataset_instance(h);
     auto &mfb = pds->mf_band;
 
-    auto& wfc = mfb.get_eigenvectors()[ispin][ik_band];
+    auto& wfc = mfb.get_eigenvectors()[ispin][0][ik_band];
     wfc.create(nstates_local, nbasis_local);
     const size_t n = mfb.get_n_bands() * mfb.get_n_aos();
     for (size_t i = 0; i < n; i++)
