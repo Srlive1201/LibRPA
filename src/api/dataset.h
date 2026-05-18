@@ -71,6 +71,9 @@ public:
     //! Fractional coordiantes of k-points for band calculation
     std::vector<Vector3_Order<double>> kfrac_band_list;
 
+    //! Overlap matrix between normal and shrinked ABFs
+    std::map<Vector3_Order<double>, ComplexMatrix> sinvS;
+
     // Input data.
     //! Mean-field starting point
     MeanField mf;

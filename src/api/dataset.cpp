@@ -32,6 +32,7 @@ Dataset::Dataset(MPI_Comm comm)
       atoms(),
       pbc(),
       kfrac_band_list(),
+      sinvS(),
       mf(),
       mf_band(),
       tfg(),

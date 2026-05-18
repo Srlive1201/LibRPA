@@ -90,7 +90,10 @@ double librpa_get_rpa_correlation_energy(LibrpaHandler *h, const LibrpaOptions *
     // std::cout << "n_abf * " << pds->p_chi0->atbasis_abf.nb_total;
 
     profiler.start("chi0_build", "Build response function chi0");
-    chi0.build(routing, pds->cs_data, pds->atpairs_local);
+    if (opts.use_shrink_abfs)
+        chi0.build(routing, pds->cs_data_shrink, pds->atpairs_local, pds->basis_aux_shrink, pds->sinvS, pds->blacs_h);
+    else
+        chi0.build(routing, pds->cs_data, pds->atpairs_local, pds->basis_aux, pds->sinvS, pds->blacs_h);
     profiler.stop("chi0_build");
 
     if (debug)
