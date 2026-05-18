@@ -52,6 +52,13 @@ extern "C"
 
     void pdpotrf_(char *uplo, int *n, double *a, int *ia, int *ja, int *desca, int *info);
     void pzpotrf_(char *uplo, int *n, std::complex<double> *a, int *ia, int *ja, int *desca, int *info);
+
+    void pzposv_(
+        const char *uplo, const int *n, const int *nrhs,   
+        std::complex<double> *a, const int *ia, const int *ja, const int *descA,  
+        std::complex<double> *b, const int *ib, const int *jb, const int *descB,  
+        int *info
+    );
     void pdtran_(int *m, int *n, double *alpha,
                  double *a, int *ia, int *ja, int *desca,
                  double *beta, 
@@ -178,7 +185,7 @@ extern "C"
                  double *b, const int *ib, const int *jb, const int *descb);
     void pztrmm_(const char *side, const char *uplo, const char *transa, const char *diag,
                  const int *m, const int *n,
-                 const double *alpha, const std::complex<double> *a, const int *ia, const int *ja, const int *desca,
+                 const std::complex<double> *alpha, const std::complex<double> *a, const int *ia, const int *ja, const int *desca,
                  std::complex<double> *b, const int *ib, const int *jb, const int *descb);
 
 // factoriazation
@@ -194,6 +201,10 @@ extern "C"
     void pzgetrf_(const int *M, const int *N, 
                   std::complex<double> *A, const int *IA, const int *JA, const int *DESCA,
                   int *ipiv, int *info);
+
+    void pzgesv_(const int* n, const int* nrhs, std::complex<double>* a, const int* ia, const int* ja,   
+                 const int* DESCA, int* ipiv, std::complex<double>* b, const int* ib, const int* jb,   
+                 const int* DESCB, int* info);  
 
 // Eigenvalues of symmetric and hermitian matrices
     void pssygvx_(const int *itype, const char *jobz, const char *range, const char *uplo,
