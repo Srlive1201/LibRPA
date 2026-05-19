@@ -17,8 +17,7 @@
 #include "atomic_basis.h"
 #include "pbc.h"
 #include "ri.h"
-#include "../../thirdparty/lebedev-quadrature/quadrature_points.hpp"
-#include "../../thirdparty/lebedev-quadrature/quadrature_order.hpp"
+#include "../../thirdparty/lebedev-quadrature/lebedev_quadrature.hpp"
 #ifdef LIBRPA_USE_LIBRI
 #include <RI/comm/mix/Communicate_Tensors_Map_Judge.h>
 #include <RI/global/Tensor.h>

@@ -223,6 +223,9 @@ else()
   set(LIBRPA_GREENX_COMMIT_HASH "(EXTERNAL)")
 endif()
 
+# Lebedev-Laikov grid points for spherical quadrature
+add_subdirectory(thirdparty/lebedev-quadrature)
+
 if(LIBRPA_ENABLE_TEST)
   # FetchContent_Declare(
   #   googletest
@@ -247,7 +250,6 @@ if(LIBRPA_ENABLE_DRIVER)
 endif()
 
 add_subdirectory(src)
-add_subdirectory(qsgw)
 
 install(FILES
   ${CMAKE_CURRENT_SOURCE_DIR}/include/librpa_compute.h

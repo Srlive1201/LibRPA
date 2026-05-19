@@ -1,5 +1,6 @@
 #pragma once
 #include "meanfield.h"
+
 double calculate_total_occupation(const MeanField &mf, double mu, double temperature);
 double calculate_fermi_energy(const MeanField &mf, double temperature, double total_electrons);
 double calculate_eqp_fermi_energy(const MeanField &mf,

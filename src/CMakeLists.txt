@@ -70,6 +70,7 @@ list(APPEND lib_sources
 
         io/fs.cpp
         io/global_io.cpp
+        io/input_elsi.cpp
         io/output_aims.cpp
 
         interface/gx_minimax_wrp.f90
@@ -87,6 +88,9 @@ list(APPEND lib_sources
         mpi/base_mpi.cpp
         mpi/utils_blacs.cpp
         mpi/global_mpi.cpp
+
+        # qsgw/fermi_energy_occupation.cpp
+        # qsgw/Hamiltonian.cpp
 
         utils/constants.cpp
         utils/profiler.cpp

@@ -1,89 +1,98 @@
-#include "convert_csc.h"
+#include "input_elsi.h"
 
 #include <iostream>
 #include <regex>
-#include <filesystem>
 
+namespace librpa_int
+{
 
 // 读取 ELSI CSC 文件的函数
-static void read_elsi_to_csc(const std::string& filePath, std::vector<int>& col_ptr, std::vector<int>& row_idx, std::vector<std::complex<double>>& nnz_val, int& n_basis) {
-    std::ifstream inputFile(filePath, std::ios::binary);
-    if (!inputFile) {
-        std::cerr << "无法打开文件: " << filePath << std::endl;
-        return;
-    }
+bool read_elsi_to_csc(const std::string& file_path, std::vector<int>& col_ptr,
+                      std::vector<int>& row_idx, std::vector<std::complex<double>>& nnz_val,
+                      std::vector<std::complex<double>>& nnz_val_cplx, int& n_basis,
+                      const bool force_cplx)
+{
+    std::ifstream ifs(file_path, std::ios::binary);
+    if (!ifs)
+        throw LIBRPA_RUNTIME_ERROR("Cannot open file " + file_path);
+
+    bool is_complex = true;
 
     // 读取文件内容
-    inputFile.seekg(0, std::ios::end);
-    std::streampos size = inputFile.tellg();
-    inputFile.seekg(0, std::ios::beg);
+    ifs.seekg(0, std::ios::end);
+    std::streampos size = ifs.tellg();
+    ifs.seekg(0, std::ios::beg);
 
     std::vector<char> buffer(size);
-    inputFile.read(buffer.data(), size);
-    inputFile.close();
+    ifs.read(buffer.data(), size);
+    ifs.close();
 
-    // 解析 header
+    // parse header
     int64_t header[16];
     std::memcpy(header, buffer.data(), 128);
 
     n_basis = header[3];
     int64_t nnz = header[5];
 
-    // 获取列指针
+    // column
     int64_t* col_ptr_raw = reinterpret_cast<int64_t*>(buffer.data() + 128);
     col_ptr.assign(col_ptr_raw, col_ptr_raw + n_basis);
     col_ptr.push_back(nnz + 1);
 
-    // 获取行索引
+    // row indices
     int32_t* row_idx_raw = reinterpret_cast<int32_t*>(buffer.data() + 128 + n_basis * 8);
     row_idx.assign(row_idx_raw, row_idx_raw + nnz);
 
-    // 获取非零值
+    // non-zero values
     char* nnz_val_raw = buffer.data() + 128 + n_basis * 8 + nnz * 4;
-    if (header[2] == 0) {
-        // 实数情况
-        double* nnz_val_double = reinterpret_cast<double*>(nnz_val_raw);
-        for (int64_t i = 0; i < nnz; ++i) {
-            nnz_val.push_back(std::complex<double>(nnz_val_double[i], 0.0));
+    if (header[2] == 0)
+    {
+        double* nnz_ptr = reinterpret_cast<double*>(nnz_val_raw);
+        if (force_cplx)
+        {
+            is_complex = true;
+            nnz_val_cplx.resize(nnz);
+            for (int64_t i = 0; i < nnz; ++i)
+            {
+                nnz_val_cplx[i] = std::complex<double>(nnz_ptr[i], 0.0);
+            }
         }
-    } else {
-        // 复数情况
-        double* nnz_val_double = reinterpret_cast<double*>(nnz_val_raw);
-        for (int64_t i = 0; i < nnz; ++i) {
-            nnz_val.push_back(std::complex<double>(nnz_val_double[2 * i], nnz_val_double[2 * i + 1]));
+        else
+        {
+            is_complex = false;
+            nnz_val.assign(nnz_ptr, nnz_ptr + nnz);
         }
     }
+    else
+    {
+        is_complex = true;
+        auto *nnz_ptr_cplx = reinterpret_cast<std::complex<double> *>(nnz_val_raw);
+        nnz_val_cplx.assign(nnz_ptr_cplx, nnz_ptr_cplx + nnz);
+    }
 
-    // 更改索引
+    // Convert indices to 0-based
     for (int32_t& idx : row_idx) {
         idx -= 1;
     }
     for (int32_t& ptr : col_ptr) {
         ptr -= 1;
     }
+
+    return is_complex;
 }
 
-
-static Matz loadMatrix(const std::string& filePath) {
+static Matz load_matrix(const std::string& file_path, const MAJOR major = MAJOR::COL)
+{
     std::vector<int> col_ptr;
     std::vector<int> row_idx;
-    std::vector<std::complex<double>> nnz_val;
+    std::vector<double> nnz_val;
+    std::vector<std::complex<double>> nnz_val_cplx;
     int n_basis;
+    bool is_compelx;
 
-    read_elsi_to_csc(filePath, col_ptr, row_idx, nnz_val, n_basis);
-
-    Matz matrix(n_basis, n_basis, MAJOR::COL);
-    for (int col = 0; col < n_basis; ++col) {
-        for (int idx = col_ptr[col]; idx < col_ptr[col + 1]; ++idx) {
-            int row = row_idx[idx];
-            matrix(row, col) = nnz_val[idx];
-        }
-    }
-    
-
-    return matrix;
+    is_compelx = read_elsi_to_csc(file_path, col_ptr, row_idx, nnz_val, nnz_val_cplx, n_basis, true);
+    return load_csc_to_matrix(n_basis, col_ptr, row_idx, nnz_val_cplx, major);
 }
-
 
 bool convert_csc(const std::string& filePath, std::map<std::string, Matz>& matrices, std::string& key) {
     // 定义正则表达式，用于匹配两种文件名格式
@@ -110,8 +119,7 @@ bool convert_csc(const std::string& filePath, std::map<std::string, Matz>& matri
 
         // 尝试加载矩阵，并处理可能的异常
         try {
-            Matz matrix = loadMatrix(filePath);
-            
+            Matz matrix = load_matrix(filePath);
             matrices[key] = matrix;
 
             std::cout << "Matrix loaded and stored successfully under key: " << key << std::endl;
@@ -126,4 +134,6 @@ bool convert_csc(const std::string& filePath, std::map<std::string, Matz>& matri
         std::cerr << "无法解析文件名: " << filePath << std::endl;
         return false;
     }
+}
+
 }
