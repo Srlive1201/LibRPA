@@ -44,6 +44,8 @@ private:
     //! eigenvector, (n_spins, n_spinor, n_kpoints_local, n_states_local, n_aos_local)
     // TODO: parallelize
     std::map<int, std::map<int, std::map<int, ComplexMatrix>>> wfc;
+    //! unit: eV*m , velocity_matrix, (n_spins, n_kpoint, n_alpha, n_bands, n_bands)
+    std::vector<std::vector<std::vector<ComplexMatrix>>> velocity;
     //! Fermi energy
     double efermi;
     void resize(int ns, int nk, int nb, int nao, int n_spinor, int st_ib, int nb_local, int st_iao, int nao_local);
@@ -62,6 +64,7 @@ public:
           eskb(),
           wg(),
           wfc(),
+          velocity(),
           efermi(0) {};
     MeanField(int ns, int nk, int nb, int nao, int n_spinor = 1);
     MeanField(int ns, int nk, int nb, int nao, int n_spinor, int st_ib, int nb_local, int st_iao, int nao_local);
@@ -92,6 +95,8 @@ public:
     const std::map<int, std::map<int, std::map<int, ComplexMatrix>>>& get_eigenvectors() const { return wfc; }
     ComplexMatrix* find_wfc(int ispin, int ispinor, int ikpt) noexcept;
     const ComplexMatrix* find_wfc(int ispin, int ispinor, int ikpt) const noexcept;
+    std::vector<std::vector<std::vector<ComplexMatrix>>>& get_velocity() { return velocity; }
+    const std::vector<std::vector<std::vector<ComplexMatrix>>>& get_velocity() const { return velocity; }
     double get_E_min_max(double& emin, double& emax) const;
     double get_band_gap() const;
 

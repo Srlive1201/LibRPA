@@ -10,13 +10,15 @@
 #include "../math/utils_matrix_m_mpi.h"
 #include "../mpi/base_blacs.h"
 #include "../utils/error.h"
+#include "../utils/libri_utils.h"
 #include "../utils/constants.h"
 #include "../utils/profiler.h"
 #include "../utils/utils_mem.h"
 #include "atomic_basis.h"
 #include "pbc.h"
 #include "ri.h"
-#include <lebedev_quadrature.hpp>
+#include "../../thirdparty/lebedev-quadrature/quadrature_points.hpp"
+#include "../../thirdparty/lebedev-quadrature/quadrature_order.hpp"
 #ifdef LIBRPA_USE_LIBRI
 #include <RI/comm/mix/Communicate_Tensors_Map_Judge.h>
 #include <RI/global/Tensor.h>
@@ -24,8 +26,6 @@
 #include "../utils/libri_stub.h"
 #endif
 
-#include "libri_utils.h"
-#include "matrix_m_parallel_utils.h"
 using RI::Tensor;
 using RI::Communicate_Tensors_Map_Judge::comm_map2_first;
 
@@ -130,11 +130,11 @@ void diele_func::init(double vq_threshold, const librpa_int::atpair_k_cplx_mat_t
     }
 };
 
-void diele_func::init_wing()
+void diele_func::init_wing(double vq_threshold, const atpair_k_cplx_mat_t &Vq)
 {
     int n_omega = this->omega.size();
     this->n_abf = atomic_basis_abf_.nb_total;
-    get_Xv_cpl();
+    get_Xv_cpl(vq_threshold, Vq);
     this->wing_mu.clear();
     this->wing_mu.resize(n_omega);
     this->wing.clear();
@@ -159,7 +159,7 @@ void diele_func::init_wing()
         calculate_q_gamma();
     }
 
-    if (mpi_comm_global_h.is_root())
+    if (comm_h.is_root())
         std::cout << "* Success: initalize and calculate lebdev points and q_gamma." << std::endl;
 }
 
@@ -294,31 +294,27 @@ void diele_func::set_0_wing()
     }
 };
 
-void diele_func::cal_wing(const librpa_int::Cs_LRI &Cs_data)
+void diele_func::cal_wing(const Cs_LRI &Cs_data, double vq_threshold, const atpair_k_cplx_mat_t &Vq)
 {
     using global::profiler;
 
     const bool use_soc = false;
 
     profiler.start("cal_wing_mu");
-    init_wing();
+    init_wing(vq_threshold, Vq);
     int n_lambda = this->n_nonsingular - 1;
     std::vector<std::complex<double>> local_wing_mu;
     local_wing_mu.resize(this->omega.size() * 3 * n_abf, 0.0);
 
     // IJR distribution to IJ distribution
-    ArrayDesc desc_nao_nao(blacs_ctxt_global_h);
+    ArrayDesc desc_nao_nao(blacs_h);
     desc_nao_nao.init_1b1p(n_basis, n_basis, 0, 0);
-    const auto set_IJ_nao_nao = LIBRPA::utils::get_necessary_IJ_from_block_2D(
-        atomic_basis_wfc, atomic_basis_wfc, desc_nao_nao);
+    const auto set_IJ_nao_nao = get_necessary_IJ_from_block_2D(
+        atomic_basis_wfc_, atomic_basis_wfc_, desc_nao_nao);
     auto s0_s1 = get_s0_s1_for_comm_map2_first(set_IJ_nao_nao);
     std::map<int, std::map<libri_types<int, int>::TAC, RI::Tensor<double>>> Cs_IJ;
-    if (Params::use_shrink_abfs)
-        Cs_IJ = RI::Communicate_Tensors_Map_Judge::comm_map2_first(
-            mpi_comm_global_h.comm, Cs_shrinked_data.data_libri, s0_s1.first, s0_s1.second);
-    else
-        Cs_IJ = RI::Communicate_Tensors_Map_Judge::comm_map2_first(
-            mpi_comm_global_h.comm, Cs_data.data_libri, s0_s1.first, s0_s1.second);
+    Cs_IJ = RI::Communicate_Tensors_Map_Judge::comm_map2_first(
+        comm_h.comm, Cs_data.data_libri, s0_s1.first, s0_s1.second);
     // #pragma omp parallel for schedule(dynamic) collapse(2)
     for (int mu = 0; mu < n_abf; ++mu)
     {
@@ -378,7 +374,7 @@ void diele_func::cal_wing(const librpa_int::Cs_LRI &Cs_data)
         }
     }
     // transform_mu_to_lambda();
-    if (mpi_comm_global_h.is_root()) std::cout << "* Success: calculate wing term." << std::endl;
+    if (comm_h.is_root()) std::cout << "* Success: calculate wing term." << std::endl;
 
     // this->wing_mu.clear();
     this->meanfield_df.get_velocity().clear();
@@ -392,21 +388,20 @@ std::pair<ArrayDesc, matrix_m<complex<double>>> diele_func::transform_Cs2mnk(
 {
     using global::profiler;
 
-    const bool use_shrink_abfs = false;
-    const int n_soc = meanfield_df.get_n_soc();
+    const int n_soc = meanfield_df.get_n_spinor();
     const int Mu = atomic_basis_abf_.get_i_atom(mu);
     const int mu_local = atomic_basis_abf_.get_local_index(mu, Mu);
     const int n_ao_Mu = atomic_basis_wfc_.get_atom_nb(Mu);
 
-    ArrayDesc desc_nband_nao(blacs_ctxt_global_h);
+    ArrayDesc desc_nband_nao(blacs_h);
     desc_nband_nao.init_1b1p(n_states, n_basis, 0, 0);
-    ArrayDesc desc_nband_Mu(blacs_ctxt_global_h);
+    ArrayDesc desc_nband_Mu(blacs_h);
     desc_nband_Mu.init_1b1p(n_states, n_ao_Mu, 0, 0);
-    ArrayDesc desc_Mu_nband(blacs_ctxt_global_h);
+    ArrayDesc desc_Mu_nband(blacs_h);
     desc_Mu_nband.init_1b1p(n_ao_Mu, n_states, 0, 0);
-    ArrayDesc desc_nao_nao(blacs_ctxt_global_h);
+    ArrayDesc desc_nao_nao(blacs_h);
     desc_nao_nao.init_1b1p(n_basis, n_basis, 0, 0);
-    ArrayDesc desc_nband_nband(blacs_ctxt_global_h);
+    ArrayDesc desc_nband_nband(blacs_h);
     desc_nband_nband.init_1b1p(n_states, n_states, 0, 0);
 
     auto C_nao_nao = init_local_mat<complex<double>>(desc_nao_nao, MAJOR::COL);
@@ -477,7 +472,7 @@ std::pair<ArrayDesc, matrix_m<complex<double>>> diele_func::transform_Cs2mnk(
                     get_local_mat(wfc_isp2_k.c, MAJOR::ROW, desc_nband_nao, MAJOR::COL);
                 ScalapackConnector::pgemm_f(
                     'N', 'T', n_ao_Mu, n_states, n_basis, 1.0, C_nao_nao.ptr(),
-                    1 + atomic_basis_wfc.get_part_range()[Mu], 1, desc_nao_nao.desc,
+                    1 + atomic_basis_wfc_.get_part_range()[Mu], 1, desc_nao_nao.desc,
                     wfc2_block.ptr(), 1, 1, desc_nband_nao.desc, 0.0, C_Mu_nband.ptr(), 1, 1,
                     desc_Mu_nband.desc);
                 ScalapackConnector::pgemm_f('N', 'N', n_states, n_states, n_ao_Mu, 1.0,
@@ -506,6 +501,8 @@ std::complex<double> diele_func::compute_wing(const int alpha, const int iomega,
     double omega_ev = this->omega[iomega];  // * HA2EV;
     std::complex<double> wing_term = 0.0;
 
+    bool use_soc = meanfield_df.get_n_spinor() > 1;
+
     auto &wg = this->meanfield_df.get_weight()[ispin];
     std::complex<double> test_tot = 0.0;
     for (int iocc = 0; iocc != n_states; iocc++)
@@ -518,7 +515,7 @@ std::complex<double> diele_func::compute_wing(const int alpha, const int iomega,
             {
                 double factor1;
                 double factor2;
-                if (Params::use_soc)
+                if (use_soc)
                 {
                     factor1 = wg.c[iocc] * (1.0 - wg.c[iunocc] * nk);
                     factor2 = wg.c[iunocc] * (1.0 - wg.c[iocc] * nk);
@@ -578,14 +575,14 @@ void diele_func::wing_mu_to_lambda(matrix_m<std::complex<double>> &sqrtveig_blac
 
     profiler.start("cal_wing");
     int n_lambda = this->n_nonsingular - 1;
-    ArrayDesc desc_wing_mu(blacs_ctxt_global_h);
+    ArrayDesc desc_wing_mu(blacs_h);
     desc_wing_mu.init_square_blk(n_abf, 3, 0, 0);
-    ArrayDesc desc_wing(blacs_ctxt_global_h);
+    ArrayDesc desc_wing(blacs_h);
     desc_wing.init_square_blk(n_nonsingular - 1, 3, 0, 0);
-    ArrayDesc desc_body(blacs_ctxt_global_h);
+    ArrayDesc desc_body(blacs_h);
     desc_body.init_square_blk(n_nonsingular - 1, n_nonsingular - 1, 0, 0);
     // opt descriptor for wing
-    ArrayDesc desc_wing_opt(blacs_ctxt_global_h);
+    ArrayDesc desc_wing_opt(blacs_h);
     desc_wing_opt.init(n_nonsingular - 1, 3, desc_body.mb(), desc_wing.nb(), 0, 0);
 
     for (int iomega = 0; iomega != this->omega.size(); iomega++)
@@ -793,7 +790,7 @@ void diele_func::get_Xv_cpl(double vq_threshold, const librpa_int::atpair_k_cplx
     //}
     // newRow.clear();
     //}
-    if (mpi_comm_global_h.is_root())
+    if (comm_h.is_root())
     {
         std::cout << "n_singular: " << n_singular << std::endl;
         std::cout << "The largest/smallest eigenvalue of Coulomb matrix(non-singular): "
@@ -826,8 +823,8 @@ std::vector<double> diele_func::get_head_vec()
 
 void diele_func::test_head()
 {
-    using LIBRPA::utils::lib_printf;
-    if (mpi_comm_global_h.is_root())
+    using global::lib_printf;
+    if (comm_h.is_root())
     {
         std::cout << "Freqency node & Head of dielectric function(Re, Im): " << std::endl;
         for (int iomega = 0; iomega != this->omega.size(); iomega++)
@@ -856,8 +853,8 @@ void diele_func::test_head()
 
 void diele_func::test_wing()
 {
-    using LIBRPA::utils::lib_printf;
-    if (mpi_comm_global_h.is_root())
+    using global::lib_printf;
+    if (comm_h.is_root())
     {
         std::cout << "Index of abfs & wing(iomega=0, z) of dielectric function(Re, Im): "
                   << std::endl;
@@ -900,7 +897,7 @@ ArrayDesc diele_func::get_body_inv(matrix_m<std::complex<double>> &chi0_block,
     profiler.start("get_inverse_body_of_chi0");
     mpi_comm_global_h.barrier();
 
-    ArrayDesc desc_body(blacs_ctxt_global_h);
+    ArrayDesc desc_body(blacs_h);
     desc_body.init_square_blk(n_nonsingular - 1, n_nonsingular - 1, 0, 0);
     this->body_inv = init_local_mat<complex<double>>(desc_body, MAJOR::COL);
 
@@ -913,14 +910,14 @@ ArrayDesc diele_func::get_body_inv(matrix_m<std::complex<double>> &chi0_block,
     } */
     ScalapackConnector::pgemr2d_f(n_nonsingular - 1, n_nonsingular - 1, chi0_block.ptr(), 2, 2,
                                   desc_nabf_nabf_opt.desc, this->body_inv.ptr(), 1, 1,
-                                  desc_body.desc, blacs_ctxt_global_h.ictxt);
+                                  desc_body.desc, blacs_h.ictxt);
     invert_scalapack(this->body_inv, desc_body);
 
-    if (Params::debug)
+    if (debug)
     {
         const int ilo = desc_body.indx_g2l_r(0);
         const int jlo = desc_body.indx_g2l_c(0);
-        if (ilo >= 0 && jlo >= 0) std::cout << "inv_body(0,0)=" << body_inv(ilo, jlo) << endl;
+        if (ilo >= 0 && jlo >= 0) std::cout << "inv_body(0,0)=" << body_inv(ilo, jlo) << std::endl;
     }
 
     // std::cout << "* Success: get inverse body of chi0.\n";
@@ -930,23 +927,25 @@ ArrayDesc diele_func::get_body_inv(matrix_m<std::complex<double>> &chi0_block,
 
 void diele_func::construct_L(const int ifreq, ArrayDesc &desc_body)
 {
+    using global::profiler;
+
     profiler.start("cal_L");
     this->Lind.resize(3, 3, MAJOR::COL);
     this->bw.resize(n_nonsingular - 1, 3, MAJOR::COL);
     this->wb.resize(3, n_nonsingular - 1, MAJOR::COL);
-    ArrayDesc desc_wing(blacs_ctxt_global_h);
+    ArrayDesc desc_wing(blacs_h);
     desc_wing.init_square_blk(n_nonsingular - 1, 3, 0, 0);
     // opt descriptor for wing
-    ArrayDesc desc_wing_opt(blacs_ctxt_global_h);
+    ArrayDesc desc_wing_opt(blacs_h);
     desc_wing_opt.init(n_nonsingular - 1, 3, desc_body.mb(), desc_wing.nb(), 0, 0);
 
-    ArrayDesc desc_lam_3(blacs_ctxt_global_h);
+    ArrayDesc desc_lam_3(blacs_h);
     desc_lam_3.init_square_blk(n_nonsingular - 1, 3, 0, 0);
 
-    ArrayDesc desc_3_lam(blacs_ctxt_global_h);
+    ArrayDesc desc_3_lam(blacs_h);
     desc_3_lam.init_square_blk(3, n_nonsingular - 1, 0, 0);
 
-    ArrayDesc desc_3_3(blacs_ctxt_global_h);
+    ArrayDesc desc_3_3(blacs_h);
     desc_3_3.init_square_blk(3, 3, 0, 0);
 
     auto lam_3 = init_local_mat<complex<double>>(desc_lam_3, MAJOR::COL);
@@ -979,9 +978,9 @@ void diele_func::construct_L(const int ifreq, ArrayDesc &desc_body)
                 this->wb(i, ilambda) = _3_lam(loc_iwb, loc_ilambda);
 
             MPI_Allreduce(MPI_IN_PLACE, &bw(ilambda, i), 1, MPI_DOUBLE_COMPLEX, MPI_SUM,
-                          mpi_comm_global_h.comm);
+                          comm_h.comm);
             MPI_Allreduce(MPI_IN_PLACE, &wb(i, ilambda), 1, MPI_DOUBLE_COMPLEX, MPI_SUM,
-                          mpi_comm_global_h.comm);
+                          comm_h.comm);
         }
 
         for (int j = 0; j != 3; j++)
@@ -990,7 +989,7 @@ void diele_func::construct_L(const int ifreq, ArrayDesc &desc_body)
             if (loc_j >= 0 && loc_i >= 0)
                 this->Lind(i, j) = head.at(ifreq)(i, j) - Lind_loc(loc_i, loc_j);
             MPI_Allreduce(MPI_IN_PLACE, &Lind(i, j), 1, MPI_DOUBLE_COMPLEX, MPI_SUM,
-                          mpi_comm_global_h.comm);
+                          comm_h.comm);
         }
     }
 
@@ -1065,13 +1064,14 @@ void diele_func::get_g_enclosing_gamma_2d()
     g_enclosing_gamma.clear();
     g_enclosing_gamma.resize(8);
     int ik = 0;
+    const auto G = pbc_.G;
     for (int a = -1; a <= 1; a++)
     {
         for (int b = -1; b <= 1; b++)
         {
             if (a == 0 && b == 0) continue;
-            g_enclosing_gamma.at(ik) = {G.e11 * a / kv_nmp[0] + G.e12 * b / kv_nmp[1],
-                                        G.e21 * a / kv_nmp[0] + G.e22 * b / kv_nmp[1], 0.0};
+            g_enclosing_gamma.at(ik) = {G.e11 * a / pbc_.period.x + G.e12 * b / pbc_.period.y,
+                                        G.e21 * a / pbc_.period.x + G.e22 * b / pbc_.period.y, 0.0};
             ik++;
         }
     }
@@ -1120,7 +1120,7 @@ void diele_func::calculate_q_gamma_2d()
                 {
                     double numerator = 0.5 * g_enclosing_gamma[ik] * g_enclosing_gamma[ik];
                     double temp = numerator / denominator;
-                    qmax = min(qmax, temp);
+                    qmax = std::min(qmax, temp);
                 }
             }
         }
@@ -1249,7 +1249,7 @@ void diele_func::cal_eps(const int ifreq, ArrayDesc &desc_nabf_nabf_opt, ArrayDe
         if (use_2d_dielectric)
         {
             std::cout << "Using 2D average inverse dielectric matrix." << std::endl;
-            std::cout << "Height is " << std::abs(latvec.e33) << " Bohr." << std::endl;
+            std::cout << "Height is " << std::abs(pbc_.latvec.e33) << " Bohr." << std::endl;
             for (int ileb = 0; ileb != qw_leb.size(); ileb++)
             {
                 vol_gamma_numeric += qw_leb[ileb] * std::pow(q_gamma[ileb], 2) / 2.0;
@@ -1481,12 +1481,13 @@ std::complex<double> diele_func::compute_chi0_inv_ij(const int ifreq, int i, int
 void diele_func::assign_chi0(matrix_m<std::complex<double>> &chi0_block,
                              ArrayDesc &desc_nabf_nabf_opt)
 {
+    using global::profiler;
     profiler.start("assign_chi0");
-    mpi_comm_global_h.barrier();
+    comm_h.barrier();
 
     ScalapackConnector::pgemr2d_f(n_abf, n_abf, this->chi0.ptr(), 1, 1, desc_nabf_nabf_opt.desc,
                                   chi0_block.ptr(), 1, 1, desc_nabf_nabf_opt.desc,
-                                  blacs_ctxt_global_h.ictxt);
+                                  blacs_h.ictxt);
 
     profiler.stop("assign_chi0");
 }

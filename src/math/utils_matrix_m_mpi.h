@@ -929,7 +929,7 @@ matrix_m<std::complex<T>> power_hemat_blacs_real(matrix_m<std::complex<T>> &A_lo
     profiler.start("power_hemat_blacs_2");
     // Perform real symmetric diagonalization using the provided interface
     ScalapackConnector::psyev_f(jobz, uplo, n, A_local_opt.ptr(), 1, 1, ad_A_opt.desc, W,
-                                Z_local_opt.ptr(), 1, 1, ad_Z_opt.desc, work, lwork, rwork, lrwork,
+                                Z_local_opt.ptr(), 1, 1, ad_Z_opt.desc, work.data(), lwork, rwork.data(), lrwork,
                                 info);
     work.clear();
     rwork.clear();

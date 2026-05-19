@@ -6,6 +6,7 @@
 #include "../core/atom.h"
 #include "../core/atomic_basis.h"
 #include "../core/chi0.h"
+#include "../core/dielecmodel.h"
 #include "../core/exx.h"
 #include "../core/geometry.h"
 #include "../core/gw.h"
@@ -101,6 +102,8 @@ public:
     // Only used for head correction of GW calculation
     std::vector<double> epsmacs_imagfreq;
     std::vector<double> omegas_imagfreq;
+
+    std::unique_ptr<diele_func> p_headwing;
 
     // Output data, held by computation objects
     // All computation data objects should be contained here as pointers

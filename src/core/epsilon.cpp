@@ -26,7 +26,6 @@
 #include "../utils/utils_mem.h"
 #include "atom.h"
 #include "atomic_basis.h"
-#include "dielecmodel.h"
 #include "librpa_enums.h"
 #include "pbc.h"
 #include "utils_atomic_basis_blacs.h"
@@ -79,11 +78,11 @@ CorrEnergy compute_RPA_correlation_blacs_2d_gamma_only(Chi0 &chi0, atpair_k_cplx
     vector<Vector3_Order<double>> qpts;
     // for (const auto &qMuNuchi : chi0.get_chi0_q().at(chi0.tfg.get_freq_nodes()[0]))
     //     qpts.push_back(qMuNuchi.first);
-    for (const auto &q : chi0.klist)
+    for (const auto &q : chi0.pbc.klist)
     {
         qpts.push_back(q);
 #ifdef OPEN_TEST_FOR_LU_DECOMPOSITION
-        printf("processId:%d, q: (%f, %f, %f)\n", mpi_comm_global_h.myid, q.x, q.y, q.z);
+        printf("processId:%d, q: (%f, %f, %f)\n", blacs_h.myid, q.x, q.y, q.z);
 #endif
     }
 
@@ -626,7 +625,7 @@ complex<double> compute_pi_det_blacs_2d(Matz &loc_piT, const ArrayDesc &arrdesc_
 #ifdef OPEN_TEST_FOR_LU_DECOMPOSITION
     printf(
         "success before pzgetrf_ processid:%d,range_all: %d, loc_piT.nr(): %d, loc_piT.nc(): %d\n",
-        mpi_comm_global_h.myid, range_all, loc_piT.nr(), loc_piT.nc());
+        arrdesc_pi.myid(), range_all, loc_piT.nr(), loc_piT.nc());
 #endif
     double det_begin = omp_get_wtime();
     // ScalapackConnector::transpose_desc(DESCPI_T, arrdesc_pi.desc);
@@ -998,8 +997,8 @@ CorrEnergy compute_RPA_correlation_blacs(const Chi0 &chi0, const atpair_k_cplx_m
 
 CorrEnergy compute_RPA_correlation(LibrpaParallelRouting routing, const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat)
 {
-    using librpa_int::global::ofs_myid;
-    using librpa_int::global::lib_printf;
+    using global::ofs_myid;
+    using global::lib_printf;
 
     CorrEnergy corr;
     const auto &comm_h = chi0.comm_h;
@@ -1051,7 +1050,7 @@ CorrEnergy compute_RPA_correlation(LibrpaParallelRouting routing, const Chi0 &ch
 // printf("success before freq_q_MuNupi processid:%d, freq_q_MuNupi.size(): %zu\n",
 //        mpi_comm_global_h.myid, freq_q_MuNupi.size());
 #endif
-        for (const auto &q : chi0.klist)
+        for (const auto &q : chi0.pbc.klist)
         {
             atom_mapping<ComplexMatrix>::pair_t_old q_MuNupi;
             if (!chi0.get_chi0_q().empty()) q_MuNupi = freq_q_MuNupi.at(q);
@@ -1061,16 +1060,17 @@ CorrEnergy compute_RPA_correlation(LibrpaParallelRouting routing, const Chi0 &ch
             ComplexMatrix pi_munu_tmp(range_all, range_all);
             pi_munu_tmp.zero_out();
             if (!chi0.get_chi0_q().empty())
+            {
                 for (const auto &Mu_Nupi : MuNupi)
                 {
                     const auto Mu = Mu_Nupi.first;
                     const auto Nupi = Mu_Nupi.second;
-                    const size_t n_mu = atom_mu[Mu];
+                    const size_t n_mu = chi0.atbasis_abf[Mu];
                     for (const auto &Nu_pi : Nupi)
                     {
                         const auto Nu = Nu_pi.first;
                         const auto pimat = Nu_pi.second;
-                        const size_t n_nu = atom_mu[Nu];
+                        const size_t n_nu = chi0.atbasis_abf[Nu];
 
                         for (size_t mu = 0; mu != n_mu; ++mu)
                         {
@@ -1085,7 +1085,7 @@ CorrEnergy compute_RPA_correlation(LibrpaParallelRouting routing, const Chi0 &ch
             }
             if (routing == LibrpaParallelRouting::ATOMPAIR || routing == LibrpaParallelRouting::LIBRI)
             {
-                librpa_int::reduce_ComplexMatrix(pi_munu_tmp, pi_freq_q.at(freq).at(q), 0, comm_h.comm);
+                reduce_ComplexMatrix(pi_munu_tmp, pi_freq_q.at(freq).at(q), 0, comm_h.comm);
             }
             else
             {
@@ -1776,18 +1776,19 @@ compute_Wc_freq_q(
 }
 
 std::map<double, std::map<Vector3_Order<double>, Matz>> compute_Wc_freq_q_blacs(
-    Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, atpair_k_cplx_mat_t &coulmat_wc, const double sqrt_coulomb_threshold,
-    const vector<std::complex<double>> &epsmac_LF_imagfreq, const BlacsCtxtHandler &blacs_h,
-    const ArrayDesc &ad, const bool debug, const char *output_dir)
+    Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, atpair_k_cplx_mat_t &coulmat_wc,
+    const double sqrt_coulomb_threshold, const bool replace_w_head, int option_dielect_func,
+    const vector<std::complex<double>> &epsmac_LF_imagfreq, diele_func &df_headwing,
+    const BlacsCtxtHandler &blacs_h, const ArrayDesc &ad, const bool debug, const char *output_dir)
 {
     using std::cout;
     using std::endl;
     using std::set;
     using std::pair;
 
-    using librpa_int::global::ofs_myid;
-    using librpa_int::global::lib_printf;
-    using librpa_int::global::profiler;
+    using global::ofs_myid;
+    using global::lib_printf;
+    using global::profiler;
 
     // Object to return
     map<double, std::map<Vector3_Order<double>, Matz>> Wc_freq_q;
@@ -2133,7 +2134,7 @@ std::map<double, std::map<Vector3_Order<double>, Matz>> compute_Wc_freq_q_blacs(
                              << endl;
                     df_headwing.rewrite_eps(chi0_block, ifreq, desc_nabf_nabf_opt);
 
-                    if (Params::debug)
+                    if (debug)
                     {
                         const int ilo = desc_nabf_nabf_opt.indx_g2l_r(0);
                         const int jlo = desc_nabf_nabf_opt.indx_g2l_c(0);
@@ -2640,129 +2641,34 @@ std::map<double, std::map<Vector3_Order<int>, Matz>> CT_FT_Wc_freq_q(
     return Wc_tau_R;
 }
 
-// void test_libcomm_for_system(const atpair_k_cplx_mat_t &coulmat)
-// {
-//     using librpa_int::utils::collect_block_from_ALL_IJ_Tensor;
-// 
-//     if (comm_h.myid == 0)
-//         lib_printf("test_libcomm_for_system Coulumb\n");
-//     // lib_printf("Calculating EcRPA with BLACS, pid:  %d\n", comm_h.myid);
-//     const complex<double> CONE{1.0, 0.0};
-//     const int n_abf = chi0.atbasis_abf.nb_total;
-//     const auto part_range = chi0.atbasis_abf.get_part_range();
-// 
-//     comm_h.barrier();
-// 
-//     ArrayDesc desc_nabf_nabf(blacs_h);
-//     // use a square blocksize instead max block, otherwise heev and inversion will complain about illegal parameter
-//     desc_nabf_nabf.init_square_blk(n_abf, n_abf, 0, 0);
-//     const auto set_IJ_nabf_nabf = librpa_int::utils::get_necessary_IJ_from_block_2D_sy('U', chi0.atbasis_abf, desc_nabf_nabf);
-//     const auto s0_s1 = get_s0_s1_for_comm_map2_first(set_IJ_nabf_nabf);
-//     
-//     auto coul_block = init_local_mat<complex<double>>(desc_nabf_nabf, MAJOR::COL);
-// 
-// 
-//     vector<Vector3_Order<double>> qpts;
-//     for (const auto &qMuNuchi: irk_weight)
-//         qpts.push_back(qMuNuchi.first);
-// 
-// #ifdef LIBRPA_USE_LIBRI
-//     for (const auto &q: qpts)
-//     {
-//         coul_block.zero_out();
-// 
-//         int iq = std::distance(klist.begin(), std::find(klist.begin(), klist.end(), q));
-//         std::array<double, 3> qa = {q.x, q.y, q.z};
-//         // collect the block elements of coulomb matrices
-//         {
-//             double vq_begin = omp_get_wtime();
-//             // LibRI tensor for communication, release once done
-//             std::map<int, std::map<std::pair<int, std::array<double, 3>>, Tensor<complex<double>>>> coul_libri;
-//             coul_libri.clear();
-//             int count_coul=0;
-//             for (const auto &Mu_Nu: local_atpair)
-//             {
-//                 const auto Mu = Mu_Nu.first;
-//                 const auto Nu = Mu_Nu.second;
-//                 // ofs_myid << "myid " << blacs_h.myid << "Mu " << Mu << " Nu " << Nu << endl;
-//                 if (coulmat.count(Mu) == 0 ||
-//                     coulmat.at(Mu).count(Nu) == 0 ||
-//                     coulmat.at(Mu).at(Nu).count(q) == 0) continue;
-//                 const auto &Vq = coulmat.at(Mu).at(Nu).at(q);
-//                 const auto n_mu = chi0.atbasis_abf.get_atom_nb(Mu);
-//                 const auto n_nu = chi0.atbasis_abf.get_atom_nb(Nu);
-//                 std::valarray<complex<double>> Vq_va(Vq->c, Vq->size);
-//                 auto pvq = std::make_shared<std::valarray<complex<double>>>();
-//                 *pvq = Vq_va;
-//                 coul_libri[Mu][{Nu,qa}] = Tensor<complex<double>>({n_mu, n_nu}, pvq);
-//                 count_coul+=1;
-//             }
-//             int count_pair=0;
-//             for(auto &Mu:coul_libri)
-//             {
-//                 for(auto &nu_q:Mu.second)
-//                 {
-//                     count_pair+=1;
-//                 }
-//             }
-//             //printf("Finish RPA blacs 2d  vq arr\n");
-//             double arr_end = omp_get_wtime();
-//             comm_h.barrier();
-//             double comm_begin = omp_get_wtime();
-//             lib_printf("Begin comm_map2_first  myid: %d  q:(%f, %f, %f)  count_coul: %d  count_pair: %d\n",comm_h.myid,q.x,q.y,q.z,count_coul,count_pair);
-//             const auto IJq_coul = comm_map2_first(comm_h.comm, coul_libri, s0_s1.first, s0_s1.second);
-//             double comm_end = omp_get_wtime();
-//             comm_h.barrier();
-//             //printf("End vq comm_map2_first  myid: %d   TIME_USED: %f\n",comm_h.myid,comm_end-comm_begin);
-//             // ofs_myid << "IJq_coul" << endl << IJq_coul;
-//             //printf("Finish RPA blacs 2d  vq 2d\n");
-//             double block_begin = omp_get_wtime();
-//             // for (const auto &IJ: set_IJ_nabf_nabf)
-//             // {
-//             //     const auto &I = IJ.first;
-//             //     const auto &J = IJ.second;
-//             //     // cout << IJq_coul.at(I).at({J, qa});
-//             //     collect_block_from_IJ_storage_syhe(
-//             //         coul_block, desc_nabf_nabf, chi0.atbasis_abf, IJ.first,
-//             //         IJ.second, true, CONE, IJq_coul.at(I).at({J, qa}).ptr(), MAJOR::ROW);
-//             //     // lib_printf("myid %d I %d J %d nr %d nc %d\n%s",
-//             //     //        blacs_h.myid, I, J,
-//             //     //        coul_block.nr(), coul_block.nc(),
-//             //     //        str(coul_block).c_str());
-//             // }
-//             collect_block_from_ALL_IJ_Tensor(coul_block, desc_nabf_nabf, chi0.atbasis_abf,
-//                                              qa, true, CONE, IJq_coul, MAJOR::ROW);
-//             double block_end = omp_get_wtime();
-//             // lib_printf("Vq Time  myid: %d  arr_time: %f  comm_time: %f   block_time: %f   pair_size: %d\n",comm_h.myid,arr_end-vq_begin, comm_end-comm_begin, block_end-block_begin,set_IJ_nabf_nabf.size());
-//             comm_h.barrier();
-//             double vq_end = omp_get_wtime();
-// 
-//             if(comm_h.myid == 0)
-//                 lib_printf(" | Total vq time: %f  lri_coul: %f   comm_vq: %f   block_vq: %f\n",vq_end-vq_begin, comm_begin-vq_begin,block_begin-comm_begin,vq_end-block_begin);
-//         }
-//     }
-//     lib_printf("Success test_libcomm_for_system\n");
-// #endif
-// }
 
 map<double, atom_mapping<std::map<Vector3_Order<int>, matrix_m<complex<double>>>>::pair_t_old>
 CT_FT_Wc_q2R_freq2time(
+    const MpiCommHandler &comm_h,
+    const AtomicBasis &atbasis_abf,
     map<double, atom_mapping<std::map<Vector3_Order<double>, matrix_m<complex<double>>>>::pair_t_old>
         &Wc_freq_q,
-    const TFGrids &tfg, const int &n_k_points, const vector<Vector3_Order<int>> &Rlist)
+    const TFGrids &tfg, const PeriodicBoundaryData &pbc, const vector<Vector3_Order<int>> &Rlist,
+    const std::string &output_dir)
 {
+    using global::profiler;
+    using global::lib_printf_coll;
+    using global::lib_printf_root;
+    using global::lib_printf;
+
     // major of Wc_freq_q input and Wc_tau_R output
     const MAJOR major_Wc = MAJOR::ROW;
+    const int n_k_points = pbc.get_n_cells_bvk();
 
     map<double, atom_mapping<std::map<Vector3_Order<int>, matrix_m<complex<double>>>>::pair_t_old>
         Wc_tau_R, Wc_freq_R;
-    if (!tfg.has_time_grids()) throw logic_error("TFGrids object does not have time grids");
+    if (!tfg.has_time_grids()) throw LIBRPA_RUNTIME_ERROR("TFGrids object does not have time grids");
     const int ngrids = tfg.get_n_grids();
-    set<pair<atom_t, atom_t>> atpairs_unique;
+    std::set<std::pair<atom_t, atom_t>> atpairs_unique;
 
-    LIBRPA::utils::lib_printf_root("Converting Wc(q,w) -> Wc(R,w) -> W(R,t)\n");
+    global::lib_printf_root("Converting Wc(q,w) -> Wc(R,w) -> W(R,t)\n");
 
-    Profiler::start("construct_Wc_lower_half", "Construct Lower Half of Wc(q,w)");
+    profiler.start("construct_Wc_lower_half", "Construct Lower Half of Wc(q,w)");
     // NOTE: only upper half of Wc is built now
     //       here we recover the other half before transform to R space using the Hermitian property
     //       and Hermitize the diagonal blocks (due to numerical noise)
@@ -2798,10 +2704,10 @@ CT_FT_Wc_q2R_freq2time(
             }
         }
     }
-    mpi_comm_global_h.barrier();
-    Profiler::stop("construct_Wc_lower_half");
+    comm_h.barrier();
+    profiler.stop("construct_Wc_lower_half");
 
-    Profiler::start("Wc(q,w) -> Wc(R,w)", "Convert Wc(q,w) -> Wc(R,w)");
+    profiler.start("Wc(q,w) -> Wc(R,w)", "Convert Wc(q,w) -> Wc(R,w)");
     vector<pair<pair<int, Vector3_Order<int>>, pair<atom_t, atom_t>>> ifreqtau_R_atpair_all;
     // allocate Wc(R,w) before hand
     for (auto R : Rlist)
@@ -2813,18 +2719,18 @@ CT_FT_Wc_q2R_freq2time(
             for (auto atpair_unique : atpairs_unique)
             {
                 const auto Mu = atpair_unique.first;
-                const int n_mu = atom_mu[Mu];
+                const int n_mu = atbasis_abf[Mu];
                 const auto Nu = atpair_unique.second;
-                const int n_nu = atom_mu[Nu];
+                const int n_nu = atbasis_abf[Nu];
                 Wc_freq_R[freq][Mu][Nu][R] = matrix_m<complex<double>>(n_mu, n_nu, major_Wc);
                 ifreqtau_R_atpair_all.push_back({{ifreq, R}, atpair_unique});// ifreq is same as itauR
             }
         }
     }
 
-    LIBRPA::utils::lib_printf_coll("Task %4d: distributing %d {I, J, R, freq} on %d threads\n",
-                                   LIBRPA::envs::myid_global, ifreqtau_R_atpair_all.size(),
-                                   omp_get_max_threads());
+    lib_printf_coll("Task %4d: distributing %d {I, J, R, freq} on %d threads\n",
+                    comm_h.myid, ifreqtau_R_atpair_all.size(),
+                    omp_get_max_threads());
 
 #pragma omp parallel for schedule(dynamic)
     for (auto ifreqR_atpair : ifreqtau_R_atpair_all)
@@ -2834,8 +2740,8 @@ CT_FT_Wc_q2R_freq2time(
         const auto R = ifreqR_atpair.first.second;
         const auto Mu = ifreqR_atpair.second.first;
         const auto Nu = ifreqR_atpair.second.second;
-        const int n_mu = atom_mu[Mu];
-        const int n_nu = atom_mu[Nu];
+        const int n_mu = atbasis_abf[Mu];
+        const int n_nu = atbasis_abf[Nu];
 
         // thread local temporary matrix
         matrix_m<complex<double>> WfR_temp(n_mu, n_nu, major_Wc);
@@ -2848,9 +2754,9 @@ CT_FT_Wc_q2R_freq2time(
         {
             const auto q = Wc_q.first;
             const auto &Wc = Wc_q.second;
-            for (auto q_bz : map_irk_ks[q])
+            for (auto q_bz : pbc.map_irk_ks.at(q))
             {
-                const double ang = -q_bz * (R * latvec) * TWO_PI;
+                const double ang = -q_bz * (R * pbc.latvec) * TWO_PI;
                 const complex<double> weight =
                     complex<double>(cos(ang), sin(ang)) / double(n_k_points);
                 if (q == q_bz)
@@ -2863,18 +2769,20 @@ CT_FT_Wc_q2R_freq2time(
         Wc_freq_R[freq][Mu][Nu][R] += WfR_temp;
         // omp_unset_lock(&lock_Wc);
     }
-    mpi_comm_global_h.barrier();
+    comm_h.barrier();
     // HACK: Free up Wc_freq_q to save memory, especially for large Coulomb matrix case and many
     // minimax grids
     Wc_freq_q.clear();
-    LIBRPA::utils::lib_printf_root("Done converting Wc(q,w) -> Wc(R,w)\n");
+    lib_printf_root("Done converting Wc(q,w) -> Wc(R,w)\n");
 
-    Profiler::stop("Wc(q,w) -> Wc(R,w)");
+    profiler.stop("Wc(q,w) -> Wc(R,w)");
 
-    if (Params::output_Wc_Rf_mat > 0)
+    const int output_Wc_Rf_mat = 0;
+
+    if (output_Wc_Rf_mat > 0)
     {
-        Profiler::start("write_Wc_freq_R", "Export Wc(R,w) to file");
-        int write_freq = Params::output_Wc_Rf_mat==1 ? 1 : ngrids;
+        profiler.start("write_Wc_freq_R", "Export Wc(R,w) to file");
+        int write_freq = output_Wc_Rf_mat == 1 ? 1 : ngrids;
         for (int ifreq = 0; ifreq != write_freq; ifreq++)
         {
             char fn[80];
@@ -2899,16 +2807,16 @@ CT_FT_Wc_q2R_freq2time(
                             " ( " + std::to_string(R.x) + " " + std::to_string(R.y) + " " + std::to_string(R.z) +
                             " ) and ifreq " + std::to_string(ifreq) +
                             " ( " + std::to_string(freq) + " a.u. )";
-                        print_matrix_mm_file(Wc, Params::output_dir + "/" + fn, info, 1e-10);
+                        print_matrix_mm_file(Wc, output_dir + "/" + fn, info, 1e-10);
                     }
                 }
             }
         }        
-        Profiler::stop("write_Wc_freq_R");
+        profiler.stop("write_Wc_freq_R");
     }
 
-    Profiler::start("Wc(R,w) -> Wc(R,t)", "Convert Wc(R,w) -> Wc(R,t)");
-    if (mpi_comm_global_h.is_root())
+    profiler.start("Wc(R,w) -> Wc(R,t)", "Convert Wc(R,w) -> Wc(R,t)");
+    if (comm_h.is_root())
     {
         lib_printf("Start converting Wc(R,w) -> Wc(R,t)\n");
     }
@@ -2922,16 +2830,16 @@ CT_FT_Wc_q2R_freq2time(
             for (auto atpair_unique : atpairs_unique)
             {
                 const auto Mu = atpair_unique.first;
-                const int n_mu = atom_mu[Mu];
+                const int n_mu = atbasis_abf[Mu];
                 const auto Nu = atpair_unique.second;
-                const int n_nu = atom_mu[Nu];
+                const int n_nu = atbasis_abf[Nu];
                 Wc_tau_R[tau][Mu][Nu][R] = matrix_m<complex<double>>(n_mu, n_nu, major_Wc);
             }
         }
     }
 
-    LIBRPA::utils::lib_printf_coll("Task %4d: distributing %d {I, J, R, tau} on %d threads\n",
-        LIBRPA::envs::myid_global, ifreqtau_R_atpair_all.size(),
+    lib_printf_coll("Task %4d: distributing %d {I, J, R, tau} on %d threads\n",
+        comm_h.myid, ifreqtau_R_atpair_all.size(),
         omp_get_max_threads());
 
 #pragma omp parallel for schedule(dynamic)
@@ -2942,8 +2850,8 @@ CT_FT_Wc_q2R_freq2time(
         const auto R = itauR_atpair.first.second;
         const auto Mu = itauR_atpair.second.first;
         const auto Nu = itauR_atpair.second.second;
-        const int n_mu = atom_mu[Mu];
-        const int n_nu = atom_mu[Nu];
+        const int n_mu = atbasis_abf[Mu];
+        const int n_nu = atbasis_abf[Nu];
 
         // thread local temporary matrix
         matrix_m<complex<double>> WtR_temp(n_mu, n_nu, major_Wc);
@@ -2969,33 +2877,38 @@ CT_FT_Wc_q2R_freq2time(
     }
     // NOTE: Wc(R,w) will not be used any more, clean to free up memory
     Wc_freq_R.clear();
-    LIBRPA::utils::release_free_mem();
-    mpi_comm_global_h.barrier();
-    LIBRPA::utils::lib_printf_root("Done converting Wc(R,w) -> Wc(R,t)\n");
-    Profiler::stop("Wc(R,w) -> Wc(R,t)");
+    release_free_mem();
+    comm_h.barrier();
+    lib_printf_root("Done converting Wc(R,w) -> Wc(R,t)\n");
+    profiler.stop("Wc(R,w) -> Wc(R,t)");
 
     return Wc_tau_R;
 }
 
 map<double, atom_mapping<std::map<Vector3_Order<double>, matrix_m<complex<double>>>>::pair_t_old>
 CT_Wc_freq2time_q(
+    const MpiCommHandler &comm_h,
+    const AtomicBasis &atbasis_abf,
     const map<double,
               atom_mapping<std::map<Vector3_Order<double>, matrix_m<complex<double>>>>::pair_t_old>
         &Wc_freq_q,
     const TFGrids &tfg, const int &n_k_points, const vector<Vector3_Order<int>> &Rlist,
     const vector<Vector3_Order<double>> &qlist)
 {
+    using std::set;
+    using global::lib_printf_root;
+    using global::lib_printf_coll;
     // major of Wc_freq_q input and Wc_tau_R output
     const MAJOR major_Wc = MAJOR::ROW;
 
     map<double,
         atom_mapping<std::map<Vector3_Order<double>, matrix_m<complex<double>>>>::pair_t_old>
         Wc_tau_q;
-    if (!tfg.has_time_grids()) throw logic_error("TFGrids object does not have time grids");
+    if (!tfg.has_time_grids()) throw LIBRPA_RUNTIME_ERROR("TFGrids object does not have time grids");
     const int ngrids = tfg.get_n_grids();
 
-    LIBRPA::utils::lib_printf_root("Converting Wc(q,w) -> W(q,t)\n");
-    mpi_comm_global_h.barrier();
+    lib_printf_root("Converting Wc(q,w) -> W(q,t)\n");
+    comm_h.barrier();
 
     set<pair<atom_t, atom_t>> atpairs_unique;
     for (const auto &freq_MuNuqWc : Wc_freq_q)
@@ -3023,18 +2936,18 @@ CT_Wc_freq2time_q(
         for (auto atpair_unique : atpairs_unique)
         {
             const auto Mu = atpair_unique.first;
-            const int n_mu = atom_mu_s[Mu];
+            const int n_mu = atbasis_abf[Mu];
             const auto Nu = atpair_unique.second;
-            const int n_nu = atom_mu_s[Nu];
+            const int n_nu = atbasis_abf[Nu];
             for (auto q : qlist)
                 Wc_tau_q[tau][Mu][Nu][q] = matrix_m<complex<double>>(n_mu, n_nu, major_Wc);
             itau_atpair_all.push_back({itau, atpair_unique});
         }
     }
 
-    LIBRPA::utils::lib_printf_coll("Task %4d: distributing %d {I, J, R, tau} on %d threads\n",
-                                   LIBRPA::envs::myid_global, itau_atpair_all.size(),
-                                   omp_get_max_threads());
+    lib_printf_coll("Task %4d: distributing %d {I, J, R, tau} on %d threads\n",
+                    comm_h.myid, itau_atpair_all.size(),
+                    omp_get_max_threads());
 
 #pragma omp parallel for schedule(dynamic)
     for (auto itau_atpair : itau_atpair_all)
@@ -3043,8 +2956,8 @@ CT_Wc_freq2time_q(
         const auto tau = tfg.get_time_nodes()[itau];
         const auto Mu = itau_atpair.second.first;
         const auto Nu = itau_atpair.second.second;
-        const int n_mu = atom_mu_s[Mu];
-        const int n_nu = atom_mu_s[Nu];
+        const int n_mu = atbasis_abf[Mu];
+        const int n_nu = atbasis_abf[Nu];
 
         // thread local temporary matrix
         matrix_m<complex<double>> Wtq_temp(n_mu, n_nu, major_Wc);
@@ -3074,25 +2987,34 @@ CT_Wc_freq2time_q(
         }
     }
 
-    LIBRPA::utils::lib_printf_root("Done converting Wc q,w -> q,t\n");
-    mpi_comm_global_h.barrier();
+    lib_printf_root("Done converting Wc q,w -> q,t\n");
+    comm_h.barrier();
 
     return Wc_tau_q;
 }
 
 /// @brief Wc(q,w) -> Wc(R,w) or Wc(q,t) -> W(R,t)
 atom_mapping<std::map<Vector3_Order<int>, matrix_m<complex<double>>>>::pair_t_old FT_Wc_q2R(
-    const atom_mapping<std::map<Vector3_Order<double>, matrix_m<complex<double>>>>::pair_t_old
+    const MpiCommHandler &comm_h,
+    const AtomicBasis &atbasis_abf,
+    const atom_mapping<std::map<Vector3_Order<double>, matrix_m<cplxdb>>>::pair_t_old
         &Wc_q,
-    const TFGrids &tfg, const int &n_kpoints, const vector<Vector3_Order<int>> &Rlist, const bool is_freq)
+    const TFGrids &tfg, const PeriodicBoundaryData &pbc, const vector<Vector3_Order<int>> &Rlist, const bool is_freq,
+    const std::string &output_dir)
 {
+    using global::profiler;
+    using global::lib_printf_root;
+    using global::lib_printf_coll;
+    using std::set;
+
     // major of Wc_freq_q input and Wc_tau_R output
     const MAJOR major_Wc = MAJOR::ROW;
+    const auto n_k_points = pbc.get_n_cells_bvk();
 
     atom_mapping<std::map<Vector3_Order<int>, matrix_m<complex<double>>>>::pair_t_old Wc_R;
 
-    LIBRPA::utils::lib_printf_root("Converting Wc(q) -> W(R)\n");
-    mpi_comm_global_h.barrier();
+    lib_printf_root("Converting Wc(q) -> W(R)\n");
+    comm_h.barrier();
 
     set<pair<atom_t, atom_t>> atpairs_unique;
     for (const auto &MuNuqWc : Wc_q)
@@ -3116,17 +3038,17 @@ atom_mapping<std::map<Vector3_Order<int>, matrix_m<complex<double>>>>::pair_t_ol
         for (auto atpair_unique : atpairs_unique)
         {
             const auto Mu = atpair_unique.first;
-            const int n_mu = atom_mu_l[Mu];
+            const int n_mu = atbasis_abf[Mu];
             const auto Nu = atpair_unique.second;
-            const int n_nu = atom_mu_l[Nu];
+            const int n_nu = atbasis_abf[Nu];
             Wc_R[Mu][Nu][R] = matrix_m<complex<double>>(n_mu, n_nu, major_Wc);
             iR_atpair_all.push_back({R, atpair_unique});
         }
     }
 
-    LIBRPA::utils::lib_printf_coll("Task %4d: distributing %d {I, J, R} on %d threads\n",
-                                   LIBRPA::envs::myid_global, iR_atpair_all.size(),
-                                   omp_get_max_threads());
+    lib_printf_coll("Task %4d: distributing %d {I, J, R} on %d threads\n",
+                    comm_h.myid, iR_atpair_all.size(),
+                    omp_get_max_threads());
 
 #pragma omp parallel for schedule(dynamic)
     for (auto iR_atpair : iR_atpair_all)
@@ -3134,8 +3056,8 @@ atom_mapping<std::map<Vector3_Order<int>, matrix_m<complex<double>>>>::pair_t_ol
         const auto R = iR_atpair.first;
         const auto Mu = iR_atpair.second.first;
         const auto Nu = iR_atpair.second.second;
-        const int n_mu = atom_mu_l[Mu];
-        const int n_nu = atom_mu_l[Nu];
+        const int n_mu = atbasis_abf[Mu];
+        const int n_nu = atbasis_abf[Nu];
 
         // thread local temporary matrix
         matrix_m<complex<double>> WR_temp(n_mu, n_nu, major_Wc);
@@ -3148,11 +3070,11 @@ atom_mapping<std::map<Vector3_Order<int>, matrix_m<complex<double>>>>::pair_t_ol
         {
             const auto q = Wc_q.first;
             const auto &Wc = Wc_q.second;
-            for (auto q_bz : map_irk_ks[q])
+            for (auto q_bz : pbc.map_irk_ks.at(q))
             {
-                const double ang = -q_bz * (R * latvec) * TWO_PI;
+                const double ang = -q_bz * (R * pbc.latvec) * TWO_PI;
                 const complex<double> weight =
-                    complex<double>(cos(ang), sin(ang)) / double(n_kpoints);
+                    complex<double>(cos(ang), sin(ang)) / double(n_k_points);
                 if (q == q_bz)
                     WR_temp += Wc * weight;
                 else
@@ -3163,12 +3085,14 @@ atom_mapping<std::map<Vector3_Order<int>, matrix_m<complex<double>>>>::pair_t_ol
         Wc_R[Mu][Nu][R] += WR_temp;
         // omp_unset_lock(&lock_Wc);
     }
-    mpi_comm_global_h.barrier();
-    LIBRPA::utils::lib_printf_root("Done converting Wc q -> R\n");
+    comm_h.barrier();
+    lib_printf_root("Done converting Wc q -> R\n");
 
-    if (is_freq && Params::output_Wc_Rf_mat==1)
+    const int output_Wc_Rf_mat = 0;
+
+    if (is_freq && output_Wc_Rf_mat == 1)
     {
-        Profiler::start("write_Wc_freq_R", "Export Wc(R,w) to file");
+        profiler.start("write_Wc_freq_R", "Export Wc(R,w) to file");
         int ifreq = 0;
         const auto freq = tfg.get_freq_nodes()[ifreq];
         char fn[80];
@@ -3191,14 +3115,14 @@ atom_mapping<std::map<Vector3_Order<int>, matrix_m<complex<double>>>>::pair_t_ol
                         " ( " + std::to_string(R.x) + " " + std::to_string(R.y) + " " + std::to_string(R.z) +
                         " ) and ifreq " + std::to_string(ifreq) +
                         " ( " + std::to_string(freq) + " a.u. )";
-                    print_matrix_mm_file(Wc, Params::output_dir + "/" + fn, info, 1e-10);
+                    print_matrix_mm_file(Wc, output_dir + "/" + fn, info, 1e-10);
                 }
             }
         }
-        Profiler::stop("write_Wc_freq_R");        
+        profiler.stop("write_Wc_freq_R");
     }
 
     return Wc_R;
 }
 
-}
+}  // namespace librpa_int

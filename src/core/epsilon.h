@@ -4,6 +4,7 @@
 #include "atom.h"
 #include "atomic_basis.h"
 #include "chi0.h"
+#include "dielecmodel.h"
 #include "pbc.h"
 #include "ri.h"
 
@@ -45,9 +46,10 @@ map<double, std::map<Vector3_Order<double>, Matz>> compute_Wc_freq_q(
     double sqrt_coulomb_threshold, const std::vector<cplxdb> &epsmac_LF_imagfreq,
     bool debug = false, const char *output_dir = ".");
 
-map<double, std::map<Vector3_Order<double>, Matz>> compute_Wc_freq_q_blacs(
+std::map<double, std::map<Vector3_Order<double>, Matz>> compute_Wc_freq_q_blacs(
     Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, atpair_k_cplx_mat_t &coulmat_wc,
-    double sqrt_coulomb_threshold, const std::vector<cplxdb> &epsilon_mac_imagfreq,
+    double sqrt_coulomb_threshold, const bool replace_w_head, int option_dielect_func,
+    const vector<std::complex<double>> &epsmac_LF_imagfreq, diele_func &df_headwing,
     const BlacsCtxtHandler &blacs_h, const librpa_int::ArrayDesc &ad, bool debug = false,
     const char *output_dir = ".");
 
@@ -70,7 +72,8 @@ CT_FT_Wc_q2R_freq2time(
     map<double,
         atom_mapping<std::map<Vector3_Order<double>, matrix_m<complex<double>>>>::pair_t_old>
         &Wc_freq_q,  // upper atom-pair input
-    const TFGrids &tfg, const int &n_kpoints, const vector<Vector3_Order<int>> &Rlist);
+    const TFGrids &tfg, const int &n_kpoints, const vector<Vector3_Order<int>> &Rlist,
+    const std::string &output_dir);
 
 /// @brief Wc(q,w) -> Wc(q,t)
 map<double, atom_mapping<std::map<Vector3_Order<double>, matrix_m<complex<double>>>>::pair_t_old>
@@ -83,10 +86,12 @@ CT_Wc_freq2time_q(
 
 /// @brief Wc(q,w) -> Wc(R,w) or Wc(q,t) -> W(R,t)
 atom_mapping<std::map<Vector3_Order<int>, matrix_m<complex<double>>>>::pair_t_old FT_Wc_q2R(
-    const atom_mapping<std::map<Vector3_Order<double>, matrix_m<complex<double>>>>::pair_t_old
-        &Wc_tau_q,
-    const TFGrids &tfg, const int &n_kpoints, const vector<Vector3_Order<int>> &Rlist,
-    const bool is_freq);
+    const MpiCommHandler &comm_h,
+    const AtomicBasis &atbasis_abf,
+    const atom_mapping<std::map<Vector3_Order<double>, matrix_m<cplxdb>>>::pair_t_old
+        &Wc_q,
+    const TFGrids &tfg, const PeriodicBoundaryData &pbc, const vector<Vector3_Order<int>> &Rlist, const bool is_freq,
+    const std::string &output_dir);
 
 ComplexMatrix compute_Pi_freq_q_row_ri(const AtomicBasis &atbasis_abf, const Vector3_Order<double> &ik_vec, const atom_mapping<ComplexMatrix>::pair_t_old &chi0_freq_q, const atpair_k_cplx_mat_t &Vq_loc, const vector<atpair_t> &local_atpair, const int &I, const Vector3_Order<double> &q);
 ComplexMatrix compute_Pi_freq_q_row(const AtomicBasis &atbasis_abf, const Vector3_Order<double> &ik_vec,

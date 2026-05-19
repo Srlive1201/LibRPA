@@ -42,6 +42,7 @@ Dataset::Dataset(MPI_Comm comm)
       vq_block_loc(), vq_cut_block_loc(),
       epsmacs_imagfreq(),
       omegas_imagfreq(),
+      p_headwing(nullptr),
       p_exx(nullptr),
       p_chi0(nullptr),
       p_g0w0(nullptr)

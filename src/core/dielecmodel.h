@@ -5,7 +5,7 @@
 #include "../math/matrix3.h"
 #include "../math/matrix_m.h"
 #include "../mpi/base_blacs.h"
-#include "../meanfield.h"
+#include "meanfield.h"
 #include "pbc.h"
 #include "ri.h"
 
@@ -27,7 +27,7 @@ std::vector<double> interpolate_dielec_func(int option, const std::vector<double
 // All calculation in unit: Bohr and Ha.
 class diele_func
 {
-   private:
+private:
     // ( omega, alpha * beta  )
     std::vector<matrix_m<std::complex<double>>> head;
     // ( omega, mu:n_abfs * alpha ) for comparison with FHI-aims
@@ -65,9 +65,11 @@ class diele_func
     const std::vector<double> &omega;
     const std::vector<Vector3_Order<double>> &kfrac_band;
     int n_basis, n_states, n_spin, n_abf, nk;
-    const librpa_int::PeriodicBoundaryData &pbc_;
-    const librpa_int::AtomicBasis &atomic_basis_wfc_;
-    const librpa_int::AtomicBasis &atomic_basis_abf_;
+    const PeriodicBoundaryData &pbc_;
+    const AtomicBasis &atomic_basis_wfc_;
+    const AtomicBasis &atomic_basis_abf_;
+    const MpiCommHandler &comm_h;
+    const BlacsCtxtHandler &blacs_h;
     size_t n_nonsingular;
     // lebedev-quadrature, qw has absorbed 4Pi.
     std::vector<double> qx_leb, qy_leb, qz_leb, qw_leb;
@@ -76,12 +78,17 @@ class diele_func
     std::vector<double> q_gamma;
     double vol_gamma;
 
-   public:
+public:
+    bool use_2d_dielectric = false;
+    bool debug = false;
+
+public:
     diele_func(MeanField &mf, const std::vector<Vector3_Order<double>> &kfrac,
-               const librpa_int::AtomicBasis &atomic_basis_wfc,
-               const librpa_int::AtomicBasis &atomic_basis_abf,
+               const AtomicBasis &atomic_basis_wfc,
+               const AtomicBasis &atomic_basis_abf,
                const std::vector<double> &frequencies_target, const int nbasis, const int nstates,
-               const int nspin, const int nabf, const librpa_int::PeriodicBoundaryData &pbc)
+               const int nspin, const int nabf, const PeriodicBoundaryData &pbc,
+               const MpiCommHandler &comm_h_in, const BlacsCtxtHandler &blacs_h_in)
         : meanfield_df(mf),
           omega(frequencies_target),
           kfrac_band(kfrac),
@@ -91,12 +98,13 @@ class diele_func
           n_abf(nabf),
           pbc_(pbc),
           atomic_basis_wfc_(atomic_basis_wfc),
-          atomic_basis_abf_(atomic_basis_abf)
+          atomic_basis_abf_(atomic_basis_abf),
+          comm_h(comm_h_in),
+          blacs_h(blacs_h_in)
     {};
-    diele_func() : meanfield_df(pyatb_meanfield), kfrac_band(kfrac_list) {};
     ~diele_func() {};
-    void init(double vq_threshold, const librpa_int::atpair_k_cplx_mat_t &Vq);
-    void init_wing();
+    void init(double vq_threshold, const atpair_k_cplx_mat_t &Vq);
+    void init_wing(double vq_threshold, const atpair_k_cplx_mat_t &Vq);
     void set(MeanField &mf, std::vector<Vector3_Order<double>> &kfrac,
              std::vector<double> frequencies_target, int nbasis, int nstates, int nspin);
 
@@ -105,7 +113,7 @@ class diele_func
     void test_head();
     std::vector<double> get_head_vec();
 
-    void cal_wing(const librpa_int::Cs_LRI &Cs_data);  // atpair_k_cplx_mat_t &Vq, Cs_LRI &Cs_data
+    void cal_wing(const Cs_LRI &Cs_data, double vq_threshold, const atpair_k_cplx_mat_t &Vq);  // atpair_k_cplx_mat_t &Vq, Cs_LRI &Cs_data
     // tranform Cs_ij(R) to Cs_ij(k)
     // void FT_R2k(const librpa_int::Cs_LRI &Cs_data);
     // void Cs_ij2mn();
@@ -124,7 +132,7 @@ class diele_func
     // diagonalize real Vq_cut(q=0)
     // void get_Xv_real(double vq_threshold, const librpa_int::atpair_k_cplx_mat_t &Vq);
     // diagonalize complex Vq_cut(q=0)
-    void get_Xv_cpl(double vq_threshold, const librpa_int::atpair_k_cplx_mat_t &Vq);
+    void get_Xv_cpl(double vq_threshold, const atpair_k_cplx_mat_t &Vq);
     std::pair<ArrayDesc, matrix_m<complex<double>>> transform_Cs2mnk(
         const int ik, const int mu,
         std::map<int, std::map<libri_types<int, int>::TAC, RI::Tensor<double>>> &Cs_IJ);
