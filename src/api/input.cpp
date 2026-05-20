@@ -131,7 +131,7 @@ void librpa_set_wfc_spinor(LibrpaHandler* h, int ik, int nstates_local, int nbas
 {
     using librpa_int::global::profiler;
 
-    const std::string tname = "api_set_wfc";
+    const std::string tname = "api_set_wfc_spinor";
     profiler.start(tname);
 
     auto pds = librpa_int::api::get_dataset_instance(h);
@@ -190,7 +190,7 @@ void librpa_set_wfc_spinor_packed(LibrpaHandler* h, int ik, int nstates_local, i
 {
     using librpa_int::global::profiler;
 
-    const std::string tname = "api_set_wfc_packed";
+    const std::string tname = "api_set_wfc_spinor_packed";
     profiler.start(tname);
 
     auto pds = librpa_int::api::get_dataset_instance(h);
