@@ -8,7 +8,7 @@ namespace librpa_int
 
 // 读取 ELSI CSC 文件的函数
 bool read_elsi_to_csc(const std::string& file_path, std::vector<int>& col_ptr,
-                      std::vector<int>& row_idx, std::vector<std::complex<double>>& nnz_val,
+                      std::vector<int>& row_idx, std::vector<double>& nnz_val,
                       std::vector<std::complex<double>>& nnz_val_cplx, int& n_basis,
                       const bool force_cplx)
 {
@@ -88,9 +88,9 @@ static Matz load_matrix(const std::string& file_path, const MAJOR major = MAJOR:
     std::vector<double> nnz_val;
     std::vector<std::complex<double>> nnz_val_cplx;
     int n_basis;
-    bool is_compelx;
+    bool is_complex;
 
-    is_compelx = read_elsi_to_csc(file_path, col_ptr, row_idx, nnz_val, nnz_val_cplx, n_basis, true);
+    is_complex = read_elsi_to_csc(file_path, col_ptr, row_idx, nnz_val, nnz_val_cplx, n_basis, true);
     return load_csc_to_matrix(n_basis, col_ptr, row_idx, nnz_val_cplx, major);
 }
 
