@@ -1,5 +1,5 @@
 # Driver parameters
-task = g0w0_band
+task = rpa
 input_dir = ../dataset
 # API runtime
 nfreq = 16
