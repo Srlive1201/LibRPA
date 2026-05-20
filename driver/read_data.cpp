@@ -6,6 +6,7 @@
 #include <cassert>
 #include <fstream>
 #include <iomanip>
+#include <ios>
 #include <iostream>
 #include <sstream>
 #include <string>
@@ -15,6 +16,7 @@
 #include "driver.h"
 #include "librpa.hpp"
 #include "../src/mpi/global_mpi.h"
+#include "../src/math/matrix.h"
 #include "../src/utils/constants.h"
 #include "../src/api/instance_manager.h"
 #include "../src/io/global_io.h"
@@ -342,17 +344,10 @@ void read_ri(const string &dir_path, librpa::ParallelRouting &routing)
         profiler.start("driver_read_Cs");
         read_Cs_evenly_distribute(dir_path, driver::driver_params.cs_threshold, mpi_comm_global_h.myid, mpi_comm_global_h.nprocs);
         profiler.stop("driver_read_Cs");
-
-        lib_printf_coll("| Process %5d: Cs with %14zu non-zero keys from local atpair size %7zu. "
-                        "Data memory: %10.2f MB. Wall/CPU time [min]: %12.4f %12.4f\n",
-                        mpi_comm_global_h.myid, Cs_data.n_keys(), local_atpair.size(),
-                        Cs_data.n_data_bytes() * 8.0e-6,
-                        librpa_int::global::profiler.get_wall_time_last("driver_read_Cs") / 60.0,
-                        librpa_int::global::profiler.get_cpu_time_last("driver_read_Cs") / 60.0);
         // Vq distributed using the same strategy
         // There should be no duplicate for V
 
-        librpa_int::global::profiler.start("driver_read_Vq");
+        profiler.start("driver_read_Vq");
         auto trangular_loc_atpair = librpa_int::dispatch_upper_triangular_tasks(
             n_atoms, blacs_h.myid, blacs_h.nprows, blacs_h.npcols,
             blacs_h.myprow, blacs_h.mypcol);
@@ -360,11 +355,11 @@ void read_ri(const string &dir_path, librpa::ParallelRouting &routing)
             local_atpair.push_back(iap);
         read_Vq_row(dir_path, "coulomb_mat", driver::opts.vq_threshold, local_atpair, false);
         mpi_comm_global_h.barrier();
-        librpa_int::global::profiler.stop("driver_read_Vq");
+        profiler.stop("driver_read_Vq");
         lib_printf_coll("| Process %5d: coulomb_mat read. Wall/CPU time [min]: %12.4f %12.4f\n",
                         mpi_comm_global_h.myid,
-                        librpa_int::global::profiler.get_wall_time_last("driver_read_Vq") / 60.0,
-                        librpa_int::global::profiler.get_cpu_time_last("driver_read_Vq") / 60.0);
+                        profiler.get_wall_time_last("driver_read_Vq") / 60.0,
+                        profiler.get_cpu_time_last("driver_read_Vq") / 60.0);
     }
     else
     {
@@ -378,6 +373,13 @@ void read_ri(const string &dir_path, librpa::ParallelRouting &routing)
         read_Vq_full(dir_path, "coulomb_mat", false);
         profiler.stop("driver_read_Vq");
     }
+
+    lib_printf_coll("| Process %5d: Cs with %14zu non-zero keys from local atpair size %7zu. "
+                    "Data memory: %10.2f MB. Wall/CPU time [min]: %12.4f %12.4f\n",
+                    mpi_comm_global_h.myid, Cs_data.n_keys(), local_atpair.size(),
+                    Cs_data.n_data_bytes() * 8.0e-6,
+                    profiler.get_wall_time_last("driver_read_Cs") / 60.0,
+                    profiler.get_cpu_time_last("driver_read_Cs") / 60.0);
 }
 
 //! Check if Cs data file is in ASCII text or unformatted binary format
@@ -956,6 +958,7 @@ static size_t handle_Cs_file_by_ids(const std::string &file_path, double thresho
 static size_t handle_Cs_file_binary_by_ids(const string &file_path, double threshold, const std::vector<size_t> &ids)
 {
     using namespace std;
+    using librpa_int::global::ofs_myid;
 
     ifstream infile;
     int dims[8];
@@ -989,6 +992,11 @@ static size_t handle_Cs_file_binary_by_ids(const string &file_path, double thres
             cs_ptr->create(n_i * n_j, n_mu);
             infile.read((char *) cs_ptr->c, n_i * n_j * n_mu * sizeof(double));
             driver::h.set_lri_coeff(driver::opts.parallel_routing, ia1, ia2, n_i, n_j, n_mu, R, cs_ptr->c);
+            // debug output
+            // ofs_myid << "routing " << driver::opts.parallel_routing << " ia1 " << ia1 << " ia2 "
+            //          << ia2 << " R " << R[0] << " " << R[1] << " " << R[2] << " n_i " << n_i
+            //          << " n_j " << n_j << " n_mu " << n_mu << endl;
+            // print_matrix("cs_ptr->c", *cs_ptr, ofs_myid, true);
         }
         else
         {
@@ -1044,7 +1052,7 @@ size_t read_Cs_evenly_distribute(const string &dir_path, double threshold, int m
         // Let each MPI process read different files at one time
         auto i_fn_myid = (i_fn + myid * nfiles / nprocs) % files.size();
         const auto &fn = files[i_fn_myid];
-        ofs_myid << "Reading " << fn << endl;
+        ofs_myid << "Reading " << fn << " binary ? " << boolalpha << binary << endl;
         std::vector<size_t> ids_keep_this_file;
         if (binary)
         {
@@ -1073,7 +1081,7 @@ size_t read_Cs_evenly_distribute(const string &dir_path, double threshold, int m
     profiler.stop("handle_Cs_file_dry");
     closedir(dir);
     dir = NULL;
-    if (myid == 0) librpa_int::global::lib_printf("Finished Cs filtering\n");
+    if (myid == 0) lib_printf("Finished Cs filtering\n");
 
     profiler.start("handle_Cs_file");
     // cout << files_Cs_ids_this_proc.size() << "\n";
@@ -1090,7 +1098,7 @@ size_t read_Cs_evenly_distribute(const string &dir_path, double threshold, int m
             cs_discard += handle_Cs_file_by_ids(fn_ids.first, threshold, fn_ids.second, keyword);
         }
     }
-    librpa_int::global::profiler.stop("handle_Cs_file");
+    profiler.stop("handle_Cs_file");
 
     // initialize basis set object
     // librpa_int::atomic_basis_wfc.set(atom_nw);
@@ -1103,6 +1111,13 @@ size_t read_Cs_evenly_distribute(const string &dir_path, double threshold, int m
     //
     // N_all_mu=atom_mu_part_range[natom-1]+atom_mu[natom-1];
     // cout << "Done\n";
+    if (myid == 0) lib_printf("Finished Cs parsing\n");
+
+    // // debug
+    // auto pds = librpa_int::api::get_dataset_instance(driver::h.get_c_handler());
+    // auto &Cs = pds->cs_data;
+    // ofs_myid << "Data #keys: " << Cs.n_keys() << endl;
+    // ofs_myid << "Data bytes: " << Cs.n_data_bytes() << endl;
     return cs_discard;
 }
 
@@ -2544,11 +2559,14 @@ void read_ri_shrink(const string &dir_path)
             ++I;
         }
     }
+
+    profiler.start("read_Cs_shrink");
     // backup large atom_mu
     // atom_mu_l = atom_mu;  // TODO: replace with the actual shrinked ABFs
     read_Cs_evenly_distribute(driver_params.input_dir, driver_params.cs_threshold,
                               mpi_comm_global_h.myid, mpi_comm_global_h.nprocs,
                               "Cs_shrinked_data");
+    profiler.stop("read_Cs_shrink");
 
     profiler.start("read_shrink_sinvS_fold", "Load shrink transformation");
     // change atom_mu: number of {Mu,mu} in the later calculations

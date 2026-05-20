@@ -222,7 +222,12 @@ void parse_inputfile_to_params(const std::string &fn)
 
     _parse_switch(opts, use_spinor_wfc);
     parser.parse_bool("use_soc", btmp, false, flag);  // backward-compatible
-    if (btmp) opts.use_spinor_wfc = LIBRPA_SWITCH_ON;
+    if (btmp)
+    {
+        opts.use_spinor_wfc = LIBRPA_SWITCH_ON;
+        driver::n_spinor = 2;
+    }
+    _parse_switch(opts, use_spinor_wfc);
 
     _parse_switch(opts, use_kpara_scf_eigvec);
 

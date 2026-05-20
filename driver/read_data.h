@@ -12,14 +12,17 @@
 #include "../src/math/vector3_order.h"
 #include "librpa.hpp"
 
-// TODO: remove this include
-#include "../src/meanfield.h"
+// TODO: remove this include and internal datatypes in signature.
+// Data objects of internal types should be accessed in the implementation.
+#include "../src/core/meanfield.h"
 
 using std::string;
 using librpa_int::matrix;
 using librpa_int::atpair_t;
 using librpa_int::Vector3_Order;
 using librpa_int::atpair_R_mat_t;
+using librpa_int::MeanField;
+using librpa_int::ComplexMatrix;
 
 /*!
  * @brief Read occupation numbers and eigenvalues of SCF calculation

@@ -2,6 +2,7 @@
 
 #include <ctime>
 #include <memory>
+#include <ostream>
 #include <string>
 #include <cstring>
 // #include <iostream>
@@ -111,8 +112,7 @@ void Profiler::start(const std::string &tname, const std::string &tnote) noexcep
     double free_mem_gb;
     get_node_free_mem(free_mem_gb);
     global::ofs_myid << get_timestamp() <<" Timer start: " << tname << ". "
-                           << "Free memory on node [GB]: " << free_mem_gb << "\n";
-    std::flush(librpa_int::global::ofs_myid);
+                           << "Free memory on node [GB]: " << free_mem_gb << std::endl;
 #endif
     current->start();
 }
@@ -129,7 +129,7 @@ void Profiler::stop(const std::string &tname) noexcept
             double free_mem_gb;
             get_node_free_mem(free_mem_gb);
             global::ofs_myid << get_timestamp() << " Timer stop:  " << tname << ". "
-                             << "Free memory on node [GB]: " << free_mem_gb << "\n";
+                             << "Free memory on node [GB]: " << free_mem_gb << std::endl;;
 #endif
             current->stop();
             current = current->parent;
