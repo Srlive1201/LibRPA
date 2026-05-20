@@ -22,13 +22,13 @@ const char * fortran_compiler_flags = "${CMAKE_Fortran_FLAGS}";
 
 const char * cmake_build_type = "${CMAKE_BUILD_TYPE}";
 
-const char * use_libri = "${USE_LIBRI}";
+const char * use_libri = "${LIBRPA_USE_LIBRI}";
 
 const char * libri_include_dir = "${LibRI_INCLUDE_DIR}";
 
 const char * libcomm_include_dir = "${LibComm_INCLUDE_DIR}";
 
-const char * greenx_commit_hash = "${GREENX_COMMIT_HASH}";
+const char * greenx_commit_hash = "${LIBRPA_GREENX_COMMIT_HASH}";
 
 } /* end of namespace envs */
 } /* end of namespace librpa_int */
