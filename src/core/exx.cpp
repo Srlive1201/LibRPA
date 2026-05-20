@@ -3,6 +3,7 @@
 #include <omp.h>
 #include <cstddef>
 #include <fstream>
+#include <iterator>
 
 #include "../io/global_io.h"
 #include "../io/stl_io_helper.h"
@@ -574,11 +575,11 @@ void Exx::build_KS_blacs(const std::map<int, std::map<int, std::map<int, Complex
                 for (int ispn_ket = 0; ispn_ket < n_spinor; ispn_ket++)
                 {
                     const auto exx = use_complex_exx_r
-                                         ? find_nested_int_map_3(exx_IJR, isp, ispn_bra, ispn_ket)
-                                         : nullptr;
-                    const auto exx_cplx = use_complex_exx_r
                                          ? nullptr
-                                         : find_nested_int_map_3(exx_IJR_cplx, isp, ispn_bra, ispn_ket);
+                                         : find_nested_int_map_3(exx_IJR, isp, ispn_bra, ispn_ket);
+                    const auto exx_cplx = use_complex_exx_r
+                                         ? find_nested_int_map_3(exx_IJR_cplx, isp, ispn_bra, ispn_ket)
+                                         : nullptr;
 
                     if (use_complex_exx_r)
                     {
@@ -736,7 +737,7 @@ void Exx::build_KS_blacs(const std::map<int, std::map<int, std::map<int, Complex
                     auto it = wfc_target.find(isp);
                     if (it != wfc_target.cend())
                     {
-                        const auto &wfc_sp = it->second;
+                        const auto &wfc_sp = it->second.at(0);
                         nks_all[comm_h.myid] = wfc_sp.size();
                         for (const auto &[ik, _]: wfc_sp)
                         {
@@ -765,6 +766,7 @@ void Exx::build_KS_blacs(const std::map<int, std::map<int, std::map<int, Complex
                             global::profiler.start("build_real_space_exx_6", "Hexx IJ -> 2D block");
                             Hexx_nao_nao.zero_out();
                             const int ik = iks_all[pid * nk_max + ik_this];
+                            // global::ofs_myid << "nk_this " << nk_this << " pid " << pid << " ik_this " << ik_this << " ik " << ik << std::endl;
                             const auto& kfrac = kfrac_target[ik];
                             const std::function<complex<double>(const atom_t, const atom_t, const Vector3_Order<int> &)>
                                 fourier = [kfrac](const atom_t I, const atom_t J, const Vector3_Order<int> &R)
@@ -787,8 +789,8 @@ void Exx::build_KS_blacs(const std::map<int, std::map<int, std::map<int, Complex
                             if (pid == comm_h.myid)
                             {
                                 // global::ofs_myid << "isp " << isp << " ik " << ik << std::endl;
-                                const auto &wfc_bra = wfc_target.at(isp).at(ik).at(ispn_bra);
-                                const auto &wfc_ket = wfc_target.at(isp).at(ik).at(ispn_ket);
+                                const auto &wfc_bra = wfc_target.at(isp).at(ispn_bra).at(ik);
+                                const auto &wfc_ket = wfc_target.at(isp).at(ispn_ket).at(ik);
                                 // processing the k-point eigenvector on this process
                                 ScalapackConnector::pgemm_f('C', 'N', n_bands, n_aos, n_aos, 1.0,
                                                             wfc_bra.c, 1, 1, desc_nao_nband_fb.desc,
@@ -802,7 +804,8 @@ void Exx::build_KS_blacs(const std::map<int, std::map<int, std::map<int, Complex
                                                             Hexx_nband_nband_fb.ptr(), 1, 1, desc_nband_nband_fb.desc);
                                 if (this->exx_KS.count(isp) == 0 || this->exx_KS.at(isp).count(ik) == 0)
                                 {
-                                    this->exx_KS[isp][ik] = Matz(n_bands, n_bands, MAJOR::COL);
+                                    this->exx_KS[isp][ik] = Hexx_nband_nband_fb.copy();
+                                    this->exx_KS[isp][ik] = C_ZERO;
                                     for (int ib = 0; ib != n_bands; ib++)
                                         this->Eexx[isp][ik][ib] = 0.0;
                                 }
@@ -829,7 +832,7 @@ void Exx::build_KS_blacs(const std::map<int, std::map<int, std::map<int, Complex
                         }
                     }
                 }
-                else
+                else // !is_mf_eigvec_k_distributed_
                 {
                     // Everything will be collected to rank 0
                     desc_nband_nband_fb.init(n_bands, n_bands, n_bands, n_bands, 0, 0);
@@ -855,13 +858,13 @@ void Exx::build_KS_blacs(const std::map<int, std::map<int, std::map<int, Complex
                                     this->atbasis_wfc, this->atbasis_wfc, fourier, exx_is_local);
                         global::profiler.stop("build_real_space_exx_6");
                         // global::lib_printf("%s\n", str(Hexx_nao_nao).c_str());
-                        const auto &wfc_bra = wfc_target.at(isp).at(ik).at(ispn_bra);
+                        const auto &wfc_bra = wfc_target.at(isp).at(ispn_bra).at(ik);
                         blacs_ctxt_h.barrier();
                         const auto wfc_bra_block = get_local_mat(wfc_bra.c, MAJOR::ROW, desc_nband_nao, MAJOR::COL).conj();
                         Matz wfc_ket_block;
                         if (ispn_ket != ispn_bra)
                         {
-                            const auto &wfc_ket = wfc_target.at(isp).at(ik).at(ispn_ket);
+                            const auto &wfc_ket = wfc_target.at(isp).at(ispn_ket).at(ik);
                             wfc_ket_block = get_local_mat(wfc_ket.c, MAJOR::ROW, desc_nband_nao, MAJOR::COL).conj();
                         }
                         else
@@ -894,12 +897,13 @@ void Exx::build_KS_blacs(const std::map<int, std::map<int, std::map<int, Complex
                         global::ofs_myid << "after pgemr2d_f" << std::endl;
                         if (this->exx_KS.count(isp) == 0 || this->exx_KS.at(isp).count(ik) == 0)
                         {
-                            this->exx_KS[isp][ik] = Matz(n_bands, n_bands, MAJOR::COL);
+                            this->exx_KS[isp][ik] = Hexx_nband_nband_fb.copy();
+                            this->exx_KS[isp][ik] = C_ZERO;
                             if (blacs_ctxt_h.myid == 0)
                                 for (int ib = 0; ib != n_bands; ib++)
                                     this->Eexx[isp][ik][ib] = 0.0;
                         }
-                        this->exx_KS[isp][ik] += Hexx_nband_nband_fb.copy();
+                        this->exx_KS[isp][ik] += Hexx_nband_nband_fb;
                         // cout << "Hexx_nband_nband_fb isp " << isp  << " ik " << ik << endl << Hexx_nband_nband_fb;
                         if (blacs_ctxt_h.myid == 0)
                         {

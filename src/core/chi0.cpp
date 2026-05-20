@@ -463,7 +463,7 @@ static void build_gf_Rt_libri_kpara(
         if constexpr (!std::is_same<Tdata, std::complex<double>>::value)
             gf_global = gf_cplx.real();
         const auto IJs = map_R_IJs.at(R);
-        global::ofs_myid << "Chi0 Handling IJs: " << IJs << " - R " << Ra << std::endl;
+        // global::ofs_myid << "Chi0 Handling IJs: " << IJs << " - R " << Ra << std::endl;
         // Divide the full matrix to atom-pair blocks
         omp_lock_t gf_lock;
         omp_init_lock(&gf_lock);
