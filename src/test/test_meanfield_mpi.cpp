@@ -69,6 +69,10 @@ static void test_dmat_cplx_Rs_kpara(int nk, int nb, int nocc)
     std::vector<Vector3_Order<int>> Rs;
     const auto mf = init_mf_pbc(nk, nb, nocc, 1.0, kfrac_list, Rs);
 
+    // cout << mf.get_n_kpoints() << endl;
+    // cout << mf.get_n_spinor() << endl;
+    // cout << mf.get_n_spins() << endl;
+
     const auto dm_Rs = get_dmat_cplx_Rs_kpara(0, mf, kfrac_list, Rs, mpi_comm_global_h);
     assert(dm_Rs.size() == Rs.size());
     for (const auto &[R, rmat]: dm_Rs)

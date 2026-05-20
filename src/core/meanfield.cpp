@@ -44,12 +44,16 @@ void MeanField::resize(int ns, int nk, int nb, int nao, int nspinor, int st_ib, 
 std::vector<int> MeanField::get_iks_local() const
 {
     std::vector<int> iks_local;
-    auto it = this->wfc.find(0);  // assume same k-points in all spin channels
-    if (it != this->wfc.cend())
+    auto it_spin = this->wfc.cbegin();  // assume same k-points in all spin channels
+    if (it_spin != this->wfc.cend())
     {
-        for (const auto &[ik, _]: it->second)
+        auto it_spinor = it_spin->second.cbegin();
+        if (it_spinor != it_spin->second.cend())
         {
-            iks_local.push_back(ik);
+            for (const auto &[ik, _]: it_spinor->second)
+            {
+                iks_local.push_back(ik);
+            }
         }
     }
     return iks_local;
