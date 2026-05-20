@@ -17,7 +17,7 @@ if __name__ == '__main__':
     driver = Driver(args.dir_input, args.dir_ref, args.workspace, suite.groups)
 
     # Initialize workspace and run the tests
-    driver.initialize(args.ntasks, args.nthreads, args.use_libri, args.use_greenx_api)
+    driver.initialize(args.ntasks, args.nthreads, args.use_libri)
 
     if args.mode in ["run", "full"]:
         driver.run(args.librpa_exec, args.mpiexec, args.force)

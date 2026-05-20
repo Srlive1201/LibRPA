@@ -16,12 +16,10 @@ PASS_FAIL = {True: "PASS", False: "FAIL"}
 
 def _check_build_run_filter(tc: dict,
                             ntasks: int, nthreads: int,
-                            use_libri: bool, use_greenx_api: bool) -> Tuple[bool, bool]:
+                            use_libri: bool) -> Tuple[bool, bool]:
     # Filter build options
     build = tc["build"]
     if build["require_libri"] and not use_libri:
-        return True, False
-    if build["require_greenx_api"] and not use_greenx_api:
         return True, False
 
     # Filter runtime options
@@ -59,9 +57,7 @@ class Driver:
         # Testcases that are qualified after initialized with build and runtime conditions
         self._testcases_filtered = None
 
-    def initialize(self, ntasks: int, nthreads: int, use_libri: bool,
-                   use_greenx_api: bool):
-
+    def initialize(self, ntasks: int, nthreads: int, use_libri: bool):
         self._testcases_filtered = []
         self._ntasks = ntasks
         self._nthreads = nthreads
@@ -70,7 +66,6 @@ class Driver:
         print("- MPI tasks :", ntasks)
         print("- threads   :", nthreads)
         print("- LibRI     ?", use_libri)
-        print("- GreenX API?", use_greenx_api)
         print()
 
         # Filter test cases
@@ -80,7 +75,7 @@ class Driver:
         for g, gtcs in self._groups.items():
             for tc in gtcs:
                 filter_build, filter_run = _check_build_run_filter(
-                    tc, ntasks, nthreads, use_libri, use_greenx_api)
+                    tc, ntasks, nthreads, use_libri)
                 if filter_build:
                     skip_due_to_build.append(tc)
                     continue
@@ -126,15 +121,17 @@ class Driver:
         for tc in self._testcases_filtered:
             dname = tc["directory"]
             src = self._dir_input / dname
+            src_librpa = src / "librpa"
             dst = self._workspace / dname
+            dst_librpa = dst / "librpa"
             # prepare inputs
             dst.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(src / "librpa.in", dst)
-            with tarfile.open(src / "input_librpa.tar.gz", "r:gz") as tar:
+            shutil.copy2(src_librpa / "librpa.in", dst_librpa)
+            with tarfile.open(src / "dataset.tar.gz", "r:gz") as tar:
                 tar.extractall(path=dst)
             # prepare inputs
             print("Running {} [{}]".format(tc["name"], dname))
-            run_librpa(args, dst)
+            run_librpa(args, dst_librpa)
         print("Finished test calculations")
         print()
 
@@ -182,4 +179,3 @@ class Driver:
                     s = "No results to validate for {} [directory: {}]"
                     print(s.format(tc["name"], tc["directory"]))
                 print()
-

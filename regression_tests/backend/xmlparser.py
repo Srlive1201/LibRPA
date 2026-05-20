@@ -8,7 +8,7 @@ TRUE_FALSE_NONE = {"true": True, "false": False, "none": None}
 
 def _process_build_parameters(node_testcase):
     b = node_testcase.find('build')
-    pars_tfn = ["require_libri", "require_greenx_api"]
+    pars_tfn = ["require_libri", ]
     ret = {}
     for p in pars_tfn:
         try:
@@ -24,7 +24,8 @@ def _process_run_parameters(node_testcase):
     r = node_testcase.find('run')
     ret = {}
 
-    pars_intrange = ["ntasks_disable", "nthreads_disable", "ntasks_enable", "nthreads_enable"]
+    pars_intrange = ["ntasks_disable", "nthreads_disable",
+                     "ntasks_enable", "nthreads_enable"]
     for p in pars_intrange:
         try:
             value = r.get(p, None)
@@ -42,7 +43,7 @@ def _process_validate_parameters(node_validate):
     nv = node_validate
     # name is manditory
     name = nv.get('name')
-    file = nv.get('file', 'librpa.out')
+    file = nv.get('file', 'librpa/librpa.out')
 
     pars = ["regex", "occurences", "headers", "rows", "comparison", "binary_extract"]
     ret = dict(name=name, file=file)

@@ -29,8 +29,6 @@ def _add_testsuite_options(p: ArgumentParser):
                    help="Working directory to run regression test, default: workspace/")
     p.add_argument("--use-libri", action="store_true",
                    help="Flag that the test executable is built with LibRI")
-    p.add_argument("--use-greenx-api", action="store_true",
-                   help="Flag that the test executable is built with GreenX API")
     p.add_argument("-n", "--ntasks", dest="ntasks", type=int, default=1,
                    help="Number of MPI tasks to run the tests, default: 1")
     p.add_argument("--nthreads", type=int, default=1,
