@@ -247,12 +247,12 @@ void G0W0::build_spacetime(
     std::ofstream ofs_sigmac_r;
 
 #ifndef LIBRPA_USE_LIBRI
-    if (mpi_comm_global_h.myid == 0)
+    if (comm_h.myid == 0)
     {
         std::cout << "LIBRA::G0W0::build_spacetime is only implemented on top of LibRI" << std::endl;
         std::cout << "Please recompiler LibRPA with -DUSE_LIBRI and configure include path" << std::endl;
     }
-    global::mpi_comm_global_h.barrier();
+    comm_h.barrier();
     throw LIBRPA_RUNTIME_ERROR("compilation");
 #else
     // Transform from frequency/reciprocal to time/real-space
