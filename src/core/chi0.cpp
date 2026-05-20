@@ -302,7 +302,7 @@ void Chi0::build_chi0_q_space_time(const LibrpaParallelRouting routing,
 #ifdef LIBRPA_USE_LIBRI
 template <typename Tdata>
 static void build_gf_Rt_libri_serial(
-    const MeanField &mf,
+    const MeanField &mf, const int nbands_G,
     const AtomicBasis &atbasis_wfc,
     int ispin, int isoc1, int isoc2,
     const vector<Vector3_Order<double>> &kfrac_list,
@@ -316,9 +316,7 @@ static void build_gf_Rt_libri_serial(
     const auto nspins = mf.get_n_spins();
     const auto nbands = mf.get_n_bands();
     const auto naos = mf.get_n_aos();
-    const bool use_soc = mf.get_n_spinor() > 1; // TODO: replace with a meanfield member
-
-    const int nbands_G = 0; // TODO: replace with a runtime option
+    const bool use_soc = mf.get_n_spinor() > 1;
 
     assert(kfrac_list.size() == as_size(nkpts));
     assert(nbands_G < nbands);
@@ -365,8 +363,6 @@ static void build_gf_Rt_libri_serial(
         const std::array<int,3> Ra{R.x,R.y,R.z};
         global::ofs_myid << "Chi0 Handling IJs: " << IJs << " - R " << Ra << std::endl;
 
-        const int nbands_G = 0;
-
         // Compute the full G(R, tau) matrix
 #pragma omp parallel for schedule(dynamic)
         for (int ik = 0; ik != nkpts; ik++)
@@ -376,11 +372,12 @@ static void build_gf_Rt_libri_serial(
             const auto &ev1 = mf.get_eigenvectors().at(ispin).at(isoc1).at(ik);
             const auto &ev2 = mf.get_eigenvectors().at(ispin).at(isoc2).at(ik);
             auto scaled_wfc_conj = conj(ev2);
+            // global::ofs_myid << "nkpts " << nkpts << " ik " << ik << " nbands_G " <<  nbands_G << " " << isoc1 << " " << isoc2 << std::endl;
             for (int ib = 0; ib != nbands; ib++)
                 LapackConnector::scal(naos, scale(ik, ib), scaled_wfc_conj.c + naos * ib, 1);
             if (nbands_G >= 0)
             {
-                for (int ib = nbands_G; ib != nbands; ib++)
+                for (int ib = nbands_G; ib < nbands; ib++)
                 {
                     for (int inaos = 0; inaos != naos; inaos++) scaled_wfc_conj(ib, inaos) = 0.0;
                 }
@@ -430,7 +427,7 @@ static void build_gf_Rt_libri_serial(
 
 template <typename Tdata>
 static void build_gf_Rt_libri_kpara(
-    const MeanField &mf,
+    const MeanField &mf, const int nbands_G,
     const MpiCommHandler &comm_h,
     const AtomicBasis &atbasis_wfc,
     int ispin, int ispinor_bra, int ispinor_ket,
@@ -1003,7 +1000,7 @@ void Chi0::build_chi0_q_space_time_LibRI_routing(const Cs_LRI &Cs,
     // cout << "Cs of rpa object set" << endl;
     global::profiler.stop("chi0_libri_routing_set_cs");
 
-    const int n_soc = 1; // Replace with menafield member
+    const int n_soc = mf.get_n_spinor();
 
     // omp_lock_t lock_chi0_fourier_cosine;
     // omp_init_lock(&lock_chi0_fourier_cosine);
@@ -1038,19 +1035,19 @@ void Chi0::build_chi0_q_space_time_LibRI_routing(const Cs_LRI &Cs,
                     }
                     if (this->is_mf_eigvec_k_distributed_)
                     {
-                        build_gf_Rt_libri_kpara(this->mf, this->comm_h, this->atbasis_wfc, isp, is1,
+                        build_gf_Rt_libri_kpara(this->mf, this->nbands_G, this->comm_h, this->atbasis_wfc, isp, is1,
                                                 is2, this->pbc.kfrac_list, this->IJRs_gf_local, tau,
                                                 gf_po_libri);
-                        build_gf_Rt_libri_kpara(this->mf, this->comm_h, this->atbasis_wfc, isp, is1,
+                        build_gf_Rt_libri_kpara(this->mf, this->nbands_G, this->comm_h, this->atbasis_wfc, isp, is1,
                                                 is2, this->pbc.kfrac_list, this->IJRs_gf_local,
                                                 -tau, gf_ne_libri);
                     }
                     else
                     {
-                        build_gf_Rt_libri_serial(this->mf, this->atbasis_wfc, isp, is1, is2,
+                        build_gf_Rt_libri_serial(this->mf, this->nbands_G, this->atbasis_wfc, isp, is1, is2,
                                                  this->pbc.kfrac_list, this->IJRs_gf_local, tau,
                                                  gf_po_libri);
-                        build_gf_Rt_libri_serial(this->mf, this->atbasis_wfc, isp, is1, is2,
+                        build_gf_Rt_libri_serial(this->mf, this->nbands_G, this->atbasis_wfc, isp, is1, is2,
                                                  this->pbc.kfrac_list, this->IJRs_gf_local, -tau,
                                                  gf_ne_libri);
                     }
