@@ -175,7 +175,7 @@ static int handle_KS_file(const string &file_path)
     string rvalue, ivalue, kstr;
 
     const auto nspin = driver::n_spins;
-    const auto nsoc = driver::nsoc;
+    const auto nsoc = driver::n_spinor;
     const auto nband = driver::n_states;
     const auto nao = driver::n_basis_wfc;
     const auto nbao = nband * nao;
@@ -216,7 +216,7 @@ static int handle_KS_file(const string &file_path)
                         }
                         // cout<<rvalue<<ivalue<<endl;
                         if (skip_this_ik) continue;
-                        if (driver::opts.use_soc)
+                        if (driver::opts.use_spinor_wfc)
                         {
                             // re[is * n + isoc * nbao + iw * nband + ib] = stod(rvalue);
                             // im[is * n + isoc * nbao + iw * nband + ib] = stod(ivalue);
@@ -424,6 +424,7 @@ static bool check_coulomb_file_binary(const string &file_path)
 
 void read_velocity(const string &file_path, MeanField &mf)
 {
+    using librpa_int::global::mpi_comm_global_h;
     using librpa_int::ANG2BOHR;
     using librpa_int::HA2EV;
 
@@ -462,7 +463,7 @@ void read_velocity(const string &file_path, MeanField &mf)
             }
         }
     }
-    if (LIBRPA::envs::mpi_comm_global_h.is_root())
+    if (mpi_comm_global_h.is_root())
         std::cout << "* Success: read velocity from pyatb_librpa_df(ABACUS)." << std::endl;
 }
 
@@ -472,6 +473,7 @@ void read_velocity_aims(MeanField &mf, const string &file_path)
     using std::vector;
     using std::cerr;
     using std::endl;
+    using librpa_int::global::mpi_comm_global_h;
 
     int nk = mf.get_n_kpoints();
     int n_spins = mf.get_n_spins();
@@ -523,7 +525,7 @@ void read_velocity_aims(MeanField &mf, const string &file_path)
         }
     }
 
-    if (LIBRPA::envs::mpi_comm_global_h.is_root())
+    if (mpi_comm_global_h.is_root())
         std::cout << "* Success: read moment from mommat_ks_kpt_*.dat (FHI-aims)." << std::endl;
 }
 
@@ -810,7 +812,7 @@ std::vector<size_t> handle_Cs_file_dry(const string &file_path, double threshold
         R[1] = stoi(ic_2);
         R[2] = stoi(ic_3);
         // assign basis
-        set_ao_basis_aux(ia1, ia2, n_i, n_j, n_mu, R, nullptr, 1);
+        // set_ao_basis_aux(ia1, ia2, n_i, n_j, n_mu, R, nullptr, 1);
 
         double maxval = -1.0;
         for (int i = 0; i != n_i; i++)
@@ -2192,7 +2194,7 @@ void read_band_meanfield_data(const string &dir_path)
     const int n_kb = n_kpoints_band * n_states;
     std::string s1, s2, s3, s4, s5;
     int n_basis = n_basis_wfc;
-    if (driver::opts.use_soc)
+    if (driver::opts.use_spinor_wfc)
     {
         assert(n_basis % 2 == 0 && "Error: nbasis is not even when SOC!");
         n_basis = n_basis / 2;
@@ -2268,7 +2270,7 @@ void read_band_meanfield_data(const string &dir_path)
             vecs[i] = std::complex<double>(double_buffer[2 * i], double_buffer[2 * i + 1]);
         }
 
-        int n_soc = driver::opts.use_soc ? 2 : 1;
+        int n_soc = driver::opts.use_spinor_wfc ? 2 : 1;
         for (int i_spin = 0; i_spin < n_spins; ++i_spin)
         {
             for (int ib = 0; ib < n_states; ++ib)
@@ -2278,7 +2280,7 @@ void read_band_meanfield_data(const string &dir_path)
                     for (int i_soc = 0; i_soc < n_soc; ++i_soc)
                     {
                         size_t index;
-                        if (driver::opts.use_soc)
+                        if (driver::opts.use_spinor_wfc)
                         {
                             // NOTE: i_spin should be 0 for spinor-form wavefunction
                             assert(i_spin < 1);
@@ -2409,6 +2411,9 @@ static int handle_sinvS_file(const std::string &file_path,
     std::map<Vector3_Order<double>, double> irk_weight;
     int n_irk_points;
 
+    auto pds = librpa_int::api::get_dataset_instance(driver::h.get_c_handler());
+    auto &pbc = pds->pbc;
+
     if (binary)
     {
         infile.open(file_path, std::ios::in | std::ios::binary);
@@ -2444,7 +2449,7 @@ static int handle_sinvS_file(const std::string &file_path,
             bcol--;
             ecol--;
             iq--;
-            Vector3_Order<double> qvec(kvec_c[iq]);
+            const auto qvec = pbc.klist_ibz[iq];
 
             if (!sinvS.count(qvec))
             {
@@ -2489,8 +2494,8 @@ static int handle_sinvS_file(const std::string &file_path,
             int iq = stoi(q_num) - 1;
 
             // skip empty coulumb_file
-            if ((erow - brow < 0) || (ecol - bcol < 0) || iq < 0 || iq > klist.size()) return 4;
-            Vector3_Order<double> qvec(kvec_c[iq]);
+            if ((erow - brow < 0) || (ecol - bcol < 0) || iq < 0 || iq > pbc.klist.size()) return 4;
+            const auto qvec = pbc.klist_ibz[iq];
             if (!sinvS.count(qvec))
             {
                 sinvS[qvec].create(mu, nu);
@@ -2508,17 +2513,59 @@ static int handle_sinvS_file(const std::string &file_path,
             }
         }
     }
-    // reset
-    atom_mu = atom_mu_s;
-    LIBRPA::atomic_basis_abf.set(atom_mu_s);
-    atom_mu_part_range.resize(atom_mu_s.size());
-    atom_mu_part_range[0] = 0;
-    for (int I = 1; I != atom_mu_s.size(); I++)
-        atom_mu_part_range[I] = atom_mu_s.at(I - 1) + atom_mu_part_range[I - 1];
-
-    N_all_mu = atom_mu_part_range[natom - 1] + atom_mu_s[natom - 1];
 
     return 0;
+}
+
+void read_ri_shrink(const string &dir_path)
+{
+    using std::cout;
+    using std::endl;
+    using librpa_int::global::profiler;
+    using librpa_int::global::mpi_comm_global_h;
+    using librpa_int::global::myid_global;
+    using librpa_int::global::lib_printf;
+    using driver::driver_params;
+
+    std::map<Vector3_Order<double>, ComplexMatrix> sinvS;
+
+    auto pds = librpa_int::api::get_dataset_instance(driver::h.get_c_handler());
+    const auto &abf = pds->basis_aux;
+    const auto &abf_shrink = pds->basis_aux_shrink;
+
+    if (mpi_comm_global_h.is_root())
+    {
+        std::cout << "iatom & large Nabfs: " << std::endl;
+        int I = 0;
+        for (auto &mu : abf.get_atom_nbs())
+        {
+            // use i and x
+            std::cout << I << "," << mu << std::endl;
+            ++I;
+        }
+    }
+    // backup large atom_mu
+    // atom_mu_l = atom_mu;  // TODO: replace with the actual shrinked ABFs
+    read_Cs_evenly_distribute(driver_params.input_dir, driver_params.cs_threshold,
+                              mpi_comm_global_h.myid, mpi_comm_global_h.nprocs,
+                              "Cs_shrinked_data");
+
+    profiler.start("read_shrink_sinvS_fold", "Load shrink transformation");
+    // change atom_mu: number of {Mu,mu} in the later calculations
+    read_shrink_sinvS(driver_params.input_dir, "shrink_sinvS_", sinvS);
+
+    if (mpi_comm_global_h.is_root())
+    {
+        std::cout << "iatom & small Nabfs: " << std::endl;
+        int I = 0;
+        for (auto &mu : abf_shrink.get_atom_nbs())
+        {
+            // use i and x
+            std::cout << I << "," << mu << std::endl;
+            ++I;
+        }
+    }
+    profiler.stop("read_shrink_sinvS_fold");
 }
 
 size_t read_shrink_sinvS(const string &dir_path, const string &vq_fprefix,

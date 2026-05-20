@@ -60,6 +60,7 @@ extern int n_ibz_kpoints;
 extern int n_kpoints_band;
 extern int n_states;
 extern int n_basis_wfc;
+extern int n_spinor;
 
 // Used for parallel distribution of input SCF KS eigenvectors over k-points
 extern std::vector<int> iks_eigvec_this;

@@ -49,6 +49,8 @@ size_t read_Cs_evenly_distribute(const std::string &dir_path, double threshold, 
 
 size_t read_Vq_full(const string &dir_path, const string &vq_fprefix, bool is_cut_coulomb);
 
+void read_ri_shrink(const string &dir_path);
+
 size_t read_shrink_sinvS(const string &dir_path, const string &vq_fprefix,
                          std::map<Vector3_Order<double>, ComplexMatrix> &sinvS);
 

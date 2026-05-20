@@ -128,8 +128,6 @@ int main(int argc, char **argv)
 
     task_t task = get_task(driver_params.task);
 
-    std::map<Vector3_Order<double>, ComplexMatrix> sinvS;
-
     if (task != task_t::print_minimax)
     {
         profiler.start("driver_struct", "Structure");
@@ -182,41 +180,11 @@ int main(int argc, char **argv)
         lib_printf_root("Actual parallel routing used: %s\n", get_routing_string(driver::opts.parallel_routing).c_str());
         profiler.stop("driver_read_ri");
 
-        const bool use_shrink_abfs = false;
+        const bool use_shrink_abfs = opts.use_shrink_abfs;
         // TODO: need to include the shrinked basis information in another AtomicBasis object
         if (use_shrink_abfs)
         {
-            if (mpi_comm_global_h.is_root())
-            {
-                std::cout << "iatom & large Nabfs: " << std::endl;
-                for (auto &Imu : atom_mu)
-                {
-                    auto I = Imu.first;
-                    auto mu = Imu.second;
-                    std::cout << I << "," << mu << std::endl;
-                }
-            }
-            // backup large atom_mu
-            // atom_mu_l = atom_mu;  // TODO: replace with the actual shrinked ABFs
-            read_Cs_evenly_distribute(driver_params.input_dir, driver_params.cs_threshold,
-                                      mpi_comm_global_h.myid, mpi_comm_global_h.nprocs,
-                                      "Cs_shrinked_data");
-
-            profiler.start("read_shrink_sinvS_fold", "Load shrink transformation");
-            // change atom_mu: number of {Mu,mu} in the later calculations
-            read_shrink_sinvS(driver_params.input_dir, "shrink_sinvS_", sinvS);
-
-            if (mpi_comm_global_h.is_root())
-            {
-                std::cout << "iatom & small Nabfs: " << std::endl;
-                for (auto &Imu : atom_mu)
-                {
-                    auto I = Imu.first;
-                    auto mu = Imu.second;
-                    std::cout << I << "," << mu << std::endl;
-                }
-            }
-            profiler.stop("read_shrink_sinvS_fold");
+            read_ri_shrink(driver_params.input_dir);
         }
         // Vq distributed using the same strategy
         // There should be no duplicate for V
