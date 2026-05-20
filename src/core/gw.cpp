@@ -221,22 +221,30 @@ void G0W0::build_spacetime(
     std::map<double, std::map<Vector3_Order<double>, Matz>> &Wc_freq_q,
     const ArrayDesc &ad_Wc)
 {
+    using global::profiler;
+    using global::lib_printf_root;
+    using global::ofs_myid;
+
     if (parallel_routing != LibrpaParallelRouting::LIBRI)
     {
         comm_h.barrier();
         throw LIBRPA_RUNTIME_ERROR("not implemented");
     }
 
-    librpa_int::global::lib_printf_root("Calculating correlation self-energy by space-time method\n");
+    lib_printf_root("Calculating correlation self-energy by space-time method\n");
     if (!tfg.has_time_grids())
     {
-        librpa_int::global::lib_printf_root("Parsed time-frequency object do not have time grids, exiting\n");
+        lib_printf_root("Parsed time-frequency object do not have time grids, exiting\n");
         comm_h.barrier();
         throw LIBRPA_RUNTIME_ERROR("input TFGrids object has no time grids");
     }
     comm_h.barrier();
 
     const bool use_complex_tensor = mf.get_n_spinor() > 1;
+    if (use_complex_tensor)
+        lib_printf_root("Using complex tensor\n");
+    else
+        lib_printf_root("Using real tensor\n");
 
     assert(ad_Wc.initialized());
     // assert(blacs_sigc_h.initialized());
@@ -256,8 +264,8 @@ void G0W0::build_spacetime(
     throw LIBRPA_RUNTIME_ERROR("compilation");
 #else
     // Transform from frequency/reciprocal to time/real-space
-    global::profiler.start("g0w0_build_spacetime_ct_ft_wc", "Tranform Wc (q,w) -> (R,t)");
-    global::profiler.start("g0w0_build_spacetime_ct_ft_real_work", "Perform transformation");
+    profiler.start("g0w0_build_spacetime_ct_ft_wc", "Tranform Wc (q,w) -> (R,t)");
+    profiler.start("g0w0_build_spacetime_ct_ft_real_work", "Perform transformation");
     // global::ofs_myid << Wc_freq_q.at(tfg.get_freq_nodes()[0]) << endl;
     // for (const auto &[freq, qWc]: Wc_freq_q)
     // {
@@ -273,7 +281,7 @@ void G0W0::build_spacetime(
     // }
     auto Wc_tau_R_blacs = CT_FT_Wc_freq_q(comm_h, Wc_freq_q, pbc, tfg, true);
     release_free_mem();
-    global::profiler.stop("g0w0_build_spacetime_ct_ft_real_work");
+    profiler.stop("g0w0_build_spacetime_ct_ft_real_work");
 
     // Build the Wc LibRI object by redistributing the BLACS submatrices
     typedef std::map<int, std::map<std::pair<int, std::array<int, 3>>, RI::Tensor<double>>> dtensor_map;
@@ -282,15 +290,15 @@ void G0W0::build_spacetime(
     std::map<double, ztensor_map> tau_Wc_libri_cplx;
 
     // NOTE: for case of a few atoms, some process may have much more memory load than others
-    global::profiler.start("g0w0_build_spacetime_get_ap", "Compute balance atom-pairs distribution");
+    profiler.start("g0w0_build_spacetime_get_ap", "Compute balance atom-pairs distribution");
     const auto map_atpairs_balanced = get_balanced_ap_distribution_for_consec_descriptor(
         atbasis_abf, atbasis_abf, ad_Wc);
     const auto it_ap_myid = map_atpairs_balanced.find(ad_Wc.myid());
     if (it_ap_myid != map_atpairs_balanced.cend())
-        global::ofs_myid << it_ap_myid->second << std::endl;
+        ofs_myid << it_ap_myid->second << std::endl;
     else
-        global::ofs_myid << "No atom pairs for Wc on this process" << std::endl;
-    global::profiler.stop("g0w0_build_spacetime_get_ap");
+        ofs_myid << "No atom pairs for Wc on this process" << std::endl;
+    profiler.stop("g0w0_build_spacetime_get_ap");
 
     IndexScheduler sched;
     // Force row-major as LibRI requires
@@ -320,7 +328,7 @@ void G0W0::build_spacetime(
             //         << "_iR_" << std::setfill('0') << std::setw(5) << get_R_index(Rlist, R) << ".csc";
             //     utils::write_matrix_elsi_csc_parallel(ss.str(), mat_blacs, envs::array_desc_abf_global);
             // }
-            global::profiler.start("g0w0_build_spacetime_prep_Wc_all", "Prepare LibRI Wc object");
+            profiler.start("g0w0_build_spacetime_prep_Wc_all", "Prepare LibRI Wc object");
             for (auto &[pair, mat_ap]: pair_mat)
             {
                 const auto &I = as_int(pair.first);
@@ -348,14 +356,14 @@ void G0W0::build_spacetime(
             }
             // global::ofs_myid << "tau " << tau << endl << tau_Wc_libri[tau] << endl;
             mat_blacs.clear();
-            global::profiler.stop("g0w0_build_spacetime_prep_Wc_all");
+            profiler.stop("g0w0_build_spacetime_prep_Wc_all");
         }
     }
-    global::profiler.stop("g0w0_build_spacetime_ct_ft_wc");
+    profiler.stop("g0w0_build_spacetime_ct_ft_wc");
 
-    librpa_int::global::lib_printf_root("Time for Fourier transform of Wc in GW (seconds, Wall/CPU): %f %f\n",
-            global::profiler.get_wall_time_last("g0w0_build_spacetime_ct_ft_wc"),
-            global::profiler.get_cpu_time_last("g0w0_build_spacetime_ct_ft_wc"));
+    lib_printf_root("Time for Fourier transform of Wc in GW (seconds, Wall/CPU): %f %f\n",
+            profiler.get_wall_time_last("g0w0_build_spacetime_ct_ft_wc"),
+            profiler.get_cpu_time_last("g0w0_build_spacetime_ct_ft_wc"));
 
     RI::GW<int, int, 3, double> gw_libri;
     RI::GW<int, int, 3, cplxdb> gw_libri_cplx;
@@ -389,15 +397,15 @@ void G0W0::build_spacetime(
         gw_libri.set_parallel(comm_h.comm, atoms_pos, pbc.latvec_array, pbc.period_array);
         gw_libri.set_Cs(LRI_Cs.data_libri, this->libri_threshold_C);
     }
-    global::profiler.stop("g0w0_build_spacetime_2");
-    librpa_int::global::lib_printf_root("Time for LibRI G0W0 setup (seconds, Wall/CPU): %f %f\n",
-            global::profiler.get_wall_time_last("g0w0_build_spacetime_2"),
-            global::profiler.get_cpu_time_last("g0w0_build_spacetime_2"));
+    profiler.stop("g0w0_build_spacetime_2");
+    lib_printf_root("Time for LibRI G0W0 setup (seconds, Wall/CPU): %f %f\n",
+            profiler.get_wall_time_last("g0w0_build_spacetime_2"),
+            profiler.get_cpu_time_last("g0w0_build_spacetime_2"));
 
     const auto tot_atpair_ordered = generate_atom_pair_from_nat(natom, true);
     const auto &Rlist = this->pbc.Rlist;
     auto IJR_local_gf = dispatch_vector_prod(tot_atpair_ordered, Rlist, ad_Wc.myid(), ad_Wc.nprocs(), true, false);
-    global::ofs_myid << "IJR_local_gf: " << IJR_local_gf << std::endl;
+    ofs_myid << "IJR_local_gf: " << IJR_local_gf << std::endl;
 
     const int nfreq = tfg.get_n_grids();
 
@@ -406,7 +414,7 @@ void G0W0::build_spacetime(
         // librpa_int::global::lib_printf("task %d itau %d start\n", mpi_comm_global_h.myid, itau);
         const auto tau = tfg.get_time_nodes()[itau];
         // librpa_int::global::lib_printf("task %d Wc_tau_R.count(tau) %zu\n", mpi_comm_global_h.myid, Wc_tau_R.count(tau));
-        global::profiler.start("g0w0_build_spacetime_3", "Setup LibRI Wc");
+        profiler.start("g0w0_build_spacetime_3", "Setup LibRI Wc");
         size_t n_obj_wc_libri = 0;
         if (use_complex_tensor)
         {
@@ -430,7 +438,7 @@ void G0W0::build_spacetime(
             gw_libri.set_Ws(Wc_libri, this->libri_threshold_Wc);
             if (it != tau_Wc_libri.end()) tau_Wc_libri.erase(it);
         }
-        global::profiler.stop("g0w0_build_spacetime_3");
+        profiler.stop("g0w0_build_spacetime_3");
 
         const int n_spinor = mf.get_n_spinor();
 
@@ -443,7 +451,7 @@ void G0W0::build_spacetime(
                     dtensor_map sigc_posi_tau, sigc_nega_tau;
                     ztensor_map sigc_posi_tau_cplx, sigc_nega_tau_cplx;
 
-                    global::profiler.start("g0w0_build_spacetime_4", "Compute G(R,t) and G(R,-t)");
+                    profiler.start("g0w0_build_spacetime_4", "Compute G(R,t) and G(R,-t)");
                     // global::ofs_myid << "gf size " << gf.size() << endl;
                     // global::ofs_myid << "t " << gf[tau].size() << " ; -t " << gf[-tau].size() << endl;
                     std::map<double, dtensor_map> tau_gf_libri;
@@ -454,33 +462,44 @@ void G0W0::build_spacetime(
                         if (this->is_mf_eigvec_k_distributed_)
                         {
                             build_gf_libri_kpara(mf, comm_h, atbasis_wfc, ispin, ispinor_bra, ispinor_ket, this->pbc.kfrac_list,
-                                                taus, IJR_local_gf, tau_gf_libri);
+                                                taus, IJR_local_gf, tau_gf_libri_cplx);
                         }
                         else
                         {
                             build_gf_libri_kserial(mf, atbasis_wfc, ispin, ispinor_bra, ispinor_ket, this->pbc.kfrac_list,
-                                                taus, IJR_local_gf, tau_gf_libri);
+                                                taus, IJR_local_gf, tau_gf_libri_cplx);
                         }
                     }
                     else
                     {
                         if (this->is_mf_eigvec_k_distributed_)
                             build_gf_libri_kpara(mf, comm_h, atbasis_wfc, ispin, ispinor_bra, ispinor_ket, this->pbc.kfrac_list,
-                                                taus, IJR_local_gf, tau_gf_libri_cplx);
+                                                taus, IJR_local_gf, tau_gf_libri);
                         else
                             build_gf_libri_kserial(mf, atbasis_wfc, ispin, ispinor_bra, ispinor_ket, this->pbc.kfrac_list,
-                                                taus, IJR_local_gf, tau_gf_libri_cplx);
+                                                taus, IJR_local_gf, tau_gf_libri);
                     }
                     // if (itau == 0 && ispin == 0)  // debug
                     // {
                     //     global::ofs_myid << "tau_gf_libri itau=0 ispin=0" << std::endl;
                     //     global::ofs_myid << tau_gf_libri << std::endl;
                     // }
-                    global::profiler.stop("g0w0_build_spacetime_4");
-                    librpa_int::global::lib_printf_root("Time for Green's function, i_spin %d i_tau %d (seconds, Wall/CPU): %f %f\n",
-                            ispin + 1, itau + 1,
-                            global::profiler.get_wall_time_last("g0w0_build_spacetime_4"),
-                            global::profiler.get_cpu_time_last("g0w0_build_spacetime_4"));
+                    profiler.stop("g0w0_build_spacetime_4");
+
+                    if (n_spinor > 1)
+                    {
+                        lib_printf_root("Time for Green's function, i_spin %d i_spinor_bra %d i_spinor_ket %d i_tau %d (seconds, Wall/CPU): %f %f\n",
+                                ispin + 1, ispinor_bra + 1, ispinor_ket + 1, itau + 1,
+                                profiler.get_wall_time_last("g0w0_build_spacetime_4"),
+                                profiler.get_cpu_time_last("g0w0_build_spacetime_4"));
+                    }
+                    else
+                    {
+                        lib_printf_root("Time for Green's function, i_spin %d i_tau %d (seconds, Wall/CPU): %f %f\n",
+                                ispin + 1, itau + 1,
+                                profiler.get_wall_time_last("g0w0_build_spacetime_4"),
+                                profiler.get_cpu_time_last("g0w0_build_spacetime_4"));
+                    }
 
                     for (auto t: taus)
                     {
@@ -512,6 +531,7 @@ void G0W0::build_spacetime(
                         }
                         else
                         {
+                            // ofs_myid << tau_gf_libri << std::endl;
                             const auto &gf_libri = tau_gf_libri.at(t);
                             for (const auto &gf: gf_libri)
                                 n_obj_gf_libri += gf.second.size();
