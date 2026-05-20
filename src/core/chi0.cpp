@@ -439,6 +439,7 @@ static void build_gf_Rt_libri_kpara(
     using namespace global;
     profiler.start("build_gf_Rt_libri_kpara");
     std::map<Vector3_Order<int>, std::vector<atpair_t>> map_R_IJs;
+    const int n_basis = atbasis_wfc.nb_total;
     for (const auto &[IJ, R]: IJRs)
     {
         map_R_IJs[R].emplace_back(IJ);
@@ -458,7 +459,9 @@ static void build_gf_Rt_libri_kpara(
     for (const auto &[R, gf_cplx]: gf_Rs_cplx)
     {
         const std::array<int,3> Ra{R.x,R.y,R.z};
-        const auto gf_global = gf_cplx.real();
+        matrix gf_global;
+        if constexpr (!std::is_same<Tdata, std::complex<double>>::value)
+            gf_global = gf_cplx.real();
         const auto IJs = map_R_IJs.at(R);
         global::ofs_myid << "Chi0 Handling IJs: " << IJs << " - R " << Ra << std::endl;
         // Divide the full matrix to atom-pair blocks
@@ -475,14 +478,15 @@ static void build_gf_Rt_libri_kpara(
             auto ptr = std::make_shared<std::valarray<Tdata>>(nI * nJ);
             for (size_t i = 0; i != nI; i++)
             {
-                size_t i_glo = atbasis_wfc.get_global_index(I, i);
+                const size_t i_glo = atbasis_wfc.get_global_index(I, i);
                 for (size_t j = 0; j != nJ; j++)
                 {
-                    size_t j_glo = atbasis_wfc.get_global_index(J, j);
+                    const size_t j_glo = atbasis_wfc.get_global_index(J, j);
+                    const size_t index = j_glo + i_glo * n_basis;
                     if constexpr (std::is_same<Tdata, std::complex<double>>::value)
-                        (*ptr)[i*nJ+j] = gf_cplx(i_glo, j_glo);
+                        (*ptr)[i*nJ+j] = gf_cplx.c[index];
                     else
-                        (*ptr)[i*nJ+j] = gf_global(i_glo, j_glo);
+                        (*ptr)[i*nJ+j] = gf_global.c[index];
                 }
             }
             omp_set_lock(&gf_lock);
