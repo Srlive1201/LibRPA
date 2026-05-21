@@ -343,7 +343,7 @@ static void build_gf_Rt_libri_serial(
     }
     else
     {
-        if (use_soc) wg *= 0.5 * nspins;
+        if (!use_soc) wg *= 0.5 * nspins;
     }
     auto scale = - tau * (mf.get_eigenvals()[ispin] - mf.get_efermi());
     for (size_t ie = 0; ie != scale.size; ie++)
