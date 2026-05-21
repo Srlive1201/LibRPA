@@ -149,7 +149,7 @@ void test_invert_scalapack()
 }
 
 template <typename T>
-void test_power_hemat_blacs_square_grid(const T &m_lb, const T &m_ub)
+void test_power_hemat_blacs_square_grid(const T &m_lb, const T &m_ub, bool force_real = false)
 {
     typedef T type;
     typedef typename to_real<type>::type real_type;
@@ -168,7 +168,10 @@ void test_power_hemat_blacs_square_grid(const T &m_lb, const T &m_ub)
     if (blacs_ctxt_h.myid == pid_src)
     {
         vector<real_type> evs {0.1, 0.2, 0.5, 1.0, 2.0, 4.0};
-        mat = random_he_selected_ev(n, evs, MAJOR::COL);
+        if (force_real && mat.is_complex)
+            mat = random_sy_selected_ev(n, evs, MAJOR::COL).to_complex();
+        else
+            mat = random_he_selected_ev(n, evs, MAJOR::COL);
         mat_gather = mat;
     }
     auto pair_desc_m = prepare_array_desc_mr2d_src_and_all(blacs_ctxt_h, n, n, nb, nb, irsrc, icsrc);
@@ -186,8 +189,13 @@ void test_power_hemat_blacs_square_grid(const T &m_lb, const T &m_ub)
 
     size_t n_filtered;
 
-    power_hemat_blacs<real_type>(mat_loc, pair_desc_m.second,
-                                 eig_loc, pair_desc_m.second, n_filtered, W, 1.0/3.0, -1.0e5);
+    // Take cubic root
+    if (force_real)
+        power_hemat_blacs_real<real_type>(mat_loc, pair_desc_m.second, eig_loc, pair_desc_m.second,
+                                          n_filtered, W, 1.0 / 3.0, -1.0e5);
+    else
+        power_hemat_blacs<real_type>(mat_loc, pair_desc_m.second,
+                                    eig_loc, pair_desc_m.second, n_filtered, W, 1.0/3.0, -1.0e5);
     assert(n_filtered == 0);
     // if (blacs_ctxt_h.myid == pid_src)
     // {
@@ -198,8 +206,13 @@ void test_power_hemat_blacs_square_grid(const T &m_lb, const T &m_ub)
     // }
     blacs_ctxt_h.barrier();
     // printf("mat_loc of PID %d middle\n%s", blacs_ctxt_h.myid, str(mat_loc).c_str());
-    power_hemat_blacs<real_type>(mat_loc, pair_desc_m.second,
-                                 eig_loc, pair_desc_m.second, n_filtered, W, 3.0, -1.0e5);
+    // Take cubic
+    if (force_real)
+        power_hemat_blacs_real<real_type>(mat_loc, pair_desc_m.second, eig_loc, pair_desc_m.second,
+                                          n_filtered, W, 3.0, -1.0e5);
+    else
+        power_hemat_blacs<real_type>(mat_loc, pair_desc_m.second,
+                                    eig_loc, pair_desc_m.second, n_filtered, W, 3.0, -1.0e5);
     assert(n_filtered == 0);
     // printf("eig_loc\n%s", str(eig_loc).c_str());
     // printf("mat_loc of PID %d after\n%s", blacs_ctxt_h.myid, str(mat_loc).c_str());
@@ -211,9 +224,13 @@ void test_power_hemat_blacs_square_grid(const T &m_lb, const T &m_ub)
 
     if (blacs_ctxt_h.myid == pid_src)
     {
-        bool print = false;
+        bool print = true;
         if (print)
         {
+            if (force_real)
+                printf("use power_hemat_blacs_real\n");
+            else
+                printf("use power_hemat_blacs\n");
             printf("mat global at pid_src %d\n%s", pid_src, str(mat).c_str());
             printf("mat gathered at pid_src %d\n%s", pid_src, str(mat_gather).c_str());
         }
@@ -1045,6 +1062,7 @@ int main (int argc, char *argv[])
     // test_pgemm<complex<double>>({-2, -1}, {1, 0});
     //
     test_power_hemat_blacs_square_grid<complex<double>>(0.0, {1.0, 1.0});
+    test_power_hemat_blacs_square_grid<complex<double>>(0.0, {1.0, 1.0}, true);
     // test_power_hemat_blacs_square_grid<complex<float>>(0.0, {1.0, 2.0});
 
     test_invert_scalapack<float>();

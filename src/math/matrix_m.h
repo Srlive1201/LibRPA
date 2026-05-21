@@ -1095,28 +1095,56 @@ inline matrix_m<std::complex<T>> random_he(int n, const std::complex<T> &lb, con
     return m;
 }
 
-//! generate a random unitary matrix, implemented as using ?heev upon hermitian matrix
 template <typename T>
-inline matrix_m<std::complex<T>> random_unitary(int n, MAJOR major = MAJOR::ROW)
+inline matrix_m<T> random_orthogonal(int n, MAJOR major = MAJOR::ROW)
 {
     int info;
     // always use column major here to ensure that the eigvec construction is correct
-    auto mat = random_he<T>(n, {-1.0, -1.0}, {1.0, 1.0}, MAJOR::COL);
-    const char *name = mat.is_double? "ZHETRD" : "CHETRD";
-    // printf("%s\n", name);
+    auto mat = random_sy<T>(n, -1.0, 1.0, MAJOR::COL);
+    const char *name = mat.is_double? "DSYTRD" : "SSYTRD";
     int nb = LapackConnector::ilaenv(1, name, "VU", n, -1, -1, -1);
     if (nb <= 1) nb = std::max(1, n);
-    const int lwork = n * (nb + 1);
+    const int lwork = n * (nb + 2);
 
     T *w = new T[n];
-    std::complex<T> *work = new std::complex<T>[lwork];
-    T *rwork = new T[std::max(1, 3 * n - 2)];
+    T *work = new T[lwork];
 
-    LapackConnector::heev_f('V', 'U', n, mat.ptr(), mat.nr(), w, work, lwork, rwork, info);
-    delete [] rwork;
+    LapackConnector::syev_f('V', 'U', n, mat.ptr(), mat.nr(), w, work, lwork, info);
     delete [] w;
     delete [] work;
-    return matrix_m<std::complex<T>>(n, n, mat.ptr(), MAJOR::COL, major);
+    return matrix_m<T>(n, n, mat.ptr(), MAJOR::COL, major);
+}
+
+//! generate a random unitary matrix, implemented as using ?heev upon hermitian matrix
+template <typename T>
+inline matrix_m<T> random_unitary(int n, MAJOR major = MAJOR::ROW)
+{
+    typedef typename to_real<T>::type Treal;
+    constexpr bool is_complex = is_complex_t<T>::value;
+
+    if constexpr (is_complex)
+    {
+        int info;
+        // always use column major here to ensure that the eigvec construction is correct
+        auto mat = random_he<Treal>(n, {-1.0, -1.0}, {1.0, 1.0}, MAJOR::COL);
+        const char *name = mat.is_double? "ZHETRD" : "CHETRD";
+        // printf("%s\n", name);
+        int nb = LapackConnector::ilaenv(1, name, "VU", n, -1, -1, -1);
+        if (nb <= 1) nb = std::max(1, n);
+        const int lwork = n * (nb + 1);
+
+        Treal *w = new Treal[n];
+        T *work = new T[lwork];
+        Treal *rwork = new Treal[std::max(1, 3 * n - 2)];
+
+        LapackConnector::heev_f('V', 'U', n, mat.ptr(), mat.nr(), w, work, lwork, rwork, info);
+        delete [] rwork;
+        delete [] w;
+        delete [] work;
+        return matrix_m<T>(n, n, mat.ptr(), MAJOR::COL, major);
+    }
+    else
+        return random_orthogonal<T>(n, major);
 }
 
 //! generate a random Hermitian matrix with selected eigenvalues.
@@ -1128,11 +1156,27 @@ inline matrix_m<std::complex<T>> random_he_selected_ev(int n, const std::vector<
     const int nvec = evs.size();
     if (nvec == 0) return matrix_m<std::complex<T>>{0, 0, major};
 
-    auto eigvec = random_unitary<T>(n, major);
+    auto eigvec = random_unitary<std::complex<T>>(n, major);
     auto eigvec_H = eigvec.get_transpose(true);
     for (int ie = 0; ie != n; ie++)
         eigvec_H.scale_row(ie, ie < nvec? evs[ie]: padding_zero);
     return eigvec * eigvec_H;
+}
+
+//! generate a random symmetric matrix with selected eigenvalues.
+//! when the number of provided eigenvalues is smaller than the dimension,
+//! padding_zero will be used as the missing eigenvalues
+template <typename T>
+inline matrix_m<T> random_sy_selected_ev(int n, const std::vector<T> &evs, MAJOR major = MAJOR::ROW, const T& padding_zero = 1e-14)
+{
+    const int nvec = evs.size();
+    if (nvec == 0) return matrix_m<T>{0, 0, major};
+
+    auto eigvec = random_orthogonal<T>(n, major);
+    auto eigvec_T = eigvec.get_transpose();
+    for (int ie = 0; ie != n; ie++)
+        eigvec_T.scale_row(ie, ie < nvec? evs[ie]: padding_zero);
+    return eigvec * eigvec_T;
 }
 
 //! print the matrix in matrix-market style
