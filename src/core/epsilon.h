@@ -51,7 +51,7 @@ std::map<double, std::map<Vector3_Order<double>, Matz>> compute_Wc_freq_q_blacs(
     double sqrt_coulomb_threshold, const bool replace_w_head, int option_dielect_func,
     const vector<std::complex<double>> &epsmac_LF_imagfreq, diele_func &df_headwing,
     const BlacsCtxtHandler &blacs_h, const librpa_int::ArrayDesc &ad, bool debug = false,
-    const char *output_dir = ".");
+    const char *output_dir = ".", bool use_cholesky_gw_wc = false);
 
 //! Fourier transform screened Coulomb in q-space to R-space, but still in frequency domain
 std::map<double, std::map<Vector3_Order<int>, Matz>> FT_Wc_freq_q(

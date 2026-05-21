@@ -127,6 +127,9 @@ typedef struct
     //! Flag of using ScaLAPACK for computing Wc from chi0
     LibrpaSwitch use_scalapack_gw_wc;
 
+    // ! Flag of using cholesky factorization for computing Wc from chi0
+    LibrpaSwitch use_cholesky_gw_wc;
+    
     //! Flag of replacing head of screened interaction by macroscopic dielectric function
     LibrpaSwitch replace_w_head;
 
