@@ -25,6 +25,9 @@ int qpe_solver_pade_self_consistent(
         const double &sigma_x,
         double &e_qp,
         cplxdb &sigc,
-        double thres = 1.0e-5);
+        double diff_init = 1.0e-3,
+        double thres = 1.0e-5,
+        const int n_iter_max = 200
+        );
 
 }

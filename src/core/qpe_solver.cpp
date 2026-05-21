@@ -15,11 +15,12 @@ int qpe_solver_pade_self_consistent(
         const double &sigma_x,
         double &e_qp,
         cplxdb &sigc,
-        double thres)
+        double diff_init,
+        double thres,
+        const int n_iter_max)
 {
     int info = 0;
     const double escale = 0.1;
-    const int n_iter_max = 10000;
     int n_iter = 0;
 
 
@@ -27,7 +28,7 @@ int qpe_solver_pade_self_consistent(
     double e_qp_last = e_mf, e_qp_this;
     cplxdb sigc_this, sigc_last;
 
-    double diff = 1.0;
+    double diff = diff_init;
 
     // std::cout << "QPE: " << e_mf << " " << e_fermi << " " << vxc << " " << sigma_x << "\n";
     while (n_iter++ < n_iter_max)
@@ -39,10 +40,10 @@ int qpe_solver_pade_self_consistent(
         sigc_last = sigc_this;
         if (std::abs(diff) < thres || n_iter == n_iter_max - 1)
         {
-            std::cout << "Iteration " << n_iter << ": "
-                    << "e_qp = " << e_qp_last << ", "
-                    << "sigc = " << sigc_last << ", "
-                    << "diff = " << diff << std::endl;
+            // std::cout << "Iteration " << n_iter << ": "
+            //         << "e_qp = " << e_qp_last << ", "
+            //         << "sigc = " << sigc_last << ", "
+            //         << "diff = " << diff << std::endl;
             break;
         }
     }
@@ -51,7 +52,7 @@ int qpe_solver_pade_self_consistent(
     e_qp = e_qp_last;
     // std::cout << "Compare QPE solver: " << std::setw(16) << std::setprecision(8) << e_mf - vxc + sigma_x + sigc.real() << " " << e_qp << std::endl;
 
-    if (n_iter > n_iter_max)
+    if (n_iter > n_iter_max - 1)
     {
         info = 1;
     }
