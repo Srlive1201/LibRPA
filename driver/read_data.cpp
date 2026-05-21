@@ -2208,11 +2208,11 @@ void read_band_meanfield_data(const string &dir_path)
 
     const int n_kb = n_kpoints_band * n_states;
     std::string s1, s2, s3, s4, s5;
-    int n_basis = n_basis_wfc;
+    int n_basis_ao = n_basis_wfc;
     if (driver::opts.use_spinor_wfc)
     {
-        assert(n_basis % 2 == 0 && "Error: nbasis is not even when SOC!");
-        n_basis = n_basis / 2;
+        assert(n_basis_ao % 2 == 0 && "Error: nbasis is not even when SOC!");
+        n_basis_ao = n_basis_ao / 2;
     }
 
     // Load occupation weights and eigenvalues
@@ -2260,54 +2260,62 @@ void read_band_meanfield_data(const string &dir_path)
             ofs_myid << "Loading band eigenvector file " + ss.str() << endl;
 
         std::vector<std::complex<double>> wfc(n_states * n_basis_wfc);
-        for (int i_spin = 0; i_spin < n_spins; i_spin++)
-        {
-            const size_t nbytes = n_basis_wfc * n_states * sizeof(std::complex<double>);
-            infile.read((char *) wfc.data(), nbytes);
-            // TODO: adapt to SOC case
-            driver::h.set_wfc_band_packed(i_spin, ik, n_states, n_basis_wfc, wfc.data());
-        }
+        // for (int i_spin = 0; i_spin < n_spins; i_spin++)
+        // {
+        //     const size_t nbytes = n_basis_wfc * n_states * sizeof(std::complex<double>);
+        //     infile.read((char *) wfc.data(), nbytes);
+        //     // TODO: adapt to SOC case
+        //     driver::h.set_wfc_band_packed(i_spin, ik, n_states, n_basis_wfc, wfc.data());
+        // }
 
         // TODO: decide which basis to use
-        size_t total_complex = static_cast<size_t>(n_states) * static_cast<size_t>(n_basis_wfc) * n_spins;
-        size_t total_doubles = total_complex * 2;
-
-        std::vector<double> double_buffer(total_doubles);
-        infile.read(reinterpret_cast<char *>(double_buffer.data()), total_doubles * sizeof(double));
-        if (!infile || infile.gcount() != static_cast<ptrdiff_t>(total_doubles * sizeof(double)))
-        {
-            throw std::runtime_error("Error: failed to read " + ss.str());
-        }
+        size_t total_complex_comp = static_cast<size_t>(n_states) * static_cast<size_t>(n_basis_ao);  // for one component
+        size_t total_complex_spin = static_cast<size_t>(n_states) * static_cast<size_t>(n_basis_wfc);
+        size_t total_complex = total_complex_spin * n_spins;
+        size_t bytes_doubles = total_complex * 2 * sizeof(double);
 
         std::vector<std::complex<double>> vecs(total_complex);
-        for (size_t i = 0; i < total_complex; ++i)
+        infile.read(reinterpret_cast<char *>(vecs.data()), bytes_doubles);
+        if (!infile || infile.gcount() != static_cast<ptrdiff_t>(bytes_doubles))
         {
-            vecs[i] = std::complex<double>(double_buffer[2 * i], double_buffer[2 * i + 1]);
+            throw LIBRPA_RUNTIME_ERROR("Error: failed to read " + ss.str());
         }
 
         int n_soc = driver::opts.use_spinor_wfc ? 2 : 1;
+        assert (n_soc * n_spins <= 2);
         for (int i_spin = 0; i_spin < n_spins; ++i_spin)
         {
+            std::vector<std::complex<double>> vecs_sp(total_complex_spin);
             for (int ib = 0; ib < n_states; ++ib)
             {
-                for (int iw = 0; iw < n_basis; ++iw)
+                for (int iw = 0; iw < n_basis_ao; ++iw)
                 {
                     for (int i_soc = 0; i_soc < n_soc; ++i_soc)
                     {
-                        size_t index;
+                        const size_t index_dst = i_soc * total_complex_comp + ib * n_basis_ao + iw;
+                        size_t index_src;
                         if (driver::opts.use_spinor_wfc)
                         {
                             // NOTE: i_spin should be 0 for spinor-form wavefunction
                             assert(i_spin < 1);
-                            index = ib * n_basis * n_soc + iw * n_soc + i_soc;
+                            index_src = ib * n_basis_ao * n_soc + iw * n_soc + i_soc;
                         }
                         else
                         {
-                            index = i_spin * n_basis * n_states + ib * n_basis + iw;
+                            index_src = i_spin * n_basis_ao * n_states + ib * n_basis_ao + iw;
                         }
-                        // mf_band.get_eigenvectors()[i_spin][i_soc][ik](ib, iw) = vecs[index];
+                        vecs_sp[index_dst] = vecs[index_src];
                     }
                 }
+            }
+            if (driver::opts.use_spinor_wfc)
+            {
+                driver::h.set_wfc_band_spinor_packed(ik, n_states, n_basis_ao, vecs_sp.data(),
+                                                     vecs_sp.data() + total_complex_comp);
+            }
+            else
+            {
+                driver::h.set_wfc_band_packed(i_spin, ik, n_states, n_basis_ao, vecs_sp.data());
             }
         }
 
