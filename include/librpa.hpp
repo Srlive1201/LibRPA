@@ -272,9 +272,19 @@ public:
     void set_wfc_band(int ispin, int ik_band, int nstates_local, int nbasis_local,
                       const double *wfc_real, const double *wfc_imag);
 
+    /** @brief Set wavefunction coefficients of spinor format for band k-point (separated real/imag arrays). */
+    void set_wfc_band_spinor(int ik_band, int nstates_local, int nbasis_local,
+                             const double* wfc_up_real, const double* wfc_up_imag,
+                             const double* wfc_dn_real, const double* wfc_dn_imag);
+
     /** @brief Set wavefunction for band k-point (packed complex). */
     void set_wfc_band_packed(int ispin, int ik_band, int nstates_local, int nbasis_local,
                              const std::complex<double> *wfc);
+
+    /** @brief Set wavefunction coefficients of spinor format for band k-point (packed complex array). */
+    void set_wfc_band_spinor_packed(int ik_band, int nstates_local, int nbasis_local,
+                                    const std::complex<double> *wfc_up,
+                                    const std::complex<double> *wfc_dn);
 
     /** @brief Reset band structure data. */
     void reset_band_data();
