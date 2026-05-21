@@ -1008,7 +1008,7 @@ matrix_m<std::complex<T>> power_hemat_blacs_real(matrix_m<std::complex<T>> &A_lo
     ScalapackConnector::pgemr2d_f(n, n, scaled_opt.ptr(), 1, 1, ad_Z_opt.desc, scaled.ptr(), 1, 1,
                                   ad_Z.desc, ad_Z.ictxt());
     profiler.stop("power_hemat_blacs_4");
-    profiler.start(__FUNCTION__);
+    profiler.stop(__FUNCTION__);
 
     return scaled;
 }
