@@ -18,7 +18,6 @@
 #include "../math/complexmatrix.h"
 #include "../math/utils_matrix_m_mpi.h"
 #include "../utils/profiler.h"
-#include "librpa_enums.h"
 // #include "../utils/utils_mem.h"
 
 void librpa_build_g0w0_sigma(LibrpaHandler* h, const LibrpaOptions *p_opts)

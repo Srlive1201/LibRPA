@@ -2102,11 +2102,10 @@ std::map<double, std::map<Vector3_Order<double>, Matz>> compute_Wc_freq_q_blacs(
             }
             global::profiler.stop("epsilon_prepare_chi0_2d");
 
-            global::profiler.start("epsilon_compute_eps", "Compute dielectric matrix");
-
             // for Gamma point, overwrite the head term
             if (epsmac_LF_imagfreq.size() > 0 && is_gamma_point(q))
             {
+                profiler.start("epsilon_compute_eps", "Compute dielectric matrix");
                 ofs_myid << get_timestamp() << " Entering dielectric matrix head overwrite" << endl;
                 // rotate to Coulomb-eigenvector basis
                 // descending order
@@ -2162,6 +2161,7 @@ std::map<double, std::map<Vector3_Order<double>, Matz>> compute_Wc_freq_q_blacs(
                                             coul_chi0_block.ptr(), 1, 1, desc_nabf_nabf_opt.desc,
                                             coul_eigen_block.ptr(), 1, 1, desc_nabf_nabf_opt.desc,
                                             0.0, chi0_block.ptr(), 1, 1, desc_nabf_nabf_opt.desc);
+                profiler.stop("epsilon_compute_eps");
                 if (option_dielect_func != 3)
                 {
                     // now chi0_block is actually v1/2 chi v1/2
@@ -2178,6 +2178,7 @@ std::map<double, std::map<Vector3_Order<double>, Matz>> compute_Wc_freq_q_blacs(
                     // perform inversion
                     profiler.start("epsilon_invert_eps", "Invert dielectric matrix");
                     invert_scalapack(chi0_block, desc_nabf_nabf_opt);
+                    profiler.stop("epsilon_invert_eps");
                 }
                 // subtract 1 from diagonal
                 for (int i = 0; i != n_abf; i++)
@@ -2191,20 +2192,20 @@ std::map<double, std::map<Vector3_Order<double>, Matz>> compute_Wc_freq_q_blacs(
             }
             else
             {
-                global::profiler.start("epsilon_compute_eps_pgemm_1");
+                profiler.start("epsilon_compute_eps", "Compute dielectric matrix");
+                profiler.start("epsilon_compute_eps_pgemm_1");
                 ScalapackConnector::pgemm_f('N', 'N', n_abf, n_abf, n_abf, 1.0, coul_block.ptr(), 1,
                                             1, desc_nabf_nabf_opt.desc, chi0_block.ptr(), 1, 1,
                                             desc_nabf_nabf_opt.desc, 0.0, coul_chi0_block.ptr(), 1,
                                             1, desc_nabf_nabf_opt.desc);
-                global::profiler.stop("epsilon_compute_eps_pgemm_1");
-                global::profiler.start("epsilon_compute_eps_pgemm_2");
+                profiler.stop("epsilon_compute_eps_pgemm_1");
+                profiler.start("epsilon_compute_eps_pgemm_2");
                 ScalapackConnector::pgemm_f('N', 'N', n_abf, n_abf, n_abf, -1.0,
                                             coul_chi0_block.ptr(), 1, 1, desc_nabf_nabf_opt.desc,
                                             coul_block.ptr(), 1, 1, desc_nabf_nabf_opt.desc, 0.0,
                                             chi0_block.ptr(), 1, 1, desc_nabf_nabf_opt.desc);
                 profiler.stop("epsilon_compute_eps_pgemm_2");
-                // now chi0_block is actually v1/2 chi v1/2
-                chi0_block *= -1.0;
+                // now chi0_block is actually -v1/2 chi v1/2
                 for (int i = 0; i != n_abf; i++)
                 {
                     const int ilo = desc_nabf_nabf_opt.indx_g2l_r(i);
