@@ -134,6 +134,7 @@ module librpa_f03
       logical :: use_shrink_chi
       integer :: n_params_anacon
       logical :: use_scalapack_gw_wc
+      logical :: use_cholesky_gw_wc
       logical :: replace_w_head
       integer :: option_dielect_func
       logical :: use_2d_dielectric
@@ -180,6 +181,7 @@ module librpa_f03
          procedure :: set_scf_dimension => librpa_set_scf_dimension
          procedure :: set_wg_ekb_efermi => librpa_set_wg_ekb_efermi
          procedure :: set_wfc => librpa_set_wfc
+         procedure :: set_wfc_spinor => librpa_set_wfc_spinor
          procedure :: set_ao_basis_wfc => librpa_set_ao_basis_wfc
          procedure :: set_ao_basis_aux => librpa_set_ao_basis_aux
          procedure :: set_latvec_and_G => librpa_set_latvec_and_G
@@ -194,6 +196,7 @@ module librpa_f03
          procedure :: set_dielect_func_imagfreq => librpa_set_dielect_func_imagfreq
          procedure :: set_band_kvec => librpa_set_band_kvec
          procedure :: set_wfc_band => librpa_set_wfc_band
+         procedure :: set_wfc_band_spinor => librpa_set_wfc_band_spinor
          procedure :: set_band_occ_eigval => librpa_set_band_occ_eigval
          procedure :: reset_band_data => librpa_reset_band_data
          ! Compute
@@ -343,10 +346,12 @@ contains
    !> @param[in]     nkpts    Number of k-points.
    !> @param[in]     nstates  Number of electronic states.
    !> @param[in]     nbasis   Number of basis functions.
-   subroutine librpa_set_scf_dimension(this, nspins, nkpts, nstates, nbasis)
+   !> @param[in]     nspinor  Number of spin components per wavefunction (default 1)
+   subroutine librpa_set_scf_dimension(this, nspins, nkpts, nstates, nbasis, nspinor)
       implicit none
       class(LibrpaHandler), intent(inout) :: this
       integer, intent(in) :: nspins, nkpts, nstates, nbasis
+      integer, intent(in), optional :: nspinor
       call error_on_call("librpa_set_scf_dimension")
    end subroutine librpa_set_scf_dimension
 
@@ -383,6 +388,22 @@ contains
       complex(dp), intent(in), target :: wfc_cplx(nbasis_local, nstates_local)
       call error_on_call("librpa_set_wfc")
    end subroutine librpa_set_wfc
+
+   !> @brief Set the wave-function expansion coefficients, spinor format
+   !>
+   !> @param ik             (global) k-point index (starting from 1) of the wave function
+   !> @param nstates_local  local dimenstion (number of states) of the parsed wave-function
+   !> @param nbasis_local   local dimenstion (number of basis functions) of the parsed wave-function
+   !> @param wfc_up_cplx    Complex-valued wave function to parse (spin-up component)
+   !> @param wfc_dn_cplx    Complex-valued wave function to parse (spin-down component)
+   subroutine librpa_set_wfc_spinor(this, ik, nstates_local, nbasis_local, wfc_up_cplx, wfc_dn_cplx)
+      implicit none
+      class(LibrpaHandler), intent(inout) :: this
+      integer, intent(in) :: ik, nstates_local, nbasis_local
+      complex(dp), intent(in), target :: wfc_up_cplx(nbasis_local, nstates_local)
+      complex(dp), intent(in), target :: wfc_dn_cplx(nbasis_local, nstates_local)
+      call error_on_call("librpa_set_wfc_spinor")
+   end subroutine librpa_set_wfc_spinor
 
    !> @brief Set the wave-function atomic basis
    !>
@@ -623,6 +644,22 @@ contains
       complex(dp), intent(in), target :: wfc_cplx(nbasis_local, nstates_local)
       call error_on_call("librpa_set_wfc_band")
    end subroutine librpa_set_wfc_band
+
+   !> @brief Set the wave-function expansion coefficients for band calculation, spinor format
+   !>
+   !> @param ik_band        (global) k-point index (starting from 1) of the wave function
+   !> @param nstates_local  local dimenstion (number of states) of the parsed wave-function
+   !> @param nbasis_local   local dimenstion (number of basis functions) of the parsed wave-function
+   !> @param wfc_up_cplx    Complex-valued wave function to parse (spin-up component)
+   !> @param wfc_dn_cplx    Complex-valued wave function to parse (spin-down component)
+   subroutine librpa_set_wfc_band_spinor(this, ik_band, nstates_local, nbasis_local, wfc_up_cplx, wfc_dn_cplx)
+      implicit none
+      class(LibrpaHandler), intent(inout) :: this
+      integer, intent(in) :: ik_band, nstates_local, nbasis_local
+      complex(dp), intent(in), target :: wfc_up_cplx(nbasis_local, nstates_local)
+      complex(dp), intent(in), target :: wfc_dn_cplx(nbasis_local, nstates_local)
+      call error_on_call("librpa_set_wfc_band_spinor")
+   end subroutine librpa_set_wfc_band_spinor
 
    !> @brief Reset band structure data.
    !> @param[in,out] this  Handler.

@@ -163,6 +163,7 @@ module librpa_f03
       ! GW specific
       integer(c_int) :: n_params_anacon
       integer(c_int) :: use_scalapack_gw_wc
+      integer(c_int) :: use_cholesky_gw_wc
       integer(c_int) :: replace_w_head
       integer(c_int) :: option_dielect_func
       integer(c_int) :: use_2d_dielectric
@@ -219,6 +220,7 @@ module librpa_f03
       logical :: use_shrink_chi
       integer :: n_params_anacon
       logical :: use_scalapack_gw_wc
+      logical :: use_cholesky_gw_wc
       logical :: replace_w_head
       integer :: option_dielect_func
       logical :: use_2d_dielectric
@@ -860,6 +862,7 @@ contains
       call sync_opt(opts%use_2d_dielectric,       opts%opts_c%use_2d_dielectric,       direction)
       call sync_opt(opts%load_sigc_from_file,     opts%opts_c%load_sigc_from_file,     direction)
       call sync_opt(opts%use_scalapack_gw_wc,     opts%opts_c%use_scalapack_gw_wc,     direction)
+      call sync_opt(opts%use_cholesky_gw_wc,      opts%opts_c%use_cholesky_gw_wc,      direction)
       call sync_opt(opts%sqrt_coulomb_threshold,  opts%opts_c%sqrt_coulomb_threshold,  direction)
       call sync_opt(opts%replace_w_head,          opts%opts_c%replace_w_head,          direction)
       call sync_opt(opts%libri_chi0_threshold_C,  opts%opts_c%libri_chi0_threshold_C,  direction)
