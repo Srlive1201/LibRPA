@@ -19,7 +19,7 @@ def _extract_plain(directory: str, file: str,
                 raw[rela] = "".join(lines[headers:])
             else:
                 raw[rela] = "".join(lines[headers:rows])
-            return
+            return raw
 
         st, ed, intv = occurences
         matched = []
@@ -33,7 +33,7 @@ def _extract_plain(directory: str, file: str,
                     else:
                         matched.append(" ".join(m.groups()))
                 else:
-                    matched.append("".join(lines[i + headers: i + rows]))
+                    matched.append("".join(lines[i + headers: i + headers + rows]))
         if ed is None:
             ed = len(matched) - 1
         raw[rela] = [matched[i] for i in range(st, ed + 1, intv)]
@@ -81,8 +81,7 @@ def _process_rows(rows: str):
 
 def _process_headers(headers: str):
     if headers is not None:
-        headers = int(headers)
-    # No header lines
+        return int(headers)
     return 0
 
 

@@ -16,8 +16,21 @@
     </testcase>
   </group>
 
+  <group name="Exact-exchange (EXX) potentials">
+    <testcase name="BCC He, with eigenvector parllelized over k (aims input)" directory="exx_aims_bccHe_k_parallel_libri">
+      <build require_libri="true"
+      />
+      <validate name="EXX potential on k-grid"
+                regex="Band\s+e_exx.*e_exx"
+                headers="1"
+                rows="8"
+                comparison="cmp_table.abs_diff(1e-4)"
+      />
+    </testcase>
+  </group>
+
   <group name="One-shot GW quasi-particle energies (QPE)">
-    <testcase name="G0W0, bulk silicon (aims input)" directory="g0w0_aims_Si_libri">
+    <testcase name="Bulk silicon (aims input)" directory="g0w0_aims_Si_libri">
       <build require_libri="true"
       />
       <run ntasks_disable="none"
@@ -25,7 +38,23 @@
            ntasks_enable="none"
            nthreads_enable="none"
       />
+      <validate name="Quasi-particle energies on k-grid"
+                regex="State\s+occ\s+e_mf\s+v_xc\s+v_exx\s+ReSigc\s+ImSigc\s+e_qp"
+                headers="2"
+                rows="18"
+                comparison="cmp_table.abs_diff(1e-4)"
+      />
     </testcase>
+
+    <testcase name="Lithium atom, spin-polarized (aims input)" directory="g0w0_aims_Li_atom_libri">
+      <validate name="Quasi-particle energies on k-grid"
+                regex="State\s+occ\s+e_mf\s+v_xc\s+v_exx\s+ReSigc\s+ImSigc\s+e_qp"
+                headers="2"
+                rows="5"
+                comparison="cmp_table.abs_diff(1e-4)"
+      />
+    </testcase>
+
   </group>
 
 </regressionsuite>

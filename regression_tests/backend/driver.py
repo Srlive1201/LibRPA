@@ -9,7 +9,7 @@ from .utils import run_librpa
 from .validate import Validate
 
 
-__all__ = ["Driver"]
+__all__ = ["TestDriver"]
 
 PASS_FAIL = {True: "PASS", False: "FAIL"}
 
@@ -38,12 +38,13 @@ def _check_build_run_filter(tc: dict,
     return False, False
 
 
-class Driver:
+class TestDriver:
 
     def __init__(self, dir_input: str, dir_ref: str, workspace: str, groups: dict):
         self._dir_input = pathlib.Path(dir_input)
         self._dir_ref = pathlib.Path(dir_ref)
         self._workspace = pathlib.Path(workspace)
+        self._dir_testcase = self._workspace / "testcases"
 
         # Check
         if not self._dir_input.exists():
@@ -122,7 +123,7 @@ class Driver:
             dname = tc["directory"]
             src = self._dir_input / dname
             src_librpa = src / "librpa"
-            dst = self._workspace / dname
+            dst = self._dir_testcase / dname
             dst_librpa = dst / "librpa"
             # prepare inputs
             dst_librpa.mkdir(parents=True, exist_ok=True)
@@ -139,9 +140,9 @@ class Driver:
         status = 0
         good_all = []
         for tc in self._testcases_filtered:
-            name = tc["name"]
+            # name = tc["name"]
             dname = tc["directory"]
-            test = self._workspace / dname
+            test = self._dir_testcase / dname
             refr = self._dir_ref / dname
             results = []
             for v in tc["validates"]:

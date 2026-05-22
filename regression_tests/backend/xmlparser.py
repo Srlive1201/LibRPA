@@ -8,15 +8,16 @@ TRUE_FALSE_NONE = {"true": True, "false": False, "none": None}
 
 def _process_build_parameters(node_testcase):
     b = node_testcase.find('build')
-    pars_tfn = ["require_libri", ]
+    pars_tfn_default = {
+        "require_libri": "none",
+    }
     ret = {}
-    for p in pars_tfn:
+    for p, de in pars_tfn_default.items():
         try:
-            value = b.get(p, None)
-            value = TRUE_FALSE_NONE.get(value.lower(), value)
-        except KeyError:
-            value = None
-        ret[p] = value
+            value = b.get(p, de)
+        except AttributeError:
+            value = de
+        ret[p] = TRUE_FALSE_NONE.get(value.lower(), value)
     return ret
 
 
@@ -24,16 +25,23 @@ def _process_run_parameters(node_testcase):
     r = node_testcase.find('run')
     ret = {}
 
-    pars_intrange = ["ntasks_disable", "nthreads_disable",
-                     "ntasks_enable", "nthreads_enable"]
-    for p in pars_intrange:
+    pars_intrange = {
+        "ntasks_disable": "none",
+        "nthreads_disable": "none",
+        "ntasks_enable": "none",
+        "nthreads_enable": "none",
+    }
+    for p, de in pars_intrange.items():
         try:
-            value = r.get(p, None)
+            try:
+                value = r.get(p, de)
+            except AttributeError:
+                value = de
             if value.lower() in ["none", "false"]:
                 value = tuple()
             else:
                 value = tuple(int(x) for x in value.replace(',', ' ').split())
-        except (KeyError, ValueError):
+        except ValueError:
             value = None
         ret[p] = value
     return ret

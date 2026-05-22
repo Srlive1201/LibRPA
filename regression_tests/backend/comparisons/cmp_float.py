@@ -1,4 +1,5 @@
-import math
+__all__ = ["abs_diff"]
+
 
 def abs_diff(tolerance, precision=3):
     """

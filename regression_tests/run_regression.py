@@ -4,7 +4,7 @@
 import sys
 from backend.commandparser import get_parser
 from backend.xmlparser import XMLParser
-from backend.driver import Driver
+from backend.driver import TestDriver
 
 
 if __name__ == '__main__':
@@ -14,7 +14,8 @@ if __name__ == '__main__':
     suite = XMLParser(args.xml)
 
     # Create the test driver
-    driver = Driver(args.dir_input, args.dir_ref, args.workspace, suite.groups)
+    driver = TestDriver(args.dir_input, args.dir_ref,
+                             args.workspace, suite.groups)
 
     # Initialize workspace and run the tests
     driver.initialize(args.ntasks, args.nthreads, args.use_libri)
