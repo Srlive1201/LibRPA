@@ -603,7 +603,10 @@ void Exx::build_KS_blacs(const std::map<int, std::map<int, std::map<int, Complex
                                 exx_is_new[I][J][R] = Matz{n_I, n_J, mat.data, MAJOR::ROW};
                             }
                         }
-                        if (exx_cplx != nullptr) exx_cplx->swap(exx_is_new);
+                        if (exx_cplx != nullptr)
+                            exx_cplx->swap(exx_is_new);
+                        else if (!exx_is_new.empty())
+                            exx_IJR_cplx[isp][ispn_bra][ispn_ket] = std::move(exx_is_new);
                     }
                     else
                     {
@@ -627,7 +630,10 @@ void Exx::build_KS_blacs(const std::map<int, std::map<int, std::map<int, Complex
                                 exx_is_new[I][J][R] = Matd{n_I, n_J, mat.data, MAJOR::ROW};
                             }
                         }
-                        if (exx != nullptr) exx->swap(exx_is_new);
+                        if (exx != nullptr)
+                            exx->swap(exx_is_new);
+                        else if (!exx_is_new.empty())
+                            exx_IJR[isp][ispn_bra][ispn_ket] = std::move(exx_is_new);
                     }
                 }
             }
