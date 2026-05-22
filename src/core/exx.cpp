@@ -268,7 +268,25 @@ void Exx::build(const LibrpaParallelRouting routing,
     // print_keys(global::ofs_myid, Cs.data_libri);
     global::ofs_myid << "comm_h.comm " << comm_h.comm << " global::mpi_comm_global_h.comm " << global::mpi_comm_global_h.comm << std::endl;
     // global::ofs_myid << Cs.data_libri << std::endl;
-    exx_libri.set_Cs(Cs.data_libri, libri_threshold_C);
+    if (use_complex_exx_r)
+    {
+        std::map<int, std::map<libri_types<int, int>::TAC, RI::Tensor<cplxdb>>> data_libri;
+        for (const auto &I_JR_C : Cs.data_libri)
+        {
+            const auto I = I_JR_C.first;
+            for (const auto &JR_C : I_JR_C.second)
+            {
+                const auto J = JR_C.first.first;
+                const auto R = JR_C.first.second;
+                const auto &C = JR_C.second;
+                auto JR = std::pair<int, std::array<int, 3>>(J, R);
+                data_libri[I][JR] = RI::Global_Func::convert<cplxdb>(C);
+            }
+        }
+        exx_libri_cplx.set_Cs(data_libri, libri_threshold_C);
+    }
+    else
+        exx_libri.set_Cs(Cs.data_libri, libri_threshold_C);
     // exx_libri.set_Cs({}, libri_threshold_C);
     profiler.stop("build_real_space_exx_1");
     ofs_myid << "Finished setup Cs for EXX" << endl;
@@ -294,18 +312,16 @@ void Exx::build(const LibrpaParallelRouting routing,
             // debug
             // printf("I J R %zu %zu %d %d %d, max(V) %f\n", I, J, R.x, R.y, R.z, VIJR->max());
             std::array<int,3> Ra{R.x,R.y,R.z};
-            std::valarray<double> VIJR_va(VIJR->c, VIJR->size);
             if (use_complex_exx_r)
             {
-                std::valarray<cplxdb> z(VIJR_va.size());
-                auto pv = std::make_shared<std::valarray<cplxdb>>();
-                *pv = z;
+                auto pv = std::make_shared<std::valarray<cplxdb>>(VIJR->size);
+                for (size_t i = 0; i < VIJR->size; ++i)
+                    (*pv)[i] = cplxdb(VIJR->c[i], 0.0);
                 V_libri_cplx[I][{J, Ra}] = RI::Tensor<cplxdb>({size_t(VIJR->nr), size_t(VIJR->nc)}, pv);
             }
             else
             {
-                auto pv = std::make_shared<std::valarray<double>>();
-                *pv = VIJR_va;
+                auto pv = std::make_shared<std::valarray<double>>(VIJR->c, VIJR->size);
                 V_libri[I][{J, Ra}] = RI::Tensor<double>({size_t(VIJR->nr), size_t(VIJR->nc)}, pv);
             }
         }
@@ -323,18 +339,16 @@ void Exx::build(const LibrpaParallelRouting routing,
                     const auto &R = R_V.first;
                     const auto &V = R_V.second;
                     std::array<int,3> Ra{R.x,R.y,R.z};
-                    std::valarray<double> VIJR_va(V->c, V->size);
                     if (use_complex_exx_r)
                     {
-                        std::valarray<cplxdb> z(VIJR_va.size());
-                        auto pv = std::make_shared<std::valarray<cplxdb>>();
-                        *pv = z;
+                        auto pv = std::make_shared<std::valarray<cplxdb>>(V->size);
+                        for (size_t i = 0; i < V->size; ++i)
+                            (*pv)[i] = cplxdb(V->c[i], 0.0);
                         V_libri_cplx[I][{J, Ra}] = RI::Tensor<cplxdb>({size_t(V->nr), size_t(V->nc)}, pv);
                     }
                     else
                     {
-                        auto pv = std::make_shared<std::valarray<double>>();
-                        *pv = VIJR_va;
+                        auto pv = std::make_shared<std::valarray<double>>(V->c, V->size);
                         V_libri[I][{J, Ra}] = RI::Tensor<double>({size_t(V->nr), size_t(V->nc)}, pv);
                     }
                 }
@@ -352,6 +366,7 @@ void Exx::build(const LibrpaParallelRouting routing,
         exx_libri.set_Vs(V_libri, libri_threshold_V);
     // exx_libri.set_Vs({}, libri_threshold_V);
     V_libri.clear();
+    V_libri_cplx.clear();
     global::profiler.stop("build_real_space_exx_2_2");
     global::profiler.stop("build_real_space_exx_2");
     global::lib_printf("Task %4d: V setup for EXX\n", comm_h.myid);

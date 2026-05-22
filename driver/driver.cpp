@@ -60,6 +60,7 @@ int n_kpoints_band = 0;
 int n_ibz_kpoints = 0;
 int n_states = 0;
 int n_basis_wfc = 0;
+int n_basis_ao = 0;
 int n_spinor = 1;
 
 std::vector<int> iks_eigvec_this;

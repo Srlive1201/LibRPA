@@ -35,6 +35,8 @@ void read_scf_occ_eigenvalues(const string &file_path)
     using driver::n_kpoints;
     using driver::n_states;
     using driver::n_basis_wfc;
+    using driver::n_basis_ao;
+    using driver::n_spinor;
     using driver::iks_eigvec_this;
     using librpa_int::global::myid_global;
     using librpa_int::global::size_global;
@@ -55,6 +57,19 @@ void read_scf_occ_eigenvalues(const string &file_path)
     infile >> n_basis_wfc;
     infile >> efermi;
 
+    if (driver::opts.use_spinor_wfc)
+    {
+        assert(n_spins == 1);
+        assert(n_basis_wfc % 2 == 0 && "Error: nbasis is not even when SOC!");
+        n_spinor = 2;
+        n_basis_ao = n_basis_wfc / 2;
+    }
+    else
+    {
+        n_spinor = 1;
+        n_basis_ao = n_basis_wfc;
+    }
+
     iks_eigvec_this.clear();
     if (driver::get_bool(driver::opts.use_kpara_scf_eigvec))
     {
@@ -69,7 +84,7 @@ void read_scf_occ_eigenvalues(const string &file_path)
             iks_eigvec_this.emplace_back(ik);
     }
 
-    driver::h.set_scf_dimension(n_spins, n_kpoints, n_states, n_basis_wfc);
+    driver::h.set_scf_dimension(n_spins, n_kpoints, n_states, n_basis_ao, n_spinor);
     driver::n_ibz_kpoints = n_kpoints;
 
     // Load the file data
@@ -179,7 +194,7 @@ static int handle_KS_file(const string &file_path)
     const auto nspin = driver::n_spins;
     const auto nsoc = driver::n_spinor;
     const auto nband = driver::n_states;
-    const auto nao = driver::n_basis_wfc;
+    const auto nao = driver::n_basis_ao;
     const auto nbao = nband * nao;
     const auto nbs = nband * nsoc;
     const auto n = nsoc * nbao;
@@ -222,8 +237,10 @@ static int handle_KS_file(const string &file_path)
                         {
                             // re[is * n + isoc * nbao + iw * nband + ib] = stod(rvalue);
                             // im[is * n + isoc * nbao + iw * nband + ib] = stod(ivalue);
-                            re[is * n + iw * nbs + isoc * nband + ib] = stod(rvalue);
-                            im[is * n + iw * nbs + isoc * nband + ib] = stod(ivalue);
+                            // re[is * n + iw * nbs + isoc * nband + ib] = stod(rvalue);
+                            // im[is * n + iw * nbs + isoc * nband + ib] = stod(ivalue);
+                            re[is * n + isoc * nbao + ib * nao + iw] = stod(rvalue);
+                            im[is * n + isoc * nbao + ib * nao + iw] = stod(ivalue);
                         }
                         else
                         {
@@ -237,7 +254,15 @@ static int handle_KS_file(const string &file_path)
         if (skip_this_ik) continue;
         for (int is = 0; is != nspin; is++)
         {
-            driver::h.set_wfc(is, ik, driver::n_states, driver::n_basis_wfc, re.data() + is * n, im.data() + is * n);
+            if (driver::opts.use_spinor_wfc)
+            {
+                assert(is == 0);
+                driver::h.set_wfc_spinor(ik, driver::n_states, driver::n_basis_ao,
+                                         re.data(), im.data(),
+                                         re.data() + nbao, im.data() + nbao);
+            }
+            else
+                driver::h.set_wfc(is, ik, driver::n_states, driver::n_basis_ao, re.data() + is * n, im.data() + is * n);
         }
         // if (ik==0) librpa_int::global::ofs_myid << re << std::endl;
         // for abacus
@@ -2126,6 +2151,7 @@ void read_band_kpath_info(const string &file_path)
 {
     using driver::n_spins;
     using driver::n_basis_wfc;
+    using driver::n_basis_ao;
     using driver::n_states;
     using driver::n_kpoints_band;
     using driver::kfrac_band;
@@ -2183,6 +2209,7 @@ void read_band_meanfield_data(const string &dir_path)
     using driver::n_kpoints_band;
     using driver::n_states;
     using driver::n_basis_wfc;
+    using driver::n_basis_ao;
     using driver::iks_band_eigvec_this;
 
     if (driver::n_kpoints_band == 0)
@@ -2208,12 +2235,6 @@ void read_band_meanfield_data(const string &dir_path)
 
     const int n_kb = n_kpoints_band * n_states;
     std::string s1, s2, s3, s4, s5;
-    int n_basis_ao = n_basis_wfc;
-    if (driver::opts.use_spinor_wfc)
-    {
-        assert(n_basis_ao % 2 == 0 && "Error: nbasis is not even when SOC!");
-        n_basis_ao = n_basis_ao / 2;
-    }
 
     // Load occupation weights and eigenvalues
     for (int ik = 0; ik < n_kpoints_band; ik++)

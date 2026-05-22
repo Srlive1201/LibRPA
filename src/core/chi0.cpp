@@ -1199,7 +1199,7 @@ void Chi0::build_chi0_q_space_time_R_tau_routing(const Cs_LRI &Cs,
             qlist2myid.insert(std::make_pair(id_q, id));
     }
 
-    const int n_soc = 1;
+    const int n_soc = mf.get_n_spinor();
 
     map<double, map<Vector3_Order<double>, atom_mapping<ComplexMatrix>::pair_t_old>> chi0_q_tmp;
     for (auto freq : tfg.get_freq_nodes())
