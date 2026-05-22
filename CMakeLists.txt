@@ -223,9 +223,6 @@ else()
   set(LIBRPA_GREENX_COMMIT_HASH "(EXTERNAL)")
 endif()
 
-# Lebedev-Laikov grid points for spherical quadrature
-add_subdirectory(thirdparty/lebedev-quadrature)
-
 if(LIBRPA_ENABLE_TEST)
   # FetchContent_Declare(
   #   googletest

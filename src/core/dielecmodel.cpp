@@ -2,9 +2,11 @@
 
 #include <cassert>
 #include <cmath>
+#include <utility>
 
 #include "../math/fitting.h"
 #include "../math/interpolate.h"
+#include "../math/lebedev_laikov.h"
 #include "../math/vec.h"
 #include "../math/matrix_m.h"
 #include "../math/utils_matrix_m_mpi.h"
@@ -17,7 +19,6 @@
 #include "atomic_basis.h"
 #include "pbc.h"
 #include "ri.h"
-#include "../../thirdparty/lebedev-quadrature/lebedev_quadrature.hpp"
 #ifdef LIBRPA_USE_LIBRI
 #include <RI/comm/mix/Communicate_Tensors_Map_Judge.h>
 #include <RI/global/Tensor.h>
@@ -1020,12 +1021,12 @@ void diele_func::get_Leb_points()
     }
     else
     {
-        auto quad_order = lebedev::QuadratureOrder::order_5810;
-        auto quad_points = lebedev::QuadraturePoints(quad_order);
-        qx_leb = quad_points.get_x();
-        qy_leb = quad_points.get_y();
-        qz_leb = quad_points.get_z();
-        qw_leb = quad_points.get_weights();
+        // TODO: check convergence issue and change 5810 to argument
+        auto quad_points = lebedev_laikov::grid(5810);
+        qx_leb = std::move(quad_points.x);
+        qy_leb = std::move(quad_points.y);
+        qz_leb = std::move(quad_points.z);
+        qw_leb = std::move(quad_points.weights);
         for (int ileb = 0; ileb != qw_leb.size(); ileb++)
         {
             qw_leb[ileb] *= 2 * TWO_PI;

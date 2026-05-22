@@ -71,7 +71,7 @@ private:
     const MpiCommHandler &comm_h;
     const BlacsCtxtHandler &blacs_h;
     size_t n_nonsingular;
-    // lebedev-quadrature, qw has absorbed 4Pi.
+    // Lebedev-Laikov angular grid; qw has absorbed 4Pi.
     std::vector<double> qx_leb, qy_leb, qz_leb, qw_leb;
     // gamma reciprocal lattice vector, (27-1)*3
     std::vector<Vector3_Order<double>> g_enclosing_gamma;
