@@ -18,7 +18,7 @@ They are centered around two management structures:
 
 ## Handler object
 
-The {librpa}`LibrpaHandler` (C) / {librpa}`librpa::Handler` (C++) / `type(LibrpaHandler)` (Fortran) is the central object that manages the LibRPA computation. It encapsulates all input data and computation state.
+The {librpa}`LibrpaHandler` (C) / {librpa}`librpa::Handler` (C++) / {librpa}`type(LibrpaHandler) <librpahandler>` (Fortran) is the central object that manages the LibRPA computation. It encapsulates all input data and computation state.
 
 The typical workflow is:
 1. Create a handler using the MPI communicator
@@ -97,6 +97,7 @@ Input parsing APIs common to all tasks include (C/C++/Fortran):
 - {librpa}`librpa_set_scf_dimension` / {librpa}`Handler::set_scf_dimension` / {librpa}`handler%set_scf_dimension <librpahandler::set_scf_dimension>`
 - {librpa}`librpa_set_wg_ekb_efermi` / {librpa}`Handler::set_wg_ekb_efermi` / {librpa}`handler%set_wg_ekb_efermi <librpahandler::set_wg_ekb_efermi>`
 - {librpa}`librpa_set_wfc` / {librpa}`Handler::set_wfc` / {librpa}`handler%set_wfc <librpahandler::set_wfc>`
+- {librpa}`librpa_set_wfc_spinor` / {librpa}`Handler::set_wfc_spinor` / {librpa}`handler%set_wfc_spinor <librpahandler::set_wfc_spinor>`
 - {librpa}`librpa_set_ao_basis_wfc` / {librpa}`Handler::set_ao_basis_wfc` / {librpa}`handler%set_ao_basis_wfc <librpahandler::set_ao_basis_wfc>`
 - {librpa}`librpa_set_ao_basis_aux` / {librpa}`Handler::set_ao_basis_aux` / {librpa}`handler%set_ao_basis_aux <librpahandler::set_ao_basis_aux>`
 - {librpa}`librpa_set_latvec_and_G` / {librpa}`Handler::set_latvec_and_G` / {librpa}`handler%set_latvec_and_G <librpahandler::set_latvec_and_g>`
@@ -111,6 +112,7 @@ Input parsing APIs common to all tasks include (C/C++/Fortran):
 - {librpa}`librpa_set_band_kvec` / {librpa}`Handler::set_band_kvec` / {librpa}`handler%set_band_kvec <librpahandler::set_band_kvec>`
 - {librpa}`librpa_set_band_occ_eigval` / {librpa}`Handler::set_band_occ_eigval` / {librpa}`handler%set_band_occ_eigval <librpahandler::set_band_occ_eigval>`
 - {librpa}`librpa_set_wfc_band` / {librpa}`Handler::set_wfc_band` / {librpa}`handler%set_wfc_band <librpahandler::set_wfc_band>`
+- {librpa}`librpa_set_wfc_band_spinor` / {librpa}`Handler::set_wfc_band_spinor` / {librpa}`handler%set_wfc_band_spinor <librpahandler::set_wfc_band_spinor>`
 
 These functions parse information from the hosting DFT code to LibRPA, such as:
 - dimension of lattice vectors, orbital basis and auxiliary basis
