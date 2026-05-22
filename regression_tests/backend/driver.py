@@ -125,7 +125,7 @@ class Driver:
             dst = self._workspace / dname
             dst_librpa = dst / "librpa"
             # prepare inputs
-            dst.mkdir(parents=True, exist_ok=True)
+            dst_librpa.mkdir(parents=True, exist_ok=True)
             shutil.copy2(src_librpa / "librpa.in", dst_librpa)
             with tarfile.open(src / "dataset.tar.gz", "r:gz") as tar:
                 tar.extractall(path=dst)
