@@ -715,17 +715,23 @@ void Exx::build_KS_blacs(const std::map<int, std::map<int, std::map<int, Complex
                 auto orig_cplx = find_nested_int_map_3(exx_IJR_cplx, isp, ispn_bra, ispn_ket);
                 if (use_complex_exx_r)
                 {
-                    if (orig_cplx != nullptr && geometry.is_frac_set())
-                        shift_bvk(*orig_cplx , exx_is_local_cplx);
-                    else
-                        exx_is_local_cplx = *orig_cplx ;
+                    if (orig_cplx != nullptr)
+                    {
+                        if (geometry.is_frac_set())
+                            shift_bvk(*orig_cplx , exx_is_local_cplx);
+                        else
+                            exx_is_local_cplx = *orig_cplx;
+                    }
                 }
                 else
                 {
-                    if (orig != nullptr && geometry.is_frac_set())
-                        shift_bvk(*orig, exx_is_local);
-                    else
-                        exx_is_local = *orig;
+                    if (orig != nullptr)
+                    {
+                        if (geometry.is_frac_set())
+                            shift_bvk(*orig, exx_is_local);
+                        else
+                            exx_is_local = *orig;
+                    }
                 }
 
                 if (is_mf_eigvec_k_distributed_)
