@@ -207,6 +207,30 @@
       />
     </testcase>
 
+    <testcase name="Bulk silicon, band structure (aims input)" directory="g0w0_band_aims_Si_libri">
+      <build require_libri="true"
+      />
+      <run ntasks_disable="none"
+           nthreads_disable="none"
+           ntasks_enable="none"
+           nthreads_enable="none"
+      />
+      <validate name="Quasi-particle energies on k-grid"
+                regex="State\s+occ\s+e_mf\s+v_xc\s+v_exx\s+ReSigc\s+ImSigc\s+e_qp"
+                headers="2"
+                rows="18"
+                comparison="cmp_table.abs_diff(1e-4)"
+      />
+      <validate name="Non-SCF EXX band structure"
+                file="librpa/EXX_band_spin_*.dat"
+                comparison="cmp_table.abs_diff(1e-4)"
+      />
+      <validate name="QP band structure"
+                file="librpa/GW_band_spin_*.dat"
+                comparison="cmp_table.abs_diff(1e-4)"
+      />
+    </testcase>
+
     <testcase name="Lithium atom, spin-polarized (aims input)" directory="g0w0_aims_Li_atom_libri">
       <validate name="Quasi-particle energies on k-grid"
                 regex="State\s+occ\s+e_mf\s+v_xc\s+v_exx\s+ReSigc\s+ImSigc\s+e_qp"
