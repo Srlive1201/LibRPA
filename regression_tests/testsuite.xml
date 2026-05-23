@@ -1,7 +1,7 @@
 <regressionsuite>
 
-  <group name="RPA correlation energy">
-    <testcase name="water molecules in box (aims input)" directory="rpa_aims_mole_H2O_libri">
+  <group name="RPA correlation energy" prefix="RPA">
+    <testcase name="Water molecule in box (aims input)" directory="rpa_aims_mole_H2O_libri">
       <build require_libri="true"
       />
       <run ntasks_disable="none"
@@ -16,7 +16,7 @@
     </testcase>
   </group>
 
-  <group name="Exact-exchange (EXX) potentials">
+  <group name="Exact-exchange (EXX) potentials" prefix="EXX">
     <testcase name="BCC He, with eigenvector parllelized over k (aims input)" directory="exx_aims_bccHe_k_parallel_libri">
       <build require_libri="true"
       />
@@ -29,7 +29,7 @@
     </testcase>
   </group>
 
-  <group name="One-shot GW quasi-particle energies (QPE)">
+  <group name="One-shot GW quasi-particle energies (QPE)" prefix="G0W0">
     <testcase name="BN headwing (abacus input)" directory="g0w0_band_abacus_BN_headwing_libri">
       <labels disable="true"
       />
@@ -207,6 +207,15 @@
       />
     </testcase>
 
+    <testcase name="Water molecule in box (aims input)" directory="g0w0_aims_mole_H2O_libri">
+      <validate name="Quasi-particle energies"
+                regex="State\s+occ\s+e_mf\s+v_xc\s+v_exx\s+ReSigc\s+ImSigc\s+e_qp"
+                headers="2"
+                rows="24"
+                comparison="cmp_table.abs_diff(1e-4)"
+      />
+    </testcase>
+
     <testcase name="Bulk silicon, band structure (aims input)" directory="g0w0_band_aims_Si_libri">
       <build require_libri="true"
       />
@@ -232,7 +241,7 @@
     </testcase>
 
     <testcase name="Lithium atom, spin-polarized (aims input)" directory="g0w0_aims_Li_atom_libri">
-      <validate name="Quasi-particle energies on k-grid"
+      <validate name="Quasi-particle energies"
                 regex="State\s+occ\s+e_mf\s+v_xc\s+v_exx\s+ReSigc\s+ImSigc\s+e_qp"
                 headers="2"
                 rows="5"
