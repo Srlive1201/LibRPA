@@ -1187,7 +1187,15 @@ void G0W0::build_sigc_matrix_KS_blacs(const std::map<int, std::map<int, std::map
                                                           sigc_nband_nband_fb.ptr(), 1, 1, desc_nband_nband_fb.desc,
                                                           desc_nband_nband_fb.ictxt());
                             // NOTE: only the matrices at master process is meaningful
-                            sigc_is_ik_f_KS[isp][ik][freq] = sigc_nband_nband_fb.copy();
+                            auto sigc_freq = find_nested_int_map_2(this->sigc_is_ik_f_KS, isp, ik);
+                            if (sigc_freq == nullptr || sigc_freq->count(freq) == 0)
+                            {
+                                this->sigc_is_ik_f_KS[isp][ik][freq] = sigc_nband_nband_fb.copy();
+                            }
+                            else
+                            {
+                                sigc_freq->at(freq) += sigc_nband_nband_fb;
+                            }
                         }
                     }
                     global::profiler.stop("g0w0_build_sigc_KS_rotate_kserial");
