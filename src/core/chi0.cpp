@@ -514,7 +514,7 @@ static void chi_libri_ft_ct(
     const vector<Vector3_Order<double>> &qlist, const vector<atpair_t> &atpairs_ABF,
     map<double, map<Vector3_Order<double>, atom_mapping<ComplexMatrix>::pair_t_old>> &chi0_q)
 {
-    const bool use_soc = false;
+    const bool use_soc = std::is_same<Tdata, std::complex<double>>::value;
     const auto tau = tfg.get_time_nodes()[it];
     // a simple vector container for OpenMP parallel
     vector<pair<std::array<int, 4>, std::vector<std::array<int, 3>>>> ifreq_iq_mu_nu_to_Rs;
@@ -602,7 +602,7 @@ static void chi_libri_ft_Rq(
     const vector<Vector3_Order<double>> &qlist, const vector<atpair_t> &atpairs_ABF,
     map<double, map<Vector3_Order<double>, atom_mapping<ComplexMatrix>::pair_t_old>> &chi0_q)
 {
-    const bool use_soc = false;
+    const bool use_soc = std::is_same<Tdata, std::complex<double>>::value;
     const auto tau = tfg.get_time_nodes()[it];
     // a simple vector container for OpenMP parallel
     vector<pair<std::array<int, 3>, std::vector<std::array<int, 3>>>> iq_mu_nu_to_Rs;

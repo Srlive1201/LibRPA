@@ -300,10 +300,10 @@ ComplexMatrix MeanField::get_gf_cplx_imagtime(int ispin, int ispinor_bra, int is
     if (wfc_ket == nullptr)
         throw LIBRPA_RUNTIME_ERROR("wfc of ispinor_ket not found");
 
-    auto scaled_wfc_conj = conj(*wfc_bra);
+    auto scaled_wfc_conj = conj(*wfc_ket);
     for (int ib = 0; ib < n_states; ib++)
         LapackConnector::scal(n_aos, scale[ib], scaled_wfc_conj.c + n_aos * ib, 1);
-    return transpose(*wfc_ket, false) * scaled_wfc_conj;
+    return transpose(*wfc_bra, false) * scaled_wfc_conj;
 }
 
 std::map<double, std::map<Vector3_Order<int>, ComplexMatrix>> MeanField::get_gf_cplx_imagtimes_Rs(
@@ -341,16 +341,16 @@ std::map<double, std::map<Vector3_Order<int>, ComplexMatrix>> MeanField::get_gf_
         // ofs_myid cout << "tau " << tau << endl << scale << endl;
         for (int ik = 0; ik != n_kpoints; ik++)
         {
+            const auto wfc_ket = find_wfc(ispin, ispinor_ket, ik);
+            if (wfc_ket == nullptr)
+                throw LIBRPA_RUNTIME_ERROR("wfc of ispinor_ket not found");
+            auto scaled_wfc_conj = conj(*wfc_ket);
+            for (int ib = 0; ib != n_states; ib++)
+                LapackConnector::scal(n_aos, scale(ik, ib), scaled_wfc_conj.c + n_aos * ib, 1);
             const auto wfc_bra = find_wfc(ispin, ispinor_bra, ik);
             if (wfc_bra == nullptr)
                 throw LIBRPA_RUNTIME_ERROR("wfc of ispinor_bra not found");
-            auto scaled_wfc_conj = conj(*wfc_bra);
-            for (int ib = 0; ib != n_states; ib++)
-                LapackConnector::scal(n_aos, scale(ik, ib), scaled_wfc_conj.c + n_aos * ib, 1);
-            const auto wfc_ket = find_wfc(ispin, ispinor_ket, ik);
-            if (wfc_ket == nullptr)
-                throw LIBRPA_RUNTIME_ERROR("wfc of ispinor_bra not found");
-            const auto gf_k = transpose(*wfc_ket, false) * scaled_wfc_conj;
+            const auto gf_k = transpose(*wfc_bra, false) * scaled_wfc_conj;
             for (const auto &R : Rs)
             {
                 double ang = -kfrac_list[ik] * R * TWO_PI;
