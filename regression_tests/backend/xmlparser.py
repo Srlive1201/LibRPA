@@ -6,6 +6,26 @@ __all__ = ["XMLParser",]
 TRUE_FALSE_NONE = {"true": True, "false": False, "none": None}
 
 
+def _parse_label_value(value: str):
+    if value is None:
+        return value
+    value = value.strip()
+    if not value:
+        return False
+    return TRUE_FALSE_NONE.get(value.lower(), value)
+
+
+def _process_general_labels(node_testcase):
+    ret = {
+        "disable": False,
+    }
+    labels = node_testcase.find('labels')
+    if labels is not None:
+        for key, value in labels.attrib.items():
+            ret[key] = _parse_label_value(value)
+    return ret
+
+
 def _process_build_parameters(node_testcase):
     b = node_testcase.find('build')
     pars_tfn_default = {
@@ -76,9 +96,12 @@ class XMLParser:
                 directory = tc.get('directory')
                 build = _process_build_parameters(tc)
                 run = _process_run_parameters(tc)
+                labels = _process_general_labels(tc)
                 validates = []
                 for v in tc.findall('validate'):
                     validates.append(_process_validate_parameters(v))
-                groups[gname].append(dict(name=name, directory=directory, build=build, run=run, validates=validates))
+                groups[gname].append(
+                    dict(name=name, directory=directory, build=build, run=run,
+                         validates=validates, labels=labels)
+                )
         self.groups = groups
-

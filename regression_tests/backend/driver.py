@@ -14,6 +14,34 @@ __all__ = ["TestDriver"]
 PASS_FAIL = {True: "PASS", False: "FAIL"}
 
 
+def _disable_message(tc: dict):
+    labels = tc.get("labels", {})
+    disable = labels.get("disable", False)
+    if disable is True:
+        return ""
+    if isinstance(disable, str):
+        msg = disable.strip()
+        if msg:
+            return msg
+    return None
+
+
+def _disable_testcase(tc: dict, message):
+    if _disable_message(tc) is not None:
+        return
+    tc.setdefault("labels", {})["disable"] = message
+
+
+def _validate_scope_filter(testcases, option: str, values):
+    selected = set(values or [])
+    known = {tc["directory"] for tc in testcases}
+    unknown = sorted(selected - known)
+    if unknown:
+        raise ValueError("Unknown test case directory in {:s}: {:s}".format(
+            option, ", ".join(unknown)))
+    return selected
+
+
 def _check_build_run_filter(tc: dict,
                             ntasks: int, nthreads: int,
                             use_libri: bool) -> Tuple[bool, bool]:
@@ -58,23 +86,42 @@ class TestDriver:
         # Testcases that are qualified after initialized with build and runtime conditions
         self._testcases_filtered = None
 
-    def initialize(self, ntasks: int, nthreads: int, use_libri: bool):
+    def initialize(self, ntasks: int, nthreads: int, use_libri: bool,
+                   only=None, exclude=None):
         self._testcases_filtered = []
         self._ntasks = ntasks
         self._nthreads = nthreads
+
+        if only and exclude:
+            raise ValueError("--only and --exclude cannot be used together")
+
+        all_testcases = [tc for gtcs in self._groups.values() for tc in gtcs]
+        only = _validate_scope_filter(all_testcases, "--only", only)
+        exclude = _validate_scope_filter(all_testcases, "--exclude", exclude)
+        if only:
+            for tc in all_testcases:
+                if tc["directory"] not in only:
+                    _disable_testcase(tc, "not selected by --only")
+        elif exclude:
+            for tc in all_testcases:
+                if tc["directory"] in exclude:
+                    _disable_testcase(tc, "excluded by --exclude")
 
         print("Initializing workspace targeting:")
         print("- MPI tasks :", ntasks)
         print("- threads   :", nthreads)
         print("- LibRI     ?", use_libri)
-        print()
 
         # Filter test cases
+        skip_due_to_disable = []
         skip_due_to_build = []
         skip_due_to_run = []
 
         for g, gtcs in self._groups.items():
             for tc in gtcs:
+                if _disable_message(tc) is not None:
+                    skip_due_to_disable.append(tc)
+                    continue
                 filter_build, filter_run = _check_build_run_filter(
                     tc, ntasks, nthreads, use_libri)
                 if filter_build:
@@ -84,6 +131,14 @@ class TestDriver:
                     skip_due_to_run.append(tc)
                     continue
                 self._testcases_filtered.append(tc)
+
+        if skip_due_to_disable:
+            print()
+            print("Disabled following test cases")
+            for tc in skip_due_to_disable:
+                msg = _disable_message(tc)
+                reminder = " [{:s}]".format(msg) if msg else ""
+                print("- {:s}: {:s}{:s}".format(tc["directory"], tc["name"], reminder))
 
         if skip_due_to_build:
             print()
@@ -166,10 +221,14 @@ class TestDriver:
     # TODO: make output work
     def print(self, output):
         for g, gtcs in self._groups.items():
-            print("Test group: {}".format(g))
+            gtcs_active = [tc for tc in gtcs if _disable_message(tc) is None]
+            if not gtcs_active:
+                continue
             print()
-            for tc in gtcs:
+            print("Test group: {}".format(g))
+            for tc in gtcs_active:
                 results = tc.get("results", None)
+                print()
                 if results:
                     s = "Validate results for {} [directory: {}]: {}"
                     good_all = PASS_FAIL.get(all(x[0] for x in results))
@@ -179,4 +238,3 @@ class TestDriver:
                 else:
                     s = "No results to validate for {} [directory: {}]"
                     print(s.format(tc["name"], tc["directory"]))
-                print()

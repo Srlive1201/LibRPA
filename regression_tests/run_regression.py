@@ -8,17 +8,22 @@ from backend.driver import TestDriver
 
 
 if __name__ == '__main__':
-    args = get_parser().parse_args()
+    parser = get_parser()
+    args = parser.parse_args()
 
     # Parse the test suite
     suite = XMLParser(args.xml)
 
     # Create the test driver
     driver = TestDriver(args.dir_input, args.dir_ref,
-                             args.workspace, suite.groups)
+                        args.workspace, suite.groups)
 
     # Initialize workspace and run the tests
-    driver.initialize(args.ntasks, args.nthreads, args.use_libri)
+    try:
+        driver.initialize(args.ntasks, args.nthreads, args.use_libri,
+                          args.only, args.exclude)
+    except ValueError as exc:
+        parser.error(str(exc))
 
     if args.mode in ["run", "full"]:
         driver.run(args.librpa_exec, args.mpiexec, args.force)
@@ -27,4 +32,10 @@ if __name__ == '__main__':
     if args.mode in ["analyze", "full"]:
         status = driver.analyze()
         driver.print(args.output)
+        print()
+        if status == 0:
+            print("All selected tests PASSED :)")
+        else:
+            print("Some tests FAILED, please check above details")
+
     sys.exit(status)

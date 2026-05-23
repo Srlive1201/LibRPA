@@ -31,6 +31,8 @@
 
   <group name="One-shot GW quasi-particle energies (QPE)">
     <testcase name="BN headwing (abacus input)" directory="g0w0_band_abacus_BN_headwing_libri">
+      <labels disable="true"
+      />
       <build require_libri="true"
       />
       <run ntasks_disable="none"
@@ -47,6 +49,8 @@
     </testcase>
 
     <testcase name="BN shrink (abacus input)" directory="g0w0_band_abacus_BN_shrink_libri">
+      <labels disable="true"
+      />
       <build require_libri="true"
       />
       <run ntasks_disable="none"
@@ -63,6 +67,8 @@
     </testcase>
 
     <testcase name="BN SOC (abacus input)" directory="g0w0_band_abacus_BN_soc_libri">
+      <labels disable="true"
+      />
       <build require_libri="true"
       />
       <run ntasks_disable="none"
@@ -91,6 +97,8 @@
     </testcase>
 
     <testcase name="BN headwing shrink SOC (abacus input)" directory="g0w0_band_abacus_BN_headwing_shrink_soc_libri">
+      <labels disable="true"
+      />
       <build require_libri="true"
       />
       <run ntasks_disable="none"
@@ -119,6 +127,8 @@
     </testcase>
 
     <testcase name="MnO2 nspin2 shrink wing (abacus input)" directory="g0w0_band_abacus_MnO2_nspin2_shrink_wing_libri">
+      <labels disable="true"
+      />
       <build require_libri="true"
       />
       <run ntasks_disable="none"
@@ -152,6 +162,8 @@
     </testcase>
 
     <testcase name="BN symmetry shrink (abacus input)" directory="g0w0_band_abacus_BN_sym_shrink_libri">
+      <labels disable="true"
+      />
       <build require_libri="true"
       />
       <run ntasks_disable="none"

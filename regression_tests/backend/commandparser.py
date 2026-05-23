@@ -35,6 +35,11 @@ def _add_testsuite_options(p: ArgumentParser):
                    help="Number of OpenMP threads to run the tests, default: 1")
     p.add_argument("--dir-input", type=str, default="testcases/", help="Directory that contain input data for testcases")
     p.add_argument("--dir-ref", type=str, default="refs/", help="Directory that contain reference results")
+    scope = p.add_mutually_exclusive_group()
+    scope.add_argument("--only", nargs="+", metavar="TESTCASE",
+                       help="Only enable test cases with these directory names")
+    scope.add_argument("--exclude", nargs="+", metavar="TESTCASE",
+                       help="Disable test cases with these directory names")
 
 
 def _add_execute_options(p: ArgumentParser):
