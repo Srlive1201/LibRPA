@@ -13,8 +13,9 @@
 #include <unordered_map>
 #include <vector>
 
+#include "../include/librpa.hpp"
+
 #include "driver.h"
-#include "librpa.hpp"
 #include "../src/mpi/global_mpi.h"
 #include "../src/math/matrix.h"
 #include "../src/utils/constants.h"
@@ -2242,6 +2243,7 @@ void read_band_meanfield_data(const string &dir_path)
         std::stringstream ss;
         ss << dir_path << "band_KS_eigenvalue_k_" << std::setfill('0') << std::setw(5) << ik + 1
            << ".txt";
+        ofs_myid << "Loading band eigenvalues from " << ss.str() << std::endl;
         ifstream infile;
         infile.open(ss.str());
         for (int i_spin = 0; i_spin < n_spins; i_spin++)

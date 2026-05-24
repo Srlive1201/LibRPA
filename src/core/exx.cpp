@@ -356,17 +356,22 @@ void Exx::build(const LibrpaParallelRouting routing,
         }
     }
     global::profiler.stop("build_real_space_exx_2_1");
-    global::ofs_myid << "Number of V keys: " << get_num_keys(V_libri) << endl;
 
     // global::ofs_myid << V_libri << endl;
     global::profiler.start("build_real_space_exx_2_2");
     if (use_complex_exx_r)
+    {
+        global::ofs_myid << "Number of V keys: " << get_num_keys(V_libri_cplx) << endl;
         exx_libri_cplx.set_Vs(V_libri_cplx, libri_threshold_V);
+        V_libri_cplx.clear();
+    }
     else
+    {
+        global::ofs_myid << "Number of V keys: " << get_num_keys(V_libri) << endl;
         exx_libri.set_Vs(V_libri, libri_threshold_V);
+        V_libri.clear();
+    }
     // exx_libri.set_Vs({}, libri_threshold_V);
-    V_libri.clear();
-    V_libri_cplx.clear();
     global::profiler.stop("build_real_space_exx_2_2");
     global::profiler.stop("build_real_space_exx_2");
     global::lib_printf("Task %4d: V setup for EXX\n", comm_h.myid);
@@ -400,13 +405,18 @@ void Exx::build(const LibrpaParallelRouting routing,
                                              this->pbc.kfrac_list, dmat_IJRs_local,
                                              use_complex_exx_r, dmat_libri, dmat_libri_cplx);
                 }
-                global::ofs_myid << "Number of Dmat keys: " << get_num_keys(dmat_libri) << "\n";
                 // global::ofs_myid << dmat_libri << std::endl;
                 // print_keys(global::ofs_myid, dmat_libri);
                 if (use_complex_exx_r)
+                {
+                    global::ofs_myid << "Number of Dmat keys: " << get_num_keys(dmat_libri_cplx) << "\n";
                     exx_libri_cplx.set_Ds(dmat_libri_cplx, libri_threshold_D);
+                }
                 else
+                {
+                    global::ofs_myid << "Number of Dmat keys: " << get_num_keys(dmat_libri) << "\n";
                     exx_libri.set_Ds(dmat_libri, libri_threshold_D);
+                }
                 // exx_libri.set_Ds({}, libri_threshold_D);
                 global::profiler.stop("build_real_space_exx_3");
                 global::lib_printf("Task %4d: DM setup for EXX\n", comm_h.myid);
