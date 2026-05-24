@@ -1,12 +1,9 @@
 Initialized LibRPA global environment
-Total number of tasks    :     4
+Total number of tasks    :     1
 Total number of nodes    :     1
 Maximal number of threads:   1
 MPI tasks information:
-| Proc    0 of Size    4: taiyi
-| Proc    1 of Size    4: taiyi
-| Proc    2 of Size    4: taiyi
-| Proc    3 of Size    4: taiyi
+| Proc    0 of Size    1: taiyi
 | Global ID of master process of node     0 :     0
 
 LibRPA CMake build info:
@@ -124,27 +121,15 @@ Successfully read eigenvector files
 Loading RI file from directory: ../dataset/
 Evenly distributed Cs and V for LibRI
 Finished Cs filtering
-Begin READ_Vq_Row
-Begin READ_Vq_Row
-Begin READ_Vq_Row
 Finished Cs parsing
 Begin READ_Vq_Row
 Unformatted binary V files detected
 | Process     0: coulomb_mat read. Wall/CPU time [min]:       0.0000       0.0000
-| Process     1: coulomb_mat read. Wall/CPU time [min]:       0.0000       0.0000
-| Process     2: coulomb_mat read. Wall/CPU time [min]:       0.0000       0.0000
-| Process     3: coulomb_mat read. Wall/CPU time [min]:       0.0000       0.0000
-| Process     0: Cs with              3 non-zero keys from local atpair size       2. Data memory:       0.15 MB. Wall/CPU time [min]:       0.0000       0.0000
+| Process     0: Cs with              9 non-zero keys from local atpair size       6. Data memory:       0.27 MB. Wall/CPU time [min]:       0.0000       0.0000
 Actual parallel routing used: libri
-| Process     1: Cs with              2 non-zero keys from local atpair size       1. Data memory:       0.05 MB. Wall/CPU time [min]:       0.0000       0.0000
-| Process     2: Cs with              2 non-zero keys from local atpair size       1. Data memory:       0.06 MB. Wall/CPU time [min]:       0.0000       0.0000
-| Process     3: Cs with              2 non-zero keys from local atpair size       2. Data memory:       0.01 MB. Wall/CPU time [min]:       0.0000       0.0000
 Initialization finished, Wall/CPU time [min]:       0.0000       0.0000
 Common data parsed, task g0w0 will begin
 g0w0: One-shot GW for quasi-paricle energies on k-grid
-Begin READ_Vq_Row
-Begin READ_Vq_Row
-Begin READ_Vq_Row
 Begin READ_Vq_Row
 Unformatted binary V files detected
 * Success: Read DFT xc potential, solve quasi-particle equation
@@ -325,433 +310,226 @@ nr = 32, nc = 32
  4.79603e-124 -2.86691e-124 -1.27479e-124 7.53846e-126 -9.19252e-125 4.12541e-125 -6.67614e-125 5.94832e-126 5.74101e-125 -1.33766e-125 -9.32387e-126 4.58152e-126 -8.68838e-127 9.79586e-128 -8.29574e-129 6.57385e-130 -5.99107e-131 7.32389e-132 -1.29224e-132 3.29126e-133 -1.16115e-133 5.38198e-134 -3.11924e-134 2.17408e-134 -1.78563e-134 1.72960e-134 -1.98971e-134 2.69847e-134 -4.17768e-134 6.93011e-134 -1.11845e-133 1.57509e-133
 
 Total count of GFs IJR: 9
-| Number of GFs IJR on Proc    0: 3
+| Number of GFs IJR on Proc    0: 9
 Use LibRI for chi0
-| Number of GFs IJR on Proc    1: 2
-| Number of GFs IJR on Proc    2: 2
-| Number of GFs IJR on Proc    3: 2
 Green's Function sums over all states.
-chi0s for time point 0.004703, spin 0. CPU time: 0.006108 (tensor), 0.001498 (trans). Wall time 0.006191
+chi0s for time point 0.004703, spin 0. CPU time: 0.003423 (tensor), 0.001762 (trans). Wall time 0.005186
 Green's Function sums over all states.
-chi0s for time point 0.025100, spin 0. CPU time: 0.006259 (tensor), 0.001352 (trans). Wall time 0.005880
+chi0s for time point 0.025100, spin 0. CPU time: 0.003250 (tensor), 0.001821 (trans). Wall time 0.005072
 Green's Function sums over all states.
-chi0s for time point 0.063155, spin 0. CPU time: 0.005706 (tensor), 0.001467 (trans). Wall time 0.005595
+chi0s for time point 0.063155, spin 0. CPU time: 0.003636 (tensor), 0.001921 (trans). Wall time 0.005727
 Green's Function sums over all states.
-chi0s for time point 0.121481, spin 0. CPU time: 0.006328 (tensor), 0.001395 (trans). Wall time 0.006111
+chi0s for time point 0.121481, spin 0. CPU time: 0.003388 (tensor), 0.002053 (trans). Wall time 0.005468
 Green's Function sums over all states.
-chi0s for time point 0.204495, spin 0. CPU time: 0.006059 (tensor), 0.001368 (trans). Wall time 0.005792
+chi0s for time point 0.204495, spin 0. CPU time: 0.003366 (tensor), 0.001760 (trans). Wall time 0.005171
 Green's Function sums over all states.
-chi0s for time point 0.319210, spin 0. CPU time: 0.006053 (tensor), 0.001365 (trans). Wall time 0.005752
+chi0s for time point 0.319210, spin 0. CPU time: 0.003457 (tensor), 0.002128 (trans). Wall time 0.005668
 Green's Function sums over all states.
-chi0s for time point 0.476304, spin 0. CPU time: 0.006133 (tensor), 0.001279 (trans). Wall time 0.005947
+chi0s for time point 0.476304, spin 0. CPU time: 0.003375 (tensor), 0.001738 (trans). Wall time 0.005114
 Green's Function sums over all states.
-chi0s for time point 0.691408, spin 0. CPU time: 0.005160 (tensor), 0.001312 (trans). Wall time 0.005155
+chi0s for time point 0.691408, spin 0. CPU time: 0.003338 (tensor), 0.001884 (trans). Wall time 0.005274
 Green's Function sums over all states.
-chi0s for time point 0.986623, spin 0. CPU time: 0.006172 (tensor), 0.001386 (trans). Wall time 0.005888
+chi0s for time point 0.986623, spin 0. CPU time: 0.003513 (tensor), 0.001850 (trans). Wall time 0.005475
 Green's Function sums over all states.
-chi0s for time point 1.392440, spin 0. CPU time: 0.005751 (tensor), 0.001374 (trans). Wall time 0.005756
+chi0s for time point 1.392440, spin 0. CPU time: 0.003522 (tensor), 0.002080 (trans). Wall time 0.005609
 Green's Function sums over all states.
-chi0s for time point 1.950352, spin 0. CPU time: 0.005765 (tensor), 0.001319 (trans). Wall time 0.005378
+chi0s for time point 1.950352, spin 0. CPU time: 0.003656 (tensor), 0.001894 (trans). Wall time 0.005670
 Green's Function sums over all states.
-chi0s for time point 2.716434, spin 0. CPU time: 0.005341 (tensor), 0.001372 (trans). Wall time 0.005553
+chi0s for time point 2.716434, spin 0. CPU time: 0.003388 (tensor), 0.002285 (trans). Wall time 0.005682
 Green's Function sums over all states.
-chi0s for time point 3.766198, spin 0. CPU time: 0.005697 (tensor), 0.001245 (trans). Wall time 0.005614
+chi0s for time point 3.766198, spin 0. CPU time: 0.003490 (tensor), 0.001720 (trans). Wall time 0.005210
 Green's Function sums over all states.
-chi0s for time point 5.201072, spin 0. CPU time: 0.005061 (tensor), 0.001552 (trans). Wall time 0.005472
+chi0s for time point 5.201072, spin 0. CPU time: 0.003323 (tensor), 0.001987 (trans). Wall time 0.005356
 Green's Function sums over all states.
-chi0s for time point 7.156964, spin 0. CPU time: 0.005121 (tensor), 0.001325 (trans). Wall time 0.005203
+chi0s for time point 7.156964, spin 0. CPU time: 0.003475 (tensor), 0.001850 (trans). Wall time 0.005425
 Green's Function sums over all states.
-chi0s for time point 9.815549, spin 0. CPU time: 0.005313 (tensor), 0.001393 (trans). Wall time 0.005598
+chi0s for time point 9.815549, spin 0. CPU time: 0.003438 (tensor), 0.002250 (trans). Wall time 0.005695
 Green's Function sums over all states.
-chi0s for time point 13.419089, spin 0. CPU time: 0.005177 (tensor), 0.001634 (trans). Wall time 0.005612
+chi0s for time point 13.419089, spin 0. CPU time: 0.003679 (tensor), 0.001853 (trans). Wall time 0.005651
 Green's Function sums over all states.
-chi0s for time point 18.289873, spin 0. CPU time: 0.006250 (tensor), 0.001409 (trans). Wall time 0.005933
+chi0s for time point 18.289873, spin 0. CPU time: 0.003443 (tensor), 0.002022 (trans). Wall time 0.005517
 Green's Function sums over all states.
-chi0s for time point 24.855653, spin 0. CPU time: 0.005947 (tensor), 0.001387 (trans). Wall time 0.005987
+chi0s for time point 24.855653, spin 0. CPU time: 0.003321 (tensor), 0.001784 (trans). Wall time 0.005104
 Green's Function sums over all states.
-chi0s for time point 33.682931, spin 0. CPU time: 0.005765 (tensor), 0.001557 (trans). Wall time 0.005955
+chi0s for time point 33.682931, spin 0. CPU time: 0.003555 (tensor), 0.001858 (trans). Wall time 0.005498
 Green's Function sums over all states.
-chi0s for time point 45.520513, spin 0. CPU time: 0.005725 (tensor), 0.001393 (trans). Wall time 0.005707
+chi0s for time point 45.520513, spin 0. CPU time: 0.003418 (tensor), 0.001808 (trans). Wall time 0.005327
 Green's Function sums over all states.
-chi0s for time point 61.356665, spin 0. CPU time: 0.005739 (tensor), 0.001412 (trans). Wall time 0.005811
+chi0s for time point 61.356665, spin 0. CPU time: 0.003423 (tensor), 0.002001 (trans). Wall time 0.005490
 Green's Function sums over all states.
-chi0s for time point 82.494555, spin 0. CPU time: 0.005768 (tensor), 0.001438 (trans). Wall time 0.005671
+chi0s for time point 82.494555, spin 0. CPU time: 0.003574 (tensor), 0.002126 (trans). Wall time 0.005736
 Green's Function sums over all states.
-chi0s for time point 110.653057, spin 0. CPU time: 0.005800 (tensor), 0.001337 (trans). Wall time 0.005758
+chi0s for time point 110.653057, spin 0. CPU time: 0.003575 (tensor), 0.001788 (trans). Wall time 0.005466
 Green's Function sums over all states.
-chi0s for time point 148.104444, spin 0. CPU time: 0.005624 (tensor), 0.001376 (trans). Wall time 0.005410
+chi0s for time point 148.104444, spin 0. CPU time: 0.003523 (tensor), 0.001725 (trans). Wall time 0.005324
 Green's Function sums over all states.
-chi0s for time point 197.869638, spin 0. CPU time: 0.005624 (tensor), 0.001537 (trans). Wall time 0.005608
+chi0s for time point 197.869638, spin 0. CPU time: 0.003727 (tensor), 0.001730 (trans). Wall time 0.005560
 Green's Function sums over all states.
-chi0s for time point 264.011915, spin 0. CPU time: 0.005390 (tensor), 0.001394 (trans). Wall time 0.005401
+chi0s for time point 264.011915, spin 0. CPU time: 0.003428 (tensor), 0.002333 (trans). Wall time 0.005834
 Green's Function sums over all states.
-chi0s for time point 352.118718, spin 0. CPU time: 0.006039 (tensor), 0.001376 (trans). Wall time 0.006027
+chi0s for time point 352.118718, spin 0. CPU time: 0.003468 (tensor), 0.001764 (trans). Wall time 0.005233
 Green's Function sums over all states.
-chi0s for time point 470.191197, spin 0. CPU time: 0.005788 (tensor), 0.001473 (trans). Wall time 0.005951
+chi0s for time point 470.191197, spin 0. CPU time: 0.003450 (tensor), 0.001769 (trans). Wall time 0.005218
 Green's Function sums over all states.
-chi0s for time point 630.564672, spin 0. CPU time: 0.006192 (tensor), 0.001474 (trans). Wall time 0.005886
+chi0s for time point 630.564672, spin 0. CPU time: 0.003408 (tensor), 0.001870 (trans). Wall time 0.005471
 Green's Function sums over all states.
-chi0s for time point 855.079433, spin 0. CPU time: 0.005652 (tensor), 0.001336 (trans). Wall time 0.005464
+chi0s for time point 855.079433, spin 0. CPU time: 0.003461 (tensor), 0.001973 (trans). Wall time 0.005443
 Green's Function sums over all states.
-chi0s for time point 1195.595158, spin 0. CPU time: 0.005417 (tensor), 0.001553 (trans). Wall time 0.005580
+chi0s for time point 1195.595158, spin 0. CPU time: 0.003564 (tensor), 0.001982 (trans). Wall time 0.005614
 
 Computing EXX orbital energy using LibRI
-Task    2: V setup for EXX
-Task    3: V setup for EXX
 Task    0: V setup for EXX
-Task    1: V setup for EXX
-Task    3: DM setup for EXX
 Task    0: DM setup for EXX
-Task    1: DM setup for EXX
-Task    2: DM setup for EXX
-Task    0: cal_Hs elapsed time: 0.002932
-Task    2: cal_Hs elapsed time: 0.002927
-Task    1: cal_Hs elapsed time: 0.002947
-Task    3: cal_Hs elapsed time: 0.002959
+Task    0: cal_Hs elapsed time: 0.003433
 Calculating Wc using ScaLAPACK
-Time for Wc initialization (seconds, Wall/CPU): 0.000335 0.000336
+Time for Wc initialization (seconds, Wall/CPU): 0.001532 0.001533
 Computing Wc(q), 1 / 1, q=(0.000000, 0.000000, 0.000000)
-Time to prepare sqrt root of Coulomb for Wc(q) (seconds, Wall/CPU): 0.008642 0.011650
-Time to prepare sqrt root of Coulomb for Epsilon(q) (seconds, Wall/CPU): 0.006770 0.009494
-Time for Wc(i_q=1, i_omega=1) (seconds, Wall/CPU): 0.004167 0.006881
-Time for Wc(i_q=1, i_omega=2) (seconds, Wall/CPU): 0.004083 0.006836
-Time for Wc(i_q=1, i_omega=3) (seconds, Wall/CPU): 0.004184 0.007455
-Time for Wc(i_q=1, i_omega=4) (seconds, Wall/CPU): 0.004187 0.007073
-Time for Wc(i_q=1, i_omega=5) (seconds, Wall/CPU): 0.004752 0.007924
-Time for Wc(i_q=1, i_omega=6) (seconds, Wall/CPU): 0.004798 0.008133
-Time for Wc(i_q=1, i_omega=7) (seconds, Wall/CPU): 0.004449 0.007798
-Time for Wc(i_q=1, i_omega=8) (seconds, Wall/CPU): 0.004420 0.007357
-Time for Wc(i_q=1, i_omega=9) (seconds, Wall/CPU): 0.004155 0.006925
-Time for Wc(i_q=1, i_omega=10) (seconds, Wall/CPU): 0.004220 0.007175
-Time for Wc(i_q=1, i_omega=11) (seconds, Wall/CPU): 0.003761 0.006494
-Time for Wc(i_q=1, i_omega=12) (seconds, Wall/CPU): 0.004293 0.007097
-Time for Wc(i_q=1, i_omega=13) (seconds, Wall/CPU): 0.004602 0.007281
-Time for Wc(i_q=1, i_omega=14) (seconds, Wall/CPU): 0.004281 0.007287
-Time for Wc(i_q=1, i_omega=15) (seconds, Wall/CPU): 0.004592 0.007437
-Time for Wc(i_q=1, i_omega=16) (seconds, Wall/CPU): 0.004435 0.007454
-Time for Wc(i_q=1, i_omega=17) (seconds, Wall/CPU): 0.004277 0.007312
-Time for Wc(i_q=1, i_omega=18) (seconds, Wall/CPU): 0.004243 0.007367
-Time for Wc(i_q=1, i_omega=19) (seconds, Wall/CPU): 0.003972 0.007061
-Time for Wc(i_q=1, i_omega=20) (seconds, Wall/CPU): 0.004282 0.006824
-Time for Wc(i_q=1, i_omega=21) (seconds, Wall/CPU): 0.004639 0.007637
-Time for Wc(i_q=1, i_omega=22) (seconds, Wall/CPU): 0.004330 0.007113
-Time for Wc(i_q=1, i_omega=23) (seconds, Wall/CPU): 0.004242 0.006977
-Time for Wc(i_q=1, i_omega=24) (seconds, Wall/CPU): 0.004151 0.006957
-Time for Wc(i_q=1, i_omega=25) (seconds, Wall/CPU): 0.004312 0.007375
-Time for Wc(i_q=1, i_omega=26) (seconds, Wall/CPU): 0.004167 0.007174
-Time for Wc(i_q=1, i_omega=27) (seconds, Wall/CPU): 0.004291 0.007322
-Time for Wc(i_q=1, i_omega=28) (seconds, Wall/CPU): 0.004300 0.007083
-Time for Wc(i_q=1, i_omega=29) (seconds, Wall/CPU): 0.004536 0.007436
-Time for Wc(i_q=1, i_omega=30) (seconds, Wall/CPU): 0.004617 0.007449
-Time for Wc(i_q=1, i_omega=31) (seconds, Wall/CPU): 0.004546 0.007241
-Time for Wc(i_q=1, i_omega=32) (seconds, Wall/CPU): 0.004187 0.007143
-Time for Wc computation (seconds, Wall/CPU): 0.155724 0.255056
+Time to prepare sqrt root of Coulomb for Wc(q) (seconds, Wall/CPU): 0.009604 0.011997
+Time to prepare sqrt root of Coulomb for Epsilon(q) (seconds, Wall/CPU): 0.008657 0.010873
+Time for Wc(i_q=1, i_omega=1) (seconds, Wall/CPU): 0.007087 0.009477
+Time for Wc(i_q=1, i_omega=2) (seconds, Wall/CPU): 0.007177 0.009446
+Time for Wc(i_q=1, i_omega=3) (seconds, Wall/CPU): 0.007034 0.009480
+Time for Wc(i_q=1, i_omega=4) (seconds, Wall/CPU): 0.007256 0.009544
+Time for Wc(i_q=1, i_omega=5) (seconds, Wall/CPU): 0.007084 0.009514
+Time for Wc(i_q=1, i_omega=6) (seconds, Wall/CPU): 0.007275 0.009442
+Time for Wc(i_q=1, i_omega=7) (seconds, Wall/CPU): 0.006998 0.009341
+Time for Wc(i_q=1, i_omega=8) (seconds, Wall/CPU): 0.006911 0.009352
+Time for Wc(i_q=1, i_omega=9) (seconds, Wall/CPU): 0.007258 0.009488
+Time for Wc(i_q=1, i_omega=10) (seconds, Wall/CPU): 0.007064 0.009561
+Time for Wc(i_q=1, i_omega=11) (seconds, Wall/CPU): 0.007043 0.009318
+Time for Wc(i_q=1, i_omega=12) (seconds, Wall/CPU): 0.007100 0.009671
+Time for Wc(i_q=1, i_omega=13) (seconds, Wall/CPU): 0.006912 0.009310
+Time for Wc(i_q=1, i_omega=14) (seconds, Wall/CPU): 0.007198 0.009467
+Time for Wc(i_q=1, i_omega=15) (seconds, Wall/CPU): 0.007076 0.009383
+Time for Wc(i_q=1, i_omega=16) (seconds, Wall/CPU): 0.007084 0.009433
+Time for Wc(i_q=1, i_omega=17) (seconds, Wall/CPU): 0.006944 0.009407
+Time for Wc(i_q=1, i_omega=18) (seconds, Wall/CPU): 0.006917 0.009243
+Time for Wc(i_q=1, i_omega=19) (seconds, Wall/CPU): 0.007038 0.009252
+Time for Wc(i_q=1, i_omega=20) (seconds, Wall/CPU): 0.007324 0.009499
+Time for Wc(i_q=1, i_omega=21) (seconds, Wall/CPU): 0.006963 0.009378
+Time for Wc(i_q=1, i_omega=22) (seconds, Wall/CPU): 0.006861 0.009263
+Time for Wc(i_q=1, i_omega=23) (seconds, Wall/CPU): 0.006969 0.009270
+Time for Wc(i_q=1, i_omega=24) (seconds, Wall/CPU): 0.007024 0.009309
+Time for Wc(i_q=1, i_omega=25) (seconds, Wall/CPU): 0.007076 0.009389
+Time for Wc(i_q=1, i_omega=26) (seconds, Wall/CPU): 0.006943 0.009515
+Time for Wc(i_q=1, i_omega=27) (seconds, Wall/CPU): 0.006915 0.009348
+Time for Wc(i_q=1, i_omega=28) (seconds, Wall/CPU): 0.007087 0.009378
+Time for Wc(i_q=1, i_omega=29) (seconds, Wall/CPU): 0.007179 0.009583
+Time for Wc(i_q=1, i_omega=30) (seconds, Wall/CPU): 0.006858 0.009221
+Time for Wc(i_q=1, i_omega=31) (seconds, Wall/CPU): 0.006910 0.009388
+Time for Wc(i_q=1, i_omega=32) (seconds, Wall/CPU): 0.006872 0.009233
+Time for Wc computation (seconds, Wall/CPU): 0.248529 0.328569
 Calculating correlation self-energy by space-time method
 Using real tensor
 Converting Wc(q,w) -> W(R,t)
 Converting Wc q,w -> R,t
 Done converting Wc q,w -> R,t
-Time for Fourier transform of Wc in GW (seconds, Wall/CPU): 0.102964 0.102424
-Time for LibRI G0W0 setup (seconds, Wall/CPU): 0.001320 0.001884
-Time for Green's function, i_spin 1 i_tau 1 (seconds, Wall/CPU): 0.000111 0.000111
-Task    1. libRI G0W0, spin 0, time grid     0.004703. Wc size 2, GF size 2. Wall time 0.023276
-Task    2. libRI G0W0, spin 0, time grid     0.004703. Wc size 2, GF size 2. Wall time 0.023326
-Task    3. libRI G0W0, spin 0, time grid     0.004703. Wc size 4, GF size 2. Wall time 0.023286
-Task    0. libRI G0W0, spin 0, time grid     0.004703. Wc size 1, GF size 3. Wall time 0.006773
-Task    3. libRI G0W0, spin 0, time grid    -0.004703. Wc size 4, GF size 2. Wall time 0.007077
-Task    1. libRI G0W0, spin 0, time grid    -0.004703. Wc size 2, GF size 2. Wall time 0.007141
-Task    2. libRI G0W0, spin 0, time grid    -0.004703. Wc size 2, GF size 2. Wall time 0.007171
-Task    0. libRI G0W0, spin 0, time grid    -0.004703. Wc size 1, GF size 3. Wall time 0.007041
-Time for Green's function, i_spin 1 i_tau 2 (seconds, Wall/CPU): 0.000130 0.000130
-Task    2. libRI G0W0, spin 0, time grid     0.025100. Wc size 2, GF size 2. Wall time 0.023671
-Task    1. libRI G0W0, spin 0, time grid     0.025100. Wc size 2, GF size 2. Wall time 0.023865
-Task    3. libRI G0W0, spin 0, time grid     0.025100. Wc size 4, GF size 2. Wall time 0.023881
-Task    0. libRI G0W0, spin 0, time grid     0.025100. Wc size 1, GF size 3. Wall time 0.006848
-Task    3. libRI G0W0, spin 0, time grid    -0.025100. Wc size 4, GF size 2. Wall time 0.006508
-Task    1. libRI G0W0, spin 0, time grid    -0.025100. Wc size 2, GF size 2. Wall time 0.006549
-Task    2. libRI G0W0, spin 0, time grid    -0.025100. Wc size 2, GF size 2. Wall time 0.006690
-Task    0. libRI G0W0, spin 0, time grid    -0.025100. Wc size 1, GF size 3. Wall time 0.006503
-Time for Green's function, i_spin 1 i_tau 3 (seconds, Wall/CPU): 0.000115 0.000116
-Task    2. libRI G0W0, spin 0, time grid     0.063155. Wc size 2, GF size 2. Wall time 0.023413
-Task    1. libRI G0W0, spin 0, time grid     0.063155. Wc size 2, GF size 2. Wall time 0.023474
-Task    3. libRI G0W0, spin 0, time grid     0.063155. Wc size 4, GF size 2. Wall time 0.023494
-Task    0. libRI G0W0, spin 0, time grid     0.063155. Wc size 1, GF size 3. Wall time 0.006192
-Task    1. libRI G0W0, spin 0, time grid    -0.063155. Wc size 2, GF size 2. Wall time 0.006179
-Task    3. libRI G0W0, spin 0, time grid    -0.063155. Wc size 4, GF size 2. Wall time 0.006175
-Task    2. libRI G0W0, spin 0, time grid    -0.063155. Wc size 2, GF size 2. Wall time 0.006266
-Task    0. libRI G0W0, spin 0, time grid    -0.063155. Wc size 1, GF size 3. Wall time 0.006339
-Time for Green's function, i_spin 1 i_tau 4 (seconds, Wall/CPU): 0.000115 0.000115
-Task    2. libRI G0W0, spin 0, time grid     0.121481. Wc size 2, GF size 2. Wall time 0.022300
-Task    1. libRI G0W0, spin 0, time grid     0.121481. Wc size 2, GF size 2. Wall time 0.022324
-Task    3. libRI G0W0, spin 0, time grid     0.121481. Wc size 4, GF size 2. Wall time 0.022416
-Task    0. libRI G0W0, spin 0, time grid     0.121481. Wc size 1, GF size 3. Wall time 0.006138
-Task    2. libRI G0W0, spin 0, time grid    -0.121481. Wc size 2, GF size 2. Wall time 0.006181
-Task    1. libRI G0W0, spin 0, time grid    -0.121481. Wc size 2, GF size 2. Wall time 0.006176
-Task    3. libRI G0W0, spin 0, time grid    -0.121481. Wc size 4, GF size 2. Wall time 0.006225
-Task    0. libRI G0W0, spin 0, time grid    -0.121481. Wc size 1, GF size 3. Wall time 0.006214
-Time for Green's function, i_spin 1 i_tau 5 (seconds, Wall/CPU): 0.000105 0.000104
-Task    3. libRI G0W0, spin 0, time grid     0.204495. Wc size 4, GF size 2. Wall time 0.023660
-Task    2. libRI G0W0, spin 0, time grid     0.204495. Wc size 2, GF size 2. Wall time 0.023671
-Task    1. libRI G0W0, spin 0, time grid     0.204495. Wc size 2, GF size 2. Wall time 0.023872
-Task    0. libRI G0W0, spin 0, time grid     0.204495. Wc size 1, GF size 3. Wall time 0.006964
-Task    1. libRI G0W0, spin 0, time grid    -0.204495. Wc size 2, GF size 2. Wall time 0.006185
-Task    2. libRI G0W0, spin 0, time grid    -0.204495. Wc size 2, GF size 2. Wall time 0.006332
-Task    3. libRI G0W0, spin 0, time grid    -0.204495. Wc size 4, GF size 2. Wall time 0.006378
-Task    0. libRI G0W0, spin 0, time grid    -0.204495. Wc size 1, GF size 3. Wall time 0.006371
-Time for Green's function, i_spin 1 i_tau 6 (seconds, Wall/CPU): 0.000117 0.000118
-Task    1. libRI G0W0, spin 0, time grid     0.319210. Wc size 2, GF size 2. Wall time 0.022819
-Task    2. libRI G0W0, spin 0, time grid     0.319210. Wc size 2, GF size 2. Wall time 0.022869
-Task    3. libRI G0W0, spin 0, time grid     0.319210. Wc size 4, GF size 2. Wall time 0.022921
-Task    0. libRI G0W0, spin 0, time grid     0.319210. Wc size 1, GF size 3. Wall time 0.006120
-Task    3. libRI G0W0, spin 0, time grid    -0.319210. Wc size 4, GF size 2. Wall time 0.006060
-Task    1. libRI G0W0, spin 0, time grid    -0.319210. Wc size 2, GF size 2. Wall time 0.006153
-Task    2. libRI G0W0, spin 0, time grid    -0.319210. Wc size 2, GF size 2. Wall time 0.006118
-Task    0. libRI G0W0, spin 0, time grid    -0.319210. Wc size 1, GF size 3. Wall time 0.006226
-Time for Green's function, i_spin 1 i_tau 7 (seconds, Wall/CPU): 0.000109 0.000109
-Task    2. libRI G0W0, spin 0, time grid     0.476304. Wc size 2, GF size 2. Wall time 0.022999
-Task    3. libRI G0W0, spin 0, time grid     0.476304. Wc size 4, GF size 2. Wall time 0.023103
-Task    1. libRI G0W0, spin 0, time grid     0.476304. Wc size 2, GF size 2. Wall time 0.023134
-Task    0. libRI G0W0, spin 0, time grid     0.476304. Wc size 1, GF size 3. Wall time 0.006796
-Task    2. libRI G0W0, spin 0, time grid    -0.476304. Wc size 2, GF size 2. Wall time 0.006556
-Task    1. libRI G0W0, spin 0, time grid    -0.476304. Wc size 2, GF size 2. Wall time 0.006450
-Task    3. libRI G0W0, spin 0, time grid    -0.476304. Wc size 4, GF size 2. Wall time 0.006560
-Task    0. libRI G0W0, spin 0, time grid    -0.476304. Wc size 1, GF size 3. Wall time 0.006291
-Time for Green's function, i_spin 1 i_tau 8 (seconds, Wall/CPU): 0.000111 0.000111
-Task    3. libRI G0W0, spin 0, time grid     0.691408. Wc size 4, GF size 2. Wall time 0.022994
-Task    1. libRI G0W0, spin 0, time grid     0.691408. Wc size 2, GF size 2. Wall time 0.023056
-Task    2. libRI G0W0, spin 0, time grid     0.691408. Wc size 2, GF size 2. Wall time 0.023047
-Task    0. libRI G0W0, spin 0, time grid     0.691408. Wc size 1, GF size 3. Wall time 0.006718
-Task    3. libRI G0W0, spin 0, time grid    -0.691408. Wc size 4, GF size 2. Wall time 0.006782
-Task    2. libRI G0W0, spin 0, time grid    -0.691408. Wc size 2, GF size 2. Wall time 0.006754
-Task    1. libRI G0W0, spin 0, time grid    -0.691408. Wc size 2, GF size 2. Wall time 0.006804
-Task    0. libRI G0W0, spin 0, time grid    -0.691408. Wc size 1, GF size 3. Wall time 0.006693
+Time for Fourier transform of Wc in GW (seconds, Wall/CPU): 0.152624 0.151939
+Time for LibRI G0W0 setup (seconds, Wall/CPU): 0.000565 0.000566
+Time for Green's function, i_spin 1 i_tau 1 (seconds, Wall/CPU): 0.000130 0.000131
+Task    0. libRI G0W0, spin 0, time grid     0.004703. Wc size 9, GF size 9. Wall time 0.006264
+Task    0. libRI G0W0, spin 0, time grid    -0.004703. Wc size 9, GF size 9. Wall time 0.006664
+Time for Green's function, i_spin 1 i_tau 2 (seconds, Wall/CPU): 0.000109 0.000110
+Task    0. libRI G0W0, spin 0, time grid     0.025100. Wc size 9, GF size 9. Wall time 0.006910
+Task    0. libRI G0W0, spin 0, time grid    -0.025100. Wc size 9, GF size 9. Wall time 0.006294
+Time for Green's function, i_spin 1 i_tau 3 (seconds, Wall/CPU): 0.000148 0.000148
+Task    0. libRI G0W0, spin 0, time grid     0.063155. Wc size 9, GF size 9. Wall time 0.006225
+Task    0. libRI G0W0, spin 0, time grid    -0.063155. Wc size 9, GF size 9. Wall time 0.006583
+Time for Green's function, i_spin 1 i_tau 4 (seconds, Wall/CPU): 0.000136 0.000136
+Task    0. libRI G0W0, spin 0, time grid     0.121481. Wc size 9, GF size 9. Wall time 0.006065
+Task    0. libRI G0W0, spin 0, time grid    -0.121481. Wc size 9, GF size 9. Wall time 0.006303
+Time for Green's function, i_spin 1 i_tau 5 (seconds, Wall/CPU): 0.000147 0.000148
+Task    0. libRI G0W0, spin 0, time grid     0.204495. Wc size 9, GF size 9. Wall time 0.006213
+Task    0. libRI G0W0, spin 0, time grid    -0.204495. Wc size 9, GF size 9. Wall time 0.006126
+Time for Green's function, i_spin 1 i_tau 6 (seconds, Wall/CPU): 0.000144 0.000145
+Task    0. libRI G0W0, spin 0, time grid     0.319210. Wc size 9, GF size 9. Wall time 0.006161
+Task    0. libRI G0W0, spin 0, time grid    -0.319210. Wc size 9, GF size 9. Wall time 0.005943
+Time for Green's function, i_spin 1 i_tau 7 (seconds, Wall/CPU): 0.000125 0.000125
+Task    0. libRI G0W0, spin 0, time grid     0.476304. Wc size 9, GF size 9. Wall time 0.006907
+Task    0. libRI G0W0, spin 0, time grid    -0.476304. Wc size 9, GF size 9. Wall time 0.006218
+Time for Green's function, i_spin 1 i_tau 8 (seconds, Wall/CPU): 0.000133 0.000132
+Task    0. libRI G0W0, spin 0, time grid     0.691408. Wc size 9, GF size 9. Wall time 0.006053
+Task    0. libRI G0W0, spin 0, time grid    -0.691408. Wc size 9, GF size 9. Wall time 0.005938
 Time for Green's function, i_spin 1 i_tau 9 (seconds, Wall/CPU): 0.000118 0.000119
-Task    2. libRI G0W0, spin 0, time grid     0.986623. Wc size 2, GF size 2. Wall time 0.027748
-Task    1. libRI G0W0, spin 0, time grid     0.986623. Wc size 2, GF size 2. Wall time 0.027773
-Task    3. libRI G0W0, spin 0, time grid     0.986623. Wc size 4, GF size 2. Wall time 0.027981
-Task    0. libRI G0W0, spin 0, time grid     0.986623. Wc size 1, GF size 3. Wall time 0.007725
-Task    2. libRI G0W0, spin 0, time grid    -0.986623. Wc size 2, GF size 2. Wall time 0.006467
-Task    1. libRI G0W0, spin 0, time grid    -0.986623. Wc size 2, GF size 2. Wall time 0.006343
-Task    3. libRI G0W0, spin 0, time grid    -0.986623. Wc size 4, GF size 2. Wall time 0.006345
-Task    0. libRI G0W0, spin 0, time grid    -0.986623. Wc size 1, GF size 3. Wall time 0.006579
-Time for Green's function, i_spin 1 i_tau 10 (seconds, Wall/CPU): 0.000105 0.000104
-Task    3. libRI G0W0, spin 0, time grid     1.392440. Wc size 4, GF size 2. Wall time 0.023424
-Task    2. libRI G0W0, spin 0, time grid     1.392440. Wc size 2, GF size 2. Wall time 0.023504
-Task    1. libRI G0W0, spin 0, time grid     1.392440. Wc size 2, GF size 2. Wall time 0.023530
-Task    0. libRI G0W0, spin 0, time grid     1.392440. Wc size 1, GF size 3. Wall time 0.007071
-Task    2. libRI G0W0, spin 0, time grid    -1.392440. Wc size 2, GF size 2. Wall time 0.006684
-Task    1. libRI G0W0, spin 0, time grid    -1.392440. Wc size 2, GF size 2. Wall time 0.006661
-Task    3. libRI G0W0, spin 0, time grid    -1.392440. Wc size 4, GF size 2. Wall time 0.006762
-Task    0. libRI G0W0, spin 0, time grid    -1.392440. Wc size 1, GF size 3. Wall time 0.006977
-Time for Green's function, i_spin 1 i_tau 11 (seconds, Wall/CPU): 0.000113 0.000112
-Task    1. libRI G0W0, spin 0, time grid     1.950352. Wc size 2, GF size 2. Wall time 0.024392
-Task    3. libRI G0W0, spin 0, time grid     1.950352. Wc size 4, GF size 2. Wall time 0.024377
-Task    2. libRI G0W0, spin 0, time grid     1.950352. Wc size 2, GF size 2. Wall time 0.024442
-Task    0. libRI G0W0, spin 0, time grid     1.950352. Wc size 1, GF size 3. Wall time 0.006921
-Task    2. libRI G0W0, spin 0, time grid    -1.950352. Wc size 2, GF size 2. Wall time 0.006952
-Task    3. libRI G0W0, spin 0, time grid    -1.950352. Wc size 4, GF size 2. Wall time 0.007042
-Task    1. libRI G0W0, spin 0, time grid    -1.950352. Wc size 2, GF size 2. Wall time 0.007106
-Task    0. libRI G0W0, spin 0, time grid    -1.950352. Wc size 1, GF size 3. Wall time 0.007059
-Time for Green's function, i_spin 1 i_tau 12 (seconds, Wall/CPU): 0.000106 0.000105
-Task    1. libRI G0W0, spin 0, time grid     2.716434. Wc size 2, GF size 2. Wall time 0.023822
-Task    2. libRI G0W0, spin 0, time grid     2.716434. Wc size 2, GF size 2. Wall time 0.023871
-Task    3. libRI G0W0, spin 0, time grid     2.716434. Wc size 4, GF size 2. Wall time 0.023901
-Task    0. libRI G0W0, spin 0, time grid     2.716434. Wc size 1, GF size 3. Wall time 0.007001
-Task    1. libRI G0W0, spin 0, time grid    -2.716434. Wc size 2, GF size 2. Wall time 0.006875
-Task    3. libRI G0W0, spin 0, time grid    -2.716434. Wc size 4, GF size 2. Wall time 0.006897
-Task    2. libRI G0W0, spin 0, time grid    -2.716434. Wc size 2, GF size 2. Wall time 0.006943
-Task    0. libRI G0W0, spin 0, time grid    -2.716434. Wc size 1, GF size 3. Wall time 0.006909
-Time for Green's function, i_spin 1 i_tau 13 (seconds, Wall/CPU): 0.000109 0.000110
-Task    1. libRI G0W0, spin 0, time grid     3.766198. Wc size 2, GF size 2. Wall time 0.023396
-Task    2. libRI G0W0, spin 0, time grid     3.766198. Wc size 2, GF size 2. Wall time 0.023444
-Task    3. libRI G0W0, spin 0, time grid     3.766198. Wc size 4, GF size 2. Wall time 0.023431
-Task    0. libRI G0W0, spin 0, time grid     3.766198. Wc size 1, GF size 3. Wall time 0.007044
-Task    3. libRI G0W0, spin 0, time grid    -3.766198. Wc size 4, GF size 2. Wall time 0.006983
-Task    1. libRI G0W0, spin 0, time grid    -3.766198. Wc size 2, GF size 2. Wall time 0.007124
-Task    2. libRI G0W0, spin 0, time grid    -3.766198. Wc size 2, GF size 2. Wall time 0.007153
-Task    0. libRI G0W0, spin 0, time grid    -3.766198. Wc size 1, GF size 3. Wall time 0.006858
-Time for Green's function, i_spin 1 i_tau 14 (seconds, Wall/CPU): 0.000108 0.000108
-Task    3. libRI G0W0, spin 0, time grid     5.201072. Wc size 4, GF size 2. Wall time 0.024015
-Task    2. libRI G0W0, spin 0, time grid     5.201072. Wc size 2, GF size 2. Wall time 0.023964
-Task    1. libRI G0W0, spin 0, time grid     5.201072. Wc size 2, GF size 2. Wall time 0.023973
-Task    0. libRI G0W0, spin 0, time grid     5.201072. Wc size 1, GF size 3. Wall time 0.006751
-Task    2. libRI G0W0, spin 0, time grid    -5.201072. Wc size 2, GF size 2. Wall time 0.006173
-Task    1. libRI G0W0, spin 0, time grid    -5.201072. Wc size 2, GF size 2. Wall time 0.006188
-Task    3. libRI G0W0, spin 0, time grid    -5.201072. Wc size 4, GF size 2. Wall time 0.006221
-Task    0. libRI G0W0, spin 0, time grid    -5.201072. Wc size 1, GF size 3. Wall time 0.006172
-Time for Green's function, i_spin 1 i_tau 15 (seconds, Wall/CPU): 0.000106 0.000105
-Task    2. libRI G0W0, spin 0, time grid     7.156964. Wc size 2, GF size 2. Wall time 0.024630
-Task    1. libRI G0W0, spin 0, time grid     7.156964. Wc size 2, GF size 2. Wall time 0.024727
-Task    3. libRI G0W0, spin 0, time grid     7.156964. Wc size 4, GF size 2. Wall time 0.024814
-Task    0. libRI G0W0, spin 0, time grid     7.156964. Wc size 1, GF size 3. Wall time 0.006885
-Task    2. libRI G0W0, spin 0, time grid    -7.156964. Wc size 2, GF size 2. Wall time 0.006458
-Task    3. libRI G0W0, spin 0, time grid    -7.156964. Wc size 4, GF size 2. Wall time 0.006342
-Task    1. libRI G0W0, spin 0, time grid    -7.156964. Wc size 2, GF size 2. Wall time 0.006412
-Task    0. libRI G0W0, spin 0, time grid    -7.156964. Wc size 1, GF size 3. Wall time 0.006485
-Time for Green's function, i_spin 1 i_tau 16 (seconds, Wall/CPU): 0.000119 0.000119
-Task    1. libRI G0W0, spin 0, time grid     9.815549. Wc size 2, GF size 2. Wall time 0.024058
-Task    2. libRI G0W0, spin 0, time grid     9.815549. Wc size 2, GF size 2. Wall time 0.024147
-Task    3. libRI G0W0, spin 0, time grid     9.815549. Wc size 4, GF size 2. Wall time 0.024150
-Task    0. libRI G0W0, spin 0, time grid     9.815549. Wc size 1, GF size 3. Wall time 0.007091
-Task    1. libRI G0W0, spin 0, time grid    -9.815549. Wc size 2, GF size 2. Wall time 0.006695
-Task    3. libRI G0W0, spin 0, time grid    -9.815549. Wc size 4, GF size 2. Wall time 0.006678
-Task    2. libRI G0W0, spin 0, time grid    -9.815549. Wc size 2, GF size 2. Wall time 0.006755
-Task    0. libRI G0W0, spin 0, time grid    -9.815549. Wc size 1, GF size 3. Wall time 0.006623
-Time for Green's function, i_spin 1 i_tau 17 (seconds, Wall/CPU): 0.000116 0.000115
-Task    2. libRI G0W0, spin 0, time grid    13.419089. Wc size 2, GF size 2. Wall time 0.024125
-Task    1. libRI G0W0, spin 0, time grid    13.419089. Wc size 2, GF size 2. Wall time 0.024178
-Task    3. libRI G0W0, spin 0, time grid    13.419089. Wc size 4, GF size 2. Wall time 0.024257
-Task    0. libRI G0W0, spin 0, time grid    13.419089. Wc size 1, GF size 3. Wall time 0.006827
-Task    1. libRI G0W0, spin 0, time grid   -13.419089. Wc size 2, GF size 2. Wall time 0.006450
-Task    2. libRI G0W0, spin 0, time grid   -13.419089. Wc size 2, GF size 2. Wall time 0.006514
-Task    3. libRI G0W0, spin 0, time grid   -13.419089. Wc size 4, GF size 2. Wall time 0.006514
-Task    0. libRI G0W0, spin 0, time grid   -13.419089. Wc size 1, GF size 3. Wall time 0.006379
-Time for Green's function, i_spin 1 i_tau 18 (seconds, Wall/CPU): 0.000106 0.000106
-Task    2. libRI G0W0, spin 0, time grid    18.289873. Wc size 2, GF size 2. Wall time 0.024078
-Task    1. libRI G0W0, spin 0, time grid    18.289873. Wc size 2, GF size 2. Wall time 0.024113
-Task    3. libRI G0W0, spin 0, time grid    18.289873. Wc size 4, GF size 2. Wall time 0.024119
-Task    0. libRI G0W0, spin 0, time grid    18.289873. Wc size 1, GF size 3. Wall time 0.006898
-Task    2. libRI G0W0, spin 0, time grid   -18.289873. Wc size 2, GF size 2. Wall time 0.006263
-Task    1. libRI G0W0, spin 0, time grid   -18.289873. Wc size 2, GF size 2. Wall time 0.006305
-Task    3. libRI G0W0, spin 0, time grid   -18.289873. Wc size 4, GF size 2. Wall time 0.006324
-Task    0. libRI G0W0, spin 0, time grid   -18.289873. Wc size 1, GF size 3. Wall time 0.006320
-Time for Green's function, i_spin 1 i_tau 19 (seconds, Wall/CPU): 0.000103 0.000103
-Task    3. libRI G0W0, spin 0, time grid    24.855653. Wc size 4, GF size 2. Wall time 0.025622
-Task    1. libRI G0W0, spin 0, time grid    24.855653. Wc size 2, GF size 2. Wall time 0.025637
-Task    2. libRI G0W0, spin 0, time grid    24.855653. Wc size 2, GF size 2. Wall time 0.025770
-Task    0. libRI G0W0, spin 0, time grid    24.855653. Wc size 1, GF size 3. Wall time 0.006392
-Task    2. libRI G0W0, spin 0, time grid   -24.855653. Wc size 2, GF size 2. Wall time 0.006279
-Task    1. libRI G0W0, spin 0, time grid   -24.855653. Wc size 2, GF size 2. Wall time 0.006302
-Task    3. libRI G0W0, spin 0, time grid   -24.855653. Wc size 4, GF size 2. Wall time 0.006324
-Task    0. libRI G0W0, spin 0, time grid   -24.855653. Wc size 1, GF size 3. Wall time 0.006526
-Time for Green's function, i_spin 1 i_tau 20 (seconds, Wall/CPU): 0.000115 0.000115
-Task    2. libRI G0W0, spin 0, time grid    33.682931. Wc size 2, GF size 2. Wall time 0.023766
-Task    3. libRI G0W0, spin 0, time grid    33.682931. Wc size 4, GF size 2. Wall time 0.023794
-Task    1. libRI G0W0, spin 0, time grid    33.682931. Wc size 2, GF size 2. Wall time 0.023810
-Task    0. libRI G0W0, spin 0, time grid    33.682931. Wc size 1, GF size 3. Wall time 0.006493
-Task    3. libRI G0W0, spin 0, time grid   -33.682931. Wc size 4, GF size 2. Wall time 0.006071
-Task    1. libRI G0W0, spin 0, time grid   -33.682931. Wc size 2, GF size 2. Wall time 0.006078
-Task    2. libRI G0W0, spin 0, time grid   -33.682931. Wc size 2, GF size 2. Wall time 0.006174
-Task    0. libRI G0W0, spin 0, time grid   -33.682931. Wc size 1, GF size 3. Wall time 0.006110
-Time for Green's function, i_spin 1 i_tau 21 (seconds, Wall/CPU): 0.000108 0.000107
-Task    2. libRI G0W0, spin 0, time grid    45.520513. Wc size 2, GF size 2. Wall time 0.023764
-Task    1. libRI G0W0, spin 0, time grid    45.520513. Wc size 2, GF size 2. Wall time 0.023756
-Task    3. libRI G0W0, spin 0, time grid    45.520513. Wc size 4, GF size 2. Wall time 0.023850
-Task    0. libRI G0W0, spin 0, time grid    45.520513. Wc size 1, GF size 3. Wall time 0.006291
-Task    3. libRI G0W0, spin 0, time grid   -45.520513. Wc size 4, GF size 2. Wall time 0.006296
-Task    2. libRI G0W0, spin 0, time grid   -45.520513. Wc size 2, GF size 2. Wall time 0.006424
-Task    1. libRI G0W0, spin 0, time grid   -45.520513. Wc size 2, GF size 2. Wall time 0.006435
-Task    0. libRI G0W0, spin 0, time grid   -45.520513. Wc size 1, GF size 3. Wall time 0.006502
-Time for Green's function, i_spin 1 i_tau 22 (seconds, Wall/CPU): 0.000107 0.000106
-Task    2. libRI G0W0, spin 0, time grid    61.356665. Wc size 2, GF size 2. Wall time 0.020270
-Task    1. libRI G0W0, spin 0, time grid    61.356665. Wc size 2, GF size 2. Wall time 0.020377
-Task    3. libRI G0W0, spin 0, time grid    61.356665. Wc size 4, GF size 2. Wall time 0.020344
-Task    0. libRI G0W0, spin 0, time grid    61.356665. Wc size 1, GF size 3. Wall time 0.005938
-Task    2. libRI G0W0, spin 0, time grid   -61.356665. Wc size 2, GF size 2. Wall time 0.006194
-Task    3. libRI G0W0, spin 0, time grid   -61.356665. Wc size 4, GF size 2. Wall time 0.006163
-Task    1. libRI G0W0, spin 0, time grid   -61.356665. Wc size 2, GF size 2. Wall time 0.006213
-Task    0. libRI G0W0, spin 0, time grid   -61.356665. Wc size 1, GF size 3. Wall time 0.006103
-Time for Green's function, i_spin 1 i_tau 23 (seconds, Wall/CPU): 0.000105 0.000104
-Task    2. libRI G0W0, spin 0, time grid    82.494555. Wc size 2, GF size 2. Wall time 0.008819
-Task    3. libRI G0W0, spin 0, time grid    82.494555. Wc size 4, GF size 2. Wall time 0.008779
-Task    1. libRI G0W0, spin 0, time grid    82.494555. Wc size 2, GF size 2. Wall time 0.008841
-Task    0. libRI G0W0, spin 0, time grid    82.494555. Wc size 1, GF size 3. Wall time 0.005919
-Task    2. libRI G0W0, spin 0, time grid   -82.494555. Wc size 2, GF size 2. Wall time 0.005504
-Task    1. libRI G0W0, spin 0, time grid   -82.494555. Wc size 2, GF size 2. Wall time 0.005438
-Task    3. libRI G0W0, spin 0, time grid   -82.494555. Wc size 4, GF size 2. Wall time 0.005563
-Task    0. libRI G0W0, spin 0, time grid   -82.494555. Wc size 1, GF size 3. Wall time 0.005591
-Time for Green's function, i_spin 1 i_tau 24 (seconds, Wall/CPU): 0.000109 0.000109
-Task    2. libRI G0W0, spin 0, time grid   110.653057. Wc size 2, GF size 2. Wall time 0.005823
-Task    3. libRI G0W0, spin 0, time grid   110.653057. Wc size 4, GF size 2. Wall time 0.006052
-Task    1. libRI G0W0, spin 0, time grid   110.653057. Wc size 2, GF size 2. Wall time 0.005952
-Task    0. libRI G0W0, spin 0, time grid   110.653057. Wc size 1, GF size 3. Wall time 0.005544
-Task    3. libRI G0W0, spin 0, time grid  -110.653057. Wc size 4, GF size 2. Wall time 0.006159
-Task    2. libRI G0W0, spin 0, time grid  -110.653057. Wc size 2, GF size 2. Wall time 0.006402
-Task    1. libRI G0W0, spin 0, time grid  -110.653057. Wc size 2, GF size 2. Wall time 0.006251
-Task    0. libRI G0W0, spin 0, time grid  -110.653057. Wc size 1, GF size 3. Wall time 0.006311
-Time for Green's function, i_spin 1 i_tau 25 (seconds, Wall/CPU): 0.000104 0.000104
-Task    3. libRI G0W0, spin 0, time grid   148.104444. Wc size 4, GF size 2. Wall time 0.006493
-Task    1. libRI G0W0, spin 0, time grid   148.104444. Wc size 2, GF size 2. Wall time 0.006549
-Task    2. libRI G0W0, spin 0, time grid   148.104444. Wc size 2, GF size 2. Wall time 0.006415
-Task    0. libRI G0W0, spin 0, time grid   148.104444. Wc size 1, GF size 3. Wall time 0.006011
-Task    3. libRI G0W0, spin 0, time grid  -148.104444. Wc size 4, GF size 2. Wall time 0.004991
-Task    2. libRI G0W0, spin 0, time grid  -148.104444. Wc size 2, GF size 2. Wall time 0.004948
-Task    1. libRI G0W0, spin 0, time grid  -148.104444. Wc size 2, GF size 2. Wall time 0.004974
-Task    0. libRI G0W0, spin 0, time grid  -148.104444. Wc size 1, GF size 3. Wall time 0.004965
-Time for Green's function, i_spin 1 i_tau 26 (seconds, Wall/CPU): 0.000106 0.000106
-Task    1. libRI G0W0, spin 0, time grid   197.869638. Wc size 2, GF size 2. Wall time 0.005849
-Task    2. libRI G0W0, spin 0, time grid   197.869638. Wc size 2, GF size 2. Wall time 0.005905
-Task    3. libRI G0W0, spin 0, time grid   197.869638. Wc size 4, GF size 2. Wall time 0.006045
-Task    0. libRI G0W0, spin 0, time grid   197.869638. Wc size 1, GF size 3. Wall time 0.005629
-Task    3. libRI G0W0, spin 0, time grid  -197.869638. Wc size 4, GF size 2. Wall time 0.004971
-Task    2. libRI G0W0, spin 0, time grid  -197.869638. Wc size 2, GF size 2. Wall time 0.005069
-Task    1. libRI G0W0, spin 0, time grid  -197.869638. Wc size 2, GF size 2. Wall time 0.005084
-Task    0. libRI G0W0, spin 0, time grid  -197.869638. Wc size 1, GF size 3. Wall time 0.005077
-Time for Green's function, i_spin 1 i_tau 27 (seconds, Wall/CPU): 0.000111 0.000110
-Task    1. libRI G0W0, spin 0, time grid   264.011915. Wc size 2, GF size 2. Wall time 0.005450
-Task    2. libRI G0W0, spin 0, time grid   264.011915. Wc size 2, GF size 2. Wall time 0.005457
-Task    3. libRI G0W0, spin 0, time grid   264.011915. Wc size 4, GF size 2. Wall time 0.005556
-Task    0. libRI G0W0, spin 0, time grid   264.011915. Wc size 1, GF size 3. Wall time 0.004982
-Task    1. libRI G0W0, spin 0, time grid  -264.011915. Wc size 2, GF size 2. Wall time 0.005085
-Task    2. libRI G0W0, spin 0, time grid  -264.011915. Wc size 2, GF size 2. Wall time 0.005021
-Task    3. libRI G0W0, spin 0, time grid  -264.011915. Wc size 4, GF size 2. Wall time 0.005026
-Task    0. libRI G0W0, spin 0, time grid  -264.011915. Wc size 1, GF size 3. Wall time 0.005283
-Time for Green's function, i_spin 1 i_tau 28 (seconds, Wall/CPU): 0.000105 0.000106
-Task    2. libRI G0W0, spin 0, time grid   352.118718. Wc size 2, GF size 2. Wall time 0.005276
-Task    1. libRI G0W0, spin 0, time grid   352.118718. Wc size 2, GF size 2. Wall time 0.005318
-Task    3. libRI G0W0, spin 0, time grid   352.118718. Wc size 4, GF size 2. Wall time 0.005317
-Task    0. libRI G0W0, spin 0, time grid   352.118718. Wc size 1, GF size 3. Wall time 0.004885
-Task    1. libRI G0W0, spin 0, time grid  -352.118718. Wc size 2, GF size 2. Wall time 0.004863
-Task    2. libRI G0W0, spin 0, time grid  -352.118718. Wc size 2, GF size 2. Wall time 0.004907
-Task    3. libRI G0W0, spin 0, time grid  -352.118718. Wc size 4, GF size 2. Wall time 0.004873
-Task    0. libRI G0W0, spin 0, time grid  -352.118718. Wc size 1, GF size 3. Wall time 0.004879
-Time for Green's function, i_spin 1 i_tau 29 (seconds, Wall/CPU): 0.000102 0.000101
-Task    3. libRI G0W0, spin 0, time grid   470.191197. Wc size 4, GF size 2. Wall time 0.005419
-Task    2. libRI G0W0, spin 0, time grid   470.191197. Wc size 2, GF size 2. Wall time 0.005439
-Task    1. libRI G0W0, spin 0, time grid   470.191197. Wc size 2, GF size 2. Wall time 0.005600
-Task    0. libRI G0W0, spin 0, time grid   470.191197. Wc size 1, GF size 3. Wall time 0.005235
-Task    3. libRI G0W0, spin 0, time grid  -470.191197. Wc size 4, GF size 2. Wall time 0.005656
-Task    1. libRI G0W0, spin 0, time grid  -470.191197. Wc size 2, GF size 2. Wall time 0.005516
-Task    2. libRI G0W0, spin 0, time grid  -470.191197. Wc size 2, GF size 2. Wall time 0.005698
-Task    0. libRI G0W0, spin 0, time grid  -470.191197. Wc size 1, GF size 3. Wall time 0.005604
-Time for Green's function, i_spin 1 i_tau 30 (seconds, Wall/CPU): 0.000105 0.000106
-Task    3. libRI G0W0, spin 0, time grid   630.564672. Wc size 4, GF size 2. Wall time 0.005588
-Task    1. libRI G0W0, spin 0, time grid   630.564672. Wc size 2, GF size 2. Wall time 0.005637
-Task    2. libRI G0W0, spin 0, time grid   630.564672. Wc size 2, GF size 2. Wall time 0.005625
-Task    0. libRI G0W0, spin 0, time grid   630.564672. Wc size 1, GF size 3. Wall time 0.005073
-Task    1. libRI G0W0, spin 0, time grid  -630.564672. Wc size 2, GF size 2. Wall time 0.004847
-Task    3. libRI G0W0, spin 0, time grid  -630.564672. Wc size 4, GF size 2. Wall time 0.004903
-Task    2. libRI G0W0, spin 0, time grid  -630.564672. Wc size 2, GF size 2. Wall time 0.004871
-Task    0. libRI G0W0, spin 0, time grid  -630.564672. Wc size 1, GF size 3. Wall time 0.004881
-Time for Green's function, i_spin 1 i_tau 31 (seconds, Wall/CPU): 0.000103 0.000103
-Task    1. libRI G0W0, spin 0, time grid   855.079433. Wc size 2, GF size 2. Wall time 0.005316
-Task    2. libRI G0W0, spin 0, time grid   855.079433. Wc size 2, GF size 2. Wall time 0.005329
-Task    3. libRI G0W0, spin 0, time grid   855.079433. Wc size 4, GF size 2. Wall time 0.005389
-Task    0. libRI G0W0, spin 0, time grid   855.079433. Wc size 1, GF size 3. Wall time 0.004917
-Task    1. libRI G0W0, spin 0, time grid  -855.079433. Wc size 2, GF size 2. Wall time 0.004888
-Task    3. libRI G0W0, spin 0, time grid  -855.079433. Wc size 4, GF size 2. Wall time 0.004897
-Task    2. libRI G0W0, spin 0, time grid  -855.079433. Wc size 2, GF size 2. Wall time 0.004932
-Task    0. libRI G0W0, spin 0, time grid  -855.079433. Wc size 1, GF size 3. Wall time 0.004960
-Time for Green's function, i_spin 1 i_tau 32 (seconds, Wall/CPU): 0.000135 0.000126
-Task    1. libRI G0W0, spin 0, time grid  1195.595158. Wc size 2, GF size 2. Wall time 0.005889
-Task    2. libRI G0W0, spin 0, time grid  1195.595158. Wc size 2, GF size 2. Wall time 0.005882
-Task    3. libRI G0W0, spin 0, time grid  1195.595158. Wc size 4, GF size 2. Wall time 0.005938
-Task    0. libRI G0W0, spin 0, time grid  1195.595158. Wc size 1, GF size 3. Wall time 0.005502
-Task    3. libRI G0W0, spin 0, time grid -1195.595158. Wc size 4, GF size 2. Wall time 0.005284
-Task    1. libRI G0W0, spin 0, time grid -1195.595158. Wc size 2, GF size 2. Wall time 0.005368
-Task    2. libRI G0W0, spin 0, time grid -1195.595158. Wc size 2, GF size 2. Wall time 0.005358
-Task    0. libRI G0W0, spin 0, time grid -1195.595158. Wc size 1, GF size 3. Wall time 0.005184
-Task    1: tensor communicate elapsed time: 0.001107
-Task    2: tensor communicate elapsed time: 0.001103
-Task    0: tensor communicate elapsed time: 0.000477
-Task    3: tensor communicate elapsed time: 0.001594
+Task    0. libRI G0W0, spin 0, time grid     0.986623. Wc size 9, GF size 9. Wall time 0.006092
+Task    0. libRI G0W0, spin 0, time grid    -0.986623. Wc size 9, GF size 9. Wall time 0.006212
+Time for Green's function, i_spin 1 i_tau 10 (seconds, Wall/CPU): 0.000145 0.000145
+Task    0. libRI G0W0, spin 0, time grid     1.392440. Wc size 9, GF size 9. Wall time 0.006023
+Task    0. libRI G0W0, spin 0, time grid    -1.392440. Wc size 9, GF size 9. Wall time 0.005793
+Time for Green's function, i_spin 1 i_tau 11 (seconds, Wall/CPU): 0.000129 0.000128
+Task    0. libRI G0W0, spin 0, time grid     1.950352. Wc size 9, GF size 9. Wall time 0.005831
+Task    0. libRI G0W0, spin 0, time grid    -1.950352. Wc size 9, GF size 9. Wall time 0.005920
+Time for Green's function, i_spin 1 i_tau 12 (seconds, Wall/CPU): 0.000132 0.000132
+Task    0. libRI G0W0, spin 0, time grid     2.716434. Wc size 9, GF size 9. Wall time 0.005901
+Task    0. libRI G0W0, spin 0, time grid    -2.716434. Wc size 9, GF size 9. Wall time 0.005894
+Time for Green's function, i_spin 1 i_tau 13 (seconds, Wall/CPU): 0.000114 0.000114
+Task    0. libRI G0W0, spin 0, time grid     3.766198. Wc size 9, GF size 9. Wall time 0.006356
+Task    0. libRI G0W0, spin 0, time grid    -3.766198. Wc size 9, GF size 9. Wall time 0.005937
+Time for Green's function, i_spin 1 i_tau 14 (seconds, Wall/CPU): 0.000109 0.000109
+Task    0. libRI G0W0, spin 0, time grid     5.201072. Wc size 9, GF size 9. Wall time 0.006673
+Task    0. libRI G0W0, spin 0, time grid    -5.201072. Wc size 9, GF size 9. Wall time 0.006703
+Time for Green's function, i_spin 1 i_tau 15 (seconds, Wall/CPU): 0.000105 0.000106
+Task    0. libRI G0W0, spin 0, time grid     7.156964. Wc size 9, GF size 9. Wall time 0.006323
+Task    0. libRI G0W0, spin 0, time grid    -7.156964. Wc size 9, GF size 9. Wall time 0.006954
+Time for Green's function, i_spin 1 i_tau 16 (seconds, Wall/CPU): 0.000146 0.000146
+Task    0. libRI G0W0, spin 0, time grid     9.815549. Wc size 9, GF size 9. Wall time 0.005908
+Task    0. libRI G0W0, spin 0, time grid    -9.815549. Wc size 9, GF size 9. Wall time 0.006497
+Time for Green's function, i_spin 1 i_tau 17 (seconds, Wall/CPU): 0.000156 0.000155
+Task    0. libRI G0W0, spin 0, time grid    13.419089. Wc size 9, GF size 9. Wall time 0.006079
+Task    0. libRI G0W0, spin 0, time grid   -13.419089. Wc size 9, GF size 9. Wall time 0.006228
+Time for Green's function, i_spin 1 i_tau 18 (seconds, Wall/CPU): 0.000110 0.000109
+Task    0. libRI G0W0, spin 0, time grid    18.289873. Wc size 9, GF size 9. Wall time 0.006129
+Task    0. libRI G0W0, spin 0, time grid   -18.289873. Wc size 9, GF size 9. Wall time 0.005928
+Time for Green's function, i_spin 1 i_tau 19 (seconds, Wall/CPU): 0.000150 0.000150
+Task    0. libRI G0W0, spin 0, time grid    24.855653. Wc size 9, GF size 9. Wall time 0.005969
+Task    0. libRI G0W0, spin 0, time grid   -24.855653. Wc size 9, GF size 9. Wall time 0.006018
+Time for Green's function, i_spin 1 i_tau 20 (seconds, Wall/CPU): 0.000107 0.000106
+Task    0. libRI G0W0, spin 0, time grid    33.682931. Wc size 9, GF size 9. Wall time 0.005945
+Task    0. libRI G0W0, spin 0, time grid   -33.682931. Wc size 9, GF size 9. Wall time 0.005806
+Time for Green's function, i_spin 1 i_tau 21 (seconds, Wall/CPU): 0.000146 0.000146
+Task    0. libRI G0W0, spin 0, time grid    45.520513. Wc size 9, GF size 9. Wall time 0.005870
+Task    0. libRI G0W0, spin 0, time grid   -45.520513. Wc size 9, GF size 9. Wall time 0.005797
+Time for Green's function, i_spin 1 i_tau 22 (seconds, Wall/CPU): 0.000115 0.000114
+Task    0. libRI G0W0, spin 0, time grid    61.356665. Wc size 9, GF size 9. Wall time 0.005181
+Task    0. libRI G0W0, spin 0, time grid   -61.356665. Wc size 9, GF size 9. Wall time 0.005280
+Time for Green's function, i_spin 1 i_tau 23 (seconds, Wall/CPU): 0.000129 0.000130
+Task    0. libRI G0W0, spin 0, time grid    82.494555. Wc size 9, GF size 9. Wall time 0.005092
+Task    0. libRI G0W0, spin 0, time grid   -82.494555. Wc size 9, GF size 9. Wall time 0.005624
+Time for Green's function, i_spin 1 i_tau 24 (seconds, Wall/CPU): 0.000104 0.000103
+Task    0. libRI G0W0, spin 0, time grid   110.653057. Wc size 9, GF size 9. Wall time 0.005271
+Task    0. libRI G0W0, spin 0, time grid  -110.653057. Wc size 9, GF size 9. Wall time 0.005337
+Time for Green's function, i_spin 1 i_tau 25 (seconds, Wall/CPU): 0.000123 0.000124
+Task    0. libRI G0W0, spin 0, time grid   148.104444. Wc size 9, GF size 9. Wall time 0.005181
+Task    0. libRI G0W0, spin 0, time grid  -148.104444. Wc size 9, GF size 9. Wall time 0.004602
+Time for Green's function, i_spin 1 i_tau 26 (seconds, Wall/CPU): 0.000115 0.000115
+Task    0. libRI G0W0, spin 0, time grid   197.869638. Wc size 9, GF size 9. Wall time 0.005848
+Task    0. libRI G0W0, spin 0, time grid  -197.869638. Wc size 9, GF size 9. Wall time 0.004625
+Time for Green's function, i_spin 1 i_tau 27 (seconds, Wall/CPU): 0.000115 0.000116
+Task    0. libRI G0W0, spin 0, time grid   264.011915. Wc size 9, GF size 9. Wall time 0.004876
+Task    0. libRI G0W0, spin 0, time grid  -264.011915. Wc size 9, GF size 9. Wall time 0.004760
+Time for Green's function, i_spin 1 i_tau 28 (seconds, Wall/CPU): 0.000127 0.000127
+Task    0. libRI G0W0, spin 0, time grid   352.118718. Wc size 9, GF size 9. Wall time 0.004494
+Task    0. libRI G0W0, spin 0, time grid  -352.118718. Wc size 9, GF size 9. Wall time 0.004761
+Time for Green's function, i_spin 1 i_tau 29 (seconds, Wall/CPU): 0.000110 0.000110
+Task    0. libRI G0W0, spin 0, time grid   470.191197. Wc size 9, GF size 9. Wall time 0.005050
+Task    0. libRI G0W0, spin 0, time grid  -470.191197. Wc size 9, GF size 9. Wall time 0.004981
+Time for Green's function, i_spin 1 i_tau 30 (seconds, Wall/CPU): 0.000133 0.000133
+Task    0. libRI G0W0, spin 0, time grid   630.564672. Wc size 9, GF size 9. Wall time 0.004715
+Task    0. libRI G0W0, spin 0, time grid  -630.564672. Wc size 9, GF size 9. Wall time 0.004510
+Time for Green's function, i_spin 1 i_tau 31 (seconds, Wall/CPU): 0.000116 0.000116
+Task    0. libRI G0W0, spin 0, time grid   855.079433. Wc size 9, GF size 9. Wall time 0.005071
+Task    0. libRI G0W0, spin 0, time grid  -855.079433. Wc size 9, GF size 9. Wall time 0.004991
+Time for Green's function, i_spin 1 i_tau 32 (seconds, Wall/CPU): 0.000117 0.000117
+Task    0. libRI G0W0, spin 0, time grid  1195.595158. Wc size 9, GF size 9. Wall time 0.004825
+Task    0. libRI G0W0, spin 0, time grid -1195.595158. Wc size 9, GF size 9. Wall time 0.004784
+Task    0: tensor communicate elapsed time: 0.000250
 Printing quasi-particle energy [unit: eV]
 
 spin  1, k-point    1: (0.00000, 0.00000, 0.00000) 
 ----------------------------------------------------------------------------------------------------------------------------
 State              occ             e_mf             v_xc            v_exx           ReSigc           ImSigc             e_qp
 ----------------------------------------------------------------------------------------------------------------------------
-    1          2.00000       -511.26432        -83.87895       -132.78599         10.01634         -4.93668       -550.15503
+    1          2.00000       -511.26432        -83.87895       -132.78599         10.01634         -4.93669       -550.15503
     2          2.00000        -25.23176        -21.47725        -33.08424          6.72331         -0.26636        -30.11543
     3          2.00000        -13.00944        -18.24575        -24.74142          1.53188         -0.12308        -17.97323
     4          2.00000         -9.25982        -18.99080        -25.87666          2.44401         -0.00126        -13.70166
@@ -760,143 +538,143 @@ State              occ             e_mf             v_xc            v_exx       
     7          0.00000          2.76392         -9.86493         -4.73918         -1.12392          0.00007          6.76575
     8          0.00000          8.08357         -9.59996         -4.33556         -1.06725         -0.08753         12.28072
     9          0.00000          9.08549        -10.91319         -5.35442         -0.73561         -0.01722         13.90865
-   10          0.00000         10.00576         -7.40671         -2.47078         -0.77614         -0.02489         14.16555
-   11          0.00000         15.81354        -12.33860         -4.91770         -2.38727         -0.25076         20.84717
-   12          0.00000         21.10557        -13.22841         -5.15899         -3.74993         -1.11389         25.42506
+   10          0.00000         10.00576         -7.40671         -2.47078         -0.77616         -0.02490         14.16553
+   11          0.00000         15.81354        -12.33860         -4.91770         -2.38727         -0.25076         20.84718
+   12          0.00000         21.10557        -13.22841         -5.15899         -3.74987         -1.11345         25.42512
    13          0.00000         23.95695        -12.12890         -4.57527         -1.87170         -0.41741         29.63888
-   14          0.00000         26.32072        -11.83778         -4.22115         -1.81523         -0.08942         32.12211
+   14          0.00000         26.32072        -11.83778         -4.22115         -1.81523         -0.08941         32.12211
    15          0.00000         30.29300        -12.29537         -4.39797         -2.13304         -0.41007         36.05736
    16          0.00000         31.30678        -14.11900         -5.85006         -2.29072         -0.96247         37.28500
-   17          0.00000         41.53674        -10.80905         -2.16280         -3.42111         -1.73389         46.76188
-   18          0.00000         52.96963        -15.87692         -5.40055         -2.21538         -2.28445         61.23062
-   19          0.00000         55.46565        -15.00551         -4.49736         -1.75797         -2.59299         64.21583
+   17          0.00000         41.53674        -10.80905         -2.16280         -3.42107         -1.73400         46.76192
+   18          0.00000         52.96963        -15.87692         -5.40055         -2.21537         -2.28445         61.23062
+   19          0.00000         55.46565        -15.00551         -4.49736         -1.75798         -2.59300         64.21582
    20          0.00000         62.48829        -16.49174         -5.53132         -2.50954         -2.95034         70.93917
-   21          0.00000         65.19146        -16.86060         -5.43973         -2.40567         -3.01227         74.20667
+   21          0.00000         65.19146        -16.86060         -5.43973         -2.40566         -3.01227         74.20668
    22          0.00000         65.90399        -17.35130         -5.67569         -3.12275         -2.52803         74.45685
-   23          0.00000         78.66616        -17.84163         -5.06922         -3.04606         -4.00765         88.39250
-   24          0.00000         87.88213        -18.51092         -5.15313         -4.93848         -3.90421         96.30145
+   23          0.00000         78.66616        -17.84163         -5.06922         -3.04608         -4.00769         88.39249
+   24          0.00000         87.88213        -18.51092         -5.15313         -4.93848         -3.90424         96.30144
 
 Finalizing LibRPA global environment
 Entry                                             #calls       CPU time (s)       Wall time (s)     
 ----------------------------------------------------------------------------------------------------
-Total for driver                                  1            1.8906             1.6183            
- Driver Read Input Parameters                     1             0.0182             0.0184           
- Driver Read Task-Common Input Data               1             0.0037             0.0037           
-  DFT SCF eigenvalues/occupations                 1              0.0002             0.0002          
-   api_set_scf_dimension                          1               0.0001             0.0001         
+Total for driver                                  1            1.7613             1.6632            
+ Driver Read Input Parameters                     1             0.0184             0.0186           
+ Driver Read Task-Common Input Data               1             0.0038             0.0038           
+  DFT SCF eigenvalues/occupations                 1              0.0001             0.0001          
+   api_set_scf_dimension                          1               0.0000             0.0000         
    api_set_wg_ekb_efermi                          1               0.0000             0.0000         
   Structure                                       1              0.0002             0.0002          
-   api_set_latvec_and_G                           1               0.0001             0.0001         
-   api_set_atoms                                  1               0.0001             0.0001         
-  BZ sampling                                     1              0.0002             0.0002          
-   api_set_kgrids_kvec                            1               0.0001             0.0001         
+   api_set_latvec_and_G                           1               0.0000             0.0001         
+   api_set_atoms                                  1               0.0000             0.0000         
+  BZ sampling                                     1              0.0001             0.0001          
+   api_set_kgrids_kvec                            1               0.0000             0.0000         
    api_set_ibz_mapping                            1               0.0000             0.0000         
-  Basis (wave-function and auxiliary)             1              0.0002             0.0002          
+  Basis (wave-function and auxiliary)             1              0.0001             0.0001          
    api_set_ao_basis_wfc                           1               0.0000             0.0000         
    api_set_ao_basis_aux                           1               0.0000             0.0000         
-  SCF eigenvectors                                1              0.0003             0.0003          
+  SCF eigenvectors                                1              0.0002             0.0002          
    api_set_wfc                                    1               0.0000             0.0000         
-  driver_read_ri                                  1              0.0024             0.0024          
-   driver_read_Cs                                 1               0.0006             0.0006         
+  driver_read_ri                                  1              0.0030             0.0030          
+   driver_read_Cs                                 1               0.0009             0.0009         
     handle_Cs_file_dry                            1                0.0003             0.0003        
-    handle_Cs_file                                1                0.0003             0.0003        
-     api_set_lri_coeff                            3                 0.0002             0.0002       
-   driver_read_Vq                                 1               0.0016             0.0017         
-    handle_Vq_row_file                            1                0.0013             0.0013        
-    set_aux_coulomb_k_atom_pair_out               1                0.0003             0.0003        
-     api_set_aux_bare_coulomb_k_atom_pair         2                 0.0002             0.0002       
- G0W0 quasi-particle calculation                  1             1.8678             1.5952           
-  Load truncated Coulomb                          1              0.0017             0.0017          
-   handle_Vq_row_file                             1               0.0014             0.0014         
-   set_aux_coulomb_k_atom_pair_out                1               0.0003             0.0003         
-    api_set_aux_cut_coulomb_k_atom_pair           2                0.0002             0.0002        
+    handle_Cs_file                                1                0.0005             0.0005        
+     api_set_lri_coeff                            9                 0.0003             0.0003       
+   driver_read_Vq                                 1               0.0021             0.0021         
+    handle_Vq_row_file                            1                0.0017             0.0017        
+    set_aux_coulomb_k_atom_pair_out               1                0.0004             0.0004        
+     api_set_aux_bare_coulomb_k_atom_pair         6                 0.0003             0.0003       
+ G0W0 quasi-particle calculation                  1             1.7388             1.6405           
+  Load truncated Coulomb                          1              0.0021             0.0021          
+   handle_Vq_row_file                             1               0.0017             0.0017         
+   set_aux_coulomb_k_atom_pair_out                1               0.0004             0.0004         
+    api_set_aux_cut_coulomb_k_atom_pair           6                0.0003             0.0003        
   Load DFT xc potential                           1              0.0001             0.0001          
-  api_build_g0w0_sigma                            1              1.8266             1.5708          
-   initialize_ds_tfgrids                          1               0.2191             0.2195         
+  api_build_g0w0_sigma                            1              1.7160             1.6247          
+   initialize_ds_tfgrids                          1               0.2058             0.2060         
    initialize_ds_atpairs_local                    1               0.0001             0.0001         
    redistribute_coulomb_blacs2ap                  1               0.0000             0.0000         
    initialize_ds_chi0                             1               0.0000             0.0000         
-   Build response function chi0                   1               0.2358             0.1879         
-    Loop over LibRI                               1                0.2339             0.1860        
+   Build response function chi0                   1               0.1772             0.1791         
+    Loop over LibRI                               1                0.1749             0.1768        
      chi0_libri_routing_set_parallel              1                 0.0002             0.0002       
-     Set Cs                                       1                 0.0032             0.0016       
-     build_gf_Rt_libri_serial                     64                0.0035             0.0036       
-     chi0_set_Gs                                  32                0.0636             0.0361       
-     Call cal_chi0s                               32                0.0756             0.0768       
-     chi0_libri_routing_free_gf                   32                0.0005             0.0005       
-     Collect all R blocks                         32                0.0381             0.0175       
-     Fourier and Cosine transform                 32                0.0446             0.0451       
-   Build exchange self-energy                     1               0.0092             0.0067         
+     Set Cs                                       1                 0.0005             0.0005       
+     build_gf_Rt_libri_serial                     64                0.0041             0.0042       
+     chi0_set_Gs                                  32                0.0019             0.0019       
+     Call cal_chi0s                               32                0.1014             0.1023       
+     chi0_libri_routing_free_gf                   32                0.0004             0.0003       
+     Collect all R blocks                         32                0.0002             0.0002       
+     Fourier and Cosine transform                 32                0.0610             0.0618       
+   Build exchange self-energy                     1               0.0056             0.0052         
     initialize_ds_exx                             1                0.0000             0.0000        
-    Fourier transform truncated Coulomb           1                0.0002             0.0002        
-    g0w0_exx_real_work                            1                0.0089             0.0064        
-     Prepare C libRI object                       1                 0.0018             0.0011       
-     Prepare V libRI object                       1                 0.0019             0.0010       
+    Fourier transform truncated Coulomb           1                0.0003             0.0003        
+    g0w0_exx_real_work                            1                0.0053             0.0049        
+     Prepare C libRI object                       1                 0.0004             0.0004       
+     Prepare V libRI object                       1                 0.0002             0.0002       
       build_real_space_exx_2_1                    1                  0.0000             0.0000      
-      build_real_space_exx_2_2                    1                  0.0018             0.0010      
-     Prepare DM libRI object                      1                 0.0016             0.0009       
-      exx_build_dmat_libri_kserial                1                  0.0000             0.0000      
-     Call libRI Hexx calculation                  1                 0.0032             0.0029       
-     build_real_space_exx_5                       1                 0.0001             0.0001       
-   Build screened interaction                     1               0.2555             0.1562         
-    compute_Wc_freq_q_blacs_init                  1                0.0003             0.0003        
-    compute_Wc_freq_q_work                        1                0.2551             0.1557        
-     Prepare sqrt of truncated Coulomb            1                 0.0117             0.0086       
+      build_real_space_exx_2_2                    1                  0.0002             0.0002      
+     Prepare DM libRI object                      1                 0.0007             0.0005       
+      exx_build_dmat_libri_kserial                1                  0.0001             0.0001      
+     Call libRI Hexx calculation                  1                 0.0036             0.0034       
+     build_real_space_exx_5                       1                 0.0000             0.0000       
+   Build screened interaction                     1               0.3304             0.2504         
+    compute_Wc_freq_q_blacs_init                  1                0.0015             0.0015        
+    compute_Wc_freq_q_work                        1                0.3286             0.2485        
+     Prepare sqrt of truncated Coulomb            1                 0.0120             0.0096       
       Setup libRI object                          1                  0.0001             0.0001      
-      libRI Communicate                           1                  0.0048             0.0016      
-      Collect 2D-block from IJ                    1                  0.0012             0.0013      
-      Perform square root                         1                  0.0055             0.0056      
-       power_hemat_blacs                          1                   0.0054             0.0055     
-        power_hemat_blacs_1                       1                    0.0001             0.0001    
-        power_hemat_blacs_2                       1                    0.0046             0.0047    
+      libRI Communicate                           1                  0.0037             0.0013      
+      Collect 2D-block from IJ                    1                  0.0033             0.0033      
+      Perform square root                         1                  0.0048             0.0048      
+       power_hemat_blacs                          1                   0.0047             0.0047     
+        power_hemat_blacs_1                       1                    0.0000             0.0000    
+        power_hemat_blacs_2                       1                    0.0036             0.0036    
         power_hemat_blacs_3                       1                    0.0001             0.0001    
         power_hemat_blacs_4                       1                    0.0000             0.0000    
-        power_hemat_blacs_5                       1                    0.0005             0.0005    
-     Prepare sqrt of bare Coulomb                 1                 0.0095             0.0068       
-      power_hemat_blacs_real                      1                  0.0037             0.0037      
-       power_hemat_blacs_1                        1                   0.0001             0.0001     
-       power_hemat_blacs_2                        1                   0.0030             0.0030     
+        power_hemat_blacs_5                       1                    0.0008             0.0008    
+     Prepare sqrt of bare Coulomb                 1                 0.0109             0.0087       
+      power_hemat_blacs_real                      1                  0.0036             0.0036      
+       power_hemat_blacs_1                        1                   0.0000             0.0000     
+       power_hemat_blacs_2                        1                   0.0020             0.0020     
        power_hemat_blacs_3                        1                   0.0000             0.0000     
-       power_hemat_blacs_4                        1                   0.0003             0.0003     
-     epsilon_wc_work_q_omega                      32                0.2321             0.1385       
-      Prepare Chi0 2D block                       32                 0.1771             0.0829      
-       epsilon_prepare_chi0_2d_comm_map2          32                  0.1328             0.0382     
-       epsilon_prepare_chi0_2d_collect_block      32                  0.0399             0.0403     
-      Compute dielectric matrix                   32                 0.0132             0.0134      
-       epsilon_compute_eps_pgemm_1                32                  0.0063             0.0064     
-       epsilon_compute_eps_pgemm_2                32                  0.0060             0.0061     
-      epsilon_solver_coulwc                       32                 0.0320             0.0323      
-      Multiply truncated Coulomb                  32                 0.0061             0.0062      
+       power_hemat_blacs_4                        1                   0.0009             0.0009     
+     epsilon_wc_work_q_omega                      32                0.3009             0.2254       
+      Prepare Chi0 2D block                       32                 0.2299             0.1537      
+       epsilon_prepare_chi0_2d_comm_map2          32                  0.1197             0.0426     
+       epsilon_prepare_chi0_2d_collect_block      32                  0.1041             0.1050     
+      Compute dielectric matrix                   32                 0.0275             0.0278      
+       epsilon_compute_eps_pgemm_1                32                  0.0134             0.0135     
+       epsilon_compute_eps_pgemm_2                32                  0.0133             0.0135     
+      epsilon_solver_coulwc                       32                 0.0282             0.0284      
+      Multiply truncated Coulomb                  32                 0.0133             0.0135      
    initialize_ds_g0w0                             1               0.0000             0.0000         
-   Build real-space correlation self-energy       1               1.1066             1.0001         
-    Tranform Wc (q,w) -> (R,t)                    1                0.1024             0.1030        
-     Perform transformation                       1                 0.0376             0.0378       
-     Compute balance atom-pairs distribution      1                 0.0001             0.0001       
+   Build real-space correlation self-energy       1               0.9968             0.9837         
+    Tranform Wc (q,w) -> (R,t)                    1                0.1519             0.1526        
+     Perform transformation                       1                 0.0438             0.0443       
+     Compute balance atom-pairs distribution      1                 0.0000             0.0000       
      index_scheduler_init_pairs_unordered_map     1                 0.0000             0.0000       
      index_scheduler_ids_rc                       1                 0.0000             0.0000       
-     index_scheduler_compute_map                  1                 0.0013             0.0013       
+     index_scheduler_compute_map                  1                 0.0007             0.0007       
      index_scheduler_flatten                      1                 0.0000             0.0000       
-     fill_ap_map_from_blacs_dist_scheduler        32                0.0216             0.0217       
-     Prepare LibRI Wc object                      32                0.0099             0.0100       
-    Setup LibRI G0W0 object and C data            1                0.0019             0.0013        
-    Setup LibRI Wc                                32               0.4853             0.4574        
-    Compute G(R,t) and G(R,-t)                    32               0.0035             0.0035        
-     g0w0_build_gf_libri_kserial                  32                0.0029             0.0029       
-    Call libRI cal_Sigc                           64               0.1569             0.1585        
-    g0w0_build_spacetime_5_clean                  64               0.0008             0.0008        
-    Transform Sigc (R,t) -> (R,w)                 32               0.0348             0.0350        
+     fill_ap_map_from_blacs_dist_scheduler        32                0.0573             0.0575       
+     Prepare LibRI Wc object                      32                0.0202             0.0203       
+    Setup LibRI G0W0 object and C data            1                0.0006             0.0006        
+    Setup LibRI Wc                                32               0.4147             0.4178        
+    Compute G(R,t) and G(R,-t)                    32               0.0040             0.0040        
+     g0w0_build_gf_libri_kserial                  32                0.0035             0.0035       
+    Call libRI cal_Sigc                           64               0.2106             0.2120        
+    g0w0_build_spacetime_5_clean                  64               0.0006             0.0006        
+    Transform Sigc (R,t) -> (R,w)                 32               0.0363             0.0368        
     g0w0_build_spacetime_free_Ws                  32               0.0004             0.0004        
-  api_get_exx_pot_kgrid                           1              0.0017             0.0012          
-   exx_build_KS_blacs_redist                      1               0.0010             0.0005         
-    exx_build_KS_blacs_redist_comm_map2           1                0.0009             0.0004        
-   Hexx IJ -> 2D block                            1               0.0000             0.0000         
-   Rotate Hexx ij -> KS                           1               0.0001             0.0001         
-   Collect Eexx to root process                   1               0.0002             0.0002         
-  api_get_g0w0_sigc_kgrid                         1              0.0376             0.0214          
-   Correlation self-energy in K-S space           1               0.0364             0.0201         
-    g0w0_build_sigc_KS                            1                0.0364             0.0201        
-     g0w0_build_sigc_KS_rspace_redist             1                 0.0316             0.0152       
-     g0w0_build_sigc_KS_find_bvk                  1                 0.0001             0.0001       
-     g0w0_build_sigc_KS_rotate_kserial            1                 0.0047             0.0047       
-   Solve quasi-particle equation                  1               0.0012             0.0012         
+  api_get_exx_pot_kgrid                           1              0.0010             0.0008          
+   exx_build_KS_blacs_redist                      1               0.0004             0.0002         
+    exx_build_KS_blacs_redist_comm_map2           1                0.0003             0.0001        
+   Hexx IJ -> 2D block                            1               0.0002             0.0002         
+   Rotate Hexx ij -> KS                           1               0.0000             0.0000         
+   Collect Eexx to root process                   1               0.0001             0.0001         
+  api_get_g0w0_sigc_kgrid                         1              0.0195             0.0126          
+   Correlation self-energy in K-S space           1               0.0184             0.0114         
+    g0w0_build_sigc_KS                            1                0.0183             0.0114        
+     g0w0_build_sigc_KS_rspace_redist             1                 0.0124             0.0055       
+     g0w0_build_sigc_KS_find_bvk                  1                 0.0002             0.0002       
+     g0w0_build_sigc_KS_rotate_kserial            1                 0.0056             0.0056       
+   Solve quasi-particle equation                  1               0.0011             0.0012         
 libRPA finished successfully

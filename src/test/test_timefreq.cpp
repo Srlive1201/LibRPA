@@ -27,16 +27,18 @@ void check_minimax_ng16_diamond_k222()
     // emin and emax (in Hartree) from diamond PBE k2c
     double emin = 0.173388;
     double emax = 23.7738;
-    tfg.generate_minimax(emin, emax);
+    double residual = tfg.generate_minimax(emin, emax);
     cout << tfg.get_freq_nodes() << endl;
     // TODO(minye): CI failed after this part. I am completely ignorant of why it should.
     cout << tfg.get_freq_weights() << endl;
     cout << tfg.get_time_nodes() << endl;
     cout << tfg.get_time_weights() << endl;
+    cout << "Residual: " << residual << endl;
     /* if (tfg.get_grid_type() != TFGrids::GRID_TYPES::Minimax) */
     /*     throw logic_error("internal type should be minimax grid"); */
     /* print_matrix("cos: t2f * f2t, ideally close to identity", tfg.get_costrans_t2f() * tfg.get_costrans_f2t() ); */
     /* print_matrix("sin: t2f * f2t, ideally close to identity", tfg.get_sintrans_t2f() * tfg.get_sintrans_f2t() ); */
+    // tfg.write_cos_sin_trans_matrices("test.dat");
 }
 
 void check_minimax_ng6_HF_123()
@@ -119,6 +121,23 @@ void check_minimax_ng6_HF_123()
 /*    0.06496  -0.00675  -0.01183   0.01955  -0.03648   0.13263 */
 }
 
+void check_minimax_ng32_H2O()
+{
+    // For large minimax grids, high precision is required to reproduce the actual results
+    const double emin = 0.302066195818780992e-2 + 0.260399583086844855e0;
+    const double emax = 0.322960860707412234e1 + 0.187886173733204913e2;
+    // cout << "emin/erange: " << emin << " " << emax/emin << endl;
+    double residual;
+
+    TFGrids tfg(32);
+    residual = tfg.generate_minimax(emin, emax);
+    cout << "Residual: " << residual << endl;
+    // tfg.write_cos_sin_trans_matrices("test.dat");
+    residual = tfg.generate_minimax(emin, emax, 1e-12);
+    cout << "Residual (regulation): " << residual << endl;
+    // tfg.write_cos_sin_trans_matrices("test_regulated.dat");
+}
+
 int main (int argc, char **argv)
 {
     using namespace librpa_int::global;
@@ -130,6 +149,7 @@ int main (int argc, char **argv)
     check_initialize();
     check_minimax_ng16_diamond_k222();
     check_minimax_ng6_HF_123();
+    check_minimax_ng32_H2O();
 
     finalize_global_io();
     finalize_global_mpi();

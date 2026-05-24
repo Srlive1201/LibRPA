@@ -4,3 +4,4 @@ input_dir = ../dataset
 # API runtime
 nfreq = 32
 parallel_routing = libri
+n_params_anacon = 16
