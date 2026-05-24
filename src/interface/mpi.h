@@ -17,6 +17,10 @@
 #define MPI_Op int
 #endif
 
+#ifndef MPI_BOR
+#define MPI_BOR (MPI_Op)(0x58000008)
+#endif
+
 #ifndef MPI_Comm
 #define MPI_Comm int
 #endif

@@ -69,6 +69,8 @@ IndexScheduler::init_impl_(const ap_p_map<int> &map_IJ_proc,
                            const AtomicBasis &atbasis_r, const AtomicBasis &atbasis_c,
                            const ArrayDesc &ad, const bool row_major) noexcept
 {
+    row_major_ = row_major;
+
     // process -> local 1D indices in atomic basis context to send when converting from AP->BLACS
     std::unordered_map<int, std::vector<size_t>> proc_ap_ipair;
     std::unordered_map<int, std::vector<size_t>> proc_ap_locid;
@@ -303,6 +305,7 @@ IndexScheduler::reset()
     counts_ap.clear();
     disp_blacs.clear();
     counts_blacs.clear();
+    row_major_ = false;
     initialized_ = false;
 }
 

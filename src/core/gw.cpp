@@ -300,9 +300,41 @@ void G0W0::build_spacetime(
         ofs_myid << "No atom pairs for Wc on this process" << std::endl;
     profiler.stop("g0w0_build_spacetime_get_ap");
 
+    int wc_major_mask = 0;
+    for (const auto &[tau, map_R_mat]: Wc_tau_R_blacs)
+    {
+        for (const auto &[R, mat_blacs]: map_R_mat)
+        {
+            if (mat_blacs.major() == MAJOR::ROW)
+                wc_major_mask |= 1;
+            else if (mat_blacs.major() == MAJOR::COL)
+                wc_major_mask |= 2;
+            else
+                wc_major_mask |= 4;
+        }
+    }
+    MPI_Allreduce(MPI_IN_PLACE, &wc_major_mask, 1, mpi_datatype<int>::value, MPI_BOR, ad_Wc.comm());
+
+    MAJOR wc_major = MAJOR::AUTO;
+    if (wc_major_mask == 1)
+        wc_major = MAJOR::ROW;
+    else if (wc_major_mask == 2)
+        wc_major = MAJOR::COL;
+    else if (wc_major_mask == 0)
+    {
+        throw LIBRPA_RUNTIME_ERROR("Wc(R,t) is empty");
+    }
+    else
+    {
+        throw LIBRPA_RUNTIME_ERROR("Inconsistent storage order among Wc(R,t) blocks");
+    }
+
+    ofs_myid << "wc_major == MAJOR::ROW ? " << std::boolalpha << (wc_major == MAJOR::ROW) << std::endl;
+
     IndexScheduler sched;
-    // Force row-major as LibRI requires
-    sched.init(map_atpairs_balanced, atbasis_abf, atbasis_abf, ad_Wc, MAJOR::ROW);
+    // The scheduler indexes the existing BLACS buffers, so this must match Wc_tau_R_blacs.
+    // LibRI's row-major requirement is handled below when each atom-pair block is wrapped.
+    sched.init(map_atpairs_balanced, atbasis_abf, atbasis_abf, ad_Wc, wc_major == MAJOR::ROW);
     for (auto &[tau, map_R_mat]: Wc_tau_R_blacs)
     {
         for (auto &[R, mat_blacs]: map_R_mat)

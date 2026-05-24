@@ -25,6 +25,7 @@ class IndexScheduler
 {
 private:
     bool initialized_;
+    bool row_major_;
 public:
     // atom pairs that this process should handle
     std::vector<atpair_t> atpairs;
@@ -47,6 +48,7 @@ public:
     // default constructor
     IndexScheduler()
         : initialized_(false),
+          row_major_(false),
           atpairs(),
           ids_ap_ipair(),
           ids_ap_locid(),
@@ -67,6 +69,7 @@ public:
     IndexScheduler& operator=(IndexScheduler&& s) = delete;
 
     inline bool initialized() const noexcept { return initialized_; }
+    inline bool row_major() const noexcept { return row_major_; }
 
     void init(const std::map<int, std::set<atpair_t>> &map_proc_IJs,
               const AtomicBasis &atbasis_r, const AtomicBasis &atbasis_c,

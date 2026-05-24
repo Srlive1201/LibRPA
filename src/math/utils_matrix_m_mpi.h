@@ -1144,6 +1144,10 @@ void fill_local_mat_from_ap_dist_scheduler(matrix_m<T> &m_loc,
     assert(ad.initialized());
     const auto major_data = m_loc.major();
     const auto row_major = major_data == MAJOR::ROW ? true : false;
+    if (sched.row_major() != row_major)
+    {
+        throw LIBRPA_RUNTIME_ERROR("IndexScheduler storage order does not match the BLACS local matrix");
+    }
 
     // Resolve data type for communication
     MPI_Datatype dtype = mpi_datatype<T>::value;
@@ -1575,6 +1579,10 @@ void fill_ap_map_from_blacs_dist_scheduler(ap_p_map<matrix_m<T>> &data,
     MPI_Datatype dtype = mpi_datatype<T>::value;
 
     const auto &row_major = major_data == MAJOR::ROW ? true : false;
+    if (sched.row_major() != row_major)
+    {
+        throw LIBRPA_RUNTIME_ERROR("IndexScheduler storage order does not match the BLACS local matrix");
+    }
 
     // global::profiler.start("assign_self_blacs2ap");
     // Fill in data that is already available before communication

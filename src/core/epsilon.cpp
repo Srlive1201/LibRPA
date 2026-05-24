@@ -2339,6 +2339,7 @@ std::map<double, std::map<Vector3_Order<int>, Matz>> FT_Wc_freq_q(
     // For single k-point (Gamma only), there is no need to transform: just remap and return
     if (n_k_points == 1)
     {
+        ofs_myid << "Single k-point, remapping instead of explicit transform" << std::endl;
         for (auto it_freq = Wc_freq_q.begin(); it_freq != Wc_freq_q.end(); it_freq++)
         {
             const auto &freq = it_freq->first;
@@ -2555,7 +2556,7 @@ std::map<double, std::map<Vector3_Order<int>, Matz>> CT_FT_Wc_freq_q(
     {
         for (size_t ifreq = 0; ifreq < n_freq; ifreq++)
         {
-            coeff_f2t(ifreq, itau) = tfg.get_costrans_f2t()(itau, ifreq);
+            coeff_f2t(ifreq, itau) = {tfg.get_costrans_f2t()(itau, ifreq), 0.0};
         }
     }
     // global::ofs_myid << coeff_f2t << std::endl;
@@ -2605,6 +2606,7 @@ std::map<double, std::map<Vector3_Order<int>, Matz>> CT_FT_Wc_freq_q(
             for (const auto &tau: tfg.get_time_nodes())
             {
                 Wc_tau_R[tau][R] = Matz(nr, nc, major_orig);
+                Wc_tau_R[tau][R] = cplxdb{0.0, 0.0};
             }
         }
 
@@ -2629,8 +2631,8 @@ std::map<double, std::map<Vector3_Order<int>, Matz>> CT_FT_Wc_freq_q(
             }
             // Transform
             LapackConnector::gemm_f('N', 'N', row_this, n_freq, n_freq,
-                                    1.0, fmat.data(), row_max, coeff_f2t.ptr(), n_freq,
-                                    0.0, tmat.data(), row_max);
+                                    C_ONE, fmat.data(), row_max, coeff_f2t.ptr(), n_freq,
+                                    C_ZERO, tmat.data(), row_max);
             // librpa_int::global::ofs_myid << tmat << endl;
 
             // Copy back
