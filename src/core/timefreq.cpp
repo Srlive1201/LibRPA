@@ -67,16 +67,16 @@ void TFGrids::show() const
         cout << "t->f transform: " << endl;
         if (costrans_t2f.size)
         {
-            print_matrix("Cosine transform matrix", costrans_t2f);
+            print_matrix("Cosine transform matrix (row: freq, col: time)", costrans_t2f);
         }
         if (sintrans_t2f.size)
         {
-            print_matrix("Sine transform matrix", sintrans_t2f);
+            print_matrix("Sine transform matrix (row: freq, col: time)", sintrans_t2f);
         }
         cout << "f->t transform: " << endl;
         if (costrans_f2t.size)
         {
-            print_matrix("Cosine transform matrix", costrans_f2t);
+            print_matrix("Cosine transform matrix (row: time, col: freq)", costrans_f2t);
         }
     }
     lib_printf("\n");
@@ -84,6 +84,7 @@ void TFGrids::show() const
 
 void TFGrids::unset()
 {
+    n_grids = 0;
     freq_nodes.clear();
     freq_weights.clear();
     time_nodes.clear();
@@ -188,7 +189,7 @@ void TFGrids::generate_evenspaced_tf(double emin, double eintv, double tmin, dou
     grid_type = LibrpaTimeFreqGrid::EvenSpaced_TF;
 }
 
-double TFGrids::generate_minimax(double emin, double emax)
+double TFGrids::generate_minimax(double emin, double emax, double regulation)
 {
     grid_type = LibrpaTimeFreqGrid::Minimax;
     set_time();
@@ -199,8 +200,9 @@ double TFGrids::generate_minimax(double emin, double emax)
 
     // global::ofs_myid << "Before generate_minimax" << std::endl;
     auto n = as_int(n_grids);
-    get_minimax_grid(n, emin, emax, time_nodes.data(), time_weights.data(), freq_nodes.data(), freq_weights.data(),
-                     costrans_t2f.c, costrans_f2t.c, sintrans_t2f.c, max_errors, cosft_duality_error, ierr);
+    get_minimax_grid(n, emin, emax, time_nodes.data(), time_weights.data(), freq_nodes.data(),
+                     freq_weights.data(), costrans_t2f.c, costrans_f2t.c, sintrans_t2f.c,
+                     max_errors, cosft_duality_error, ierr, false, regulation);
     // global::ofs_myid << "After generate_minimax" << std::endl;
     // global::ofs_myid << freq_nodes << std::endl;
 
@@ -304,6 +306,36 @@ const std::pair<int, int> TFGrids::get_tf_index(const std::pair<double, double> 
 double TFGrids::find_freq_weight(const double & freq) const
 {
     return freq_weights[get_freq_index(freq)];
+}
+
+void TFGrids::write_cos_sin_trans_matrices(const std::string &filename) const
+{
+    std::ofstream ofs;
+    const int n_grids_int = as_int(n_grids);
+    std::vector<int> is_authentic(4, 0);
+    const size_t gg_bytes_double = n_grids * n_grids * sizeof(double);
+
+    std::vector<double> dummy(n_grids * n_grids, 0.0);
+
+    if (n_grids > 0 && has_time_grids())
+        std::fill(is_authentic.begin(), is_authentic.end(), 1);
+    // ST freq->time matrix is not extracted now, so use dummy
+    is_authentic[3] = 0;
+
+    auto write_if_authentic = [&](const int authentic, const matrix &mat)
+    {
+        double *p = (authentic && n_grids > 0) ? mat.c : dummy.data();
+        ofs.write((char *) p, gg_bytes_double);
+    };
+
+    ofs.open(filename, std::ios::out | std::ios::binary);
+    ofs.write((char *) &n_grids_int, sizeof(int));
+    ofs.write((char *) &is_authentic, 4 * sizeof(int));
+    write_if_authentic(is_authentic[0], costrans_t2f);
+    write_if_authentic(is_authentic[1], sintrans_t2f);
+    write_if_authentic(is_authentic[2], costrans_f2t);
+    write_if_authentic(is_authentic[3], sintrans_f2t);
+    ofs.close();
 }
 
 }

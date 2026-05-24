@@ -30,12 +30,17 @@ void get_minimax_grid(int ngrids, double e_min, double e_max,
                       double *tau_points, double *tau_weights,
                       double *omega_points, double *omega_weights,
                       double *cosft_wt, double *cosft_tw, double *sinft_wt,
-                      double max_errors[3], double &cosft_duality_error,
-                      int &ierr)
+                      double max_errors[3], double &cosft_duality_error, int &ierr,
+                      bool bare_cos_sin_weights, double regularization,
+                      double *sinft_tw, double *sinft_duality_error,
+                      double *max_error_sin_wt)
 {
+    int bare_cos_sin_weights_int = bare_cos_sin_weights ? 1 : 0;
     gx_minimax_grid_wrp(&ngrids, &e_min, &e_max, tau_points, tau_weights,
                         omega_points, omega_weights, cosft_wt, cosft_tw,
-                        sinft_wt, max_errors, &cosft_duality_error, &ierr);
+                        sinft_wt, max_errors, &cosft_duality_error, &ierr,
+                        &bare_cos_sin_weights_int, &regularization, sinft_tw,
+                        sinft_duality_error, max_error_sin_wt);
     // if (ngrids < ngrids_below_freqweight_inconsistent)
     //     for (int i = 0; i != ngrids; i++)
     //         omega_weights[i] *= scale_inconsistent;
