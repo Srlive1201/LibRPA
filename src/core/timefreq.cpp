@@ -114,7 +114,8 @@ TFGrids::~TFGrids()
     /* unset(); */
 }
 
-double TFGrids::generate(LibrpaTimeFreqGrid gtype, double emin, double eintveral, double emax, double tmin, double tinterval)
+double TFGrids::generate(LibrpaTimeFreqGrid gtype, double emin, double eintveral, double emax,
+                         double tmin, double tinterval, double regulation)
 {
     double retval = -1;
     switch (gtype)
@@ -133,7 +134,7 @@ double TFGrids::generate(LibrpaTimeFreqGrid gtype, double emin, double eintveral
         }
         case (LibrpaTimeFreqGrid::Minimax):
         {
-            retval = this->generate_minimax(emin, emax);
+            retval = this->generate_minimax(emin, emax, regulation);
             break;
         }
         case (LibrpaTimeFreqGrid::EvenSpaced):

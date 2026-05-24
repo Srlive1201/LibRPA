@@ -145,6 +145,7 @@ module librpa_f03
 
       real(c_double) :: minimax_emin
       real(c_double) :: minimax_emax
+      real(c_double) :: minimax_regulation
 
       integer(c_int) :: use_fullcoul_eps
       integer(c_int) :: use_fullcoul_exx
@@ -209,6 +210,7 @@ module librpa_f03
       real(dp) :: tfgrids_time_interval
       real(dp) :: minimax_emin
       real(dp) :: minimax_emax
+      real(dp) :: minimax_regulation
       logical :: use_fullcoul_eps
       logical :: use_fullcoul_exx
       logical :: use_fullcoul_wc
@@ -848,6 +850,7 @@ contains
       call sync_opt(opts%tfgrids_time_interval,   opts%opts_c%tfgrids_time_interval,   direction)
       call sync_opt(opts%minimax_emin,            opts%opts_c%minimax_emin,            direction)
       call sync_opt(opts%minimax_emax,            opts%opts_c%minimax_emax,            direction)
+      call sync_opt(opts%minimax_regulation,      opts%opts_c%minimax_regulation,      direction)
       call sync_opt(opts%use_fullcoul_eps,        opts%opts_c%use_fullcoul_eps,        direction)
       call sync_opt(opts%use_fullcoul_exx,        opts%opts_c%use_fullcoul_exx,        direction)
       call sync_opt(opts%use_fullcoul_wc,         opts%opts_c%use_fullcoul_wc,         direction)

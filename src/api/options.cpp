@@ -28,6 +28,7 @@ void librpa_init_options(LibrpaOptions *opts)
 
     opts->minimax_emin = -1.0;
     opts->minimax_emax = -1.0;
+    opts->minimax_regulation = 0.0;
 
     opts->use_fullcoul_eps = LIBRPA_SWITCH_ON;
     opts->use_fullcoul_exx = LIBRPA_SWITCH_OFF;

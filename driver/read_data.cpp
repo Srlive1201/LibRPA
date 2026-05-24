@@ -823,7 +823,7 @@ std::vector<size_t> handle_Cs_file_dry(const string &file_path, double threshold
     // int ncell = stoi(ncell_s);
 
     size_t id = 0;
-    int R[3];
+    // int R[3];
 
     while (infile.peek() != EOF)
     {
@@ -835,9 +835,9 @@ std::vector<size_t> handle_Cs_file_dry(const string &file_path, double threshold
         int n_mu = stoi(mu_s);
         int ia1 = stoi(ia1_s) - 1;
         int ia2 = stoi(ia2_s) - 1;
-        R[0] = stoi(ic_1);
-        R[1] = stoi(ic_2);
-        R[2] = stoi(ic_3);
+        // R[0] = stoi(ic_1);
+        // R[1] = stoi(ic_2);
+        // R[2] = stoi(ic_3);
         // assign basis
         // set_ao_basis_aux(ia1, ia2, n_i, n_j, n_mu, R, nullptr, 1);
 

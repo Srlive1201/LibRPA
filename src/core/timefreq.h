@@ -89,7 +89,8 @@ class TFGrids
         //! A wrapper around all grids generators
         double generate(LibrpaTimeFreqGrid gtype,
                         double emin = -1, double eintveral = -1,
-                        double emax = -1, double tmin = -1, double tinterval = -1);
+                        double emax = -1, double tmin = -1, double tinterval = -1,
+                        double regulation = 0.0);
 
         //! Generate the even-spaced frequency grid
         void generate_evenspaced(double emin, double interval);

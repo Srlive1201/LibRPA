@@ -17,11 +17,15 @@ void initialize_ds_tfgrids(Dataset &ds, const LibrpaOptions &opts)
     double emax = opts.tfgrids_freq_max;
     double tmin = opts.tfgrids_time_min;
     double tintv = opts.tfgrids_time_interval;
+    double regulation = opts.minimax_regulation;
     if (opts.tfgrids_type == LibrpaTimeFreqGrid::Minimax)
     {
-        ds.mf.get_E_min_max(emin, emax);
+        double emin_mf, emax_mf;
+        ds.mf.get_E_min_max(emin_mf, emax_mf);
+        emax = opts.minimax_emax > 0 ? opts.minimax_emax : emax_mf;
+        emin = opts.minimax_emin > 0 ? opts.minimax_emin : emin_mf;
     }
-    ds.tfg.generate(opts.tfgrids_type, emin, eintv, emax, tmin, tintv);
+    ds.tfg.generate(opts.tfgrids_type, emin, eintv, emax, tmin, tintv, regulation);
     global::profiler.stop("initialize_ds_tfgrids");
 }
 

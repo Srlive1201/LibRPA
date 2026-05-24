@@ -248,6 +248,7 @@ void parse_inputfile_to_params(const std::string &fn)
 
     _parse_double(opts, minimax_emin);
     _parse_double(opts, minimax_emax);
+    _parse_double(opts, minimax_regulation);
 
     _parse_switch(opts, use_fullcoul_eps);
     _parse_switch(opts, use_fullcoul_exx);

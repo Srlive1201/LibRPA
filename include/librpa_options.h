@@ -82,6 +82,9 @@ typedef struct
      */
     double minimax_emax;
 
+    //! Regulation for minimax grids generation
+    double minimax_regulation;
+
     /* ============================================================================= */
     /* Coulomb matrices usage */
 

@@ -123,6 +123,7 @@ module librpa_f03
       real(dp) :: tfgrids_time_interval
       real(dp) :: minimax_emin
       real(dp) :: minimax_emax
+      real(dp) :: minimax_regulation
       logical :: use_fullcoul_eps
       logical :: use_fullcoul_exx
       logical :: use_fullcoul_wc

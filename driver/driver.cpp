@@ -89,6 +89,7 @@ std::string format_runtime_options(const librpa::Options &opts) noexcept
             normal_pair(vq_threshold),
             normal_pair(minimax_emin),
             normal_pair(minimax_emax),
+            normal_pair(minimax_regulation),
             normal_pair(sqrt_coulomb_threshold),
             normal_pair(libri_chi0_threshold_C),
             normal_pair(libri_chi0_threshold_G),
