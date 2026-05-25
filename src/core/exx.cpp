@@ -962,6 +962,11 @@ void Exx::build_KS_kgrid()
     this->build_KS(this->mf.get_eigenvectors(), this->pbc.kfrac_list, {});
 }
 
+// void Exx::build_KS0_kgrid()
+// {
+//     this->build_KS(this->mf_.get_eigenvectors0(), this->kfrac_list_);
+// }
+
 void Exx::build_KS_band(const std::map<int, std::map<int, std::map<int, ComplexMatrix>>> &wfc_band,
                         const std::vector<Vector3_Order<double>> &kfrac_band, const Atoms &geometry)
 {
@@ -972,6 +977,11 @@ void Exx::build_KS_kgrid_blacs(const BlacsCtxtHandler &blacs_ctxt_h)
 {
     this->build_KS_blacs(this->mf.get_eigenvectors(), this->pbc.kfrac_list, {}, blacs_ctxt_h);
 }
+
+// void Exx::build_KS0_kgrid_blacs()
+// {
+//     this->build_KS(this->mf_.get_eigenvectors0(), this->kfrac_list_);
+// }
 
 void Exx::build_KS_band_blacs(const std::map<int, std::map<int, std::map<int, ComplexMatrix>>> &wfc_band,
                               const std::vector<Vector3_Order<double>> &kfrac_band, const Atoms &geometry,

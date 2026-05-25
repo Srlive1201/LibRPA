@@ -13,5 +13,7 @@ void reduce_ComplexMatrix(const ComplexMatrix& cmat_send, ComplexMatrix& cmat_re
 void allreduce_matrix(const matrix& mat_send, matrix& mat_recv, MPI_Comm mpi_comm);
 void allreduce_ComplexMatrix(const ComplexMatrix& cmat_send, ComplexMatrix & cmat_recv, MPI_Comm mpi_comm);
 
+void broadcast_matrix(matrix &mat, const int root, MPI_Comm mpi_comm);
+void broadcast_ComplexMatrix(ComplexMatrix &cmat, const int root, MPI_Comm mpi_comm);
 
 } /* end of namespace librpa_int */
