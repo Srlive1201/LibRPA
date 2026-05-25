@@ -104,11 +104,6 @@ if (${MINIMAX_COMPONENT})
    add_subdirectory(GX-TimeFrequency)
 endif ()
 
-option (LBASIS_COMPONENT "Enable the localized basis component" OFF) 
-if (${LBASIS_COMPONENT})
-   add_subdirectory(GX-LocalizedBasis)
-endif()
-
 # Elements to compile the libraries inside submodules
 option(COMPILE_SUBMODULES "Compile GreenX component contained inside submodules" OFF)
 if (${COMPILE_SUBMODULES})

@@ -66,8 +66,6 @@ Available options to disable one or more components
 |----------------------------------------|------------------------------------|---------|
 | Analytical Continuation component      | `-DAC_COMPONENT`      | `ON`  |
 | Minimax Time-Frequency grids component | `-DMINIMAX_COMPONENT` | `ON`  |
-| Localized Basis component              | `-DLBASIS_COMPONENT`  | `OFF` |
-| Projector-Augmented Wave component     | `-DPAW_COMPONENT`     | `OFF` |
 
 GreenX uses GNU Multiple Precision Arithmetic Library by default in the Analytical Continuation component, you can disable it without any harm by running CMake configure with:
 
