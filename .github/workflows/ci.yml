@@ -72,6 +72,7 @@ jobs:
           CXX=mpiicpx FC=ifx cmake -DLIBRPA_USE_LIBRI=ON -DBUILD_SHARED_LIBS=ON -B $BUILDDIR -DCMAKE_BUILD_TYPE=Debug -DENABLE_LIBRPA_FORTRAN_BIND=OFF -DENABLE_LIBRPA_TEST=ON
           cmake --build $BUILDDIR -j 2
           cmake --build $BUILDDIR --target test
+          cd regression_tests && ./run_regression.py full ../build_libri/chi0_main.exe -d workspace_libri_np4 --use-libri -n 4 > test_libri_np4.log
       - name: Build Fortran binding (with LibRI), static library, and binding test
         run: |
           source /opt/intel/oneapi/setvars.sh
@@ -86,6 +87,5 @@ jobs:
           name: save-last-test
           path: |
             build/Testing/Temporary/LastTest.log
-            build_greenx/Testing/Temporary/LastTest.log
             build_libri/Testing/Temporary/LastTest.log
-            build_libri_greenx/Testing/Temporary/LastTest.log
+            regression_tests/test_libri_np4.log
