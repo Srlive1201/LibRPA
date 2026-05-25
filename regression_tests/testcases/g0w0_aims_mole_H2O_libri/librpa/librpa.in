@@ -2,6 +2,6 @@
 task = g0w0
 input_dir = ../dataset
 # API runtime
-nfreq = 32
+nfreq = 16
 parallel_routing = libri
 n_params_anacon = 16
