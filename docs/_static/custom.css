@@ -1,0 +1,11 @@
+/* Make wide tables horizontally scrollable */
+.bd-content table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+}
+
+/* .bd-content table td, */
+/* .bd-content table th { */
+/*     white-space: normal; */
+/* } */

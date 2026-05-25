@@ -1009,8 +1009,14 @@ RECURSIVE              = NO
 # Note that relative paths are relative to the directory from which doxygen is
 # run.
 
+# Keep src/version.h in the API docs, but exclude the implementation files
+# located directly under src. Both path styles are listed because the CMake
+# target and the standalone docs Makefile run Doxygen from different folders.
 EXCLUDE                = ../../binding/fortran/librpa_f03_stubs.f90 \
-                         ../../binding/fortran/librpa_f03_old.f90
+                         ../../src/gw_old.cpp \
+                         ../../src/gw_old.h \
+                         ../../src/meanfield_old.cpp \
+                         ../../src/meanfield_old.h
 
 # The EXCLUDE_SYMLINKS tag can be used to select whether or not files or
 # directories that are symbolic links (a Unix file system feature) are excluded
