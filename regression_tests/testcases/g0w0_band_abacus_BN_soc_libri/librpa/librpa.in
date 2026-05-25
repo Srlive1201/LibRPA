@@ -1,0 +1,10 @@
+task = g0w0_band
+input_dir = ../dataset/
+nfreq = 6
+n_params_anacon = 6
+gf_R_threshold = 0.000100
+cs_R_threshold = 0.000001
+parallel_routing = libri
+vq_threshold = 0
+sqrt_coulomb_threshold = 1e-8
+use_spinor_wfc = t
