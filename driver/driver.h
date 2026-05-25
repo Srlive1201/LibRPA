@@ -17,6 +17,8 @@ struct DriverParams
     std::string constants_choice;
     std::string input_dir;
 
+    bool use_spinor_wfc;
+
     // Threshold for real-space LRI triple coefficients.
     double cs_threshold;
 

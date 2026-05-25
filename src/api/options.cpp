@@ -15,7 +15,6 @@ void librpa_init_options(LibrpaOptions *opts)
     opts->parallel_routing = LibrpaParallelRouting::AUTO;
     opts->output_level = LIBRPA_VERBOSE_INFO;
     opts->vq_threshold = 0.0e0;
-    opts->use_spinor_wfc = LIBRPA_SWITCH_OFF;
     opts->use_kpara_scf_eigvec = LIBRPA_SWITCH_OFF;
 
     opts->tfgrids_type = LibrpaTimeFreqGrid::TFGRID_UNSET;

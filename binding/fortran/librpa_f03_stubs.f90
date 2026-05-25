@@ -112,7 +112,6 @@ module librpa_f03
       integer :: parallel_routing
       integer :: output_level
       real(dp) :: vq_threshold
-      logical :: use_spinor_wfc
       logical :: use_kpara_scf_eigvec
       integer :: tfgrids_type
       integer :: nfreq

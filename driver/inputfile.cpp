@@ -165,6 +165,7 @@ static std::string check_dirpath(const std::string &dirpath)
 
 #define _parse_int(obj, name) parser.parse_int(#name, obj.name, flag)
 #define _parse_double(obj, name) parser.parse_double(#name, obj.name, flag)
+#define _parse_bool(obj, name) parser.parse_bool(#name, obj.name, flag)
 #define _parse_switch(obj, name) parser.parse_bool(#name, btmp, flag); if (flag == 0) obj.name = get_switch(btmp);
 #define _parse_string_post(obj, name, post) parser.parse_string(#name, stmp, flag); if (flag == 0) obj.name = post(stmp);
 
@@ -190,10 +191,16 @@ void parse_inputfile_to_params(const std::string &fn)
     }
     _parse_string_post(driver_params, input_dir, check_dirpath);
     _parse_double(driver_params, cs_threshold);
-    parser.parse_bool("output_energy_qp", driver_params.output_energy_qp, flag);
-    parser.parse_bool("output_hamgnn", driver_params.output_hamgnn, flag);
-    parser.parse_bool("use_pyatb", driver_params.use_pyatb, flag);
-    parser.parse_bool("output_gw_spec_func", driver_params.output_gw_spec_func, flag);
+    _parse_bool(driver_params, output_energy_qp);
+    _parse_bool(driver_params, output_hamgnn);
+    _parse_bool(driver_params, use_pyatb);
+    _parse_bool(driver_params, output_gw_spec_func);
+    _parse_bool(driver_params, use_spinor_wfc);
+    parser.parse_bool("use_soc", driver_params.use_spinor_wfc, flag);  // backward-compatible
+    if (driver_params.use_spinor_wfc)
+    {
+        driver::n_spinor = 2;
+    }
 
     // TODO: implement a function to read multiple double values in one line
     if (driver_params.output_gw_spec_func)
@@ -219,15 +226,6 @@ void parse_inputfile_to_params(const std::string &fn)
     if (flag == 0) opts.output_level = get_verbose(stmp);
 
     _parse_double(opts, vq_threshold);
-
-    _parse_switch(opts, use_spinor_wfc);
-    parser.parse_bool("use_soc", btmp, false, flag);  // backward-compatible
-    if (btmp)
-    {
-        opts.use_spinor_wfc = LIBRPA_SWITCH_ON;
-        driver::n_spinor = 2;
-    }
-    _parse_switch(opts, use_spinor_wfc);
 
     _parse_switch(opts, use_kpara_scf_eigvec);
 

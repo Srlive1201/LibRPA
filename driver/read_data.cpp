@@ -58,7 +58,9 @@ void read_scf_occ_eigenvalues(const string &file_path)
     infile >> n_basis_wfc;
     infile >> efermi;
 
-    if (driver::opts.use_spinor_wfc)
+    const bool use_spinor_wfc = driver::driver_params.use_spinor_wfc;
+
+    if (use_spinor_wfc)
     {
         assert(n_spins == 1);
         assert(n_basis_wfc % 2 == 0 && "Error: nbasis is not even when SOC!");
@@ -199,6 +201,7 @@ static int handle_KS_file(const string &file_path)
     const auto nbao = nband * nao;
     const auto nbs = nband * nsoc;
     const auto n = nsoc * nbao;
+    const bool use_spinor_wfc = driver::driver_params.use_spinor_wfc;
 
     std::vector<double> re(nspin * n);
     std::vector<double> im(nspin * n);
@@ -234,7 +237,7 @@ static int handle_KS_file(const string &file_path)
                         }
                         // cout<<rvalue<<ivalue<<endl;
                         if (skip_this_ik) continue;
-                        if (driver::opts.use_spinor_wfc)
+                        if (use_spinor_wfc)
                         {
                             // re[is * n + isoc * nbao + iw * nband + ib] = stod(rvalue);
                             // im[is * n + isoc * nbao + iw * nband + ib] = stod(ivalue);
@@ -255,7 +258,7 @@ static int handle_KS_file(const string &file_path)
         if (skip_this_ik) continue;
         for (int is = 0; is != nspin; is++)
         {
-            if (driver::opts.use_spinor_wfc)
+            if (use_spinor_wfc)
             {
                 assert(is == 0);
                 driver::h.set_wfc_spinor(ik, driver::n_states, driver::n_basis_ao,
@@ -2304,7 +2307,8 @@ void read_band_meanfield_data(const string &dir_path)
             throw LIBRPA_RUNTIME_ERROR("Error: failed to read " + ss.str());
         }
 
-        int n_soc = driver::opts.use_spinor_wfc ? 2 : 1;
+        const bool use_spinor_wfc = driver::driver_params.use_spinor_wfc;
+        int n_soc = use_spinor_wfc ? 2 : 1;
         assert (n_soc * n_spins <= 2);
         for (int i_spin = 0; i_spin < n_spins; ++i_spin)
         {
@@ -2317,7 +2321,7 @@ void read_band_meanfield_data(const string &dir_path)
                     {
                         const size_t index_dst = i_soc * total_complex_comp + ib * n_basis_ao + iw;
                         size_t index_src;
-                        if (driver::opts.use_spinor_wfc)
+                        if (use_spinor_wfc)
                         {
                             // NOTE: i_spin should be 0 for spinor-form wavefunction
                             assert(i_spin < 1);
@@ -2331,7 +2335,7 @@ void read_band_meanfield_data(const string &dir_path)
                     }
                 }
             }
-            if (driver::opts.use_spinor_wfc)
+            if (use_spinor_wfc)
             {
                 driver::h.set_wfc_band_spinor_packed(ik, n_states, n_basis_ao, vecs_sp.data(),
                                                      vecs_sp.data() + total_complex_comp);

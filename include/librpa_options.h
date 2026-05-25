@@ -47,9 +47,6 @@ typedef struct
     //! Threshold for real-space Coulomb matrices
     double vq_threshold;
 
-    //! Flag of using spinor wavefunction to construct objects, like Green's function and self-energy.
-    LibrpaSwitch use_spinor_wfc;
-
     //! Flag to specify parallel distribution of eigenvectors of SCF starting point
     LibrpaSwitch use_kpara_scf_eigvec;
 

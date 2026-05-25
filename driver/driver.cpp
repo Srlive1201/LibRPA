@@ -12,6 +12,7 @@ DriverParams::DriverParams():
     task("unset"),
     constants_choice("internal"),
     input_dir("./"),
+    use_spinor_wfc(false),
     cs_threshold(1e-6),
     output_energy_qp(false),
     output_hamgnn(false),
@@ -33,6 +34,7 @@ std::string DriverParams::format()
     ss << "task = " << task << std::endl;
     ss << "constants_choice = " << constants_choice << std::endl;
     ss << "input_dir = " << input_dir << std::endl;
+    ss << "use_spinor_wfc = " << std::boolalpha << use_spinor_wfc << std::endl;
     ss << "cs_R_threshold = " << cs_threshold << std::endl;
     ss << "output_energy_qp = " << std::boolalpha << output_energy_qp << std::endl;
     ss << "output_gw_spec_func = " << std::boolalpha << output_gw_spec_func << std::endl;
@@ -122,7 +124,6 @@ std::string format_runtime_options(const librpa::Options &opts) noexcept
         {
             {"debug", opts.output_level >= LIBRPA_VERBOSE_DEBUG},
             bool_pair(replace_w_head),
-            bool_pair(use_spinor_wfc),
             bool_pair(use_fullcoul_eps),
             bool_pair(use_fullcoul_exx),
             bool_pair(use_fullcoul_wc),

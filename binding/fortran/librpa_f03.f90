@@ -133,7 +133,6 @@ module librpa_f03
       integer(c_int) :: parallel_routing
       integer(c_int) :: output_level
       real(c_double) :: vq_threshold
-      integer(c_int) :: use_spinor_wfc
       integer(c_int) :: use_kpara_scf_eigvec
       integer(c_int) :: tfgrids_type
       integer(c_int) :: nfreq
@@ -199,7 +198,6 @@ module librpa_f03
       integer :: parallel_routing
       integer :: output_level
       real(dp) :: vq_threshold
-      logical :: use_spinor_wfc
       logical :: use_kpara_scf_eigvec
       integer :: tfgrids_type
       integer :: nfreq
@@ -839,7 +837,6 @@ contains
       call sync_opt(opts%parallel_routing,        opts%opts_c%parallel_routing,        direction)
       call sync_opt(opts%output_level,            opts%opts_c%output_level,            direction)
       call sync_opt(opts%vq_threshold,            opts%opts_c%vq_threshold,            direction)
-      call sync_opt(opts%use_spinor_wfc,          opts%opts_c%use_spinor_wfc,          direction)
       call sync_opt(opts%use_kpara_scf_eigvec,    opts%opts_c%use_kpara_scf_eigvec,    direction)
       call sync_opt(opts%tfgrids_type,            opts%opts_c%tfgrids_type,            direction)
       call sync_opt(opts%nfreq,                   opts%opts_c%nfreq,                   direction)
