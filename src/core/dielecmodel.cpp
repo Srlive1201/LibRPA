@@ -1371,7 +1371,10 @@ void diele_func::cal_eps(const int ifreq, ArrayDesc &desc_nabf_nabf_opt, ArrayDe
 
                 for (int ileb = 0; ileb < nleb; ++ileb)
                 {
-                    const auto &[qx, qy, qz] = q_vectors[ileb];
+                    const auto &q_vector = q_vectors[ileb];
+                    const auto qx = q_vector[0];
+                    const auto qy = q_vector[1];
+                    const auto qz = q_vector[2];
                     const auto bwq = bw_i0 * qx + bw_i1 * qy + bw_i2 * qz;
                     const auto qwb = qx * wb_j0 + qy * wb_j1 + qz * wb_j2;
 

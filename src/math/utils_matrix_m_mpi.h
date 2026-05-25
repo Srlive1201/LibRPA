@@ -206,8 +206,12 @@ void collect_block_from_IJ_storage_matrix_transform(
                 auto it_J = JMAP.find(J_loc);
                 if (it_J != JMAP.cend())
                 {
-                    for (const auto &[cell, mat]: it_J->second)
+                    for (const auto &cell_mat: it_J->second)
+                    {
+                        const auto &cell = cell_mat.first;
+                        const auto &mat = cell_mat.second;
                         tmp_loc_row[jlo] += mat(i_ab, j_ab) * transform(I_loc, J_loc, cell);
+                    }
                 }
             }
         }

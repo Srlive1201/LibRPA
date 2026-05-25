@@ -456,8 +456,10 @@ static void build_gf_Rt_libri_kpara(
                                                            kfrac_list, {tau}, Rs_this, comm_h)
                                 .at(tau);
 
-    for (const auto &[R, gf_cplx]: gf_Rs_cplx)
+    for (auto it = gf_Rs_cplx.cbegin(); it != gf_Rs_cplx.cend(); it++)
     {
+        const auto &R = it->first;
+        const auto &gf_cplx = it->second;
         const std::array<int,3> Ra{R.x,R.y,R.z};
         matrix gf_global;
         if constexpr (!std::is_same<Tdata, std::complex<double>>::value)
