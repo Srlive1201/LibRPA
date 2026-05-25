@@ -52,12 +52,12 @@ int librpa_get_patch_version(void);
  * Must be called after MPI_Init() and before any other LibRPA functions.
  * Sets up logging, profiling, and parallel communication infrastructure.
  *
- * @param switch_redirect_stdout If LIBRPA_SWITCH_ON, redirect stdout to a file.
- *                               Default is LIBRPA_SWITCH_OFF.
- * @param redirect_path          Path for redirected output (default: "stdout").
- *                               Only used when switch_redirect_stdout is ON.
- * @param switch_process_output  If LIBRPA_SWITCH_ON, enable per-process output files.
- *                               Default is LIBRPA_SWITCH_ON.
+ * @param[in] switch_redirect_stdout If LIBRPA_SWITCH_ON, redirect stdout to a file.
+ *                                   Default is LIBRPA_SWITCH_OFF.
+ * @param[in] redirect_path          Path for redirected output (default: "stdout").
+ *                                   Only used when switch_redirect_stdout is ON.
+ * @param[in] switch_process_output  If LIBRPA_SWITCH_ON, enable per-process output files.
+ *                                   Default is LIBRPA_SWITCH_ON.
  */
 void librpa_init_global(LibrpaSwitch switch_redirect_stdout = LIBRPA_SWITCH_OFF,
                         const char *redirect_path = "stdout",

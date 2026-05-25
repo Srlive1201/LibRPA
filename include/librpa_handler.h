@@ -35,7 +35,7 @@ typedef struct
  * MPI communicator. This handle is used in subsequent API calls to
  * perform RPA/EXX/G0W0 calculations.
  *
- * @param comm MPI communicator (e.g., MPI_COMM_WORLD).
+ * @param[in] comm MPI communicator (e.g., MPI_COMM_WORLD).
  *
  * @return Pointer to newly created LibrpaHandler. Must be freed with
  *         librpa_destroy_handler() when no longer needed.
@@ -50,7 +50,7 @@ LibrpaHandler* librpa_create_handler(MPI_Comm comm);
  * Frees all internal resources associated with the handler. After this call,
  * the handler pointer becomes invalid and should not be used.
  *
- * @param h Pointer to the LibrpaHandler to destroy. If NULL, no action is taken.
+ * @param[in] h Pointer to the LibrpaHandler to destroy. If NULL, no action is taken.
  *
  * @see librpa_create_handler
  */

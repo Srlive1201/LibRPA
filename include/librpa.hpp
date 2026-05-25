@@ -104,9 +104,9 @@ int get_patch_version(void);
  *
  * Must be called after MPI_Init() and before any other LibRPA functions.
  *
- * @param switch_redirect_stdout If true, redirect stdout to a file.
- * @param redirect_path          Path for redirected output (default: "stdout").
- * @param switch_process_output  If true, enable per-process output (default: true).
+ * @param[in] switch_redirect_stdout If true, redirect stdout to a file.
+ * @param[in] redirect_path          Path for redirected output (default: "stdout").
+ * @param[in] switch_process_output  If true, enable per-process output (default: true).
  * @see librpa_init_global
  */
 void init_global(Switch switch_redirect_stdout = LIBRPA_SWITCH_OFF, const char *redirect_path = "stdout",
@@ -165,7 +165,7 @@ public:
 
     /**
      * @brief Construct and initialize handler with MPI communicator.
-     * @param comm MPI communicator for parallel computation.
+     * @param[in] comm MPI communicator for parallel computation.
      */
     Handler(MPI_Comm comm);
 
@@ -174,7 +174,7 @@ public:
 
     /**
      * @brief Initialize handler with given MPI communicator.
-     * @param comm MPI communicator.
+     * @param[in] comm MPI communicator.
      */
     void init(MPI_Comm comm);
 

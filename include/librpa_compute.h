@@ -46,14 +46,14 @@ double librpa_get_rpa_correlation_energy(LibrpaHandler *h, const LibrpaOptions *
 //! Build exact-exchange matrix
 /**
  * @param[in]  h                Pointer to LibRPA handler.
- * @param[in]  opts             Pointer to runtime options.
+ * @param[in]  p_opts           Pointer to runtime options.
  */
 void librpa_build_exx(LibrpaHandler *h, const LibrpaOptions *p_opts);
 
 //! Obtain exact-exchange potential for selected states.
 /**
  * @param[in]  h                Pointer to LibRPA handler.
- * @param[in]  opts             Pointer to runtime options.
+ * @param[in]  p_opts           Pointer to runtime options.
  * @param[in]  n_spins          Number of spin channels.
  * @param[in]  n_kpts_this      Number of k-points to compute on this process.
  * @param[in]  iks_this         (Global) index of k-points that this process compute.
@@ -71,7 +71,7 @@ void librpa_get_exx_pot_kgrid(LibrpaHandler *h, const LibrpaOptions *p_opts,
 //! Obtain exact-exchange potential for selected states at band k-points.
 /**
  * @param[in]  h                Pointer to LibRPA handler.
- * @param[in]  opts             Pointer to runtime options.
+ * @param[in]  p_opts           Pointer to runtime options.
  * @param[in]  n_spins          Number of spin channels.
  * @param[in]  n_kpts_band_this Number of k-points to compute on this process.
  * @param[in]  iks_band_this    (Global) index of k-points that this process compute.
@@ -89,14 +89,14 @@ void librpa_get_exx_pot_band_k(LibrpaHandler *h, const LibrpaOptions *p_opts,
 //! Build self-energy matrix of G0W0, including the correlation and exchange contributions.
 /**
  * @param[in]  h                Pointer to LibRPA handler.
- * @param[in]  opts             Pointer to runtime options.
+ * @param[in]  p_opts           Pointer to runtime options.
  */
 void librpa_build_g0w0_sigma(LibrpaHandler *h, const LibrpaOptions *p_opts);
 
 //! Obtain correlation self-energies for selected states.
 /**
  * @param[in]  h                Pointer to LibRPA handler.
- * @param[in]  opts             Pointer to runtime options.
+ * @param[in]  p_opts           Pointer to runtime options.
  * @param[in]  n_spins          Number of spin channels.
  * @param[in]  n_kpts_this      Number of k-points to compute on this process.
  * @param[in]  iks_this         (Global) index of k-points that this process compute.
@@ -120,7 +120,7 @@ void librpa_get_g0w0_sigc_kgrid(LibrpaHandler *h, const LibrpaOptions *p_opts,
 //! Obtain correlation self-energies for selected states at band k-points.
 /**
  * @param[in]  h                Pointer to LibRPA handler.
- * @param[in]  opts             Pointer to runtime options.
+ * @param[in]  p_opts           Pointer to runtime options.
  * @param[in]  n_spins          Number of spin channels.
  * @param[in]  n_kpts_band_this Number of k-points to compute on this process.
  * @param[in]  iks_band_this    (Global) index of k-points that this process compute.

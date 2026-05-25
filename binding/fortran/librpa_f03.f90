@@ -189,54 +189,99 @@ module librpa_f03
    !>
    !> This type provides a Fortran-friendly interface to LibRPA options.
    !> Initialize with init() method or call librpa_init_options() before use.
+   !> For full defaults and support status, see the runtime parameters guide.
    !>
-   !> @note The data layout must match the C struct. Do not add or remove members.
+   !> @note Keep these members synchronized with the C LibrpaOptions struct.
    type :: LibrpaOptions
       type(LibrpaOptions_c), private :: opts_c
 
+      !> Output directory for result files.
       character(len=LIBRPA_MAX_STRLEN) :: output_dir
+      !> Parallel distribution strategy; use LIBRPA_ROUTING_* constants.
       integer :: parallel_routing
+      !> Verbosity level; use LIBRPA_VERBOSE_* constants.
       integer :: output_level
+      !> Real-space Coulomb matrix screening threshold.
       real(dp) :: vq_threshold
+      !> Experimental: use k-point-parallel distribution of SCF eigenvectors.
       logical :: use_kpara_scf_eigvec
+      !> Time-frequency integration grid type; use LIBRPA_TFGRID_* constants.
       integer :: tfgrids_type
+      !> Number of frequency integration grid points.
       integer :: nfreq
+      !> Minimum frequency for grid generation, in Hartree.
       real(dp) :: tfgrids_freq_min
+      !> Frequency interval for even-spaced grids, in Hartree.
       real(dp) :: tfgrids_freq_interval
+      !> Maximum frequency for grid generation, in Hartree.
       real(dp) :: tfgrids_freq_max
+      !> Minimum time for grid generation, in Hartree^-1.
       real(dp) :: tfgrids_time_min
+      !> Time interval for even-spaced grids, in Hartree^-1.
       real(dp) :: tfgrids_time_interval
+      !> Experimental: minimum transition energy for minimax grid generation.
       real(dp) :: minimax_emin
+      !> Experimental: maximum transition energy for minimax grid generation.
       real(dp) :: minimax_emax
+      !> Experimental: regulation parameter for minimax transformation matrix.
       real(dp) :: minimax_regulation
+      !> Experimental: use full Coulomb interaction in \f$\varepsilon = 1 - v \chi^0\f$.
       logical :: use_fullcoul_eps
+      !> Experimental: use full Coulomb interaction in the exact-exchange operator.
       logical :: use_fullcoul_exx
+      !> Experimental: use full Coulomb interaction in \f$W^c = (\varepsilon^{-1} - 1) v\f$.
       logical :: use_fullcoul_wc
+      !> Experimental: maximum number of bands for response-function construction.
       integer :: n_bands_chi0
+      !> Experimental: maximum number of bands for correlation self-energy construction.
       integer :: n_bands_sigc
+      !> Real-space Green's function screening threshold for response function.
       real(dp) :: gf_threshold
+      !> Use ScaLAPACK to calculate \f$E_\text{c}^{\text{RPA}}\f$.
       logical :: use_scalapack_ecrpa
+      !> Experimental: use a compressed auxiliary basis.
       logical :: use_shrink_abfs
+      !> Experimental: build response matrices in the compressed auxiliary basis.
       logical :: use_shrink_chi
+      !> Number of parameters for analytic continuation.
       integer :: n_params_anacon
+      !> Use ScaLAPACK for computing \f$W^c\f$ from \f$\chi^0\f$.
       logical :: use_scalapack_gw_wc
+      !> Experimental: use Cholesky factorization for computing \f$W^c\f$ from \f$\chi^0\f$.
       logical :: use_cholesky_gw_wc
+      !> Experimental: replace dielectric matrix head by the macroscopic dielectric function.
       logical :: replace_w_head
+      !> Experimental: dielectric-function handling on the imaginary axis.
       integer :: option_dielect_func
+      !> Experimental: use the 2D dielectric-function branch where supported.
       logical :: use_2d_dielectric
+      !> Experimental: load correlation self-energy matrix from file where supported.
       logical :: load_sigc_from_file
+      !> Threshold for eigenvalues when taking the square root of Coulomb matrices.
       real(dp) :: sqrt_coulomb_threshold
+      !> LibRI threshold of LRI triple coefficients for response function.
       real(dp) :: libri_chi0_threshold_C
+      !> LibRI threshold of Green's function for response function.
       real(dp) :: libri_chi0_threshold_G
+      !> LibRI threshold of LRI triple coefficients for exact exchange.
       real(dp) :: libri_exx_threshold_C
+      !> LibRI threshold of density matrices for exact exchange.
       real(dp) :: libri_exx_threshold_D
+      !> LibRI threshold of Coulomb matrices for exact exchange.
       real(dp) :: libri_exx_threshold_V
+      !> LibRI threshold of LRI triple coefficients for G0W0 correlation self-energy.
       real(dp) :: libri_g0w0_threshold_C
+      !> LibRI threshold of Green's function for G0W0 correlation self-energy.
       real(dp) :: libri_g0w0_threshold_G
+      !> LibRI threshold of screened Coulomb matrix for G0W0 correlation self-energy.
       real(dp) :: libri_g0w0_threshold_Wc
+      !> Experimental: output correlation self-energy matrix in k-space and imaginary frequencies.
       logical :: output_gw_sigc_mat
+      !> Experimental: output correlation self-energy matrix in real space and imaginary time.
       logical :: output_gw_sigc_mat_rt
+      !> Experimental: output correlation self-energy matrix in real space and imaginary frequencies.
       logical :: output_gw_sigc_mat_rf
+      !> Experimental: output \f$W^c\f$ matrix in real space and imaginary frequency.
       integer :: option_output_Wc_Rf_mat
 
       contains
@@ -319,7 +364,7 @@ module librpa_f03
    !> call h%destroy()
    !> @endcode
    type :: LibrpaHandler
-      type(c_ptr) :: ptr_c_handle = c_null_ptr
+      type(c_ptr), private :: ptr_c_handle = c_null_ptr
       contains
          ! Initialization and destruction
          procedure :: init => librpa_create_handler
@@ -908,9 +953,9 @@ contains
    !>
    !> It should be called after MPI initialization and before other LibRPA functions.
    !>
-   !> @param  sw_redirect    Switch of redirecting standard output (default false)
-   !> @param  redirect_path  Path of redirected output, only used when `sw_redirect` is true
-   !> @param  sw_process     Switch of writing per-process output (default true)
+   !> @param[in] sw_redirect    Switch of redirecting standard output (default false)
+   !> @param[in] redirect_path  Path of redirected output, only used when `sw_redirect` is true
+   !> @param[in] sw_process     Switch of writing per-process output (default true)
    subroutine librpa_init_global(sw_redirect, redirect_path, sw_process)
       use iso_c_binding, only: c_null_char
       use mpi, only: MPI_COMM_WORLD
@@ -1116,11 +1161,12 @@ contains
 
    !> @brief Set the wave-function expansion coefficients
    !>
-   !> @param ispin          spin index (starting from 1) of the wave function
-   !> @param ik             (global) k-point index (starting from 1) of the wave function
-   !> @param nstates_local  local dimenstion (number of states) of the parsed wave-function
-   !> @param nbasis_local   local dimenstion (number of basis functions) of the parsed wave-function
-   !> @param wfc_cplx       Complex-valued wave function to parse
+   !> @param[in,out] this           Handler.
+   !> @param[in]     ispin          Spin index (starting from 1) of the wave function.
+   !> @param[in]     ik             (Global) k-point index (starting from 1) of the wave function.
+   !> @param[in]     nstates_local  Local dimension (number of states) of the parsed wave function.
+   !> @param[in]     nbasis_local   Local dimension (number of basis functions) of the parsed wave function.
+   !> @param[in]     wfc_cplx       Complex-valued wave function to parse.
    subroutine librpa_set_wfc(this, ispin, ik, nstates_local, nbasis_local, wfc_cplx)
       use iso_c_binding, only: c_int, c_double, c_loc
       implicit none
@@ -1154,11 +1200,12 @@ contains
 
    !> @brief Set the wave-function expansion coefficients, spinor format
    !>
-   !> @param ik             (global) k-point index (starting from 1) of the wave function
-   !> @param nstates_local  local dimenstion (number of states) of the parsed wave-function
-   !> @param nbasis_local   local dimenstion (number of basis functions) of the parsed wave-function
-   !> @param wfc_up_cplx    Complex-valued wave function to parse (spin-up component)
-   !> @param wfc_dn_cplx    Complex-valued wave function to parse (spin-down component)
+   !> @param[in,out] this           Handler.
+   !> @param[in]     ik             (Global) k-point index (starting from 1) of the wave function.
+   !> @param[in]     nstates_local  Local dimension (number of states) of the parsed wave function.
+   !> @param[in]     nbasis_local   Local dimension (number of basis functions) of the parsed wave function.
+   !> @param[in]     wfc_up_cplx    Complex-valued wave function to parse (spin-up component).
+   !> @param[in]     wfc_dn_cplx    Complex-valued wave function to parse (spin-down component).
    subroutine librpa_set_wfc_spinor(this, ik, nstates_local, nbasis_local, wfc_up_cplx, wfc_dn_cplx)
       use iso_c_binding, only: c_int, c_double, c_loc
       implicit none
@@ -1219,8 +1266,9 @@ contains
 
    !> @brief Set the wave-function atomic basis
    !>
-   !> @param natoms   number of atoms
-   !> @param nbs_wfc  number of wave-function basis on each atom
+   !> @param[in,out] this     Handler.
+   !> @param[in]     natoms   Number of atoms.
+   !> @param[in]     nbs_wfc  Number of wave-function basis functions on each atom.
    subroutine librpa_set_ao_basis_wfc(this, natoms, nbs_wfc)
       implicit none
       class(LibrpaHandler), intent(inout) :: this
@@ -1232,8 +1280,9 @@ contains
 
    !> @brief Set the auxiliary atomic basis
    !>
-   !> @param natoms   number of atoms
-   !> @param nbs_aux  number of auxiliary basis functions on each atom
+   !> @param[in,out] this     Handler.
+   !> @param[in]     natoms   Number of atoms.
+   !> @param[in]     nbs_aux  Number of auxiliary basis functions on each atom.
    subroutine librpa_set_ao_basis_aux(this, natoms, nbs_aux)
       implicit none
       class(LibrpaHandler), intent(inout) :: this
@@ -1247,8 +1296,9 @@ contains
    !>
    !> Each column is a lattice/reciprocal lattice vector.
    !>
-   !> @param latt     lattice vectors (in Bohr)
-   !> @param recplatt reciprocal lattice vectors (in Bohr^-1)
+   !> @param[in,out] this      Handler.
+   !> @param[in]     latt      Lattice vectors (in Bohr).
+   !> @param[in]     recplatt  Reciprocal lattice vectors (in Bohr^-1).
    !>
    subroutine librpa_set_latvec_and_G(this, latt, recplatt)
       implicit none
@@ -1264,9 +1314,10 @@ contains
 
    !> @brief Set types and coordinates of the atoms in the model
    !>
-   !> @param natoms     number of atoms
-   !> @param types      species type of each atom
-   !> @param pos_cart   Cartesian coordinates of each atom
+   !> @param[in,out] this       Handler.
+   !> @param[in]     natoms     Number of atoms.
+   !> @param[in]     types      Species type of each atom.
+   !> @param[in]     posi_cart  Cartesian coordinates of each atom.
    !>
    subroutine librpa_set_atoms(this, natoms, types, posi_cart)
       implicit none
@@ -1331,8 +1382,9 @@ contains
    !> Example: four-k-point case where the first two and last points are in the irreducbile sector,
    !>          and the third point is mapped to the second, then map_ibzk should be (1, 2, 2, 4)
    !>
-   !> @param nkpts     number of k-points in the full Brillouin zone
-   !> @param map_ibzk  mapping to the k-point in the irreducible sector
+   !> @param[in,out] this      Handler.
+   !> @param[in]     nkpts     Number of k-points in the full Brillouin zone.
+   !> @param[in]     map_ibzk  Mapping to the k-point in the irreducible sector.
    !>
    subroutine librpa_set_ibz_mapping(this, nkpts, map_ibzk)
       implicit none
@@ -1353,14 +1405,15 @@ contains
 
    !> @brief Set the local RI coefficients
    !>
-   !> @param routing  Parallel routing, should be one of the `LIBRPA_ROUTING_*` parameters
-   !> @param i_atom   Index of atom I (starting from 1)
-   !> @param j_atom   Index of atom J (starting from 1)
-   !> @param nao_i    Number of wave-functions basis on atom I
-   !> @param nao_j    Number of wave-functions basis on atom J
-   !> @param naux_i   Number of auxiliary basis on atom I
-   !> @param r        Index of unit cell in the crystal, with (0,0,0) at the origin
-   !> @param coeff    Local RI coefficients associated with atom pair I-J, with auxiliary basis on I.
+   !> @param[in,out] this     Handler.
+   !> @param[in]     routing  Parallel routing, should be one of the `LIBRPA_ROUTING_*` parameters.
+   !> @param[in]     i_atom   Index of atom I (starting from 1).
+   !> @param[in]     j_atom   Index of atom J (starting from 1).
+   !> @param[in]     nao_i    Number of wave-function basis functions on atom I.
+   !> @param[in]     nao_j    Number of wave-function basis functions on atom J.
+   !> @param[in]     naux_i   Number of auxiliary basis functions on atom I.
+   !> @param[in]     r        Index of unit cell in the crystal, with (0,0,0) at the origin.
+   !> @param[in]     coeff    Local RI coefficients associated with atom pair I-J, with auxiliary basis on I.
    !>
    subroutine librpa_set_lri_coeff(this, routing, i_atom, j_atom, nao_i, nao_j, naux_i, r, coeff)
       implicit none
@@ -1655,11 +1708,12 @@ contains
 
    !> @brief Set the wave-function expansion coefficients for band calculation
    !>
-   !> @param ispin          spin index (starting from 1) of the wave function
-   !> @param ik_band        (global) k-point index (starting from 1) of the wave function
-   !> @param nstates_local  local dimenstion (number of states) of the parsed wave-function
-   !> @param nbasis_local   local dimenstion (number of basis functions) of the parsed wave-function
-   !> @param wfc_cplx       Complex-valued wave function to parse
+   !> @param[in,out] this           Handler.
+   !> @param[in]     ispin          Spin index (starting from 1) of the wave function.
+   !> @param[in]     ik_band        (Global) k-point index (starting from 1) of the wave function.
+   !> @param[in]     nstates_local  Local dimension (number of states) of the parsed wave function.
+   !> @param[in]     nbasis_local   Local dimension (number of basis functions) of the parsed wave function.
+   !> @param[in]     wfc_cplx       Complex-valued wave function to parse.
    subroutine librpa_set_wfc_band(this, ispin, ik_band, nstates_local, nbasis_local, wfc_cplx)
       use iso_c_binding, only: c_int, c_double, c_loc
       implicit none
@@ -1694,11 +1748,12 @@ contains
 
    !> @brief Set the wave-function expansion coefficients for band calculation, spinor format
    !>
-   !> @param ik_band        (global) k-point index (starting from 1) of the wave function
-   !> @param nstates_local  local dimenstion (number of states) of the parsed wave-function
-   !> @param nbasis_local   local dimenstion (number of basis functions) of the parsed wave-function
-   !> @param wfc_up_cplx    Complex-valued wave function to parse (spin-up component)
-   !> @param wfc_dn_cplx    Complex-valued wave function to parse (spin-down component)
+   !> @param[in,out] this           Handler.
+   !> @param[in]     ik_band        (Global) k-point index (starting from 1) of the wave function.
+   !> @param[in]     nstates_local  Local dimension (number of states) of the parsed wave function.
+   !> @param[in]     nbasis_local   Local dimension (number of basis functions) of the parsed wave function.
+   !> @param[in]     wfc_up_cplx    Complex-valued wave function to parse (spin-up component).
+   !> @param[in]     wfc_dn_cplx    Complex-valued wave function to parse (spin-down component).
    subroutine librpa_set_wfc_band_spinor(this, ik_band, nstates_local, nbasis_local, wfc_up_cplx, wfc_dn_cplx)
       use iso_c_binding, only: c_int, c_double, c_loc
       implicit none

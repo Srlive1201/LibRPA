@@ -59,10 +59,19 @@ typedef struct
     /* ============================================================================= */
     /* Parameters for time and freqeuncy grids.
      * Different grid types will use none/part/all of the parameters. */
+    //! Minimum frequency for grid generation, in Hartree.
     double tfgrids_freq_min;
+
+    //! Frequency interval for even-spaced grids, in Hartree.
     double tfgrids_freq_interval;
+
+    //! Maximum frequency for grid generation, in Hartree.
     double tfgrids_freq_max;
+
+    //! Minimum time for grid generation, in Hartree^-1.
     double tfgrids_time_min;
+
+    //! Time interval for even-spaced grids, in Hartree^-1.
     double tfgrids_time_interval;
 
     //! Minimal transition energy when generating minimax grids.
@@ -88,10 +97,10 @@ typedef struct
     //! Switch of using full Coulomb interaction in exact-exchange operator.
     LibrpaSwitch use_fullcoul_exx;
 
-    //! Switch of using full Coulomb interaction in $\varepsilon = 1 - v \chi^0$
+    //! Switch of using full Coulomb interaction in \f$\varepsilon = 1 - v \chi^0\f$
     LibrpaSwitch use_fullcoul_eps;
 
-    //! Switch of using full Coulomb interaction in $W^c = (\varepsilon^{-1} - 1) v$.
+    //! Switch of using full Coulomb interaction in \f$W^c = (\varepsilon^{-1} - 1) v\f$.
     LibrpaSwitch use_fullcoul_wc;
 
     /* ============================================================================= */
@@ -115,7 +124,10 @@ typedef struct
     /* ============================================================================= */
     /* ABF compression */
 
+    //! Flag to use a compressed auxiliary basis
     LibrpaSwitch use_shrink_abfs;
+
+    //! Flag to compress response function using shrinked basis.
     LibrpaSwitch use_shrink_chi;
 
     /* ============================================================================= */
