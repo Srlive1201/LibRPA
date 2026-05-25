@@ -11,6 +11,10 @@ if __name__ == '__main__':
     parser = get_parser()
     args = parser.parse_args()
 
+    if args.mode is None:
+        parser.print_help()
+        sys.exit(1)
+
     # Parse the test suite
     suite = XMLParser(args.xml)
 
@@ -25,10 +29,15 @@ if __name__ == '__main__':
     except ValueError as exc:
         parser.error(str(exc))
 
+    status = 0
+
+    if args.mode == "list":
+        driver.list()
+        sys.exit(status)
+
     if args.mode in ["run", "full"]:
         driver.run(args.librpa_exec, args.mpiexec, args.force)
 
-    status = 0
     if args.mode in ["analyze", "full"]:
         status = driver.analyze()
         driver.print(args.output)

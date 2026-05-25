@@ -86,6 +86,53 @@ class TestDriver:
         # Testcases that are qualified after initialized with build and runtime conditions
         self._testcases_filtered = None
 
+    def is_initialized(self):
+        return self._testcases_filtered is not None
+
+    def reset(self):
+        self._ntasks = None
+        self._nthreads = None
+        self._testcases_filtered = None
+
+    def list(self):
+        if self.is_initialized():
+            selected = {id(tc) for tc in self._testcases_filtered}
+            groups = OrderedDict(
+                (g, [tc for tc in gtcs if id(tc) in selected])
+                for g, gtcs in self._groups.items()
+            )
+            title = "Selected test cases"
+        else:
+            groups = self._groups
+            title = "Configured test cases"
+
+        print()
+        print(title)
+        count = 0
+        for group, testcases in groups.items():
+            if not testcases:
+                continue
+            print()
+            print("Test group: {}".format(group))
+            for tc in testcases:
+                count += 1
+                note = ""
+                if not self.is_initialized():
+                    msg = _disable_message(tc)
+                    if msg is not None:
+                        note = " [disabled"
+                        if msg:
+                            note += ": {}".format(msg)
+                        note += "]"
+                print("- {:s}: {:s}{:s}".format(
+                    tc["directory"], tc["name"], note))
+
+        print()
+        if count == 0:
+            print("No test cases selected")
+        else:
+            print("Total test cases: {:d}".format(count))
+
     def initialize(self, ntasks: int, nthreads: int, use_libri: bool,
                    only=None, exclude=None):
         self._testcases_filtered = []

@@ -7,10 +7,12 @@ def get_parser():
     subp = p.add_subparsers(dest="mode")
     p_full = subp.add_parser("full", help="Run the regression tests and perform diff analysise")
     p_run = subp.add_parser("run", help="Run the regression tests")
+    p_list = subp.add_parser("list", help="List test cases")
     p_analyze = subp.add_parser("analyze", help="Perform diff analysis")
 
     _add_testsuite_options(p_full)
     _add_testsuite_options(p_run)
+    _add_testsuite_options(p_list)
     _add_testsuite_options(p_analyze)
 
     _add_execute_options(p_full)
