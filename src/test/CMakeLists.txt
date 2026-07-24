@@ -47,6 +47,9 @@ foreach(target
     test_base_utility
     test_blas_lapack
     test_complexmatrix
+    test_qsgw_correlation_potential
+    test_qsgw_convergence
+    test_qsgw_effective_hamiltonian
     test_fitting
     test_io
     test_symmetry_context
@@ -60,6 +63,18 @@ foreach(target
     test_meanfield
     test_pbc
     test_profiler
+    test_qsgw_band_output
+    test_qsgw_band_bvk_remap
+    test_qsgw_fixed_basis
+    test_qsgw_hamiltonian_cut
+    test_qsgw_hamiltonian_mixing
+    test_qsgw_input_contract
+    test_qsgw_iteration_trace
+    test_qsgw_mixing
+    test_qsgw_occupation
+    test_qsgw_projection_target
+    test_qsgw_sha256
+    test_qsgw_vxc_io
     test_qpe_solver
     test_rsh
     test_symmetry
@@ -77,6 +92,8 @@ foreach(target
   test_blacs
   test_dataset
   test_epsilon
+  test_qsgw_distributed_matrix
+  test_qsgw_fixed_basis_mpi
   test_matrix_m_mpi
   test_meanfield_mpi
   test_kpoint_blacs_parallel_context
