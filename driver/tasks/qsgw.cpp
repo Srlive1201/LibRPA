@@ -409,18 +409,6 @@ void validate_stage_one_contract(
     }
 }
 
-void refresh_qsgw_head_only(librpa_int::Dataset& dataset,
-                            const librpa::Options& options)
-{
-    dataset.p_headwing.reset();
-    librpa_int::initialize_ds_headwing(dataset, options, false);
-    if (!dataset.p_headwing)
-    {
-        throw std::invalid_argument(
-            "QSGW head-only object could not be refreshed");
-    }
-}
-
 SpinKMatrixMap load_vxc_manifest_root(
     const std::string& manifest_path,
     const MeanField& reference,
@@ -885,14 +873,19 @@ void run_qsgw_stage_one(const bool compute_band)
         if (update_head && iteration > 1)
         {
             // Legacy qsgw_band0 recomputes the head from live energies and
-            // the original mf0 velocity matrix on every iteration.
+            // the original mf0 velocity matrix on every iteration. Reset the
+            // object here so upstream rebuilds it after generating this
+            // iteration's live-energy time-frequency grid.
             dataset->velocity_matrix = reference_velocity;
-            refresh_qsgw_head_only(*dataset, opts);
+            dataset->p_headwing.reset();
         }
         h.build_g0w0_sigma(opts);
         if (!dataset->p_exx || !dataset->p_g0w0)
             throw LIBRPA_RUNTIME_ERROR(
                 "QSGW failed to build live EXX/Sigma real-space objects");
+        if (update_head && !dataset->p_headwing)
+            throw LIBRPA_RUNTIME_ERROR(
+                "QSGW head-only object was not rebuilt on the live frequency grid");
 
         {
             // The upstream projection path uses the output flag as its

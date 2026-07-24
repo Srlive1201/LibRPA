@@ -38,19 +38,19 @@ def test_qsgw_reuses_upstream_gw_in_an_immutable_reference_basis() -> None:
 def test_qsgw_supports_only_same_grid_analytic_head_updates() -> None:
     source = QSGW_DRIVER.read_text()
     runner = function_body(source, "void run_qsgw_stage_one(")
-    refresh = function_body(source, "void refresh_qsgw_head_only(")
 
     assert "opts.option_dielect_func == 4" in runner
     assert "QSGW independent PyATB head updates are unsupported" in runner
     assert "read_headwing_input(driver_params.input_dir, false);" in runner
     assert "if (update_head && iteration > 1)" in runner
     assert "dataset->velocity_matrix = reference_velocity;" in runner
-    assert "refresh_qsgw_head_only(*dataset, opts);" in runner
+    assert "dataset->p_headwing.reset();" in runner
     assert runner.index("dataset->velocity_matrix = reference_velocity;") < (
-        runner.index("refresh_qsgw_head_only(*dataset, opts);")
+        runner.index("dataset->p_headwing.reset();")
+    ) < runner.index("h.build_g0w0_sigma(opts);")
+    assert (
+        "initialize_ds_headwing(*dataset, opts, false);" not in runner
     )
-    assert "dataset.p_headwing.reset();" in refresh
-    assert "initialize_ds_headwing(dataset, options, false);" in refresh
 
 
 def test_qsgw_band_supplies_actual_r_legacy_bvk_mapping_to_upstream() -> None:
