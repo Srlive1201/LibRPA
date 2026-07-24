@@ -148,9 +148,6 @@ list(APPEND lib_sources
         mpi/two_level_parallel_context.cpp
         mpi/kpoint_blacs_parallel_context.cpp
 
-        # qsgw/fermi_energy_occupation.cpp
-        # qsgw/Hamiltonian.cpp
-
         utils/constants.cpp
         utils/dev_options.cpp
         utils/profiler.cpp
