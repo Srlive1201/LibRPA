@@ -429,6 +429,19 @@
       />
     </testcase>
 
+    <testcase name="Bulk silicon k333, two QSGW iterations, head-only (aims input)" directory="qsgw_aims_Si_k333_headonly_libri">
+      <build require_libri="true"
+      />
+      <validate name="QSGW iteration summary"
+                file="librpa/librpa.d/qsgw_iterations.dat"
+                comparison="cmp_qsgw.iteration_summary(energy_tolerance_ev=5e-4,residual_tolerance_ha=2e-5)"
+      />
+      <validate name="QSGW eigenvalue trajectory"
+                file="librpa/librpa.d/qsgw_eigenvalues.dat"
+                comparison="cmp_qsgw.eigenvalue_trace(tolerance_ha=2e-5)"
+      />
+    </testcase>
+
     <testcase name="Bulk silicon, band structure (aims input)" directory="g0w0_band_aims_Si_libri">
       <labels refhash="a56500a434d0f57e06eb8cfed2dacd3f66833f78"
       />

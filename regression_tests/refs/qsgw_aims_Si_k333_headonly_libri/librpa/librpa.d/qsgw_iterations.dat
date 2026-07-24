@@ -1,0 +1,18 @@
+# qsgw_contract_version 6
+# fixed_basis immutable_mf0
+# live_update eigenvalues_wfc
+# velocity fixed_reference
+# head scf_grid_analytic_live
+# wing disabled_stage1
+# symmetry exx_off_gw_off_rpa_off
+# hartree disabled
+# band disabled_stage1
+# h_qsgw_cut disabled_non_band
+# qsgw_input_contract ../dataset/qsgw_input.head-only.contract
+# qsgw_input_contract_sha256 789a44049ff4f45caabbf7155cc3a2f9c20a40dbc400c130628a5fa36bb9c3b7
+# qsgw_mixer none
+# qsgw_mixing_beta 0.20000000000000001
+# iter max_delta_eV residual_l2_Ha residual_max_Ha efermi_eV gap_eV electron_count requested_mode applied_mode beta fallback rcond coefficient_l1 coefficient_count converged coefficients fallback_reason
+0 0.00000000000000000e+00 0.00000000000000000e+00 0.00000000000000000e+00 -4.62473536096244420e+00 1.90984419787082427e+00 2.79999999999995985e+01 -1 -1 2.00000000000000011e-01 0 1.00000000000000000e+00 0.00000000000000000e+00 0 0 none none
+1 9.19363138354428315e+01 2.67809404645147211e+01 3.37858834028470767e+00 -2.74178416509205247e+00 3.11798925390537995e+00 2.79999999999996128e+01 -1 -1 2.00000000000000011e-01 0 1.00000000000000000e+00 0.00000000000000000e+00 0 0 none none
+2 1.35694200006737264e+00 5.18793966136549378e-01 4.98894375332743500e-02 -2.79278731617246612e+00 3.54037087110890925e+00 2.79999999999996199e+01 -1 -1 2.00000000000000011e-01 0 1.00000000000000000e+00 0.00000000000000000e+00 0 0 none none
