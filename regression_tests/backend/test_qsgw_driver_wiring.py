@@ -51,14 +51,21 @@ def test_qsgw_supports_only_same_grid_analytic_head_updates() -> None:
     assert runner.count(
         "align_distributed_velocity_to_reference_wfc("
     ) == 1
-    assert "if (update_head && iteration > 1)" in runner
+    assert "if (update_head)" in runner
     assert "dataset->velocity_matrix = reference_velocity;" in runner
     assert "dataset->p_headwing.reset();" in runner
-    assert runner.index("dataset->velocity_matrix = reference_velocity;") < (
-        runner.index("dataset->p_headwing.reset();")
-    ) < runner.index("h.build_g0w0_sigma(opts);")
+    assert "ScopedLegacyHeadOccupations legacy_head_occupations(" in runner
+    assert "initialize_ds_tfgrids(*dataset, opts);" in runner
+    assert "initialize_ds_headwing(*dataset, opts, false);" in runner
     assert (
-        "initialize_ds_headwing(*dataset, opts, false);" not in runner
+        runner.index("dataset->velocity_matrix = reference_velocity;")
+        < runner.index("dataset->p_headwing.reset();")
+        < runner.index("initialize_ds_tfgrids(*dataset, opts);")
+        < runner.index(
+            "ScopedLegacyHeadOccupations legacy_head_occupations("
+        )
+        < runner.index("initialize_ds_headwing(*dataset, opts, false);")
+        < runner.index("h.build_g0w0_sigma(opts);")
     )
 
 

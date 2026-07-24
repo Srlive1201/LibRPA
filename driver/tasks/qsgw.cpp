@@ -77,6 +77,48 @@ private:
     bool original_;
 };
 
+class ScopedLegacyHeadOccupations
+{
+public:
+    explicit ScopedLegacyHeadOccupations(MeanField& meanfield)
+        : meanfield_(meanfield),
+          live_weights_(meanfield.get_weight())
+    {
+        auto& weights = meanfield_.get_weight();
+        for (const auto& spin_weights : weights)
+        {
+            if (spin_weights.nr != meanfield_.get_n_kpoints() ||
+                spin_weights.nc != meanfield_.get_n_bands())
+            {
+                throw std::invalid_argument(
+                    "QSGW head occupation matrix has an invalid shape");
+            }
+        }
+        for (auto& spin_weights : weights)
+        {
+            for (int kpoint = 1; kpoint < spin_weights.nr; ++kpoint)
+            {
+                for (int band = 0; band < spin_weights.nc; ++band)
+                    spin_weights(kpoint, band) = spin_weights(0, band);
+            }
+        }
+    }
+
+    ~ScopedLegacyHeadOccupations() noexcept
+    {
+        meanfield_.get_weight().swap(live_weights_);
+    }
+
+    ScopedLegacyHeadOccupations(
+        const ScopedLegacyHeadOccupations&) = delete;
+    ScopedLegacyHeadOccupations& operator=(
+        const ScopedLegacyHeadOccupations&) = delete;
+
+private:
+    MeanField& meanfield_;
+    std::vector<librpa_int::matrix> live_weights_;
+};
+
 template <typename Function>
 void collective_root_stage(
     const librpa_int::MpiCommHandler& communicator,
@@ -870,14 +912,15 @@ void run_qsgw_stage_one(const bool compute_band)
         completed_iterations = iteration;
         const EigenvalueSnapshot previous = eigenvalue_snapshot(dataset->mf);
         dataset->invalidate_compute_objects();
-        if (update_head && iteration > 1)
+        if (update_head)
         {
-            // Legacy qsgw_band0 recomputes the head from live energies and
-            // the original mf0 velocity matrix on every iteration. Reset the
-            // object here so upstream rebuilds it after generating this
-            // iteration's live-energy time-frequency grid.
             dataset->velocity_matrix = reference_velocity;
             dataset->p_headwing.reset();
+            initialize_ds_tfgrids(*dataset, opts);
+            // Legacy option-4 head reused the first k-point occupation row.
+            // Limit that compatibility behavior to head construction.
+            ScopedLegacyHeadOccupations legacy_head_occupations(dataset->mf);
+            initialize_ds_headwing(*dataset, opts, false);
         }
         h.build_g0w0_sigma(opts);
         if (!dataset->p_exx || !dataset->p_g0w0)
