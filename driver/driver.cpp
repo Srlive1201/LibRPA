@@ -47,7 +47,17 @@ DriverParams::DriverParams():
     sf_omega_end(1.0),
     sf_omega_step(0.1),
     sf_state_start(-1),
-    sf_state_end(-1)
+    sf_state_end(-1),
+    qsgw_input_contract("qsgw_input.contract"),
+    qsgw_mixer("none"),
+    qsgw_mixing_beta(0.2),
+    qsgw_min_iter(1),
+    qsgw_max_iter(10),
+    qsgw_band0_unoccupied_keep(10),
+    qsgw_band0_cut_mode(0),
+    qsgw_band0_cut_shift_ha(20.0),
+    qsgw_write_iteration_matrices(false),
+    qsgw_convergence_tolerance_ev(1.0e-4)
 {
 }
 
@@ -129,6 +139,24 @@ std::string DriverParams::format()
     ss << "cs_R_threshold = " << cs_threshold << std::endl;
     ss << "i_state_low = " << i_state_low << std::endl;
     ss << "i_state_high = " << i_state_high << std::endl;
+    if (task == "qsgw" || task == "qsgw_band")
+    {
+        ss << "qsgw_input_contract = " << qsgw_input_contract << std::endl;
+        ss << "qsgw_mixer = " << qsgw_mixer << std::endl;
+        ss << "qsgw_mixing_beta = " << qsgw_mixing_beta << std::endl;
+        ss << "qsgw_min_iter = " << qsgw_min_iter << std::endl;
+        ss << "qsgw_max_iter = " << qsgw_max_iter << std::endl;
+        ss << "qsgw_band0_unoccupied_keep = "
+           << qsgw_band0_unoccupied_keep << std::endl;
+        ss << "qsgw_band0_cut_mode = " << qsgw_band0_cut_mode
+           << std::endl;
+        ss << "qsgw_band0_cut_shift_ha = "
+           << qsgw_band0_cut_shift_ha << std::endl;
+        ss << "qsgw_convergence_tolerance_ev = "
+           << qsgw_convergence_tolerance_ev << std::endl;
+        ss << "qsgw_write_iteration_matrices = " << std::boolalpha
+           << qsgw_write_iteration_matrices << std::endl;
+    }
     if (output_gw_spec_func)
     {
         ss << "sf_omega_start = " << sf_omega_start << std::endl;

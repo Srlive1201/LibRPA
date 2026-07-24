@@ -151,6 +151,32 @@ blocks:
       - api.sqrt_coulomb_threshold
       - api.n_bands_sigc
 
+  - heading: QSGW
+    text: |
+      These experimental driver parameters apply only to `task = qsgw` or
+      `task = qsgw_band`. Same-grid analytic head-only updates are enabled
+      with `replace_w_head = true` and `option_dielect_func = 4`.
+      The aligned velocity remains in the immutable `mf0` basis while live
+      eigenvalues and eigenvectors are updated after each diagonalization.
+      Independent-grid head/wing and Hartree updates are not supported.
+      Linear mixing is regression-tested for molecular QSGW only; the
+      current solid-state benchmark uses `qsgw_mixer = none`.
+      In an ABACUS Vxc manifest, an `OUT.MAT_XC` matrix already expressed
+      in the fixed KS-state basis must use `basis state` and
+      `gauge mf0_state`, regardless of an `_nao` filename suffix. Use
+      `basis nao` and `gauge ao_bloch` only for a genuine AO matrix.
+    fields:
+      - driver.qsgw_input_contract
+      - driver.qsgw_mixer
+      - driver.qsgw_mixing_beta
+      - driver.qsgw_min_iter
+      - driver.qsgw_max_iter
+      - driver.qsgw_band0_unoccupied_keep
+      - driver.qsgw_band0_cut_mode
+      - driver.qsgw_band0_cut_shift_ha
+      - driver.qsgw_write_iteration_matrices
+      - driver.qsgw_convergence_tolerance_ev
+
   - heading: LibRI Filtering
     text: |
       These parameters are active for LibRI-enabled builds and LibRI routing.

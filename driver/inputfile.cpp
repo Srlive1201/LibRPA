@@ -7,6 +7,9 @@
 #include <regex>
 #include <sstream>
 #include <limits>
+#include <algorithm>
+#include <cctype>
+#include <cmath>
 
 #include "driver.h"
 
@@ -67,9 +70,120 @@ static std::string check_dirpath(const std::string &dirpath)
 #define _parse_switch(obj, name) parser.parse_bool(#name, btmp, flag); if (flag == 0) obj.name = get_switch(btmp);
 #define _parse_string_post(obj, name, post) parser.parse_string(#name, stmp, flag); if (flag == 0) obj.name = post(stmp);
 
+static bool get_last_assigned_value(const InputParser &parser,
+                                    const std::string &name,
+                                    std::string &value)
+{
+    const std::string space = "[ \\r\\f\\t]*";
+    const std::regex assignment(
+        "(^|[\\r\\n])" + space + name + space + "=" +
+            "([^\\r\\n#!]*)",
+        std::regex_constants::ECMAScript | std::regex_constants::icase);
+    const std::string &params = parser.get_params();
+    bool found = false;
+    for (std::sregex_iterator it(params.begin(), params.end(), assignment), end;
+         it != end; ++it)
+    {
+        value = (*it)[2].str();
+        found = true;
+    }
+    if (!found)
+        return false;
+
+    const auto first = std::find_if_not(
+        value.begin(), value.end(),
+        [](const unsigned char ch) { return std::isspace(ch); });
+    const auto last = std::find_if_not(
+        value.rbegin(), value.rend(),
+        [](const unsigned char ch) { return std::isspace(ch); }).base();
+    value = first < last ? std::string(first, last) : std::string{};
+    return true;
+}
+
+static void parse_qsgw_string(const InputParser &parser,
+                              const std::string &name,
+                              std::string &value)
+{
+    std::string token;
+    if (!get_last_assigned_value(parser, name, token))
+        return;
+    if (token.empty())
+        throw std::runtime_error(name + " must not be empty");
+    value = token;
+}
+
+static void parse_qsgw_int(const InputParser &parser,
+                           const std::string &name,
+                           int &value)
+{
+    std::string token;
+    if (!get_last_assigned_value(parser, name, token))
+        return;
+    try
+    {
+        std::size_t consumed = 0;
+        const int parsed = std::stoi(token, &consumed);
+        if (consumed != token.size())
+            throw std::invalid_argument("trailing input");
+        value = parsed;
+    }
+    catch (const std::exception &)
+    {
+        throw std::runtime_error(name + " must be a valid integer");
+    }
+}
+
+static void parse_qsgw_double(const InputParser &parser,
+                              const std::string &name,
+                              double &value)
+{
+    std::string token;
+    if (!get_last_assigned_value(parser, name, token))
+        return;
+    std::replace(token.begin(), token.end(), 'd', 'e');
+    std::replace(token.begin(), token.end(), 'D', 'E');
+    try
+    {
+        std::size_t consumed = 0;
+        const double parsed = std::stod(token, &consumed);
+        if (consumed != token.size())
+            throw std::invalid_argument("trailing input");
+        value = parsed;
+    }
+    catch (const std::exception &)
+    {
+        throw std::runtime_error(name +
+                                 " must be a valid floating-point value");
+    }
+}
+
+static void parse_qsgw_bool(const InputParser &parser,
+                            const std::string &name,
+                            bool &value)
+{
+    std::string token;
+    if (!get_last_assigned_value(parser, name, token))
+        return;
+    std::transform(token.begin(), token.end(), token.begin(),
+                   [](const unsigned char ch) {
+                       return static_cast<char>(std::tolower(ch));
+                   });
+    if (token == "true" || token == "t" || token == ".t.")
+        value = true;
+    else if (token == "false" || token == "f" || token == ".f.")
+        value = false;
+    else
+        throw std::runtime_error(name + " must be true or false");
+}
+
 static void validate_input_parameters()
 {
     const auto &params = driver::driver_params;
+    std::string task = params.task;
+    std::transform(task.begin(), task.end(), task.begin(),
+                   [](const unsigned char ch) {
+                       return static_cast<char>(std::tolower(ch));
+                   });
     if (params.output_gw_spec_func)
     {
         if (params.sf_omega_step <= 0.0)
@@ -79,6 +193,46 @@ static void validate_input_parameters()
         if (params.sf_state_start >= 0 && params.sf_state_end >= 0
             && params.sf_state_end <= params.sf_state_start)
             throw std::runtime_error("sf_state_end must be greater than sf_state_start");
+    }
+    if (task == "qsgw" || task == "qsgw_band")
+    {
+        if (driver::opts.use_kpara_scf_eigvec == LIBRPA_SWITCH_ON)
+            throw std::runtime_error(
+                "QSGW fixed-basis iteration requires replicated SCF wavefunctions; set use_kpara_scf_eigvec = false");
+        if (params.qsgw_input_contract.empty())
+            throw std::runtime_error("qsgw_input_contract must not be empty");
+        if (params.qsgw_mixer != "none" && params.qsgw_mixer != "linear")
+            throw std::runtime_error("qsgw_mixer must be none or linear");
+        if (!(params.qsgw_mixing_beta > 0.0 &&
+              params.qsgw_mixing_beta <= 1.0) ||
+            !std::isfinite(params.qsgw_mixing_beta))
+            throw std::runtime_error("qsgw_mixing_beta must be in (0, 1]");
+        if (params.qsgw_min_iter < 1 ||
+            params.qsgw_max_iter < params.qsgw_min_iter)
+            throw std::runtime_error(
+                "qsgw iteration bounds must satisfy 1 <= min <= max");
+        if (params.qsgw_band0_unoccupied_keep < 0)
+            throw std::runtime_error(
+                "qsgw_band0_unoccupied_keep must be non-negative");
+        if (params.qsgw_band0_cut_mode < 0 ||
+            params.qsgw_band0_cut_mode > 2)
+            throw std::runtime_error(
+                "qsgw_band0_cut_mode must be 0, 1, or 2");
+        if (!std::isfinite(params.qsgw_band0_cut_shift_ha))
+            throw std::runtime_error(
+                "qsgw_band0_cut_shift_ha must be finite");
+        if (!(params.qsgw_convergence_tolerance_ev > 0.0) ||
+            !std::isfinite(params.qsgw_convergence_tolerance_ev))
+            throw std::runtime_error(
+                "qsgw_convergence_tolerance_ev must be finite and positive");
+        if (params.use_pyatb)
+            throw std::runtime_error(
+                "QSGW independent PyATB head updates are unsupported; use the same-grid velocity input");
+        if (driver::opts.replace_w_head == LIBRPA_SWITCH_ON &&
+            driver::opts.option_dielect_func != 4)
+            throw std::runtime_error(
+                "QSGW supports only analytic head-only mode; set option_dielect_func = 4");
+        // QSGW inherits the upstream EXX, GW, and RPA symmetry switches.
     }
 }
 
@@ -137,6 +291,51 @@ void parse_inputfile_to_params(const std::string &fn)
     _parse_string(driver_params, fn_vxc_scf);
     _parse_string(driver_params, prefix_velocity);
     _parse_string(driver_params, fn_band_kpath_info);
+    std::string task_normalized = driver_params.task;
+    std::transform(task_normalized.begin(), task_normalized.end(),
+                   task_normalized.begin(), [](const unsigned char ch) {
+                       return static_cast<char>(std::tolower(ch));
+                   });
+    if (task_normalized == "qsgw" || task_normalized == "qsgw_band")
+    {
+        for (const std::string& removed : {
+                 "qsgw_update_hartree",
+                 "qsgw_hartree_coulomb",
+                 "qsgw_hartree_normalization",
+                 "qsgw_export_hamiltonian_for_pyatb",
+                 "qsgw_hr_export_full_mp_rgrid"})
+        {
+            std::string ignored;
+            if (get_last_assigned_value(parser, removed, ignored))
+            {
+                throw std::runtime_error(
+                    removed + " is not supported by the head-only QSGW workflow");
+            }
+        }
+        parse_qsgw_string(parser, "qsgw_input_contract",
+                           driver_params.qsgw_input_contract);
+        parse_qsgw_string(parser, "qsgw_mixer", driver_params.qsgw_mixer);
+        std::transform(driver_params.qsgw_mixer.begin(),
+                       driver_params.qsgw_mixer.end(),
+                       driver_params.qsgw_mixer.begin(),
+                       [](const unsigned char ch) {
+                           return static_cast<char>(std::tolower(ch));
+                       });
+        parse_qsgw_double(parser, "qsgw_mixing_beta",
+                          driver_params.qsgw_mixing_beta);
+        parse_qsgw_int(parser, "qsgw_min_iter", driver_params.qsgw_min_iter);
+        parse_qsgw_int(parser, "qsgw_max_iter", driver_params.qsgw_max_iter);
+        parse_qsgw_int(parser, "qsgw_band0_unoccupied_keep",
+                       driver_params.qsgw_band0_unoccupied_keep);
+        parse_qsgw_int(parser, "qsgw_band0_cut_mode",
+                       driver_params.qsgw_band0_cut_mode);
+        parse_qsgw_double(parser, "qsgw_band0_cut_shift_ha",
+                          driver_params.qsgw_band0_cut_shift_ha);
+        parse_qsgw_bool(parser, "qsgw_write_iteration_matrices",
+                        driver_params.qsgw_write_iteration_matrices);
+        parse_qsgw_double(parser, "qsgw_convergence_tolerance_ev",
+                          driver_params.qsgw_convergence_tolerance_ev);
+    }
     _parse_int(driver_params, version_coul_reader);
     _parse_int(driver_params, version_lri_reader);
 

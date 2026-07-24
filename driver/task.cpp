@@ -71,6 +71,8 @@ static std::map<task_t, std::function<void(void)>> map_task_func_impl{
     {task_t::RPA, task_rpa},
     {task_t::EXX, task_exx},
     {task_t::EXX_band, task_exx_band},
+    {task_t::QSGW, task_qsgw},
+    {task_t::QSGW_band, task_qsgw_band},
 };
 
 void run_task(const task_t &task)

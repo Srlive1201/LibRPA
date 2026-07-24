@@ -260,6 +260,77 @@ struct DriverParams
     //! Experimental
     int sf_state_end;
 
+    //! Provenance and semantic contract filename for all QSGW input files.
+    //! The path is interpreted relative to `input_dir`.
+    //! @par Default
+    //! `qsgw_input.contract`
+    //! @par Status
+    //! Experimental
+    std::string qsgw_input_contract;
+
+    //! Fixed-basis Hamiltonian mixing (`none` or `linear`).
+    //! @par Default
+    //! `none`
+    //! @par Status
+    //! Experimental
+    std::string qsgw_mixer;
+
+    //! Linear Hamiltonian mixing fraction.
+    //! @par Default
+    //! 0.2
+    //! @par Status
+    //! Experimental
+    double qsgw_mixing_beta;
+
+    //! Minimum number of QSGW updates before convergence may terminate the run.
+    //! @par Default
+    //! 1
+    //! @par Status
+    //! Experimental
+    int qsgw_min_iter;
+
+    //! Maximum number of QSGW updates.
+    //! @par Default
+    //! 10
+    //! @par Status
+    //! Experimental
+    int qsgw_max_iter;
+
+    //! Number of unoccupied states retained by qsgw_band H_QSGW cut.
+    //! @par Default
+    //! 10
+    //! @par Status
+    //! Experimental
+    int qsgw_band0_unoccupied_keep;
+
+    //! qsgw_band H_QSGW cut: 0 uncut, 1 KS diagonal, 2 shifted KS diagonal.
+    //! @par Default
+    //! 0
+    //! @par Status
+    //! Experimental
+    int qsgw_band0_cut_mode;
+
+    //! Hamiltonian energy shift applied to cut states in mode 2, in Hartree.
+    //! @par Default
+    //! 20.0
+    //! @par Status
+    //! Experimental
+    double qsgw_band0_cut_shift_ha;
+
+    //! Write per-iteration matrices used by numerical regression tests.
+    //! @par Default
+    //! false
+    //! @par Status
+    //! Experimental
+    bool qsgw_write_iteration_matrices;
+
+    //! Maximum eigenvalue change used for convergence, in eV.
+    //! @par Default
+    //! 1.0e-4
+    //! @par Status
+    //! Experimental
+    double qsgw_convergence_tolerance_ev;
+
     std::string format();
 
     //! Apply producer-specific defaults to input filename and prefix parameters.
