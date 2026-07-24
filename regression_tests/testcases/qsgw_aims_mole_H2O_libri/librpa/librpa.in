@@ -1,0 +1,31 @@
+# Driver parameters
+task = qsgw
+input_dir = ../dataset
+constants_choice = aims
+
+# G0W0 kernel
+nfreq = 6
+tfgrid_type = minimax
+n_params_anacon = -1
+n_params_anacon_resample = -1
+anacon_nfreq = -1
+parallel_routing = libri
+vq_threshold = 0
+sqrt_coulomb_threshold = 0
+use_scalapack_gw_wc = true
+use_shrink_abfs = false
+use_shrink_chi = false
+replace_w_head = false
+use_symmetry_exx = false
+use_symmetry_gw = false
+use_symmetry_rpa = false
+use_kpara_scf_eigvec = false
+
+# QSGW fixed-basis iteration
+qsgw_input_contract = qsgw_input.contract
+qsgw_mixer = linear
+qsgw_mixing_beta = 0.2
+qsgw_min_iter = 2
+qsgw_max_iter = 2
+qsgw_convergence_tolerance_ev = 1e-4
+qsgw_write_iteration_matrices = false
