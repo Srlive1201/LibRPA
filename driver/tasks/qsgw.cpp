@@ -716,10 +716,10 @@ void run_qsgw_stage_one(const bool compute_band)
         {
             prepare_fhi_aims_interband_velocity(
                 reference_velocity, reference);
+            align_distributed_velocity_to_reference_wfc(
+                dataset->p_headwing->get_meanfield_df(), reference,
+                reference_velocity, dataset->comm_h);
         }
-        align_distributed_velocity_to_reference_wfc(
-            dataset->p_headwing->get_meanfield_df(), reference,
-            reference_velocity, dataset->comm_h);
     }
 
     std::optional<MeanField> band_reference;

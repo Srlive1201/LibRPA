@@ -38,10 +38,19 @@ def test_qsgw_reuses_upstream_gw_in_an_immutable_reference_basis() -> None:
 def test_qsgw_supports_only_same_grid_analytic_head_updates() -> None:
     source = QSGW_DRIVER.read_text()
     runner = function_body(source, "void run_qsgw_stage_one(")
+    normalized = " ".join(runner.split())
 
     assert "opts.option_dielect_func == 4" in runner
     assert "QSGW independent PyATB head updates are unsupported" in runner
     assert "read_headwing_input(driver_params.input_dir, false);" in runner
+    assert (
+        "if (contract_producer == static_cast<int>(QsgwProducer::FhiAims)) "
+        "{ prepare_fhi_aims_interband_velocity( reference_velocity, reference); "
+        "align_distributed_velocity_to_reference_wfc("
+    ) in normalized
+    assert runner.count(
+        "align_distributed_velocity_to_reference_wfc("
+    ) == 1
     assert "if (update_head && iteration > 1)" in runner
     assert "dataset->velocity_matrix = reference_velocity;" in runner
     assert "dataset->p_headwing.reset();" in runner
