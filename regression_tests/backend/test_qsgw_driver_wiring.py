@@ -57,8 +57,17 @@ def test_qsgw_band_supplies_actual_r_legacy_bvk_mapping_to_upstream() -> None:
     source = QSGW_DRIVER.read_text()
     assert '#include "../../src/qsgw/band_bvk_remap.h"' in source
     runner = function_body(source, "void run_qsgw_stage_one(")
-    assert "build_legacy_band_bvk_remap(" in runner
-    assert runner.count("dataset->kfrac_band_list, actual_r_bvk_remap,") == 2
+    normalized = " ".join(runner.split())
+    assert (
+        "const auto bvk_remap = "
+        "librpa_int::qsgw::build_legacy_band_bvk_remap("
+    ) in normalized
+    assert (
+        normalized.count(
+            "dataset->kfrac_band_list, bvk_remap, dataset->blacs_h"
+        )
+        == 2
+    )
 
 
 def test_qsgw_band_uses_the_fixed_band_reference_and_writes_each_iteration() -> None:
