@@ -189,6 +189,7 @@ endif()
 
 # source must be PRIVATE to avoid recompilation when linking driver to this library
 target_sources(rpa_lib PRIVATE ${lib_sources})
+add_subdirectory(qsgw)
 target_link_libraries(rpa_lib PRIVATE ${math_libs} ${parallel_libs})
 
 install(TARGETS rpa_lib

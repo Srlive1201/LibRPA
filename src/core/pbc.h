@@ -200,6 +200,14 @@ public:
         return &it_R->second;
     }
     const std::map<R_type, R_remap_type> &at(const atom_pair_type &atom_pair) const { return remap_.at(atom_pair); }
+    bool erase_mapping(const atom_pair_type &atom_pair, const R_type &R)
+    {
+        const auto atom_pair_it = remap_.find(atom_pair);
+        if (atom_pair_it == remap_.end()) return false;
+        const bool erased = atom_pair_it->second.erase(R) != 0;
+        if (atom_pair_it->second.empty()) remap_.erase(atom_pair_it);
+        return erased;
+    }
     std::size_t size() const { return remap_.size(); }
     bool empty() const { return remap_.empty(); }
     bool is_empty() const { return remap_.empty(); }
