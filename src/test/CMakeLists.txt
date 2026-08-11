@@ -114,6 +114,9 @@ add_test(NAME test_rpa_logdet_mpi
 config_test(test_headwing_descriptor 2)
 set_tests_properties(test_headwing_descriptor PROPERTIES TIMEOUT 30)
 
+if(LIBRPA_USE_LIBRI AND _LIBRPA_USE_BUNDLED_LIBCOMM)
+  config_test(test_libcomm_bounded_exchange 4)
+endif()
 # TODO(minye): make use of GTest
 
 target_compile_definitions(test_si_density_symmetry PRIVATE

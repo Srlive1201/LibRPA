@@ -54,6 +54,19 @@ public:
 		Tdatas_recv &datas_recv);
 
 private:
+	void communicate_nonblocking(
+		const Tdatas_isend &datas_isend,
+		Tdatas_recv &datas_recv);
+	void communicate_sendrecv_ring(
+		const Tdatas_isend &datas_isend,
+		Tdatas_recv &datas_recv);
+	std::vector<char> serialize_for_rank(
+		const int rank_isend,
+		const Tdatas_isend &datas_isend) const;
+	void deserialize_from_rank(
+		const int rank_recv,
+		const std::vector<char> &buffer_recv,
+		Tdatas_recv &datas_recv) const;
 	std::size_t oar_data(
 		const int rank_isend,
 		const Tdatas_isend &datas_isend,
@@ -83,7 +96,7 @@ private:
 		const std::vector<std::atomic<State_Recv>> &states_recv) const;
 
 public:
-	const MPI_Comm &mpi_comm;
+	MPI_Comm mpi_comm;
 	int rank_mine = 0;
 	int comm_size = 1;
 
