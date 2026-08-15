@@ -1491,10 +1491,13 @@ void test_head_initialization_does_not_require_coulomb_diagonalization(
 Matz coulomb_basis_eps_inv_reference(
     const Matz &U, const Matz &sqrtV, const Matz &chi0,
     const Matz &wing_mu, const Matz &head,
-    const std::vector<std::array<double, 3>> &q_pts, const std::vector<double> &q_rho)
+    const std::vector<std::array<double, 3>> &q_pts, const std::vector<double> &q_rho,
+    int n_nonsingular = -1)
 {
     const int n = U.nr();
-    const int nl = n - 1;
+    if (n_nonsingular < 0) n_nonsingular = n;
+    assert(n_nonsingular > 0 && n_nonsingular <= n);
+    const int nl = n_nonsingular - 1;
 
     // sqrtveig = sqrt(V) * U  (= U * diag(sqrt(lambda)) when consistent)
     const auto sqrtveig = sqrtV * U;
@@ -1572,16 +1575,16 @@ Matz coulomb_basis_eps_inv_reference(
                          qz * (qx * L20 + qy * L21 + qz * L22);
         const auto w = q_rho[ileb] / qLq;
         eps_inv_coul(0, 0) += w;
-        for (int i = 1; i < n; ++i)
-            for (int j = 1; j < n; ++j)
+        for (int i = 1; i < n_nonsingular; ++i)
+            for (int j = 1; j < n_nonsingular; ++j)
             {
                 const auto bwq = bw(i - 1, 0) * qx + bw(i - 1, 1) * qy + bw(i - 1, 2) * qz;
                 const auto qwb = qx * wb(0, j - 1) + qy * wb(1, j - 1) + qz * wb(2, j - 1);
                 eps_inv_coul(i, j) += w * bwq * qwb;
             }
     }
-    for (int i = 1; i < n; ++i)
-        for (int j = 1; j < n; ++j)
+    for (int i = 1; i < n_nonsingular; ++i)
+        for (int j = 1; j < n_nonsingular; ++j)
             eps_inv_coul(i, j) += body_inv(i - 1, j - 1);
 
     return U * eps_inv_coul * U.get_transpose(true);
@@ -1594,10 +1597,12 @@ void run_abf_case(const BlacsCtxtHandler &blacs_h, int n, int block_size,
                   const Matz &chi0, const Matz &wing_mu,
                   const Matz &head,
                   const std::vector<std::array<double, 3>> &q_pts,
-                  const std::vector<double> &q_rho, bool use_cholesky, double tol)
+                  const std::vector<double> &q_rho, bool use_cholesky, double tol,
+                  int n_nonsingular = -1)
 {
+    if (n_nonsingular < 0) n_nonsingular = n;
     const auto ref = coulomb_basis_eps_inv_reference(U, sqrtV, chi0, wing_mu, head,
-                                                     q_pts, q_rho);
+                                                     q_pts, q_rho, n_nonsingular);
     // E = I - sqrt(V) * chi0 * sqrt(V)
     auto E = sqrtV * chi0 * sqrtV;
     E *= -1.0;
@@ -1622,7 +1627,8 @@ void run_abf_case(const BlacsCtxtHandler &blacs_h, int n, int block_size,
 
     librpa_int::rewrite_eps_abf_space(E_dist, sqrtV_dist, U_dist, head, wing_mu, qx, qy,
                                       qz, q_rho, desc, blacs_h,
-                                      static_cast<std::size_t>(n), 0.0, use_cholesky, false);
+                                      static_cast<std::size_t>(n_nonsingular), 0.0,
+                                      use_cholesky, false);
 
     double local_max_err = 0.0;
     for (int ilo = 0; ilo != desc.m_loc(); ++ilo)
@@ -1745,32 +1751,25 @@ void test_abf_space_wing_rewrite_matches_coulomb_basis(const BlacsCtxtHandler &b
                      1e-10);
     }
 
-    // Full-basis guard failure: n_nonsingular != n_abf must throw a diagnostic
-    // that reports n_nonsingular, n_abf and the sqrt_coulomb_threshold context.
+    // Filtered Coulomb basis: the last eigenchannel has zero eigenvalue and is
+    // excluded. Both inversion paths must agree with the old reduced Coulomb-
+    // basis algorithm and produce no component in the filtered subspace.
     {
-        ArrayDesc desc(blacs_h);
-        desc.init(n, n, 1, 1, 0, 0);
-        auto E_dist = init_local_mat<std::complex<double>>(desc, MAJOR::COL);
-        auto sqrtV_dist = init_local_mat<std::complex<double>>(desc, MAJOR::COL);
-        auto U_dist = init_local_mat<std::complex<double>>(desc, MAJOR::COL);
-        std::vector<double> qx{1.0}, qy{0.0}, qz{0.0}, rho{1.0};
-        bool threw = false;
-        std::string message;
-        try
-        {
-            librpa_int::rewrite_eps_abf_space(
-                E_dist, sqrtV_dist, U_dist, head, wing_mu, qx, qy, qz, rho, desc, blacs_h,
-                static_cast<std::size_t>(n - 1), 0.5, false, false);
-        }
-        catch (const std::exception &error)
-        {
-            threw = true;
-            message = error.what();
-        }
-        assert(threw);
-        assert(message.find("n_nonsingular") != std::string::npos);
-        assert(message.find("n_abf") != std::string::npos);
-        assert(message.find("sqrt_coulomb_threshold") != std::string::npos);
+        constexpr int nr = n - 1;
+        Matz sqrtveig_filtered(n, n, MAJOR::COL);
+        sqrtveig_filtered.zero_out();
+        for (int i = 0; i < n; ++i)
+            for (int j = 0; j < nr; ++j)
+                sqrtveig_filtered(i, j) =
+                    U(i, j) * std::sqrt(lambda[static_cast<std::size_t>(j)]);
+        const auto sqrtV_filtered = sqrtveig_filtered * U.get_transpose(true);
+
+        run_abf_case(blacs_h, n, 1, U, sqrtV_filtered, chi0, wing_mu, head,
+                     q3d, rho3d, false, 1e-10, nr);
+        run_abf_case(blacs_h, n, 2, U, sqrtV_filtered, chi0, wing_mu, head,
+                     q3d, rho3d, true, 1e-10, nr);
+        run_abf_case(blacs_h, n, 1, U, sqrtV_filtered, chi0, zero_wing_mu, head,
+                     q2d, rho2d, false, 1e-10, nr);
     }
 
     // Invariance: with E and sqrt(V) held fixed, changing Coulomb eigenvector

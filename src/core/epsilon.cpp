@@ -2891,13 +2891,11 @@ std::map<double, std::map<Vector3_Order<double>, Matz>> compute_Wc_freq_q_blacs(
         const size_t n_nonsingular = n_abf - n_singular;
         if (gamma_full_headwing && n_singular != 0)
         {
-            std::ostringstream oss;
-            oss << "Gamma option-3 ABF-space head/wing Wc requires a complete Coulomb basis "
-                   "(n_singular == 0); disable sqrt_coulomb_threshold. n_singular="
-                << n_singular << ", n_nonsingular=" << n_nonsingular
-                << ", n_abf=" << n_abf
-                << ", sqrt_coulomb_threshold=" << sqrt_coulomb_threshold;
-            throw LIBRPA_RUNTIME_ERROR(oss.str());
+            librpa_int::global::lib_printf_root(
+                "Gamma option-3 ABF-space head/wing Wc: using retained Coulomb "
+                "subspace n_nonsingular=%zu of n_abf=%zu (n_filtered=%zu, "
+                "sqrt_coulomb_threshold=%g)\n",
+                n_nonsingular, n_abf, n_singular, sqrt_coulomb_threshold);
         }
 #if defined(LIBRPA_USE_CUDA) || defined(LIBRPA_USE_HIP)
         if (is_gamma_point(q) && use_gpu_replace_scalapack)

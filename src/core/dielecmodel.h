@@ -146,8 +146,8 @@ void invert_headwing_body_with_identity_solve(
     matrix_m<std::complex<double>> &body, ArrayDesc &desc_body,
     const BlacsCtxtHandler &blacs_h, bool use_cholesky, bool use_device);
 
-// Complete-basis ABF-space averaged inverse dielectric rewrite for Gamma
-// option-3 GW Wc, factored out of diele_func so it can be unit tested directly.
+// ABF-space averaged inverse dielectric rewrite for Gamma option-3 GW Wc,
+// factored out of diele_func so it can be unit tested directly.
 // eps_block holds E = I - sqrt(V)*chi0*sqrt(V) (n_abf x n_abf, distributed) on
 // entry and is overwritten with the averaged inverse dielectric matrix.
 // sqrtv_block is the matrix square root sqrt(V); coul_eigen_block holds the
@@ -155,9 +155,10 @@ void invert_headwing_body_with_identity_solve(
 // (it already includes the identity contribution) and wing_mu the replicated
 // n_abf x 3 ABF wing. qx/qy/qz are unit angular directions and rho the
 // per-point quadrature weights (already including the Gamma-cell volume and
-// q_gamma factors). Requires n_nonsingular == n_abf. Collective reductions run
-// on the descriptor communicator. The read-only matrix inputs are const; only
-// eps_block is modified.
+// q_gamma factors). When the Coulomb matrix has filtered eigenchannels, the
+// rewrite is restricted to its first n_nonsingular eigenvectors. Collective
+// reductions run on the descriptor communicator. The read-only matrix inputs
+// are const; only eps_block is modified.
 void rewrite_eps_abf_space(
     matrix_m<std::complex<double>> &eps_block,
     const matrix_m<std::complex<double>> &sqrtv_block,
