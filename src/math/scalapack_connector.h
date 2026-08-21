@@ -330,6 +330,30 @@ public:
         pzgemr2d_(&m, &n, a, &ia, &ja, desca, b, &ib, &jb, descb, &ictxt);
     }
 
+    static inline void ptranu_f(const int m, const int n,
+                                const std::complex<double> alpha,
+                                const std::complex<double> *a,
+                                const int ia, const int ja, const int *desca,
+                                const std::complex<double> beta,
+                                std::complex<double> *c,
+                                const int ic, const int jc, const int *descc)
+    {
+        pztranu_(&m, &n, &alpha, a, &ia, &ja, desca,
+                 &beta, c, &ic, &jc, descc);
+    }
+
+    static inline void ptranc_f(const int m, const int n,
+                                const std::complex<double> alpha,
+                                const std::complex<double> *a,
+                                const int ia, const int ja, const int *desca,
+                                const std::complex<double> beta,
+                                std::complex<double> *c,
+                                const int ic, const int jc, const int *descc)
+    {
+        pztranc_(&m, &n, &alpha, a, &ia, &ja, desca,
+                 &beta, c, &ic, &jc, descc);
+    }
+
     // Matrix redistribution for C (row-major) matrices.
     // For now it is the same as Fortran (column-major) case.
     // The user should take care of local leading dimension in desca and descb.

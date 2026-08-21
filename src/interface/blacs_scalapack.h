@@ -63,6 +63,18 @@ extern "C"
                  double *a, int *ia, int *ja, int *desca,
                  double *beta, 
                  double *c, int *ic, int *jc, int *descc);
+    void pztranu_(const int *m, const int *n,
+                  const std::complex<double> *alpha,
+                  const std::complex<double> *a, const int *ia, const int *ja,
+                  const int *desca, const std::complex<double> *beta,
+                  std::complex<double> *c, const int *ic, const int *jc,
+                  const int *descc);
+    void pztranc_(const int *m, const int *n,
+                  const std::complex<double> *alpha,
+                  const std::complex<double> *a, const int *ia, const int *ja,
+                  const int *desca, const std::complex<double> *beta,
+                  std::complex<double> *c, const int *ic, const int *jc,
+                  const int *descc);
 
     // scale
     // P?SCAL  multiplies  an  n  element  subvector  sub( X ) by the scalar alpha,

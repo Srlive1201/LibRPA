@@ -515,6 +515,7 @@ install(FILES
   ${CMAKE_CURRENT_SOURCE_DIR}/include/librpa_options.h
   ${CMAKE_CURRENT_SOURCE_DIR}/include/librpa.h
   ${CMAKE_CURRENT_SOURCE_DIR}/include/librpa.hpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/librpa_file_reader.hpp
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/librpa)
 
 message(STATUS "CMAKE_INSTALL_PREFIX ${CMAKE_INSTALL_PREFIX}")

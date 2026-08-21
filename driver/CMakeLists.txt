@@ -6,16 +6,9 @@ set_target_properties(rpa_exe PROPERTIES
   RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
 
 list(APPEND exe_sources
-  driver.cpp
   input_parser.cpp
   inputfile.cpp
   main.cpp
-  read_data.cpp
-  reader_eigenvec.cpp
-  reader_basis.cpp
-  reader_structure.cpp
-  reader_lri.cpp
-  reader_coulomb.cpp
   task.cpp
   # Specific task implementations
   tasks/task_helper.cpp

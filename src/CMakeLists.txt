@@ -47,15 +47,30 @@ if(LIBRPA_BUNDLED_DDLA_PROJECT_TARGET)
   add_dependencies(rpa_lib ${LIBRPA_BUNDLED_DDLA_PROJECT_TARGET})
 endif()
 
+get_filename_component(LIBRPA_PUBLIC_INCLUDE_DIR
+  "${CMAKE_CURRENT_SOURCE_DIR}/../include" ABSOLUTE)
 target_include_directories(rpa_lib
   PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>
+    $<BUILD_INTERFACE:${LIBRPA_PUBLIC_INCLUDE_DIR}>
   )
 target_include_directories(rpa_lib PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}
-  ${CMAKE_CURRENT_SOURCE_DIR}/../include
+  ${LIBRPA_PUBLIC_INCLUDE_DIR}
 )
+
+# Public C++ headers expose types whose declarations depend on these feature
+# switches. Propagate the same definitions to consumers to keep their view of
+# the LibRPA data model ABI-compatible with the library.
+target_compile_definitions(rpa_lib PUBLIC LIBRPA_USE_MPI)
+if(LIBRPA_USE_LIBRI)
+  target_compile_definitions(rpa_lib PUBLIC LIBRPA_USE_LIBRI)
+endif()
+if(LIBRPA_USE_EXTERNAL_ELPA OR LIBRPA_USE_BUNDLED_ELPA)
+  target_compile_definitions(rpa_lib PUBLIC LIBRPA_USE_ELPA)
+endif()
+if(LIBRPA_VERBOSE_OUTPUT)
+  target_compile_definitions(rpa_lib PUBLIC LIBRPA_VERBOSE)
+endif()
 configure_file(utils/envs_cmake.cpp.in ${CMAKE_CURRENT_BINARY_DIR}/envs_cmake.cpp)
 configure_file(utils/envs_cmake.h ${CMAKE_CURRENT_BINARY_DIR}/envs_cmake.h)  # only to make the configured envs_cmake.cpp compile
 
@@ -74,6 +89,15 @@ list(APPEND lib_sources
         api/instance_manager.cpp
         api/librpa.cpp
         api/options.cpp
+        api/file_reader.cpp
+
+        ../driver/driver.cpp
+        ../driver/read_data.cpp
+        ../driver/reader_eigenvec.cpp
+        ../driver/reader_basis.cpp
+        ../driver/reader_structure.cpp
+        ../driver/reader_lri.cpp
+        ../driver/reader_coulomb.cpp
 
         core/analycont.cpp
         core/symmetry_context.cpp
@@ -157,7 +181,6 @@ if(LIBRPA_USE_CUDA OR LIBRPA_USE_HIP)
     gpu/device_connector.cpp
   )
 endif()
-
 
 if(LIBRPA_USE_EXTERNAL_ELPA OR LIBRPA_USE_BUNDLED_ELPA)
   list(APPEND lib_sources
