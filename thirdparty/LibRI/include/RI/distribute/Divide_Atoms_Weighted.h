@@ -31,7 +31,7 @@ namespace Divide_Atoms_Weighted
 	// (stable_sort) and then by the smallest group index (the {load,group} min-heap).
 	// group_size > item_weights.size() leaves the surplus groups empty, as the unweighted
 	// divide_atoms below already does.
-	extern std::vector<std::size_t> assign_owners_weighted(
+	inline std::vector<std::size_t> assign_owners_weighted(
 		const std::size_t group_size,
 		const std::vector<std::size_t> &item_weights);
 

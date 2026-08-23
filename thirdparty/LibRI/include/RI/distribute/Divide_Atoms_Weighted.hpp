@@ -33,7 +33,7 @@ namespace Divide_Atoms_Weighted
 
 	// Core distribution function. 
 	// Assign the heaviest item to the currently lightest group.
-	std::vector<std::size_t> assign_owners_weighted(
+	inline std::vector<std::size_t> assign_owners_weighted(
 		const std::size_t group_size,
 		const std::vector<std::size_t> &item_weights)
 	{
