@@ -40,6 +40,9 @@ using namespace ddla;
 #include "pbc.h"
 #include "utils_atomic_basis_blacs.h"
 #ifdef LIBRPA_USE_LIBRI
+#if !defined(__DDLA_RI) && !defined(__CUDA_RI) && !defined(__HIP_RI)
+#include <RI/parallel/Parallel_LRI_Equally_Weighted.h>
+#endif
 #include <RI/physics/Exx.h>
 #include <RI/physics/symmetry/Symmetry_Filter.h>
 #include <RI/ri/Cell_Nearest.h>
@@ -565,11 +568,23 @@ void Exx::build(const LibrpaParallelRouting routing,
     const auto atom_nw = atbasis_wfc.get_atom_nb_map<int>();
 
     if (use_complex_exx_r)
-        libri_set_parallel(exx_libri_cplx, comm_h.comm, atoms_pos, this->pbc.latvec_array,
-                           this->pbc.period_array, atom_nw);
+    {
+#if !defined(__DDLA_RI) && !defined(__CUDA_RI) && !defined(__HIP_RI)
+        exx_libri_cplx.lri.parallel =
+            std::make_shared<RI::Parallel_LRI_Equally_Weighted<int, int, 3, cplxdb>>(atom_nw);
+#endif
+        exx_libri_cplx.set_parallel(comm_h.comm, atoms_pos, this->pbc.latvec_array,
+                                    this->pbc.period_array);
+    }
     else
-        libri_set_parallel(exx_libri, comm_h.comm, atoms_pos, this->pbc.latvec_array,
-                           this->pbc.period_array, atom_nw);
+    {
+#if !defined(__DDLA_RI) && !defined(__CUDA_RI) && !defined(__HIP_RI)
+        exx_libri.lri.parallel =
+            std::make_shared<RI::Parallel_LRI_Equally_Weighted<int, int, 3, double>>(atom_nw);
+#endif
+        exx_libri.set_parallel(comm_h.comm, atoms_pos, this->pbc.latvec_array,
+                               this->pbc.period_array);
+    }
 
     const auto &symmetry_ctx = this->symmetry_context;
     const auto wfc_layouts = atbasis_wfc.build_species_basis_layouts(symmetry_ctx.atom_to_type);

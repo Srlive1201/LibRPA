@@ -51,6 +51,9 @@ using namespace ddla;
 
 #ifdef LIBRPA_USE_LIBRI
 #include <RI/global/Tensor.h>
+#if !defined(__DDLA_RI) && !defined(__CUDA_RI) && !defined(__HIP_RI)
+#include <RI/parallel/Parallel_LRI_Equally_Weighted.h>
+#endif
 #include <RI/physics/GW.h>
 #include <RI/physics/symmetry/Symmetry_Filter.h>
 using RI::Tensor;
@@ -1533,8 +1536,11 @@ void G0W0::build_spacetime(
     global::profiler.start("g0w0_build_spacetime_2", "Setup LibRI G0W0 object and C data");
     if (use_complex_tensor)
     {
-        libri_set_parallel(gw_libri_cplx, comm_h.comm, atoms_pos, pbc.latvec_array,
-                           pbc.period_array, atom_nw);
+#if !defined(__DDLA_RI) && !defined(__CUDA_RI) && !defined(__HIP_RI)
+        gw_libri_cplx.lri.parallel =
+            std::make_shared<RI::Parallel_LRI_Equally_Weighted<int, int, 3, cplxdb>>(atom_nw);
+#endif
+        gw_libri_cplx.set_parallel(comm_h.comm, atoms_pos, pbc.latvec_array, pbc.period_array);
         ztensor_map data_libri;
         for (const auto &I_JR_C : LRI_Cs.data_libri)
         {
@@ -1552,8 +1558,11 @@ void G0W0::build_spacetime(
     }
     else
     {
-        libri_set_parallel(gw_libri, comm_h.comm, atoms_pos, pbc.latvec_array,
-                           pbc.period_array, atom_nw);
+#if !defined(__DDLA_RI) && !defined(__CUDA_RI) && !defined(__HIP_RI)
+        gw_libri.lri.parallel =
+            std::make_shared<RI::Parallel_LRI_Equally_Weighted<int, int, 3, double>>(atom_nw);
+#endif
+        gw_libri.set_parallel(comm_h.comm, atoms_pos, pbc.latvec_array, pbc.period_array);
         gw_libri.set_Cs(LRI_Cs.data_libri, this->libri_threshold_C);
     }
 

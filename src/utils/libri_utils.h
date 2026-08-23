@@ -191,31 +191,6 @@ ComplexMatrix convert_libri_tensor_to_complex_matrix(
     return matrix;
 }
 
-// Compatible layer for old LibRI 4-parameter set_parallel call and new one with atom weights.
-// Works with C++ 17 "Substitution failure is not an error" (SFINAE) rule.
-
-template <typename LibRI, typename Comm, typename Pos, typename Lat, typename Period, typename Nao>
-auto set_parallel_impl(int, LibRI& libri, const Comm& comm, const Pos& atoms_pos, const Lat& latvec,
-                       const Period& period, const Nao& atoms_nao)
-    -> decltype(libri.set_parallel(comm, atoms_pos, latvec, period, atoms_nao), void())
-{
-    libri.set_parallel(comm, atoms_pos, latvec, period, atoms_nao);
-}
-
-template <typename LibRI, typename Comm, typename Pos, typename Lat, typename Period, typename Nao>
-void set_parallel_impl(long, LibRI& libri, const Comm& comm, const Pos& atoms_pos,
-                       const Lat& latvec, const Period& period, const Nao&)
-{
-    libri.set_parallel(comm, atoms_pos, latvec, period);
-}
-
-template <typename LibRI, typename Comm, typename Pos, typename Lat, typename Period, typename Nao>
-void libri_set_parallel(LibRI& libri, const Comm& comm, const Pos& atoms_pos, const Lat& latvec,
-                  const Period& period, const Nao& atoms_nao)
-{
-    set_parallel_impl(0, libri, comm, atoms_pos, latvec, period, atoms_nao);
-}
-
 #endif
 
 }

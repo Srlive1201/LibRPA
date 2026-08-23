@@ -40,6 +40,9 @@
 #include "ri.h"
 #include "utils_atomic_basis_blacs.h"
 #ifdef LIBRPA_USE_LIBRI
+#if !defined(__DDLA_RI) && !defined(__CUDA_RI) && !defined(__HIP_RI)
+#include <RI/parallel/Parallel_LRI_Equally_Weighted.h>
+#endif
 #include <RI/physics/RPA.h>
 #include <RI/physics/symmetry/Symmetry_Filter.h>
 #endif
@@ -2114,7 +2117,11 @@ void Chi0::build_chi0_q_space_time_LibRI_routing(const Cs_LRI &Cs,
 
     RI::RPA<int, int, 3, Tdata> rpa;
     global::profiler.start("chi0_libri_routing_set_parallel");
-    libri_set_parallel(rpa, comm_h.comm, atoms_pos, lat_array, period_array, atom_nw);
+#if !defined(__DDLA_RI) && !defined(__CUDA_RI) && !defined(__HIP_RI)
+    rpa.lri.parallel =
+        std::make_shared<RI::Parallel_LRI_Equally_Weighted<int, int, 3, Tdata>>(atom_nw);
+#endif
+    rpa.set_parallel(comm_h.comm, atoms_pos, lat_array, period_array);
     global::profiler.stop("chi0_libri_routing_set_parallel");
     const auto libri_chi0_irreducible_sector =
         use_chi0_rspace_symmetry ? convert_symmetry_irreducible_sector_to_libri_chi0(
