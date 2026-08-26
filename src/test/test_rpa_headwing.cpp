@@ -1770,6 +1770,20 @@ void test_abf_space_wing_rewrite_matches_coulomb_basis(const BlacsCtxtHandler &b
                      q3d, rho3d, true, 1e-10, nr);
         run_abf_case(blacs_h, n, 1, U, sqrtV_filtered, chi0, zero_wing_mu, head,
                      q2d, rho2d, false, 1e-10, nr);
+
+        // Retained head channel only: T = 0, M = I, D = 0, so the averaged
+        // inverse reduces to a0*P. Exercises the k == 0 projector guard.
+        {
+            Matz sqrtveig_head_only(n, n, MAJOR::COL);
+            sqrtveig_head_only.zero_out();
+            for (int i = 0; i < n; ++i)
+                sqrtveig_head_only(i, 0) = U(i, 0) * std::sqrt(lambda[0]);
+            const auto sqrtV_head_only = sqrtveig_head_only * U.get_transpose(true);
+            run_abf_case(blacs_h, n, 1, U, sqrtV_head_only, chi0, wing_mu, head,
+                         q3d, rho3d, false, 1e-10, 1);
+            run_abf_case(blacs_h, n, 2, U, sqrtV_head_only, chi0, wing_mu, head,
+                         q3d, rho3d, true, 1e-10, 1);
+        }
     }
 
     // Invariance: with E and sqrt(V) held fixed, changing Coulomb eigenvector
