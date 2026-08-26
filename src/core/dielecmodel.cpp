@@ -3578,21 +3578,23 @@ void rewrite_eps_abf_space(
     }
     else
     {
-        // R = U_r*U_r^H projects onto the retained Coulomb eigenspace and
-        // B = R-P onto its regular body (all retained channels except x1).
-        // Invert B*E*B only on range(B); I-B makes the full distributed matrix
+        // T = X_b*X_b^H projects onto the regular body (all retained Coulomb
+        // channels except the head x1), built directly from the body columns
+        // X_b = coul_eigen_block[:, 2..n_nonsingular].
+        // Invert T*E*T only on range(T); I-T makes the full distributed matrix
         // nonsingular without coupling the filtered Coulomb channels back in.
         body_projector = init_local_mat<complex<double>>(desc_nabf_nabf_opt, MAJOR::COL);
-        ScalapackConnector::pgemm_f(
-            'N', 'C', n_abf, n_abf, static_cast<int>(n_nonsingular), 1.0,
-            coul_eigen_block.ptr(), 1, 1, desc_nabf_nabf_opt.desc,
-            coul_eigen_block.ptr(), 1, 1, desc_nabf_nabf_opt.desc, 0.0,
-            body_projector.ptr(), 1, 1, desc_nabf_nabf_opt.desc);
-        ScalapackConnector::pgemm_f(
-            'N', 'C', n_abf, n_abf, 1, -1.0, coul_eigen_block.ptr(), 1, 1,
-            desc_nabf_nabf_opt.desc, coul_eigen_block.ptr(), 1, 1,
-            desc_nabf_nabf_opt.desc, 1.0, body_projector.ptr(), 1, 1,
-            desc_nabf_nabf_opt.desc);
+        // T = X_b*X_b^H over the retained body channels, i.e. Coulomb eigenvector
+        // columns 2..n_nonsingular (all retained channels except the head x1).
+        // n_nonsingular == 1 leaves T = 0, which init_local_mat already provides.
+        if (n_nonsingular > 1)
+        {
+            ScalapackConnector::pgemm_f(
+                'N', 'C', n_abf, n_abf, static_cast<int>(n_nonsingular) - 1, 1.0,
+                coul_eigen_block.ptr(), 1, 2, desc_nabf_nabf_opt.desc,
+                coul_eigen_block.ptr(), 1, 2, desc_nabf_nabf_opt.desc, 0.0,
+                body_projector.ptr(), 1, 1, desc_nabf_nabf_opt.desc);
+        }
 
         auto work = init_local_mat<complex<double>>(desc_nabf_nabf_opt, MAJOR::COL);
         ScalapackConnector::pgemm_f(
@@ -3615,7 +3617,7 @@ void rewrite_eps_abf_space(
     profiler.stop("epsilon_headwing_abf_build_M");
 
     // Invert M in-place. For a complete basis, D = M^-1-P. For a filtered
-    // basis, D = M^-1-(I-B), where B is the retained regular-body projector.
+    // basis, D = M^-1-(I-T), where T is the retained regular-body projector.
     profiler.start("epsilon_headwing_abf_inverse");
     // ArrayDesc owns its ELPA handle, so copying it would duplicate ownership.
     // Recreate only the BLACS layout needed by the identity solve.
