@@ -133,6 +133,41 @@
       />
     </testcase>
 
+    <!-- Same BN dataset and Gamma option-3 head/wing setup as the case above,
+         but with sqrt_coulomb_threshold = 1.0, which filters 10 of the 34
+         Coulomb eigenchannels (n_singular = 10, n_nonsingular = 24). This is
+         the only case in the suite that exercises the filtered-Coulomb-subspace
+         branch of rewrite_eps_abf_space; every other head/wing case pins
+         sqrt_coulomb_threshold = 0 and so only ever reaches the complete-basis
+         fast path. The reference was generated with the pre-ABF commit
+         e8b51b15 (see refhash), which computes head/wing in the reduced Coulomb
+         representation, so this case also cross-validates the ABF rewrite
+         against that older, independent algorithm. Verified np-invariant at
+         np = 1, 2 and 4. -->
+    <testcase name="BN headwing filtered Coulomb subspace (abacus input)" directory="g0w0_band_abacus_BN_headwing_nsingular_libri">
+      <labels refhash="e8b51b15f62c65fb79f9713c7568f0e70223c272"
+      />
+      <build require_libri="true"
+      />
+      <run ntasks_disable="none"
+           nthreads_disable="none"
+           ntasks_enable="none"
+           nthreads_enable="none"
+      />
+      <validate name="Averaged dielectric functions at imag. freq."
+                regex="Freq.?ency node .* Head of dielectric function"
+                headers="1"
+                rows="6"
+                comparison="cmp_table.abs_diff(1e-4)"
+      />
+      <validate name="Quasi-particle energies on k-grid"
+                regex="State\s+occ\s+e_mf\s+v_xc\s+v_exx\s+ReSigc\s+ImSigc\s+e_qp"
+                headers="2"
+                rows="26"
+                comparison="cmp_table.abs_diff(3e-4)"
+      />
+    </testcase>
+
     <testcase name="BN headwing symmetry kpara shrink reader v1 band (abacus input)" directory="g0w0_band_abacus_BN_headwing_sym_kpara_shrink_v1_libri">
       <build require_libri="true"
       />
