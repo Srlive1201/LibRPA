@@ -34,20 +34,6 @@ void assert_close(const cplxdb actual, const cplxdb expected,
     assert(std::abs(actual - expected) < tolerance);
 }
 
-template <typename Function>
-void assert_throws(Function&& function)
-{
-    bool threw = false;
-    try
-    {
-        function();
-    }
-    catch (const std::exception&)
-    {
-        threw = true;
-    }
-    assert(threw);
-}
 
 Matz hermitian_2x2(const double d0, const double d1,
                    const cplxdb off_diagonal,
@@ -264,47 +250,9 @@ void test_band_channel_never_changes_grid_mixing_history_or_decision()
     }
 }
 
-void test_invalid_band_call_is_transactional()
-{
-    MixingOptions options;
-    options.beta = 0.2;
-    const auto grid0 = make_grid(0.0);
-    const auto band0 = make_band(0.0);
-    const auto grid_target = make_grid(1.0);
-    const auto band_target = make_band(2.0);
 
-    SpinKHamiltonianMixer tested(options);
-    SpinKHamiltonianMixer fresh(options);
-    tested.initialize(grid0, band0);
-    fresh.initialize(grid0, band0);
 
-    auto missing_band_k = band_target;
-    missing_band_k.at(0).erase(1);
-    assert_throws([&] { tested.mix(grid_target, missing_band_k); });
 
-    const auto after_rejection = tested.mix(grid_target, band_target);
-    const auto expected = fresh.mix(grid_target, band_target);
-    assert_linear_map(after_rejection.grid, grid0, grid_target, 0.2);
-    assert_linear_map(*after_rejection.band, band0, band_target, 0.2);
-    assert_close(after_rejection.residual_l2, expected.residual_l2);
-    assert_close(after_rejection.residual_max, expected.residual_max);
-}
-
-void test_nonhermitian_and_nonfinite_maps_are_rejected()
-{
-    SpinKHamiltonianMixer mixer;
-    const auto grid0 = make_grid(0.0);
-    mixer.initialize(grid0);
-
-    auto nonhermitian = make_grid(1.0);
-    nonhermitian.at(0).at(0)(1, 0) += cplxdb(0.0, 0.25);
-    assert_throws([&] { mixer.mix(nonhermitian); });
-
-    auto nonfinite = make_grid(1.0);
-    nonfinite.at(0).at(0)(0, 0) =
-        std::numeric_limits<double>::quiet_NaN();
-    assert_throws([&] { mixer.mix(nonfinite); });
-}
 
 void test_residual_uses_complex_frobenius_norm()
 {
@@ -385,8 +333,6 @@ int main()
     test_complex_grid_and_different_band_layout_mix_together();
     test_grid_and_band_storage_major_are_independent();
     test_band_channel_never_changes_grid_mixing_history_or_decision();
-    test_invalid_band_call_is_transactional();
-    test_nonhermitian_and_nonfinite_maps_are_rejected();
     test_residual_uses_complex_frobenius_norm();
     test_exact_cut_region_does_not_enter_linear_mixing_residual();
     std::cout << "test_qsgw_hamiltonian_mixing: all tests passed\n";

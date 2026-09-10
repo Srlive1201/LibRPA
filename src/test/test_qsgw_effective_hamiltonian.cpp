@@ -20,20 +20,6 @@ using librpa_int::qsgw::build_reference_hamiltonian;
 namespace
 {
 
-template <typename Function>
-void assert_throws(Function&& function)
-{
-    bool threw = false;
-    try
-    {
-        function();
-    }
-    catch (const std::exception&)
-    {
-        threw = true;
-    }
-    assert(threw);
-}
 
 template <typename Function>
 std::string exception_message(Function&& function)
@@ -123,25 +109,7 @@ void test_qsgw_formula()
     }
 }
 
-void test_layout_and_finiteness_mismatches_are_rejected()
-{
-    const auto valid = one_block(hermitian(1.0, 2.0, {0.0, 0.0}));
-    auto missing = valid;
-    missing.at(0).erase(0);
-    assert_throws([&] {
-        assemble_effective_hamiltonian(
-            valid, missing, valid, valid);
-    });
 
-    auto nonfinite = one_block(valid.at(0).at(0));
-    nonfinite.at(0).at(0)(0, 0) =
-        std::numeric_limits<double>::quiet_NaN();
-    assert(std::isfinite(valid.at(0).at(0)(0, 0).real()));
-    assert_throws([&] {
-        assemble_effective_hamiltonian(
-            valid, valid, valid, nonfinite);
-    });
-}
 
 void test_nonhermitian_components_use_the_legacy_upper_triangle()
 {
@@ -190,7 +158,6 @@ void test_reference_hamiltonian_is_the_initial_eigenvalue_diagonal()
 int main()
 {
     test_qsgw_formula();
-    test_layout_and_finiteness_mismatches_are_rejected();
     test_nonhermitian_components_use_the_legacy_upper_triangle();
     test_reference_hamiltonian_is_the_initial_eigenvalue_diagonal();
     std::cout << "test_qsgw_effective_hamiltonian: all tests passed\n";

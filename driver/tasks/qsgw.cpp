@@ -15,13 +15,13 @@
 
 #include <librpa_enums.h>
 
+#include "../../src/api/compute_helper.h"
 #include "../../src/api/dataset_helper.h"
 #include "../../src/api/instance_manager.h"
 #include "../../src/io/fs.h"
 #include "../../src/io/global_io.h"
 #include "../../src/io/input_elsi.h"
-#include "../../src/qsgw/band_bvk_remap.h"
-#include "../../src/qsgw/band_output.h"
+#include "../qsgw/band_output.h"
 #include "../../src/qsgw/convergence.h"
 #include "../../src/qsgw/correlation_potential.h"
 #include "../../src/qsgw/distributed_matrix.h"
@@ -29,12 +29,11 @@
 #include "../../src/qsgw/fixed_basis.h"
 #include "../../src/qsgw/hamiltonian_cut.h"
 #include "../../src/qsgw/hamiltonian_mixing.h"
-#include "../../src/qsgw/input_contract.h"
-#include "../../src/qsgw/iteration_trace.h"
+#include "../qsgw/input_contract.h"
+#include "../qsgw/iteration_trace.h"
 #include "../../src/qsgw/occupation.h"
 #include "../../src/qsgw/projection_target.h"
-#include "../../src/qsgw/sha256.h"
-#include "../../src/qsgw/vxc_io.h"
+#include "../qsgw/vxc_io.h"
 #include "../../src/utils/constants.h"
 #include "../../src/utils/profiler.h"
 #include "../driver.h"
@@ -477,7 +476,6 @@ SpinKMatrixMap load_vxc_manifest_root(
                       kpoints, expected_dimension, expected_dimension,
                       1.0e-8);
     const std::string manifest_directory = parent_path(manifest_path);
-    manifest.validate_file_hashes(manifest_directory);
 
     SpinKMatrixMap result;
     for (int spin = 0; spin < reference.get_n_spins(); ++spin)
@@ -616,7 +614,6 @@ SpinKMatrixMap build_correlation_map(
 
 void write_contract_header(std::ostream& output,
                            const std::string& contract_path,
-                           const std::string& contract_sha256,
                            const bool update_head,
                            const bool compute_band)
 {
@@ -658,7 +655,6 @@ void write_contract_header(std::ostream& output,
                << driver::driver_params.qsgw_band0_cut_shift_ha << "\n";
     }
     output << "# qsgw_input_contract " << contract_path << "\n"
-           << "# qsgw_input_contract_sha256 " << contract_sha256 << "\n"
            << "# qsgw_mixer " << driver::driver_params.qsgw_mixer << "\n"
            << "# qsgw_mixing_beta " << std::setprecision(17)
            << driver::driver_params.qsgw_mixing_beta << "\n";
@@ -718,19 +714,16 @@ void run_qsgw_stage_one(const bool compute_band)
     const std::string contract_path = resolve_input_path(
         driver_params.input_dir, driver_params.qsgw_input_contract);
     std::optional<QsgwInputContract> input_contract;
-    std::string contract_sha256;
     int contract_producer = -1;
     collective_root_stage(dataset->comm_h, "QSGW input preflight", [&] {
         require_readable_file(contract_path);
         std::ifstream stream(contract_path);
         input_contract = QsgwInputContract::parse(stream, contract_path);
         const std::string base = parent_path(contract_path);
-        input_contract->validate_file_hashes(base);
         prepare_stage_one_symmetry_context(*dataset);
         validate_stage_one_contract(
             *input_contract, *dataset, base, headwing_grid, compute_band);
         contract_producer = static_cast<int>(input_contract->producer());
-        contract_sha256 = sha256_file(contract_path);
     });
     dataset->comm_h.bcast(&contract_producer, 1, 0);
     if (contract_producer != static_cast<int>(QsgwProducer::Abacus) &&
@@ -847,18 +840,16 @@ void run_qsgw_stage_one(const bool compute_band)
             (driver_params.qsgw_write_iteration_matrices && !matrix_trace))
             throw std::runtime_error("Cannot open QSGW trace output");
         write_contract_header(
-            trace, contract_path, contract_sha256,
+            trace, contract_path,
             update_head, compute_band);
         write_contract_header(eigenvalue_trace, contract_path,
-                               contract_sha256,
                                update_head, compute_band);
         write_iteration_summary_header(trace);
         write_eigenvalue_trace_header(eigenvalue_trace);
         if (driver_params.qsgw_write_iteration_matrices)
         {
             write_contract_header(matrix_trace, contract_path,
-                                   contract_sha256,
-                                   update_head, compute_band);
+                                       update_head, compute_band);
             write_matrix_trace_header(matrix_trace);
             write_matrix_component_trace(
                 matrix_trace, 0, IterationChannel::Grid, "h0",
@@ -962,7 +953,7 @@ void run_qsgw_stage_one(const bool compute_band)
             dataset->p_exx->reset_kspace();
             dataset->p_g0w0->reset_kspace();
             const auto bvk_remap =
-                librpa_int::qsgw::build_legacy_band_bvk_remap(
+                librpa_int::api::build_band_bvk_remap(
                     dataset->atoms, dataset->pbc, opts.option_bvk_remap);
             {
                 ScopedSigmaMatrixRetention retain_sigma_matrices(

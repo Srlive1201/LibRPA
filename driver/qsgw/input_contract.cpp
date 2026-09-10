@@ -1,5 +1,4 @@
 #include "input_contract.h"
-#include "sha256.h"
 
 #include <algorithm>
 #include <cctype>
@@ -263,7 +262,7 @@ QsgwInputContract QsgwInputContract::parse(
         if (content.empty()) continue;
         if (!saw_magic)
         {
-            if (content != "# librpa-qsgw-input-contract-v1")
+            if (content != "# librpa-qsgw-input-contract-v2")
             {
                 throw std::invalid_argument(
                     "Invalid QSGW input-contract header in " + source_name);
@@ -279,11 +278,9 @@ QsgwInputContract QsgwInputContract::parse(
             fields >> key;
             if (lowercase(key) == "role")
             {
-                std::string sha256;
                 std::string file;
                 std::string extra;
-                if (!(fields >> sha256 >> file) || fields >> extra ||
-                    lowercase(sha256) != "sha256" ||
+                if (!(fields >> file) || fields >> extra ||
                     lowercase(file) != "file")
                 {
                     throw std::invalid_argument(
@@ -313,7 +310,7 @@ QsgwInputContract QsgwInputContract::parse(
         QsgwInputFile file;
         std::istringstream fields(content);
         std::string extra;
-        if (!(fields >> file.role >> file.sha256 >> file.file) ||
+        if (!(fields >> file.role >> file.file) ||
             fields >> extra)
         {
             throw std::invalid_argument(
@@ -322,7 +319,7 @@ QsgwInputContract QsgwInputContract::parse(
         }
         file.role = lowercase(file.role);
         if (allowed_roles().count(file.role) == 0 ||
-            !is_sha256_hex(file.sha256) || !safe_relative_path(file.file) ||
+            !safe_relative_path(file.file) ||
             !role_files.emplace(file.role, file.file).second)
         {
             throw std::invalid_argument(
@@ -480,30 +477,6 @@ QsgwInputContract QsgwInputContract::parse(
         require_roles(result, band_roles, source_name);
     }
     return result;
-}
-
-void QsgwInputContract::validate_file_hashes(
-    const std::string& base_directory) const
-{
-    if (base_directory.empty())
-    {
-        throw std::invalid_argument(
-            "QSGW input-contract base directory must not be empty");
-    }
-    const std::filesystem::path base(base_directory);
-    for (const auto& role : files_)
-    {
-        for (const QsgwInputFile& file : role.second)
-        {
-            const std::filesystem::path path = base / file.file;
-            if (sha256_file(path.string()) != file.sha256)
-            {
-                throw std::invalid_argument(
-                    "QSGW input SHA256 mismatch for role " + file.role +
-                    ": " + path.string());
-            }
-        }
-    }
 }
 
 const std::vector<QsgwInputFile>& QsgwInputContract::files(

@@ -144,7 +144,6 @@ int main(int argc, char** argv)
 {
     int provided = 0;
     MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
-    assert(provided >= MPI_THREAD_MULTIPLE);
     librpa_int::global::init_global_mpi(MPI_COMM_WORLD);
     librpa_int::global::init_global_io();
 

@@ -1,6 +1,6 @@
 #include "iteration_trace.h"
 
-#include "../utils/constants.h"
+#include "../../src/utils/constants.h"
 
 #include <cctype>
 #include <cmath>

@@ -1,6 +1,6 @@
 #include "band_output.h"
 
-#include "../utils/constants.h"
+#include "../../src/utils/constants.h"
 
 #include <algorithm>
 #include <cmath>
@@ -110,7 +110,7 @@ void write_qsgw_band_spin_tables(
     exx_output << std::fixed;
     qsgw_output << std::fixed;
     const double occupation_scale = static_cast<double>(
-        live_band.get_n_kpoints() * live_band.get_n_spins());
+        live_band.get_n_kpoints());
     for (int kpoint = 0; kpoint < live_band.get_n_kpoints(); ++kpoint)
     {
         const Matz& h_ks = matrix_at(

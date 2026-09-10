@@ -1,9 +1,9 @@
 #pragma once
 
-#include "matrix_map.h"
+#include "../../src/qsgw/matrix_map.h"
 
-#include "../core/meanfield.h"
-#include "../math/vector3_order.h"
+#include "../../src/core/meanfield.h"
+#include "../../src/math/vector3_order.h"
 
 #include <iosfwd>
 #include <vector>

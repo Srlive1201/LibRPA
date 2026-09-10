@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../core/meanfield.h"
-#include "../math/matrix_m.h"
+#include "../../src/qsgw/vxc_projection.h"
+#include "../../src/math/matrix_m.h"
 
 #include <istream>
 #include <map>
@@ -26,12 +26,6 @@ enum class VxcUnits
     Rydberg,
 };
 
-enum class VxcBasis
-{
-    Nao,
-    State,
-};
-
 enum class VxcGauge
 {
     AoBloch,
@@ -45,7 +39,6 @@ struct VxcManifestEntry
     Vector3_Order<double> kpoint;
     int rows = -1;
     int columns = -1;
-    std::string sha256;
     std::string file;
 };
 
@@ -62,7 +55,6 @@ public:
                   int expected_columns,
                   double tolerance) const;
 
-    void validate_file_hashes(const std::string& base_directory) const;
 
     const std::string& producer() const noexcept { return producer_; }
     VxcUnits units() const noexcept { return units_; }
@@ -82,17 +74,6 @@ private:
 
 Matz read_abacus_vxc_ha(std::istream& input,
                         const std::string& source_name);
-
-Matz project_vxc_nao_to_fixed_basis(const Matz& vxc_nao,
-                                    const MeanField& reference,
-                                    int spin,
-                                    int kpoint);
-
-Matz prepare_vxc_in_fixed_state_basis(const Matz& input,
-                                      VxcBasis basis,
-                                      const MeanField& reference,
-                                      int spin,
-                                      int kpoint);
 
 } // namespace qsgw
 } // namespace librpa_int

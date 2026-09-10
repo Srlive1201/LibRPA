@@ -63,18 +63,12 @@ foreach(target
     test_meanfield
     test_pbc
     test_profiler
-    test_qsgw_band_output
-    test_qsgw_band_bvk_remap
     test_qsgw_fixed_basis
+    test_qsgw_vxc_projection
     test_qsgw_hamiltonian_cut
     test_qsgw_hamiltonian_mixing
-    test_qsgw_input_contract
-    test_qsgw_iteration_trace
     test_qsgw_mixing
     test_qsgw_occupation
-    test_qsgw_projection_target
-    test_qsgw_sha256
-    test_qsgw_vxc_io
     test_qpe_solver
     test_rsh
     test_symmetry

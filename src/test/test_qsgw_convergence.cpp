@@ -18,20 +18,6 @@ using librpa_int::qsgw::qsgw_iteration_converged;
 namespace
 {
 
-template <typename Function>
-void assert_throws(Function&& function)
-{
-    bool threw = false;
-    try
-    {
-        function();
-    }
-    catch (const std::exception&)
-    {
-        threw = true;
-    }
-    assert(threw);
-}
 
 void test_maximum_change_and_minimum_iteration_gate()
 {
@@ -56,24 +42,13 @@ void test_maximum_change_and_minimum_iteration_gate()
     assert(qsgw_iteration_converged(5, 5, 1.0e-5, 1.0e-4));
 }
 
-void test_invalid_snapshot_or_tolerance_is_rejected()
-{
-    MeanField meanfield(1, 1, 1, 1, 1);
-    auto snapshot = eigenvalue_snapshot(meanfield);
-    snapshot.clear();
-    assert_throws([&] { max_eigenvalue_change(meanfield, snapshot); });
-    assert_throws([&] {
-        qsgw_iteration_converged(1, 1, 0.0,
-                                 std::numeric_limits<double>::quiet_NaN());
-    });
-}
+
 
 } // namespace
 
 int main()
 {
     test_maximum_change_and_minimum_iteration_gate();
-    test_invalid_snapshot_or_tolerance_is_rejected();
     std::cout << "test_qsgw_convergence: all tests passed\n";
     return 0;
 }

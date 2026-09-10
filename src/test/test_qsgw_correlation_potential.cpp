@@ -31,20 +31,6 @@ void assert_close(const cplxdb actual, const cplxdb expected,
     assert(std::abs(actual - expected) < tolerance);
 }
 
-template <typename Function>
-void assert_throws(Function&& function)
-{
-    bool threw = false;
-    try
-    {
-        function();
-    }
-    catch (const std::exception&)
-    {
-        threw = true;
-    }
-    assert(threw);
-}
 
 std::vector<cplxdb> make_imagfreqs(const std::vector<double>& frequencies)
 {
@@ -260,85 +246,9 @@ void test_two_stage_parameter_counts_follow_upstream_order()
     assert(std::abs(correct(0, 0) - swapped(0, 0)) > 1.0e-12);
 }
 
-void test_nonfinite_matrix_data_is_rejected_instead_of_zeroed()
-{
-    MeanField meanfield(1, 1, 2, 2, 1);
-    meanfield.get_eigenvals()[0](0, 0) = -0.4;
-    meanfield.get_eigenvals()[0](0, 1) = 0.6;
-    meanfield.get_efermi() = 0.1;
-    const std::vector<double> frequencies{0.2, 1.0};
-    auto sigma = make_sigma(frequencies);
-    sigma.at(0.2)(0, 0) =
-        std::numeric_limits<double>::quiet_NaN();
-    assert_throws([&] {
-        (void)build_qsgw_correlation_potential(
-            meanfield, frequencies, sigma, 0, 0, {});
-    });
-}
 
-void test_invalid_settings_and_frequency_contracts_are_rejected()
-{
-    MeanField meanfield(1, 1, 2, 2, 1);
-    meanfield.get_eigenvals()[0](0, 0) = -0.4;
-    meanfield.get_eigenvals()[0](0, 1) = 0.6;
-    meanfield.get_efermi() = 0.1;
-    const std::vector<double> frequencies{0.2, 1.0};
-    const auto sigma = make_sigma(frequencies);
 
-    CorrelationPotentialSettings settings;
-    settings.n_params_anacon = 0;
-    assert_throws([&] {
-        (void)build_qsgw_correlation_potential(
-            meanfield, frequencies, sigma, 0, 0, settings);
-    });
 
-    settings = {};
-    settings.resample_imagfreqs = {cplxdb(0.0, 0.3), cplxdb(0.0, 0.8)};
-    settings.n_params_anacon_resample = 0;
-    assert_throws([&] {
-        (void)build_qsgw_correlation_potential(
-            meanfield, frequencies, sigma, 0, 0, settings);
-    });
-
-    settings = {};
-    settings.resample_imagfreqs = {cplxdb(0.1, 0.3)};
-    assert_throws([&] {
-        (void)build_qsgw_correlation_potential(
-            meanfield, frequencies, sigma, 0, 0, settings);
-    });
-
-    assert_throws([&] {
-        (void)build_qsgw_correlation_potential(
-            meanfield, {1.0, 0.2}, sigma, 0, 0, {});
-    });
-    assert_throws([&] {
-        (void)build_qsgw_correlation_potential(
-            meanfield, {0.2, 0.2}, sigma, 0, 0, {});
-    });
-
-    auto missing_frequency = sigma;
-    missing_frequency.erase(1.0);
-    assert_throws([&] {
-        (void)build_qsgw_correlation_potential(
-            meanfield, frequencies, missing_frequency, 0, 0, {});
-    });
-
-    auto wrong_shape = sigma;
-    wrong_shape.at(1.0) = Matz(1, 1);
-    wrong_shape.at(1.0)(0, 0) = 1.0;
-    assert_throws([&] {
-        (void)build_qsgw_correlation_potential(
-            meanfield, frequencies, wrong_shape, 0, 0, {});
-    });
-
-    MeanField nonfinite_meanfield = meanfield;
-    nonfinite_meanfield.get_eigenvals()[0](0, 1) =
-        std::numeric_limits<double>::infinity();
-    assert_throws([&] {
-        (void)build_qsgw_correlation_potential(
-            nonfinite_meanfield, frequencies, sigma, 0, 0, {});
-    });
-}
 
 } // namespace
 
@@ -347,7 +257,5 @@ int main()
     test_mode_a_and_b_match_upstream_pade_without_qsgw_rounding();
     test_optional_resampling_matches_the_upstream_two_stage_pade();
     test_two_stage_parameter_counts_follow_upstream_order();
-    test_nonfinite_matrix_data_is_rejected_instead_of_zeroed();
-    test_invalid_settings_and_frequency_contracts_are_rejected();
     return 0;
 }

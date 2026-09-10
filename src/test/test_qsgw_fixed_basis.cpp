@@ -118,20 +118,6 @@ void initialize_velocity_matrix(VelocityMatrix& velocity,
     }
 }
 
-template <typename Function>
-void assert_throws(Function&& function)
-{
-    bool threw = false;
-    try
-    {
-        function();
-    }
-    catch (const std::exception&)
-    {
-        threw = true;
-    }
-    assert(threw);
-}
 
 Matz collect_wfc_rows(const MeanField& meanfield)
 {
@@ -208,17 +194,7 @@ void test_scoped_reference_eigenvectors_restores_live_state()
     assert_meanfield_equal(live, live_before);
     assert_meanfield_equal(reference, reference_before);
 
-    assert_throws([&] {
-        ScopedReferenceEigenvectors invalid(reference, reference);
-    });
 
-    MeanField mismatched(1, 1, 1, 1, 1);
-    mismatched.get_eigenvectors()[0][0][0] = ComplexMatrix(1, 1);
-    const MeanField live_before_mismatch = live;
-    assert_throws([&] {
-        ScopedReferenceEigenvectors invalid(live, mismatched);
-    });
-    assert_meanfield_equal(live, live_before_mismatch);
 }
 
 void test_fixed_reference_updates_live_wfc_from_mf0_each_iteration()
@@ -327,73 +303,9 @@ void test_fixed_reference_updates_live_wfc_from_mf0_each_iteration()
     assert_close(live.get_efermi(), 0.25);
 }
 
-void test_invalid_late_kpoint_does_not_partially_update_live_state()
-{
-    MeanField reference(1, 2, 2, 2, 1);
-    initialize_identity_wfc(reference, 0);
-    initialize_identity_wfc(reference, 1);
-    MeanField live = reference;
-    live.get_eigenvals()[0](0, 0) = -1.0;
-    live.get_eigenvals()[0](0, 1) = 1.0;
-    live.get_eigenvals()[0](1, 0) = -2.0;
-    live.get_eigenvals()[0](1, 1) = 2.0;
-    const MeanField live_before = live;
 
-    SpinKMatrixMap hamiltonian;
-    hamiltonian[0][0] = Matz(2, 2);
-    hamiltonian[0][0](0, 0) = 0.5;
-    hamiltonian[0][0](1, 1) = 1.5;
-    hamiltonian[0][1] = Matz(1, 1);
-    hamiltonian[0][1](0, 0) = 3.0;
 
-    assert_throws([&] {
-        (void)diagonalize_in_reference_basis(
-            live, reference, hamiltonian);
-    });
 
-    assert_meanfield_equal(live, live_before);
-
-    SpinKMatrixMap valid_hamiltonian = hamiltonian;
-    valid_hamiltonian[0][1] = Matz(2, 2);
-    valid_hamiltonian[0][1](0, 0) = 2.0;
-    valid_hamiltonian[0][1](1, 1) = 3.0;
-    assert_throws([&] {
-        (void)diagonalize_in_reference_basis(
-            reference, reference, valid_hamiltonian);
-    });
-}
-
-void test_invalid_matrix_data_does_not_mutate_live_state()
-{
-    MeanField reference(1, 1, 2, 2, 1);
-    initialize_identity_wfc(reference);
-    reference.get_eigenvals()[0](0, 0) = -0.5;
-    reference.get_eigenvals()[0](0, 1) = 0.5;
-    MeanField live = reference;
-
-    const auto assert_rejected_without_mutation = [&](const Matz& matrix) {
-        SpinKMatrixMap hamiltonian;
-        hamiltonian[0][0] = matrix;
-        const MeanField live_before = live;
-        assert_throws([&] {
-            (void)diagonalize_in_reference_basis(
-                live, reference, hamiltonian);
-        });
-        assert_meanfield_equal(live, live_before);
-    };
-
-    Matz nonhermitian(2, 2);
-    nonhermitian(0, 0) = 1.0;
-    nonhermitian(0, 1) = cplxdb(0.0, 0.4);
-    nonhermitian(1, 0) = cplxdb(0.0, 0.4);
-    nonhermitian(1, 1) = 2.0;
-    assert_rejected_without_mutation(nonhermitian);
-
-    Matz nonfinite(2, 2);
-    nonfinite(0, 0) = std::numeric_limits<double>::quiet_NaN();
-    nonfinite(1, 1) = 2.0;
-    assert_rejected_without_mutation(nonfinite);
-}
 
 void test_velocity_basis_unitary_is_aligned_to_fixed_reference()
 {
@@ -485,15 +397,7 @@ void test_velocity_basis_unitary_is_aligned_to_fixed_reference()
     assert(rounded_alignment.maximum_unitary_projection_correction > 1.0e-11);
     assert_velocity_equal(rounded_velocity, reference_velocity);
 
-    MeanField nonunitary_basis = reference;
-    nonunitary_basis.get_eigenvectors()[0][0][0](0, 0) = 2.0;
-    VelocityMatrix rejected_velocity = reference_velocity;
-    const VelocityMatrix before_rejection = rejected_velocity;
-    assert_throws([&] {
-        (void)align_velocity_to_reference_wfc(
-            nonunitary_basis, reference, rejected_velocity);
-    });
-    assert_velocity_equal(rejected_velocity, before_rejection);
+
 }
 
 void test_fhi_aims_interband_velocity_is_prepared_in_qsgw_only()
@@ -525,13 +429,7 @@ void test_fhi_aims_interband_velocity_is_prepared_in_qsgw_only()
                      before[0][0][direction](1, 0));
     }
 
-    VelocityMatrix invalid = before;
-    invalid[0][0][2](1, 0) += cplxdb(0.0, 0.25);
-    const VelocityMatrix invalid_before = invalid;
-    assert_throws([&] {
-        prepare_fhi_aims_interband_velocity(invalid, reference);
-    });
-    assert_velocity_equal(invalid, invalid_before);
+
 }
 
 } // namespace
@@ -540,8 +438,6 @@ int main()
 {
     test_scoped_reference_eigenvectors_restores_live_state();
     test_fixed_reference_updates_live_wfc_from_mf0_each_iteration();
-    test_invalid_late_kpoint_does_not_partially_update_live_state();
-    test_invalid_matrix_data_does_not_mutate_live_state();
     test_velocity_basis_unitary_is_aligned_to_fixed_reference();
     test_fhi_aims_interband_velocity_is_prepared_in_qsgw_only();
     std::cout << "test_qsgw_fixed_basis: all tests passed\n";

@@ -1,6 +1,8 @@
 #include "driver.h"
 
 #include <ios>
+#include <algorithm>
+#include <cctype>
 #include <stdexcept>
 #include <sstream>
 #include <string>
@@ -139,7 +141,10 @@ std::string DriverParams::format()
     ss << "cs_R_threshold = " << cs_threshold << std::endl;
     ss << "i_state_low = " << i_state_low << std::endl;
     ss << "i_state_high = " << i_state_high << std::endl;
-    if (task == "qsgw" || task == "qsgw_band")
+    std::string normalized_task = task;
+    std::transform(normalized_task.begin(), normalized_task.end(),
+                   normalized_task.begin(), [](unsigned char c) { return std::tolower(c); });
+    if (normalized_task == "qsgw" || normalized_task == "qsgw_band")
     {
         ss << "qsgw_input_contract = " << qsgw_input_contract << std::endl;
         ss << "qsgw_mixer = " << qsgw_mixer << std::endl;

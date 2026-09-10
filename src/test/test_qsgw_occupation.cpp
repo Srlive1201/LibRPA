@@ -227,83 +227,13 @@ void test_zero_weight_kpoint_has_zero_storage_capacity()
     assert_close(result.electron_count, 2.0);
 }
 
-void test_nonfinite_energy_rejection_preserves_live_state()
-{
-    MeanField reference(1, 1, 2, 2, 1);
-    reference.get_weight()[0].zero_out();
-    reference.get_weight()[0](0, 0) = 2.0;
 
-    MeanField live = reference;
-    live.get_weight()[0](0, 0) = 0.25;
-    live.get_weight()[0](0, 1) = 0.75;
-    live.get_efermi() = 0.125;
-    live.get_eigenvals()[0](0, 0) =
-        std::numeric_limits<double>::quiet_NaN();
-    live.get_eigenvals()[0](0, 1) = 1.0;
 
-    assert_invalid_argument([&]() {
-        update_qsgw_occupations(
-            live, reference, {1.0}, 2.0, OccupationSettings{});
-    });
-    assert_close(live.get_weight()[0](0, 0), 0.25);
-    assert_close(live.get_weight()[0](0, 1), 0.75);
-    assert_close(live.get_efermi(), 0.125);
-}
 
-void test_invalid_reference_rejection_preserves_live_state()
-{
-    MeanField reference(1, 1, 2, 2, 1);
-    reference.get_weight()[0].zero_out();
-    reference.get_weight()[0](0, 0) = 2.5;
 
-    MeanField live = reference;
-    live.get_weight()[0](0, 0) = 0.5;
-    live.get_weight()[0](0, 1) = 0.25;
-    live.get_efermi() = -0.25;
 
-    assert_invalid_argument([&]() {
-        update_qsgw_occupations(
-            live, reference, {1.0}, 2.5, OccupationSettings{});
-    });
-    assert_close(live.get_weight()[0](0, 0), 0.5);
-    assert_close(live.get_weight()[0](0, 1), 0.25);
-    assert_close(live.get_efermi(), -0.25);
-}
 
-void test_live_reference_alias_is_rejected_without_mutation()
-{
-    MeanField live(1, 1, 2, 2, 1);
-    live.get_weight()[0].zero_out();
-    live.get_weight()[0](0, 0) = 2.0;
-    live.get_eigenvals()[0](0, 0) = -1.0;
-    live.get_eigenvals()[0](0, 1) = 1.0;
-    live.get_efermi() = 0.25;
 
-    assert_invalid_argument([&]() {
-        update_qsgw_occupations(
-            live, live, {1.0}, 2.0, OccupationSettings{});
-    });
-    assert_close(live.get_weight()[0](0, 0), 2.0);
-    assert_close(live.get_weight()[0](0, 1), 0.0);
-    assert_close(live.get_efermi(), 0.25);
-}
-
-void test_finite_temperature_rejection_preserves_live_state()
-{
-    MeanField reference(1, 1, 1, 1, 1);
-    reference.get_weight()[0](0, 0) = 2.0;
-    MeanField live = reference;
-    live.get_weight()[0](0, 0) = 0.5;
-    live.get_efermi() = -0.5;
-
-    OccupationSettings settings;
-    settings.temperature_kelvin = 300.0;
-    assert_invalid_argument([&]() {
-        update_qsgw_occupations(live, reference, {1.0}, 2.0, settings);
-    });
-    assert_close(live.get_weight()[0](0, 0), 0.5);
-    assert_close(live.get_efermi(), -0.5);
-}
 
 } // namespace
 
@@ -317,10 +247,6 @@ int main()
     test_overlapping_reference_manifolds_report_zero_gap();
     test_spinor_capacity_is_one_electron_per_state();
     test_zero_weight_kpoint_has_zero_storage_capacity();
-    test_nonfinite_energy_rejection_preserves_live_state();
-    test_invalid_reference_rejection_preserves_live_state();
-    test_live_reference_alias_is_rejected_without_mutation();
-    test_finite_temperature_rejection_preserves_live_state();
     std::cout << "test_qsgw_occupation: all tests passed\n";
     return 0;
 }

@@ -1,5 +1,4 @@
 #include "vxc_io.h"
-#include "sha256.h"
 
 #include <algorithm>
 #include <cctype>
@@ -108,37 +107,6 @@ std::vector<cplxdb> parse_complex_values(const std::string& line,
     return result;
 }
 
-void validate_reference_wfc(const MeanField& reference,
-                            const int spin,
-                            const int kpoint)
-{
-    if (!reference.initialized() || spin < 0 ||
-        spin >= reference.get_n_spins() || kpoint < 0 ||
-        kpoint >= reference.get_n_kpoints())
-    {
-        throw std::invalid_argument(
-            "QSGW Vxc projection received an invalid mean-field index");
-    }
-    for (int spinor = 0; spinor < reference.get_n_spinor(); ++spinor)
-    {
-        const ComplexMatrix* wfc = reference.find_wfc(spin, spinor, kpoint);
-        if (wfc == nullptr || wfc->nr != reference.get_n_bands() ||
-            wfc->nc != reference.get_n_aos())
-        {
-            throw std::invalid_argument(
-                "QSGW Vxc projection reference wavefunction is incomplete");
-        }
-        for (int index = 0; index < wfc->size; ++index)
-        {
-            if (!finite_complex(wfc->c[index]))
-            {
-                throw std::invalid_argument(
-                    "QSGW Vxc projection wavefunction contains non-finite data");
-            }
-        }
-    }
-}
-
 double periodic_distance(const double lhs, const double rhs)
 {
     const double difference = lhs - rhs;
@@ -161,7 +129,7 @@ VxcManifest VxcManifest::parse(std::istream& input,
         if (content.empty()) continue;
         if (!saw_magic)
         {
-            if (content != "# librpa-qsgw-vxc-manifest-v2")
+            if (content != "# librpa-qsgw-vxc-manifest-v3")
             {
                 throw std::invalid_argument(
                     "Invalid QSGW Vxc manifest header in " + source_name);
@@ -182,7 +150,7 @@ VxcManifest VxcManifest::parse(std::istream& input,
                 while (fields >> field) header.push_back(field);
                 const std::vector<std::string> expected{
                     "spin", "k_index", "kx", "ky", "kz", "rows",
-                    "columns", "sha256", "file"};
+                    "columns", "file"};
                 if (header.size() != expected.size())
                 {
                     throw std::invalid_argument(
@@ -225,7 +193,7 @@ VxcManifest VxcManifest::parse(std::istream& input,
         int kpoint_one_based = 0;
         if (!(fields >> spin_one_based >> kpoint_one_based >> entry.kpoint.x >>
               entry.kpoint.y >> entry.kpoint.z >> entry.rows >>
-              entry.columns >> entry.sha256 >> entry.file))
+              entry.columns >> entry.file))
         {
             throw std::invalid_argument(
                 "Malformed QSGW Vxc manifest entry in " + source_name);
@@ -233,7 +201,7 @@ VxcManifest VxcManifest::parse(std::istream& input,
         std::string extra;
         if (fields >> extra || spin_one_based <= 0 || kpoint_one_based <= 0 ||
             entry.rows <= 0 || entry.columns <= 0 ||
-            !is_sha256_hex(entry.sha256) || entry.file.empty() ||
+            entry.file.empty() ||
             std::filesystem::path(entry.file).is_absolute() ||
             entry.file.find('\\') != std::string::npos ||
             !std::isfinite(entry.kpoint.x) ||
@@ -375,27 +343,6 @@ void VxcManifest::validate(
                 throw std::invalid_argument(
                     "QSGW Vxc manifest k coordinate does not match its dataset index");
             }
-        }
-    }
-}
-
-void VxcManifest::validate_file_hashes(
-    const std::string& base_directory) const
-{
-    if (base_directory.empty())
-    {
-        throw std::invalid_argument(
-            "QSGW Vxc manifest base directory must not be empty");
-    }
-    const std::filesystem::path base(base_directory);
-    for (const auto& item : entries_)
-    {
-        const VxcManifestEntry& entry = item.second;
-        const std::filesystem::path path = base / entry.file;
-        if (sha256_file(path.string()) != entry.sha256)
-        {
-            throw std::invalid_argument(
-                "QSGW Vxc input SHA256 mismatch: " + path.string());
         }
     }
 }
@@ -590,66 +537,6 @@ Matz read_abacus_vxc_ha(std::istream& input,
     }
     validate_hermitian_matrix(result, rows, "ABACUS Vxc matrix");
     return result;
-}
-
-Matz project_vxc_nao_to_fixed_basis(const Matz& vxc_nao,
-                                    const MeanField& reference,
-                                    const int spin,
-                                    const int kpoint)
-{
-    validate_reference_wfc(reference, spin, kpoint);
-    validate_hermitian_matrix(vxc_nao, reference.get_n_aos(),
-                              "QSGW NAO Vxc matrix");
-    Matz result(reference.get_n_bands(), reference.get_n_bands(),
-                MAJOR::ROW);
-    for (int bra = 0; bra < reference.get_n_bands(); ++bra)
-    {
-        for (int ket = 0; ket < reference.get_n_bands(); ++ket)
-        {
-            for (int spinor = 0; spinor < reference.get_n_spinor(); ++spinor)
-            {
-                const ComplexMatrix& wfc =
-                    reference.get_eigenvectors()
-                        .at(spin)
-                        .at(spinor)
-                        .at(kpoint);
-                for (int row = 0; row < reference.get_n_aos(); ++row)
-                {
-                    for (int column = 0; column < reference.get_n_aos();
-                         ++column)
-                    {
-                        result(bra, ket) +=
-                            std::conj(wfc(bra, row)) * vxc_nao(row, column) *
-                            wfc(ket, column);
-                    }
-                }
-            }
-        }
-    }
-    validate_hermitian_matrix(result, reference.get_n_bands(),
-                              "QSGW projected Vxc matrix");
-    return result;
-}
-
-Matz prepare_vxc_in_fixed_state_basis(const Matz& input,
-                                      const VxcBasis basis,
-                                      const MeanField& reference,
-                                      const int spin,
-                                      const int kpoint)
-{
-    validate_reference_wfc(reference, spin, kpoint);
-    if (basis == VxcBasis::Nao)
-    {
-        return project_vxc_nao_to_fixed_basis(
-            input, reference, spin, kpoint);
-    }
-    if (basis == VxcBasis::State)
-    {
-        validate_hermitian_matrix(input, reference.get_n_bands(),
-                                  "QSGW state-basis Vxc matrix");
-        return input.copy();
-    }
-    throw std::invalid_argument("QSGW Vxc basis is invalid");
 }
 
 } // namespace qsgw

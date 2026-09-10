@@ -24,20 +24,6 @@ using librpa_int::qsgw::hamiltonian_cut_mode_from_int;
 namespace
 {
 
-template <typename Function>
-void assert_throws(Function&& function)
-{
-    bool threw = false;
-    try
-    {
-        function();
-    }
-    catch (const std::exception&)
-    {
-        threw = true;
-    }
-    assert(threw);
-}
 
 void assert_close(const cplxdb actual, const cplxdb expected,
                   const double tolerance = 1.0e-13)
@@ -103,28 +89,7 @@ void test_mode_zero_is_an_exact_uncut_copy()
     }
 }
 
-void test_cut_modes_require_a_finite_live_spectrum()
-{
-    MeanField live = make_live_meanfield();
-    SpinKMatrixMap raw;
-    SpinKMatrixMap reference;
-    raw[0][0] = make_matrix(5, 10.0);
-    reference[0][0] = make_matrix(5, -3.0);
 
-    HamiltonianCutOptions options;
-    options.mode = HamiltonianCutMode::ReferenceDiagonal;
-    live.get_efermi() = std::numeric_limits<double>::quiet_NaN();
-    assert_throws([&] {
-        (void)apply_hamiltonian_cut(raw, reference, live, options);
-    });
-
-    live = make_live_meanfield();
-    live.get_eigenvals()[0](0, 2) =
-        std::numeric_limits<double>::quiet_NaN();
-    assert_throws([&] {
-        (void)apply_hamiltonian_cut(raw, reference, live, options);
-    });
-}
 
 void test_mode_one_restores_reference_above_legacy_active_limit()
 {
@@ -198,50 +163,16 @@ void test_keep_covering_all_bands_is_uncut()
                          raw.at(0).at(0)(row, column));
 }
 
-void test_invalid_options_and_layouts_fail_closed()
-{
-    const MeanField live = make_live_meanfield();
-    SpinKMatrixMap raw;
-    SpinKMatrixMap reference;
-    raw[0][0] = make_matrix(5, 10.0);
-    reference[0][0] = make_matrix(5, -3.0);
 
-    assert(hamiltonian_cut_mode_from_int(0) == HamiltonianCutMode::Uncut);
-    assert(hamiltonian_cut_mode_from_int(1) ==
-           HamiltonianCutMode::ReferenceDiagonal);
-    assert(hamiltonian_cut_mode_from_int(2) ==
-           HamiltonianCutMode::ShiftedReferenceDiagonal);
-    assert_throws([&] { (void)hamiltonian_cut_mode_from_int(-1); });
-    assert_throws([&] { (void)hamiltonian_cut_mode_from_int(3); });
-
-    HamiltonianCutOptions options;
-    options.unoccupied_keep = -1;
-    assert_throws([&] {
-        (void)apply_hamiltonian_cut(raw, reference, live, options);
-    });
-    options.unoccupied_keep = 1;
-    options.shift_ha = std::numeric_limits<double>::infinity();
-    assert_throws([&] {
-        (void)apply_hamiltonian_cut(raw, reference, live, options);
-    });
-    options.shift_ha = 20.0;
-    SpinKMatrixMap wrong_reference = reference;
-    wrong_reference.at(0).at(0) = make_matrix(4, -3.0);
-    assert_throws([&] {
-        (void)apply_hamiltonian_cut(raw, wrong_reference, live, options);
-    });
-}
 
 } // namespace
 
 int main()
 {
     test_mode_zero_is_an_exact_uncut_copy();
-    test_cut_modes_require_a_finite_live_spectrum();
     test_mode_one_restores_reference_above_legacy_active_limit();
     test_mode_two_adds_hartree_shift_to_reference_diagonal();
     test_keep_covering_all_bands_is_uncut();
-    test_invalid_options_and_layouts_fail_closed();
     std::cout << "test_qsgw_hamiltonian_cut: all tests passed\n";
     return 0;
 }

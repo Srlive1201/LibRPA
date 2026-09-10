@@ -1,6 +1,4 @@
 target_sources(rpa_lib PRIVATE
-  band_bvk_remap.cpp
-  band_output.cpp
   correlation_potential.cpp
   convergence.cpp
   distributed_matrix.cpp
@@ -8,11 +6,8 @@ target_sources(rpa_lib PRIVATE
   fixed_basis.cpp
   hamiltonian_cut.cpp
   hamiltonian_mixing.cpp
-  input_contract.cpp
-  iteration_trace.cpp
   mixing.cpp
   occupation.cpp
+  vxc_projection.cpp
   projection_target.cpp
-  sha256.cpp
-  vxc_io.cpp
 )

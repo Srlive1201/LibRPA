@@ -35,7 +35,6 @@ CONTRACT_KEYS = frozenset((
     "qsgw_band0_cut_mode",
     "qsgw_band0_cut_shift_ha",
     "qsgw_input_contract",
-    "qsgw_input_contract_sha256",
     "qsgw_mixer",
     "qsgw_mixing_beta",
 ))
@@ -51,7 +50,6 @@ REQUIRED_CONTRACT_KEYS = frozenset((
     "band",
     "h_qsgw_cut",
     "qsgw_input_contract",
-    "qsgw_input_contract_sha256",
     "qsgw_mixer",
     "qsgw_mixing_beta",
 ))
@@ -420,11 +418,7 @@ def _parse_contract(text, label):
     if not values["qsgw_input_contract"]:
         raise ValueError(
             "{}: empty QSGW input contract path".format(label))
-    sha256 = values["qsgw_input_contract_sha256"].lower()
-    if re.fullmatch(r"[0-9a-f]{64}", sha256) is None:
-        raise ValueError(
-            "{}: invalid QSGW input contract SHA256".format(label))
-    values["qsgw_input_contract_sha256"] = sha256
+
 
     if values["qsgw_mixer"] not in ("none", "linear"):
         raise ValueError(

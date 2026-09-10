@@ -1,9 +1,9 @@
 #pragma once
 
-#include "matrix_map.h"
-#include "mixing.h"
+#include "../../src/qsgw/matrix_map.h"
+#include "../../src/qsgw/mixing.h"
 
-#include "../core/meanfield.h"
+#include "../../src/core/meanfield.h"
 
 #include <iosfwd>
 #include <string>

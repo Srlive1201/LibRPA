@@ -9,7 +9,6 @@
 # band disabled_stage1
 # h_qsgw_cut disabled_non_band
 # qsgw_input_contract ../dataset/qsgw_input.head-only.contract
-# qsgw_input_contract_sha256 789a44049ff4f45caabbf7155cc3a2f9c20a40dbc400c130628a5fa36bb9c3b7
 # qsgw_mixer none
 # qsgw_mixing_beta 0.20000000000000001
 # iter channel spin kpoint kx ky kz band energy_eV

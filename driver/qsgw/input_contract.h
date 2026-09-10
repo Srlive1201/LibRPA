@@ -38,7 +38,6 @@ enum class BandUpdateMode
 struct QsgwInputFile
 {
     std::string role;
-    std::string sha256;
     std::string file;
 };
 
@@ -65,7 +64,6 @@ public:
     static QsgwInputContract parse(std::istream& input,
                                    const std::string& source_name);
 
-    void validate_file_hashes(const std::string& base_directory) const;
     const std::vector<QsgwInputFile>& files(const std::string& role) const;
 
     QsgwProducer producer() const noexcept { return producer_; }

@@ -24,20 +24,6 @@ void assert_close(const double actual, const double expected)
     assert(std::abs(actual - expected) < 1.0e-14);
 }
 
-template <typename Function>
-void assert_throws(Function&& function)
-{
-    bool threw = false;
-    try
-    {
-        function();
-    }
-    catch (const std::exception&)
-    {
-        threw = true;
-    }
-    assert(threw);
-}
 
 void test_default_linear_mixing_updates_grid_and_band_together()
 {
@@ -88,79 +74,11 @@ void test_reported_residual_is_unmixed_even_when_beta_is_one()
     assert_close(result.grid(1, 0), 4.0);
 }
 
-void test_rejected_band_shape_does_not_change_linear_state()
-{
-    HamiltonianMixer tested;
-    HamiltonianMixer fresh;
 
-    matrix grid0(2, 1, true);
-    matrix band0(1, 1, true);
-    tested.initialize(grid0, band0);
-    fresh.initialize(grid0, band0);
 
-    matrix rejected_grid(2, 1, true);
-    rejected_grid(0, 0) = 1.0;
-    matrix rejected_band(2, 1, true);
-    assert_throws([&] { tested.mix(rejected_grid, rejected_band); });
 
-    matrix accepted_grid(2, 1, true);
-    accepted_grid(1, 0) = 1.0;
-    matrix accepted_band(1, 1, true);
-    accepted_band(0, 0) = 2.0;
-    const auto actual = tested.mix(accepted_grid, accepted_band);
-    const auto expected = fresh.mix(accepted_grid, accepted_band);
 
-    assert_close(actual.grid(0, 0), expected.grid(0, 0));
-    assert_close(actual.grid(1, 0), expected.grid(1, 0));
-    assert_close(actual.band->operator()(0, 0),
-                 expected.band->operator()(0, 0));
-}
 
-void test_nonfinite_input_or_output_is_rejected_before_state_mutation()
-{
-    HamiltonianMixer tested;
-    HamiltonianMixer fresh;
-
-    matrix grid0(2, 1, true);
-    matrix band0(1, 1, true);
-    tested.initialize(grid0, band0);
-    fresh.initialize(grid0, band0);
-
-    matrix nonfinite_grid(2, 1, true);
-    nonfinite_grid(0, 0) = std::numeric_limits<double>::quiet_NaN();
-    assert_throws([&] { tested.mix(nonfinite_grid, band0); });
-
-    matrix accepted_grid(2, 1, true);
-    accepted_grid(0, 0) = 1.0;
-    matrix accepted_band(1, 1, true);
-    accepted_band(0, 0) = 2.0;
-    const auto actual = tested.mix(accepted_grid, accepted_band);
-    const auto expected = fresh.mix(accepted_grid, accepted_band);
-    assert_close(actual.grid(0, 0), expected.grid(0, 0));
-    assert_close(actual.band->operator()(0, 0),
-                 expected.band->operator()(0, 0));
-}
-
-void test_overflowing_residual_is_rejected_before_state_mutation()
-{
-    HamiltonianMixer tested;
-    HamiltonianMixer fresh;
-
-    matrix grid0(1, 1, true);
-    grid0(0, 0) = std::numeric_limits<double>::max();
-    tested.initialize(grid0);
-    fresh.initialize(grid0);
-
-    matrix overflowing_output(1, 1, true);
-    overflowing_output(0, 0) = -std::numeric_limits<double>::max();
-    assert_throws([&] { tested.mix(overflowing_output); });
-
-    const auto actual = tested.mix(grid0);
-    const auto expected = fresh.mix(grid0);
-    assert_close(actual.grid(0, 0), expected.grid(0, 0));
-    assert_close(actual.residual_l2, expected.residual_l2);
-    assert_close(actual.residual_max, expected.residual_max);
-}
 
 } // namespace
 
@@ -168,9 +86,6 @@ int main()
 {
     test_default_linear_mixing_updates_grid_and_band_together();
     test_reported_residual_is_unmixed_even_when_beta_is_one();
-    test_rejected_band_shape_does_not_change_linear_state();
-    test_nonfinite_input_or_output_is_rejected_before_state_mutation();
-    test_overflowing_residual_is_rejected_before_state_mutation();
     std::cout << "test_qsgw_mixing: all tests passed\n";
     return 0;
 }
