@@ -53,7 +53,19 @@ The driver will read the parameters defined in the file and run the calculation
 Please refer to the [guide page of runtime parameters](runtime_parameters)
 for more information about the driver and API parameters.
 
-By default, the driver reads dataset files such as `stru_out`, `basis_out`, `band_out`, `Cs_data_*`, and `coulomb_mat_*` from `input_dir`.
+By default, `input_preset = fhi-aims` preserves the historical driver filenames,
+including `stru_out`, `basis_out`, `band_out`, `mommat_ks_kpt_*.dat`,
+`Cs_data_*`, and `coulomb_mat_*` under `input_dir`. For ABACUS output, select:
+
+```ini
+input_preset = abacus
+```
+
+This changes `fn_stru`, `fn_eigocc_scf`, and `fn_vxc_scf` to `stru_out.txt`,
+`band_out.txt`, and `vxc_out.txt`, and changes `prefix_velocity` from
+`mommat_ks_kpt_` to `velocity_matrix`. Other filename and prefix defaults
+remain unchanged.
+
 If a host code exports the same data under different names, set the corresponding `fn_*` or `prefix_*` driver parameters in `librpa.in`:
 
 ```ini

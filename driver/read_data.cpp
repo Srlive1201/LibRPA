@@ -814,7 +814,7 @@ void validate_velocity_dimensions(const std::string &file_path, const MeanField 
     }
 }
 
-std::vector<std::string> velocity_binary_v1_files(const string &file_path)
+std::vector<std::string> discover_velocity_binary_v1_files(const string &file_path)
 {
     std::vector<std::string> files{file_path};
     const auto extra_files = librpa_int::discover_files_with_prefix(
@@ -926,7 +926,7 @@ void read_velocity(const string &file_path, const MeanField &mf, velocity_matrix
                                    mf.get_n_states());
         std::vector<int> target_hits(
             librpa_int::as_size(mf.get_n_kpoints()) * librpa_int::as_size(mf.get_n_spins()) * 3, 0);
-        for (const auto &velocity_file : velocity_binary_v1_files(file_path))
+        for (const auto &velocity_file : discover_velocity_binary_v1_files(file_path))
         {
             read_velocity_binary_v1_file(velocity_file, mf, velocity, source_to_target_ik,
                                          target_hits);
@@ -988,6 +988,27 @@ void read_velocity(const string &file_path, const MeanField &mf, velocity_matrix
         std::cout << "* Success: read velocity from pyatb_librpa_df(ABACUS)." << std::endl;
 }
 
+void read_velocity_abacus(const MeanField &mf, const string &dir_path,
+                          const string &file_prefix, velocity_matrix_t &velocity)
+{
+    const auto files = librpa_int::discover_files_with_prefix(dir_path, file_prefix);
+    for (const auto &name : {file_prefix + ".txt", file_prefix})
+    {
+        const auto file = std::find_if(files.begin(), files.end(), [&name](const auto &path) {
+            return librpa_int::base_name(path) == name;
+        });
+        if (file != files.end())
+        {
+            std::cout << "* Read ABACUS velocity file: " << *file << std::endl;
+            read_velocity(*file, mf, velocity);
+            return;
+        }
+    }
+
+    throw std::logic_error("Cannot find ABACUS velocity file with prefix " + file_prefix
+                           + " under " + dir_path);
+}
+
 void read_velocity(const string &file_path, const MeanField &mf, velocity_matrix_t &velocity,
                    const std::vector<int> &source_to_target_ik,
                    const int source_n_kpoints_expected)
@@ -1009,7 +1030,7 @@ void read_velocity(const string &file_path, const MeanField &mf, velocity_matrix
         std::vector<int> target_hits(librpa_int::as_size(mf.get_n_kpoints()) *
                                          librpa_int::as_size(mf.get_n_spins()) * 3,
                                      0);
-        for (const auto &velocity_file : velocity_binary_v1_files(file_path))
+        for (const auto &velocity_file : discover_velocity_binary_v1_files(file_path))
         {
             read_velocity_binary_v1_file(velocity_file, mf, velocity, source_to_target_ik,
                                          target_hits);
@@ -1108,7 +1129,8 @@ void read_velocity(const string &file_path, const MeanField &mf, velocity_matrix
         std::cout << "* Success: read velocity from pyatb_librpa_df(ABACUS)." << std::endl;
 }
 
-void read_velocity_aims(const MeanField &mf, const string &file_path, velocity_matrix_t &velocity)
+void read_velocity_aims(const MeanField &mf, const string &file_path,
+                        const string &file_prefix, velocity_matrix_t &velocity)
 {
     using librpa_int::global::mpi_comm_global_h;
     using std::cerr;
@@ -1124,8 +1146,7 @@ void read_velocity_aims(const MeanField &mf, const string &file_path, velocity_m
     for (int ik = 0; ik < nk; ik++)
     {
         std::stringstream ss;
-        ss << file_path << "mommat_ks_kpt_" << std::setfill('0') << std::setw(6) << ik + 1
-           << ".dat";
+        ss << file_path << file_prefix << std::setfill('0') << std::setw(6) << ik + 1 << ".dat";
 
         if (librpa_int::file_exists(ss.str()))
         {
@@ -1346,19 +1367,21 @@ void read_headwing_input(const string &dir_path, bool need_wing)
         n_states = mf.get_n_states();
         n_spin = mf.get_n_spins();
 
-        const string file_abacus = path_as_directory(dir_path) + "velocity_matrix";
-        const string file_aims = path_as_directory(dir_path) + "mommat_ks_kpt_000001.dat";
-        if (path_exists(file_abacus.c_str()))
+        const string input_path = path_as_directory(dir_path);
+        if (driver::driver_params.input_preset == "abacus")
         {
-            read_velocity(file_abacus, mf, velocity_matrix);
+            read_velocity_abacus(mf, input_path, driver::driver_params.prefix_velocity,
+                                velocity_matrix);
         }
-        else if (path_exists(file_aims.c_str()))
+        else if (driver::driver_params.input_preset == "fhi-aims")
         {
-            read_velocity_aims(mf, path_as_directory(dir_path), velocity_matrix);
+            read_velocity_aims(mf, input_path, driver::driver_params.prefix_velocity,
+                               velocity_matrix);
         }
         else
         {
-            throw std::runtime_error("Cannot find moment files for head/wing calculation");
+            throw std::runtime_error(
+                "Unsupported head/wing input preset: " + driver::driver_params.input_preset);
         }
     }
 

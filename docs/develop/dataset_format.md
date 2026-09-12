@@ -4,7 +4,10 @@ This page documents the formats of the input data files required by the LibRPA d
 
 ## Driver input names
 
-The standalone driver reads dataset files from `input_dir`.
+The standalone driver reads dataset files from `input_dir`. The default
+`input_preset = fhi-aims` keeps the historical filenames. Setting
+`input_preset = abacus` selects `stru_out.txt`, `band_out.txt`, `vxc_out.txt`,
+and the `velocity_matrix` prefix for the corresponding ABACUS outputs.
 By default, single-file inputs are named [`stru_out`](#stru-out),
 [`bz_sampling_out`](#bz-sampling-out), [`basis_wfc_out`](#basis-files),
 [`basis_aux_out`](#basis-files), and [`band_out`](#band-out).
@@ -13,7 +16,8 @@ Additional optional single-file inputs use
 [`band_kpath_info`](#band-kpath-info).
 These exact filenames can be changed in `librpa.in` with `fn_stru`,
 `fn_bz_sampling`, `fn_basis_wfc`, `fn_basis_aux`, `fn_eigocc_scf`,
-`fn_dielfunc`, `fn_vxc_scf`, and `fn_band_kpath_info`.
+`fn_dielfunc`, `fn_vxc_scf`, and `fn_band_kpath_info`. Velocity/momentum files
+are selected with `prefix_velocity`.
 
 The combined [`basis_out`](#basis-out) file selected by `fn_basis` is
 deprecated and is read only as a fallback when split basis files are absent.
@@ -516,6 +520,10 @@ where `ibasis` is the fastest index.
 This file stores the PyATB velocity matrix used by the head/wing correction.
 LibRPA auto-detects the legacy text format and the binary v1 format from the
 file header.
+
+For an ABACUS input preset, the driver discovers the file from
+`prefix_velocity`: it prefers `<prefix_velocity>.txt` and accepts the legacy
+extensionless `<prefix_velocity>` name as a fallback.
 
 ### Legacy text format
 

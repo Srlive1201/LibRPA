@@ -52,6 +52,7 @@ blocks:
       Prefix parameters match all files in [`input_dir`](#input-dir) whose names begin with the given value.
     fields:
       - driver.input_dir
+      - driver.input_preset
       - driver.fn_stru
       - driver.fn_bz_sampling
       - driver.fn_basis
@@ -61,6 +62,7 @@ blocks:
       - driver.fn_eigocc_scf
       - driver.fn_dielfunc
       - driver.fn_vxc_scf
+      - driver.prefix_velocity
       - driver.fn_band_kpath_info
       - driver.prefix_lri_coeff
       - driver.prefix_lri_coeff_shrink

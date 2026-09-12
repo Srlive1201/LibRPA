@@ -26,6 +26,11 @@ struct DriverParams
     //! `internal` (`internal`, `aims`)
     std::string constants_choice;
 
+    //! Preset for producer-specific input filenames.
+    //! @par Default
+    //! `fhi-aims` (`fhi-aims`, `abacus`)
+    std::string input_preset;
+
     //! Input directory to find and read the AO dataset.
     //! @par Default
     //! `./`
@@ -125,6 +130,11 @@ struct DriverParams
     //! @par Default
     //! `vxc_out`
     std::string fn_vxc_scf;
+
+    //! Prefix of velocity/momentum-matrix files.
+    //! @par Default
+    //! `mommat_ks_kpt_`
+    std::string prefix_velocity;
 
     //! Band-path k-point metadata filename.
     //! @par Default
@@ -251,6 +261,9 @@ struct DriverParams
     int sf_state_end;
 
     std::string format();
+
+    //! Apply producer-specific defaults to input filename and prefix parameters.
+    void apply_input_preset();
 
     DriverParams();
 };

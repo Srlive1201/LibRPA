@@ -4145,9 +4145,7 @@ std::map<double, std::map<Vector3_Order<int>, Matz>> CT_FT_Wc_freq_q(
                                    " ) and ifreq " + std::to_string(ifreq) + " ( " +
                                    std::to_string(freq) + " a.u. )";
                 ss << path_as_directory(output_dir)
-                   << "Wc_iR_" << std::setfill('0') << std::setw(5) << iR
-                   << "_ifreq_" << std::setfill('0') << std::setw(5) << ifreq
-                   << ".mtx";
+                   << "Wc_iR_" << iR << "_ifreq_" << ifreq << ".mtx";
                 print_matrix_mm_file_parallel(ss.str(), Wc, *ad_Wc, info, 1e-10);
             }
         }

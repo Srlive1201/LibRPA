@@ -103,6 +103,8 @@ void parse_inputfile_to_params(const std::string &fn)
     {
         librpa_int::set_aims_constants();
     }
+    parser.parse_string("input_preset", driver_params.input_preset, "fhi-aims", flag);
+    driver_params.apply_input_preset();
     _parse_string_post(driver_params, input_dir, check_dirpath);
     _parse_double(driver_params, cs_threshold);
     _parse_bool(driver_params, output_energy_qp);
@@ -133,6 +135,7 @@ void parse_inputfile_to_params(const std::string &fn)
     _parse_string(driver_params, fn_eigocc_scf);
     _parse_string(driver_params, fn_dielfunc);
     _parse_string(driver_params, fn_vxc_scf);
+    _parse_string(driver_params, prefix_velocity);
     _parse_string(driver_params, fn_band_kpath_info);
     _parse_int(driver_params, version_coul_reader);
     _parse_int(driver_params, version_lri_reader);

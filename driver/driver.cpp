@@ -13,6 +13,7 @@ namespace driver
 DriverParams::DriverParams():
     task("unset"),
     constants_choice("internal"),
+    input_preset("fhi-aims"),
     input_dir("./"),
     output_level(LIBRPA_VERBOSE_INFO),
     use_spinor_wfc(false),
@@ -31,6 +32,7 @@ DriverParams::DriverParams():
     fn_eigocc_scf("band_out"),
     fn_dielfunc("dielecfunc_out"),
     fn_vxc_scf("vxc_out"),
+    prefix_velocity("mommat_ks_kpt_"),
     fn_band_kpath_info("band_kpath_info"),
     version_coul_reader(-1),
     version_lri_reader(-1),
@@ -49,6 +51,34 @@ DriverParams::DriverParams():
 {
 }
 
+void DriverParams::apply_input_preset()
+{
+    if (input_preset != "fhi-aims" && input_preset != "abacus")
+        throw std::invalid_argument("Unsupported input_preset: " + input_preset
+                                    + "; expected fhi-aims or abacus");
+
+    // The FHI-aims preset preserves the historical LibRPA driver defaults.
+    fn_stru = "stru_out";
+    fn_bz_sampling = "bz_sampling_out";
+    fn_basis = "basis_out";
+    fn_basis_wfc = "basis_wfc_out";
+    fn_basis_aux = "basis_aux_out";
+    fn_basis_aux_shrink = "basis_aux_shrink_out";
+    fn_eigocc_scf = "band_out";
+    fn_dielfunc = "dielecfunc_out";
+    fn_vxc_scf = "vxc_out";
+    prefix_velocity = "mommat_ks_kpt_";
+    fn_band_kpath_info = "band_kpath_info";
+
+    if (input_preset == "abacus")
+    {
+        fn_stru = "stru_out.txt";
+        fn_eigocc_scf = "band_out.txt";
+        fn_vxc_scf = "vxc_out.txt";
+        prefix_velocity = "velocity_matrix";
+    }
+}
+
 std::string DriverParams::format()
 {
     std::stringstream ss;
@@ -58,6 +88,7 @@ std::string DriverParams::format()
         {
             normal_pair(task),
             normal_pair(constants_choice),
+            normal_pair(input_preset),
             normal_pair(input_dir),
             normal_pair(prefix_lri_coeff),
             normal_pair(prefix_lri_coeff_shrink),
@@ -74,6 +105,7 @@ std::string DriverParams::format()
             normal_pair(fn_eigocc_scf),
             normal_pair(fn_dielfunc),
             normal_pair(fn_vxc_scf),
+            normal_pair(prefix_velocity),
             normal_pair(fn_band_kpath_info),
         };
     for (const auto &[k, v]: str_params)
