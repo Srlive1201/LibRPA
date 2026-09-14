@@ -50,7 +50,9 @@ DriverParams::DriverParams():
     sf_omega_step(0.1),
     sf_state_start(-1),
     sf_state_end(-1),
-    qsgw_input_contract("qsgw_input.contract"),
+    prefix_vxc_scf(""),
+    prefix_vxc_band(""),
+    qsgw_vxc_basis("state"),
     qsgw_mixer("none"),
     qsgw_mixing_beta(0.2),
     qsgw_min_iter(1),
@@ -146,7 +148,12 @@ std::string DriverParams::format()
                    normalized_task.begin(), [](unsigned char c) { return std::tolower(c); });
     if (normalized_task == "qsgw" || normalized_task == "qsgw_band")
     {
-        ss << "qsgw_input_contract = " << qsgw_input_contract << std::endl;
+        const bool aims_input = constants_choice == "aims";
+        ss << "prefix_vxc_scf = " << (prefix_vxc_scf.empty()
+            ? (aims_input ? "xc_matr" : "vxc") : prefix_vxc_scf) << std::endl;
+        ss << "prefix_vxc_band = " << (prefix_vxc_band.empty()
+            ? (aims_input ? "band_vxc_mat" : "band_vxc") : prefix_vxc_band) << std::endl;
+        ss << "qsgw_vxc_basis = " << qsgw_vxc_basis << std::endl;
         ss << "qsgw_mixer = " << qsgw_mixer << std::endl;
         ss << "qsgw_mixing_beta = " << qsgw_mixing_beta << std::endl;
         ss << "qsgw_min_iter = " << qsgw_min_iter << std::endl;

@@ -87,7 +87,7 @@ typedef struct
 
     //! Number of time/frequency points.
     //! @par Default
-    //! 6
+    //! 16
     int nfreq;
 
     /* ============================================================================= */

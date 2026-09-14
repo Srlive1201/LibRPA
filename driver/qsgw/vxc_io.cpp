@@ -1,11 +1,17 @@
 #include "vxc_io.h"
 
+#include "../../src/io/fs.h"
+#include "../../src/io/input_elsi.h"
+
 #include <algorithm>
 #include <cctype>
 #include <cmath>
-#include <filesystem>
+#include <fstream>
+#include <iomanip>
+#include <map>
 #include <sstream>
 #include <stdexcept>
+#include <vector>
 
 namespace librpa_int
 {
@@ -107,258 +113,6 @@ std::vector<cplxdb> parse_complex_values(const std::string& line,
     return result;
 }
 
-double periodic_distance(const double lhs, const double rhs)
-{
-    const double difference = lhs - rhs;
-    return std::abs(difference - std::round(difference));
-}
-
-} // namespace
-
-VxcManifest VxcManifest::parse(std::istream& input,
-                               const std::string& source_name)
-{
-    VxcManifest result;
-    std::map<std::string, std::string> metadata;
-    bool saw_magic = false;
-    bool saw_table_header = false;
-    std::string line;
-    while (std::getline(input, line))
-    {
-        const std::string content = trim(line);
-        if (content.empty()) continue;
-        if (!saw_magic)
-        {
-            if (content != "# librpa-qsgw-vxc-manifest-v3")
-            {
-                throw std::invalid_argument(
-                    "Invalid QSGW Vxc manifest header in " + source_name);
-            }
-            saw_magic = true;
-            continue;
-        }
-        if (!saw_table_header)
-        {
-            std::istringstream fields(content);
-            std::string first;
-            fields >> first;
-            if (lowercase(first) == "spin")
-            {
-                std::vector<std::string> header;
-                header.push_back(first);
-                std::string field;
-                while (fields >> field) header.push_back(field);
-                const std::vector<std::string> expected{
-                    "spin", "k_index", "kx", "ky", "kz", "rows",
-                    "columns", "file"};
-                if (header.size() != expected.size())
-                {
-                    throw std::invalid_argument(
-                        "Invalid QSGW Vxc manifest table header in " +
-                        source_name);
-                }
-                for (std::size_t index = 0; index < expected.size(); ++index)
-                {
-                    if (lowercase(header[index]) != expected[index])
-                    {
-                        throw std::invalid_argument(
-                            "Invalid QSGW Vxc manifest table header in " +
-                            source_name);
-                    }
-                }
-                saw_table_header = true;
-                continue;
-            }
-
-            std::string value;
-            fields >> value;
-            std::string extra;
-            if (first.empty() || value.empty() || fields >> extra)
-            {
-                throw std::invalid_argument(
-                    "Malformed QSGW Vxc manifest metadata in " + source_name);
-            }
-            first = lowercase(first);
-            if (!metadata.emplace(first, value).second)
-            {
-                throw std::invalid_argument(
-                    "Duplicate QSGW Vxc manifest metadata in " + source_name);
-            }
-            continue;
-        }
-
-        VxcManifestEntry entry;
-        std::istringstream fields(content);
-        int spin_one_based = 0;
-        int kpoint_one_based = 0;
-        if (!(fields >> spin_one_based >> kpoint_one_based >> entry.kpoint.x >>
-              entry.kpoint.y >> entry.kpoint.z >> entry.rows >>
-              entry.columns >> entry.file))
-        {
-            throw std::invalid_argument(
-                "Malformed QSGW Vxc manifest entry in " + source_name);
-        }
-        std::string extra;
-        if (fields >> extra || spin_one_based <= 0 || kpoint_one_based <= 0 ||
-            entry.rows <= 0 || entry.columns <= 0 ||
-            entry.file.empty() ||
-            std::filesystem::path(entry.file).is_absolute() ||
-            entry.file.find('\\') != std::string::npos ||
-            !std::isfinite(entry.kpoint.x) ||
-            !std::isfinite(entry.kpoint.y) ||
-            !std::isfinite(entry.kpoint.z))
-        {
-            throw std::invalid_argument(
-                "Invalid QSGW Vxc manifest entry in " + source_name);
-        }
-        for (const auto& component : std::filesystem::path(entry.file))
-        {
-            if (component == "..")
-            {
-                throw std::invalid_argument(
-                    "QSGW Vxc manifest file escapes its base directory in " +
-                    source_name);
-            }
-        }
-        entry.spin = spin_one_based - 1;
-        entry.k_index = kpoint_one_based - 1;
-        if (!result.entries_
-                 .emplace(std::make_pair(entry.spin, entry.k_index), entry)
-                 .second)
-        {
-            throw std::invalid_argument(
-                "Duplicate spin/k entry in QSGW Vxc manifest " + source_name);
-        }
-    }
-
-    if (!saw_magic || !saw_table_header || result.entries_.empty())
-    {
-        throw std::invalid_argument(
-            "Incomplete QSGW Vxc manifest " + source_name);
-    }
-    for (const char* key : {"kind", "producer", "units", "basis", "gauge"})
-    {
-        if (metadata.count(key) == 0)
-        {
-            throw std::invalid_argument(
-                "Missing QSGW Vxc manifest metadata in " + source_name);
-        }
-    }
-    if (metadata.size() != 5)
-    {
-        throw std::invalid_argument(
-            "Unknown QSGW Vxc manifest metadata in " + source_name);
-    }
-
-    const std::string kind = lowercase(metadata.at("kind"));
-    if (kind == "scf")
-        result.kind_ = VxcDatasetKind::ScfGrid;
-    else if (kind == "band")
-        result.kind_ = VxcDatasetKind::BandPath;
-    else
-        throw std::invalid_argument(
-            "Unsupported QSGW Vxc manifest kind in " + source_name);
-
-    result.producer_ = lowercase(metadata.at("producer"));
-    const std::string units = lowercase(metadata.at("units"));
-    const std::string basis = lowercase(metadata.at("basis"));
-    const std::string gauge = lowercase(metadata.at("gauge"));
-    if (units == "ha" || units == "hartree")
-        result.units_ = VxcUnits::Hartree;
-    else if (units == "ry" || units == "rydberg")
-        result.units_ = VxcUnits::Rydberg;
-    else
-        throw std::invalid_argument(
-            "Unsupported QSGW Vxc units in " + source_name);
-    if (basis == "nao")
-        result.basis_ = VxcBasis::Nao;
-    else if (basis == "state")
-        result.basis_ = VxcBasis::State;
-    else
-        throw std::invalid_argument(
-            "Unsupported QSGW Vxc basis in " + source_name);
-    if (gauge == "ao_bloch")
-        result.gauge_ = VxcGauge::AoBloch;
-    else if (gauge == "mf0_state")
-        result.gauge_ = VxcGauge::Mf0State;
-    else
-        throw std::invalid_argument(
-            "Unsupported QSGW Vxc gauge in " + source_name);
-
-    const bool valid_abacus_state =
-        result.producer_ == "abacus" &&
-        result.units_ == VxcUnits::Rydberg &&
-        result.basis_ == VxcBasis::State &&
-        result.gauge_ == VxcGauge::Mf0State;
-    const bool valid_abacus_nao =
-        result.producer_ == "abacus" &&
-        result.units_ == VxcUnits::Rydberg &&
-        result.basis_ == VxcBasis::Nao &&
-        result.gauge_ == VxcGauge::AoBloch;
-    const bool valid_aims =
-        result.producer_ == "fhi-aims" &&
-        result.units_ == VxcUnits::Hartree &&
-        result.basis_ == VxcBasis::State &&
-        result.gauge_ == VxcGauge::Mf0State;
-    if (!valid_abacus_state && !valid_abacus_nao && !valid_aims)
-    {
-        throw std::invalid_argument(
-            "Incompatible QSGW Vxc producer, units, basis, or gauge in " +
-            source_name);
-    }
-    return result;
-}
-
-void VxcManifest::validate(
-    const VxcDatasetKind expected_kind,
-    const int spin_count,
-    const std::vector<Vector3_Order<double>>& expected_kpoints,
-    const int expected_rows,
-    const int expected_columns,
-    const double tolerance) const
-{
-    if (kind_ != expected_kind || spin_count <= 0 ||
-        expected_kpoints.empty() || expected_rows <= 0 ||
-        expected_columns <= 0 || !(tolerance > 0.0) ||
-        !std::isfinite(tolerance) ||
-        entries_.size() !=
-            static_cast<std::size_t>(spin_count) * expected_kpoints.size())
-    {
-        throw std::invalid_argument(
-            "QSGW Vxc manifest does not match the requested dataset");
-    }
-    for (int spin = 0; spin < spin_count; ++spin)
-    {
-        for (std::size_t kpoint = 0; kpoint < expected_kpoints.size(); ++kpoint)
-        {
-            const VxcManifestEntry& entry =
-                at(spin, static_cast<int>(kpoint));
-            const Vector3_Order<double>& expected = expected_kpoints[kpoint];
-            if (entry.rows != expected_rows ||
-                entry.columns != expected_columns ||
-                periodic_distance(entry.kpoint.x, expected.x) > tolerance ||
-                periodic_distance(entry.kpoint.y, expected.y) > tolerance ||
-                periodic_distance(entry.kpoint.z, expected.z) > tolerance)
-            {
-                throw std::invalid_argument(
-                    "QSGW Vxc manifest k coordinate does not match its dataset index");
-            }
-        }
-    }
-}
-
-const VxcManifestEntry& VxcManifest::at(const int spin,
-                                        const int k_index) const
-{
-    const auto entry = entries_.find({spin, k_index});
-    if (entry == entries_.end())
-    {
-        throw std::out_of_range(
-            "QSGW Vxc manifest does not contain the requested spin/k entry");
-    }
-    return entry->second;
-}
-
 Matz read_abacus_vxc_ha(std::istream& input,
                         const std::string& source_name)
 {
@@ -381,9 +135,9 @@ Matz read_abacus_vxc_ha(std::istream& input,
                 throw std::invalid_argument(
                     "Mixed ABACUS Vxc matrix headers in " + source_name);
             std::istringstream fields(content);
-            std::string hash;
+            std::string comment_marker;
             std::string key;
-            if (!(fields >> hash >> key >> rows))
+            if (!(fields >> comment_marker >> key >> rows))
                 throw std::invalid_argument(
                     "Malformed ABACUS Vxc row header in " + source_name);
             continue;
@@ -394,9 +148,9 @@ Matz read_abacus_vxc_ha(std::istream& input,
                 throw std::invalid_argument(
                     "Mixed ABACUS Vxc matrix headers in " + source_name);
             std::istringstream fields(content);
-            std::string hash;
+            std::string comment_marker;
             std::string key;
-            if (!(fields >> hash >> key >> columns))
+            if (!(fields >> comment_marker >> key >> columns))
                 throw std::invalid_argument(
                     "Malformed ABACUS Vxc column header in " + source_name);
             continue;
@@ -536,6 +290,69 @@ Matz read_abacus_vxc_ha(std::istream& input,
         }
     }
     validate_hermitian_matrix(result, rows, "ABACUS Vxc matrix");
+    return result;
+}
+
+} // namespace
+
+SpinKMatrixMap read_qsgw_vxc(const std::string& input_directory,
+                            const std::string& prefix,
+                            const MeanField& reference,
+                            const bool aims_input,
+                            const bool band_path,
+                            const VxcBasis basis)
+{
+    if (!aims_input && reference.get_n_spinor() != 1)
+        throw std::invalid_argument("ABACUS QSGW Vxc currently requires n_spinor=1");
+    if (aims_input && basis != VxcBasis::State)
+        throw std::invalid_argument("FHI-aims QSGW Vxc requires the KS-state basis");
+    const std::string default_prefix = aims_input
+        ? (band_path ? "band_vxc_mat" : "xc_matr")
+        : (band_path ? "band_vxc" : "vxc");
+    const std::string file_prefix = prefix.empty() ? default_prefix : prefix;
+    const std::string path_prefix = is_absolute_path(file_prefix)
+        ? file_prefix : join_path(input_directory, file_prefix);
+
+    SpinKMatrixMap result;
+    for (int spin = 0; spin < reference.get_n_spins(); ++spin)
+        for (int kpoint = 0; kpoint < reference.get_n_kpoints(); ++kpoint)
+        {
+            std::ostringstream filename;
+            filename << path_prefix;
+            if (aims_input)
+            {
+                filename << "_spin_" << spin + 1
+                         << (band_path ? "_k_" : "_kpt_")
+                         << std::setw(band_path ? 5 : 6) << std::setfill('0')
+                         << kpoint + 1 << ".csc";
+            }
+            else
+            {
+                filename << "k" << kpoint + 1;
+                if (reference.get_n_spins() == 2) filename << "s" << spin + 1;
+                filename << "_nao.txt";
+            }
+            std::string path = filename.str();
+            // ABACUS Gamma-only exports omit the k-point suffix.
+            if (!aims_input && reference.get_n_kpoints() == 1 &&
+                !file_exists(path))
+            {
+                path = path_prefix;
+                if (reference.get_n_spins() == 2) path += "s" + std::to_string(spin + 1);
+                path += "_nao.txt";
+            }
+            require_readable_file(path);
+            Matz matrix;
+            if (aims_input)
+                matrix = load_matrix_cplx(path, MAJOR::COL);
+            else
+            {
+                std::ifstream input(path);
+                matrix = read_abacus_vxc_ha(input, path);
+            }
+            result[spin][kpoint] = prepare_vxc_in_fixed_state_basis(
+                matrix, basis, reference, spin, kpoint);
+        }
     return result;
 }
 

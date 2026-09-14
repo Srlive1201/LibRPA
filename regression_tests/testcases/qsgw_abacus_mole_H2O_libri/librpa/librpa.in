@@ -1,10 +1,10 @@
 # Driver parameters
 task = qsgw
 input_dir = ../dataset
-constants_choice = aims
+constants_choice = internal
 
 # G0W0 kernel
-nfreq = 6
+nfreq = 16
 tfgrid_type = minimax
 n_params_anacon = -1
 n_params_anacon_resample = -1
@@ -24,7 +24,14 @@ use_kpara_scf_eigvec = false
 # QSGW fixed-basis iteration
 qsgw_mixer = linear
 qsgw_mixing_beta = 0.2
-qsgw_min_iter = 2
-qsgw_max_iter = 2
+qsgw_min_iter = 1
+qsgw_max_iter = 1
 qsgw_convergence_tolerance_ev = 1e-4
 qsgw_write_iteration_matrices = false
+version_coul_reader = 1
+version_lri_reader = 1
+prefix_coul_full = v1_coulomb_full_iq_
+prefix_coul_cut = v1_coulomb_cut_iq_
+prefix_lri_coeff = v1_Cs_data_
+fn_basis_wfc = basis_wfc_out
+fn_basis_aux = basis_aux_out

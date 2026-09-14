@@ -7,7 +7,6 @@
 #include <iomanip>
 #include <limits>
 #include <ostream>
-#include <sstream>
 #include <stdexcept>
 
 namespace librpa_int
@@ -18,40 +17,6 @@ namespace
 {
 
 constexpr int trace_precision = std::numeric_limits<double>::max_digits10;
-
-int mode_code(const MixingMode mode)
-{
-    (void)mode;
-    return 0;
-}
-
-std::string machine_token(const std::string& value)
-{
-    if (value.empty()) return "none";
-    std::string result = value;
-    for (char& character : result)
-    {
-        const unsigned char byte = static_cast<unsigned char>(character);
-        if (!std::isalnum(byte) && character != '-' && character != '.')
-        {
-            character = '_';
-        }
-    }
-    return result;
-}
-
-std::string coefficient_token(const std::vector<double>& coefficients)
-{
-    if (coefficients.empty()) return "none";
-    std::ostringstream output;
-    output << std::scientific << std::setprecision(trace_precision);
-    for (std::size_t index = 0; index < coefficients.size(); ++index)
-    {
-        if (index != 0) output << ',';
-        output << coefficients[index];
-    }
-    return output.str();
-}
 
 void require_finite_nonnegative(const double value, const char* label)
 {
@@ -149,9 +114,7 @@ private:
 void write_iteration_summary_header(std::ostream& output)
 {
     output << "# iter max_delta_eV residual_l2_Ha residual_max_Ha "
-              "efermi_eV gap_eV electron_count requested_mode applied_mode beta fallback "
-              "rcond coefficient_l1 coefficient_count converged coefficients "
-              "fallback_reason\n";
+              "efermi_eV gap_eV electron_count beta converged\n";
 }
 
 void write_iteration_summary(std::ostream& output,
@@ -169,31 +132,10 @@ void write_iteration_summary(std::ostream& output,
     require_finite_nonnegative(summary.gap_ev, "gap");
     require_finite_nonnegative(summary.electron_count, "electron count");
     if (!std::isfinite(summary.fermi_energy_ev) ||
-        !(summary.beta > 0.0) || !std::isfinite(summary.beta) ||
-        !std::isfinite(summary.reciprocal_condition) ||
-        summary.reciprocal_condition < 0.0)
-    {
+        !(summary.beta > 0.0 && summary.beta <= 1.0))
         throw std::invalid_argument(
             "QSGW iteration trace contains invalid scalar data");
-    }
 
-    double coefficient_l1 = 0.0;
-    for (const double coefficient : summary.coefficients)
-    {
-        if (!std::isfinite(coefficient))
-        {
-            throw std::invalid_argument(
-                "QSGW iteration trace coefficient is non-finite");
-        }
-        coefficient_l1 += std::abs(coefficient);
-    }
-
-    const int requested = summary.has_mixing_decision
-                              ? mode_code(summary.requested_mode)
-                              : -1;
-    const int applied = summary.has_mixing_decision
-                            ? mode_code(summary.applied_mode)
-                            : -1;
     StreamFormatGuard guard(output);
     output << std::scientific << std::setprecision(trace_precision)
            << summary.iteration << " "
@@ -203,15 +145,8 @@ void write_iteration_summary(std::ostream& output,
            << summary.fermi_energy_ev << " "
            << summary.gap_ev << " "
            << summary.electron_count << " "
-           << requested << " " << applied << " "
            << summary.beta << " "
-           << (summary.fell_back ? 1 : 0) << " "
-           << summary.reciprocal_condition << " "
-           << coefficient_l1 << " "
-           << summary.coefficients.size() << " "
-           << (summary.converged ? 1 : 0) << " "
-           << coefficient_token(summary.coefficients) << " "
-           << machine_token(summary.fallback_reason) << "\n";
+           << (summary.converged ? 1 : 0) << "\n";
 }
 
 void write_eigenvalue_trace_header(std::ostream& output)
@@ -376,25 +311,6 @@ void write_occupation_trace(
         output, iteration, channel, "occupation", matrices);
 }
 
-void write_scalar_component_trace(
-    std::ostream& output,
-    const int iteration,
-    const IterationChannel channel,
-    const std::string& component,
-    const double value)
-{
-    if (!std::isfinite(value))
-    {
-        throw std::invalid_argument(
-            "QSGW scalar matrix trace value is non-finite");
-    }
-    SpinKMatrixMap matrices;
-    matrices[0][0] = Matz(1, 1, MAJOR::ROW);
-    matrices[0][0](0, 0) = value;
-    write_matrix_component_trace(
-        output, iteration, channel, component, matrices);
-}
-
 void write_wavefunction_trace(
     std::ostream& output,
     const int iteration,
@@ -442,71 +358,6 @@ void write_wavefunction_trace(
         write_matrix_component_trace(
             output, iteration, channel,
             component_prefix + "_spinor" + std::to_string(spinor), matrices);
-    }
-}
-
-void write_velocity_trace(
-    std::ostream& output,
-    const int iteration,
-    const IterationChannel channel,
-    const std::vector<std::vector<std::vector<ComplexMatrix>>>& velocity,
-    const std::string& component_prefix)
-{
-    static const char* component_suffixes[3] = {"_x", "_y", "_z"};
-    if (component_prefix.empty())
-    {
-        throw std::invalid_argument(
-            "QSGW velocity trace component prefix is empty");
-    }
-    if (velocity.empty())
-    {
-        throw std::invalid_argument("QSGW velocity trace input is empty");
-    }
-    const std::size_t kpoint_count = velocity.front().size();
-    if (kpoint_count == 0)
-    {
-        throw std::invalid_argument(
-            "QSGW velocity trace contains no k points");
-    }
-    for (int direction = 0; direction < 3; ++direction)
-    {
-        SpinKMatrixMap matrices;
-        for (std::size_t spin = 0; spin < velocity.size(); ++spin)
-        {
-            if (velocity[spin].size() != kpoint_count)
-            {
-                throw std::invalid_argument(
-                    "QSGW velocity trace spin channels have different k-point counts");
-            }
-            for (std::size_t kpoint = 0; kpoint < kpoint_count; ++kpoint)
-            {
-                if (velocity[spin][kpoint].size() != 3)
-                {
-                    throw std::invalid_argument(
-                        "QSGW velocity trace requires three Cartesian components");
-                }
-                const ComplexMatrix& block =
-                    velocity[spin][kpoint][direction];
-                if (block.nr <= 0 || block.nr != block.nc)
-                {
-                    throw std::invalid_argument(
-                        "QSGW velocity trace matrix has an invalid shape");
-                }
-                Matz matrix(block.nr, block.nc, MAJOR::ROW);
-                for (int row = 0; row < block.nr; ++row)
-                {
-                    for (int column = 0; column < block.nc; ++column)
-                    {
-                        matrix(row, column) = block(row, column);
-                    }
-                }
-                matrices[static_cast<int>(spin)][static_cast<int>(kpoint)] =
-                    std::move(matrix);
-            }
-        }
-        write_matrix_component_trace(
-            output, iteration, channel,
-            component_prefix + component_suffixes[direction], matrices);
     }
 }
 

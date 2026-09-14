@@ -419,26 +419,124 @@
     <testcase name="Water molecule, two QSGW iterations (aims input)" directory="qsgw_aims_mole_H2O_libri">
       <build require_libri="true"
       />
-      <validate name="QSGW iteration summary"
+      <validate name="QSGW energy changes, Fermi energy and gap"
                 file="librpa/librpa.d/qsgw_iterations.dat"
-                comparison="cmp_qsgw.iteration_summary(energy_tolerance_ev=5e-4,residual_tolerance_ha=2e-5)"
+                regex="^(\d+(?:\s+\S+){6})\s"
+                comparison="cmp_table.abs_diff(5e-4,columns=2 5 6)"
       />
-      <validate name="QSGW eigenvalue trajectory"
+      <validate name="QSGW Hamiltonian residuals"
+                file="librpa/librpa.d/qsgw_iterations.dat"
+                regex="^(\d+(?:\s+\S+){6})\s"
+                comparison="cmp_table.abs_diff(2e-5,columns=3:4)"
+      />
+      <validate name="QSGW iteration indices and electron count"
+                file="librpa/librpa.d/qsgw_iterations.dat"
+                regex="^(\d+(?:\s+\S+){6})\s"
+                comparison="cmp_table.abs_diff(1e-8,columns=1 7)"
+      />
+      <validate name="QSGW eigenvalue trajectory (eV)"
                 file="librpa/librpa.d/qsgw_eigenvalues.dat"
-                comparison="cmp_qsgw.eigenvalue_trace(tolerance_ha=2e-5)"
+                regex="^(\d+\s+.*)$"
+                comparison="cmp_table.abs_diff(5.4422773e-4,columns=9)"
+      />
+      <validate name="QSGW trajectory indices and k points"
+                file="librpa/librpa.d/qsgw_eigenvalues.dat"
+                regex="^(\d+\s+.*)$"
+                comparison="cmp_table.abs_diff(1e-12,columns=1:8)"
+      />
+    </testcase>
+
+    <testcase name="Water molecule, one QSGW update (abacus input)" directory="qsgw_abacus_mole_H2O_libri">
+      <build require_libri="true"
+      />
+      <validate name="QSGW energy changes, Fermi energy and gap"
+                file="librpa/librpa.d/qsgw_iterations.dat"
+                regex="^(\d+(?:\s+\S+){6})\s"
+                comparison="cmp_table.abs_diff(5e-4,columns=2 5 6)"
+      />
+      <validate name="QSGW Hamiltonian residuals"
+                file="librpa/librpa.d/qsgw_iterations.dat"
+                regex="^(\d+(?:\s+\S+){6})\s"
+                comparison="cmp_table.abs_diff(2e-5,columns=3:4)"
+      />
+      <validate name="QSGW iteration indices and electron count"
+                file="librpa/librpa.d/qsgw_iterations.dat"
+                regex="^(\d+(?:\s+\S+){6})\s"
+                comparison="cmp_table.abs_diff(1e-8,columns=1 7)"
+      />
+      <validate name="QSGW eigenvalue trajectory (eV)"
+                file="librpa/librpa.d/qsgw_eigenvalues.dat"
+                regex="^(\d+\s+.*)$"
+                comparison="cmp_table.abs_diff(5.4422773e-4,columns=9)"
+      />
+      <validate name="QSGW trajectory indices and k points"
+                file="librpa/librpa.d/qsgw_eigenvalues.dat"
+                regex="^(\d+\s+.*)$"
+                comparison="cmp_table.abs_diff(1e-12,columns=1:8)"
       />
     </testcase>
 
     <testcase name="Bulk silicon k333, two QSGW iterations, head-only (aims input)" directory="qsgw_aims_Si_k333_headonly_libri">
       <build require_libri="true"
       />
-      <validate name="QSGW iteration summary"
+      <validate name="QSGW energy changes, Fermi energy and gap"
                 file="librpa/librpa.d/qsgw_iterations.dat"
-                comparison="cmp_qsgw.iteration_summary(energy_tolerance_ev=5e-4,residual_tolerance_ha=2e-5)"
+                regex="^(\d+(?:\s+\S+){6})\s"
+                comparison="cmp_table.abs_diff(5e-4,columns=2 5 6)"
       />
-      <validate name="QSGW eigenvalue trajectory"
+      <validate name="QSGW Hamiltonian residuals"
+                file="librpa/librpa.d/qsgw_iterations.dat"
+                regex="^(\d+(?:\s+\S+){6})\s"
+                comparison="cmp_table.abs_diff(2e-5,columns=3:4)"
+      />
+      <validate name="QSGW iteration indices and electron count"
+                file="librpa/librpa.d/qsgw_iterations.dat"
+                regex="^(\d+(?:\s+\S+){6})\s"
+                comparison="cmp_table.abs_diff(1e-8,columns=1 7)"
+      />
+      <validate name="QSGW eigenvalue trajectory (eV)"
                 file="librpa/librpa.d/qsgw_eigenvalues.dat"
-                comparison="cmp_qsgw.eigenvalue_trace(tolerance_ha=2e-5)"
+                regex="^(\d+\s+.*)$"
+                comparison="cmp_table.abs_diff(5.4422773e-4,columns=9)"
+      />
+      <validate name="QSGW trajectory indices and k points"
+                file="librpa/librpa.d/qsgw_eigenvalues.dat"
+                regex="^(\d+\s+.*)$"
+                comparison="cmp_table.abs_diff(1e-12,columns=1:8)"
+      />
+    </testcase>
+
+    <testcase name="Water molecule, QSGW Gamma band with mixing and cut (aims input)" directory="qsgw_band_aims_mole_H2O_libri">
+      <build require_libri="true"
+      />
+      <validate name="QSGW energy changes, Fermi energy and gap"
+                file="librpa/librpa.d/qsgw_iterations.dat"
+                regex="^(\d+(?:\s+\S+){6})\s"
+                comparison="cmp_table.abs_diff(5e-4,columns=2 5 6)"
+      />
+      <validate name="QSGW Hamiltonian residuals"
+                file="librpa/librpa.d/qsgw_iterations.dat"
+                regex="^(\d+(?:\s+\S+){6})\s"
+                comparison="cmp_table.abs_diff(2e-5,columns=3:4)"
+      />
+      <validate name="QSGW iteration indices and electron count"
+                file="librpa/librpa.d/qsgw_iterations.dat"
+                regex="^(\d+(?:\s+\S+){6})\s"
+                comparison="cmp_table.abs_diff(1e-8,columns=1 7)"
+      />
+      <validate name="QSGW eigenvalue trajectory (eV)"
+                file="librpa/librpa.d/qsgw_eigenvalues.dat"
+                regex="^(\d+\s+.*)$"
+                comparison="cmp_table.abs_diff(5.4422773e-4,columns=9)"
+      />
+      <validate name="QSGW trajectory indices and k points"
+                file="librpa/librpa.d/qsgw_eigenvalues.dat"
+                regex="^(\d+\s+.*)$"
+                comparison="cmp_table.abs_diff(1e-12,columns=1:8)"
+      />
+      <validate name="QSGW band tables, both updates (eV)"
+                file="librpa/librpa.d/QSGW_band_spin_1_*.dat"
+                comparison="cmp_table.abs_diff(5e-4)"
       />
     </testcase>
 

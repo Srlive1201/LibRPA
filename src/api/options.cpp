@@ -53,7 +53,7 @@ void librpa_init_options(LibrpaOptions *opts)
     opts->use_kpara_scf_eigvec = LIBRPA_SWITCH_OFF;
 
     opts->tfgrids_type = LIBRPA_TFGRID_UNSET;
-    opts->nfreq = 6;
+    opts->nfreq = 16;
     opts->tfgrids_freq_min = 0.005;
     opts->tfgrids_freq_interval = 0.0;
     opts->tfgrids_freq_max = 1000.0;

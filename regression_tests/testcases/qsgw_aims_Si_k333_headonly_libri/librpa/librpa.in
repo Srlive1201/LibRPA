@@ -27,7 +27,6 @@ use_symmetry_gw = false
 use_symmetry_rpa = false
 use_kpara_scf_eigvec = false
 output_energy_qp = false
-qsgw_input_contract = qsgw_input.head-only.contract
 qsgw_mixer = none
 qsgw_min_iter = 2
 qsgw_max_iter = 2

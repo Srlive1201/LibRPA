@@ -53,6 +53,7 @@ LibRPA is :doc:`licensed <develop/licensing>` under LGPL-3.0.
    user_guide/compile_options
    user_guide/runtime_parameters
    user_guide/driver_usage
+   user_guide/qsgw
    user_guide/api_usage
    user_guide/cite
    Changelog <changelog>

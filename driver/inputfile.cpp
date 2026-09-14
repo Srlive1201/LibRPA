@@ -199,8 +199,8 @@ static void validate_input_parameters()
         if (driver::opts.use_kpara_scf_eigvec == LIBRPA_SWITCH_ON)
             throw std::runtime_error(
                 "QSGW fixed-basis iteration requires replicated SCF wavefunctions; set use_kpara_scf_eigvec = false");
-        if (params.qsgw_input_contract.empty())
-            throw std::runtime_error("qsgw_input_contract must not be empty");
+        if (params.qsgw_vxc_basis != "state" && params.qsgw_vxc_basis != "nao")
+            throw std::runtime_error("qsgw_vxc_basis must be state or nao");
         if (params.qsgw_mixer != "none" && params.qsgw_mixer != "linear")
             throw std::runtime_error("qsgw_mixer must be none or linear");
         if (!(params.qsgw_mixing_beta > 0.0 &&
@@ -312,8 +312,9 @@ void parse_inputfile_to_params(const std::string &fn)
                     removed + " is not supported by the head-only QSGW workflow");
             }
         }
-        parse_qsgw_string(parser, "qsgw_input_contract",
-                           driver_params.qsgw_input_contract);
+        parse_qsgw_string(parser, "prefix_vxc_scf", driver_params.prefix_vxc_scf);
+        parse_qsgw_string(parser, "prefix_vxc_band", driver_params.prefix_vxc_band);
+        parse_qsgw_string(parser, "qsgw_vxc_basis", driver_params.qsgw_vxc_basis);
         parse_qsgw_string(parser, "qsgw_mixer", driver_params.qsgw_mixer);
         std::transform(driver_params.qsgw_mixer.begin(),
                        driver_params.qsgw_mixer.end(),

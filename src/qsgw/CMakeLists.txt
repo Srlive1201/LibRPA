@@ -6,7 +6,6 @@ target_sources(rpa_lib PRIVATE
   fixed_basis.cpp
   hamiltonian_cut.cpp
   hamiltonian_mixing.cpp
-  mixing.cpp
   occupation.cpp
   vxc_projection.cpp
   projection_target.cpp

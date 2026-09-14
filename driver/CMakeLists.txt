@@ -19,7 +19,6 @@ list(APPEND exe_sources
   tasks/rpa.cpp
   tasks/print_minimax.cpp
   tasks/qsgw.cpp
-  qsgw/input_contract.cpp
   qsgw/vxc_io.cpp
   qsgw/band_output.cpp
   qsgw/iteration_trace.cpp

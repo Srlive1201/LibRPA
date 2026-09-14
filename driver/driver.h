@@ -260,13 +260,30 @@ struct DriverParams
     //! Experimental
     int sf_state_end;
 
-    //! Provenance and semantic contract filename for all QSGW input files.
-    //! The path is interpreted relative to `input_dir`.
+    //! Full SCF Vxc matrix prefix, relative to `input_dir` unless absolute.
+    //! Used by QSGW; defaults to `xc_matr` (aims) or `vxc` (ABACUS).
     //! @par Default
-    //! `qsgw_input.contract`
+    //! Empty (producer default)
     //! @par Status
     //! Experimental
-    std::string qsgw_input_contract;
+    std::string prefix_vxc_scf;
+
+    //! Full band Vxc matrix prefix, relative to `input_dir` unless absolute.
+    //! Used by QSGW; defaults to `band_vxc_mat` (aims) or `band_vxc` (ABACUS).
+    //! @par Default
+    //! Empty (producer default)
+    //! @par Status
+    //! Experimental
+    std::string prefix_vxc_band;
+
+    //! Basis of the full Vxc matrices: `state` or `nao` (ABACUS AO input).
+    //! Applies to both SCF and band matrices. The ABACUS `_nao` filename suffix
+    //! does not determine the matrix basis: standard out_mat_xc exports states.
+    //! @par Default
+    //! `state`
+    //! @par Status
+    //! Experimental
+    std::string qsgw_vxc_basis;
 
     //! Fixed-basis Hamiltonian mixing (`none` or `linear`).
     //! @par Default

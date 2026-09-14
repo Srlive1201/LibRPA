@@ -1,10 +1,9 @@
 # Driver parameters
-task = qsgw
+task = qsgw_band
 input_dir = ../dataset
 constants_choice = aims
 
 # G0W0 kernel
-nfreq = 6
 tfgrid_type = minimax
 n_params_anacon = -1
 n_params_anacon_resample = -1
@@ -28,3 +27,8 @@ qsgw_min_iter = 2
 qsgw_max_iter = 2
 qsgw_convergence_tolerance_ev = 1e-4
 qsgw_write_iteration_matrices = false
+
+# Retain five occupied and ten empty states on grid and path.
+qsgw_band0_unoccupied_keep = 10
+qsgw_band0_cut_mode = 2
+qsgw_band0_cut_shift_ha = 0

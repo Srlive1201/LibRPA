@@ -1,12 +1,10 @@
 #include <algorithm>
 #include <cmath>
 #include <exception>
-#include <filesystem>
 #include <fstream>
 #include <iomanip>
 #include <map>
 #include <optional>
-#include <set>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -20,7 +18,6 @@
 #include "../../src/api/instance_manager.h"
 #include "../../src/io/fs.h"
 #include "../../src/io/global_io.h"
-#include "../../src/io/input_elsi.h"
 #include "../qsgw/band_output.h"
 #include "../../src/qsgw/convergence.h"
 #include "../../src/qsgw/correlation_potential.h"
@@ -29,7 +26,6 @@
 #include "../../src/qsgw/fixed_basis.h"
 #include "../../src/qsgw/hamiltonian_cut.h"
 #include "../../src/qsgw/hamiltonian_mixing.h"
-#include "../qsgw/input_contract.h"
 #include "../qsgw/iteration_trace.h"
 #include "../../src/qsgw/occupation.h"
 #include "../../src/qsgw/projection_target.h"
@@ -162,182 +158,6 @@ std::string resolve_input_path(const std::string& base,
                : librpa_int::join_path(base, path);
 }
 
-std::filesystem::path resolved_absolute_path(
-    const std::string& base,
-    const std::string& path)
-{
-    const std::filesystem::path value(path);
-    const std::filesystem::path resolved = value.is_absolute()
-        ? value
-        : std::filesystem::path(base) / value;
-    return std::filesystem::absolute(resolved).lexically_normal();
-}
-
-bool starts_with(const std::string& text, const std::string& prefix)
-{
-    return text.rfind(prefix, 0) == 0;
-}
-
-std::vector<std::filesystem::path> discover_prefixed_reader_files(
-    const std::string& prefix,
-    const std::string& excluded_prefix = {})
-{
-    const std::string& input_dir = driver::driver_params.input_dir;
-    const std::vector<std::string> discovered =
-        librpa_int::discover_files_with_prefix(input_dir, prefix);
-    std::vector<std::filesystem::path> result;
-    for (const std::string& path : discovered)
-    {
-        const std::string filename =
-            std::filesystem::path(path).filename().string();
-        if (!excluded_prefix.empty() &&
-            starts_with(excluded_prefix, prefix) &&
-            starts_with(filename, excluded_prefix))
-        {
-            continue;
-        }
-        const std::filesystem::path resolved =
-            std::filesystem::absolute(path).lexically_normal();
-        librpa_int::require_readable_file(resolved.string());
-        result.push_back(resolved);
-    }
-    if (result.empty())
-    {
-        throw std::invalid_argument(
-            "QSGW reader file set is empty for prefix " + prefix);
-    }
-    return result;
-}
-
-std::vector<std::filesystem::path> discover_coulomb_reader_files(
-    const std::string& prefix)
-{
-    std::vector<std::filesystem::path> result =
-        discover_prefixed_reader_files(prefix);
-    int version = driver::driver_params.version_coul_reader;
-    if (version < 0)
-    {
-        version = detect_coulomb_reader_version(
-            driver::driver_params.input_dir, prefix);
-    }
-    if (version == 0)
-    {
-        result.erase(
-            std::remove_if(
-                result.begin(), result.end(),
-                [](const std::filesystem::path& path) {
-                    return path.extension() != ".txt";
-                }),
-            result.end());
-    }
-    else if (version != 1)
-    {
-        throw std::invalid_argument(
-            "Unsupported QSGW Coulomb reader version " +
-            std::to_string(version));
-    }
-    if (result.empty())
-    {
-        throw std::invalid_argument(
-            "QSGW Coulomb reader file set is empty for prefix " + prefix);
-    }
-    return result;
-}
-
-std::vector<std::filesystem::path> discover_scf_wavefunction_files()
-{
-    return discover_prefixed_reader_files(
-        driver::driver_params.prefix_eigvecs_scf);
-}
-
-std::vector<std::filesystem::path> discover_reader_static_files()
-{
-    using librpa_int::path_exists;
-    const auto candidate = [](const std::string& filename) {
-        return resolved_absolute_path(
-            driver::driver_params.input_dir, filename);
-    };
-    std::set<std::filesystem::path> files;
-    const auto add = [&](const std::filesystem::path& path) {
-        librpa_int::require_readable_file(path.string());
-        files.insert(path);
-    };
-    const auto add_all = [&](const std::vector<std::filesystem::path>& paths) {
-        for (const std::filesystem::path& path : paths) add(path);
-    };
-
-    add(candidate(driver::driver_params.fn_stru));
-    const std::filesystem::path basis_wfc =
-        candidate(driver::driver_params.fn_basis_wfc);
-    const std::filesystem::path basis_aux =
-        candidate(driver::driver_params.fn_basis_aux);
-    const std::filesystem::path basis =
-        candidate(driver::driver_params.fn_basis);
-    if (path_exists(basis_wfc.string().c_str()) &&
-        path_exists(basis_aux.string().c_str()))
-    {
-        add(basis_wfc);
-        add(basis_aux);
-    }
-    else if (path_exists(basis.string().c_str()))
-    {
-        add(basis);
-    }
-
-    add_all(discover_prefixed_reader_files(
-        driver::driver_params.prefix_lri_coeff,
-        driver::driver_params.prefix_lri_coeff_shrink));
-    if (driver::get_bool(driver::opts.use_shrink_abfs))
-    {
-        for (const std::string& filename : {
-                 driver::driver_params.fn_basis_aux_shrink,
-                 std::string("basis_out_shrink"),
-                 std::string("basis_out.shrink_backup")})
-        {
-            const std::filesystem::path path = candidate(filename);
-            if (path_exists(path.string().c_str()))
-            {
-                add(path);
-                break;
-            }
-        }
-        add_all(discover_prefixed_reader_files(
-            driver::driver_params.prefix_lri_coeff_shrink,
-            driver::driver_params.prefix_lri_coeff));
-        add_all(discover_prefixed_reader_files(
-            driver::driver_params.prefix_shrink_sinvS));
-    }
-    add_all(discover_coulomb_reader_files(
-        driver::driver_params.prefix_coul_full));
-    add_all(discover_coulomb_reader_files(
-        driver::driver_params.prefix_coul_cut));
-    return {files.begin(), files.end()};
-}
-
-void validate_same_grid_velocity_binding(
-    const librpa_int::qsgw::QsgwInputContract& contract,
-    const std::string& contract_base,
-    const int n_kpoints)
-{
-    std::vector<std::filesystem::path> expected =
-        librpa_int::qsgw::resolve_same_grid_velocity_paths(
-            contract.producer(), driver::driver_params.input_dir, n_kpoints);
-
-    std::vector<std::filesystem::path> declared;
-    for (const auto& file : contract.files("velocity_mf0"))
-    {
-        declared.push_back(
-            resolved_absolute_path(contract_base, file.file));
-    }
-    std::sort(expected.begin(), expected.end());
-    std::sort(declared.begin(), declared.end());
-    if (declared != expected)
-    {
-        throw std::invalid_argument(
-            "QSGW velocity_mf0 contract files do not exactly match the same-grid head-only files read by the driver");
-    }
-}
-
 void prepare_stage_one_symmetry_context(librpa_int::Dataset& dataset)
 {
     const bool symmetry_reduced_scf_grid =
@@ -352,43 +172,14 @@ void prepare_stage_one_symmetry_context(librpa_int::Dataset& dataset)
         librpa_int::initialize_symmetry_context(dataset, true);
 }
 
-void validate_stage_one_contract(
-    const librpa_int::qsgw::QsgwInputContract& contract,
-    const librpa_int::Dataset& dataset,
-    const std::string& contract_base,
-    const librpa_int::qsgw::HeadwingGridMode headwing_grid,
-    const bool compute_band)
+void validate_qsgw_reference(const librpa_int::Dataset& dataset,
+                             const bool compute_band)
 {
     using namespace librpa_int::qsgw;
-    validate_qsgw_execution_modes(contract, headwing_grid, compute_band);
-    if (contract.n_spins() != dataset.mf.get_n_spins() ||
-        contract.n_bands() != dataset.mf.get_n_bands() ||
-        contract.n_aos() != dataset.mf.get_n_aos() ||
-        contract.n_scf_kpoints() != dataset.mf.get_n_kpoints() ||
-        contract.n_scf_kpoints() !=
-            static_cast<int>(dataset.pbc.kfrac_list.size()))
-    {
-        throw std::invalid_argument(
-            "QSGW input-contract dimensions do not match the loaded mf0 dataset");
-    }
     validate_projection_target(
         dataset.mf, dataset.pbc.kfrac_list,
-        contract.n_spins(), dataset.mf.get_n_spinor(), contract.n_aos(),
-        "grid");
-    const std::string bz_sampling_path = resolve_input_path(
-        driver::driver_params.input_dir,
-        driver::driver_params.fn_bz_sampling);
-    const std::string loaded_kpoint_file =
-        librpa_int::path_exists(bz_sampling_path.c_str())
-            ? bz_sampling_path
-            : resolve_input_path(driver::driver_params.input_dir,
-                                 driver::driver_params.fn_stru);
-    validate_scf_input_binding(
-        contract, contract_base,
-        resolved_absolute_path(driver::driver_params.input_dir,
-                               driver::driver_params.fn_eigocc_scf),
-        discover_scf_wavefunction_files(), loaded_kpoint_file,
-        discover_reader_static_files());
+        dataset.mf.get_n_spins(), dataset.mf.get_n_spinor(),
+        dataset.mf.get_n_aos(), "grid");
     const bool symmetry_reduced_scf_grid =
         dataset.pbc.kfrac_list.size() < dataset.pbc.kfrac_list_full.size();
     if (symmetry_reduced_scf_grid)
@@ -408,21 +199,6 @@ void validate_stage_one_contract(
                 "QSGW symmetry-reduced SCF input requires complete EXX/GW/RPA k-star restoration");
         }
     }
-    const bool producer_matches_constants =
-        (contract.producer() == QsgwProducer::FhiAims &&
-         driver::driver_params.constants_choice == "aims") ||
-        (contract.producer() == QsgwProducer::Abacus &&
-         driver::driver_params.constants_choice == "internal");
-    if (!producer_matches_constants)
-    {
-        throw std::invalid_argument(
-            "QSGW input-contract producer does not match constants_choice");
-    }
-    if (headwing_grid == HeadwingGridMode::ScfGrid)
-    {
-        validate_same_grid_velocity_binding(
-            contract, contract_base, dataset.mf.get_n_kpoints());
-    }
     if (compute_band)
     {
         const int complete_dimension =
@@ -433,74 +209,11 @@ void validate_stage_one_contract(
             throw std::invalid_argument(
                 "QSGW fixed-basis band rotation requires complete square grid and band references");
         }
-        if (contract.n_band_kpoints() != dataset.mf_band.get_n_kpoints() ||
-            contract.n_band_kpoints() !=
-                static_cast<int>(dataset.kfrac_band_list.size()))
-        {
-            throw std::invalid_argument(
-                "QSGW band input-contract dimensions do not match the loaded band reference");
-        }
         validate_projection_target(
             dataset.mf_band, dataset.kfrac_band_list,
             dataset.mf.get_n_spins(), dataset.mf.get_n_spinor(),
             dataset.mf.get_n_aos(), "band");
-        validate_band_reference_binding(
-            contract, contract_base, driver::driver_params.input_dir,
-            driver::driver_params.fn_band_kpath_info);
     }
-}
-
-SpinKMatrixMap load_vxc_manifest_root(
-    const std::string& manifest_path,
-    const MeanField& reference,
-    const std::vector<Vector3_Order<double>>& kpoints,
-    const librpa_int::qsgw::VxcDatasetKind dataset_kind)
-{
-    using namespace librpa_int;
-    using namespace librpa_int::qsgw;
-
-    require_readable_file(manifest_path);
-    std::ifstream manifest_stream(manifest_path);
-    const VxcManifest manifest =
-        VxcManifest::parse(manifest_stream, manifest_path);
-    if (manifest.producer() == "abacus" && reference.get_n_spinor() != 1)
-    {
-        throw std::invalid_argument(
-            "ABACUS QSGW Vxc currently requires n_spinor=1");
-    }
-    const int expected_dimension =
-        manifest.basis() == VxcBasis::Nao
-            ? reference.get_n_aos() * reference.get_n_spinor()
-            : reference.get_n_bands();
-    manifest.validate(dataset_kind, reference.get_n_spins(),
-                      kpoints, expected_dimension, expected_dimension,
-                      1.0e-8);
-    const std::string manifest_directory = parent_path(manifest_path);
-
-    SpinKMatrixMap result;
-    for (int spin = 0; spin < reference.get_n_spins(); ++spin)
-    {
-        for (int kpoint = 0; kpoint < reference.get_n_kpoints(); ++kpoint)
-        {
-            const VxcManifestEntry& entry = manifest.at(spin, kpoint);
-            const std::string matrix_path =
-                resolve_input_path(manifest_directory, entry.file);
-            require_readable_file(matrix_path);
-            Matz input;
-            if (manifest.producer() == "abacus")
-            {
-                std::ifstream stream(matrix_path);
-                input = read_abacus_vxc_ha(stream, matrix_path);
-            }
-            else
-            {
-                input = load_matrix_cplx(matrix_path, MAJOR::COL);
-            }
-            result[spin][kpoint] = prepare_vxc_in_fixed_state_basis(
-                input, manifest.basis(), reference, spin, kpoint);
-        }
-    }
-    return result;
 }
 
 SpinKMatrixMap copy_exx_root(const librpa_int::Exx& exchange,
@@ -612,54 +325,6 @@ SpinKMatrixMap build_correlation_map(
     return result;
 }
 
-void write_contract_header(std::ostream& output,
-                           const std::string& contract_path,
-                           const bool update_head,
-                           const bool compute_band)
-{
-    const bool use_symmetry_exx =
-        driver::get_bool(driver::opts.use_symmetry_exx);
-    const bool use_symmetry_gw =
-        driver::get_bool(driver::opts.use_symmetry_gw);
-    const bool use_symmetry_rpa =
-        driver::get_bool(driver::opts.use_symmetry_rpa);
-    output << "# qsgw_contract_version 6\n"
-           << "# fixed_basis immutable_mf0\n"
-           << "# live_update eigenvalues_wfc\n"
-           << "# velocity "
-           << (update_head ? "fixed_reference" : "disabled_stage1")
-           << "\n"
-           << "# head "
-           << (update_head ? "scf_grid_analytic_live" : "disabled_stage1")
-           << "\n"
-           << "# wing disabled_stage1\n"
-           << "# symmetry exx_" << (use_symmetry_exx ? "on" : "off")
-           << "_gw_" << (use_symmetry_gw ? "on" : "off")
-           << "_rpa_" << (use_symmetry_rpa ? "on" : "off") << "\n"
-           << "# hartree disabled\n"
-           << "# band "
-           << (compute_band
-                   ? "fixed_reference_rotation_live"
-                   : "disabled_stage1")
-           << "\n"
-           << "# h_qsgw_cut "
-           << (compute_band ? "band_postprocess" : "disabled_non_band")
-           << "\n";
-    if (compute_band)
-    {
-        output << "# qsgw_band0_unoccupied_keep "
-               << driver::driver_params.qsgw_band0_unoccupied_keep << "\n"
-               << "# qsgw_band0_cut_mode "
-               << driver::driver_params.qsgw_band0_cut_mode << "\n"
-               << "# qsgw_band0_cut_shift_ha " << std::setprecision(17)
-               << driver::driver_params.qsgw_band0_cut_shift_ha << "\n";
-    }
-    output << "# qsgw_input_contract " << contract_path << "\n"
-           << "# qsgw_mixer " << driver::driver_params.qsgw_mixer << "\n"
-           << "# qsgw_mixing_beta " << std::setprecision(17)
-           << driver::driver_params.qsgw_mixing_beta << "\n";
-}
-
 void run_qsgw_stage_one(const bool compute_band)
 {
     using namespace driver;
@@ -707,31 +372,10 @@ void run_qsgw_stage_one(const bool compute_band)
                 opts.vq_threshold, local_atpair, true,
                 driver_params.version_coul_reader,
                 driver::get_bool(opts.use_shrink_abfs));
-    const HeadwingGridMode headwing_grid =
-        update_head ? HeadwingGridMode::ScfGrid
-                    : HeadwingGridMode::Disabled;
-
-    const std::string contract_path = resolve_input_path(
-        driver_params.input_dir, driver_params.qsgw_input_contract);
-    std::optional<QsgwInputContract> input_contract;
-    int contract_producer = -1;
-    collective_root_stage(dataset->comm_h, "QSGW input preflight", [&] {
-        require_readable_file(contract_path);
-        std::ifstream stream(contract_path);
-        input_contract = QsgwInputContract::parse(stream, contract_path);
-        const std::string base = parent_path(contract_path);
+    collective_root_stage(dataset->comm_h, "QSGW reference validation", [&] {
         prepare_stage_one_symmetry_context(*dataset);
-        validate_stage_one_contract(
-            *input_contract, *dataset, base, headwing_grid, compute_band);
-        contract_producer = static_cast<int>(input_contract->producer());
+        validate_qsgw_reference(*dataset, compute_band);
     });
-    dataset->comm_h.bcast(&contract_producer, 1, 0);
-    if (contract_producer != static_cast<int>(QsgwProducer::Abacus) &&
-        contract_producer != static_cast<int>(QsgwProducer::FhiAims))
-    {
-        throw LIBRPA_RUNTIME_ERROR(
-            "QSGW input producer broadcast is invalid");
-    }
 
     const MeanField reference = dataset->mf;
     const double electron_count = physical_electron_count(
@@ -746,8 +390,7 @@ void run_qsgw_stage_one(const bool compute_band)
     {
         read_headwing_input(driver_params.input_dir, false);
         reference_velocity = dataset->velocity_matrix;
-        if (contract_producer ==
-            static_cast<int>(QsgwProducer::FhiAims))
+        if (driver_params.constants_choice == "aims")
         {
             prepare_fhi_aims_interband_velocity(
                 reference_velocity, reference);
@@ -769,29 +412,17 @@ void run_qsgw_stage_one(const bool compute_band)
 
     SpinKMatrixMap dft_vxc;
     SpinKMatrixMap dft_vxc_band;
-    collective_root_stage(dataset->comm_h, "QSGW Vxc preflight", [&] {
-        const auto& records = input_contract->files("vxc_scf_manifest");
-        if (records.size() != 1)
-            throw std::invalid_argument(
-                "QSGW contract requires exactly one SCF Vxc manifest");
-        const std::string path = resolve_input_path(
-            parent_path(contract_path), records.front().file);
-        dft_vxc = load_vxc_manifest_root(
-            path, reference, dataset->pbc.kfrac_list,
-            VxcDatasetKind::ScfGrid);
+    collective_root_stage(dataset->comm_h, "QSGW Vxc input", [&] {
+        const bool aims_input = driver_params.constants_choice == "aims";
+        const VxcBasis basis = driver_params.qsgw_vxc_basis == "nao"
+            ? VxcBasis::Nao : VxcBasis::State;
+        dft_vxc = read_qsgw_vxc(
+            driver_params.input_dir, driver_params.prefix_vxc_scf,
+            reference, aims_input, false, basis);
         if (compute_band)
-        {
-            const auto& band_records =
-                input_contract->files("vxc_band_manifest");
-            if (band_records.size() != 1)
-                throw std::invalid_argument(
-                    "QSGW contract requires exactly one band Vxc manifest");
-            const std::string band_path = resolve_input_path(
-                parent_path(contract_path), band_records.front().file);
-            dft_vxc_band = load_vxc_manifest_root(
-                band_path, *band_reference, dataset->kfrac_band_list,
-                VxcDatasetKind::BandPath);
-        }
+            dft_vxc_band = read_qsgw_vxc(
+                driver_params.input_dir, driver_params.prefix_vxc_band,
+                *band_reference, aims_input, true, basis);
     });
 
     HamiltonianCutOptions cut_options;
@@ -810,22 +441,8 @@ void run_qsgw_stage_one(const bool compute_band)
               band_reference_hamiltonian, band_reference_hamiltonian,
               dataset->mf_band, cut_options)
         : band_reference_hamiltonian;
-    std::optional<SpinKHamiltonianMixer> mixer;
-    if (driver_params.qsgw_mixer == "linear")
-    {
-        MixingOptions options;
-        options.mode = MixingMode::Linear;
-        options.beta = driver_params.qsgw_mixing_beta;
-        mixer.emplace(options);
-        if (dataset->comm_h.is_root())
-        {
-            if (compute_band)
-                mixer->initialize(current_hamiltonian,
-                                  current_band_hamiltonian);
-            else
-                mixer->initialize(current_hamiltonian);
-        }
-    }
+    const double mixing_beta = driver_params.qsgw_mixer == "linear"
+        ? driver_params.qsgw_mixing_beta : 1.0;
 
     std::ofstream trace;
     std::ofstream eigenvalue_trace;
@@ -839,17 +456,10 @@ void run_qsgw_stage_one(const bool compute_band)
         if (!trace || !eigenvalue_trace ||
             (driver_params.qsgw_write_iteration_matrices && !matrix_trace))
             throw std::runtime_error("Cannot open QSGW trace output");
-        write_contract_header(
-            trace, contract_path,
-            update_head, compute_band);
-        write_contract_header(eigenvalue_trace, contract_path,
-                               update_head, compute_band);
         write_iteration_summary_header(trace);
         write_eigenvalue_trace_header(eigenvalue_trace);
         if (driver_params.qsgw_write_iteration_matrices)
         {
-            write_contract_header(matrix_trace, contract_path,
-                                       update_head, compute_band);
             write_matrix_trace_header(matrix_trace);
             write_matrix_component_trace(
                 matrix_trace, 0, IterationChannel::Grid, "h0",
@@ -882,7 +492,7 @@ void run_qsgw_stage_one(const bool compute_band)
         summary.fermi_energy_ev = reference.get_efermi() * HA2EV;
         summary.gap_ev = initial_occupations.gap * HA2EV;
         summary.electron_count = initial_occupations.electron_count;
-        summary.has_mixing_decision = false;
+        summary.beta = mixing_beta;
         write_iteration_summary(trace, summary);
         write_eigenvalue_trace(eigenvalue_trace, 0,
                                IterationChannel::Grid, reference,
@@ -986,7 +596,6 @@ void run_qsgw_stage_one(const bool compute_band)
         SpinKMatrixMap band_exchange_output;
         double residual_l2 = 0.0;
         double residual_max = 0.0;
-        std::optional<MixingDecision> mixing_decision;
         std::string matrix_rows;
         collective_root_stage(dataset->comm_h, "QSGW Hamiltonian update", [&] {
             const SpinKMatrixMap correlation = build_correlation_map(
@@ -1020,28 +629,11 @@ void run_qsgw_stage_one(const bool compute_band)
                 raw, current_hamiltonian);
             residual_l2 = residual.l2;
             residual_max = residual.maximum;
-            if (mixer)
-            {
-                SpinKHamiltonianMixResult result = compute_band
-                    ? mixer->mix(raw, raw_band)
-                    : mixer->mix(raw);
-                mixed_hamiltonian = std::move(result.grid);
-                if (compute_band)
-                {
-                    if (!result.band)
-                        throw std::runtime_error(
-                            "QSGW synchronized mixer did not return a band Hamiltonian");
-                    mixed_band_hamiltonian = std::move(*result.band);
-                }
-                residual_l2 = result.residual_l2;
-                residual_max = result.residual_max;
-                mixing_decision = std::move(result.decision);
-            }
-            else
-            {
-                mixed_hamiltonian = raw;
-                if (compute_band) mixed_band_hamiltonian = raw_band;
-            }
+            mixed_hamiltonian = mix_spin_k_hamiltonian(
+                current_hamiltonian, raw, mixing_beta);
+            if (compute_band)
+                mixed_band_hamiltonian = mix_spin_k_hamiltonian(
+                    current_band_hamiltonian, raw_band, mixing_beta);
             if (compute_band)
             {
                 mixed_hamiltonian = apply_hamiltonian_cut(
@@ -1050,14 +642,6 @@ void run_qsgw_stage_one(const bool compute_band)
                 mixed_band_hamiltonian = apply_hamiltonian_cut(
                     mixed_band_hamiltonian, band_reference_hamiltonian,
                     dataset->mf_band, cut_options);
-                if (mixer)
-                {
-                    // The cut is an exact constraint, not a slowly mixed
-                    // residual. Keep the linear mixer's next input identical
-                    // to the Hamiltonian used for diagonalization.
-                    mixer->initialize(mixed_hamiltonian,
-                                      mixed_band_hamiltonian);
-                }
             }
             current_hamiltonian = mixed_hamiltonian;
             if (compute_band)
@@ -1142,19 +726,7 @@ void run_qsgw_stage_one(const bool compute_band)
             summary.gap_ev = occupations.gap * HA2EV;
             summary.electron_count = occupations.electron_count;
             summary.converged = converged_flag != 0;
-            summary.has_mixing_decision = mixing_decision.has_value();
-            if (mixing_decision)
-            {
-                summary.requested_mode = mixing_decision->requested_mode;
-                summary.applied_mode = mixing_decision->applied_mode;
-                summary.beta = mixing_decision->beta;
-                summary.fell_back = mixing_decision->fell_back;
-                summary.reciprocal_condition =
-                    mixing_decision->reciprocal_condition;
-                summary.coefficients = mixing_decision->coefficients;
-                summary.fallback_reason =
-                    mixing_decision->fallback_reason;
-            }
+            summary.beta = mixing_beta;
             write_iteration_summary(trace, summary);
             write_eigenvalue_trace(
                 eigenvalue_trace, iteration, IterationChannel::Grid,

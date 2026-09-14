@@ -161,12 +161,15 @@ blocks:
       Independent-grid head/wing and Hartree updates are not supported.
       Linear mixing is regression-tested for molecular QSGW only; the
       current solid-state benchmark uses `qsgw_mixer = none`.
-      In an ABACUS Vxc manifest, an `OUT.MAT_XC` matrix already expressed
-      in the fixed KS-state basis must use `basis state` and
-      `gauge mf0_state`, regardless of an `_nao` filename suffix. Use
-      `basis nao` and `gauge ao_bloch` only for a genuine AO matrix.
+      Full Vxc matrices are read directly using the producer's spin and
+      k-point filenames under `input_dir`. Standard ABACUS `out_mat_xc`
+      output is already in the initial KS-state basis, so the default
+      `qsgw_vxc_basis = state` applies despite its `_nao` filename suffix.
+      Use `qsgw_vxc_basis = nao` only for genuine ABACUS AO matrices.
     fields:
-      - driver.qsgw_input_contract
+      - driver.prefix_vxc_scf
+      - driver.prefix_vxc_band
+      - driver.qsgw_vxc_basis
       - driver.qsgw_mixer
       - driver.qsgw_mixing_beta
       - driver.qsgw_min_iter
