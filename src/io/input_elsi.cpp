@@ -1,6 +1,10 @@
 #include "input_elsi.h"
 
+#include <cstdint>
+#include <cstring>
+#include <fstream>
 #include <iostream>
+#include <limits>
 #include <regex>
 
 #include "fs.h"
@@ -58,69 +62,94 @@ bool read_elsi_to_csc(const std::string& file_path, std::vector<int>& col_ptr,
 {
     require_readable_file(file_path);
     std::ifstream ifs(file_path, std::ios::binary);
-    if (!ifs)
-        throw LIBRPA_RUNTIME_ERROR("Cannot open file " + file_path);
-
-    bool is_complex = true;
+    if (!ifs) throw LIBRPA_RUNTIME_ERROR("Cannot open file " + file_path);
 
     // Read file content
     ifs.seekg(0, std::ios::end);
-    std::streampos size = ifs.tellg();
+    const std::streamoff size = ifs.tellg();
+    int64_t header[16];
+    if (size < static_cast<std::streamoff>(sizeof(header)) ||
+        static_cast<uint64_t>(size) > std::numeric_limits<std::size_t>::max())
+        throw LIBRPA_RUNTIME_ERROR("Invalid ELSI CSC file size in " + file_path);
     ifs.seekg(0, std::ios::beg);
 
-    std::vector<char> buffer(size);
-    ifs.read(buffer.data(), size);
+    std::vector<char> buffer(static_cast<std::size_t>(size));
+    if (!ifs.read(buffer.data(), size))
+        throw LIBRPA_RUNTIME_ERROR("Failed to read ELSI CSC file " + file_path);
     ifs.close();
 
-    // parse header
-    int64_t header[16];
-    std::memcpy(header, buffer.data(), 128);
+    std::memcpy(header, buffer.data(), sizeof(header));
+    if (header[2] != 0 && header[2] != 1)
+        throw LIBRPA_RUNTIME_ERROR("Unsupported ELSI CSC value type in " + file_path);
+    if (header[3] <= 0 || header[3] > std::numeric_limits<int>::max() || header[5] < 0 ||
+        header[5] > std::numeric_limits<int>::max())
+        throw LIBRPA_RUNTIME_ERROR("Invalid or unsupported ELSI CSC dimensions in " + file_path);
 
-    n_basis = header[3];
-    int64_t nnz = header[5];
+    const uint64_t column_bytes = static_cast<uint64_t>(header[3]) * sizeof(int64_t);
+    const uint64_t row_bytes = static_cast<uint64_t>(header[5]) * sizeof(int32_t);
+    const uint64_t value_bytes = static_cast<uint64_t>(header[5]) *
+                                 (header[2] == 0 ? sizeof(double) : sizeof(std::complex<double>));
+    if (sizeof(header) + column_bytes + row_bytes + value_bytes > buffer.size())
+        throw LIBRPA_RUNTIME_ERROR("Truncated ELSI CSC matrix data in " + file_path);
 
-    // column
-    int64_t* col_ptr_raw = reinterpret_cast<int64_t*>(buffer.data() + 128);
-    col_ptr.assign(col_ptr_raw, col_ptr_raw + n_basis);
-    col_ptr.push_back(nnz + 1);
+    n_basis = static_cast<int>(header[3]);
+    const int nnz = static_cast<int>(header[5]);
 
-    // row indices
-    int32_t* row_idx_raw = reinterpret_cast<int32_t*>(buffer.data() + 128 + n_basis * 8);
-    row_idx.assign(row_idx_raw, row_idx_raw + nnz);
+    // Validate file indices before converting them to zero-based indices.
+    col_ptr.resize(static_cast<std::size_t>(n_basis) + 1);
+    for (int col = 0; col < n_basis; ++col)
+    {
+        int64_t ptr;
+        std::memcpy(&ptr,
+                    buffer.data() + sizeof(header) + static_cast<std::size_t>(col) * sizeof(ptr),
+                    sizeof(ptr));
+        if (ptr < 1 || ptr > header[5] + 1 || (col == 0 && ptr != 1) ||
+            (col > 0 && ptr - 1 < col_ptr[col - 1]))
+            throw LIBRPA_RUNTIME_ERROR("Invalid ELSI CSC column pointer in " + file_path);
+        col_ptr[col] = static_cast<int>(ptr - 1);
+    }
+    col_ptr[n_basis] = nnz;
+
+    row_idx.resize(nnz);
+    for (int i = 0; i < nnz; ++i)
+    {
+        int32_t row;
+        std::memcpy(&row,
+                    buffer.data() + sizeof(header) + column_bytes +
+                        static_cast<std::size_t>(i) * sizeof(row),
+                    sizeof(row));
+        if (row < 1 || row > n_basis)
+            throw LIBRPA_RUNTIME_ERROR("Invalid ELSI CSC row index in " + file_path);
+        row_idx[i] = row - 1;
+    }
 
     // non-zero values
-    char* nnz_val_raw = buffer.data() + 128 + n_basis * 8 + nnz * 4;
+    // Values can start at an unaligned offset when nnz is odd.
+    const char* nnz_val_raw = buffer.data() + sizeof(header) + column_bytes + row_bytes;
+    const bool is_complex = header[2] == 1 || force_cplx;
     if (header[2] == 0)
     {
-        double* nnz_ptr = reinterpret_cast<double*>(nnz_val_raw);
         if (force_cplx)
         {
-            is_complex = true;
             nnz_val_cplx.resize(nnz);
-            for (int64_t i = 0; i < nnz; ++i)
+            for (int i = 0; i < nnz; ++i)
             {
-                nnz_val_cplx[i] = std::complex<double>(nnz_ptr[i], 0.0);
+                double value;
+                std::memcpy(&value, nnz_val_raw + static_cast<std::size_t>(i) * sizeof(value),
+                            sizeof(value));
+                nnz_val_cplx[i] = std::complex<double>(value, 0.0);
             }
         }
         else
         {
-            is_complex = false;
-            nnz_val.assign(nnz_ptr, nnz_ptr + nnz);
+            nnz_val.resize(nnz);
+            if (nnz > 0) std::memcpy(nnz_val.data(), nnz_val_raw, value_bytes);
         }
     }
     else
     {
-        is_complex = true;
-        auto *nnz_ptr_cplx = reinterpret_cast<std::complex<double> *>(nnz_val_raw);
-        nnz_val_cplx.assign(nnz_ptr_cplx, nnz_ptr_cplx + nnz);
-    }
-
-    // Convert indices to 0-based
-    for (int32_t& idx : row_idx) {
-        idx -= 1;
-    }
-    for (int32_t& ptr : col_ptr) {
-        ptr -= 1;
+        nnz_val_cplx.resize(nnz);
+        if (nnz > 0) std::memcpy(nnz_val_cplx.data(), nnz_val_raw, value_bytes);
     }
 
     return is_complex;
