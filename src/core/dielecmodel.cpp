@@ -3519,105 +3519,97 @@ void rewrite_eps_abf_space(
             "ABF-space wing rewrite angular quadrature arrays have inconsistent lengths");
     }
 
-    // x1 = U[:,0], the first Coulomb eigenvector column (1-based ja=1).
+    // Filtered Coulomb channels occupy the trailing eigenvector columns: both
+    // eigensolvers redistribute the complete orthonormal set (eigenvalues
+    // descending) before the filtering loop, so U U^H = I to O(eps) and
+    // P + T + F = I with P = x1*x1^H, T the retained body projector and F the
+    // filtered projector. Y = [x1 | X_s] therefore spans YY^H = P + F = I - T
+    // with rank m = 1 + n_singular, and
+    //     M = (I - YY^H) E (I - YY^H) + YY^H.
+    // Expanding with G = E*Y and S = Y^H*G keeps every operand thin
+    // (n_abf x m) and never materializes an n_abf x n_abf projector, so the cost
+    // tracks n_singular instead of n_abf. Only E*Y is contracted, which is exact
+    // because E is Hermitian here; see the note at the product below. The m == 1
+    // case (no filtered channels) reduces term for term to the same expression
+    // with Y = x1.
+    // Above 2m > n_abf this low-rank form does more flops than forming T
+    // explicitly; that is not the production regime (n_nonsingular >> n_singular)
+    // and M = I still comes out by cancelling E against itself to O(|E|*eps_mach),
+    // far below the 1e-10 tolerance the rewrite is validated at.
     profiler.start("epsilon_headwing_abf_build_M");
-    matrix_m<complex<double>> body_projector;
-    if (n_nonsingular == static_cast<std::size_t>(n_abf))
+    const int n_sing = n_abf - static_cast<int>(n_nonsingular);
+    const int m = 1 + n_sing;
+
+    ArrayDesc desc_nabf_m(blacs_h);
+    desc_nabf_m.init(n_abf, m, desc_nabf_nabf_opt.mb(), desc_nabf_nabf_opt.nb(), 0, 0);
+    auto Y = init_local_mat<complex<double>>(desc_nabf_m, MAJOR::COL);
+    if (desc_nabf_m.m_loc() == 0 || desc_nabf_m.n_loc() == 0) Y.resize(1, 1);
+
+    // Y = [x1 | X_s]: the head column, then the trailing filtered block.
+    ScalapackConnector::pgemr2d_f(n_abf, 1, coul_eigen_block.ptr(), 1, 1,
+                                  desc_nabf_nabf_opt.desc, Y.ptr(), 1, 1,
+                                  desc_nabf_m.desc, blacs_h.ictxt);
+    if (n_sing > 0)
     {
-        // Complete-basis fast path. Thin projector operations use host
-        // ScaLAPACK with dedicated n-by-1 descriptors.
-        ArrayDesc desc_nabf_1(blacs_h);
-        desc_nabf_1.init(n_abf, 1, desc_nabf_nabf_opt.mb(), desc_nabf_nabf_opt.nb(), 0, 0);
-        auto y = init_local_mat<complex<double>>(desc_nabf_1, MAJOR::COL);
-        auto z = init_local_mat<complex<double>>(desc_nabf_1, MAJOR::COL);
-        if (desc_nabf_1.m_loc() == 0 || desc_nabf_1.n_loc() == 0)
-        {
-            y.resize(1, 1);
-            z.resize(1, 1);
-        }
-
-        // y = E * x1
-        ScalapackConnector::pgemm_f('N', 'N', n_abf, 1, n_abf, 1.0,
-                                    eps_block.ptr(), 1, 1, desc_nabf_nabf_opt.desc,
-                                    coul_eigen_block.ptr(), 1, 1, desc_nabf_nabf_opt.desc,
-                                    0.0, y.ptr(), 1, 1, desc_nabf_1.desc);
-        // z = E^H * x1
-        ScalapackConnector::pgemm_f('C', 'N', n_abf, 1, n_abf, 1.0,
-                                    eps_block.ptr(), 1, 1, desc_nabf_nabf_opt.desc,
-                                    coul_eigen_block.ptr(), 1, 1, desc_nabf_nabf_opt.desc,
-                                    0.0, z.ptr(), 1, 1, desc_nabf_1.desc);
-
-        // h = x1^H * y  (scalar)
-        ArrayDesc desc_1x1(blacs_h);
-        desc_1x1.init(1, 1, desc_nabf_nabf_opt.mb(), desc_nabf_nabf_opt.nb(), 0, 0);
-        auto h_local = init_local_mat<complex<double>>(desc_1x1, MAJOR::COL);
-        if (desc_1x1.m_loc() == 0 || desc_1x1.n_loc() == 0) h_local.resize(1, 1);
-        if (desc_1x1.m_loc() != 0 && desc_1x1.n_loc() != 0) h_local(0, 0) = {0.0, 0.0};
-        ScalapackConnector::pgemm_f('C', 'N', 1, 1, n_abf, 1.0,
-                                    coul_eigen_block.ptr(), 1, 1, desc_nabf_nabf_opt.desc,
-                                    y.ptr(), 1, 1, desc_nabf_1.desc,
-                                    0.0, h_local.ptr(), 1, 1, desc_1x1.desc);
-        std::complex<double> h_scalar{0.0, 0.0};
-        if (desc_1x1.is_src()) h_scalar = h_local(0, 0);
-        const int h_root = blacs_h.get_pnum(0, 0);
-        MPI_Bcast(&h_scalar, 1, MPI_CXX_DOUBLE_COMPLEX, h_root, desc_1x1.comm());
-
-        // M = (I-P)*E*(I-P) + P.
-        ScalapackConnector::pgemm_f('N', 'C', n_abf, n_abf, 1, -1.0,
-                                    y.ptr(), 1, 1, desc_nabf_1.desc,
-                                    coul_eigen_block.ptr(), 1, 1, desc_nabf_nabf_opt.desc,
-                                    1.0, eps_block.ptr(), 1, 1, desc_nabf_nabf_opt.desc);
-        ScalapackConnector::pgemm_f('N', 'C', n_abf, n_abf, 1, -1.0,
-                                    coul_eigen_block.ptr(), 1, 1, desc_nabf_nabf_opt.desc,
-                                    z.ptr(), 1, 1, desc_nabf_1.desc,
-                                    1.0, eps_block.ptr(), 1, 1, desc_nabf_nabf_opt.desc);
-        ScalapackConnector::pgemm_f('N', 'C', n_abf, n_abf, 1, 1.0 + h_scalar,
-                                    coul_eigen_block.ptr(), 1, 1, desc_nabf_nabf_opt.desc,
-                                    coul_eigen_block.ptr(), 1, 1, desc_nabf_nabf_opt.desc,
-                                    1.0, eps_block.ptr(), 1, 1, desc_nabf_nabf_opt.desc);
+        ScalapackConnector::pgemr2d_f(
+            n_abf, n_sing, coul_eigen_block.ptr(), 1,
+            static_cast<int>(n_nonsingular) + 1, desc_nabf_nabf_opt.desc,
+            Y.ptr(), 1, 2, desc_nabf_m.desc, blacs_h.ictxt);
     }
-    else
-    {
-        // T = X_b*X_b^H projects onto the regular body (all retained Coulomb
-        // channels except the head x1), built directly from the body columns
-        // X_b = coul_eigen_block[:, 2..n_nonsingular].
-        // Invert T*E*T only on range(T); I-T makes the full distributed matrix
-        // nonsingular without coupling the filtered Coulomb channels back in.
-        body_projector = init_local_mat<complex<double>>(desc_nabf_nabf_opt, MAJOR::COL);
-        // T = X_b*X_b^H over the retained body channels, i.e. Coulomb eigenvector
-        // columns 2..n_nonsingular (all retained channels except the head x1).
-        // n_nonsingular == 1 leaves T = 0, which init_local_mat already provides.
-        if (n_nonsingular > 1)
-        {
-            ScalapackConnector::pgemm_f(
-                'N', 'C', n_abf, n_abf, static_cast<int>(n_nonsingular) - 1, 1.0,
-                coul_eigen_block.ptr(), 1, 2, desc_nabf_nabf_opt.desc,
-                coul_eigen_block.ptr(), 1, 2, desc_nabf_nabf_opt.desc, 0.0,
-                body_projector.ptr(), 1, 1, desc_nabf_nabf_opt.desc);
-        }
 
-        auto work = init_local_mat<complex<double>>(desc_nabf_nabf_opt, MAJOR::COL);
-        ScalapackConnector::pgemm_f(
-            'N', 'N', n_abf, n_abf, n_abf, 1.0, body_projector.ptr(), 1, 1,
-            desc_nabf_nabf_opt.desc, eps_block.ptr(), 1, 1,
-            desc_nabf_nabf_opt.desc, 0.0, work.ptr(), 1, 1,
-            desc_nabf_nabf_opt.desc);
-        ScalapackConnector::pgemm_f(
-            'N', 'N', n_abf, n_abf, n_abf, 1.0, work.ptr(), 1, 1,
-            desc_nabf_nabf_opt.desc, body_projector.ptr(), 1, 1,
-            desc_nabf_nabf_opt.desc, 0.0, eps_block.ptr(), 1, 1,
-            desc_nabf_nabf_opt.desc);
-        ScalapackConnector::pgeadd_f(
-            'N', n_abf, n_abf, -1.0, body_projector.ptr(), 1, 1,
-            desc_nabf_nabf_opt.desc, 1.0, eps_block.ptr(), 1, 1,
-            desc_nabf_nabf_opt.desc);
-        LaConnector::pdam(1.0, eps_block.ptr(), desc_nabf_nabf_opt);
-    }
+    ArrayDesc desc_mm(blacs_h);
+    desc_mm.init(m, m, desc_nabf_nabf_opt.mb(), desc_nabf_nabf_opt.nb(), 0, 0);
+    auto G = init_local_mat<complex<double>>(desc_nabf_m, MAJOR::COL);
+    if (desc_nabf_m.m_loc() == 0 || desc_nabf_m.n_loc() == 0) G.resize(1, 1);
+
+    // G = E*Y. E is Hermitian on the imaginary-frequency axis (this path is only
+    // reached from the option_dielect_func == 3 branch), so E^H*Y == E*Y and one
+    // product suffices; the Cholesky inverse path taken below already reads only
+    // the lower triangle of M via pposv, so building M would otherwise refuse an
+    // assumption the inverse then makes. E is Hermitian to roundoff rather than
+    // bitwise, so results are accurate to O(|E - E^H|) ~ eps_mach*|E|.
+    ScalapackConnector::pgemm_f('N', 'N', n_abf, m, n_abf, 1.0,
+                                eps_block.ptr(), 1, 1, desc_nabf_nabf_opt.desc,
+                                Y.ptr(), 1, 1, desc_nabf_m.desc,
+                                0.0, G.ptr(), 1, 1, desc_nabf_m.desc);
+
+    // S = Y^H*G + I_m
+    auto S = init_local_mat<complex<double>>(desc_mm, MAJOR::COL);
+    if (desc_mm.m_loc() == 0 || desc_mm.n_loc() == 0) S.resize(1, 1);
+    ScalapackConnector::pgemm_f('C', 'N', m, m, n_abf, 1.0,
+                                Y.ptr(), 1, 1, desc_nabf_m.desc,
+                                G.ptr(), 1, 1, desc_nabf_m.desc,
+                                0.0, S.ptr(), 1, 1, desc_mm.desc);
+    LaConnector::pdam(1.0, S.ptr(), desc_mm);
+
+    // M = E - G*Y^H - Y*G^H + Y*(S)*Y^H, accumulated in place. The two rank-m
+    // updates are exact conjugate transposes of each other by construction, so
+    // the low-rank correction contributes no anti-Hermitian noise of its own.
+    ScalapackConnector::pgemm_f('N', 'C', n_abf, n_abf, m, -1.0,
+                                G.ptr(), 1, 1, desc_nabf_m.desc,
+                                Y.ptr(), 1, 1, desc_nabf_m.desc,
+                                1.0, eps_block.ptr(), 1, 1, desc_nabf_nabf_opt.desc);
+    ScalapackConnector::pgemm_f('N', 'C', n_abf, n_abf, m, -1.0,
+                                Y.ptr(), 1, 1, desc_nabf_m.desc,
+                                G.ptr(), 1, 1, desc_nabf_m.desc,
+                                1.0, eps_block.ptr(), 1, 1, desc_nabf_nabf_opt.desc);
+
+    // W = Y*S, then M += W*Y^H.
+    auto W = init_local_mat<complex<double>>(desc_nabf_m, MAJOR::COL);
+    if (desc_nabf_m.m_loc() == 0 || desc_nabf_m.n_loc() == 0) W.resize(1, 1);
+    ScalapackConnector::pgemm_f('N', 'N', n_abf, m, m, 1.0,
+                                Y.ptr(), 1, 1, desc_nabf_m.desc,
+                                S.ptr(), 1, 1, desc_mm.desc,
+                                0.0, W.ptr(), 1, 1, desc_nabf_m.desc);
+    ScalapackConnector::pgemm_f('N', 'C', n_abf, n_abf, m, 1.0,
+                                W.ptr(), 1, 1, desc_nabf_m.desc,
+                                Y.ptr(), 1, 1, desc_nabf_m.desc,
+                                1.0, eps_block.ptr(), 1, 1, desc_nabf_nabf_opt.desc);
 
     profiler.stop("epsilon_headwing_abf_build_M");
 
-    // Invert M in-place. For a complete basis, D = M^-1-P. For a filtered
-    // basis, D = M^-1-(I-T), where T is the retained regular-body projector.
+    // Invert M in-place, then subtract the low-rank projector YY^H = I - T so
+    // that D = M^-1 - YY^H vanishes on the filtered Coulomb channels.
     profiler.start("epsilon_headwing_abf_inverse");
     // ArrayDesc owns its ELPA handle, so copying it would duplicate ownership.
     // Recreate only the BLACS layout needed by the identity solve.
@@ -3627,22 +3619,10 @@ void rewrite_eps_abf_space(
                      desc_nabf_nabf_opt.irsrc(), desc_nabf_nabf_opt.icsrc());
     invert_headwing_body_with_identity_solve(eps_block, desc_invert, blacs_h,
                                              use_cholesky, use_device);
-    if (n_nonsingular == static_cast<std::size_t>(n_abf))
-    {
-        ScalapackConnector::pgemm_f('N', 'C', n_abf, n_abf, 1, -1.0,
-                                    coul_eigen_block.ptr(), 1, 1, desc_nabf_nabf_opt.desc,
-                                    coul_eigen_block.ptr(), 1, 1, desc_nabf_nabf_opt.desc,
-                                    1.0, eps_block.ptr(), 1, 1, desc_nabf_nabf_opt.desc);
-    }
-    else
-    {
-        LaConnector::pdam(-1.0, eps_block.ptr(), desc_nabf_nabf_opt);
-        ScalapackConnector::pgeadd_f(
-            'N', n_abf, n_abf, 1.0, body_projector.ptr(), 1, 1,
-            desc_nabf_nabf_opt.desc, 1.0, eps_block.ptr(), 1, 1,
-            desc_nabf_nabf_opt.desc);
-        body_projector.clear();
-    }
+    ScalapackConnector::pgemm_f('N', 'C', n_abf, n_abf, m, -1.0,
+                                Y.ptr(), 1, 1, desc_nabf_m.desc,
+                                Y.ptr(), 1, 1, desc_nabf_m.desc,
+                                1.0, eps_block.ptr(), 1, 1, desc_nabf_nabf_opt.desc);
     profiler.stop("epsilon_headwing_abf_inverse");
     // eps_block now holds the inverse regular body embedded in ABF space.
 

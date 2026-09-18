@@ -1591,14 +1591,14 @@ Matz coulomb_basis_eps_inv_reference(
 }
 
 // Run the production ABF-space helper on distributed matrices and compare to
-// the dense old Coulomb-basis reference.
-void run_abf_case(const BlacsCtxtHandler &blacs_h, int n, int block_size,
-                  const Matz &U, const Matz &sqrtV,
-                  const Matz &chi0, const Matz &wing_mu,
-                  const Matz &head,
-                  const std::vector<std::array<double, 3>> &q_pts,
-                  const std::vector<double> &q_rho, bool use_cholesky, double tol,
-                  int n_nonsingular = -1)
+// the dense old Coulomb-basis reference. Returns the observed max abs error.
+double run_abf_case(const BlacsCtxtHandler &blacs_h, int n, int block_size,
+                    const Matz &U, const Matz &sqrtV,
+                    const Matz &chi0, const Matz &wing_mu,
+                    const Matz &head,
+                    const std::vector<std::array<double, 3>> &q_pts,
+                    const std::vector<double> &q_rho, bool use_cholesky, double tol,
+                    int n_nonsingular = -1)
 {
     if (n_nonsingular < 0) n_nonsingular = n;
     const auto ref = coulomb_basis_eps_inv_reference(U, sqrtV, chi0, wing_mu, head,
@@ -1644,6 +1644,7 @@ void run_abf_case(const BlacsCtxtHandler &blacs_h, int n, int block_size,
     double max_err = 0.0;
     MPI_Allreduce(&local_max_err, &max_err, 1, MPI_DOUBLE, MPI_MAX, desc.comm());
     require_double_close(max_err, 0.0, tol);
+    return max_err;
 }
 
 void test_abf_space_wing_rewrite_matches_coulomb_basis(const BlacsCtxtHandler &blacs_h)
@@ -1751,6 +1752,76 @@ void test_abf_space_wing_rewrite_matches_coulomb_basis(const BlacsCtxtHandler &b
                      1e-10);
     }
 
+    // Large orthonormal U with a block-cyclic layout wider than one block, so
+    // ranks own multiple non-contiguous eigenvector columns and the thin
+    // n_abf x m redistribution destination is genuinely block-cyclic. The
+    // 16x16 Sylvester Hadamard matrix scaled by 1/4 has entries +-0.25, which
+    // are exactly representable, so U U^H = I holds bit-exactly and the
+    // reference comparison is not limited by the input's orthogonality.
+    {
+        constexpr int nh = 16;
+        constexpr int blk = 4;
+        Matz U16(nh, nh, MAJOR::COL);
+        for (int i = 0; i < nh; ++i)
+        {
+            for (int j = 0; j < nh; ++j)
+            {
+                const int ii = i, jj = j;
+                int parity = 0;
+                for (int b = 0; b < 4; ++b)
+                    parity ^= ((ii >> b) & 1) & ((jj >> b) & 1);
+                U16(i, j) = std::complex<double>{parity ? -0.25 : 0.25, 0.0};
+            }
+        }
+
+        const std::array<double, nh> lambda16{
+            {64.0, 36.0, 25.0, 16.0, 12.0, 9.0, 7.0, 5.0,
+             3.0, 2.0, 1.5, 1.0, 0.75, 0.5, 0.25, 0.1}};
+
+        // sqrt(V) = U * diag(sqrt(lambda)) * U^H, built with only the retained
+        // channels so the filtered ones carry exactly zero Coulomb weight.
+        auto build_sqrtV16 = [&](int n_nonsing) {
+            Matz sqrtveig(nh, nh, MAJOR::COL);
+            sqrtveig.zero_out();
+            for (int i = 0; i < nh; ++i)
+                for (int j = 0; j < n_nonsing; ++j)
+                    sqrtveig(i, j) = U16(i, j) * std::sqrt(lambda16[static_cast<std::size_t>(j)]);
+            return sqrtveig * U16.get_transpose(true);
+        };
+
+        Matz chi0_16(nh, nh, MAJOR::COL);
+        chi0_16.zero_out();
+        {
+            // Negative-semidefinite chi0 = -v v^H keeps M Hermitian positive
+            // definite, so the Cholesky path is valid.
+            std::array<std::complex<double>, nh> v{};
+            for (int i = 0; i < nh; ++i)
+                v[static_cast<std::size_t>(i)] = {0.05 * (i + 1), 0.02 * ((i % 5) - 2)};
+            for (int i = 0; i < nh; ++i)
+                for (int j = 0; j < nh; ++j)
+                    chi0_16(i, j) = -v[static_cast<std::size_t>(i)] *
+                                    std::conj(v[static_cast<std::size_t>(j)]);
+        }
+
+        Matz wing_mu_16(nh, 3, MAJOR::COL);
+        for (int i = 0; i < nh; ++i)
+            for (int j = 0; j < 3; ++j)
+                wing_mu_16(i, j) = {0.05 + 0.01 * i, 0.02 * (j + 1) - 0.03};
+
+        // m = 3 (n_singular = 2) is the production regime
+        // n_nonsingular >> n_singular; m = 11 > n/2 is the regime where the
+        // low-rank form is admitted to do more flops than forming T directly.
+        const int n_nons_16[] = {14, 6};
+        for (int n_nons : n_nons_16)
+        {
+            const auto sqrtV16 = build_sqrtV16(n_nons);
+            run_abf_case(blacs_h, nh, blk, U16, sqrtV16, chi0_16, wing_mu_16, head,
+                         q3d, rho3d, false, 1e-10, n_nons);
+            run_abf_case(blacs_h, nh, blk, U16, sqrtV16, chi0_16, wing_mu_16, head,
+                         q3d, rho3d, true, 1e-10, n_nons);
+        }
+    }
+
     // Filtered Coulomb basis: the last eigenchannel has zero eigenvalue and is
     // excluded. Both inversion paths must agree with the old reduced Coulomb-
     // basis algorithm and produce no component in the filtered subspace.
@@ -1770,6 +1841,26 @@ void test_abf_space_wing_rewrite_matches_coulomb_basis(const BlacsCtxtHandler &b
                      q3d, rho3d, true, 1e-10, nr);
         run_abf_case(blacs_h, n, 1, U, sqrtV_filtered, chi0, zero_wing_mu, head,
                      q2d, rho2d, false, 1e-10, nr);
+
+        // Sensitivity to a non-Hermitian E. The rewrite contracts E only as
+        // E*Y, so it is exact for Hermitian E and accurate to O(|E - E^H|)
+        // otherwise: the result differs from the dense reference by 2*P*Delta
+        // with Delta = (E - E^H)/2, so an anti-Hermitian perturbation of size d
+        // must move the answer by O(d) -- here ~1e-12, far under the 1e-10
+        // tolerance. This pins that scaling: a change that amplifies it (for
+        // example reusing one product for two genuinely different operands)
+        // fails here instead of silently biasing production results.
+        {
+            auto chi0_nonherm = chi0.copy();
+            for (int i = 0; i < n; ++i)
+                for (int j = 0; j < n; ++j)
+                    chi0_nonherm(i, j) += std::complex<double>{1e-12 * (i - j), 0.0};
+            const double err = run_abf_case(blacs_h, n, 1, U, sqrtV_filtered, chi0_nonherm,
+                                            wing_mu, head, q3d, rho3d, false, 1e-10, nr);
+            if (blacs_h.myid == 0)
+                std::cout << "non-Hermitian E sensitivity (d=1e-12): max abs err = "
+                          << err << std::endl;
+        }
 
         // Retained head channel only: T = 0, M = I, D = 0, so the averaged
         // inverse reduces to a0*P. Exercises the k == 0 projector guard.
