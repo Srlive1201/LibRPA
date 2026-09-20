@@ -2,6 +2,8 @@
 task = g0w0
 input_dir = ../dataset
 # API runtime
+# Match the six frequency points in the supplied dielecfunc_out.
+nfreq = 6
 replace_w_head = t
 parallel_routing = libri
 use_real_dense_gw_wc = t

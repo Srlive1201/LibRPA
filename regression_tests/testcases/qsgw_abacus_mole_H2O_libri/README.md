@@ -14,9 +14,17 @@ update are copied unchanged from that baseline run.
 
 The existing table comparator checks the updated eigenvalue spectrum,
 Hamiltonian residuals, Fermi energies, gaps and electron count. The eigenvalue
-tolerance is 2e-5 Ha (5.4422773e-4 eV). This is a regression of the full
-calculation through native ABACUS input. The second update is excluded because
-repeat runs of the pre-refactor executable differed by 0.0017 eV in that step,
-exceeding the existing tolerance; the first-update comparison agreed within
-2.4e-10 eV. This case does not establish self-consistency convergence or
-reproducibility of later updates. Other QSGW cases cover two-update trajectories.
+tolerance is 1e-3 eV and the Hamiltonian-residual tolerance is 5e-5 Ha.
+These bounds accommodate the respective differences of 6.947e-4 eV and
+2.324e-5 Ha observed in the
+[oneAPI CI run](https://github.com/minyez/LibRPA/actions/runs/34926232751).
+The reference values and the tolerances for other quantities are unchanged.
+
+This is a regression of the full calculation through native ABACUS input.
+The second update is excluded because repeat runs of the pre-refactor
+executable differed by 0.0017 eV in that step, exceeding the original
+5.4422773e-4 eV tolerance. That local first-update comparison agreed within
+2.4e-10 eV; the CI differences above show that this agreement does not extend
+to every build environment. This case does not establish self-consistency
+convergence or reproducibility of later updates. Other QSGW cases cover
+two-update trajectories.

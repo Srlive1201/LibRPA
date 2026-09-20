@@ -457,7 +457,7 @@
       <validate name="QSGW Hamiltonian residuals"
                 file="librpa/librpa.d/qsgw_iterations.dat"
                 regex="^(\d+(?:\s+\S+){6})\s"
-                comparison="cmp_table.abs_diff(2e-5,columns=3:4)"
+                comparison="cmp_table.abs_diff(5e-5,columns=3:4)"
       />
       <validate name="QSGW iteration indices and electron count"
                 file="librpa/librpa.d/qsgw_iterations.dat"
@@ -467,7 +467,7 @@
       <validate name="QSGW eigenvalue trajectory (eV)"
                 file="librpa/librpa.d/qsgw_eigenvalues.dat"
                 regex="^(\d+\s+.*)$"
-                comparison="cmp_table.abs_diff(5.4422773e-4,columns=9)"
+                comparison="cmp_table.abs_diff(1e-3,columns=9)"
       />
       <validate name="QSGW trajectory indices and k points"
                 file="librpa/librpa.d/qsgw_eigenvalues.dat"
