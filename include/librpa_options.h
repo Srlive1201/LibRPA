@@ -542,12 +542,14 @@ typedef struct
     //! Experimental
     LibrpaSwitch output_exx_ks_mat_k;
 
-    //! Output exact-exchange matrix in NAO basis and k-space as Matrix Market files.
-    //! Files in output_dir are named ExxK_kgrid_ispin_S_ik_K.mtx or
-    //! ExxK_band_B_ispin_S_ik_K.mtx, with zero-based indices. Spinor blocks
+    //! Output exact-exchange matrix in NAO basis and k-space as dense binary files.
+    //! Files in output_dir are named ExxK_kgrid_ispin_S_ik_K.bin or
+    //! ExxK_band_B_ispin_S_ik_K.bin, with zero-based indices. Spinor blocks
     //! include _spinor_BRA_KET before _ik. Values are in Hartree and include
     //! the exchange minus sign. All NAOs are exported, independently of the
     //! KS-state output range, when the k-space EXX potential is constructed.
+    //! Binary layout: native-endian int32 dimension and int32 scalar byte size (8),
+    //! then row-major real/imaginary float64 pairs, without threshold filtering.
     //! @par Default
     //! false
     //! @par Status
@@ -572,6 +574,11 @@ typedef struct
     int istate_output_mat_end;
 
     //! Output correlation self-energy matrix in NAO basis (k-space, imaginary frequency domain).
+    //! Dense binary files in output_dir use the same layout as output_exx_mat_k:
+    //! SigcKF_kgrid_ispin_S_ik_K_ifreq_F.bin or
+    //! SigcKF_band_B_ispin_S_ik_K_ifreq_F.bin, with zero-based indices.
+    //! Spinor blocks include _spinor_BRA_KET before _ik. Values are in Hartree;
+    //! all NAOs are exported without threshold filtering.
     //! @par Default
     //! false
     //! @par Status

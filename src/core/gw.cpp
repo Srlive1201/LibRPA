@@ -600,8 +600,8 @@ static void write_sigc_nao_kf_matrix(const Matz &mat, const ArrayDesc &desc,
     {
         ss << "_spinor_" << ispinor_bra << "_" << ispinor_ket;
     }
-    ss << "_ik_" << ik << "_ifreq_" << ifreq << ".mtx";
-    print_matrix_mm_file_parallel(ss.str(), mat, desc, "", 1e-10);
+    ss << "_ik_" << ik << "_ifreq_" << ifreq << ".bin";
+    write_matrix_binary_parallel(mat, desc, ss.str());
 }
 
 G0W0::G0W0(const MeanField &mf_in, const AtomicBasis &atbasis_wfc_in,

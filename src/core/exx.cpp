@@ -239,9 +239,9 @@ static void write_exx_nao_k_matrix(const Matz &mat, const ArrayDesc &desc,
     std::ostringstream ss;
     ss << path_as_directory(output_dir) << "ExxK_" << source << "_ispin_" << ispin;
     if (n_spinor > 1) ss << "_spinor_" << ispinor_bra << "_" << ispinor_ket;
-    ss << "_ik_" << ik << ".mtx";
+    ss << "_ik_" << ik << ".bin";
     // The internal NAO matrix carries the opposite sign; KS rotation applies -1.
-    print_matrix_mm_file_parallel(ss.str(), mat * (-1.0), desc, "EXX in Hartree", 1e-10);
+    write_matrix_binary_parallel(mat * (-1.0), desc, ss.str());
 }
 
 Exx::Exx(const MeanField &mf_in, const AtomicBasis &atbasis_wfc_in,
