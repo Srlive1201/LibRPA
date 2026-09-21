@@ -21,7 +21,7 @@ EigenvalueSnapshot eigenvalue_snapshot(const MeanField& meanfield)
     for (const matrix& eigenvalues : meanfield.get_eigenvals())
     {
         matrix copy(eigenvalues.nr, eigenvalues.nc, false);
-        for (int index = 0; index < eigenvalues.size; ++index)
+        for (std::size_t index = 0; index < eigenvalues.size; ++index)
         {
             if (!std::isfinite(eigenvalues.c[index]))
             {
@@ -56,7 +56,7 @@ double max_eigenvalue_change(
             throw std::invalid_argument(
                 "QSGW convergence snapshot has incompatible dimensions");
         }
-        for (int index = 0; index < current.size; ++index)
+        for (std::size_t index = 0; index < current.size; ++index)
         {
             if (!std::isfinite(current.c[index]) ||
                 !std::isfinite(old.c[index]))

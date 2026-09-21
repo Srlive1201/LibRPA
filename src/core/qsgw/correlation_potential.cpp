@@ -1,10 +1,10 @@
 #include "correlation_potential.h"
 
-#include "../analycont.h"
-
 #include <cmath>
 #include <stdexcept>
 #include <string>
+
+#include "../analycont.h"
 
 namespace librpa_int
 {

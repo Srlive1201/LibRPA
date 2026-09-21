@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../meanfield.h"
-
 #include <vector>
+
+#include "../meanfield.h"
 
 namespace librpa_int
 {

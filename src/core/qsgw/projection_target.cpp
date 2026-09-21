@@ -8,13 +8,10 @@ namespace librpa_int
 namespace qsgw
 {
 
-ProjectionTargetShape validate_projection_target(
-    const MeanField& reference,
-    const std::vector<Vector3_Order<double>>& kpoints,
-    const int expected_n_spins,
-    const int expected_n_spinors,
-    const int expected_n_aos,
-    const std::string& label)
+void validate_projection_target(const MeanField& reference,
+                                const std::vector<Vector3_Order<double>>& kpoints,
+                                const int expected_n_spins, const int expected_n_spinors,
+                                const int expected_n_aos, const std::string& label)
 {
     if (!reference.initialized())
     {
@@ -77,11 +74,6 @@ ProjectionTargetShape validate_projection_target(
             }
         }
     }
-
-    return {
-        reference.get_n_spins(), reference.get_n_spinor(),
-        reference.get_n_kpoints(), reference.get_n_bands(),
-        reference.get_n_aos()};
 }
 
 } // namespace qsgw

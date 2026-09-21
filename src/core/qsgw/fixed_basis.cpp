@@ -1,13 +1,13 @@
 #include "fixed_basis.h"
 
-#include "../../math/utils_matrix_mpi.h"
-
 #include <algorithm>
 #include <cmath>
 #include <stdexcept>
 #include <string>
 #include <utility>
 #include <vector>
+
+#include "../../math/utils_matrix_mpi.h"
 
 namespace librpa_int
 {
@@ -16,7 +16,7 @@ namespace qsgw
 namespace
 {
 
-constexpr double hermitian_tolerance = 1.0e-10;
+constexpr double HERMITIAN_TOLERANCE = 1.0e-10;
 
 void require_same_meanfield_shape(const MeanField& live,
                                   const MeanField& reference)
@@ -151,8 +151,7 @@ void require_valid_hamiltonian(const SpinKMatrixMap& hamiltonian,
                         throw std::invalid_argument(
                             "QSGW Hamiltonian contains non-finite data");
                     }
-                    if (std::abs(value - std::conj(matrix(column, row))) >
-                        hermitian_tolerance)
+                    if (std::abs(value - std::conj(matrix(column, row))) > HERMITIAN_TOLERANCE)
                     {
                         throw std::invalid_argument(
                             "QSGW Hamiltonian is not Hermitian");
@@ -520,11 +519,9 @@ ScopedReferenceEigenvectors::~ScopedReferenceEigenvectors() noexcept
     live_.get_eigenvectors().swap(live_eigenvectors_);
 }
 
-void prepare_fhi_aims_interband_velocity(
-    VelocityMatrix& velocity,
-    const MeanField& reference)
+void prepare_interband_velocity(VelocityMatrix& velocity, const MeanField& reference)
 {
-    require_valid_velocity(velocity, reference, "FHI-aims source");
+    require_valid_velocity(velocity, reference, "source");
     VelocityMatrix prepared = velocity;
     for (auto& spin : prepared)
     {
@@ -537,12 +534,10 @@ void prepare_fhi_aims_interband_velocity(
                     for (int column = row + 1;
                          column < component.nc; ++column)
                     {
-                        if (std::abs(component(row, column) -
-                                     std::conj(component(column, row))) >
-                            hermitian_tolerance)
+                        if (std::abs(component(row, column) - std::conj(component(column, row))) >
+                            HERMITIAN_TOLERANCE)
                         {
-                            throw std::invalid_argument(
-                                "QSGW FHI-aims interband velocity is not Hermitian");
+                            throw std::invalid_argument("QSGW interband velocity is not Hermitian");
                         }
                     }
                     component(row, row) = 0.0;

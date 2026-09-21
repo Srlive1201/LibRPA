@@ -298,12 +298,9 @@ void parse_inputfile_to_params(const std::string &fn)
                    });
     if (task_normalized == "qsgw" || task_normalized == "qsgw_band")
     {
-        for (const std::string& removed : {
-                 "qsgw_update_hartree",
-                 "qsgw_hartree_coulomb",
-                 "qsgw_hartree_normalization",
-                 "qsgw_export_hamiltonian_for_pyatb",
-                 "qsgw_hr_export_full_mp_rgrid"})
+        for (const std::string removed :
+             {"qsgw_update_hartree", "qsgw_hartree_coulomb", "qsgw_hartree_normalization",
+              "qsgw_export_hamiltonian_for_pyatb", "qsgw_hr_export_full_mp_rgrid"})
         {
             std::string ignored;
             if (get_last_assigned_value(parser, removed, ignored))

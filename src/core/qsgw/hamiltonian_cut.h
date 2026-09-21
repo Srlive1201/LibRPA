@@ -1,8 +1,7 @@
 #pragma once
 
-#include "matrix_map.h"
-
 #include "../meanfield.h"
+#include "matrix_map.h"
 
 namespace librpa_int
 {

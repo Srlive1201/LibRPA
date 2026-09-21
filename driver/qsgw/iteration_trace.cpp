@@ -16,7 +16,7 @@ namespace qsgw
 namespace
 {
 
-constexpr int trace_precision = std::numeric_limits<double>::max_digits10;
+constexpr int TRACE_PRECISION = std::numeric_limits<double>::max_digits10;
 
 void require_finite_nonnegative(const double value, const char* label)
 {
@@ -137,15 +137,10 @@ void write_iteration_summary(std::ostream& output,
             "QSGW iteration trace contains invalid scalar data");
 
     StreamFormatGuard guard(output);
-    output << std::scientific << std::setprecision(trace_precision)
-           << summary.iteration << " "
-           << summary.maximum_eigenvalue_change_ev << " "
-           << summary.residual_l2_ha << " "
-           << summary.residual_max_ha << " "
-           << summary.fermi_energy_ev << " "
-           << summary.gap_ev << " "
-           << summary.electron_count << " "
-           << summary.beta << " "
+    output << std::scientific << std::setprecision(TRACE_PRECISION) << summary.iteration << " "
+           << summary.maximum_eigenvalue_change_ev << " " << summary.residual_l2_ha << " "
+           << summary.residual_max_ha << " " << summary.fermi_energy_ev << " " << summary.gap_ev
+           << " " << summary.electron_count << " " << summary.beta << " "
            << (summary.converged ? 1 : 0) << "\n";
 }
 
@@ -170,7 +165,7 @@ void write_eigenvalue_trace(
     }
 
     StreamFormatGuard guard(output);
-    output << std::scientific << std::setprecision(trace_precision);
+    output << std::scientific << std::setprecision(TRACE_PRECISION);
     for (int spin = 0; spin < meanfield.get_n_spins(); ++spin)
     {
         for (int kpoint = 0; kpoint < meanfield.get_n_kpoints(); ++kpoint)
@@ -224,7 +219,7 @@ void write_matrix_component_trace(
     }
     validate_matrix_component_label(component);
     StreamFormatGuard guard(output);
-    output << std::scientific << std::setprecision(trace_precision);
+    output << std::scientific << std::setprecision(TRACE_PRECISION);
     for (const auto& [spin, by_kpoint] : matrices)
     {
         if (by_kpoint.empty())
@@ -255,7 +250,7 @@ void write_frequency_matrix_component_trace(
     }
     validate_matrix_component_label(component);
     StreamFormatGuard guard(output);
-    output << std::scientific << std::setprecision(trace_precision);
+    output << std::scientific << std::setprecision(TRACE_PRECISION);
     for (const auto& [spin, by_kpoint] : matrices)
     {
         if (by_kpoint.empty())

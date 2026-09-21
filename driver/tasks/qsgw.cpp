@@ -1,3 +1,5 @@
+#include <librpa_enums.h>
+
 #include <algorithm>
 #include <cmath>
 #include <exception>
@@ -11,15 +13,9 @@
 #include <utility>
 #include <vector>
 
-#include <librpa_enums.h>
-
 #include "../../src/api/compute_helper.h"
 #include "../../src/api/dataset_helper.h"
 #include "../../src/api/instance_manager.h"
-#include "../../src/io/fs.h"
-#include "../../src/io/global_io.h"
-#include "../../src/math/utils_matrix_mpi.h"
-#include "../qsgw/band_output.h"
 #include "../../src/core/qsgw/convergence.h"
 #include "../../src/core/qsgw/correlation_potential.h"
 #include "../../src/core/qsgw/distributed_matrix.h"
@@ -27,13 +23,17 @@
 #include "../../src/core/qsgw/fixed_basis.h"
 #include "../../src/core/qsgw/hamiltonian_cut.h"
 #include "../../src/core/qsgw/hamiltonian_mixing.h"
-#include "../qsgw/iteration_trace.h"
 #include "../../src/core/qsgw/occupation.h"
 #include "../../src/core/qsgw/projection_target.h"
-#include "../qsgw/vxc_io.h"
+#include "../../src/io/fs.h"
+#include "../../src/io/global_io.h"
+#include "../../src/math/utils_matrix_mpi.h"
 #include "../../src/utils/constants.h"
 #include "../../src/utils/profiler.h"
 #include "../driver.h"
+#include "../qsgw/band_output.h"
+#include "../qsgw/iteration_trace.h"
+#include "../qsgw/vxc_io.h"
 #include "../read_data.h"
 #include "../reader_coulomb.h"
 #include "../task.h"
@@ -159,7 +159,7 @@ std::string resolve_input_path(const std::string& base,
                : librpa_int::join_path(base, path);
 }
 
-void prepare_stage_one_symmetry_context(librpa_int::Dataset& dataset)
+void prepare_qsgw_symmetry_context(librpa_int::Dataset& dataset)
 {
     const bool symmetry_reduced_scf_grid =
         dataset.pbc.kfrac_list.size() < dataset.pbc.kfrac_list_full.size();
@@ -326,7 +326,7 @@ SpinKMatrixMap build_correlation_map(
     return result;
 }
 
-void run_qsgw_stage_one(const bool compute_band)
+void run_qsgw(const bool compute_band)
 {
     using namespace driver;
     using namespace librpa_int;
@@ -357,8 +357,7 @@ void run_qsgw_stage_one(const bool compute_band)
     if (opts.parallel_routing != LIBRPA_ROUTING_LIBRI &&
         opts.parallel_routing != LIBRPA_ROUTING_AUTO)
     {
-        throw LIBRPA_RUNTIME_ERROR(
-            "QSGW stage one requires parallel_routing=libri or auto");
+        throw LIBRPA_RUNTIME_ERROR("QSGW requires parallel_routing=libri or auto");
     }
     if (compute_band)
     {
@@ -373,10 +372,12 @@ void run_qsgw_stage_one(const bool compute_band)
                 opts.vq_threshold, local_atpair, true,
                 driver_params.version_coul_reader,
                 driver::get_bool(opts.use_shrink_abfs));
-    collective_root_stage(dataset->comm_h, "QSGW reference validation", [&] {
-        prepare_stage_one_symmetry_context(*dataset);
-        validate_qsgw_reference(*dataset, compute_band);
-    });
+    collective_root_stage(dataset->comm_h, "QSGW reference validation",
+                          [&]
+                          {
+                              prepare_qsgw_symmetry_context(*dataset);
+                              validate_qsgw_reference(*dataset, compute_band);
+                          });
 
     const MeanField reference = dataset->mf;
     const double electron_count = physical_electron_count(
@@ -393,8 +394,8 @@ void run_qsgw_stage_one(const bool compute_band)
         reference_velocity = dataset->velocity_matrix;
         if (driver_params.constants_choice == "aims")
         {
-            prepare_fhi_aims_interband_velocity(
-                reference_velocity, reference);
+            // FHI-aims head input uses only interband velocity elements.
+            prepare_interband_velocity(reference_velocity, reference);
             align_distributed_velocity_to_reference_wfc(
                 dataset->p_headwing->get_meanfield_df(), reference,
                 reference_velocity, dataset->comm_h);
@@ -814,12 +815,6 @@ void run_qsgw_stage_one(const bool compute_band)
 
 } // namespace
 
-void driver::task_qsgw()
-{
-    run_qsgw_stage_one(false);
-}
+void driver::task_qsgw() { run_qsgw(false); }
 
-void driver::task_qsgw_band()
-{
-    run_qsgw_stage_one(true);
-}
+void driver::task_qsgw_band() { run_qsgw(true); }

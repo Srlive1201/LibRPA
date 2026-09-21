@@ -8,7 +8,7 @@ namespace qsgw
 {
 namespace
 {
-constexpr double hermitian_tolerance = 1.0e-10;
+constexpr double HERMITIAN_TOLERANCE = 1.0e-10;
 bool finite_complex(const cplxdb value)
 {
     return std::isfinite(value.real()) && std::isfinite(value.imag());
@@ -31,9 +31,8 @@ void validate_hermitian_matrix(const Matz& matrix,
             {
                 throw std::invalid_argument(label + " contains non-finite data");
             }
-            if (std::abs(matrix(row, column) -
-                         std::conj(matrix(column, row))) >
-                hermitian_tolerance)
+            if (std::abs(matrix(row, column) - std::conj(matrix(column, row))) >
+                HERMITIAN_TOLERANCE)
             {
                 throw std::invalid_argument(label + " is not Hermitian");
             }

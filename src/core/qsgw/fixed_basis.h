@@ -1,13 +1,12 @@
 #pragma once
 
-#include "matrix_map.h"
-
-#include "../meanfield.h"
-#include "../../math/complexmatrix.h"
-#include "../../mpi/base_mpi.h"
-
 #include <map>
 #include <vector>
+
+#include "../../math/complexmatrix.h"
+#include "../../mpi/base_mpi.h"
+#include "../meanfield.h"
+#include "matrix_map.h"
 
 namespace librpa_int
 {
@@ -59,9 +58,9 @@ struct VelocityBasisAlignmentResult
     double maximum_transform_deviation_from_identity = 0.0;
 };
 
-void prepare_fhi_aims_interband_velocity(
-    VelocityMatrix& velocity,
-    const MeanField& reference);
+// Validate Hermitian off-diagonal entries and zero the intraband diagonal.
+// The caller decides whether this preparation matches its input convention.
+void prepare_interband_velocity(VelocityMatrix& velocity, const MeanField& reference);
 
 VelocityBasisAlignmentResult align_velocity_to_reference_wfc(
     const MeanField& velocity_basis,
