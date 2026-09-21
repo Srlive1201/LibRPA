@@ -18,17 +18,18 @@
 #include "../../src/api/instance_manager.h"
 #include "../../src/io/fs.h"
 #include "../../src/io/global_io.h"
+#include "../../src/math/utils_matrix_mpi.h"
 #include "../qsgw/band_output.h"
-#include "../../src/qsgw/convergence.h"
-#include "../../src/qsgw/correlation_potential.h"
-#include "../../src/qsgw/distributed_matrix.h"
-#include "../../src/qsgw/effective_hamiltonian.h"
-#include "../../src/qsgw/fixed_basis.h"
-#include "../../src/qsgw/hamiltonian_cut.h"
-#include "../../src/qsgw/hamiltonian_mixing.h"
+#include "../../src/core/qsgw/convergence.h"
+#include "../../src/core/qsgw/correlation_potential.h"
+#include "../../src/core/qsgw/distributed_matrix.h"
+#include "../../src/core/qsgw/effective_hamiltonian.h"
+#include "../../src/core/qsgw/fixed_basis.h"
+#include "../../src/core/qsgw/hamiltonian_cut.h"
+#include "../../src/core/qsgw/hamiltonian_mixing.h"
 #include "../qsgw/iteration_trace.h"
-#include "../../src/qsgw/occupation.h"
-#include "../../src/qsgw/projection_target.h"
+#include "../../src/core/qsgw/occupation.h"
+#include "../../src/core/qsgw/projection_target.h"
 #include "../qsgw/vxc_io.h"
 #include "../../src/utils/constants.h"
 #include "../../src/utils/profiler.h"
@@ -247,7 +248,7 @@ SigmaMatrixMap collect_sigma_root(
     const std::vector<double>& frequencies,
     const librpa_int::MpiCommHandler& communicator)
 {
-    using librpa_int::qsgw::collect_blacs_matrix_root;
+    using librpa_int::collect_blacs_matrix_root;
     SigmaMatrixMap result;
     for (int spin = 0; spin < reference.get_n_spins(); ++spin)
     {

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../core/meanfield.h"
-#include "../math/matrix_m.h"
+#include "../meanfield.h"
+#include "../../math/matrix_m.h"
 
 #include <map>
 #include <vector>

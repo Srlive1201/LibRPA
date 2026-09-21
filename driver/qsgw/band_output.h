@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../src/qsgw/matrix_map.h"
+#include "../../src/core/qsgw/matrix_map.h"
 
 #include "../../src/core/meanfield.h"
 #include "../../src/math/vector3_order.h"

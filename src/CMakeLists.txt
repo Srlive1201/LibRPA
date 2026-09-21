@@ -115,6 +115,16 @@ list(APPEND lib_sources
         core/pbc.cpp
         core/qpoint_view.cpp
         core/qpe_solver.cpp
+        core/qsgw/convergence.cpp
+        core/qsgw/correlation_potential.cpp
+        core/qsgw/distributed_matrix.cpp
+        core/qsgw/effective_hamiltonian.cpp
+        core/qsgw/fixed_basis.cpp
+        core/qsgw/hamiltonian_cut.cpp
+        core/qsgw/hamiltonian_mixing.cpp
+        core/qsgw/occupation.cpp
+        core/qsgw/projection_target.cpp
+        core/qsgw/vxc_projection.cpp
         core/ri.cpp
         core/timefreq.cpp
         core/utils_atomic_basis_blacs.cpp
@@ -186,7 +196,6 @@ endif()
 
 # source must be PRIVATE to avoid recompilation when linking driver to this library
 target_sources(rpa_lib PRIVATE ${lib_sources})
-add_subdirectory(qsgw)
 target_link_libraries(rpa_lib PRIVATE ${math_libs} ${parallel_libs})
 
 install(TARGETS rpa_lib

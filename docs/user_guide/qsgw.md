@@ -8,7 +8,7 @@ are not implemented. Only same-grid analytic head correction is supported;
 independent-grid head updates and wing updates are rejected.
 
 QSGW reuses the G0W0 input readers and EXX/Sigma kernels. Task-specific input
-and output live in `driver/qsgw`; numerical operations in `src/qsgw` accept
+and output live in `driver/qsgw`; numerical operations in `src/core/qsgw` accept
 matrices and mean-field objects.
 
 ## Vxc input

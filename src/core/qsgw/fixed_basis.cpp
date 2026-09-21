@@ -1,6 +1,6 @@
 #include "fixed_basis.h"
 
-#include "../math/utils_matrix_mpi.h"
+#include "../../math/utils_matrix_mpi.h"
 
 #include <algorithm>
 #include <cmath>

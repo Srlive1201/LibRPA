@@ -2,7 +2,7 @@
 
 #include "matrix_map.h"
 
-#include "../core/meanfield.h"
+#include "../meanfield.h"
 
 namespace librpa_int
 {

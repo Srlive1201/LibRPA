@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../core/meanfield.h"
+#include "../meanfield.h"
 
 #include <vector>
 

@@ -2,9 +2,9 @@
 
 #include "matrix_map.h"
 
-#include "../core/meanfield.h"
-#include "../math/complexmatrix.h"
-#include "../mpi/base_mpi.h"
+#include "../meanfield.h"
+#include "../../math/complexmatrix.h"
+#include "../../mpi/base_mpi.h"
 
 #include <map>
 #include <vector>

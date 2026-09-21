@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../../src/qsgw/matrix_map.h"
-#include "../../src/qsgw/vxc_projection.h"
+#include "../../src/core/qsgw/matrix_map.h"
+#include "../../src/core/qsgw/vxc_projection.h"
 
 #include <string>
 

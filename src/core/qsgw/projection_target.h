@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../core/meanfield.h"
-#include "../math/vector3_order.h"
+#include "../meanfield.h"
+#include "../../math/vector3_order.h"
 
 #include <string>
 #include <vector>

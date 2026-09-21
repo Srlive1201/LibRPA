@@ -1,9 +1,12 @@
 #include "utils_matrix_mpi.h"
 
-#include "../utils/base_utility.h"
-#include "complexmatrix.h"
 #include <cassert>
 #include <complex>
+#include <stdexcept>
+
+#include "../utils/base_utility.h"
+#include "complexmatrix.h"
+#include "scalapack_connector.h"
 
 namespace librpa_int
 {
@@ -72,6 +75,47 @@ void broadcast_ComplexMatrix(ComplexMatrix &cmat, int root, MPI_Comm mpi_comm)
 
     size_t count = as_size(dims[0]) * as_size(dims[1]);
     MPI_Bcast(cmat.c, count, mpi_datatype<std::complex<double>>::value, root, mpi_comm);
+}
+
+Matz collect_blacs_matrix_root(const Matz &local, const ArrayDesc &distributed_descriptor)
+{
+    if (!distributed_descriptor.is_initialized())
+    {
+        throw std::invalid_argument("Distributed matrix descriptor is not initialized");
+    }
+    if (distributed_descriptor.m() <= 0 || distributed_descriptor.n() <= 0)
+    {
+        throw std::invalid_argument("Distributed matrix must have positive global dimensions");
+    }
+    if (local.major() != MAJOR::COL)
+    {
+        throw std::invalid_argument("Distributed matrix must use column-major local storage");
+    }
+    if (local.nr() != distributed_descriptor.m_loc() ||
+        local.nc() != distributed_descriptor.n_loc())
+    {
+        throw std::invalid_argument("Local matrix shape does not match its BLACS descriptor");
+    }
+
+    ArrayDesc root_descriptor(distributed_descriptor.ictxt());
+    root_descriptor.init(distributed_descriptor.m(), distributed_descriptor.n(),
+                         distributed_descriptor.m(), distributed_descriptor.n(),
+                         distributed_descriptor.irsrc(), distributed_descriptor.icsrc());
+
+    Matz source_dummy(1, 1, MAJOR::COL);
+    const cplxdb *source = local.nr() > 0 && local.nc() > 0 ? local.ptr() : source_dummy.ptr();
+    Matz transfer_buffer = root_descriptor.is_src() ? Matz(distributed_descriptor.m(),
+                                                           distributed_descriptor.n(), MAJOR::COL)
+                                                    : Matz(1, 1, MAJOR::COL);
+    ScalapackConnector::pgemr2d_f(distributed_descriptor.m(), distributed_descriptor.n(), source, 1,
+                                  1, distributed_descriptor.desc, transfer_buffer.ptr(), 1, 1,
+                                  root_descriptor.desc, distributed_descriptor.ictxt());
+
+    if (root_descriptor.is_src())
+    {
+        return transfer_buffer;
+    }
+    return Matz(0, 0, MAJOR::COL);
 }
 
 } /* end of namespace librpa_int */

@@ -71,6 +71,7 @@ overhead while keeping essential results and the timing report visible.
 |-- src               : Source code for the library target
 |   |-- api           : Public API implementation and handler/dataset glue
 |   |-- core          : Physics objects and algorithms: basis, RPA, EXX, GW, symmetry
+|   |   `-- qsgw      : Fixed-basis QSGW numerical operations
 |   |-- elpa          : ELPA eigensolver integration
 |   |-- gpu           : Optional CUDA/HIP device and linear-algebra adapters
 |   |-- interface     : Thin interfaces to external codes, e.g. BLAS, LAPACK, and ScaLAPACK 

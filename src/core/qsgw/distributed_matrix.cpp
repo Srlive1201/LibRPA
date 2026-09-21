@@ -1,7 +1,5 @@
 #include "distributed_matrix.h"
 
-#include "../math/scalapack_connector.h"
-
 #include <cmath>
 #include <limits>
 #include <stdexcept>
@@ -11,61 +9,6 @@ namespace librpa_int
 {
 namespace qsgw
 {
-
-Matz collect_blacs_matrix_root(const Matz& local,
-                               const ArrayDesc& distributed_descriptor)
-{
-    if (!distributed_descriptor.is_initialized())
-    {
-        throw std::invalid_argument(
-            "QSGW distributed matrix descriptor is not initialized");
-    }
-    if (distributed_descriptor.m() <= 0 ||
-        distributed_descriptor.n() <= 0)
-    {
-        throw std::invalid_argument(
-            "QSGW distributed matrix must have positive global dimensions");
-    }
-    if (local.major() != MAJOR::COL)
-    {
-        throw std::invalid_argument(
-            "QSGW distributed matrix must use column-major local storage");
-    }
-    if (local.nr() != distributed_descriptor.m_loc() ||
-        local.nc() != distributed_descriptor.n_loc())
-    {
-        throw std::invalid_argument(
-            "QSGW local matrix shape does not match its BLACS descriptor");
-    }
-
-    ArrayDesc root_descriptor(distributed_descriptor.ictxt());
-    root_descriptor.init(distributed_descriptor.m(),
-                         distributed_descriptor.n(),
-                         distributed_descriptor.m(),
-                         distributed_descriptor.n(),
-                         distributed_descriptor.irsrc(),
-                         distributed_descriptor.icsrc());
-
-    Matz source_dummy(1, 1, MAJOR::COL);
-    const cplxdb* source = local.nr() > 0 && local.nc() > 0
-                                ? local.ptr()
-                                : source_dummy.ptr();
-    Matz transfer_buffer = root_descriptor.is_src()
-                               ? Matz(distributed_descriptor.m(),
-                                      distributed_descriptor.n(), MAJOR::COL)
-                               : Matz(1, 1, MAJOR::COL);
-    ScalapackConnector::pgemr2d_f(
-        distributed_descriptor.m(), distributed_descriptor.n(),
-        source, 1, 1, distributed_descriptor.desc,
-        transfer_buffer.ptr(), 1, 1, root_descriptor.desc,
-        distributed_descriptor.ictxt());
-
-    if (root_descriptor.is_src())
-    {
-        return transfer_buffer;
-    }
-    return Matz(0, 0, MAJOR::COL);
-}
 
 void broadcast_spin_k_matrix_map(SpinKMatrixMap& values,
                                  const int root,

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../math/matrix_m.h"
-#include "../math/vector3_order.h"
+#include "../../math/matrix_m.h"
+#include "../../math/vector3_order.h"
 
 #include <map>
 

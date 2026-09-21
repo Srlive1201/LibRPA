@@ -1,6 +1,6 @@
 #include "correlation_potential.h"
 
-#include "../core/analycont.h"
+#include "../analycont.h"
 
 #include <cmath>
 #include <stdexcept>
