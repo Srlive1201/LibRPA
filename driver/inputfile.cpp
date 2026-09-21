@@ -493,6 +493,7 @@ void parse_inputfile_to_params(const std::string &fn)
         if (flag == 0) opts.output_gw_sigc_ks_mat_kf = get_switch(btmp);
     }
     _parse_switch(opts, output_exx_ks_mat_k);
+    _parse_switch(opts, output_exx_mat_k);
     _parse_int(opts, istate_output_mat_start);
     _parse_int(opts, istate_output_mat_end);
     if (opts.istate_output_mat_start < 0)

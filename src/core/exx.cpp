@@ -231,6 +231,19 @@ class OutputOnlyFilter_Atom_Symmetry : public RI::Filter_Atom<TA, std::pair<TA, 
 };
 #endif
 
+static void write_exx_nao_k_matrix(const Matz &mat, const ArrayDesc &desc,
+                                   const std::string &output_dir, const std::string &source,
+                                   const int ispin, const int ispinor_bra, const int ispinor_ket,
+                                   const int n_spinor, const int ik)
+{
+    std::ostringstream ss;
+    ss << path_as_directory(output_dir) << "ExxK_" << source << "_ispin_" << ispin;
+    if (n_spinor > 1) ss << "_spinor_" << ispinor_bra << "_" << ispinor_ket;
+    ss << "_ik_" << ik << ".mtx";
+    // The internal NAO matrix carries the opposite sign; KS rotation applies -1.
+    print_matrix_mm_file_parallel(ss.str(), mat * (-1.0), desc, "EXX in Hartree", 1e-10);
+}
+
 Exx::Exx(const MeanField &mf_in, const AtomicBasis &atbasis_wfc_in,
          const PeriodicBoundaryData &pbc_in, const SymmetryContext &symmetry_context_in,
          const KPointBlacsParallelContext &kblacs_ctxt_in,
@@ -1087,7 +1100,7 @@ void Exx::build_KS_blacs(const std::map<int, std::map<int, std::map<int, Complex
                          const AtomPairBvKRemap<atom_t> &bvk_remap,
                          const BlacsCtxtHandler &blacs_ctxt_h,
                          bool use_gpu_replace_scalapack,
-                         bool target_is_band_path)
+                         const std::string &source)
 {
     using RI::Communicate_Tensors_Map_Judge::comm_map2;
     using RI::Communicate_Tensors_Map_Judge::comm_map2_first;
@@ -1111,6 +1124,7 @@ void Exx::build_KS_blacs(const std::map<int, std::map<int, std::map<int, Complex
     const bool use_complex_exx_r = n_spinor > 1 ? true : false;
     const int n_target_kpoints = static_cast<int>(kfrac_target.size());
     const bool use_klocal_rotation = is_mf_eigvec_k_distributed_;
+    const bool target_is_band_path = source.rfind("band_", 0) == 0;
     const KPointBlacsParallelContext &target_kblacs_ctxt =
         target_is_band_path ? band_kblacs_ctxt : kblacs_ctxt;
     if (use_klocal_rotation)
@@ -1562,6 +1576,10 @@ void Exx::build_KS_blacs(const std::map<int, std::map<int, std::map<int, Complex
                             complex<double>{1.0, 0.0}, exx_I_Jik);
                         global::profiler.stop("build_real_space_exx_6");
 
+                        if (output_exx_mat_k)
+                            write_exx_nao_k_matrix(Hexx_nao_nao, desc_nao_nao, output_dir,
+                                                  source, isp, ispn_bra, ispn_ket, n_spinor, ik);
+
                         global::profiler.start("build_real_space_exx_7", "Rotate Hexx ij -> KS");
                         ScalapackConnector::pgemr2d_f(n_aos, n_aos,
                                                       Hexx_nao_nao.ptr(), 1, 1, desc_nao_nao.desc,
@@ -1699,6 +1717,9 @@ void Exx::build_KS_blacs(const std::map<int, std::map<int, std::map<int, Complex
                                     this->atbasis_wfc, this->atbasis_wfc, fourier, exx_is_local);
                         global::profiler.stop("build_real_space_exx_6");
                         // global::lib_printf("%s\n", str(Hexx_nao_nao).c_str());
+                        if (output_exx_mat_k)
+                            write_exx_nao_k_matrix(Hexx_nao_nao, desc_nao_nao, output_dir,
+                                                  source, isp, ispn_bra, ispn_ket, n_spinor, ik);
                         if (use_root_dense_projection)
                         {
                             global::profiler.start(
@@ -1865,7 +1886,7 @@ void Exx::build_KS_kgrid_blacs(const BlacsCtxtHandler &blacs_ctxt_h,
                               bool use_gpu_replace_scalapack)
 {
     this->build_KS_blacs(this->mf.get_eigenvectors(), this->pbc.kfrac_list, {}, blacs_ctxt_h,
-                         use_gpu_replace_scalapack, false);
+                         use_gpu_replace_scalapack, "kgrid");
 }
 
 // void Exx::build_KS0_kgrid_blacs()
@@ -1877,10 +1898,11 @@ void Exx::build_KS_band_blacs(const std::map<int, std::map<int, std::map<int, Co
                               const std::vector<Vector3_Order<double>> &kfrac_band,
                               const AtomPairBvKRemap<atom_t> &bvk_remap,
                               const BlacsCtxtHandler &blacs_ctxt_h,
-                              bool use_gpu_replace_scalapack)
+                              bool use_gpu_replace_scalapack,
+                              const int band_index)
 {
     this->build_KS_blacs(wfc_band, kfrac_band, bvk_remap, blacs_ctxt_h,
-                         use_gpu_replace_scalapack, true);
+                         use_gpu_replace_scalapack, "band_" + std::to_string(band_index));
 }
 
 void Exx::write_exx_matrices_KS_binary(const std::string &output_dir,

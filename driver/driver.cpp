@@ -301,6 +301,7 @@ std::string format_runtime_options(const librpa::Options &opts) noexcept
             bool_pair(output_gw_sigc_ks_kf),
             bool_pair(output_gw_sigc_ks_mat_kf),
             bool_pair(output_exx_ks_mat_k),
+            bool_pair(output_exx_mat_k),
             bool_pair(output_gw_sigc_mat_kf),
             bool_pair(output_gw_sigc_mat_rf),
             bool_pair(output_gw_sigc_mat_rt),

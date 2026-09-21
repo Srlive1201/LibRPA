@@ -276,7 +276,8 @@ void librpa_get_exx_pot_band_k(LibrpaHandler *h, const LibrpaOptions *p_opts, co
             pds->redistribute_band_eigvecs_kpara_2d();
         }
         pexx->build_KS_band_blacs(pds->mf_band.get_eigenvectors(), pds->kfrac_band_list,
-                                  bvk_remap, pds->blacs_h, opts.use_gpu_replace_scalapack);
+                                  bvk_remap, pds->blacs_h, opts.use_gpu_replace_scalapack,
+                                  pds->band_data_id);
         pds->is_band_calc_done = true;
     }
     if (opts.output_exx_ks_mat_k == LIBRPA_SWITCH_ON)

@@ -138,6 +138,7 @@ void librpa_init_options(LibrpaOptions *opts)
     opts->output_gw_sigc_ks_kf = LIBRPA_SWITCH_OFF;
     opts->output_gw_sigc_ks_mat_kf = LIBRPA_SWITCH_OFF;
     opts->output_exx_ks_mat_k = LIBRPA_SWITCH_OFF;
+    opts->output_exx_mat_k = LIBRPA_SWITCH_OFF;
     opts->istate_output_mat_start = 0;
     opts->istate_output_mat_end = -1;
     opts->output_gw_sigc_mat_kf = LIBRPA_SWITCH_OFF;

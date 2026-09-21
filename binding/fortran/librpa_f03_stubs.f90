@@ -266,6 +266,8 @@ module librpa_f03
       logical :: output_gw_sigc_ks_mat_kf
       !> Experimental: output the exact-exchange matrix in the KS basis and k-space.
       logical :: output_exx_ks_mat_k
+      !> Experimental: output the NAO-basis exact-exchange matrix in k-space as Matrix Market files.
+      logical :: output_exx_mat_k
       !> First zero-based KS state included when exporting KS-basis matrices.
       integer :: istate_output_mat_start
       !> Half-open KS-basis matrix export end index; negative means all remaining states.
@@ -423,6 +425,7 @@ contains
    end subroutine librpa_finalize_global
 
    !> @brief Set global LibRPA stdout verbosity.
+   !> @param[in] output_level Verbosity level.
    subroutine librpa_set_output_level(output_level)
       implicit none
       integer, intent(in) :: output_level
@@ -430,6 +433,7 @@ contains
    end subroutine librpa_set_output_level
 
    !> @brief Get global LibRPA stdout verbosity.
+   !> @return Current verbosity level.
    integer function librpa_get_output_level() result(output_level)
       implicit none
       output_level = -1
@@ -575,6 +579,8 @@ contains
    !> @param[in,out] this     Handler.
    !> @param[in]     natoms   Number of atoms.
    !> @param[in]     nbs_wfc  Number of wave-function basis functions on each atom.
+   !> @param[in]     nshells  Optional number of angular shells on each atom.
+   !> @param[in]     l_shells Optional concatenated angular momenta, grouped by atom.
    subroutine librpa_set_ao_basis_wfc(this, natoms, nbs_wfc, nshells, l_shells)
       implicit none
       class(LibrpaHandler), intent(inout) :: this
@@ -590,6 +596,8 @@ contains
    !> @param[in,out] this     Handler.
    !> @param[in]     natoms   Number of atoms.
    !> @param[in]     nbs_aux  Number of auxiliary basis functions on each atom.
+   !> @param[in]     nshells  Optional number of angular shells on each atom.
+   !> @param[in]     l_shells Optional concatenated angular momenta, grouped by atom.
    subroutine librpa_set_ao_basis_aux(this, natoms, nbs_aux, nshells, l_shells)
       implicit none
       class(LibrpaHandler), intent(inout) :: this
@@ -605,6 +613,8 @@ contains
    !> @param[in,out] this            Handler.
    !> @param[in]     natoms          Number of atoms.
    !> @param[in]     nbs_aux_shrink  Number of shrink auxiliary basis functions on each atom.
+   !> @param[in]     nshells         Optional number of angular shells on each atom.
+   !> @param[in]     l_shells        Optional concatenated angular momenta, grouped by atom.
    subroutine librpa_set_ao_basis_aux_shrink(this, natoms, nbs_aux_shrink, nshells, l_shells)
       implicit none
       class(LibrpaHandler), intent(inout) :: this

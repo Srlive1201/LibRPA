@@ -542,6 +542,18 @@ typedef struct
     //! Experimental
     LibrpaSwitch output_exx_ks_mat_k;
 
+    //! Output exact-exchange matrix in NAO basis and k-space as Matrix Market files.
+    //! Files in output_dir are named ExxK_kgrid_ispin_S_ik_K.mtx or
+    //! ExxK_band_B_ispin_S_ik_K.mtx, with zero-based indices. Spinor blocks
+    //! include _spinor_BRA_KET before _ik. Values are in Hartree and include
+    //! the exchange minus sign. All NAOs are exported, independently of the
+    //! KS-state output range, when the k-space EXX potential is constructed.
+    //! @par Default
+    //! false
+    //! @par Status
+    //! Experimental
+    LibrpaSwitch output_exx_mat_k;
+
     //! First zero-based KS state included in both dimensions when exporting the
     //! KS-basis exact-exchange and correlation self-energy matrices. Matrix
     //! construction is unaffected.

@@ -33,7 +33,7 @@ class Exx
             const AtomPairBvKRemap<atom_t> &bvk_remap,
             const BlacsCtxtHandler &blacs_ctxt_h,
             bool use_gpu_replace_scalapack = false,
-            bool target_is_band_path = false);
+            const std::string &source = "kgrid");
 
     public:
         //! refenrence to the MeanField object to compute density matrix
@@ -53,6 +53,9 @@ class Exx
         double libri_threshold_C;
         double libri_threshold_V;
         double libri_threshold_D;
+
+        std::string output_dir;
+        bool output_exx_mat_k = false;
 
         //! exact-exchange Hamiltonian in real space, dimension (nspins, nspinors, nspinors, I, J, R, nao_I, nao_J)
         std::map<int, std::map<int, std::map<int, std::map<atom_t, std::map<atom_t, std::map<Vector3_Order<int>, Matd>>>>>> exx_IJR;
@@ -92,7 +95,8 @@ class Exx
                                  const std::vector<Vector3_Order<double>> &kfrac_band,
                                  const AtomPairBvKRemap<atom_t> &bvk_remap,
                                  const BlacsCtxtHandler &blacs_ctxt_h,
-                                 bool use_gpu_replace_scalapack = false);
+                                 bool use_gpu_replace_scalapack = false,
+                                 int band_index = 0);
         void write_exx_matrices_KS_binary(const std::string &output_dir,
                                           const std::string &source,
                                           int istate_start,

@@ -198,6 +198,7 @@ blocks:
       - api.output_gw_sigc_ks_kf
       - api.output_gw_sigc_ks_mat_kf
       - api.output_exx_ks_mat_k
+      - api.output_exx_mat_k
       - api.istate_output_mat_start
       - api.istate_output_mat_end
       - api.output_gw_sigc_mat_kf

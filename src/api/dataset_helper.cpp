@@ -244,6 +244,8 @@ void initialize_ds_exx(Dataset &ds, const LibrpaOptions &opts)
     ds.p_exx->libri_threshold_C = opts.libri_exx_threshold_C;
     ds.p_exx->libri_threshold_D = opts.libri_exx_threshold_D;
     ds.p_exx->libri_threshold_V = opts.libri_exx_threshold_V;
+    ds.p_exx->output_dir = opts.output_dir;
+    ds.p_exx->output_exx_mat_k = opts.output_exx_mat_k == LIBRPA_SWITCH_ON;
     global::profiler.stop("initialize_ds_exx");
 }
 
