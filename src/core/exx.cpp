@@ -14,7 +14,7 @@
 
 #include "../io/fs.h"
 #include "../io/global_io.h"
-#include "../io/output_gw.h"
+#include "../io/output_matrix.h"
 #include "../io/stl_io_helper.h"
 #include "../math/lapack_connector.h"
 #include "../math/utils_matrix_m_mpi.h"
@@ -1936,9 +1936,9 @@ void Exx::write_exx_matrices_KS_binary(const std::string &output_dir,
             std::snprintf(fn, sizeof(fn),
                           "Exx_k_mn_%s_ispin_%d_ik_%d.bin",
                           source.c_str(), ispin, ik);
-            write_ks_matrix_binary_parallel(
-                *exx_local, desc_exx_KS, istate_start, istate_end,
-                path_as_directory(output_dir) + fn);
+            write_matrix_binary_parallel(
+                *exx_local, desc_exx_KS, path_as_directory(output_dir) + fn,
+                istate_start, istate_end);
         }
     }
 }

@@ -21,6 +21,7 @@
 #include "../io/fs.h"
 #include "../io/global_io.h"
 #include "../io/output_gw.h"
+#include "../io/output_matrix.h"
 #include "../io/stl_io_helper.h"
 // #include "../math/utils_matrix_m.h"
 #include "../math/utils_matrix_m_mpi.h"
@@ -917,10 +918,10 @@ void G0W0::write_sigc_matrices_KS_binary(const std::string &output_dir,
                 const auto ifreq = tfg.get_freq_index(freq_sigc.first);
                 std::snprintf(fn, sizeof(fn), "Sigc_fk_mn_%s_ispin_%d_ik_%d_ifreq_%d.bin",
                               source.c_str(), ispin, ik, ifreq);
-                write_ks_matrix_binary_parallel(
+                write_matrix_binary_parallel(
                     freq_sigc.second, desc_sigc_is_ik_f_KS,
-                    istate_output_mat_start, istate_end,
-                    path_as_directory(output_dir) + fn);
+                    path_as_directory(output_dir) + fn,
+                    istate_output_mat_start, istate_end);
             }
         }
     }

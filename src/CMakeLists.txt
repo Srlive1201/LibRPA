@@ -135,6 +135,7 @@ list(APPEND lib_sources
         io/global_io.cpp
         io/input_elsi.cpp
         io/output_gw.cpp
+        io/output_matrix.cpp
 
         interface/gx_minimax_wrp.f90
 

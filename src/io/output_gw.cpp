@@ -1,7 +1,6 @@
 #include "output_gw.h"
 
 #include <algorithm>
-#include <cstdint>
 #include <fstream>
 #include <iomanip>
 #include <numeric>
@@ -12,61 +11,6 @@
 
 namespace librpa_int
 {
-
-static void write_ks_matrix_binary(const Matz &mat, const std::string &fn)
-{
-    const std::int32_t n_states = mat.nr();
-    const std::int32_t type_bytes = sizeof(double);
-    if (mat.nr() != mat.nc())
-        throw LIBRPA_RUNTIME_ERROR("KS matrix output expects a square matrix");
-
-    std::ofstream ofs(fn, std::ios::binary);
-    if (!ofs)
-        throw LIBRPA_RUNTIME_ERROR("failed to open KS matrix output file: " + fn);
-
-    ofs.write(reinterpret_cast<const char *>(&n_states), sizeof(n_states));
-    ofs.write(reinterpret_cast<const char *>(&type_bytes), sizeof(type_bytes));
-    for (int i = 0; i != mat.nr(); ++i)
-    {
-        for (int j = 0; j != mat.nc(); ++j)
-        {
-            const auto v = mat(i, j);
-            const double re = v.real();
-            const double im = v.imag();
-            ofs.write(reinterpret_cast<const char *>(&re), sizeof(re));
-            ofs.write(reinterpret_cast<const char *>(&im), sizeof(im));
-        }
-    }
-}
-
-void write_ks_matrix_binary_parallel(const Matz &mat_loc, const ArrayDesc &desc,
-                                     const int istate_start, const int istate_end,
-                                     const std::string &fn)
-{
-    if (!desc.is_initialized())
-        throw LIBRPA_RUNTIME_ERROR("KS matrix output descriptor is not initialized");
-    if (mat_loc.nr() != desc.m_loc() || mat_loc.nc() != desc.n_loc())
-        throw LIBRPA_RUNTIME_ERROR("KS matrix local block does not match its descriptor");
-    if (istate_start < 0)
-        throw LIBRPA_RUNTIME_ERROR("istate_output_mat_start must be non-negative");
-    if (istate_start >= istate_end)
-        throw LIBRPA_RUNTIME_ERROR(
-            "istate_output_mat_end must be greater than istate_output_mat_start");
-    if (istate_end > desc.m() || istate_end > desc.n())
-        throw LIBRPA_RUNTIME_ERROR("istate_output_mat_end exceeds the KS matrix dimensions");
-
-    ArrayDesc desc_full(desc.ictxt());
-    const int n_states = istate_end - istate_start;
-    desc_full.init(n_states, n_states, n_states, n_states, desc.irsrc(), desc.icsrc());
-    Matz mat_full(desc_full.m_loc(), desc_full.n_loc(), mat_loc.major());
-    ScalapackConnector::pgemr2d_f(
-        n_states, n_states,
-        mat_loc.ptr(), istate_start + 1, istate_start + 1, desc.desc,
-        mat_full.ptr(), 1, 1, desc_full.desc, desc.ictxt());
-    if (desc_full.is_src())
-        write_ks_matrix_binary(mat_full, fn);
-    desc.barrier();
-}
 
 void write_self_energy_omega(const char *fn, const G0W0 &s_g0w0,
                              const std::vector<int> &iks, const int n_bands)
