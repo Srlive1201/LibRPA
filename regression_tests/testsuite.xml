@@ -78,6 +78,7 @@
 
   <group name="Exact-exchange (EXX) potentials" prefix="EXX">
     <testcase name="BCC He, with eigenvector parallelized over k (aims input)" directory="exx_aims_bccHe_k_parallel_libri">
+      <labels refhash="7beb910a6b5d92b0c5e8d842bf1916a231b5a1dc" />
       <build require_libri="true"
       />
       <validate name="EXX potential on k-grid"
@@ -85,6 +86,11 @@
                 headers="1"
                 rows="8"
                 comparison="cmp_table.abs_diff(1e-4)"
+      />
+      <validate name="EXX NAO matrices on k-grid (Ha)"
+                file="librpa/librpa.d/ExxK_kgrid_ispin_*_ik_*.bin"
+                binary_extract="2i(128d)"
+                comparison="cmp_float.abs_diff(1e-8)"
       />
     </testcase>
 

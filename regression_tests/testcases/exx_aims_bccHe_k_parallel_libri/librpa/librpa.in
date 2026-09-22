@@ -4,3 +4,4 @@ input_dir = ../dataset
 # API runtime
 parallel_routing = libri
 use_kpara_scf_eigvec = t
+output_exx_mat_k = t
