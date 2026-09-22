@@ -1,12 +1,14 @@
 import pathlib
 import re
 import importlib
+import struct
 from typing import Tuple
 
 
-def _extract_plain(directory: str, file: str,
-                   regex: re.Pattern, headers: int, rows: int, occurences: Tuple[int, int, int]):
-    """Extract plain text data"""
+def _extract_files(directory: str, file: str,
+                   regex: re.Pattern, headers: int, rows: int, occurences: Tuple[int, int, int],
+                   binary_extract=None):
+    """Extract text selections or decode binary values."""
     raw = {}
     d = pathlib.Path(directory)
     matches = list(d.glob(file))
@@ -20,6 +22,12 @@ def _extract_plain(directory: str, file: str,
         rela = f.relative_to(d)
         if canonical_prefix is not None:
             rela = canonical_prefix / f.name
+        if binary_extract is not None:
+            try:
+                raw[rela] = binary_extract(f.read_bytes())
+            except struct.error as exc:
+                raise ValueError("invalid binary data in {}: {}".format(f, exc)) from exc
+            continue
         with open(f, 'r') as h:
             lines = h.readlines()
         # When regex is None, treat the whole file as necessary data
@@ -94,7 +102,57 @@ def _import_comparison(comparison: str):
 
 
 def _import_binary_extract(binary_extract: str):
-    return None
+    """Compile a binary layout into a numeric data extractor.
+
+    Numeric struct codes bBhHiIlLqQefd? and padding x accept repeat counts.
+    Without parentheses, all values are returned: 2i128d yields two integers
+    and 128 doubles. With parentheses, only grouped values are returned:
+    2i(128d) yields 128 doubles; 2i(128d)2i(128d) yields 256 doubles in file order.
+    Groups must be nonempty and cannot be nested. Unselected fields still
+    contribute to the layout; padding never produces values.
+
+    The default prefix is = (native byte order, standard sizes, no alignment
+    padding). Explicit @, =, <, >, and ! prefixes retain their struct meanings.
+    Whitespace is ignored. Decoding requires an exact file-size match.
+
+    Args:
+        binary_extract: Numeric struct layout with optional parenthesized
+            selections, or None to use plain-text extraction.
+
+    Returns:
+        A callable accepting bytes and returning selected numeric values as a
+        list, or None. The callable raises struct.error for a size mismatch.
+
+    Raises:
+        ValueError: The layout contains unsupported codes or invalid groups.
+        struct.error: The resulting struct format cannot be compiled.
+    """
+    if binary_extract is None:
+        return None
+    layout = re.sub(r"\s+", "", binary_extract)
+    byte_order = "="
+    if layout and layout[0] in "@=<>!":
+        byte_order, layout = layout[0], layout[1:]
+    field = r"\d*[bBhHiIlLqQefd?x]"
+    if not re.fullmatch(r"(?:" + field + r"|\((?:" + field + r")+\))+", layout):
+        raise ValueError("invalid binary_extract layout: {}".format(binary_extract))
+    selected, index = [], 0
+    include = "(" not in layout
+    for token in re.findall(field + r"|[()]", layout):
+        if token in ("(", ")"):
+            include = token == "("
+        elif token[-1] != "x":
+            count = int(token[:-1]) if token[:-1] else 1
+            if include:
+                selected.extend(range(index, index + count))
+            index += count
+    unpacker = struct.Struct(byte_order + layout.replace("(", "").replace(")", ""))
+
+    def extract(data):
+        values = unpacker.unpack(data)
+        return [values[index] for index in selected]
+
+    return extract
 
 
 def _process_rows(rows: str):
@@ -143,6 +201,36 @@ class Validate():
     def __init__(self, name: str, file: str, comparison: str, headers: str, rows: str,
                  regex: str, occurences: str, binary_extract: str,
                  file_test: str = None, file_refr: str = None):
+        """Configure file matching, data extraction, and comparison.
+
+        Args:
+            name: Display name of this validation entry.
+            file: Common glob pattern relative to the test and reference
+                directories.
+            comparison: Comparison function specification, including optional
+                arguments, such as "cmp_float.abs_diff(1e-8)".
+            headers: Number of text lines to skip from a regex match, or from
+                the start of a file when regex is None. Defaults to zero.
+            rows: Number of lines to extract from a regex match. Without regex,
+                this is the exclusive ending line index. None selects matched
+                capture groups or the remaining file, respectively.
+            regex: Pattern locating text data, or None to select the whole file.
+            occurences: Zero-based match selector, such as "0" or "0:3";
+                range endpoints are inclusive. None selects all matches.
+            binary_extract: Binary layout, or None for text extraction. See
+                _import_binary_extract for syntax and selection rules. When
+                provided, regex, headers, rows, and occurences are not used
+                to extract data.
+            file_test: Optional test-file pattern overriding file.
+            file_refr: Optional reference-file pattern overriding file.
+
+        Raises:
+            ImportError: The comparison module cannot be imported.
+            ValueError: A numeric option, occurrence selector, or binary
+                layout is invalid.
+            re.error: The regular expression is invalid.
+            struct.error: The binary struct format cannot be compiled.
+        """
         self._name = name
         self._file_test = file_test if file_test is not None else file
         self._file_refr = file_refr if file_refr is not None else file
@@ -155,12 +243,13 @@ class Validate():
         self._binary_extract = _import_binary_extract(binary_extract)
 
     def evaluate(self, dir_test, dir_refr):
-        if self._binary_extract is None:
-            test = _extract_plain(dir_test, self._file_test, self._regex, self._headers, self._rows, self._occurences)
-            refr = _extract_plain(dir_refr, self._file_refr, self._regex, self._headers, self._rows, self._occurences)
-        else:
-            test = self._binary_extract(dir_test, self._file_test)
-            refr = self._binary_extract(dir_refr, self._file_refr)
+        try:
+            test = _extract_files(dir_test, self._file_test, self._regex, self._headers,
+                                  self._rows, self._occurences, self._binary_extract)
+            refr = _extract_files(dir_refr, self._file_refr, self._regex, self._headers,
+                                  self._rows, self._occurences, self._binary_extract)
+        except ValueError as exc:
+            return False, str(exc)
 
         test, refr = _align_extracted_files(test, refr, self._align_files)
 

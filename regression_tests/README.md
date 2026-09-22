@@ -206,8 +206,9 @@ Useful `<validate>` attributes:
   `cmp_table.abs_diff(1e-4)` for numeric tables. Table comparisons also accept
   a `columns` argument, for example
   `cmp_table.abs_diff(1e-4, columns="3:8")`.
-- `binary_extract`: reserved for binary-output extractors. Plain-text output is
-  used when this attribute is omitted.
+- `binary_extract`: numeric `struct` layout; for example, `binary_extract="2i(128d)"`
+  reads two integers and 128 doubles, selecting only the doubles for comparison.
+  Plain-text extraction is used when omitted.
 
 ## Reference update guidelines
 
