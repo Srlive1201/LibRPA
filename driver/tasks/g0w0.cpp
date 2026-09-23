@@ -794,20 +794,25 @@ void driver::task_g0w0()
                 }
             }
 
+            std::vector<librpa_int::Vector3_Order<double>> kfrac_energy_qp;
+            std::vector<int> output_to_input_kpoint;
+            if (output_full_kgrid_from_symmetry)
+            {
+                kfrac_energy_qp.reserve(full_k_members.size());
+                output_to_input_kpoint.reserve(full_k_members.size());
+                for (const auto &member : full_k_members)
+                {
+                    kfrac_energy_qp.push_back(member.k_bz);
+                    output_to_input_kpoint.push_back(member.ik_ibz);
+                }
+            }
+            lib_printf(result_output_level, "Band analysis on the k-grid\n");
+            print_band_analysis(
+                mf, output_full_kgrid_from_symmetry ? kfrac_energy_qp : kfrac_list,
+                output_to_input_kpoint, vxc, vexx_all, sigc_all, i_state_low, n_states_calc);
+
             if (driver_params.output_energy_qp)
             {
-                std::vector<librpa_int::Vector3_Order<double>> kfrac_energy_qp;
-                std::vector<int> output_to_input_kpoint;
-                if (output_full_kgrid_from_symmetry)
-                {
-                    kfrac_energy_qp.reserve(full_k_members.size());
-                    output_to_input_kpoint.reserve(full_k_members.size());
-                    for (const auto &member : full_k_members)
-                    {
-                        kfrac_energy_qp.push_back(member.k_bz);
-                        output_to_input_kpoint.push_back(member.ik_ibz);
-                    }
-                }
                 write_energy_qp(
                     mf, output_full_kgrid_from_symmetry ? kfrac_energy_qp : kfrac_list,
                     output_to_input_kpoint, vxc, vexx_all, sigc_all, n_kpoints, i_state_low,
@@ -1043,6 +1048,12 @@ void driver::task_g0w0()
                 }
             }
         }
+    }
+    if (myid_global == 0)
+    {
+        lib_printf(LIBRPA_VERBOSE_CRITICAL, "Band analysis along the k-path\n");
+        print_band_analysis(mf_band, kfrac_band, {}, vxc_band_all, vexx_band_all,
+                            sigc_band_all, i_state_low_band, n_states_band_calc);
     }
     profiler.stop("output_g0w0_band");
 
