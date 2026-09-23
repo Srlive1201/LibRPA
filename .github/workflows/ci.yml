@@ -1,6 +1,8 @@
 name: Build and run unittest with Intel oneAPI
 on:
   push:
+    branches:
+      - '**'
   pull_request:
 
 # oneapi install adapted from the build_linux_apt_cpp of
