@@ -276,11 +276,11 @@ Initial tagged snapshot.
 - Corrected early Green-function, response, spin, and distributed RPA-energy
   calculations.
 
-[Unreleased]: https://github.com/Srlive1201/LibRPA/compare/v0.8.0...HEAD
-[0.8.0]: https://github.com/Srlive1201/LibRPA/compare/v0.7.0...v0.8.0
-[0.7.0]: https://github.com/Srlive1201/LibRPA/compare/v0.6.0...v0.7.0
-[0.6.0]: https://github.com/Srlive1201/LibRPA/compare/v0.5.0...v0.6.0
-[0.5.0]: https://github.com/Srlive1201/LibRPA/compare/v0.4.0-gw-benchmark...v0.5.0
-[0.4.0-gw-benchmark]: https://github.com/Srlive1201/LibRPA/compare/v0.3.0...v0.4.0-gw-benchmark
-[0.3.0]: https://github.com/Srlive1201/LibRPA/compare/v0.01...v0.3.0
-[0.01]: https://github.com/Srlive1201/LibRPA/releases/tag/v0.01
+[Unreleased]: https://github.com/AESM-Group/LibRPA/compare/v0.8.0...HEAD
+[0.8.0]: https://github.com/AESM-Group/LibRPA/compare/v0.7.0...v0.8.0
+[0.7.0]: https://github.com/AESM-Group/LibRPA/compare/v0.6.0...v0.7.0
+[0.6.0]: https://github.com/AESM-Group/LibRPA/compare/v0.5.0...v0.6.0
+[0.5.0]: https://github.com/AESM-Group/LibRPA/compare/v0.4.0-gw-benchmark...v0.5.0
+[0.4.0-gw-benchmark]: https://github.com/AESM-Group/LibRPA/compare/v0.3.0...v0.4.0-gw-benchmark
+[0.3.0]: https://github.com/AESM-Group/LibRPA/compare/v0.01...v0.3.0
+[0.01]: https://github.com/AESM-Group/LibRPA/releases/tag/v0.01

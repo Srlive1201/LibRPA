@@ -37,4 +37,4 @@ A relevant issue can be found in [FHI-aims' issue tracker](https://aims-git.rz-b
 
 ## Planned Improvements
 
-- [ ] Adapt RPA force work by Mohammad in the [backup branch](https://github.com/Srlive1201/LibRPA/tree/master-backup-240416)
+- [ ] Adapt RPA force work by Mohammad in the [backup branch](https://github.com/AESM-Group/LibRPA/tree/master-backup-240416)

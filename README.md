@@ -51,7 +51,7 @@ also supports an external LibDDLA installation.
 Clone the repository:
 
 ```bash
-git clone https://github.com/Srlive1201/LibRPA
+git clone https://github.com/AESM-Group/LibRPA
 cd LibRPA
 ```
 
@@ -99,7 +99,7 @@ More details can be found in the documentation for
 ## Documentation
 
 Comprehensive documentation, including installation instructions, user guides,
-examples, and tutorials, is available here: <https://srlive1201.github.io/LibRPA/>
+examples, and tutorials, is available here: <https://aesm-group.github.io/LibRPA/>
 
 ## How to cite
 

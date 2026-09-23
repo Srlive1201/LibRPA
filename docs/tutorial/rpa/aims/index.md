@@ -1,7 +1,7 @@
 # Using LibRPA driver with FHI-aims dataset
 
 This tutorial will guide you through the process of setting up and running a calculation using FHI-aims for geometry and SCF computations and LibRPA for RPA energy computation.
-We will use an H2O molecule as the test case (the setup files can be found [here](https://github.com/Srlive1201/LibRPA/tree/master/regression_tests/testcases/rpa_aims_mole_H2O)).
+We will use an H2O molecule as the test case (the setup files can be found [here](https://github.com/AESM-Group/LibRPA/tree/master/regression_tests/testcases/rpa_aims_mole_H2O)).
 
 ## 1. **Prerequisites**
 Before starting, ensure that you have:

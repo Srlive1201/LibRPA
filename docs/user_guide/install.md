@@ -41,7 +41,7 @@ directory in current LibRPA releases.
 You can obtain the LibRPA code by cloning the GitHub repository:
 
 ```bash
-git clone https://github.com/Srlive1201/LibRPA
+git clone https://github.com/AESM-Group/LibRPA
 ```
 
 For commits before `28b7431` (including tag `v0.4.0-gw-benchmark` and older),
