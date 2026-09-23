@@ -547,7 +547,7 @@
     </testcase>
 
     <testcase name="Bulk silicon, band structure (aims input)" directory="g0w0_band_aims_Si_libri">
-      <labels refhash="a56500a434d0f57e06eb8cfed2dacd3f66833f78"
+      <labels refhash="1f44a15ab8e54cf4c8b860250e8372366995d241"
       />
       <build require_libri="true"
       />
@@ -561,6 +561,19 @@
                 headers="2"
                 rows="8"
                 comparison="cmp_table.abs_diff(1e-4)"
+      />
+      <!-- Validate both occurrences: k-grid first, then band path. -->
+      <validate name="KS band gaps (k-grid and band path)"
+                regex="^DFT bandgap\(eV\):\s+([-+]?\d*\.\d+)"
+                comparison="cmp_float.abs_diff(1e-4)"
+      />
+      <validate name="EXX band gaps (k-grid and band path)"
+                regex="^EXX bandgap\(eV\):\s+([-+]?\d*\.\d+)"
+                comparison="cmp_float.abs_diff(1e-4)"
+      />
+      <validate name="GW band gaps (k-grid and band path)"
+                regex="^GW bandgap\(eV\):\s+([-+]?\d*\.\d+)"
+                comparison="cmp_float.abs_diff(1e-4)"
       />
       <validate name="energy_qp output"
                 file="librpa/energy_qp"
