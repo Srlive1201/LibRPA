@@ -2,11 +2,54 @@
 
 ## [Unreleased]
 
+### Breaking changes
+
+- Changed `output_gw_sigc_mat_kf` NAO self-energy exports from Matrix Market
+  `.mtx` to dense binary `.bin`. Update readers of `SigcKF_*` output to the
+  format documented in `librpa_options.h`.
+- Changed the default number of time/frequency points, `nfreq`, from 6 to 16.
+
+### Added
+
+- Added experimental fixed-basis `qsgw` and `qsgw_band` tasks with native
+  FHI-aims/ABACUS Vxc input, Hamiltonian mixing and truncation, and iteration
+  diagnostics. Same-grid analytic head correction is supported; Hartree,
+  independent-grid head, and wing updates remain unsupported.
+- Added `input_preset` for `fhi-aims` (alias `aims`), `abacus`, and
+  `abacus-legacy`, plus configurable `prefix_velocity`. The legacy preset
+  retains unsuffixed ABACUS filenames and the ABACUS velocity reader.
+- Added `output_exx_mat_k` for dense binary NAO-basis EXX matrices on the
+  k-grid and band path, including spinor blocks.
+- Added binary regression-data extraction with selectable field groups.
+- Added detailed profiling of Green-function construction, response
+  collection, matrix operations, and MPI waits.
+
+### Changed
+
+- Changed CPU LibRI EXX, response, and GW work distribution to use weights
+  based on the number of basis functions on each atom, and updated bundled LibRI.
+- Changed driver file-reader organization through a major refactor, moving
+  shared readers into `driver/reader` and the experimental
+  `librpa_file_reader` library, independent of driver state and available with
+  `LIBRPA_ENABLE_DRIVER=OFF`. The `file_reader.hpp` API lets external programs,
+  such as LibBSE, reuse LibRPA dataset formats and file parsing, with configurable
+  input filenames and prefixes.
+
 ### Fixed
 
-- Kept essential RPA, EXX, and G0W0 result tables visible at `warning` and
-  `critical` output levels.
-- Kept MPI task/node and CMake build information visible at every non-silent output level.
+- Fixed Gamma head/wing corrections for filtered Coulomb subspaces,
+  including the case with only the head channel retained, and avoided forming
+  the full body projector during matrix construction.
+- Fixed missing ELSI CSC size and index validation and unaligned value reads.
+- Fixed missing KS, EXX, and GW band-edge and gap analysis on the k-grid and band
+  path, retaining the mean-field occupied/empty band partition and adding
+  warnings for higher empty GW states below the mean-field Fermi level.
+- Fixed suppressed RPA, EXX, and G0W0 result tables, timing summaries, and
+  MPI/build information at `warning` and `critical` output levels.
+- Fixed output-level filtering for structural and time/frequency-grid
+  diagnostics and collective messages.
+- Fixed missing propagation of library feature definitions to CMake
+  consumers, keeping exposed C++ data types consistent with the library build.
 
 ## [0.7.0] - 2026-08-02
 
