@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-09-23
+
 ### Breaking changes
 
 - Changed `output_gw_sigc_mat_kf` NAO self-energy exports from Matrix Market
@@ -274,7 +276,8 @@ Initial tagged snapshot.
 - Corrected early Green-function, response, spin, and distributed RPA-energy
   calculations.
 
-[Unreleased]: https://github.com/Srlive1201/LibRPA/compare/v0.7.0...HEAD
+[Unreleased]: https://github.com/Srlive1201/LibRPA/compare/v0.8.0...HEAD
+[0.8.0]: https://github.com/Srlive1201/LibRPA/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/Srlive1201/LibRPA/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/Srlive1201/LibRPA/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/Srlive1201/LibRPA/compare/v0.4.0-gw-benchmark...v0.5.0
