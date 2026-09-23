@@ -501,10 +501,14 @@ endif()
 if(LIBRPA_ENABLE_DRIVER)
   message(STATUS "LibRPA driver enabled")
   list(APPEND CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR})
-  add_subdirectory(driver)
 endif()
 
 add_subdirectory(src)
+add_subdirectory(driver/reader)
+
+if(LIBRPA_ENABLE_DRIVER)
+  add_subdirectory(driver)
+endif()
 
 install(FILES
   ${CMAKE_CURRENT_SOURCE_DIR}/include/librpa_compute.h
@@ -515,6 +519,7 @@ install(FILES
   ${CMAKE_CURRENT_SOURCE_DIR}/include/librpa_options.h
   ${CMAKE_CURRENT_SOURCE_DIR}/include/librpa.h
   ${CMAKE_CURRENT_SOURCE_DIR}/include/librpa.hpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/file_reader.hpp
   ${CMAKE_CURRENT_SOURCE_DIR}/include/librpa_file_reader.hpp
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/librpa)
 

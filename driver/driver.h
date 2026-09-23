@@ -1,6 +1,7 @@
 #pragma once
 
 #include "librpa.hpp"
+#include "reader/reader_context.h"
 #include "librpa_enums.h"
 
 #include <string>
@@ -360,37 +361,38 @@ struct DriverParams
 };
 
 extern DriverParams driver_params;
+extern librpa::reader::ReaderState reader_state;
 
 extern const std::string input_filename;
 
 // Types of each atom, read from structure file and also used to generate basis list
-extern std::vector<int> atom_types;
-extern size_t n_atoms;
+extern std::vector<int> &atom_types;
+extern size_t &n_atoms;
 
 // Dimension information, used across a few read_data functions
-extern int n_spins;
-extern int n_kpoints;
-extern int n_ibz_kpoints;
-extern int n_kpoints_band;
-extern int n_states;
-extern int n_basis_wfc;
-extern int n_basis_ao;
-extern int n_spinor;
-extern std::vector<size_t> nbs_wfc;
-extern std::vector<size_t> nbs_aux;
-extern std::vector<size_t> nbs_aux_shrink;
+extern int &n_spins;
+extern int &n_kpoints;
+extern int &n_ibz_kpoints;
+extern int &n_kpoints_band;
+extern int &n_states;
+extern int &n_basis_wfc;
+extern int &n_basis_ao;
+extern int &n_spinor;
+extern std::vector<size_t> &nbs_wfc;
+extern std::vector<size_t> &nbs_aux;
+extern std::vector<size_t> &nbs_aux_shrink;
 
 // Used for parallel distribution of input SCF KS eigenvectors over k-points
-extern std::vector<int> iks_eigvec_this;
-extern std::vector<int> iks_band_eigvec_this;
+extern std::vector<int> &iks_eigvec_this;
+extern std::vector<int> &iks_band_eigvec_this;
 
 extern std::vector<std::pair<size_t, size_t>> local_atpair;
-extern std::vector<librpa_int::Vector3_Order<double>> ibz_kpoints;
-extern std::vector<librpa_int::Vector3_Order<double>> kfrac_band;
+extern std::vector<librpa_int::Vector3_Order<double>> &ibz_kpoints;
+extern std::vector<librpa_int::Vector3_Order<double>> &kfrac_band;
 
 // Store basis convention label
-extern bool is_basis_convention_read;
-extern std::string basis_convention_label;
+extern bool &is_basis_convention_read;
+extern std::string &basis_convention_label;
 
 // Working handle
 extern librpa::Handler h;

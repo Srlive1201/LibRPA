@@ -1,13 +1,13 @@
 #include "reader_basis.h"
 
-#include "driver.h"
+#include "reader_context.h"
 
 #include <librpa.hpp>
 #include <librpa_enums.h>
 
-#include "../src/io/fs.h"
-#include "../src/io/global_io.h"
-#include "../src/utils/error.h"
+#include "../../src/io/fs.h"
+#include "../../src/io/global_io.h"
+#include "../../src/utils/error.h"
 
 #include <algorithm>
 #include <cctype>
@@ -16,6 +16,9 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
+
+namespace librpa::reader
+{
 
 using std::ifstream;
 using std::string;
@@ -77,22 +80,22 @@ std::string canonical_basis_convention_label(const std::string &convention)
     return convention;
 }
 
-void parse_basis_convention(const std::string &convention)
+void parse_basis_convention(ReaderContext &ctx, const std::string &convention)
 {
     const auto normalized = normalize_basis_convention(convention);
     const auto label = canonical_basis_convention_label(normalized);
 
-    if (driver::is_basis_convention_read)
+    if (ctx.state.is_basis_convention_read)
     {
-        if (label != driver::basis_convention_label)
+        if (label != ctx.state.basis_convention_label)
         {
             throw std::runtime_error("Inconsistent angular basis convention: " + convention +
-                                     " (previously read " + driver::basis_convention_label + ")");
+                                     " (previously read " + ctx.state.basis_convention_label + ")");
         }
         return;
     }
-    driver::is_basis_convention_read = true;
-    driver::basis_convention_label = label;
+    ctx.state.is_basis_convention_read = true;
+    ctx.state.basis_convention_label = label;
 
     if (label == "fallback")
         return;
@@ -140,7 +143,7 @@ void parse_basis_convention(const std::string &convention)
     }
     if (known_convention)
     {
-        driver::h.set_basis_convention(bloch_phase, bloch_ratom, order,
+        ctx.h.set_basis_convention(bloch_phase, bloch_ratom, order,
                                        coeff_m_nega, coeff_m_posi);
         return;
     }
@@ -268,14 +271,14 @@ std::vector<std::vector<int>> read_basis_type_l_shells(
     return type_l_shells;
 }
 
-std::vector<std::vector<int>> assign_type_l_shells_to_atoms(
+std::vector<std::vector<int>> assign_type_l_shells_to_atoms(ReaderContext &ctx,
     const std::vector<std::vector<int>> &type_l_shells,
     const int ntypes,
     const std::string &file_path)
 {
     std::vector<std::vector<int>> shells;
-    shells.reserve(driver::atom_types.size());
-    for (const int atom_type : driver::atom_types)
+    shells.reserve(ctx.state.atom_types.size());
+    for (const int atom_type : ctx.state.atom_types)
     {
         if (atom_type < 0 || atom_type >= ntypes)
         {
@@ -286,7 +289,7 @@ std::vector<std::vector<int>> assign_type_l_shells_to_atoms(
     return shells;
 }
 
-std::vector<std::vector<int>> read_single_basis_l_shells_tail(
+std::vector<std::vector<int>> read_single_basis_l_shells_tail(ReaderContext &ctx,
     std::istream &infile,
     const int ntypes,
     const std::string &label,
@@ -302,13 +305,13 @@ std::vector<std::vector<int>> read_single_basis_l_shells_tail(
         }
         return {};
     }
-    return assign_type_l_shells_to_atoms(
+    return assign_type_l_shells_to_atoms(ctx,
         read_basis_type_l_shells(infile, ntypes, label, file_path, type, nshell),
         ntypes,
         file_path);
 }
 
-BasisLShells read_combined_basis_l_shells_tail(
+BasisLShells read_combined_basis_l_shells_tail(ReaderContext &ctx,
     std::istream &infile,
     const int ntypes,
     const std::string &file_path)
@@ -333,8 +336,8 @@ BasisLShells read_combined_basis_l_shells_tail(
     auto aux_type_l_shells =
         read_basis_type_l_shells(infile, ntypes, "ABF", file_path, type, nshell);
 
-    return {assign_type_l_shells_to_atoms(wfc_type_l_shells, ntypes, file_path),
-            assign_type_l_shells_to_atoms(aux_type_l_shells, ntypes, file_path)};
+    return {assign_type_l_shells_to_atoms(ctx, wfc_type_l_shells, ntypes, file_path),
+            assign_type_l_shells_to_atoms(ctx, aux_type_l_shells, ntypes, file_path)};
 }
 
 std::vector<size_t> read_basis_type_sizes(
@@ -376,7 +379,7 @@ std::vector<size_t> read_basis_type_sizes(
     return type_nbs;
 }
 
-BasisInfo read_basis_info_from_basis_file(
+BasisInfo read_basis_info_from_basis_file(ReaderContext &ctx,
     const std::string &file_path,
     const BasisKind kind,
     const std::string &label)
@@ -388,21 +391,21 @@ BasisInfo read_basis_info_from_basis_file(
         throw LIBRPA_RUNTIME_ERROR("Failed to open basis information file " + file_path);
     }
 
-    const int n_atoms = static_cast<int>(driver::n_atoms);
-    if (static_cast<size_t>(n_atoms) != driver::atom_types.size())
+    const int n_atoms = static_cast<int>(ctx.state.n_atoms);
+    if (static_cast<size_t>(n_atoms) != ctx.state.atom_types.size())
     {
         throw LIBRPA_RUNTIME_ERROR("Number of atoms not consistent with the geometry file!");
     }
 
     const auto header = read_basis_header(infile, file_path);
-    parse_basis_convention(header.convention);
+    parse_basis_convention(ctx, header.convention);
     const auto type_nbs = read_basis_type_sizes(infile, header, kind, file_path);
 
     BasisInfo info;
     info.nbs.resize(static_cast<std::size_t>(n_atoms));
     for (int iat = 0; iat < n_atoms; iat++)
     {
-        const auto type = driver::atom_types[iat];
+        const auto type = ctx.state.atom_types[iat];
         if (type < 0 || type >= header.ntypes)
         {
             throw LIBRPA_RUNTIME_ERROR("Invalid atom type while assigning basis sizes in " + file_path);
@@ -412,11 +415,11 @@ BasisInfo read_basis_info_from_basis_file(
 
     if (header.split)
     {
-        info.l_shells = read_single_basis_l_shells_tail(infile, header.ntypes, label, file_path);
+        info.l_shells = read_single_basis_l_shells_tail(ctx, infile, header.ntypes, label, file_path);
     }
     else
     {
-        const auto shells = read_combined_basis_l_shells_tail(infile, header.ntypes, file_path);
+        const auto shells = read_combined_basis_l_shells_tail(ctx, infile, header.ntypes, file_path);
         info.l_shells = kind == BasisKind::Wfc ? shells.wfc : shells.aux;
     }
     return info;
@@ -424,40 +427,42 @@ BasisInfo read_basis_info_from_basis_file(
 
 } // namespace
 
-void reader_basis_wfc(const std::string &file_path)
+void reader_basis_wfc(ReaderContext &ctx, const std::string &file_path)
 {
     librpa_int::global::lib_printf_root("Reading wave-function basis information file: %s\n",
                                         file_path.c_str());
-    const auto basis_info = read_basis_info_from_basis_file(file_path, BasisKind::Wfc, "AO");
-    driver::h.set_ao_basis_wfc(basis_info.nbs, basis_info.l_shells);
-    driver::nbs_wfc = basis_info.nbs;
+    const auto basis_info = read_basis_info_from_basis_file(ctx, file_path, BasisKind::Wfc, "AO");
+    ctx.h.set_ao_basis_wfc(basis_info.nbs, basis_info.l_shells);
+    ctx.state.nbs_wfc = basis_info.nbs;
 }
 
-void reader_basis_aux(const std::string &file_path)
+void reader_basis_aux(ReaderContext &ctx, const std::string &file_path)
 {
     librpa_int::global::lib_printf_root("Reading auxiliary basis information file: %s\n",
                                         file_path.c_str());
-    const auto basis_info = read_basis_info_from_basis_file(file_path, BasisKind::Aux, "ABF");
-    driver::h.set_ao_basis_aux(basis_info.nbs, basis_info.l_shells);
-    driver::nbs_aux = basis_info.nbs;
+    const auto basis_info = read_basis_info_from_basis_file(ctx, file_path, BasisKind::Aux, "ABF");
+    ctx.h.set_ao_basis_aux(basis_info.nbs, basis_info.l_shells);
+    ctx.state.nbs_aux = basis_info.nbs;
 }
 
-void reader_basis_aux_shrink(const std::string &file_path)
+void reader_basis_aux_shrink(ReaderContext &ctx, const std::string &file_path)
 {
     librpa_int::global::lib_printf_root("Reading shrink auxiliary basis information file: %s\n",
                                         file_path.c_str());
-    const auto basis_info = read_basis_info_from_basis_file(file_path, BasisKind::Aux, "ABF");
-    driver::h.set_ao_basis_aux_shrink(basis_info.nbs, basis_info.l_shells);
-    driver::nbs_aux_shrink = basis_info.nbs;
+    const auto basis_info = read_basis_info_from_basis_file(ctx, file_path, BasisKind::Aux, "ABF");
+    ctx.h.set_ao_basis_aux_shrink(basis_info.nbs, basis_info.l_shells);
+    ctx.state.nbs_aux_shrink = basis_info.nbs;
 }
 
-void reader_basis(const std::string &file_path)
+void reader_basis(ReaderContext &ctx, const std::string &file_path)
 {
     librpa_int::global::lib_printf_root("Reading basis information file: %s\n", file_path.c_str());
-    const auto wfc_info = read_basis_info_from_basis_file(file_path, BasisKind::Wfc, "AO");
-    const auto aux_info = read_basis_info_from_basis_file(file_path, BasisKind::Aux, "ABF");
-    driver::h.set_ao_basis_wfc(wfc_info.nbs, wfc_info.l_shells);
-    driver::h.set_ao_basis_aux(aux_info.nbs, aux_info.l_shells);
-    driver::nbs_wfc = wfc_info.nbs;
-    driver::nbs_aux = aux_info.nbs;
+    const auto wfc_info = read_basis_info_from_basis_file(ctx, file_path, BasisKind::Wfc, "AO");
+    const auto aux_info = read_basis_info_from_basis_file(ctx, file_path, BasisKind::Aux, "ABF");
+    ctx.h.set_ao_basis_wfc(wfc_info.nbs, wfc_info.l_shells);
+    ctx.h.set_ao_basis_aux(aux_info.nbs, aux_info.l_shells);
+    ctx.state.nbs_wfc = wfc_info.nbs;
+    ctx.state.nbs_aux = aux_info.nbs;
 }
+
+} // namespace librpa::reader

@@ -23,14 +23,17 @@
 #include <string>
 #include <vector>
 
-#include "driver.h"
-#include "../src/api/instance_manager.h"
-#include "../src/core/atomic_basis.h"
-#include "../src/io/fs.h"
-#include "../src/io/global_io.h"
-#include "../src/math/matrix.h"
-#include "../src/mpi/global_mpi.h"
-#include "../src/utils/profiler.h"
+#include "reader_context.h"
+#include "../../src/api/instance_manager.h"
+#include "../../src/core/atomic_basis.h"
+#include "../../src/io/fs.h"
+#include "../../src/io/global_io.h"
+#include "../../src/math/matrix.h"
+#include "../../src/mpi/global_mpi.h"
+#include "../../src/utils/profiler.h"
+
+namespace librpa::reader
+{
 
 #define READER_COULOMB_V1_MARKER -20129433
 
@@ -39,9 +42,9 @@ using std::string;
 using librpa_int::atpair_t;
 using librpa_int::matrix;
 
-static const librpa_int::AtomicBasis &target_coulomb_basis(const bool use_shrink_basis)
+static const librpa_int::AtomicBasis &target_coulomb_basis(ReaderContext &ctx, const bool use_shrink_basis)
 {
-    auto ds = librpa_int::api::get_dataset_instance(driver::h.get_c_handler());
+    auto ds = librpa_int::api::get_dataset_instance(ctx.h.get_c_handler());
     return use_shrink_basis ? ds->basis_aux_shrink : ds->basis_aux;
 }
 
@@ -638,7 +641,7 @@ std::vector<CoulombV1CollectedRead> collect_coulomb_v1_reads(
     return collected;
 }
 
-void set_coulomb_v1_atom_pair(const int iq0,
+void set_coulomb_v1_atom_pair(ReaderContext &ctx, const int iq0,
                               const std::size_t I,
                               const std::size_t J,
                               const int naux_i,
@@ -649,17 +652,17 @@ void set_coulomb_v1_atom_pair(const int iq0,
 {
     if (is_cut_coulomb)
     {
-        driver::h.set_aux_cut_coulomb_k_atom_pair_packed(
+        ctx.h.set_aux_cut_coulomb_k_atom_pair_packed(
             iq0, I, J, naux_i, naux_j, block, threshold);
     }
     else
     {
-        driver::h.set_aux_bare_coulomb_k_atom_pair_packed(
+        ctx.h.set_aux_bare_coulomb_k_atom_pair_packed(
             iq0, I, J, naux_i, naux_j, block, threshold);
     }
 }
 
-void process_complex_coulomb_v1_read(const CoulombV1File &file,
+void process_complex_coulomb_v1_read(ReaderContext &ctx, const CoulombV1File &file,
                                      const CoulombV1CollectedRead &read,
                                      const int iq0,
                                      const double threshold,
@@ -682,7 +685,7 @@ void process_complex_coulomb_v1_read(const CoulombV1File &file,
             (block.offset - read.offset) /
                 static_cast<MPI_Offset>(sizeof(std::complex<double>)),
             file.path);
-        set_coulomb_v1_atom_pair(iq0, block.I, block.J,
+        set_coulomb_v1_atom_pair(ctx, iq0, block.I, block.J,
                                  file.atom_naux[block.I],
                                  file.atom_naux[block.J],
                                  buffer.data() + value_offset,
@@ -690,7 +693,7 @@ void process_complex_coulomb_v1_read(const CoulombV1File &file,
     }
 }
 
-void process_real_coulomb_v1_read(const CoulombV1File &file,
+void process_real_coulomb_v1_read(ReaderContext &ctx, const CoulombV1File &file,
                                   const CoulombV1CollectedRead &read,
                                   const int iq0,
                                   const double threshold,
@@ -716,7 +719,7 @@ void process_real_coulomb_v1_read(const CoulombV1File &file,
         {
             complex_block[i] = std::complex<double>(buffer[value_offset + i], 0.0);
         }
-        set_coulomb_v1_atom_pair(iq0, block.I, block.J,
+        set_coulomb_v1_atom_pair(ctx, iq0, block.I, block.J,
                                  file.atom_naux[block.I],
                                  file.atom_naux[block.J],
                                  complex_block.data(),
@@ -724,7 +727,7 @@ void process_real_coulomb_v1_read(const CoulombV1File &file,
     }
 }
 
-void read_coulomb_v1_atom_pairs_collected(
+void read_coulomb_v1_atom_pairs_collected(ReaderContext &ctx,
     const CoulombV1File &file,
     const int iq0,
     const std::vector<atpair_t> &sorted_atom_pairs,
@@ -754,12 +757,12 @@ void read_coulomb_v1_atom_pairs_collected(
     {
         if (file.value_flag == COULOMB_V1_COMPLEX_FLAG)
         {
-            process_complex_coulomb_v1_read(
+            process_complex_coulomb_v1_read(ctx,
                 file, read, iq0, threshold, is_cut_coulomb);
         }
         else
         {
-            process_real_coulomb_v1_read(
+            process_real_coulomb_v1_read(ctx,
                 file, read, iq0, threshold, is_cut_coulomb);
         }
     }
@@ -803,13 +806,13 @@ bool is_legacy_coulomb_filename(const string &filename, const string &prefix)
            filename.compare(filename.size() - suffix.size(), suffix.size(), suffix) == 0;
 }
 
-size_t read_Vq_full_v1(const string &dir_path, const string &vq_fprefix,
+size_t read_Vq_full_v1(ReaderContext &ctx, const string &dir_path, const string &vq_fprefix,
                        bool is_cut_coulomb, const bool use_shrink_basis)
 {
     using namespace librpa_int::global;
 
     profiler.start(__FUNCTION__);
-    const auto &basis_aux = target_coulomb_basis(use_shrink_basis);
+    const auto &basis_aux = target_coulomb_basis(ctx, use_shrink_basis);
     const auto files = librpa_int::discover_files_with_prefix(dir_path, vq_fprefix);
     if (files.empty())
     {
@@ -831,15 +834,15 @@ size_t read_Vq_full_v1(const string &dir_path, const string &vq_fprefix,
                 if (block.empty()) continue;
                 if (is_cut_coulomb)
                 {
-                    driver::h.set_aux_cut_coulomb_k_atom_pair_packed(
+                    ctx.h.set_aux_cut_coulomb_k_atom_pair_packed(
                         iq0, I, J, basis_aux[I], basis_aux[J],
-                        block.data(), driver::opts.vq_threshold);
+                        block.data(), ctx.opts.vq_threshold);
                 }
                 else
                 {
-                    driver::h.set_aux_bare_coulomb_k_atom_pair_packed(
+                    ctx.h.set_aux_bare_coulomb_k_atom_pair_packed(
                         iq0, I, J, basis_aux[I], basis_aux[J],
-                        block.data(), driver::opts.vq_threshold);
+                        block.data(), ctx.opts.vq_threshold);
                 }
             }
         }
@@ -848,14 +851,14 @@ size_t read_Vq_full_v1(const string &dir_path, const string &vq_fprefix,
     return 0;
 }
 
-size_t read_Vq_row_v1(const string &dir_path, const string &vq_fprefix, double threshold,
+size_t read_Vq_row_v1(ReaderContext &ctx, const string &dir_path, const string &vq_fprefix, double threshold,
                       const std::vector<atpair_t> &local_atpair,
                       bool is_cut_coulomb, const bool use_shrink_basis)
 {
     using namespace librpa_int::global;
 
     profiler.start(__FUNCTION__);
-    const auto &basis_aux = target_coulomb_basis(use_shrink_basis);
+    const auto &basis_aux = target_coulomb_basis(ctx, use_shrink_basis);
     const auto files = librpa_int::discover_files_with_prefix(dir_path, vq_fprefix);
     if (files.empty())
     {
@@ -882,7 +885,7 @@ size_t read_Vq_row_v1(const string &dir_path, const string &vq_fprefix, double t
         CoulombV1File file(path);
         validate_coulomb_v1_basis(file, basis_aux);
         const int iq0 = file.iq - 1;
-        read_coulomb_v1_atom_pairs_collected(
+        read_coulomb_v1_atom_pairs_collected(ctx,
             file, iq0, sorted_local_atpair, threshold, is_cut_coulomb);
     }
 
@@ -929,7 +932,7 @@ int detect_coulomb_reader_version(const string &dir_path, const string &vq_fpref
                            files.front());
 }
 
-size_t read_Vq_full(const string &dir_path, const string &vq_fprefix, bool is_cut_coulomb,
+size_t read_Vq_full(ReaderContext &ctx, const string &dir_path, const string &vq_fprefix, bool is_cut_coulomb,
                     int reader_version, const bool use_shrink_basis)
 {
     using std::cout;
@@ -946,7 +949,7 @@ size_t read_Vq_full(const string &dir_path, const string &vq_fprefix, bool is_cu
 
     if (reader_version == 1)
     {
-        return read_Vq_full_v1(dir_path, vq_fprefix, is_cut_coulomb, use_shrink_basis);
+        return read_Vq_full_v1(ctx, dir_path, vq_fprefix, is_cut_coulomb, use_shrink_basis);
     }
     if (reader_version != 0)
     {
@@ -954,7 +957,7 @@ size_t read_Vq_full(const string &dir_path, const string &vq_fprefix, bool is_cu
                                std::to_string(reader_version));
     }
 
-    const auto &basis_aux = target_coulomb_basis(use_shrink_basis);
+    const auto &basis_aux = target_coulomb_basis(ctx, use_shrink_basis);
     const auto atom_mu_part_range = basis_aux.get_part_range();
 
     size_t vq_save = 0;
@@ -979,7 +982,7 @@ size_t read_Vq_full(const string &dir_path, const string &vq_fprefix, bool is_cu
             {
                 binary = check_coulomb_file_binary(file_path);
                 binary_checked = true;
-                if (librpa_int::global::myid_global == 0)
+                if (ctx.comm.myid == 0)
                 {
                     if (binary)
                     {
@@ -1037,11 +1040,11 @@ size_t read_Vq_full(const string &dir_path, const string &vq_fprefix, bool is_cu
 
                 if (is_cut_coulomb)
                 {
-                    driver::h.set_aux_cut_coulomb_k_atom_pair(iq, I, J, basis_aux[I], basis_aux[J], re.c, im.c, driver::opts.vq_threshold);
+                    ctx.h.set_aux_cut_coulomb_k_atom_pair(iq, I, J, basis_aux[I], basis_aux[J], re.c, im.c, ctx.opts.vq_threshold);
                 }
                 else
                 {
-                    driver::h.set_aux_bare_coulomb_k_atom_pair(iq, I, J, basis_aux[I], basis_aux[J], re.c, im.c, driver::opts.vq_threshold);
+                    ctx.h.set_aux_bare_coulomb_k_atom_pair(iq, I, J, basis_aux[I], basis_aux[J], re.c, im.c, ctx.opts.vq_threshold);
                 }
                 // if (I == J)
                 // {
@@ -1273,7 +1276,7 @@ static int handle_Vq_row_file(const string &file_path, double threshold,
     return 0;
 }
 
-size_t read_Vq_row(const string &dir_path, const string &vq_fprefix, double threshold,
+size_t read_Vq_row(ReaderContext &ctx, const string &dir_path, const string &vq_fprefix, double threshold,
                    const std::vector<atpair_t> &local_atpair, bool is_cut_coulomb,
                    int reader_version, const bool use_shrink_basis)
 {
@@ -1292,7 +1295,7 @@ size_t read_Vq_row(const string &dir_path, const string &vq_fprefix, double thre
 
     if (reader_version == 1)
     {
-        return read_Vq_row_v1(
+        return read_Vq_row_v1(ctx,
             dir_path, vq_fprefix, threshold, local_atpair, is_cut_coulomb,
             use_shrink_basis);
     }
@@ -1303,7 +1306,7 @@ size_t read_Vq_row(const string &dir_path, const string &vq_fprefix, double thre
     }
 
     if (should_output()) cout << "Begin READ_Vq_Row" << endl;
-    const auto &basis_aux = target_coulomb_basis(use_shrink_basis);
+    const auto &basis_aux = target_coulomb_basis(ctx, use_shrink_basis);
     std::set<int> local_I_set;
     for(auto &lap:local_atpair)
     {
@@ -1333,7 +1336,7 @@ size_t read_Vq_row(const string &dir_path, const string &vq_fprefix, double thre
             {
                 binary = check_coulomb_file_binary(file_path);
                 binary_checked = true;
-                if (myid_global == 0)
+                if (ctx.comm.myid == 0)
                 {
                     const char *info = binary ? "Unformatted binary" : "ASCII format";
                     if (should_output()) cout << info << " V files detected" << endl;
@@ -1364,11 +1367,11 @@ size_t read_Vq_row(const string &dir_path, const string &vq_fprefix, double thre
                 auto &vq_ptr = it_iq->second;
                 if (is_cut_coulomb)
                 {
-                    driver::h.set_aux_cut_coulomb_k_atom_pair(iq, I, J, vq_ptr->nr, vq_ptr->nc, vq_ptr->real().c, vq_ptr->imag().c, threshold);
+                    ctx.h.set_aux_cut_coulomb_k_atom_pair(iq, I, J, vq_ptr->nr, vq_ptr->nc, vq_ptr->real().c, vq_ptr->imag().c, threshold);
                 }
                 else
                 {
-                    driver::h.set_aux_bare_coulomb_k_atom_pair(iq, I, J, vq_ptr->nr, vq_ptr->nc, vq_ptr->real().c, vq_ptr->imag().c, threshold);
+                    ctx.h.set_aux_bare_coulomb_k_atom_pair(iq, I, J, vq_ptr->nr, vq_ptr->nc, vq_ptr->real().c, vq_ptr->imag().c, threshold);
                 }
                 it_iq = it_J->second.erase(it_iq);
             }
@@ -1403,3 +1406,5 @@ size_t read_Vq_row(const string &dir_path, const string &vq_fprefix, double thre
     // fs.close();
     return vq_discard;
 }
+
+} // namespace librpa::reader

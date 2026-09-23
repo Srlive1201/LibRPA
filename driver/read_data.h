@@ -11,9 +11,9 @@
 #include "../src/math/matrix.h"
 #include "../src/math/vector3_order.h"
 #include "librpa.hpp"
-#include "reader_eigenvec.h"
-#include "reader_lri.h"
-#include "reader_coulomb.h"
+#include "reader/reader_eigenvec.h"
+#include "reader/reader_lri.h"
+#include "reader/reader_coulomb.h"
 
 // TODO: remove this include and internal datatypes in signature.
 // Data objects of internal types should be accessed in the implementation.
@@ -28,6 +28,43 @@ using librpa_int::atpair_R_mat_t;
 using librpa_int::MeanField;
 using librpa_int::ComplexMatrix;
 using librpa_int::velocity_matrix_t;
+
+// Existing driver entry points forward to the shared readers.
+using librpa::reader::LegacyTextWfcOrder;
+void reader_structure(const std::string &file_path);
+void reader_basis(const std::string &file_path);
+void reader_basis_wfc(const std::string &file_path);
+void reader_basis_aux(const std::string &file_path);
+void reader_basis_aux_shrink(const std::string &file_path);
+int detect_Cs_reader_version(const std::string &dir_path, const std::string keyword = "Cs_data");
+size_t read_Cs(const std::string &dir_path, double threshold,
+               const std::vector<librpa_int::atpair_t> &local_atpair,
+               const std::string keyword = "Cs_data", int reader_version = 0);
+size_t read_Cs_evenly_distribute(const std::string &dir_path, double threshold, int myid,
+                                 int nprocs, const std::string keyword = "Cs_data",
+                                 int reader_version = 0);
+void get_natom_ncell_from_first_Cs_file(int &n_atom, int &n_cell, const std::string &dir_path);
+std::vector<size_t> read_aux_basis_from_Cs(const std::string &dir_path, const std::string &keyword);
+void read_basis_from_Cs(const std::string &dir_path);
+using librpa::reader::check_coulomb_file_binary;
+using librpa::reader::detect_coulomb_reader_version;
+size_t read_Vq_full(const std::string &dir_path, const std::string &vq_fprefix, bool is_cut_coulomb,
+                    int reader_version = 0, bool use_shrink_basis = false);
+size_t read_Vq_row(const std::string &dir_path, const std::string &vq_fprefix, double threshold,
+                   const std::vector<librpa_int::atpair_t> &local_atpair, bool is_cut_coulomb,
+                   int reader_version = 0, bool use_shrink_basis = false);
+int read_eigenvector(const std::string &dir_path);
+int read_eigenvector(const std::string &dir_path, librpa_int::MeanField &mf, bool use_spinor_wfc,
+                     const std::vector<int> *iks_selected = nullptr);
+int read_eigenvector(const std::string &dir_path, librpa_int::MeanField &mf, bool use_spinor_wfc,
+                     const std::vector<int> &source_to_target_ik,
+                     const std::vector<int> *source_iks_selected,
+                     LegacyTextWfcOrder text_order = LegacyTextWfcOrder::BasisSpinorBandSpin);
+int read_eigenvector_kblacs_2d(
+    const std::string &dir_path, librpa_int::MeanField &mf, bool use_spinor_wfc,
+    const librpa_int::KPointBlacsParallelContext &kblacs_ctxt,
+    const librpa_int::ArrayDesc &desc_wfc, const std::vector<int> *source_to_target_ik = nullptr,
+    LegacyTextWfcOrder text_order = LegacyTextWfcOrder::BasisSpinorBandSpin);
 
 /*!
  * @brief Read occupation numbers and eigenvalues of SCF calculation

@@ -20,13 +20,16 @@
 #include <unordered_map>
 #include <vector>
 
-#include "driver.h"
-#include "../src/io/fs.h"
-#include "../src/io/global_io.h"
-#include "../src/io/stl_io_helper.h"
-#include "../src/mpi/global_mpi.h"
-#include "../src/utils/error.h"
-#include "../src/utils/profiler.h"
+#include "reader_context.h"
+#include "../../src/io/fs.h"
+#include "../../src/io/global_io.h"
+#include "../../src/io/stl_io_helper.h"
+#include "../../src/mpi/global_mpi.h"
+#include "../../src/utils/error.h"
+#include "../../src/utils/profiler.h"
+
+namespace librpa::reader
+{
 
 #define READER_LRICOEF_V1_MARKER -10267453
 
@@ -50,10 +53,10 @@ static std::string basename_from_path(const std::string &path)
     return path.substr(pos + 1);
 }
 
-static void assert_distinct_Cs_prefixes()
+static void assert_distinct_Cs_prefixes(ReaderContext &ctx)
 {
-    const auto &full_prefix = driver::driver_params.prefix_lri_coeff;
-    const auto &shrink_prefix = driver::driver_params.prefix_lri_coeff_shrink;
+    const auto &full_prefix = ctx.params.prefix_lri_coeff;
+    const auto &shrink_prefix = ctx.params.prefix_lri_coeff_shrink;
     if (!full_prefix.empty() && full_prefix == shrink_prefix)
     {
         throw LIBRPA_RUNTIME_ERROR(
@@ -62,14 +65,14 @@ static void assert_distinct_Cs_prefixes()
     }
 }
 
-static std::vector<std::string> discover_Cs_files_for_keyword(const std::string &dir_path,
+static std::vector<std::string> discover_Cs_files_for_keyword(ReaderContext &ctx, const std::string &dir_path,
                                                              const std::string &keyword)
 {
-    assert_distinct_Cs_prefixes();
+    assert_distinct_Cs_prefixes(ctx);
 
     auto files = librpa_int::discover_files_with_prefix(dir_path, keyword);
-    const auto &full_prefix = driver::driver_params.prefix_lri_coeff;
-    const auto &shrink_prefix = driver::driver_params.prefix_lri_coeff_shrink;
+    const auto &full_prefix = ctx.params.prefix_lri_coeff;
+    const auto &shrink_prefix = ctx.params.prefix_lri_coeff_shrink;
     std::string excluded_prefix;
     if (keyword == full_prefix && starts_with_prefix(shrink_prefix, full_prefix))
     {
@@ -93,26 +96,26 @@ static std::vector<std::string> discover_Cs_files_for_keyword(const std::string 
     return files;
 }
 
-static bool target_shrink_aux_basis_for_keyword(const std::string &keyword)
+static bool target_shrink_aux_basis_for_keyword(ReaderContext &ctx, const std::string &keyword)
 {
-    if (keyword == driver::driver_params.prefix_lri_coeff_shrink)
+    if (keyword == ctx.params.prefix_lri_coeff_shrink)
         return true;
     return false;
 }
 
-static const std::vector<size_t> &target_aux_basis_sizes_for_keyword(const std::string &keyword)
+static const std::vector<size_t> &target_aux_basis_sizes_for_keyword(ReaderContext &ctx, const std::string &keyword)
 {
-    if (target_shrink_aux_basis_for_keyword(keyword))
-        return driver::nbs_aux_shrink;
-    return driver::nbs_aux;
+    if (target_shrink_aux_basis_for_keyword(ctx, keyword))
+        return ctx.state.nbs_aux_shrink;
+    return ctx.state.nbs_aux;
 }
 
-static void set_driver_lri_coeff(const std::string &keyword, LibrpaParallelRouting routing,
+static void set_lri_coeff(ReaderContext &ctx, const std::string &keyword, LibrpaParallelRouting routing,
                                  int I, int J, int nbasis_i, int nbasis_j, int naux_mu,
                                  const int R[3], const double *Cs_in)
 {
-    const int shrink_aux = keyword == driver::driver_params.prefix_lri_coeff_shrink ? 1 : 0;
-    driver::h.set_lri_coeff(routing, I, J, nbasis_i, nbasis_j, naux_mu, R, Cs_in, shrink_aux);
+    const int shrink_aux = keyword == ctx.params.prefix_lri_coeff_shrink ? 1 : 0;
+    ctx.h.set_lri_coeff(routing, I, J, nbasis_i, nbasis_j, naux_mu, R, Cs_in, shrink_aux);
 }
 
 static bool get_Cs_binary_data_size(int n_i, int n_j, int n_mu, std::streamoff &data_size)
@@ -612,7 +615,7 @@ std::vector<CsBinaryV1CollectedRead> collect_Cs_binary_v1_reads(
     return collected;
 }
 
-void read_Cs_binary_v1_tasks(const std::vector<CsBinaryV1ReadTask> &tasks,
+void read_Cs_binary_v1_tasks(ReaderContext &ctx, const std::vector<CsBinaryV1ReadTask> &tasks,
                              const std::string &keyword)
 {
     const auto collected_reads = collect_Cs_binary_v1_reads(tasks);
@@ -647,7 +650,7 @@ void read_Cs_binary_v1_tasks(const std::vector<CsBinaryV1ReadTask> &tasks,
             const int ia1 = task.block.ia1 - 1;
             const int ia2 = task.block.ia2 - 1;
             int R[3] = {task.block.R[0], task.block.R[1], task.block.R[2]};
-            set_driver_lri_coeff(keyword, driver::opts.parallel_routing, ia1, ia2,
+            set_lri_coeff(ctx, keyword, ctx.opts.parallel_routing, ia1, ia2,
                                  task.n_i, task.n_j, task.n_mu, R, cs_ptr->c);
         }
     }
@@ -655,9 +658,9 @@ void read_Cs_binary_v1_tasks(const std::vector<CsBinaryV1ReadTask> &tasks,
 
 } // namespace
 
-int detect_Cs_reader_version(const string &dir_path, const string keyword)
+int detect_Cs_reader_version(ReaderContext &ctx, const string &dir_path, const string keyword)
 {
-    const auto files = discover_Cs_files_for_keyword(dir_path, keyword);
+    const auto files = discover_Cs_files_for_keyword(ctx, dir_path, keyword);
     if (files.empty())
     {
         throw std::logic_error("No LRI coefficient files found with prefix " + keyword);
@@ -791,7 +794,7 @@ static bool check_Cs_file_binary(const string &file_path)
     return !has_Cs_text_header(file_path);
 }
 
-static size_t handle_Cs_file(const string &file_path, double threshold,
+static size_t handle_Cs_file(ReaderContext &ctx, const string &file_path, double threshold,
                              const std::vector<atpair_t> &local_atpair,
                              const string &keyword)
 {
@@ -855,7 +858,7 @@ static size_t handle_Cs_file(const string &file_path, double threshold,
         // if (box == Vector3_Order<int>({0, 0, 1}))continue;
         bool keep = loc_atp_index.count(ia1) && (*cs_ptr).absmax() >= threshold;
         if (keep)
-            set_driver_lri_coeff(keyword, driver::opts.parallel_routing, ia1, ia2,
+            set_lri_coeff(ctx, keyword, ctx.opts.parallel_routing, ia1, ia2,
                                  n_i, n_j, n_mu, R, cs_ptr->c);
         // cout<<cs_ptr->nr<<cs_ptr->nc<<endl;
         if (!keep)
@@ -867,7 +870,7 @@ static size_t handle_Cs_file(const string &file_path, double threshold,
     return cs_discard;
 }
 
-static size_t handle_Cs_file_binary(const string &file_path, double threshold,
+static size_t handle_Cs_file_binary(ReaderContext &ctx, const string &file_path, double threshold,
                                     const std::vector<atpair_t> &local_atpair,
                                     const string &keyword)
 {
@@ -889,8 +892,8 @@ static size_t handle_Cs_file_binary(const string &file_path, double threshold,
         const auto records = read_Cs_binary_v1_header_or_throw(
             file_path, natom, ncell, file_size);
 
-        const auto &basis_wfc = driver::nbs_wfc;
-        const auto &basis_aux = target_aux_basis_sizes_for_keyword(keyword);
+        const auto &basis_wfc = ctx.state.nbs_wfc;
+        const auto &basis_aux = target_aux_basis_sizes_for_keyword(ctx, keyword);
         validate_Cs_binary_v1_blocks(
             file_path, natom, file_size, records, basis_wfc, basis_aux);
 
@@ -937,7 +940,7 @@ static size_t handle_Cs_file_binary(const string &file_path, double threshold,
             }
 
             int R[3] = {block.R[0], block.R[1], block.R[2]};
-            set_driver_lri_coeff(keyword, driver::opts.parallel_routing, ia1, ia2,
+            set_lri_coeff(ctx, keyword, ctx.opts.parallel_routing, ia1, ia2,
                                  n_i, n_j, n_mu, R, cs_ptr->c);
         }
         return cs_discard;
@@ -987,7 +990,7 @@ static size_t handle_Cs_file_binary(const string &file_path, double threshold,
         // cout << (*cs_ptr).absmax() << "\n";
         if (keep)
         {
-            set_driver_lri_coeff(keyword, driver::opts.parallel_routing, ia1, ia2,
+            set_lri_coeff(ctx, keyword, ctx.opts.parallel_routing, ia1, ia2,
                                  n_i, n_j, n_mu, R, cs_ptr->c);
         }
         else
@@ -998,7 +1001,7 @@ static size_t handle_Cs_file_binary(const string &file_path, double threshold,
     return cs_discard;
 }
 
-size_t read_Cs(const string &dir_path, double threshold,
+size_t read_Cs(ReaderContext &ctx, const string &dir_path, double threshold,
                const std::vector<atpair_t> &local_atpair, const string keyword,
                int reader_version)
 {
@@ -1006,7 +1009,7 @@ size_t read_Cs(const string &dir_path, double threshold,
 
     if (reader_version < 0)
     {
-        reader_version = detect_Cs_reader_version(dir_path, keyword);
+        reader_version = detect_Cs_reader_version(ctx, dir_path, keyword);
     }
     librpa_int::global::lib_printf_root("LRI coefficient reader (%s): %s\n", keyword.c_str(),
                                         reader_version == 1 ? "binary v1" : "legacy");
@@ -1014,7 +1017,7 @@ size_t read_Cs(const string &dir_path, double threshold,
     size_t cs_discard = 0;
     if (reader_version == 1)
     {
-        const auto files = discover_Cs_files_for_keyword(dir_path, keyword);
+        const auto files = discover_Cs_files_for_keyword(ctx, dir_path, keyword);
         if (files.empty())
         {
             throw std::logic_error(
@@ -1028,7 +1031,7 @@ size_t read_Cs(const string &dir_path, double threshold,
                 throw std::logic_error(
                     "LRI coefficient reader v1 expected a valid v1 header in: " + fn);
             }
-            cs_discard += handle_Cs_file_binary(fn, threshold, local_atpair, keyword);
+            cs_discard += handle_Cs_file_binary(ctx, fn, threshold, local_atpair, keyword);
         }
         return cs_discard;
     }
@@ -1042,7 +1045,7 @@ size_t read_Cs(const string &dir_path, double threshold,
     bool binary;
     bool binary_checked = false;
 
-    const auto files = discover_Cs_files_for_keyword(dir_path, keyword);
+    const auto files = discover_Cs_files_for_keyword(ctx, dir_path, keyword);
     if (files.empty())
     {
         throw std::logic_error("No LRI coefficient files found with prefix " + keyword);
@@ -1057,7 +1060,7 @@ size_t read_Cs(const string &dir_path, double threshold,
         {
             binary = check_Cs_file_binary(fn);
             binary_checked = true;
-            if (librpa_int::global::myid_global == 0)
+            if (ctx.comm.myid == 0)
             {
                 if (binary)
                 {
@@ -1071,11 +1074,11 @@ size_t read_Cs(const string &dir_path, double threshold,
         }
         if (binary)
         {
-            cs_discard += handle_Cs_file_binary(fn, threshold, local_atpair, keyword);
+            cs_discard += handle_Cs_file_binary(ctx, fn, threshold, local_atpair, keyword);
         }
         else
         {
-            cs_discard += handle_Cs_file(fn, threshold, local_atpair, keyword);
+            cs_discard += handle_Cs_file(ctx, fn, threshold, local_atpair, keyword);
         }
     }
     // initialize basis set object
@@ -1218,7 +1221,7 @@ std::vector<size_t> handle_Cs_file_binary_dry(const string &file_path, double th
     return Cs_ids_keep;
 }
 
-static size_t handle_Cs_file_by_ids(const std::string &file_path, double threshold,
+static size_t handle_Cs_file_by_ids(ReaderContext &ctx, const std::string &file_path, double threshold,
                                     const std::vector<size_t> &ids, const std::string keyword)
 {
     using namespace std;
@@ -1264,7 +1267,7 @@ static size_t handle_Cs_file_by_ids(const std::string &file_path, double thresho
                         infile >> Cs_ele;
                         (*cs_ptr)(i *n_j + j, mu) = stod(Cs_ele);
                     }
-            set_driver_lri_coeff(keyword, driver::opts.parallel_routing, ia1, ia2,
+            set_lri_coeff(ctx, keyword, ctx.opts.parallel_routing, ia1, ia2,
                                  n_i, n_j, n_mu, R, cs_ptr->c);
         }
         else
@@ -1288,7 +1291,7 @@ static size_t handle_Cs_file_by_ids(const std::string &file_path, double thresho
 }
 
 
-static size_t handle_Cs_file_binary_by_ids(const string &file_path, double threshold,
+static size_t handle_Cs_file_binary_by_ids(ReaderContext &ctx, const string &file_path, double threshold,
                                            const std::vector<size_t> &ids,
                                            const string &keyword)
 {
@@ -1303,8 +1306,8 @@ static size_t handle_Cs_file_binary_by_ids(const string &file_path, double thres
         const auto records = read_Cs_binary_v1_header_or_throw(
             file_path, natom, ncell, file_size);
 
-        const auto &basis_wfc = driver::nbs_wfc;
-        const auto &basis_aux = target_aux_basis_sizes_for_keyword(keyword);
+        const auto &basis_wfc = ctx.state.nbs_wfc;
+        const auto &basis_aux = target_aux_basis_sizes_for_keyword(ctx, keyword);
         validate_Cs_binary_v1_blocks(
             file_path, natom, file_size, records, basis_wfc, basis_aux);
 
@@ -1351,7 +1354,7 @@ static size_t handle_Cs_file_binary_by_ids(const string &file_path, double thres
             }
 
             int R[3] = {block.R[0], block.R[1], block.R[2]};
-            set_driver_lri_coeff(keyword, driver::opts.parallel_routing, ia1, ia2,
+            set_lri_coeff(ctx, keyword, ctx.opts.parallel_routing, ia1, ia2,
                                  n_i, n_j, n_mu, R, cs_ptr->c);
         }
         return cs_discard;
@@ -1388,10 +1391,10 @@ static size_t handle_Cs_file_binary_by_ids(const string &file_path, double thres
             shared_ptr<matrix> cs_ptr = make_shared<matrix>();
             cs_ptr->create(n_i * n_j, n_mu);
             infile.read((char *) cs_ptr->c, n_i * n_j * n_mu * sizeof(double));
-            set_driver_lri_coeff(keyword, driver::opts.parallel_routing, ia1, ia2,
+            set_lri_coeff(ctx, keyword, ctx.opts.parallel_routing, ia1, ia2,
                                  n_i, n_j, n_mu, R, cs_ptr->c);
             // debug output
-            // ofs_myid << "routing " << driver::opts.parallel_routing << " ia1 " << ia1 << " ia2 "
+            // ofs_myid << "routing " << ctx.opts.parallel_routing << " ia1 " << ia1 << " ia2 "
             //          << ia2 << " R " << R[0] << " " << R[1] << " " << R[2] << " n_i " << n_i
             //          << " n_j " << n_j << " n_mu " << n_mu << endl;
             // print_matrix("cs_ptr->c", *cs_ptr, ofs_myid, true);
@@ -1406,7 +1409,7 @@ static size_t handle_Cs_file_binary_by_ids(const string &file_path, double thres
     return cs_discard;
 }
 
-size_t read_Cs_evenly_distribute(const string &dir_path, double threshold, int myid, int nprocs,
+size_t read_Cs_evenly_distribute(ReaderContext &ctx, const string &dir_path, double threshold, int myid, int nprocs,
                                  const string keyword, int reader_version)
 {
     using namespace std;
@@ -1415,7 +1418,7 @@ size_t read_Cs_evenly_distribute(const string &dir_path, double threshold, int m
 
     if (reader_version < 0)
     {
-        reader_version = detect_Cs_reader_version(dir_path, keyword);
+        reader_version = detect_Cs_reader_version(ctx, dir_path, keyword);
     }
     if (myid == 0)
     {
@@ -1425,7 +1428,7 @@ size_t read_Cs_evenly_distribute(const string &dir_path, double threshold, int m
 
     if (reader_version == 1)
     {
-        auto files = discover_Cs_files_for_keyword(dir_path, keyword);
+        auto files = discover_Cs_files_for_keyword(ctx, dir_path, keyword);
         if (files.empty())
         {
             throw std::logic_error(
@@ -1434,8 +1437,8 @@ size_t read_Cs_evenly_distribute(const string &dir_path, double threshold, int m
 
         size_t cs_discard = 0;
         profiler.start("handle_Cs_file_dry");
-        const auto &basis_wfc = driver::nbs_wfc;
-        const auto &basis_aux = target_aux_basis_sizes_for_keyword(keyword);
+        const auto &basis_wfc = ctx.state.nbs_wfc;
+        const auto &basis_aux = target_aux_basis_sizes_for_keyword(ctx, keyword);
         const auto tasks = make_Cs_binary_v1_read_tasks(files, threshold, basis_wfc, basis_aux);
         const auto tasks_this_proc = select_Cs_binary_v1_tasks_for_rank(tasks, myid, nprocs);
         cs_discard = tasks.size() - tasks_this_proc.size();
@@ -1446,7 +1449,7 @@ size_t read_Cs_evenly_distribute(const string &dir_path, double threshold, int m
         if (myid == 0) lib_printf("Finished Cs filtering\n");
 
         profiler.start("handle_Cs_file");
-        read_Cs_binary_v1_tasks(tasks_this_proc, keyword);
+        read_Cs_binary_v1_tasks(ctx, tasks_this_proc, keyword);
         profiler.stop("handle_Cs_file");
         if (myid == 0) lib_printf("Finished Cs parsing\n");
         return cs_discard;
@@ -1457,7 +1460,7 @@ size_t read_Cs_evenly_distribute(const string &dir_path, double threshold, int m
     }
 
     size_t cs_discard = 0;
-    auto files = discover_Cs_files_for_keyword(dir_path, keyword);
+    auto files = discover_Cs_files_for_keyword(ctx, dir_path, keyword);
     unordered_map<string, std::vector<size_t>> files_Cs_ids;
     unordered_map<string, std::vector<size_t>> files_Cs_ids_this_proc;
     bool binary;
@@ -1532,12 +1535,12 @@ size_t read_Cs_evenly_distribute(const string &dir_path, double threshold, int m
         ofs_myid << fn_ids.first << " " << fn_ids.second << endl;
         if (binary)
         {
-            cs_discard += handle_Cs_file_binary_by_ids(fn_ids.first, threshold, fn_ids.second,
+            cs_discard += handle_Cs_file_binary_by_ids(ctx, fn_ids.first, threshold, fn_ids.second,
                                                        keyword);
         }
         else
         {
-            cs_discard += handle_Cs_file_by_ids(fn_ids.first, threshold, fn_ids.second, keyword);
+            cs_discard += handle_Cs_file_by_ids(ctx, fn_ids.first, threshold, fn_ids.second, keyword);
         }
     }
     profiler.stop("handle_Cs_file");
@@ -1545,7 +1548,7 @@ size_t read_Cs_evenly_distribute(const string &dir_path, double threshold, int m
     // initialize basis set object
     // librpa_int::atomic_basis_wfc.set(atom_nw);
     // librpa_int::atomic_basis_abf.set(atom_mu);
-    
+
     // atom_mu_part_range.resize(atom_mu.size());
     // atom_mu_part_range[0]=0;
     // for(int I=1;I!=atom_mu.size();I++)
@@ -1558,7 +1561,7 @@ size_t read_Cs_evenly_distribute(const string &dir_path, double threshold, int m
     return cs_discard;
 }
 
-void get_natom_ncell_from_first_Cs_file(int &n_atom, int &n_cell, const string &dir_path)
+void get_natom_ncell_from_first_Cs_file(ReaderContext &ctx, int &n_atom, int &n_cell, const string &dir_path)
 {
     using namespace std;
 
@@ -1568,8 +1571,8 @@ void get_natom_ncell_from_first_Cs_file(int &n_atom, int &n_cell, const string &
 
     string file_path = "";
 
-    const auto files = discover_Cs_files_for_keyword(dir_path,
-                                                     driver::driver_params.prefix_lri_coeff);
+    const auto files = discover_Cs_files_for_keyword(ctx, dir_path,
+                                                     ctx.params.prefix_lri_coeff);
     if (!files.empty())
     {
         file_path = files.front();
@@ -1578,7 +1581,7 @@ void get_natom_ncell_from_first_Cs_file(int &n_atom, int &n_cell, const string &
         throw std::runtime_error("Cs_data file is not found under dir_path: " + dir_path);
 
     binary = check_Cs_file_binary(file_path);
-    if (librpa_int::global::myid_global == 0)
+    if (ctx.comm.myid == 0)
     {
         if (binary)
         {
@@ -1719,7 +1722,7 @@ static void get_basis_from_Cs_binary(const string &file_path, std::map<int, size
 }
 
 
-static void collect_basis_from_Cs_prefix(const string &dir_path, const string &keyword,
+static void collect_basis_from_Cs_prefix(ReaderContext &ctx, const string &dir_path, const string &keyword,
                                          std::vector<size_t> &nbs_wfc,
                                          std::vector<size_t> &nbs_aux)
 {
@@ -1731,7 +1734,7 @@ static void collect_basis_from_Cs_prefix(const string &dir_path, const string &k
     std::map<int, size_t> map_at_wfc;
     std::map<int, size_t> map_at_aux;
 
-    const auto files = discover_Cs_files_for_keyword(dir_path, keyword);
+    const auto files = discover_Cs_files_for_keyword(ctx, dir_path, keyword);
     for (const auto &fn: files)
     {
         if (!binary_checked)
@@ -1766,7 +1769,7 @@ static void collect_basis_from_Cs_prefix(const string &dir_path, const string &k
     }
 }
 
-std::vector<size_t> read_aux_basis_from_Cs(const string &dir_path, const string &keyword)
+std::vector<size_t> read_aux_basis_from_Cs(ReaderContext &ctx, const string &dir_path, const string &keyword)
 {
     using namespace librpa_int;
 
@@ -1774,26 +1777,26 @@ std::vector<size_t> read_aux_basis_from_Cs(const string &dir_path, const string 
     std::vector<size_t> nbs_aux;
     int n_atoms = 0;
 
-    if (global::myid_global == 0)
+    if (ctx.comm.myid == 0)
     {
-        collect_basis_from_Cs_prefix(dir_path, keyword, nbs_wfc, nbs_aux);
+        collect_basis_from_Cs_prefix(ctx, dir_path, keyword, nbs_wfc, nbs_aux);
         n_atoms = static_cast<int>(nbs_aux.size());
     }
 
-    global::mpi_comm_global_h.bcast(&n_atoms, 1, 0);
-    if (global::myid_global != 0)
+    ctx.comm.bcast(&n_atoms, 1, 0);
+    if (ctx.comm.myid != 0)
     {
         nbs_aux.resize(n_atoms);
     }
-    global::mpi_comm_global_h.bcast(nbs_aux.data(), n_atoms, 0);
-    if (target_shrink_aux_basis_for_keyword(keyword))
-        driver::nbs_aux_shrink = nbs_aux;
+    ctx.comm.bcast(nbs_aux.data(), n_atoms, 0);
+    if (target_shrink_aux_basis_for_keyword(ctx, keyword))
+        ctx.state.nbs_aux_shrink = nbs_aux;
     else
-        driver::nbs_aux = nbs_aux;
+        ctx.state.nbs_aux = nbs_aux;
     return nbs_aux;
 }
 
-void read_basis_from_Cs(const string &dir_path)
+void read_basis_from_Cs(ReaderContext &ctx, const string &dir_path)
 {
     using namespace librpa_int;
 
@@ -1804,24 +1807,26 @@ void read_basis_from_Cs(const string &dir_path)
     std::vector<size_t> nbs_aux;
 
     // Let the master process reads and then broadcasts to others
-    if (global::myid_global == 0)
+    if (ctx.comm.myid == 0)
     {
-        collect_basis_from_Cs_prefix(dir_path, driver::driver_params.prefix_lri_coeff,
+        collect_basis_from_Cs_prefix(ctx, dir_path, ctx.params.prefix_lri_coeff,
                                      nbs_wfc, nbs_aux);
         n_atoms = static_cast<int>(nbs_wfc.size());
     }
 
     // Broadcast
-    global::mpi_comm_global_h.bcast(&n_atoms, 1, 0);
-    if (global::myid_global != 0)
+    ctx.comm.bcast(&n_atoms, 1, 0);
+    if (ctx.comm.myid != 0)
     {
         nbs_wfc.resize(n_atoms);
         nbs_aux.resize(n_atoms);
     }
-    global::mpi_comm_global_h.bcast(nbs_wfc.data(), n_atoms, 0);
-    global::mpi_comm_global_h.bcast(nbs_aux.data(), n_atoms, 0);
-    driver::h.set_ao_basis_wfc(nbs_wfc);
-    driver::h.set_ao_basis_aux(nbs_aux);
-    driver::nbs_wfc = nbs_wfc;
-    driver::nbs_aux = nbs_aux;
+    ctx.comm.bcast(nbs_wfc.data(), n_atoms, 0);
+    ctx.comm.bcast(nbs_aux.data(), n_atoms, 0);
+    ctx.h.set_ao_basis_wfc(nbs_wfc);
+    ctx.h.set_ao_basis_aux(nbs_aux);
+    ctx.state.nbs_wfc = nbs_wfc;
+    ctx.state.nbs_aux = nbs_aux;
 }
+
+} // namespace librpa::reader

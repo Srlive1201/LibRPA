@@ -35,7 +35,6 @@
 #include "../qsgw/iteration_trace.h"
 #include "../qsgw/vxc_io.h"
 #include "../read_data.h"
-#include "../reader_coulomb.h"
 #include "../task.h"
 
 namespace

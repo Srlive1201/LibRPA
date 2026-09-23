@@ -89,16 +89,6 @@ list(APPEND lib_sources
         api/instance_manager.cpp
         api/librpa.cpp
         api/options.cpp
-        api/file_reader.cpp
-
-        ../driver/driver.cpp
-        ../driver/read_data.cpp
-        ../driver/reader_eigenvec.cpp
-        ../driver/reader_basis.cpp
-        ../driver/reader_structure.cpp
-        ../driver/reader_lri.cpp
-        ../driver/reader_coulomb.cpp
-
         core/analycont.cpp
         core/symmetry_context.cpp
         core/atomic_basis.cpp

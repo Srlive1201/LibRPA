@@ -63,6 +63,7 @@ overhead while keeping essential results and the timing report visible.
 |-- cmake             : CMake find modules and build helper scripts
 |-- docs              : Sphinx/MyST user and developer documentation
 |-- driver            : Command-line driver, input parsing, and data readers
+|   |-- reader        : Shared input readers and the experimental LibBSE file interface
 |   `-- tasks         : Driver task implementations
 |-- examples
 |   `-- build         : Example build scripts for common platforms
@@ -86,8 +87,11 @@ overhead while keeping essential results and the timing report visible.
 
 The public API path is `include/librpa*.h(pp)`, implemented under `src/api`.
 The driver path is `driver/main.cpp` with tasks implemented under `driver/tasks`
-and input data coming from `driver/read_data.cpp`. Library code (`src/`)
-should stay independent of the command-line driver (`driver/`).
+and input preparation in `driver/read_data.cpp`. Shared input readers live in
+`driver/reader` and receive their handler, options, and parsing state explicitly.
+The `librpa_file_reader` target contains only these readers and links to `rpa_lib`;
+it is available with `LIBRPA_ENABLE_DRIVER=OFF`. The driver may use its private
+headers, and a file reader API is exposed through `include/file_reader.hpp`.
 
 ## A few C++ guidelines
 

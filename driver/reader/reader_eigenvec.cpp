@@ -11,12 +11,14 @@
 #include <string>
 #include <vector>
 
-#include "../src/io/fs.h"
-#include "../src/io/global_io.h"
-#include "../src/api/instance_manager.h"
-#include "../src/core/meanfield_mpi.h"
-#include "../src/utils/profiler.h"
-#include "driver.h"
+#include "../../src/io/fs.h"
+#include "../../src/io/global_io.h"
+#include "../../src/core/meanfield_mpi.h"
+#include "../../src/utils/profiler.h"
+#include "reader_context.h"
+
+namespace librpa::reader
+{
 
 namespace
 {
@@ -79,17 +81,17 @@ bool selected_ik(const std::vector<int> *iks_selected, const int ik)
            std::find(iks_selected->cbegin(), iks_selected->cend(), ik) != iks_selected->cend();
 }
 
-bool selected_driver_ik(const int ik)
+bool selected_input_ik(ReaderContext &ctx, const int ik)
 {
-    if (!driver::get_bool(driver::opts.use_kpara_scf_eigvec)) return true;
-    return std::find(driver::iks_eigvec_this.cbegin(), driver::iks_eigvec_this.cend(), ik) !=
-           driver::iks_eigvec_this.cend();
+    if (!reader_switch(ctx.opts.use_kpara_scf_eigvec)) return true;
+    return std::find(ctx.state.iks_eigvec_this.cbegin(), ctx.state.iks_eigvec_this.cend(), ik) !=
+           ctx.state.iks_eigvec_this.cend();
 }
 
-std::vector<std::string> eigenvector_files(const std::string &dir_path)
+std::vector<std::string> eigenvector_files(ReaderContext &ctx, const std::string &dir_path)
 {
     return librpa_int::discover_files_with_prefix(
-        dir_path, driver::driver_params.prefix_eigvecs_scf);
+        dir_path, ctx.params.prefix_eigvecs_scf);
 }
 
 template <typename ShouldReadIk, typename StoreIk>
@@ -216,7 +218,7 @@ int read_binary_v1_file(const std::string &file_path, const WfcShape &shape,
     return 0;
 }
 
-void set_driver_wfc_packed(const WfcShape &shape, const int ik,
+void set_wfc_packed(ReaderContext &ctx, const WfcShape &shape, const int ik,
                            const std::vector<std::complex<double>> &block_data)
 {
     const int nbao = shape.nband * shape.nao;
@@ -227,17 +229,17 @@ void set_driver_wfc_packed(const WfcShape &shape, const int ik,
         if (shape.use_spinor)
         {
             assert(is == 0);
-            driver::h.set_wfc_spinor_packed(ik, shape.nband, shape.nao, spin_block,
+            ctx.h.set_wfc_spinor_packed(ik, shape.nband, shape.nao, spin_block,
                                             spin_block + nbao);
         }
         else
         {
-            driver::h.set_wfc_packed(is, ik, shape.nband, shape.nao, spin_block);
+            ctx.h.set_wfc_packed(is, ik, shape.nband, shape.nao, spin_block);
         }
     }
 }
 
-void set_driver_wfc(const WfcShape &shape, const int ik, const std::vector<double> &re,
+void set_wfc(ReaderContext &ctx, const WfcShape &shape, const int ik, const std::vector<double> &re,
                     const std::vector<double> &im)
 {
     const int nbao = shape.nband * shape.nao;
@@ -247,12 +249,12 @@ void set_driver_wfc(const WfcShape &shape, const int ik, const std::vector<doubl
         if (shape.use_spinor)
         {
             assert(is == 0);
-            driver::h.set_wfc_spinor(ik, shape.nband, shape.nao, re.data(), im.data(),
+            ctx.h.set_wfc_spinor(ik, shape.nband, shape.nao, re.data(), im.data(),
                                      re.data() + nbao, im.data() + nbao);
         }
         else
         {
-            driver::h.set_wfc(is, ik, shape.nband, shape.nao,
+            ctx.h.set_wfc(is, ik, shape.nband, shape.nao,
                               re.data() + static_cast<std::size_t>(is) * n,
                               im.data() + static_cast<std::size_t>(is) * n);
         }
@@ -550,30 +552,15 @@ int read_legacy_text_file_kblacs_2d(
 
 }  // namespace
 
-int read_eigenvector(const std::string &dir_path)
+int read_eigenvector(ReaderContext &ctx, const std::string &dir_path)
 {
-    auto pds = librpa_int::api::get_dataset_instance(driver::h.get_c_handler());
-    const bool direct_kblacs_2d =
-        driver::get_bool(driver::opts.use_kpara_scf_eigvec) &&
-        driver::opts.parallel_routing == LIBRPA_ROUTING_LIBRI;
-    if (direct_kblacs_2d)
-    {
-        librpa_int::global::profiler.start("driver_read_eigenvector_kblacs_2d");
-        const int ret = read_eigenvector_kblacs_2d(
-            dir_path, pds->mf, driver::driver_params.use_spinor_wfc,
-            pds->scfk_blacs_ctxt, pds->desc_wfc_kb);
-        if (ret == 0) pds->mark_eigvecs_kpara_2d_ready();
-        librpa_int::global::profiler.stop("driver_read_eigenvector_kblacs_2d");
-        return ret;
-    }
-
-    const WfcShape shape{driver::n_spins,   driver::n_spinor,
-                         driver::n_states,  driver::n_basis_ao,
-                         driver::n_kpoints, driver::driver_params.use_spinor_wfc};
+    const WfcShape shape{ctx.state.n_spins,   ctx.state.n_spinor,
+                         ctx.state.n_states,  ctx.state.n_basis_ao,
+                         ctx.state.n_kpoints, ctx.params.use_spinor_wfc};
 
     int files_read = 0;
     int version_first = -1;
-    for (const auto &file_path : eigenvector_files(dir_path))
+    for (const auto &file_path : eigenvector_files(ctx, dir_path))
     {
         librpa_int::require_readable_file(file_path);
         const int version = check_KS_file_version(file_path);
@@ -596,15 +583,15 @@ int read_eigenvector(const std::string &dir_path)
         {
             case 0:
                 ret = read_legacy_text_file(
-                    file_path, shape, selected_driver_ik,
+                    file_path, shape, [&](int ik) { return selected_input_ik(ctx, ik); },
                     [&](const int ik, const std::vector<double> &re, const std::vector<double> &im)
-                    { set_driver_wfc(shape, ik, re, im); });
+                    { set_wfc(ctx, shape, ik, re, im); });
                 break;
             case 1:
                 ret = read_binary_v1_file(
-                    file_path, shape, selected_driver_ik,
+                    file_path, shape, [&](int ik) { return selected_input_ik(ctx, ik); },
                     [&](const int ik, const std::vector<std::complex<double>> &block_data)
-                    { set_driver_wfc_packed(shape, ik, block_data); });
+                    { set_wfc_packed(ctx, shape, ik, block_data); });
                 break;
         }
         if (ret != 0) return ret;
@@ -613,7 +600,7 @@ int read_eigenvector(const std::string &dir_path)
     return files_read == 0 ? -1 : 0;
 }
 
-int read_eigenvector_kblacs_2d(
+int read_eigenvector_kblacs_2d(ReaderContext &ctx,
     const std::string &dir_path, librpa_int::MeanField &mf, const bool use_spinor_wfc,
     const librpa_int::KPointBlacsParallelContext &kblacs_ctxt,
     const librpa_int::ArrayDesc &desc_wfc,
@@ -647,7 +634,7 @@ int read_eigenvector_kblacs_2d(
     std::vector<int> target_hits_local(static_cast<std::size_t>(mf.get_n_kpoints()), 0);
     int files_read = 0;
     int version_first = -1;
-    for (const auto &file_path : eigenvector_files(dir_path))
+    for (const auto &file_path : eigenvector_files(ctx, dir_path))
     {
         librpa_int::require_readable_file(file_path);
         const int version = check_KS_file_version(file_path);
@@ -686,7 +673,7 @@ int read_eigenvector_kblacs_2d(
     return 0;
 }
 
-int read_eigenvector(const std::string &dir_path, librpa_int::MeanField &mf, bool use_spinor_wfc,
+int read_eigenvector(ReaderContext &ctx, const std::string &dir_path, librpa_int::MeanField &mf, bool use_spinor_wfc,
                      const std::vector<int> *iks_selected)
 {
     const WfcShape shape{mf.get_n_spins(), mf.get_n_spinor(),  mf.get_n_states(),
@@ -694,7 +681,7 @@ int read_eigenvector(const std::string &dir_path, librpa_int::MeanField &mf, boo
 
     int files_read = 0;
     bool printed_reader_version = false;
-    for (const auto &file_path : eigenvector_files(dir_path))
+    for (const auto &file_path : eigenvector_files(ctx, dir_path))
     {
         librpa_int::require_readable_file(file_path);
         const int version = check_KS_file_version(file_path);
@@ -721,7 +708,7 @@ int read_eigenvector(const std::string &dir_path, librpa_int::MeanField &mf, boo
     return files_read == 0 ? -1 : 0;
 }
 
-int read_eigenvector(const std::string &dir_path, librpa_int::MeanField &mf, bool use_spinor_wfc,
+int read_eigenvector(ReaderContext &ctx, const std::string &dir_path, librpa_int::MeanField &mf, bool use_spinor_wfc,
                      const std::vector<int> &source_to_target_ik,
                      const std::vector<int> *source_iks_selected,
                      const LegacyTextWfcOrder text_order)
@@ -757,7 +744,7 @@ int read_eigenvector(const std::string &dir_path, librpa_int::MeanField &mf, boo
 
     int files_read = 0;
     bool printed_reader_version = false;
-    for (const auto &file_path : eigenvector_files(dir_path))
+    for (const auto &file_path : eigenvector_files(ctx, dir_path))
     {
         const int version = check_KS_file_version(file_path);
         if (!printed_reader_version)
@@ -802,3 +789,5 @@ int read_eigenvector(const std::string &dir_path, librpa_int::MeanField &mf, boo
     }
     return 0;
 }
+
+} // namespace librpa::reader

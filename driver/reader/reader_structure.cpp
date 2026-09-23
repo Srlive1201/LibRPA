@@ -1,16 +1,19 @@
 #include "reader_structure.h"
 
-#include "driver.h"
+#include "reader_context.h"
 
-#include "../src/io/fs.h"
-#include "../src/io/global_io.h"
-#include "../src/utils/error.h"
+#include "../../src/io/fs.h"
+#include "../../src/io/global_io.h"
+#include "../../src/utils/error.h"
 
 #include <algorithm>
 #include <cctype>
 #include <exception>
 #include <fstream>
 #include <vector>
+
+namespace librpa::reader
+{
 
 namespace
 {
@@ -83,7 +86,7 @@ bool is_stru_tail_boundary_at(const std::vector<std::string> &tokens, const std:
     return pos == tokens.size() || (pos < tokens.size() && is_stru_symop_header_at(tokens, pos));
 }
 
-std::size_t skip_legacy_stru_kpoint_section(const std::vector<std::string> &tokens,
+std::size_t skip_legacy_stru_kpoint_section(ReaderContext &ctx, const std::vector<std::string> &tokens,
                                             std::size_t pos,
                                             const std::string &file_path)
 {
@@ -98,9 +101,9 @@ std::size_t skip_legacy_stru_kpoint_section(const std::vector<std::string> &toke
     }
 
     const int nk_full = nk0 * nk1 * nk2;
-    if (driver::n_kpoints > 0 && driver::n_kpoints <= nk_full)
+    if (ctx.state.n_kpoints > 0 && ctx.state.n_kpoints <= nk_full)
     {
-        const auto after_ibz_rows = pos + static_cast<std::size_t>(3 * driver::n_kpoints);
+        const auto after_ibz_rows = pos + static_cast<std::size_t>(3 * ctx.state.n_kpoints);
         if (is_stru_tail_boundary_at(tokens, after_ibz_rows))
         {
             return after_ibz_rows;
@@ -171,7 +174,7 @@ std::size_t read_stru_symops_from_tokens(const std::vector<std::string> &tokens,
     return pos;
 }
 
-void read_stru_tail_symops(std::ifstream &infile, const std::string &file_path)
+void read_stru_tail_symops(ReaderContext &ctx, std::ifstream &infile, const std::string &file_path)
 {
     std::vector<std::string> tokens;
     std::string token;
@@ -187,7 +190,7 @@ void read_stru_tail_symops(std::ifstream &infile, const std::string &file_path)
     std::size_t pos = 0;
     if (tokens.size() < 2 || !is_stru_symop_convention(tokens[1]))
     {
-        pos = skip_legacy_stru_kpoint_section(tokens, pos, file_path);
+        pos = skip_legacy_stru_kpoint_section(ctx, tokens, pos, file_path);
     }
     if (pos == tokens.size())
     {
@@ -208,14 +211,14 @@ void read_stru_tail_symops(std::ifstream &infile, const std::string &file_path)
     {
         throw LIBRPA_RUNTIME_ERROR("Unexpected data after symmetry operations in " + file_path);
     }
-    driver::h.set_symmetry_operations(n_symops, row_conv,
+    ctx.h.set_symmetry_operations(n_symops, row_conv,
                                       rotmats.empty() ? nullptr : rotmats.data(),
                                       trans.empty() ? nullptr : trans.data());
 }
 
 } // namespace
 
-void reader_structure(const std::string &file_path)
+void reader_structure(ReaderContext &ctx, const std::string &file_path)
 {
     using namespace librpa_int;
     global::lib_printf_root("Reading structure file: %s\n", file_path.c_str());
@@ -245,19 +248,21 @@ void reader_structure(const std::string &file_path)
         G_mat[i * 3 + 2] = stod(z);
     }
 
-    driver::h.set_latvec_and_G(lat_mat.data(), G_mat.data());
+    ctx.h.set_latvec_and_G(lat_mat.data(), G_mat.data());
 
-    infile >> driver::n_atoms;
-    const auto n_atoms = driver::n_atoms;
-    driver::atom_types.resize(n_atoms);
+    infile >> ctx.state.n_atoms;
+    const auto n_atoms = ctx.state.n_atoms;
+    ctx.state.atom_types.resize(n_atoms);
     std::vector<double> coords(n_atoms * 3);
     int type;
     for (size_t iat = 0; iat < n_atoms; iat++)
     {
         for (int i = 0; i < 3; i++) infile >> coords[3 * iat + i];
         infile >> type;
-        driver::atom_types[iat] = type - 1;
+        ctx.state.atom_types[iat] = type - 1;
     }
-    driver::h.set_atoms(driver::atom_types, coords);
-    read_stru_tail_symops(infile, file_path);
+    ctx.h.set_atoms(ctx.state.atom_types, coords);
+    read_stru_tail_symops(ctx, infile, file_path);
 }
+
+} // namespace librpa::reader

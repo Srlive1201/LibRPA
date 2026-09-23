@@ -6,6 +6,8 @@ set_target_properties(rpa_exe PROPERTIES
   RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
 
 list(APPEND exe_sources
+  driver.cpp
+  read_data.cpp
   input_parser.cpp
   inputfile.cpp
   main.cpp
@@ -35,7 +37,7 @@ list(APPEND exe_sources
 target_sources(rpa_exe PRIVATE ${exe_sources})
 target_compile_definitions(rpa_exe PRIVATE "LIBRPA_MPI_THREAD_LEVEL=${LIBRPA_MPI_THREAD_LEVEL}")
 
-target_link_libraries(rpa_exe PRIVATE rpa_lib)
+target_link_libraries(rpa_exe PRIVATE librpa_file_reader rpa_lib)
 if(LIBRPA_BUNDLED_ELPA_PROJECT_TARGET)
   # base_blacs.h includes ELPA headers, so make them available before compiling
   # the driver instead of waiting only for the final rpa_lib link dependency.

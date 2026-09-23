@@ -189,33 +189,31 @@ DriverParams driver_params;
 
 const std::string input_filename = "librpa.in";
 
-std::vector<int> atom_types;
-size_t n_atoms;
-
-int n_spins = 0;
-int n_kpoints = 0;
-int n_kpoints_band = 0;
-int n_ibz_kpoints = 0;
-int n_states = 0;
-int n_basis_wfc = 0;
-int n_basis_ao = 0;
-int n_spinor = 1;
-std::vector<size_t> nbs_wfc;
-std::vector<size_t> nbs_aux;
-std::vector<size_t> nbs_aux_shrink;
-
-std::vector<int> iks_eigvec_this;
-std::vector<int> iks_band_eigvec_this;
+// Preserve the driver metadata names while sharing their storage with readers.
+librpa::reader::ReaderState reader_state;
+std::vector<int> &atom_types = reader_state.atom_types;
+size_t &n_atoms = reader_state.n_atoms;
+int &n_spins = reader_state.n_spins;
+int &n_kpoints = reader_state.n_kpoints;
+int &n_ibz_kpoints = reader_state.n_ibz_kpoints;
+int &n_kpoints_band = reader_state.n_kpoints_band;
+int &n_states = reader_state.n_states;
+int &n_basis_wfc = reader_state.n_basis_wfc;
+int &n_basis_ao = reader_state.n_basis_ao;
+int &n_spinor = reader_state.n_spinor;
+std::vector<size_t> &nbs_wfc = reader_state.nbs_wfc;
+std::vector<size_t> &nbs_aux = reader_state.nbs_aux;
+std::vector<size_t> &nbs_aux_shrink = reader_state.nbs_aux_shrink;
+std::vector<int> &iks_eigvec_this = reader_state.iks_eigvec_this;
+std::vector<int> &iks_band_eigvec_this = reader_state.iks_band_eigvec_this;
+std::vector<librpa_int::Vector3_Order<double>> &ibz_kpoints = reader_state.ibz_kpoints;
+std::vector<librpa_int::Vector3_Order<double>> &kfrac_band = reader_state.kfrac_band;
+bool &is_basis_convention_read = reader_state.is_basis_convention_read;
+std::string &basis_convention_label = reader_state.basis_convention_label;
 
 // Used to read Coulomb matrix data.
 // Should be consistent with the internal `atpairs_local` of the Dataset object
 std::vector<std::pair<size_t, size_t>> local_atpair;
-
-std::vector<librpa_int::Vector3_Order<double>> ibz_kpoints;
-std::vector<librpa_int::Vector3_Order<double>> kfrac_band;
-
-bool is_basis_convention_read = false;
-std::string basis_convention_label("unknown");
 
 librpa::Handler h;
 
