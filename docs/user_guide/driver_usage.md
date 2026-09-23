@@ -53,9 +53,11 @@ The driver will read the parameters defined in the file and run the calculation
 Please refer to the [guide page of runtime parameters](runtime_parameters)
 for more information about the driver and API parameters.
 
-By default, `input_preset = fhi-aims` preserves the historical driver filenames,
+By default, `input_preset = fhi-aims` (also accepted as `aims`) preserves the
+historical driver filenames,
 including `stru_out`, `basis_out`, `band_out`, `mommat_ks_kpt_*.dat`,
-`Cs_data_*`, and `coulomb_mat_*` under `input_dir`. For ABACUS output, select:
+`Cs_data_*`, and `coulomb_mat_*` under `input_dir`. For ABACUS output using
+the `.txt` filenames listed below, select:
 
 ```ini
 input_preset = abacus
@@ -65,6 +67,14 @@ This changes `fn_stru`, `fn_eigocc_scf`, and `fn_vxc_scf` to `stru_out.txt`,
 `band_out.txt`, and `vxc_out.txt`, and changes `prefix_velocity` from
 `mommat_ks_kpt_` to `velocity_matrix`. Other filename and prefix defaults
 remain unchanged.
+
+For ABACUS datasets produced before
+[PR #7849](https://github.com/deepmodeling/abacus-develop/pull/7849)
+(merge commit [`42f8ad905d56`](https://github.com/deepmodeling/abacus-develop/commit/42f8ad905d567e965ae53fc554498bdc7e9ccbcc) on `develop`), select:
+
+```ini
+input_preset = abacus-legacy
+```
 
 If a host code exports the same data under different names, set the corresponding `fn_*` or `prefix_*` driver parameters in `librpa.in`:
 

@@ -12,6 +12,17 @@ void test_fhi_aims_preset()
     assert(params.fn_eigocc_scf == "band_out");
     assert(params.fn_vxc_scf == "vxc_out");
     assert(params.prefix_velocity == "mommat_ks_kpt_");
+
+    params.input_preset = "abacus";
+    params.apply_input_preset();
+    params.input_preset = "aims";
+    params.apply_input_preset();
+
+    assert(params.input_preset == "fhi-aims");
+    assert(params.fn_stru == "stru_out");
+    assert(params.fn_eigocc_scf == "band_out");
+    assert(params.fn_vxc_scf == "vxc_out");
+    assert(params.prefix_velocity == "mommat_ks_kpt_");
 }
 
 void test_abacus_preset()
@@ -23,6 +34,16 @@ void test_abacus_preset()
     assert(params.fn_stru == "stru_out.txt");
     assert(params.fn_eigocc_scf == "band_out.txt");
     assert(params.fn_vxc_scf == "vxc_out.txt");
+    assert(params.prefix_velocity == "velocity_matrix");
+    assert(params.fn_basis_wfc == "basis_wfc_out");
+
+    params.input_preset = "abacus-legacy";
+    params.apply_input_preset();
+
+    assert(params.input_preset == "abacus-legacy");
+    assert(params.fn_stru == "stru_out");
+    assert(params.fn_eigocc_scf == "band_out");
+    assert(params.fn_vxc_scf == "vxc_out");
     assert(params.prefix_velocity == "velocity_matrix");
     assert(params.fn_basis_wfc == "basis_wfc_out");
 }

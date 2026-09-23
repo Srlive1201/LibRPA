@@ -1368,7 +1368,8 @@ void read_headwing_input(const string &dir_path, bool need_wing)
         n_spin = mf.get_n_spins();
 
         const string input_path = path_as_directory(dir_path);
-        if (driver::driver_params.input_preset == "abacus")
+        if (driver::driver_params.input_preset == "abacus" ||
+            driver::driver_params.input_preset == "abacus-legacy")
         {
             read_velocity_abacus(mf, input_path, driver::driver_params.prefix_velocity,
                                 velocity_matrix);

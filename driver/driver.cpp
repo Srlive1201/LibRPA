@@ -67,9 +67,13 @@ DriverParams::DriverParams():
 
 void DriverParams::apply_input_preset()
 {
-    if (input_preset != "fhi-aims" && input_preset != "abacus")
+    if (input_preset == "aims")
+        input_preset = "fhi-aims";
+
+    if (input_preset != "fhi-aims" && input_preset != "abacus" &&
+        input_preset != "abacus-legacy")
         throw std::invalid_argument("Unsupported input_preset: " + input_preset
-                                    + "; expected fhi-aims or abacus");
+                                    + "; expected fhi-aims (alias aims), abacus, or abacus-legacy");
 
     // The FHI-aims preset preserves the historical LibRPA driver defaults.
     fn_stru = "stru_out";
@@ -89,8 +93,9 @@ void DriverParams::apply_input_preset()
         fn_stru = "stru_out.txt";
         fn_eigocc_scf = "band_out.txt";
         fn_vxc_scf = "vxc_out.txt";
-        prefix_velocity = "velocity_matrix";
     }
+    if (input_preset == "abacus" || input_preset == "abacus-legacy")
+        prefix_velocity = "velocity_matrix";
 }
 
 std::string DriverParams::format()

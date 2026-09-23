@@ -26,9 +26,12 @@ struct DriverParams
     //! `internal` (`internal`, `aims`)
     std::string constants_choice;
 
-    //! Preset for producer-specific input filenames.
+    //! Preset for producer-specific input filenames and head/wing velocity readers.
+    //! `aims` is an alias for `fhi-aims`.
+    //! `abacus-legacy` is for input before [ABACUS PR #7849](https://github.com/deepmodeling/abacus-develop/pull/7849)
+    //! (merge commit `42f8ad905d56` on `develop`).
     //! @par Default
-    //! `fhi-aims` (`fhi-aims`, `abacus`)
+    //! `fhi-aims` (`fhi-aims`, `aims`, `abacus`, `abacus-legacy`)
     std::string input_preset;
 
     //! Input directory to find and read the AO dataset.
