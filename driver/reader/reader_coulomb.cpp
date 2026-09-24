@@ -436,7 +436,7 @@ public:
             ranges.emplace_back(block_offsets[ipair], block_offsets[ipair] + block_bytes);
         }
         std::sort(ranges.begin(), ranges.end());
-        for (std::size_t i = 1; i != ranges.size(); ++i)
+        for (std::size_t i = 1; i < ranges.size(); ++i)
         {
             if (ranges[i].first < ranges[i - 1].second)
             {
