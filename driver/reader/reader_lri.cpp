@@ -446,7 +446,7 @@ void validate_Cs_binary_v1_blocks(const string &file_path,
     }
 
     std::sort(ranges.begin(), ranges.end());
-    for (std::size_t i = 1; i != ranges.size(); ++i)
+    for (std::size_t i = 1; i < ranges.size(); ++i)
     {
         if (ranges[i].first < ranges[i - 1].second)
         {

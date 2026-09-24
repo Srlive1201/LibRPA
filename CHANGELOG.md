@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- Fixed out-of-bounds access in binary v1 LRI and Coulomb readers when input
+  files contain zero data blocks.
+
 ## [0.8.0] - 2026-09-23
 
 ### Breaking changes
