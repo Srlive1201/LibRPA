@@ -676,7 +676,16 @@ public:
         zgemv_(&transa, &m, &n, &alpha, a, &lda, x, &incx, &beta, y, &incy);
     }
 
-	// Peize Lin add 2017-10-27, fix bug trans 2019-01-17
+    // Column-major A <- A + alpha * x * y^H. Vector strides follow BLAS conventions.
+    static inline void gerc_f(const int m, const int n, const std::complex<double> alpha,
+                              const std::complex<double> *x, const int incx,
+                              const std::complex<double> *y, const int incy,
+                              std::complex<double> *a, const int lda)
+    {
+        zgerc_(&m, &n, &alpha, x, &incx, y, &incy, a, &lda);
+    }
+
+    // Peize Lin add 2017-10-27, fix bug trans 2019-01-17
 	// C = a * A.? * B.? + b * C 
 	static inline
 	void gemm(const char transa, const char transb, const int m, const int n, const int k,

@@ -25,6 +25,12 @@ void validate_strict_2d_complete_wc_runtime(bool strict_2d_requested, bool headw
 bool use_strict_2d_complete_wc_gamma_route(bool replace_w_head, int option_dielect_func,
                                            bool use_2d_dielectric, bool gamma_point,
                                            bool headwing_data_available);
+//! Largest-eigenvalue vector of the real Gamma s-Coulomb block, zero-padded
+//! to the full ABF space. Uses the upper triangle; desc=nullptr means dense.
+//! Requires l-shell metadata, including all s shells regardless of monopole.
+std::vector<double> compute_gamma_s_head_vector(
+    const AtomicBasis &basis, const matrix_m<std::complex<double>> &coulomb,
+    const ArrayDesc *desc = nullptr);
 
 struct CorrEnergy
 {
@@ -62,7 +68,7 @@ atom_mapping<ComplexMatrix>::pair_t_old gather_vq_row_q(const AtomicBasis &atbas
 std::map<double, std::map<Vector3_Order<double>, Matz>> compute_Wc_freq_q(
     Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, atpair_k_cplx_mat_t &coulmat_wc,
     double sqrt_coulomb_threshold, const std::vector<cplxdb> &epsmac_LF_imagfreq,
-    bool debug = false, const char *output_dir = ".");
+    bool debug = false, const char *output_dir = ".", int option_dielect_func = 0);
 
 std::map<double, std::map<Vector3_Order<double>, Matz>> compute_Wc_freq_q_blacs(
     Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, atpair_k_cplx_mat_t &coulmat_wc,

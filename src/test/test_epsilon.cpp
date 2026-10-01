@@ -31,6 +31,58 @@ void assert_complex_close(const std::complex<double> &actual, const std::complex
     }
 }
 
+void test_gamma_s_head_vector(const BlacsCtxtHandler &blacs_h)
+{
+    const std::vector<double> frequencies{0.1, 1.0}, dielectric{12.0, 4.0};
+    assert(interpolate_dielec_func(5, frequencies, dielectric, frequencies) == dielectric);
+    assert(interpolate_dielec_func(0, frequencies, dielectric, frequencies) == dielectric);
+    AtomicBasis basis(std::vector<std::size_t>{5, 5});
+    basis.set_l_shells({{0, 1, 0}, {0, 1, 0}});
+    const std::vector<double> expected{0.5, 0, 0, 0, -0.5, 0.5, 0, 0, 0, -0.5};
+    matrix_m<std::complex<double>> dense(10, 10, MAJOR::COL);
+    for (int j = 0; j < 10; ++j)
+        for (int i = 0; i < 10; ++i)
+            dense(i, j) = (i == j ? (expected[i] == 0 ? 20.0 : 1.0) : 0.0)
+                          + 6.0 * expected[i] * expected[j];
+    // The full leading mode is p-like; nonzero s-p wings also make the desired
+    // zero-padded vector different from any full Coulomb eigenvector.
+    dense(0, 1) = dense(1, 0) = 0.2;
+    const auto serial = compute_gamma_s_head_vector(basis, dense);
+    ArrayDesc desc(blacs_h);
+    desc.init(10, 10, 2, 2, 0, 0);
+    auto local = init_local_mat<std::complex<double>>(desc, MAJOR::COL);
+    for (int j = 0; j < desc.n_loc(); ++j)
+        for (int i = 0; i < desc.m_loc(); ++i)
+        {
+            const int gi = desc.indx_l2g_r(i), gj = desc.indx_l2g_c(j);
+            // Distributed Coulomb assembly only guarantees the upper triangle.
+            local(i, j) = gi <= gj ? dense(gi, gj) : std::complex<double>{99.0, 0.0};
+        }
+    const auto parallel = compute_gamma_s_head_vector(basis, local, &desc);
+    for (const auto &actual : {serial, parallel})
+    {
+        double overlap = 0.0, norm = 0.0;
+        for (int i = 0; i < 10; ++i)
+        {
+            overlap += actual[i] * expected[i];
+            norm += actual[i] * actual[i];
+            if (expected[i] == 0.0) assert(actual[i] == 0.0);
+        }
+        assert(std::abs(norm - 1.0) < 1e-12);
+        assert(std::abs(std::abs(overlap) - 1.0) < 1e-12);
+    }
+    for (bool missing_metadata : {false, true})
+    {
+        AtomicBasis invalid(std::vector<std::size_t>{3});
+        if (!missing_metadata) invalid.set_l_shells({{1}});
+        matrix_m<std::complex<double>> matrix(3, 3, MAJOR::COL);
+        bool rejected = false;
+        try { compute_gamma_s_head_vector(invalid, matrix); }
+        catch (const std::exception &) { rejected = true; }
+        assert(rejected);
+    }
+}
+
 void test_head_only_trace_logdet_can_use_reduced_response(const BlacsCtxtHandler &blacs_h)
 {
     ArrayDesc desc(blacs_h);
@@ -617,6 +669,7 @@ int main(int argc, char *argv[])
         blacs_h.init();
         blacs_h.set_square_grid();
 
+        test_gamma_s_head_vector(blacs_h);
         test_head_only_trace_logdet_can_use_reduced_response(blacs_h);
         test_wq_to_wr_symmetry_reduced_q_matches_full_bz();
         test_wq_to_wr_antiunitary_member_conjugates();
