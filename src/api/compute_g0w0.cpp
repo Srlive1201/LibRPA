@@ -681,12 +681,13 @@ void librpa_build_g0w0_sigma(LibrpaHandler* h, const LibrpaOptions *p_opts)
 
     // Prepare time-frequency grids
     initialize_ds_tfgrids(*pds, opts);
-    if (opts.replace_w_head == LIBRPA_SWITCH_ON && opts.option_dielect_func == 0
+    if (opts.replace_w_head == LIBRPA_SWITCH_ON
+        && (opts.option_dielect_func == 0 || opts.option_dielect_func == 5)
         && !pds->epsmacs_imagfreq.empty()
         && pds->epsmacs_imagfreq.size() != pds->tfg.get_freq_nodes().size())
     {
         throw LIBRPA_RUNTIME_ERROR(
-            "option_dielect_func=0 requires dielectric function data on the current "
+            "option_dielect_func=0 or 5 requires dielectric function data on the current "
             "frequency grid: got " + std::to_string(pds->epsmacs_imagfreq.size()) +
             " input points for " + std::to_string(pds->tfg.get_freq_nodes().size()) +
             " target points. Regenerate dielecfunc_out for this grid or set "
@@ -854,7 +855,7 @@ void librpa_build_g0w0_sigma(LibrpaHandler* h, const LibrpaOptions *p_opts)
     else
     {
         Wc_freq_q = compute_Wc_freq_q(chi0, coul_eps, coul_wc, opts.sqrt_coulomb_threshold,
-                                      epsmac_LF_imagfreq, debug, opts.output_dir);
+                                      epsmac_LF_imagfreq, debug, opts.output_dir, opts.option_dielect_func);
     }
 
     std::map<double, atom_mapping<std::map<Vector3_Order<double>, Matz>>::pair_t_old>

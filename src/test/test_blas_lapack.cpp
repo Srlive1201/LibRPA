@@ -1,4 +1,5 @@
 #include "../math/lapack_connector.h"
+#include "../math/matrix_m.h"
 #include "testutils.h"
 #include "../math/complexmatrix.h"
 #include <cassert>
@@ -6,6 +7,42 @@
 #include <ctime>
 
 using namespace librpa_int;
+
+void test_gerc_rank_one_update()
+{
+    using Z = std::complex<double>;
+    const auto assert_complex_close = [](Z actual, Z expected, double tolerance)
+    { assert(std::abs(actual - expected) < tolerance); };
+    const Z alpha(0.4, -0.7);
+    const Z x[] = {{1, 2}, {99, 99}, {-3, 0.5}};
+    const Z y[] = {{2, -1}, {99, 99}, {0.5, 3}, {99, 99}, {-1, -2}};
+    std::vector<Z> a(9, Z(0.3, -0.2));
+    const auto original = a;
+    LapackConnector::gerc_f(2, 3, alpha, x, 2, y, 2, a.data(), 3);
+    for (int j = 0; j < 3; ++j)
+    {
+        for (int i = 0; i < 2; ++i)
+            assert_complex_close(
+                a[i + 3 * j], original[i + 3 * j] + alpha * x[2 * i] * std::conj(y[2 * j]), 1e-14);
+        assert(a[2 + 3 * j] == original[2 + 3 * j]);
+    }
+    // Exercise the real-vector rank-one update with both matrix layouts and a complex coefficient.
+    const Z u[] = {0.6, 0.8};
+    for (auto major : {MAJOR::ROW, MAJOR::COL})
+    {
+        matrix_m<Z> matrix(2, 2, major);
+        matrix(0, 0) = 2.0;
+        matrix(0, 1) = Z(0.3, 0.2);
+        matrix(1, 0) = Z(-0.1, 0.5);
+        matrix(1, 1) = 3.0;
+        const std::vector<Z> before{matrix(0, 0), matrix(0, 1), matrix(1, 0), matrix(1, 1)};
+        LapackConnector::gerc_f(2, 2, alpha, u, 1, u, 1, matrix.ptr(), 2);
+        for (int i = 0; i < 2; ++i)
+            for (int j = 0; j < 2; ++j)
+                assert_complex_close(matrix(i, j),
+                                     before[2 * i + j] + alpha * u[i] * std::conj(u[j]), 1e-14);
+    }
+}
 
 void test_blas_mv_mm_double(bool debug = false)
 {
@@ -113,6 +150,7 @@ void test_lapack_ev_complex(bool debug = false)
 
 int main (int argc, char *argv[])
 {
+    test_gerc_rank_one_update();
     test_blas_mv_mm_double(false);
     test_lapack_ev_complex(true);
     return 0;

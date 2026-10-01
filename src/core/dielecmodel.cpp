@@ -1056,6 +1056,7 @@ std::vector<double> interpolate_dielec_func(int option, const std::vector<double
 
     switch (option)
     {
+        case 5: /* Direct input data, with an s-subspace head in Wc. */
         case 0: /* No extrapolation, copy the input data to target */
         {
             assert(frequencies_in.size() == frequencies_target.size());

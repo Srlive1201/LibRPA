@@ -463,6 +463,10 @@ typedef struct
      * - 2: dielectric model fitting from input data
      * - 3: analytic head and wing correction
      * - 4: analytic head correction
+     * - 5: use input data directly; replace the head along the largest-eigenvalue
+     *   vector of the Gamma s-only Coulomb submatrix, zero-padded to all ABFs.
+     *   Includes all s shells, preserves wings, and requires auxiliary l-shell
+     *   metadata. Input data must match the current frequency grid.
      *
      * @par Default
      * 0

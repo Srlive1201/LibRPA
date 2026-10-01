@@ -6,6 +6,7 @@
 #include <array>
 #include <iomanip>
 #include <iterator>
+#include <limits>
 #include <set>
 #include <sstream>
 #include <stdexcept>
@@ -93,16 +94,69 @@ using abf_rspace_complex_block_map_t =
 using abf_rspace_dense_block_map_t =
     std::map<atom_t, std::map<atom_t, std::map<Vector3_Order<int>, ComplexMatrix>>>;
 
-static bool are_equivalent_symmetry_qpoints(const Vector3_Order<double>& lhs,
-                                            const Vector3_Order<double>& rhs,
-                                            const double tol = 1e-5)
+std::vector<double> compute_gamma_s_head_vector(
+    const AtomicBasis &basis, const matrix_m<std::complex<double>> &coulomb,
+    const ArrayDesc *desc)
 {
-    const auto same_component = [tol](const double lhs_component, const double rhs_component) {
-        return std::abs((lhs_component - rhs_component) - std::round(lhs_component - rhs_component))
-               < tol;
-    };
-    return same_component(lhs.x, rhs.x) && same_component(lhs.y, rhs.y)
-           && same_component(lhs.z, rhs.z);
+    if (!basis.has_l_shells())
+        throw LIBRPA_RUNTIME_ERROR("Gamma s-head correction requires auxiliary l-shell metadata");
+    const int n = as_int(basis.nb_total);
+    if ((desc && (desc->m() != n || desc->n() != n
+                  || coulomb.nr() != desc->m_loc() || coulomb.nc() != desc->n_loc()))
+        || (!desc && (coulomb.nr() != n || coulomb.nc() != n)))
+        throw LIBRPA_RUNTIME_ERROR("Gamma s-head Coulomb matrix and basis dimensions differ");
+
+    std::vector<int> indices;
+    for (int atom = 0; atom < as_int(basis.n_atoms); ++atom)
+    {
+        int offset = as_int(basis.get_global_index(atom, 0));
+        for (const int l : basis.get_l_shells(atom))
+        {
+            if (l == 0) indices.push_back(offset);
+            offset += 2 * l + 1;
+        }
+    }
+    const int ns = as_int(indices.size());
+    if (ns == 0)
+        throw LIBRPA_RUNTIME_ERROR("Gamma s-head correction requires at least one s auxiliary");
+    // ponytail: replicate only the small s block; use distributed diagonalization
+    // if its O(ns^2) storage or O(ns^3) solve becomes significant.
+    if (indices.size() > as_size(std::numeric_limits<int>::max()) / indices.size())
+        throw LIBRPA_RUNTIME_ERROR("Gamma s-Coulomb block exceeds the LAPACK/MPI count limit");
+    std::vector<double> block(indices.size() * indices.size(), 0.0);
+    for (int j = 0; j < ns; ++j)
+    {
+        const int jc = desc ? desc->indx_g2l_c(indices[j]) : indices[j];
+        if (jc < 0) continue;
+        for (int i = 0; i <= j; ++i)
+        {
+            const int ir = desc ? desc->indx_g2l_r(indices[i]) : indices[i];
+            if (ir >= 0) block[i + as_size(j) * ns] = coulomb(ir, jc).real();
+        }
+    }
+    if (desc)
+        MPI_Allreduce(MPI_IN_PLACE, block.data(), as_int(block.size()), MPI_DOUBLE,
+                      MPI_SUM, desc->comm());
+    for (const double value : block)
+        if (!std::isfinite(value))
+            throw LIBRPA_RUNTIME_ERROR("Non-finite Gamma s-Coulomb matrix");
+
+    std::vector<double> eigenvalues(ns);
+    double workspace_query = 0.0;
+    int info = 0;
+    LapackConnector::syev_f('V', 'U', ns, block.data(), ns, eigenvalues.data(),
+                            &workspace_query, -1, info);
+    if (info != 0)
+        throw LIBRPA_RUNTIME_ERROR("Gamma s-Coulomb LAPACK workspace query failed");
+    std::vector<double> workspace(as_size(static_cast<int>(workspace_query)));
+    LapackConnector::syev_f('V', 'U', ns, block.data(), ns, eigenvalues.data(),
+                            workspace.data(), as_int(workspace.size()), info);
+    if (info != 0 || !std::isfinite(eigenvalues.back()) || eigenvalues.back() <= 0.0)
+        throw LIBRPA_RUNTIME_ERROR("Gamma s-Coulomb diagonalization has no valid positive head mode");
+    std::vector<double> head(n, 0.0);
+    for (int i = 0; i < ns; ++i)
+        head[indices[i]] = block[i + as_size(ns - 1) * ns];
+    return head;
 }
 
 static void dump_blacs_debug_matrix(const bool debug, const std::string &output_dir,
@@ -114,6 +168,18 @@ static void dump_blacs_debug_matrix(const bool debug, const std::string &output_
     if (!debug) return;
     print_matrix_mm_file_parallel(path_as_directory(output_dir) + file_name, matrix_local,
                                   matrix_desc, comment, threshold);
+}
+
+static bool are_equivalent_symmetry_qpoints(const Vector3_Order<double>& lhs,
+                                            const Vector3_Order<double>& rhs,
+                                            const double tol = 1e-5)
+{
+    const auto same_component = [tol](const double lhs_component, const double rhs_component) {
+        return std::abs((lhs_component - rhs_component) - std::round(lhs_component - rhs_component))
+               < tol;
+    };
+    return same_component(lhs.x, rhs.x) && same_component(lhs.y, rhs.y)
+           && same_component(lhs.z, rhs.z);
 }
 
 template <typename QMap>
@@ -2379,7 +2445,8 @@ atom_mapping<ComplexMatrix>::pair_t_old gather_vq_row_q(const AtomicBasis &atbas
 std::map<double, std::map<Vector3_Order<double>, Matz>>
 compute_Wc_freq_q(
     Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat_eps, atpair_k_cplx_mat_t &coulmat_wc, double sqrt_coulomb_threshold,
-    const vector<std::complex<double>> &epsmac_LF_imagfreq, bool debug, const char *output_dir)
+    const vector<std::complex<double>> &epsmac_LF_imagfreq, bool debug, const char *output_dir,
+    int option_dielect_func)
 {
     using std::cout;
     using std::endl;
@@ -2452,6 +2519,11 @@ compute_Wc_freq_q(
             sprintf(fn, "Vq_all_q_%d.mtx", iq);
             print_matrix_mm_file(Vq_all,  + fn, "", 1e-15);
         }
+        std::vector<double> gamma_s_head;
+        if (option_dielect_func == 5 && !epsmac_LF_imagfreq.empty() && is_gamma_point(q))
+            gamma_s_head = compute_gamma_s_head_vector(chi0.atbasis_abf, Vq_all);
+        const std::vector<std::complex<double>> gamma_s_head_complex(
+            gamma_s_head.begin(), gamma_s_head.end());
         const auto sqrtVq_all = power_hemat(Vq_all, 0.5, true, false, sqrt_coulomb_threshold);
         // Vq_all is now eigenvectors of the original Coulomb matrix
         // only required for Gamma point
@@ -2545,21 +2617,40 @@ compute_Wc_freq_q(
             auto eps_fq = - sqrtVq_all * chi0fq_all * sqrtVq_all;
             if (!epsmac_LF_imagfreq.empty() && is_gamma_point(q))
             {
-                // rotate to Coulomb-diagonal basis
-                // lib_printf("Largest off-diagonal = %f\n", eps_fq.get_max_abs_offdiag());
-                // print_matrix("rotated eps_fq: ", eps_fq.real());
-                // replacing the element corresponding to largest Coulomb eigenvalue with dielectric function
-                eps_fq = transpose(Vq_eigen, true) * eps_fq * Vq_eigen;
-                lib_printf("%22.12f %22.12f %22.12f %22.12f\n", freq, eps_fq(0, 0).real(), eps_fq(eps_fq.nr() - 1, eps_fq.nc() - 1).real(), epsmac_LF_imagfreq[ifreq].real());
-                // eps_fq(eps_fq.nr - 1, eps_fq.nc - 1) = epsmac_LF_imagfreq[ifreq];
-                eps_fq(0, 0) = 1.0 - epsmac_LF_imagfreq[ifreq];
-                if (debug)
+                if (option_dielect_func == 5)
                 {
-                    sprintf(fn, "rotated_vsxvs_q_%d_freq_%d.mtx", iq, ifreq);
-                    print_matrix_mm_file(eps_fq, path_as_directory(output_dir) + fn, "", 1e-10);
+                    // eps_fq is epsilon - I here. Replace only the s-head projection;
+                    // the wings and complementary block remain unchanged.
+                    std::complex<double> head = 0.0;
+                    for (int j = 0; j < range_all; ++j)
+                        for (int i = 0; i < range_all; ++i)
+                            head += gamma_s_head[i] * eps_fq(i, j) * gamma_s_head[j];
+                    const auto delta = epsmac_LF_imagfreq[ifreq] - C_ONE - head;
+                    // u is real, so delta*u*u^T is symmetric even for complex delta.
+                    // The column-major BLAS update therefore also applies to row-major eps_fq.
+                    LapackConnector::gerc_f(range_all, range_all, delta,
+                                            gamma_s_head_complex.data(), 1,
+                                            gamma_s_head_complex.data(), 1,
+                                            eps_fq.ptr(), range_all);
                 }
-                // rotate back to ABF
-                eps_fq = Vq_eigen * eps_fq * transpose(Vq_eigen, true);
+                else
+                {
+                    // rotate to Coulomb-diagonal basis
+                    // lib_printf("Largest off-diagonal = %f\n", eps_fq.get_max_abs_offdiag());
+                    // print_matrix("rotated eps_fq: ", eps_fq.real());
+                    // replacing the element corresponding to largest Coulomb eigenvalue with dielectric function
+                    eps_fq = transpose(Vq_eigen, true) * eps_fq * Vq_eigen;
+                    lib_printf("%22.12f %22.12f %22.12f %22.12f\n", freq, eps_fq(0, 0).real(), eps_fq(eps_fq.nr() - 1, eps_fq.nc() - 1).real(), epsmac_LF_imagfreq[ifreq].real());
+                    // eps_fq(eps_fq.nr - 1, eps_fq.nc - 1) = epsmac_LF_imagfreq[ifreq];
+                    eps_fq(0, 0) = 1.0 - epsmac_LF_imagfreq[ifreq];
+                    if (debug)
+                    {
+                        sprintf(fn, "rotated_vsxvs_q_%d_freq_%d.mtx", iq, ifreq);
+                        print_matrix_mm_file(eps_fq, path_as_directory(output_dir) + fn, "", 1e-10);
+                    }
+                    // rotate back to ABF
+                    eps_fq = Vq_eigen * eps_fq * transpose(Vq_eigen, true);
+                }
             }
             for (int i = 0; i < eps_fq.nr(); i++) eps_fq(i, i) += C_ONE;
             // eps_fq = identity - eps_fq;
@@ -2909,6 +3000,11 @@ std::map<double, std::map<Vector3_Order<double>, Matz>> compute_Wc_freq_q_blacs(
         // ofs_myid << str(coul_block);
         // lib_printf("coul_block\n%s", str(coul_block).c_str());
 
+        // Extract from V before power_hemat overwrites it with sqrt(V).
+        std::vector<double> gamma_s_head;
+        if (gamma_head_only && option_dielect_func == 5)
+            gamma_s_head = compute_gamma_s_head_vector(
+                chi0.atbasis_abf, coul_block, &desc_nabf_nabf_opt);
         size_t n_singular;
         if (debug_output) ofs_myid << get_timestamp() << " Start power hemat couleps\n";
         matrix_m<std::complex<double>> sqrtveig_blacs;
@@ -2954,6 +3050,17 @@ std::map<double, std::map<Vector3_Order<double>, Matz>> compute_Wc_freq_q_blacs(
             if (n_nonsingular == 0)
                 throw LIBRPA_RUNTIME_ERROR(
                     "Gamma head correction requires a non-singular Coulomb eigenvector");
+            if (option_dielect_func == 5)
+            {
+                // The head-only path no longer needs the full Coulomb eigenvectors.
+                // Reuse their first column for the zero-padded s-subspace vector,
+                // including the existing host-to-device transfer below.
+                const int head_col = desc_nabf_nabf_opt.indx_g2l_c(0);
+                if (head_col >= 0)
+                    for (int row = 0; row < desc_nabf_nabf_opt.m_loc(); ++row)
+                        coul_eigen_block(row, head_col) =
+                            gamma_s_head[desc_nabf_nabf_opt.indx_l2g_r(row)];
+            }
 #if defined(LIBRPA_USE_CUDA) || defined(LIBRPA_USE_HIP)
             if (use_gpu_replace_scalapack)
             {

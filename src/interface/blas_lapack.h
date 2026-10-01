@@ -269,7 +269,7 @@ extern "C" {
 // performs the rank 1 operation A := alpha*x*y**H + A,
 // where x and y are m- and n-element vector, A is an m by n matrix.
     void cgerc_(int *m, int *n, std::complex<float> *alpha, std::complex<float> *x, int *incx, std::complex<float> *y, int *incy, std::complex<float> *a, int *lda);
-    void zgerc_(int *m, int *n, std::complex<double> *alpha, std::complex<double> *x, int *incx, std::complex<double> *y, int *incy, std::complex<double> *a, int *lda);
+    void zgerc_(const int *m, const int *n, const std::complex<double> *alpha, const std::complex<double> *x, const int *incx, const std::complex<double> *y, const int *incy, std::complex<double> *a, const int *lda);
 
 // performs the rank 1 operation A := alpha*x*y**T + A,
 // where x and y are m- and n-element vector, A is an m by n matrix.
