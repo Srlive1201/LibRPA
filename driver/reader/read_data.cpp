@@ -9,6 +9,7 @@
 #include "reader_lri.h"
 #include "reader_coulomb.h"
 #include "reader_structure.h"
+#include "bz_full_kmap.h"
 
 #include <fcntl.h>
 #include <sys/stat.h>
@@ -381,142 +382,177 @@ void read_bz_sampling(ReaderContext &ctx, const std::string &file_path)
 
     global::lib_printf_root("Reading Brillouin zone sampling file: %s\n", file_path.c_str());
 
-    require_readable_file(file_path);
-    ifstream infile;
-    infile.open(file_path);
-    if (!infile.good()) throw LIBRPA_RUNTIME_ERROR("Fail to open BZ sampling file " + file_path);
+    int nk[3] = {};
+    int n_kpoints_scf = 0, nk_ibz = 0;
+    std::vector<double> kvecs, kweights;
+    std::vector<int> map_q_ks;
+    bool explicit_full_mapping = false;
+    std::string parse_error;
+    try
+    {
+        require_readable_file(file_path);
+        ifstream infile;
+        infile.open(file_path);
+        if (!infile.good())
+            throw LIBRPA_RUNTIME_ERROR("Fail to open BZ sampling file " + file_path);
+        for (int i = 0; i < 3; i++)
+        {
+            infile >> nk[i];
+        }
+        if (!infile.good() || nk[0] <= 0 || nk[1] <= 0 || nk[2] <= 0)
+        {
+            throw LIBRPA_RUNTIME_ERROR("Invalid BZ sampling k-grid in " + file_path);
+        }
+        int nk_full = 1;
+        for (const int size : nk)
+        {
+            if (size > std::numeric_limits<int>::max() / nk_full)
+                throw LIBRPA_RUNTIME_ERROR(
+                    "BZ sampling full-grid count exceeds the supported range");
+            nk_full *= size;
+        }
 
-    int nk[3];
-    for (int i = 0; i < 3; i++)
-    {
-        infile >> nk[i];
-    }
-    if (!infile.good() || nk[0] <= 0 || nk[1] <= 0 || nk[2] <= 0)
-    {
-        throw LIBRPA_RUNTIME_ERROR("Invalid BZ sampling k-grid in " + file_path);
-    }
-    const int nk_full = nk[0] * nk[1] * nk[2];
-
-    int n_kpoints_scf, nk_ibz;
-    infile >> n_kpoints_scf >> nk_ibz;
-    if (!infile.good())
-    {
-        throw LIBRPA_RUNTIME_ERROR("Fail to read BZ sampling k-point counts from " + file_path);
-    }
-    if (n_kpoints_scf <= 0 || nk_ibz <= 0)
-        throw LIBRPA_RUNTIME_ERROR("BZ sampling k-point counts must be positive");
-    if (n_kpoints_scf > nk_full)
-        throw LIBRPA_RUNTIME_ERROR("SCF k-point count exceeds the full BZ grid size");
-    if (nk_ibz > n_kpoints_scf)
-        throw LIBRPA_RUNTIME_ERROR("Coulomb IBZ k-point count exceeds the SCF k-point count");
-    if (ctx.state.n_kpoints > 0 && n_kpoints_scf != ctx.state.n_kpoints)
-    {
-        throw LIBRPA_RUNTIME_ERROR(
-            "BZ sampling SCF k-point count does not match band_out: "
-            + std::to_string(n_kpoints_scf) + " != " + std::to_string(ctx.state.n_kpoints));
-    }
-
-    std::vector<double> kvecs(3 * n_kpoints_scf);
-    std::vector<double> kweights(n_kpoints_scf);
-    std::vector<int> map_q_ks(n_kpoints_scf, -1);
-    std::vector<int> ibz_label_to_rep(nk_ibz, -1);
-    std::vector<int> ibz_representatives;
-    double weight_sum = 0.0;
-
-    for (int i = 0; i != n_kpoints_scf; i++)
-    {
-        int ik_read, ik_ibz, ik_rep;
-        double kfrac_x, kfrac_y, kfrac_z;
-        infile >> ik_read >> kweights[i];
-        infile >> kfrac_x >> kfrac_y >> kfrac_z;
-        infile >> kvecs[3 * i] >> kvecs[3 * i + 1] >> kvecs[3 * i + 2];
-        infile >> ik_ibz >> ik_rep;
+        infile >> n_kpoints_scf >> nk_ibz;
         if (!infile.good())
         {
-            throw LIBRPA_RUNTIME_ERROR(
-                "Fail to read BZ sampling k-point row " + std::to_string(i + 1)
-                + " from " + file_path);
+            throw LIBRPA_RUNTIME_ERROR("Fail to read BZ sampling k-point counts from " + file_path);
         }
-        if (ik_read != i + 1)
+        if (n_kpoints_scf <= 0 || nk_ibz <= 0)
+            throw LIBRPA_RUNTIME_ERROR("BZ sampling k-point counts must be positive");
+        if (n_kpoints_scf > nk_full)
+            throw LIBRPA_RUNTIME_ERROR("SCF k-point count exceeds the full BZ grid size");
+        if (nk_ibz > n_kpoints_scf)
+            throw LIBRPA_RUNTIME_ERROR("Coulomb IBZ k-point count exceeds the SCF k-point count");
+        if (ctx.state.n_kpoints > 0 && n_kpoints_scf != ctx.state.n_kpoints)
         {
-            throw LIBRPA_RUNTIME_ERROR("BZ sampling k-point index does not match row order");
+            throw LIBRPA_RUNTIME_ERROR("BZ sampling SCF k-point count does not match band_out: " +
+                                       std::to_string(n_kpoints_scf) +
+                                       " != " + std::to_string(ctx.state.n_kpoints));
         }
-        if (!std::isfinite(kweights[i]) || kweights[i] < 0.0
-            || !std::isfinite(kfrac_x) || !std::isfinite(kfrac_y) || !std::isfinite(kfrac_z)
-            || !std::isfinite(kvecs[3 * i])
-            || !std::isfinite(kvecs[3 * i + 1])
-            || !std::isfinite(kvecs[3 * i + 2]))
-        {
-            throw LIBRPA_RUNTIME_ERROR("BZ sampling k-point row contains an invalid number");
-        }
-        if (ik_ibz <= 0 || ik_ibz > nk_ibz)
-        {
-            throw LIBRPA_RUNTIME_ERROR("BZ sampling IBZ index out of range");
-        }
-        if (ik_rep <= 0 || ik_rep > n_kpoints_scf)
-        {
-            throw LIBRPA_RUNTIME_ERROR("BZ sampling representative k-point index out of range");
-        }
-        map_q_ks[i] = ik_rep - 1;
-        auto &label_rep = ibz_label_to_rep[static_cast<std::size_t>(ik_ibz - 1)];
-        if (label_rep < 0)
-        {
-            label_rep = map_q_ks[i];
-        }
-        else if (label_rep != map_q_ks[i])
-        {
-            throw LIBRPA_RUNTIME_ERROR(
-                "BZ sampling irreducible Coulomb k-point label maps to multiple representatives");
-        }
-        if (std::find(ibz_representatives.cbegin(), ibz_representatives.cend(), map_q_ks[i])
-            == ibz_representatives.cend())
-        {
-            ibz_representatives.emplace_back(map_q_ks[i]);
-        }
-        weight_sum += kweights[i];
-    }
-    infile.close();
 
-    if (std::abs(weight_sum - 1.0) > kBzSamplingWeightSumTol)
-    {
-        throw LIBRPA_RUNTIME_ERROR(
-            "BZ sampling SCF k-point weights do not sum to 1: "
-            + std::to_string(weight_sum));
-    }
-    const bool partial_sternheimer_input = ctx.params.sternheimer_partial_input;
-    if (!partial_sternheimer_input)
-    {
-        if (ibz_representatives.size() != static_cast<std::size_t>(nk_ibz))
-        {
-            throw LIBRPA_RUNTIME_ERROR(
-                "BZ sampling representative count does not match Coulomb IBZ count");
-        }
-        if (std::find(ibz_label_to_rep.cbegin(), ibz_label_to_rep.cend(), -1)
-            != ibz_label_to_rep.cend())
-        {
-            throw LIBRPA_RUNTIME_ERROR(
-                "BZ sampling does not contain every irreducible Coulomb k-point label");
-        }
-    }
-    else if (ibz_representatives.size() != static_cast<std::size_t>(nk_ibz)
-             || std::find(ibz_label_to_rep.cbegin(), ibz_label_to_rep.cend(), -1)
-                    != ibz_label_to_rep.cend())
-    {
-        global::lib_printf_root(
-            "Sternheimer partial-response input accepts incomplete generic Coulomb-IBZ labels; "
-            "the explicit q-point manifest selects the Coulomb matrices.\n");
-    }
+        kvecs.resize(static_cast<std::size_t>(3) * n_kpoints_scf);
+        kweights.resize(n_kpoints_scf);
+        map_q_ks.assign(n_kpoints_scf, -1);
+        std::vector<int> ibz_label_to_rep(nk_ibz, -1);
+        std::vector<int> ibz_representatives;
+        double weight_sum = 0.0;
 
-    if (partial_sternheimer_input)
-    {
-        std::iota(map_q_ks.begin(), map_q_ks.end(), 0);
-        global::lib_printf_root(
-            "Sternheimer partial-response input uses all listed SCF k-points as "
-            "symmetry-context representatives.\n");
-    }
+        for (int i = 0; i != n_kpoints_scf; i++)
+        {
+            int ik_read, ik_ibz, ik_rep;
+            double kfrac_x, kfrac_y, kfrac_z;
+            infile >> ik_read >> kweights[i];
+            infile >> kfrac_x >> kfrac_y >> kfrac_z;
+            infile >> kvecs[3 * i] >> kvecs[3 * i + 1] >> kvecs[3 * i + 2];
+            infile >> ik_ibz >> ik_rep;
+            if (!infile.good())
+            {
+                throw LIBRPA_RUNTIME_ERROR("Fail to read BZ sampling k-point row " +
+                                           std::to_string(i + 1) + " from " + file_path);
+            }
+            if (ik_read != i + 1)
+            {
+                throw LIBRPA_RUNTIME_ERROR("BZ sampling k-point index does not match row order");
+            }
+            if (!std::isfinite(kweights[i]) || kweights[i] < 0.0 || !std::isfinite(kfrac_x) ||
+                !std::isfinite(kfrac_y) || !std::isfinite(kfrac_z) ||
+                !std::isfinite(kvecs[3 * i]) || !std::isfinite(kvecs[3 * i + 1]) ||
+                !std::isfinite(kvecs[3 * i + 2]))
+            {
+                throw LIBRPA_RUNTIME_ERROR("BZ sampling k-point row contains an invalid number");
+            }
+            if (ik_ibz <= 0 || ik_ibz > nk_ibz)
+            {
+                throw LIBRPA_RUNTIME_ERROR("BZ sampling IBZ index out of range");
+            }
+            if (ik_rep <= 0 || ik_rep > n_kpoints_scf)
+            {
+                throw LIBRPA_RUNTIME_ERROR("BZ sampling representative k-point index out of range");
+            }
+            map_q_ks[i] = ik_rep - 1;
+            auto &label_rep = ibz_label_to_rep[static_cast<std::size_t>(ik_ibz - 1)];
+            if (label_rep < 0)
+            {
+                label_rep = map_q_ks[i];
+            }
+            else if (label_rep != map_q_ks[i])
+            {
+                throw LIBRPA_RUNTIME_ERROR(
+                    "BZ sampling irreducible Coulomb k-point label maps to multiple "
+                    "representatives");
+            }
+            if (std::find(ibz_representatives.cbegin(), ibz_representatives.cend(), map_q_ks[i]) ==
+                ibz_representatives.cend())
+            {
+                ibz_representatives.emplace_back(map_q_ks[i]);
+            }
+            weight_sum += kweights[i];
+        }
+        if (std::abs(weight_sum - 1.0) > kBzSamplingWeightSumTol)
+        {
+            throw LIBRPA_RUNTIME_ERROR("BZ sampling SCF k-point weights do not sum to 1: " +
+                                       std::to_string(weight_sum));
+        }
+        const bool partial_sternheimer_input = ctx.params.sternheimer_partial_input;
+        if (!partial_sternheimer_input)
+        {
+            if (ibz_representatives.size() != static_cast<std::size_t>(nk_ibz))
+            {
+                throw LIBRPA_RUNTIME_ERROR(
+                    "BZ sampling representative count does not match Coulomb IBZ count");
+            }
+            if (std::find(ibz_label_to_rep.cbegin(), ibz_label_to_rep.cend(), -1) !=
+                ibz_label_to_rep.cend())
+            {
+                throw LIBRPA_RUNTIME_ERROR(
+                    "BZ sampling does not contain every irreducible Coulomb k-point label");
+            }
+        }
+        else if (ibz_representatives.size() != static_cast<std::size_t>(nk_ibz) ||
+                 std::find(ibz_label_to_rep.cbegin(), ibz_label_to_rep.cend(), -1) !=
+                     ibz_label_to_rep.cend())
+        {
+            global::lib_printf_root(
+                "Sternheimer partial-response input accepts incomplete generic Coulomb-IBZ labels; "
+                "the explicit q-point manifest selects the Coulomb matrices.\n");
+        }
 
-    ctx.h.set_kgrids_kvec(nk[0], nk[1], nk[2], kvecs, kweights);
-    ctx.h.set_kq_mapping(map_q_ks);
+        if (partial_sternheimer_input)
+        {
+            std::iota(map_q_ks.begin(), map_q_ks.end(), 0);
+            global::lib_printf_root(
+                "Sternheimer partial-response input uses all listed SCF k-points as "
+                "symmetry-context representatives.\n");
+        }
+
+        explicit_full_mapping = read_full_kmap(infile, ctx, nk, kvecs, kweights, map_q_ks);
+    }
+    catch (const std::exception &error)
+    {
+        parse_error = error.what();
+    }
+    catch (...)
+    {
+        parse_error = "Unknown error while reading BZ sampling";
+    }
+    const int local_failed = parse_error.empty() ? 0 : 1;
+    int any_failed = 0;
+    ctx.comm.allreduce(&local_failed, &any_failed, 1, MPI_MAX);
+    if (any_failed)
+        throw LIBRPA_RUNTIME_ERROR((parse_error.empty()
+                                        ? "BZ sampling validation failed on another MPI rank"
+                                        : parse_error));
+    const int local_mapping = explicit_full_mapping ? 1 : 0;
+    int mapping_min = 0, mapping_max = 0;
+    ctx.comm.allreduce(&local_mapping, &mapping_min, 1, MPI_MIN);
+    ctx.comm.allreduce(&local_mapping, &mapping_max, 1, MPI_MAX);
+    if (mapping_min != mapping_max)
+        throw LIBRPA_RUNTIME_ERROR("BZ sampling extension differs across MPI ranks");
+    if (!explicit_full_mapping)
+    {
+        ctx.h.set_kgrids_kvec(nk[0], nk[1], nk[2], kvecs, kweights);
+        ctx.h.set_kq_mapping(map_q_ks);
+    }
     sync_ibz_kpoints_from_mapping(ctx, kvecs, map_q_ks, n_kpoints_scf);
 }
 
