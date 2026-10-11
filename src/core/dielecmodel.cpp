@@ -3931,10 +3931,12 @@ ArrayDesc make_rpa_chi0v_wing_desc(const ArrayDesc &desc_body, const int wing_ro
         throw std::logic_error(oss.str());
     }
 
-    ArrayDesc desc_wing_seed(desc_body.ictxt());
-    desc_wing_seed.init_square_blk(wing_rows, 3, 0, 0);
     ArrayDesc desc_wing(desc_body.ictxt());
-    desc_wing.init(wing_rows, 3, desc_body.mb(), desc_wing_seed.nb(), 0, 0);
+    // The producer stores the three Cartesian wing columns with a unit
+    // column block.  Keep this descriptor identical to that storage layout;
+    // inferring a different block from the global 3-column shape remaps the
+    // local wing entries during the Schur products.
+    desc_wing.init(wing_rows, 3, desc_body.mb(), 1, 0, 0);
     if (wing_rows_loc != desc_wing.m_loc() || wing_cols_loc != desc_wing.n_loc())
     {
         std::ostringstream oss;

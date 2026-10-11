@@ -1425,10 +1425,8 @@ void test_rpa_chi0v_wing_desc_matches_producer_layout(const BlacsCtxtHandler &bl
     ArrayDesc desc_body(blacs_h);
     desc_body.init_square_blk(10, 10, 0, 0);
 
-    ArrayDesc desc_full_wing_seed(blacs_h);
-    desc_full_wing_seed.init_square_blk(11, 3, 0, 0);
     ArrayDesc desc_full_wing(blacs_h);
-    desc_full_wing.init(11, 3, desc_body.mb(), desc_full_wing_seed.nb(), 0, 0);
+    desc_full_wing.init(11, 3, desc_body.mb(), 1, 0, 0);
 
     const auto desc_wing = librpa_int::make_rpa_chi0v_wing_desc(
         desc_body, 1, desc_full_wing.m_loc(), desc_full_wing.n_loc());
@@ -1440,7 +1438,7 @@ void test_rpa_chi0v_wing_desc_matches_producer_layout(const BlacsCtxtHandler &bl
     require(desc_wing.m() == 11);
     require(desc_wing.n() == 3);
     require(desc_wing.mb() == desc_body.mb());
-    require(desc_wing.nb() == desc_full_wing.nb());
+    require(desc_wing.nb() == 1);
     require(desc_wing.m_loc() == desc_full_wing.m_loc());
     require(desc_wing.n_loc() == desc_full_wing.n_loc());
     require(std::equal(desc_wing.desc, desc_wing.desc + 9, desc_full_wing.desc));
