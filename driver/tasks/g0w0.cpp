@@ -718,6 +718,7 @@ void driver::task_g0w0()
 
     const std::string banner(124, '-');
     const auto &kfrac_list = pds->pbc.kfrac_list;
+    const auto &kpoint_weights = pds->pbc.weight_k;
     const auto &mf = pds->mf;
     const auto &symmetry_context = pds->symmetry_context;
     const auto& full_k_members = symmetry_context.full_kpoint_members;
@@ -728,10 +729,6 @@ void driver::task_g0w0()
     const int n_kpoints_output = output_full_kgrid_from_symmetry
         ? as_int(full_k_members.size())
         : n_kpoints;
-    const double occupation_output_scale = output_full_kgrid_from_symmetry
-        ? static_cast<double>(full_k_members.size())
-        : static_cast<double>(mf.get_n_kpoints());
-
     if (flag_read_vxc == 0)
     {
         if (myid_global == 0)
@@ -779,7 +776,9 @@ void driver::task_g0w0()
                     for (int i = 0; i < n_states_calc; i++)
                     {
                         const int i_state = i + i_state_low;
-                        const auto &occ_state = mf.get_weight()[i_spin](i_kpoint_ibz, i_state) * occupation_output_scale;
+                        const auto occ_state = occupation_number_from_kpoint_weight(
+                            mf.get_weight()[i_spin](i_kpoint_ibz, i_state),
+                            kpoint_weights.at(as_size(i_kpoint_ibz)));
                         const auto &eks_state = mf.get_eigenvals()[i_spin](i_kpoint_ibz, i_state) * HA2EV;
                         const auto &vxc_state = vxc[i_spin](i_kpoint_ibz, i_state) * HA2EV;
                         const auto &exx_state = vexx_all[start_k+i] * HA2EV;
@@ -816,7 +815,7 @@ void driver::task_g0w0()
                 write_energy_qp(
                     mf, output_full_kgrid_from_symmetry ? kfrac_energy_qp : kfrac_list,
                     output_to_input_kpoint, vxc, vexx_all, sigc_all, n_kpoints, i_state_low,
-                    n_states_calc, occupation_output_scale);
+                    n_states_calc, kpoint_weights);
             }
         }
     }
