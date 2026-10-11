@@ -10,6 +10,12 @@ target_link_libraries(test_driver_params PRIVATE librpa_file_reader)
 target_compile_options(test_driver_params PRIVATE -UNDEBUG)
 add_test(NAME test_driver_params COMMAND $<TARGET_FILE:test_driver_params>)
 
+add_executable(test_bz_mapping test_bz_mapping.cpp)
+target_link_libraries(test_bz_mapping PRIVATE librpa_file_reader)
+target_compile_options(test_bz_mapping PRIVATE -UNDEBUG)
+add_test(NAME test_bz_mapping COMMAND $<TARGET_FILE:test_bz_mapping>)
+add_test(NAME test_bz_mapping_mpi COMMAND mpirun -np 2 $<TARGET_FILE:test_bz_mapping>)
+
 add_executable(
   test_velocity_reader
   test_velocity_reader.cpp

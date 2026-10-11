@@ -410,6 +410,14 @@ public:
      */
     void set_kq_mapping(const std::vector<int> &map_q_ks);
 
+    /** Set explicit full-grid coordinates (Bohr^-1) and 0-based SCF representatives.
+     * Local operation without collectives; preserves loaded SCF dimensions.
+     */
+    void set_irreducible_kgrids_kvec(int nk1, int nk2, int nk3,
+                                     const std::vector<double> &kvecs_scf,
+                                     const std::vector<double> &kvecs_full,
+                                     const std::vector<int> &full_to_scf);
+
     /**
      * @brief Set local RI coefficients.
      * @param[in] routing Parallel routing strategy.

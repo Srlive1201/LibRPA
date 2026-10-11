@@ -352,6 +352,33 @@ This line indicates that SCF k-point `2`
 Older files may contain irreducible-k-point weight summaries after these rows.
 LibRPA ignores those summaries because the row weights above are already authoritative.
 
+### Optional explicit full-grid mapping
+
+ABACUS reader-v1 may append the following block when the SCF list is reduced:
+
+```text
+full_kmap N_FULL
+id kx ky kz SCF_representative
+```
+
+There are `N_FULL = nk1 * nk2 * nk3` rows. Both indices are 1-based;
+`SCF_representative` indexes the saved SCF list, not the full grid. Cartesian
+coordinates have the same Bohr$^{-1}$ units as the preceding rows. The current
+extension requires one Coulomb representative per listed SCF point.
+
+When present, this block is authoritative for the full-grid coordinates and
+full-to-SCF assignment. LibRPA checks coverage, unique points modulo reciprocal
+lattice vectors, the actual mesh offset, representative membership, and folded
+weights before using it. It does not overwrite this mapping with an independently
+inferred one. Structure-side symmetry operations still determine the AO/ABF
+transformations; `full_kmap` supplies file indices, not symmetry matrices or
+additional wave functions.
+
+Files without this marker retain the original reading and inference path,
+including historical FHI-aims and ABACUS files and their ignored trailing
+summaries. No new block is required for those inputs. Malformed explicit
+`full_kmap` blocks are rejected rather than silently falling back.
+
 A few remarks
 
 - If the SCF k-point count equals `nk1 * nk2 * nk3`, no spatial symmetry was used to shrink the SCF k-list.

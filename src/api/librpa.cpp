@@ -279,6 +279,20 @@ void Handler::set_kgrids_kvec(const int nk1, const int nk2, const int nk3,
                              kvecs.data(), kweights.empty() ? nullptr : kweights.data());
 }
 
+void Handler::set_irreducible_kgrids_kvec(
+    const int nk1, const int nk2, const int nk3,
+    const std::vector<double> &kvecs_scf, const std::vector<double> &kvecs_full,
+    const std::vector<int> &full_to_scf)
+{
+    if (kvecs_scf.size() % 3 != 0 || kvecs_full.size() != 3 * full_to_scf.size() ||
+        kvecs_scf.size() / 3 > static_cast<std::size_t>(std::numeric_limits<int>::max()) ||
+        full_to_scf.size() > static_cast<std::size_t>(std::numeric_limits<int>::max()))
+        throw LIBRPA_INVALID_ARGUMENT("Invalid explicit full-grid mapping buffer sizes");
+    ::librpa_set_irreducible_kgrids_kvec(
+        this->h_, nk1, nk2, nk3, static_cast<int>(kvecs_scf.size() / 3), kvecs_scf.data(),
+        static_cast<int>(full_to_scf.size()), kvecs_full.data(), full_to_scf.data());
+}
+
 void Handler::set_kq_mapping(const std::vector<int> &map_q_ks)
 {
     ::librpa_set_kq_mapping(this->h_, static_cast<int>(map_q_ks.size()), map_q_ks.data());
