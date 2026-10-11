@@ -62,6 +62,7 @@ foreach(target
     test_profiler
     test_qpe_solver
     test_rsh
+    test_rpa_logdet
     test_sternheimer_rpa
     test_sternheimer_symmetry
     test_sternheimer_qsum
@@ -102,5 +103,10 @@ if(LIBRPA_USE_LIBRI)
   set_tests_properties(test_strict_2d_gw_wc test_strict_2d_gw_wc_serial
     PROPERTIES ENVIRONMENT "OMP_NUM_THREADS=1;MKL_NUM_THREADS=1" TIMEOUT 60)
 endif()
+
+add_test(NAME test_rpa_logdet_mpi
+  COMMAND mpirun -np 4 $<TARGET_FILE:test_rpa_logdet>)
+config_test(test_headwing_descriptor 2)
+set_tests_properties(test_headwing_descriptor PROPERTIES TIMEOUT 30)
 
 # TODO(minye): make use of GTest

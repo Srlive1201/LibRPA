@@ -1111,7 +1111,7 @@ CorrEnergy compute_RPA_correlation_blacs_2d(Chi0 &chi0, atpair_k_cplx_mat_t &cou
                 headwing_settings.sqrt_coulomb_threshold);
             n_nonsingular_headwing = n_abf - as_int(n_singular);
             if (headwing_settings.rpa_headwing_mode == "qavg")
-                df_headwing->wing_mu_to_lambda(sqrtveig_blacs, desc_nabf_nabf,
+                df_headwing->wing_mu_to_lambda(sqrtveig_blacs, desc_nabf_nabf_opt,
                                                n_nonsingular_headwing);
             desc_headwing_response.init_square_blk(n_nonsingular_headwing, n_nonsingular_headwing, 0, 0);
             headwing_response_block =
@@ -1404,6 +1404,8 @@ complex<double> compute_pi_det_blacs_2d(Matz &loc_piT, const ArrayDesc &arrdesc_
     // arrdesc_pi.m_loc(),arrdesc_pi.n_loc(),arrdesc_pi.myprow(),arrdesc_pi.mypcol(),arrdesc_pi.nprows(),arrdesc_pi.npcols());
     complex<double> ln_det_loc(0.0, 0.0);
     complex<double> ln_det_all(0.0, 0.0);
+    int row_swaps_loc = 0;
+    int row_swaps_all = 0;
     // complex<double> det_loc(1.0,0.0);
     // complex<double> det_glo(0.0,0.0);
     // vector<complex<double>>  det_dig;
@@ -1427,18 +1429,10 @@ complex<double> compute_pi_det_blacs_2d(Matz &loc_piT, const ArrayDesc &arrdesc_
             // det_dig.push_back(loc_piT(locr,locc));
             // det_dig_r.push_back(locr);
             // det_dig_c.push_back(locc);
-            complex<double> tmp_ln_det;
-            if (loc_piT(locr, locc).real() > 0)
-            {
-                tmp_ln_det = std::log(loc_piT(locr, locc));
-                // ln_det_dig.push_back(tmp_ln_det);
-            }
-            else
-            {
-                tmp_ln_det = std::log(-loc_piT(locr, locc));
-                // ln_det_dig.push_back(tmp_ln_det);
-            }
-            ln_det_loc += tmp_ln_det;
+            // det(A) = det(P) * product U_ii. The sign of Re(U_ii)
+            // does not determine the permutation sign for complex matrices.
+            ln_det_loc += std::log(loc_piT(locr, locc));
+            row_swaps_loc += ipiv[locr] != ig + 1;
         }
     }
     double ln_end = omp_get_wtime();
@@ -1462,8 +1456,11 @@ complex<double> compute_pi_det_blacs_2d(Matz &loc_piT, const ArrayDesc &arrdesc_
 //     sprintf(fn, "det_mat_myid_%d.mtx", comm_h.myid);
 //     print_complex_matrix_file("det_mat_loc", det_mm, fn, false);
 
-
-    MPI_Allreduce(&ln_det_loc,&ln_det_all,1,MPI_DOUBLE_COMPLEX,MPI_SUM, arrdesc_pi.comm());
+    MPI_Allreduce(&ln_det_loc, &ln_det_all, 1, MPI_DOUBLE_COMPLEX, MPI_SUM, arrdesc_pi.comm());
+    MPI_Allreduce(&row_swaps_loc, &row_swaps_all, 1, MPI_INT, MPI_SUM, arrdesc_pi.comm());
+    // Choose the principal phase of the complete determinant, not of each signed pivot.
+    const double determinant_phase = ln_det_all.imag() + (row_swaps_all % 2) * (TWO_PI / 2.0);
+    ln_det_all.imag(std::remainder(determinant_phase, TWO_PI));
     double det_end = omp_get_wtime();
     // if(comm_h.myid == 0)
     //     lib_printf("    | Det time   trf: %f   ln: %f   allreduce: %f\n",trf_end-det_begin,ln_end-trf_end, det_end-ln_end);
@@ -3803,8 +3800,12 @@ static void FT_Wc_freq_q_into(
     const auto n_k_points = pbc.get_n_cells_bvk();
     const auto &Rlist = pbc.Rlist;
 
-    // quick return if empty
-    if (Wc_freq_q.size() == 0) return;
+    // Empty ranks must still match the final barrier of the multi-k transform.
+    if (Wc_freq_q.empty())
+    {
+        if (n_k_points != 1) comm_h.barrier();
+        return;
+    }
     // For single k-point (Gamma only), there is no need to transform: just remap and return
     if (n_k_points == 1)
     {

@@ -1416,8 +1416,12 @@ void test_strict_2d_wc_average_is_bounded_as_gamma_cell_shrinks()
     }
 }
 
-void test_rpa_chi0v_wing_desc_uses_global_rows(const BlacsCtxtHandler &blacs_h)
+void test_rpa_chi0v_wing_desc_matches_producer_layout(const BlacsCtxtHandler &blacs_h)
 {
+    const auto require = [](const bool condition)
+    {
+        if (!condition) std::abort();
+    };
     ArrayDesc desc_body(blacs_h);
     desc_body.init_square_blk(10, 10, 0, 0);
 
@@ -1429,14 +1433,36 @@ void test_rpa_chi0v_wing_desc_uses_global_rows(const BlacsCtxtHandler &blacs_h)
 
     if (desc_body.nprows() > 1)
     {
-        assert(desc_full_wing.m_loc() < desc_full_wing.m());
+        require(desc_full_wing.m_loc() < desc_full_wing.m());
     }
-    assert(desc_wing.m() == 11);
-    assert(desc_wing.n() == 3);
-    assert(desc_wing.mb() == desc_body.mb());
-    assert(desc_wing.nb() == 1);
-    assert(desc_wing.m_loc() == desc_full_wing.m_loc());
-    assert(desc_wing.n_loc() == desc_full_wing.n_loc());
+    require(desc_wing.m() == 11);
+    require(desc_wing.n() == 3);
+    require(desc_wing.mb() == desc_body.mb());
+    require(desc_wing.nb() == 1);
+    require(desc_wing.m_loc() == desc_full_wing.m_loc());
+    require(desc_wing.n_loc() == desc_full_wing.n_loc());
+    require(std::equal(desc_wing.desc, desc_wing.desc + 9, desc_full_wing.desc));
+    require(desc_wing.l2g_r() == desc_full_wing.l2g_r());
+    require(desc_wing.l2g_c() == desc_full_wing.l2g_c());
+}
+
+void test_rpa_headwing_matrix_descriptor_contract(const BlacsCtxtHandler &blacs_h)
+{
+    const auto require = [](const bool condition)
+    {
+        if (!condition) std::abort();
+    };
+    ArrayDesc storage_desc(blacs_h);
+    storage_desc.init(8, 8, 2, 2, 0, 0);
+    const auto matrix = init_local_mat<std::complex<double>>(storage_desc, MAJOR::COL);
+
+    ArrayDesc same_desc(blacs_h);
+    same_desc.init(8, 8, 2, 2, 0, 0);
+    require(librpa_int::rpa_headwing_matrix_matches_descriptor(matrix, storage_desc, same_desc));
+
+    ArrayDesc wrong_desc(blacs_h);
+    wrong_desc.init(8, 8, 4, 4, 0, 0);
+    require(!librpa_int::rpa_headwing_matrix_matches_descriptor(matrix, storage_desc, wrong_desc));
 }
 
 void test_headwing_spin_weights()
@@ -2699,7 +2725,8 @@ int main(int argc, char *argv[])
         test_strict_2d_wc_blocks_have_finite_small_q_limits();
         test_strict_2d_wc_average_is_covariant_under_regular_body_rotation();
         test_strict_2d_wc_average_is_bounded_as_gamma_cell_shrinks();
-        test_rpa_chi0v_wing_desc_uses_global_rows(blacs_h);
+        test_rpa_chi0v_wing_desc_matches_producer_layout(blacs_h);
+        test_rpa_headwing_matrix_descriptor_contract(blacs_h);
         test_headwing_spin_weights();
         test_wing_cartesian_gram_is_invariant_under_row_phases();
         test_velocity_matrix_initialization();

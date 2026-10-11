@@ -2747,10 +2747,42 @@ std::complex<double> diele_func::compute_wing(const int alpha, const int iomega,
     return wing_term;
 };
 
+bool rpa_headwing_matrix_matches_descriptor(
+    const matrix_m<std::complex<double>> &matrix, const ArrayDesc &descriptor,
+    const ArrayDesc &expected_descriptor)
+{
+    return matrix.is_col_major() && matrix.nr() == descriptor.m_loc() &&
+           matrix.nc() == descriptor.n_loc() &&
+           std::equal(descriptor.desc, descriptor.desc + 9, expected_descriptor.desc) &&
+           descriptor.l2g_r() == expected_descriptor.l2g_r() &&
+           descriptor.l2g_c() == expected_descriptor.l2g_c();
+}
+
 void diele_func::wing_mu_to_lambda(matrix_m<std::complex<double>> &sqrtveig_blacs,
-                                   ArrayDesc &desc_nabf_nabf_opt,
+                                   const ArrayDesc &desc_nabf_nabf_opt,
                                    const std::size_t n_nonsingular_in)
 {
+    // GW and RPA can produce different valid blocks on rectangular process grids.
+    // Check the supplied layout in our context, not an inferred RPA-only layout.
+    int local_contract_ok = 0;
+    if (desc_nabf_nabf_opt.is_initialized() && desc_nabf_nabf_opt.mb() > 0 &&
+        desc_nabf_nabf_opt.nb() > 0 && desc_nabf_nabf_opt.irsrc() >= 0 &&
+        desc_nabf_nabf_opt.irsrc() < blacs_h.nprows && desc_nabf_nabf_opt.icsrc() >= 0 &&
+        desc_nabf_nabf_opt.icsrc() < blacs_h.npcols)
+    {
+        ArrayDesc desc_expected_opt(blacs_h);
+        desc_expected_opt.init(n_abf, n_abf, desc_nabf_nabf_opt.mb(), desc_nabf_nabf_opt.nb(),
+                               desc_nabf_nabf_opt.irsrc(), desc_nabf_nabf_opt.icsrc());
+        local_contract_ok = rpa_headwing_matrix_matches_descriptor(
+                                sqrtveig_blacs, desc_nabf_nabf_opt, desc_expected_opt)
+                                ? 1
+                                : 0;
+    }
+    int global_contract_ok = 0;
+    MPI_Allreduce(&local_contract_ok, &global_contract_ok, 1, MPI_INT, MPI_MIN, comm_h.comm);
+    if (global_contract_ok == 0)
+        throw std::logic_error("Head/wing Coulomb matrix does not match its ScaLAPACK descriptor");
+
     using global::profiler;
 
     profiler.start("cal_wing");
@@ -3900,6 +3932,10 @@ ArrayDesc make_rpa_chi0v_wing_desc(const ArrayDesc &desc_body, const int wing_ro
     }
 
     ArrayDesc desc_wing(desc_body.ictxt());
+    // The producer stores the three Cartesian wing columns with a unit
+    // column block.  Keep this descriptor identical to that storage layout;
+    // inferring a different block from the global 3-column shape remaps the
+    // local wing entries during the Schur products.
     desc_wing.init(wing_rows, 3, desc_body.mb(), 1, 0, 0);
     if (wing_rows_loc != desc_wing.m_loc() || wing_cols_loc != desc_wing.n_loc())
     {
