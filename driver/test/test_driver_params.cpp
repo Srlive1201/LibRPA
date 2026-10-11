@@ -38,7 +38,7 @@ void test_abacus_preset()
     assert(params.fn_basis_aux == "aux_basis.txt");
     assert(params.fn_basis_aux_shrink == "aux_basis_s.txt");
     assert(params.fn_eigocc_scf == "band_out.txt");
-    assert(params.fn_vxc_scf == "vxc_out.txt");
+    assert(params.fn_vxc_scf == "vxc.txt");
     assert(params.prefix_lri_coeff == "Cs_");
     assert(params.prefix_lri_coeff_shrink == "Cs_shrink_");
     assert(params.prefix_shrink_sinvS == "sinvS_");

@@ -115,7 +115,7 @@ void DriverParams::apply_input_preset()
         fn_basis_aux = "aux_basis.txt";
         fn_basis_aux_shrink = "aux_basis_s.txt";
         fn_eigocc_scf = "band_out.txt";
-        fn_vxc_scf = "vxc_out.txt";
+        fn_vxc_scf = "vxc.txt";
         prefix_lri_coeff = "Cs_";
         prefix_lri_coeff_shrink = "Cs_shrink_";
         prefix_shrink_sinvS = "sinvS_";
