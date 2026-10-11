@@ -5,10 +5,20 @@
 #include <fstream>
 #include <iomanip>
 #include <limits>
+#include <stdexcept>
 #include <string>
 
 #include "../../src/io/global_io.h"
 #include "../../src/utils/constants.h"
+
+double occupation_number_from_kpoint_weight(const double weighted_occupation,
+                                           const double kpoint_weight)
+{
+    if (!std::isfinite(kpoint_weight) || kpoint_weight <= 0.0)
+        throw std::invalid_argument("k-point weight must be finite and positive");
+    // SCF occupations include the weight of their loaded (possibly IBZ) k point.
+    return weighted_occupation / kpoint_weight;
+}
 
 void print_band_analysis(const librpa_int::MeanField &mf,
                          const std::vector<librpa_int::Vector3_Order<double>> &kfrac_output,
@@ -143,8 +153,11 @@ void write_energy_qp(const librpa_int::MeanField &mf,
                      const std::vector<int> &output_to_input_kpoint,
                      const std::vector<librpa_int::matrix> &vxc, const std::vector<double> &vexx,
                      const std::vector<librpa_int::cplxdb> &sigc, const int n_kpoints_data,
-                     const int i_state_low, const int n_states_calc, const double occupation_scale)
+                     const int i_state_low, const int n_states_calc,
+                     const std::vector<double> &kpoint_weights)
 {
+    if (kpoint_weights.size() != static_cast<std::size_t>(mf.get_n_kpoints()))
+        throw std::invalid_argument("k-point weight count does not match mean-field data");
     const std::string sep =
         "-----------------------------------------"
         "----------------------------------------------------------";
@@ -172,8 +185,9 @@ void write_energy_qp(const librpa_int::MeanField &mf,
             for (int i = 0; i < n_states_calc; i++)
             {
                 const int i_state = i + i_state_low;
-                const auto occ_state =
-                    mf.get_weight()[i_spin](i_kpoint_input, i_state) * occupation_scale;
+                const auto occ_state = occupation_number_from_kpoint_weight(
+                    mf.get_weight()[i_spin](i_kpoint_input, i_state),
+                    kpoint_weights.at(static_cast<std::size_t>(i_kpoint_input)));
                 const auto eks_state = mf.get_eigenvals()[i_spin](i_kpoint_input, i_state);
                 const auto eqp = eks_state - vxc[i_spin](i_kpoint_input, i_state) +
                                  vexx[start_k+i] + sigc[start_k+i].real();
