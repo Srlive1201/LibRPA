@@ -64,7 +64,7 @@ input_preset = abacus
 ```
 
 This selects the short reader-v1 names: `stru_out.txt`, `band_out.txt`,
-`vxc_out.txt`, `bz_sample.txt`, `basis_map.txt`, `wfc_basis.txt`,
+`vxc.txt`, `bz_sample.txt`, `basis_map.txt`, `wfc_basis.txt`,
 `aux_basis.txt`, `aux_basis_s.txt`, `KS_wfc_*`, `Cs_*`, `Cs_shrink_*`,
 `sinvS_*`, `V_cut_*`, and `V_full_*`. It also changes `prefix_velocity` to
 `velocity_matrix`.

@@ -7,7 +7,7 @@ This page documents the formats of the input data files required by the LibRPA d
 The standalone driver reads dataset files from `input_dir`. The default
 `input_preset = fhi-aims` keeps the historical filenames. Setting
 `input_preset = abacus` selects the current reader-v1 names: `stru_out.txt`,
-`band_out.txt`, `vxc_out.txt`, `bz_sample.txt`, `basis_map.txt`,
+`band_out.txt`, `vxc.txt`, `bz_sample.txt`, `basis_map.txt`,
 `wfc_basis.txt`, `aux_basis.txt`, `aux_basis_s.txt`, `KS_wfc_*`, `Cs_*`,
 `Cs_shrink_*`, `sinvS_*`, `V_cut_*`, and `V_full_*`, together with the
 `velocity_matrix` prefix.
