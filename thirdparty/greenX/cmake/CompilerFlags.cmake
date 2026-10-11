@@ -30,10 +30,11 @@ set(INTEL_DEBUG
     -g           # Generate symbols
     -traceback   # symbolic stack traceback
     # -fp          # Disables the ebp register in optimizations and sets the ebp register to be used as the frame pointer.
-    -check all    # Checks for all runtime failures.
-    -check bounds # Generates code to perform runtime checks on array subscript and character substring expressions. 
-    # NOTE: do NOT hard-enable -check uninit here, avoid linking error related to to MSan runtime
-    # -check uninit #  Enables runtime checking for uninitialized variables.
+    # Keep bounds checking explicit: newer IntelLLVM ifx releases include the
+    # uninitialized-memory checker in `-check all`, which injects MSan symbols
+    # into the shared library and breaks consumers that do not link the MSan
+    # runtime.
+    -check bounds # Generates code to perform runtime checks on array subscript and character substring expressions.
     -ftrapuv      #  Set unassigned scalars as a very large integer or an invalid address
     -fpe3         # control over floating-point exception (divide by zero, overflow, invalid operation, underflow, denormalized number, positive infinity, negative infinity or a NaN)
     )

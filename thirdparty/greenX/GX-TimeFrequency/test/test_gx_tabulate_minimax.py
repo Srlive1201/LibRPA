@@ -13,8 +13,7 @@ from pygreenx.run import BinaryRunner, BuildType, ProcessResults
 def fortran_binary(get_binary, greenx_build_root):
     name = 'gx_tabulate_grids.exe'
     _binary = get_binary(name)
-    assert _binary is not None, f'{
-        name} cannot be found in {greenx_build_root}'
+    assert _binary is not None, f'{name} cannot be found in {greenx_build_root}'
     print(f'Binary source: {_binary}')
     return _binary
 

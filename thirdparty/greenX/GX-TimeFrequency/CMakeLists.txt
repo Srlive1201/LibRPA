@@ -49,6 +49,7 @@ target_link_libraries(LibGXMiniMax GXCommon ${LAPACK_LIBRARIES} ${BLAS_LIBRARIES
 # -----------------------------------------------
 # Build utility program for grid tabulation
 # -----------------------------------------------
+if(ENABLE_GREENX_CTEST)
 add_executable(GXTabulateGrids)
 
 set_target_properties(GXTabulateGrids
@@ -67,6 +68,7 @@ target_link_libraries(GXTabulateGrids
         GXCommon
         LibGXMiniMax
         )
+endif()
 
 # -----------------------------------------------
 # Library Installation
@@ -85,12 +87,15 @@ install(DIRECTORY ${CMAKE_Fortran_MODULE_DIRECTORY}
         DESTINATION ${CMAKE_INSTALL_Fortran_MODULES}/TimeFrequency)
 
 # Install `Build utility` program
+if(ENABLE_GREENX_CTEST)
 install(TARGETS GXTabulateGrids
         DESTINATION bin)
+endif()
 
 # -----------------------------------------------
 # Application Testing Set-Up
 # -----------------------------------------------
+if(ENABLE_GREENX_CTEST)
 # Include cmake custom function
 include(../cmake/testFunctions.cmake)
 
@@ -237,3 +242,4 @@ add_test(
 #   set(TEST_NAME "test_gx_minimax_grid")
 #   add_app_test(TEST_NAME TEST_TARGET_DIR LIBS_FOR_TESTING)
 #```
+endif()
