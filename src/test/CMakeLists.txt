@@ -96,6 +96,10 @@ foreach(target
 endforeach()
 
 target_compile_options(test_rpa_headwing PRIVATE -UNDEBUG)
+# The symmetry-context and k-BLACS symmetry-restore suites assert the k-star
+# rotation conventions; keep them active in Release builds as well.
+target_compile_options(test_symmetry_context PRIVATE -UNDEBUG)
+target_compile_options(test_meanfield_mpi PRIVATE -UNDEBUG)
 
 if(LIBRPA_USE_LIBRI)
   config_test(test_strict_2d_gw_wc 4)
