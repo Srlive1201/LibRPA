@@ -20,6 +20,51 @@ int main()
         return 2;
     }
     bool failed = false;
+
+    // Convention guard, independent of the density reference file below.
+    // In the row-major convention C_bz = C_ibz * rotation the block of the
+    // source atom I must be placed at the rows of S(I) and the columns of I.
+    // This is checked through the return code rather than assert(), so a
+    // regression of the placement (or a transposed placement) fails the test
+    // in every build type, including Release with NDEBUG.
+    {
+        SymmetryContext ctx;
+        ctx.rspace_operations.push_back(SpaceGroupSymOp::IDENTITY);
+        SymmetryKStarMember member;
+        member.spatial_isym = 0;
+        member.k_bz = {0.0, 0.0, 0.0};
+        SymmetryKAtomRotation rot_0;
+        rot_0.atom_from = 0;
+        rot_0.atom_to = 1;
+        rot_0.atom_type = 0;
+        rot_0.lmax = 0;
+        rot_0.bloch_rsh_rotations[0] = ComplexMatrix(1, 1);
+        rot_0.bloch_rsh_rotations[0](0, 0) = {2.0, 0.5};
+        SymmetryKAtomRotation rot_1;
+        rot_1.atom_from = 1;
+        rot_1.atom_to = 0;
+        rot_1.atom_type = 0;
+        rot_1.lmax = 0;
+        rot_1.bloch_rsh_rotations[0] = ComplexMatrix(1, 1);
+        rot_1.bloch_rsh_rotations[0](0, 0) = {3.0, -0.25};
+        member.atom_rotations = {rot_0, rot_1};
+        SpeciesBasisLayout layout;
+        layout.label = "X";
+        layout.set({0});
+        const std::map<atom_t, size_t> atom_nabf{{0, 1}, {1, 1}};
+        const auto rotation = build_symmetry_kspace_rotation_matrix(
+            ctx, {layout}, member, atom_nabf, {0.0, 0.0, 0.0});
+        const std::complex<double> block_0{2.0, 0.5};
+        const std::complex<double> block_1{3.0, -0.25};
+        const bool placement_ok = std::abs(rotation(1, 0) - block_0) < 1e-12
+                                  && std::abs(rotation(0, 1) - block_1) < 1e-12
+                                  && std::abs(rotation(0, 0)) < 1e-12
+                                  && std::abs(rotation(1, 1)) < 1e-12;
+        std::cout << "rotation block placement (rows atom_to, columns atom_from): "
+                  << (placement_ok ? "ok" : "FAILED") << std::endl;
+        failed |= !placement_ok;
+    }
+
     for (int c = 0; c < n; ++c)
     {
         double r[9] = {}, t[3] = {}, ki[3] = {}, kb[3] = {};
