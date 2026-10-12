@@ -1,6 +1,8 @@
 task = g0w0_band
 input_preset = abacus
 input_dir = ../dataset
+# Preserve the total Vxc filename in this historical dataset.
+fn_vxc_scf = vxc_out.txt
 version_coul_reader = 1
 version_lri_reader = 1
 nfreq = 16
