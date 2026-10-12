@@ -50,6 +50,7 @@ foreach(target
     test_fitting
     test_io
     test_symmetry_context
+    test_si_density_symmetry
     test_arbitrary_float
     test_geometry
     test_lebedev_laikov
@@ -110,3 +111,6 @@ config_test(test_headwing_descriptor 2)
 set_tests_properties(test_headwing_descriptor PROPERTIES TIMEOUT 30)
 
 # TODO(minye): make use of GTest
+
+target_compile_definitions(test_si_density_symmetry PRIVATE
+  SI_DENSITY_REFERENCE="${CMAKE_CURRENT_SOURCE_DIR}/data/si_k444_density_reference.txt")

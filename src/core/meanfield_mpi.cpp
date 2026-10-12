@@ -204,6 +204,95 @@ static ComplexMatrix matz_to_complex_matrix(const Matz &mat)
     return block;
 }
 
+// The k-BLACS density/Green matrices are formed from row-major wavefunctions
+// as C^T C*. Consequently their symmetry restore uses the wavefunction
+// rotation convention directly: D_bz = M^H D_ibz M (unitary operations),
+// rather than the AO-operator convention used by the Coulomb/GW path.
+static symmetry_atom_block_matrix_map_t rotate_wfc_product_blocks(
+    const SymmetryContext &ctx,
+    const std::vector<SpeciesBasisLayout> &layouts,
+    const SymmetryKStarMember &member,
+    const symmetry_atom_block_matrix_map_t &source_blocks,
+    const std::map<atom_t, size_t> &atom_nbasis,
+    const Vector3_Order<double> &k_ibz,
+    const std::set<atpair_t> *target_pairs,
+    const Vector3_Order<double> *k_bz_target)
+{
+    const auto rotation = build_symmetry_kspace_rotation_matrix(
+        ctx, layouts, member, atom_nbasis, k_ibz, member.time_reversal, k_bz_target);
+    std::vector<int> offsets(atom_nbasis.size() + 1, 0);
+    for (std::size_t atom = 0; atom != atom_nbasis.size(); ++atom)
+        offsets[atom + 1] = offsets[atom] + static_cast<int>(atom_nbasis.at(static_cast<atom_t>(atom)));
+
+    std::vector<const SymmetryKAtomRotation *> by_from(atom_nbasis.size(), nullptr);
+    for (const auto &atom_rotation : member.atom_rotations)
+    {
+        if (atom_rotation.atom_from < 0
+            || atom_rotation.atom_from >= static_cast<int>(atom_nbasis.size()))
+            throw LIBRPA_RUNTIME_ERROR("k-star density restore has an invalid atom map");
+        by_from[static_cast<std::size_t>(atom_rotation.atom_from)] = &atom_rotation;
+    }
+
+    const auto get_source_block = [&source_blocks](const atom_t atom_i, const atom_t atom_j) {
+        const auto row_iter = source_blocks.find(atom_i);
+        if (row_iter != source_blocks.end())
+        {
+            const auto col_iter = row_iter->second.find(atom_j);
+            if (col_iter != row_iter->second.end()) return col_iter->second;
+        }
+        const auto col_iter = source_blocks.find(atom_j);
+        if (col_iter != source_blocks.end())
+        {
+            const auto row_iter = col_iter->second.find(atom_i);
+            if (row_iter != col_iter->second.end()) return transpose(row_iter->second, true);
+        }
+        throw LIBRPA_RUNTIME_ERROR("missing atom block while restoring a wavefunction product");
+    };
+
+    symmetry_atom_block_matrix_map_t rotated;
+    for (std::size_t atom_i = 0; atom_i != atom_nbasis.size(); ++atom_i)
+    {
+        const auto *rotation_i = by_from[atom_i];
+        if (rotation_i == nullptr) throw LIBRPA_RUNTIME_ERROR("incomplete k-star atom map");
+        const auto source_i = static_cast<atom_t>(rotation_i->atom_to);
+        const int row_i = offsets.at(static_cast<std::size_t>(source_i));
+        const int col_i = offsets.at(atom_i);
+        const int n_i = static_cast<int>(atom_nbasis.at(static_cast<atom_t>(atom_i)));
+        const int n_source_i = static_cast<int>(atom_nbasis.at(source_i));
+        ComplexMatrix M_i(n_source_i, n_i);
+        for (int i = 0; i != n_source_i; ++i)
+            for (int j = 0; j != n_i; ++j)
+                M_i(i, j) = rotation(row_i + i, col_i + j);
+
+        for (std::size_t atom_j = 0; atom_j != atom_nbasis.size(); ++atom_j)
+        {
+            const atpair_t pair{static_cast<atom_t>(atom_i), static_cast<atom_t>(atom_j)};
+            if (target_pairs != nullptr && target_pairs->count(pair) == 0) continue;
+            const auto *rotation_j = by_from[atom_j];
+            if (rotation_j == nullptr) throw LIBRPA_RUNTIME_ERROR("incomplete k-star atom map");
+            const auto source_j = static_cast<atom_t>(rotation_j->atom_to);
+            const int row_j = offsets.at(static_cast<std::size_t>(source_j));
+            const int col_j = offsets.at(atom_j);
+            const int n_j = static_cast<int>(atom_nbasis.at(static_cast<atom_t>(atom_j)));
+            const int n_source_j = static_cast<int>(atom_nbasis.at(source_j));
+            ComplexMatrix M_j(n_source_j, n_j);
+            for (int i = 0; i != n_source_j; ++i)
+                for (int j = 0; j != n_j; ++j)
+                    M_j(i, j) = rotation(row_j + i, col_j + j);
+
+            const auto source = get_source_block(source_i, source_j);
+            ComplexMatrix transformed;
+            if (member.time_reversal)
+                transformed = transpose(M_i, false) * conj(source) * conj(M_j);
+            else
+                transformed = transpose(M_i, true) * source * M_j;
+            rotated[static_cast<atom_t>(atom_i)][static_cast<atom_t>(atom_j)] =
+                std::move(transformed);
+        }
+    }
+    return rotated;
+}
+
 static Matz complex_matrix_to_colmajor_matz(const ComplexMatrix &block)
 {
     Matz mat(block.nr, block.nc, MAJOR::COL);
@@ -933,9 +1022,9 @@ std::map<Vector3_Order<int>, Matz> get_symmetry_restored_dmat_cplx_Rs_kblacs_par
                     source_blocks[pair.first][pair.second] = matz_to_complex_matrix(mat);
                 }
 
-                auto rotated_blocks = rotate_symmetry_kspace_operator_blocks(
+                auto rotated_blocks = rotate_wfc_product_blocks(
                     symmetry_context, wfc_layouts, member, source_blocks, atom_nw,
-                    k_ibz, member.time_reversal, &target_pairs_local_set, k_bz_target);
+                    k_ibz, &target_pairs_local_set, k_bz_target);
 
                 for (int iR = 0; iR != nR_this; ++iR)
                 {
@@ -1440,9 +1529,9 @@ get_symmetry_restored_gf_cplx_imagtimes_Rs_kblacs_para(
                         source_blocks[pair.first][pair.second] = matz_to_complex_matrix(mat);
                     }
 
-                    auto rotated_blocks = rotate_symmetry_kspace_operator_blocks(
+                    auto rotated_blocks = rotate_wfc_product_blocks(
                         symmetry_context, wfc_layouts, member, source_blocks, atom_nw,
-                        k_ibz, member.time_reversal, &target_pairs_local_set, k_bz_target);
+                        k_ibz, &target_pairs_local_set, k_bz_target);
 
                     for (int iR = 0; iR != nR_this; ++iR)
                     {

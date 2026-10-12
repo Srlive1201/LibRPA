@@ -1111,8 +1111,9 @@ void test_dense_kspace_rotation_matrix_orders_atom_swap_blocks()
 
     ComplexMatrix expected(2, 2);
     expected.zero_out();
-    expected(0, 1) = rot_0.bloch_rsh_rotations.at(0)(0, 0);
-    expected(1, 0) = rot_1.bloch_rsh_rotations.at(0)(0, 0);
+    // C_BZ(:, atom_from) reads C_IBZ(:, atom_to) in C_BZ = C_IBZ * rotation.
+    expected(1, 0) = rot_0.bloch_rsh_rotations.at(0)(0, 0);
+    expected(0, 1) = rot_1.bloch_rsh_rotations.at(0)(0, 0);
     assert_matrix_close(rotation, expected);
 }
 
@@ -1352,6 +1353,108 @@ void test_rspace_sector_star_member_isym_maps_full_to_ir_r()
         checked_non_identity = checked_non_identity || member.isym != 0;
     }
     assert(checked_non_identity);
+}
+
+void test_supercell_coset_symmetry_falls_back_from_rspace_reduction()
+{
+    PeriodicBoundaryData pbc;
+    pbc.set_latvec({0.0, 2.0, 2.0, 2.0, 0.0, 2.0, 2.0, 2.0, 0.0});
+    pbc.set_kgrids_kvec(1, 1, 1, {0.0, 0.0, 0.0});
+
+    std::map<atom_t, int> atom_types;
+    std::map<atom_t, coord_t> coords_frac;
+    atom_t atom = 0;
+    for (int ix = 0; ix != 2; ++ix)
+    {
+        for (int iy = 0; iy != 2; ++iy)
+        {
+            for (int iz = 0; iz != 2; ++iz)
+            {
+                const Vector3_Order<double> offset{0.5 * static_cast<double>(ix),
+                                                   0.5 * static_cast<double>(iy),
+                                                   0.5 * static_cast<double>(iz)};
+                atom_types[atom] = 0;
+                coords_frac[atom++] = coord_t(offset.x, offset.y, offset.z);
+                atom_types[atom] = 0;
+                coords_frac[atom++] = coord_t(offset.x + 0.125, offset.y + 0.125, offset.z + 0.125);
+            }
+        }
+    }
+
+    SymmetryOperation op;
+    op.rotation = Matrix3(1.0, 0.0, -1.0, 1.0, 0.0, 0.0, 1.0, -1.0, 0.0);
+    op.translation = {0.125, 0.125, -0.375};
+    op.use_row_convention = true;
+
+    SymmetryOperation inverse_rotation_representative;
+    inverse_rotation_representative.rotation =
+        Matrix3(0.0, 1.0, 0.0, 0.0, 1.0, -1.0, -1.0, 1.0, 0.0);
+    inverse_rotation_representative.translation = {0.125, 0.125, -0.375};
+    inverse_rotation_representative.use_row_convention = true;
+
+    const auto composed =
+        compose_space_group_symmetry_operations(op, inverse_rotation_representative);
+    assert(composed.is_identity_rotation());
+    assert(!nearly_integer_vector(composed.translation, 1e-5));
+
+    SymmetryContext ctx;
+    ctx.set_crystal_structure(pbc.latvec, pbc.G, atom_types, coords_frac);
+    ctx.set_rspace_operations({SpaceGroupSymOp::IDENTITY, op, inverse_rotation_representative});
+    ctx.set_available();
+    ctx.build_periodic_mappings(pbc, pbc.Rlist);
+
+    assert(ctx.irreducible_sector.empty());
+    assert(ctx.rspace_sector_stars.empty());
+    assert(ctx.kstars.size() == 1);
+    assert(ctx.count_kstar_members() == 1);
+}
+
+void test_kstar_inverse_route_prefers_affine_inverse()
+{
+    PeriodicBoundaryData pbc;
+    pbc.set_latvec({1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0});
+    std::vector<double> kvecs;
+    for (const auto& kfrac : build_uniform_kmesh_frac({5, 5, 5}))
+    {
+        const auto kvec = kfrac * pbc.G;
+        kvecs.push_back(kvec.x * TWO_PI);
+        kvecs.push_back(kvec.y * TWO_PI);
+        kvecs.push_back(kvec.z * TWO_PI);
+    }
+    pbc.set_kgrids_kvec(5, 5, 5, kvecs);
+
+    SymmetryOperation operation;
+    operation.rotation = Matrix3(0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0);
+    operation.translation = {0.25, 0.0, 0.0};
+    operation.use_row_convention = true;
+
+    SymmetryOperation wrong_inverse;
+    wrong_inverse.rotation = operation.rotation.Inverse();
+    wrong_inverse.translation = {0.0, 0.0, 0.0};
+    wrong_inverse.use_row_convention = true;
+
+    SymmetryOperation affine_inverse = wrong_inverse;
+    affine_inverse.translation = {0.0, 0.0, -0.25};
+    const auto composed = compose_space_group_symmetry_operations(operation, affine_inverse);
+    assert(composed.is_identity_rotation());
+    assert(nearly_integer_vector(composed.translation, 1e-5));
+
+    SymmetryContext ctx;
+    ctx.set_crystal_structure(pbc.latvec, pbc.G, {{0, 0}}, {{0, {0.0, 0.0, 0.0}}});
+    ctx.set_rspace_operations(
+        {SpaceGroupSymOp::IDENTITY, operation, wrong_inverse, affine_inverse});
+    ctx.set_available();
+    ctx.build_periodic_mappings(pbc, pbc.Rlist);
+
+    bool used_affine_inverse = false;
+    for (const auto& star : ctx.kstars)
+    {
+        for (const auto& member : star.members)
+        {
+            used_affine_inverse = used_affine_inverse || member.spatial_isym == 3;
+        }
+    }
+    assert(used_affine_inverse);
 }
 
 void test_rspace_block_restore_uses_stored_operation_rotation_convention()
@@ -2811,6 +2914,8 @@ int main()
     test_mgo_dense_kspace_rotation_matches_atom_block_rotation();
     test_mgo_k333_irreducible_sector_matches_single();
     test_rspace_sector_star_member_isym_maps_full_to_ir_r();
+    test_supercell_coset_symmetry_falls_back_from_rspace_reduction();
+    test_kstar_inverse_route_prefers_affine_inverse();
     test_rspace_block_restore_uses_stored_operation_rotation_convention();
     test_rspace_sector_star_records_antiunitary_operation();
     test_rspace_sector_star_grey_default_keeps_unitary_members();
