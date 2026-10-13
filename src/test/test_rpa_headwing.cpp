@@ -1732,10 +1732,10 @@ void test_headwing_wfc_restore_applies_atom_permutation()
     const auto wfc_bz = librpa_int::rotate_headwing_wfc_to_kstar_member(
         ctx, member, layouts, atom_nw, {0.0, 0.0, 0.0}, wfc_ibz, nullptr);
 
-    assert_complex_close(wfc_bz(0, 0), wfc_ibz(0, 1) * std::complex<double>{3.0, -0.25},
-                         1e-12);
-    assert_complex_close(wfc_bz(0, 1), wfc_ibz(0, 0) * std::complex<double>{2.0, 0.5},
-                         1e-12);
+    // C_BZ = C_IBZ * R, with R[atom_to, atom_from] = rotation(atom_from).
+    // The independent Si density fixture tests this placement against producer data.
+    assert_complex_close(wfc_bz(0, 0), wfc_ibz(0, 1) * std::complex<double>{2.0, 0.5}, 1e-12);
+    assert_complex_close(wfc_bz(0, 1), wfc_ibz(0, 0) * std::complex<double>{3.0, -0.25}, 1e-12);
 }
 
 void test_headwing_wfc_restore_applies_time_reversal()
