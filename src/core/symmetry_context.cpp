@@ -2784,6 +2784,35 @@ ComplexMatrix rotate_symmetry_rspace_block(const SymmetryContext& ctx,
         ctx, layouts, layouts, isym, atom_from_i, atom_from_j, matrix_source);
 }
 
+ComplexMatrix rotate_symmetry_rspace_operator_block(
+    const SymmetryContext& ctx, const std::vector<SpeciesBasisLayout>& layouts_i,
+    const std::vector<SpeciesBasisLayout>& layouts_j, const int isym, const atom_t atom_from_i,
+    const atom_t atom_from_j, const ComplexMatrix& matrix_source)
+{
+    const int type_i = ctx.atom_to_type.at(atom_from_i);
+    const int type_j = ctx.atom_to_type.at(atom_from_j);
+    const ComplexMatrix T_i = ctx.get_rotation_matrix(layouts_i, type_i, isym);
+    const ComplexMatrix T_j = ctx.get_rotation_matrix(layouts_j, type_j, isym);
+
+    if (matrix_source.nr != T_i.nr || matrix_source.nc != T_j.nr)
+    {
+        throw LIBRPA_RUNTIME_ERROR("Real-space operator rotation has incompatible AO dimensions");
+    }
+
+    // Sigma/H is an AO operator: H_bz[I,J] = T_i^dagger H_ir T_j.
+    return transpose(T_i, true) * matrix_source * T_j;
+}
+
+ComplexMatrix rotate_symmetry_rspace_operator_block(const SymmetryContext& ctx,
+                                                    const std::vector<SpeciesBasisLayout>& layouts,
+                                                    const int isym, const atom_t atom_from_i,
+                                                    const atom_t atom_from_j,
+                                                    const ComplexMatrix& matrix_source)
+{
+    return rotate_symmetry_rspace_operator_block(ctx, layouts, layouts, isym, atom_from_i,
+                                                 atom_from_j, matrix_source);
+}
+
 bool symmetry_rspace_restore_member_is_antiunitary(
     const SymmetryContext& ctx,
     const SymmetryRSpaceRestoreMember& member)

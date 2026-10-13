@@ -1457,7 +1457,7 @@ void test_kstar_inverse_route_prefers_affine_inverse()
     assert(used_affine_inverse);
 }
 
-void test_rspace_block_restore_uses_stored_operation_rotation_convention()
+void test_rspace_block_restore_distinguishes_operator_and_density_rotations()
 {
     SymmetryContext ctx;
     const Matrix3 lattice(1.0, 0.0, 0.0,
@@ -1519,6 +1519,24 @@ void test_rspace_block_restore_uses_stored_operation_rotation_convention()
     const auto restored = rotate_symmetry_rspace_block(
         ctx, layouts, non_identity_member->isym, 0, 0, block_ir);
     assert_matrix_close(restored, expected_full);
+
+    // A complex shell rotation distinguishes the operator transform from the
+    // transpose/conjugate transform used for density-like blocks.
+    ComplexMatrix complex_p_rotation(3, 3);
+    complex_p_rotation.zero_out();
+    complex_p_rotation(0, 0) = {1.0, 0.0};
+    complex_p_rotation(1, 1) = {0.0, 1.0};
+    complex_p_rotation(2, 2) = {-1.0, 0.0};
+    ctx.rsh_rotations.at(static_cast<std::size_t>(non_identity_member->isym)).at(1) =
+        complex_p_rotation;
+    const auto T_complex = ctx.get_rotation_matrix(layouts, 0, non_identity_member->isym);
+    const auto expected_operator = transpose(T_complex, true) * block_ir * T_complex;
+    const auto restored_operator = rotate_symmetry_rspace_operator_block(
+        ctx, layouts, non_identity_member->isym, 0, 0, block_ir);
+    const auto restored_density =
+        rotate_symmetry_rspace_block(ctx, layouts, non_identity_member->isym, 0, 0, block_ir);
+    assert_matrix_close(restored_operator, expected_operator);
+    assert(std::abs(restored_operator(1, 0) - restored_density(1, 0)) > 1e-8);
 }
 
 /*!
@@ -2916,7 +2934,7 @@ int main()
     test_rspace_sector_star_member_isym_maps_full_to_ir_r();
     test_supercell_coset_symmetry_falls_back_from_rspace_reduction();
     test_kstar_inverse_route_prefers_affine_inverse();
-    test_rspace_block_restore_uses_stored_operation_rotation_convention();
+    test_rspace_block_restore_distinguishes_operator_and_density_rotations();
     test_rspace_sector_star_records_antiunitary_operation();
     test_rspace_sector_star_grey_default_keeps_unitary_members();
     test_rspace_spinor_four_channel_restore_antiunitary();
