@@ -715,9 +715,11 @@ std::map<Vector3_Order<int>, Matz> get_dmat_cplx_Rs_kblacs_para(
         if ((wfc_bra == nullptr || wfc_ket == nullptr) && wfc_size_loc > 0)
             throw LIBRPA_RUNTIME_ERROR("missing local wave-function block for k-point " +
                                       std::to_string(ik));
-        if (wfc_bra != nullptr && static_cast<size_t>(wfc_bra->size) != wfc_size_loc)
+        if (wfc_size_loc > 0 && wfc_bra != nullptr &&
+            static_cast<size_t>(wfc_bra->size) != wfc_size_loc)
             throw LIBRPA_RUNTIME_ERROR("wave-function bra block size is inconsistent with descriptor");
-        if (wfc_ket != nullptr && static_cast<size_t>(wfc_ket->size) != wfc_size_loc)
+        if (wfc_size_loc > 0 && wfc_ket != nullptr &&
+            static_cast<size_t>(wfc_ket->size) != wfc_size_loc)
             throw LIBRPA_RUNTIME_ERROR("wave-function ket block size is inconsistent with descriptor");
 
         int nocc = 0;
@@ -949,9 +951,11 @@ std::map<Vector3_Order<int>, Matz> get_symmetry_restored_dmat_cplx_Rs_kblacs_par
             if ((wfc_bra == nullptr || wfc_ket == nullptr) && wfc_size_loc > 0)
                 throw LIBRPA_RUNTIME_ERROR("missing local wave-function block for k-point " +
                                           std::to_string(ik));
-            if (wfc_bra != nullptr && static_cast<size_t>(wfc_bra->size) != wfc_size_loc)
+            if (wfc_size_loc > 0 && wfc_bra != nullptr &&
+                static_cast<size_t>(wfc_bra->size) != wfc_size_loc)
                 throw LIBRPA_RUNTIME_ERROR("wave-function bra block size is inconsistent with descriptor");
-            if (wfc_ket != nullptr && static_cast<size_t>(wfc_ket->size) != wfc_size_loc)
+            if (wfc_size_loc > 0 && wfc_ket != nullptr &&
+                static_cast<size_t>(wfc_ket->size) != wfc_size_loc)
                 throw LIBRPA_RUNTIME_ERROR("wave-function ket block size is inconsistent with descriptor");
 
             int nocc = 0;
@@ -1203,9 +1207,11 @@ std::map<double, std::map<Vector3_Order<int>, Matz>> get_gf_cplx_imagtimes_Rs_kb
             if ((wfc_bra == nullptr || wfc_ket == nullptr) && wfc_size_loc > 0)
                 throw LIBRPA_RUNTIME_ERROR("missing local wave-function block for k-point " +
                                           std::to_string(ik));
-            if (wfc_bra != nullptr && static_cast<size_t>(wfc_bra->size) != wfc_size_loc)
+            if (wfc_size_loc > 0 && wfc_bra != nullptr &&
+                static_cast<size_t>(wfc_bra->size) != wfc_size_loc)
                 throw LIBRPA_RUNTIME_ERROR("wave-function bra block size is inconsistent with descriptor");
-            if (wfc_ket != nullptr && static_cast<size_t>(wfc_ket->size) != wfc_size_loc)
+            if (wfc_size_loc > 0 && wfc_ket != nullptr &&
+                static_cast<size_t>(wfc_ket->size) != wfc_size_loc)
                 throw LIBRPA_RUNTIME_ERROR("wave-function ket block size is inconsistent with descriptor");
 
             global::profiler.start("gf_scale_wfc", LIBRPA_VERBOSE_DEBUG);
@@ -1457,9 +1463,11 @@ get_symmetry_restored_gf_cplx_imagtimes_Rs_kblacs_para(
                 if ((wfc_bra == nullptr || wfc_ket == nullptr) && wfc_size_loc > 0)
                     throw LIBRPA_RUNTIME_ERROR("missing local wave-function block for k-point " +
                                               std::to_string(ik));
-                if (wfc_bra != nullptr && static_cast<size_t>(wfc_bra->size) != wfc_size_loc)
+                if (wfc_size_loc > 0 && wfc_bra != nullptr &&
+                    static_cast<size_t>(wfc_bra->size) != wfc_size_loc)
                     throw LIBRPA_RUNTIME_ERROR("wave-function bra block size is inconsistent with descriptor");
-                if (wfc_ket != nullptr && static_cast<size_t>(wfc_ket->size) != wfc_size_loc)
+                if (wfc_size_loc > 0 && wfc_ket != nullptr &&
+                    static_cast<size_t>(wfc_ket->size) != wfc_size_loc)
                     throw LIBRPA_RUNTIME_ERROR("wave-function ket block size is inconsistent with descriptor");
 
                 const auto &k_ibz = kfrac_list[static_cast<std::size_t>(ik)];
@@ -1820,9 +1828,11 @@ get_symmetry_restored_gf_cplx_imagtimes_Rs_kblacs_para_spinor(
                     const int ispinor_ket = s % 2;
                     const auto *wfc_bra = mf.find_wfc(ispin, ispinor_bra, ik);
                     const auto *wfc_ket = mf.find_wfc(ispin, ispinor_ket, ik);
-                    if (wfc_bra != nullptr && static_cast<size_t>(wfc_bra->size) != wfc_size_loc)
+                    if (wfc_size_loc > 0 && wfc_bra != nullptr &&
+                        static_cast<size_t>(wfc_bra->size) != wfc_size_loc)
                         throw LIBRPA_RUNTIME_ERROR("wave-function bra block size is inconsistent with descriptor");
-                    if (wfc_ket != nullptr && static_cast<size_t>(wfc_ket->size) != wfc_size_loc)
+                    if (wfc_size_loc > 0 && wfc_ket != nullptr &&
+                        static_cast<size_t>(wfc_ket->size) != wfc_size_loc)
                         throw LIBRPA_RUNTIME_ERROR("wave-function ket block size is inconsistent with descriptor");
 
                     scaled_wfc_ket = C_ZERO;

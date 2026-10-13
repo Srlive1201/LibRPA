@@ -743,16 +743,22 @@ static void test_dmat_kblacs_reduced_kstar_matches_symmetry_restore()
     KPointBlacsParallelContext context(shape, mpi_comm_global_h.comm, 1);
     const auto desc_wfc_full = context.create_array_desc(1, 1, 1, 1);
     const auto desc_dm = context.create_array_desc(1, 1);
+    const int has_empty_local_wfc =
+        desc_wfc_full.m_loc() * desc_wfc_full.n_loc() == 0 ? 1 : 0;
+    int empty_local_wfc_ranks = 0;
+    MPI_Allreduce(&has_empty_local_wfc, &empty_local_wfc_ranks, 1, MPI_INT, MPI_SUM,
+                  mpi_comm_global_h.comm);
+    if (empty_local_wfc_ranks == 0)
+        throw std::runtime_error("kBLACS fixture did not create an empty local WFC block");
 
     MeanField mf(1, 1, 1, 1);
     mf.get_efermi() = 0.0;
     mf.get_eigenvals()[0](0, 0) = -1.0;
     mf.get_weight()[0](0, 0) = 2.0;
-    if (context.kpoint_blacs_root_global_rank(0) == myid_global)
-    {
-        mf.get_eigenvectors()[0][0][0].create(1, 1);
-        mf.get_eigenvectors()[0][0][0](0, 0) = {1.0, 0.0};
-    }
+    // Keep a replicated source WFC on every rank. Ranks with no local
+    // descriptor entries must ignore this nonlocal storage.
+    mf.get_eigenvectors()[0][0][0].create(1, 1);
+    mf.get_eigenvectors()[0][0][0](0, 0) = {1.0, 0.0};
 
     const auto actual = get_symmetry_restored_dmat_cplx_Rs_kblacs_para(
         0, 0, 0, mf, kfrac_list, Rs, context, desc_wfc_full, desc_dm, ctx, pbc,
