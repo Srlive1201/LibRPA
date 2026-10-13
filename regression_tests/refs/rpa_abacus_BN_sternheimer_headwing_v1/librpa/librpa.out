@@ -1,0 +1,376 @@
+Initialized LibRPA global environment at [2026-08-23 13:25:28.920]
+Total number of tasks    :     1
+Total number of nodes    :     1
+Maximal number of threads:   1
+MPI tasks information:
+| Proc    0 of Size    1: HuanjingdeMacBook-Air.local
+| Global ID of master process of node     0 :     0
+
+LibRPA CMake build info:
+| Build type               : Debug
+| Source code directory    : /Users/ghj/.config/superpowers/worktrees/LibRPA/codex-master-ghj-delta-st-20260823/src
+| Source code Git reference: refs/heads/codex/master-ghj-delta-st-regression-20260823
+| Source code Git hash     : 6e49b04f1190da2b197fe5c63a10d68b3433af67
+| C++ compiler             : /opt/homebrew/bin/mpicxx
+| C++ compiler flags       :   -Xpreprocessor -fopenmp -I/opt/homebrew/opt/libomp/include
+| Fortran compiler         : /opt/homebrew/bin/mpifort
+| Fortran compiler flags   :
+| GreenX commit hash       : c90d131
+| Use LibRI                : OFF
+| LibRI include directory  :
+| LibComm include directory:
+
+===== Begin driver parameters  =====
+task = sternheimer_rpa
+constants_choice = internal
+input_dir = ../dataset/
+prefix_lri_coeff = v1_Cs_data_
+prefix_lri_coeff_shrink = v1_Cs_shrinked_data_
+prefix_shrink_sinvS = v1_shrink_sinvS_
+prefix_coul_full = v1_coulomb_full_iq_
+prefix_sternheimer_chi0 = v1_sternheimer_chi0_iq_
+fn_sternheimer_qpoints = v1_sternheimer_qpoints.dat
+fn_sternheimer_partial_manifest =
+fn_sternheimer_symmetry_routes =
+fn_sternheimer_qstar_routes =
+prefix_sternheimer_reconstructed =
+prefix_sternheimer_kresolved =
+prefix_sternheimer_symmetry_diagnostic =
+prefix_coul_cut = coulomb_cut
+prefix_eigvecs_scf = KS_eigenvector
+fn_stru = stru_out
+fn_bz_sampling = bz_sampling_out
+fn_basis = basis_out
+fn_basis_wfc = basis_wfc_out
+fn_basis_aux = basis_aux_out
+fn_basis_aux_shrink = basis_aux_shrink_out
+fn_eigocc_scf = band_out
+fn_dielfunc = dielecfunc_out
+fn_vxc_scf = vxc_out
+fn_band_kpath_info = band_kpath_info
+output_level = info
+use_spinor_wfc = false
+use_rpa_gamma = true
+sternheimer_matrix_only = false
+output_energy_qp = false
+output_gw_spec_func = false
+output_hamgnn = false
+use_pyatb = false
+version_coul_reader = 1
+version_lri_reader = 1
+sternheimer_iq = 1
+sternheimer_qweight = 1
+cs_R_threshold = 1e-06
+i_state_low = 0
+i_state_high = 999999
+===== End driver parameters    =====
+
+===== Begin control parameters =====
+output_dir = librpa.d/
+restart_from_dir = <output_dir>
+tfgrids_type = minimax
+anacon_tfgrids_type = unset
+parallel_routing = atompair
+rpa_headwing_mode = qavg
+nfreq = 2
+n_bands_chi0 = -1
+n_bands_sigc = -1
+n_params_anacon = -1
+n_params_anacon_resample = -1
+anacon_nfreq = -1
+option_qpe_solver = 0
+option_dielect_func = 3
+option_bvk_remap = 1
+rpa_headwing_body_start = 1
+qpe_solver_n_iter_max = 10000
+libri_chi0_collect_s0_chunk = 0
+istate_ref_hedin_shift = -1
+ifreq_output_wc_start = 0
+ifreq_output_wc_end = -1
+libri_chi0_collect_max_bytes = 0
+gf_R_threshold = 0
+vq_threshold = 0
+minimax_emin = -1
+minimax_emax = -1
+minimax_regulation = 0
+sqrt_coulomb_threshold = 0
+libri_chi0_threshold_C = 0
+libri_chi0_threshold_G = 0
+libri_exx_threshold_C = 0
+libri_exx_threshold_D = 0
+libri_exx_threshold_V = 0
+libri_g0w0_threshold_C = 0
+libri_g0w0_threshold_G = 0
+libri_g0w0_threshold_Wc = 0
+qpe_solver_thres = 1e-06
+qpe_solver_damp_factor = 0.1
+sf_gf_omega_shift = 0.01
+sf_sigc_omega_shift = 0.01
+debug = false
+replace_w_head = true
+use_fullcoul_eps = true
+use_fullcoul_exx = false
+use_fullcoul_wc = false
+use_symmetry_exx = false
+use_symmetry_gw = false
+use_symmetry_rpa = true
+output_abacus_gw_gf = false
+use_shrink_abfs = true
+use_shrink_chi = true
+use_scalapack_ecrpa = true
+use_scalapack_gw_wc = true
+use_cholesky_gw_wc = false
+use_gpu_replace_scalapack = false
+use_elpa_sqrt_coulomb = false
+use_kpara_scf_eigvec = true
+read_sigc_mat_rf = false
+output_gw_sigc_ks_kf = false
+output_gw_sigc_ks_mat_kf = false
+output_gw_sigc_mat_kf = false
+output_gw_sigc_mat_rf = false
+output_gw_sigc_mat_rt = false
+output_wc_rf = false
+output_wc_rf_atom_pair = true
+output_2d_finite_q_diagnostics = false
+use_qpe_adaptive_damp = false
+use_qpe_legacy_update = false
+override_qpe_solver_nan = false
+use_hedin_shift = false
+===== End control parameters   =====
+
+Mean-field dimensions set:
+| number of spins           : 1
+| number of k-points        : 3
+| number of bands           : 26
+| number of NAOs            : 26
+| number of spin components : 1
+Internal two-level (SCF k-points/matrix block) parallelization for eigenvectors set:
+| processes per k-point      : 1
+| processes per matrix block : 1
+Mean-field eigenvalues and occupation numbers set:
+| Minimal transition energy (Ha):       0.1590135061
+| Maximal transition energy (Ha):       7.6959091013
+| Fermi level               (Ha):       0.5210890000
+Reading structure file: ../dataset/stru_out
+Lattice vectors (Bohr): latt
+         3.41663         3.41663               0
+         3.41663               0         3.41663
+               0         3.41663         3.41663
+Reciprocal lattice vectors (2PI Bohr^-1): G
+        0.146343        0.146343       -0.146343
+        0.146343       -0.146343        0.146343
+       -0.146343        0.146343        0.146343
+Consistency check: latt * G.T
+               1               0               0
+               0               1               0
+               0               0               1
+Atom positions read (Cartesian in Bohr | fractional):
+ia    1:    0.0000000    0.0000000    0.0000000 |    0.0000000    0.0000000    0.0000000
+ia    2:    1.7083034    1.7083034    1.7083034 |    0.2499986    0.2499986    0.2499986
+
+Reading Brillouin zone sampling file: ../dataset/bz_sampling_out
+kgrids:   2   2   2
+k-points read (Cartesian in 2Pi Bohr^-1 | fractional):
+ik    1:    0.0000000    0.0000000    0.0000000 |    0.0000000    0.0000000    0.0000000
+ik    2:    0.0731716    0.0731716    0.0731716 |    0.5000000    0.5000000    0.5000000
+ik    3:    0.1463432    0.0000000    0.0000000 |    0.5000000    0.5000000    0.0000000
+Hint: full k-point list is generated from k-grid; parsed k-points are symmetry-reduced.
+R-points to compute: 8
+    1 -     5 : ( -1,  -1,  -1) ( -1,  -1,   0) ( -1,   0,  -1) ( -1,   0,   0) (  0,  -1,  -1)
+    6 -     8 : (  0,  -1,   0) (  0,   0,  -1) (  0,   0,   0)
+
+SCF k-point to Coulomb q-point mapping:
+  ik:          k_1          k_2          k_3      iq
+   1:    0.0000000    0.0000000    0.0000000
+   2:    0.5000000    0.5000000    0.5000000
+   3:    0.5000000    0.5000000    0.0000000
+
+Reading wave-function basis information file: ../dataset/basis_wfc_out
+Basis convention set:
+| Bloch phase      : -1
+| Bloch r_atom     : 0
+| angular order    : 1
+| RSH coeff m < 0  : 1
+| RSH coeff m > 0  : 0
+Wave-function basis functions set:
+| total number of basis: 26
+Reading auxiliary basis information file: ../dataset/basis_aux_out
+Auxiliary basis functions set:
+| total number of basis: 119
+
+KS eigenvector reader: binary v1
+Successfully read eigenvector files
+Loading RI file from directory: ../dataset/
+Triangular dispatching of atom pairs
+LRI coefficient reader (v1_Cs_data_): binary v1
+Reading shrink auxiliary basis information file: ../dataset/basis_aux_shrink_out
+Shrink auxiliary basis functions set:
+| total number of basis: 34
+LRI coefficient reader (v1_Cs_shrinked_data_): binary v1
+Finished Cs filtering
+Finished Cs parsing
+sinvS: reader v1 binary files detected
+Auxiliary basis compression summary:
++------+----------------+----------------+
+| type | large ABF/atom | small ABF/atom |
++------+----------------+----------------+
+|    1 |             60 |             17 |
+|    2 |             59 |             17 |
++------+----------------+----------------+
+Coulomb reader (v1_coulomb_full_iq_): binary v1
+| Process     0: coulomb_mat read. Wall/CPU time [min]:       0.0000       0.0000
+| Process     0: Cs with             32 non-zero keys from local atpair size       3. Data memory:       2.57 MB. Wall/CPU time [min]:       0.0000       0.0000
+Actual parallel routing used: atompair
+Initialization finished, Wall/CPU time [min]:       0.0000       0.0000
+Free memory on node     0 [GB]:    3.622
+Common data parsed, task sternheimer_rpa will begin
+sternheimer_rpa: Sternheimer RPA correlation energy from response matrices
+Head/wing uses the external Sternheimer response frequency grid: nfreq=2 first=5.000000000000e-01 last=1.500000000000e+00 Ha
+Reading head/wing input from ../dataset/pyatb_librpa_df/
+KS eigenvector reader: legacy text
+* Success: read velocity from pyatb_librpa_df(ABACUS).
+KS eigenvector reader: legacy text
+* Success: read velocity from pyatb_librpa_df(ABACUS).
+Head/wing symmetry: use direct full-BZ PyATB WFC and velocity for 8 k-star members.
+Using PyATB head/wing input on the active LibRPA k-list with 3 k-points
+Head k matrix (iomega=0): route=sym_restored ik=0 k=( 0.000000000000, 0.000000000000, 0.000000000000)
+( 2.59579869e+00, 0.00000000e+00) ( 1.46971308e-09, 0.00000000e+00) ( 1.46967477e-09, 0.00000000e+00)
+( 1.46971308e-09, 0.00000000e+00) ( 2.59579869e+00, 0.00000000e+00) ( 1.46967307e-09, 0.00000000e+00)
+( 1.46967477e-09, 0.00000000e+00) ( 1.46967307e-09, 0.00000000e+00) ( 2.59579869e+00, 0.00000000e+00)
+Head k matrix (iomega=0): route=sym_restored ik=1 k=(-0.000000000000, 0.000000000000, 0.500000000000)
+( 1.09674775e+00, 0.00000000e+00) ( 4.90080646e-01,-1.04605670e-22) ( 4.90080646e-01,-1.20363978e-22)
+( 4.90080646e-01, 1.04605670e-22) ( 1.09674933e+00, 0.00000000e+00) (-4.90079855e-01,-5.31686415e-23)
+( 4.90080646e-01, 1.20363978e-22) (-4.90079855e-01, 5.31686415e-23) ( 1.09674933e+00, 0.00000000e+00)
+Head k matrix (iomega=0): route=sym_restored ik=1 k=( 0.000000000000, 0.500000000000, 0.000000000000)
+( 1.09674933e+00, 0.00000000e+00) ( 4.90080646e-01, 1.21019910e-22) (-4.90079855e-01, 7.55118247e-24)
+( 4.90080646e-01,-1.21019910e-22) ( 1.09674775e+00, 0.00000000e+00) ( 4.90080646e-01,-5.96441538e-23)
+(-4.90079855e-01,-7.55118247e-24) ( 4.90080646e-01, 5.96441538e-23) ( 1.09674933e+00, 0.00000000e+00)
+Head k matrix (iomega=0): route=sym_restored ik=1 k=( 0.500000000000,-0.000000000000,-0.000000000000)
+( 1.09674933e+00, 0.00000000e+00) (-4.90079855e-01,-8.20712082e-24) ( 4.90080646e-01, 1.05261607e-22)
+(-4.90079855e-01, 8.20712082e-24) ( 1.09674933e+00, 0.00000000e+00) ( 4.90080646e-01, 1.65981431e-22)
+( 4.90080646e-01,-1.05261607e-22) ( 4.90080646e-01,-1.65981431e-22) ( 1.09674775e+00, 0.00000000e+00)
+Head k matrix (iomega=0): route=sym_restored ik=1 k=( 0.500000000000, 0.500000000000, 0.500000000000)
+( 1.09674775e+00, 0.00000000e+00) (-4.90081435e-01, 8.20712163e-24) (-4.90081436e-01,-7.55118825e-24)
+(-4.90081435e-01,-8.20712163e-24) ( 1.09674775e+00, 0.00000000e+00) (-4.90081436e-01, 5.31686366e-23)
+(-4.90081436e-01, 7.55118825e-24) (-4.90081436e-01,-5.31686366e-23) ( 1.09674775e+00, 0.00000000e+00)
+Head k matrix (iomega=0): route=sym_restored ik=2 k=( 0.000000000000, 0.500000000000, 0.500000000000)
+( 1.51780609e+00, 0.00000000e+00) ( 3.04483951e-10,-3.04930860e-17) ( 3.04522445e-10,-5.94969712e-17)
+( 3.04483951e-10, 3.04930860e-17) ( 1.51780609e+00, 0.00000000e+00) ( 3.04523255e-10,-2.21942964e-18)
+( 3.04522445e-10, 5.94969712e-17) ( 3.04523255e-10, 2.21942964e-18) ( 2.05606161e-01, 0.00000000e+00)
+Head k matrix (iomega=0): route=sym_restored ik=2 k=( 0.500000000000, 0.000000000000, 0.500000000000)
+( 1.51780609e+00, 0.00000000e+00) ( 3.04515527e-10,-2.67436695e-18) ( 3.04524805e-10,-1.47821223e-17)
+( 3.04515527e-10, 2.67436695e-18) ( 2.05606161e-01, 0.00000000e+00) ( 3.04518784e-10,-8.48866701e-18)
+( 3.04524805e-10, 1.47821223e-17) ( 3.04518784e-10, 8.48866701e-18) ( 1.51780609e+00, 0.00000000e+00)
+Head k matrix (iomega=0): route=sym_restored ik=2 k=( 0.500000000000, 0.500000000000, 0.000000000000)
+( 2.05606161e-01, 0.00000000e+00) ( 3.04516907e-10,-2.90043582e-18) ( 3.04518535e-10, 4.42079642e-18)
+( 3.04516907e-10, 2.90043582e-18) ( 1.51780609e+00, 0.00000000e+00) ( 3.04516662e-10,-2.32121195e-18)
+( 3.04518535e-10,-4.42079642e-18) ( 3.04516662e-10, 2.32121195e-18) ( 1.51780609e+00, 0.00000000e+00)
+Freqency node & Head of dielectric function(Re, Im):
+ 0      0.50000000      4.22135644      0.00000000
+ 1      1.50000000      1.63447010      0.00000000
+The first freqency head tensor:
+(  4.2214,   0.0000)  (  0.0000,  -0.0000)  (  0.0000,  -0.0000)
+(  0.0000,   0.0000)  (  4.2214,   0.0000)  (  0.0000,  -0.0000)
+(  0.0000,   0.0000)  (  0.0000,   0.0000)  (  4.2214,   0.0000)
+Head tensor diagnostics (iomega=0): trace_over_3=(     4.22135644,     0.00000000) max_abs_diag_delta= 1.85511162e-10 max_abs_offdiag= 1.38465039e-09 max_abs_imag= 2.20103475e-17
+* Success: initalize and calculate lebdev points and q_gamma.
+Wing_mu k Gram (iomega=0): route=sym_restored ik=0 k=( 0.000000000000, 0.000000000000, 0.000000000000) spatial_isym=0 time_reversal=0
+( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00)
+( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00)
+( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00)
+Wing_mu k Gram (iomega=0): route=sym_restored ik=1 k=(-0.000000000000, 0.000000000000, 0.500000000000) spatial_isym=15 time_reversal=0
+( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00)
+( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00)
+( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00)
+Wing_mu k Gram (iomega=0): route=sym_restored ik=1 k=( 0.000000000000, 0.500000000000, 0.000000000000) spatial_isym=2 time_reversal=0
+( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00)
+( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00)
+( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00)
+Wing_mu k Gram (iomega=0): route=sym_restored ik=1 k=( 0.500000000000,-0.000000000000,-0.000000000000) spatial_isym=1 time_reversal=0
+( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00)
+( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00)
+( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00)
+Wing_mu k Gram (iomega=0): route=sym_restored ik=1 k=( 0.500000000000, 0.500000000000, 0.500000000000) spatial_isym=0 time_reversal=0
+( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00)
+( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00)
+( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00)
+Wing_mu k Gram (iomega=0): route=sym_restored ik=2 k=( 0.000000000000, 0.500000000000, 0.500000000000) spatial_isym=2 time_reversal=0
+( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00)
+( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00)
+( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00)
+Wing_mu k Gram (iomega=0): route=sym_restored ik=2 k=( 0.500000000000, 0.000000000000, 0.500000000000) spatial_isym=1 time_reversal=0
+( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00)
+( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00)
+( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00)
+Wing_mu k Gram (iomega=0): route=sym_restored ik=2 k=( 0.500000000000, 0.500000000000, 0.000000000000) spatial_isym=0 time_reversal=0
+( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00)
+( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00)
+( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00)
+* Success: calculate wing term.
+Wing_mu diagnostics (iomega=0): max_abs_real= 0.00000000e+00 max_abs_imag= 0.00000000e+00 max_abs_value= 0.00000000e+00 real_over_abs= 0.00000000e+00
+Wing_mu Gram (iomega=0, rows alpha, columns beta):
+( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00)
+( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00)
+( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00)
+Sternheimer RPA correlation energy (Hartree)
+| q mode = manifest
+| q manifest = ../dataset/v1_sternheimer_qpoints.dat
+| Coulomb prefix = v1_coulomb_full_iq_
+| Sternheimer chi0 prefix = v1_sternheimer_chi0_iq_
+| use_rpa_gamma = true
+| analytic head/wing = on
+| RPA head/wing mode = qavg
+| iq = 1
+| q = 0.0000000000000000e+00 0.0000000000000000e+00 0.0000000000000000e+00
+| q weight = 2.5000000000000000e-01
+| ifreq omega_Ha weight_Ha integrand_real integrand_imag Ec_real Ec_imag
+|     1   5.000000000000e-01   4.000000000000e-01  -1.783471290816e+00  -2.056375385051e-36  -2.838482717958e-02  -3.272823073834e-38
+|     2   1.500000000000e+00   6.000000000000e-01  -1.438497655379e-01   3.044382924467e-37  -3.434160187195e-03   7.267928866402e-39
+| q Sternheimer EcRPA:  -3.181898736677e-02  -2.546030187193e-38
+| iq = 2
+| q = 5.0000000000000000e-01 5.0000000000000000e-01 5.0000000000000000e-01
+| q weight = 7.5000000000000000e-01
+| ifreq omega_Ha weight_Ha integrand_real integrand_imag Ec_real Ec_imag
+|     1   5.000000000000e-01   4.000000000000e-01  -1.080672257711e-03  -1.633859601684e-35  -5.159829950312e-05  -7.801104957784e-37
+|     2   1.500000000000e+00   6.000000000000e-01  -2.711868940824e-04  -6.993534817953e-36  -1.942233061273e-05  -5.008750361831e-37
+| q Sternheimer EcRPA:  -7.102063011585e-05  -1.280985531961e-36
+| Total Sternheimer EcRPA:  -3.189000799689e-02  -1.306445833833e-36
+Finalizing LibRPA global environment at [2026-08-23 13:25:29.066]
+Entry                                             #calls       CPU time (s)       Wall time (s)
+----------------------------------------------------------------------------------------------------
+Total for driver                                  1            0.1255             0.1434
+ Driver Read Input Parameters                     1             0.0001             0.0002
+ Driver Read Task-Common Input Data               1             0.0114             0.0147
+  DFT SCF eigenvalues/occupations                 1              0.0006             0.0019
+   api_set_scf_dimension                          1               0.0004             0.0016
+   api_set_wg_ekb_efermi                          1               0.0000             0.0000
+  Structure                                       1              0.0004             0.0010
+   api_set_latvec_and_G                           1               0.0001             0.0003
+   api_set_atoms                                  1               0.0001             0.0003
+   api_set_symmetry_operations                    1               0.0000             0.0001
+  BZ sampling                                     1              0.0002             0.0002
+   api_set_kgrids_kvec                            1               0.0001             0.0001
+   api_set_kq_mapping                             1               0.0000             0.0000
+  Basis (wave-function and auxiliary)             1              0.0003             0.0004
+   api_set_basis_convention                       1               0.0000             0.0000
+   api_set_ao_basis_wfc                           1               0.0001             0.0003
+   api_set_ao_basis_aux                           1               0.0000             0.0000
+  SCF eigenvectors                                1              0.0002             0.0003
+   api_set_wfc_packed                             3               0.0001             0.0002
+  driver_read_ri                                  1              0.0098             0.0108
+   driver_read_Cs                                 1               0.0018             0.0019
+    api_set_lri_coeff                             32               0.0007             0.0007
+   api_set_ao_basis_aux_shrink                    1               0.0000             0.0000
+   read_Cs_shrink                                 1               0.0060             0.0061
+    handle_Cs_file_dry                            1                0.0001             0.0001
+    handle_Cs_file                                1                0.0058             0.0060
+     api_set_lri_coeff_shrink                     32                0.0002             0.0002
+   Load shrink transformation                     1               0.0012             0.0016
+    handle_sinvS_file                             1                0.0011             0.0014
+   driver_read_Vq                                 1               0.0004             0.0006
+    read_Vq_row_v1                                1                0.0004             0.0005
+     api_set_aux_bare_coulomb_k_atom_pair_packed  9                 0.0001             0.0003
+ cal_head                                         1             0.0014             0.0016
+ cal_wing_mu                                      1             0.0459             0.0502
+  Comm_wing                                       1              0.0000             0.0000
+libRPA finished successfully
