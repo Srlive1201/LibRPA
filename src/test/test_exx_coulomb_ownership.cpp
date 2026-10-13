@@ -78,7 +78,11 @@ static double exchange(const bool qstar, const bool clear_sector, const bool inv
         comm.nprocs == 2 ? KPointBlacsProcessShape{2, 1} : KPointBlacsProcessShape{1, comm.nprocs};
     KPointBlacsParallelContext kctx(shape, comm.comm, 2);
     auto desc = kctx.create_array_desc(1, 1, 1, 1);
-    Exx exx(mf, basis, pbc, ctx, kctx, kctx, desc, false, qstar);
+    // Pass a real descriptor for the band wave functions as well: this fixture
+    // only builds the real-space exchange, so the band descriptor is unused,
+    // but it must still refer to a live object.  The last two flags select the
+    // k-distributed eigenvector handling and the symmetry context.
+    Exx exx(mf, basis, pbc, ctx, kctx, kctx, desc, desc, qstar, true);
     exx.build(LIBRPA_ROUTING_LIBRI, basis, cs, vr, replicated);
     double local = 0.0;
     for (const auto& s : exx.exx_IJR)
