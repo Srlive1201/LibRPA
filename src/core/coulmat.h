@@ -19,6 +19,9 @@ namespace librpa_int {
  * @param return_ordered_atom_pair  ensure that the returned type
  *        will always have keys of ordered atom pairs,
  *        i.e. there always exists map[I][J] and map[J][I] for I not equal to J
+ * @param result_is_replicated optional ownership receipt: true only when every
+ *        rank receives the same irreducible-sector map. Such maps must be
+ *        uniquely partitioned before an additive downstream communication.
  * @return  atpair_R_mat_t
  */
 atpair_R_mat_t FT_Vq(const MpiCommHandler &comm_h,
@@ -27,6 +30,7 @@ atpair_R_mat_t FT_Vq(const MpiCommHandler &comm_h,
                      const atpair_k_cplx_mat_t &coulmat_k,
                      const PeriodicBoundaryData &pbc,
                      bool return_ordered_atom_pair,
-                     bool use_symmetry_context = true);
+                     bool use_symmetry_context = true,
+                     bool* result_is_replicated = nullptr);
 
 }

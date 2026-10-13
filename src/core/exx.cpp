@@ -609,7 +609,8 @@ void Exx::write_rspace_matrices_binary() const
 
 void Exx::build(const LibrpaParallelRouting routing,
                 const AtomicBasis &atbasis_abf, const Cs_LRI &Cs,
-                const atpair_R_mat_t &coul_mat)
+                const atpair_R_mat_t &coul_mat,
+                const bool coul_mat_is_replicated)
 {
     using std::endl;
     using global::profiler;
@@ -832,8 +833,12 @@ void Exx::build(const LibrpaParallelRouting routing,
         exx_coul_mat_ptr = &exx_coul_mat_restored;
     }
     const auto& exx_coul_mat = *exx_coul_mat_ptr;
+    // Identity-only q-stars can replicate V(R) without reducing any spatial
+    // sector. Ownership is independent of whether a symmetry restore ran.
     const bool use_replicated_symmetry_exx_coulomb =
-        use_input_exx_coulomb_restore && comm_h.nprocs > 1;
+        (coul_mat_is_replicated || use_input_exx_coulomb_restore) && comm_h.nprocs > 1;
+    if (use_replicated_symmetry_exx_coulomb)
+        global::lib_printf_root("Partitioning replicated EXX Coulomb blocks before additive LibRI communication\n");
 
     std::map<int, std::map<std::pair<int,std::array<int,3>>, RI::Tensor<double>>> V_libri;
     std::map<int, std::map<std::pair<int,std::array<int,3>>, RI::Tensor<cplxdb>>> V_libri_cplx;

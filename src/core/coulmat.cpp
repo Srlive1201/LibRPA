@@ -245,6 +245,29 @@ static std::set<std::pair<atom_t, atom_t>> build_symmetry_irreducible_target_ato
     return target_atom_pairs;
 }
 
+static std::set<std::pair<atom_t, atom_t>> collect_symmetry_local_target_atom_pairs(
+    const atpair_k_cplx_mat_t& blocks_by_q,
+    const bool return_ordered_atom_pair)
+{
+    std::set<std::pair<atom_t, atom_t>> target_atom_pairs;
+    for (const auto& atom_i_pair : blocks_by_q)
+    {
+        for (const auto& atom_j_pair : atom_i_pair.second)
+        {
+            if (atom_j_pair.second.empty())
+            {
+                continue;
+            }
+            target_atom_pairs.insert({atom_i_pair.first, atom_j_pair.first});
+            if (return_ordered_atom_pair)
+            {
+                target_atom_pairs.insert({atom_j_pair.first, atom_i_pair.first});
+            }
+        }
+    }
+    return target_atom_pairs;
+}
+
 static std::complex<double> build_ft_vq_phase(const PeriodicBoundaryData& pbc,
                                               const Vector3_Order<double>& q_internal,
                                               const Vector3_Order<int>& R)
@@ -373,11 +396,130 @@ static atpair_R_mat_t accumulate_symmetry_abf_irreducible_sector_vr(
     return blocks_by_R_real;
 }
 
-static bool can_use_symmetry_irreducible_sector_ft_vq(const SymmetryContext& ctx,
-                                                      const AtomicBasis& basis_abf,
-                                                      const atpair_k_cplx_mat_t& coulmat_k,
-                                                      const PeriodicBoundaryData& pbc,
-                                                      const MpiCommHandler& comm_h)
+static atpair_R_mat_t accumulate_symmetry_abf_full_sector_vr(
+    const MpiCommHandler& comm_h,
+    const SymmetryContext& ctx,
+    const AtomicBasis& basis_abf,
+    const atpair_k_cplx_mat_t& blocks_by_q_ibz,
+    const PeriodicBoundaryData& pbc,
+    const bool return_ordered_atom_pair)
+{
+    atpair_R_mat_t blocks_by_R_real;
+    atpair_R_cplx_mat_t blocks_by_R_complex;
+    const auto atom_nabf = build_atom_nabf_map(basis_abf);
+    const auto abf_layouts = basis_abf.build_species_basis_layouts(ctx.atom_to_type);
+    if (!symmetry_species_layouts_match_atom_counts(abf_layouts, ctx.atom_to_type, atom_nabf))
+    {
+        throw std::runtime_error("Auxiliary basis shell layout is inconsistent with atom_nabf");
+    }
+
+    const auto target_atom_pairs =
+        collect_symmetry_local_target_atom_pairs(blocks_by_q_ibz, return_ordered_atom_pair);
+    for (const auto& atom_pair : target_atom_pairs)
+    {
+        const int n_i = static_cast<int>(atom_nabf.at(atom_pair.first));
+        const int n_j = static_cast<int>(atom_nabf.at(atom_pair.second));
+        for (const auto& R : pbc.Rlist)
+        {
+            blocks_by_R_complex[atom_pair.first][atom_pair.second][R] =
+                std::make_shared<ComplexMatrix>(n_i, n_j);
+        }
+    }
+
+    const auto full_grid_member_targets =
+        build_symmetry_full_grid_kstar_member_kfrac_targets(ctx, pbc.kfrac_list);
+    const bool use_full_grid_member_targets =
+        full_grid_member_targets.size() == ctx.kstars.size();
+
+    for (const auto& star_mapping : ctx.kstar_grid_mapping)
+    {
+        const auto& star = ctx.kstars.at(static_cast<std::size_t>(star_mapping.star_list_index));
+        const auto q_ibz_internal = pbc.klist.at(static_cast<std::size_t>(star_mapping.iq_ibz));
+        const auto q_ibz_frac = pbc.kfrac_list.at(static_cast<std::size_t>(star_mapping.iq_ibz));
+        auto blocks_ibz =
+            collect_symmetry_abf_ibz_blocks_for_q(blocks_by_q_ibz, q_ibz_internal);
+        blocks_ibz = gather_symmetry_ibz_blocks_collective(comm_h, blocks_ibz, atom_nabf);
+        if (target_atom_pairs.empty() || blocks_ibz.empty())
+        {
+            continue;
+        }
+
+        const auto rotation_atom_pairs =
+            build_symmetry_upper_atom_pair_closure(star, target_atom_pairs);
+        blocks_ibz = symmetrize_symmetry_ibz_kspace_operator_blocks(
+            ctx, abf_layouts, q_ibz_frac, blocks_ibz, atom_nabf, &rotation_atom_pairs);
+        if (star.members.size() != star_mapping.member_q_bz_keys.size())
+        {
+            throw std::runtime_error(
+                "Symmetry q-star mapping is inconsistent with the loaded full-q keys");
+        }
+
+        for (std::size_t imember = 0; imember < star.members.size(); ++imember)
+        {
+            const auto& member = star.members[imember];
+            const Vector3_Order<double> raw_q_bz_target_frac =
+                use_full_grid_member_targets
+                    ? full_grid_member_targets.at(
+                          static_cast<std::size_t>(star_mapping.star_list_index)).at(imember)
+                    : Vector3_Order<double>{pbc.latvec *
+                                            star_mapping.member_q_bz_keys.at(imember)};
+            const auto q_bz_target_frac =
+                restrict_fractional_coordinate(raw_q_bz_target_frac);
+
+            symmetry_atom_block_matrix_map_t rotated_blocks;
+            try
+            {
+                rotated_blocks = rotate_symmetry_kspace_operator_blocks(
+                    ctx, abf_layouts, member, blocks_ibz, atom_nabf, star.k_ibz,
+                    member.time_reversal, &target_atom_pairs, &q_bz_target_frac);
+            }
+            catch (const std::exception& ex)
+            {
+                std::ostringstream oss;
+                oss << "Symmetry full-sector V(q)->V(R) accumulation failed for star="
+                    << star.star_index << ", member=" << imember
+                    << ", spatial_isym=" << member.spatial_isym
+                    << ", time_reversal=" << (member.time_reversal ? "true" : "false")
+                    << ": " << ex.what();
+                throw std::runtime_error(oss.str());
+            }
+
+            const auto& q_internal = star_mapping.member_q_bz_keys.at(imember);
+            for (const auto& atom_i_pair : rotated_blocks)
+            {
+                for (const auto& atom_j_pair : atom_i_pair.second)
+                {
+                    for (const auto& R : pbc.Rlist)
+                    {
+                        const auto phase = build_ft_vq_phase(pbc, q_internal, R);
+                        *blocks_by_R_complex.at(atom_i_pair.first)
+                             .at(atom_j_pair.first)
+                             .at(R) += atom_j_pair.second * phase;
+                    }
+                }
+            }
+        }
+    }
+
+    for (const auto& atom_i_pair : blocks_by_R_complex)
+    {
+        for (const auto& atom_j_pair : atom_i_pair.second)
+        {
+            for (const auto& R_block : atom_j_pair.second)
+            {
+                blocks_by_R_real[atom_i_pair.first][atom_j_pair.first][R_block.first] =
+                    std::make_shared<matrix>(R_block.second->real());
+            }
+        }
+    }
+    return blocks_by_R_real;
+}
+
+static bool can_use_symmetry_qstar_ft_vq(const SymmetryContext& ctx,
+                                         const AtomicBasis& basis_abf,
+                                         const atpair_k_cplx_mat_t& coulmat_k,
+                                         const PeriodicBoundaryData& pbc,
+                                         const MpiCommHandler& comm_h)
 {
     const auto atom_nabf = build_atom_nabf_map(basis_abf);
     const auto abf_layouts = basis_abf.build_species_basis_layouts(ctx.atom_to_type);
@@ -391,11 +533,22 @@ static bool can_use_symmetry_irreducible_sector_ft_vq(const SymmetryContext& ctx
     return ctx.available
            && !ctx.kstars.empty()
            && ctx.kstars.size() == pbc.kfrac_list.size()
-           && !pbc.map_irk_ks.empty()
+           && ctx.kstar_grid_mapping.size() == ctx.kstars.size()
+           && ctx.count_kstar_members() == static_cast<std::size_t>(pbc.get_n_cells_bvk())
            && atom_nabf.size() == ctx.atom_to_type.size()
            && ctx.input_coord_frac.size() == atom_nabf.size()
            && pbc.klist.size() < static_cast<std::size_t>(pbc.get_n_cells_bvk())
            && has_complete_or_distributed_coverage
+           && !ctx.rspace_operations.empty();
+}
+
+static bool can_use_symmetry_irreducible_sector_ft_vq(const SymmetryContext& ctx,
+                                                      const AtomicBasis& basis_abf,
+                                                      const atpair_k_cplx_mat_t& coulmat_k,
+                                                      const PeriodicBoundaryData& pbc,
+                                                      const MpiCommHandler& comm_h)
+{
+    return can_use_symmetry_qstar_ft_vq(ctx, basis_abf, coulmat_k, pbc, comm_h)
            && !ctx.irreducible_sector.empty()
            && !ctx.rspace_operations.empty();
 }
@@ -406,9 +559,11 @@ atpair_R_mat_t FT_Vq(const MpiCommHandler &comm_h,
                      const atpair_k_cplx_mat_t &coulmat_k,
                      const PeriodicBoundaryData &pbc,
                      bool return_ordered_atom_pair,
-                     const bool use_symmetry_context)
+                     const bool use_symmetry_context,
+                     bool* result_is_replicated)
 {
     atpair_R_mat_t coulmat_R;
+    if (result_is_replicated) *result_is_replicated = false;
 
     const auto &Rlist = pbc.Rlist;
     const auto &latvec = pbc.latvec;
@@ -421,8 +576,20 @@ atpair_R_mat_t FT_Vq(const MpiCommHandler &comm_h,
     {
         global::lib_printf_root(
             "EXX symmetry accumulates irreducible-sector `V(R)` directly from IBZ q-stars\n");
+        if (result_is_replicated) *result_is_replicated = true;
         return accumulate_symmetry_abf_irreducible_sector_vr(
             comm_h, symmetry_context, basis_abf, coulmat_k, pbc);
+    }
+
+    if (use_symmetry_context
+        && can_use_symmetry_qstar_ft_vq(
+            symmetry_context, basis_abf, coulmat_k, pbc, comm_h))
+    {
+        global::lib_printf_root(
+            "EXX symmetry accumulates full-sector `V(R)` directly from IBZ q-stars\n");
+        return accumulate_symmetry_abf_full_sector_vr(
+            comm_h, symmetry_context, basis_abf, coulmat_k, pbc,
+            return_ordered_atom_pair);
     }
 
     for (auto R: Rlist)
