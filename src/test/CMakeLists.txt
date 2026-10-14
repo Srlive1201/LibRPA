@@ -109,6 +109,23 @@ if(LIBRPA_USE_LIBRI)
     PROPERTIES ENVIRONMENT "OMP_NUM_THREADS=1;MKL_NUM_THREADS=1" TIMEOUT 60)
 endif()
 
+# The q-star Coulomb ownership receipt must be partitioned exactly once before
+# the additive LibRI communication.  The partition is skipped on a single rank,
+# so run the fixture on one and two ranks; the two-rank case is the one that
+# actually exercises the replicated branch.  A four-rank case is deliberately
+# not registered: the fixture is a 1x1 matrix, and with only two k-points any
+# four-rank k-point/BLACS shape spreads the BLACS axis, leaving one rank per
+# k-point group with an empty local wave-function block, which the symmetry
+# restore path of the current upstream rejects before the ownership logic runs.
+if(LIBRPA_USE_LIBRI)
+  config_test(test_exx_coulomb_ownership 1)
+  target_compile_options(test_exx_coulomb_ownership PRIVATE -UNDEBUG)
+  add_test(NAME test_exx_coulomb_ownership_mpi2
+    COMMAND mpirun -np 2 $<TARGET_FILE:test_exx_coulomb_ownership>)
+  set_tests_properties(test_exx_coulomb_ownership test_exx_coulomb_ownership_mpi2
+    PROPERTIES LABELS "symmetry;exx" TIMEOUT 120)
+endif()
+
 add_test(NAME test_rpa_logdet_mpi
   COMMAND mpirun -np 4 $<TARGET_FILE:test_rpa_logdet>)
 config_test(test_headwing_descriptor 2)

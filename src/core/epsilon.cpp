@@ -476,7 +476,8 @@ static bool can_use_symmetry_qstar_wr_restore(
     return ctx.available
            && !ctx.kstars.empty()
            && ctx.kstars.size() == pbc.kfrac_list.size()
-           && !ctx.kstar_grid_mapping.empty()
+           && ctx.kstar_grid_mapping.size() == ctx.kstars.size()
+           && ctx.count_kstar_members() == static_cast<std::size_t>(pbc.get_n_cells_bvk())
            && ctx.atom_to_type.size() == atom_nabf.size()
            && ctx.input_coord_frac.size() == atom_nabf.size()
            && pbc.klist.size() < static_cast<std::size_t>(pbc.get_n_cells_bvk())

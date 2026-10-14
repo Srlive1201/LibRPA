@@ -84,7 +84,8 @@ class Exx
         //! Build and store the real-space exchange matrix
         void build(const LibrpaParallelRouting routing,
                    const AtomicBasis &atbasis_abf, const Cs_LRI &Cs,
-                   const atpair_R_mat_t& coul_mat);
+                   const atpair_R_mat_t& coul_mat,
+                   bool coul_mat_is_replicated = false);
 
         void build_KS_kgrid();
         // void build_KS0_kgrid();

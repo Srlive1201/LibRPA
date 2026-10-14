@@ -13,6 +13,7 @@
 #include <valarray>
 
 #include "../core/chi0.h"
+#include "../core/coulmat.h"
 #include "../core/dielecmodel.h"
 #include "../core/epsilon.h"
 #include "../core/qpoint_view.h"
@@ -28,7 +29,9 @@
 
 using librpa_int::ArrayDesc;
 using librpa_int::AtomicBasis;
+using librpa_int::atom_mapping;
 using librpa_int::atpair_k_cplx_mat_t;
+using librpa_int::atpair_R_mat_t;
 using librpa_int::BlacsCtxtHandler;
 using librpa_int::ComplexMatrix;
 using librpa_int::diele_func;
@@ -46,6 +49,7 @@ using librpa_int::SymmetryContext;
 using librpa_int::SymmetryKAtomRotation;
 using librpa_int::SymmetryKStarMember;
 using librpa_int::SymmetryOperation;
+using librpa_int::TFGrids;
 using librpa_int::Vector3_Order;
 using librpa_int::atom_t;
 
@@ -2685,6 +2689,582 @@ void test_abf_space_wing_rewrite_matches_coulomb_basis(const BlacsCtxtHandler &b
 }
 }  // namespace
 
+void add_wq_blocks(
+    atom_mapping<std::map<Vector3_Order<double>, matrix_m<std::complex<double>>>>::pair_t_old &wq,
+    const Vector3_Order<double> &q, const librpa_int::symmetry_atom_block_matrix_map_t &blocks)
+{
+    for (const auto &[atom_i, row] : blocks)
+    {
+        for (const auto &[atom_j, source] : row)
+        {
+            auto &target = wq[atom_i][atom_j][q];
+            target = matrix_m<std::complex<double>>(source.nr, source.nc, MAJOR::ROW);
+            for (int i = 0; i != source.nr; ++i)
+                for (int j = 0; j != source.nc; ++j) target(i, j) = source(i, j);
+        }
+    }
+}
+
+void add_vq_blocks(atpair_k_cplx_mat_t &vq, const Vector3_Order<double> &q,
+                   const librpa_int::symmetry_atom_block_matrix_map_t &blocks)
+{
+    for (const auto &[atom_i, row] : blocks)
+    {
+        for (const auto &[atom_j, source] : row)
+        {
+            vq[atom_i][atom_j][q] = std::make_shared<ComplexMatrix>(source);
+        }
+    }
+}
+
+librpa_int::symmetry_atom_block_matrix_map_t make_bn_hermitian_wq_blocks(
+    const std::vector<int> &n_by_atom, const double index)
+{
+    const int n = std::accumulate(n_by_atom.begin(), n_by_atom.end(), 0);
+    ComplexMatrix dense(n, n);
+    for (int i = 0; i != n; ++i)
+    {
+        dense(i, i) = {1.0 + 0.09 * index + 0.04 * (i + 1), 0.0};
+        for (int j = i + 1; j != n; ++j)
+        {
+            dense(i, j) = {0.023 * (i + 1) * (j + 2) + 0.011 * index,
+                           0.017 * (j - i) + 0.007 * index};
+            dense(j, i) = std::conj(dense(i, j));
+        }
+    }
+
+    librpa_int::symmetry_atom_block_matrix_map_t blocks;
+    std::vector<int> offsets{0};
+    for (const int n_atom : n_by_atom) offsets.push_back(offsets.back() + n_atom);
+    for (atom_t atom_i = 0; atom_i != 2; ++atom_i)
+    {
+        for (atom_t atom_j = 0; atom_j != 2; ++atom_j)
+        {
+            auto &block = blocks[atom_i][atom_j];
+            block.create(n_by_atom.at(atom_i), n_by_atom.at(atom_j));
+            for (int i = 0; i != n_by_atom.at(atom_i); ++i)
+                for (int j = 0; j != n_by_atom.at(atom_j); ++j)
+                    block(i, j) = dense(offsets.at(atom_i) + i, offsets.at(atom_j) + j);
+        }
+    }
+    return blocks;
+}
+
+std::vector<std::vector<int>> make_bn_test_shells(const int basis_case)
+{
+    if (basis_case == 0) return {{0}, {0}};
+    if (basis_case == 1) return {{0, 1}, {0, 1}};
+    if (basis_case == 2)
+        return {{0, 0, 0, 1, 1, 1, 2, 2}, {0, 0, 0, 1, 1, 1, 2, 2}};
+    if (basis_case == 3)
+        return {{0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2,
+                 3, 3, 3, 3, 3, 4, 4, 4},
+                {0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3,
+                 4, 4, 4}};
+    throw std::runtime_error("unknown BN basis test case");
+}
+
+std::vector<int> basis_counts_from_shells(const std::vector<std::vector<int>> &shells)
+{
+    std::vector<int> counts;
+    for (const auto &atom_shells : shells)
+    {
+        int count = 0;
+        for (const int l : atom_shells) count += 2 * l + 1;
+        counts.push_back(count);
+    }
+    return counts;
+}
+
+void test_spacetime_fourier_phases_form_k_minus_q_convolution()
+{
+    constexpr int mesh = 3;
+    const std::array<std::complex<double>, mesh> wc_q{{{1.2, -0.3}, {-0.4, 0.7}, {0.9, 0.2}}};
+    const std::array<std::complex<double>, mesh> weighted_green_k{{{0.13, 0.04},
+                                                                    {-0.08, 0.02},
+                                                                    {0.05, -0.06}}};
+    std::array<std::complex<double>, mesh> wc_R{};
+    std::array<std::complex<double>, mesh> green_R{};
+    for (int iR = 0; iR != mesh; ++iR)
+        for (int iq = 0; iq != mesh; ++iq)
+        {
+            const double angle = -librpa_int::TWO_PI * static_cast<double>(iq * iR) / mesh;
+            const std::complex<double> phase{std::cos(angle), std::sin(angle)};
+            wc_R[iR] += wc_q[iq] * phase / static_cast<double>(mesh);
+            green_R[iR] += weighted_green_k[iq] * phase;
+        }
+    for (int ik = 0; ik != mesh; ++ik)
+    {
+        std::complex<double> spacetime_sigma_k{};
+        std::complex<double> direct_k_minus_q{};
+        std::complex<double> direct_k_plus_q{};
+        for (int iR = 0; iR != mesh; ++iR)
+        {
+            const double angle = librpa_int::TWO_PI * static_cast<double>(ik * iR) / mesh;
+            const std::complex<double> phase{std::cos(angle), std::sin(angle)};
+            spacetime_sigma_k += wc_R[iR] * green_R[iR] * phase;
+        }
+        for (int iq = 0; iq != mesh; ++iq)
+        {
+            direct_k_minus_q += wc_q[iq] * weighted_green_k[(ik - iq + mesh) % mesh];
+            direct_k_plus_q += wc_q[iq] * weighted_green_k[(ik + iq) % mesh];
+        }
+        assert_complex_close(spacetime_sigma_k, direct_k_minus_q, 1.0e-13);
+        if (std::abs(spacetime_sigma_k - direct_k_plus_q) < 1.0e-5)
+            throw std::runtime_error("synthetic data do not distinguish k-q from k+q");
+    }
+}
+
+std::vector<SymmetryOperation> make_bn_hexagonal_operations()
+{
+    const std::array<std::array<int, 9>, 12> rotations{{
+        {{1, 0, 0, 0, 1, 0, 0, 0, 1}}, {{0, 1, 0, -1, -1, 0, 0, 0, -1}},
+        {{-1, -1, 0, 1, 0, 0, 0, 0, 1}}, {{1, 0, 0, 0, 1, 0, 0, 0, -1}},
+        {{0, 1, 0, -1, -1, 0, 0, 0, 1}}, {{-1, -1, 0, 1, 0, 0, 0, 0, -1}},
+        {{-1, 0, 0, 1, 1, 0, 0, 0, 1}}, {{1, 1, 0, 0, -1, 0, 0, 0, -1}},
+        {{0, -1, 0, -1, 0, 0, 0, 0, 1}}, {{-1, 0, 0, 1, 1, 0, 0, 0, -1}},
+        {{1, 1, 0, 0, -1, 0, 0, 0, 1}}, {{0, -1, 0, -1, 0, 0, 0, 0, -1}}}};
+    std::vector<SymmetryOperation> operations;
+    operations.reserve(rotations.size());
+    for (const auto &rotation : rotations)
+    {
+        SymmetryOperation operation;
+        operation.rotation = Matrix3(rotation[0], rotation[1], rotation[2], rotation[3],
+                                     rotation[4], rotation[5], rotation[6], rotation[7],
+                                     rotation[8]);
+        operation.translation = {0.0, 0.0, 0.0};
+        operation.use_row_convention = true;
+        operations.push_back(operation);
+    }
+    return operations;
+}
+
+void set_bn_hexagonal_lattice(PeriodicBoundaryData &pbc)
+{
+    const double sqrt_three = std::sqrt(3.0);
+    pbc.set_latvec({0.5, -0.5 * sqrt_three, 0.0, 0.5, 0.5 * sqrt_three, 0.0, 0.0, 0.0,
+                    8.0});
+}
+
+SymmetryContext make_bn_hexagonal_context(const PeriodicBoundaryData &pbc, const int max_l = 0)
+{
+    SymmetryContext ctx;
+    ctx.set_crystal_structure(pbc.latvec, pbc.G, {{0, 0}, {1, 1}},
+                              {{0, {1.0 / 3.0, 2.0 / 3.0, 0.5}},
+                               {1, {2.0 / 3.0, 1.0 / 3.0, 0.5}}});
+    ctx.set_rspace_operations(make_bn_hexagonal_operations());
+    ctx.set_available();
+    ctx.build_periodic_mappings(pbc, pbc.Rlist);
+    ctx.build_rsh_rotations(
+        {-1, 0, LIBRPA_ANGULAR_ORDER_NATURAL, LIBRPA_RSH_COEFF_1_M, LIBRPA_RSH_COEFF_1_M},
+        max_l);
+    ctx.build_kstar_member_rotations(max_l);
+    return ctx;
+}
+
+PeriodicBoundaryData make_bn_hexagonal_full_pbc(const int mesh = 3)
+{
+    PeriodicBoundaryData pbc;
+    set_bn_hexagonal_lattice(pbc);
+    std::vector<double> kvecs;
+    for (const auto &kfrac : librpa_int::build_uniform_kmesh_frac({mesh, mesh, 1}))
+    {
+        const auto kvec = kfrac * pbc.G;
+        kvecs.insert(kvecs.end(), {librpa_int::TWO_PI * kvec.x, librpa_int::TWO_PI * kvec.y,
+                                   librpa_int::TWO_PI * kvec.z});
+    }
+    pbc.set_kgrids_kvec(mesh, mesh, 1, kvecs);
+    return pbc;
+}
+
+PeriodicBoundaryData make_bn_hexagonal_reduced_pbc(const SymmetryContext &ctx,
+                                                   const int mesh = 3)
+{
+    PeriodicBoundaryData pbc;
+    set_bn_hexagonal_lattice(pbc);
+    std::vector<double> kvecs_ibz;
+    std::vector<std::vector<Vector3_Order<double>>> full_kstars;
+    for (const auto &star : ctx.kstars)
+    {
+        const auto kvec = librpa_int::restrict_fractional_coordinate(star.k_ibz) * pbc.G;
+        kvecs_ibz.insert(kvecs_ibz.end(), {librpa_int::TWO_PI * kvec.x,
+                                           librpa_int::TWO_PI * kvec.y,
+                                           librpa_int::TWO_PI * kvec.z});
+        full_kstars.emplace_back();
+        for (const auto &member : star.members)
+            full_kstars.back().push_back(
+                librpa_int::restrict_fractional_coordinate(member.k_bz) * pbc.G);
+    }
+    pbc.set_irreducible_kgrids_kvec(mesh, mesh, 1, kvecs_ibz, full_kstars);
+    return pbc;
+}
+
+std::size_t find_fractional_kpoint_index(
+    const std::vector<Vector3_Order<double>> &kpoints,
+    const Vector3_Order<double> &target)
+{
+    for (std::size_t ik = 0; ik != kpoints.size(); ++ik)
+        if (librpa_int::same_fractional_kpoint(kpoints[ik], target, 1e-8)) return ik;
+    throw std::runtime_error("failed to find a full-grid fractional k-point in the test");
+}
+
+void assert_wq_rspace_maps_close(
+    const atom_mapping<std::map<Vector3_Order<int>, matrix_m<std::complex<double>>>>::pair_t_old
+        &actual,
+    const atom_mapping<std::map<Vector3_Order<int>, matrix_m<std::complex<double>>>>::pair_t_old
+        &expected)
+{
+    for (const auto &[atom_i, expected_row] : expected)
+    {
+        assert(actual.count(atom_i) != 0);
+        for (const auto &[atom_j, expected_Rs] : expected_row)
+        {
+            assert(actual.at(atom_i).count(atom_j) != 0);
+            for (const auto &[R, expected_block] : expected_Rs)
+            {
+                assert(actual.at(atom_i).at(atom_j).count(R) != 0);
+                const auto &actual_block = actual.at(atom_i).at(atom_j).at(R);
+                if (std::abs(actual_block(0, 0) - expected_block(0, 0)) >= 1e-12)
+                {
+                    std::cerr << "atom_pair=(" << atom_i << "," << atom_j << ") R=("
+                              << R.x << "," << R.y << "," << R.z << ")" << std::endl;
+                }
+                assert_complex_close(actual_block(0, 0), expected_block(0, 0), 1e-12);
+            }
+        }
+    }
+}
+
+void assert_vr_rspace_maps_close(const atpair_R_mat_t &actual,
+                                 const atpair_R_mat_t &expected)
+{
+    assert(actual.size() == expected.size());
+    for (const auto &[atom_i, expected_row] : expected)
+    {
+        assert(actual.count(atom_i) != 0);
+        assert(actual.at(atom_i).size() == expected_row.size());
+        for (const auto &[atom_j, expected_Rs] : expected_row)
+        {
+            assert(actual.at(atom_i).count(atom_j) != 0);
+            assert(actual.at(atom_i).at(atom_j).size() == expected_Rs.size());
+            for (const auto &[R, expected_block_ptr] : expected_Rs)
+            {
+                assert(actual.at(atom_i).at(atom_j).count(R) != 0);
+                const auto &actual_block = *actual.at(atom_i).at(atom_j).at(R);
+                const auto &expected_block = *expected_block_ptr;
+                if (actual_block.nr != expected_block.nr || actual_block.nc != expected_block.nc)
+                    throw std::runtime_error("V(R) atom block dimensions differ");
+                for (int i = 0; i != expected_block.nr; ++i)
+                {
+                    for (int j = 0; j != expected_block.nc; ++j)
+                    {
+                        if (std::abs(actual_block(i, j) - expected_block(i, j)) >= 1e-12)
+                        {
+                            std::cerr << "V(R) atom_pair=(" << atom_i << "," << atom_j
+                                      << ") R=(" << R.x << "," << R.y << "," << R.z
+                                      << ") block=(" << i << "," << j << ") actual="
+                                      << actual_block(i, j) << " expected=" << expected_block(i, j)
+                                      << std::endl;
+                        }
+                        assert(std::abs(actual_block(i, j) - expected_block(i, j)) < 1e-12);
+                    }
+                }
+            }
+        }
+    }
+}
+
+void test_bn_qstar_wq_to_wr_matches_explicit_full_bz_for_mesh(
+    const int mesh, const int basis_case, const bool clear_rspace_sector = false)
+{
+    const auto pbc_full = make_bn_hexagonal_full_pbc(mesh);
+    const auto ctx_full = make_bn_hexagonal_context(pbc_full);
+    const auto pbc_sym = make_bn_hexagonal_reduced_pbc(ctx_full, mesh);
+    const auto shells = make_bn_test_shells(basis_case);
+    const auto counts = basis_counts_from_shells(shells);
+    const int max_l = *std::max_element(shells.front().begin(), shells.front().end());
+    auto ctx = make_bn_hexagonal_context(pbc_sym, max_l);
+
+    assert(ctx.count_kstar_members() == static_cast<std::size_t>(mesh * mesh));
+
+    AtomicBasis basis_abf(
+        std::vector<std::size_t>{static_cast<std::size_t>(counts.at(0)),
+                                 static_cast<std::size_t>(counts.at(1))});
+    basis_abf.set_l_shells(shells);
+    const auto layouts = basis_abf.build_species_basis_layouts(ctx.atom_to_type);
+    const std::map<atom_t, size_t> atom_nabf{
+        {0, static_cast<std::size_t>(counts.at(0))},
+        {1, static_cast<std::size_t>(counts.at(1))}};
+    const std::set<std::pair<atom_t, atom_t>> target_pairs{{0, 0}, {0, 1}, {1, 0}, {1, 1}};
+
+    atom_mapping<std::map<Vector3_Order<double>, matrix_m<std::complex<double>>>>::pair_t_old
+        wq_sym;
+    atom_mapping<std::map<Vector3_Order<double>, matrix_m<std::complex<double>>>>::pair_t_old
+        wq_full;
+    const auto full_targets =
+        librpa_int::build_symmetry_full_grid_kstar_member_kfrac_targets(ctx, pbc_sym.kfrac_list);
+    const bool use_full_targets = full_targets.size() == ctx.kstars.size();
+
+    for (std::size_t istar = 0; istar != ctx.kstars.size(); ++istar)
+    {
+        const auto &star = ctx.kstars[istar];
+        const auto mapping_iter =
+            std::find_if(ctx.kstar_grid_mapping.begin(), ctx.kstar_grid_mapping.end(),
+                         [istar](const librpa_int::SymmetryKStarGridMappingEntry &entry)
+                         { return entry.star_list_index == static_cast<int>(istar); });
+        assert(mapping_iter != ctx.kstar_grid_mapping.end());
+        const double index = static_cast<double>(istar + 1);
+        const auto blocks_ibz = make_bn_hermitian_wq_blocks(counts, index);
+        add_wq_blocks(wq_sym, pbc_sym.klist.at(istar), blocks_ibz);
+
+        const auto closure = librpa_int::build_symmetry_upper_atom_pair_closure(star, target_pairs);
+        const auto symmetrized = librpa_int::symmetrize_symmetry_ibz_kspace_operator_blocks(
+            ctx, layouts, star.k_ibz, blocks_ibz, atom_nabf, &closure);
+        for (std::size_t imember = 0; imember != star.members.size(); ++imember)
+        {
+            const auto target = librpa_int::restrict_fractional_coordinate(
+                use_full_targets
+                    ? full_targets.at(istar).at(imember)
+                    : Vector3_Order<double>{pbc_sym.latvec *
+                                            mapping_iter->member_q_bz_keys.at(imember)});
+            const auto rotated = librpa_int::rotate_symmetry_kspace_operator_blocks(
+                ctx, layouts, star.members[imember], symmetrized, atom_nabf, star.k_ibz,
+                star.members[imember].time_reversal, &target_pairs, &target);
+            const auto ifull = find_fractional_kpoint_index(pbc_full.kfrac_list, target);
+            add_wq_blocks(wq_full, pbc_full.klist.at(ifull), rotated);
+        }
+    }
+
+    const double collective_scale =
+        1.0 / static_cast<double>(librpa_int::global::mpi_comm_global_h.nprocs);
+    for (auto &[atom_i, row] : wq_sym)
+        for (auto &[atom_j, q_blocks] : row)
+            for (auto &[q, block] : q_blocks) block *= collective_scale;
+
+    if (clear_rspace_sector)
+    {
+        ctx.irreducible_sector.clear();
+        ctx.rspace_sector_stars.clear();
+    }
+
+    const TFGrids dummy_tfg;
+    SymmetryContext no_symmetry;
+    const auto expected =
+        librpa_int::FT_Wc_q2R(librpa_int::global::mpi_comm_global_h, basis_abf, no_symmetry,
+                              wq_full, dummy_tfg, pbc_full, pbc_full.Rlist, false, "", false);
+    const auto actual =
+        librpa_int::FT_Wc_q2R(librpa_int::global::mpi_comm_global_h, basis_abf, ctx, wq_sym,
+                              dummy_tfg, pbc_sym, pbc_sym.Rlist, false, "", true);
+    assert_wq_rspace_maps_close(actual, expected);
+}
+
+void test_bn_qstar_wq_to_wr_matches_explicit_full_bz_on_odd_and_even_meshes()
+{
+    for (const int basis_case : {0, 1, 3})
+    {
+        test_bn_qstar_wq_to_wr_matches_explicit_full_bz_for_mesh(3, basis_case);
+        test_bn_qstar_wq_to_wr_matches_explicit_full_bz_for_mesh(4, basis_case);
+    }
+}
+
+void test_bn_qstar_wq_to_wr_without_rspace_sector_matches_explicit_full_bz()
+{
+    test_bn_qstar_wq_to_wr_matches_explicit_full_bz_for_mesh(3, 1, true);
+}
+
+void test_bn_qstar_vq_to_vr_without_rspace_sector_matches_explicit_full_bz()
+{
+    constexpr int mesh = 3;
+    constexpr int basis_case = 1;
+    const auto pbc_full = make_bn_hexagonal_full_pbc(mesh);
+    const auto ctx_full = make_bn_hexagonal_context(pbc_full);
+    const auto pbc_sym = make_bn_hexagonal_reduced_pbc(ctx_full, mesh);
+    const auto shells = make_bn_test_shells(basis_case);
+    const auto counts = basis_counts_from_shells(shells);
+    const int max_l = *std::max_element(shells.front().begin(), shells.front().end());
+    auto ctx = make_bn_hexagonal_context(pbc_sym, max_l);
+
+    AtomicBasis basis_abf(
+        std::vector<std::size_t>{static_cast<std::size_t>(counts.at(0)),
+                                 static_cast<std::size_t>(counts.at(1))});
+    basis_abf.set_l_shells(shells);
+    const auto layouts = basis_abf.build_species_basis_layouts(ctx.atom_to_type);
+    const std::map<atom_t, size_t> atom_nabf{
+        {0, static_cast<std::size_t>(counts.at(0))},
+        {1, static_cast<std::size_t>(counts.at(1))}};
+    const std::set<std::pair<atom_t, atom_t>> target_pairs{{0, 0}, {0, 1}, {1, 0}, {1, 1}};
+
+    atpair_k_cplx_mat_t vq_sym;
+    atpair_k_cplx_mat_t vq_full;
+    const auto full_targets =
+        librpa_int::build_symmetry_full_grid_kstar_member_kfrac_targets(ctx, pbc_sym.kfrac_list);
+    const bool use_full_targets = full_targets.size() == ctx.kstars.size();
+
+    for (std::size_t istar = 0; istar != ctx.kstars.size(); ++istar)
+    {
+        const auto &star = ctx.kstars[istar];
+        const auto mapping_iter =
+            std::find_if(ctx.kstar_grid_mapping.begin(), ctx.kstar_grid_mapping.end(),
+                         [istar](const librpa_int::SymmetryKStarGridMappingEntry &entry)
+                         { return entry.star_list_index == static_cast<int>(istar); });
+        assert(mapping_iter != ctx.kstar_grid_mapping.end());
+        const double index = static_cast<double>(istar + 1);
+        const auto blocks_ibz = make_bn_hermitian_wq_blocks(counts, index);
+        add_vq_blocks(vq_sym, pbc_sym.klist.at(istar), blocks_ibz);
+
+        const auto closure = librpa_int::build_symmetry_upper_atom_pair_closure(star, target_pairs);
+        const auto symmetrized = librpa_int::symmetrize_symmetry_ibz_kspace_operator_blocks(
+            ctx, layouts, star.k_ibz, blocks_ibz, atom_nabf, &closure);
+        for (std::size_t imember = 0; imember != star.members.size(); ++imember)
+        {
+            const auto target = librpa_int::restrict_fractional_coordinate(
+                use_full_targets
+                    ? full_targets.at(istar).at(imember)
+                    : Vector3_Order<double>{pbc_sym.latvec *
+                                            mapping_iter->member_q_bz_keys.at(imember)});
+            const auto rotated = librpa_int::rotate_symmetry_kspace_operator_blocks(
+                ctx, layouts, star.members[imember], symmetrized, atom_nabf, star.k_ibz,
+                star.members[imember].time_reversal, &target_pairs, &target);
+            const auto ifull = find_fractional_kpoint_index(pbc_full.kfrac_list, target);
+            add_vq_blocks(vq_full, pbc_full.klist.at(ifull), rotated);
+        }
+    }
+
+    const double collective_scale =
+        1.0 / static_cast<double>(librpa_int::global::mpi_comm_global_h.nprocs);
+    for (auto &[atom_i, row] : vq_sym)
+        for (auto &[atom_j, q_blocks] : row)
+            for (auto &[q, block] : q_blocks) *block *= collective_scale;
+
+    ctx.irreducible_sector.clear();
+    ctx.rspace_sector_stars.clear();
+    SymmetryContext no_symmetry;
+    const auto expected = librpa_int::FT_Vq(librpa_int::global::mpi_comm_global_h, basis_abf,
+                                             no_symmetry, vq_full, pbc_full, true, false);
+    const auto actual = librpa_int::FT_Vq(librpa_int::global::mpi_comm_global_h, basis_abf, ctx,
+                                           vq_sym, pbc_sym, true, true);
+    assert_vr_rspace_maps_close(actual, expected);
+}
+
+ComplexMatrix restore_bn_test_wfc_to_member(const SymmetryContext &ctx,
+                                            const std::vector<SpeciesBasisLayout> &layouts,
+                                            const std::map<atom_t, size_t> &atom_nw,
+                                            const librpa_int::SymmetryKStar &star,
+                                            const SymmetryKStarMember &member,
+                                            const ComplexMatrix &wfc_ibz)
+{
+    const auto rotation = librpa_int::build_symmetry_kspace_rotation_matrix(
+        ctx, layouts, member, atom_nw, star.k_ibz, member.time_reversal, &member.k_bz);
+    return member.time_reversal ? librpa_int::conj(wfc_ibz) * librpa_int::conj(rotation)
+                                : wfc_ibz * rotation;
+}
+
+void test_bn_kstar_green_function_matches_explicit_full_bz_for_mesh(const int mesh,
+                                                                     const int basis_case)
+{
+    const auto pbc_full = make_bn_hexagonal_full_pbc(mesh);
+    const auto ctx_full = make_bn_hexagonal_context(pbc_full);
+    const auto pbc_sym = make_bn_hexagonal_reduced_pbc(ctx_full, mesh);
+    const auto shells = make_bn_test_shells(basis_case);
+    const auto counts = basis_counts_from_shells(shells);
+    const int max_l = *std::max_element(shells.front().begin(), shells.front().end());
+    auto ctx = make_bn_hexagonal_context(pbc_sym, max_l);
+
+    const int n_aos = std::accumulate(counts.begin(), counts.end(), 0);
+    AtomicBasis basis_wfc(
+        std::vector<std::size_t>{static_cast<std::size_t>(counts.at(0)),
+                                 static_cast<std::size_t>(counts.at(1))});
+    basis_wfc.set_l_shells(shells);
+    const auto layouts = basis_wfc.build_species_basis_layouts(ctx.atom_to_type);
+    const std::map<atom_t, size_t> atom_nw{
+        {0, static_cast<std::size_t>(counts.at(0))},
+        {1, static_cast<std::size_t>(counts.at(1))}};
+    const int n_full_kpoints = mesh * mesh;
+
+    MeanField mf_ibz(1, static_cast<int>(ctx.kstars.size()), n_aos, n_aos);
+    MeanField mf_full(1, n_full_kpoints, n_aos, n_aos);
+    mf_ibz.get_efermi() = 0.0;
+    mf_full.get_efermi() = 0.0;
+    std::vector<int> full_owner(static_cast<std::size_t>(n_full_kpoints), -1);
+
+    for (std::size_t istar = 0; istar != ctx.kstars.size(); ++istar)
+    {
+        const auto &star = ctx.kstars[istar];
+        const double star_weight =
+            static_cast<double>(star.members.size()) / static_cast<double>(n_full_kpoints);
+        for (int iband = 0; iband != n_aos; ++iband)
+        {
+            const bool occupied = iband < n_aos / 2;
+            mf_ibz.get_eigenvals()[0](static_cast<int>(istar), iband) =
+                (occupied ? -0.8 - 0.13 * iband : 0.6 + 0.17 * (iband - n_aos / 2)) +
+                0.03 * static_cast<double>(istar);
+            mf_ibz.get_weight()[0](static_cast<int>(istar), iband) =
+                occupied ? 2.0 * star_weight : 0.0;
+        }
+        auto &wfc_ibz = mf_ibz.get_eigenvectors()[0][0][istar];
+        wfc_ibz.create(n_aos, n_aos);
+        for (int iband = 0; iband != n_aos; ++iband)
+            for (int iao = 0; iao != n_aos; ++iao)
+                wfc_ibz(iband, iao) =
+                    std::complex<double>{
+                        0.11 * (iband + 1) + 0.07 * (iao + 1),
+                        0.013 * static_cast<double>((iband + 1) * (iao + 2)) +
+                            0.009 * static_cast<double>(istar + 1)} /
+                    static_cast<double>(n_aos);
+
+        for (const auto &member : star.members)
+        {
+            const auto ifull = find_fractional_kpoint_index(
+                pbc_full.kfrac_list, librpa_int::restrict_fractional_coordinate(member.k_bz));
+            assert(full_owner[ifull] < 0);
+            full_owner[ifull] = static_cast<int>(istar);
+            for (int iband = 0; iband != n_aos; ++iband)
+            {
+                mf_full.get_eigenvals()[0](static_cast<int>(ifull), iband) =
+                    mf_ibz.get_eigenvals()[0](static_cast<int>(istar), iband);
+                mf_full.get_weight()[0](static_cast<int>(ifull), iband) =
+                    iband < n_aos / 2 ? 2.0 / static_cast<double>(n_full_kpoints) : 0.0;
+            }
+            mf_full.get_eigenvectors()[0][0][ifull] =
+                restore_bn_test_wfc_to_member(ctx, layouts, atom_nw, star, member, wfc_ibz);
+        }
+    }
+    assert(std::find(full_owner.begin(), full_owner.end(), -1) == full_owner.end());
+
+    const std::vector<double> taus{-0.35, 0.27};
+    const auto &Rs = pbc_full.Rlist;
+    const auto expected = mf_full.get_gf_cplx_imagtimes_Rs(0, 0, 0, pbc_full.kfrac_list, taus, Rs);
+    const auto actual = librpa_int::get_symmetry_restored_gf_cplx_imagtimes_Rs(
+        ctx, layouts, mf_ibz, 0, 0, 0, pbc_sym.kfrac_list, taus, Rs, atom_nw);
+
+    for (const auto tau : taus)
+    {
+        for (const auto &R : Rs)
+        {
+            const auto diff = actual.at(tau).at(R) - expected.at(tau).at(R);
+            double max_abs = 0.0;
+            for (int i = 0; i != diff.nr; ++i)
+                for (int j = 0; j != diff.nc; ++j)
+                    max_abs = std::max(max_abs, std::abs(diff(i, j)));
+            if (max_abs >= 1e-12)
+            {
+                std::cerr << "BN k-star GF mismatch: mesh=" << mesh << " tau=" << tau << " R=" << R
+                          << " basis_case=" << basis_case << " max_abs=" << max_abs << std::endl;
+                throw std::runtime_error("BN k-star Green function differs from explicit full BZ");
+            }
+        }
+    }
+}
+
+void test_bn_kstar_green_function_matches_explicit_full_bz_on_odd_and_even_meshes()
+{
+    for (const int basis_case : {0, 1, 2})
+    {
+        test_bn_kstar_green_function_matches_explicit_full_bz_for_mesh(3, basis_case);
+        test_bn_kstar_green_function_matches_explicit_full_bz_for_mesh(4, basis_case);
+    }
+}
+
 int main(int argc, char *argv[])
 {
     int provided = 0;
@@ -2746,6 +3326,11 @@ int main(int argc, char *argv[])
         test_kblacs_transform_uses_rectangular_opt_128_blocks();
         test_transform_Cs2mnk_can_keep_spin_channels_separate(blacs_h);
         test_head_initialization_does_not_require_coulomb_diagonalization(blacs_h);
+        test_spacetime_fourier_phases_form_k_minus_q_convolution();
+        test_bn_qstar_wq_to_wr_matches_explicit_full_bz_on_odd_and_even_meshes();
+        test_bn_qstar_wq_to_wr_without_rspace_sector_matches_explicit_full_bz();
+        test_bn_qstar_vq_to_vr_without_rspace_sector_matches_explicit_full_bz();
+        test_bn_kstar_green_function_matches_explicit_full_bz_on_odd_and_even_meshes();
         test_abf_space_wing_rewrite_matches_coulomb_basis(blacs_h);
     }
 

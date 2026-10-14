@@ -152,13 +152,14 @@ void librpa_build_exx(LibrpaHandler* h, const LibrpaOptions *p_opts)
     const auto &cs_data_exx = use_shrink_abfs ? pds->cs_data_shrink : pds->cs_data;
     const auto &coul = opts.use_fullcoul_exx ? pds->vq : pds->vq_cut;
     profiler.start("ft_vq_cut", "Fourier transform truncated Coulomb");
+    bool coul_mat_is_replicated = false;
     const auto VR = librpa_int::FT_Vq(
         pds->comm_h, basis_aux_exx, pds->symmetry_context, coul, pds->pbc, true,
-        opts.use_symmetry_exx == LIBRPA_SWITCH_ON);
+        opts.use_symmetry_exx == LIBRPA_SWITCH_ON, &coul_mat_is_replicated);
     profiler.stop("ft_vq_cut");
 
     profiler.start("exx_real_work");
-    pds->p_exx->build(routing, basis_aux_exx, cs_data_exx, VR);
+    pds->p_exx->build(routing, basis_aux_exx, cs_data_exx, VR, coul_mat_is_replicated);
     // pds->p_exx->build_KS_kgrid_blacs(pds->blacs_h);
     profiler.stop("exx_real_work");
     // global::ofs_myid << pds->p_exx->exx_IJR << std::endl;
