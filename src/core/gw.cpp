@@ -448,7 +448,8 @@ restore_symmetry_ao_rspace_tensor_map_gw(
                 convert_libri_tensor_to_complex_matrix(jr_entry.second, nao_I, nao_J);
             for (const auto& restore_member : pair_iter->second.at(ir_R))
             {
-                const ComplexMatrix sigma_full = rotate_symmetry_rspace_block(
+                // Self-energy is an AO operator, unlike the density-like blocks.
+                const ComplexMatrix sigma_full = rotate_symmetry_rspace_operator_block(
                     symmetry_ctx, wfc_layouts, restore_member.isym, ir_I, ir_J, sigma_ir);
                 auto& target = tensors_full[restore_member.full_atom_pair.first][{
                     static_cast<int>(restore_member.full_atom_pair.second),
