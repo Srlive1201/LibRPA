@@ -775,6 +775,78 @@ void test_strict_2d_radial_integrals_match_analytic_values()
                          small_expected_i1, 1e-15);
 }
 
+void test_strict_2d_radial_log_integral_matches_numeric_quadrature()
+{
+    constexpr std::complex<double> a{0.37, 0.0};
+    constexpr double qmax = 0.61;
+    constexpr int n = 200000;
+    const double dq = qmax / n;
+    std::complex<double> numeric = 0.0;
+    for (int i = 0; i != n; ++i)
+    {
+        const double q = (i + 0.5) * dq;
+        numeric += q * std::log(1.0 + a * q) * dq;
+    }
+    assert_complex_close(librpa_int::strict_2d_radial_log_integral(a, qmax), numeric, 2e-13);
+}
+
+void test_strict_2d_radial_log_integral_is_stable_at_zero_and_small_a()
+{
+    assert_complex_close(librpa_int::strict_2d_radial_log_integral(0.0, 0.7), 0.0, 1e-15);
+    constexpr std::complex<double> a{1.0e-10, 0.0};
+    constexpr double qmax = 0.7;
+    const auto expected = a * std::pow(qmax, 3) / 3.0 - a * a * std::pow(qmax, 4) / 8.0;
+    assert_complex_close(librpa_int::strict_2d_radial_log_integral(a, qmax), expected, 1e-24);
+}
+
+void test_strict_2d_rpa_trace_log_average_matches_dense_radial_quadrature()
+{
+    matrix_m<std::complex<double>> head(3, 3, MAJOR::COL);
+    matrix_m<std::complex<double>> lind(3, 3, MAJOR::COL);
+    head(0, 0) = -0.28;
+    head(0, 1) = 0.03;
+    head(1, 0) = 0.03;
+    head(1, 1) = -0.16;
+    lind(0, 0) = 1.41;
+    lind(0, 1) = 0.04;
+    lind(1, 0) = 0.04;
+    lind(1, 1) = 1.23;
+    lind(2, 2) = 1.0;
+
+    const std::vector<double> qx{1.0, 0.0, -1.0, 0.0};
+    const std::vector<double> qy{0.0, 1.0, 0.0, -1.0};
+    const std::vector<double> angular_weights(4, librpa_int::TWO_PI / 4.0);
+    const std::vector<double> qmax{0.21, 0.14, 0.21, 0.14};
+    double gamma_area = 0.0;
+    for (std::size_t i = 0; i != qmax.size(); ++i)
+        gamma_area += angular_weights[i] * qmax[i] * qmax[i] / 2.0;
+
+    const std::complex<double> trace_body{0.12, 0.0};
+    const std::complex<double> logdet_body = std::log(0.88);
+    const auto analytic = librpa_int::compute_strict_2d_rpa_chi0v_trace_log_average(
+        head, lind, trace_body, logdet_body, qx, qy, angular_weights, qmax, gamma_area);
+
+    std::complex<double> numeric = 0.0;
+    constexpr int radial_points = 200000;
+    for (std::size_t idir = 0; idir != qx.size(); ++idir)
+    {
+        const double nx = qx[idir];
+        const double ny = qy[idir];
+        const auto directional_head =
+            nx * (nx * head(0, 0) + ny * head(0, 1)) + ny * (nx * head(1, 0) + ny * head(1, 1));
+        const auto a = librpa_int::strict_2d_schur_coefficient(lind, nx, ny);
+        const double dq = qmax[idir] / radial_points;
+        for (int ir = 0; ir != radial_points; ++ir)
+        {
+            const double q = (ir + 0.5) * dq;
+            const auto integrand =
+                trace_body + logdet_body + directional_head * q + std::log(1.0 + a * q);
+            numeric += angular_weights[idir] * q * dq * integrand / gamma_area;
+        }
+    }
+    assert_complex_close(analytic, numeric, 2e-11);
+}
+
 void test_strict_2d_inverse_head_average_has_linear_q_screening()
 {
     const std::complex<double> a{1.7, 0.0};
@@ -3292,6 +3364,9 @@ int main(int argc, char *argv[])
         test_strict_2d_auxiliary_normalization_is_computed_from_basis_metadata();
         test_strict_2d_gamma_cell_uses_physical_reciprocal_measure();
         test_strict_2d_radial_integrals_match_analytic_values();
+        test_strict_2d_radial_log_integral_matches_numeric_quadrature();
+        test_strict_2d_radial_log_integral_is_stable_at_zero_and_small_a();
+        test_strict_2d_rpa_trace_log_average_matches_dense_radial_quadrature();
         test_strict_2d_inverse_head_average_has_linear_q_screening();
         test_strict_2d_schur_coefficient_removes_identity();
         test_strict_2d_screening_denominator_must_stay_on_physical_branch();

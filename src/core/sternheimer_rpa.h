@@ -27,6 +27,7 @@ struct SternheimerRpaAngularPoint
 {
     std::array<double, 3> direction{0.0, 0.0, 0.0};
     double weight = 0.0;
+    double qmax = 0.0;
 };
 
 // Analytic q->0 response in the same convention used by the ordinary RPA
@@ -36,6 +37,8 @@ struct SternheimerRpaHeadwingInput
 {
     std::string mode = "qavg";
     int body_start = 1;
+    bool strict_2d_radial = false;
+    double gamma_area = 0.0;
     ComplexMatrix head;
     ComplexMatrix wing_mu;
     std::vector<SternheimerRpaAngularPoint> directions;

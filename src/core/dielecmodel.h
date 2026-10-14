@@ -476,6 +476,7 @@ private:
 };
 
 int rpa_headwing_regular_body_start_channel(const RpaHeadwingSettings &settings);
+bool use_strict_2d_rpa_trace_log_average(const RpaHeadwingSettings &settings);
 
 double rpa_headwing_reciprocal_cell_volume(const PeriodicBoundaryData &pbc, bool use_2d_dielectric);
 double rpa_headwing_gamma_cell_volume(const PeriodicBoundaryData &pbc, bool use_2d_dielectric);
@@ -486,6 +487,7 @@ double strict_2d_physical_q(double internal_q);
 double strict_2d_physical_gamma_cell_area(double internal_gamma_cell_area);
 std::complex<double> strict_2d_radial_i0(const std::complex<double> &a, double qmax);
 std::complex<double> strict_2d_radial_i1(const std::complex<double> &a, double qmax);
+std::complex<double> strict_2d_radial_log_integral(const std::complex<double> &a, double qmax);
 std::complex<double> strict_2d_schur_coefficient(const matrix_m<std::complex<double>> &lind,
                                                  double qx, double qy);
 void validate_strict_2d_screening_denominator(const std::complex<double> &a, double qmax);
@@ -528,6 +530,16 @@ std::complex<double> compute_rpa_chi0v_headwing_trace_log_average(
     const std::complex<double> &trace_body, const std::complex<double> &logdet_body,
     const std::vector<double> &qx, const std::vector<double> &qy, const std::vector<double> &qz,
     const std::vector<double> &weights, double *weight_sum_out = nullptr,
+    std::complex<double> *averaged_body_out = nullptr,
+    std::complex<double> *averaged_head_out = nullptr,
+    std::complex<double> *averaged_schur_log_out = nullptr);
+
+std::complex<double> compute_strict_2d_rpa_chi0v_trace_log_average(
+    const matrix_m<std::complex<double>> &head, const matrix_m<std::complex<double>> &schur_l,
+    const std::complex<double> &trace_body, const std::complex<double> &logdet_body,
+    const std::vector<double> &qx, const std::vector<double> &qy,
+    const std::vector<double> &angular_weights, const std::vector<double> &qmax_physical,
+    double gamma_area_physical, double *weight_sum_out = nullptr,
     std::complex<double> *averaged_body_out = nullptr,
     std::complex<double> *averaged_head_out = nullptr,
     std::complex<double> *averaged_schur_log_out = nullptr);
