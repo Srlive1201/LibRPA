@@ -520,11 +520,18 @@ void read_headwing_input(const string &dir_path, bool need_wing,
     int n_states = 0;
     int n_spin = 0;
 
-    std::vector<double> freq_weights;
-    driver::h.get_imaginary_frequency_grids(driver::opts, pds->omegas_imagfreq, freq_weights);
-    const auto &default_freqs = pds->tfg.get_freq_nodes();
-    const std::vector<double> freqs =
-        frequencies_override != nullptr ? *frequencies_override : default_freqs;
+    std::vector<double> freqs;
+    if (frequencies_override != nullptr)
+    {
+        freqs = *frequencies_override;
+    }
+    else
+    {
+        std::vector<double> freq_weights;
+        driver::h.get_imaginary_frequency_grids(driver::opts, pds->omegas_imagfreq,
+                                                 freq_weights);
+        freqs = pds->tfg.get_freq_nodes();
+    }
     if (freqs.empty())
     {
         throw std::runtime_error("Head/wing frequency grid is empty");

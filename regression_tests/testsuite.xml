@@ -90,6 +90,20 @@
       />
     </testcase>
 
+    <testcase name="BN compact Delta-ST with qavg headwing (abacus input)" directory="rpa_abacus_BN_sternheimer_headwing_v1">
+      <build require_libri="true"
+      />
+      <run ntasks_disable="none"
+           nthreads_disable="none"
+           ntasks_enable="none"
+           nthreads_enable="none"
+      />
+      <validate name="Delta-ST correlation energy"
+                regex="Total Sternheimer EcRPA: \s+([-+0-9.Ee]+)"
+                comparison="cmp_float.abs_diff(1e-10)"
+      />
+    </testcase>
+
     <testcase name="H2 strict-2D qavg headwing reader v1 RPA (abacus input)" directory="rpa_abacus_H2_strict2d_headwing_v1_libri">
       <build require_libri="true"
       />
