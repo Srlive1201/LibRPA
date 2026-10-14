@@ -359,12 +359,12 @@ chi0_freq_q size: 2,  freq: 1.484439, q:( 0.000000, 0.000000, 0.000000 )
 | TIME of HW-proj-freq-q: 1.484439, q: ( 0.000000, 0.000000, 0.000000)  left_chi0U: 0.000018  right_Uchi0U: 0.000024  trace_log_or_avg: 0.000857
 RPA correlation energy (Hartree)
 | Weighted contribution from each k:
-| (         0,         0,         0): (-0.0616366274390502,0)
-| Gamma EcRPA contribution:  -6.163662743905e-02   0.000000000000e+00
-| Total EcRPA including q=0:  -6.163662743905e-02
+| (         0,         0,         0): (-0.0615095082056646,0)
+| Gamma EcRPA contribution:  -6.150950820566e-02   0.000000000000e+00
+| Total EcRPA including q=0:  -6.150950820566e-02
 | Total EcRPA excluding q=0:   0.000000000000e+00
 | use_rpa_gamma = true
-| Total EcRPA:       -0.061636627
+| Total EcRPA:       -0.061509508
 Finalizing LibRPA global environment at [2026-10-09 20:42:46.190]
 Entry                                             #calls       CPU time (s)       Wall time (s)
 ----------------------------------------------------------------------------------------------------
