@@ -1147,6 +1147,28 @@ std::complex<double> strict_2d_radial_i1(const std::complex<double> &a, const do
     return (0.5 * x * x - x + std::log(1.0 + x)) / (a * a * a);
 }
 
+std::complex<double> strict_2d_radial_log_integral(const std::complex<double> &a,
+                                                   const double qmax)
+{
+    validate_strict_2d_radial_inputs(a, qmax);
+    validate_strict_2d_screening_denominator(a, qmax);
+    const auto x = a * qmax;
+    if (std::abs(x) < 1.0e-3)
+    {
+        auto term = a * std::pow(qmax, 3) / 3.0;
+        auto sum = term;
+        for (int n = 1; n != 13; ++n)
+        {
+            term *= -x * static_cast<double>(n * (n + 2)) /
+                    static_cast<double>((n + 1) * (n + 3));
+            sum += term;
+        }
+        return sum;
+    }
+    return 0.5 * qmax * qmax * std::log(1.0 + x) -
+           0.5 * a * strict_2d_radial_i1(a, qmax);
+}
+
 std::complex<double> strict_2d_schur_coefficient(const matrix_m<std::complex<double>> &lind,
                                                  const double qx, const double qy)
 {
@@ -1917,14 +1939,29 @@ SternheimerRpaHeadwingInput diele_func::get_sternheimer_rpa_headwing_input(
     }
 
     const double volume = rpa_headwing_gamma_cell_volume(pbc_, settings.use_2d_dielectric);
+    result.strict_2d_radial = use_strict_2d_rpa_trace_log_average(settings);
+    if (result.strict_2d_radial)
+    {
+        result.gamma_area = strict_2d_physical_gamma_cell_area(volume);
+    }
     result.directions.reserve(qw_leb.size());
     for (std::size_t ileb = 0; ileb != qw_leb.size(); ++ileb)
     {
-        const double radial_weight = settings.use_2d_dielectric
-                                         ? std::pow(q_gamma[ileb], 2) / (2.0 * volume)
-                                         : std::pow(q_gamma[ileb], 3) / (3.0 * volume);
-        result.directions.push_back(
-            {{{qx_leb[ileb], qy_leb[ileb], qz_leb[ileb]}}, qw_leb[ileb] * radial_weight});
+        if (result.strict_2d_radial)
+        {
+            result.directions.push_back({{{qx_leb[ileb], qy_leb[ileb], qz_leb[ileb]}},
+                                         qw_leb[ileb], strict_2d_physical_q(q_gamma[ileb])});
+        }
+        else
+        {
+            const double radial_weight =
+                settings.use_2d_dielectric
+                    ? std::pow(q_gamma[ileb], 2) / (2.0 * volume)
+                    : std::pow(q_gamma[ileb], 3) / (3.0 * volume);
+            result.directions.push_back(
+                {{{qx_leb[ileb], qy_leb[ileb], qz_leb[ileb]}},
+                 qw_leb[ileb] * radial_weight, 0.0});
+        }
     }
     return result;
 }
@@ -3900,6 +3937,11 @@ int rpa_headwing_regular_body_start_channel(const RpaHeadwingSettings &settings)
     return 1;
 }
 
+bool use_strict_2d_rpa_trace_log_average(const RpaHeadwingSettings &settings)
+{
+    return settings.use_2d_dielectric && settings.rpa_headwing_mode == "qavg";
+}
+
 double rpa_headwing_reciprocal_cell_volume(const PeriodicBoundaryData &pbc,
                                            const bool use_2d_dielectric)
 {
@@ -3984,6 +4026,74 @@ std::complex<double> compute_rpa_chi0v_headwing_trace_log_average(
             nz * (nx * schur_l(2, 0) + ny * schur_l(2, 1) + nz * schur_l(2, 2));
         averaged_head += weights[i] * directional_head;
         averaged_schur_log += weights[i] * std::log(directional_schur);
+    }
+
+    const auto averaged_body = weight_sum * (trace_body + logdet_body);
+    if (weight_sum_out != nullptr) *weight_sum_out = weight_sum;
+    if (averaged_body_out != nullptr) *averaged_body_out = averaged_body;
+    if (averaged_head_out != nullptr) *averaged_head_out = averaged_head;
+    if (averaged_schur_log_out != nullptr) *averaged_schur_log_out = averaged_schur_log;
+    return averaged_body + averaged_head + averaged_schur_log;
+}
+
+std::complex<double> compute_strict_2d_rpa_chi0v_trace_log_average(
+    const matrix_m<std::complex<double>> &head, const matrix_m<std::complex<double>> &schur_l,
+    const std::complex<double> &trace_body, const std::complex<double> &logdet_body,
+    const std::vector<double> &qx, const std::vector<double> &qy,
+    const std::vector<double> &angular_weights, const std::vector<double> &qmax_physical,
+    const double gamma_area_physical, double *weight_sum_out,
+    std::complex<double> *averaged_body_out, std::complex<double> *averaged_head_out,
+    std::complex<double> *averaged_schur_log_out)
+{
+    if (head.nr() != 3 || head.nc() != 3 || schur_l.nr() != 3 || schur_l.nc() != 3)
+    {
+        throw std::logic_error(
+            "strict 2D RPA trace-log average expects 3x3 head and Schur matrices");
+    }
+    if (qx.empty() || qx.size() != qy.size() || qx.size() != angular_weights.size() ||
+        qx.size() != qmax_physical.size())
+    {
+        throw std::logic_error("strict 2D RPA trace-log direction grids are inconsistent");
+    }
+    if (!(gamma_area_physical > 0.0) || !std::isfinite(gamma_area_physical))
+    {
+        throw std::logic_error("strict 2D RPA trace-log average requires a positive finite area");
+    }
+
+    double weight_sum = 0.0;
+    std::complex<double> averaged_head = 0.0;
+    std::complex<double> averaged_schur_log = 0.0;
+    for (std::size_t i = 0; i != qx.size(); ++i)
+    {
+        const double nx = qx[i];
+        const double ny = qy[i];
+        const double angular_weight = angular_weights[i];
+        const double qmax = qmax_physical[i];
+        if (!std::isfinite(nx) || !std::isfinite(ny) || !std::isfinite(angular_weight) ||
+            !std::isfinite(qmax) || angular_weight < 0.0 || qmax < 0.0 ||
+            std::abs(nx * nx + ny * ny - 1.0) > 1.0e-10)
+        {
+            throw std::logic_error("strict 2D RPA trace-log average received invalid geometry");
+        }
+
+        const auto directional_head =
+            nx * (nx * head(0, 0) + ny * head(0, 1)) +
+            ny * (nx * head(1, 0) + ny * head(1, 1));
+        const auto schur_a = strict_2d_schur_coefficient(schur_l, nx, ny);
+        validate_strict_2d_screening_denominator(schur_a, qmax);
+        weight_sum += angular_weight * qmax * qmax / (2.0 * gamma_area_physical);
+        averaged_head +=
+            angular_weight * directional_head * std::pow(qmax, 3) /
+            (3.0 * gamma_area_physical);
+        averaged_schur_log +=
+            angular_weight * strict_2d_radial_log_integral(schur_a, qmax) /
+            gamma_area_physical;
+    }
+    if (!std::isfinite(weight_sum) || std::abs(weight_sum - 1.0) > 1.0e-6)
+    {
+        std::ostringstream oss;
+        oss << "strict 2D RPA Gamma-cell weights are not normalized: " << weight_sum;
+        throw std::logic_error(oss.str());
     }
 
     const auto averaged_body = weight_sum * (trace_body + logdet_body);
@@ -4499,34 +4609,51 @@ std::complex<double> diele_func::compute_rpa_trace_log_average(
 
     this->vol_gamma = rpa_headwing_gamma_cell_volume(pbc_, settings.use_2d_dielectric);
 
-    std::vector<double> weights(qw_leb.size());
-    for (std::size_t ileb = 0; ileb != qw_leb.size(); ++ileb)
+    const bool strict_2d_average = use_strict_2d_rpa_trace_log_average(settings);
+    std::vector<double> weights;
+    if (!strict_2d_average)
     {
-        if (settings.use_2d_dielectric)
-            weights[ileb] = qw_leb[ileb] * std::pow(q_gamma[ileb], 2) / (2.0 * vol_gamma);
-        else
+        weights.resize(qw_leb.size());
+        for (std::size_t ileb = 0; ileb != qw_leb.size(); ++ileb)
+        {
             weights[ileb] = qw_leb[ileb] * std::pow(q_gamma[ileb], 3) / (3.0 * vol_gamma);
+        }
     }
 
     double weight_sum = 0.0;
     std::complex<double> averaged_body = 0.0;
     std::complex<double> averaged_head = 0.0;
     std::complex<double> averaged_schur_log = 0.0;
-    const auto result = compute_rpa_chi0v_headwing_trace_log_average(
-        get_rpa_chi0v_head(ifreq), Lind, trace_body, logdet_body, qx_leb, qy_leb, qz_leb, weights,
-        &weight_sum, &averaged_body, &averaged_head, &averaged_schur_log);
+    std::complex<double> result;
+    if (strict_2d_average)
+    {
+        std::vector<double> qmax_physical(q_gamma.size());
+        std::transform(q_gamma.begin(), q_gamma.end(), qmax_physical.begin(),
+                       strict_2d_physical_q);
+        result = compute_strict_2d_rpa_chi0v_trace_log_average(
+            get_rpa_chi0v_head(ifreq), Lind, trace_body, logdet_body, qx_leb, qy_leb, qw_leb,
+            qmax_physical, strict_2d_physical_gamma_cell_area(vol_gamma), &weight_sum,
+            &averaged_body, &averaged_head, &averaged_schur_log);
+    }
+    else
+    {
+        result = compute_rpa_chi0v_headwing_trace_log_average(
+            get_rpa_chi0v_head(ifreq), Lind, trace_body, logdet_body, qx_leb, qy_leb, qz_leb,
+            weights, &weight_sum, &averaged_body, &averaged_head, &averaged_schur_log);
+    }
 
     if (debug && comm_h.is_root())
     {
         global::lib_printf(
-            "RPA HW avg ifreq=%d trace_body=(%.12e,%.12e) logdet_body=(%.12e,%.12e) "
+            "RPA HW avg dimension=%s ifreq=%d trace_body=(%.12e,%.12e) "
+            "logdet_body=(%.12e,%.12e) "
             "weight_sum=%.12e averaged_body=(%.12e,%.12e) "
             "averaged_head=(%.12e,%.12e) averaged_schur_log=(%.12e,%.12e) "
             "total=(%.12e,%.12e)\n",
-            ifreq, trace_body.real(), trace_body.imag(), logdet_body.real(), logdet_body.imag(),
-            weight_sum, averaged_body.real(), averaged_body.imag(), averaged_head.real(),
-            averaged_head.imag(), averaged_schur_log.real(), averaged_schur_log.imag(),
-            result.real(), result.imag());
+            strict_2d_average ? "strict2d" : "3d", ifreq, trace_body.real(), trace_body.imag(),
+            logdet_body.real(), logdet_body.imag(), weight_sum, averaged_body.real(),
+            averaged_body.imag(), averaged_head.real(), averaged_head.imag(),
+            averaged_schur_log.real(), averaged_schur_log.imag(), result.real(), result.imag());
     }
 
     this->Lind.clear();

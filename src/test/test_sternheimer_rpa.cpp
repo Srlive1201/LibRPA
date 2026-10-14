@@ -276,6 +276,43 @@ void test_sternheimer_qavg_matches_standard_rpa_headwing_average()
     require_close(sternheimer.integrand, standard, 1e-12);
 }
 
+void test_sternheimer_strict_2d_qavg_integrates_radial_dependence()
+{
+    librpa_int::ComplexMatrix coulomb(2, 2);
+    coulomb(0, 0) = {9.0, 0.0};
+    coulomb(1, 1) = {4.0, 0.0};
+
+    librpa_int::ComplexMatrix response_m(2, 2);
+    response_m(0, 0) = {-3.6, 0.0};
+    response_m(1, 1) = {-0.8, 0.0};
+
+    constexpr double qmax = 0.2;
+    librpa_int::SternheimerRpaHeadwingInput headwing;
+    headwing.mode = "qavg";
+    headwing.strict_2d_radial = true;
+    headwing.gamma_area = librpa_int::PI * qmax * qmax;
+    headwing.head = librpa_int::ComplexMatrix(3, 3);
+    headwing.head(0, 0) = {-0.1, 0.0};
+    headwing.head(1, 1) = {-0.1, 0.0};
+    headwing.head(2, 2) = {-0.1, 0.0};
+    headwing.wing_mu = librpa_int::ComplexMatrix(2, 3);
+    headwing.wing_mu(1, 0) = {0.025, 0.0};
+    headwing.directions = {{{1.0, 0.0, 0.0}, librpa_int::TWO_PI, qmax}};
+
+    const auto result = librpa_int::compute_sternheimer_rpa_frequency_headwing(
+        coulomb, response_m, headwing, 1, 0.5, 0.25, 1.0, 1e-12);
+
+    const std::complex<double> trace_body{-0.2, 0.0};
+    const auto logdet_body = std::log(std::complex<double>(1.2, 0.0));
+    const std::complex<double> schur = 1.1 - 0.05 * 0.05 / 1.2;
+    const auto schur_a = schur - 1.0;
+    const auto expected =
+        trace_body + logdet_body - 0.1 * (2.0 * qmax / 3.0) +
+        librpa_int::TWO_PI * librpa_int::strict_2d_radial_log_integral(schur_a, qmax) /
+            headwing.gamma_area;
+    require_close(result.integrand, expected, 1e-12);
+}
+
 void test_sternheimer_qavg_body_start_zero_keeps_all_positive_finite_part_channels()
 {
     librpa_int::ComplexMatrix coulomb(3, 3);
@@ -312,6 +349,7 @@ int main()
     test_sternheimer_headwing_dense_projection_matches_direct_reference();
     test_sternheimer_qavg_uses_analytic_head_and_wing();
     test_sternheimer_qavg_matches_standard_rpa_headwing_average();
+    test_sternheimer_strict_2d_qavg_integrates_radial_dependence();
     test_sternheimer_qavg_body_start_zero_keeps_all_positive_finite_part_channels();
     return 0;
 }

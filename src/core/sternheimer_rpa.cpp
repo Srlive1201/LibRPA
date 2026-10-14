@@ -10,6 +10,7 @@
 #include "../math/lapack_connector.h"
 #include "../utils/constants.h"
 #include "librpa_enums.h"
+#include "dielecmodel.h"
 
 namespace librpa_int
 {
@@ -32,6 +33,19 @@ ComplexMatrix hermitize(const ComplexMatrix &mat)
             const auto value = 0.5 * (mat(i, j) + std::conj(mat(j, i)));
             result(i, j) = value;
             result(j, i) = std::conj(value);
+        }
+    }
+    return result;
+}
+
+matrix_m<std::complex<double>> to_matrix_m(const ComplexMatrix &matrix)
+{
+    matrix_m<std::complex<double>> result(matrix.nr, matrix.nc, MAJOR::COL);
+    for (int row = 0; row != matrix.nr; ++row)
+    {
+        for (int column = 0; column != matrix.nc; ++column)
+        {
+            result(row, column) = matrix(row, column);
         }
     }
     return result;
@@ -442,6 +456,41 @@ SternheimerRpaFrequencyResult compute_sternheimer_rpa_frequency_headwing(
             }
             schur(alpha, beta) -= correction;
         }
+    }
+
+    if (headwing.strict_2d_radial)
+    {
+        if (!(headwing.gamma_area > 0.0) || !std::isfinite(headwing.gamma_area))
+        {
+            throw std::logic_error("ST-RPA strict 2D qavg requires a positive finite Gamma area");
+        }
+        std::vector<double> qx;
+        std::vector<double> qy;
+        std::vector<double> angular_weights;
+        std::vector<double> qmax;
+        qx.reserve(headwing.directions.size());
+        qy.reserve(headwing.directions.size());
+        angular_weights.reserve(headwing.directions.size());
+        qmax.reserve(headwing.directions.size());
+        for (const auto &point : headwing.directions)
+        {
+            qx.push_back(point.direction[0]);
+            qy.push_back(point.direction[1]);
+            angular_weights.push_back(point.weight);
+            qmax.push_back(point.qmax);
+        }
+
+        std::complex<double> averaged_body = 0.0;
+        std::complex<double> averaged_head = 0.0;
+        std::complex<double> averaged_schur_log = 0.0;
+        double weight_sum = 0.0;
+        compute_strict_2d_rpa_chi0v_trace_log_average(
+            to_matrix_m(headwing.head), to_matrix_m(schur), trace_body, logdet_body, qx, qy,
+            angular_weights, qmax, headwing.gamma_area, &weight_sum, &averaged_body,
+            &averaged_head, &averaged_schur_log);
+        return make_frequency_result(ifreq, omega, weight, qweight,
+                                     weight_sum * trace_body + averaged_head,
+                                     weight_sum * logdet_body + averaged_schur_log);
     }
 
     std::complex<double> averaged_trace = 0.0;
