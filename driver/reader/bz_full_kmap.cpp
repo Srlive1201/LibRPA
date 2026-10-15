@@ -2,6 +2,7 @@
 
 #include <array>
 #include <cmath>
+#include <cstdlib>
 #include <istream>
 #include <limits>
 #include <set>
@@ -21,9 +22,15 @@ bool read_full_kmap(std::istream &input, ReaderContext &ctx, const int nk[3],
     using namespace librpa_int;
     std::string tag;
     if (!(input >> tag)) return false;  // Existing files have no optional tail.
-    // Preserve the old reader's treatment of unrelated trailing data, including
-    // numeric IBZ weight summaries. Only the explicit marker selects this path.
-    if (tag != "full_kmap") return false;
+    if (tag != "full_kmap")
+    {
+        // Legacy files can append numeric IBZ weight summaries. They were
+        // ignored by the previous reader and do not replace the SCF weights.
+        char *end = nullptr;
+        std::strtod(tag.c_str(), &end);
+        if (end != tag.c_str() && *end == '\0') return false;
+        throw std::runtime_error("Unrecognized BZ sampling extension");
+    }
     long long count;
     const long long expected = static_cast<long long>(nk[0]) * nk[1] * nk[2];
     if (!(input >> count) || count <= 0 || count != expected ||

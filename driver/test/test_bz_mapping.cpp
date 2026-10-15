@@ -159,9 +159,11 @@ int main(int argc, char **argv)
     assert(std::filesystem::create_directory(directory));
     const auto file = directory / "bz_sample.txt";
     check_explicit_api_validation();
-    // Reduced legacy files still use the original inference path.
+    // Reduced legacy files still use the original inference path. Numeric IBZ
+    // weight summaries remain ignorable, but any other unrecognized extension
+    // must be rejected instead of silently dropping the explicit mapping.
     for (const std::string tail : std::vector<std::string>{
-             "", "2\n1 0.3333333333333333\n2 0.6666666666666666\n", "legacy summary\n"})
+             "", "2\n1 0.3333333333333333\n2 0.6666666666666666\n"})
     {
         write_sampling(file, tail);
         check_mapping(file, {1, 2}, MPI_COMM_SELF, false);
@@ -170,7 +172,8 @@ int main(int argc, char **argv)
     check_mapping(file, {1, 2});
     for (const std::string tail : std::vector<std::string>{
              "full_kmap 2\n", "full_kmap 3\n1 0 0 0 3\n",
-             "full_kmap 3\n1 0 0 0 1\n2 0 0 0 2\n3 0 0 0 2\n", valid_tail() + "extra\n"})
+             "full_kmap 3\n1 0 0 0 1\n2 0 0 0 2\n3 0 0 0 2\n", valid_tail() + "extra\n",
+             "legacy summary\n"})
     {
         write_sampling(file, tail);
         bool rejected = false;

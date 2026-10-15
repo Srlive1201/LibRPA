@@ -23,3 +23,11 @@ row-major wave-function transformation against the same direct full-grid
 density. With `C_BZ = C_IBZ * R` and `D = C^T C^*`, the latter must satisfy
 `D_BZ = R^T D_IBZ R^*`. It therefore checks the atom-swap block placement
 against producer data, independently of the synthetic unit-test expectation.
+
+The test also closes each fixture operation into a cyclic subgroup, prepares
+its IBZ representatives on the full 4x4x4 mesh (including time reversal), and
+calls `generate_kstars` and `build_kstar_member_rotations`. The automatically
+chosen route is checked against the same producer density on all three
+restoration paths. This exercises route selection and inversion as well as
+atom routing; it does not claim coverage of all 48 diamond operations or of
+the energy-weighted Green function and RPA contractions.

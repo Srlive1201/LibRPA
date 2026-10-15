@@ -5,6 +5,29 @@
 
 using namespace librpa_int;
 
+void test_rectangular_complex_matrix_product()
+{
+    ComplexMatrix a(2, 3);
+    ComplexMatrix b(3, 4);
+    for (int i = 0; i < a.nr; ++i)
+        for (int j = 0; j < a.nc; ++j)
+            a(i, j) = {0.25 + 0.5 * i + 0.125 * j, -0.2 + 0.3 * i - 0.1 * j};
+    for (int i = 0; i < b.nr; ++i)
+        for (int j = 0; j < b.nc; ++j)
+            b(i, j) = {-0.4 + 0.2 * i - 0.05 * j, 0.15 - 0.07 * i + 0.11 * j};
+
+    const auto product = a * b;
+    for (int i = 0; i < product.nr; ++i)
+    {
+        for (int j = 0; j < product.nc; ++j)
+        {
+            std::complex<double> expected{0.0, 0.0};
+            for (int k = 0; k < a.nc; ++k) expected += a(i, k) * b(k, j);
+            assert(std::abs(product(i, j) - expected) < 1e-12);
+        }
+    }
+}
+
 void test_power_hemat()
 {
     ComplexMatrix a(2, 2);
@@ -71,6 +94,7 @@ void test_power_hemat()
 
 int main (int argc, char *argv[])
 {
+    test_rectangular_complex_matrix_product();
     test_power_hemat();
     
     return 0;

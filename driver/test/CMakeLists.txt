@@ -24,6 +24,7 @@ add_executable(
   ../reader_2d_coulomb_head.cpp
 )
 target_link_libraries(test_velocity_reader PRIVATE librpa_file_reader)
+target_compile_options(test_velocity_reader PRIVATE -UNDEBUG)
 add_test(NAME test_velocity_reader COMMAND $<TARGET_FILE:test_velocity_reader>)
 add_executable(test_stru_symops_parser test_stru_symops_parser.cpp ../stru_symops_parser.cpp)
 target_link_libraries(test_stru_symops_parser PRIVATE rpa_lib)
