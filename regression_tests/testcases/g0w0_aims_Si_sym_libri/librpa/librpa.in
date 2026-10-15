@@ -1,0 +1,15 @@
+# Driver parameters
+task = g0w0
+input_dir = ../dataset
+version_coul_reader = 1
+prefix_coul_full = coulomb_full_iq
+prefix_coul_cut  = coulomb_cut_iq
+# API runtime
+nfreq = 6
+replace_w_head = t
+option_dielect_func = 0
+parallel_routing = libri
+use_kpara_scf_eigvec = t
+use_symmetry_exx = t
+use_symmetry_gw = t
+use_symmetry_rpa = t

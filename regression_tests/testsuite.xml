@@ -69,6 +69,14 @@
                 regex="Wing_lambda diagnostics.*real_over_abs=\s*([-+0-9.Ee]+)"
                 comparison="cmp_float.abs_diff(1e-8)"
       />
+      <validate name="Per-q EcRPA real parts"
+                regex="^\|\s*\([^)]*\)\s*:\s*\(([^,()]+),[^()]+\)"
+                comparison="cmp_float.abs_diff(1e-4)"
+      />
+      <validate name="Per-q EcRPA imaginary parts"
+                regex="^\|\s*\([^)]*\)\s*:\s*\([^,()]+,([^()]+)\)"
+                comparison="cmp_float.abs_diff(1e-8)"
+      />
       <validate name="Correlation energy"
                 regex="Total EcRPA: \s+([-+]?\d*\.\d+)"
                 comparison="cmp_float.abs_diff(1e-4)"
@@ -367,9 +375,11 @@
                 file="librpa/EXX_band_spin_*.dat"
                 comparison="cmp_table.abs_diff(1e-4)"
       />
-      <validate name="QP band structure"
+      <!-- Both legacy spin files have a NaN at k row 25, band 26.
+           The exception is local to this check; new and moved NaNs still fail. -->
+      <validate name="QP band structure (two documented legacy NaNs)"
                 file="librpa/GW_band_spin_*.dat"
-                comparison="cmp_table.abs_diff(1e-4)"
+                comparison="cmp_table.abs_diff(1e-4,allow_matching_nan=true)"
       />
       <!-- <validate name="GW bandgap" -->
       <!--           regex="GW bandgap\(eV\):\s+([-+]?\d*\.\d+)" -->
@@ -443,6 +453,41 @@
                 headers="2"
                 rows="18"
                 comparison="cmp_table.abs_diff(1e-4)"
+      />
+    </testcase>
+
+    <testcase name="Bulk silicon, equivalent-atom symmetry versus full-grid reference (aims input)" directory="g0w0_aims_Si_sym_libri">
+      <build require_libri="true"/>
+      <validate name="Symmetry is enabled at runtime"
+                file_test="librpa/librpa.out"
+                file_refr="symmetry_flags.txt"
+                regex="^use_symmetry_(exx|gw|rpa) = (true|false)$"
+                comparison="cmp_text.equal"
+      />
+      <validate name="All QP states versus verified symmetry-ON reference"
+                regex="State\s+occ\s+e_mf\s+v_xc\s+v_exx\s+ReSigc\s+ImSigc\s+e_qp"
+                headers="2"
+                rows="18"
+                comparison="cmp_table.abs_diff(1e-4)"
+      />
+      <!-- The archived producer is not exactly symmetry covariant: its KS
+           energies differ by up to 3.61 meV within a k star. Keep a tight ON
+           snapshot above AND an independent full-grid comparison below. -->
+      <validate name="EXX versus independent full-grid reference"
+                file_test="librpa/librpa.out"
+                file_refr="librpa/full_grid_reference.out"
+                regex="State\s+occ\s+e_mf\s+v_xc\s+v_exx\s+ReSigc\s+ImSigc\s+e_qp"
+                headers="2"
+                rows="18"
+                comparison="cmp_table.abs_diff(2e-3,columns=5)"
+      />
+      <validate name="Self-energy and QP energies versus independent full-grid reference"
+                file_test="librpa/librpa.out"
+                file_refr="librpa/full_grid_reference.out"
+                regex="State\s+occ\s+e_mf\s+v_xc\s+v_exx\s+ReSigc\s+ImSigc\s+e_qp"
+                headers="2"
+                rows="18"
+                comparison="cmp_table.abs_diff(1e-3,columns=6:8)"
       />
     </testcase>
 

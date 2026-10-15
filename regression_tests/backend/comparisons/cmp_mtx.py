@@ -6,6 +6,8 @@ __all__ = ["abs_diff"]
 
 def abs_diff(tolerance, precision=3, comments=False):
     tolerance = float(tolerance)
+    if not math.isfinite(tolerance) or tolerance < 0:
+        raise ValueError("tolerance must be finite and nonnegative")
     precision = int(precision)
     comments = _as_bool(comments)
 
@@ -62,7 +64,7 @@ def abs_diff(tolerance, precision=3, comments=False):
                     ok, d = _value_diff(value1, value2)
                     if not ok:
                         return False, (
-                            "nan mismatch in {} matrix {} row {} column {}"
+                            "nonfinite value (nan mismatch) in {} matrix {} row {} column {}"
                             .format(fn, imatrix, row1, col1)
                         )
                     if d > diff:
@@ -160,9 +162,9 @@ def _parse_float(value):
 def _value_diff(value1, value2):
     diffs = []
     for x, y in zip(value1, value2):
-        if math.isnan(x) or math.isnan(y):
-            if math.isnan(x) and math.isnan(y):
-                continue
+        if not math.isfinite(x) or not math.isfinite(y):
             return False, 0.0
         diffs.append(x - y)
+    if len(diffs) == 1:
+        return True, abs(diffs[0])
     return True, math.hypot(*diffs)

@@ -1,0 +1,3 @@
+use_symmetry_exx = true
+use_symmetry_gw = true
+use_symmetry_rpa = true

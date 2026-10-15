@@ -5,17 +5,21 @@ import re
 __all__ = ["abs_diff"]
 
 
-def abs_diff(tolerance, precision=3, columns="all"):
+def abs_diff(tolerance, precision=3, columns="all", allow_matching_nan=False):
     """
     Compare numeric text tables with an absolute tolerance.
 
     Tables are expected to be extracted by Validate, typically with regex,
     headers, and rows selecting the table body after a matched header.
-    Matching NaN pairs are accepted, but one-sided NaNs fail.
+    Selected cells must be finite by default. A documented legacy fixture may
+    explicitly allow matching NaNs; one-sided NaNs and infinities still fail.
     """
     tolerance = float(tolerance)
+    if not math.isfinite(tolerance) or tolerance < 0:
+        raise ValueError("tolerance must be finite and nonnegative")
     precision = int(precision)
     columns = _process_columns(columns)
+    allow_matching_nan = str(allow_matching_nan).strip("\"'").lower() == "true"
 
     def inner_table_absdiff(fnobj1, fnobj2):
         msg = r"max abs diff = {:.%iE} (tol = {:.%iE}) over {} table rows" % (
@@ -24,6 +28,7 @@ def abs_diff(tolerance, precision=3, columns="all"):
         diff = 0.0
         diff_loc = None
         nrows = 0
+        matching_nan = 0
 
         fns = set([*fnobj1.keys(), *fnobj2.keys()])
         if not fns:
@@ -65,10 +70,16 @@ def abs_diff(tolerance, precision=3, columns="all"):
                         value1 = _parse_float(row1[icol])
                         value2 = _parse_float(row2[icol])
                         if math.isnan(value1) or math.isnan(value2):
-                            if math.isnan(value1) and math.isnan(value2):
+                            if allow_matching_nan and math.isnan(value1) and math.isnan(value2):
+                                matching_nan += 1
                                 continue
                             return False, (
-                                "nan mismatch in {} table {} row {} column {}: {} != {}"
+                                "nonfinite value (nan mismatch) in {} table {} row {} column {}: {} != {}"
+                                .format(fn, itable, irow, icol + 1, row1[icol], row2[icol])
+                            )
+                        if not math.isfinite(value1) or not math.isfinite(value2):
+                            return False, (
+                                "nonfinite value in {} table {} row {} column {}: {} != {}"
                                 .format(fn, itable, irow, icol + 1, row1[icol], row2[icol])
                             )
                         d = abs(value1 - value2)
@@ -83,6 +94,8 @@ def abs_diff(tolerance, precision=3, columns="all"):
                     )
 
         msg = msg.format(diff, tolerance, nrows)
+        if matching_nan:
+            msg += "; legacy exception: {} matching NaN cells skipped".format(matching_nan)
         if diff_loc is not None:
             fn, itable, irow, icol = diff_loc
             msg += ", max at {} table {} row {} column {}".format(
