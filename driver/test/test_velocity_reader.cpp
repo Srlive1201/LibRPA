@@ -1,4 +1,5 @@
 #include "../read_data.h"
+#include "../driver.h"
 
 #include "../../src/utils/constants.h"
 
@@ -34,6 +35,14 @@ int main()
     const double scale = librpa_int::ANG2BOHR / librpa_int::HA2EV;
     const auto expected = scale * std::complex<double>(2.0, 3.0);
     assert(std::abs(velocity.at(0).at(0).at(0)(0, 0) - expected) < 1e-12);
+
+    driver::DriverParams params;
+    params.input_preset = "abacus";
+    params.apply_input_preset();
+    std::ofstream(test_dir / "vxc.txt") << "1\n1\n1\n-0.5 -13.6057\n";
+    std::vector<matrix> vxc;
+    assert(read_vxc((test_dir / params.fn_vxc_scf).string(), vxc) == 0);
+    assert(vxc.size() == 1 && std::abs(vxc[0](0, 0) + 0.5) < 1e-12);
 
     std::filesystem::remove_all(test_dir);
 }

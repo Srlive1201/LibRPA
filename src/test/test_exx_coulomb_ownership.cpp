@@ -69,19 +69,14 @@ static double exchange(const bool qstar, const bool clear_sector, const bool inv
     const auto vr = FT_Vq(comm, basis, ctx, vq, pbc, true, qstar, &replicated);
     if (replicated != (qstar && !clear_sector))
         throw std::runtime_error("Unexpected Fourier output ownership receipt");
-    // Two ranks form two 1x1 BLACS groups; a single rank keeps one 1x1 group.
-    // The BLACS axis must stay at one process: a shape that spreads it leaves one
-    // rank per k-point group with an empty local wave-function block, and the
-    // symmetry-restore path of the current upstream rejects a stored wave
-    // function whose size does not match such an empty descriptor block.
+    // Use square BLACS groups: two ranks form two 1x1 groups, while four
+    // ranks exercise the production 2x2 BLACS layout.
     const KPointBlacsProcessShape shape =
         comm.nprocs == 2 ? KPointBlacsProcessShape{2, 1} : KPointBlacsProcessShape{1, comm.nprocs};
     KPointBlacsParallelContext kctx(shape, comm.comm, 2);
     auto desc = kctx.create_array_desc(1, 1, 1, 1);
-    // Pass a real descriptor for the band wave functions as well: this fixture
-    // only builds the real-space exchange, so the band descriptor is unused,
-    // but it must still refer to a live object.  The last two flags select the
-    // k-distributed eigenvector handling and the symmetry context.
+    // The band wave-function descriptor is unused by this fixture but must
+    // still refer to a live object; the last flag enables the symmetry context.
     Exx exx(mf, basis, pbc, ctx, kctx, kctx, desc, desc, qstar, true);
     exx.build(LIBRPA_ROUTING_LIBRI, basis, cs, vr, replicated);
     double local = 0.0;

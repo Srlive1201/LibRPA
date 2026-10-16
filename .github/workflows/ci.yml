@@ -23,6 +23,10 @@ jobs:
       - name: Check consistency of the runtime option definitions
         run: |
           python utilities/check_librpa_options.py
+      - name: Test regression result validators
+        run: |
+          python -m unittest discover -s regression_tests/backend/comparisons -p 'test_cmp_*.py'
+          PYTHONPATH="$PWD/regression_tests:$PWD" python -m unittest discover -s regression_tests/backend -p 'test_*.py'
       - name: Setup Intel oneAPI apt repo
         run: |
           # download the key to system keyring
@@ -74,6 +78,7 @@ jobs:
           cd regression_tests && ./run_regression.py full ../$BUILDDIR/chi0_main.exe -d workspace_np4 -n 4 | tee test_np4.log
       - name: Build/test LibRPA with LibRI
         run: |
+          set -o pipefail
           source /opt/intel/oneapi/setvars.sh
           export BUILDDIR="build_libri"
           CXX=mpiicpx FC=ifx cmake -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=ON -B $BUILDDIR \
@@ -81,6 +86,7 @@ jobs:
           cmake --build $BUILDDIR -j 2
           cmake --build $BUILDDIR --target test
           cd regression_tests && ./run_regression.py full ../$BUILDDIR/chi0_main.exe -d workspace_libri_np4 --use-libri -n 4 | tee test_libri_np4.log
+          ./run_regression.py full ../$BUILDDIR/chi0_main.exe -d workspace_libri_si_np1 --use-libri -n 1 --only g0w0_aims_Si_sym_libri | tee test_libri_si_np1.log
       - name: Build Fortran binding (with LibRI), static library, and binding test
         run: |
           source /opt/intel/oneapi/setvars.sh
@@ -100,6 +106,8 @@ jobs:
             build_fortran_bind/Testing/Temporary/LastTest.log
             regression_tests/test_np4.log
             regression_tests/test_libri_np4.log
+            regression_tests/test_libri_si_np1.log
+            regression_tests/workspace_libri_si_np1/testcases/*/librpa/librpa.out
             regression_tests/workspace_np4/testcases/*/librpa/librpa.out
             regression_tests/workspace_np4/testcases/*/librpa/librpa.err
             regression_tests/workspace_np4/testcases/*/librpa/*.dat

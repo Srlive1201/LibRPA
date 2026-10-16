@@ -76,6 +76,19 @@ class TestCmpMtx(unittest.TestCase):
         self.assertFalse(passed)
         self.assertIn("nan mismatch", msg)
 
+    def test_matching_nonfinite_entries_fail(self):
+        for value in ("nan", "inf", "-inf"):
+            with self.subTest(value=value):
+                matrix = REAL_MTX.replace("3.0", value)
+                passed, _ = self._compare(matrix, matrix)
+                self.assertFalse(passed)
+
+    def test_nonfinite_tolerance_is_rejected(self):
+        for tolerance in ("nan", "inf", "-1"):
+            with self.subTest(tolerance=tolerance):
+                with self.assertRaises(ValueError):
+                    cmp_mtx.abs_diff(tolerance)
+
 
 if __name__ == "__main__":
     unittest.main()

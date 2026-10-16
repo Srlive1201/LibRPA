@@ -51,6 +51,7 @@ foreach(target
     test_io
     test_symmetry_context
     test_si_density_symmetry
+    test_task_helper
     test_arbitrary_float
     test_geometry
     test_lebedev_laikov
@@ -63,6 +64,7 @@ foreach(target
     test_profiler
     test_qpe_solver
     test_rsh
+    test_rpa_headwing
     test_rpa_logdet
     test_sternheimer_rpa
     test_sternheimer_symmetry
@@ -79,6 +81,7 @@ endforeach()
 # These suites use standard assert() and must remain active in Release builds.
 target_compile_options(test_sternheimer_rpa PRIVATE -UNDEBUG)
 target_compile_options(test_sternheimer_symmetry PRIVATE -UNDEBUG)
+target_sources(test_task_helper PRIVATE ../../driver/tasks/task_helper.cpp)
 # add 4-process tests
 foreach(target
   test_atomic_basis_blacs
@@ -89,7 +92,6 @@ foreach(target
   test_matrix_m_mpi
   test_meanfield_mpi
   test_kpoint_blacs_parallel_context
-  test_rpa_headwing
   test_shared_memory_mpi
   )
   config_test(${target} 4)
@@ -99,7 +101,11 @@ target_compile_options(test_rpa_headwing PRIVATE -UNDEBUG)
 # The symmetry-context and k-BLACS symmetry-restore suites assert the k-star
 # rotation conventions; keep them active in Release builds as well.
 target_compile_options(test_symmetry_context PRIVATE -UNDEBUG)
+target_compile_options(test_symmetry PRIVATE -UNDEBUG)
+target_compile_options(test_meanfield PRIVATE -UNDEBUG)
 target_compile_options(test_meanfield_mpi PRIVATE -UNDEBUG)
+set_tests_properties(test_symmetry_context test_si_density_symmetry
+  test_meanfield test_meanfield_mpi PROPERTIES LABELS "symmetry")
 
 if(LIBRPA_USE_LIBRI)
   config_test(test_strict_2d_gw_wc 4)
@@ -110,24 +116,24 @@ if(LIBRPA_USE_LIBRI)
 endif()
 
 # The q-star Coulomb ownership receipt must be partitioned exactly once before
-# the additive LibRI communication.  The partition is skipped on a single rank,
-# so run the fixture on one and two ranks; the two-rank case is the one that
-# actually exercises the replicated branch.  A four-rank case is deliberately
-# not registered: the fixture is a 1x1 matrix, and with only two k-points any
-# four-rank k-point/BLACS shape spreads the BLACS axis, leaving one rank per
-# k-point group with an empty local wave-function block, which the symmetry
-# restore path of the current upstream rejects before the ownership logic runs.
+# the additive LibRI communication. Use square BLACS groups: two ranks form
+# two 1x1 groups, while four ranks exercise the production 2x2 BLACS layout.
 if(LIBRPA_USE_LIBRI)
   config_test(test_exx_coulomb_ownership 1)
   target_compile_options(test_exx_coulomb_ownership PRIVATE -UNDEBUG)
-  add_test(NAME test_exx_coulomb_ownership_mpi2
-    COMMAND mpirun -np 2 $<TARGET_FILE:test_exx_coulomb_ownership>)
+  foreach(nproc 2 4)
+    add_test(NAME test_exx_coulomb_ownership_mpi${nproc}
+      COMMAND mpirun -np ${nproc} $<TARGET_FILE:test_exx_coulomb_ownership>)
+  endforeach()
   set_tests_properties(test_exx_coulomb_ownership test_exx_coulomb_ownership_mpi2
-    PROPERTIES LABELS "symmetry;exx" TIMEOUT 120)
+    test_exx_coulomb_ownership_mpi4 PROPERTIES LABELS "symmetry;exx" TIMEOUT 120)
 endif()
 
 add_test(NAME test_rpa_logdet_mpi
   COMMAND mpirun -np 4 $<TARGET_FILE:test_rpa_logdet>)
+add_test(NAME test_rpa_headwing_mpi
+  COMMAND mpirun -np 4 $<TARGET_FILE:test_rpa_headwing>)
+set_tests_properties(test_rpa_headwing_mpi PROPERTIES TIMEOUT 120)
 config_test(test_headwing_descriptor 2)
 set_tests_properties(test_headwing_descriptor PROPERTIES TIMEOUT 30)
 

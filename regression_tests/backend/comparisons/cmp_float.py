@@ -13,8 +13,8 @@ def abs_diff(tolerance, precision=3):
     A single string is treated as a one-value sequence; numeric strings may
     use Fortran D exponents. Corresponding values are compared in order across
     matching files, and the largest absolute difference determines the result.
-    Missing files, unequal sequence lengths, and empty inputs fail. Matching
-    NaN pairs are accepted, while a NaN on only one side fails.
+    Missing files, unequal sequence lengths, and empty inputs fail.
+    Nonfinite values are rejected on either side, even if they match.
 
     Args:
         tolerance: Maximum allowed absolute difference, inclusive.
@@ -35,17 +35,19 @@ def abs_diff(tolerance, precision=3):
         True
         >>> compare({"librpa.out": ["nan"]},
         ...         {"librpa.out": ["NaN"]})[0]
-        True
+        False
         >>> compare({"librpa.out": ["nan"]}, {"librpa.out": ["1.0"]})
-        (False, 'nan mismatch in librpa.out value 1: nan != 1.0')
+        (False, 'nonfinite value (nan mismatch) in librpa.out value 1: nan != 1.0')
         >>> compare({"librpa.out": ["1.0"]}, {"librpa.out": ["nan"]})
-        (False, 'nan mismatch in librpa.out value 1: 1.0 != nan')
+        (False, 'nonfinite value (nan mismatch) in librpa.out value 1: 1.0 != nan')
         >>> compare({"librpa.out": []}, {"librpa.out": ["-1.234"]})
         (False, 'value count mismatch in librpa.out: 0 != 1')
         >>> compare({"librpa.out": []}, {"librpa.out": []})
         (False, 'no scalar values found in librpa.out')
     """
     tolerance = float(tolerance)
+    if not math.isfinite(tolerance) or tolerance < 0:
+        raise ValueError("tolerance must be finite and nonnegative")
     prec = int(precision)
 
     def inner_float_absdiff(fnobj1, fnobj2):
@@ -75,10 +77,13 @@ def abs_diff(tolerance, precision=3):
                 value1 = _parse_float(o1)
                 value2 = _parse_float(o2)
                 if math.isnan(value1) or math.isnan(value2):
-                    if math.isnan(value1) and math.isnan(value2):
-                        continue
                     return False, (
-                        "nan mismatch in {} value {}: {} != {}"
+                        "nonfinite value (nan mismatch) in {} value {}: {} != {}"
+                        .format(fn, iobj, o1, o2)
+                    )
+                if not math.isfinite(value1) or not math.isfinite(value2):
+                    return False, (
+                        "nonfinite value in {} value {}: {} != {}"
                         .format(fn, iobj, o1, o2)
                     )
                 d = abs(value1 - value2)
