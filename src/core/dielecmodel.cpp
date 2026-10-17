@@ -4320,7 +4320,7 @@ void rewrite_eps_abf_space(
     if (desc_nabf_m.m_loc() == 0 || desc_nabf_m.n_loc() == 0) G.resize(1, 1);
 
     // G = E*Y. E is Hermitian on the imaginary-frequency axis (this path is only
-    // reached from the option_dielect_func == 3 branch), so E^H*Y == E*Y and one
+    // reached from the analytic head/wing branch), so E^H*Y == E*Y and one
     // product suffices; the Cholesky inverse path taken below already reads only
     // the lower triangle of M via pposv, so building M would otherwise refuse an
     // assumption the inverse then makes. E is Hermitian to roundoff rather than

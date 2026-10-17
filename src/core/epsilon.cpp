@@ -2851,9 +2851,10 @@ std::map<double, std::map<Vector3_Order<double>, Matz>> compute_Wc_freq_q_blacs(
         const bool debug_output = global::should_output(LIBRPA_VERBOSE_DEBUG);
         const bool gamma_point = is_gamma_point(q);
         const bool gamma_full_headwing =
-            gamma_point && !epsmac_LF_imagfreq.empty() && option_dielect_func == 3;
+            gamma_point && !epsmac_LF_imagfreq.empty() &&
+            (option_dielect_func == 3 || option_dielect_func == 53);
         const bool gamma_head_only =
-            gamma_point && !epsmac_LF_imagfreq.empty() && option_dielect_func != 3;
+            gamma_point && !epsmac_LF_imagfreq.empty() && !gamma_full_headwing;
         coul_block.zero_out();
         coulwc_block.zero_out();
         // lib_printf("coul_block\n%s", str(coul_block).c_str());
@@ -3002,7 +3003,8 @@ std::map<double, std::map<Vector3_Order<double>, Matz>> compute_Wc_freq_q_blacs(
 
         // Extract from V before power_hemat overwrites it with sqrt(V).
         std::vector<double> gamma_s_head;
-        if (gamma_head_only && option_dielect_func == 5)
+        if ((gamma_head_only && option_dielect_func == 5) ||
+            (gamma_full_headwing && option_dielect_func == 53))
             gamma_s_head = compute_gamma_s_head_vector(
                 chi0.atbasis_abf, coul_block, &desc_nabf_nabf_opt);
         size_t n_singular;
@@ -3030,10 +3032,10 @@ std::map<double, std::map<Vector3_Order<double>, Matz>> compute_Wc_freq_q_blacs(
         if (gamma_full_headwing && n_singular != 0)
         {
             librpa_int::global::lib_printf_root(
-                "Gamma option-3 ABF-space head/wing Wc: using retained Coulomb "
+                "Gamma option-%d ABF-space head/wing Wc: using retained Coulomb "
                 "subspace n_nonsingular=%zu of n_abf=%zu (n_filtered=%zu, "
                 "sqrt_coulomb_threshold=%g)\n",
-                n_nonsingular, n_abf, n_singular, sqrt_coulomb_threshold);
+                option_dielect_func, n_nonsingular, n_abf, n_singular, sqrt_coulomb_threshold);
         }
 #if defined(LIBRPA_USE_CUDA) || defined(LIBRPA_USE_HIP)
         if (is_gamma_point(q) && use_gpu_replace_scalapack)
@@ -3099,9 +3101,54 @@ std::map<double, std::map<Vector3_Order<double>, Matz>> compute_Wc_freq_q_blacs(
         {
             desc_head_direction.init(n_abf, 1, nb_opt, nb_opt, 0, 0);
             head_direction = init_local_mat<complex<double>>(desc_head_direction, MAJOR::COL);
-            ScalapackConnector::pgemr2d_f(
-                n_abf, 1, coul_eigen_block.ptr(), 1, 1, desc_nabf_nabf_opt.desc,
-                head_direction.ptr(), 1, 1, desc_head_direction.desc, blacs_h.ictxt);
+            if (option_dielect_func == 53)
+            {
+                if (n_nonsingular == 0)
+                    throw LIBRPA_RUNTIME_ERROR("Gamma s-head/wing correction requires retained Coulomb modes");
+                head_direction.zero_out();
+                const int head_col = desc_head_direction.indx_g2l_c(0);
+                if (head_col >= 0)
+                    for (int row = 0; row < desc_head_direction.m_loc(); ++row)
+                        head_direction(row, head_col) =
+                            gamma_s_head[desc_head_direction.indx_l2g_r(row)];
+
+                double norm_sq[2] = {0.0, 0.0};
+                if (n_singular > 0)
+                {
+                    auto coefficients = init_local_mat<complex<double>>(desc_head_direction, MAJOR::COL);
+                    coefficients.zero_out();
+                    // Keep coefficient rows aligned with the filtered columns of U.
+                    const int first_filtered = as_int(n_nonsingular) + 1;
+                    ScalapackConnector::pgemm_f(
+                        'C', 'N', as_int(n_singular), 1, n_abf, C_ONE,
+                        coul_eigen_block.ptr(), 1, first_filtered, desc_nabf_nabf_opt.desc,
+                        head_direction.ptr(), 1, 1, desc_head_direction.desc, C_ZERO,
+                        coefficients.ptr(), first_filtered, 1, desc_head_direction.desc);
+                    ScalapackConnector::pgemm_f(
+                        'N', 'N', n_abf, 1, as_int(n_singular), -C_ONE,
+                        coul_eigen_block.ptr(), 1, first_filtered, desc_nabf_nabf_opt.desc,
+                        coefficients.ptr(), first_filtered, 1, desc_head_direction.desc, C_ONE,
+                        head_direction.ptr(), 1, 1, desc_head_direction.desc);
+                    for (size_t i = 0; i < coefficients.size(); ++i)
+                        norm_sq[1] += std::norm(coefficients.ptr()[i]);
+                }
+                for (size_t i = 0; i < head_direction.size(); ++i)
+                    norm_sq[0] += std::norm(head_direction.ptr()[i]);
+                MPI_Allreduce(MPI_IN_PLACE, norm_sq, 2, MPI_DOUBLE, MPI_SUM, desc_head_direction.comm());
+                if (!std::isfinite(norm_sq[0]) || !std::isfinite(norm_sq[1]) ||
+                    norm_sq[0] <= 100.0 * std::numeric_limits<double>::epsilon())
+                    throw LIBRPA_RUNTIME_ERROR("Gamma s-head has negligible or invalid norm in the retained Coulomb space");
+                const double retained_norm = std::sqrt(norm_sq[0]);
+                for (size_t i = 0; i < head_direction.size(); ++i)
+                    head_direction.ptr()[i] /= retained_norm;
+                librpa_int::global::lib_printf_root(
+                    "Gamma s-head projection: retained norm = %.12e, discarded norm = %.12e\n",
+                    retained_norm, std::sqrt(norm_sq[1]));
+            }
+            else
+                ScalapackConnector::pgemr2d_f(
+                    n_abf, 1, coul_eigen_block.ptr(), 1, 1, desc_nabf_nabf_opt.desc,
+                    head_direction.ptr(), 1, 1, desc_head_direction.desc, blacs_h.ictxt);
         }
         matrix_m<std::complex<double>> strict_2d_regular_coulomb_basis;
         if (strict_2d_complete_wc_gamma)
@@ -3459,7 +3506,7 @@ std::map<double, std::map<Vector3_Order<double>, Matz>> compute_Wc_freq_q_blacs(
                                  "average."
                               << std::endl;
             }
-            else if (epsmac_LF_imagfreq.size() > 0 && is_gamma_point(q) && option_dielect_func == 3)
+            else if (gamma_full_headwing)
             {
                 // Dielectric matrix is already inverted, only multiply by square root coulwc from both sides
 #if defined(LIBRPA_USE_HIP) || defined(LIBRPA_USE_CUDA)

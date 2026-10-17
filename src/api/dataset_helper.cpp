@@ -355,7 +355,8 @@ void initialize_ds_g0w0(Dataset &ds, const LibrpaOptions &opts)
 void initialize_ds_headwing(Dataset &ds, const LibrpaOptions &opts, const bool need_wing)
 {
     if (opts.replace_w_head != LIBRPA_SWITCH_ON ||
-        (opts.option_dielect_func != 3 && opts.option_dielect_func != 4))
+        (opts.option_dielect_func != 3 && opts.option_dielect_func != 4 &&
+         opts.option_dielect_func != 53))
     {
         return;
     }

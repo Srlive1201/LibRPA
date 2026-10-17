@@ -49,6 +49,8 @@ double librpa_get_rpa_correlation_energy(LibrpaHandler *h, const LibrpaOptions *
     profiler.start("api_get_rpa_correlation_energy");
     auto pds = librpa_int::api::get_dataset_instance(h);
     const auto &opts = *p_opts;
+    if (opts.replace_w_head == LIBRPA_SWITCH_ON && opts.option_dielect_func == 53)
+        throw LIBRPA_RUNTIME_ERROR("option_dielect_func=53 is not supported for RPA energy");
     initialize_ds_global_ddla(*pds, opts);
 
     const auto ks_local = pds->mf.get_iks_local();
