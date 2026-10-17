@@ -151,18 +151,19 @@ void invert_headwing_body_with_identity_solve(
 // factored out of diele_func so it can be unit tested directly.
 // eps_block holds E = I - sqrt(V)*chi0*sqrt(V) (n_abf x n_abf, distributed) on
 // entry and is overwritten with the averaged inverse dielectric matrix.
-// sqrtv_block is the matrix square root sqrt(V); coul_eigen_block holds the
-// Coulomb eigenvectors U with x1 = U[:,0]. head is the 3x3 dielectric head H
+// sqrtv_block is the matrix square root sqrt(V); coul_eigen_block supplies the
+// trailing filtered Coulomb eigenvectors. head_direction is a distributed
+// n_abf x 1 vector described by desc_head_direction on the same BLACS grid.
+// It must be normalized and lie in the retained Coulomb space.
+// head is the 3x3 dielectric head H
 // (it already includes the identity contribution) and wing_mu the replicated
 // n_abf x 3 ABF wing. qx/qy/qz are unit angular directions and rho the
 // per-point quadrature weights (already including the Gamma-cell volume and
 // q_gamma factors). When the Coulomb matrix has filtered eigenchannels, the
-// rewrite is restricted to its first n_nonsingular eigenvectors; the filtered
-// channels must be the trailing columns of coul_eigen_block, whose complete
-// column set is required to be orthonormal (U U^H = I to O(eps)) -- both
-// bundled eigensolvers redistribute the full set with descending eigenvalues
-// before filtering, so this holds. The filtered projector is applied through
-// its low-rank factor Y = [x1 | trailing filtered columns] (n_abf x m with
+// rewrite is restricted to the retained space; the filtered channels must be
+// the trailing orthonormal columns of coul_eigen_block. The retained columns
+// are not read. The projector is applied through its low-rank factor
+// Y = [head_direction | trailing filtered columns] (n_abf x m with
 // m = 1 + n_singular), so no n_abf x n_abf projector is ever formed.
 // eps_block must be Hermitian: the routine contracts it only as E*Y rather than
 // forming both E*Y and E^H*Y, so the result is accurate to O(|E - E^H|). The
@@ -174,6 +175,8 @@ void rewrite_eps_abf_space(
     matrix_m<std::complex<double>> &eps_block,
     const matrix_m<std::complex<double>> &sqrtv_block,
     const matrix_m<std::complex<double>> &coul_eigen_block,
+    const matrix_m<std::complex<double>> &head_direction,
+    const ArrayDesc &desc_head_direction,
     const matrix_m<std::complex<double>> &head,
     const matrix_m<std::complex<double>> &wing_mu,
     const std::vector<double> &qx, const std::vector<double> &qy,
@@ -440,8 +443,7 @@ public:
     void get_g_enclosing_gamma_2d();
     void calculate_q_gamma();
     void calculate_q_gamma_2d();
-    // Complete-basis ABF-space wing rewrite for Gamma option-3 GW Wc.
-    // Requires n_nonsingular_in == n_abf (sqrt_coulomb_threshold disabled).
+    // ABF-space wing rewrite for Gamma option-3 GW Wc, including Coulomb filtering.
     // eps_block holds E = I - sqrt(V)*chi0*sqrt(V) on entry and the averaged
     // inverse dielectric matrix on exit. Delegates to the free
     // rewrite_eps_abf_space helper using this object's head, wing_mu and
@@ -449,6 +451,8 @@ public:
     void rewrite_eps_abf_space(matrix_m<std::complex<double>> &eps_block, const int ifreq,
                                const matrix_m<std::complex<double>> &sqrtv_block,
                                const matrix_m<std::complex<double>> &coul_eigen_block,
+                               const matrix_m<std::complex<double>> &head_direction,
+                               const ArrayDesc &desc_head_direction,
                                const ArrayDesc &desc_nabf_nabf_opt,
                                std::size_t n_nonsingular_in,
                                double sqrt_coulomb_threshold,

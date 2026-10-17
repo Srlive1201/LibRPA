@@ -4197,6 +4197,8 @@ void rewrite_eps_abf_space(
     matrix_m<std::complex<double>> &eps_block,
     const matrix_m<std::complex<double>> &sqrtv_block,
     const matrix_m<std::complex<double>> &coul_eigen_block,
+    const matrix_m<std::complex<double>> &head_direction,
+    const ArrayDesc &desc_head_direction,
     const matrix_m<std::complex<double>> &head,
     const matrix_m<std::complex<double>> &wing_mu,
     const std::vector<double> &qx, const std::vector<double> &qy,
@@ -4252,6 +4254,15 @@ void rewrite_eps_abf_space(
         throw LIBRPA_RUNTIME_ERROR(
             "ABF-space wing rewrite sqrt(V)/eigenvector blocks do not match the descriptor");
     }
+    if (!desc_head_direction.is_initialized() ||
+        desc_head_direction.ictxt() != blacs_h.ictxt ||
+        desc_head_direction.m() != n_abf || desc_head_direction.n() != 1 ||
+        head_direction.nr() != desc_head_direction.m_loc() ||
+        head_direction.nc() != desc_head_direction.n_loc())
+    {
+        throw LIBRPA_RUNTIME_ERROR(
+            "ABF-space wing rewrite head direction must match an n_abf x 1 descriptor on the same BLACS grid");
+    }
     if (head.nr() != 3 || head.nc() != 3)
     {
         throw LIBRPA_RUNTIME_ERROR("ABF-space wing rewrite expects a 3x3 head");
@@ -4266,11 +4277,10 @@ void rewrite_eps_abf_space(
             "ABF-space wing rewrite angular quadrature arrays have inconsistent lengths");
     }
 
-    // Filtered Coulomb channels occupy the trailing eigenvector columns: both
-    // eigensolvers redistribute the complete orthonormal set (eigenvalues
-    // descending) before the filtering loop, so U U^H = I to O(eps) and
-    // P + T + F = I with P = x1*x1^H, T the retained body projector and F the
-    // filtered projector. Y = [x1 | X_s] therefore spans YY^H = P + F = I - T
+    // The normalized head u lies in the retained space and is orthogonal to
+    // the trailing filtered Coulomb eigenvectors X_s. Thus P + T + F = I,
+    // with P = u*u^H, T the retained body projector and F the filtered
+    // projector. Y = [u | X_s] therefore spans YY^H = P + F = I - T
     // with rank m = 1 + n_singular, and
     //     M = (I - YY^H) E (I - YY^H) + YY^H.
     // Expanding with G = E*Y and S = Y^H*G keeps every operand thin
@@ -4278,7 +4288,7 @@ void rewrite_eps_abf_space(
     // tracks n_singular instead of n_abf. Only E*Y is contracted, which is exact
     // because E is Hermitian here; see the note at the product below. The m == 1
     // case (no filtered channels) reduces term for term to the same expression
-    // with Y = x1.
+    // with Y = u.
     // Above 2m > n_abf this low-rank form does more flops than forming T
     // explicitly; that is not the production regime (n_nonsingular >> n_singular)
     // and M = I still comes out by cancelling E against itself to O(|E|*eps_mach),
@@ -4292,9 +4302,9 @@ void rewrite_eps_abf_space(
     auto Y = init_local_mat<complex<double>>(desc_nabf_m, MAJOR::COL);
     if (desc_nabf_m.m_loc() == 0 || desc_nabf_m.n_loc() == 0) Y.resize(1, 1);
 
-    // Y = [x1 | X_s]: the head column, then the trailing filtered block.
-    ScalapackConnector::pgemr2d_f(n_abf, 1, coul_eigen_block.ptr(), 1, 1,
-                                  desc_nabf_nabf_opt.desc, Y.ptr(), 1, 1,
+    // Y = [u | X_s]: the head column, then the trailing filtered block.
+    ScalapackConnector::pgemr2d_f(n_abf, 1, head_direction.ptr(), 1, 1,
+                                  desc_head_direction.desc, Y.ptr(), 1, 1,
                                   desc_nabf_m.desc, blacs_h.ictxt);
     if (n_sing > 0)
     {
@@ -4467,8 +4477,8 @@ void rewrite_eps_abf_space(
     profiler.start("epsilon_headwing_abf_assemble");
 
     ScalapackConnector::pgemm_f('N', 'C', n_abf, n_abf, 1, a0,
-                                coul_eigen_block.ptr(), 1, 1, desc_nabf_nabf_opt.desc,
-                                coul_eigen_block.ptr(), 1, 1, desc_nabf_nabf_opt.desc,
+                                Y.ptr(), 1, 1, desc_nabf_m.desc,
+                                Y.ptr(), 1, 1, desc_nabf_m.desc,
                                 1.0, eps_block.ptr(), 1, 1, desc_nabf_nabf_opt.desc);
 
     auto K_dist = init_local_mat<complex<double>>(desc_3x3, MAJOR::COL);
@@ -4498,6 +4508,8 @@ void rewrite_eps_abf_space(
 void diele_func::rewrite_eps_abf_space(matrix_m<std::complex<double>> &eps_block, const int ifreq,
                                        const matrix_m<std::complex<double>> &sqrtv_block,
                                        const matrix_m<std::complex<double>> &coul_eigen_block,
+                                       const matrix_m<std::complex<double>> &head_direction,
+                                       const ArrayDesc &desc_head_direction,
                                        const ArrayDesc &desc_nabf_nabf_opt,
                                        const std::size_t n_nonsingular_in,
                                        const double sqrt_coulomb_threshold,
@@ -4512,7 +4524,8 @@ void diele_func::rewrite_eps_abf_space(matrix_m<std::complex<double>> &eps_block
                         ? qw_leb[ileb] * std::pow(q_gamma[ileb], 2) / (2.0 * vol_gamma)
                         : qw_leb[ileb] * std::pow(q_gamma[ileb], 3) / (3.0 * vol_gamma);
     }
-    librpa_int::rewrite_eps_abf_space(eps_block, sqrtv_block, coul_eigen_block, head.at(ifreq),
+    librpa_int::rewrite_eps_abf_space(eps_block, sqrtv_block, coul_eigen_block,
+                                      head_direction, desc_head_direction, head.at(ifreq),
                                       wing_mu.at(ifreq), qx_leb, qy_leb, qz_leb, rho,
                                       desc_nabf_nabf_opt, blacs_h, n_nonsingular_in,
                                       sqrt_coulomb_threshold, use_cholesky, use_device);

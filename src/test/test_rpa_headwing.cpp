@@ -2450,6 +2450,13 @@ double run_abf_case(const BlacsCtxtHandler &blacs_h, int n, int block_size,
     fill_distributed_matrix(sqrtV_dist, desc, sqrtV);
     fill_distributed_matrix(U_dist, desc, U);
 
+    ArrayDesc desc_head_direction(blacs_h);
+    desc_head_direction.init(n, 1, block_size, block_size, 0, 0);
+    auto head_direction = init_local_mat<std::complex<double>>(desc_head_direction, MAJOR::COL);
+    librpa_int::ScalapackConnector::pgemr2d_f(
+        n, 1, U_dist.ptr(), 1, 1, desc.desc,
+        head_direction.ptr(), 1, 1, desc_head_direction.desc, blacs_h.ictxt);
+
     std::vector<double> qx(q_pts.size()), qy(q_pts.size()), qz(q_pts.size());
     for (std::size_t i = 0; i < q_pts.size(); ++i)
     {
@@ -2458,7 +2465,8 @@ double run_abf_case(const BlacsCtxtHandler &blacs_h, int n, int block_size,
         qz[i] = q_pts[i][2];
     }
 
-    librpa_int::rewrite_eps_abf_space(E_dist, sqrtV_dist, U_dist, head, wing_mu, qx, qy,
+    librpa_int::rewrite_eps_abf_space(E_dist, sqrtV_dist, U_dist,
+                                      head_direction, desc_head_direction, head, wing_mu, qx, qy,
                                       qz, q_rho, desc, blacs_h,
                                       static_cast<std::size_t>(n_nonsingular), 0.0,
                                       use_cholesky, false);
@@ -2710,11 +2718,11 @@ void test_abf_space_wing_rewrite_matches_coulomb_basis(const BlacsCtxtHandler &b
         }
     }
 
-    // Invariance: with E and sqrt(V) held fixed, changing Coulomb eigenvector
-    // columns other than x1 must not change the ABF-space result.
+    // Without filtering, only the explicit head direction matters; changing
+    // any Coulomb eigenvector column must leave the result unchanged.
     {
         auto U_mod = U.copy();
-        for (int col = 1; col < n; ++col)
+        for (int col = 0; col < n; ++col)
             for (int row = 0; row < n; ++row)
                 U_mod(row, col) *= std::complex<double>{0.0, 2.0};
 
@@ -2735,6 +2743,13 @@ void test_abf_space_wing_rewrite_matches_coulomb_basis(const BlacsCtxtHandler &b
         fill_distributed_matrix(U_orig_dist, desc, U);
         fill_distributed_matrix(U_mod_dist, desc, U_mod);
 
+        ArrayDesc desc_head_direction(blacs_h);
+        desc_head_direction.init(n, 1, 2, 1, 0, 0);
+        auto head_direction = init_local_mat<std::complex<double>>(desc_head_direction, MAJOR::COL);
+        librpa_int::ScalapackConnector::pgemr2d_f(
+            n, 1, U_orig_dist.ptr(), 1, 1, desc.desc,
+            head_direction.ptr(), 1, 1, desc_head_direction.desc, blacs_h.ictxt);
+
         std::vector<double> qx(6), qy(6), qz(6);
         for (std::size_t i = 0; i < q3d.size(); ++i)
         {
@@ -2743,10 +2758,12 @@ void test_abf_space_wing_rewrite_matches_coulomb_basis(const BlacsCtxtHandler &b
             qz[i] = q3d[i][2];
         }
 
-        librpa_int::rewrite_eps_abf_space(E1, sqrtV_dist, U_orig_dist, head, wing_mu, qx, qy,
+        librpa_int::rewrite_eps_abf_space(E1, sqrtV_dist, U_orig_dist,
+                                          head_direction, desc_head_direction, head, wing_mu, qx, qy,
                                           qz, rho3d, desc, blacs_h,
                                           static_cast<std::size_t>(n), 0.0, false, false);
-        librpa_int::rewrite_eps_abf_space(E2, sqrtV_dist, U_mod_dist, head, wing_mu, qx, qy,
+        librpa_int::rewrite_eps_abf_space(E2, sqrtV_dist, U_mod_dist,
+                                          head_direction, desc_head_direction, head, wing_mu, qx, qy,
                                           qz, rho3d, desc, blacs_h,
                                           static_cast<std::size_t>(n), 0.0, false, false);
 
