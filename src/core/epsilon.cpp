@@ -3093,6 +3093,16 @@ std::map<double, std::map<Vector3_Order<double>, Matz>> compute_Wc_freq_q_blacs(
                 desc_1x1.set_ddla_desc(blacs_h.ddla_handle);
 #endif
         }
+        ArrayDesc desc_head_direction(blacs_h);
+        matrix_m<std::complex<double>> head_direction;
+        if (gamma_full_headwing && !strict_2d_complete_wc_gamma)
+        {
+            desc_head_direction.init(n_abf, 1, nb_opt, nb_opt, 0, 0);
+            head_direction = init_local_mat<complex<double>>(desc_head_direction, MAJOR::COL);
+            ScalapackConnector::pgemr2d_f(
+                n_abf, 1, coul_eigen_block.ptr(), 1, 1, desc_nabf_nabf_opt.desc,
+                head_direction.ptr(), 1, 1, desc_head_direction.desc, blacs_h.ictxt);
+        }
         matrix_m<std::complex<double>> strict_2d_regular_coulomb_basis;
         if (strict_2d_complete_wc_gamma)
         {
@@ -3311,7 +3321,8 @@ std::map<double, std::map<Vector3_Order<double>, Matz>> compute_Wc_freq_q_blacs(
                 }
                 else
                     df_headwing->rewrite_eps_abf_space(
-                        chi0_block, ifreq, coul_block, coul_eigen_block, desc_nabf_nabf_opt,
+                        chi0_block, ifreq, coul_block, coul_eigen_block,
+                        head_direction, desc_head_direction, desc_nabf_nabf_opt,
                         n_nonsingular, sqrt_coulomb_threshold, use_cholesky_gw_wc,
                         use_gpu_replace_scalapack);
 
