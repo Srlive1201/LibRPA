@@ -575,12 +575,13 @@ void driver::task_g0w0()
     profiler.stop("read_vq_cut");
 
     const auto file_df = driver_params.input_dir + driver_params.fn_dielfunc;
+    const bool need_wing = opts.option_dielect_func == 3 || opts.option_dielect_func == 53;
     const bool compute_headwing =
         driver::get_bool(opts.replace_w_head) &&
-        (opts.option_dielect_func == 3 || opts.option_dielect_func == 4);
+        (need_wing || opts.option_dielect_func == 4);
     if (compute_headwing)
     {
-        read_headwing_input(driver_params.input_dir, opts.option_dielect_func == 3);
+        read_headwing_input(driver_params.input_dir, need_wing);
     }
     else if (driver::get_bool(opts.replace_w_head) && librpa_int::path_exists(file_df.c_str()))
     {

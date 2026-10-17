@@ -674,6 +674,12 @@ void librpa_build_g0w0_sigma(LibrpaHandler* h, const LibrpaOptions *p_opts)
     auto pds = librpa_int::api::get_dataset_instance(h);
     const auto &opts = *p_opts;
     const bool debug = global::should_output(LIBRPA_VERBOSE_DEBUG);
+    if (opts.replace_w_head == LIBRPA_SWITCH_ON && opts.option_dielect_func == 53 &&
+        (opts.use_2d_dielectric == LIBRPA_SWITCH_ON ||
+         opts.use_scalapack_gw_wc != LIBRPA_SWITCH_ON))
+        throw LIBRPA_RUNTIME_ERROR(
+            "option_dielect_func=53 requires use_2d_dielectric=false and use_scalapack_gw_wc=true");
+    const bool need_wing = opts.option_dielect_func == 3 || opts.option_dielect_func == 53;
     pds->is_band_calc_done = false;
     initialize_ds_global_ddla(*pds, opts);
 
@@ -741,7 +747,7 @@ void librpa_build_g0w0_sigma(LibrpaHandler* h, const LibrpaOptions *p_opts)
     // Redistribute 2D Coulomb matrices to atom-pair blocks if they are parsed
     pds->redistribute_coulomb_blacs2ap();
 
-    initialize_ds_headwing(*pds, opts, opts.option_dielect_func == 3);
+    initialize_ds_headwing(*pds, opts, need_wing);
 
     // Initialize response function object
     initialize_ds_chi0(*pds, opts);
@@ -801,7 +807,7 @@ void librpa_build_g0w0_sigma(LibrpaHandler* h, const LibrpaOptions *p_opts)
     std::vector<double> epsmac_LF_imagfreq_re;
     if (opts.replace_w_head == LIBRPA_SWITCH_ON && pds->epsmacs_imagfreq.size() > 0)
     {
-        if (opts.option_dielect_func == 3 || opts.option_dielect_func == 4)
+        if (need_wing || opts.option_dielect_func == 4)
         {
             if (pds->epsmacs_imagfreq.size() != chi0.tfg.get_freq_nodes().size())
                 throw LIBRPA_RUNTIME_ERROR("analytic head/wing dielectric data must match chi0 frequency grid");

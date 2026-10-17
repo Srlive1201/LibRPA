@@ -147,7 +147,7 @@ void invert_headwing_body_with_identity_solve(
     matrix_m<std::complex<double>> &body, ArrayDesc &desc_body,
     const BlacsCtxtHandler &blacs_h, bool use_cholesky, bool use_device);
 
-// ABF-space averaged inverse dielectric rewrite for Gamma option-3 GW Wc,
+// ABF-space averaged inverse dielectric rewrite for Gamma analytic head/wing GW Wc,
 // factored out of diele_func so it can be unit tested directly.
 // eps_block holds E = I - sqrt(V)*chi0*sqrt(V) (n_abf x n_abf, distributed) on
 // entry and is overwritten with the averaged inverse dielectric matrix.
@@ -443,7 +443,7 @@ public:
     void get_g_enclosing_gamma_2d();
     void calculate_q_gamma();
     void calculate_q_gamma_2d();
-    // ABF-space wing rewrite for Gamma option-3 GW Wc, including Coulomb filtering.
+    // ABF-space analytic head/wing rewrite for Gamma GW Wc, including Coulomb filtering.
     // eps_block holds E = I - sqrt(V)*chi0*sqrt(V) on entry and the averaged
     // inverse dielectric matrix on exit. Delegates to the free
     // rewrite_eps_abf_space helper using this object's head, wing_mu and

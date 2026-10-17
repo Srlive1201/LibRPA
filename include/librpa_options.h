@@ -467,6 +467,10 @@ typedef struct
      *   vector of the Gamma s-only Coulomb submatrix, zero-padded to all ABFs.
      *   Includes all s shells, preserves wings, and requires auxiliary l-shell
      *   metadata. Input data must match the current frequency grid.
+     * - 53: analytic head and wing correction along the Gamma s-submatrix
+     *   head direction, projected onto the retained Coulomb space and normalized.
+     *   Requires auxiliary l-shell metadata and the ScaLAPACK Wc path.
+     *   Supported for three-dimensional G0W0 and G0W0 band calculations only.
      *
      * @par Default
      * 0
