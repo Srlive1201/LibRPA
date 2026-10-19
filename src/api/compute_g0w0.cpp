@@ -680,6 +680,10 @@ void librpa_build_g0w0_sigma(LibrpaHandler* h, const LibrpaOptions *p_opts)
         throw LIBRPA_RUNTIME_ERROR(
             "option_dielect_func=53 requires use_2d_dielectric=false and use_scalapack_gw_wc=true");
     const bool need_wing = opts.option_dielect_func == 3 || opts.option_dielect_func == 53;
+    // Fail fast, before any expensive chi0/W work: exchange from a
+    // symmetry-reduced SCF k-grid with the EXX symmetry restore off is
+    // inexact. initialize_ds_exx re-runs the same check when exx is built.
+    resolve_use_symmetry_exx(opts, pds->pbc);
     pds->is_band_calc_done = false;
     initialize_ds_global_ddla(*pds, opts);
 

@@ -26,6 +26,13 @@ void initialize_ds_chi0(Dataset &ds, const LibrpaOptions &opts);
 // Initialize EXX component
 void initialize_ds_exx(Dataset &ds, const LibrpaOptions &opts);
 
+// Resolve whether the EXX stage uses the symmetry restore, rejecting
+// configuration errors: exchange from a symmetry-reduced SCF k-grid without
+// star restore is inexact (weighted-IBZ density matrix plus the
+// inversion-only Coulomb star expansion), so a reduced grid with
+// use_symmetry_exx off throws instead of computing wrong numbers silently.
+bool resolve_use_symmetry_exx(const LibrpaOptions &opts, const PeriodicBoundaryData &pbc);
+
 // Initialize G0W0 component
 void initialize_ds_g0w0(Dataset &ds, const LibrpaOptions &opts);
 
