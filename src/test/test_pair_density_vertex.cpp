@@ -14,7 +14,6 @@
 #include <cmath>
 #include <complex>
 #include <iostream>
-#include <limits>
 #include <map>
 #include <memory>
 #include <random>
@@ -512,45 +511,6 @@ void test_distributed_contraction_ownership(const MpiCommHandler &comm_h)
     const auto actual = contract_distributed_ordered_pair_vertex(D, distribute(-1), 1, comm_h,
                                                                  "distributed ownership test");
     assert_matrix_close(actual, expected);
-
-    if (comm_h.nprocs > 1)
-    {
-        auto duplicate = distribute(-1);
-        if (comm_h.myid == 1) duplicate[0][0] = W_full.at(0).at(0);
-    }
-}
-
-void test_fail_closed_inputs()
-{
-    auto pbc = make_pbc(1);
-    const auto qpoints = uniform_qx(1);
-    const AtomicBasis basis_wfc({1});
-    const AtomicBasis basis_abf({1});
-    ComplexMatrix T(1, 1);
-    T(0, 0) = 1.0;
-    const auto s = site("fail", 0, 1);
-
-    PairDensityCsMap wrong_shape;
-    wrong_shape[0][{0, {0, 0, 0}}] = make_cs(1, 1, 2, {1.0, 2.0});
-
-    PairDensityCsMap nan_cs;
-    nan_cs[0][{0, {0, 0, 0}}] = make_cs(1, 1, 1, {std::numeric_limits<double>::quiet_NaN()});
-
-    PairDensityCsMap valid;
-    valid[0][{0, {0, 0, 0}}] = make_cs(1, 1, 1, {1.0});
-
-    auto bad_pbc = pbc;
-    bad_pbc.Rlist[0] = {1, 0, 0};
-
-    ComplexMatrix T_nan = T;
-    T_nan(0, 0) = {std::numeric_limits<double>::infinity(), 0.0};
-
-    PairVertexAtomBlocks D;
-    D.emplace(0, ComplexMatrix(1, 1));
-    D.at(0)(0, 0) = 1.0;
-    PairInteractionAtomBlocks lower;
-    lower[1][0] = ComplexMatrix(1, 1);
-    lower[1][0](0, 0) = 1.0;
 }
 
 #ifdef LIBRPA_USE_LIBRI
@@ -603,14 +563,6 @@ void test_production_wrapper_mpi(const MpiCommHandler &comm_h)
     MPI_Allgather(local, 4, MPI_DOUBLE, all.data(), 4, MPI_DOUBLE, comm_h.comm);
     for (int rank = 0; rank != comm_h.nprocs; ++rank)
         for (int i = 0; i != 4; ++i) assert(close(all[4 * rank + i], local[i]));
-
-    if (comm_h.nprocs > 1)
-    {
-        Cs_LRI duplicated;
-        duplicated.use_libri = true;
-        duplicated.data_libri[0][{0, {0, 0, 0}}] = make_cs(1, 1, 1, {1.0});
-        duplicated.data_libri[1][{1, {0, 0, 0}}] = make_cs(1, 1, 1, {4.0});
-    }
 }
 #endif
 
@@ -1089,15 +1041,9 @@ void test_rectangular_intershell_ordered_pair_contraction(const MpiCommHandler &
     const auto U_reverse_distributed = contract_distributed_rectangular_ordered_pair_vertex(
         reverse_left, reverse_right, upper, n_o, n_ni, comm_h, "synthetic O-Ni");
     assert_matrix_close(U_reverse_distributed, U_o_ni);
-
-    if (comm_h.nprocs > 1)
-    {
-        PairInteractionAtomBlocks duplicated;
-        duplicated[0][1] = W;
-    }
 }
 
-void test_auxiliary_validation_and_pair_reversal()
+void test_auxiliary_pair_reversal_and_sparse_support()
 {
     const Vector3_Order<double> q{1.0 / 3.0, 0.0, 0.0}, minus_q{-1.0 / 3.0, 0.0, 0.0};
     const AtomicBasis basis(std::vector<std::size_t>{1, 1});
@@ -1114,57 +1060,6 @@ void test_auxiliary_validation_and_pair_reversal()
             for (int I = 0; I != 2; ++I)
                 assert(close(active.q_blocks.at(minus_q).at(I)(a * 2 + b, 0),
                              std::conj(active.q_blocks.at(q).at(I)(b * 2 + a, 0))));
-
-    auto bad_transform = [&](const ComplexMatrix &bad)
-    {
-        auto copy = transforms;
-        copy[q] = bad;  // Validate a required non-Gamma point, not just Gamma.
-    };
-    bad_transform(ComplexMatrix(1, 2));
-    bad_transform(ComplexMatrix(2, 1));
-    auto nonfinite = L;
-    nonfinite(0, 1) = {std::numeric_limits<double>::infinity(), 0.0};
-    bad_transform(nonfinite);
-    nonfinite(0, 1) = {0.0, std::numeric_limits<double>::quiet_NaN()};
-    bad_transform(nonfinite);
-
-    auto bad_parent = [&](const SitePairDensityVertex &bad) {
-
-    };
-    auto bad = parent;
-    bad.site_index = -1;
-    bad_parent(bad);
-    bad = parent;
-    bad.atom_index = 2;
-    bad_parent(bad);
-    bad = parent;
-    bad.label.clear();
-    bad_parent(bad);
-    bad = parent;
-    bad.orbital_labels.pop_back();
-    bad_parent(bad);
-    bad = parent;
-    bad.n_orbitals = 0;
-    bad_parent(bad);
-    bad = parent;
-    bad.n_orbitals = std::numeric_limits<int>::max();
-    bad.orbital_labels.clear();
-    bad_parent(bad);
-    bad = parent;
-    bad.q_blocks.at(q).at(0) = ComplexMatrix(3, 1);
-    bad_parent(bad);
-    bad = parent;
-    bad.q_blocks.at(q).at(0) = ComplexMatrix(4, 2);
-    bad_parent(bad);
-    bad = parent;
-    bad.q_blocks.at(q).at(0)(0, 0) = std::numeric_limits<double>::infinity();
-    bad_parent(bad);
-    bad = parent;
-    bad.q_blocks.at(q)[2] = ComplexMatrix(4, 1);
-    bad_parent(bad);
-    bad = parent;
-    bad.q_blocks.clear();
-    bad_parent(bad);
 
     // Sparse parent support is zero, not missing data. L can create a new atom's support.
     auto sparse = parent;
@@ -1204,12 +1099,11 @@ int main(int argc, char **argv)
     test_q_weighted_sum();
     test_fourier_contraction_matches_real_space_convolution();
     test_distributed_contraction_ownership(comm_h);
-    test_fail_closed_inputs();
     test_analytic_cross_end_complex_phase();
     test_auxiliary_square_covariance(comm_h);
     test_auxiliary_rectangular_projection(comm_h);
     test_rectangular_intershell_ordered_pair_contraction(comm_h);
-    test_auxiliary_validation_and_pair_reversal();
+    test_auxiliary_pair_reversal_and_sparse_support();
 #ifdef LIBRPA_USE_LIBRI
     test_production_wrapper_mpi(comm_h);
     test_s_aware_non_even_wrapper(comm_h);
