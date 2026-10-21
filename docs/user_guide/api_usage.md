@@ -398,3 +398,11 @@ result with `librpa_delete_optical_result`. A snapshot does not gather a global
 matrix from distributed ranks. The C++ Handler wrappers preserve the same
 collective and ownership rules. These optical convenience functions currently
 have C and C++ interfaces; no high-level Fortran wrapper is advertised.
+
+## Read-only state queries
+
+`librpa_get_meanfield_dimensions`, `librpa_get_meanfield_k`,
+`librpa_get_meanfield_fermi` and `librpa_get_kgrid` return the loaded state
+without changing it. C++ `Handler::get_meanfield_data` returns an owning
+spectrum/occupation snapshot; it does not collect wavefunctions. Energies
+use Hartree and occupations preserve their k weights.
