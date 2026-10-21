@@ -563,8 +563,8 @@ void read_headwing_input(const string &dir_path, bool need_wing,
         {
             std::cout << "Reading head/wing input from " << pyatb_dir << std::endl;
         }
-        kfrac_pyatb = read_headwing_k_path_info(pyatb_dir + "k_path_info", n_basis, n_states,
-                                                 n_spin);
+        kfrac_pyatb =
+            read_headwing_k_path_info(pyatb_dir + "k_path_info", n_basis, n_states, n_spin);
         if (use_spinor_wfc)
         {
             if (n_basis % 2 != 0)
@@ -572,8 +572,7 @@ void read_headwing_input(const string &dir_path, bool need_wing,
             n_basis /= 2;
         }
         const auto target_to_source_ik =
-            map_kpoints_by_coordinates(active_kfrac_list, kfrac_pyatb,
-                                       kSymmetryKpointMatchTol);
+            map_kpoints_by_coordinates(active_kfrac_list, kfrac_pyatb, kSymmetryKpointMatchTol);
         std::vector<int> source_to_target_ik(kfrac_pyatb.size(), -1);
         for (int ik_target = 0; ik_target != static_cast<int>(target_to_source_ik.size());
              ++ik_target)
@@ -581,13 +580,12 @@ void read_headwing_input(const string &dir_path, bool need_wing,
             source_to_target_ik.at(target_to_source_ik[ik_target]) = ik_target;
         }
 
-        read_scf_occ_eigenvalues(pyatb_dir + "band_out", mf, use_spinor_wfc,
-                                  target_to_source_ik, static_cast<int>(kfrac_pyatb.size()));
+        read_scf_occ_eigenvalues(pyatb_dir + "band_out", mf, use_spinor_wfc, target_to_source_ik,
+                                 static_cast<int>(kfrac_pyatb.size()));
         const bool direct_headwing_kblacs_2d =
             use_kpara_eigvec && driver::opts.parallel_routing == LIBRPA_ROUTING_LIBRI;
         std::vector<int> iks_headwing_eigvec_this;
-        if (use_kpara_eigvec && !direct_headwing_kblacs_2d &&
-            pds->scfk_blacs_ctxt.is_initialized())
+        if (use_kpara_eigvec && !direct_headwing_kblacs_2d && pds->scfk_blacs_ctxt.is_initialized())
         {
             if (pds->scfk_blacs_ctxt.n_kpoints() != mf.get_n_kpoints())
                 throw std::runtime_error(
@@ -599,19 +597,16 @@ void read_headwing_input(const string &dir_path, bool need_wing,
             }
         }
         const std::vector<int> *source_iks_headwing_eigvec_selected =
-            use_kpara_eigvec && pds->scfk_blacs_ctxt.is_initialized()
-                ? &iks_headwing_eigvec_this
-                : nullptr;
+            use_kpara_eigvec && pds->scfk_blacs_ctxt.is_initialized() ? &iks_headwing_eigvec_this
+                                                                      : nullptr;
         const int ret_eigenvec =
             direct_headwing_kblacs_2d
                 ? librpa::reader::read_eigenvector_kblacs_2d(
-                      pyatb_ctx, pyatb_dir, mf, use_spinor_wfc,
-                      pds->scfk_blacs_ctxt, pds->desc_wfc_kb,
-                      &source_to_target_ik, LegacyTextWfcOrder::SpinBasisBand)
+                      pyatb_ctx, pyatb_dir, mf, use_spinor_wfc, pds->scfk_blacs_ctxt,
+                      pds->desc_wfc_kb, &source_to_target_ik, LegacyTextWfcOrder::SpinBasisBand)
                 : librpa::reader::read_eigenvector(
-                      pyatb_ctx, pyatb_dir, mf, use_spinor_wfc,
-                      source_to_target_ik, source_iks_headwing_eigvec_selected,
-                      LegacyTextWfcOrder::SpinBasisBand);
+                      pyatb_ctx, pyatb_dir, mf, use_spinor_wfc, source_to_target_ik,
+                      source_iks_headwing_eigvec_selected, LegacyTextWfcOrder::SpinBasisBand);
         if (ret_eigenvec != 0)
         {
             throw std::runtime_error("Failed to read pyatb head/wing eigenvectors from " +
@@ -650,8 +645,8 @@ void read_headwing_input(const string &dir_path, bool need_wing,
         }
         else
         {
-            throw std::runtime_error(
-                "Unsupported head/wing input preset: " + driver::driver_params.input_preset);
+            throw std::runtime_error("Unsupported head/wing input preset: " +
+                                     driver::driver_params.input_preset);
         }
     }
 
