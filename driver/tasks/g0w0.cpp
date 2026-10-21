@@ -11,8 +11,6 @@
 #include <string>
 #include <vector>
 
-#include "../../src/api/instance_manager.h"
-#include "../../src/core/symmetry_context.h"
 #include "../../src/io/fs.h"
 #include "../../src/io/global_io.h"
 #include "../../src/io/stl_io_helper.h"
@@ -22,7 +20,7 @@
 #include "../../src/utils/constants.h"
 #include "../../src/utils/profiler.h"
 #include "../driver.h"
-#include "../qsgw/ao_operator_io.h"
+#include "../reader/localized_operator_io.h"
 #include "../read_data.h"
 #include "../reader_2d_coulomb_head.h"
 #include "../task.h"
@@ -76,12 +74,12 @@ static void prepare_g0w0_native_velocity(bool prepare_optical = true)
                                         : params.g0w0_hr_unit == "eV" ? 1.0 / HA2EV
                                                                       : 1.0;
             const double length_scale = params.g0w0_rr_unit == "Angstrom" ? ANG2BOHR : 1.0;
-            operators = driver::qsgw::read_headwing_ao_operators(
+            operators = librpa::reader::read_headwing_ao_operators(
                 input_path(params.g0w0_fn_sr), input_path(params.g0w0_fn_rr), length_scale);
-            hamiltonians.push_back(driver::qsgw::read_headwing_hamiltonian_csr(
+            hamiltonians.push_back(librpa::reader::read_headwing_hamiltonian_csr(
                 input_path(params.g0w0_fn_hr), energy_scale));
             if (!params.g0w0_fn_hr_spin1.empty())
-                hamiltonians.push_back(driver::qsgw::read_headwing_hamiltonian_csr(
+                hamiltonians.push_back(librpa::reader::read_headwing_hamiltonian_csr(
                     input_path(params.g0w0_fn_hr_spin1), energy_scale));
             storage.reserve(4 + hamiltonians.size());
             storage.emplace_back(operators.overlap);
@@ -117,17 +115,17 @@ void driver::prepare_crpa_optical_velocity()
         prepare_g0w0_native_velocity(false);
         return;
     }
-    const auto dataset = librpa_int::api::get_dataset_instance(h);
+    const auto meanfield = meanfield_for_output(h.get_meanfield_data());
     const auto &name = driver_params.prefix_velocity;
     const auto path = librpa_int::is_absolute_path(name)
                           ? name
                           : librpa_int::join_path(driver_params.input_dir, name);
     collective_all_stage(
-        dataset->comm_h, "cRPA optical velocity input",
+        librpa_int::global::mpi_comm_global_h, "cRPA optical velocity input",
         [&]
         {
             std::vector<std::vector<std::vector<librpa_int::ComplexMatrix>>> velocity;
-            read_velocity(path, dataset->mf, velocity);
+            read_velocity(path, meanfield, velocity);
             std::vector<std::complex<double>> packed;
             for (const auto &spin : velocity)
                 for (const auto &k : spin)
@@ -135,8 +133,8 @@ void driver::prepare_crpa_optical_velocity()
                         for (int row = 0; row < axis.nr; ++row)
                             for (int column = 0; column < axis.nc; ++column)
                                 packed.push_back(axis(row, column));
-            h.set_velocity_matrix_packed(dataset->mf.get_n_spins(), dataset->mf.get_n_kpoints(),
-                                         dataset->mf.get_n_states(), packed.data());
+            h.set_velocity_matrix_packed(meanfield.get_n_spins(), meanfield.get_n_kpoints(),
+                                         meanfield.get_n_states(), packed.data());
         });
 }
 
@@ -792,7 +790,8 @@ void driver::task_g0w0()
         h.build_g0w0_sigma(opts);
     }
 
-    auto pds = librpa_int::api::get_dataset_instance(h);
+    const auto scf_output = h.get_meanfield_data();
+    const auto mf = meanfield_for_output(scf_output);
     const std::string band_kpath_file =
         driver_params.input_dir + driver_params.fn_band_kpath_info;
     const bool has_band_kpath = librpa_int::path_exists(band_kpath_file.c_str());
@@ -847,14 +846,14 @@ void driver::task_g0w0()
             {
                 write_spectral_function_binary_kdistributed(
                     opts.output_dir, "spectral_function_kgrid.dat", omegas_sf, sf,
-                    pds->mf, vxc_sf, vexx_sf, iks_eigvec_this, n_spins,
+                    mf, vxc_sf, vexx_sf, iks_eigvec_this, n_spins,
                     n_kpoints, sf_state_low, sf_state_high);
             }
             else if (myid_global == 0)
             {
                 write_spectral_function_binary(
                     opts.output_dir, "spectral_function_kgrid.dat", omegas_sf, sf,
-                    pds->mf, vxc_sf, vexx_sf, iks_eigvec_this, n_spins,
+                    mf, vxc_sf, vexx_sf, iks_eigvec_this, n_spins,
                     sf_state_low, sf_state_high);
             }
         }
@@ -899,18 +898,14 @@ void driver::task_g0w0()
     }
 
     const std::string banner(124, '-');
-    const auto &kfrac_list = pds->pbc.kfrac_list;
-    const auto &kpoint_weights = pds->pbc.weight_k;
-    const auto &mf = pds->mf;
-    const auto &symmetry_context = pds->symmetry_context;
-    const auto& full_k_members = symmetry_context.full_kpoint_members;
-    const bool output_full_kgrid_from_symmetry =
-        driver::get_bool(driver::opts.use_symmetry_gw)
-        && symmetry_context.available
-        && full_k_members.size() > kfrac_list.size();
-    const int n_kpoints_output = output_full_kgrid_from_symmetry
-        ? as_int(full_k_members.size())
-        : n_kpoints;
+    std::vector<Vector3_Order<double>> kfrac_list;
+    for (int k = 0; k < scf_output.n_kpoints; ++k)
+        kfrac_list.emplace_back(scf_output.fractional_k[3*k], scf_output.fractional_k[3*k+1],
+                                scf_output.fractional_k[3*k+2]);
+    const auto &kpoint_weights = scf_output.k_weights;
+    const auto output_grid = h.get_g0w0_output_kgrid(driver::get_bool(opts.use_symmetry_gw));
+    const bool output_full_kgrid_from_symmetry = output_grid.source_kpoints.size() > kfrac_list.size();
+    const int n_kpoints_output = as_int(output_grid.source_kpoints.size());
     if (flag_read_vxc == 0)
     {
         if (myid_global == 0)
@@ -940,10 +935,12 @@ void driver::task_g0w0()
                 for (int i_kpoint = 0; i_kpoint < n_kpoints_output; i_kpoint++)
                 {
                     const int i_kpoint_ibz = output_full_kgrid_from_symmetry
-                        ? full_k_members[as_size(i_kpoint)].ik_ibz
+                        ? output_grid.source_kpoints.at(as_size(i_kpoint))
                         : i_kpoint;
                     const auto &k = output_full_kgrid_from_symmetry
-                        ? full_k_members[as_size(i_kpoint)].k_bz
+                        ? Vector3_Order<double>(output_grid.fractional_k[3*i_kpoint],
+                                                output_grid.fractional_k[3*i_kpoint+1],
+                                                output_grid.fractional_k[3*i_kpoint+2])
                         : kfrac_list[i_kpoint_ibz];
                     lib_printf(result_output_level,
                                "spin %2d, k-point %4d: (%.5f, %.5f, %.5f) \n",
@@ -979,13 +976,12 @@ void driver::task_g0w0()
             std::vector<int> output_to_input_kpoint;
             if (output_full_kgrid_from_symmetry)
             {
-                kfrac_energy_qp.reserve(full_k_members.size());
-                output_to_input_kpoint.reserve(full_k_members.size());
-                for (const auto &member : full_k_members)
-                {
-                    kfrac_energy_qp.push_back(member.k_bz);
-                    output_to_input_kpoint.push_back(member.ik_ibz);
-                }
+                kfrac_energy_qp.reserve(output_grid.source_kpoints.size());
+                output_to_input_kpoint = output_grid.source_kpoints;
+                for (int k = 0; k < n_kpoints_output; ++k)
+                    kfrac_energy_qp.emplace_back(output_grid.fractional_k[3*k],
+                                                  output_grid.fractional_k[3*k+1],
+                                                  output_grid.fractional_k[3*k+2]);
             }
             lib_printf(result_output_level, "Band analysis on the k-grid\n");
             print_band_analysis(
@@ -1044,6 +1040,7 @@ void driver::task_g0w0()
     mpi_comm_global_h.barrier();
     profiler.start("g0w0_load_band_mf", "Read eigen solutions at band kpoints");
     read_band_meanfield_data(driver_params.input_dir);
+    const auto mf_band = meanfield_for_output(h.get_meanfield_data(true));
     const int nkpts_band_this = iks_band_eigvec_this.size();
     ofs_myid << "Number of band k-points on this process: " << nkpts_band_this << endl;
     ofs_myid << "iks_band_eigvec_this: " << iks_band_eigvec_this << endl;
@@ -1106,14 +1103,14 @@ void driver::task_g0w0()
             {
                 write_spectral_function_binary_kdistributed(
                     opts.output_dir, "spectral_function_band.dat", omegas_sf, sf,
-                    pds->mf_band, vxc_sf, vexx_sf, iks_this, n_spins,
+                    mf_band, vxc_sf, vexx_sf, iks_this, n_spins,
                     n_kpoints_band, sf_state_low, sf_state_high);
             }
             else if (myid_global == 0)
             {
                 write_spectral_function_binary(
                     opts.output_dir, "spectral_function_band.dat", omegas_sf, sf,
-                    pds->mf_band, vxc_sf, vexx_sf, iks_this, n_spins,
+                    mf_band, vxc_sf, vexx_sf, iks_this, n_spins,
                     sf_state_low, sf_state_high);
             }
         }
@@ -1162,7 +1159,6 @@ void driver::task_g0w0()
     }
 
     profiler.start("output_g0w0_band");
-    const auto &mf_band = pds->mf_band;
     {
         const int n_kpts = n_kpoints_band;
         if (myid_global == 0)

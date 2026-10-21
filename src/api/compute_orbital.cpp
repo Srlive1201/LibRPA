@@ -1,16 +1,31 @@
 #include <algorithm>
 #include <memory>
+#include <optional>
 #include <string>
 
 #include "../core/orbital_weights.h"
 #include "../utils/error.h"
 #include "instance_manager.h"
 #include "librpa_orbital.h"
+#include "orbital_helper.h"
 
 struct LibrpaOrbitalResult
 {
-    librpa_int::OrbitalWeightResult values;
+    std::optional<librpa_int::OrbitalWeightResult> owned;
+    const librpa_int::OrbitalWeightResult* borrowed = nullptr;
+
+    const librpa_int::OrbitalWeightResult& values() const { return owned ? *owned : *borrowed; }
 };
+
+LibrpaOrbitalResult* librpa_int::api::own_orbital_result(OrbitalWeightResult values)
+{
+    return new LibrpaOrbitalResult{std::move(values), nullptr};
+}
+
+LibrpaOrbitalResult* librpa_int::api::borrow_orbital_result(const OrbitalWeightResult& values)
+{
+    return new LibrpaOrbitalResult{std::nullopt, &values};
+}
 
 LibrpaOrbitalResult* librpa_analyze_orbitals(const LibrpaHandler* h, int nk, int nao,
                                              const double* packed, double tolerance)
@@ -38,8 +53,8 @@ LibrpaOrbitalResult* librpa_analyze_orbitals(const LibrpaHandler* h, int nk, int
         std::vector<int> types(ds->basis_wfc.n_atoms);
         for (std::size_t atom = 0; atom < types.size(); ++atom)
             types[atom] = ds->atoms.types.at(atom);
-        result->values = analyze_orbital_weights(ds->basis_wfc, ds->basis_convention, types, ds->mf,
-                                                 overlap, ds->pbc.weight_k, tolerance);
+        result->owned = analyze_orbital_weights(ds->basis_wfc, ds->basis_convention, types, ds->mf,
+                                                overlap, ds->pbc.weight_k, tolerance);
     }
     catch (const std::exception& failure)
     {
@@ -59,7 +74,7 @@ void librpa_delete_orbital_result(LibrpaOrbitalResult* result) { delete result; 
 void librpa_orbital_info(const LibrpaOrbitalResult* result, LibrpaOrbitalInfo* info)
 {
     if (!result || !info) throw LIBRPA_INVALID_ARGUMENT("null orbital result/info");
-    const auto& r = result->values;
+    const auto& r = result->values();
     *info = {r.n_spins,
              r.n_spinor,
              r.n_kpoints,
@@ -77,7 +92,7 @@ void librpa_orbital_info(const LibrpaOrbitalResult* result, LibrpaOrbitalInfo* i
 void librpa_orbital_group(const LibrpaOrbitalResult* result, int group, LibrpaOrbitalGroup* view)
 {
     if (!result || !view || group < 0) throw LIBRPA_INVALID_ARGUMENT("invalid orbital group query");
-    const auto& g = result->values.groups.at(group);
+    const auto& g = result->values().groups.at(group);
     *view = {g.atom, g.type, g.l, g.channel.c_str()};
 }
 
@@ -85,7 +100,7 @@ void librpa_orbital_state(const LibrpaOrbitalResult* result, int spin, int k, in
                           LibrpaOrbitalState* view)
 {
     if (!result || !view) throw LIBRPA_INVALID_ARGUMENT("null orbital result/state");
-    const auto& r = result->values;
+    const auto& r = result->values();
     if (spin < 0 || spin >= r.n_spins || k < 0 || k >= r.n_kpoints || band < 0 || band >= r.n_bands)
         throw LIBRPA_INVALID_ARGUMENT("orbital state index out of range");
     const auto& s = r.states[(static_cast<std::size_t>(spin) * r.n_kpoints + k) * r.n_bands + band];
@@ -99,7 +114,7 @@ void librpa_orbital_pdos(const LibrpaOrbitalResult* result, int count, const dou
     if (!result || count <= 0 || !grid || !mulliken || !lowdin)
         throw LIBRPA_INVALID_ARGUMENT("invalid orbital PDOS buffers");
     std::vector<double> m, l;
-    librpa_int::gaussian_orbital_pdos(result->values, {grid, grid + count}, sigma, m, l);
+    librpa_int::gaussian_orbital_pdos(result->values(), {grid, grid + count}, sigma, m, l);
     std::copy(m.begin(), m.end(), mulliken);
     std::copy(l.begin(), l.end(), lowdin);
 }

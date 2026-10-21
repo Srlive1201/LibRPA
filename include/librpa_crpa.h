@@ -2,6 +2,8 @@
 
 #include "librpa_handler.h"
 #include "librpa_options.h"
+#include "librpa_orbital.h"
+#include "librpa_qsgw.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -160,6 +162,13 @@ extern "C"
     void librpa_crpa_tensor_to_fermion(int n_orbitals, const double* density_ri,
                                        double* fermion_ri);
 
+    /** Ordered-column averages of U_mm,mm, U_mm,nn and U_mn,nm (m!=n).
+     * Input is [M][M][M][M][2]; output is three complex pairs in the same energy unit.
+     * Off-diagonal means are zero for M=1. Spinor columns use the same ordered means,
+     * without a scalar-shell Hund interpretation or an added degeneracy factor. */
+    void librpa_crpa_tensor_averages(int n_orbitals, const double* tensor_ri,
+                                     double* averages_ha_ri);
+
     typedef struct LibrpaCrpaContinuedResult LibrpaCrpaContinuedResult;
     typedef struct
     {
@@ -246,6 +255,32 @@ extern "C"
     LibrpaCrpaResult* librpa_compute_crpa_u_window(const LibrpaHandler* h,
                                                    const LibrpaOptions* options,
                                                    const LibrpaCrpaInput* input);
+
+    /** Noncollective save of this result's parent frame in the native tracking
+     * checkpoint format. The caller selects the writing rank. Energy context
+     * may be empty for a state export, or include every spin/k/band pole. */
+    void librpa_write_crpa_tracking_checkpoint(const LibrpaCrpaResult* result, const char* filename,
+                                               int iteration, const char* definition,
+                                               int n_energies, const double* energies_ha);
+
+    typedef struct
+    {
+        int interval, track_orbitals, output_analysis;
+        const char* tracking_definition;
+    } LibrpaQsgwCrpaControls;
+
+    /** Borrowed numerical output on every rank, valid only during the call.
+     * The sink may query results and write files, but must not delete these
+     * views or recursively use the handler/task. Return zero on success. */
+    typedef int (*LibrpaCrpaOutputSink)(const LibrpaCrpaResult*, const LibrpaOrbitalResult*,
+                                        int state_index, int gw_update, int final_state,
+                                        void* user_data);
+    void librpa_init_qsgw_crpa_controls(LibrpaQsgwCrpaControls* controls);
+    /** Attach after librpa_prepare_qsgw_task, before run. Input and controls
+     * are copied; the sink and user_data must remain valid until run returns. */
+    void librpa_set_qsgw_crpa(LibrpaQsgwTask* task, const LibrpaCrpaInput* input,
+                              const LibrpaQsgwCrpaControls* controls, LibrpaCrpaOutputSink sink,
+                              void* user_data);
 
     void librpa_delete_crpa_result(LibrpaCrpaResult* result);
     int librpa_crpa_result_size(const LibrpaCrpaResult* result);

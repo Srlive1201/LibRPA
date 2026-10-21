@@ -22,6 +22,7 @@
 #include "librpa_enums.h"
 #include "librpa_handler.h"
 #include "librpa_optical.h"
+#include "librpa_qsgw.h"
 #include "librpa_options.h"
 #include "librpa_orbital.h"
 
@@ -31,6 +32,7 @@
 namespace librpa
 {
 
+using QsgwTask = std::unique_ptr<LibrpaQsgwTask, decltype(&librpa_delete_qsgw_task)>;
 using OpticalResult = std::unique_ptr<LibrpaOpticalResult, decltype(&librpa_delete_optical_result)>;
 using OrbitalResult = std::unique_ptr<LibrpaOrbitalResult, decltype(&librpa_delete_orbital_result)>;
 using CrpaResult = std::unique_ptr<LibrpaCrpaResult, decltype(&librpa_delete_crpa_result)>;
@@ -42,6 +44,21 @@ CrpaContinuedResult continue_crpa(const LibrpaCrpaResult *result,
                                   const std::vector<std::complex<double>> &queries,
                                   int n_parameters = -1,
                                   double tolerance_ha = 0.0003674932217565499);
+
+/** Owning read-only spectrum snapshot. Flat blocks are [spin][k][state].
+ * Energies and Fermi level use Hartree; occupations retain their k weights.
+ */
+struct MeanfieldData
+{
+    int n_spins = 0, n_kpoints = 0, n_states = 0, n_aos = 0, n_spinor = 0;
+    double fermi_ha = 0.0;
+    std::vector<double> energies_ha, weighted_occupations, fractional_k, k_weights;
+};
+struct OutputKGrid
+{
+    std::vector<double> fractional_k;
+    std::vector<int> source_kpoints;
+};
 
 /* Enums */
 /**
@@ -253,6 +270,14 @@ public:
      * @note Rely on free() to explicitly release resources.
      */
     ~Handler();
+
+    /** Read-only owning snapshots through the C API. */
+    MeanfieldData get_meanfield_data(bool band_path = false) const;
+    OutputKGrid get_g0w0_output_kgrid(bool use_symmetry) const;
+
+    void prepare_supplied_velocity(const Options& opts, const LibrpaSuppliedVelocityInput& input,
+                                    bool need_wing);
+    QsgwTask create_qsgw_task(const Options& opts, const LibrpaQsgwControls& controls) const;
 
     /* Input (set) functions */
 

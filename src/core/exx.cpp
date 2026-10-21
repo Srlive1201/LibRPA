@@ -14,10 +14,10 @@
 
 #include "../io/fs.h"
 #include "../io/global_io.h"
-#include "../io/output_matrix.h"
+#include "matrix_output.h"
 #include "../io/stl_io_helper.h"
 #include "../math/lapack_connector.h"
-#include "../math/utils_matrix_m_mpi.h"
+#include "utils_matrix_m_mpi.h"
 #include "../math/utils_matrix_mpi.h"
 #include "../math/vector3_order.h"
 #include "../mpi/global_mpi.h"
@@ -591,7 +591,7 @@ void Exx::write_rspace_matrices_binary() const
                                     {{as_atom(atom), as_atom(JR.first)},
                                      {{{R[0], R[1], R[2]}, block * (-1.0)}}}};
                                 if (!librpa_int::write_rspace_matrices_binary(
-                                        output_blocks, atbasis_wfc, pbc, fn.str()))
+                                        make_rspace_matrix_blocks(output_blocks, atbasis_wfc, pbc), fn.str()))
                                     write_ok = 0;
                             }
                         MPI_Allreduce(MPI_IN_PLACE, &write_ok, 1, MPI_INT, MPI_MIN, comm_h.comm);

@@ -7,8 +7,8 @@
 #include <stdexcept>
 #include <valarray>
 
-#include "../api/dataset.h"
-#include "../api/dataset_helper.h"
+#include "../core/dataset.h"
+#include "../core/dataset_helper.h"
 #include "../api/instance_manager.h"
 #include "../core/crpa.h"
 #include "../core/crpa_window_input.h"

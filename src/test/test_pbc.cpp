@@ -6,7 +6,7 @@
 #include <cstddef>
 #include <stdexcept>
 
-#include "../api/compute_helper.h"
+#include "../core/task_helpers.h"
 #include "../core/pbc.h"
 #include "../utils/constants.h"
 

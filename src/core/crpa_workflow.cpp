@@ -5,7 +5,7 @@
 #include <memory>
 
 #include "../io/global_io.h"
-#include "../math/utils_matrix_m_mpi.h"
+#include "utils_matrix_m_mpi.h"
 #include "../utils/error.h"
 #include "../utils/profiler.h"
 #include "epsilon.h"

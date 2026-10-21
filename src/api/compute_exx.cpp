@@ -9,8 +9,8 @@
 #include "../utils/error.h"
 #include "../utils/profiler.h"
 #include "../utils/utils_mem.h"
-#include "compute_helper.h"
-#include "dataset_helper.h"
+#include "../core/task_helpers.h"
+#include "../core/dataset_helper.h"
 #include "instance_manager.h"
 
 #include <algorithm>
@@ -46,7 +46,7 @@ void collect_exx_diag_to_callers(const std::map<int, std::map<int, std::map<int,
                                  double *vexx)
 {
     const auto iks_collect =
-        librpa_int::api::collect_requested_iks(comm_h, n_kpts_this, iks_this, n_kpoints);
+        librpa_int::collect_requested_iks(comm_h, n_kpts_this, iks_this, n_kpoints);
     if (iks_collect.empty()) return;
 
     const auto ik_pos = make_ik_pos_map(iks_collect);
@@ -270,7 +270,7 @@ void librpa_get_exx_pot_band_k(LibrpaHandler *h, const LibrpaOptions *p_opts, co
             pds->p_g0w0->reset_kspace();
         }
         pexx->reset_kspace();
-        const auto bvk_remap = librpa_int::api::build_band_bvk_remap(
+        const auto bvk_remap = librpa_int::build_band_bvk_remap(
             pds->atoms, pds->pbc, opts.option_bvk_remap);
         if (opts.use_kpara_scf_eigvec == LIBRPA_SWITCH_ON)
         {

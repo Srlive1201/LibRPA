@@ -1,26 +1,12 @@
 #pragma once
 
-#include "../core/crpa_workflow.h"
-#include "dataset.h"
+#include "../core/crpa_task.h"
 #include "librpa_crpa.h"
 
-namespace librpa_int
+namespace librpa_int::api
 {
-namespace api
-{
-enum class CrpaApiMode
-{
-    Standalone,
-    SharedGw,
-    ResponseOnly
-};
-CrpaPreparedModel prepare_crpa_api_model(Dataset& dataset, const LibrpaOptions& options,
-                                         const LibrpaCrpaInput* input,
-                                         CrpaApiMode mode = CrpaApiMode::Standalone);
-
-//! Consume the prepared model while preserving the caller's resident response.
-LibrpaCrpaResult* evaluate_crpa_api_from_response(Dataset& dataset, const LibrpaOptions& options,
-                                                  CrpaPreparedModel& model,
-                                                  const Chi0QMap& full_response);
-}  // namespace api
-}  // namespace librpa_int
+//! Translate caller-owned C buffers; numerical validation belongs to the task.
+CrpaTaskInput unpack_crpa_input(Dataset& dataset, const LibrpaCrpaInput* input);
+//! Own the numerical snapshot at the public result-lifetime boundary.
+LibrpaCrpaResult* own_crpa_result(CrpaTaskResult result);
+}
