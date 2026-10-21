@@ -1,22 +1,28 @@
 #pragma once
 
 #include <string>
+#include <vector>
 
-#include "../core/atomic_basis.h"
-#include "../core/pbc.h"
 #include "../math/matrix_m.h"
 #include "../mpi/base_blacs.h"
 
 namespace librpa_int
 {
 
+struct RSpaceMatrixBlock
+{
+    std::size_t translation_index;
+    std::size_t row_index;
+    std::size_t column_index;
+    Matz values;
+};
+
 //! Export one set of complete real-space AO blocks, without threshold filtering.
 //! Native binary layout: size_t block count, then for each block size_t[5]
 //! (R index in pbc.Rlist, I, J, rows, columns) and row-major complex doubles.
 //! This is the existing Sigma_c(R,iw) checkpoint format. Returns false on I/O
 //! failure; callers handle MPI error propagation. Blocks must be row-major.
-bool write_rspace_matrices_binary(const ap_p_map<std::map<Vector3_Order<int>, Matz>> &blocks,
-                                  const AtomicBasis &basis, const PeriodicBoundaryData &pbc,
+bool write_rspace_matrices_binary(const std::vector<RSpaceMatrixBlock> &blocks,
                                   const std::string &fn);
 
 //! Collectively export a square complex matrix, or the same half-open index

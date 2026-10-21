@@ -1,7 +1,7 @@
 #include "read_data.h"
 #include "reader_context.h"
 #include "../../src/api/instance_manager.h"
-#include "../../src/api/dataset_helper.h"
+#include "../../src/core/dataset_helper.h"
 #include <librpa_enums.h>
 
 #include "reader_basis.h"

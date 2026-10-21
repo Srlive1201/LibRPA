@@ -1,4 +1,4 @@
-#include "compute_helper.h"
+#include "task_helpers.h"
 
 #include <librpa_enums.h>
 
@@ -10,7 +10,7 @@
 #include "../io/stl_io_helper.h"
 #include "../utils/error.h"
 
-namespace librpa_int::api
+namespace librpa_int
 {
 
 // Build a deduplicated list of requested k-points across ranks. This lets

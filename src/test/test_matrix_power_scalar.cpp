@@ -2,8 +2,8 @@
 #include <iostream>
 #include <stdexcept>
 
-#include "../api/dataset.h"
-#include "../math/utils_matrix_m_mpi.h"
+#include "../core/dataset.h"
+#include "../core/utils_matrix_m_mpi.h"
 #include "../mpi/global_mpi.h"
 
 using namespace librpa_int;

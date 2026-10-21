@@ -35,32 +35,24 @@ static bool write_matrix_binary(const Matz &mat, const std::string &fn)
     return ofs.good();
 }
 
-bool write_rspace_matrices_binary(const ap_p_map<std::map<Vector3_Order<int>, Matz>> &blocks,
-                                  const AtomicBasis &basis, const PeriodicBoundaryData &pbc,
+bool write_rspace_matrices_binary(const std::vector<RSpaceMatrixBlock> &blocks,
                                   const std::string &fn)
 {
     std::ofstream ofs(fn, std::ios::binary);
     if (!ofs) return false;
 
-    std::size_t n_blocks = 0;
-    for (const auto &[IJ, R_blocks] : blocks)
-        n_blocks += R_blocks.size();
+    const std::size_t n_blocks = blocks.size();
     ofs.write(reinterpret_cast<const char *>(&n_blocks), sizeof(n_blocks));
-    for (const auto &[IJ, R_blocks] : blocks)
+    for (const auto &block : blocks)
     {
-        const auto n_I = basis.get_atom_nb(IJ.first);
-        const auto n_J = basis.get_atom_nb(IJ.second);
-        for (const auto &[R, mat] : R_blocks)
-        {
-            assert(mat.nr() == as_int(n_I) && mat.nc() == as_int(n_J));
-            assert(mat.major() == MAJOR::ROW);
-            const std::size_t dims[5] = {as_size(pbc.get_R_index(R)), IJ.first, IJ.second,
-                                         n_I, n_J};
-            ofs.write(reinterpret_cast<const char *>(dims), sizeof(dims));
-            ofs.write(reinterpret_cast<const char *>(mat.ptr()),
-                      static_cast<std::streamsize>(mat.size() * sizeof(cplxdb)));
-            if (!ofs) return false;
-        }
+        const auto &mat = block.values;
+        assert(mat.major() == MAJOR::ROW);
+        const std::size_t dims[5] = {block.translation_index, block.row_index, block.column_index,
+                                     as_size(mat.nr()), as_size(mat.nc())};
+        ofs.write(reinterpret_cast<const char *>(dims), sizeof(dims));
+        ofs.write(reinterpret_cast<const char *>(mat.ptr()),
+                  static_cast<std::streamsize>(mat.size() * sizeof(cplxdb)));
+        if (!ofs) return false;
     }
     ofs.close();
     return ofs.good();

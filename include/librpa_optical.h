@@ -55,6 +55,63 @@ extern "C"
                                         const LibrpaNativeVelocityInput *root_input,
                                         int prepare_optical);
 
+    /** One rank-local wavefunction block, with band rows and spatial AO columns.
+     * Values are row-major interleaved complex numbers. For k-BLACS input the
+     * rows and columns are the local dimensions of the handler's descriptor.
+     */
+    typedef struct
+    {
+        int spin, spinor, kpoint;
+        int rows, columns;
+        const double *values_ri;
+    } LibrpaOpticalWavefunctionBlock;
+
+    /** Borrowed numerical mean field for an optical calculation. Energies and
+     * Fermi level are in Hartree. Spectral arrays have [spin][k][band] layout;
+     * occupation_weights use the MeanField convention, occupation/n_kpoints.
+     * They may be NULL together only for the optional full-source WFC cache.
+     * Wavefunction blocks remain rank-local and use zero-based indices.
+     */
+    typedef struct
+    {
+        int n_spins, n_kpoints, n_states, n_aos, n_spinor;
+        double fermi_energy_ha;
+        const double *eigenvalues_ha;
+        const double *occupation_weights;
+        int n_wavefunction_blocks;
+        const LibrpaOpticalWavefunctionBlock *wavefunction_blocks;
+    } LibrpaOpticalMeanFieldInput;
+
+    /** Supplied velocity and optional optical eigenframe. All pointers are
+     * borrowed until the collective call returns and are supplied on each rank.
+     * Velocity layout is [spin][k][axis][band][band], row-major interleaved
+     * complex values in Hartree*Bohr. A NULL meanfield uses the handler SCF data.
+     * Optional full-source inputs are paired WFC/velocity data with fractional
+     * coordinates [k][3]; the core derives their k-star member mapping.
+     * A zero frequency count selects the ordinary numerical frequency grid.
+     */
+    typedef struct
+    {
+        int n_spins, n_kpoints, n_states;
+        const double *velocity_ri;
+        const LibrpaOpticalMeanFieldInput *meanfield;
+        int coefficients_are_kblacs_2d;
+        const LibrpaOpticalMeanFieldInput *full_source_meanfield;
+        const double *full_source_velocity_ri;
+        const double *full_source_kfrac;
+        int n_frequencies;
+        const double *frequencies_ha;
+        double inplane_area_bohr2;
+        double auxiliary_monopole_norm_squared;
+    } LibrpaSuppliedVelocityInput;
+
+    /** Collective analytic head/wing preparation from numerical velocity data.
+     * Options use numerical values 3/4/53 and require replace_w_head enabled.
+     * The loaded SCF eigenvalues, occupations and wavefunctions are retained.
+     */
+    void librpa_prepare_supplied_velocity(LibrpaHandler *h, const LibrpaOptions *options,
+                                          const LibrpaSuppliedVelocityInput *input, int need_wing);
+
     typedef struct LibrpaOpticalResult LibrpaOpticalResult;
 
     /** Rank-local owning snapshot for retrieving numerical optical outputs.

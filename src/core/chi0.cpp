@@ -22,7 +22,7 @@
 #include "../math/matrix.h"
 #include "../math/scalapack_connector.h"
 #include "../math/utils_matrix_mpi.h"
-#include "../math/utils_matrix_m_mpi.h"
+#include "utils_matrix_m_mpi.h"
 #include "../mpi/base_blacs.h"
 #include "../mpi/two_level_parallel_context.h"
 #include "../utils/base_utility.h"
