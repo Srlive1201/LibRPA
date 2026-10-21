@@ -8,6 +8,7 @@
 #include <fstream>
 #include <iomanip>
 #include <map>
+#include <numeric>
 #include <optional>
 #include <sstream>
 #include <stdexcept>
@@ -1038,6 +1039,47 @@ void run_qsgw()
 
     profiler.start("qsgw", "QSGW fixed-basis self-consistent calculation");
     const auto dataset = api::get_dataset_instance(h);
+    std::optional<MeanField> ibz_reference;
+    std::optional<SymmetryExpandedMeanField> expanded_reference;
+    if (dataset->pbc.kfrac_list.size() < dataset->pbc.kfrac_list_full.size() &&
+        (driver_params.crpa_enabled || driver_params.qsgw_export_hamiltonian_for_pyatb ||
+         (update_head && driver_params.qsgw_headwing_velocity == "current_hr")))
+    {
+        collective_all_stage(
+            dataset->comm_h, "QSGW IBZ source expansion",
+            [&]
+            {
+                if (!get_bool(opts.use_symmetry_exx) || !get_bool(opts.use_symmetry_gw) ||
+                    !get_bool(opts.use_symmetry_rpa))
+                    throw LIBRPA_RUNTIME_ERROR("QSGW IBZ expansion requires EXX/GW/RPA symmetry");
+                reject_spinor_symmetry_speedup(*dataset, "QSGW IBZ expansion");
+                initialize_symmetry_context(*dataset, true);
+                expanded_reference = expand_symmetry_meanfield(
+                    dataset->mf, dataset->basis_wfc, dataset->pbc, dataset->symmetry_context);
+                ibz_reference = dataset->mf;
+            });
+        const auto& full = expanded_reference->meanfield;
+        dataset->invalidate_compute_objects();
+        dataset->mf = MeanField{};
+        h.set_scf_dimension(full.get_n_spins(), full.get_n_kpoints(), full.get_n_bands(),
+                            full.get_n_aos(), full.get_n_spinor());
+        dataset->mf = full;
+        driver::n_kpoints = full.get_n_kpoints();
+        // Keep the producer's representative Coulomb grid and star weights.
+        // Only the live KS grid becomes full; P0 and W may still use q stars.
+        auto& pbc = dataset->pbc;
+        pbc.klist = pbc.klist_full;
+        pbc.kfrac_list = pbc.kfrac_list_full;
+        pbc.weight_k.assign(full.get_n_kpoints(), 1.0 / full.get_n_kpoints());
+        pbc.k_to_kfull.resize(full.get_n_kpoints());
+        std::iota(pbc.k_to_kfull.begin(), pbc.k_to_kfull.end(), 0);
+        pbc.kfull_to_k = pbc.k_to_kfull;
+        pbc.kfull_to_k_relation.assign(full.get_n_kpoints(), KFullToKRelation::DIRECT);
+        lib_printf_root(
+            "QSGW: expanded %d paired IBZ source states to %d full-grid states; "
+            "no eigenproblem was solved\n",
+            ibz_reference->get_n_kpoints(), full.get_n_kpoints());
+    }
     if (update_head && driver_params.qsgw_headwing_velocity == "current_hr")
     {
         const auto& mf = dataset->mf;
@@ -1200,9 +1242,23 @@ void run_qsgw()
         const bool aims_input = driver_params.constants_choice == "aims";
         const VxcBasis basis = driver_params.qsgw_vxc_basis == "nao"
             ? VxcBasis::Nao : VxcBasis::State;
-        dft_vxc = read_qsgw_vxc(driver_params.input_dir, driver_params.prefix_vxc_scf, reference,
-                                aims_input, false, basis);
-
+        dft_vxc =
+            read_qsgw_vxc(driver_params.input_dir, driver_params.prefix_vxc_scf,
+                          ibz_reference ? *ibz_reference : reference, aims_input, false, basis);
+        if (expanded_reference)
+        {
+            const auto source_vxc = dft_vxc;
+            dft_vxc.clear();
+            for (int spin = 0; spin < reference.get_n_spins(); ++spin)
+                for (int k = 0; k < reference.get_n_kpoints(); ++k)
+                {
+                    auto block = source_vxc.at(spin).at(expanded_reference->source_k[k]).copy();
+                    if (expanded_reference->antiunitary[k])
+                        for (std::size_t i = 0; i < block.size(); ++i)
+                            block.ptr()[i] = std::conj(block.ptr()[i]);
+                    dft_vxc[spin][k] = std::move(block);
+                }
+        }
         if (compute_band)
             dft_vxc_band = read_qsgw_vxc(
                 driver_params.input_dir, driver_params.prefix_vxc_band,
@@ -1452,6 +1508,17 @@ void run_qsgw()
     const auto prepare_optical_state =
         [&](int iteration, bool write_numerical_trace, bool rebuild_full_optical = true)
     {
+        if (get_bool(opts.use_symmetry_exx) || get_bool(opts.use_symmetry_gw) ||
+            get_bool(opts.use_symmetry_rpa))
+            collective_all_stage(dataset->comm_h, "QSGW live magnetic covariance",
+                                 [&]
+                                 {
+                                     reject_spinor_symmetry_speedup(*dataset, "QSGW live state");
+                                     initialize_symmetry_context(*dataset, true);
+                                     validate_symmetry_band_weights(dataset->mf, dataset->basis_wfc,
+                                                                    dataset->pbc,
+                                                                    dataset->symmetry_context);
+                                 });
         if (update_head)
         {
             std::optional<LiveVelocityResult> live_velocity;

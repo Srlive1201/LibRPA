@@ -329,6 +329,7 @@ module librpa_f03
          procedure :: set_ao_basis_aux_shrink => librpa_set_ao_basis_aux_shrink
          procedure :: set_basis_convention => librpa_set_basis_convention
          procedure :: set_symmetry_operations => librpa_set_symmetry_operations
+         procedure :: set_symmetry_spin_operations => librpa_set_symmetry_spin_operations
          procedure :: set_latvec_and_G => librpa_set_latvec_and_G
          procedure :: set_atoms => librpa_set_atoms
          procedure :: set_kgrids_kvec => librpa_set_kgrids_kvec
@@ -667,6 +668,19 @@ contains
       real(dp), dimension(3, n_symops), intent(in), optional :: trans
       call error_on_call("librpa_set_symmetry_operations")
    end subroutine librpa_set_symmetry_operations
+
+   !> @brief Set explicit magnetic operations; spin_u uses eight real/imag entries per operation.
+   subroutine librpa_set_symmetry_spin_operations(this, n_ops, row_conv, rotmats, trans, &
+         antiunitary, spin_u, spin_action_source, grey_group)
+      implicit none
+      class(LibrpaHandler), intent(inout) :: this
+      integer, intent(in) :: n_ops, spin_action_source
+      logical, intent(in) :: row_conv, grey_group
+      integer, intent(in) :: rotmats(9, n_ops)
+      real(dp), intent(in), optional :: trans(3, n_ops), spin_u(8, n_ops)
+      integer, intent(in), optional :: antiunitary(n_ops)
+      call error_on_call("librpa_set_symmetry_spin_operations")
+   end subroutine librpa_set_symmetry_spin_operations
 
    !> @brief Set the direct and reciprocal lattice vectors
    !>

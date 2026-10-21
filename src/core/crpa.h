@@ -47,7 +47,7 @@ struct CrpaContext
  * physical spin channel. No static node, continuation, or file I/O is added.
  * SOC uses one full spinor frame whose density vertex sums both components.
  * Results are returned on all ranks. Original full-grid scalar/spinor LIBRI is supported.
- * This initial implementation uses complete full-grid kernels before orbital contraction.
+ * Optional magnetic q-star screening restores full kernels before orbital contraction.
  */
 CrpaResult compute_crpa_onsite(CrpaContext &context, const Chi0::BandSelection &selection,
                                const std::vector<CorrelatedSubspace *> &frames);

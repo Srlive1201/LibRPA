@@ -102,6 +102,8 @@ struct SymmetrySpinOperation
     std::array<std::complex<double>, 4> spin_u{1.0, 0.0, 0.0, 1.0};
     bool antiunitary = false;
     SymmetrySpinActionSource spin_source = SymmetrySpinActionSource::Identity;
+    //! Preserve an upstream SOC matrix instead of deriving it from the lattice.
+    bool spin_u_provided = false;
 };
 
 /*!

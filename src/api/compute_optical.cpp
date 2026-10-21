@@ -100,11 +100,32 @@ void librpa_prepare_native_velocity(LibrpaHandler *h, const LibrpaOptions *p_opt
                     "G0W0 native velocity requires matching SCF k points and weights");
             const bool reduced_grid = nk != nk_full;
             if (reduced_grid)
-                throw LIBRPA_RUNTIME_ERROR("Native velocity requires a complete full-BZ grid");
+            {
+                const bool use_symmetry = (opts.use_symmetry_rpa == LIBRPA_SWITCH_ON) ||
+                                          (opts.use_symmetry_gw == LIBRPA_SWITCH_ON);
+                if (!spinor || !use_symmetry || (opts.use_kpara_scf_eigvec == LIBRPA_SWITCH_ON))
+                    throw LIBRPA_RUNTIME_ERROR(
+                        "IBZ native velocity requires SOC magnetic symmetry and undistributed "
+                        "AO/band WFC blocks");
+                initialize_symmetry_context(*ds, true);
+                require_symmetry_shell_layouts(*ds, "native SOC head/wing");
+                const auto &ctx = ds->symmetry_context;
+                if (ctx.kstars.size() != static_cast<std::size_t>(nk) ||
+                    ctx.count_kstar_members() != static_cast<std::size_t>(nk_full) ||
+                    ctx.spin_operations.empty())
+                    throw LIBRPA_RUNTIME_ERROR(
+                        "IBZ native SOC velocity requires magnetic k-stars covering the full mesh");
+            }
             for (int ik = 0; ik != nk; ++ik)
             {
                 const auto weight = ds->pbc.weight_k[ik];
-                const double expected = 1.0 / nk;
+                const double expected =
+                    reduced_grid
+                        ? static_cast<double>(find_symmetry_kstar_for_ibz_kpoint(
+                                                  ds->symmetry_context, ds->pbc.kfrac_list[ik])
+                                                  .members.size()) /
+                              nk_full
+                        : 1.0 / nk;
                 if (!std::isfinite(weight) || std::abs(weight - expected) > 1e-8)
                     throw LIBRPA_RUNTIME_ERROR(
                         "G0W0 native velocity k weights disagree with the full-mesh star counts");

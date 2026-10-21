@@ -184,8 +184,9 @@ The d|dp response uses d output columns from the joint dp frame; dp|dp uses
 all dp output columns. A d|d frame generally defines a different projector.
 This weighted construction is a distinct screening model from binary
 energy-window exclusion, even when its windows are numerically identical.
-Collinear and full SOC states are supported within the existing
-even-frequency response scope, using complete full-BZ inputs without symmetry reduction.
+Collinear magnetic and full SOC states are supported within the existing
+even-frequency response scope. Explicit q-star symmetry can be used when the
+chosen weighted target preserves that group, as described below.
 By default QSGW rebuilds atomic-trial frames from current C when cRPA is requested.
 B retains its supplied window/list rule.
 
@@ -371,7 +372,7 @@ screening uses every physical transition; constrained screening omits a pair
 only when both original endpoints belong to A. The RI optical charge vertex
 sums equal spinor components. Only the angular Gamma-cell weights are
 normalized; the regular dielectric body is unchanged. Optical sums retain all
-original full-BZ KS states and velocities.
+original full-BZ KS states and velocities even when q-star screening is enabled.
 Distributed KS inputs and the two-dimensional optical route remain excluded.
 
 With `replace_w_head = false` and `option_dielect_func = 0`, an uncorrected
@@ -391,7 +392,7 @@ state metadata including the number of spinor components, and evaluates
 Gaussian PDOS in Hartree units. C++ callers can use `Handler::analyze_orbitals`,
 which returns an owning result. Neither path modifies the handler, KS states,
 response masks or local output frames. Orbital analysis uses the original full
-k-grid states.
+k-grid states even when cRPA screening applies q-star symmetry reduction.
 
 Every participating rank must supply identical numerical options, species,
 selections and S(k) arrays. Input buffers remain owned by the caller and must
@@ -407,9 +408,31 @@ right spin indices identify those frames, not two independently screened U's.
 Finite-temperature or metallic static-limit accuracy requires separate response
 and convergence controls; selecting positive minimax nodes alone does not establish it.
 
-This functional stage requires `use_symmetry_exx`, `use_symmetry_gw` and
-`use_symmetry_rpa` to be disabled. Magnetic restoration is supplied by the
-following magnetic-group PR.
+With `use_symmetry_rpa = true`, the first symmetry route retains full original
+k-grid Green functions and reduces only response q sampling and dense screening.
+Every screened kernel is restored through the supplied unitary/antiunitary
+operation table before contraction with the full-grid local spinor vertices.
+The bare term also uses all original q points. Multiplying one representative
+orbital tensor by star multiplicity would not preserve its individual components.
+The actual diagonal endpoint-weight operator must transform covariantly with
+E/C/f. The implementation obtains the band sewing matrix from the supplied
+complete KS frames and checks E_t M = M E_s, f_t M = M f_s and p_t M = M p_s,
+including operations in each little group. Complex phases, band permutations
+and degenerate mixing that preserves p are allowed; weights are not averaged
+or replaced by a binary envelope. Violations fail collectively. In particular,
+arbitrary mixing of degenerate states with unequal p is incompatible with this
+diagonal-weight approximation and cannot use q reduction.
+
+The driver accepts an explicit `spin_symmetry` structure tail; library callers
+use `librpa_set_symmetry_spin_operations`. SOC symmetry rejects a legacy spatial-only
+declaration. A grey-group declaration appends time reversal only when the supplied
+state has that symmetry. Current-HR QSGW can expand paired IBZ source E/C/f and
+Vxc into its internal full-grid frame before coupled cRPA; standalone library
+cRPA continues to require complete replicated KS frames. Auxiliary compression
+maps use separate full/compressed shell actions, with conjugation on antiunitary
+routes, and existing full-q maps are checked rather than averaged. Bare and
+screened kernels are restored before contraction. This does not extend the
+native even-frequency response to arbitrary magnetic odd-frequency components.
 
 ## Compose or reuse numerical stages
 
@@ -510,8 +533,12 @@ exchange summaries. The U-only route omits W columns. Orbital weights and PDOS
 are enabled by the existing `crpa_output_analysis` default and use the same
 current eigenvectors; no extra physical KS solve is required.
 
-The coupled path requires replicated full-BZ states, native minimax
-frequencies, the LibRI response path and disabled symmetry reduction.
+The coupled path currently requires replicated full-BZ states, native minimax
+frequencies and the LibRI response path. Explicit magnetic q reduction is
+supported for compatible live states and targets. The QSGW driver can expand
+paired IBZ inputs internally; the direct coupled API requires full-grid KS
+frames. G0W0 with `crpa_enabled = true` also requires complete replicated KS
+inputs; its IBZ-only head/wing reconstruction does not expand the cRPA KS frame.
 It rejects `read_sigc_mat_rf`, which bypasses P0. Use full head/wing option 3 (or driver
 preset 6) for a corrected three-dimensional calculation. Head-only option 4
 does not provide the constrained optical wings required by this implementation.

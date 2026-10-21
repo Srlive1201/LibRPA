@@ -167,6 +167,34 @@ ComplexMatrix get_symmetry_restored_dmat_cplx_R(
     const symmetry_kstar_member_kfrac_targets_t* member_kfrac_targets = nullptr,
     const symmetry_kstar_representative_indices_t* representative_k_indices = nullptr);
 
+/*!
+ * @brief Four-channel spinor variant of get_symmetry_restored_dmat_cplx_R.
+ *
+ * Returns the four spin blocks D^{ab}(R) (a = bra, b = ket,
+ * channel-outermost convention C8) restored from the IBZ representatives.
+ * Each star member is resolved through
+ * `member.action_id -> ctx.kspace_actions -> ctx.spin_operations[canonical]`
+ * into (spatial_id, U_s, eta), exactly as in the spinor Green's-function
+ * restore. The orbital transform matrix A is built once per member (gauge
+ * phases excluded) and reused for all four source blocks; the SU(2) mixing
+ * and, for antiunitary members, the Theta remap
+ * {conj(Y11), -conj(Y10), -conj(Y01), conj(Y00)} are applied by
+ * transform_spinor_bilinear. The target-kpoint gauge phases are plain unitary
+ * re-gauging factors applied after the kernel. The per-channel scalar restore
+ * is NOT used here: it would miss the SU(2) block mixing and the channel
+ * exchange of the Theta remap for antiunitary members.
+ *
+ * Requires mf.get_n_spinor() == 2. Missing (bra, ket) source blocks are
+ * zero-filled (get_dmat_cplx returns a zero block for an absent wfc channel),
+ * so a spin-mixing member cannot drop sparse blocks.
+ */
+SpinorBlocks4<ComplexMatrix> get_symmetry_restored_dmat_cplx_R_spinor(
+    const SymmetryContext& ctx, const std::vector<SpeciesBasisLayout>& wfc_layouts,
+    const MeanField& mf, int ispin, const std::vector<Vector3_Order<double>>& kfrac_list,
+    const Vector3_Order<int>& R, const std::map<atom_t, size_t>& atom_nw,
+    const symmetry_kstar_member_kfrac_targets_t* member_kfrac_targets = nullptr,
+    const symmetry_kstar_representative_indices_t* representative_k_indices = nullptr);
+
 std::map<double, std::map<Vector3_Order<int>, ComplexMatrix>>
 get_symmetry_restored_gf_cplx_imagtimes_Rs(
     const SymmetryContext& ctx,

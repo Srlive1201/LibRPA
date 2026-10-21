@@ -82,6 +82,12 @@ ComplexMatrix rotate_headwing_wfc_to_kstar_member(
     const Vector3_Order<double> &k_ibz,
     const ComplexMatrix &wfc_ibz,
     const Vector3_Order<double> *k_bz_target = nullptr);
+//! Restore both SOC components in one common KS gauge; rows are bands.
+std::array<ComplexMatrix, 2> rotate_headwing_spinor_wfc_to_kstar_member(
+    const SymmetryContext &ctx, const SymmetryKStarMember &member,
+    const std::vector<SpeciesBasisLayout> &wfc_layouts, const std::map<atom_t, size_t> &atom_nw,
+    const Vector3_Order<double> &k_ibz, const std::array<ComplexMatrix, 2> &wfc_ibz,
+    const Vector3_Order<double> *k_bz_target = nullptr);
 std::array<ComplexMatrix, 3> rotate_headwing_velocity_to_kstar_member(
     const SymmetryContext &ctx,
     const SymmetryKStarMember &member,
@@ -291,6 +297,9 @@ public:
     // of producer eigenvector coverage. The driver must not expand or broadcast
     // eigenvectors here; k-parallel consumers use their kBLACS owner groups.
     MeanField &get_meanfield_df() { return meanfield_df; }
+    // Main IBZ occupations carry geometric star weights. Convert this owned
+    // copy to the head/wing f/N_IBZ convention; PyATB snapshots already use it.
+    void normalize_ibz_star_weighted_occupations();
 
 public:
     diele_func(const MeanField &mf, const velocity_matrix_t &velocity,
@@ -362,8 +371,8 @@ private:
     // when symmetry restoration is unavailable). Expects wg indexed as wg(ik, ib).
     void cal_head_full_bz();
     // Symmetry-aware head: IBZ outer loop + k-star member inner loop. Full-BZ
-    // PyATB velocity is selected directly when available; otherwise the
-    // historical velocity-restoration fallback is used.
+    // PyATB velocity is selected directly when available; otherwise velocities
+    // are restored in the same transported KS frame as the paired IBZ WFC.
     void cal_head_symmetric();
 
 public:
@@ -381,8 +390,8 @@ public:
 private:
     // Symmetry-aware wing: each kBLACS owner group loops over its local IBZ
     // k-points and contributes each k-star member to wing_mu. Full-BZ PyATB
-    // velocity is selected directly when available; the IBZ mean-field is not
-    // expanded or broadcast globally.
+    // velocity/WFC are selected directly when available. Otherwise one current
+    // representative's spinor pair generates each member in a common KS gauge.
     void cal_wing_symmetric(const Cs_LRI &Cs_data, double coulomb_eigen_threshold,
                             const atpair_k_cplx_mat_t &Vq);
     // The historical full-BZ wing summation, also used as the fallback when

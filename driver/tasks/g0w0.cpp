@@ -1,6 +1,7 @@
 #include <librpa_enums.h>
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstdint>
 #include <exception>

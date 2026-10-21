@@ -679,6 +679,7 @@ void librpa_set_symmetry_spin_operations(
                               std::complex<double>(u[2], u[3]),
                               std::complex<double>(u[4], u[5]),
                               std::complex<double>(u[6], u[7])};
+            spin_op.spin_u_provided = true;
         }
         spin_ops.push_back(spin_op);
     }

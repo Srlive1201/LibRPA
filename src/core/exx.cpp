@@ -329,6 +329,30 @@ static void build_dmat_libri_kserial(
     const auto wfc_layouts = atbasis_wfc.has_l_shells()
         ? atbasis_wfc.build_species_basis_layouts(symmetry_context.atom_to_type)
         : std::vector<SpeciesBasisLayout>{};
+    // Spinor mean field: restore all four spin blocks through the unified
+    // (g, U_s, eta) kernel, then extract the requested (bra, ket) channel.
+    // The per-channel scalar restore would miss the SU(2) block mixing and
+    // the antiunitary Theta remap.
+    const bool use_spinor_restore = mf.get_n_spinor() == 2;
+    const auto restore_dmat_channel =
+        [&](const Vector3_Order<int> &R_sel,
+            const symmetry_kstar_member_kfrac_targets_t *member_targets,
+            const symmetry_kstar_representative_indices_t *representative_indices)
+    {
+        if (use_spinor_restore)
+        {
+            const auto blocks = get_symmetry_restored_dmat_cplx_R_spinor(
+                symmetry_context, wfc_layouts, mf, ispin, kfrac_list, R_sel, atom_nw,
+                member_targets, representative_indices);
+            if (ispinor_bra == 0 && ispinor_ket == 0) return blocks.b00;
+            if (ispinor_bra == 0 && ispinor_ket == 1) return blocks.b01;
+            if (ispinor_bra == 1 && ispinor_ket == 0) return blocks.b10;
+            return blocks.b11;
+        }
+        return get_symmetry_restored_dmat_cplx_R(symmetry_context, wfc_layouts, mf, ispin,
+                                                 ispinor_bra, ispinor_ket, kfrac_list, R_sel,
+                                                 atom_nw, member_targets, representative_indices);
+    };
     const bool can_try_symmetry_kstar_restore =
         use_symmetry_context && !wfc_layouts.empty();
     const auto full_grid_kstar_representatives =
@@ -354,9 +378,8 @@ static void build_dmat_libri_kserial(
     {
         constexpr double restore_check_tol = 1e-6;
         const auto& R_check = map_R_IJs.begin()->first;
-        const auto restored_check = get_symmetry_restored_dmat_cplx_R(
-            symmetry_context, wfc_layouts, mf, ispin, ispinor_bra, ispinor_ket, kfrac_list, R_check,
-            atom_nw, &member_kfrac_targets, &full_grid_kstar_representatives);
+        const auto restored_check =
+            restore_dmat_channel(R_check, &member_kfrac_targets, &full_grid_kstar_representatives);
         const auto direct_check =
             mf.get_dmat_cplx_R(ispin, ispinor_bra, ispinor_ket, kfrac_list, R_check);
         const auto diff = restored_check - direct_check;
@@ -371,12 +394,13 @@ static void build_dmat_libri_kserial(
         const auto &R = R_IJs.first;
         const auto &IJs = R_IJs.second;
         std::array<int,3> Ra{R.x,R.y,R.z};
-        const auto dmat_cplx = (restore_symmetry_kstars || restore_symmetry_kstars_from_full_grid)
-            ? get_symmetry_restored_dmat_cplx_R(
-                  symmetry_context, wfc_layouts, mf, ispin, ispinor_bra, ispinor_ket, kfrac_list, R, atom_nw,
-                  &member_kfrac_targets,
-                  restore_symmetry_kstars_from_full_grid ? &full_grid_kstar_representatives : nullptr)
-            : mf.get_dmat_cplx_R(ispin, ispinor_bra, ispinor_ket, kfrac_list, R);
+        const auto dmat_cplx =
+            (restore_symmetry_kstars || restore_symmetry_kstars_from_full_grid)
+                ? restore_dmat_channel(R, &member_kfrac_targets,
+                                       restore_symmetry_kstars_from_full_grid
+                                           ? &full_grid_kstar_representatives
+                                           : nullptr)
+                : mf.get_dmat_cplx_R(ispin, ispinor_bra, ispinor_ket, kfrac_list, R);
         // global::ofs_myid << R << std::endl;
         // print_complex_matrix("dmat_cplx[R]", dmat_cplx, global::ofs_myid, true);
         omp_lock_t dmat_lock;
@@ -509,13 +533,36 @@ static void build_dmat_libri_kblacs_para(
             symmetry_context, wfc_layouts, mf, kfrac_list, atom_nw);
     global::ofs_myid << "EXX kBLACS Dmat symmetry restore: "
                      << (restore_symmetry_kstars ? "on" : "off") << std::endl;
-    auto dmat_Rs_cplx = restore_symmetry_kstars
-        ? get_symmetry_restored_dmat_cplx_Rs_kblacs_para(
-              ispin, ispinor_bra, ispinor_ket, mf, kfrac_list, Rs, kblacs_ctxt,
-              desc_wfc, desc_dm, symmetry_context, pbc, atbasis_wfc)
-        : get_dmat_cplx_Rs_kblacs_para(
-              ispin, ispinor_bra, ispinor_ket, mf, kfrac_list, Rs, kblacs_ctxt,
-              desc_wfc, desc_dm);
+    std::map<Vector3_Order<int>, Matz> dmat_Rs_cplx;
+    if (restore_symmetry_kstars && mf.get_n_spinor() == 2)
+    {
+        // Spinor mean field: restore all four spin blocks jointly through the
+        // unified (g, U_s, eta) kernel, then keep the requested (bra, ket)
+        // channel; the per-channel scalar restore would miss the SU(2) block
+        // mixing and the antiunitary Theta remap.
+        auto dmat_Rs_spinor = get_symmetry_restored_dmat_cplx_Rs_kblacs_para_spinor(
+            ispin, mf, kfrac_list, Rs, kblacs_ctxt, desc_wfc, desc_dm, symmetry_context, pbc,
+            atbasis_wfc);
+        for (auto &[R, blocks] : dmat_Rs_spinor)
+        {
+            Matz *channel = (ispinor_bra == 0 && ispinor_ket == 0)   ? &blocks.b00
+                            : (ispinor_bra == 0 && ispinor_ket == 1) ? &blocks.b01
+                            : (ispinor_bra == 1 && ispinor_ket == 0) ? &blocks.b10
+                                                                     : &blocks.b11;
+            dmat_Rs_cplx.emplace(R, std::move(*channel));
+        }
+    }
+    else if (restore_symmetry_kstars)
+    {
+        dmat_Rs_cplx = get_symmetry_restored_dmat_cplx_Rs_kblacs_para(
+            ispin, ispinor_bra, ispinor_ket, mf, kfrac_list, Rs, kblacs_ctxt, desc_wfc, desc_dm,
+            symmetry_context, pbc, atbasis_wfc);
+    }
+    else
+    {
+        dmat_Rs_cplx = get_dmat_cplx_Rs_kblacs_para(ispin, ispinor_bra, ispinor_ket, mf, kfrac_list,
+                                                    Rs, kblacs_ctxt, desc_wfc, desc_dm);
+    }
     // global::ofs_myid << kfrac_list << std::endl;
     for (auto &R_dmat_cplx: dmat_Rs_cplx)
     {

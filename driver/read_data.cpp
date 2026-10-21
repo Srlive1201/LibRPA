@@ -683,7 +683,11 @@ void read_headwing_input(const string &dir_path, bool need_wing,
     {
         librpa_int::initialize_symmetry_context(*pds, true);
     }
-    if (path_exists(pyatb_velocity.c_str()) && pds->symmetry_context.available &&
+    // A complete active grid already supplies every member directly. Expanding
+    // its k-stars again repeats each orbit and breaks the bijective source map.
+    // Only an irreducible active grid needs the separate full-BZ member cache.
+    if (path_exists(pyatb_velocity.c_str()) && mf.get_n_kpoints() != pds->pbc.get_n_cells_bvk() &&
+        kfrac_pyatb.size() != active_kfrac_list.size() && pds->symmetry_context.available &&
         !pds->symmetry_context.kstars.empty())
     {
         direct_full_bz_velocity_member_source_ik =
@@ -718,9 +722,12 @@ void read_headwing_input(const string &dir_path, bool need_wing,
     const bool use_headwing_symmetry = wants_headwing_symmetry;
     if (use_headwing_symmetry)
     {
-        reject_spinor_symmetry_speedup(*pds, "analytic head/wing");
         initialize_symmetry_context(*pds, true);
         require_symmetry_shell_layouts(*pds, "analytic head/wing");
+        if (mf.get_n_kpoints() != pds->pbc.get_n_cells_bvk() && !direct_full_bz_wfc.initialized())
+            librpa_int::global::lib_printf_root(
+                "Head/wing symmetry: reconstruct k-star WFC and velocity from paired IBZ "
+                "inputs.\n");
     }
     pds->p_headwing = std::make_unique<diele_func>(
         mf, velocity_matrix, pds->pbc.kfrac_list, pds->basis_wfc, headwing_basis_aux, freqs,
@@ -748,6 +755,7 @@ void read_headwing_input(const string &dir_path, bool need_wing,
             std::move(direct_full_bz_wfc),
             std::move(direct_full_bz_velocity_member_source_ik));
     }
+    if (!restore_mf.active) pds->p_headwing->normalize_ibz_star_weighted_occupations();
     if (restore_mf.active)
     {
         const int n_spinor = mf.get_n_spinor();

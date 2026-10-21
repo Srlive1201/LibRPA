@@ -67,7 +67,7 @@ static double exchange(const bool qstar, const bool clear_sector, const bool inv
     }
     bool replicated = false;
     const auto vr = FT_Vq(comm, basis, ctx, vq, pbc, true, qstar, &replicated);
-    if (replicated != (qstar && !clear_sector))
+    if (replicated != qstar)
         throw std::runtime_error("Unexpected Fourier output ownership receipt");
     // Use square BLACS groups: two ranks form two 1x1 groups, while four
     // ranks exercise the production 2x2 BLACS layout.

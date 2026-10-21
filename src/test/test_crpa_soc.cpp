@@ -822,6 +822,481 @@ void test_zero_soc_limit()
                     }
 }
 
+struct MagneticModel
+{
+    Matz hamiltonian{6, 6, MAJOR::COL};
+    Matz eigenvectors;
+    std::vector<double> eigenvalues;
+    std::vector<double> positions;
+    std::vector<int> operations;
+    std::vector<int> antiunitary{0, 0, 0, 1, 1, 1};
+    const double lattice[9]{6.0, 0.0, 0.0, 3.0, 3.0 * std::sqrt(3.0), 0.0, 0.0, 0.0, 8.0};
+    const double reciprocal[9]{TWO_PI / 6.0,
+                               -TWO_PI / (6.0 * std::sqrt(3.0)),
+                               0.0,
+                               0.0,
+                               TWO_PI / (3.0 * std::sqrt(3.0)),
+                               0.0,
+                               0.0,
+                               0.0,
+                               TWO_PI / 8.0};
+
+    MagneticModel()
+    {
+        hamiltonian.zero_out();
+        for (int atom = 0; atom != 3; ++atom)
+        {
+            const double angle = TWO_PI * atom / 3.0;
+            positions.insert(positions.end(), {0.8 * std::cos(angle), 0.8 * std::sin(angle), 0.0});
+            hamiltonian(atom, atom + 3) = std::polar(1.0, -angle);
+            hamiltonian(atom + 3, atom) = std::conj(hamiltonian(atom, atom + 3));
+            for (int spinor = 0; spinor != 2; ++spinor)
+            {
+                const int next = (atom + 1) % 3;
+                const Z hopping{0.15, spinor == 0 ? 0.04 : -0.04};
+                hamiltonian(atom + 3 * spinor, next + 3 * spinor) = hopping;
+                hamiltonian(next + 3 * spinor, atom + 3 * spinor) = std::conj(hopping);
+            }
+        }
+        eigsh(hamiltonian, eigenvalues, eigenvectors);
+        if (eigenvalues[3] - eigenvalues[2] <= 1.0)
+            throw std::runtime_error("magnetic model must be gapped");
+
+        // Row fractional C3, C3^2 and their horizontal-mirror partners.
+        const int rotations[3][9]{{1, 0, 0, 0, 1, 0, 0, 0, 1},
+                                  {-1, 1, 0, -1, 0, 0, 0, 0, 1},
+                                  {0, -1, 0, 1, -1, 0, 0, 0, 1}};
+        for (int mirror = 0; mirror != 2; ++mirror)
+            for (int rotation = 0; rotation != 3; ++rotation)
+                for (int index = 0; index != 9; ++index)
+                    operations.push_back(index == 8 && mirror ? -1 : rotations[rotation][index]);
+
+        // Independent Cartesian Hamiltonian covariance, including Theta Mz.
+        for (int mirror = 0; mirror != 2; ++mirror)
+            for (int rotation = 0; rotation != 3; ++rotation)
+            {
+                Matz action(6, 6, MAJOR::COL);
+                action.zero_out();
+                const double angle = TWO_PI * rotation / 3.0 + mirror * PI;
+                for (int atom = 0; atom != 3; ++atom)
+                    for (int spinor = 0; spinor != 2; ++spinor)
+                    {
+                        const Z u = std::polar(1.0, (spinor == 0 ? -0.5 : 0.5) * angle);
+                        const int target_atom = (atom + rotation) % 3;
+                        if (mirror)
+                            action(target_atom + 3 * (1 - spinor), atom + 3 * spinor) =
+                                (spinor == 0 ? -1.0 : 1.0) * std::conj(u);
+                        else
+                            action(target_atom + 3 * spinor, atom + 3 * spinor) = u;
+                    }
+                for (int i = 0; i != 6; ++i)
+                    for (int j = 0; j != 6; ++j)
+                    {
+                        Z transformed = 0.0;
+                        for (int a = 0; a != 6; ++a)
+                            for (int b = 0; b != 6; ++b)
+                                transformed +=
+                                    action(i, a) *
+                                    (mirror ? std::conj(hamiltonian(a, b)) : hamiltonian(a, b)) *
+                                    std::conj(action(j, b));
+                        close(transformed, hamiltonian(i, j), 1e-12);
+                    }
+            }
+    }
+};
+
+void test_magnetic_qstar_screening()
+{
+    // Complex periodic Kramers state: the antiunitary q member is actually
+    // restored, while both selected GF branches retain all original k points.
+    Fixture f(true, 0.37, 0, true);
+    const auto full = f.run();
+    LibrpaOptions options;
+    librpa_init_options(&options);
+    options.use_symmetry_rpa = LIBRPA_SWITCH_ON;
+    int legacy_rejected = 0, all_legacy_rejected = 0;
+    try
+    {
+        initialize_ds_chi0_qstar(f.ds, options);
+    }
+    catch (const std::exception&)
+    {
+        legacy_rejected = 1;
+    }
+    MPI_Allreduce(&legacy_rejected, &all_legacy_rejected, 1, MPI_INT, MPI_MIN, MPI_COMM_WORLD);
+    if (!all_legacy_rejected)
+        throw std::runtime_error("SOC cRPA accepted an implicit time-reversal declaration");
+    f.ds.basis_aux.set_l_shells({{0, 0}});
+    auto& ctx = f.ds.symmetry_context;
+    ctx.set_crystal_structure(f.ds.pbc.latvec, f.ds.pbc.G, {{0, 0}}, {{0, {0, 0, 0}}});
+    ctx.set_rspace_operations({SpaceGroupSymOp::IDENTITY});
+    ctx.build_periodic_mappings(f.ds.pbc, f.ds.pbc.Rlist);
+    ctx.set_available();
+    const auto implicit_view = build_symmetry_qpoint_view(ctx, f.ds.pbc, true);
+    if (implicit_view.restore_mode != SymmetryQPointRestoreMode::NONE ||
+        implicit_view.representatives.size() != 4)
+        throw std::runtime_error("a legacy identity-only table silently enabled time reversal");
+    SymmetrySpinOperation identity;
+    identity.spin_source = SymmetrySpinActionSource::DerivedFromSpatialSOC;
+    ctx.set_symmetry_spin_operations({identity}, true);
+    ctx.build_periodic_mappings(f.ds.pbc, f.ds.pbc.Rlist);
+    BasisConvention convention;
+    convention.bloch_phase = -1;
+    convention.bloch_ratom = 0;
+    convention.order = LIBRPA_ANGULAR_ORDER_ABS_PM;
+    convention.coeff_m_negative = convention.coeff_m_positive = LIBRPA_RSH_COEFF_1_M;
+    ctx.build_rsh_rotations(convention, 0);
+    ctx.build_kstar_member_rotations(0);
+    ctx.set_available();
+    f.chi = std::make_unique<Chi0>(f.ds.mf, f.ds.basis_wfc, f.ds.basis_aux, f.ds.pbc, ctx, f.ds.tfg,
+                                   f.ds.scfk_blacs_ctxt, f.ds.desc_wfc_kb_full, false, true);
+    f.chi->qstar_only_symmetry = true;
+    f.chi->gf_threshold = f.chi->libri_threshold_C = f.chi->libri_threshold_G = 0;
+    if (f.chi->active_qpoints().size() != 3)
+        throw std::runtime_error("grey-group cRPA did not reduce four q points to three");
+    bool has_antiunitary = false;
+    for (const auto& star : ctx.kstars)
+        for (const auto& member : star.members) has_antiunitary |= member.time_reversal;
+    if (!has_antiunitary) throw std::runtime_error("antiunitary cRPA member was not exercised");
+
+    // A deliberately star-dependent KS selector must fail on every MPI rank,
+    // without silently replacing the original transition model.
+    auto invalid = f.selection();
+    invalid[0][3][0] = 1 - invalid[0][3][0];
+    int rejected = 0, all_rejected = 0;
+    try
+    {
+        f.chi->set_band_selection(invalid);
+    }
+    catch (const std::exception&)
+    {
+        rejected = 1;
+    }
+    MPI_Allreduce(&rejected, &all_rejected, 1, MPI_INT, MPI_MIN, MPI_COMM_WORLD);
+    if (!all_rejected)
+        throw std::runtime_error("noncovariant cRPA selector was not collectively rejected");
+
+    for (bool excluded : {false, true})
+    {
+        if (excluded)
+            f.chi->set_band_selection(f.selection());
+        else
+            f.chi->clear_band_selection();
+        f.chi->build(LIBRPA_ROUTING_LIBRI, f.ds.cs_data, f.pairs, f.ds.basis_aux, f.no_shrink,
+                     f.ds.blacs_h);
+        for (double frequency : f.ds.tfg.get_freq_nodes())
+            for (const auto& q : f.chi->active_qpoints())
+            {
+                const int iq =
+                    std::distance(f.ds.pbc.klist.begin(),
+                                  std::find(f.ds.pbc.klist.begin(), f.ds.pbc.klist.end(), q));
+                ComplexMatrix local(2, 2), total(2, 2);
+                const auto& response = f.chi->get_chi0_q();
+                const auto fi = response.find(frequency);
+                if (fi != response.end())
+                {
+                    const auto qi = fi->second.find(q);
+                    if (qi != fi->second.end() && qi->second.count(0) && qi->second.at(0).count(0))
+                        local = qi->second.at(0).at(0);
+                }
+                MPI_Allreduce(local.c, total.c, total.size, MPI_C_DOUBLE_COMPLEX, MPI_SUM,
+                              MPI_COMM_WORLD);
+                const auto expected = f.response(frequency, excluded, iq);
+                for (int i = 0; i < total.size; ++i) close(total.c[i], expected.c[i]);
+            }
+    }
+    const auto reduced = f.run();
+    double maximum = 0;
+    for (std::size_t node = 0; node < full.frequencies.size(); ++node)
+        for (const auto& pair : {std::pair{&full.tensors[0].u[node], &reduced.tensors[0].u[node]},
+                                 std::pair{&full.tensors[0].w[node], &reduced.tensors[0].w[node]}})
+            for (int i = 0; i < pair.first->size; ++i)
+            {
+                maximum = std::max(maximum, std::abs(pair.first->c[i] - pair.second->c[i]));
+                close(pair.first->c[i], pair.second->c[i], 2e-11);
+            }
+    // Fractional endpoints, not a binary band mask. The exact spectral sum
+    // checks Pd before comparing all components of the screened local tensors.
+    auto weights = f.selection();
+    for (int k = 0; k < 4; ++k) weights[0][k] = {0.82, 0.82, 0.57, 0.57, 0.13, 0.13};
+    const auto calculate_weighted = [&](bool symmetry, bool spectral)
+    {
+        Chi0 chi(f.ds.mf, f.ds.basis_wfc, f.ds.basis_aux, f.ds.pbc, ctx, f.ds.tfg,
+                 f.ds.scfk_blacs_ctxt, f.ds.desc_wfc_kb_full, false, symmetry);
+        chi.qstar_only_symmetry = true;
+        chi.gf_threshold = chi.libri_threshold_C = chi.libri_threshold_G = 0;
+        CrpaContext context{chi,         f.ds.cs_data, f.ds.basis_aux, f.pairs,
+                            f.no_shrink, f.ds.vq,      f.ds.blacs_h,   f.ds.desc_abf};
+        if (spectral)
+        {
+            const auto pd = build_crpa_excluded_response(context, weights);
+            for (const auto frequency : f.ds.tfg.get_freq_nodes())
+                for (const auto& q : chi.active_qpoints())
+                {
+                    ComplexMatrix local(2, 2), total(2, 2);
+                    if (pd.count(frequency))
+                    {
+                        const auto& qs = pd.at(frequency);
+                        if (qs.count(q) && qs.at(q).count(0) && qs.at(q).at(0).count(0))
+                            local = qs.at(q).at(0).at(0);
+                    }
+                    MPI_Allreduce(local.c, total.c, total.size, MPI_C_DOUBLE_COMPLEX, MPI_SUM,
+                                  MPI_COMM_WORLD);
+                    const auto iq =
+                        std::distance(f.ds.pbc.klist.begin(),
+                                      std::find(f.ds.pbc.klist.begin(), f.ds.pbc.klist.end(), q));
+                    const auto expected = f.response(frequency, false, iq, &weights);
+                    for (int i = 0; i < total.size; ++i) close(total.c[i], expected.c[i]);
+                }
+        }
+        const auto all = compute_crpa_onsite(context, weights, {f.frame.get()});
+        const auto p0 = build_crpa_total_response(context);
+        const auto shared =
+            evaluate_crpa_onsite_from_response(context, weights, {f.frame.get()}, p0);
+        compare_u_only(shared, all);
+        return all;
+    };
+    const auto weighted_full = calculate_weighted(false, true);
+    const auto weighted_reduced = calculate_weighted(true, true);
+    maximum = std::max(maximum, compare_tensors(weighted_reduced, weighted_full));
+
+    // Same-index arrays are insufficient at a TR-invariant point: the
+    // diagonal weight operator must also commute with its Kramers sewing.
+    auto little_group_bad = weights;
+    for (auto& k : little_group_bad[0]) k[0] = 0.21;
+    bool little_rejected = false;
+    try
+    {
+        f.chi->set_band_selection(little_group_bad);
+    }
+    catch (const std::exception&)
+    {
+        little_rejected = true;
+    }
+    if (!little_rejected)
+        throw std::runtime_error("a target breaking the magnetic little group was accepted");
+
+    // At just one member, permute two complete Kramers pairs and rotate the
+    // degenerate rows by a complex unitary. The physical weighted response
+    // stays unchanged although the same-index weight arrays now differ.
+    const std::array<int, 6> order{2, 3, 0, 1, 4, 5};
+    const auto old_mf = f.ds.mf;
+    const auto old_weights = weights[0][3];
+    for (int band = 0; band < 6; ++band)
+    {
+        weights[0][3][band] = old_weights[order[band]];
+        f.ds.mf.get_eigenvals()[0](3, band) = old_mf.get_eigenvals()[0](3, order[band]);
+        f.ds.mf.get_weight()[0](3, band) = old_mf.get_weight()[0](3, order[band]);
+        for (int component = 0; component < 2; ++component)
+            for (int ao = 0; ao < 3; ++ao)
+                f.ds.mf.get_eigenvectors()[0][component][3](band, ao) =
+                    old_mf.get_eigenvectors().at(0).at(component).at(3)(order[band], ao);
+    }
+    for (int component = 0; component < 2; ++component)
+        rotate_rows(f.ds.mf.get_eigenvectors()[0][component][3], 0, 1, 0.31, 0.42);
+    const auto permuted = calculate_weighted(true, false);
+    maximum = std::max(maximum, compare_tensors(permuted, weighted_full));
+    f.ds.mf.get_eigenvals()[0](3, 0) += 0.01;
+    bool energy_rejected = false;
+    try
+    {
+        f.chi->set_band_selection(weights);
+    }
+    catch (const std::exception&)
+    {
+        energy_rejected = true;
+    }
+    if (!energy_rejected)
+        throw std::runtime_error("a live spectrum breaking the magnetic group was accepted");
+    f.ds.mf = old_mf;
+
+    if (f.ds.comm_h.is_root())
+        std::cout << "SOC magnetic q-star: 4 -> 3 q, antiunitary restore, all tensor max="
+                  << maximum << '\n';
+}
+
+void test_noncollinear_magnetic_crpa()
+{
+    MagneticModel model;
+    Dataset ds(MPI_COMM_WORLD);
+    ds.basis_wfc.set(std::vector<std::size_t>{1, 1, 1});
+    ds.basis_wfc.set_l_shells({{0}, {0}, {0}});
+    ds.basis_aux.set(std::vector<std::size_t>{1, 1, 1});
+    ds.basis_aux.set_l_shells({{0}, {0}, {0}});
+    ds.mf.set(1, 9, 6, 3, 2);
+    ds.mf.get_efermi() = (model.eigenvalues[2] + model.eigenvalues[3]) * 0.5;
+    ds.pbc.set_latvec_and_G(std::vector<double>(model.lattice, model.lattice + 9),
+                            std::vector<double>(model.reciprocal, model.reciprocal + 9));
+    std::vector<double> kvec;
+    for (int x = -1; x <= 1; ++x)
+        for (int y = -1; y <= 1; ++y)
+        {
+            const Vector3_Order<double> cart{Vector3_Order<double>{x / 3.0, y / 3.0, 0} * ds.pbc.G};
+            // The public BvK input includes 2pi, whereas internal pbc.G does not.
+            kvec.insert(kvec.end(), {TWO_PI * cart.x, TWO_PI * cart.y, TWO_PI * cart.z});
+        }
+    ds.pbc.set_kgrids_kvec(3, 3, 1, kvec);
+    ds.scfk_blacs_ctxt.init(KPointBlacsProcessShape(1, ds.comm_h.nprocs, true), MPI_COMM_WORLD, 9);
+    ds.desc_wfc_kb_full = ds.scfk_blacs_ctxt.create_array_desc(6, 3, 6, 3);
+    ds.desc_abf.reset_handler(ds.blacs_h);
+    ds.desc_abf.init_1b1p(3, 3, 0, 0);
+    ds.tfg.reset(24);
+    ds.tfg.generate_minimax(0.4, 4.0);
+    std::vector<SiteOrbitalGroup> sites;
+    ComplexMatrix trial(6, 6), overlap(6, 6);
+    overlap.set_as_identity_matrix();
+    for (int a = 0; a < 3; ++a)
+    {
+        sites.push_back({"magnetic-site-" + std::to_string(a), 2 * a, 2, a, {}});
+        trial(a, 2 * a) = trial(a + 3, 2 * a + 1) = 1;
+        ds.atoms.types[a] = 0;
+        const Vector3_Order<double> cart{model.positions[3 * a], model.positions[3 * a + 1], 0};
+        const Vector3_Order<double> frac{cart * ds.pbc.latvec.Inverse()};
+        ds.atoms.coords_frac[a] = Vector3<double>{frac.x, frac.y, frac.z};
+    }
+    CorrelatedSubspace frame(sites, ds.pbc.kfrac_list, ds.pbc.Rlist, 6, 6, 1);
+    for (int k = 0; k < 9; ++k)
+    {
+        for (int spin = 0; spin < 2; ++spin)
+        {
+            ComplexMatrix c(6, 3);
+            for (int band = 0; band < 6; ++band)
+                for (int a = 0; a < 3; ++a) c(band, a) = model.eigenvectors(a + 3 * spin, band);
+            ds.mf.get_eigenvectors()[0][spin][k] = c;
+        }
+        for (int band = 0; band < 6; ++band)
+        {
+            ds.mf.get_eigenvals()[0](k, band) = model.eigenvalues[band];
+            ds.mf.get_weight()[0](k, band) = band < 3 ? 1.0 / 9 : 0;
+        }
+        frame.set_S_k(k, overlap);
+        frame.set_W_k(k, trial);
+        if (ds.comm_h.is_root())
+            for (int a = 0; a < 3; ++a)
+                for (int b = a; b < 3; ++b)
+                {
+                    auto block = std::make_shared<ComplexMatrix>(1, 1);
+                    (*block)(0, 0) = a == b ? 1.2 : 0.08;
+                    ds.vq[a][b][ds.pbc.klist[k]] = block;
+                }
+    }
+    frame.compute_T_R();
+    if (ds.comm_h.is_root())
+    {
+        ds.cs_data.use_libri = true;
+        for (int a = 0; a < 3; ++a)
+        {
+            auto value = std::make_shared<std::valarray<double>>(0.5, 1);
+            ds.cs_data.data_libri[a][{a, {0, 0, 0}}] = RI::Tensor<double>({1, 1, 1}, value);
+        }
+    }
+    const auto assigned =
+        dispatch_upper_triangular_tasks(3, ds.blacs_h.myid, ds.blacs_h.nprows, ds.blacs_h.npcols,
+                                        ds.blacs_h.myprow, ds.blacs_h.mypcol);
+    std::vector<atpair_t> pairs(assigned.begin(), assigned.end());
+    std::map<Vector3_Order<double>, ComplexMatrix> transform;
+    Chi0::BandSelection selection(1, std::vector<std::vector<double>>(9, {1, 1, 1, 1, 0, 0}));
+    const auto calculate = [&](bool symmetry, bool check_shared = false)
+    {
+        Chi0 chi(ds.mf, ds.basis_wfc, ds.basis_aux, ds.pbc, ds.symmetry_context, ds.tfg,
+                 ds.scfk_blacs_ctxt, ds.desc_wfc_kb_full, false, symmetry);
+        chi.qstar_only_symmetry = true;
+        chi.gf_threshold = chi.libri_threshold_C = chi.libri_threshold_G = 0;
+        CrpaContext context{chi,       ds.cs_data, ds.basis_aux, pairs,
+                            transform, ds.vq,      ds.blacs_h,   ds.desc_abf};
+        const auto result = compute_crpa_onsite(context, selection, {&frame});
+        if (check_shared)
+        {
+            const auto original_mf = ds.mf;
+            auto full_response = build_crpa_total_response(context);
+            chi.swap_chi0_q(full_response);
+            const auto resident = chi.get_chi0_q();
+            auto incoming = selection;
+            for (auto& row : incoming[0]) row[0] = 0;
+            chi.set_band_selection(incoming);
+            if (ds.comm_h.is_root())
+                std::cout << "Shared-P0 U-only begin: noncollinear magnetic "
+                          << (symmetry ? "q-star" : "full q") << " resident alias" << std::endl;
+            const auto shared =
+                evaluate_crpa_onsite_from_response(context, selection, {&frame}, chi.get_chi0_q());
+            if (ds.comm_h.is_root()) std::cout << "Shared-P0 U-only end\n";
+            const double maximum = compare_u_only(shared, result);
+            compare_responses(chi.get_chi0_q(), resident);
+            if (chi.get_band_selection() != incoming)
+                throw std::runtime_error("magnetic shared-response cRPA leaked its selector");
+            compare_meanfields(ds.mf, original_mf);
+            if (ds.comm_h.is_root())
+                std::cout << "Noncollinear magnetic shared-P0 " << (symmetry ? "q-star" : "full q")
+                          << ": all v/U max=" << maximum
+                          << "; resident P0, selector, E/C/f unchanged\n";
+        }
+        return std::pair{result, chi.active_qpoints().size()};
+    };
+    const auto full = calculate(false, true);
+    const auto original_mf = ds.mf;
+    ComplexMatrix spatial_overlap(3, 3);
+    spatial_overlap.set_as_identity_matrix();
+    const auto orbital = analyze_orbital_weights(
+        ds.basis_wfc, orbital_convention(), {0, 0, 0}, ds.mf,
+        std::vector<ComplexMatrix>(9, spatial_overlap), std::vector<double>(9, 1.0 / 9), 1e-11);
+    for (int k = 0; k < 9; ++k)
+        for (int band = 0; band < 6; ++band)
+            for (int atom = 0; atom < 3; ++atom)
+            {
+                const double charge = std::norm(model.eigenvectors(atom, band)) +
+                                      std::norm(model.eigenvectors(atom + 3, band));
+                const auto& state = orbital.states[6 * k + band];
+                close(state.mulliken_ao[atom], charge, 2e-12);
+                close(state.lowdin_ao[atom], charge, 2e-12);
+                close(state.mulliken[atom], charge, 2e-12);
+                close(state.lowdin[atom], charge, 2e-12);
+            }
+    compare_meanfields(ds.mf, original_mf);
+    const auto analyzed = calculate(false);
+    const double analysis_tensor_maximum = compare_tensors(analyzed.first, full.first);
+    if (ds.comm_h.is_root())
+        std::cout << "Noncollinear magnetic orbital analysis: 3 atom weights; eigenpairs "
+                     "unchanged; all v/U/W max="
+                  << analysis_tensor_maximum << '\n';
+    ds.basis_convention.bloch_phase = -1;
+    ds.basis_convention.bloch_ratom = 0;
+    ds.basis_convention.order = LIBRPA_ANGULAR_ORDER_ABS_PM;
+    ds.basis_convention.coeff_m_negative = ds.basis_convention.coeff_m_positive =
+        LIBRPA_RSH_COEFF_1_M;
+    for (int i = 0; i < 6; ++i)
+    {
+        std::array<double, 9> rotation;
+        for (int j = 0; j < 9; ++j) rotation[j] = model.operations[9 * i + j];
+        ds.spg_symops.push_back({rotation, {0, 0, 0}, true});
+        SymmetrySpinOperation op;
+        op.spatial_id = i;
+        op.antiunitary = model.antiunitary[i];
+        op.spin_source = SymmetrySpinActionSource::DerivedFromSpatialSOC;
+        ds.spg_spin_ops.push_back(op);
+    }
+    ds.spg_spin_ops_explicit = true;
+    ds.spg_grey_group = false;
+    initialize_symmetry_context(ds, true);
+    const auto reduced = calculate(true, true);
+    if (ds.symmetry_context.spin_operations.size() != 6 || reduced.second >= full.second)
+        throw std::runtime_error("explicit magnetic table was widened or did not reduce q points");
+    double maximum = 0;
+    for (int site = 0; site < full.first.tensors.size(); ++site)
+        for (int node = 0; node < full.first.frequencies.size(); ++node)
+            for (const auto pair : {std::pair{&full.first.tensors[site].u[node],
+                                              &reduced.first.tensors[site].u[node]},
+                                    std::pair{&full.first.tensors[site].w[node],
+                                              &reduced.first.tensors[site].w[node]}})
+                for (int i = 0; i < pair.first->size; ++i)
+                {
+                    maximum = std::max(maximum, std::abs(pair.first->c[i] - pair.second->c[i]));
+                    close(pair.first->c[i], pair.second->c[i], 2e-11);
+                }
+    if (ds.comm_h.is_root())
+        std::cout << "Noncollinear magnetic cRPA: " << full.second << " -> " << reduced.second
+                  << " q; 3 unitary + 3 antiunitary; complete U/W max=" << maximum << '\n';
+}
+
 void test_soc_and_spin_representation()
 {
     Fixture original(true, 0.37), rotated(true, 0.37, 0.61);
@@ -919,6 +1394,58 @@ void test_soc_and_spin_representation()
     for (const auto& phi : changed.orbitals_spin_k.at(0))
         for (int i = 0; i < 6; ++i)
             for (int a = 0; a < 2; ++a) close(phi(i, a), i == 3 * a ? 1.0 : 0.0, 1e-12);
+    // A public SOC setter with a supplied SU(2) matrix must preserve that
+    // matrix through initialization. The null case instead derives identity
+    // from the spatial identity. Compare the resulting density rotation to an
+    // independent dense calculation, including the grey-group Theta partner.
+    std::unique_ptr<LibrpaHandler, decltype(&librpa_destroy_handler)> public_handler(
+        librpa_create_handler(MPI_COMM_WORLD), &librpa_destroy_handler);
+    auto* handle = public_handler.get();
+    const int rotation[] = {1, 0, 0, 0, 1, 0, 0, 0, 1};
+    const double lattice[] = {1, 0, 0, 0, 1, 0, 0, 0, 1};
+    const double reciprocal[] = {TWO_PI, 0, 0, 0, TWO_PI, 0, 0, 0, TWO_PI};
+    const double origin[] = {0, 0, 0};
+    const int species = 0;
+    librpa_set_scf_dimension(handle, 1, 1, 2, 1, 2);
+    librpa_set_latvec_and_G(handle, lattice, reciprocal);
+    librpa_set_atoms(handle, 1, &species, origin);
+    librpa_set_kgrids_kvec(handle, 1, 1, 1, 1, origin, nullptr);
+    const double c = std::cos(0.43), s = std::sin(0.43);
+    const double supplied_u[] = {c, 0, 0, s, 0, s, c, 0};
+    ComplexMatrix density(2, 2), supplied(2, 2), theta(2, 2);
+    density(0, 0) = 0.7;
+    density(1, 1) = 0.3;
+    density(0, 1) = Z(0.13, 0.24);
+    density(1, 0) = std::conj(density(0, 1));
+    supplied(0, 0) = supplied(1, 1) = c;
+    supplied(0, 1) = supplied(1, 0) = Z(0, s);
+    theta(0, 1) = 1;
+    theta(1, 0) = -1;
+    SpinorBlocks4<ComplexMatrix> blocks{ComplexMatrix(1, 1), ComplexMatrix(1, 1),
+                                        ComplexMatrix(1, 1), ComplexMatrix(1, 1)};
+    blocks.b00(0, 0) = density(0, 0);
+    blocks.b01(0, 0) = density(0, 1);
+    blocks.b10(0, 0) = density(1, 0);
+    blocks.b11(0, 0) = density(1, 1);
+    for (bool provided : {false, true})
+    {
+        librpa_set_symmetry_spin_operations(handle, 1, 1, rotation, nullptr, nullptr,
+                                            provided ? supplied_u : nullptr, 2, 1);
+        const auto public_ds = api::get_dataset_instance(handle);
+        initialize_symmetry_context(*public_ds, false);
+        for (const auto& operation : public_ds->symmetry_context.spin_operations)
+        {
+            auto expected = provided ? supplied * density * transpose(supplied, true) : density;
+            if (operation.antiunitary) expected = theta * conj(expected) * transpose(theta, true);
+            const auto transformed = transform_spinor_bilinear(
+                operation, blocks, [](std::size_t, const ComplexMatrix& value) { return value; },
+                BilinearConvention::SourceToTarget_DXDdag);
+            close(transformed.b00(0, 0), expected(0, 0), 1e-12);
+            close(transformed.b01(0, 0), expected(0, 1), 1e-12);
+            close(transformed.b10(0, 0), expected(1, 0), 1e-12);
+            close(transformed.b11(0, 0), expected(1, 1), 1e-12);
+        }
+    }
 }
 
 void test_soc_bloch_phases()
@@ -1046,6 +1573,8 @@ int main(int argc, char** argv)
         test_zero_soc_limit();
         test_soc_and_spin_representation();
         test_soc_bloch_phases();
+        test_magnetic_qstar_screening();
+        test_noncollinear_magnetic_crpa();
         test_constrained_soc_optical();
     }
     catch (const std::exception& failure)

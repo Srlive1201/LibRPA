@@ -6,6 +6,7 @@
 #include <cstring>
 #include <limits>
 #include <set>
+#include <sstream>
 #include <unordered_map>
 
 #include "../io/stl_io_helper.h"
@@ -16,6 +17,7 @@
 #include "../utils/constants.h"
 #include "../utils/profiler.h"
 #include "atomic_basis.h"
+#include "dielecmodel.h"
 #include "librpa_enums.h"
 #include "symmetry_context.h"
 #include "utils_atomic_basis_blacs.h"
@@ -28,6 +30,228 @@
 
 namespace librpa_int
 {
+
+SymmetryExpandedMeanField expand_symmetry_meanfield(const MeanField &source,
+                                                    const AtomicBasis &basis,
+                                                    const PeriodicBoundaryData &pbc,
+                                                    const SymmetryContext &context)
+{
+    const int nk = pbc.get_n_cells_bvk(), loaded = source.get_n_kpoints();
+    const int bands = source.get_n_bands(), naos = source.get_n_aos();
+    const int spins = source.get_n_spins(), components = source.get_n_spinor();
+    const auto layouts = basis.build_species_basis_layouts(context.atom_to_type);
+    const auto atom_nw = basis.get_atom_nb_map();
+    if (bands != naos * components || loaded != pbc.kfrac_list.size() ||
+        nk != pbc.kfrac_list_full.size() || pbc.weight_k.size() != loaded ||
+        !can_restore_symmetry_kstar_meanfield(context, layouts, source, pbc.kfrac_list, atom_nw))
+        throw LIBRPA_RUNTIME_ERROR(
+            "IBZ meanfield expansion requires complete square source frames and k stars");
+    validate_spin_operations_for_storage(context, spins, components);
+    SymmetryExpandedMeanField result{MeanField(spins, nk, bands, naos, components),
+                                     std::vector<int>(nk, -1), std::vector<bool>(nk)};
+    result.meanfield.get_efermi() = source.get_efermi();
+    for (int ik = 0; ik < loaded; ++ik)
+    {
+        const auto &star = find_symmetry_kstar_for_ibz_kpoint(context, pbc.kfrac_list[ik]);
+        const double weight = pbc.weight_k[ik];
+        if (!std::isfinite(weight) || weight <= 0 ||
+            std::abs(weight * nk - star.members.size()) > 1e-8)
+            throw LIBRPA_RUNTIME_ERROR(
+                "IBZ expansion requires normalized star-multiplicity k weights");
+        for (const auto &member : star.members)
+        {
+            const int target =
+                fold_fractional_kpoint_to_targets(member.k_bz, pbc.kfrac_list_full, 1e-8)
+                    .target_k_index;
+            if (target < 0 || result.source_k[target] >= 0)
+                throw LIBRPA_RUNTIME_ERROR(
+                    "IBZ expansion has a missing or duplicate k-star member");
+            result.source_k[target] = ik;
+            result.antiunitary[target] = member.time_reversal;
+            for (int spin = 0; spin < spins; ++spin)
+            {
+                if (components == 2)
+                {
+                    const std::array<ComplexMatrix, 2> input{*source.find_wfc(spin, 0, ik),
+                                                             *source.find_wfc(spin, 1, ik)};
+                    auto rotated = rotate_headwing_spinor_wfc_to_kstar_member(
+                        context, member, layouts, atom_nw, pbc.kfrac_list[ik], input,
+                        &pbc.kfrac_list_full[target]);
+                    for (int component = 0; component < 2; ++component)
+                        result.meanfield.get_eigenvectors()[spin][component][target] =
+                            std::move(rotated[component]);
+                }
+                else
+                    result.meanfield.get_eigenvectors()[spin][0][target] =
+                        rotate_headwing_wfc_to_kstar_member(
+                            context, member, layouts, atom_nw, pbc.kfrac_list[ik],
+                            *source.find_wfc(spin, 0, ik), &pbc.kfrac_list_full[target]);
+                for (int band = 0; band < bands; ++band)
+                {
+                    result.meanfield.get_eigenvals()[spin](target, band) =
+                        source.get_eigenvals()[spin](ik, band);
+                    // Loaded body occupations contain the star weight. Expand
+                    // to physical f/N_full exactly once, retaining source f.
+                    result.meanfield.get_weight()[spin](target, band) =
+                        source.get_weight()[spin](ik, band) / (weight * nk);
+                }
+            }
+        }
+    }
+    if (std::find(result.source_k.begin(), result.source_k.end(), -1) != result.source_k.end())
+        throw LIBRPA_RUNTIME_ERROR("IBZ expansion does not cover the complete full mesh");
+    return result;
+}
+
+void validate_symmetry_band_weights(const MeanField &mf, const AtomicBasis &basis,
+                                    const PeriodicBoundaryData &pbc,
+                                    const SymmetryContext &symmetry,
+                                    const std::vector<std::vector<std::vector<double>>> &weights)
+{
+    const int bands = mf.get_n_bands(), naos = mf.get_n_aos();
+    const int components = mf.get_n_spinor();
+    if (bands != naos * components || mf.get_n_kpoints() != pbc.get_n_cells_bvk() ||
+        !basis.has_l_shells() || !symmetry.available)
+        throw LIBRPA_RUNTIME_ERROR(
+            "magnetic endpoint weights require complete replicated full-grid AO/band frames");
+    for (int spin = 0; spin < mf.get_n_spins(); ++spin)
+        for (int k = 0; k < mf.get_n_kpoints(); ++k)
+        {
+            for (int component = 0; component < components; ++component)
+            {
+                const auto *c = mf.find_wfc(spin, component, k);
+                if (!c || c->nr != bands || c->nc != naos)
+                    throw LIBRPA_RUNTIME_ERROR(
+                        "magnetic covariance requires complete KS coefficients");
+                for (int i = 0; i < c->size; ++i)
+                    if (!std::isfinite(c->c[i].real()) || !std::isfinite(c->c[i].imag()))
+                        throw LIBRPA_RUNTIME_ERROR(
+                            "magnetic covariance found non-finite KS coefficients");
+            }
+            for (int band = 0; band < bands; ++band)
+                if (!std::isfinite(mf.get_eigenvals()[spin](k, band)) ||
+                    !std::isfinite(mf.get_weight()[spin](k, band)))
+                    throw LIBRPA_RUNTIME_ERROR("magnetic covariance found non-finite E/f");
+        }
+    validate_spin_operations_for_storage(symmetry, mf.get_n_spins(), components);
+    const auto layouts = basis.build_species_basis_layouts(symmetry.atom_to_type);
+    const auto atom_nw = basis.get_atom_nb_map();
+    int lmax = 0;
+    for (const auto &layout : layouts) lmax = std::max(lmax, layout.max_l);
+
+    // Include little-group operations too: checking only the chosen k-star
+    // routes would miss a target that breaks a stabilizer of a representative.
+    auto context = symmetry;
+    context.kspace_actions.clear();
+    for (std::size_t operation = 0; operation < context.spin_operations.size(); ++operation)
+        context.kspace_actions.push_back({operation, {operation}});
+
+    constexpr double tolerance = 2e-7;
+    const auto packed = [&](int spin, int k)
+    {
+        ComplexMatrix result(bands, bands);
+        for (int component = 0; component < components; ++component)
+        {
+            const auto *c = mf.find_wfc(spin, component, k);
+            if (!c || c->nr != bands || c->nc != naos)
+                throw LIBRPA_RUNTIME_ERROR(
+                    "magnetic endpoint weights found an incomplete KS frame");
+            for (int band = 0; band < bands; ++band)
+                for (int ao = 0; ao < naos; ++ao)
+                    result(component * naos + ao, band) = (*c)(band, ao);
+        }
+        return result;
+    };
+    for (int target = 0; target < mf.get_n_kpoints(); ++target)
+    {
+        std::vector<ComplexMatrix> inverse;
+        for (int spin = 0; spin < mf.get_n_spins(); ++spin)
+        {
+            auto c = packed(spin, target);
+            std::vector<int> pivot(bands);
+            std::vector<std::complex<double>> work(bands);
+            int info = 0;
+            LapackConnector::getrf(bands, bands, c.c, bands, pivot.data(), info);
+            if (!info)
+                LapackConnector::getri(bands, c.c, bands, pivot.data(), work.data(), bands, info);
+            if (info)
+                throw LIBRPA_RUNTIME_ERROR("magnetic endpoint weights found a singular KS frame");
+            inverse.push_back(std::move(c));
+        }
+        for (std::size_t operation = 0; operation < context.spin_operations.size(); ++operation)
+        {
+            const auto &op = context.spin_operations[operation];
+            auto source_k = apply_space_group_rotation_to_kpoint(
+                context.rspace_operations.at(op.spatial_id), pbc.kfrac_list[target]);
+            if (op.antiunitary) source_k = source_k * -1.0;
+            const int source =
+                fold_fractional_kpoint_to_targets(source_k, pbc.kfrac_list, 1e-8).target_k_index;
+            if (source < 0)
+                throw LIBRPA_RUNTIME_ERROR(
+                    "magnetic endpoint weights require a symmetry-closed k grid");
+            auto member = build_symmetry_kspace_operation_member(
+                context, static_cast<int>(op.spatial_id), op.antiunitary, pbc.kfrac_list[target],
+                pbc.kfrac_list[source], lmax);
+            member.action_id = operation;
+            for (int spin = 0; spin < mf.get_n_spins(); ++spin)
+            {
+                ComplexMatrix generated(bands, bands);
+                if (components == 2)
+                {
+                    const std::array<ComplexMatrix, 2> source_c{*mf.find_wfc(spin, 0, source),
+                                                                *mf.find_wfc(spin, 1, source)};
+                    const auto rotated = rotate_headwing_spinor_wfc_to_kstar_member(
+                        context, member, layouts, atom_nw, pbc.kfrac_list[source], source_c,
+                        &pbc.kfrac_list[target]);
+                    for (int component = 0; component < 2; ++component)
+                        for (int ao = 0; ao < naos; ++ao)
+                            for (int band = 0; band < bands; ++band)
+                                generated(component * naos + ao, band) =
+                                    rotated[component](band, ao);
+                }
+                else
+                    generated =
+                        transpose(rotate_headwing_wfc_to_kstar_member(
+                                      context, member, layouts, atom_nw, pbc.kfrac_list[source],
+                                      *mf.find_wfc(spin, 0, source), &pbc.kfrac_list[target]),
+                                  false);
+                const auto sewing = inverse[spin] * generated;
+                const auto metric = transpose(sewing, true) * sewing;
+                double residual = 0;
+                for (int row = 0; row < bands; ++row)
+                    for (int col = 0; col < bands; ++col)
+                    {
+                        residual = std::max(
+                            residual,
+                            std::abs(metric(row, col) - (row == col ? std::complex<double>(1.0)
+                                                                    : std::complex<double>{})));
+                        const double e_target = mf.get_eigenvals()[spin](target, row);
+                        const double e_source = mf.get_eigenvals()[spin](source, col);
+                        residual = std::max(
+                            residual, std::abs(sewing(row, col)) * std::abs(e_target - e_source) /
+                                          std::max({1.0, std::abs(e_target), std::abs(e_source)}));
+                        residual =
+                            std::max(residual, std::abs(sewing(row, col)) * mf.get_n_kpoints() *
+                                                   std::abs(mf.get_weight()[spin](target, row) -
+                                                            mf.get_weight()[spin](source, col)));
+                        if (!weights.empty())
+                            residual = std::max(residual, std::abs(sewing(row, col)) *
+                                                              std::abs(weights[spin][target][row] -
+                                                                       weights[spin][source][col]));
+                    }
+                if (!std::isfinite(residual) || residual > tolerance)
+                {
+                    std::ostringstream message;
+                    message << "magnetic KS/endpoint-weight covariance failed: k=" << target
+                            << ", source=" << source << ", spin=" << spin
+                            << ", operation=" << operation << ", residual=" << residual
+                            << "; use the full grid or a symmetry-compatible target/gauge";
+                    throw LIBRPA_RUNTIME_ERROR(message.str());
+                }
+            }
+        }
+    }
+}
 
 void redistribute_meanfield_eigvecs_kblacs(
     MeanField &mf, const KPointBlacsParallelContext &kblacs_ctxt,
@@ -2037,4 +2261,346 @@ extract_spinor_gf_block_kblacs(
     return gf_block;
 }
 
+std::map<Vector3_Order<int>, SpinorBlocks4<Matz>>
+get_symmetry_restored_dmat_cplx_Rs_kblacs_para_spinor(
+    int ispin, const MeanField &mf, const std::vector<Vector3_Order<double>> &kfrac_list,
+    const std::vector<Vector3_Order<int>> &Rs, const KPointBlacsParallelContext &kblacs_ctxt,
+    const ArrayDesc &desc_wfc, const ArrayDesc &desc_dm, const SymmetryContext &symmetry_context,
+    const PeriodicBoundaryData &pbc, const AtomicBasis &atbasis_wfc)
+{
+    global::profiler.start(__FUNCTION__);
+
+    if (!kblacs_ctxt.is_initialized())
+        throw LIBRPA_RUNTIME_ERROR("KPointBlacsParallelContext is not initialized");
+
+    const int n_aos = mf.get_n_aos();
+    const int n_states = mf.get_n_states();
+    const int n_kpoints = mf.get_n_kpoints();
+    if (mf.get_n_spinor() != 2)
+        throw LIBRPA_RUNTIME_ERROR("spinor k-BLACS density-matrix restore requires n_spinor == 2");
+    if (static_cast<int>(kfrac_list.size()) != n_kpoints)
+        throw LIBRPA_RUNTIME_ERROR("k-point fractional coordinate list has inconsistent size");
+    if (kblacs_ctxt.n_kpoints() != n_kpoints)
+        throw LIBRPA_RUNTIME_ERROR("k-point BLACS context has inconsistent number of k-points");
+    if (!desc_wfc.is_initialized() || !desc_dm.is_initialized())
+        throw LIBRPA_RUNTIME_ERROR("BLACS array descriptors are not initialized");
+    if (desc_wfc.m() != n_aos || desc_wfc.n() != n_states)
+        throw LIBRPA_RUNTIME_ERROR("wave-function descriptor must be n_aos x n_states");
+    if (desc_dm.m() != n_aos || desc_dm.n() != n_aos)
+        throw LIBRPA_RUNTIME_ERROR("density-matrix descriptor must be n_aos x n_aos");
+    if (desc_wfc.ictxt() != desc_dm.ictxt())
+        throw LIBRPA_RUNTIME_ERROR(
+            "wave-function and density-matrix descriptors must use the same BLACS context");
+
+    const auto atom_nw = atbasis_wfc.get_atom_nb_map();
+    const auto wfc_layouts =
+        atbasis_wfc.has_l_shells()
+            ? atbasis_wfc.build_species_basis_layouts(symmetry_context.atom_to_type)
+            : std::vector<SpeciesBasisLayout>{};
+    if (!can_restore_symmetry_kstar_meanfield(symmetry_context, wfc_layouts, mf, kfrac_list,
+                                              atom_nw))
+    {
+        throw LIBRPA_RUNTIME_ERROR(
+            "spinor k-BLACS density-matrix restore requires a restorable k-star context");
+    }
+
+    std::vector<int> n_Rs_all, Rs_all;
+    int nR_max;
+    collect_Rs(Rs, n_Rs_all, Rs_all, nR_max, kblacs_ctxt.comm_kpoint_h);
+
+    std::map<Vector3_Order<int>, SpinorBlocks4<Matz>> dmat_Rs;
+    for (const auto &R : Rs)
+    {
+        SpinorBlocks4<Matz> blocks;
+        blocks.b00 = Matz(desc_dm.m_loc(), desc_dm.n_loc(), MAJOR::COL);
+        blocks.b01 = Matz(desc_dm.m_loc(), desc_dm.n_loc(), MAJOR::COL);
+        blocks.b10 = Matz(desc_dm.m_loc(), desc_dm.n_loc(), MAJOR::COL);
+        blocks.b11 = Matz(desc_dm.m_loc(), desc_dm.n_loc(), MAJOR::COL);
+        dmat_Rs.emplace(R, std::move(blocks));
+    }
+    if (nR_max == 0)
+    {
+        global::profiler.stop(__FUNCTION__);
+        return dmat_Rs;
+    }
+
+    const auto target_pair_distribution =
+        get_balanced_ap_distribution_for_consec_descriptor(atbasis_wfc, atbasis_wfc, desc_dm, true);
+    IndexScheduler target_sched;
+    target_sched.init(target_pair_distribution, atbasis_wfc, atbasis_wfc, desc_dm, false);
+
+    std::set<atpair_t> target_pairs_local_set(target_sched.atpairs.cbegin(),
+                                              target_sched.atpairs.cend());
+    std::map<atpair_t, std::size_t> target_pair_offsets;
+    std::size_t block_size_total = 0;
+    for (const auto &pair : target_sched.atpairs)
+    {
+        target_pair_offsets[pair] = block_size_total;
+        block_size_total +=
+            atbasis_wfc.get_atom_nb(pair.first) * atbasis_wfc.get_atom_nb(pair.second);
+    }
+
+    const size_t wfc_size_loc = static_cast<size_t>(desc_wfc.m_loc()) * desc_wfc.n_loc();
+    if (block_size_total > static_cast<std::size_t>(std::numeric_limits<int>::max()) / 4)
+        throw LIBRPA_RUNTIME_ERROR(
+            "local symmetry-restored density-matrix block is too large for MPI collectives");
+
+    Matz scaled_wfc_ket(desc_wfc.m_loc(), desc_wfc.n_loc(), MAJOR::COL);
+    // Zero stand-in for a missing (bra, ket) wfc channel: keeps the pgemm
+    // collective intact while contributing a zero source block.
+    Matz zero_wfc_stand_in(desc_wfc.m_loc(), desc_wfc.n_loc(), MAJOR::COL);
+    zero_wfc_stand_in = C_ZERO;
+    auto wfc_gemm_workspace = create_wfc_gemm_workspace(desc_wfc, desc_dm, kblacs_ctxt.blacs_h);
+    const auto &iks_local = kblacs_ctxt.kpoints_local();
+    const int nk_local = iks_local.size();
+    int nk_sum = 0;
+    MPI_Allreduce(&nk_local, &nk_sum, 1, mpi_datatype<int>::value, MPI_SUM,
+                  kblacs_ctxt.comm_kpoint_h.comm);
+    if (nk_sum != n_kpoints)
+        throw LIBRPA_RUNTIME_ERROR("k-point BLACS context has inconsistent k-point distribution");
+
+    const double occ_thres = 1e-4 / n_kpoints;
+    const double scale_spin = 0.5 * mf.get_n_spins() * mf.get_n_spinor();
+    const auto member_kfrac_targets =
+        build_symmetry_kstar_member_kfrac_targets(symmetry_context, pbc);
+
+    // Identity orbital action for the per-atom-pair kernel call: the spatial
+    // rotation is applied per channel beforehand, so the kernel only performs
+    // the SU(2) mixing and the Theta remap.
+    const auto identity_orbit = [](std::size_t spatial_id, const ComplexMatrix &block)
+    {
+        (void)spatial_id;
+        return block;
+    };
+
+    for (int pid = 0; pid != kblacs_ctxt.comm_kpoint_h.nprocs; ++pid)
+    {
+        const int nR_this = n_Rs_all[pid];
+        if (nR_this < 1) continue;
+
+        const std::size_t count = static_cast<std::size_t>(nR_this) * block_size_total;
+        if (count > static_cast<std::size_t>(std::numeric_limits<int>::max()) / 4)
+        {
+            throw LIBRPA_RUNTIME_ERROR(
+                "local symmetry-restored density-matrix block is too large for MPI collectives");
+        }
+        // Four channels packed channel-major into one buffer: the reduce
+        // rounds are unchanged from the scalar path.
+        std::vector<cplxdb> buffer(4 * count, C_ZERO);
+
+        for (int ik_local = 0; ik_local != nk_local; ++ik_local)
+        {
+            const int ik = iks_local[ik_local];
+            const auto &k_ibz = kfrac_list[static_cast<std::size_t>(ik)];
+            const auto &star = find_symmetry_kstar_for_ibz_kpoint(symmetry_context, k_ibz);
+            const auto star_factor = 1.0 / static_cast<double>(star.members.size());
+
+            int nocc = 0;
+            std::vector<double> weights;
+            weights.reserve(n_states);
+            for (; nocc != n_states; ++nocc)
+            {
+                const double weight = mf.get_weight()[ispin](ik, nocc) * scale_spin;
+                if (weight < occ_thres) break;
+                weights.push_back(weight);
+            }
+
+            // Four source blocks D^{ab}(k_ibz), zero-filled when a (bra, ket)
+            // wfc channel is missing. pgemm is collective over the k-group
+            // BLACS grid, so it is called unconditionally with a zero
+            // stand-in block; spinor zero-fill must not break the collective.
+            Matz dmat_k[4];
+            for (int s = 0; s != 4; ++s)
+            {
+                dmat_k[s] = Matz(desc_dm.m_loc(), desc_dm.n_loc(), MAJOR::COL);
+                dmat_k[s] = C_ZERO;
+                const int ispinor_bra = s / 2;
+                const int ispinor_ket = s % 2;
+                const auto *wfc_bra = mf.find_wfc(ispin, ispinor_bra, ik);
+                const auto *wfc_ket = mf.find_wfc(ispin, ispinor_ket, ik);
+                if (wfc_bra != nullptr && static_cast<size_t>(wfc_bra->size) != wfc_size_loc)
+                    throw LIBRPA_RUNTIME_ERROR(
+                        "wave-function bra block size is inconsistent with descriptor");
+                if (wfc_ket != nullptr && static_cast<size_t>(wfc_ket->size) != wfc_size_loc)
+                    throw LIBRPA_RUNTIME_ERROR(
+                        "wave-function ket block size is inconsistent with descriptor");
+
+                scaled_wfc_ket = C_ZERO;
+                if (wfc_ket != nullptr && wfc_size_loc > 0)
+                    std::memcpy(scaled_wfc_ket.ptr(), wfc_ket->c, wfc_size_loc * sizeof(cplxdb));
+                const int wfc_m_loc = desc_wfc.m_loc();
+                std::vector<char> scale_wfc_col(desc_wfc.n_loc(), false);
+                std::vector<double> wfc_col_scale(desc_wfc.n_loc(), 1.0);
+                for (int jloc = 0; jloc != desc_wfc.n_loc(); ++jloc)
+                {
+                    const int jglob = desc_wfc.indx_l2g_c(jloc);
+                    if (jglob < 0 || jglob >= nocc) continue;
+                    scale_wfc_col[jloc] = true;
+                    wfc_col_scale[jloc] = weights[jglob];
+                }
+#pragma omp parallel for schedule(static) if (wfc_size_loc > 4096)
+                for (size_t i = 0; i < wfc_size_loc; ++i)
+                {
+                    const int jloc = static_cast<int>(i / wfc_m_loc);
+                    if (scale_wfc_col[jloc]) scaled_wfc_ket.ptr()[i] *= wfc_col_scale[jloc];
+                }
+
+                if (nocc > 0)
+                {
+                    const cplxdb *wfc_bra_ptr =
+                        wfc_bra == nullptr ? zero_wfc_stand_in.ptr() : wfc_bra->c;
+                    pgemm_wfc_scaled_wfc_h(n_aos, nocc, wfc_bra_ptr, scaled_wfc_ket.ptr(), desc_wfc,
+                                           wfc_gemm_workspace, dmat_k[s], desc_dm,
+                                           kblacs_ctxt.blacs_h);
+                }
+            }
+
+            for (std::size_t imember = 0; imember != star.members.size(); ++imember)
+            {
+                const auto &member = star.members[imember];
+                const auto &op =
+                    resolve_symmetry_kstar_member_spin_operation(symmetry_context, member);
+                const Vector3_Order<double> *k_bz_target = nullptr;
+                if (!member_kfrac_targets.empty() &&
+                    static_cast<std::size_t>(ik) < member_kfrac_targets.size() &&
+                    imember < member_kfrac_targets[static_cast<std::size_t>(ik)].size())
+                {
+                    k_bz_target = &member_kfrac_targets[static_cast<std::size_t>(ik)][imember];
+                }
+                const auto &k_for_phase = k_bz_target == nullptr ? member.k_bz : *k_bz_target;
+
+                // Spatial part only: time reversal is suppressed here and
+                // applied by the kernel remap; gauge phases are excluded and
+                // applied after the kernel as plain unitary factors.
+                SymmetryKStarMember spatial_member = member;
+                spatial_member.time_reversal = false;
+                const auto source_pair_requests = build_source_pair_requests(
+                    target_pair_distribution, member, atbasis_wfc.n_atoms);
+                const auto gauge_phases = build_symmetry_kstar_member_target_gauge_phases(
+                    symmetry_context, member, atom_nw.size(), k_bz_target);
+
+                symmetry_atom_block_matrix_map_t rotated[4];
+                for (int s = 0; s != 4; ++s)
+                {
+                    const auto source_pair_mats = get_ap_map_from_blacs_dist(
+                        dmat_k[s], source_pair_requests, atbasis_wfc, atbasis_wfc, desc_dm);
+                    symmetry_atom_block_matrix_map_t source_blocks;
+                    for (const auto &[pair, mat] : source_pair_mats)
+                    {
+                        source_blocks[pair.first][pair.second] = matz_to_complex_matrix(mat);
+                    }
+                    rotated[s] = rotate_symmetry_kspace_operator_blocks(
+                        symmetry_context, wfc_layouts, spatial_member, source_blocks, atom_nw,
+                        k_ibz, false, &target_pairs_local_set, nullptr);
+                }
+
+                for (const auto &atom_i_blocks : rotated[0])
+                {
+                    const auto atom_i = atom_i_blocks.first;
+                    const auto n_I = atbasis_wfc.get_atom_nb(atom_i);
+                    for (const auto &atom_j_block : atom_i_blocks.second)
+                    {
+                        const auto atom_j = atom_j_block.first;
+                        const auto n_J = atbasis_wfc.get_atom_nb(atom_j);
+                        // Union of the four channel block key sets, zero-filled
+                        // per channel: a pair present in only some channels must
+                        // not drop out of the joint kernel.
+                        const SpinorBlocks4<ComplexMatrix> pair_in{
+                            get_block_or_zero(rotated[0], atom_i, atom_j, n_I, n_J),
+                            get_block_or_zero(rotated[1], atom_i, atom_j, n_I, n_J),
+                            get_block_or_zero(rotated[2], atom_i, atom_j, n_I, n_J),
+                            get_block_or_zero(rotated[3], atom_i, atom_j, n_I, n_J),
+                        };
+                        auto pair_out = transform_spinor_bilinear(
+                            op, pair_in, identity_orbit, BilinearConvention::SourceToTarget_DXDdag);
+                        const auto gauge_factor =
+                            gauge_phases[atom_i] * std::conj(gauge_phases[atom_j]);
+                        pair_out.b00 *= gauge_factor;
+                        pair_out.b01 *= gauge_factor;
+                        pair_out.b10 *= gauge_factor;
+                        pair_out.b11 *= gauge_factor;
+
+                        const atpair_t pair{atom_i, atom_j};
+                        const auto offset_iter = target_pair_offsets.find(pair);
+                        if (offset_iter == target_pair_offsets.end()) continue;
+                        for (int iR = 0; iR != nR_this; ++iR)
+                        {
+                            const int index = pid * nR_max * 3 + iR * 3;
+                            const Vector3_Order<int> R{Rs_all[index], Rs_all[index + 1],
+                                                       Rs_all[index + 2]};
+                            const auto angle = -(k_for_phase * R) * TWO_PI;
+                            const cplxdb phase{std::cos(angle), std::sin(angle)};
+                            const cplxdb factor = star_factor * phase;
+                            const ComplexMatrix *channel_blocks[4] = {&pair_out.b00, &pair_out.b01,
+                                                                      &pair_out.b10, &pair_out.b11};
+                            for (int s = 0; s != 4; ++s)
+                            {
+                                const std::size_t block_offset =
+                                    (static_cast<std::size_t>(s) * nR_this + iR) *
+                                        block_size_total +
+                                    offset_iter->second;
+                                const auto &block = *channel_blocks[s];
+                                for (int i = 0; i != block.nr; ++i)
+                                {
+                                    for (int j = 0; j != block.nc; ++j)
+                                    {
+                                        buffer[block_offset + static_cast<std::size_t>(i) * n_J +
+                                               j] += factor * block(i, j);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        const int packed_count = static_cast<int>(4 * count);
+        if (kblacs_ctxt.comm_kpoint_h.myid == pid)
+        {
+            kblacs_ctxt.comm_kpoint_h.reduce(MPI_IN_PLACE, buffer.data(), packed_count, pid,
+                                             MPI_SUM);
+            for (int iR = 0; iR != nR_this; ++iR)
+            {
+                const int index = pid * nR_max * 3 + iR * 3;
+                const Vector3_Order<int> R{Rs_all[index], Rs_all[index + 1], Rs_all[index + 2]};
+                auto &blocks = dmat_Rs.at(R);
+                Matz *channel_mats[4] = {&blocks.b00, &blocks.b01, &blocks.b10, &blocks.b11};
+                for (int s = 0; s != 4; ++s)
+                {
+                    ap_p_map<Matz> dmat_ap;
+                    const std::size_t R_offset =
+                        (static_cast<std::size_t>(s) * nR_this + iR) * block_size_total;
+                    for (const auto &pair : target_sched.atpairs)
+                    {
+                        const auto n_I = atbasis_wfc.get_atom_nb(pair.first);
+                        const auto n_J = atbasis_wfc.get_atom_nb(pair.second);
+                        Matz block(n_I, n_J, MAJOR::COL);
+                        const std::size_t block_offset = R_offset + target_pair_offsets.at(pair);
+                        for (std::size_t i = 0; i != n_I; ++i)
+                        {
+                            for (std::size_t j = 0; j != n_J; ++j)
+                            {
+                                block(i, j) = buffer[block_offset + i * n_J + j];
+                            }
+                        }
+                        dmat_ap[pair] = std::move(block);
+                    }
+                    auto &mat = *channel_mats[s];
+                    mat = C_ZERO;
+                    fill_local_mat_from_ap_dist_scheduler(mat, dmat_ap, target_sched, atbasis_wfc,
+                                                          atbasis_wfc, desc_dm);
+                }
+            }
+        }
+        else
+        {
+            kblacs_ctxt.comm_kpoint_h.reduce(buffer.data(), buffer.data(), packed_count, pid,
+                                             MPI_SUM);
+        }
+    }
+
+    global::profiler.stop(__FUNCTION__);
+    return dmat_Rs;
+}
 }

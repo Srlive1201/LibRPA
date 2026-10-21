@@ -44,7 +44,7 @@ Chi0QMap form_crpa_constrained_response(CrpaContext &context, const Chi0QMap &fu
                                         Chi0QMap excluded_response);
 
 //! Consume an owning response and return Wc in the active 2D-distributed layout.
-//! Optical option 3 retains the standalone full-grid conventions.
+//! Optical option 3 and magnetic full-q restoration retain the standalone conventions.
 CrpaScreenedResponse screen_crpa_response(CrpaContext &context, Chi0QMap response,
                                           diele_func *optical = nullptr);
 

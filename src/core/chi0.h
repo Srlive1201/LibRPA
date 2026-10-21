@@ -122,6 +122,10 @@ public:
     const MpiCommHandler &comm_h;
     const KPointBlacsParallelContext &kblacs_ctxt;
 
+    //! Reduce response q sampling only; retain original full-k GF and full real-space contractions.
+    //! cRPA uses this route so the original endpoint mask is never lost in k-star restoration.
+    bool qstar_only_symmetry = false;
+
     double libri_threshold_C;
     double libri_threshold_G;
     int n_bands_exclude = 0;

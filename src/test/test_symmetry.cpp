@@ -262,6 +262,28 @@ static void test_row_fractional_rotation_to_cartesian()
     assert(fequal(direct_cart.z, rotated_cart.z));
 }
 
+static void test_rounded_hexagonal_rspace_sector_is_scale_invariant()
+{
+    const Matrix3 c3(-1.0, 1.0, 0.0, -1.0, 0.0, 0.0, 0.0, 0.0, 1.0);
+    const SpaceGroupSymOps operations{SpaceGroupSymOp{Matrix3::IDENTITY, {0.0, 0.0, 0.0}, true},
+                                      SpaceGroupSymOp{c3, {0.0, 0.0, 0.0}, true},
+                                      SpaceGroupSymOp{c3 * c3, {0.0, 0.0, 0.0}, true}};
+    const std::map<int, Vector3_Order<double>> positions{{0, {0.0, 0.0, 0.0}}};
+    const std::map<int, int> types{{0, 0}};
+    // The origin and the six hexagonal neighbours form three C3 orbits.
+    const std::vector<Vector3_Order<int>> neighbours{{0, 0, 0},  {1, 0, 0},  {0, 1, 0}, {-1, 1, 0},
+                                                     {-1, 0, 0}, {0, -1, 0}, {1, -1, 0}};
+    for (const double scale : {0.1, 1.0, 10.0})
+    {
+        // sqrt(3)/2 is rounded at realistic input precision. An absolute
+        // lattice-metric threshold wrongly loses C3 when the cell is scaled.
+        const Matrix3 lattice = Matrix3(10.0, 0.0, 0.0, 5.0, 8.660254, 0.0, 0.0, 0.0, 13.0) * scale;
+        const auto sector = build_space_group_rspace_irreducible_sector(
+            operations, positions, types, neighbours, &lattice);
+        assert(count_rspace_sector_entries(sector) == 3);
+    }
+}
+
 static void test_atom_to_inequivalent_symmetry_mapping()
 {
     const Matrix3 lattice_vectors;
@@ -641,6 +663,7 @@ int main()
     test_kpoint_stars_from_full_grid();
     test_lih_rocksalt_kstars_match_abacus();
     test_lih_rocksalt_rspace_irreducible_sectors_use_input_fractional_representatives();
+    test_rounded_hexagonal_rspace_sector_is_scale_invariant();
     test_get_space_group_atom_mapping_mgo();
     test_return_lattice_preserves_input_fractional_representative();
     test_direct_fractional_coordinates_fix_si_symmetry_atom_mapping();

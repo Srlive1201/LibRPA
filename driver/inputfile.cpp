@@ -294,13 +294,17 @@ static void validate_input_parameters()
                 throw std::runtime_error("g0w0_hr_unit must be Ha, Ry, or eV");
             if (params.g0w0_rr_unit != "Bohr" && params.g0w0_rr_unit != "Angstrom")
                 throw std::runtime_error("g0w0_rr_unit must be Bohr or Angstrom");
-            if (driver::opts.use_kpara_scf_eigvec == LIBRPA_SWITCH_ON ||
-                driver::opts.use_symmetry_rpa == LIBRPA_SWITCH_ON ||
-                driver::opts.use_symmetry_gw == LIBRPA_SWITCH_ON ||
-                driver::opts.use_symmetry_exx == LIBRPA_SWITCH_ON)
+            if (driver::opts.use_kpara_scf_eigvec == LIBRPA_SWITCH_ON)
                 throw std::runtime_error(
-                    "G0W0 native velocity requires replicated full-BZ wavefunctions without "
-                    "k-parallel or symmetry reduction");
+                    "G0W0 native velocity requires undistributed AO/band wavefunction blocks; "
+                    "set use_kpara_scf_eigvec = false");
+            const bool use_symmetry = driver::opts.use_symmetry_rpa == LIBRPA_SWITCH_ON ||
+                                      driver::opts.use_symmetry_gw == LIBRPA_SWITCH_ON ||
+                                      driver::opts.use_symmetry_exx == LIBRPA_SWITCH_ON;
+            if (use_symmetry && !params.use_spinor_wfc)
+                throw std::runtime_error(
+                    "Scalar G0W0 native velocity requires a full-BZ input without symmetry "
+                    "reduction");
             if (params.use_pyatb)
                 throw std::runtime_error("G0W0 native velocity requires use_pyatb = false");
         }

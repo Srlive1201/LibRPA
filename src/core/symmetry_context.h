@@ -13,15 +13,16 @@
 #include <string>
 #include <vector>
 
-#include "atom.h"
-#include "atomic_basis.h"
-#include "geometry.h"
-#include "pbc.h"
-#include "symmetry_types.h"
 #include "../math/complexmatrix.h"
 #include "../math/matrix3.h"
 #include "../math/symmetry.h"
 #include "../math/vector3_order.h"
+#include "atom.h"
+#include "atomic_basis.h"
+#include "geometry.h"
+#include "pbc.h"
+#include "qpoint_types.h"
+#include "symmetry_types.h"
 
 namespace librpa_int
 {
@@ -242,6 +243,13 @@ symmetry_atom_block_matrix_map_t symmetrize_symmetry_ibz_kspace_operator_blocks(
     const std::map<atom_t, size_t>& atom_nabf,
     const std::set<std::pair<atom_t, atom_t>>* target_atom_pairs = nullptr);
 
+// Restore rectangular auxiliary maps using separate left/right shell actions.
+// Existing full-grid coefficients are checked and retained without averaging.
+std::map<Vector3_Order<double>, ComplexMatrix> restore_symmetry_rectangular_q_map(
+    const std::map<Vector3_Order<double>, ComplexMatrix>& input, const PeriodicBoundaryData& pbc,
+    const SymmetryQPointView& view, const SymmetryContext& context, const AtomicBasis& left,
+    const AtomicBasis& right);
+
 ComplexMatrix rotate_symmetry_kspace_matrix(const SymmetryContext& ctx,
                                           const std::vector<SpeciesBasisLayout>& layouts,
                                           const SymmetryKStarMember& member,
@@ -297,12 +305,14 @@ std::vector<std::complex<double>> build_symmetry_kstar_member_target_gauge_phase
  * @brief Resolve the spin-space operation of one k-star member through the
  * action_id -> kspace_actions -> spin_operations link.
  *
+ * The member stores the full-to-representative operation. Return its inverse
+ * spin action to match representative-to-full orbital restoration.
+ *
  * Throws LIBRPA_RUNTIME_ERROR when the link is missing or inconsistent with
  * the member's legacy (spatial_isym, time_reversal) fields.
  */
-const SymmetrySpinOperation& resolve_symmetry_kstar_member_spin_operation(
-    const SymmetryContext& ctx,
-    const SymmetryKStarMember& member);
+SymmetrySpinOperation resolve_symmetry_kstar_member_spin_operation(
+    const SymmetryContext& ctx, const SymmetryKStarMember& member);
 
 symmetry_irreducible_sector_t build_symmetry_rspace_irreducible_sector(
     const SymmetryContext& ctx,
@@ -368,16 +378,18 @@ bool symmetry_rspace_restore_member_is_antiunitary(
     const SymmetryRSpaceRestoreMember& member);
 
 /*!
- * @brief Resolve the full (g, U_s, eta) operation behind a real-space restore member.
+ * @brief Resolve the source-to-target spin action for a real-space restore member.
  *
- * Members built without spin-operation metadata (`operation_id ==
- * kOperationIdNone`) resolve to a shared identity operation so legacy scalar
- * contexts keep their established behavior. For metadata-bearing members the
- * link is validated against `member.isym`; an inconsistent link throws.
+ * Sector-star members store an operation whose spatial inverse maps the
+ * irreducible block to the full target. The matching source-to-target spin
+ * action is therefore `U_s^dagger`; the antiunitary flag is retained. Members
+ * without spin-operation metadata (`operation_id == kOperationIdNone`) resolve
+ * to identity so legacy scalar contexts keep their established behavior. For
+ * metadata-bearing members the link is validated against `member.isym`; an
+ * inconsistent link throws.
  */
-const SymmetrySpinOperation& resolve_symmetry_rspace_restore_member_spin_operation(
-    const SymmetryContext& ctx,
-    const SymmetryRSpaceRestoreMember& member);
+SymmetrySpinOperation resolve_symmetry_rspace_restore_member_spin_operation(
+    const SymmetryContext& ctx, const SymmetryRSpaceRestoreMember& member);
 
 /*!
  * @brief Jointly restore the four spin-channel real-space maps of a spinor

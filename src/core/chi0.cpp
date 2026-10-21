@@ -447,7 +447,8 @@ static Chi0ExactCollectRequest make_padding_chi0_exact_collect_request(
 bool rspace_symmetry_has_complete_band_space(const MeanField &mf, const int n_bands)
 {
     const int n_bands_used = n_bands < 0 ? mf.get_n_bands() : n_bands;
-    return n_bands_used == mf.get_n_aos() && n_bands_used <= mf.get_n_bands();
+    const int n_basis_states = mf.get_n_aos() * mf.get_n_spinor();
+    return n_bands_used == n_basis_states && n_bands_used <= mf.get_n_bands();
 }
 
 #ifdef LIBRPA_USE_LIBRI
@@ -893,7 +894,18 @@ void Chi0::set_band_selection(const BandSelection &selection)
     }
     check_chi0_collective_error(
         comm_h, reference == flat ? "" : "Chi0 band selections differ between ranks");
-
+    if (!candidate.empty() && use_symmetry_context && qstar_only_symmetry)
+    {
+        try
+        {
+            validate_symmetry_band_weights(mf, atbasis_wfc, pbc, symmetry_context, candidate);
+        }
+        catch (const std::exception &failure)
+        {
+            error = failure.what();
+        }
+        check_chi0_collective_error(comm_h, error);
+    }
     band_selection_.swap(candidate);
 }
 
@@ -971,7 +983,7 @@ void Chi0::build(LibrpaParallelRouting routing, const Cs_LRI &Cs,
     {
         const bool supported =
             routing == LIBRPA_ROUTING_LIBRI && !is_mf_eigvec_k_distributed_ &&
-            !use_symmetry_context &&
+            (!use_symmetry_context || qstar_only_symmetry) &&
             (mf.get_n_spinor() == 1 || (mf.get_n_spinor() == 2 && mf.get_n_spins() == 1)) &&
             tfg.has_time_grids();
         check_chi0_collective_error(
@@ -2186,9 +2198,14 @@ void Chi0::build_chi0_q_space_time_LibRI_routing(const Cs_LRI &Cs,
         this->n_bands_exclude == 0
         && rspace_symmetry_has_complete_band_space(this->mf, this->nbands_G);
     const bool use_chi0_rspace_symmetry =
-        chi0_rspace_symmetry_available && chi0_band_space_complete;
-
-    if (chi0_rspace_symmetry_available && !chi0_band_space_complete && comm_h.is_root())
+        chi0_rspace_symmetry_available && chi0_band_space_complete && !qstar_only_symmetry;
+    if (qstar_only_symmetry && this->use_symmetry_context && comm_h.is_root())
+    {
+        global::lib_printf_root(
+            "cRPA q-star screening retains full original k-grid Green functions and full "
+            "real-space contractions\n");
+    }
+    else if (chi0_rspace_symmetry_available && !chi0_band_space_complete && comm_h.is_root())
     {
         const int n_bands_used =
             std::max(0, (this->nbands_G < 0 ? this->mf.get_n_bands() : this->nbands_G)
@@ -2498,16 +2515,16 @@ void Chi0::build_chi0_q_space_time_LibRI_routing(const Cs_LRI &Cs,
                     }
                     else
                     {
-                        build_gf_Rt_libri_serial(this->mf, this->band_mask, this->band_selection_,
-                                                 this->atbasis_wfc, isp, is1, is2, this->pbc,
-                                                 this->symmetry_context, this->use_symmetry_context,
-                                                 this->pbc.kfrac_list, this->IJRs_gf_local, tau,
-                                                 gf_po_libri);
-                        build_gf_Rt_libri_serial(this->mf, this->band_mask, this->band_selection_,
-                                                 this->atbasis_wfc, isp, is1, is2, this->pbc,
-                                                 this->symmetry_context, this->use_symmetry_context,
-                                                 this->pbc.kfrac_list, this->IJRs_gf_local, -tau,
-                                                 gf_ne_libri);
+                        build_gf_Rt_libri_serial(
+                            this->mf, this->band_mask, this->band_selection_, this->atbasis_wfc,
+                            isp, is1, is2, this->pbc, this->symmetry_context,
+                            this->use_symmetry_context && !this->qstar_only_symmetry,
+                            this->pbc.kfrac_list, this->IJRs_gf_local, tau, gf_po_libri);
+                        build_gf_Rt_libri_serial(
+                            this->mf, this->band_mask, this->band_selection_, this->atbasis_wfc,
+                            isp, is1, is2, this->pbc, this->symmetry_context,
+                            this->use_symmetry_context && !this->qstar_only_symmetry,
+                            this->pbc.kfrac_list, this->IJRs_gf_local, -tau, gf_ne_libri);
                     }
                     // LibRI contracts both Gs in the same AO/translation ordering.
                     // The bubble needs G_{s2,s1}(J,I,-R,-tau), which is the
