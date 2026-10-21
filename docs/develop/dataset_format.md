@@ -99,6 +99,13 @@ the full auxiliary basis, full Coulomb matrices, and producer head/wing data.
 The complete-Wc route requires full Coulomb for both the dielectric basis and
 the finite-q external legs, and it currently requires the ScaLAPACK Wc path.
 
+For native velocity, use `option_dielect_func = 6` with the native G0W0 H/S/r
+inputs, or with `task = qsgw` and its current-HR inputs. Retain the strict-2D
+settings above. Both drivers apply this same producer metadata to their
+analytic head/wing object; QSGW reapplies it after each rebuild and on restart.
+Only the normalization is fixed: QSGW recomputes the response from the live
+entering state and frequency grid. See [QSGW](../user_guide/qsgw.md#strict-two-dimensional-screening).
+
 Producer support is defined by this reader-v1 contract: a producer is
 supported when it writes `librpa_2d_coulomb_head.txt` and the matching full
 auxiliary-basis, Coulomb, and head/wing files from the same run. Older output

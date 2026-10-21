@@ -156,6 +156,20 @@ void print_band_analysis(const librpa_int::MeanField &mf,
     }
 }
 
+void write_energy_qp(const librpa_int::MeanField &mf,
+                     const std::vector<librpa_int::Vector3_Order<double>> &kfrac_output,
+                     const std::vector<int> &output_to_input_kpoint,
+                     const std::vector<librpa_int::matrix> &vxc, const std::vector<double> &vexx,
+                     const std::vector<librpa_int::cplxdb> &sigc, const int n_kpoints_data,
+                     const int i_state_low, const int n_states_calc,
+                     const std::vector<double> &kpoint_weights, const std::string &filename)
+{
+    std::ofstream output(filename);
+    if (!output) throw std::runtime_error("Cannot open quasiparticle energy output: " + filename);
+    write_energy_qp(output, mf, kfrac_output, output_to_input_kpoint, vxc, vexx, sigc,
+                    n_kpoints_data, i_state_low, n_states_calc, kpoint_weights);
+}
+
 void write_energy_qp(std::ostream &ofs, const librpa_int::MeanField &mf,
                      const std::vector<librpa_int::Vector3_Order<double>> &kfrac_output,
                      const std::vector<int> &output_to_input_kpoint,
@@ -210,19 +224,7 @@ void write_energy_qp(std::ostream &ofs, const librpa_int::MeanField &mf,
         ofs << sep << std::endl;
         ofs << std::endl;
     }
-}
-
-void write_energy_qp(const librpa_int::MeanField &mf,
-                     const std::vector<librpa_int::Vector3_Order<double>> &kfrac_output,
-                     const std::vector<int> &output_to_input_kpoint,
-                     const std::vector<librpa_int::matrix> &vxc, const std::vector<double> &vexx,
-                     const std::vector<librpa_int::cplxdb> &sigc, const int n_kpoints_data,
-                     const int i_state_low, const int n_states_calc,
-                     const std::vector<double> &kpoint_weights)
-{
-    std::ofstream output("energy_qp");
-    write_energy_qp(output, mf, kfrac_output, output_to_input_kpoint, vxc, vexx, sigc,
-                    n_kpoints_data, i_state_low, n_states_calc, kpoint_weights);
+    if (!ofs) throw std::runtime_error("Cannot write quasiparticle energy output");
 }
 
 void write_gw_band_spin_table(std::ostream &output, const librpa_int::MeanField &mf,

@@ -27,10 +27,10 @@ namespace librpa_int {
 
 bool rspace_symmetry_has_complete_band_space(const MeanField &mf, int n_bands);
 
+//! Object to handle calculation of independent repsonse function (\f$\chi_0\f$)
 using Chi0QMap =
     std::map<double, std::map<Vector3_Order<double>, atom_mapping<ComplexMatrix>::pair_t_old>>;
 
-//! Object to handle calculation of independent repsonse function (\f$\chi_0\f$)
 class Chi0
 {
 private:

@@ -85,6 +85,10 @@ void Handler::prepare_supplied_velocity(const Options& opts,
 {
     ::librpa_prepare_supplied_velocity(h_, &opts, &input, need_wing);
 }
+QsgwTask Handler::create_qsgw_task(const Options& opts, const LibrpaQsgwControls& controls) const
+{
+    return QsgwTask(::librpa_create_qsgw_task(h_, &opts, &controls), ::librpa_delete_qsgw_task);
+}
 
 /* Global environment functions */
 const char* get_build_info(void) { return ::librpa_get_build_info(); }

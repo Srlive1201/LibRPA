@@ -80,8 +80,13 @@ list(APPEND lib_sources
         api/compute_exx.cpp
         core/task_helpers.cpp
         api/compute_g0w0.cpp
+        api/compute_qsgw.cpp
         core/g0w0_task.cpp
         core/gw_output.cpp
+        core/qsgw/task.cpp
+        core/qsgw/checkpoint.cpp
+        core/qsgw/iteration_trace.cpp
+        core/qsgw/band_output.cpp
         api/compute_optical.cpp
         core/optical_task.cpp
         api/compute_rpa.cpp

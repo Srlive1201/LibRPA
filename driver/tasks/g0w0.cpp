@@ -1149,7 +1149,6 @@ void driver::task_g0w0()
                 ofs_hf.open(fn_hf.str());
                 ofs_ks.open(fn_ks.str());
 
-                ofs_gw << fixed;
                 ofs_hf << fixed;
                 ofs_ks << fixed;
 
@@ -1172,7 +1171,6 @@ void driver::task_g0w0()
                                                HA2EV;
                         const auto vxc_state = vxc_band_all[i_spin](i_kpoint, i_state) * HA2EV;
                         const auto exx_state = vexx_band_all[start_k+i] * HA2EV;
-                        // const auto &imsigc = sigc_band_all[start_k+i].imag() * HA2EV;
                         ofs_ks << setw(15) << std::setprecision(5) << occ_state << setw(15) << setprecision(5) << eks_state;
                         ofs_hf << setw(15) << std::setprecision(5) << occ_state << setw(15) << setprecision(5) << eks_state - vxc_state + exx_state;
                     }

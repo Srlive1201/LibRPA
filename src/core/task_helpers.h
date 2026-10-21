@@ -1,11 +1,15 @@
 #pragma once
 
+#include <librpa_options.h>
+
 #include <vector>
 
 #include "../mpi/base_mpi.h"
 #include "atom.h"
 #include "geometry.h"
+#include "meanfield.h"
 #include "pbc.h"
+#include "timefreq.h"
 
 namespace librpa_int
 {

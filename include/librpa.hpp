@@ -24,12 +24,14 @@
 #include "librpa_handler.h"
 #include "librpa_optical.h"
 #include "librpa_options.h"
+#include "librpa_qsgw.h"
 
 /**
  * @brief Main namespace for LibRPA C++ API.
  */
 namespace librpa
 {
+using QsgwTask = std::unique_ptr<LibrpaQsgwTask, decltype(&librpa_delete_qsgw_task)>;
 using OpticalResult = std::unique_ptr<LibrpaOpticalResult, decltype(&librpa_delete_optical_result)>;
 
 /** Owning read-only spectrum snapshot. Flat blocks are [spin][k][state].
@@ -260,9 +262,9 @@ public:
     std::string format_gw_energy_table(const LibrpaGwOutputInput &input) const;
     std::string format_gw_band_spin_table(const LibrpaGwOutputInput &input, int spin) const;
 
-    /** Prepare analytic head/wing from supplied numerical velocity/eigenframe data. */
     void prepare_supplied_velocity(const Options &opts, const LibrpaSuppliedVelocityInput &input,
                                    bool need_wing);
+    QsgwTask create_qsgw_task(const Options &opts, const LibrpaQsgwControls &controls) const;
 
     /* Input (set) functions */
 

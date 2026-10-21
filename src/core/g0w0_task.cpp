@@ -628,6 +628,97 @@ void dump_analycont_source_data(std::ostream &os, const librpa_int::AnalyCont &a
 
 }  // namespace
 
+void librpa_int::solve_g0w0_qpe_diagonal(
+    const MeanField &mf, const TFGrids &tfg, const LibrpaOptions &opts,
+    const std::vector<cplxdb> &sigc_diag, const std::vector<int> &iks_collect, int n_kpts_this,
+    const int *iks_this, int i_state_low, int n_states_calc, const double *vxc, const double *vexx,
+    double *sigc_re, double *sigc_im, double *eqp, const char *context, int *solver_info)
+{
+    const int n_spins = mf.get_n_spins();
+    const auto freq_nodes = tfg.get_freq_nodes();
+    const auto ik_pos = make_ik_pos_map(iks_collect);
+    const int nk_collect = static_cast<int>(iks_collect.size());
+    const int nfreq = static_cast<int>(freq_nodes.size());
+    if (sigc_diag.size() != static_cast<std::size_t>(n_spins) * nk_collect * nfreq * n_states_calc)
+        throw LIBRPA_RUNTIME_ERROR("Incomplete G0W0 diagonal self-energy input");
+    profiler.start("g0w0_solve_qpe", "Solve quasi-particle equation");
+    const auto efermi = mf.get_efermi();
+    const auto imagfreqs = make_imagfreqs(freq_nodes);
+    const auto anacon_grid = make_gw_anacon_grid(opts, mf, tfg, freq_nodes);
+    const auto hedin_shifts = compute_hedin_shifts(
+        opts, mf, sigc_diag, iks_collect, freq_nodes, imagfreqs, anacon_grid, n_spins, n_kpts_this,
+        iks_this, i_state_low, n_states_calc, vxc, vexx, context);
+
+    const auto thres_qpe = opts.qpe_solver_thres;
+    const auto n_iter_max = opts.qpe_solver_n_iter_max;
+    const auto damp_fac = opts.qpe_solver_damp_factor;
+    const auto option_qpe_solver = opts.option_qpe_solver;
+    const double diff_init = option_qpe_solver == 0 ? 1.0e-3 : 0.0;
+    const bool use_adaptive_damp = opts.use_qpe_adaptive_damp == LIBRPA_SWITCH_ON;
+    const bool use_legacy_nonadaptive_update = opts.use_qpe_legacy_update == LIBRPA_SWITCH_ON;
+    const bool override_qpe_solver_nan = opts.override_qpe_solver_nan == LIBRPA_SWITCH_ON;
+
+    for (int isp = 0; isp < n_spins; isp++)
+    {
+        const int start_isp = isp * n_kpts_this * n_states_calc;
+        // ofs_myid << exx_isp << endl;
+        for (int ik_this = 0; ik_this < n_kpts_this; ik_this++)
+        {
+            const int start_k = start_isp + ik_this * n_states_calc;
+            const int ik = *(iks_this + ik_this);
+            const int ik_collect = ik_pos.at(ik);
+            ofs_myid << "Start QPE solver for spin " << isp + 1 << " kpoint " << ik + 1
+                     << std::endl;
+            for (int i = 0; i < n_states_calc; i++)
+            {
+                const int i_state = i + i_state_low;
+                const auto &eks_state = mf.get_eigenvals()[isp](ik, i_state);
+                const auto &exx_state = vexx[start_k + i];
+                const auto &vxc_state = vxc[start_k + i];
+                std::vector<cplxdb> sigc_state;
+                for (int ifreq = 0; ifreq != nfreq; ++ifreq)
+                {
+                    const int idx = sigc_diag_index(isp, ik_collect, ifreq, i, nk_collect, nfreq,
+                                                    n_states_calc);
+                    sigc_state.emplace_back(sigc_diag[idx]);
+                }
+                double e_qp;
+                cplxdb sigc;
+                sigc_re[start_k + i] = std::numeric_limits<double>::quiet_NaN();
+                sigc_im[start_k + i] = std::numeric_limits<double>::quiet_NaN();
+                eqp[start_k + i] = std::numeric_limits<double>::quiet_NaN();
+                const auto pade =
+                    make_gw_anacon_pade(opts.n_params_anacon, gw_anacon_resample_n_params(opts),
+                                        imagfreqs, sigc_state, anacon_grid);
+                int flag_qpe_solver = solve_qpe_with_option(
+                    option_qpe_solver, pade, eks_state, efermi + hedin_shifts[start_k + i],
+                    vxc_state, exx_state, e_qp, sigc, diff_init, thres_qpe, n_iter_max, damp_fac,
+                    use_adaptive_damp, use_legacy_nonadaptive_update);
+                if (solver_info) solver_info[start_k + i] = flag_qpe_solver;
+                if (flag_qpe_solver != 0)
+                {
+                    ofs_myid << "Warning! QPE solver failed for spin " << isp + 1 << " kpoint "
+                             << ik + 1 << " state " << i_state + 1 << std::endl;
+                    dump_analycont_source_data(ofs_myid, pade, context, isp, ik, i_state);
+                    if (override_qpe_solver_nan)
+                    {
+                        ofs_myid << "Using final unconverged QPE result because "
+                                    "override_qpe_solver_nan is on"
+                                 << std::endl;
+                    }
+                }
+                if (flag_qpe_solver == 0 || override_qpe_solver_nan)
+                {
+                    sigc_re[start_k + i] = sigc.real();
+                    sigc_im[start_k + i] = sigc.imag();
+                    eqp[start_k + i] = e_qp;
+                }
+            }
+        }
+    }
+    profiler.stop("g0w0_solve_qpe");
+}
+
 void librpa_int::build_g0w0_sigma(Dataset &dataset, const LibrpaOptions &opts,
                                   const ResponseObserver &on_response)
 {
@@ -949,86 +1040,9 @@ void librpa_int::get_g0w0_qpe_kgrid(Dataset &dataset, const LibrpaOptions &opts,
     const auto sigc_diag = collect_sigc_diag_to_callers(
         pds->p_g0w0->sigc_diag_is_ik_f_KS, freq_nodes, pds->comm_h, publish_local_values, n_spins,
         pds->mf.get_n_kpoints(), n_kpts_this, iks_this, i_state_low, n_states_calc, iks_collect);
-    const auto ik_pos = make_ik_pos_map(iks_collect);
-    const int nk_collect = static_cast<int>(iks_collect.size());
-    const int nfreq = static_cast<int>(freq_nodes.size());
-
-    profiler.start("g0w0_solve_qpe", "Solve quasi-particle equation");
-    const auto efermi = pds->mf.get_efermi();
-    const auto imagfreqs = make_imagfreqs(freq_nodes);
-    const auto anacon_grid = make_gw_anacon_grid(opts, pds->mf, pds->tfg, freq_nodes);
-    const auto hedin_shifts = compute_hedin_shifts(
-        opts, pds->mf, sigc_diag, iks_collect, freq_nodes, imagfreqs, anacon_grid, n_spins,
-        n_kpts_this, iks_this, i_state_low, n_states_calc, vxc, vexx, "librpa_get_g0w0_qpe_kgrid");
-
-    const auto thres_qpe = opts.qpe_solver_thres;
-    const auto n_iter_max = opts.qpe_solver_n_iter_max;
-    const auto damp_fac = opts.qpe_solver_damp_factor;
-    const auto option_qpe_solver = opts.option_qpe_solver;
-    const double diff_init = option_qpe_solver == 0 ? 1.0e-3 : 0.0;
-    const bool use_adaptive_damp = opts.use_qpe_adaptive_damp == LIBRPA_SWITCH_ON;
-    const bool use_legacy_nonadaptive_update = opts.use_qpe_legacy_update == LIBRPA_SWITCH_ON;
-    const bool override_qpe_solver_nan = opts.override_qpe_solver_nan == LIBRPA_SWITCH_ON;
-
-    for (int isp = 0; isp < n_spins; isp++)
-    {
-        const int start_isp = isp * n_kpts_this * n_states_calc;
-        // ofs_myid << exx_isp << endl;
-        for (int ik_this = 0; ik_this < n_kpts_this; ik_this++)
-        {
-            const int start_k = start_isp + ik_this * n_states_calc;
-            const int ik = *(iks_this + ik_this);
-            const int ik_collect = ik_pos.at(ik);
-            ofs_myid << "Start QPE solver for spin " << isp + 1 << " kpoint " << ik + 1
-                     << std::endl;
-            for (int i = 0; i < n_states_calc; i++)
-            {
-                const int i_state = i + i_state_low;
-                const auto &eks_state = pds->mf.get_eigenvals()[isp](ik, i_state);
-                const auto &exx_state = vexx[start_k + i];
-                const auto &vxc_state = vxc[start_k + i];
-                std::vector<cplxdb> sigc_state;
-                for (int ifreq = 0; ifreq != nfreq; ++ifreq)
-                {
-                    const int idx = sigc_diag_index(isp, ik_collect, ifreq, i, nk_collect, nfreq,
-                                                    n_states_calc);
-                    sigc_state.emplace_back(sigc_diag[idx]);
-                }
-                double e_qp;
-                cplxdb sigc;
-                sigc_re[start_k + i] = std::numeric_limits<double>::quiet_NaN();
-                sigc_im[start_k + i] = std::numeric_limits<double>::quiet_NaN();
-                eqp[start_k + i] = std::numeric_limits<double>::quiet_NaN();
-                const auto pade =
-                    make_gw_anacon_pade(opts.n_params_anacon, gw_anacon_resample_n_params(opts),
-                                        imagfreqs, sigc_state, anacon_grid);
-                int flag_qpe_solver = solve_qpe_with_option(
-                    option_qpe_solver, pade, eks_state, efermi + hedin_shifts[start_k + i],
-                    vxc_state, exx_state, e_qp, sigc, diff_init, thres_qpe, n_iter_max, damp_fac,
-                    use_adaptive_damp, use_legacy_nonadaptive_update);
-                if (flag_qpe_solver != 0)
-                {
-                    ofs_myid << "Warning! QPE solver failed for spin " << isp + 1 << " kpoint "
-                             << ik + 1 << " state " << i_state + 1 << std::endl;
-                    dump_analycont_source_data(ofs_myid, pade, "librpa_get_g0w0_sigc_kgrid", isp,
-                                               ik, i_state);
-                    if (override_qpe_solver_nan)
-                    {
-                        ofs_myid << "Using final unconverged QPE result because "
-                                    "override_qpe_solver_nan is on"
-                                 << std::endl;
-                    }
-                }
-                if (flag_qpe_solver == 0 || override_qpe_solver_nan)
-                {
-                    sigc_re[start_k + i] = sigc.real();
-                    sigc_im[start_k + i] = sigc.imag();
-                    eqp[start_k + i] = e_qp;
-                }
-            }
-        }
-    }
-    profiler.stop("g0w0_solve_qpe");
+    librpa_int::solve_g0w0_qpe_diagonal(pds->mf, pds->tfg, opts, sigc_diag, iks_collect,
+                                        n_kpts_this, iks_this, i_state_low, n_states_calc, vxc,
+                                        vexx, sigc_re, sigc_im, eqp, "librpa_get_g0w0_qpe_kgrid");
 
     profiler.stop("api_get_g0w0_sigc_kgrid");
 }
@@ -1148,87 +1162,10 @@ void librpa_int::get_g0w0_qpe_band_k(Dataset &dataset, const LibrpaOptions &opts
         pds->p_g0w0->sigc_diag_is_ik_f_KS, freq_nodes, pds->comm_h, publish_local_values, n_spins,
         pds->mf_band.get_n_kpoints(), n_kpts_band_this, iks_band_this, i_state_low, n_states_calc,
         iks_collect);
-    const auto ik_pos = make_ik_pos_map(iks_collect);
-    const int nk_collect = static_cast<int>(iks_collect.size());
-    const int nfreq = static_cast<int>(freq_nodes.size());
-
-    profiler.start("g0w0_solve_qpe", "Solve quasi-particle equation");
-    const auto efermi = pds->mf_band.get_efermi();
-    const auto imagfreqs = make_imagfreqs(freq_nodes);
-    const auto anacon_grid = make_gw_anacon_grid(opts, pds->mf_band, pds->tfg, freq_nodes);
-    const auto hedin_shifts =
-        compute_hedin_shifts(opts, pds->mf_band, sigc_diag, iks_collect, freq_nodes, imagfreqs,
-                             anacon_grid, n_spins, n_kpts_band_this, iks_band_this, i_state_low,
-                             n_states_calc, vxc_band, vexx_band, "librpa_get_g0w0_qpe_band_k");
-
-    const auto thres_qpe = opts.qpe_solver_thres;
-    const auto n_iter_max = opts.qpe_solver_n_iter_max;
-    const auto damp_fac = opts.qpe_solver_damp_factor;
-    const auto option_qpe_solver = opts.option_qpe_solver;
-    const double diff_init = option_qpe_solver == 0 ? 1.0e-3 : 0.0;
-    const bool use_adaptive_damp = opts.use_qpe_adaptive_damp == LIBRPA_SWITCH_ON;
-    const bool use_legacy_nonadaptive_update = opts.use_qpe_legacy_update == LIBRPA_SWITCH_ON;
-    const bool override_qpe_solver_nan = opts.override_qpe_solver_nan == LIBRPA_SWITCH_ON;
-
-    for (int isp = 0; isp < n_spins; isp++)
-    {
-        const int start_isp = isp * n_kpts_band_this * n_states_calc;
-        // ofs_myid << exx_isp << endl;
-        for (int ik_this = 0; ik_this < n_kpts_band_this; ik_this++)
-        {
-            const int start_k = start_isp + ik_this * n_states_calc;
-            const int ik = *(iks_band_this + ik_this);
-            const int ik_collect = ik_pos.at(ik);
-            ofs_myid << "Start QPE solver for spin " << isp + 1 << " kpoint " << ik + 1
-                     << std::endl;
-            for (int i = 0; i < n_states_calc; i++)
-            {
-                const int i_state = i + i_state_low;
-                const auto &eks_state = pds->mf_band.get_eigenvals()[isp](ik, i_state);
-                const auto &exx_state = vexx_band[start_k + i];
-                const auto &vxc_state = vxc_band[start_k + i];
-                std::vector<cplxdb> sigc_state;
-                for (int ifreq = 0; ifreq != nfreq; ++ifreq)
-                {
-                    const int idx = sigc_diag_index(isp, ik_collect, ifreq, i, nk_collect, nfreq,
-                                                    n_states_calc);
-                    sigc_state.emplace_back(sigc_diag[idx]);
-                }
-                double e_qp;
-                cplxdb sigc;
-                sigc_band_re[start_k + i] = std::numeric_limits<double>::quiet_NaN();
-                sigc_band_im[start_k + i] = std::numeric_limits<double>::quiet_NaN();
-                eqp_band[start_k + i] = std::numeric_limits<double>::quiet_NaN();
-                const auto pade =
-                    make_gw_anacon_pade(opts.n_params_anacon, gw_anacon_resample_n_params(opts),
-                                        imagfreqs, sigc_state, anacon_grid);
-                int flag_qpe_solver = solve_qpe_with_option(
-                    option_qpe_solver, pade, eks_state, efermi + hedin_shifts[start_k + i],
-                    vxc_state, exx_state, e_qp, sigc, diff_init, thres_qpe, n_iter_max, damp_fac,
-                    use_adaptive_damp, use_legacy_nonadaptive_update);
-                if (flag_qpe_solver != 0)
-                {
-                    ofs_myid << "Warning! QPE solver failed for spin " << isp + 1 << " kpoint "
-                             << ik + 1 << " state " << i_state + 1 << std::endl;
-                    dump_analycont_source_data(ofs_myid, pade, "librpa_get_g0w0_sigc_band_k", isp,
-                                               ik, i_state);
-                    if (override_qpe_solver_nan)
-                    {
-                        ofs_myid << "Using final unconverged QPE result because "
-                                    "override_qpe_solver_nan is on"
-                                 << std::endl;
-                    }
-                }
-                if (flag_qpe_solver == 0 || override_qpe_solver_nan)
-                {
-                    sigc_band_re[start_k + i] = sigc.real();
-                    sigc_band_im[start_k + i] = sigc.imag();
-                    eqp_band[start_k + i] = e_qp;
-                }
-            }
-        }
-    }
-    profiler.stop("g0w0_solve_qpe");
+    librpa_int::solve_g0w0_qpe_diagonal(pds->mf_band, pds->tfg, opts, sigc_diag, iks_collect,
+                                        n_kpts_band_this, iks_band_this, i_state_low, n_states_calc,
+                                        vxc_band, vexx_band, sigc_band_re, sigc_band_im, eqp_band,
+                                        "librpa_get_g0w0_qpe_band_k");
 
     profiler.stop("api_get_g0w0_sigc_band_k");
 }

@@ -26,6 +26,7 @@
 #include "librpa_compute.h"
 #include "librpa_gw_output.h"
 #include "librpa_optical.h"
+#include "librpa_qsgw.h"
 
 // C++ APIs: wrappers to the stable C APIs
 #ifdef __cplusplus

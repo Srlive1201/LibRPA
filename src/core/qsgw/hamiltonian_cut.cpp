@@ -24,7 +24,6 @@ void validate_options(const HamiltonianCutOptions& options)
     switch (options.mode)
     {
         case HamiltonianCutMode::Uncut:
-        case HamiltonianCutMode::ReferenceDiagonal:
         case HamiltonianCutMode::ShiftedReferenceDiagonal:
             return;
     }
@@ -57,11 +56,13 @@ HamiltonianCutMode hamiltonian_cut_mode_from_int(const int mode)
     switch (mode)
     {
         case 0: return HamiltonianCutMode::Uncut;
-        case 1: return HamiltonianCutMode::ReferenceDiagonal;
-        case 2: return HamiltonianCutMode::ShiftedReferenceDiagonal;
-        default:
+        case 1:
+            return HamiltonianCutMode::ShiftedReferenceDiagonal;
+        case 2:
             throw std::invalid_argument(
-                "QSGW Hamiltonian cut mode must be 0, 1, or 2");
+                "QSGW Hamiltonian cut mode 2 was removed; shifted cut is mode 1");
+        default:
+            throw std::invalid_argument("QSGW Hamiltonian cut mode must be 0 or 1");
     }
 }
 
@@ -124,20 +125,15 @@ SpinKMatrixMap apply_hamiltonian_cut(
                 }
                 const int active_limit = std::min(
                     dimension, occupied + options.unoccupied_keep);
-                const double shift =
-                    options.mode ==
-                            HamiltonianCutMode::ShiftedReferenceDiagonal
-                        ? options.shift_ha
-                        : 0.0;
                 for (int row = 0; row < dimension; ++row)
                 {
                     for (int column = 0; column < dimension; ++column)
                     {
                         if (row < active_limit && column < active_limit)
                             continue;
-                        cut(row, column) = row == column
-                            ? reference_kpoint->second(row, row) + shift
-                            : cplxdb(0.0, 0.0);
+                        cut(row, column) =
+                            row == column ? reference_kpoint->second(row, row) + options.shift_ha
+                                          : cplxdb(0.0, 0.0);
                     }
                 }
             }
