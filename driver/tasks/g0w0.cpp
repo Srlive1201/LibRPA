@@ -16,6 +16,7 @@
 #include "../../src/io/fs.h"
 #include "../../src/io/global_io.h"
 #include "../../src/io/stl_io_helper.h"
+#include "../../src/math/complexmatrix.h"
 #include "../../src/mpi/collective_stage.h"
 #include "../../src/mpi/global_mpi.h"
 #include "../../src/utils/constants.h"
@@ -121,22 +122,22 @@ void driver::prepare_crpa_optical_velocity()
     const auto path = librpa_int::is_absolute_path(name)
                           ? name
                           : librpa_int::join_path(driver_params.input_dir, name);
-    collective_all_stage(dataset->comm_h, "cRPA optical velocity input",
-                         [&]
-                         {
-                             librpa_int::qsgw::VelocityMatrix velocity;
-                             read_velocity(path, dataset->mf, velocity);
-                             std::vector<std::complex<double>> packed;
-                             for (const auto &spin : velocity)
-                                 for (const auto &k : spin)
-                                     for (const auto &axis : k)
-                                         for (int row = 0; row < axis.nr; ++row)
-                                             for (int column = 0; column < axis.nc; ++column)
-                                                 packed.push_back(axis(row, column));
-                             h.set_velocity_matrix_packed(
-                                 dataset->mf.get_n_spins(), dataset->mf.get_n_kpoints(),
-                                 dataset->mf.get_n_states(), packed.data());
-                         });
+    collective_all_stage(
+        dataset->comm_h, "cRPA optical velocity input",
+        [&]
+        {
+            std::vector<std::vector<std::vector<librpa_int::ComplexMatrix>>> velocity;
+            read_velocity(path, dataset->mf, velocity);
+            std::vector<std::complex<double>> packed;
+            for (const auto &spin : velocity)
+                for (const auto &k : spin)
+                    for (const auto &axis : k)
+                        for (int row = 0; row < axis.nr; ++row)
+                            for (int column = 0; column < axis.nc; ++column)
+                                packed.push_back(axis(row, column));
+            h.set_velocity_matrix_packed(dataset->mf.get_n_spins(), dataset->mf.get_n_kpoints(),
+                                         dataset->mf.get_n_states(), packed.data());
+        });
 }
 
 static void write_g0w0_headwing_diagnostics()
