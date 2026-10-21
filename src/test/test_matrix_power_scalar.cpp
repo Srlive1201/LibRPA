@@ -2,7 +2,7 @@
 #include <iostream>
 #include <stdexcept>
 
-#include "../api/dataset.h"
+#include "../core/dataset.h"
 #include "../math/utils_matrix_m_mpi.h"
 #include "../mpi/global_mpi.h"
 

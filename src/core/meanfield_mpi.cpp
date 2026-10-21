@@ -13,7 +13,7 @@
 #include "../math/lapack_connector.h"
 #include "../math/matrix_m.h"
 #include "../math/scalapack_connector.h"
-#include "../math/utils_matrix_m_mpi.h"
+#include "utils_matrix_m_mpi.h"
 #include "../utils/constants.h"
 #include "../utils/profiler.h"
 #include "atomic_basis.h"

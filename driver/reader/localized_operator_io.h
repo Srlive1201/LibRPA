@@ -4,7 +4,7 @@
 
 #include "../../src/math/localized_operator.h"
 
-namespace driver::qsgw
+namespace librpa::reader
 {
 // Native ABACUS compact/legacy/HContainer CSR: S dimensionless, r in Bohr.
 // QSGW supplies its current H in memory. G0W0 and native-baseline QSGW export
@@ -28,4 +28,4 @@ void write_qsgw_hamiltonian_csr(const std::string& filename,
                                 const librpa_int::LocalizedMatrix& blocks,
                                 const librpa_int::LocalizedAoOperators& operators, int iteration,
                                 int spin_directions = 1, int spin_index = 1);
-}  // namespace driver::qsgw
+}  // namespace librpa::reader

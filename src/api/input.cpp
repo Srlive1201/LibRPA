@@ -18,6 +18,7 @@
 
 // Internal headers
 #include "../core/meanfield_mpi.h"
+#include "../core/dataset_helper.h"
 #include "../io/global_io.h"
 #include "../io/stl_io_helper.h"
 #include "../math/matrix.h"
@@ -142,73 +143,87 @@ void set_lri_coeff_impl(LibrpaHandler* h, LibrpaParallelRouting routing, int I, 
 
 } // namespace
 
+void librpa_get_meanfield_dimensions(const LibrpaHandler* h, int band_path, int* nspins,
+                                     int* nkpts, int* nstates, int* naos, int* nspinor)
+{
+    const auto dataset = librpa_int::api::get_dataset_instance(h);
+    const auto& mf = band_path ? dataset->mf_band : dataset->mf;
+    if (!nspins || !nkpts || !nstates || !naos || !nspinor)
+        throw LIBRPA_INVALID_ARGUMENT("missing mean-field dimension output");
+    *nspins = mf.get_n_spins();
+    *nkpts = mf.get_n_kpoints();
+    *nstates = mf.get_n_states();
+    *naos = mf.get_n_aos();
+    *nspinor = mf.get_n_spinor();
+}
+
+double librpa_get_meanfield_fermi(const LibrpaHandler* h, int band_path)
+{
+    const auto dataset = librpa_int::api::get_dataset_instance(h);
+    return (band_path ? dataset->mf_band : dataset->mf).get_efermi();
+}
+
+void librpa_get_meanfield_k(const LibrpaHandler* h, int band_path, int spin, int kpoint,
+                            double* eigenvalues_ha, double* weighted_occupations)
+{
+    const auto dataset = librpa_int::api::get_dataset_instance(h);
+    const auto& mf = band_path ? dataset->mf_band : dataset->mf;
+    if (spin < 0 || spin >= mf.get_n_spins() || kpoint < 0 || kpoint >= mf.get_n_kpoints() ||
+        !eigenvalues_ha || !weighted_occupations)
+        throw LIBRPA_INVALID_ARGUMENT("invalid mean-field state query");
+    for (int state = 0; state < mf.get_n_states(); ++state)
+    {
+        eigenvalues_ha[state] = mf.get_eigenvals().at(spin)(kpoint, state);
+        weighted_occupations[state] = mf.get_weight().at(spin)(kpoint, state);
+    }
+}
+
+void librpa_get_kgrid(const LibrpaHandler* h, int band_path, int nkpts,
+                       double* fractional_k, double* weights)
+{
+    const auto dataset = librpa_int::api::get_dataset_instance(h);
+    const auto& points = band_path ? dataset->kfrac_band_list : dataset->pbc.kfrac_list;
+    if (nkpts <= 0 || points.size() != static_cast<std::size_t>(nkpts) ||
+        !fractional_k || !weights)
+        throw LIBRPA_INVALID_ARGUMENT("invalid k-grid query");
+    for (int k = 0; k < nkpts; ++k)
+    {
+        const auto& point = points[k];
+        fractional_k[3*k] = point.x;
+        fractional_k[3*k+1] = point.y;
+        fractional_k[3*k+2] = point.z;
+        weights[k] = band_path || dataset->pbc.weight_k.empty()
+                         ? 1.0 / nkpts : dataset->pbc.weight_k.at(k);
+    }
+}
+
+int librpa_get_g0w0_output_kgrid(const LibrpaHandler* h, int use_symmetry, int capacity,
+                                 double* fractional_k, int* source_kpoints)
+{
+    const auto dataset = librpa_int::api::get_dataset_instance(h);
+    const auto& members = dataset->symmetry_context.full_kpoint_members;
+    const auto& points = dataset->pbc.kfrac_list;
+    const bool expand = use_symmetry && dataset->symmetry_context.available &&
+                        members.size() > points.size();
+    const int count = static_cast<int>(expand ? members.size() : points.size());
+    if (capacity == 0) return count;
+    if (capacity < count || !fractional_k || !source_kpoints)
+        throw LIBRPA_INVALID_ARGUMENT("incomplete output k-grid buffers");
+    for (int k = 0; k < count; ++k)
+    {
+        const auto& point = expand ? members[k].k_bz : points[k];
+        fractional_k[3*k] = point.x;
+        fractional_k[3*k+1] = point.y;
+        fractional_k[3*k+2] = point.z;
+        source_kpoints[k] = expand ? members[k].ik_ibz : k;
+    }
+    return count;
+}
+
 void librpa_set_scf_dimension(LibrpaHandler* h, int nspins, int nkpts, int nstates, int nbasis, int nspinor)
 {
-    using std::endl;
-    using namespace librpa_int;
-    using api::get_dataset_instance;
-    using global::mpi_comm_global_h;
-    using global::lib_printf;
-    using global::profiler;
-    using global::ofs_myid;
-
-    const std::string tname = "api_set_scf_dimension";
-    profiler.start(tname, LIBRPA_VERBOSE_DEBUG);
-
-    auto pds = librpa_int::api::get_dataset_instance(h);
-
-    auto &meanfield = pds->mf;
-    // Local dimensions, currently not used
-    int st_ib = 0;
-    int nb_local = nstates;
-    int st_iao = 0;
-    int nao_local = nbasis;
-    meanfield.set(nspins, nkpts, nstates, nbasis, nspinor,
-                  st_ib, nb_local, st_iao, nao_local);
-    pds->comm_h.barrier();
-    if (pds->comm_h.is_root())
-    {
-        lib_printf("Mean-field dimensions set:\n");
-        lib_printf("| number of spins           : %d\n", meanfield.get_n_spins());
-        lib_printf("| number of k-points        : %d\n", meanfield.get_n_kpoints());
-        lib_printf("| number of bands           : %d\n", meanfield.get_n_bands());
-        lib_printf("| number of NAOs            : %d\n", meanfield.get_n_aos());
-        lib_printf("| number of spin components : %d\n", meanfield.get_n_spinor());
-    }
-
-    // Initialize global BLACS shape for eigenvectors
-    // TODO: it would be more flexible to allow the user to force a shape.
-    //       Currently the API does not support it, so we may have to adapt librpa_set_scf_dimension,
-    //       or add a new API function.
-    KPointBlacsProcessShape scfk_blacs_shape;
-    scfk_blacs_shape.favor_square_blacs_grid = true;
-    auto &kbctxt = pds->scfk_blacs_ctxt;
-    kbctxt.init(scfk_blacs_shape, pds->comm_h.comm, nkpts);
-    const auto &process_shape = kbctxt.process_shape();
-    if (pds->comm_h.is_root())
-    {
-        lib_printf("Internal two-level (SCF k-points/matrix block) parallelization for eigenvectors set:\n");
-        lib_printf("| processes per k-point      : %d\n", process_shape.nprocs_blacs);
-        lib_printf("| processes per matrix block : %d\n", process_shape.nprocs_kpoint);
-    }
-    ofs_myid << "Local k-point indices: " << kbctxt.kpoints_local() << endl;
-    pds->comm_h.barrier();
-    // As the two-level communicator handlers are settled down,
-    // the wave function array descriptors are fixed.
-    ofs_myid << "k-point communicator : " << kbctxt.comm_kpoint_h.str() << endl;
-    ofs_myid << "BLACS communicator   : " << kbctxt.comm_blacs_h.str() << endl;
-
-    const int block_ao =
-        get_capped_blacs_block_size(nbasis, wfc_gemm_block_size_opt, kbctxt.blacs_h);
-    const int block_band =
-        get_capped_blacs_block_size(nstates, wfc_gemm_block_size_opt, kbctxt.blacs_h);
-    pds->desc_wfc_kb =
-        kbctxt.create_array_desc(nbasis, nstates, block_ao, block_band);
-    pds->desc_wfc_kb_full = kbctxt.create_array_desc(nbasis, nstates, nbasis, nstates);
-    ofs_myid << "desc_wfc_kb      : " << pds->desc_wfc_kb.info_desc() << endl;
-    ofs_myid << "desc_wfc_kb_full : " << pds->desc_wfc_kb_full.info_desc() << endl;
-
-    profiler.stop(tname);
+    const auto dataset = librpa_int::api::get_dataset_instance(h);
+    librpa_int::initialize_ds_scf_dimension(*dataset, nspins, nkpts, nstates, nbasis, nspinor);
 }
 
 void librpa_set_wg_ekb_efermi(LibrpaHandler* h, int nspins, int nkpts, int nstates,

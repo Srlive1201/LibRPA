@@ -302,24 +302,14 @@ void write_crpa_model(const LibrpaCrpaResult* result, const std::string& directo
                     flagged += view.status[i] != 0;
                     spread = std::max(spread, view.subset_spread_ha[i]);
                 }
-                const auto at = [&](int a, int b, int c, int d)
-                { return view.values_ha_ri[2 * (((a * n + b) * n + c) * n + d)]; };
-                double intra = 0, inter = 0, exchange = 0;
-                for (int a = 0; a < n; ++a)
-                {
-                    intra += at(a, a, a, a) / n;
-                    for (int b = 0; b < n; ++b)
-                        if (a != b)
-                        {
-                            inter += at(a, a, b, b) / (n * (n - 1));
-                            exchange += at(a, b, b, a) / (n * (n - 1));
-                        }
-                }
+                double averages[6];
+                librpa_crpa_tensor_averages(n, view.values_ha_ri, averages);
                 summary << view.atom_index << ' ' << view.spin_left << ' ' << view.spin_right << ' '
                         << queries[2 * query] * librpa_int::HA2EV << ' '
                         << queries[2 * query + 1] * librpa_int::HA2EV << ' '
-                        << intra * librpa_int::HA2EV << ' ' << inter * librpa_int::HA2EV << ' '
-                        << exchange * librpa_int::HA2EV << ' ' << spread * librpa_int::HA2EV << ' '
+                        << averages[0] * librpa_int::HA2EV << ' ' << averages[2] * librpa_int::HA2EV
+                        << ' ' << averages[4] * librpa_int::HA2EV << ' '
+                        << spread * librpa_int::HA2EV << ' '
                         << view.max_source_residual_ha * librpa_int::HA2EV << ' '
                         << view.max_holdout_residual_ha * librpa_int::HA2EV << ' ' << flagged << ' '
                         << flags << '\n';

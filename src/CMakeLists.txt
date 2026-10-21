@@ -81,17 +81,21 @@ list(APPEND lib_sources
         api/compute_crpa.cpp
         api/compute_orbital.cpp
         api/compute_optical.cpp
-        api/compute_helper.cpp
         api/compute_g0w0.cpp
+        api/compute_qsgw.cpp
         api/compute_rpa.cpp
-        api/dataset.cpp
-        api/dataset_helper.cpp
         api/global.cpp
         api/handler.cpp
         api/input.cpp
         api/instance_manager.cpp
         api/librpa.cpp
         api/options.cpp
+        core/dataset.cpp
+        core/dataset_helper.cpp
+        core/task_helpers.cpp
+        core/g0w0_task.cpp
+        core/optical_task.cpp
+        core/gw_output.cpp
         core/analycont.cpp
         core/symmetry_context.cpp
         core/symmetry_spin_kernel.cpp
@@ -102,6 +106,8 @@ list(APPEND lib_sources
         core/crpa_model.cpp
         core/crpa_continuation.cpp
         core/crpa_workflow.cpp
+        core/crpa_task.cpp
+        core/crpa_qsgw_extension.cpp
         core/crpa_window_input.cpp
         core/orbital_weights.cpp
         core/coulmat.cpp
@@ -117,6 +123,10 @@ list(APPEND lib_sources
         core/pair_density_vertex.cpp
         core/qpoint_view.cpp
         core/qpe_solver.cpp
+        core/qsgw/task.cpp
+        core/qsgw/checkpoint.cpp
+        core/qsgw/iteration_trace.cpp
+        core/qsgw/band_output.cpp
         core/qsgw/convergence.cpp
         core/qsgw/correlation_potential.cpp
         core/qsgw/distributed_matrix.cpp

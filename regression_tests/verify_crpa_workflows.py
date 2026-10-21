@@ -19,6 +19,58 @@ from verify_qsgw_restart import compare, run, stage_input
 
 
 HA_TO_EV = 27.211386245988  # The bundled model and constants_choice=internal.
+PDOS_GRID_EV = np.linspace(-20, 20, 201)
+PDOS_SIGMA_EV = .15
+
+
+def orbital_analysis(directory, data, metadata, overlap, ao_counts, shell_l, kweights):
+    """Reconstruct this s-shell fixture's complete charge weights and PDOS from C/S."""
+    assert np.all(shell_l == 0), shell_l
+    ns, nk, nb = data["E"].shape
+    nao, nspinor = int(sum(ao_counts)), metadata["n_spinor"]
+    offsets = np.r_[0, np.cumsum(ao_counts)]
+    ng = len(ao_counts)  # All radial s shells on one atom form one charge group.
+    expected, mulliken, lowdin = [], np.empty((ns, nk, nb, ng)), np.empty((ns, nk, nb, ng))
+    for k in range(nk):
+        eigenvalues, eigenvectors = np.linalg.eigh(overlap[k])
+        assert eigenvalues.min() > 0
+        root = (eigenvectors * np.sqrt(eigenvalues)) @ eigenvectors.conj().T
+        for spin in range(ns):
+            c = data["C"][spin, k].reshape(nspinor, nao, nb)
+            sc = np.einsum("ij,sjb->sib", overlap[k], c)
+            sqrt_sc = np.einsum("ij,sjb->sib", root, c)
+            wm = np.real(c.conj() * sc).sum(axis=0)
+            norm = wm.sum(axis=0)
+            wl = (abs(sqrt_sc)**2).sum(axis=0) / norm
+            for group in range(ng):
+                mulliken[spin, k, :, group] = wm[offsets[group]:offsets[group + 1]].sum(axis=0)
+                lowdin[spin, k, :, group] = wl[offsets[group]:offsets[group + 1]].sum(axis=0)
+            for band in range(nb):
+                for group in range(ng):
+                    energy = data["E"][spin, k, band]
+                    expected.append([
+                        spin, k, band, group, energy * HA_TO_EV,
+                        (energy - metadata["fermi_ha"]) * HA_TO_EV,
+                        data["occupations"][spin, k, band], kweights[k], norm[band],
+                        mulliken[spin, k, band, group], lowdin[spin, k, band, group],
+                    ])
+    actual = np.loadtxt(directory / "crpa_orbital_weights.dat", ndmin=2)
+    np.testing.assert_allclose(actual, np.asarray(expected), rtol=0, atol=1e-10)
+    # Sum every loaded pole, with k weights and no occupation/spin multiplier.
+    relative_energies = (data["E"] - metadata["fermi_ha"]) * HA_TO_EV
+    gaussian = np.exp(-.5 * ((PDOS_GRID_EV[None, :, None, None] -
+                             relative_energies[:, None, :, :]) / PDOS_SIGMA_EV)**2)
+    gaussian *= kweights[None, None, :, None] / (np.sqrt(2 * np.pi) * PDOS_SIGMA_EV)
+    pm = np.einsum("sekb,skbg->seg", gaussian, mulliken)
+    pl = np.einsum("sekb,skbg->seg", gaussian, lowdin)
+    expected_pdos = [[spin, energy, group, pm[spin, e, group], pl[spin, e, group]]
+                     for spin in range(ns) for e, energy in enumerate(PDOS_GRID_EV)
+                     for group in range(ng)]
+    actual_pdos = np.loadtxt(directory / "crpa_pdos.dat", ndmin=2)
+    np.testing.assert_allclose(actual_pdos, np.asarray(expected_pdos), rtol=0, atol=1e-10)
+    assert np.max(pl) > 1e-3, pl
+    return {"orbital_Mulliken": mulliken, "orbital_Lowdin": lowdin,
+            "orbital_PDOS_Mulliken": pm, "orbital_PDOS_Lowdin": pl}
 
 
 def snapshot(directory):
@@ -27,6 +79,8 @@ def snapshot(directory):
     metadata = json.loads(data["metadata_json"].tobytes().decode())
     with np.load(directory / metadata["static_file"]) as archive:
         overlap = archive["S"].copy()
+        ao_counts, shell_l, kweights = (archive[key].copy()
+                                       for key in ("ao_counts", "shell_l", "k_weights"))
     coefficients = data["C"]
     probabilities = np.empty_like(data["A_weights"])
     for spin in range(coefficients.shape[0]):
@@ -52,6 +106,9 @@ def snapshot(directory):
     for key in data:
         if key.startswith("U_"):
             assert np.max(abs(data[key] - data["v_" + key[2:]])) > 1e-6, key
+    if (directory / "crpa_orbital_weights.dat").exists():
+        numerical.update(orbital_analysis(directory, data, metadata, overlap, ao_counts,
+                                          shell_l, kweights))
     return numerical
 
 
@@ -64,7 +121,8 @@ def compare_interactions(reference, actual):
         assert reference[key].shape == actual[key].shape, key
         if key == "output_Phi":
             continue
-        tolerance = 1e-10 if key in ("nu", "E", "occupations", "A_weights") else 1e-10 / HA_TO_EV
+        tolerance = (1e-10 if key in ("nu", "E", "occupations", "A_weights")
+                     or key.startswith("orbital_") else 1e-10 / HA_TO_EV)
         np.testing.assert_allclose(reference[key], actual[key], rtol=0, atol=tolerance,
                                    err_msg=key)
         errors[key] = float(np.max(abs(reference[key] - actual[key])))
@@ -85,7 +143,9 @@ def run_rank(binary, mpiexec, ranks, root, template, dataset):
         "crpa_species_labels": "X", "crpa_correlated_species": "X",
         "crpa_parent_orbitals": "s", "crpa_output_orbitals": "s",
         "crpa_overlap_file": "srs1_nao.csr", "crpa_orbital_bands": "0 1 2 3",
-        "crpa_response_mode": "orbital_weights", "crpa_output_analysis": "false",
+        "crpa_response_mode": "orbital_weights", "crpa_output_analysis": "true",
+        "crpa_pdos_reference": "fermi", "crpa_pdos_min_ev": "-20", "crpa_pdos_max_ev": "20",
+        "crpa_pdos_step_ev": ".2", "crpa_pdos_sigma_ev": str(PDOS_SIGMA_EV),
         "crpa_output_model": "true", "crpa_output_raw": "true",
         "crpa_output_static": "false", "crpa_output_format": "npz",
     }
@@ -99,6 +159,9 @@ def run_rank(binary, mpiexec, ranks, root, template, dataset):
     alone = snapshot(standalone / "librpa.d")
     together = crpa_states(shared)
     assert set(together) == {0}, together.keys()
+    for values in (alone, together[0]):
+        assert {"orbital_Mulliken", "orbital_Lowdin", "orbital_PDOS_Mulliken",
+                "orbital_PDOS_Lowdin"} <= values.keys()
     # The shared build intentionally returns U only; require every other result
     # key, including every site/spin tensor, rather than comparing an intersection.
     equality = compare_interactions({key: value for key, value in alone.items()
@@ -129,6 +192,7 @@ def run_rank(binary, mpiexec, ranks, root, template, dataset):
     restart = {state: compare_interactions(states[state], restored[state]) for state in restored}
     assert np.max(abs(states[2]["E"] - states[0]["E"])) > 1e-6
     assert np.max(abs(states[2]["A_weights"] - states[0]["A_weights"])) > 1e-6
+    assert np.max(abs(states[2]["orbital_PDOS_Lowdin"] - states[0]["orbital_PDOS_Lowdin"])) > 1e-6
     return {"shared": together[0], "qsgw": states}, {
         "standalone_shared": equality, "crpa_restart": restart,
         "maximum_U_minus_V_ha": max(float(np.max(abs(value - alone["v_" + key[2:]])))
@@ -136,6 +200,8 @@ def run_rank(binary, mpiexec, ranks, root, template, dataset):
         "maximum_U_minus_W_ha": max(float(np.max(abs(value - alone["W_" + key[2:]])))
                                        for key, value in alone.items() if key.startswith("U_")),
         "qsgw_weight_change": float(np.max(abs(states[2]["A_weights"] - states[0]["A_weights"]))),
+        "qsgw_orbital_pdos_change_per_ev": float(np.max(abs(
+            states[2]["orbital_PDOS_Lowdin"] - states[0]["orbital_PDOS_Lowdin"]))),
         "qsgw_eigenvalue_change_ha": float(np.max(abs(states[2]["E"] - states[0]["E"]))),
         "qsgw_restart": compare(continuous, resumed, 2, 2),
         "coupled_uncoupled_qsgw": compare(continuous, uncoupled, 1, 2),

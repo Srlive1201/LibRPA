@@ -6,7 +6,7 @@
 #include <cstddef>
 #include <stdexcept>
 
-#include "../api/compute_helper.h"
+#include "../core/task_helpers.h"
 #include "../core/pbc.h"
 #include "../utils/constants.h"
 
@@ -428,7 +428,7 @@ static void test_band_remap_api_preserves_displaced_atom_adjoint_and_mesh()
     const AtomPairBvKRemap<atom_t> identity;
     for (const int mode : {0, 1})
     {
-        const auto remap = api::build_band_bvk_remap(atoms, pbc, mode);
+        const auto remap = build_band_bvk_remap(atoms, pbc, mode);
         for (const auto &k : mesh)
         {
             const auto expected = interpolate_displaced_atom(pbc.Rlist, cells, identity, k);

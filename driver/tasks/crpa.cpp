@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
-#include <cstdio>
 #include <fstream>
 #include <iomanip>
 #include <memory>
@@ -11,7 +10,6 @@
 #include <sstream>
 #include <stdexcept>
 
-#include "../../src/api/instance_manager.h"
 #include "../../src/io/fs.h"
 #include "../../src/io/global_io.h"
 #include "../../src/mpi/global_mpi.h"
@@ -22,6 +20,7 @@
 #include "../task.h"
 #include "crpa_model_output.h"
 #include "librpa_crpa.h"
+#include "librpa_input.h"
 #include "librpa_orbital.h"
 
 namespace
@@ -129,27 +128,11 @@ void write_orbital_analysis(const LibrpaOrbitalResult* result,
             }
 }
 
-std::array<double, 3> orbital_averages(const double* packed, int n)
-{
-    const auto real = [=](int a, int b, int c, int d)
-    { return packed[2 * ((a * n + b) * n * n + c * n + d)] * librpa_int::HA2EV; };
-    std::array<double, 3> averages{};
-    for (int m = 0; m < n; ++m)
-    {
-        averages[0] += real(m, m, m, m) / n;
-        for (int other = 0; other < n; ++other)
-            if (other != m)
-            {
-                averages[1] += real(m, m, other, other) / (n * (n - 1));
-                averages[2] += real(m, other, other, m) / (n * (n - 1));
-            }
-    }
-    return averages;
-}
-
 void write_result(const LibrpaCrpaResult* result, const std::string& directory, int state_index,
                   int gw_update, bool final_state)
 {
+    LibrpaCrpaModelInfo info;
+    librpa_crpa_model_info(result, &info);
     LibrpaCrpaTensor first;
     librpa_crpa_result_tensor(result, 0, &first);
     const bool has_full_w = first.fully_screened_ri != nullptr;
@@ -170,7 +153,7 @@ void write_result(const LibrpaCrpaResult* result, const std::string& directory, 
     metadata
         << "Current loaded eigenstate poles; P_d weights both endpoints by the emitted "
            "probabilities.\n"
-        << (driver::n_spinor == 2
+        << (info.n_spinor == 2
                 ? "Output Phi uses independent B and one jointly normalized spinor frame.\n"
                   "Spinor trial labels are not conserved spin quantum numbers.\n"
                   "Full-spinor J includes all distinct columns; it is not a scalar-shell Hund "
@@ -191,8 +174,8 @@ void write_result(const LibrpaCrpaResult* result, const std::string& directory, 
     auto windows = output_file(directory, "crpa_windows.dat");
     auto response_weights = output_file(directory, "crpa_response_weights.dat");
     response_weights << "# spin k band endpoint_weight; Pd multiplies both endpoint weights\n";
-    for (int spin = 0; spin < driver::n_spins; ++spin)
-        for (int k = 0; k < driver::n_kpoints; ++k)
+    for (int spin = 0; spin < info.n_spins; ++spin)
+        for (int k = 0; k < info.n_kpoints; ++k)
         {
             int count;
             const double* weights;
@@ -205,8 +188,8 @@ void write_result(const LibrpaCrpaResult* result, const std::string& directory, 
     windows << (state_index >= 0 ? "# window spin k count current_QSGW_band_indices_zero_based\n"
                                  : "# window spin k count original_KS_band_indices_zero_based\n");
     for (int response : {1, 0})
-        for (int spin = 0; spin < driver::n_spins; ++spin)
-            for (int k = 0; k < driver::n_kpoints; ++k)
+        for (int spin = 0; spin < info.n_spins; ++spin)
+            for (int k = 0; k < info.n_kpoints; ++k)
             {
                 int count = 0;
                 const int* bands = nullptr;
@@ -242,7 +225,12 @@ void write_result(const LibrpaCrpaResult* result, const std::string& directory, 
         for (const auto* values :
              {tensor.bare_ri, tensor.partially_screened_ri, tensor.fully_screened_ri})
             if (values)
-                for (const double average : orbital_averages(values, n)) summary << ' ' << average;
+            {
+                std::array<double, 6> averages;
+                librpa_crpa_tensor_averages(n, values, averages.data());
+                for (int channel = 0; channel < 3; ++channel)
+                    summary << ' ' << averages[2 * channel] * librpa_int::HA2EV;
+            }
         summary << '\n';
         for (int a = 0; a < n; ++a)
             for (int b = 0; b < n; ++b)
@@ -269,7 +257,7 @@ namespace driver
 {
 namespace
 {
-std::string tracking_definition()
+std::string crpa_tracking_definition()
 {
     const auto& p = driver_params;
     std::ostringstream text;
@@ -284,97 +272,7 @@ std::string tracking_definition()
 }
 }  // namespace
 
-void CrpaDriverInput::advance_tracking(const LibrpaCrpaResult* result)
-{
-    if (!driver_params.crpa_track_orbitals) return;
-    LibrpaCrpaModelInfo info;
-    librpa_crpa_model_info(result, &info);
-    n_parent = info.n_parent;
-    previous_parent.clear();
-    parent_capture.clear();
-    const std::size_t block = 2 * static_cast<std::size_t>(info.n_aos) * info.n_spinor * n_parent;
-    for (int spin = 0; spin < info.n_spins; ++spin)
-        for (int k = 0; k < info.n_kpoints; ++k)
-        {
-            LibrpaCrpaModelK view;
-            librpa_crpa_model_k(result, spin, k, &view);
-            if (!view.parent_phi_ri) throw std::runtime_error("cRPA parent frame is unavailable");
-            previous_parent.insert(previous_parent.end(), view.parent_phi_ri,
-                                   view.parent_phi_ri + block);
-            parent_capture.push_back(view.parent_capture_min);
-        }
-}
-
-void CrpaDriverInput::update_tracking()
-{
-    if (!driver_params.crpa_track_orbitals) return;
-    auto numerical_input = input();
-    librpa::CrpaResult model(librpa_prepare_crpa_model(h.get_c_handler(), &opts, &numerical_input),
-                             librpa_delete_crpa_result);
-    advance_tracking(model.get());
-    const double capture = *std::min_element(parent_capture.begin(), parent_capture.end());
-    librpa_int::global::lib_printf_root(
-        "cRPA parent transport: minimum retained probability %.16e; no response build\n", capture);
-}
-
-void CrpaDriverInput::write_tracking_checkpoint(
-    const std::string& filename, int iteration,
-    const std::vector<double>& checkpoint_energies) const
-{
-    if (!driver_params.crpa_track_orbitals) return;
-    if (n_parent <= 0 || previous_parent.empty())
-        throw std::runtime_error("cRPA tracking checkpoint has no preceding parent frame");
-    const std::string temporary = filename + ".tmp";
-    std::ofstream out(temporary);
-    out.exceptions(std::ios::badbit | std::ios::failbit);
-    out << std::setprecision(17) << "LIBRPA_CRPA_TRACKING_1\n"
-        << iteration << ' ' << n_spins << ' ' << n_spinor << ' ' << n_kpoints << ' ' << n_basis_ao
-        << ' ' << n_parent << '\n'
-        << std::quoted(tracking_definition()) << '\n';
-    out << checkpoint_energies.size() << '\n';
-    for (double energy : checkpoint_energies) out << energy << '\n';
-    for (double capture : parent_capture) out << capture << '\n';
-    for (double value : previous_parent) out << value << '\n';
-    out.close();
-    if (std::rename(temporary.c_str(), filename.c_str()) != 0)
-        throw std::runtime_error("cannot replace cRPA tracking checkpoint " + filename);
-}
-
-void CrpaDriverInput::read_tracking_checkpoint(const std::string& filename, int iteration,
-                                               const std::vector<double>& checkpoint_energies)
-{
-    std::ifstream in(filename);
-    if (!in) throw std::runtime_error("missing cRPA tracking checkpoint " + filename);
-    in.exceptions(std::ios::badbit | std::ios::failbit);
-    std::string magic, definition;
-    int saved_iteration, spins, spinor, nk, nao, parent;
-    in >> magic >> saved_iteration >> spins >> spinor >> nk >> nao >> parent >>
-        std::quoted(definition);
-    if (magic != "LIBRPA_CRPA_TRACKING_1" || saved_iteration != iteration || spins != n_spins ||
-        spinor != n_spinor || nk != n_kpoints || nao != n_basis_ao || parent <= 0 ||
-        parent > nao * spinor || definition != tracking_definition())
-        throw std::runtime_error("cRPA tracking checkpoint differs from the requested model");
-    std::size_t count;
-    in >> count;
-    if (count != checkpoint_energies.size())
-        throw std::runtime_error("cRPA tracking checkpoint state dimensions differ");
-    for (const double expected : checkpoint_energies)
-    {
-        double value;
-        in >> value;
-        if (!std::isfinite(value) || value != expected)
-            throw std::runtime_error("cRPA tracking checkpoint belongs to a different QSGW state");
-    }
-    n_parent = parent;
-    parent_capture.resize(static_cast<std::size_t>(spins) * nk);
-    previous_parent.resize(2 * static_cast<std::size_t>(spins) * nk * nao * spinor * parent);
-    for (double& capture : parent_capture) in >> capture;
-    for (double& value : previous_parent)
-    {
-        in >> value;
-        if (!std::isfinite(value)) throw std::runtime_error("nonfinite cRPA tracking checkpoint");
-    }
-}
+std::string CrpaDriverInput::tracking_definition() const { return crpa_tracking_definition(); }
 
 CrpaDriverInput read_crpa_driver_input()
 {
@@ -385,6 +283,9 @@ CrpaDriverInput read_crpa_driver_input()
     std::string error;
     try
     {
+        int n_spins, n_bands;
+        librpa_get_meanfield_dimensions(h.get_c_handler(), 0, &n_spins, &result.n_kpoints, &n_bands,
+                                        &result.n_aos, &result.n_spinor);
         std::string species_text = driver_params.crpa_species_labels;
         std::replace(species_text.begin(), species_text.end(), ',', ' ');
         std::istringstream stream(species_text);
@@ -395,15 +296,16 @@ CrpaDriverInput read_crpa_driver_input()
                 ? driver_params.crpa_overlap_file
                 : librpa_int::join_path(driver_params.input_dir, driver_params.crpa_overlap_file);
         const auto overlap = librpa_driver::read_abacus_nao_overlap_csr(filename);
-        std::vector<double> kfrac(3 * n_kpoints);
-        librpa_get_crpa_kgrid(h.get_c_handler(), n_kpoints, kfrac.data());
+        std::vector<double> kfrac(3 * result.n_kpoints);
+        librpa_get_crpa_kgrid(h.get_c_handler(), result.n_kpoints, kfrac.data());
         std::vector<librpa_int::Vector3_Order<double>> kpoints;
-        for (int k = 0; k < n_kpoints; ++k)
+        for (int k = 0; k < result.n_kpoints; ++k)
             kpoints.push_back({kfrac[3 * k], kfrac[3 * k + 1], kfrac[3 * k + 2]});
         const auto overlap_k = librpa_driver::fourier_nao_overlap(overlap, kpoints);
         for (const auto& matrix : overlap_k)
         {
-            const auto spatial = librpa_driver::spatial_nao_overlap(matrix, n_basis_ao, n_spinor);
+            const auto spatial =
+                librpa_driver::spatial_nao_overlap(matrix, result.n_aos, result.n_spinor);
             for (int i = 0; i < spatial.size; ++i)
             {
                 overlap_packed.push_back(spatial.c[i].real());
@@ -449,22 +351,18 @@ LibrpaCrpaInput CrpaDriverInput::input()
     input.n_orbital_bands = static_cast<int>(driver_params.crpa_orbital_bands.size());
     input.orbital_bands = driver_params.crpa_orbital_bands.data();
     input.n_kpoints = n_kpoints;
-    input.n_aos = n_basis_ao;
+    input.n_aos = n_aos;
     input.overlap_k_ri = overlap_packed.data();
     input.residual_tol = driver_params.crpa_residual_tol;
     input.retain_raw_model = driver_params.crpa_output_raw ? LIBRPA_SWITCH_ON : LIBRPA_SWITCH_OFF;
     input.tracking_min_capture = driver_params.crpa_tracking_min_capture;
-    if (driver_params.crpa_track_orbitals && !previous_parent.empty())
-    {
-        input.n_previous_parent = n_parent;
-        input.previous_parent_phi_ri = previous_parent.data();
-    }
     return input;
 }
 
 void write_crpa_state_outputs(const LibrpaCrpaResult* result, CrpaDriverInput& input,
                               const std::string& directory, int state_index, int gw_update,
-                              bool final_state, bool write_analysis)
+                              bool final_state, bool write_analysis,
+                              const LibrpaOrbitalResult* supplied_analysis)
 {
     const auto& comm = librpa_int::global::mpi_comm_global_h;
     std::string error;
@@ -481,23 +379,25 @@ void write_crpa_state_outputs(const LibrpaCrpaResult* result, CrpaDriverInput& i
     if (any_failed) throw std::runtime_error("cRPA output directory: " + error);
     comm.barrier();
 
-    librpa::OrbitalResult analysis(nullptr, librpa_delete_orbital_result);
-    if (write_analysis && driver_params.crpa_output_analysis)
-        analysis = h.analyze_orbitals(n_kpoints, n_basis_ao, input.overlap_packed,
-                                      driver_params.crpa_residual_tol);
+    librpa::OrbitalResult owned_analysis(nullptr, librpa_delete_orbital_result);
+    if (!supplied_analysis && write_analysis && driver_params.crpa_output_analysis)
+        owned_analysis = h.analyze_orbitals(input.n_kpoints, input.n_aos, input.overlap_packed,
+                                            driver_params.crpa_residual_tol);
+    const auto* analysis = supplied_analysis ? supplied_analysis : owned_analysis.get();
     error.clear();
     try
     {
-        if (result) input.advance_tracking(result);
         if (comm.is_root())
         {
-            if (analysis) write_orbital_analysis(analysis.get(), input.species, directory);
+            if (analysis) write_orbital_analysis(analysis, input.species, directory);
             if (result)
             {
                 write_result(result, directory, state_index, gw_update, final_state);
                 write_crpa_model(result, directory, state_index, gw_update, final_state);
-                input.write_tracking_checkpoint(
-                    librpa_int::join_path(directory, "crpa_tracking.dat"), state_index, {});
+                if (driver_params.crpa_track_orbitals)
+                    librpa_write_crpa_tracking_checkpoint(
+                        result, librpa_int::join_path(directory, "crpa_tracking.dat").c_str(),
+                        state_index, input.tracking_definition().c_str(), 0, nullptr);
             }
         }
     }

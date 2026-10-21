@@ -1,5 +1,8 @@
 #pragma once
 
+#include <array>
+#include <utility>
+
 #include "crpa_workflow.h"
 
 namespace librpa_int
@@ -30,7 +33,22 @@ struct CrpaModelSnapshot
 CrpaModelSnapshot snapshot_crpa_model(CrpaPreparedModel& model, const MeanField& meanfield);
 ComplexMatrix project_crpa_one_body(const ComplexMatrix& projector,
                                     const std::vector<double>& diagonal);
+ComplexMatrix project_crpa_orbitals(const ComplexMatrix& coefficients,
+                                    const ComplexMatrix& spatial_overlap, const ComplexMatrix& phi,
+                                    int n_spinor);
+ComplexMatrix rotate_crpa_projector(const ComplexMatrix& projector, const ComplexMatrix& rotation);
 //! Phi_new=Phi_old R; both R matrices must have orthonormal columns.
 ComplexMatrix rotate_crpa_tensor(const ComplexMatrix& tensor, const ComplexMatrix& left_rotation,
                                  const ComplexMatrix& right_rotation);
+ComplexMatrix crpa_tensor_to_fermion(const ComplexMatrix& tensor, int n_orbitals);
+//! Ordered-column means U_mm,mm, U_mm,nn and U_mn,nm; off-diagonal means vanish for M=1.
+std::array<std::complex<double>, 3> crpa_tensor_averages(const ComplexMatrix& tensor,
+                                                         int n_orbitals);
+std::pair<ComplexMatrix, ComplexMatrix> average_crpa_local_model(
+    const CrpaModelSnapshot& model, bool parent, int spin, int site,
+    const std::vector<double>& k_weights);
+ComplexMatrix fourier_crpa_model_hopping(const CrpaModelSnapshot& model, bool parent, int spin,
+                                         const std::vector<Vector3_Order<double>>& k_fractional,
+                                         const std::vector<double>& k_weights,
+                                         const Vector3_Order<int>& lattice_R);
 }  // namespace librpa_int

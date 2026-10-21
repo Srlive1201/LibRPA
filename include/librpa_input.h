@@ -13,6 +13,24 @@
 extern "C" {
 #endif
 
+/** Read-only state queries. No collective calls or state mutation.
+ * band_path=0 selects the SCF grid, 1 the currently loaded path.
+ * K blocks contain nstates energies in Hartree and occupations including k weight.
+ * K-grid buffers are [k][Cartesian fractional component] and [k].
+ */
+void librpa_get_meanfield_dimensions(const LibrpaHandler* h, int band_path, int* nspins,
+                                     int* nkpts, int* nstates, int* naos, int* nspinor);
+double librpa_get_meanfield_fermi(const LibrpaHandler* h, int band_path);
+void librpa_get_meanfield_k(const LibrpaHandler* h, int band_path, int spin, int kpoint,
+                            double* eigenvalues_ha, double* weighted_occupations);
+void librpa_get_kgrid(const LibrpaHandler* h, int band_path, int nkpts,
+                       double* fractional_k, double* weights);
+/** Return output-grid size; with capacity>=size also fill [k][3] and
+ * output-to-loaded-k indices. Symmetry expansion requires an available GW context.
+ */
+int librpa_get_g0w0_output_kgrid(const LibrpaHandler* h, int use_symmetry, int capacity,
+                                 double* fractional_k, int* source_kpoints);
+
 /**
  * @brief Set meanfield wavefunction dimension.
  * @param[in] h        Handler.

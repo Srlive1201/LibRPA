@@ -33,8 +33,8 @@ void append_separator(std::ostringstream &out)
     out << "+------+----------------+----------------+\n";
 }
 
-void append_row(std::ostringstream &out, const std::string &type,
-                const std::string &large_per_atom, const std::string &small_per_atom)
+void append_row(std::ostringstream &out, const std::string &type, const std::string &large_per_atom,
+                const std::string &small_per_atom)
 {
     out << "| " << std::right << std::setw(4) << type << " | " << std::setw(14) << large_per_atom
         << " | " << std::setw(14) << small_per_atom << " |\n";
@@ -44,7 +44,7 @@ void append_row(std::ostringstream &out, const std::string &type,
 
 std::string format_aux_basis_compression_summary(const std::vector<std::size_t> &large_nbs,
                                                  const std::vector<std::size_t> &small_nbs,
-                                                 const std::map<atom_t, int> &atom_to_type)
+                                                 const std::map<std::size_t, int> &atom_to_type)
 {
     if (large_nbs.size() != small_nbs.size())
     {
@@ -52,7 +52,7 @@ std::string format_aux_basis_compression_summary(const std::vector<std::size_t> 
             "large and shrink auxiliary basis atom counts have different sizes");
     }
 
-    std::map<int, std::vector<atom_t>> atoms_by_type;
+    std::map<int, std::vector<std::size_t>> atoms_by_type;
     if (atom_to_type.size() == large_nbs.size())
     {
         for (const auto &[atom, type] : atom_to_type)
@@ -67,7 +67,7 @@ std::string format_aux_basis_compression_summary(const std::vector<std::size_t> 
     }
     else
     {
-        for (atom_t atom = 0; atom != large_nbs.size(); ++atom)
+        for (std::size_t atom = 0; atom != large_nbs.size(); ++atom)
         {
             atoms_by_type[static_cast<int>(atom)].push_back(atom);
         }

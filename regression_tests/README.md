@@ -165,6 +165,14 @@ ranks by default (`--ranks 1` selects one layout). The comparison checks
 fractional endpoint probabilities independently from C/S/Phi, U distinct from
 bare V and full W, standalone/shared U equality, two current-HR updates and
 one-plus-one continuation, and unchanged GW trajectories when cRPA is enabled.
+Orbital analysis is enabled for standalone/shared calculations and every
+entering/final QSGW state. NumPy independently reconstructs live Mulliken and
+Lowdin charge weights from exported C/S, and the complete Gaussian PDOS from
+all poles and k weights; continuation and rank comparisons include these
+quantities and require the PDOS to change with the electronic state. The
+fixture has two radial s functions on one atom, so its grouped weights measure
+total charge. These checks cover current-state output and borrowed numerical
+views; they do not establish material orbital transport.
 The full B space keeps the physical AO target fixed while its current-KS
 probabilities change; band-reordering transport has separate component coverage.
 CI invokes this companion after the LibRI regressions. Its JSON report contains

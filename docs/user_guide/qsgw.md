@@ -1,6 +1,6 @@
 # Experimental fixed-basis QSGW
 
-Use `task = qsgw` for both molecular and periodic calculations. The driver
+Use `task = qsgw` for both molecular and periodic calculations. The library task
 constructs self-energies in the immutable initial KS basis and updates the
 eigenvalues and wavefunctions each iteration.
 The effective Hamiltonian replaces the initial DFT exchange-correlation
@@ -8,9 +8,11 @@ potential with exchange and a Hermitian correlation potential. Hartree updates
 are not implemented. Same-grid analytic head and wing updates are supported
 with an explicit velocity convention; independent-grid updates are rejected.
 
-QSGW reuses the G0W0 input readers and EXX/Sigma kernels. Task-specific input
-and output live in `driver/qsgw`; numerical operations in `src/core/qsgw` accept
-matrices and mean-field objects.
+QSGW reuses the G0W0 input readers and EXX/Sigma kernels. The driver reads
+producer files and calls the public opaque-task API in `librpa_qsgw.h`.
+Iteration, numerical state and checkpoint handling live in `src/core/qsgw`;
+the driver's output callback writes the requested tables and native CSR files.
+The task API is available without building the command-line driver.
 
 ## Quasiparticle roots during iteration
 
@@ -366,7 +368,7 @@ new analytic head/wing object, including after checkpoint continuation.
 The cell area and auxiliary monopole normalization remain fixed; the live
 energies, wavefunctions, velocity, frequency grid, head, wing and screening
 are rebuilt for each update. Native G0W0 applies the same normalization.
-The public library API still has no metadata-injection field.
+The public task input accepts the numerical in-plane area and auxiliary monopole norm; the driver reads them from the existing producer metadata file.
 
 ## Iteration and output
 

@@ -90,7 +90,6 @@ endforeach()
 # These suites use standard assert() and must remain active in Release builds.
 target_compile_options(test_sternheimer_rpa PRIVATE -UNDEBUG)
 target_compile_options(test_sternheimer_symmetry PRIVATE -UNDEBUG)
-target_sources(test_task_helper PRIVATE ../../driver/tasks/task_helper.cpp)
 # Numerical Coulomb collection and complete magnetic operators.
 add_test(NAME test_coulmat_mpi COMMAND mpirun -np 4 $<TARGET_FILE:test_coulmat>)
 if(LIBRPA_USE_LIBRI)

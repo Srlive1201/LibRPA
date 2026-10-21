@@ -1,6 +1,7 @@
 add_library(librpa_file_reader
   ../stru_symops_parser.cpp
   file_reader.cpp
+  localized_operator_io.cpp
   read_data.cpp
   bz_full_kmap.cpp
   reader_band.cpp

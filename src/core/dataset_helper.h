@@ -12,6 +12,10 @@
 namespace librpa_int
 {
 
+//! Initialize mean-field dimensions and their matched k-BLACS layouts.
+void initialize_ds_scf_dimension(Dataset &dataset, int nspins, int nkpts, int nstates, int nbasis,
+                                 int nspinor);
+
 void initialize_ds_tfgrids(Dataset &ds, const LibrpaOptions &opts);
 
 // Initialize the global/world BLACS DDLA handle once when GPU ScaLAPACK
@@ -48,4 +52,4 @@ void initialize_symmetry_context(Dataset &ds, bool build_shell_rotations);
 void require_symmetry_shell_layouts(const Dataset &ds, const char *calculation);
 void reject_spinor_symmetry_speedup(const Dataset &ds, const char *calculation);
 
-}
+}  // namespace librpa_int

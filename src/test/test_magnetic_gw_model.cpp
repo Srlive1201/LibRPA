@@ -14,7 +14,7 @@
 #include <string>
 #include <vector>
 
-#include "../api/dataset_helper.h"
+#include "../core/dataset_helper.h"
 #include "../api/instance_manager.h"
 #include "../core/chi0.h"
 #include "../core/epsilon.h"

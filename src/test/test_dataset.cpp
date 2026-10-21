@@ -1,6 +1,6 @@
-#include "../api/dataset.h"
+#include "../core/dataset.h"
 #include "../core/meanfield_mpi.h"
-#include "../api/dataset_helper.h"
+#include "../core/dataset_helper.h"
 #include "../api/instance_manager.h"
 
 #include "../mpi/global_mpi.h"

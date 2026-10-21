@@ -1,36 +1,12 @@
 #pragma once
 
-#include <iosfwd>
-#include <string>
-#include <vector>
+#include "../../src/core/gw_output.h"
+#include "librpa.hpp"
 
-#include "../../src/core/meanfield.h"
-#include "../../src/utils/base_utility.h"
+using librpa_int::occupation_number_from_kpoint_weight;
+using librpa_int::print_band_analysis;
+using librpa_int::write_energy_qp;
+using librpa_int::write_gw_band_spin_table;
 
-void print_band_analysis(const librpa_int::MeanField &mf,
-                         const std::vector<librpa_int::Vector3_Order<double>> &kfrac_output,
-                         const std::vector<int> &output_to_input_kpoint,
-                         const std::vector<librpa_int::matrix> &vxc,
-                         const std::vector<double> &vexx,
-                         const std::vector<librpa_int::cplxdb> &sigc,
-                         int i_state_low,
-                         int n_states_calc);
-
-double occupation_number_from_kpoint_weight(double weighted_occupation, double kpoint_weight);
-
-void write_energy_qp(const librpa_int::MeanField &mf,
-                     const std::vector<librpa_int::Vector3_Order<double>> &kfrac_output,
-                     const std::vector<int> &output_to_input_kpoint,
-                     const std::vector<librpa_int::matrix> &vxc, const std::vector<double> &vexx,
-                     const std::vector<librpa_int::cplxdb> &sigc, int n_kpoints_data,
-                     int i_state_low, int n_states_calc, const std::vector<double> &kpoint_weights,
-                     const std::string &filename = "energy_qp");
-
-// Native G0W0 path table: k index/coordinates, followed by occupation/energy
-// pairs. Inputs are in Hartree; output energies are in eV, without a header.
-void write_gw_band_spin_table(std::ostream &output, const librpa_int::MeanField &mf,
-                              const std::vector<librpa_int::Vector3_Order<double>> &kfrac,
-                              const std::vector<librpa_int::matrix> &vxc,
-                              const std::vector<double> &vexx,
-                              const std::vector<librpa_int::cplxdb> &sigc, int spin,
-                              int i_state_low, int n_states_calc);
+//! Independent output-only copy retrieved through the public API; no WFC data.
+librpa_int::MeanField meanfield_for_output(const librpa::MeanfieldData &snapshot);

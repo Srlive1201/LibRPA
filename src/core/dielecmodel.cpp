@@ -19,7 +19,7 @@
 #include "../math/interpolate.h"
 #include "../math/lebedev_laikov.h"
 #include "../math/matrix_m.h"
-#include "../math/utils_matrix_m_mpi.h"
+#include "utils_matrix_m_mpi.h"
 #include "../math/utils_matrix_mpi.h"
 #include "../math/vec.h"
 #include "../mpi/base_blacs.h"

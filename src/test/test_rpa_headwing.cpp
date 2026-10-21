@@ -12,7 +12,7 @@
 #include <string>
 #include <valarray>
 
-#include "../api/dataset.h"
+#include "../core/dataset.h"
 #include "../core/chi0.h"
 #include "../core/coulmat.h"
 #include "../core/dielecmodel.h"
