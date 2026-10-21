@@ -179,7 +179,9 @@ reuses the full-BZ and paired-IBZ SOC archives, enables all three symmetry
 routes, and compares two current-HR updates with weighted/tracked cRPA at
 one/four ranks. QP roots and local tensors are compared directly; velocity,
 self-energy and Hamiltonian matrices are aligned through the independently
-exported complete eigenframes before comparison. No separate dataset archive
+exported complete eigenframes before comparison. Matrix errors retain each
+component's native units; head, wing, velocity and energy matrices do not share
+one unit. No separate dataset archive
 or material-convergence claim is added. CI runs this after the full-grid
 cRPA companion.
 

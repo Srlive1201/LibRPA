@@ -4,7 +4,9 @@
 Reuse the existing full-BZ and paired-IBZ fixtures, with all magnetic symmetry
 routes enabled, fractional endpoint weights and parent tracking. Compare the
 complete optical/self-energy/Hamiltonian matrices in common eigenframes as
-well as QP roots and local interactions. This is a finite-model control.
+well as QP roots and local interactions. Matrix errors retain each component's
+native units; there is no common unit across these quantities. This is a
+finite-model control.
 """
 
 import argparse
@@ -116,7 +118,7 @@ def compare(reference, candidate):
         errors[component] = max(errors.get(component, 0.0), error)
     assert {"head_tensor", "wing_auxiliary", "sigma_c_iw", "mixed_h",
             "head_velocity_0", "head_velocity_1", "head_velocity_2"} <= errors.keys()
-    report["aligned_matrix_errors_au"] = errors
+    report["aligned_matrix_errors"] = errors
     return report
 
 
