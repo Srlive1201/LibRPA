@@ -91,6 +91,10 @@ jobs:
       - name: QSGW restart, quasiparticle and live head/wing trajectories
         run: |
           source /opt/intel/oneapi/setvars.sh
+          # Freeze MPI reductions and BLAS code paths for strict trajectory
+          # comparisons across fresh processes. Numerical gates stay unchanged.
+          export I_MPI_CBWR=2 MKL_CBWR=COMPATIBLE
+          export OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1
           cd regression_tests
           python verify_qsgw_restart.py --binary ../build_libri/chi0_main.exe \
             --work-dir workspace_qsgw_restart --ranks 4 --case h2o-band
@@ -125,5 +129,11 @@ jobs:
             regression_tests/workspace_libri_np4/testcases/*/librpa/*.dat
             regression_tests/workspace_qsgw_restart/**/run.log
             regression_tests/workspace_qsgw_restart/comparison.json
+            regression_tests/workspace_qsgw_restart/**/librpa.in
+            regression_tests/workspace_qsgw_restart/**/librpa.d/qsgw_*.dat
+            regression_tests/workspace_qsgw_restart/**/librpa.d/qsgw_qp.csv
             regression_tests/workspace_qsgw_headwing/**/run.log
             regression_tests/workspace_qsgw_headwing/comparison.json
+            regression_tests/workspace_qsgw_headwing/**/librpa.in
+            regression_tests/workspace_qsgw_headwing/**/librpa.d/qsgw_*.dat
+            regression_tests/workspace_qsgw_headwing/**/librpa.d/qsgw_qp.csv

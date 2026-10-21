@@ -139,22 +139,38 @@ def main():
     controls.update(option_dielect_func="3", replace_w_head="true",
                     qsgw_write_iteration_matrices="true",
                     qsgw_convergence_tolerance_ev="1e-15")
-    continuous, initial, resumed = (root / name for name in ("continuous", "initial", "resumed"))
-    for directory, maximum in ((continuous, 3), (initial, 1), (resumed, 3)):
+    continuous, initial, resumed, repeated = (
+        root / name for name in ("continuous", "initial", "resumed", "resumed_repeat")
+    )
+    for directory, maximum in ((continuous, 3), (initial, 1), (resumed, 3), (repeated, 3)):
         settings = {**controls, "qsgw_max_iter": str(maximum), "qsgw_min_iter": "1"}
-        if directory == resumed:
+        if directory in (resumed, repeated):
             settings["qsgw_restart_file"] = str(initial / "librpa.d/qsgw_checkpoint.bin")
         stage_input(template, dataset, directory, settings)
         run(args.binary.resolve(), args.mpiexec, args.ranks, directory)
-    report = {
-        "case": args.case,
-        "first_update": compare(continuous, initial, 1, 1),
-        "restored_boundary": compare(initial, resumed, 1, 1, exact_boundary=True),
-        "continued_updates": compare(continuous, resumed, 2, 3),
-        "feedback": compare_feedback(continuous, resumed, initial),
-    }
+    report = {"case": args.case}
+    # Compare continuations of the identical checkpoint before the independent
+    # continuous trajectory, so map variability is not mistaken for data loss.
+    comparisons = (
+        ("restored_boundary", initial, resumed, 1, 1, True),
+        ("repeat_restored_boundary", initial, repeated, 1, 1, True),
+        ("repeated_continuation", resumed, repeated, 2, 3, False),
+        ("first_update", continuous, initial, 1, 1, False),
+        ("continued_updates", continuous, resumed, 2, 3, False),
+    )
+    for name, reference, continuation, first, last, exact in comparisons:
+        try:
+            report[name] = compare(reference, continuation, first, last, exact_boundary=exact)
+        except AssertionError as error:
+            report[name] = {"failed": str(error)}
+            (root / "comparison.json").write_text(json.dumps(report, indent=2) + "\n")
+            print(json.dumps(report, indent=2), flush=True)
+            raise
+        (root / "comparison.json").write_text(json.dumps(report, indent=2) + "\n")
+        print(json.dumps({name: report[name]}, indent=2), flush=True)
+    report["feedback"] = compare_feedback(continuous, resumed, initial)
     (root / "comparison.json").write_text(json.dumps(report, indent=2) + "\n")
-    print(json.dumps(report, indent=2))
+    print(json.dumps(report, indent=2), flush=True)
 
 
 if __name__ == "__main__":
