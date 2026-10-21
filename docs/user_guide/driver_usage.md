@@ -187,3 +187,11 @@ mpirun -np 4 /path/to/LibRPA/build/chi0_main.exe
 ```
 
 This will run the LibRPA calculation using 4 MPI processes, each with 4 OpenMP threads.
+
+## Task-specific guides
+
+```{toctree}
+:maxdepth: 1
+
+QSGW <qsgw>
+```
