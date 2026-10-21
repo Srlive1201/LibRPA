@@ -1154,7 +1154,6 @@ void driver::task_g0w0()
                 ofs_hf.open(fn_hf.str());
                 ofs_ks.open(fn_ks.str());
 
-                ofs_gw << fixed;
                 ofs_hf << fixed;
                 ofs_ks << fixed;
 
@@ -1164,7 +1163,6 @@ void driver::task_g0w0()
                     const int start_k = (i_spin * n_kpts + i_kpoint) * n_states_band_calc;
 
                     ofs_ks << setw(5) << i_kpoint + 1 << setw(15) << setprecision(7) << k.x << setw(15) << setprecision(7) << k.y << std::setw(15) << std::setprecision(7) << k.z;
-                    ofs_gw << setw(5) << i_kpoint + 1 << setw(15) << setprecision(7) << k.x << setw(15) << setprecision(7) << k.y << std::setw(15) << std::setprecision(7) << k.z;
                     ofs_hf << setw(5) << i_kpoint + 1 << setw(15) << setprecision(7) << k.x << setw(15) << setprecision(7) << k.y << std::setw(15) << std::setprecision(7) << k.z;
                     for (int i = 0; i < n_states_band_calc; i++)
                     {
@@ -1173,17 +1171,15 @@ void driver::task_g0w0()
                         const auto eks_state = mf_band.get_eigenvals()[i_spin](i_kpoint, i_state) * HA2EV;
                         const auto vxc_state = vxc_band_all[i_spin](i_kpoint, i_state) * HA2EV;
                         const auto exx_state = vexx_band_all[start_k+i] * HA2EV;
-                        const auto resigc = sigc_band_all[start_k+i].real() * HA2EV;
-                        // const auto &imsigc = sigc_band_all[start_k+i].imag() * HA2EV;
-                        const auto eqp = eks_state - vxc_state + exx_state + resigc;
                         ofs_ks << setw(15) << std::setprecision(5) << occ_state << setw(15) << setprecision(5) << eks_state;
-                        ofs_gw << setw(15) << std::setprecision(5) << occ_state << setw(15) << setprecision(5) << eqp;
                         ofs_hf << setw(15) << std::setprecision(5) << occ_state << setw(15) << setprecision(5) << eks_state - vxc_state + exx_state;
                     }
-                    ofs_gw << "\n";
                     ofs_hf << "\n";
                     ofs_ks << "\n";
                 }
+                write_gw_band_spin_table(ofs_gw, mf_band, kfrac_band, vxc_band_all, vexx_band_all,
+                                         sigc_band_all, i_spin, i_state_low_band,
+                                         n_states_band_calc);
             }
         }
     }

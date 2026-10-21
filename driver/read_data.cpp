@@ -465,6 +465,37 @@ static std::vector<Vector3_Order<double>> read_headwing_k_path_info(const string
     return kfrac_list;
 }
 
+void configure_headwing_coulomb_head(const string &dir_path, librpa_int::diele_func &headwing)
+{
+    const auto pds = librpa_int::api::get_dataset_instance(driver::h.get_c_handler());
+    const bool use_strict_2d = driver::get_bool(driver::opts.use_2d_dielectric);
+    if (use_strict_2d)
+    {
+        const auto metadata = read_strict_2d_coulomb_head_metadata(
+            librpa_int::join_path(dir_path, "librpa_2d_coulomb_head.txt"));
+        const auto normalization = librpa_int::strict_2d_coulomb_head_normalization(
+            pds->pbc, metadata.auxiliary_monopole_norm_squared);
+        const double area_scale =
+            std::max(normalization.inplane_area_bohr2, metadata.inplane_area_bohr2);
+        if (std::abs(normalization.inplane_area_bohr2 - metadata.inplane_area_bohr2) >
+            1.0e-10 * area_scale)
+            throw std::runtime_error(
+                "Strict 2D Coulomb metadata area is inconsistent with the input lattice");
+
+        librpa_int::global::lib_printf_root(
+            "Strict 2D Coulomb normalization computed from reader-v1 metadata: "
+            "area=%20.12e Bohr^2, multipole_norm_squared=%20.12e, "
+            "A_lambda=%20.12e, PW_to_auxiliary_scale=%20.12e\n",
+            normalization.inplane_area_bohr2, normalization.auxiliary_monopole_norm_squared,
+            normalization.auxiliary_head_coefficient, normalization.pw_to_auxiliary_scale);
+        headwing.configure_strict_2d_coulomb_head(true, metadata.auxiliary_monopole_norm_squared);
+    }
+    else
+    {
+        headwing.configure_strict_2d_coulomb_head(false);
+    }
+}
+
 void read_headwing_input(const string &dir_path, bool need_wing,
                          const std::vector<double> *frequencies_override)
 {
@@ -696,35 +727,7 @@ void read_headwing_input(const string &dir_path, bool need_wing,
         n_basis, n_states, n_spin, headwing_basis_aux.nb_total, pds->pbc, pds->comm_h,
         pds->blacs_h, use_kpara_eigvec, &pds->scfk_blacs_ctxt,
         &(pds->eigvecs_kpara_2d_ready() ? pds->desc_wfc_kb : pds->desc_wfc_kb_full));
-    const bool use_strict_2d = driver::get_bool(driver::opts.use_2d_dielectric);
-    if (use_strict_2d)
-    {
-        const auto metadata = read_strict_2d_coulomb_head_metadata(
-            librpa_int::join_path(dir_path, "librpa_2d_coulomb_head.txt"));
-        const auto normalization = librpa_int::strict_2d_coulomb_head_normalization(
-            pds->pbc, metadata.auxiliary_monopole_norm_squared);
-        const double area_scale = std::max(normalization.inplane_area_bohr2,
-                                           metadata.inplane_area_bohr2);
-        if (std::abs(normalization.inplane_area_bohr2 - metadata.inplane_area_bohr2) >
-            1.0e-10 * area_scale)
-            throw std::runtime_error(
-                "Strict 2D Coulomb metadata area is inconsistent with the input lattice");
-
-        librpa_int::global::lib_printf_root(
-            "Strict 2D Coulomb normalization computed from reader-v1 metadata: "
-            "area=%20.12e Bohr^2, multipole_norm_squared=%20.12e, "
-            "A_lambda=%20.12e, PW_to_auxiliary_scale=%20.12e\n",
-            normalization.inplane_area_bohr2,
-            normalization.auxiliary_monopole_norm_squared,
-            normalization.auxiliary_head_coefficient,
-            normalization.pw_to_auxiliary_scale);
-        pds->p_headwing->configure_strict_2d_coulomb_head(
-            true, metadata.auxiliary_monopole_norm_squared);
-    }
-    else
-    {
-        pds->p_headwing->configure_strict_2d_coulomb_head(false);
-    }
+    configure_headwing_coulomb_head(dir_path, *pds->p_headwing);
     pds->p_headwing->use_soc = mf.get_n_spinor() > 1;
     pds->p_headwing->debug = librpa_int::global::should_output(LIBRPA_VERBOSE_DEBUG);
     // Symmetry-aware head/wing uses the same active k-list as the main LibRPA

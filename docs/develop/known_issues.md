@@ -4,7 +4,7 @@
 
 ### QSGW driver access to library internals
 
-The experimental `qsgw` and `qsgw_band` tasks currently access and modify
+The experimental `qsgw` task currently accesses and modifies
 internal dataset objects owned by a `LibrpaHandler` in `driver/tasks/qsgw.cpp`.
 This uses the early-prototype exception to the driver/API separation guideline;
 the iteration workflow is not yet exposed through the public C API.

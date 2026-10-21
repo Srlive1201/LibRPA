@@ -266,8 +266,10 @@ SpinKMatrixMap read_qsgw_vxc(const std::string& input_directory,
                             const bool band_path,
                             const VxcBasis basis)
 {
-    if (!aims_input && reference.get_n_spinor() != 1)
-        throw std::invalid_argument("ABACUS QSGW Vxc currently requires n_spinor=1");
+    if (!aims_input && reference.get_n_spinor() != 1 &&
+        (reference.get_n_spinor() != 2 || reference.get_n_spins() != 1))
+        throw std::invalid_argument(
+            "ABACUS QSGW Vxc requires scalar channels or one two-component spinor channel");
     if (aims_input && basis != VxcBasis::State)
         throw std::invalid_argument("FHI-aims QSGW Vxc requires the KS-state basis");
     const std::string default_prefix = aims_input
@@ -293,7 +295,10 @@ SpinKMatrixMap read_qsgw_vxc(const std::string& input_directory,
             else
             {
                 filename << "k" << kpoint + 1;
-                if (reference.get_n_spins() == 2) filename << "s" << spin + 1;
+                if (reference.get_n_spinor() == 2)
+                    filename << "s4";
+                else if (reference.get_n_spins() == 2)
+                    filename << "s" << spin + 1;
                 filename << "_nao.txt";
             }
             std::string path = filename.str();
@@ -302,7 +307,10 @@ SpinKMatrixMap read_qsgw_vxc(const std::string& input_directory,
                 !file_exists(path))
             {
                 path = path_prefix;
-                if (reference.get_n_spins() == 2) path += "s" + std::to_string(spin + 1);
+                if (reference.get_n_spinor() == 2)
+                    path += "s4";
+                else if (reference.get_n_spins() == 2)
+                    path += "s" + std::to_string(spin + 1);
                 path += "_nao.txt";
             }
             require_readable_file(path);

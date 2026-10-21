@@ -30,5 +30,8 @@ output_energy_qp = false
 qsgw_mixer = none
 qsgw_min_iter = 2
 qsgw_max_iter = 2
-qsgw_band0_cut_mode = 0
+qsgw_cut_mode = 0
 qsgw_write_iteration_matrices = false
+
+# This retained fixture has no native H/S/r export.
+qsgw_export_hamiltonian_for_pyatb = false

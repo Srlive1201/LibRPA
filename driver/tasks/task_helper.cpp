@@ -154,14 +154,15 @@ void write_energy_qp(const librpa_int::MeanField &mf,
                      const std::vector<librpa_int::matrix> &vxc, const std::vector<double> &vexx,
                      const std::vector<librpa_int::cplxdb> &sigc, const int n_kpoints_data,
                      const int i_state_low, const int n_states_calc,
-                     const std::vector<double> &kpoint_weights)
+                     const std::vector<double> &kpoint_weights, const std::string &filename)
 {
     if (kpoint_weights.size() != static_cast<std::size_t>(mf.get_n_kpoints()))
         throw std::invalid_argument("k-point weight count does not match mean-field data");
     const std::string sep =
         "-----------------------------------------"
         "----------------------------------------------------------";
-    std::ofstream ofs("energy_qp");
+    std::ofstream ofs(filename);
+    if (!ofs) throw std::runtime_error("Cannot open quasiparticle energy output: " + filename);
     ofs << "  state     occ_num        e_gs(Ha)        e_qp(Ha)" << std::endl;
     ofs << sep << std::endl;
     for (int i_kpoint = 0; i_kpoint < static_cast<int>(kfrac_output.size()); i_kpoint++)
@@ -204,4 +205,46 @@ void write_energy_qp(const librpa_int::MeanField &mf,
         ofs << sep << std::endl;
         ofs << std::endl;
     }
+    if (!ofs) throw std::runtime_error("Cannot write quasiparticle energy output: " + filename);
+}
+
+void write_gw_band_spin_table(std::ostream &output, const librpa_int::MeanField &mf,
+                              const std::vector<librpa_int::Vector3_Order<double>> &kfrac,
+                              const std::vector<librpa_int::matrix> &vxc,
+                              const std::vector<double> &vexx,
+                              const std::vector<librpa_int::cplxdb> &sigc, const int spin,
+                              const int i_state_low, const int n_states_calc)
+{
+    using namespace librpa_int;
+    const int nk = mf.get_n_kpoints();
+    if (spin < 0 || spin >= mf.get_n_spins() || kfrac.size() != static_cast<std::size_t>(nk) ||
+        i_state_low < 0 || n_states_calc <= 0 || i_state_low + n_states_calc > mf.get_n_states())
+        throw std::invalid_argument("Invalid GW band table layout");
+    const auto count = static_cast<std::size_t>(mf.get_n_spins()) * nk * n_states_calc;
+    if (vxc.size() != static_cast<std::size_t>(mf.get_n_spins()) || vxc[spin].nr != nk ||
+        vxc[spin].nc != mf.get_n_states() || vexx.size() != count || sigc.size() != count)
+        throw std::invalid_argument("Incomplete GW band table energies");
+
+    output << std::fixed;
+    for (int ik = 0; ik < nk; ++ik)
+    {
+        const auto &k = kfrac[ik];
+        const std::size_t start = (spin * nk + ik) * n_states_calc;
+        output << std::setw(5) << ik + 1 << std::setw(15) << std::setprecision(7) << k.x
+               << std::setw(15) << k.y << std::setw(15) << k.z;
+        for (int i = 0; i < n_states_calc; ++i)
+        {
+            const int state = i_state_low + i;
+            const double occupation = mf.get_weight()[spin](ik, state) * nk;
+            const double eigenvalue = mf.get_eigenvals()[spin](ik, state) * HA2EV;
+            const double potential = vxc[spin](ik, state) * HA2EV;
+            const double exchange = vexx[start + i] * HA2EV;
+            const double correlation = sigc[start + i].real() * HA2EV;
+            const double eqp = eigenvalue - potential + exchange + correlation;
+            output << std::setw(15) << std::setprecision(5) << occupation << std::setw(15) << eqp;
+        }
+        output << '\n';
+    }
+    output.flush();
+    if (!output) throw std::runtime_error("Cannot write GW band table");
 }

@@ -69,6 +69,7 @@ foreach(target
     test_pbc
     test_profiler
     test_qpe_solver
+    test_qsgw_correlation_potential
     test_rsh
     test_rpa_headwing
     test_rpa_logdet
@@ -150,3 +151,15 @@ target_compile_definitions(test_si_density_symmetry PRIVATE
 
 config_test(test_matrix_power_scalar 1)
 add_test(NAME test_matrix_power_scalar_mpi COMMAND mpirun -np 4 $<TARGET_FILE:test_matrix_power_scalar>)
+
+# Existing numerical QSGW controls, including fixed-reference state updates.
+foreach(target
+    test_qsgw_fixed_basis
+    test_qsgw_effective_hamiltonian
+    test_qsgw_occupation
+    test_qsgw_convergence
+    test_qsgw_hamiltonian_cut)
+  config_test(${target} 1)
+endforeach()
+config_test(test_qsgw_fixed_basis_mpi 4)
+config_test(test_qsgw_distributed_matrix 4)

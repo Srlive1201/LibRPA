@@ -11,8 +11,7 @@ namespace qsgw
 enum class HamiltonianCutMode
 {
     Uncut = 0,
-    ReferenceDiagonal = 1,
-    ShiftedReferenceDiagonal = 2,
+    ShiftedReferenceDiagonal = 1,
 };
 
 struct HamiltonianCutOptions
@@ -20,7 +19,7 @@ struct HamiltonianCutOptions
     int unoccupied_keep = 10;
     HamiltonianCutMode mode =
         HamiltonianCutMode::ShiftedReferenceDiagonal;
-    double shift_ha = 20.0;
+    double shift_ha = 0.00367493;
 };
 
 HamiltonianCutMode hamiltonian_cut_mode_from_int(int mode);

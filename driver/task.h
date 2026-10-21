@@ -15,7 +15,6 @@ enum class task_t {
     print_minimax,
     QSGW,
     QSGWA,
-    QSGW_band,
     HF_band,
     scRPA,
     scRPA_band,
@@ -35,7 +34,6 @@ void task_exx_band();
 void task_screened_coulomb_real_freq();
 void task_print_minimax();
 void task_qsgw();
-void task_qsgw_band();
 void task_test();
 
 void run_task(const task_t &task);

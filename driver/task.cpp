@@ -20,7 +20,6 @@ static std::map<std::string, task_t> map_lowstr_task{
     {"print_minimax", task_t::print_minimax},
     {"qsgw", task_t::QSGW},
     {"qsgwa", task_t::QSGWA},
-    {"qsgw_band", task_t::QSGW_band},
     {"hf_band", task_t::HF_band},
     {"scrpa", task_t::scRPA},
     {"scrpa_band", task_t::scRPA_band},
@@ -38,7 +37,6 @@ static std::map<task_t, std::string> map_task_lowstr{
     {task_t::print_minimax, "Printing minimax time-frequency grids"},
     {task_t::QSGW,          "QSGW"},
     {task_t::QSGWA,         "QSGW, mode A"},
-    {task_t::QSGW_band,     "QSGW band structure"},
     {task_t::HF_band,       "HF band structure"},
     {task_t::scRPA,         "SCRPA"},
     {task_t::scRPA_band,    "SCRPA band structure"},
@@ -76,7 +74,6 @@ static std::map<task_t, std::function<void(void)>> map_task_func_impl{
     {task_t::EXX, task_exx},
     {task_t::EXX_band, task_exx_band},
     {task_t::QSGW, task_qsgw},
-    {task_t::QSGW_band, task_qsgw_band},
 };
 
 void run_task(const task_t &task)

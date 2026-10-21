@@ -2,6 +2,7 @@
 
 #include <array>
 #include <map>
+#include <vector>
 
 #include "matrix_m.h"
 #include "vector3_order.h"
@@ -18,6 +19,9 @@ struct LocalizedAoOperators
     int dimension = 0;
     LocalizedMatrix overlap;
     std::array<LocalizedMatrix, 3> position;
+    // Optional immutable reference H(R), one model per spin channel. Preserve
+    // its support so callers can reconstruct only a current-state correction.
+    std::vector<LocalizedMatrix> native_dft_hamiltonian;
 };
 
 }  // namespace librpa_int
