@@ -9,4 +9,4 @@ namespace librpa_int::api
 CrpaTaskInput unpack_crpa_input(Dataset& dataset, const LibrpaCrpaInput* input);
 //! Own the numerical snapshot at the public result-lifetime boundary.
 LibrpaCrpaResult* own_crpa_result(CrpaTaskResult result);
-}
+}  // namespace librpa_int::api

@@ -542,6 +542,7 @@ install(FILES
   ${CMAKE_CURRENT_SOURCE_DIR}/include/librpa_orbital.h
   ${CMAKE_CURRENT_SOURCE_DIR}/include/librpa_optical.h
   ${CMAKE_CURRENT_SOURCE_DIR}/include/librpa_qsgw.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/librpa_gw_output.h
   ${CMAKE_CURRENT_SOURCE_DIR}/include/librpa_enums.h
   ${CMAKE_CURRENT_SOURCE_DIR}/include/librpa_global.h
   ${CMAKE_CURRENT_SOURCE_DIR}/include/librpa_handler.h

@@ -10,8 +10,8 @@
 #include <stdexcept>
 #include <valarray>
 
-#include "../core/dataset.h"
 #include "../core/chi0.h"
+#include "../core/dataset.h"
 #include "../io/global_io.h"
 #include "../mpi/global_mpi.h"
 

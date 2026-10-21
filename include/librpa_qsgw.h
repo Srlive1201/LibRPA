@@ -15,7 +15,8 @@ extern "C"
      * the immutable input eigenframe; original producer inputs remain required.
      * Keep the handler alive until the task is deleted. After preparation keep
      * its SCF eigenframe/grid fixed; finish band/Coulomb/velocity input before
-     * run. Do not modify or reenter the handler during run or its callbacks. Call prepare and set_input collectively before the single run call. */
+     * run. Do not modify or reenter the handler during run or its callbacks. Call prepare and
+     * set_input collectively before the single run call. */
     typedef struct
     {
         int min_iterations, max_iterations, unoccupied_keep, cut_mode;

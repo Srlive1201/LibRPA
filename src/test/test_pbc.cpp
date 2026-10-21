@@ -6,8 +6,8 @@
 #include <cstddef>
 #include <stdexcept>
 
-#include "../core/task_helpers.h"
 #include "../core/pbc.h"
+#include "../core/task_helpers.h"
 #include "../utils/constants.h"
 
 using namespace librpa_int;

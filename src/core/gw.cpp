@@ -1,8 +1,6 @@
 #include "gw.h"
 
 // Public API headers
-#include "librpa_enums.h"
-
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
@@ -20,11 +18,12 @@
 
 #include "../io/fs.h"
 #include "../io/global_io.h"
-#include "gw_self_energy_output.h"
-#include "matrix_output.h"
 #include "../io/stl_io_helper.h"
+#include "gw_self_energy_output.h"
+#include "librpa_enums.h"
+#include "matrix_output.h"
 // #include "../math/utils_matrix_m.h"
-#include "utils_matrix_m_mpi.h"
+#include "../gpu/la_connector.h"
 #include "../math/utils_matrix_mpi.h"
 #include "../mpi/global_mpi.h"
 #include "../utils/constants.h"
@@ -32,7 +31,7 @@
 #include "../utils/error.h"
 #include "../utils/libri_utils.h"
 #include "../utils/profiler.h"
-#include "../gpu/la_connector.h"
+#include "utils_matrix_m_mpi.h"
 #if defined(LIBRPA_USE_CUDA) || defined(LIBRPA_USE_HIP)
 #include <ddla/ddla_connector.h>
 using namespace ddla;

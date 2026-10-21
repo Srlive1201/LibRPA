@@ -17,10 +17,12 @@
 #include <array>
 #include <complex>
 #include <memory>
+#include <string>
 #include <vector>
 
 #include "librpa_crpa.h"
 #include "librpa_enums.h"
+#include "librpa_gw_output.h"
 #include "librpa_handler.h"
 #include "librpa_optical.h"
 #include "librpa_options.h"
@@ -63,7 +65,7 @@ struct OutputKGrid
 
 /** Mean direct, inter-orbital direct and exchange tensor elements, in Hartree. */
 std::array<std::complex<double>, 3> crpa_tensor_averages(
-    int n_orbitals, const std::vector<std::complex<double>>& tensor);
+    int n_orbitals, const std::vector<std::complex<double>> &tensor);
 
 /* Enums */
 /**
@@ -280,12 +282,17 @@ public:
     MeanfieldData get_meanfield_data(bool band_path = false) const;
     OutputKGrid get_g0w0_output_kgrid(bool use_symmetry) const;
 
+    /** Noncollective GW presentation; input views are borrowed until return. */
+    void print_gw_band_analysis(const LibrpaGwOutputInput &input) const;
+    std::string format_gw_energy_table(const LibrpaGwOutputInput &input) const;
+    std::string format_gw_band_spin_table(const LibrpaGwOutputInput &input, int spin) const;
+
     /** Prepare analytic head/wing from supplied numerical velocity/eigenframe data. */
-    void prepare_supplied_velocity(const Options& opts, const LibrpaSuppliedVelocityInput& input,
-                                    bool need_wing);
+    void prepare_supplied_velocity(const Options &opts, const LibrpaSuppliedVelocityInput &input,
+                                   bool need_wing);
 
     /** Create an owning QSGW task; numerical state and checkpoints belong to the library. */
-    QsgwTask create_qsgw_task(const Options& opts, const LibrpaQsgwControls& controls) const;
+    QsgwTask create_qsgw_task(const Options &opts, const LibrpaQsgwControls &controls) const;
 
     /* Input (set) functions */
 
