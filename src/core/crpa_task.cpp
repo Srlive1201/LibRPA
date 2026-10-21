@@ -42,7 +42,7 @@ void initialize_crpa_response(Dataset& ds, const LibrpaOptions& opts)
     initialize_ds_tfgrids(ds, opts);
     initialize_ds_atpairs_local(ds, LIBRPA_ROUTING_LIBRI);
     ds.redistribute_coulomb_blacs2ap();
-    initialize_ds_chi0(ds, opts);
+    initialize_ds_chi0_qstar(ds, opts);
 }
 
 CrpaTaskResult own_crpa_task_result(CrpaResult values, CrpaPreparedModel& model,
@@ -90,10 +90,6 @@ CrpaTaskResult own_crpa_task_result(CrpaResult values, CrpaPreparedModel& model,
 CrpaPreparedModel prepare_crpa_task_model(Dataset& dataset, const LibrpaOptions& options,
                                           const CrpaTaskInput& input, CrpaTaskMode mode)
 {
-    if (options.use_symmetry_rpa == LIBRPA_SWITCH_ON ||
-        options.use_symmetry_gw == LIBRPA_SWITCH_ON || options.use_symmetry_exx == LIBRPA_SWITCH_ON)
-        throw LIBRPA_INVALID_ARGUMENT(
-            "cRPA requires full-grid inputs with symmetry reduction disabled");
     std::string error;
     CrpaPreparedModel model;
     try
@@ -185,7 +181,8 @@ CrpaTaskResult compute_crpa_task(Dataset& dataset, const LibrpaOptions& options,
     std::unique_ptr<diele_func> full_headwing, constrained_headwing;
     if (opts.replace_w_head == LIBRPA_SWITCH_ON)
     {
-        // Both optical sums retain every original full-BZ state and velocity.
+        // This first magnetic route reduces q-space screening only. Optical sums
+        // retain every original full-BZ state and velocity for both response models.
         auto optical_options = opts;
         optical_options.use_symmetry_rpa = optical_options.use_symmetry_gw = LIBRPA_SWITCH_OFF;
         full_headwing = make_ds_headwing(*ds, optical_options, true);

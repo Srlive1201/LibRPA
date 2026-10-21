@@ -1,15 +1,8 @@
-#include <algorithm>
-#include <array>
-#include <cmath>
-#include <limits>
-#include <sstream>
+#include <memory>
 #include <vector>
 
 #include "../core/optical_task.h"
-#include "../mpi/collective_stage.h"
-#include "../utils/constants.h"
 #include "instance_manager.h"
-#include "librpa_input.h"
 #include "librpa_optical.h"
 
 namespace
@@ -29,10 +22,11 @@ void append_matrix(std::vector<double> &values, const Matz &matrix)
 }  // namespace
 
 void librpa_prepare_native_velocity(LibrpaHandler *h, const LibrpaOptions *options,
-                                    const LibrpaNativeVelocityInput *input, int prepare_optical)
+                                    const LibrpaNativeVelocityInput *root_input,
+                                    const int prepare_optical)
 {
-    const auto dataset = librpa_int::api::get_dataset_instance(h);
-    librpa_int::prepare_native_velocity(*dataset, options, input, prepare_optical);
+    const auto ds = librpa_int::api::get_dataset_instance(h);
+    librpa_int::prepare_native_velocity(*ds, options, root_input, prepare_optical);
 }
 
 void librpa_prepare_supplied_velocity(LibrpaHandler *h, const LibrpaOptions *options,

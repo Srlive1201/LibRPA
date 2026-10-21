@@ -106,9 +106,22 @@ void Handler::prepare_supplied_velocity(const Options& opts,
 {
     ::librpa_prepare_supplied_velocity(h_, &opts, &input, need_wing);
 }
+
 QsgwTask Handler::create_qsgw_task(const Options& opts, const LibrpaQsgwControls& controls) const
 {
     return QsgwTask(::librpa_create_qsgw_task(h_, &opts, &controls), ::librpa_delete_qsgw_task);
+}
+
+std::array<std::complex<double>, 3> crpa_tensor_averages(
+    int n_orbitals, const std::vector<std::complex<double>>& tensor)
+{
+    if (n_orbitals <= 0 || tensor.size() != static_cast<std::size_t>(n_orbitals) * n_orbitals *
+                                                n_orbitals * n_orbitals)
+        throw LIBRPA_INVALID_ARGUMENT("incomplete cRPA tensor for orbital averages");
+    std::array<std::complex<double>, 3> result;
+    ::librpa_crpa_tensor_averages(n_orbitals, reinterpret_cast<const double*>(tensor.data()),
+                                  reinterpret_cast<double*>(result.data()));
+    return result;
 }
 
 /* Global environment functions */

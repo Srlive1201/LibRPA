@@ -522,6 +522,46 @@ void Task::prepare()
     }
 
     const auto& dataset = dataset_;
+    auto& ibz_reference = ibz_reference_;
+    auto& expanded_reference = expanded_reference_;
+    if (dataset->pbc.kfrac_list.size() < dataset->pbc.kfrac_list_full.size() &&
+        (controls_.expand_ibz || controls_.qsgw_export_hamiltonian_for_pyatb ||
+         (update_head && controls_.qsgw_headwing_velocity == "current_hr")))
+    {
+        collective_all_stage(
+            dataset->comm_h, "QSGW IBZ source expansion",
+            [&]
+            {
+                if (!enabled(opts.use_symmetry_exx) || !enabled(opts.use_symmetry_gw) ||
+                    !enabled(opts.use_symmetry_rpa))
+                    throw LIBRPA_RUNTIME_ERROR("QSGW IBZ expansion requires EXX/GW/RPA symmetry");
+                reject_spinor_symmetry_speedup(*dataset, "QSGW IBZ expansion");
+                initialize_symmetry_context(*dataset, true);
+                expanded_reference = expand_symmetry_meanfield(
+                    dataset->mf, dataset->basis_wfc, dataset->pbc, dataset->symmetry_context);
+                ibz_reference = dataset->mf;
+            });
+        const auto& full = expanded_reference->meanfield;
+        dataset->invalidate_compute_objects();
+        dataset->mf = MeanField{};
+        initialize_ds_scf_dimension(*dataset, full.get_n_spins(), full.get_n_kpoints(),
+                                    full.get_n_bands(), full.get_n_aos(), full.get_n_spinor());
+        dataset->mf = full;
+        // Keep the producer's representative Coulomb grid and star weights.
+        // Only the live KS grid becomes full; P0 and W may still use q stars.
+        auto& pbc = dataset->pbc;
+        pbc.klist = pbc.klist_full;
+        pbc.kfrac_list = pbc.kfrac_list_full;
+        pbc.weight_k.assign(full.get_n_kpoints(), 1.0 / full.get_n_kpoints());
+        pbc.k_to_kfull.resize(full.get_n_kpoints());
+        std::iota(pbc.k_to_kfull.begin(), pbc.k_to_kfull.end(), 0);
+        pbc.kfull_to_k = pbc.k_to_kfull;
+        pbc.kfull_to_k_relation.assign(full.get_n_kpoints(), KFullToKRelation::DIRECT);
+        global::lib_printf_root(
+            "QSGW: expanded %d paired IBZ source states to %d full-grid states; "
+            "no eigenproblem was solved\n",
+            ibz_reference->get_n_kpoints(), full.get_n_kpoints());
+    }
     if (update_head && controls_.qsgw_headwing_velocity == "current_hr")
     {
         const auto& mf = dataset->mf;
@@ -536,12 +576,6 @@ void Task::prepare()
             throw LIBRPA_RUNTIME_ERROR(
                 "QSGW current-HR velocity requires the complete full-BZ SCF mesh; "
                 "IBZ velocity sewing is unsupported");
-        if (mf.get_n_spinor() == 2 &&
-            (enabled(opts.use_symmetry_exx) || enabled(opts.use_symmetry_gw) ||
-             enabled(opts.use_symmetry_rpa)))
-            throw LIBRPA_RUNTIME_ERROR(
-                "QSGW SOC current-HR velocity requires EXX/GW/RPA symmetry switches off; "
-                "magnetic-symmetry velocity sewing is unsupported");
     }
     if (opts.parallel_routing != LIBRPA_ROUTING_LIBRI &&
         opts.parallel_routing != LIBRPA_ROUTING_AUTO)
@@ -619,22 +653,37 @@ void Task::run()
 
     SpinKMatrixMap dft_vxc;
     SpinKMatrixMap dft_vxc_band;
-    collective_root_stage(dataset->comm_h, "QSGW Vxc projection",
-                          [&]
-                          {
-                              const auto& source_reference = reference;
-                              for (int spin = 0; spin < source_reference.get_n_spins(); ++spin)
-                                  for (int k = 0; k < source_reference.get_n_kpoints(); ++k)
-                                      dft_vxc[spin][k] = prepare_vxc_in_fixed_state_basis(
-                                          input_.vxc.at(spin).at(k), input_.vxc_basis,
-                                          source_reference, spin, k);
-                              if (compute_band)
-                                  for (int spin = 0; spin < band_reference->get_n_spins(); ++spin)
-                                      for (int k = 0; k < band_reference->get_n_kpoints(); ++k)
-                                          dft_vxc_band[spin][k] = prepare_vxc_in_fixed_state_basis(
-                                              input_.vxc_band.at(spin).at(k), input_.vxc_basis,
-                                              *band_reference, spin, k);
-                          });
+    collective_root_stage(
+        dataset->comm_h, "QSGW Vxc projection",
+        [&]
+        {
+            const auto& source_reference = ibz_reference_ ? *ibz_reference_ : reference;
+            for (int spin = 0; spin < source_reference.get_n_spins(); ++spin)
+                for (int k = 0; k < source_reference.get_n_kpoints(); ++k)
+                    dft_vxc[spin][k] = prepare_vxc_in_fixed_state_basis(
+                        input_.vxc.at(spin).at(k), input_.vxc_basis, source_reference, spin, k);
+            if (expanded_reference_)
+            {
+                const auto source_vxc = dft_vxc;
+                dft_vxc.clear();
+                for (int spin = 0; spin < reference.get_n_spins(); ++spin)
+                    for (int k = 0; k < reference.get_n_kpoints(); ++k)
+                    {
+                        auto block =
+                            source_vxc.at(spin).at(expanded_reference_->source_k[k]).copy();
+                        if (expanded_reference_->antiunitary[k])
+                            for (std::size_t i = 0; i < block.size(); ++i)
+                                block.ptr()[i] = std::conj(block.ptr()[i]);
+                        dft_vxc[spin][k] = std::move(block);
+                    }
+            }
+            if (compute_band)
+                for (int spin = 0; spin < band_reference->get_n_spins(); ++spin)
+                    for (int k = 0; k < band_reference->get_n_kpoints(); ++k)
+                        dft_vxc_band[spin][k] = prepare_vxc_in_fixed_state_basis(
+                            input_.vxc_band.at(spin).at(k), input_.vxc_basis, *band_reference, spin,
+                            k);
+        });
 
     HamiltonianCutOptions cut_options;
     cut_options.unoccupied_keep = controls_.qsgw_unoccupied_keep;
@@ -855,6 +904,17 @@ void Task::run()
     const auto prepare_optical_state =
         [&](int iteration, bool write_numerical_trace, bool rebuild_full_optical = true)
     {
+        if (enabled(opts.use_symmetry_exx) || enabled(opts.use_symmetry_gw) ||
+            enabled(opts.use_symmetry_rpa))
+            collective_all_stage(dataset->comm_h, "QSGW live magnetic covariance",
+                                 [&]
+                                 {
+                                     reject_spinor_symmetry_speedup(*dataset, "QSGW live state");
+                                     initialize_symmetry_context(*dataset, true);
+                                     validate_symmetry_band_weights(dataset->mf, dataset->basis_wfc,
+                                                                    dataset->pbc,
+                                                                    dataset->symmetry_context);
+                                 });
         if (update_head)
         {
             std::optional<LiveVelocityResult> live_velocity;

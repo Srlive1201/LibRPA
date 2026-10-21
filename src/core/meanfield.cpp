@@ -459,6 +459,83 @@ ComplexMatrix get_symmetry_restored_dmat_cplx_R(
     return dmat_cplx;
 }
 
+SpinorBlocks4<ComplexMatrix> get_symmetry_restored_dmat_cplx_R_spinor(
+    const SymmetryContext& ctx, const std::vector<SpeciesBasisLayout>& wfc_layouts,
+    const MeanField& mf, const int ispin, const std::vector<Vector3_Order<double>>& kfrac_list,
+    const Vector3_Order<int>& R, const std::map<atom_t, size_t>& atom_nw,
+    const symmetry_kstar_member_kfrac_targets_t* member_kfrac_targets,
+    const symmetry_kstar_representative_indices_t* representative_k_indices)
+{
+    if (mf.get_n_spinor() != 2)
+    {
+        throw LIBRPA_RUNTIME_ERROR("spinor k-star density-matrix restore requires n_spinor == 2");
+    }
+    const auto restore_entries = build_symmetry_kstar_restore_entries(
+        ctx, wfc_layouts, mf, kfrac_list, atom_nw, representative_k_indices);
+    validate_symmetry_kstar_member_kfrac_targets(restore_entries, member_kfrac_targets);
+
+    const int n_aos = mf.get_n_aos();
+    SpinorBlocks4<ComplexMatrix> dmat_R{ComplexMatrix(n_aos, n_aos), ComplexMatrix(n_aos, n_aos),
+                                        ComplexMatrix(n_aos, n_aos), ComplexMatrix(n_aos, n_aos)};
+
+    for (std::size_t ientry = 0; ientry != restore_entries.size(); ++ientry)
+    {
+        const auto& entry = restore_entries[ientry];
+        const auto& star = *entry.star;
+        // Four source blocks at the representative; get_dmat_cplx zero-fills
+        // a missing (bra, ket) wfc channel.
+        const SpinorBlocks4<ComplexMatrix> dmat_ibz{
+            mf.get_dmat_cplx(ispin, 0, 0, entry.ik_mf),
+            mf.get_dmat_cplx(ispin, 0, 1, entry.ik_mf),
+            mf.get_dmat_cplx(ispin, 1, 0, entry.ik_mf),
+            mf.get_dmat_cplx(ispin, 1, 1, entry.ik_mf),
+        };
+
+        for (std::size_t imember = 0; imember != star.members.size(); ++imember)
+        {
+            const auto& member = star.members[imember];
+            const auto& op = resolve_symmetry_kstar_member_spin_operation(ctx, member);
+            const auto& k_bz_target = get_symmetry_kstar_member_kfrac_target(
+                member, member_kfrac_targets, ientry, imember);
+
+            // Orbital transform built once per member, shared by the four
+            // source blocks. The gauge phases are excluded here and applied
+            // after the kernel so that the antiunitary Theta remap conjugates
+            // only the spatial-rotation part (same convention as the spinor
+            // Green's-function restore, report section 6.7).
+            const ComplexMatrix transform = build_symmetry_kspace_operator_transform_matrix(
+                ctx, wfc_layouts, member, atom_nw, entry.k_source, false, nullptr);
+            const ComplexMatrix transform_dag = transpose(transform, true);
+            const auto orbit =
+                [&transform, &transform_dag](std::size_t spatial_id, const ComplexMatrix& block)
+            {
+                (void)spatial_id;  // the transform is resolved per member, not per spatial_id
+                return transform * block * transform_dag;
+            };
+            auto dmat_member = transform_spinor_bilinear(op, dmat_ibz, orbit,
+                                                         BilinearConvention::SourceToTarget_DXDdag);
+
+            // Plain unitary re-gauging to the target k-point basis.
+            if (member_kfrac_targets != nullptr && !member_kfrac_targets->empty())
+            {
+                const auto phases = build_symmetry_kstar_member_target_gauge_phases(
+                    ctx, member, atom_nw.size(), &k_bz_target);
+                apply_spinor_member_gauge_phases(dmat_member, atom_nw, phases);
+            }
+
+            const double angle = -(k_bz_target * R) * TWO_PI;
+            const auto kphase = std::complex<double>(std::cos(angle), std::sin(angle));
+            const auto factor = entry.star_factor * kphase;
+            dmat_R.b00 += factor * dmat_member.b00;
+            dmat_R.b01 += factor * dmat_member.b01;
+            dmat_R.b10 += factor * dmat_member.b10;
+            dmat_R.b11 += factor * dmat_member.b11;
+        }
+    }
+
+    return dmat_R;
+}
+
 std::map<double, std::map<Vector3_Order<int>, ComplexMatrix>>
 get_symmetry_restored_gf_cplx_imagtimes_Rs(
     const SymmetryContext& ctx,
@@ -475,6 +552,7 @@ get_symmetry_restored_gf_cplx_imagtimes_Rs(
     const symmetry_kstar_member_kfrac_targets_t* member_kfrac_targets,
     const symmetry_kstar_representative_indices_t* representative_k_indices)
 {
+    validate_kstar_band_cutoff_closure(ctx, mf, band_mask);
     const auto restore_entries = build_symmetry_kstar_restore_entries(
         ctx, wfc_layouts, mf, kfrac_list, atom_nw, representative_k_indices);
     validate_symmetry_kstar_member_kfrac_targets(restore_entries, member_kfrac_targets);

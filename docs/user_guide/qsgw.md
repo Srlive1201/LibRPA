@@ -166,6 +166,16 @@ or establish interpolation accuracy at points outside the mesh.
 
 ## Analytic head and wing feedback
 
+Explicit magnetic symmetry can be combined with current-HR velocity and coupled
+cRPA. The live E/C/f state and cRPA endpoint weights must preserve every supplied
+operation. Paired IBZ source E/C/f and Vxc are expanded internally into a complete
+unshifted mesh, using the unitary/antiunitary ket action and reciprocal gauge.
+Source occupations are normalized once to f/N_full; source Vxc remains paired
+with its source KS gauge. Complete AO-spinor/state frames and all three symmetry
+switches are required. This does not introduce another eigenproblem or accept
+an arbitrary magnetic odd-frequency response.
+
+
 The native-velocity preset moved from 5 to **6**. Use 6 for native QSGW
 feedback. Value 5 follows upstream's input-dielectric s-subspace head
 correction for G0W0; it is not an alias for native-velocity feedback.
@@ -225,13 +235,13 @@ qsgw_headwing_velocity = current_hr
 ABACUS files need no filename overrides. Paths are relative to `input_dir`
 unless absolute. This mode requires a full,
 unshifted uniform mesh, replicated wavefunctions and a complete square AO/state
-basis, with symmetry reduction disabled. The native SOC reader accepts a
+basis, with full-grid inputs or the paired IBZ expansion described above. The native SOC reader accepts a
 complete two-component spinor reference with matching full-dimension S/r,
 one physical spin channel and `2 * N_AO` states. Both reference and live
 coefficients use AO-major/spinor-minor ordering; the entire complex Hamiltonian,
 including cross-spinor entries, enters the same velocity projector. For this
-SOC route all EXX/GW/RPA symmetry switches must be off; IBZ input and k-parallel
-wavefunctions are unsupported. S/r and the native DFT baseline remain fixed.
+SOC route requires explicit magnetic metadata when symmetry is enabled;
+k-parallel input remains unsupported. S/r and the native DFT baseline remain fixed.
 This mode also reads matching `hrs1_nao.csr` in Ry, plus `hrs2_nao.csr` for a
 second physical collinear channel, even if HR export is disabled. At each
 entering iteration, the driver embeds the complete reference-basis Hamiltonian
@@ -428,8 +438,8 @@ An overlap-only
 S(R) is dimensionless and r(R) is in
 Bohr; filenames are relative to `input_dir` unless absolute. They retain their
 original real-space support. The exporter requires a complete square AO
-reference and a full, unshifted uniform SCF mesh. IBZ or shifted-mesh export
-is rejected before the first GW update; the old
+reference and a full, unshifted uniform SCF mesh. Shifted-mesh export
+is rejected before the first GW update; paired IBZ input uses the expansion above; the old
 `qsgw_hr_export_full_mp_rgrid` selector is not needed or supported.
 
 After mixing and the cut actually selected by the task, but **before

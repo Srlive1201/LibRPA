@@ -686,14 +686,11 @@ static void write_sigc_nao_kf_matrix(const Matz &mat, const ArrayDesc &desc,
 }
 
 G0W0::G0W0(const MeanField &mf_in, const AtomicBasis &atbasis_wfc_in,
-           const PeriodicBoundaryData &pbc_in,
-           const SymmetryContext &symmetry_context_in,
-           const TFGrids &tfg_in,
-           const KPointBlacsParallelContext &kblacs_ctxt_in,
-           const KPointBlacsParallelContext &band_kblacs_ctxt_in,
-           const ArrayDesc &desc_wfc_in, const ArrayDesc &desc_band_wfc_in,
-           bool is_eigvec_k_distributed,
-           const bool use_symmetry_context_in)
+           const PeriodicBoundaryData &pbc_in, const SymmetryContext &symmetry_context_in,
+           const TFGrids &tfg_in, const KPointBlacsParallelContext &kblacs_ctxt_in,
+           const KPointBlacsParallelContext &band_kblacs_ctxt_in, const ArrayDesc &desc_wfc_in,
+           const ArrayDesc &desc_band_wfc_in, bool is_eigvec_k_distributed,
+           const bool use_symmetry_context_in, const SymmetryQPointView *screening_qpoint_view)
     : mf(mf_in),
       desc_wfc(desc_wfc_in),
       desc_band_wfc(desc_band_wfc_in),
@@ -701,7 +698,10 @@ G0W0::G0W0(const MeanField &mf_in, const AtomicBasis &atbasis_wfc_in,
       pbc(pbc_in),
       symmetry_context(symmetry_context_in),
       use_symmetry_context(use_symmetry_context_in),
-      qpoint_view(build_symmetry_qpoint_view(symmetry_context_in, pbc_in, use_symmetry_context_in)),
+      qpoint_view(
+          screening_qpoint_view != nullptr
+              ? *screening_qpoint_view
+              : build_symmetry_qpoint_view(symmetry_context_in, pbc_in, use_symmetry_context_in)),
       tfg(tfg_in),
       comm_h(kblacs_ctxt_in.comm_global_h),
       kblacs_ctxt(kblacs_ctxt_in),
@@ -1095,6 +1095,29 @@ static void build_gf_libri_kserial(
         : restore_symmetry_kstars
         ? build_symmetry_kstar_member_kfrac_targets(symmetry_context, pbc)
         : symmetry_kstar_member_kfrac_targets_t{};
+    // Spinor mean field: restore all four spin blocks through the unified
+    // (g, U_s, eta) kernel, then extract the requested (bra, ket) channel.
+    // The per-channel scalar restore would miss the SU(2) block mixing and
+    // the antiunitary Theta remap.
+    const bool use_spinor_restore = mf.get_n_spinor() == 2;
+    const auto restore_gf =
+        [&](const std::vector<double> &taus_sel, const std::vector<Vector3_Order<int>> &Rs_sel)
+    {
+        if (use_spinor_restore)
+        {
+            return extract_spinor_gf_block(
+                get_symmetry_restored_gf_cplx_imagtimes_Rs_spinor(
+                    symmetry_context, wfc_layouts, mf, ispin, kfrac_list, taus_sel, Rs_sel, atom_nw,
+                    std::vector<bool>{}, &member_kfrac_targets,
+                    restore_symmetry_kstars_from_full_grid ? &full_grid_kstar_representatives
+                                                           : nullptr),
+                ispinor_bra, ispinor_ket);
+        }
+        return get_symmetry_restored_gf_cplx_imagtimes_Rs(
+            symmetry_context, wfc_layouts, mf, ispin, ispinor_bra, ispinor_ket, kfrac_list,
+            taus_sel, Rs_sel, atom_nw, std::vector<bool>{}, &member_kfrac_targets,
+            restore_symmetry_kstars_from_full_grid ? &full_grid_kstar_representatives : nullptr);
+    };
     // Full-grid wavefunctions can carry a gauge that is not reproduced exactly from k-star
     // metadata. Keep the representative route only when a cheap sample matches direct full-k.
     if (restore_symmetry_kstars_from_full_grid && !taus.empty() && !Rs_vec.empty())
@@ -1102,10 +1125,8 @@ static void build_gf_libri_kserial(
         constexpr double restore_check_tol = 1e-6;
         const std::vector<double> tau_check{taus.front()};
         const std::vector<Vector3_Order<int>> R_check{Rs_vec.front()};
-        const auto restored_check = get_symmetry_restored_gf_cplx_imagtimes_Rs(
-            symmetry_context, wfc_layouts, mf, ispin, ispinor_bra, ispinor_ket, kfrac_list, tau_check,
-            R_check, atom_nw, std::vector<bool>{}, &member_kfrac_targets,
-            &full_grid_kstar_representatives).at(tau_check.front()).at(R_check.front());
+        const auto restored_check =
+            restore_gf(tau_check, R_check).at(tau_check.front()).at(R_check.front());
         const auto direct_check =
             mf.get_gf_cplx_imagtimes_Rs(
                   ispin, ispinor_bra, ispinor_ket, kfrac_list, tau_check, R_check)
@@ -1118,11 +1139,9 @@ static void build_gf_libri_kserial(
         }
     }
     auto gf = (restore_symmetry_kstars || restore_symmetry_kstars_from_full_grid)
-        ? get_symmetry_restored_gf_cplx_imagtimes_Rs(
-              symmetry_context, wfc_layouts, mf, ispin, ispinor_bra, ispinor_ket, kfrac_list, taus, Rs_vec, atom_nw,
-              std::vector<bool>{}, &member_kfrac_targets,
-              restore_symmetry_kstars_from_full_grid ? &full_grid_kstar_representatives : nullptr)
-        : mf.get_gf_cplx_imagtimes_Rs(ispin, ispinor_bra, ispinor_ket, kfrac_list, taus, Rs_vec);
+                  ? restore_gf(taus, Rs_vec)
+                  : mf.get_gf_cplx_imagtimes_Rs(ispin, ispinor_bra, ispinor_ket, kfrac_list, taus,
+                                                Rs_vec);
     // global::ofs_myid << "gf " << gf << std::endl;
     tau_gf_libri.clear();
     // TODO: enable threading below
@@ -1199,16 +1218,31 @@ static void build_gf_libri_kblacs_para(
         use_symmetry_context
         && can_restore_symmetry_kstar_meanfield(
             symmetry_context, wfc_layouts, mf, kfrac_list, atom_nw);
-    if (global::should_output(LIBRPA_VERBOSE_DEBUG))
-        global::ofs_myid << "GW kBLACS GF symmetry restore: "
-                         << (restore_symmetry_kstars ? "on" : "off") << std::endl;
-    auto gf_taus_Rs_cplx = restore_symmetry_kstars
-        ? get_symmetry_restored_gf_cplx_imagtimes_Rs_kblacs_para(
-              ispin, ispinor_bra, ispinor_ket, mf, kfrac_list, taus, Rs, kblacs_ctxt,
-              desc_wfc, desc_gf, symmetry_context, pbc, atbasis_wfc)
-        : get_gf_cplx_imagtimes_Rs_kblacs_para(
-              ispin, ispinor_bra, ispinor_ket, mf, kfrac_list, taus, Rs, kblacs_ctxt,
-              desc_wfc, desc_gf);
+    global::ofs_myid << "GW kBLACS GF symmetry restore: "
+                     << (restore_symmetry_kstars ? "on" : "off") << std::endl;
+    std::map<double, std::map<Vector3_Order<int>, Matz>> gf_taus_Rs_cplx;
+    if (restore_symmetry_kstars && mf.get_n_spinor() == 2)
+    {
+        // Spinor mean field: restore all four spin blocks through the unified
+        // (g, U_s, eta) kernel, then extract the requested (bra, ket) channel.
+        gf_taus_Rs_cplx = extract_spinor_gf_block_kblacs(
+            get_symmetry_restored_gf_cplx_imagtimes_Rs_kblacs_para_spinor(
+                ispin, mf, kfrac_list, taus, Rs, kblacs_ctxt, desc_wfc, desc_gf, symmetry_context,
+                pbc, atbasis_wfc),
+            ispinor_bra, ispinor_ket);
+    }
+    else if (restore_symmetry_kstars)
+    {
+        gf_taus_Rs_cplx = get_symmetry_restored_gf_cplx_imagtimes_Rs_kblacs_para(
+            ispin, ispinor_bra, ispinor_ket, mf, kfrac_list, taus, Rs, kblacs_ctxt, desc_wfc,
+            desc_gf, symmetry_context, pbc, atbasis_wfc);
+    }
+    else
+    {
+        gf_taus_Rs_cplx =
+            get_gf_cplx_imagtimes_Rs_kblacs_para(ispin, ispinor_bra, ispinor_ket, mf, kfrac_list,
+                                                 taus, Rs, kblacs_ctxt, desc_wfc, desc_gf);
+    }
 
     for (auto &tau_gf_R_cplx: gf_taus_Rs_cplx)
     {
@@ -1412,6 +1446,27 @@ void G0W0::build_spacetime(
             throw LIBRPA_RUNTIME_ERROR(
                 "shrink Wc build_spacetime requires sinvS, compressed/full ABF bases, BLACS context, and WFC descriptor");
 
+        // Full live KS grids can retain an IBZ producer Coulomb grid. Once
+        // screening has restored W to all q, CT must allocate that actual grid;
+        // allocating only producer representatives loses (or dereferences) q blocks.
+        int local_full_q = 0, local_partial_q = 0;
+        for (const auto &[frequency, atoms] : *Wc_freq_q_atom_pair)
+            for (const auto &[left, rights] : atoms)
+                for (const auto &[right, qs] : rights)
+                {
+                    if (qs.size() == pbc.get_n_cells_bvk())
+                        local_full_q = 1;
+                    else if (!qs.empty())
+                        local_partial_q = 1;
+                }
+        int full_q = 0, partial_q = 0;
+        comm_h.allreduce(&local_full_q, &full_q, 1, MPI_MAX);
+        comm_h.allreduce(&local_partial_q, &partial_q, 1, MPI_MAX);
+        if (full_q && partial_q)
+            throw LIBRPA_RUNTIME_ERROR("compressed W has inconsistent q-grid coverage");
+        const auto &wc_qlist = full_q ? pbc.klist_full : pbc.klist_coul;
+        const bool restore_wc_symmetry = this->use_symmetry_context && !full_q;
+
         Chi0 unfold_helper(mf, atbasis_wfc, *basis_aux_compressed, pbc, symmetry_context, tfg, kblacs_ctxt,
                            *desc_wfc_in, is_eigvec_k_distributed_, this->use_symmetry_context);
 
@@ -1424,20 +1479,22 @@ void G0W0::build_spacetime(
             {
                 const auto freq = tfg.get_freq_nodes()[ifreq];
                 auto freq_iter = Wc_freq_q_atom_pair->find(freq);
+                // Unfold and Fourier/export contain collectives. A rank with
+                // no atom pairs must participate with an empty local map.
                 atom_mapping<std::map<Vector3_Order<double>, Matz>>::pair_t_old Wc_q;
                 if (freq_iter != Wc_freq_q_atom_pair->end()) Wc_q = freq_iter->second;
 
                 profiler.start("unfold_Wc_abfs", "Do shrink transformation");
-                unfold_helper.unfold_abfs_Wc_q(*sinvS, Wc_q, pbc.klist_coul,
-                                               *basis_aux_unfold, *blacs_ctxt_h);
+                unfold_helper.unfold_abfs_Wc_q(*sinvS, Wc_q, wc_qlist, *basis_aux_unfold,
+                                               *blacs_ctxt_h);
                 profiler.stop("unfold_Wc_abfs");
 
                 profiler.start("construct_Wc_freq_lower_half", "Construct Lower Half of Wc(q,w)");
                 complete_hermitian_Wc_q_blocks(Wc_q);
                 profiler.stop("construct_Wc_freq_lower_half");
 
-                auto Wc_R = FT_Wc_q2R(comm_h, *basis_aux_unfold, symmetry_context, Wc_q, tfg,
-                                      pbc, pbc.Rlist, true, output_dir, this->use_symmetry_context);
+                auto Wc_R = FT_Wc_q2R(comm_h, *basis_aux_unfold, symmetry_context, Wc_q, tfg, pbc,
+                                      pbc.Rlist, true, output_dir, restore_wc_symmetry);
                 if (output_wc_rf_atom_pair)
                     write_wc_rf_atom_blocks(Wc_R, pbc, output_dir, ifreq, freq);
                 else
@@ -1448,9 +1505,8 @@ void G0W0::build_spacetime(
         }
 
         profiler.start("g0w0_build_spacetime_wt_ft_wc", "Tranform Wc (q,w) -> (q,t)");
-        auto Wc_tau_q = CT_Wc_freq2time_q(
-            comm_h, *basis_aux_compressed, *Wc_freq_q_atom_pair, tfg, pbc.get_n_cells_bvk(),
-            pbc.Rlist, pbc.klist_coul);
+        auto Wc_tau_q = CT_Wc_freq2time_q(comm_h, *basis_aux_compressed, *Wc_freq_q_atom_pair, tfg,
+                                          pbc.get_n_cells_bvk(), pbc.Rlist, wc_qlist);
         Wc_freq_q_atom_pair->clear();
         release_free_mem();
         profiler.stop("g0w0_build_spacetime_wt_ft_wc");
@@ -1467,8 +1523,8 @@ void G0W0::build_spacetime(
             auto &Wc_q = Wc_tau_q[tau];
 
             profiler.start("unfold_Wc_abfs", "Do shrink transformation");
-            unfold_helper.unfold_abfs_Wc_q(*sinvS, Wc_q, pbc.klist_coul,
-                                           *basis_aux_unfold, *blacs_ctxt_h);
+            unfold_helper.unfold_abfs_Wc_q(*sinvS, Wc_q, wc_qlist, *basis_aux_unfold,
+                                           *blacs_ctxt_h);
             profiler.stop("unfold_Wc_abfs");
 
             profiler.start("construct_Wc_tau_lower_half", "Construct Lower Half of Wc(q,t)");
@@ -1476,8 +1532,8 @@ void G0W0::build_spacetime(
             profiler.stop("construct_Wc_tau_lower_half");
 
             profiler.start("g0w0_build_spacetime_Rq_ft_wc", "Tranform Wc (q,t) -> (R,t)");
-            auto Wc_R = FT_Wc_q2R(comm_h, *basis_aux_unfold, symmetry_context, Wc_q, tfg,
-                                  pbc, pbc.Rlist, false, output_dir, this->use_symmetry_context);
+            auto Wc_R = FT_Wc_q2R(comm_h, *basis_aux_unfold, symmetry_context, Wc_q, tfg, pbc,
+                                  pbc.Rlist, false, output_dir, restore_wc_symmetry);
             profiler.stop("g0w0_build_spacetime_Rq_ft_wc");
             Wc_q.clear();
 
@@ -1652,7 +1708,7 @@ void G0W0::build_spacetime(
             "GW real-space self-energy irreducible-sector contraction disabled: "
             "%d response bands do not span the complete %d-state AO space; "
             "k-star and q-star symmetry remain active\n",
-            mf.get_n_bands(), mf.get_n_aos());
+            mf.get_n_bands(), mf.get_n_aos() * mf.get_n_spinor());
     }
     const auto libri_sigc_irreducible_sector =
         use_input_sigc_symmetry

@@ -53,6 +53,8 @@ foreach(target
     test_base_utility
     test_blas_lapack
     test_complexmatrix
+    test_coulmat
+    test_epsilon_symmetry_blocks
     test_fitting
     test_io
     test_symmetry_context
@@ -88,6 +90,13 @@ endforeach()
 # These suites use standard assert() and must remain active in Release builds.
 target_compile_options(test_sternheimer_rpa PRIVATE -UNDEBUG)
 target_compile_options(test_sternheimer_symmetry PRIVATE -UNDEBUG)
+# Numerical Coulomb collection and complete magnetic operators.
+add_test(NAME test_coulmat_mpi COMMAND mpirun -np 4 $<TARGET_FILE:test_coulmat>)
+if(LIBRPA_USE_LIBRI)
+  config_test(test_magnetic_gw_model 1)
+  add_test(NAME test_magnetic_gw_model_mpi COMMAND mpirun -np 4 $<TARGET_FILE:test_magnetic_gw_model>)
+endif()
+
 # add 4-process tests
 foreach(target
   test_atomic_basis_blacs

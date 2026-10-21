@@ -17,6 +17,7 @@
 #include <vector>
 
 // Internal headers
+#include "../core/dataset_helper.h"
 #include "../core/meanfield_mpi.h"
 #include "../io/global_io.h"
 #include "../io/stl_io_helper.h"
@@ -218,73 +219,11 @@ int librpa_get_g0w0_output_kgrid(const LibrpaHandler* h, int use_symmetry, int c
     return count;
 }
 
-void librpa_set_scf_dimension(LibrpaHandler* h, int nspins, int nkpts, int nstates, int nbasis, int nspinor)
+void librpa_set_scf_dimension(LibrpaHandler* h, int nspins, int nkpts, int nstates, int nbasis,
+                              int nspinor)
 {
-    using std::endl;
-    using namespace librpa_int;
-    using api::get_dataset_instance;
-    using global::mpi_comm_global_h;
-    using global::lib_printf;
-    using global::profiler;
-    using global::ofs_myid;
-
-    const std::string tname = "api_set_scf_dimension";
-    profiler.start(tname, LIBRPA_VERBOSE_DEBUG);
-
-    auto pds = librpa_int::api::get_dataset_instance(h);
-
-    auto &meanfield = pds->mf;
-    // Local dimensions, currently not used
-    int st_ib = 0;
-    int nb_local = nstates;
-    int st_iao = 0;
-    int nao_local = nbasis;
-    meanfield.set(nspins, nkpts, nstates, nbasis, nspinor,
-                  st_ib, nb_local, st_iao, nao_local);
-    pds->comm_h.barrier();
-    if (pds->comm_h.is_root())
-    {
-        lib_printf("Mean-field dimensions set:\n");
-        lib_printf("| number of spins           : %d\n", meanfield.get_n_spins());
-        lib_printf("| number of k-points        : %d\n", meanfield.get_n_kpoints());
-        lib_printf("| number of bands           : %d\n", meanfield.get_n_bands());
-        lib_printf("| number of NAOs            : %d\n", meanfield.get_n_aos());
-        lib_printf("| number of spin components : %d\n", meanfield.get_n_spinor());
-    }
-
-    // Initialize global BLACS shape for eigenvectors
-    // TODO: it would be more flexible to allow the user to force a shape.
-    //       Currently the API does not support it, so we may have to adapt librpa_set_scf_dimension,
-    //       or add a new API function.
-    KPointBlacsProcessShape scfk_blacs_shape;
-    scfk_blacs_shape.favor_square_blacs_grid = true;
-    auto &kbctxt = pds->scfk_blacs_ctxt;
-    kbctxt.init(scfk_blacs_shape, pds->comm_h.comm, nkpts);
-    const auto &process_shape = kbctxt.process_shape();
-    if (pds->comm_h.is_root())
-    {
-        lib_printf("Internal two-level (SCF k-points/matrix block) parallelization for eigenvectors set:\n");
-        lib_printf("| processes per k-point      : %d\n", process_shape.nprocs_blacs);
-        lib_printf("| processes per matrix block : %d\n", process_shape.nprocs_kpoint);
-    }
-    ofs_myid << "Local k-point indices: " << kbctxt.kpoints_local() << endl;
-    pds->comm_h.barrier();
-    // As the two-level communicator handlers are settled down,
-    // the wave function array descriptors are fixed.
-    ofs_myid << "k-point communicator : " << kbctxt.comm_kpoint_h.str() << endl;
-    ofs_myid << "BLACS communicator   : " << kbctxt.comm_blacs_h.str() << endl;
-
-    const int block_ao =
-        get_capped_blacs_block_size(nbasis, wfc_gemm_block_size_opt, kbctxt.blacs_h);
-    const int block_band =
-        get_capped_blacs_block_size(nstates, wfc_gemm_block_size_opt, kbctxt.blacs_h);
-    pds->desc_wfc_kb =
-        kbctxt.create_array_desc(nbasis, nstates, block_ao, block_band);
-    pds->desc_wfc_kb_full = kbctxt.create_array_desc(nbasis, nstates, nbasis, nstates);
-    ofs_myid << "desc_wfc_kb      : " << pds->desc_wfc_kb.info_desc() << endl;
-    ofs_myid << "desc_wfc_kb_full : " << pds->desc_wfc_kb_full.info_desc() << endl;
-
-    profiler.stop(tname);
+    const auto dataset = librpa_int::api::get_dataset_instance(h);
+    librpa_int::initialize_ds_scf_dimension(*dataset, nspins, nkpts, nstates, nbasis, nspinor);
 }
 
 void librpa_set_wg_ekb_efermi(LibrpaHandler* h, int nspins, int nkpts, int nstates,
@@ -755,6 +694,7 @@ void librpa_set_symmetry_spin_operations(
                               std::complex<double>(u[2], u[3]),
                               std::complex<double>(u[4], u[5]),
                               std::complex<double>(u[6], u[7])};
+            spin_op.spin_u_provided = true;
         }
         spin_ops.push_back(spin_op);
     }

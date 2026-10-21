@@ -968,6 +968,405 @@ void test_gf_band_mask()
     assert(std::abs(mf.get_dmat_cplx(0, 0, 0, 0)(1, 1) - 0.25) < 1e-12);
 }
 
+void test_spinor_kstar_dmat_restore_complex_us_antiunitary_full_grid_round_trip()
+{
+    using namespace librpa_int;
+
+    SymmetryContext ctx;
+    ctx.set_available();
+    ctx.basis_convention = {-1, 1, LIBRPA_ANGULAR_ORDER_NATURAL, LIBRPA_RSH_COEFF_1_M,
+                            LIBRPA_RSH_COEFF_1_M};
+    const std::vector<SpeciesBasisLayout> wfc_layouts{{"X", {0}}};
+    ctx.atom_to_type[0] = 0;
+    ctx.atom_to_type[1] = 0;
+    ctx.input_coord_frac = {
+        {0, {0.0, 0.0, 0.0}},
+        {1, {0.2, 0.0, 0.0}},
+    };
+    add_identity_spatial_op(ctx);
+
+    // U_s = (1/sqrt(2)) [[1, i], [i, 1]]: complex, off-diagonal, unitary.
+    const double inv_sqrt2 = 1.0 / std::sqrt(2.0);
+    const std::array<std::complex<double>, 4> U_s{inv_sqrt2, std::complex<double>(0.0, inv_sqrt2),
+                                                  std::complex<double>(0.0, inv_sqrt2), inv_sqrt2};
+    // U_s above is the physical representative-to-member action used by the
+    // independently generated full-grid wavefunctions below. Generated k-star
+    // metadata records the member-to-representative operation; the production
+    // resolve_symmetry_kstar_member_spin_operation reverses it for restoration.
+    const std::array<std::complex<double>, 4> U_s_inverse{std::conj(U_s[0]), std::conj(U_s[2]),
+                                                          std::conj(U_s[1]), std::conj(U_s[3])};
+    ctx.spin_operations.push_back(
+        SymmetrySpinOperation{0, {1.0, 0.0, 0.0, 1.0}, false, SymmetrySpinActionSource::Identity});
+    ctx.spin_operations.push_back(
+        SymmetrySpinOperation{0, U_s_inverse, true, SymmetrySpinActionSource::ExplicitSpinSpace});
+    ctx.kspace_actions.push_back(SymmetryGeometricAction{0, {0}});
+    ctx.kspace_actions.push_back(SymmetryGeometricAction{1, {1}});
+
+    SymmetryKStar star;
+    star.star_index = 0;
+    star.k_ibz = {0.25, 0.0, 0.0};
+    star.members.resize(2);
+    star.members[0].spatial_isym = 0;
+    star.members[0].time_reversal = false;
+    star.members[0].action_id = 0;
+    star.members[0].k_bz = {0.25, 0.0, 0.0};
+    star.members[0].atom_rotations.push_back(make_identity_atom_rotation(0));
+    star.members[0].atom_rotations.push_back(make_identity_atom_rotation(1));
+    star.members[1].spatial_isym = 0;
+    star.members[1].time_reversal = true;
+    star.members[1].action_id = 1;
+    star.members[1].k_bz = {-0.25, 0.0, 0.0};
+    star.members[1].atom_rotations.push_back(make_identity_atom_rotation(0));
+    star.members[1].atom_rotations.push_back(make_identity_atom_rotation(1));
+    ctx.kstars.push_back(star);
+
+    // per-band, per-AO channel values: c = channel 0, d = channel 1
+    const std::complex<double> c[2][2] = {{{0.6, 0.1}, {-0.3, 0.2}}, {{-0.2, 0.7}, {0.4, 0.5}}};
+    const std::complex<double> d[2][2] = {{{0.5, -0.3}, {0.1, 0.4}}, {{0.1, 0.4}, {-0.6, 0.2}}};
+    MeanField mf(1, 2, 2, 2, 2);
+    mf.get_efermi() = 0.0;
+    for (int ik = 0; ik != 2; ++ik)
+    {
+        mf.get_eigenvals()[0](ik, 0) = -1.0;
+        mf.get_eigenvals()[0](ik, 1) = 1.0;
+        mf.get_weight()[0](ik, 0) = 0.5;
+        mf.get_weight()[0](ik, 1) = 0.0;
+    }
+    mf.get_eigenvectors()[0][0][0].create(2, 2);
+    mf.get_eigenvectors()[0][1][0].create(2, 2);
+    for (int ib = 0; ib != 2; ++ib)
+        for (int iao = 0; iao != 2; ++iao)
+        {
+            mf.get_eigenvectors()[0][0][0](ib, iao) = c[ib][iao];
+            mf.get_eigenvectors()[0][1][0](ib, iao) = d[ib][iao];
+        }
+    // Theta image at k2, applied per band and per AO to the spinor (channel)
+    // index: c'(k2) = i sigma_y conj(U_s) conj(c(k1)) with
+    // i sigma_y = [[0, 1], [-1, 0]]. The wfc first index is the band index
+    // and the second the AO index, so each (band, AO) spinor pair is imaged
+    // separately.
+    const auto image = [&](const std::complex<double> &s0, const std::complex<double> &s1)
+    {
+        const std::complex<double> t0 =
+            std::conj(U_s[0]) * std::conj(s0) + std::conj(U_s[1]) * std::conj(s1);
+        const std::complex<double> t1 =
+            std::conj(U_s[2]) * std::conj(s0) + std::conj(U_s[3]) * std::conj(s1);
+        return std::make_pair(t1, -t0);
+    };
+    // Reciprocal-gauge phase of the stored k2' = (3/4,0,0) wfc relative to
+    // the member k_bz = (-1/4,0,0): k_shift = (1,0,0), phase[atom] =
+    // exp(-i 2 pi bloch_phase bloch_ratom (k_shift . tau)) with
+    // (bloch_phase, bloch_ratom) = (-1, 1). Atom 0 at the origin keeps
+    // phase 1; atom 1 at tau = (0.2,0,0) gets exp(+i 2 pi 0.2).
+    const double gauge_angle = 2.0 * std::acos(-1.0) * 0.2;
+    const std::complex<double> gauge_phase_atom1(std::cos(gauge_angle), std::sin(gauge_angle));
+    mf.get_eigenvectors()[0][0][1].create(2, 2);
+    mf.get_eigenvectors()[0][1][1].create(2, 2);
+    for (int ib = 0; ib != 2; ++ib)
+    {
+        const auto img0 = image(c[ib][0], d[ib][0]);  // AO 0 = atom 0, phase 1
+        const auto img1 = image(c[ib][1], d[ib][1]);  // AO 1 = atom 1
+        mf.get_eigenvectors()[0][0][1](ib, 0) = img0.first;
+        mf.get_eigenvectors()[0][1][1](ib, 0) = img0.second;
+        mf.get_eigenvectors()[0][0][1](ib, 1) = gauge_phase_atom1 * img1.first;
+        mf.get_eigenvectors()[0][1][1](ib, 1) = gauge_phase_atom1 * img1.second;
+    }
+
+    // k2' = -1/4 + (1,0,0) = 3/4: the full grid stores the Theta image in the
+    // re-gauged basis, so the restore must fold the member k_bz = -1/4 onto
+    // the target 3/4 and apply the non-trivial reciprocal-gauge phases.
+    const std::vector<Vector3_Order<double>> kfrac_list{
+        {0.25, 0.0, 0.0},
+        {0.75, 0.0, 0.0},
+    };
+    const std::vector<Vector3_Order<int>> Rs{{0, 0, 0}, {1, 0, 0}};
+    const std::map<atom_t, size_t> atom_nw{{0, 1}, {1, 1}};
+
+    const auto representative_indices =
+        build_symmetry_full_grid_kstar_representative_indices(ctx, kfrac_list);
+    if (representative_indices.size() != 1 || representative_indices[0] != 0)
+        throw std::runtime_error("spinor dmat full-grid representative lookup failed");
+    const auto member_kfrac_targets =
+        build_symmetry_full_grid_kstar_member_kfrac_targets(ctx, kfrac_list);
+
+    for (const auto &R : Rs)
+    {
+        const auto restored = get_symmetry_restored_dmat_cplx_R_spinor(
+            ctx, wfc_layouts, mf, 0, kfrac_list, R, atom_nw, &member_kfrac_targets,
+            &representative_indices);
+        const ComplexMatrix *channel_blocks[4] = {&restored.b00, &restored.b01, &restored.b10,
+                                                  &restored.b11};
+        for (int s = 0; s != 4; ++s)
+        {
+            const auto direct = mf.get_dmat_cplx_R(0, s / 2, s % 2, kfrac_list, R);
+            assert_complex_matrix_near(*channel_blocks[s], direct, 1e-12,
+                                       "spinor complex-U_s TR round trip vs direct full grid");
+        }
+    }
+
+    // off-diagonal channels must be genuinely non-zero, otherwise the
+    // four-channel comparison above is vacuous
+    const auto direct01 = mf.get_dmat_cplx_R(0, 0, 1, kfrac_list, Rs.front());
+    if (direct01.get_max_abs() < 1e-3)
+        throw std::runtime_error("spinor dmat round trip: off-diagonal channel unexpectedly zero");
+
+    // the old per-channel scalar restore must differ from the reference:
+    // it conjugates each channel elementwise without the SU(2) mixing and
+    // the Theta channel exchange
+    const auto scalar00 =
+        get_symmetry_restored_dmat_cplx_R(ctx, wfc_layouts, mf, 0, 0, 0, kfrac_list, Rs.front(),
+                                          atom_nw, &member_kfrac_targets, &representative_indices);
+    const auto direct00 = mf.get_dmat_cplx_R(0, 0, 0, kfrac_list, Rs.front());
+    const auto scalar_diff = scalar00 - direct00;
+    if (scalar_diff.get_max_abs() < 1e-8)
+        throw std::runtime_error(
+            "scalar per-channel restore accidentally matches the spinor reference");
+}
+
+void test_spinor_kstar_dmat_restore_antiunitary_matches_kronecker_reference()
+{
+    using namespace librpa_int;
+
+    SymmetryContext ctx;
+    ctx.set_available();
+    const std::vector<SpeciesBasisLayout> wfc_layouts{{"X", {0}}};
+    ctx.atom_to_type[0] = 0;
+    ctx.input_coord_frac[0] = {0.0, 0.0, 0.0};
+    add_identity_spatial_op(ctx);
+
+    const double inv_sqrt2 = 1.0 / std::sqrt(2.0);
+    const std::array<std::complex<double>, 4> U_s{inv_sqrt2, std::complex<double>(0.0, inv_sqrt2),
+                                                  std::complex<double>(0.0, inv_sqrt2), inv_sqrt2};
+    // Keep the physical forward action for both independent references. Only
+    // the stored k-star action runs from member to representative, as in
+    // generated metadata and resolve_symmetry_kstar_member_spin_operation.
+    const SymmetrySpinOperation forward_op{0, U_s, true,
+                                           SymmetrySpinActionSource::ExplicitSpinSpace};
+    const std::array<std::complex<double>, 4> U_s_inverse{std::conj(U_s[0]), std::conj(U_s[2]),
+                                                          std::conj(U_s[1]), std::conj(U_s[3])};
+    ctx.spin_operations.push_back(
+        SymmetrySpinOperation{0, U_s_inverse, true, SymmetrySpinActionSource::ExplicitSpinSpace});
+    ctx.kspace_actions.push_back(SymmetryGeometricAction{0, {0}});
+
+    SymmetryKStar star;
+    star.star_index = 0;
+    star.k_ibz = {0.0, 0.0, 0.0};
+    star.members.resize(1);
+    star.members[0].spatial_isym = 0;
+    star.members[0].time_reversal = true;
+    star.members[0].action_id = 0;
+    star.members[0].k_bz = {0.0, 0.0, 0.0};
+    star.members[0].atom_rotations.push_back(make_identity_atom_rotation(0));
+    ctx.kstars.push_back(star);
+
+    MeanField mf(1, 1, 2, 1, 2);
+    mf.get_efermi() = 0.0;
+    mf.get_eigenvals()[0](0, 0) = -1.0;
+    mf.get_eigenvals()[0](0, 1) = 1.0;
+    mf.get_weight()[0](0, 0) = 1.0;
+    mf.get_weight()[0](0, 1) = 0.0;
+    mf.get_eigenvectors()[0][0][0].create(2, 1);
+    mf.get_eigenvectors()[0][1][0].create(2, 1);
+    mf.get_eigenvectors()[0][0][0](0, 0) = {0.6, 0.1};
+    mf.get_eigenvectors()[0][0][0](1, 0) = {-0.2, 0.7};
+    mf.get_eigenvectors()[0][1][0](0, 0) = {0.5, -0.3};
+    mf.get_eigenvectors()[0][1][0](1, 0) = {0.1, 0.4};
+
+    const std::vector<Vector3_Order<double>> kfrac_list{{0.0, 0.0, 0.0}};
+    const Vector3_Order<int> R{0, 0, 0};
+    const std::map<atom_t, size_t> atom_nw{{0, 1}};
+
+    const auto restored =
+        get_symmetry_restored_dmat_cplx_R_spinor(ctx, wfc_layouts, mf, 0, kfrac_list, R, atom_nw);
+
+    // Reference 1: the kernel applied directly to the four source blocks
+    // (the restore adds only the star factor and the k phase, both unity here).
+    const SpinorBlocks4<ComplexMatrix> source{
+        mf.get_dmat_cplx(0, 0, 0, 0), mf.get_dmat_cplx(0, 0, 1, 0), mf.get_dmat_cplx(0, 1, 0, 0),
+        mf.get_dmat_cplx(0, 1, 1, 0)};
+    const auto identity_orbit = [](std::size_t spatial_id, const ComplexMatrix &block)
+    {
+        (void)spatial_id;
+        return block;
+    };
+    const auto kernel_ref = transform_spinor_bilinear(forward_op, source, identity_orbit,
+                                                      BilinearConvention::SourceToTarget_DXDdag);
+    assert_complex_matrix_near(restored.b00, kernel_ref.b00, 1e-12,
+                               "antiunitary dmat restore vs kernel b00");
+    assert_complex_matrix_near(restored.b01, kernel_ref.b01, 1e-12,
+                               "antiunitary dmat restore vs kernel b01");
+    assert_complex_matrix_near(restored.b10, kernel_ref.b10, 1e-12,
+                               "antiunitary dmat restore vs kernel b10");
+    assert_complex_matrix_near(restored.b11, kernel_ref.b11, 1e-12,
+                               "antiunitary dmat restore vs kernel b11");
+
+    // Reference 2: explicit Kronecker formula on the merged channel-outermost
+    // matrix M = [[D00, D01], [D10, D11]] (N = 1 AO here):
+    // Y = (U_s kron I) M (U_s kron I)^dagger,
+    // X' = (J_s kron I) conj(Y) (J_s kron I)^dagger, J_s = i sigma_y =
+    // [[0, 1], [-1, 0]].
+    ComplexMatrix M(2, 2);
+    M(0, 0) = source.b00(0, 0);
+    M(0, 1) = source.b01(0, 0);
+    M(1, 0) = source.b10(0, 0);
+    M(1, 1) = source.b11(0, 0);
+    ComplexMatrix Us(2, 2);
+    Us(0, 0) = U_s[0];
+    Us(0, 1) = U_s[1];
+    Us(1, 0) = U_s[2];
+    Us(1, 1) = U_s[3];
+    const auto Y = Us * M * transpose(Us, true);
+    ComplexMatrix Js(2, 2);
+    Js(0, 1) = {1.0, 0.0};
+    Js(1, 0) = {-1.0, 0.0};
+    const auto Xp = Js * conj(Y) * transpose(Js, true);
+    const std::complex<double> ref_blocks[4] = {Xp(0, 0), Xp(0, 1), Xp(1, 0), Xp(1, 1)};
+    const ComplexMatrix *out_blocks[4] = {&restored.b00, &restored.b01, &restored.b10,
+                                          &restored.b11};
+    for (int s = 0; s != 4; ++s)
+    {
+        if (std::abs((*out_blocks[s])(0, 0) - ref_blocks[s]) > 1e-12)
+            throw std::runtime_error(
+                "spinor dmat antiunitary restore deviates from Kronecker reference");
+    }
+
+    // the old per-channel scalar restore must differ from the Kronecker
+    // reference (it would return conj(D00) for the (0,0) channel)
+    const auto scalar00 =
+        get_symmetry_restored_dmat_cplx_R(ctx, wfc_layouts, mf, 0, 0, 0, kfrac_list, R, atom_nw);
+    if (std::abs(scalar00(0, 0) - ref_blocks[0]) < 1e-8)
+        throw std::runtime_error(
+            "scalar per-channel restore accidentally matches the Kronecker reference");
+}
+
+void test_spinor_kstar_dmat_restore_zero_fills_missing_channels()
+{
+    using namespace librpa_int;
+
+    SymmetryContext ctx;
+    ctx.set_available();
+    const std::vector<SpeciesBasisLayout> wfc_layouts{{"X", {0}}};
+    ctx.atom_to_type[0] = 0;
+    ctx.input_coord_frac[0] = {0.0, 0.0, 0.0};
+    add_identity_spatial_op(ctx);
+    ctx.spin_operations.push_back(
+        SymmetrySpinOperation{0, {1.0, 0.0, 0.0, 1.0}, true, SymmetrySpinActionSource::Identity});
+    ctx.kspace_actions.push_back(SymmetryGeometricAction{0, {0}});
+
+    SymmetryKStar star;
+    star.star_index = 0;
+    star.k_ibz = {0.0, 0.0, 0.0};
+    star.members.resize(1);
+    star.members[0].spatial_isym = 0;
+    star.members[0].time_reversal = true;
+    star.members[0].action_id = 0;
+    star.members[0].k_bz = {0.0, 0.0, 0.0};
+    star.members[0].atom_rotations.push_back(make_identity_atom_rotation(0));
+    ctx.kstars.push_back(star);
+
+    MeanField mf(1, 1, 1, 1, 2);
+    mf.get_eigenvals()[0](0, 0) = -1.0;
+    mf.get_weight()[0](0, 0) = 1.0;
+    // only the channel-0 wfc exists; channel 1 is left absent
+    mf.get_eigenvectors()[0][0][0].create(1, 1);
+    mf.get_eigenvectors()[0][0][0](0, 0) = {0.7, -0.2};
+
+    const std::vector<Vector3_Order<double>> kfrac_list{{0.0, 0.0, 0.0}};
+    const Vector3_Order<int> R{0, 0, 0};
+    const std::map<atom_t, size_t> atom_nw{{0, 1}};
+
+    const auto restored =
+        get_symmetry_restored_dmat_cplx_R_spinor(ctx, wfc_layouts, mf, 0, kfrac_list, R, atom_nw);
+
+    if (restored.b00.get_max_abs() > 1e-14 || restored.b01.get_max_abs() > 1e-14 ||
+        restored.b10.get_max_abs() > 1e-14)
+        throw std::runtime_error("zero-fill restore did not zero the missing channels");
+    // the occupied channel lands in b11 through the Theta remap: conj(D00)
+    const auto d00 = mf.get_dmat_cplx(0, 0, 0, 0);
+    if (std::abs(restored.b11(0, 0) - std::conj(d00(0, 0))) > 1e-12)
+        throw std::runtime_error("zero-fill restore: Theta remap did not map channel 0 into b11");
+    // the scalar per-channel restore would report a spurious non-zero b00
+    const auto scalar00 =
+        get_symmetry_restored_dmat_cplx_R(ctx, wfc_layouts, mf, 0, 0, 0, kfrac_list, R, atom_nw);
+    if (std::abs(scalar00(0, 0)) < 1e-12)
+        throw std::runtime_error("scalar restore unexpectedly vanishes: test is vacuous");
+}
+
+void test_spinor_kstar_dmat_restore_unitary_matches_scalar_with_gauge()
+{
+    using namespace librpa_int;
+
+    SymmetryContext ctx;
+    ctx.set_available();
+    ctx.basis_convention = {-1, 1, LIBRPA_ANGULAR_ORDER_NATURAL, LIBRPA_RSH_COEFF_1_M,
+                            LIBRPA_RSH_COEFF_1_M};
+    const std::vector<SpeciesBasisLayout> wfc_layouts{{"X", {0}}};
+    ctx.atom_to_type[0] = 0;
+    ctx.atom_to_type[1] = 0;
+    ctx.input_coord_frac = {
+        {0, {0.0, 0.0, 0.0}},
+        {1, {0.25, 0.0, 0.0}},
+    };
+    add_identity_spatial_op(ctx);
+    ctx.spin_operations.push_back(
+        SymmetrySpinOperation{0, {1.0, 0.0, 0.0, 1.0}, false, SymmetrySpinActionSource::Identity});
+    ctx.kspace_actions.push_back(SymmetryGeometricAction{0, {0}});
+
+    SymmetryKStar star;
+    star.star_index = 0;
+    star.k_ibz = {0.0, 0.0, 0.0};
+    star.members.resize(2);
+    for (int im = 0; im != 2; ++im)
+    {
+        star.members[im].spatial_isym = 0;
+        star.members[im].action_id = 0;
+        star.members[im].atom_rotations.push_back(make_identity_atom_rotation(0));
+        star.members[im].atom_rotations.push_back(make_identity_atom_rotation(1));
+    }
+    star.members[0].k_bz = {0.0, 0.0, 0.0};
+    star.members[1].k_bz = {0.5, 0.0, 0.0};
+    ctx.kstars.push_back(star);
+
+    MeanField mf(1, 1, 1, 2, 2);
+    mf.get_eigenvals()[0](0, 0) = -1.0;
+    mf.get_weight()[0](0, 0) = 1.0;
+    mf.get_eigenvectors()[0][0][0].create(1, 2);
+    mf.get_eigenvectors()[0][1][0].create(1, 2);
+    mf.get_eigenvectors()[0][0][0](0, 0) = {std::sqrt(0.5), 0.0};
+    mf.get_eigenvectors()[0][0][0](0, 1) = {std::sqrt(0.5), 0.0};
+    mf.get_eigenvectors()[0][1][0](0, 0) = {0.0, 0.6};
+    mf.get_eigenvectors()[0][1][0](0, 1) = {0.8, 0.0};
+
+    const std::vector<Vector3_Order<double>> kfrac_list{{0.0, 0.0, 0.0}};
+    const std::vector<Vector3_Order<int>> Rs{{0, 0, 0}, {1, 0, 0}};
+    const std::map<atom_t, size_t> atom_nw{{0, 1}, {1, 1}};
+    const symmetry_kstar_member_kfrac_targets_t member_kfrac_targets{
+        {{0.0, 0.0, 0.0}, {1.5, 0.0, 0.0}}};
+
+    for (const auto &R : Rs)
+    {
+        const auto restored_spinor = get_symmetry_restored_dmat_cplx_R_spinor(
+            ctx, wfc_layouts, mf, 0, kfrac_list, R, atom_nw, &member_kfrac_targets);
+        const ComplexMatrix *channel_blocks[4] = {&restored_spinor.b00, &restored_spinor.b01,
+                                                  &restored_spinor.b10, &restored_spinor.b11};
+        for (int s = 0; s != 4; ++s)
+        {
+            const auto scalar =
+                get_symmetry_restored_dmat_cplx_R(ctx, wfc_layouts, mf, 0, s / 2, s % 2, kfrac_list,
+                                                  R, atom_nw, &member_kfrac_targets);
+            assert_complex_matrix_near(*channel_blocks[s], scalar, 1e-12,
+                                       "spinor unitary dmat restore vs scalar restore with gauge");
+        }
+    }
+    // off-diagonal channels must be genuinely non-zero, otherwise the
+    // comparison above is vacuous
+    if (get_symmetry_restored_dmat_cplx_R_spinor(ctx, wfc_layouts, mf, 0, kfrac_list, Rs.front(),
+                                                 atom_nw, &member_kfrac_targets)
+            .b01.get_max_abs() < 1e-3)
+        throw std::runtime_error(
+            "spinor unitary dmat restore: off-diagonal block unexpectedly zero");
+}
+
 int main(int argc, char *argv[])
 {
     test_BCC_He_gamma_minimal_basis_aims();
@@ -986,5 +1385,9 @@ int main(int argc, char *argv[])
     test_spinor_kstar_gf_restore_tr_remap_at_gamma();
     test_validate_kstar_band_cutoff_closure_rejects_degenerate_cut();
     test_spinor_kstar_gf_restore_zero_fills_missing_channels();
+    test_spinor_kstar_dmat_restore_complex_us_antiunitary_full_grid_round_trip();
+    test_spinor_kstar_dmat_restore_antiunitary_matches_kronecker_reference();
+    test_spinor_kstar_dmat_restore_zero_fills_missing_channels();
+    test_spinor_kstar_dmat_restore_unitary_matches_scalar_with_gauge();
     return 0;
 }

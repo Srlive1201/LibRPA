@@ -217,6 +217,7 @@ void driver::task_qsgw()
     controls.state_low = driver_params.i_state_low;
     controls.state_high = driver_params.i_state_high;
     controls.interband_velocity = driver_params.constants_choice == "aims";
+    controls.expand_ibz = driver_params.crpa_enabled;
     auto task = h.create_qsgw_task(opts, controls);
     librpa_prepare_qsgw_task(task.get());
     librpa_get_meanfield_dimensions(handler, 0, &ns, &nk, &nstates, &naos, &nspinor);

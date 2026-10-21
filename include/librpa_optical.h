@@ -86,6 +86,8 @@ extern "C"
      * borrowed until the collective call returns and are supplied on each rank.
      * Velocity layout is [spin][k][axis][band][band], row-major interleaved
      * complex values in Hartree*Bohr. A NULL meanfield uses the handler SCF data.
+     * normalize_ibz_occupations selects star-weighted occupations from the
+     * handler; set it to zero for already unweighted optical occupations/nk.
      * Optional full-source inputs are paired WFC/velocity data with fractional
      * coordinates [k][3]; the core derives their k-star member mapping.
      * A zero frequency count selects the ordinary numerical frequency grid.
@@ -96,6 +98,7 @@ extern "C"
         const double *velocity_ri;
         const LibrpaOpticalMeanFieldInput *meanfield;
         int coefficients_are_kblacs_2d;
+        int normalize_ibz_occupations;
         const LibrpaOpticalMeanFieldInput *full_source_meanfield;
         const double *full_source_velocity_ri;
         const double *full_source_kfrac;

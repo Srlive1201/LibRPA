@@ -76,7 +76,9 @@ SymmetryQPointView build_symmetry_qpoint_view(const SymmetryContext& ctx,
         }
         return pbc_view;
     }
-    if (!symmetry_reduced_input && ctx.rspace_operations.size() <= 1)
+    const bool implicit_identity_group =
+        ctx.rspace_operations.size() <= 1 && !ctx.has_explicit_spin_operations;
+    if (!symmetry_reduced_input && (ctx.kspace_actions.size() <= 1 || implicit_identity_group))
     {
         return pbc_view;
     }

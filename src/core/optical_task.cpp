@@ -12,9 +12,11 @@
 #include "dataset_helper.h"
 #include "epsilon.h"
 #include "qsgw/headwing_velocity.h"
+
+namespace librpa_int
+{
 namespace
 {
-using namespace librpa_int;
 
 qsgw::LocalizedMatrix decode_operator(const LibrpaLocalizedOperator &input, int dimension)
 {
@@ -98,9 +100,8 @@ MeanField decode_optical_meanfield(const LibrpaOpticalMeanFieldInput &input,
 
 }  // namespace
 
-void librpa_int::prepare_native_velocity(Dataset &dataset, const LibrpaOptions *p_opts,
-                                         const LibrpaNativeVelocityInput *root_input,
-                                         int prepare_optical)
+void prepare_native_velocity(Dataset &dataset, const LibrpaOptions *p_opts,
+                             const LibrpaNativeVelocityInput *root_input, int prepare_optical)
 {
     using namespace librpa_int;
     using namespace librpa_int::qsgw;
@@ -147,11 +148,32 @@ void librpa_int::prepare_native_velocity(Dataset &dataset, const LibrpaOptions *
                     "G0W0 native velocity requires matching SCF k points and weights");
             const bool reduced_grid = nk != nk_full;
             if (reduced_grid)
-                throw LIBRPA_RUNTIME_ERROR("Native velocity requires a complete full-BZ grid");
+            {
+                const bool use_symmetry = (opts.use_symmetry_rpa == LIBRPA_SWITCH_ON) ||
+                                          (opts.use_symmetry_gw == LIBRPA_SWITCH_ON);
+                if (!spinor || !use_symmetry || (opts.use_kpara_scf_eigvec == LIBRPA_SWITCH_ON))
+                    throw LIBRPA_RUNTIME_ERROR(
+                        "IBZ native velocity requires SOC magnetic symmetry and undistributed "
+                        "AO/band WFC blocks");
+                initialize_symmetry_context(*ds, true);
+                require_symmetry_shell_layouts(*ds, "native SOC head/wing");
+                const auto &ctx = ds->symmetry_context;
+                if (ctx.kstars.size() != static_cast<std::size_t>(nk) ||
+                    ctx.count_kstar_members() != static_cast<std::size_t>(nk_full) ||
+                    ctx.spin_operations.empty())
+                    throw LIBRPA_RUNTIME_ERROR(
+                        "IBZ native SOC velocity requires magnetic k-stars covering the full mesh");
+            }
             for (int ik = 0; ik != nk; ++ik)
             {
                 const auto weight = ds->pbc.weight_k[ik];
-                const double expected = 1.0 / nk;
+                const double expected =
+                    reduced_grid
+                        ? static_cast<double>(find_symmetry_kstar_for_ibz_kpoint(
+                                                  ds->symmetry_context, ds->pbc.kfrac_list[ik])
+                                                  .members.size()) /
+                              nk_full
+                        : 1.0 / nk;
                 if (!std::isfinite(weight) || std::abs(weight - expected) > 1e-8)
                     throw LIBRPA_RUNTIME_ERROR(
                         "G0W0 native velocity k weights disagree with the full-mesh star counts");
@@ -263,24 +285,8 @@ void librpa_int::prepare_native_velocity(Dataset &dataset, const LibrpaOptions *
     collective_all_stage(comm, "G0W0 native velocity setter",
                          [&]
                          {
-                             ds->velocity_matrix.resize(ns);
-                             std::size_t velocity_offset = 0;
-                             for (int spin = 0; spin < ns; ++spin)
-                             {
-                                 ds->velocity_matrix[spin].resize(nk);
-                                 for (int k = 0; k < nk; ++k)
-                                 {
-                                     ds->velocity_matrix[spin][k].resize(3);
-                                     for (int axis = 0; axis < 3; ++axis)
-                                     {
-                                         auto &matrix = ds->velocity_matrix[spin][k][axis];
-                                         matrix.create(n, n);
-                                         for (int row = 0; row < n; ++row)
-                                             for (int column = 0; column < n; ++column)
-                                                 matrix(row, column) = velocity[velocity_offset++];
-                                     }
-                                 }
-                             }
+                             ds->velocity_matrix = decode_velocity(
+                                 reinterpret_cast<const double *>(velocity.data()), ns, nk, n);
                              ds->p_headwing.reset();
                          });
     if (comm.is_root())
@@ -317,9 +323,8 @@ void librpa_int::prepare_native_velocity(Dataset &dataset, const LibrpaOptions *
         });
 }
 
-void librpa_int::prepare_supplied_velocity(Dataset &ds, const LibrpaOptions *options,
-                                           const LibrpaSuppliedVelocityInput *input,
-                                           const int need_wing)
+void prepare_supplied_velocity(Dataset &ds, const LibrpaOptions *options,
+                               const LibrpaSuppliedVelocityInput *input, const int need_wing)
 {
     const auto &comm = ds.comm_h;
     MeanField supplied_mf, full_source_mf;
@@ -338,6 +343,7 @@ void librpa_int::prepare_supplied_velocity(Dataset &ds, const LibrpaOptions *opt
                     "replacement");
             if ((input->coefficients_are_kblacs_2d != 0 &&
                  input->coefficients_are_kblacs_2d != 1) ||
+                (input->normalize_ibz_occupations != 0 && input->normalize_ibz_occupations != 1) ||
                 input->n_frequencies < 0 || (input->n_frequencies && !input->frequencies_ha))
                 throw LIBRPA_INVALID_ARGUMENT("Supplied optical conventions are incomplete");
             if (input->meanfield) supplied_mf = decode_optical_meanfield(*input->meanfield, true);
@@ -408,7 +414,6 @@ void librpa_int::prepare_supplied_velocity(Dataset &ds, const LibrpaOptions *opt
                                       opts.use_symmetry_gw == LIBRPA_SWITCH_ON;
             if (use_symmetry)
             {
-                reject_spinor_symmetry_speedup(ds, "analytic head/wing");
                 initialize_symmetry_context(ds, true);
                 require_symmetry_shell_layouts(ds, "analytic head/wing");
             }
@@ -454,15 +459,19 @@ void librpa_int::prepare_supplied_velocity(Dataset &ds, const LibrpaOptions *opt
                 optical->atom_nw = ds.basis_wfc.get_atom_nb_map();
                 optical->coord_frac = ds.symmetry_context.input_coord_frac;
             }
-            if (full_source_mf.initialized() && ds.symmetry_context.available &&
-                !ds.symmetry_context.kstars.empty())
+            if (full_source_mf.initialized())
             {
+                if (!use_symmetry || mf.get_n_kpoints() == ds.pbc.get_n_cells_bvk())
+                    throw LIBRPA_INVALID_ARGUMENT(
+                        "Full-source optical cache requires an active IBZ grid");
                 auto member_indices = map_symmetry_kstar_members_to_source_kpoints(
                     ds.symmetry_context, ds.pbc.kfrac_list, full_source_kfrac, 1e-5);
                 optical->set_direct_full_bz_headwing_inputs(std::move(full_source_velocity),
                                                             std::move(full_source_mf),
                                                             std::move(member_indices));
             }
+            if (input->normalize_ibz_occupations)
+                optical->normalize_ibz_star_weighted_occupations();
         });
     optical->init(opts.sqrt_coulomb_threshold, ds.vq);
     optical->cal_head();
@@ -478,3 +487,5 @@ void librpa_int::prepare_supplied_velocity(Dataset &ds, const LibrpaOptions *opt
     ds.omegas_imagfreq = frequencies;
     ds.p_headwing = std::move(optical);
 }
+
+}  // namespace librpa_int

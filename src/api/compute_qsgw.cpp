@@ -93,6 +93,7 @@ void librpa_init_qsgw_controls(LibrpaQsgwControls* controls)
                  1,
                  0,
                  2147483647,
+                 0,
                  0};
 }
 LibrpaQsgwTask* librpa_create_qsgw_task(LibrpaHandler* handler, const LibrpaOptions* options,
@@ -125,6 +126,7 @@ LibrpaQsgwTask* librpa_create_qsgw_task(LibrpaHandler* handler, const LibrpaOpti
             input.i_state_low = controls->state_low;
             input.i_state_high = controls->state_high;
             input.interband_velocity = controls->interband_velocity != 0;
+            input.expand_ibz = controls->expand_ibz != 0;
             if (input.qsgw_min_iter < 1 || input.qsgw_max_iter < input.qsgw_min_iter ||
                 input.qsgw_unoccupied_keep < 0 ||
                 (input.qsgw_cut_mode != 0 && input.qsgw_cut_mode != 1) ||

@@ -14,6 +14,7 @@
  * @note This header includes librpa_options.h and librpa_handler.h which provide the underlying C types.
  */
 
+#include <array>
 #include <complex>
 #include <memory>
 #include <string>
@@ -61,6 +62,10 @@ struct OutputKGrid
     std::vector<double> fractional_k;
     std::vector<int> source_kpoints;
 };
+
+/** Mean direct, inter-orbital direct and exchange tensor elements, in Hartree. */
+std::array<std::complex<double>, 3> crpa_tensor_averages(
+    int n_orbitals, const std::vector<std::complex<double>> &tensor);
 
 /* Enums */
 /**
@@ -282,8 +287,11 @@ public:
     std::string format_gw_energy_table(const LibrpaGwOutputInput &input) const;
     std::string format_gw_band_spin_table(const LibrpaGwOutputInput &input, int spin) const;
 
+    /** Prepare analytic head/wing from supplied numerical velocity/eigenframe data. */
     void prepare_supplied_velocity(const Options &opts, const LibrpaSuppliedVelocityInput &input,
                                    bool need_wing);
+
+    /** Create an owning QSGW task; numerical state and checkpoints belong to the library. */
     QsgwTask create_qsgw_task(const Options &opts, const LibrpaQsgwControls &controls) const;
 
     /* Input (set) functions */

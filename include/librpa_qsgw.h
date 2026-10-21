@@ -23,7 +23,7 @@ extern "C"
         double mixing_beta, cut_shift_ha, convergence_tolerance_ev;
         const char *mixer, *velocity_mode, *restart_file, *checkpoint_file;
         int output_matrices, output_qp, export_hamiltonian;
-        int state_low, state_high, interband_velocity;
+        int state_low, state_high, interband_velocity, expand_ibz;
     } LibrpaQsgwControls;
     typedef struct
     {
@@ -71,7 +71,8 @@ extern "C"
     void librpa_init_qsgw_controls(LibrpaQsgwControls*);
     LibrpaQsgwTask* librpa_create_qsgw_task(LibrpaHandler*, const LibrpaOptions*,
                                             const LibrpaQsgwControls*);
-    /** Collective validation before ordinary numerical input is installed. */
+    /** Collective preparation; after this call the handler's mean-field getters
+     * expose the expanded grid, if requested. Supply Vxc for the original grid. */
     void librpa_prepare_qsgw_task(LibrpaQsgwTask*);
     /** Collective. Vxc and native operators are supplied on root; ignored elsewhere. */
     void librpa_set_qsgw_input(LibrpaQsgwTask*, const LibrpaQsgwInput* root_input);

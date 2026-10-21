@@ -12,6 +12,10 @@
 namespace librpa_int
 {
 
+//! Initialize mean-field dimensions and their matched k-BLACS layouts.
+void initialize_ds_scf_dimension(Dataset &dataset, int nspins, int nkpts, int nstates, int nbasis,
+                                 int nspinor);
+
 void initialize_ds_tfgrids(Dataset &ds, const LibrpaOptions &opts);
 
 // Initialize the global/world BLACS DDLA handle once when GPU ScaLAPACK
@@ -23,6 +27,7 @@ void initialize_ds_atpairs_local(Dataset &ds, LibrpaParallelRouting routing);
 
 // Initialize response function component
 void initialize_ds_chi0(Dataset &ds, const LibrpaOptions &opts);
+void initialize_ds_chi0_qstar(Dataset &ds, const LibrpaOptions &opts);
 
 // Initialize EXX component
 void initialize_ds_exx(Dataset &ds, const LibrpaOptions &opts);

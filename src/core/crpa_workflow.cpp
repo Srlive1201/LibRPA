@@ -5,11 +5,11 @@
 #include <memory>
 
 #include "../io/global_io.h"
+#include "../math/utils_matrix_m_mpi.h"
 #include "../utils/error.h"
 #include "../utils/profiler.h"
 #include "epsilon.h"
 #include "pair_density_vertex.h"
-#include "utils_matrix_m_mpi.h"
 
 namespace librpa_int
 {
@@ -241,7 +241,8 @@ CrpaLocalProjection prepare_crpa_local_projection(CrpaContext &context,
     require_collectively(
         !frames.empty() && frames.size() == chi.mf.get_n_spins() && desc.initialized() &&
             desc.m() == basis.nb_total && desc.n() == basis.nb_total &&
-            chi.mf.get_n_kpoints() == chi.pbc.get_n_cells_bvk() && !chi.use_symmetry_context &&
+            chi.mf.get_n_kpoints() == chi.pbc.get_n_cells_bvk() &&
+            (!chi.use_symmetry_context || chi.qstar_only_symmetry) &&
             std::isfinite(context.sqrt_coulomb_threshold) && context.sqrt_coulomb_threshold >= 0.0,
         comm, "cRPA requires matching spin frames, full q grid and active descriptor");
     for (const auto *frame : frames)
@@ -306,20 +307,45 @@ CrpaLocalProjection prepare_crpa_local_projection(CrpaContext &context,
                 const int pairs = result.sites[site].n_orbitals * result.sites[site].n_orbitals;
                 result.tensors.push_back({site, left, right, ComplexMatrix(pairs, pairs), {}, {}});
             }
-
-    for (const auto &q : qs)
+    if (chi.qpoint_view().restore_mode == SymmetryQPointRestoreMode::FULL_CRYSTAL)
     {
-        const auto bare = retained_coulomb(context, q);
-        for (auto &tensor : result.tensors)
+        // IBZ producers need only supply representative bare Coulomb blocks.
+        // Filter once in the active basis, then restore that same subspace.
+        std::map<Vector3_Order<double>, Matz> representative;
+        for (const auto &q : chi.active_qpoints())
         {
-            const int n = result.sites[tensor.site_index].n_orbitals;
-            ComplexMatrix block(n * n, n * n);
-            if (comm.is_root())
-                block = contract_rectangular_ordered_pair_vertex(
-                    vertices[tensor.spin_left][tensor.site_index].at(q), bare,
-                    vertices[tensor.spin_right][tensor.site_index].at(q), n, n);
-            comm.bcast(block.c, block.size, 0);
-            tensor.bare += q_weight * block;
+            const auto bare = retained_coulomb(context, q);
+            const Matz dense(bare.nr, bare.nc, bare.c, MAJOR::ROW, MAJOR::COL);
+            representative.emplace(q, get_local_mat(dense, desc));
+        }
+        const auto bare = restore_symmetry_dense_wq_map(representative, chi.pbc, chi.qpoint_view(),
+                                                        chi.symmetry_context, basis, desc);
+        for (const auto &q : qs)
+            for (auto &tensor : result.tensors)
+            {
+                const int n = result.sites[tensor.site_index].n_orbitals;
+                tensor.bare += q_weight * contract_crpa_blacs(
+                                              vertices[tensor.spin_left][tensor.site_index].at(q),
+                                              vertices[tensor.spin_right][tensor.site_index].at(q),
+                                              bare.at(q), desc, n, n, comm);
+            }
+    }
+    else
+    {
+        for (const auto &q : qs)
+        {
+            const auto bare = retained_coulomb(context, q);
+            for (auto &tensor : result.tensors)
+            {
+                const int n = result.sites[tensor.site_index].n_orbitals;
+                ComplexMatrix block(n * n, n * n);
+                if (comm.is_root())
+                    block = contract_rectangular_ordered_pair_vertex(
+                        vertices[tensor.spin_left][tensor.site_index].at(q), bare,
+                        vertices[tensor.spin_right][tensor.site_index].at(q), n, n);
+                comm.bcast(block.c, block.size, 0);
+                tensor.bare += q_weight * block;
+            }
         }
     }
 
@@ -382,7 +408,30 @@ CrpaScreenedResponse screen_crpa_response(CrpaContext &context, Chi0QMap respons
     auto wc = compute_Wc_freq_q_blacs(chi, context.coulomb, coulomb_wc,
                                       context.sqrt_coulomb_threshold, optical != nullptr,
                                       optical ? 3 : 0, epsmac, optical, context.blacs, desc, false);
-
+    if (chi.qpoint_view().restore_mode == SymmetryQPointRestoreMode::FULL_CRYSTAL)
+        for (auto &[frequency, kernels] : wc)
+        {
+            const auto restored = restore_symmetry_dense_wq_map(kernels, chi.pbc, chi.qpoint_view(),
+                                                                chi.symmetry_context, basis, desc);
+            // Preserve the input's exact q keys after fractional-coordinate restoration.
+            std::map<Vector3_Order<double>, Matz> full;
+            for (const auto &q : qs)
+            {
+                auto match = restored.end();
+                for (auto it = restored.begin(); it != restored.end(); ++it)
+                    if (same_fractional_kpoint(Vector3_Order<double>{chi.pbc.latvec * it->first},
+                                               Vector3_Order<double>{chi.pbc.latvec * q}, 1e-8))
+                    {
+                        require_collectively(match == restored.end(), comm,
+                                             "cRPA q-star restore has duplicate members");
+                        match = it;
+                    }
+                require_collectively(match != restored.end(), comm,
+                                     "cRPA q-star restore misses a full-grid member");
+                full.emplace(q, match->second);
+            }
+            kernels.swap(full);
+        }
     return wc;
 }
 

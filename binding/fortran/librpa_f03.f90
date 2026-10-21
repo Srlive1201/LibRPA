@@ -524,6 +524,7 @@ module librpa_f03
          procedure :: set_ao_basis_aux_shrink => librpa_set_ao_basis_aux_shrink
          procedure :: set_basis_convention => librpa_set_basis_convention
          procedure :: set_symmetry_operations => librpa_set_symmetry_operations
+         procedure :: set_symmetry_spin_operations => librpa_set_symmetry_spin_operations
          procedure :: set_latvec_and_G => librpa_set_latvec_and_G
          procedure :: set_atoms => librpa_set_atoms
          procedure :: set_kgrids_kvec => librpa_set_kgrids_kvec
@@ -662,6 +663,13 @@ module librpa_f03
          integer(c_int), value :: n_symops, row_conv
          type(c_ptr), value :: rotmats, trans
       end subroutine librpa_set_symmetry_operations_c
+
+      subroutine librpa_set_symmetry_spin_operations_c(h, n_ops, row_conv, rotmats, trans, &
+            antiunitary, spin_u, source, grey_group) bind(c, name="librpa_set_symmetry_spin_operations")
+         import :: c_ptr, c_int
+         type(c_ptr), value :: h, rotmats, trans, antiunitary, spin_u
+         integer(c_int), value :: n_ops, row_conv, source, grey_group
+      end subroutine librpa_set_symmetry_spin_operations_c
 
       subroutine librpa_set_latvec_and_G_c(h, latt, recplatt) &
             bind(c, name="librpa_set_latvec_and_G")
@@ -1735,6 +1743,52 @@ contains
       if (allocated(trans_c)) deallocate(trans_c)
       if (allocated(rotmats_c)) deallocate(rotmats_c)
    end subroutine librpa_set_symmetry_operations
+
+   !> @brief Set explicit magnetic operations; spin_u uses eight real/imag entries per operation.
+   subroutine librpa_set_symmetry_spin_operations(this, n_ops, row_conv, rotmats, trans, &
+         antiunitary, spin_u, spin_action_source, grey_group)
+      implicit none
+      class(LibrpaHandler), intent(inout) :: this
+      integer, intent(in) :: n_ops, spin_action_source
+      logical, intent(in) :: row_conv, grey_group
+      integer, intent(in) :: rotmats(9, n_ops)
+      real(dp), intent(in), optional :: trans(3, n_ops), spin_u(8, n_ops)
+      integer, intent(in), optional :: antiunitary(n_ops)
+      integer(c_int), allocatable, target :: rotations_c(:, :), anti_c(:)
+      real(c_double), allocatable, target :: translations_c(:, :), spin_c(:, :)
+      type(c_ptr) :: rotation_ptr, translation_ptr, anti_ptr, spin_ptr
+      integer(c_int) :: row_c, grey_c
+      rotation_ptr = c_null_ptr
+      translation_ptr = c_null_ptr
+      anti_ptr = c_null_ptr
+      spin_ptr = c_null_ptr
+      row_c = 0
+      grey_c = 0
+      if (row_conv) row_c = 1
+      if (grey_group) grey_c = 1
+      if (n_ops > 0) then
+         allocate(rotations_c(9, n_ops))
+         rotations_c = int(rotmats, c_int)
+         rotation_ptr = c_loc(rotations_c(1, 1))
+         if (present(trans)) then
+            allocate(translations_c(3, n_ops))
+            translations_c = real(trans, c_double)
+            translation_ptr = c_loc(translations_c(1, 1))
+         end if
+         if (present(antiunitary)) then
+            allocate(anti_c(n_ops))
+            anti_c = int(antiunitary, c_int)
+            anti_ptr = c_loc(anti_c(1))
+         end if
+         if (present(spin_u)) then
+            allocate(spin_c(8, n_ops))
+            spin_c = real(spin_u, c_double)
+            spin_ptr = c_loc(spin_c(1, 1))
+         end if
+      end if
+      call librpa_set_symmetry_spin_operations_c(this%ptr_c_handle, int(n_ops, c_int), row_c, &
+         rotation_ptr, translation_ptr, anti_ptr, spin_ptr, int(spin_action_source, c_int), grey_c)
+   end subroutine librpa_set_symmetry_spin_operations
 
    !> @brief Set the direct and reciprocal lattice vectors
    !>

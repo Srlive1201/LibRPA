@@ -1,13 +1,20 @@
 #pragma once
+
+#include <array>
+#include <cstring>
+
 #include "../math/utils_matrix_m_mpi.h"
 #include "utils_atomic_basis_blacs.h"
+
 #ifdef LIBRPA_USE_LIBRI
 #include <RI/global/Tensor.h>
 #else
 #include "../utils/libri_stub.h"
 #endif
+
 namespace librpa_int
 {
+
 template <typename Tdst, typename Tsrc>
 void collect_block_from_IJ_storage(matrix_m<Tdst> &mat_lo, const ArrayDesc &ad,
                                    const AtomicBasis &atbasis_row, const AtomicBasis &atbasis_col,
