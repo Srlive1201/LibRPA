@@ -5,20 +5,21 @@
 #include <complex>
 #include <cstdlib>
 #include <iostream>
-#include <map>
 #include <limits>
+#include <map>
 #include <memory>
 #include <set>
 #include <string>
 #include <valarray>
 
+#include "../api/dataset.h"
 #include "../core/chi0.h"
 #include "../core/coulmat.h"
 #include "../core/dielecmodel.h"
 #include "../core/epsilon.h"
+#include "../core/meanfield_mpi.h"
 #include "../core/qpoint_view.h"
 #include "../gpu/la_connector.h"
-#include "../core/meanfield_mpi.h"
 #include "../io/global_io.h"
 #include "../math/utils_matrix_m_mpi.h"
 #include "../mpi/base_blacs.h"
@@ -2286,6 +2287,232 @@ void test_transform_Cs2mnk_can_keep_spin_channels_separate(const BlacsCtxtHandle
     assert(spin_channels_differ == 1);
 }
 
+#ifdef LIBRPA_USE_LIBRI
+void test_complex_soc_bubble_matches_lindhard()
+{
+    using namespace librpa_int;
+    using Z = std::complex<double>;
+    Dataset ds(MPI_COMM_WORLD);
+    ds.basis_wfc.set(std::vector<std::size_t>{3});
+    ds.basis_aux.set(std::vector<std::size_t>{2});
+    ds.mf.set(1, 4, 6, 3, 2);
+    ds.mf.get_efermi() = 0;
+    ds.pbc.set_latvec({1, 0, 0, 0, 1, 0, 0, 0, 1});
+    const double pi = std::acos(-1.0);
+    ds.pbc.set_kgrids_kvec(4, 1, 1, {0, 0, 0, pi / 2, 0, 0, pi, 0, 0, -pi / 2, 0, 0});
+    ds.scfk_blacs_ctxt.init(KPointBlacsProcessShape(1, ds.comm_h.nprocs, true), MPI_COMM_WORLD, 4);
+    ds.desc_wfc_kb_full = ds.scfk_blacs_ctxt.create_array_desc(6, 3, 6, 3);
+    ds.tfg.reset(24);
+    ds.tfg.generate_minimax(0.4, 4.0);
+
+    const double entries[2][9] = {{0.4, 0.3, 0.4, 0.3, 0.7, 0.2, 0.4, 0.2, 0.9},
+                                  {0.9, 0.13, -0.17, 0.13, 0.1, 0.07, -0.17, 0.07, 0.4}};
+    std::array<ComplexMatrix, 2> density{ComplexMatrix(3, 3), ComplexMatrix(3, 3)};
+    for (int mu = 0; mu < 2; ++mu)
+        for (int i = 0; i < 9; ++i) density[mu].c[i] = entries[mu][i];
+    ComplexMatrix base(6, 6);
+    const double c = std::cos(0.31), t = std::sin(0.31);
+    base(0, 0) = base(3, 1) = c;
+    base(4, 0) = base(1, 1) = Z(0, t);
+    base(1, 2) = base(4, 3) = c;
+    base(3, 2) = base(0, 3) = Z(0, t);
+    base(2, 4) = base(5, 5) = 1;
+    std::vector<ComplexMatrix> coefficients;
+    const double energies[] = {-0.7, 0.3, 1.1};
+    for (int k = 0; k < 4; ++k)
+    {
+        auto current = base;
+        // Nonconstant complex Bloch phases give nonzero translated Green blocks.
+        for (int component = 0; component < 2; ++component)
+            for (int band = 0; band < 6; ++band)
+                current(3 * component + 1, band) *= std::exp(Z(0, pi * k / 2));
+        coefficients.push_back(current);
+        for (int component = 0; component < 2; ++component)
+        {
+            ComplexMatrix wfc(6, 3);
+            for (int band = 0; band < 6; ++band)
+                for (int ao = 0; ao < 3; ++ao) wfc(band, ao) = current(3 * component + ao, band);
+            ds.mf.get_eigenvectors()[0][component][k] = wfc;
+        }
+        for (int band = 0; band < 6; ++band)
+        {
+            ds.mf.get_eigenvals()[0](k, band) = energies[band / 2];
+            ds.mf.get_weight()[0](k, band) = band < 2 ? 0.25 : 0;
+        }
+    }
+    ds.cs_data.use_libri = true;
+    if (ds.comm_h.is_root())
+    {
+        auto values = std::make_shared<std::valarray<double>>(0.0, 18);
+        for (int mu = 0; mu < 2; ++mu)
+            for (int i = 0; i < 9; ++i) (*values)[9 * mu + i] = 0.5 * entries[mu][i];
+        ds.cs_data.data_libri[0][{0, {0, 0, 0}}] = RI::Tensor<double>({2, 3, 3}, values);
+    }
+    const auto assigned =
+        dispatch_upper_triangular_tasks(1, ds.blacs_h.myid, ds.blacs_h.nprows, ds.blacs_h.npcols,
+                                        ds.blacs_h.myprow, ds.blacs_h.mypcol);
+    const std::vector<atpair_t> pairs(assigned.begin(), assigned.end());
+    std::map<Vector3_Order<double>, ComplexMatrix> no_shrink;
+    Chi0 chi(ds.mf, ds.basis_wfc, ds.basis_aux, ds.pbc, ds.symmetry_context, ds.tfg,
+             ds.scfk_blacs_ctxt, ds.desc_wfc_kb_full, false, false);
+    chi.gf_threshold = chi.libri_threshold_C = chi.libri_threshold_G = 0;
+    chi.build(LIBRPA_ROUTING_LIBRI, ds.cs_data, pairs, ds.basis_aux, no_shrink, ds.blacs_h);
+    double maximum = 0;
+    for (const double frequency : ds.tfg.get_freq_nodes())
+        for (int iq = 0; iq < 4; ++iq)
+        {
+            ComplexMatrix local(2, 2), total(2, 2), exact(2, 2);
+            const auto f = chi.get_chi0_q().find(frequency);
+            if (f != chi.get_chi0_q().end())
+            {
+                const auto q = f->second.find(ds.pbc.klist[iq]);
+                if (q != f->second.end() && q->second.count(0) && q->second.at(0).count(0))
+                    local = q->second.at(0).at(0);
+            }
+            MPI_Allreduce(local.c, total.c, 4, MPI_C_DOUBLE_COMPLEX, MPI_SUM, MPI_COMM_WORLD);
+            for (int k = 0; k < 4; ++k)
+                for (int n = 0; n < 6; ++n)
+                    for (int m = 0; m < 6; ++m)
+                    {
+                        const double occupation_difference =
+                            (n < 2 ? 1.0 : 0.0) - (m < 2 ? 1.0 : 0.0);
+                        if (!occupation_difference) continue;
+                        const int kq = (k + iq) % 4;
+                        std::array<Z, 2> vertex{};
+                        for (int mu = 0; mu < 2; ++mu)
+                            for (int spin = 0; spin < 2; ++spin)
+                                for (int i = 0; i < 3; ++i)
+                                    for (int j = 0; j < 3; ++j)
+                                        vertex[mu] += std::conj(coefficients[k](3 * spin + i, n)) *
+                                                      density[mu](i, j) *
+                                                      coefficients[kq](3 * spin + j, m);
+                        const Z factor =
+                            occupation_difference /
+                            (4.0 * (Z(0, frequency) + energies[n / 2] - energies[m / 2]));
+                        for (int mu = 0; mu < 2; ++mu)
+                            for (int nu = 0; nu < 2; ++nu)
+                                exact(mu, nu) += factor * vertex[mu] * std::conj(vertex[nu]);
+                    }
+            for (int i = 0; i < 4; ++i)
+            {
+                maximum = std::max(maximum, std::abs(total.c[i] - exact.c[i]));
+                assert(std::isfinite(total.c[i].real()) && std::isfinite(total.c[i].imag()));
+                assert(std::abs(total.c[i] - exact.c[i]) < 2.0e-8);
+            }
+        }
+    if (ds.comm_h.is_root()) std::cout << "Complex SOC charge Lindhard maximum " << maximum << '\n';
+}
+#endif
+
+void test_soc_charge_vertex_is_spin_trace_and_rotation_invariant(const BlacsCtxtHandler &blacs_h)
+{
+    const int nprocs = librpa_int::get_mpi_size(MPI_COMM_WORLD);
+    KPointBlacsProcessShape shape(1, nprocs, true);
+    KPointBlacsParallelContext kctx(shape, MPI_COMM_WORLD, 1);
+    const auto desc_wfc = kctx.create_array_desc(2, 4, 2, 4);
+
+    // A complete complex spinor frame in AO-major/spinor-minor order.
+    Matz coefficients(4, 4, MAJOR::ROW);
+    for (int row = 0; row != 4; ++row)
+        for (int band = 0; band != 4; ++band)
+            coefficients(row, band) =
+                std::polar(0.5, librpa_int::TWO_PI * row * band / 4.0 + 0.31 * row + 0.21 * band);
+    Matz rotated(4, 4, MAJOR::ROW);
+    const double c = std::cos(0.63);
+    const auto s = std::polar(std::sin(0.63), 0.41);
+    for (int ao = 0; ao != 2; ++ao)
+        for (int band = 0; band != 4; ++band)
+        {
+            rotated(2 * ao, band) =
+                c * coefficients(2 * ao, band) + s * coefficients(2 * ao + 1, band);
+            rotated(2 * ao + 1, band) =
+                -std::conj(s) * coefficients(2 * ao, band) + c * coefficients(2 * ao + 1, band);
+        }
+    MeanField mf(1, 1, 4, 2, 2);
+    MeanField mf_rotated(1, 1, 4, 2, 2);
+    for (int spinor = 0; spinor != 2; ++spinor)
+    {
+        auto &wfc = mf.get_eigenvectors()[0][spinor][0];
+        auto &wfc_rotated = mf_rotated.get_eigenvectors()[0][spinor][0];
+        wfc.create(4, 2);
+        wfc_rotated.create(4, 2);
+        for (int band = 0; band != 4; ++band)
+            for (int ao = 0; ao != 2; ++ao)
+            {
+                wfc(band, ao) = coefficients(2 * ao + spinor, band);
+                wfc_rotated(band, ao) = rotated(2 * ao + spinor, band);
+            }
+    }
+
+    librpa_int::velocity_matrix_t velocity;
+    librpa_int::initialize_velocity_matrix(velocity, 1, 1, 4);
+    AtomicBasis basis_wfc({2});
+    AtomicBasis basis_abf({1});
+    PeriodicBoundaryData pbc;
+    const std::vector<Vector3_Order<double>> kfrac{{0.0, 0.0, 0.0}};
+    const std::vector<double> omega{0.5};
+    diele_func df(mf, velocity, kfrac, basis_wfc, basis_abf, omega, 2, 4, 1, 1, pbc,
+                  librpa_int::global::mpi_comm_global_h, blacs_h, true, &kctx, &desc_wfc);
+    diele_func df_rotated(mf_rotated, velocity, kfrac, basis_wfc, basis_abf, omega, 2, 4, 1, 1, pbc,
+                          librpa_int::global::mpi_comm_global_h, blacs_h, true, &kctx, &desc_wfc);
+
+    auto tensor_data = std::make_shared<std::valarray<double>>(4);
+    (*tensor_data)[0] = 0.9;
+    (*tensor_data)[1] = 0.31;
+    (*tensor_data)[2] = -0.27;
+    (*tensor_data)[3] = 0.63;
+    std::map<int, std::map<librpa_int::libri_types<int, int>::TAC, RI::Tensor<double>>> Cs_IJ;
+    Cs_IJ[0][{0, {0, 0, 0}}] = RI::Tensor<double>({1UL, 2UL, 2UL}, tensor_data);
+    librpa_int::Cs_LRI Cs_data;
+    Cs_data.use_libri = true;
+    Cs_data.data_libri = Cs_IJ;
+    const auto Cs_IJ_k = librpa_int::fourier_headwing_cs_to_ijk(
+        Cs_data, basis_wfc, basis_abf, librpa_int::build_headwing_full_bz_fourier_targets(kfrac));
+
+    // Independent dense charge operator: (A + A^dagger) tensor I_spin.
+    // Both local RI centres coincide in this one-atom control.
+    Matz charge(4, 4, MAJOR::ROW);
+    std::fill(charge.ptr(), charge.ptr() + charge.size(), std::complex<double>{});
+    for (int row = 0; row != 4; ++row)
+        for (int col = 0; col != 4; ++col)
+            if (row % 2 == col % 2)
+                charge(row, col) = (*tensor_data)[2 * (row / 2) + col / 2] +
+                                   (*tensor_data)[2 * (col / 2) + row / 2];
+    const Matz expected = transpose(coefficients, true) * charge * coefficients;
+    const auto world = df.transform_Cs2mnk(0, 0, Cs_IJ);
+    const auto world_rotated = df_rotated.transform_Cs2mnk(0, 0, Cs_IJ);
+    const auto kblacs = df.transform_Cs2mnk_kblacs(0, 0, 0, Cs_IJ_k, kctx.blacs_h);
+    const auto kblacs_rotated = df_rotated.transform_Cs2mnk_kblacs(0, 0, 0, Cs_IJ_k, kctx.blacs_h);
+    double local_error = 0.0;
+    const std::array<const char *, 4> route_names{"world", "world_SU2", "kBLACS", "kBLACS_SU2"};
+    int route = 0;
+    for (const auto *actual : {&world, &world_rotated, &kblacs, &kblacs_rotated})
+    {
+        double local_route_error = 0.0;
+        for (int row = 0; row != actual->first.m_loc(); ++row)
+            for (int col = 0; col != actual->first.n_loc(); ++col)
+            {
+                const double difference =
+                    std::abs(actual->second(row, col) - expected(actual->first.indx_l2g_r(row),
+                                                                 actual->first.indx_l2g_c(col)));
+                if (!std::isfinite(difference)) MPI_Abort(MPI_COMM_WORLD, 1);
+                local_route_error = std::max(local_route_error, difference);
+            }
+        double route_error = 0.0;
+        MPI_Allreduce(&local_route_error, &route_error, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+        if (librpa_int::global::mpi_comm_global_h.is_root())
+            std::cout << "SOC charge " << route_names[route] << " error: " << route_error
+                      << std::endl;
+        ++route;
+        local_error = std::max(local_error, local_route_error);
+    }
+    double error = 0.0;
+    MPI_Allreduce(&local_error, &error, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+    if (librpa_int::global::mpi_comm_global_h.is_root())
+        std::cout << "SOC charge spin trace / SU(2) maximum error: " << error << std::endl;
+    if (!std::isfinite(error) || error >= 1e-12) MPI_Abort(MPI_COMM_WORLD, 1);
+}
+
 void test_head_initialization_does_not_require_coulomb_diagonalization(
     const BlacsCtxtHandler &blacs_h)
 {
@@ -3777,6 +4004,10 @@ int main(int argc, char *argv[])
         test_kblacs_transform_matches_original_transform(blacs_h);
         test_kblacs_transform_uses_rectangular_opt_128_blocks();
         test_transform_Cs2mnk_can_keep_spin_channels_separate(blacs_h);
+        test_soc_charge_vertex_is_spin_trace_and_rotation_invariant(blacs_h);
+#ifdef LIBRPA_USE_LIBRI
+        test_complex_soc_bubble_matches_lindhard();
+#endif
         test_head_initialization_does_not_require_coulomb_diagonalization(blacs_h);
         test_spacetime_fourier_phases_form_k_minus_q_convolution();
         test_bn_qstar_wq_to_wr_matches_explicit_full_bz_on_odd_and_even_meshes();

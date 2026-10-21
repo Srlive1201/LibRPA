@@ -316,7 +316,8 @@
       <!-- /> -->
     </testcase>
 
-    <testcase name="BN headwing shrink SOC (abacus input)" directory="g0w0_band_abacus_BN_headwing_shrink_soc_libri">
+    <!-- Retain the historical directory name; this fixture contains AlAs with SOC. -->
+    <testcase name="AlAs headwing shrink SOC (abacus input)" directory="g0w0_band_abacus_BN_headwing_shrink_soc_libri">
       <build require_libri="true"
       />
       <run ntasks_disable="none"
