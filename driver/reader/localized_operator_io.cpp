@@ -1,4 +1,4 @@
-#include "ao_operator_io.h"
+#include "localized_operator_io.h"
 
 #include <algorithm>
 #include <cmath>
@@ -15,7 +15,7 @@
 
 #include "../../src/utils/constants.h"
 
-namespace driver::qsgw
+namespace librpa::reader
 {
 namespace
 {
@@ -351,4 +351,4 @@ void write_qsgw_hamiltonian_csr(const std::string& filename,
         throw;
     }
 }
-}  // namespace driver::qsgw
+}  // namespace librpa::reader

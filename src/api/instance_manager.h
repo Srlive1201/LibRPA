@@ -9,7 +9,7 @@
 
 // Internal headers
 #include "../interface/mpi.h"
-#include "dataset.h"
+#include "../core/dataset.h"
 
 namespace librpa_int
 {

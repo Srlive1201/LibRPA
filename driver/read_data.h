@@ -96,7 +96,7 @@ void read_velocity_aims(const MeanField &mf, const std::string &file_path,
 void read_velocity_aims(const MeanField &mf, const std::string &file_path,
                         const std::string &file_prefix, velocity_matrix_t &velocity);
 // Apply producer normalization to a newly constructed analytic head/wing object.
-void configure_headwing_coulomb_head(const string &dir_path, librpa_int::diele_func &headwing);
+
 void read_headwing_input(const string &dir_path, bool need_wing,
                          const std::vector<double> *frequencies_override = nullptr);
 

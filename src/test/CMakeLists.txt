@@ -88,7 +88,6 @@ endforeach()
 # These suites use standard assert() and must remain active in Release builds.
 target_compile_options(test_sternheimer_rpa PRIVATE -UNDEBUG)
 target_compile_options(test_sternheimer_symmetry PRIVATE -UNDEBUG)
-target_sources(test_task_helper PRIVATE ../../driver/tasks/task_helper.cpp)
 # add 4-process tests
 foreach(target
   test_atomic_basis_blacs

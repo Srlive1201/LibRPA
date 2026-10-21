@@ -6,7 +6,9 @@
 #include <string>
 #include <vector>
 
-#include "../../driver/tasks/task_helper.h"
+#include "../core/gw_output.h"
+using librpa_int::write_energy_qp;
+using librpa_int::occupation_number_from_kpoint_weight;
 
 int main()
 {

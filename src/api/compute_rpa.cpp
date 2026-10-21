@@ -10,7 +10,7 @@
 #include "../math/complexmatrix.h"
 #include "../utils/profiler.h"
 #include "../utils/utils_mem.h"
-#include "dataset_helper.h"
+#include "../core/dataset_helper.h"
 #include "instance_manager.h"
 
 #include <string>
