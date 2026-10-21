@@ -1,16 +1,16 @@
-#include "../core/timefreq.h"
-
-#include "../mpi/global_mpi.h"
-#include "../io/global_io.h"
-#include "../io/stl_io_helper.h"
-
-#include "mpi_test_config.h"
-#include "testutils.h"
-
-#include <iostream>
+#include <array>
 #include <cassert>
 #include <cmath>
+#include <iostream>
+#include <stdexcept>
 #include <vector>
+
+#include "../core/timefreq.h"
+#include "../io/global_io.h"
+#include "../io/stl_io_helper.h"
+#include "../mpi/global_mpi.h"
+#include "mpi_test_config.h"
+#include "testutils.h"
 
 using namespace std;
 using namespace librpa_int;
@@ -81,6 +81,52 @@ void check_gauss_grids()
         assert(std::fabs(split_weight[i] - split_ref_weight[i]) < tol);
         if (i > 0) assert(split_freq[i - 1] < split_freq[i]);
     }
+}
+
+void check_minimax_narrow_transition_interval()
+{
+    // Actual H2 HF/DZP occupied-to-empty transitions distinguish a usable
+    // transform from GreenX success with non-finite fitting coefficients.
+    const std::array<double, 9> transitions{
+        0.857382174146879, 1.234410186662679, 1.256077372121357,
+        1.256077372121389, 2.107728306226503, 2.536985168746743,
+        2.593259340292944, 2.593259340293027, 2.877441176675997};
+    const auto check_transform = [&](const TFGrids& grid)
+    {
+        const auto times = grid.get_time_nodes();
+        const auto frequencies = grid.get_freq_nodes();
+        const auto& transform = grid.get_costrans_t2f();
+        for (std::size_t i = 0; i < grid.size(); ++i)
+            for (const double delta : transitions)
+            {
+                double actual = 0.0;
+                for (std::size_t j = 0; j < grid.size(); ++j)
+                    actual += transform(i, j) * std::exp(-delta * times[j]);
+                const double expected =
+                    2.0 * delta / (delta * delta + frequencies[i] * frequencies[i]);
+                if (!std::isfinite(actual) || std::abs(actual - expected) > 1e-7)
+                    throw std::runtime_error("native minimax transition transform is inaccurate");
+            }
+    };
+    TFGrids narrow(24);
+    bool rejected = false;
+    try
+    {
+        narrow.generate_minimax(0.4286910870734395, 3.021313235509797);
+    }
+    catch (const std::exception& error)
+    {
+        rejected = true;
+        cout << "Rejected unusable narrow minimax grid: " << error.what() << endl;
+    }
+    // An improved GreenX may eventually support this interval without rejecting
+    // it; either an accurate transform or rejection before numerical use is valid.
+    if (!rejected) check_transform(narrow);
+    TFGrids common(24);
+    common.generate_minimax(0.3619945912373965, 4.874507376794855);
+    check_transform(common);
+    narrow.generate_minimax(0.4286910870734395, 3.021313235509797, 1e-12);
+    check_transform(narrow);
 }
 
 void check_minimax_ng16_diamond_k222()
@@ -211,6 +257,7 @@ int main (int argc, char **argv)
 
     check_initialize();
     check_gauss_grids();
+    check_minimax_narrow_transition_interval();
     check_minimax_ng16_diamond_k222();
     check_minimax_ng6_HF_123();
     check_minimax_ng32_H2O();
