@@ -36,7 +36,7 @@ struct LocalizedOperatorView
     std::vector<LibrpaLocalizedBlock> blocks;
     LibrpaLocalizedOperator view{};
 
-    explicit LocalizedOperatorView(const librpa_int::qsgw::LocalizedMatrix &matrix)
+    explicit LocalizedOperatorView(const librpa_int::LocalizedMatrix &matrix)
     {
         for (const auto &[translation, values] : matrix)
         {
@@ -58,8 +58,8 @@ static void prepare_g0w0_native_velocity(bool prepare_optical = true)
     using namespace librpa_int;
     const auto &comm = global::mpi_comm_global_h;
     const auto &params = driver::driver_params;
-    qsgw::HeadwingAoOperators operators;
-    std::vector<qsgw::LocalizedMatrix> hamiltonians;
+    LocalizedAoOperators operators;
+    std::vector<LocalizedMatrix> hamiltonians;
     std::vector<LocalizedOperatorView> storage;
     std::vector<LibrpaLocalizedOperator> h_views;
     LibrpaNativeVelocityInput input{};

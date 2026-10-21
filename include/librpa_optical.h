@@ -48,7 +48,8 @@ extern "C"
 
     /** Collective velocity computation and setter; optional analytic head/wing
      * preparation reuses the ordinary numerical API. Options use API values 3/4,
-     * never driver preset 6. Input is borrowed only for this call.
+     * never driver preset 6. Optical preparation requires replace_w_head enabled.
+     * Input is borrowed only for this call.
      */
     void librpa_prepare_native_velocity(LibrpaHandler *h, const LibrpaOptions *options,
                                         const LibrpaNativeVelocityInput *root_input,

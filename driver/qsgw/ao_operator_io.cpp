@@ -88,9 +88,9 @@ Matz matrix(std::istream& input, const int n, const int nnz, const bool empty_ha
 }
 }  // namespace
 
-librpa_int::qsgw::HeadwingAoOperators read_headwing_ao_operators(const std::string& overlap_file,
-                                                                 const std::string& position_file,
-                                                                 const double position_scale_bohr)
+librpa_int::LocalizedAoOperators read_headwing_ao_operators(const std::string& overlap_file,
+                                                            const std::string& position_file,
+                                                            const double position_scale_bohr)
 {
     if (!(position_scale_bohr > 0.0) || !std::isfinite(position_scale_bohr))
         throw std::runtime_error("Invalid head/wing position-unit conversion");
@@ -100,7 +100,7 @@ librpa_int::qsgw::HeadwingAoOperators read_headwing_ao_operators(const std::stri
     const auto [n, ns, native_s] = header(s);
     const auto [nr, nr_blocks, native_r] = header(r);
     if (n != nr) throw std::runtime_error("Head/wing head/wing S(R) and r(R) dimensions differ");
-    librpa_int::qsgw::HeadwingAoOperators result;
+    librpa_int::LocalizedAoOperators result;
     result.dimension = n;
     for (int i = 0; i < ns; ++i)
     {
@@ -133,15 +133,15 @@ librpa_int::qsgw::HeadwingAoOperators read_headwing_ao_operators(const std::stri
     return result;
 }
 
-librpa_int::qsgw::LocalizedMatrix read_headwing_hamiltonian_csr(const std::string& filename,
-                                                                const double energy_scale_ha)
+librpa_int::LocalizedMatrix read_headwing_hamiltonian_csr(const std::string& filename,
+                                                          const double energy_scale_ha)
 {
     if (!(energy_scale_ha > 0.0) || !std::isfinite(energy_scale_ha))
         throw std::runtime_error("Invalid head/wing Hamiltonian-unit conversion");
     std::ifstream input(filename);
     if (!input) throw std::runtime_error("Cannot open head/wing H(R) CSR input: " + filename);
     const auto [n, nr, native] = header(input);
-    librpa_int::qsgw::LocalizedMatrix result;
+    librpa_int::LocalizedMatrix result;
     for (int i = 0; i < nr; ++i)
     {
         int x, y, z, nnz;
