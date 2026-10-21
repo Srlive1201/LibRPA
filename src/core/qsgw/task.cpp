@@ -619,22 +619,22 @@ void Task::run()
 
     SpinKMatrixMap dft_vxc;
     SpinKMatrixMap dft_vxc_band;
-    collective_root_stage(
-        dataset->comm_h, "QSGW Vxc projection",
-        [&]
-        {
-            const auto& source_reference = reference;
-            for (int spin = 0; spin < source_reference.get_n_spins(); ++spin)
-                for (int k = 0; k < source_reference.get_n_kpoints(); ++k)
-                    dft_vxc[spin][k] = prepare_vxc_in_fixed_state_basis(
-                        input_.vxc.at(spin).at(k), input_.vxc_basis, source_reference, spin, k);
-            if (compute_band)
-                for (int spin = 0; spin < band_reference->get_n_spins(); ++spin)
-                    for (int k = 0; k < band_reference->get_n_kpoints(); ++k)
-                        dft_vxc_band[spin][k] = prepare_vxc_in_fixed_state_basis(
-                            input_.vxc_band.at(spin).at(k), input_.vxc_basis, *band_reference, spin,
-                            k);
-        });
+    collective_root_stage(dataset->comm_h, "QSGW Vxc projection",
+                          [&]
+                          {
+                              const auto& source_reference = reference;
+                              for (int spin = 0; spin < source_reference.get_n_spins(); ++spin)
+                                  for (int k = 0; k < source_reference.get_n_kpoints(); ++k)
+                                      dft_vxc[spin][k] = prepare_vxc_in_fixed_state_basis(
+                                          input_.vxc.at(spin).at(k), input_.vxc_basis,
+                                          source_reference, spin, k);
+                              if (compute_band)
+                                  for (int spin = 0; spin < band_reference->get_n_spins(); ++spin)
+                                      for (int k = 0; k < band_reference->get_n_kpoints(); ++k)
+                                          dft_vxc_band[spin][k] = prepare_vxc_in_fixed_state_basis(
+                                              input_.vxc_band.at(spin).at(k), input_.vxc_basis,
+                                              *band_reference, spin, k);
+                          });
 
     HamiltonianCutOptions cut_options;
     cut_options.unoccupied_keep = controls_.qsgw_unoccupied_keep;

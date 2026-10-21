@@ -1,15 +1,17 @@
 #include "optical_task.h"
-#include "dataset_helper.h"
-#include "epsilon.h"
-#include "qsgw/headwing_velocity.h"
-#include "../mpi/collective_stage.h"
-#include "../utils/constants.h"
+
 #include <algorithm>
 #include <array>
 #include <cmath>
 #include <limits>
 #include <sstream>
 #include <vector>
+
+#include "../mpi/collective_stage.h"
+#include "../utils/constants.h"
+#include "dataset_helper.h"
+#include "epsilon.h"
+#include "qsgw/headwing_velocity.h"
 namespace
 {
 using namespace librpa_int;
@@ -96,13 +98,13 @@ MeanField decode_optical_meanfield(const LibrpaOpticalMeanFieldInput &input,
 
 }  // namespace
 
-void librpa_int::prepare_native_velocity(Dataset& dataset, const LibrpaOptions *p_opts,
-                                    const LibrpaNativeVelocityInput *root_input,
-                                    int prepare_optical)
+void librpa_int::prepare_native_velocity(Dataset &dataset, const LibrpaOptions *p_opts,
+                                         const LibrpaNativeVelocityInput *root_input,
+                                         int prepare_optical)
 {
     using namespace librpa_int;
     using namespace librpa_int::qsgw;
-    auto* ds = &dataset;
+    auto *ds = &dataset;
     const auto &comm = ds->comm_h;
     collective_all_stage(
         comm, "Native velocity options",
@@ -261,25 +263,25 @@ void librpa_int::prepare_native_velocity(Dataset& dataset, const LibrpaOptions *
     collective_all_stage(comm, "G0W0 native velocity setter",
                          [&]
                          {
-                                 ds->velocity_matrix.resize(ns);
-    std::size_t velocity_offset=0;
-    for (int spin=0; spin<ns; ++spin)
-    {
-        ds->velocity_matrix[spin].resize(nk);
-        for (int k=0; k<nk; ++k)
-        {
-            ds->velocity_matrix[spin][k].resize(3);
-            for (int axis=0; axis<3; ++axis)
-            {
-                auto& matrix=ds->velocity_matrix[spin][k][axis];
-                matrix.create(n,n);
-                for (int row=0; row<n; ++row)
-                    for (int column=0; column<n; ++column)
-                        matrix(row,column)=velocity[velocity_offset++];
-            }
-        }
-    }
-    ds->p_headwing.reset();
+                             ds->velocity_matrix.resize(ns);
+                             std::size_t velocity_offset = 0;
+                             for (int spin = 0; spin < ns; ++spin)
+                             {
+                                 ds->velocity_matrix[spin].resize(nk);
+                                 for (int k = 0; k < nk; ++k)
+                                 {
+                                     ds->velocity_matrix[spin][k].resize(3);
+                                     for (int axis = 0; axis < 3; ++axis)
+                                     {
+                                         auto &matrix = ds->velocity_matrix[spin][k][axis];
+                                         matrix.create(n, n);
+                                         for (int row = 0; row < n; ++row)
+                                             for (int column = 0; column < n; ++column)
+                                                 matrix(row, column) = velocity[velocity_offset++];
+                                     }
+                                 }
+                             }
+                             ds->p_headwing.reset();
                          });
     if (comm.is_root())
         global::lib_printf(
@@ -316,7 +318,8 @@ void librpa_int::prepare_native_velocity(Dataset& dataset, const LibrpaOptions *
 }
 
 void librpa_int::prepare_supplied_velocity(Dataset &ds, const LibrpaOptions *options,
-                               const LibrpaSuppliedVelocityInput *input, const int need_wing)
+                                           const LibrpaSuppliedVelocityInput *input,
+                                           const int need_wing)
 {
     const auto &comm = ds.comm_h;
     MeanField supplied_mf, full_source_mf;
@@ -475,4 +478,3 @@ void librpa_int::prepare_supplied_velocity(Dataset &ds, const LibrpaOptions *opt
     ds.omegas_imagfreq = frequencies;
     ds.p_headwing = std::move(optical);
 }
-

@@ -1,13 +1,8 @@
 #include "read_data.h"
-#include <librpa_enums.h>
-#include <librpa_optical.h>
-
-#include "reader/reader_structure.h"
-#include "reader/reader_basis.h"
-#include "reader/read_data.h"
-#include "reader_2d_coulomb_head.h"
 
 #include <fcntl.h>
+#include <librpa_enums.h>
+#include <librpa_optical.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -24,6 +19,7 @@
 #include <iomanip>
 #include <ios>
 #include <iostream>
+#include <librpa.hpp>
 #include <limits>
 #include <map>
 #include <memory>
@@ -34,21 +30,23 @@
 #include <utility>
 #include <vector>
 
-#include <librpa.hpp>
-
-#include "driver.h"
-#include "../src/mpi/global_mpi.h"
-#include "../src/math/matrix.h"
-#include "../src/utils/constants.h"
 #include "../src/api/instance_manager.h"
 #include "../src/core/meanfield_mpi.h"
 #include "../src/io/aux_basis_summary.h"
 #include "../src/io/fs.h"
 #include "../src/io/global_io.h"
 #include "../src/io/stl_io_helper.h"
+#include "../src/math/matrix.h"
+#include "../src/mpi/global_mpi.h"
+#include "../src/utils/constants.h"
 #include "../src/utils/error.h"
 #include "../src/utils/profiler.h"
 #include "../src/utils/utils_mem.h"
+#include "driver.h"
+#include "reader/read_data.h"
+#include "reader/reader_basis.h"
+#include "reader/reader_structure.h"
+#include "reader_2d_coulomb_head.h"
 
 using std::ifstream;
 using std::string;
@@ -619,8 +617,7 @@ void read_headwing_input(const string &dir_path, bool need_wing,
             throw std::runtime_error("Failed to read pyatb head/wing eigenvectors from " +
                                      pyatb_dir);
         }
-        if (direct_headwing_kblacs_2d)
-            coefficients_are_kblacs_2d = true;
+        if (direct_headwing_kblacs_2d) coefficients_are_kblacs_2d = true;
         read_velocity(pyatb_velocity, mf, velocity_matrix, source_to_target_ik,
                       static_cast<int>(kfrac_pyatb.size()));
         if (n_basis != mf.get_n_aos() || n_states != mf.get_n_states() ||
@@ -644,7 +641,7 @@ void read_headwing_input(const string &dir_path, bool need_wing,
             driver::driver_params.input_preset == "abacus-legacy")
         {
             read_velocity_abacus(scf_mf, input_path, driver::driver_params.prefix_velocity,
-                                velocity_matrix);
+                                 velocity_matrix);
         }
         else if (driver::driver_params.input_preset == "fhi-aims")
         {
@@ -661,8 +658,8 @@ void read_headwing_input(const string &dir_path, bool need_wing,
     // Read an optional complete source table; the numerical API decides the
     // magnetic k-star mapping and owns the paired cache.
     if (path_exists(pyatb_velocity.c_str()) &&
-        (wants_headwing_symmetry || (pds->symmetry_context.available &&
-                                     !pds->symmetry_context.kstars.empty())))
+        (wants_headwing_symmetry ||
+         (pds->symmetry_context.available && !pds->symmetry_context.kstars.empty())))
     {
         direct_full_bz_wfc = MeanField(mf.get_n_spins(), static_cast<int>(kfrac_pyatb.size()),
                                        mf.get_n_states(), mf.get_n_aos(), mf.get_n_spinor());
@@ -1586,6 +1583,13 @@ void read_velocity(const string &file_path, const MeanField &mf, velocity_matrix
 {
     auto ctx = driver_reader_context();
     return librpa::reader::read_velocity(ctx, file_path, mf, velocity);
+}
+
+void read_velocity(const string &file_path, int n_spins, int n_kpoints, int n_states,
+                   velocity_matrix_t &velocity)
+{
+    auto ctx = driver_reader_context();
+    return librpa::reader::read_velocity(ctx, file_path, n_spins, n_kpoints, n_states, velocity);
 }
 
 void read_velocity(const string &file_path, const MeanField &mf, velocity_matrix_t &velocity,

@@ -1,17 +1,7 @@
 #include "read_data.h"
-#include "reader_context.h"
-#include "../../src/api/instance_manager.h"
-#include "../../src/core/dataset_helper.h"
-#include <librpa_enums.h>
-
-#include "reader_basis.h"
-#include "reader_eigenvec.h"
-#include "reader_lri.h"
-#include "reader_coulomb.h"
-#include "reader_structure.h"
-#include "bz_full_kmap.h"
 
 #include <fcntl.h>
+#include <librpa_enums.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -28,6 +18,7 @@
 #include <iomanip>
 #include <ios>
 #include <iostream>
+#include <librpa.hpp>
 #include <limits>
 #include <map>
 #include <sstream>
@@ -37,21 +28,27 @@
 #include <utility>
 #include <vector>
 
-#include <librpa.hpp>
-
-#include "../../src/mpi/global_mpi.h"
-#include "../../src/math/matrix.h"
-#include "../../src/utils/constants.h"
+#include "../../src/api/instance_manager.h"
+#include "../../src/core/dataset_helper.h"
 #include "../../src/core/meanfield_mpi.h"
 #include "../../src/io/aux_basis_summary.h"
 #include "../../src/io/fs.h"
 #include "../../src/io/global_io.h"
 #include "../../src/io/stl_io_helper.h"
+#include "../../src/math/matrix.h"
+#include "../../src/mpi/global_mpi.h"
+#include "../../src/utils/constants.h"
 #include "../../src/utils/error.h"
 #include "../../src/utils/profiler.h"
 #include "../../src/utils/utils_mem.h"
-
+#include "bz_full_kmap.h"
 #include "librpa_input.h"
+#include "reader_basis.h"
+#include "reader_context.h"
+#include "reader_coulomb.h"
+#include "reader_eigenvec.h"
+#include "reader_lri.h"
+#include "reader_structure.h"
 
 namespace librpa::reader
 {
@@ -885,15 +882,16 @@ void check_velocity_target_hits(const std::vector<int> &target_hits, const int n
     }
 }
 
-void validate_velocity_dimensions(const std::string &file_path, const MeanField &mf,
+void validate_velocity_dimensions(const std::string &file_path, const int expected_spins,
+                                  const int expected_kpoints, const int expected_states,
                                   const int n_spins, const int n_bands)
 {
-    if (n_spins != mf.get_n_spins() || n_bands != mf.get_n_states())
+    if (n_spins != expected_spins || n_bands != expected_states)
     {
         std::stringstream ss;
         ss << "velocity_matrix dimensions are inconsistent with meanfield: velocity=(" << n_spins
-           << "," << n_bands << "), meanfield=(" << mf.get_n_spins() << "," << mf.get_n_kpoints()
-           << "," << mf.get_n_states() << "), file=" << file_path;
+           << "," << n_bands << "), meanfield=(" << expected_spins << "," << expected_kpoints << ","
+           << expected_states << "), file=" << file_path;
         throw std::logic_error(ss.str());
     }
 }
@@ -907,7 +905,8 @@ std::vector<std::string> discover_velocity_binary_v1_files(const string &file_pa
     return files;
 }
 
-void read_velocity_binary_v1_file(const string &file_path, const MeanField &mf,
+void read_velocity_binary_v1_file(const string &file_path, const int expected_spins,
+                                  const int expected_kpoints, const int expected_states,
                                   velocity_matrix_t &velocity,
                                   const std::vector<int> &source_to_target_ik,
                                   std::vector<int> &target_hits)
@@ -939,7 +938,8 @@ void read_velocity_binary_v1_file(const string &file_path, const MeanField &mf,
         throw std::logic_error("Invalid velocity_matrix v1 header in " + file_path);
     }
 
-    validate_velocity_dimensions(file_path, mf, n_spins, n_bands);
+    validate_velocity_dimensions(file_path, expected_spins, expected_kpoints, expected_states,
+                                 n_spins, n_bands);
 
     std::vector<VelocityKpointBlock> blocks(librpa_int::as_size(n_kpoints_source));
     for (auto &block : blocks)
@@ -972,7 +972,7 @@ void read_velocity_binary_v1_file(const string &file_path, const MeanField &mf,
         {
             for (int ia = 0; ia != 3; ++ia)
             {
-                target_hits[velocity_hit_index(is, ik_target, ia, mf.get_n_kpoints())] = 1;
+                target_hits[velocity_hit_index(is, ik_target, ia, expected_kpoints)] = 1;
                 for (int i = 0; i != n_bands; ++i)
                 {
                     for (int j = 0; j != n_bands; ++j)
@@ -994,7 +994,16 @@ void read_velocity_binary_v1_file(const string &file_path, const MeanField &mf,
 
 }  // namespace
 
-void read_velocity(ReaderContext &ctx, const string &file_path, const MeanField &mf, velocity_matrix_t &velocity)
+void read_velocity(ReaderContext &ctx, const string &file_path, const MeanField &mf,
+                   velocity_matrix_t &velocity)
+{
+    read_velocity(ctx, file_path, mf.get_n_spins(), mf.get_n_kpoints(), mf.get_n_states(),
+                  velocity);
+}
+
+void read_velocity(ReaderContext &ctx, const string &file_path, const int expected_spins,
+                   const int expected_kpoints, const int expected_states,
+                   velocity_matrix_t &velocity)
 {
     using librpa_int::ANG2BOHR;
     using librpa_int::HA2EV;
@@ -1002,19 +1011,19 @@ void read_velocity(ReaderContext &ctx, const string &file_path, const MeanField 
     librpa_int::require_readable_file(file_path);
     if (check_velocity_file_version(file_path) == 1)
     {
-        std::vector<int> source_to_target_ik(librpa_int::as_size(mf.get_n_kpoints()));
-        for (int ik = 0; ik != mf.get_n_kpoints(); ++ik) source_to_target_ik[ik] = ik;
+        std::vector<int> source_to_target_ik(librpa_int::as_size(expected_kpoints));
+        for (int ik = 0; ik != expected_kpoints; ++ik) source_to_target_ik[ik] = ik;
         librpa_int::global::lib_printf_root("velocity_matrix reader: binary v1\n");
-        initialize_velocity_matrix(velocity, mf.get_n_spins(), mf.get_n_kpoints(),
-                                   mf.get_n_states());
+        initialize_velocity_matrix(velocity, expected_spins, expected_kpoints, expected_states);
         std::vector<int> target_hits(
-            librpa_int::as_size(mf.get_n_kpoints()) * librpa_int::as_size(mf.get_n_spins()) * 3, 0);
+            librpa_int::as_size(expected_kpoints) * librpa_int::as_size(expected_spins) * 3, 0);
         for (const auto &velocity_file : discover_velocity_binary_v1_files(file_path))
         {
-            read_velocity_binary_v1_file(velocity_file, mf, velocity, source_to_target_ik,
+            read_velocity_binary_v1_file(velocity_file, expected_spins, expected_kpoints,
+                                         expected_states, velocity, source_to_target_ik,
                                          target_hits);
         }
-        check_velocity_target_hits(target_hits, mf.get_n_spins(), mf.get_n_kpoints());
+        check_velocity_target_hits(target_hits, expected_spins, expected_kpoints);
         if (ctx.comm.is_root())
             std::cout << "* Success: read velocity from pyatb_librpa_df(ABACUS)." << std::endl;
         return;
@@ -1030,13 +1039,12 @@ void read_velocity(ReaderContext &ctx, const string &file_path, const MeanField 
     infile >> n_aos;
     if (!infile.good())
         throw std::logic_error("Failed to read velocity dimensions from " + file_path);
-    if (n_kpoints != mf.get_n_kpoints() || n_spins != mf.get_n_spins() ||
-        n_bands != mf.get_n_states())
+    if (n_kpoints != expected_kpoints || n_spins != expected_spins || n_bands != expected_states)
     {
         std::stringstream ss;
         ss << "velocity_matrix dimensions are inconsistent with meanfield: velocity=(" << n_spins
-           << "," << n_kpoints << "," << n_bands << "), meanfield=(" << mf.get_n_spins() << ","
-           << mf.get_n_kpoints() << "," << mf.get_n_states() << ")";
+           << "," << n_kpoints << "," << n_bands << "), meanfield=(" << expected_spins << ","
+           << expected_kpoints << "," << expected_states << ")";
         throw std::logic_error(ss.str());
     }
 
@@ -1114,7 +1122,8 @@ void read_velocity(ReaderContext &ctx, const string &file_path, const MeanField 
                                      0);
         for (const auto &velocity_file : discover_velocity_binary_v1_files(file_path))
         {
-            read_velocity_binary_v1_file(velocity_file, mf, velocity, source_to_target_ik,
+            read_velocity_binary_v1_file(velocity_file, mf.get_n_spins(), mf.get_n_kpoints(),
+                                         mf.get_n_states(), velocity, source_to_target_ik,
                                          target_hits);
         }
         check_velocity_target_hits(target_hits, mf.get_n_spins(), mf.get_n_kpoints());

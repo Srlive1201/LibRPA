@@ -258,14 +258,11 @@ Matz read_abacus_vxc_ha(std::istream& input,
 
 } // namespace
 
-VxcMatrices read_qsgw_vxc(const std::string& input_directory,
-                            const std::string& prefix,
-                            const int nspins, const int nkpoints, const int nspinor,
-                            const bool aims_input,
-                            const bool band_path)
+VxcMatrices read_qsgw_vxc(const std::string& input_directory, const std::string& prefix,
+                          const int nspins, const int nkpoints, const int nspinor,
+                          const bool aims_input, const bool band_path)
 {
-    if (!aims_input && nspinor != 1 &&
-        (nspinor != 2 || nspins != 1))
+    if (!aims_input && nspinor != 1 && (nspinor != 2 || nspins != 1))
         throw std::invalid_argument(
             "ABACUS QSGW Vxc requires scalar channels or one two-component spinor channel");
     const std::string default_prefix = aims_input
@@ -299,8 +296,7 @@ VxcMatrices read_qsgw_vxc(const std::string& input_directory,
             }
             std::string path = filename.str();
             // ABACUS Gamma-only exports omit the k-point suffix.
-            if (!aims_input && nkpoints == 1 &&
-                !file_exists(path))
+            if (!aims_input && nkpoints == 1 && !file_exists(path))
             {
                 path = path_prefix;
                 if (nspinor == 2)
@@ -323,4 +319,4 @@ VxcMatrices read_qsgw_vxc(const std::string& input_directory,
     return result;
 }
 
-} // namespace librpa::reader
+}  // namespace librpa::reader
