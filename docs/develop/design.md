@@ -17,8 +17,9 @@ LibRPA is designed to provide efficient and scalable implementations of various 
 ## QSGW iteration state and checkpoints
 
 The experimental iteration driver is `driver/tasks/qsgw.cpp`. Numerical
-operations belong to `src/core/qsgw`; checkpoint serialization and its input
-comparison belong to `driver/qsgw/checkpoint.cpp` and `.h`. For filenames,
+operations belong to `src/core/qsgw`. Checkpoint state, serialization and input
+comparison remain private to `driver/tasks/qsgw.cpp`, within the early-task
+prototype exception for numerical-state access. For filenames,
 runtime switches and continuation examples, see the
 [QSGW user guide](../user_guide/qsgw.md#checkpoint-continuation). The
 source-only note `theory/qsgw/staticization.md` describes the self-energy map.
