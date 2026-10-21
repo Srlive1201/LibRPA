@@ -415,6 +415,18 @@ void Handler::reset_band_data()
     ::librpa_reset_band_data(this->h_);
 }
 
+void Handler::prepare_native_velocity(const Options& opts,
+                                      const LibrpaNativeVelocityInput* root_input,
+                                      bool prepare_optical)
+{
+    ::librpa_prepare_native_velocity(h_, &opts, root_input, prepare_optical ? 1 : 0);
+}
+
+OpticalResult Handler::get_optical_result() const
+{
+    return OpticalResult(::librpa_get_optical_result(h_), ::librpa_delete_optical_result);
+}
+
 /* Compute (build/get) functions */
 void Handler::get_imaginary_frequency_grids(const Options& opts, std::vector<double> &omegas, std::vector<double> &weights)
 {

@@ -202,6 +202,34 @@ blocks:
       - api.n_bands_sigc
       - api.n_bands_exclude_sigc
 
+  - heading: G0W0 native velocity
+    text: |
+      The standalone `g0w0` driver and its `g0w0_band` alias can construct analytic
+      head/wing velocity from the original DFT H(R), S(R), and r(R). The driver
+      preset `option_dielect_func = 6` selects native velocity and then resolves
+      to the existing numerical option 3. It requires `replace_w_head = true`,
+      `use_scalapack_gw_wc = true`, and `use_pyatb = false`. An omitted velocity
+      selector becomes `native`; explicit `native` is accepted and explicit
+      `file` is rejected. The log records requested option 6 and effective
+      option 3. Other tasks reject option 6. Direct library/API callers use
+      option 3 with the public velocity setter or `librpa_prepare_native_velocity`.
+      Existing options 3 and 4 still accept `g0w0_headwing_velocity = native`;
+      their default `file` uses the existing velocity reader.
+      The native path retains the loaded SCF energies,
+      wavefunctions, and occupations and does not solve a second eigenproblem.
+      It currently requires a complete uniform full-BZ mesh, complete AO/band
+      frames with scalar or SOC wavefunctions, and disabled symmetry reduction
+      and k-point-parallel SCF eigenvectors. See the native head/wing example in
+      [Driver Usage](driver_usage.md#native-g0w0-headwing-velocity).
+    fields:
+      - driver.g0w0_headwing_velocity
+      - driver.g0w0_fn_hr
+      - driver.g0w0_fn_hr_spin1
+      - driver.g0w0_fn_sr
+      - driver.g0w0_fn_rr
+      - driver.g0w0_hr_unit
+      - driver.g0w0_rr_unit
+
   - heading: QSGW
     text: |
       These experimental driver parameters apply only to `task = qsgw` or

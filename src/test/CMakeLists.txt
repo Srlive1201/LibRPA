@@ -141,3 +141,6 @@ set_tests_properties(test_headwing_descriptor PROPERTIES TIMEOUT 30)
 
 target_compile_definitions(test_si_density_symmetry PRIVATE
   SI_DENSITY_REFERENCE="${CMAKE_CURRENT_SOURCE_DIR}/data/si_k444_density_reference.txt")
+
+config_test(test_matrix_power_scalar 1)
+add_test(NAME test_matrix_power_scalar_mpi COMMAND mpirun -np 4 $<TARGET_FILE:test_matrix_power_scalar>)
