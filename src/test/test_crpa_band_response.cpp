@@ -1,3 +1,5 @@
+#include <omp.h>
+
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -133,7 +135,15 @@ struct Fixture
 void test_selected_response()
 {
     Fixture f;
+    // The mask-reset comparison below tests state reuse at 1e-12. Keep its
+    // two unmasked builds in the same reduction order: threaded GF/LibRI
+    // summation roundoff is amplified by the minimax cosine transform.
+    // The selected responses still run with the requested thread count and
+    // are checked against the independent Lindhard sum.
+    const int requested_threads = omp_get_max_threads();
+    omp_set_num_threads(1);
     f.build();
+    omp_set_num_threads(requested_threads);
     auto full = f.chi->take_chi0_q();
     const std::array<std::array<double, 3>, 6> cases{
         {{0, 0, 0}, {1, 0, 0}, {1, 1, 1}, {1, 1, 0}, {0.17, 0.63, 0.82}, {1, 1.e-7, 0.2}}};
@@ -197,7 +207,9 @@ void test_selected_response()
     // Disabling a mask must recover the original full response on the same
     // Chi0 instance. Repeated builds also exercise real-space task reset.
     f.chi->clear_band_selection();
+    omp_set_num_threads(1);
     f.build();
+    omp_set_num_threads(requested_threads);
     for (const auto omega : f.ds.tfg.get_freq_nodes())
         for (const auto &q : f.chi->active_qpoints())
             close(f.value(f.chi->get_chi0_q(), omega, q), f.value(full, omega, q), 1e-12);
