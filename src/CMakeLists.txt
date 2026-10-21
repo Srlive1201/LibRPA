@@ -78,9 +78,11 @@ list(APPEND lib_sources
         ${CMAKE_CURRENT_BINARY_DIR}/envs_cmake.cpp
 
         api/compute_exx.cpp
+        api/compute_crpa.cpp
+        api/compute_orbital.cpp
+        api/compute_optical.cpp
         api/compute_helper.cpp
         api/compute_g0w0.cpp
-        api/compute_optical.cpp
         api/compute_rpa.cpp
         api/dataset.cpp
         api/dataset_helper.cpp
@@ -95,6 +97,13 @@ list(APPEND lib_sources
         core/symmetry_spin_kernel.cpp
         core/atomic_basis.cpp
         core/chi0.cpp
+        core/correlated_subspace.cpp
+        core/crpa.cpp
+        core/crpa_model.cpp
+        core/crpa_continuation.cpp
+        core/crpa_workflow.cpp
+        core/crpa_window_input.cpp
+        core/orbital_weights.cpp
         core/coulmat.cpp
         core/dielecmodel.cpp
         core/epsilon.cpp
@@ -105,6 +114,7 @@ list(APPEND lib_sources
         core/meanfield_mpi.cpp
         core/minimax_gx.cpp
         core/pbc.cpp
+        core/pair_density_vertex.cpp
         core/qpoint_view.cpp
         core/qpe_solver.cpp
         core/qsgw/convergence.cpp
@@ -130,6 +140,7 @@ list(APPEND lib_sources
         io/global_io.cpp
         io/input_elsi.cpp
         io/output_gw.cpp
+        io/npz_writer.cpp
         io/output_matrix.cpp
 
         interface/gx_minimax_wrp.f90

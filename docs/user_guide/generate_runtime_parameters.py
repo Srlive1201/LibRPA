@@ -63,7 +63,8 @@ def is_field_declaration(line: str) -> bool:
 
 
 def parse_field(line: str) -> tuple[str, str] | None:
-    declaration = line.strip().removesuffix(";").strip()
+    # Field documentation also covers driver members with in-class defaults.
+    declaration = line.strip().removesuffix(";").split("=", 1)[0].strip()
     match = re.match(
         r"(?P<type>(?:std::)?[A-Za-z_][A-Za-z0-9_:<>]*(?:\s+[A-Za-z_][A-Za-z0-9_:<>]*)*)"
         r"\s+(?P<name>[A-Za-z_][A-Za-z0-9_]*)(?:\s*\[[^\]]+\])?$",

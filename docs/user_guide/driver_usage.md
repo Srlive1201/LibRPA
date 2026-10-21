@@ -229,4 +229,5 @@ This will run the LibRPA calculation using 4 MPI processes, each with 4 OpenMP t
 :maxdepth: 1
 
 QSGW <qsgw>
+cRPA <crpa>
 ```

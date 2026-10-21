@@ -87,7 +87,14 @@ DriverParams::DriverParams()
       qsgw_fn_rr("rr.csr"),
       qsgw_restart_file("none"),
       qsgw_checkpoint_file("qsgw_checkpoint.bin"),
-      qsgw_convergence_tolerance_ev(1.0e-4)
+      qsgw_convergence_tolerance_ev(1.0e-4),
+      crpa_output_analysis(true),
+      crpa_analysis_only(false),
+      crpa_pdos_reference("vbm"),
+      crpa_pdos_min_ev(-10),
+      crpa_pdos_max_ev(14),
+      crpa_pdos_step_ev(0.02),
+      crpa_pdos_sigma_ev(0.15)
 {
 }
 
@@ -232,6 +239,7 @@ std::string DriverParams::format()
         ss << "prefix_vxc_band = " << (prefix_vxc_band.empty()
             ? (aims_input ? "band_vxc_mat" : "band_vxc") : prefix_vxc_band) << std::endl;
         ss << "qsgw_vxc_basis = " << qsgw_vxc_basis << std::endl;
+        ss << "crpa_enabled = " << std::boolalpha << crpa_enabled << std::endl;
         ss << "qsgw_headwing_velocity = " << qsgw_headwing_velocity << std::endl;
         ss << "qsgw_fn_sr = " << qsgw_fn_sr << std::endl;
         ss << "qsgw_fn_rr = " << qsgw_fn_rr << std::endl;
@@ -259,6 +267,45 @@ std::string DriverParams::format()
         ss << "sf_omega_step  = " << sf_omega_step << std::endl;
         ss << "sf_state_start = " << sf_state_start << std::endl;
         ss << "sf_state_end   = " << sf_state_end << std::endl;
+    }
+    if (normalized_task == "crpa" || crpa_enabled)
+    {
+        ss << "crpa_interval = " << crpa_interval << '\n';
+        ss << "crpa_model_file = " << crpa_model_file << '\n';
+        ss << "crpa_output_analysis = " << std::boolalpha << crpa_output_analysis << '\n';
+        ss << "crpa_output_model = " << std::boolalpha << crpa_output_model << '\n';
+        ss << "crpa_output_raw = " << std::boolalpha << crpa_output_raw << '\n';
+        ss << "crpa_output_static = " << std::boolalpha << crpa_output_static << '\n';
+        ss << "crpa_fit_tol_ev = " << crpa_fit_tol_ev << '\n';
+        ss << "crpa_eta_ev = " << crpa_eta_ev << '\n';
+        ss << "crpa_real_frequencies_ev =";
+        for (double value : crpa_real_frequencies_ev) ss << ' ' << value;
+        ss << '\n';
+        ss << "crpa_analysis_only = " << crpa_analysis_only << '\n';
+        ss << "crpa_pdos_reference = " << crpa_pdos_reference << '\n';
+        ss << "crpa_pdos_min_ev = " << crpa_pdos_min_ev << '\n';
+        ss << "crpa_pdos_max_ev = " << crpa_pdos_max_ev << '\n';
+        ss << "crpa_pdos_step_ev = " << crpa_pdos_step_ev << '\n';
+        ss << "crpa_pdos_sigma_ev = " << crpa_pdos_sigma_ev << '\n';
+        ss << "crpa_overlap_file = " << crpa_overlap_file << '\n';
+        ss << "crpa_species_labels = " << crpa_species_labels << '\n';
+        ss << "crpa_correlated_species = " << crpa_correlated_species << '\n';
+        ss << "crpa_ligand_species = " << crpa_ligand_species << '\n';
+        ss << "crpa_parent_orbitals = " << crpa_parent_orbitals << '\n';
+        ss << "crpa_output_orbitals = " << crpa_output_orbitals << '\n';
+        ss << "crpa_response_mode = " << crpa_response_mode << '\n';
+        ss << "crpa_track_orbitals = " << std::boolalpha << crpa_track_orbitals << '\n';
+        ss << "crpa_tracking_min_capture = " << crpa_tracking_min_capture << '\n';
+        ss << "crpa_residual_tol = " << crpa_residual_tol << '\n';
+        ss << "crpa_response_windows_ha =";
+        for (const double value : crpa_response_windows_ha) ss << ' ' << value;
+        ss << "\ncrpa_orbital_windows_ha =";
+        for (const double value : crpa_orbital_windows_ha) ss << ' ' << value;
+        ss << "\ncrpa_response_bands =";
+        for (const int value : crpa_response_bands) ss << ' ' << value;
+        ss << "\ncrpa_orbital_bands =";
+        for (const int value : crpa_orbital_bands) ss << ' ' << value;
+        ss << '\n';
     }
     return ss.str();
 }

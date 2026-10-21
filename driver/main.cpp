@@ -257,8 +257,11 @@ int main(int argc, char **argv)
             profiler.stop("driver_bz");
 
             profiler.start("driver_basis", "Basis (wave-function and auxiliary)");
-            read_basis_wfc_aux(driver_params.input_dir, driver_params.fn_basis,
-                               driver_params.fn_basis_wfc, driver_params.fn_basis_aux);
+            if (task == task_t::cRPA && driver_params.crpa_analysis_only)
+                reader_basis_wfc(join_path(driver_params.input_dir, driver_params.fn_basis_wfc));
+            else
+                read_basis_wfc_aux(driver_params.input_dir, driver_params.fn_basis,
+                                   driver_params.fn_basis_wfc, driver_params.fn_basis_aux);
             lib_printf_root("\n");
             profiler.stop("driver_basis");
 
@@ -293,11 +296,14 @@ int main(int argc, char **argv)
                 }
                 profiler.stop("driver_read_eigenvector");
 
-                profiler.start("driver_read_ri");
-                read_ri(driver_params.input_dir, driver::opts.parallel_routing);
-                lib_printf_root("Actual parallel routing used: %s\n",
-                                get_routing_string(driver::opts.parallel_routing).c_str());
-                profiler.stop("driver_read_ri");
+                if (!(task == task_t::cRPA && driver_params.crpa_analysis_only))
+                {
+                    profiler.start("driver_read_ri");
+                    read_ri(driver_params.input_dir, driver::opts.parallel_routing);
+                    lib_printf_root("Actual parallel routing used: %s\n",
+                                    get_routing_string(driver::opts.parallel_routing).c_str());
+                    profiler.stop("driver_read_ri");
+                }
 
                 // Vq distributed using the same strategy
                 // There should be no duplicate for V

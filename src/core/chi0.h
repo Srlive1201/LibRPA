@@ -27,10 +27,18 @@ namespace librpa_int {
 
 bool rspace_symmetry_has_complete_band_space(const MeanField &mf, int n_bands);
 
+using Chi0QMap =
+    std::map<double, std::map<Vector3_Order<double>, atom_mapping<ComplexMatrix>::pair_t_old>>;
+
 //! Object to handle calculation of independent repsonse function (\f$\chi_0\f$)
 class Chi0
 {
+public:
+    //! Original-KS endpoint probabilities in [0,1], [spin][k][loaded band].
+    using BandSelection = std::vector<std::vector<std::vector<double>>>;
+
 private:
+    BandSelection band_selection_;
     bool is_mf_eigvec_k_distributed_;
     std::size_t gf_save;
     std::size_t gf_discard;
@@ -54,7 +62,7 @@ private:
     std::vector<std::pair<atpair_t, Vector3_Order<int>>> IJRs_gf_local;
 
     //! chi0 data in frequency domain and reciprocal space, [omega][q]
-    std::map<double, std::map<Vector3_Order<double>, atom_mapping<ComplexMatrix>::pair_t_old>> chi0_q;
+    Chi0QMap chi0_q;
     SymmetryQPointView qpoint_view_;
 
     void build_gf_Rt(Vector3_Order<int> R, double tau);
@@ -137,7 +145,21 @@ public:
                const AtomicBasis &abf_Cs,
                std::map<Vector3_Order<double>, ComplexMatrix> &sinvS,
                const BlacsCtxtHandler &blacs_ctxt_h);
-    const std::map<double, std::map<Vector3_Order<double>, atom_mapping<ComplexMatrix>::pair_t_old>> & get_chi0_q() const { return chi0_q; }
+    const Chi0QMap &get_chi0_q() const { return chi0_q; }
+    //! Collective setter. An empty outer table disables selection; an all-zero
+    //! table builds zero response. Endpoint weights in [0,1] multiply both f and (1-f).
+    void set_band_selection(const BandSelection &selection);
+    const BandSelection &get_band_selection() const noexcept { return band_selection_; }
+    //! Restore a previously validated selector without collectives or allocation.
+    //! New masks must enter through the collective set_band_selection method.
+    void swap_band_selection(BandSelection &selection) noexcept { band_selection_.swap(selection); }
+    void clear_band_selection() { set_band_selection({}); }
+    //! Transfer local map ownership without copying distributed blocks.
+    Chi0QMap take_chi0_q() noexcept;
+    void swap_chi0_q(Chi0QMap &other) noexcept;
+    //! Collectively validate and replace resident Pd by full-Pd, preserving
+    //! sparse zero blocks and the common atom-pair distribution of two builds.
+    void replace_chi0_q_by_difference(const Chi0QMap &full);
     const SymmetryQPointView &qpoint_view() const { return qpoint_view_; }
     const std::vector<Vector3_Order<double>> &active_qpoints() const { return qpoint_view_.representatives; }
     double q_weight(const Vector3_Order<double> &q) const { return qpoint_view_.weights.at(q); }

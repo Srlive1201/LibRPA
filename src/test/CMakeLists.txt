@@ -163,3 +163,16 @@ foreach(target
 endforeach()
 config_test(test_qsgw_fixed_basis_mpi 4)
 config_test(test_qsgw_distributed_matrix 4)
+
+if(LIBRPA_USE_LIBRI)
+  foreach(target
+      test_crpa_window_input
+      test_crpa_band_response
+      test_crpa_soc
+      test_pair_density_vertex
+      test_crpa_screening)
+    config_test(${target} 1)
+    add_test(NAME ${target}_mpi COMMAND mpirun -np 4 $<TARGET_FILE:${target}>)
+  endforeach()
+  config_test(test_crpa_model 1)
+endif()
