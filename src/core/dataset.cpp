@@ -1,4 +1,5 @@
 #include "dataset.h"
+
 #include <algorithm>
 #include <cstring>
 #include <ios>
@@ -6,12 +7,12 @@
 #include <string>
 #include <vector>
 
-#include "utils_atomic_basis_blacs.h"
-#include "meanfield_mpi.h"
-#include "../math/scalapack_connector.h"
-#include "utils_matrix_m_mpi.h"
-#include "../utils/profiler.h"
 #include "../io/stl_io_helper.h"
+#include "../math/scalapack_connector.h"
+#include "../utils/profiler.h"
+#include "meanfield_mpi.h"
+#include "utils_atomic_basis_blacs.h"
+#include "utils_matrix_m_mpi.h"
 
 namespace librpa_int
 {
@@ -19,15 +20,15 @@ namespace librpa_int
 namespace
 {
 
-void redistribute_meanfield_eigvecs_kpara(MeanField &mf,
-                                          const MpiCommHandler &comm_h,
+void redistribute_meanfield_eigvecs_kpara(MeanField &mf, const MpiCommHandler &comm_h,
                                           const KPointBlacsParallelContext &kblacs_ctxt,
-                                          const std::string &label,
-                                          const int wfc_tag)
+                                          const std::string &label, const int wfc_tag)
 {
     if (!kblacs_ctxt.is_initialized())
     {
-        throw LIBRPA_RUNTIME_ERROR(label + " k-point BLACS context must be initialized before redistributing eigenvectors");
+        throw LIBRPA_RUNTIME_ERROR(
+            label +
+            " k-point BLACS context must be initialized before redistributing eigenvectors");
     }
 
     using global::ofs_myid;
@@ -38,9 +39,11 @@ void redistribute_meanfield_eigvecs_kpara(MeanField &mf,
     const int n_states = mf.get_n_states();
     const int n_aos = mf.get_n_aos();
     if (n_spins <= 0 || n_spinor <= 0 || n_kpoints <= 0 || n_states <= 0 || n_aos <= 0)
-        throw LIBRPA_RUNTIME_ERROR(label + " mean-field dimensions must be set before redistributing eigenvectors");
+        throw LIBRPA_RUNTIME_ERROR(
+            label + " mean-field dimensions must be set before redistributing eigenvectors");
     if (kblacs_ctxt.n_kpoints() != n_kpoints)
-        throw LIBRPA_RUNTIME_ERROR(label + " k-point BLACS context has inconsistent number of k-points");
+        throw LIBRPA_RUNTIME_ERROR(label +
+                                   " k-point BLACS context has inconsistent number of k-points");
 
     const size_t mat_size = static_cast<size_t>(n_states) * static_cast<size_t>(n_aos);
 
@@ -61,8 +64,7 @@ void redistribute_meanfield_eigvecs_kpara(MeanField &mf,
     const auto wfc_label = [&label](int ispin, int ispinor, int ik)
     {
         return label + " eigenvector: ispin = " + std::to_string(ispin) +
-               " ispinor = " + std::to_string(ispinor) +
-               " ik = " + std::to_string(ik);
+               " ispinor = " + std::to_string(ispinor) + " ik = " + std::to_string(ik);
     };
 
     // Split wave function into 128 MiB chunks.
@@ -100,11 +102,13 @@ void redistribute_meanfield_eigvecs_kpara(MeanField &mf,
                 comm_h.allreduce(&has_local, &n_owners, 1, MPI_SUM);
                 if (n_owners == 0)
                 {
-                    throw LIBRPA_RUNTIME_ERROR("missing wave-function data for " + wfc_label(ispin, ispinor, ik));
+                    throw LIBRPA_RUNTIME_ERROR("missing wave-function data for " +
+                                               wfc_label(ispin, ispinor, ik));
                 }
                 if (n_owners > 1)
                 {
-                    throw LIBRPA_RUNTIME_ERROR("duplicated wave-function data for " + wfc_label(ispin, ispinor, ik));
+                    throw LIBRPA_RUNTIME_ERROR("duplicated wave-function data for " +
+                                               wfc_label(ispin, ispinor, ik));
                 }
 
                 const int bad_dim_local =
@@ -118,8 +122,7 @@ void redistribute_meanfield_eigvecs_kpara(MeanField &mf,
                     comm_h.allreduce(&bad_rank_local, &bad_rank, 1, MPI_MAX);
                     throw LIBRPA_RUNTIME_ERROR(
                         "wave-function matrix shape must be n_states x n_aos for " +
-                        wfc_label(ispin, ispinor, ik) + ", bad rank = " +
-                        std::to_string(bad_rank));
+                        wfc_label(ispin, ispinor, ik) + ", bad rank = " + std::to_string(bad_rank));
                 }
 
                 const int source_rank_local = has_local ? comm_h.myid : -1;
@@ -130,7 +133,7 @@ void redistribute_meanfield_eigvecs_kpara(MeanField &mf,
                 if (dest_rank < 0 || dest_rank >= comm_h.nprocs)
                 {
                     throw LIBRPA_RUNTIME_ERROR("invalid destination rank for " +
-                                              wfc_label(ispin, ispinor, ik));
+                                               wfc_label(ispin, ispinor, ik));
                 }
 
                 if (source_rank != dest_rank)
@@ -158,7 +161,7 @@ void redistribute_meanfield_eigvecs_kpara(MeanField &mf,
              << " eigenvector matrix blocks to k-point BLACS roots" << std::endl;
 }
 
-} // namespace
+}  // namespace
 
 Dataset::Dataset(MPI_Comm comm, const bool input_blacs_matloc_row_major)
     : input_blacs_matloc_row_major_(input_blacs_matloc_row_major),
@@ -183,7 +186,8 @@ Dataset::Dataset(MPI_Comm comm, const bool input_blacs_matloc_row_major)
       desc_band_wfc_kb_full(),
       desc_abf(),
       desc_abf_shrink(),
-      atpairs_local(), atpairs_unique_all(),
+      atpairs_local(),
+      atpairs_unique_all(),
       Rs_local(),
       basis_wfc(),
       basis_aux(),
@@ -204,9 +208,14 @@ Dataset::Dataset(MPI_Comm comm, const bool input_blacs_matloc_row_major)
       tfg(),
       cs_data(),
       cs_data_shrink(),
-      vq(), vq_cut(),
-      vq_lbrow(-1),  vq_ubrow(-1), vq_lbcol(-1), vq_ubcol(-1),
-      vq_block_loc(), vq_cut_block_loc(),
+      vq(),
+      vq_cut(),
+      vq_lbrow(-1),
+      vq_ubrow(-1),
+      vq_lbcol(-1),
+      vq_ubcol(-1),
+      vq_block_loc(),
+      vq_cut_block_loc(),
       epsmacs_imagfreq(),
       omegas_imagfreq(),
       p_headwing(nullptr),
@@ -245,9 +254,9 @@ void Dataset::invalidate_compute_objects()
 
 void Dataset::initialize_comm_blacs_coul()
 {
+    using global::ofs_myid;
     using std::cout;
     using std::endl;
-    using global::ofs_myid;
     // Already initialized, do not do it again since 2D blocks may have been released.
     // To run it again, manually finalize it first
     if (comm_blacs_coul_initialized_) return;
@@ -281,25 +290,20 @@ void Dataset::initialize_comm_blacs_coul()
     if (comm_coul_h.is_initialized())
     {
         MPI_Comm comm_intra_q, comm_inter_q;
-        const auto &block_loc = vq_block_loc.size() > 0? vq_block_loc : vq_cut_block_loc;
+        const auto &block_loc = vq_block_loc.size() > 0 ? vq_block_loc : vq_cut_block_loc;
         std::vector<int> iqs;
-        for (const auto &[q, _]: block_loc)
-            iqs.emplace_back(this->pbc.get_k_index_ibz(q));
+        for (const auto &[q, _] : block_loc) iqs.emplace_back(this->pbc.get_k_index_ibz(q));
         // Assuming q-points are correctly grouped among the processes,
         // we use the first q-point index to identify different groups
         std::sort(iqs.begin(), iqs.end());
         MPI_Comm_split(comm_coul_h.comm, iqs[0], comm_coul_h.myid, &comm_intra_q);
         comm_coul_intra_q_h.reset_comm(comm_intra_q, true);
-        ofs_myid << "Coulomb intra-q comm/myid/nprocs: "
-                 << comm_coul_intra_q_h.comm << " "
-                 << comm_coul_intra_q_h.myid << " "
-                 << comm_coul_intra_q_h.nprocs << endl;
+        ofs_myid << "Coulomb intra-q comm/myid/nprocs: " << comm_coul_intra_q_h.comm << " "
+                 << comm_coul_intra_q_h.myid << " " << comm_coul_intra_q_h.nprocs << endl;
         MPI_Comm_split(comm_coul_h.comm, comm_coul_intra_q_h.myid, comm_coul_h.myid, &comm_inter_q);
         comm_coul_inter_q_h.reset_comm(comm_inter_q, true);
-        ofs_myid << "Coulomb inter-q comm/myid/nprocs: "
-                 << comm_coul_inter_q_h.comm << " "
-                 << comm_coul_inter_q_h.myid << " "
-                 << comm_coul_inter_q_h.nprocs << endl;
+        ofs_myid << "Coulomb inter-q comm/myid/nprocs: " << comm_coul_inter_q_h.comm << " "
+                 << comm_coul_inter_q_h.myid << " " << comm_coul_inter_q_h.nprocs << endl;
     }
     // Till now, the communicators are initialized.
     // Now try to restore the BLACS context and the array descriptor
@@ -314,7 +318,8 @@ void Dataset::initialize_comm_blacs_coul()
         comm_coul_intra_q_h.allreduce(MPI_IN_PLACE, lbcol_all.data(), nprocs, MPI_SUM);
         ofs_myid << "Collected lbrow: " << lbrow_all << endl;
         ofs_myid << "Collected lbcol: " << lbcol_all << endl;
-        // Get number of rows and columns, as well as the process which stores the head of the matrix
+        // Get number of rows and columns, as well as the process which stores the head of the
+        // matrix
         int nprows = 0, npcols = 0, myid_src = 0;
         for (int pid = 0; pid < nprocs; pid++)
         {
@@ -350,13 +355,15 @@ void Dataset::initialize_comm_blacs_coul()
         ofs_myid << "Coulomb array descriptor block size (mb/nb): " << mb << " " << nb << endl;
         int irsrc = 0, icsrc = 0;
         blacs_coul_intra_q_h.get_pcoord(myid_src, irsrc, icsrc);
-        ofs_myid << "Coulomb array descriptor source pid (ir/ic): " << irsrc << " " << icsrc << endl;
+        ofs_myid << "Coulomb array descriptor source pid (ir/ic): " << irsrc << " " << icsrc
+                 << endl;
         desc_coul_intra_q.reset_handler(blacs_coul_intra_q_h);
         const int n_aux = this->basis_aux.nb_total;
         desc_coul_intra_q.init(n_aux, n_aux, mb, nb, irsrc, icsrc);
     }
 
-    ofs_myid << "comm_coul_h.is_initialized() = " << std::boolalpha << comm_coul_h.is_initialized() << std::endl;
+    ofs_myid << "comm_coul_h.is_initialized() = " << std::boolalpha << comm_coul_h.is_initialized()
+             << std::endl;
 
     if (comm_coul_h.is_initialized())
     {
@@ -381,9 +388,9 @@ void Dataset::initialize_comm_blacs_coul()
 
 void Dataset::redistribute_coulomb_blacs2ap()
 {
-    using std::endl;
     using global::ofs_myid;
     using global::profiler;
+    using std::endl;
 
     // Already redistributed, or blacs data has been parsed
     if (coul_blacs2ap_redistributed_) return;
@@ -391,7 +398,8 @@ void Dataset::redistribute_coulomb_blacs2ap()
     profiler.start(__FUNCTION__);
     // Step 1: redistribute to global blacs_h if
     // - some process does not have block data
-    // - there are more than one comm_coul_inter_q_h, meaning Nabs x Nabs matrix is distributed only on a subset of all processes
+    // - there are more than one comm_coul_inter_q_h, meaning Nabs x Nabs matrix is distributed only
+    // on a subset of all processes
     // - the shape and layout of blacs_coul_intra_q_h is different from blacs_h
     // - the descriptor is different from the global one
     // Otherwise, blacs_coul_intra_q_h is equivalent to blacs_h, no need to redistribute
@@ -400,12 +408,11 @@ void Dataset::redistribute_coulomb_blacs2ap()
                                  blacs_h.layout == blacs_coul_intra_q_h.layout;
     int same_shape_blacs_all;
     comm_h.allreduce(&same_shape_blacs, &same_shape_blacs_all, 1, MPI_MIN);
-    const int same_desc = desc_abf.m() == desc_coul_intra_q.m() &&
-                          desc_abf.n() == desc_coul_intra_q.n() &&
-                          desc_abf.mb() == desc_coul_intra_q.mb() &&
-                          desc_abf.nb() == desc_coul_intra_q.nb() &&
-                          desc_abf.irsrc() == desc_coul_intra_q.irsrc() &&
-                          desc_abf.icsrc() == desc_coul_intra_q.icsrc();
+    const int same_desc =
+        desc_abf.m() == desc_coul_intra_q.m() && desc_abf.n() == desc_coul_intra_q.n() &&
+        desc_abf.mb() == desc_coul_intra_q.mb() && desc_abf.nb() == desc_coul_intra_q.nb() &&
+        desc_abf.irsrc() == desc_coul_intra_q.irsrc() &&
+        desc_abf.icsrc() == desc_coul_intra_q.icsrc();
     int same_desc_all;
     comm_h.allreduce(&same_desc, &same_desc_all, 1, MPI_MIN);
 
@@ -444,9 +451,10 @@ void Dataset::redistribute_coulomb_blacs2ap()
                 desc[0] = 1;
                 desc[1] = -1;
             }
-            std::vector<std::pair<std::map<Vector3_Order<double>, Matz>&, std::map<Vector3_Order<double>, Matz>&>>
-                vq_src_dist_pair{ { vq_block_loc, vq_redist}, {vq_cut_block_loc, vq_cut_redist} };
-            for (auto [vq_src, vq_dst]: vq_src_dist_pair)
+            std::vector<std::pair<std::map<Vector3_Order<double>, Matz> &,
+                                  std::map<Vector3_Order<double>, Matz> &>>
+                vq_src_dist_pair{{vq_block_loc, vq_redist}, {vq_cut_block_loc, vq_cut_redist}};
+            for (auto [vq_src, vq_dst] : vq_src_dist_pair)
             {
                 // Get the number and coordinates of q-points for this communicator
                 int nq_this = vq_src.size();
@@ -458,7 +466,7 @@ void Dataset::redistribute_coulomb_blacs2ap()
                 comm_h.allreduce(MPI_IN_PLACE, &pid_comm_coul_root_in_global, 1, MPI_MAX);
                 if (n_comms_q_min == 0) comm_h.bcast(&nq_this, 1, pid_comm_coul_root_in_global);
                 if (nq_this < 1) continue;
-                ofs_myid << "vq_src nq_this for i_inter_q " << i_comm_q << " = " << nq_this << endl; 
+                ofs_myid << "vq_src nq_this for i_inter_q " << i_comm_q << " = " << nq_this << endl;
                 ofs_myid << "Array desc for source         : " << desc << endl;
                 ofs_myid << "Array desc for dest (desc_abf): " << desc_abf.info_desc() << endl;
                 std::vector<double> qs(nq_this * 3);
@@ -467,7 +475,7 @@ void Dataset::redistribute_coulomb_blacs2ap()
                 if (i_comm_q == comm_coul_inter_q_h.myid)
                 {
                     int iq = 0;
-                    for (const auto &[q, mat]: vq_src)
+                    for (const auto &[q, mat] : vq_src)
                     {
                         qs[iq * 3] = q.x;
                         qs[iq * 3 + 1] = q.y;
@@ -479,19 +487,19 @@ void Dataset::redistribute_coulomb_blacs2ap()
                 else
                 {
                     // Dummy matrix
-                    for (int iq = 0; iq < nq_this; iq++)
-                        mat_q[iq] = Matz(0, 0, major_comm);
+                    for (int iq = 0; iq < nq_this; iq++) mat_q[iq] = Matz(0, 0, major_comm);
                 }
                 comm_coul_inter_q_h.bcast(qs.data(), nq_this * 3, i_comm_q);
-                if (n_comms_q_min == 0) comm_h.bcast(qs.data(), nq_this * 3, pid_comm_coul_root_in_global);
-                ofs_myid << "broadcasting coulomb matrices on q-points: " << qs << endl; 
+                if (n_comms_q_min == 0)
+                    comm_h.bcast(qs.data(), nq_this * 3, pid_comm_coul_root_in_global);
+                ofs_myid << "broadcasting coulomb matrices on q-points: " << qs << endl;
                 for (int iq = 0; iq < nq_this; iq++)
                 {
                     const auto &mat_lo_src = mat_q.at(iq);
                     ScalapackConnector::pgemr2d(n_aux, n_aux, mat_lo_src.ptr(), 1, 1, desc.data(),
                                                 mat_local.ptr(), 1, 1, desc_abf.desc,
                                                 blacs_h.ictxt);
-                    Vector3_Order<double> q{qs[iq*3], qs[iq*3+1], qs[iq*3+2]};
+                    Vector3_Order<double> q{qs[iq * 3], qs[iq * 3 + 1], qs[iq * 3 + 2]};
                     vq_dst[q] = mat_local.copy();
                     mat_q.erase(iq);
                 }
@@ -512,20 +520,22 @@ void Dataset::redistribute_coulomb_blacs2ap()
     assert(vq_redist.size() == 0 || vq_redist.size() == this->pbc.klist_coul.size());
     assert(vq_cut_redist.size() == 0 || vq_cut_redist.size() == this->pbc.klist_coul.size());
 
-    // Step 2: redistribute BLACS 2D layout to atom-pair layout, and copy from column-major Matz to ComplexMatrix
+    // Step 2: redistribute BLACS 2D layout to atom-pair layout, and copy from column-major Matz to
+    // ComplexMatrix
     IndexScheduler sched;
     ofs_myid << "atpairs_unique_all:" << this->atpairs_unique_all << endl;
     sched.init(this->atpairs_unique_all, this->basis_aux, this->basis_aux, desc_abf, false);
     std::vector<std::pair<std::map<Vector3_Order<double>, Matz> &, atpair_k_cplx_mat_t &>>
         vq_src_dst_pair{{vq_redist, vq}, {vq_cut_redist, vq_cut}};
     // both bare and cut coulomb
-    for (auto &[vq_src, vq_dst]: vq_src_dst_pair)
+    for (auto &[vq_src, vq_dst] : vq_src_dst_pair)
     {
         for (auto it_q = vq_src.begin(); it_q != vq_src.end();)
         {
             const auto &q = it_q->first;
             const auto &mat_loc = it_q->second;
-            auto IJmap = get_ap_map_from_blacs_dist_scheduler(mat_loc, sched, basis_aux, basis_aux, desc_abf);
+            auto IJmap = get_ap_map_from_blacs_dist_scheduler(mat_loc, sched, basis_aux, basis_aux,
+                                                              desc_abf);
             for (auto it_ap = IJmap.begin(); it_ap != IJmap.end();)
             {
                 const auto IJ = it_ap->first;
@@ -595,15 +605,14 @@ void Dataset::initialize_band_kblacs_wfc_layout()
         bandk_blacs_shape.favor_square_blacs_grid = true;
         bandk_blacs_ctxt.init(bandk_blacs_shape, comm_h.comm, n_kpoints);
     }
-    const int block_ao = get_capped_blacs_block_size(
-        mf_band.get_n_aos(), wfc_gemm_block_size_opt, bandk_blacs_ctxt.blacs_h);
+    const int block_ao = get_capped_blacs_block_size(mf_band.get_n_aos(), wfc_gemm_block_size_opt,
+                                                     bandk_blacs_ctxt.blacs_h);
     const int block_band = get_capped_blacs_block_size(
         mf_band.get_n_states(), wfc_gemm_block_size_opt, bandk_blacs_ctxt.blacs_h);
     desc_band_wfc_kb = bandk_blacs_ctxt.create_array_desc(
         mf_band.get_n_aos(), mf_band.get_n_states(), block_ao, block_band);
     desc_band_wfc_kb_full = bandk_blacs_ctxt.create_array_desc(
-        mf_band.get_n_aos(), mf_band.get_n_states(), mf_band.get_n_aos(),
-        mf_band.get_n_states());
+        mf_band.get_n_aos(), mf_band.get_n_states(), mf_band.get_n_aos(), mf_band.get_n_states());
 }
 
 void Dataset::reset_band_eigvecs_kpara_state()
@@ -621,8 +630,8 @@ void Dataset::redistribute_eigvecs_kpara_2d()
     // Public C/API input remains dense. Move each matrix to its owning k-group
     // root, then convert it once into the permanent compute layout.
     redistribute_meanfield_eigvecs_kpara(mf, comm_h, scfk_blacs_ctxt, "SCF", 19319);
-    redistribute_meanfield_eigvecs_kblacs(
-        mf, scfk_blacs_ctxt, desc_wfc_kb_full, desc_wfc_kb, "SCF");
+    redistribute_meanfield_eigvecs_kblacs(mf, scfk_blacs_ctxt, desc_wfc_kb_full, desc_wfc_kb,
+                                          "SCF");
     eigvecs_kpara_redistributed_ = true;
     eigvecs_kpara_2d_redistributed_ = true;
     global::profiler.stop(__FUNCTION__);
@@ -633,11 +642,9 @@ void Dataset::redistribute_band_eigvecs_kpara_2d()
     if (band_eigvecs_kpara_2d_redistributed_) return;
     global::profiler.start(__FUNCTION__);
     initialize_band_kblacs_wfc_layout();
-    redistribute_meanfield_eigvecs_kpara(
-        mf_band, comm_h, bandk_blacs_ctxt, "band-path", 19320);
-    redistribute_meanfield_eigvecs_kblacs(
-        mf_band, bandk_blacs_ctxt, desc_band_wfc_kb_full, desc_band_wfc_kb,
-        "band-path");
+    redistribute_meanfield_eigvecs_kpara(mf_band, comm_h, bandk_blacs_ctxt, "band-path", 19320);
+    redistribute_meanfield_eigvecs_kblacs(mf_band, bandk_blacs_ctxt, desc_band_wfc_kb_full,
+                                          desc_band_wfc_kb, "band-path");
     band_eigvecs_kpara_2d_redistributed_ = true;
     global::profiler.stop(__FUNCTION__);
 }
@@ -655,4 +662,4 @@ void Dataset::finalize_comm_blacs_coul()
     global::profiler.stop(__FUNCTION__);
 }
 
-}
+}  // namespace librpa_int

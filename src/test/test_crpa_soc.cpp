@@ -7,12 +7,12 @@
 #include <stdexcept>
 #include <valarray>
 
-#include "../core/dataset.h"
-#include "../core/dataset_helper.h"
 #include "../api/instance_manager.h"
 #include "../core/crpa.h"
 #include "../core/crpa_window_input.h"
 #include "../core/crpa_workflow.h"
+#include "../core/dataset.h"
+#include "../core/dataset_helper.h"
 #include "../core/dielecmodel.h"
 #include "../core/orbital_weights.h"
 #include "../core/symmetry_spin_kernel.h"

@@ -3,9 +3,9 @@
 #include <omp.h>
 
 #include <algorithm>
+#include <cmath>
 #include <cstring>
 #include <ctime>
-#include <cmath>
 #include <iostream>
 #include <memory>
 #include <set>
@@ -22,23 +22,22 @@
 #include "../math/matrix.h"
 #include "../math/scalapack_connector.h"
 #include "../math/utils_matrix_mpi.h"
-#include "utils_matrix_m_mpi.h"
 #include "../mpi/base_blacs.h"
 #include "../mpi/two_level_parallel_context.h"
 #include "../utils/base_utility.h"
 #include "../utils/constants.h"
-#include "../io/global_io.h"
 #include "../utils/dev_options.h"
 #include "../utils/error.h"
 #include "../utils/libri_utils.h"
 #include "../utils/profiler.h"
 #include "../utils/utils_mem.h"
-#include "symmetry_context.h"
 #include "atomic_basis.h"
 #include "meanfield_mpi.h"
 #include "pbc.h"
 #include "ri.h"
+#include "symmetry_context.h"
 #include "utils_atomic_basis_blacs.h"
+#include "utils_matrix_m_mpi.h"
 #ifdef LIBRPA_USE_LIBRI
 #if !defined(__DDLA_RI) && !defined(__CUDA_RI) && !defined(__HIP_RI)
 #include <RI/parallel/Parallel_LRI_Equally_Weighted.h>

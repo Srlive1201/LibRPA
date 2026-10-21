@@ -5,11 +5,11 @@
 #include <memory>
 
 #include "../io/global_io.h"
-#include "utils_matrix_m_mpi.h"
 #include "../utils/error.h"
 #include "../utils/profiler.h"
 #include "epsilon.h"
 #include "pair_density_vertex.h"
+#include "utils_matrix_m_mpi.h"
 
 namespace librpa_int
 {

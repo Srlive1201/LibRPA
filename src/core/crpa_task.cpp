@@ -91,8 +91,7 @@ CrpaPreparedModel prepare_crpa_task_model(Dataset& dataset, const LibrpaOptions&
                                           const CrpaTaskInput& input, CrpaTaskMode mode)
 {
     if (options.use_symmetry_rpa == LIBRPA_SWITCH_ON ||
-        options.use_symmetry_gw == LIBRPA_SWITCH_ON ||
-        options.use_symmetry_exx == LIBRPA_SWITCH_ON)
+        options.use_symmetry_gw == LIBRPA_SWITCH_ON || options.use_symmetry_exx == LIBRPA_SWITCH_ON)
         throw LIBRPA_INVALID_ARGUMENT(
             "cRPA requires full-grid inputs with symmetry reduction disabled");
     std::string error;

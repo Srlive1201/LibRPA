@@ -9,9 +9,9 @@
 #include <stdexcept>
 #include <valarray>
 
-#include "../core/dataset.h"
 #include "../core/crpa.h"
 #include "../core/crpa_workflow.h"
+#include "../core/dataset.h"
 #include "../io/global_io.h"
 #include "../math/utils_matrix_m_mpi.h"
 #include "../mpi/global_mpi.h"

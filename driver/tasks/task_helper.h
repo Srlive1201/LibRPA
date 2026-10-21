@@ -1,12 +1,26 @@
 #pragma once
 
-#include "../../src/core/gw_output.h"
+#include <complex>
+#include <vector>
+
+#include "../../src/math/matrix.h"
+#include "../../src/math/vector3_order.h"
+#include "../../src/utils/base_utility.h"
 #include "librpa.hpp"
 
-using librpa_int::occupation_number_from_kpoint_weight;
-using librpa_int::print_band_analysis;
-using librpa_int::write_energy_qp;
-using librpa_int::write_gw_band_spin_table;
+//! Borrowed public output view with owning storage for layout conversions only.
+struct GwOutputView
+{
+    std::vector<double> fractional_k, vxc;
+    LibrpaGwOutputInput input{};
 
-//! Independent output-only copy retrieved through the public API; no WFC data.
-librpa_int::MeanField meanfield_for_output(const librpa::MeanfieldData &snapshot);
+    GwOutputView(const librpa::MeanfieldData &snapshot, bool band_path,
+                 const std::vector<librpa_int::Vector3_Order<double>> &kfrac,
+                 const std::vector<int> &mapping, const std::vector<librpa_int::matrix> &vxc,
+                 const std::vector<double> &vexx, const std::vector<std::complex<double>> &sigc,
+                 int state_low, int state_high, const std::vector<double> &weights = {});
+};
+
+//! Flat index in a public owning spectrum/occupation snapshot.
+std::size_t meanfield_output_index(const librpa::MeanfieldData &snapshot, int spin, int k,
+                                   int state);

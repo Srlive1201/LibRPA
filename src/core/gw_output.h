@@ -4,8 +4,8 @@
 #include <string>
 #include <vector>
 
-#include "meanfield.h"
 #include "../utils/base_utility.h"
+#include "meanfield.h"
 
 namespace librpa_int
 {
@@ -15,8 +15,7 @@ void print_band_analysis(const librpa_int::MeanField &mf,
                          const std::vector<int> &output_to_input_kpoint,
                          const std::vector<librpa_int::matrix> &vxc,
                          const std::vector<double> &vexx,
-                         const std::vector<librpa_int::cplxdb> &sigc,
-                         int i_state_low,
+                         const std::vector<librpa_int::cplxdb> &sigc, int i_state_low,
                          int n_states_calc);
 
 double occupation_number_from_kpoint_weight(double weighted_occupation, double kpoint_weight);

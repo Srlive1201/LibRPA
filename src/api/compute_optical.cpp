@@ -28,16 +28,15 @@ void append_matrix(std::vector<double> &values, const Matz &matrix)
 }
 }  // namespace
 
-void librpa_prepare_native_velocity(LibrpaHandler* h,const LibrpaOptions* options,
-                                    const LibrpaNativeVelocityInput* input,int prepare_optical)
+void librpa_prepare_native_velocity(LibrpaHandler *h, const LibrpaOptions *options,
+                                    const LibrpaNativeVelocityInput *input, int prepare_optical)
 {
-    const auto dataset=librpa_int::api::get_dataset_instance(h);
-    librpa_int::prepare_native_velocity(*dataset,options,input,prepare_optical);
+    const auto dataset = librpa_int::api::get_dataset_instance(h);
+    librpa_int::prepare_native_velocity(*dataset, options, input, prepare_optical);
 }
 
 void librpa_prepare_supplied_velocity(LibrpaHandler *h, const LibrpaOptions *options,
-                                      const LibrpaSuppliedVelocityInput *input,
-                                      const int need_wing)
+                                      const LibrpaSuppliedVelocityInput *input, const int need_wing)
 {
     const auto ds = librpa_int::api::get_dataset_instance(h);
     librpa_int::prepare_supplied_velocity(*ds, options, input, need_wing);
