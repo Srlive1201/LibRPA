@@ -58,12 +58,22 @@ void librpa_prepare_native_velocity(LibrpaHandler *h, const LibrpaOptions *p_opt
     using namespace librpa_int;
     using namespace librpa_int::qsgw;
     const auto ds = api::get_dataset_instance(h);
-    if (!p_opts) throw LIBRPA_INVALID_ARGUMENT("native velocity requires numerical options");
-    const auto &opts = *p_opts;
-    if (opts.option_dielect_func == 6)
-        throw LIBRPA_INVALID_ARGUMENT("Native velocity API options must use numerical values 3/4");
-    const auto &mf = ds->mf;
     const auto &comm = ds->comm_h;
+    collective_all_stage(
+        comm, "Native velocity options",
+        [&]
+        {
+            if (!p_opts)
+                throw LIBRPA_INVALID_ARGUMENT("Native velocity requires numerical options");
+            if (p_opts->option_dielect_func != 3 && p_opts->option_dielect_func != 4)
+                throw LIBRPA_INVALID_ARGUMENT(
+                    "Native velocity API options must use numerical values 3/4");
+            if (prepare_optical && p_opts->replace_w_head != LIBRPA_SWITCH_ON)
+                throw LIBRPA_INVALID_ARGUMENT(
+                    "Native optical preparation requires replace_w_head enabled");
+        });
+    const auto &opts = *p_opts;
+    const auto &mf = ds->mf;
     const int n = mf.get_n_states(), nk = mf.get_n_kpoints(), ns = mf.get_n_spins();
     const int nao = mf.get_n_aos(), nspinor = mf.get_n_spinor();
     const std::size_t count = static_cast<std::size_t>(ns) * nk * 3 * n * n;
