@@ -448,11 +448,23 @@ Task::Task(std::shared_ptr<Dataset> ds, const LibrpaOptions& opts, TaskControls 
 void Task::set_input(TaskInput input)
 {
     if (ran_) throw LIBRPA_RUNTIME_ERROR("Cannot replace input after a QSGW run");
+    input_set_ = false;
     input_ = std::move(input);
-    // current-HR derivatives are evaluated collectively on every rank.
-    if (enabled(options_.replace_w_head) &&
+    const bool current_hr =
+        enabled(options_.replace_w_head) &&
         (options_.option_dielect_func == 3 || options_.option_dielect_func == 4) &&
-        controls_.qsgw_headwing_velocity == "current_hr")
+        controls_.qsgw_headwing_velocity == "current_hr";
+    collective_all_stage(
+        dataset_->comm_h, "QSGW native operator requirements",
+        [&]
+        {
+            if (dataset_->comm_h.is_root() &&
+                (controls_.qsgw_export_hamiltonian_for_pyatb || current_hr) && !input_.ao_operators)
+                throw LIBRPA_INVALID_ARGUMENT(
+                    "QSGW HR export/current-HR velocity requires native H/S/r operators on root");
+        });
+    // current-HR derivatives are evaluated collectively on every rank.
+    if (current_hr)
     {
         auto& comm = dataset_->comm_h;
         int dim = comm.is_root() && input_.ao_operators ? input_.ao_operators->dimension : 0;

@@ -68,6 +68,12 @@ librpa_int::qsgw::Task& librpa_int::api::qsgw_task_instance(LibrpaQsgwTask* task
     return *task->task;
 }
 
+librpa_int::dataset_ptr_t librpa_int::api::qsgw_task_dataset(LibrpaQsgwTask* task)
+{
+    qsgw_task_instance(task);
+    return task->dataset;
+}
+
 void librpa_init_qsgw_controls(LibrpaQsgwControls* controls)
 {
     if (!controls) throw LIBRPA_INVALID_ARGUMENT("Missing QSGW controls");
@@ -119,7 +125,7 @@ LibrpaQsgwTask* librpa_create_qsgw_task(LibrpaHandler* handler, const LibrpaOpti
             input.i_state_low = controls->state_low;
             input.i_state_high = controls->state_high;
             input.interband_velocity = controls->interband_velocity != 0;
-                if (input.qsgw_min_iter < 1 || input.qsgw_max_iter < input.qsgw_min_iter ||
+            if (input.qsgw_min_iter < 1 || input.qsgw_max_iter < input.qsgw_min_iter ||
                 input.qsgw_unoccupied_keep < 0 ||
                 (input.qsgw_cut_mode != 0 && input.qsgw_cut_mode != 1) ||
                 !std::isfinite(input.qsgw_cut_shift_ha) ||
