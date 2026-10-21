@@ -317,6 +317,23 @@
     </testcase>
 
     <!-- Retain the historical directory name; this fixture contains AlAs with SOC. -->
+    <testcase name="SOC full-BZ native head/wing" directory="g0w0_soc_full_native_headwing_libri">
+      <labels/>
+      <build require_libri="true"/>
+      <validate name="Complete complex Cartesian head"
+                file="librpa/librpa.d/g0w0_headwing.csv"
+                regex="^head,([^,]+),([^,]+),([^,]+),([^,]+),([^,]+),([^,]+)$"
+                comparison="cmp_table.abs_diff(1e-10)"/>
+      <validate name="Complete complex auxiliary wing"
+                file="librpa/librpa.d/g0w0_headwing.csv"
+                regex="^wing_auxiliary,([^,]+),([^,]+),([^,]+),([^,]+),([^,]+),([^,]+)$"
+                comparison="cmp_table.abs_diff(1e-10)"/>
+      <validate name="Complete complex Sigma at two common points (Ha)"
+                file="librpa/librpa.d/Sigc_fk_mn_kgrid_ispin_0_ik_[01]_ifreq_*.bin"
+                binary_extract="2i32d"
+                comparison="cmp_float.abs_diff(1e-10)"/>
+    </testcase>
+
     <testcase name="AlAs headwing shrink SOC (abacus input)" directory="g0w0_band_abacus_BN_headwing_shrink_soc_libri">
       <build require_libri="true"
       />
