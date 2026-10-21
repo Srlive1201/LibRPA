@@ -100,6 +100,13 @@ jobs:
             --work-dir workspace_qsgw_restart --ranks 4 --case h2o-band
           python verify_qsgw_headwing.py --binary ../build_libri/chi0_main.exe \
             --work-dir workspace_qsgw_headwing --ranks 4 --case aims-rotate
+      - name: cRPA standalone, shared-GW and tracked current-HR trajectories
+        run: |
+          set -o pipefail
+          source /opt/intel/oneapi/setvars.sh
+          cd regression_tests
+          python verify_crpa_workflows.py --binary ../build_libri/chi0_main.exe \
+            --work-dir workspace_crpa_workflows 2>&1 | tee test_crpa_workflows.log
       - name: Build Fortran binding (with LibRI), static library, and binding test
         run: |
           source /opt/intel/oneapi/setvars.sh
@@ -120,6 +127,9 @@ jobs:
             regression_tests/test_np4.log
             regression_tests/test_libri_np4.log
             regression_tests/test_libri_si_np1.log
+            regression_tests/test_crpa_workflows.log
+            regression_tests/workspace_crpa_workflows/comparison.json
+            regression_tests/workspace_crpa_workflows/np*/*/run.log
             regression_tests/workspace_libri_si_np1/testcases/*/librpa/librpa.out
             regression_tests/workspace_np4/testcases/*/librpa/librpa.out
             regression_tests/workspace_np4/testcases/*/librpa/librpa.err

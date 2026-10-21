@@ -5,6 +5,7 @@
 
 #include "../core/g0w0_task.h"
 #include "../core/gw_output.h"
+#include "crpa_helper.h"
 #include "instance_manager.h"
 #include "librpa_compute.h"
 #include "librpa_gw_output.h"
@@ -113,11 +114,31 @@ void librpa_write_gw_band_spin_table(LibrpaHandler *h, const LibrpaGwOutputInput
     emit_gw_text(output, sink, userdata);
 }
 
-void librpa_build_g0w0_sigma(LibrpaHandler* h, const LibrpaOptions *p_opts)
+void librpa_build_g0w0_sigma(LibrpaHandler *h, const LibrpaOptions *options)
 {
-    if (!p_opts) throw LIBRPA_INVALID_ARGUMENT("missing GW options");
+    if (!options) throw LIBRPA_INVALID_ARGUMENT("missing GW options");
     const auto dataset = librpa_int::api::get_dataset_instance(h);
-    librpa_int::build_g0w0_sigma(*dataset, *p_opts);
+    librpa_int::build_g0w0_sigma(*dataset, *options);
+}
+
+LibrpaCrpaResult *librpa_build_g0w0_sigma_crpa(LibrpaHandler *h, const LibrpaOptions *options,
+                                               const LibrpaCrpaInput *input)
+{
+    if (!options || !input) throw LIBRPA_INVALID_ARGUMENT("missing shared GW/cRPA input");
+    const auto dataset = librpa_int::api::get_dataset_instance(h);
+    auto model = librpa_int::prepare_crpa_task_model(
+        *dataset, *options, librpa_int::api::unpack_crpa_input(*dataset, input),
+        librpa_int::CrpaTaskMode::SharedGw);
+    std::unique_ptr<LibrpaCrpaResult, decltype(&librpa_delete_crpa_result)> result(
+        nullptr, librpa_delete_crpa_result);
+    librpa_int::build_g0w0_sigma(
+        *dataset, *options,
+        [&](const librpa_int::Chi0QMap &response)
+        {
+            result.reset(librpa_int::api::own_crpa_result(
+                librpa_int::evaluate_crpa_task_from_response(*dataset, *options, model, response)));
+        });
+    return result.release();
 }
 
 void librpa_get_g0w0_qpe_kgrid(LibrpaHandler *h, const LibrpaOptions *p_opts, const int n_spins,

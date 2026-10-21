@@ -391,6 +391,16 @@ void initialize_ds_headwing(Dataset &ds, const LibrpaOptions &opts, const bool n
         return;
     }
 
+    ds.p_headwing = make_ds_headwing(ds, opts, need_wing);
+    ds.epsmacs_imagfreq = ds.p_headwing->get_head_vec();
+    ds.omegas_imagfreq = ds.tfg.get_freq_nodes();
+
+    global::profiler.stop("initialize_ds_headwing");
+}
+
+std::unique_ptr<diele_func> make_ds_headwing(Dataset &ds, const LibrpaOptions &opts, bool need_wing,
+                                             const HeadwingBandSelection *excluded)
+{
     if (ds.velocity_matrix.empty())
     {
         throw LIBRPA_RUNTIME_ERROR("analytic head/wing requested but velocity matrix is not set");
@@ -411,6 +421,10 @@ void initialize_ds_headwing(Dataset &ds, const LibrpaOptions &opts, const bool n
 
     const bool use_headwing_symmetry =
         opts.use_symmetry_rpa == LIBRPA_SWITCH_ON || opts.use_symmetry_gw == LIBRPA_SWITCH_ON;
+    if (excluded && (use_headwing_symmetry || opts.use_kpara_scf_eigvec == LIBRPA_SWITCH_ON ||
+                     opts.use_2d_dielectric == LIBRPA_SWITCH_ON))
+        throw LIBRPA_INVALID_ARGUMENT(
+            "constrained optical input requires replicated full BZ and 3D");
     if (use_headwing_symmetry)
     {
         reject_spinor_symmetry_speedup(ds, "analytic head/wing");
@@ -422,36 +436,35 @@ void initialize_ds_headwing(Dataset &ds, const LibrpaOptions &opts, const bool n
     const bool use_kpara_eigvec = opts.use_kpara_scf_eigvec == LIBRPA_SWITCH_ON;
     const ArrayDesc &desc_scf_wfc =
         ds.eigvecs_kpara_2d_ready() ? ds.desc_wfc_kb : ds.desc_wfc_kb_full;
-    ds.p_headwing = std::make_unique<diele_func>(
+    auto optical = std::make_unique<diele_func>(
         mf, ds.velocity_matrix, ds.pbc.kfrac_list, ds.basis_wfc, headwing_basis_aux, freqs,
         mf.get_n_aos(), mf.get_n_states(), mf.get_n_spins(), headwing_basis_aux.nb_total, ds.pbc,
         ds.comm_h, ds.blacs_h, use_kpara_eigvec, &ds.scfk_blacs_ctxt, &desc_scf_wfc);
-    ds.p_headwing->use_2d_dielectric = opts.use_2d_dielectric == LIBRPA_SWITCH_ON;
-    ds.p_headwing->use_soc = mf.get_n_spinor() > 1;
-    ds.p_headwing->debug = global::should_output(LIBRPA_VERBOSE_DEBUG);
+    optical->use_2d_dielectric = opts.use_2d_dielectric == LIBRPA_SWITCH_ON;
+    optical->use_soc = mf.get_n_spinor() > 1;
+    optical->debug = global::should_output(LIBRPA_VERBOSE_DEBUG);
     if (use_headwing_symmetry && ds.symmetry_context.available &&
         !ds.symmetry_context.kstars.empty())
     {
-        ds.p_headwing->set_symmetry_context(ds.symmetry_context);
-        ds.p_headwing->use_symmetry = true;
-        ds.p_headwing->atom_nw = ds.basis_wfc.get_atom_nb_map();
-        ds.p_headwing->coord_frac = ds.symmetry_context.input_coord_frac;
+        optical->set_symmetry_context(ds.symmetry_context);
+        optical->use_symmetry = true;
+        optical->atom_nw = ds.basis_wfc.get_atom_nb_map();
+        optical->coord_frac = ds.symmetry_context.input_coord_frac;
     }
-    ds.p_headwing->init(opts.sqrt_coulomb_threshold, ds.vq);
-    ds.p_headwing->cal_head();
-    ds.epsmacs_imagfreq = ds.p_headwing->get_head_vec();
-    ds.omegas_imagfreq = freqs;
-    ds.p_headwing->test_head();
+    if (excluded) optical->set_excluded_band_pairs(*excluded);
+    optical->init(opts.sqrt_coulomb_threshold, ds.vq);
+    optical->cal_head();
+    optical->test_head();
 
     if (need_wing)
     {
         const auto &headwing_cs =
             opts.use_shrink_abfs == LIBRPA_SWITCH_ON ? ds.cs_data_shrink : ds.cs_data;
-        ds.p_headwing->cal_wing(headwing_cs, opts.sqrt_coulomb_threshold, ds.vq);
-        ds.p_headwing->test_wing();
+        optical->cal_wing(headwing_cs, opts.sqrt_coulomb_threshold, ds.vq);
+        optical->test_wing();
     }
 
-    global::profiler.stop("initialize_ds_headwing");
+    return optical;
 }
 
 }  // namespace librpa_int

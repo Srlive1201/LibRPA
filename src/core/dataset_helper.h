@@ -1,3 +1,4 @@
+#pragma once
 /*!
  * Common (small) helper functions to initialize dataset components from parsed options.
  */
@@ -38,6 +39,9 @@ void initialize_ds_g0w0(Dataset &ds, const LibrpaOptions &opts);
 
 // Initialize analytic dielectric head/wing component from Dataset::velocity_matrix.
 void initialize_ds_headwing(Dataset &ds, const LibrpaOptions &opts, bool need_wing);
+//! Independent optical object, optionally retaining only pairs outside a KS mask.
+std::unique_ptr<diele_func> make_ds_headwing(Dataset &ds, const LibrpaOptions &opts, bool need_wing,
+                                             const HeadwingBandSelection *excluded = nullptr);
 
 void initialize_symmetry_context(Dataset &ds, bool build_shell_rotations);
 void require_symmetry_shell_layouts(const Dataset &ds, const char *calculation);

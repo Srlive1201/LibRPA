@@ -6,6 +6,8 @@
 #include <iomanip>
 #include <limits>
 #include <map>
+#include <memory>
+#include <optional>
 #include <ostream>
 #include <set>
 #include <string>
@@ -728,7 +730,7 @@ void librpa_int::build_g0w0_sigma(Dataset &dataset, const LibrpaOptions &opts,
     auto *pds = &dataset;
     if (opts.option_dielect_func == 6)
         throw LIBRPA_RUNTIME_ERROR(
-            "option_dielect_func = 6 is a standalone G0W0 driver preset; "
+            "option_dielect_func = 6 is a driver preset; "
             "API callers must supply velocity and use option_dielect_func = 3");
     const bool debug = global::should_output(LIBRPA_VERBOSE_DEBUG);
     if (opts.replace_w_head == LIBRPA_SWITCH_ON && opts.option_dielect_func == 53 &&
@@ -769,6 +771,8 @@ void librpa_int::build_g0w0_sigma(Dataset &dataset, const LibrpaOptions &opts,
         const int n_atoms = pds->atoms.size();
         routing = decide_auto_routing(n_atoms, opts.nfreq * pds->pbc.get_n_cells_bvk());
     }
+    if (on_response && routing != LIBRPA_ROUTING_LIBRI)
+        throw LIBRPA_INVALID_ARGUMENT("shared GW/cRPA requires LIBRI response routing");
 
     if (opts.use_kpara_scf_eigvec == LIBRPA_SWITCH_ON)
     {
@@ -840,6 +844,8 @@ void librpa_int::build_g0w0_sigma(Dataset &dataset, const LibrpaOptions &opts,
     profiler.stop("chi0_build");
     pds->comm_h.barrier();
 
+    if (on_response) on_response(chi0.get_chi0_q());
+
     if (debug)
     {  // debug, check chi0
         for (const auto &chi0q : chi0.get_chi0_q())
@@ -867,8 +873,6 @@ void librpa_int::build_g0w0_sigma(Dataset &dataset, const LibrpaOptions &opts,
     ensure_exx();
 
     profiler.start("g0w0_wc", "Build screened interaction");
-
-    if (on_response) on_response(chi0.get_chi0_q());
 
     std::vector<double> epsmac_LF_imagfreq_re;
     if (opts.replace_w_head == LIBRPA_SWITCH_ON && pds->epsmacs_imagfreq.size() > 0)
@@ -992,6 +996,7 @@ void librpa_int::build_g0w0_sigma(Dataset &dataset, const LibrpaOptions &opts,
     release_free_mem();
 
     profiler.stop("api_build_g0w0_sigma");
+    return;
 }
 
 void librpa_int::get_g0w0_qpe_kgrid(Dataset &dataset, const LibrpaOptions &opts, const int n_spins,

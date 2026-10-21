@@ -19,11 +19,13 @@
 #include <string>
 #include <vector>
 
+#include "librpa_crpa.h"
 #include "librpa_enums.h"
 #include "librpa_gw_output.h"
 #include "librpa_handler.h"
 #include "librpa_optical.h"
 #include "librpa_options.h"
+#include "librpa_orbital.h"
 #include "librpa_qsgw.h"
 
 /**
@@ -31,8 +33,19 @@
  */
 namespace librpa
 {
+
 using QsgwTask = std::unique_ptr<LibrpaQsgwTask, decltype(&librpa_delete_qsgw_task)>;
 using OpticalResult = std::unique_ptr<LibrpaOpticalResult, decltype(&librpa_delete_optical_result)>;
+using OrbitalResult = std::unique_ptr<LibrpaOrbitalResult, decltype(&librpa_delete_orbital_result)>;
+using CrpaResult = std::unique_ptr<LibrpaCrpaResult, decltype(&librpa_delete_crpa_result)>;
+using CrpaContinuedResult =
+    std::unique_ptr<LibrpaCrpaContinuedResult, decltype(&librpa_delete_crpa_continued_result)>;
+/** Noncollective native continuation. Energies are Hartree; default diagnostic tolerance is 0.01
+ * eV. */
+CrpaContinuedResult continue_crpa(const LibrpaCrpaResult *result,
+                                  const std::vector<std::complex<double>> &queries,
+                                  int n_parameters = -1,
+                                  double tolerance_ha = 0.0003674932217565499);
 
 /** Owning read-only spectrum snapshot. Flat blocks are [spin][k][state].
  * Energies and Fermi level use Hartree; occupations retain their k weights.
@@ -234,6 +247,13 @@ public:
      * @return Non-owning pointer to the wrapped C handler.
      */
     const LibrpaHandler *get_c_handler() const { return h_; }
+
+    /** Collective scalar/spinor orbital analysis from existing states and spatial S(k).
+     * Returns an owning result; no H solve, file I/O or change to eigenstate/response data.
+     */
+    OrbitalResult analyze_orbitals(int n_kpoints, int n_aos,
+                                   const std::vector<double> &overlap_k_ri,
+                                   double residual_tol) const;
 
     /**
      * @brief Initialize handler with given MPI communicator.
@@ -742,6 +762,14 @@ public:
      * @param[in] opts  Runtime options.
      * */
     void build_g0w0_sigma(const Options &opts);
+
+    /** Build GW Sigma and U from one full-response build of the current state. */
+    CrpaResult build_g0w0_sigma_crpa(const Options &opts, const LibrpaCrpaInput &input);
+
+    /** Compute current-state bare/U without full W or Sigma. */
+    CrpaResult compute_crpa_u_window(const Options &opts, const LibrpaCrpaInput &input) const;
+    //! Current frames/weights/model without response, W, or Sigma.
+    CrpaResult prepare_crpa_model(const Options &opts, const LibrpaCrpaInput &input) const;
 
     /** @brief Get G0W0 correlation self-energy for k-grid states.
      *

@@ -5,9 +5,11 @@
 #include <cassert>
 #include <cmath>
 #include <cstddef>
+#include <exception>
 #include <limits>
 #include <map>
 #include <memory>
+#include <numeric>
 #include <set>
 #include <sstream>
 #include <utility>
@@ -1528,11 +1530,42 @@ void diele_func::init_wing(double coulomb_eigen_threshold, const atpair_k_cplx_m
         std::cout << "* Success: initalize and calculate lebdev points and q_gamma." << std::endl;
 }
 
+void diele_func::set_excluded_band_pairs(const HeadwingBandSelection &selection)
+{
+    if (!head.empty() || !wing_mu.empty() || use_kpara_eigvec_ || use_symmetry)
+        throw LIBRPA_INVALID_ARGUMENT(
+            "constrained optical selection must precede initialization and requires replicated "
+            "full BZ");
+    if (selection.size() != static_cast<std::size_t>(n_spin))
+        throw LIBRPA_INVALID_ARGUMENT("constrained optical spin count differs from meanfield");
+    for (const auto &spin : selection)
+    {
+        if (spin.size() != kfrac_band.size())
+            throw LIBRPA_INVALID_ARGUMENT("constrained optical k count differs from meanfield");
+        for (const auto &mask : spin)
+            if (mask.size() != static_cast<std::size_t>(n_states) ||
+                std::any_of(mask.begin(), mask.end(),
+                            [](double p) { return !std::isfinite(p) || p < 0 || p > 1; }))
+                throw LIBRPA_INVALID_ARGUMENT("invalid constrained optical endpoint mask");
+    }
+    excluded_band_pairs_ = selection;
+}
+
+double diele_func::retained_band_pair_weight(int spin, int k, int n, int m) const
+{
+    return excluded_band_pairs_.empty()
+               ? 1.0
+               : 1.0 - excluded_band_pairs_[spin][k][n] * excluded_band_pairs_[spin][k][m];
+}
+
 // intraband term is not considered
 void diele_func::cal_head()
 {
     using global::profiler;
 
+    if (!excluded_band_pairs_.empty() && (use_symmetry || use_2d_dielectric))
+        throw LIBRPA_INVALID_ARGUMENT(
+            "constrained optical head requires full BZ and 3D dielectric");
     profiler.start("cal_head");
 
     const bool can_try_sym =
@@ -1623,6 +1656,8 @@ void diele_func::cal_head_full_bz()
                 {
                     if (iocc < iunocc)
                     {
+                        const double retained = retained_band_pair_weight(ispin, ik, iocc, iunocc);
+                        if (retained == 0.0) continue;
                         double egap =
                             (eigenvalues(ik, iocc) - eigenvalues(ik, iunocc));  // * HA2EV;
                         // NOTE: wg is matrix(n_kpoints, n_states); index with (ik, ib) not flat
@@ -1640,7 +1675,8 @@ void diele_func::cal_head_full_bz()
                                     for (size_t iomega = 0; iomega != this->omega.size(); iomega++)
                                     {
                                         double omega_ev = this->omega[iomega];  // * HA2EV;
-                                        tmp = 2.0 * factor * velocity[ik][alpha](iunocc, iocc) *
+                                        tmp = 2.0 * factor * retained *
+                                              velocity[ik][alpha](iunocc, iocc) *
                                               velocity[ik][beta](iocc, iunocc) /
                                               (egap * egap + omega_ev * omega_ev) / egap;
                                         this->head.at(iomega)(alpha, beta) -= tmp;
@@ -1970,6 +2006,9 @@ SternheimerRpaHeadwingInput diele_func::get_sternheimer_rpa_headwing_input(
 void diele_func::cal_wing(const Cs_LRI &Cs_data, double coulomb_eigen_threshold,
                           const atpair_k_cplx_mat_t &Vq)
 {
+    if (!excluded_band_pairs_.empty() && (use_symmetry || use_2d_dielectric))
+        throw LIBRPA_INVALID_ARGUMENT(
+            "constrained optical wing requires full BZ and 3D dielectric");
     const bool can_try_sym =
         use_symmetry && symmetry_context_ != nullptr && atomic_basis_wfc_.has_l_shells();
     const auto wfc_layouts =
@@ -2087,6 +2126,8 @@ void diele_func::cal_wing_full_bz(const Cs_LRI &Cs_data, double coulomb_eigen_th
 
                     for (int iunocc = iocc + 1; iunocc != n_states; iunocc++)
                     {
+                        const double retained = retained_band_pair_weight(isp, ik, iocc, iunocc);
+                        if (retained == 0.0) continue;
                         const int loc_n = desc_nband_nband.indx_g2l_c(iunocc);
                         if (loc_n < 0) continue;
 
@@ -2107,6 +2148,8 @@ void diele_func::cal_wing_full_bz(const Cs_LRI &Cs_data, double coulomb_eigen_th
                                       (1.0 - wg(ik, iocc) / 2 * n_spin * nk);
                         }
                         if (factor1 <= 1.e-8 && factor2 <= 1.e-8) continue;
+                        factor1 *= retained;
+                        factor2 *= retained;
 
                         const auto c_mn = C_mnk(loc_m, loc_n);
                         const std::array<std::complex<double>, 3> velocity_unocc_occ{
@@ -4527,6 +4570,13 @@ void diele_func::rewrite_eps_abf_space(matrix_m<std::complex<double>> &eps_block
         rho[ileb] = use_2d_dielectric
                         ? qw_leb[ileb] * std::pow(q_gamma[ileb], 2) / (2.0 * vol_gamma)
                         : qw_leb[ileb] * std::pow(q_gamma[ileb], 3) / (3.0 * vol_gamma);
+    }
+    if (normalize_gamma_cell_weights)
+    {
+        const double weight = std::accumulate(rho.begin(), rho.end(), 0.0);
+        if (!std::isfinite(weight) || weight <= 0.0)
+            throw LIBRPA_RUNTIME_ERROR("invalid optical Gamma-cell quadrature weight");
+        for (auto &value : rho) value /= weight;
     }
     librpa_int::rewrite_eps_abf_space(eps_block, sqrtv_block, coul_eigen_block,
                                       head_direction, desc_head_direction, head.at(ifreq),

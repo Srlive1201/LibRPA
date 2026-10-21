@@ -166,6 +166,53 @@ blocks:
     fields:
       - api.use_scalapack_ecrpa
 
+  - heading: Constrained RPA
+    text: |
+      These experimental driver parameters apply to standalone `task = crpa`
+      and optional U evaluation during `task = g0w0` or `task = qsgw` with `crpa_enabled = true`.
+      `crpa_model_file` reuses an existing cRPA input, and `crpa_interval` selects
+      entering state indices; the final updated state is always evaluated.
+      Orbital analysis is enabled by default for scalar and two-component spinor states;
+      `crpa_analysis_only` skips RI/Coulomb inputs and screening for window inspection.
+      A selects the original KS bands on both branches of the excluded response
+      Pd. B independently selects the band space used to construct local output
+      orbitals. Specify either energy windows or a band list for each space.
+      Calculations use scalar or spinor full-grid LIBRI and native positive imaginary
+      frequencies; see [the cRPA guide](crpa.md) for supported numerical settings,
+      orbital conventions and the distinction between the first node and U(0).
+    fields:
+      - driver.crpa_overlap_file
+      - driver.crpa_enabled
+      - driver.crpa_interval
+      - driver.crpa_model_file
+      - driver.crpa_species_labels
+      - driver.crpa_correlated_species
+      - driver.crpa_ligand_species
+      - driver.crpa_parent_orbitals
+      - driver.crpa_output_orbitals
+      - driver.crpa_response_mode
+      - driver.crpa_response_windows_ha
+      - driver.crpa_orbital_windows_ha
+      - driver.crpa_response_bands
+      - driver.crpa_orbital_bands
+      - driver.crpa_residual_tol
+      - driver.crpa_track_orbitals
+      - driver.crpa_tracking_min_capture
+      - driver.crpa_output_analysis
+      - driver.crpa_output_model
+      - driver.crpa_output_format
+      - driver.crpa_output_raw
+      - driver.crpa_output_static
+      - driver.crpa_fit_tol_ev
+      - driver.crpa_real_frequencies_ev
+      - driver.crpa_eta_ev
+      - driver.crpa_analysis_only
+      - driver.crpa_pdos_reference
+      - driver.crpa_pdos_min_ev
+      - driver.crpa_pdos_max_ev
+      - driver.crpa_pdos_step_ev
+      - driver.crpa_pdos_sigma_ev
+
   - heading: ABF Compression
     fields:
       - api.use_shrink_abfs

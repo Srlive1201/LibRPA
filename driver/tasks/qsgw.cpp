@@ -16,6 +16,7 @@
 #include "../reader/localized_operator_io.h"
 #include "../reader_2d_coulomb_head.h"
 #include "../task.h"
+#include "crpa.h"
 #include "librpa_input.h"
 #include "librpa_qsgw.h"
 
@@ -304,6 +305,49 @@ void driver::task_qsgw()
     librpa_set_qsgw_output_sink(
         task.get(), [](const LibrpaQsgwOutput* event, void* context)
         { return static_cast<OutputFiles*>(context)->write(*event); }, &outputs);
+    std::optional<CrpaDriverInput> crpa_input;
+    struct CrpaOutputFiles
+    {
+        CrpaDriverInput* input;
+        std::string directory;
+        std::exception_ptr* error;
+    } crpa_outputs{nullptr, opts.output_dir, &outputs.error};
+    if (driver_params.crpa_enabled)
+    {
+        crpa_input.emplace(read_crpa_driver_input());
+        crpa_outputs.input = &*crpa_input;
+        auto numerical_input = crpa_input->input();
+        const auto definition = crpa_input->tracking_definition();
+        LibrpaQsgwCrpaControls crpa_controls;
+        librpa_init_qsgw_crpa_controls(&crpa_controls);
+        crpa_controls.interval = driver_params.crpa_interval;
+        crpa_controls.track_orbitals = driver_params.crpa_track_orbitals;
+        crpa_controls.output_analysis = driver_params.crpa_output_analysis;
+        crpa_controls.tracking_definition = definition.c_str();
+        librpa_set_qsgw_crpa(
+            task.get(), &numerical_input, &crpa_controls,
+            [](const LibrpaCrpaResult* result, const LibrpaOrbitalResult* analysis, int state,
+               int update, int final, void* context)
+            {
+                auto& output = *static_cast<CrpaOutputFiles*>(context);
+                try
+                {
+                    std::ostringstream name;
+                    name << "state_" << std::setfill('0') << std::setw(4) << state;
+                    const auto directory =
+                        join_path(join_path(output.directory, "crpa"), name.str());
+                    write_crpa_state_outputs(result, *output.input, directory, state, update,
+                                             final != 0, false, analysis);
+                    return 0;
+                }
+                catch (...)
+                {
+                    *output.error = std::current_exception();
+                    return 1;
+                }
+            },
+            &crpa_outputs);
+    }
     try
     {
         librpa_run_qsgw_task(task.get());

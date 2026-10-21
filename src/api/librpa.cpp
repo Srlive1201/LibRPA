@@ -15,6 +15,27 @@
 namespace librpa
 {
 
+CrpaContinuedResult continue_crpa(const LibrpaCrpaResult* result,
+                                  const std::vector<std::complex<double>>& queries,
+                                  int n_parameters, double tolerance_ha)
+{
+    return CrpaContinuedResult(
+        ::librpa_continue_crpa(result, queries.size(),
+                               reinterpret_cast<const double*>(queries.data()), n_parameters,
+                               tolerance_ha),
+        ::librpa_delete_crpa_continued_result);
+}
+
+OrbitalResult Handler::analyze_orbitals(int nk, int nao, const std::vector<double>& overlap,
+                                        double tolerance) const
+{
+    const bool valid_size =
+        nk > 0 && nao > 0 && overlap.size() == 2 * static_cast<std::size_t>(nk) * nao * nao;
+    return OrbitalResult(
+        ::librpa_analyze_orbitals(h_, nk, nao, valid_size ? overlap.data() : nullptr, tolerance),
+        ::librpa_delete_orbital_result);
+}
+
 MeanfieldData Handler::get_meanfield_data(bool band_path) const
 {
     MeanfieldData result;
@@ -550,6 +571,23 @@ std::vector<double> Handler::get_exx_pot_band_k(const Options& opts, const int n
 void Handler::build_g0w0_sigma(const Options &opts)
 {
     ::librpa_build_g0w0_sigma(this->h_, &opts);
+}
+
+CrpaResult Handler::build_g0w0_sigma_crpa(const Options& opts, const LibrpaCrpaInput& input)
+{
+    return CrpaResult(::librpa_build_g0w0_sigma_crpa(h_, &opts, &input),
+                      ::librpa_delete_crpa_result);
+}
+
+CrpaResult Handler::compute_crpa_u_window(const Options& opts, const LibrpaCrpaInput& input) const
+{
+    return CrpaResult(::librpa_compute_crpa_u_window(h_, &opts, &input),
+                      ::librpa_delete_crpa_result);
+}
+
+CrpaResult Handler::prepare_crpa_model(const Options& opts, const LibrpaCrpaInput& input) const
+{
+    return CrpaResult(::librpa_prepare_crpa_model(h_, &opts, &input), librpa_delete_crpa_result);
 }
 
 std::vector<std::complex<double>> Handler::get_g0w0_sigc_kgrid(

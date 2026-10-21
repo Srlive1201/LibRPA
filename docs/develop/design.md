@@ -16,8 +16,8 @@ LibRPA is designed to provide efficient and scalable implementations of various 
 
 ## Numerical tasks and the driver
 
-G0W0 and QSGW are library tasks. Their numerical workflows live in
-`src/core/g0w0_task` and `src/core/qsgw/task`.
+G0W0, QSGW and cRPA are library tasks. Their numerical workflows live in
+`src/core/g0w0_task`, `src/core/qsgw/task` and `src/core/crpa_task`.
 The core `Dataset` owns the mean fields, response/screening state and parallel
 layouts; the API registry resolves public handlers to those states. Numerical
 tasks assemble lower-level math, MPI and I/O services. Those lower modules do
@@ -33,6 +33,12 @@ not mutate or recursively call the task/handler. The handler must remain alive u
 the SCF eigenframe/grid fixed, finish band/Coulomb/velocity input before running,
 and do not mutate or reenter the handler during a run. Ordinary input filenames never enter
 the numerical task. The task may read its own library-generated checkpoint.
+
+The optional cRPA companion runs in core at the resident-response and completed
+state boundaries. It owns projector transport and checkpoint companions. Its
+result callback is for output only; the driver does not assemble a numerical
+update from internal objects. The independent G0W0 and QSGW tasks do not depend
+on a particular companion implementation.
 
 ## QSGW iteration state and checkpoints
 

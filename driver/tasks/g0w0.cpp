@@ -15,6 +15,7 @@
 #include "../../src/io/fs.h"
 #include "../../src/io/global_io.h"
 #include "../../src/io/stl_io_helper.h"
+#include "../../src/math/complexmatrix.h"
 #include "../../src/mpi/collective_stage.h"
 #include "../../src/mpi/global_mpi.h"
 #include "../../src/utils/constants.h"
@@ -24,6 +25,7 @@
 #include "../reader/localized_operator_io.h"
 #include "../reader_2d_coulomb_head.h"
 #include "../task.h"
+#include "crpa.h"
 #include "task_helper.h"
 
 using librpa_int::collective_all_stage;
@@ -105,6 +107,37 @@ static void prepare_g0w0_native_velocity(bool prepare_optical = true)
         });
     driver::h.prepare_native_velocity(driver::opts, comm.is_root() ? &input : nullptr,
                                       prepare_optical);
+}
+
+void driver::prepare_crpa_optical_velocity()
+{
+    if (driver_params.g0w0_headwing_velocity == "native")
+    {
+        prepare_g0w0_native_velocity(false);
+        return;
+    }
+    const auto meanfield = h.get_meanfield_data();
+    const auto &name = driver_params.prefix_velocity;
+    const auto path = librpa_int::is_absolute_path(name)
+                          ? name
+                          : librpa_int::join_path(driver_params.input_dir, name);
+    collective_all_stage(
+        librpa_int::global::mpi_comm_global_h, "cRPA optical velocity input",
+        [&]
+        {
+            std::vector<std::vector<std::vector<librpa_int::ComplexMatrix>>> velocity;
+            read_velocity(path, meanfield.n_spins, meanfield.n_kpoints, meanfield.n_states,
+                          velocity);
+            std::vector<std::complex<double>> packed;
+            for (const auto &spin : velocity)
+                for (const auto &k : spin)
+                    for (const auto &axis : k)
+                        for (int row = 0; row < axis.nr; ++row)
+                            for (int column = 0; column < axis.nc; ++column)
+                                packed.push_back(axis(row, column));
+            h.set_velocity_matrix_packed(meanfield.n_spins, meanfield.n_kpoints, meanfield.n_states,
+                                         packed.data());
+        });
 }
 
 static void write_g0w0_headwing_diagnostics()
@@ -735,7 +768,18 @@ void driver::task_g0w0()
     profiler.stop("read_vxc");
 
     // Build the self-energy matrix (including exchange and correlation)
-    h.build_g0w0_sigma(opts);
+    if (driver_params.crpa_enabled)
+    {
+        auto config = read_crpa_driver_input();
+        auto input = config.input();
+        auto result = h.build_g0w0_sigma_crpa(opts, input);
+        write_crpa_state_outputs(result.get(), config,
+                                 join_path(opts.output_dir, "crpa/state_0000"), 0, 0, true);
+    }
+    else
+    {
+        h.build_g0w0_sigma(opts);
+    }
 
     const auto scf_output = h.get_meanfield_data();
     const auto &mf = scf_output;

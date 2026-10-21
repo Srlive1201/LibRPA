@@ -25,6 +25,9 @@ list(APPEND exe_sources
   tasks/g0w0.cpp
   tasks/g0w0_band.cpp
   tasks/rpa.cpp
+  tasks/crpa.cpp
+  tasks/crpa_model_output.cpp
+  reader_nao_overlap.cpp
   tasks/sternheimer_rpa.cpp
   tasks/print_minimax.cpp
   tasks/qsgw.cpp
