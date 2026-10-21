@@ -2548,6 +2548,85 @@ void test_ibz_soc_headwing_matches_complete_complex_bz(const BlacsCtxtHandler &b
             maximum_error = std::max(maximum_error, route_error);
             assert(route_error < (route == InputRoute::FullCache ? 1e-12 : 2e-11));
         }
+        if (test_wing)
+        {
+            // A complete BZ with single-member stars needs no reconstruction.
+            // Feed genuinely distributed complex AO/band blocks without a
+            // separate full-BZ cache, as in the collinear shrink-wing driver.
+            SymmetryContext full_ctx = ctx;
+            full_ctx.kstars.clear();
+            full_ctx.kstar_grid_mapping.clear();
+            for (int ik = 0; ik != 3; ++ik)
+            {
+                librpa_int::SymmetryKStar star;
+                star.star_index = ik;
+                star.k_ibz = full_pbc.kfrac_list[ik];
+                star.members = {make_member(star.k_ibz, false)};
+                full_ctx.kstars.push_back(star);
+                full_ctx.kstar_grid_mapping.push_back({ik, ik, {star.k_ibz}});
+            }
+            KPointBlacsParallelContext kctx(
+                KPointBlacsProcessShape(1, librpa_int::get_mpi_size(MPI_COMM_WORLD), true),
+                MPI_COMM_WORLD, 3);
+            const auto desc_wfc = kctx.create_array_desc(2, 4, 1, 1);
+            MeanField distributed_mf = full_mf;
+            for (int ik = 0; ik != 3; ++ik)
+                for (int spinor = 0; spinor != 2; ++spinor)
+                {
+                    const auto &source = full_mf.get_eigenvectors()[0][spinor][ik];
+                    ComplexMatrix local(desc_wfc.n_loc(), desc_wfc.m_loc(), false);
+                    for (int band = 0; band != desc_wfc.n_loc(); ++band)
+                        for (int ao = 0; ao != desc_wfc.m_loc(); ++ao)
+                            local(band, ao) =
+                                source(desc_wfc.indx_l2g_c(band), desc_wfc.indx_l2g_r(ao));
+                    distributed_mf.get_eigenvectors()[0][spinor][ik] = std::move(local);
+                }
+            diele_func distributed(distributed_mf, full_velocity, full_pbc.kfrac_list, basis_wfc,
+                                   basis_abf, frequencies, 2, 4, 1, 2, full_pbc,
+                                   librpa_int::global::mpi_comm_global_h, blacs_h, true, &kctx,
+                                   &desc_wfc);
+            distributed.use_soc = distributed.use_symmetry = true;
+            distributed.set_symmetry_context(full_ctx);
+            distributed.atom_nw = basis_wfc.get_atom_nb_map();
+            distributed.coord_frac = full_ctx.input_coord_frac;
+            assert(!distributed.has_direct_full_bz_headwing_inputs());
+            distributed.init(0.0, empty_vq);
+            distributed.cal_head();
+            distributed.cal_wing(cs, 0.0, empty_vq);
+            double distributed_error = 0.0;
+            for (std::size_t frequency = 0; frequency != frequencies.size(); ++frequency)
+            {
+                const auto &head = distributed.get_head_tensors()[frequency];
+                const auto &wing = distributed.get_wing_auxiliary()[frequency];
+                for (int alpha = 0; alpha != 3; ++alpha)
+                {
+                    for (int beta = 0; beta != 3; ++beta)
+                        distributed_error = std::max(
+                            distributed_error,
+                            std::abs(head(alpha, beta) - full_head[frequency](alpha, beta)));
+                    for (int mu = 0; mu != 2; ++mu)
+                        distributed_error =
+                            std::max(distributed_error,
+                                     std::abs(wing(mu, alpha) - full_wing[frequency](mu, alpha)));
+                }
+            }
+            distributed.wing_mu_to_lambda(sqrt_v, sqrt_desc, 2);
+            for (std::size_t frequency = 0; frequency != frequencies.size(); ++frequency)
+            {
+                const auto expected = full.get_rpa_chi0v_wing(frequency);
+                const auto actual = distributed.get_rpa_chi0v_wing(frequency);
+                for (int row = 0; row != expected.nr(); ++row)
+                    for (int col = 0; col != expected.nc(); ++col)
+                        distributed_error = std::max(
+                            distributed_error, std::abs(actual(row, col) - expected(row, col)));
+            }
+            MPI_Allreduce(MPI_IN_PLACE, &distributed_error, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+            if (librpa_int::global::mpi_comm_global_h.is_root())
+                std::cout << "SOC full-BZ k-BLACS single-member symmetry error: "
+                          << distributed_error << std::endl;
+            assert(distributed_error < 2e-11);
+            maximum_error = std::max(maximum_error, distributed_error);
+        }
         if (!change_degenerate_gauge)
             for (std::size_t frequency = 0; frequency != frequencies.size(); ++frequency)
             {

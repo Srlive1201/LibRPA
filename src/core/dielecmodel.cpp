@@ -2116,12 +2116,12 @@ void diele_func::cal_wing(const Cs_LRI &Cs_data, double coulomb_eigen_threshold,
     const auto wfc_layouts =
         can_try_sym ? atomic_basis_wfc_.build_species_basis_layouts(symmetry_context_->atom_to_type)
                     : std::vector<SpeciesBasisLayout>{};
+    // Single-member stars already cover the complete BZ. Keep their native
+    // k-BLACS WFC blocks on the full-BZ route; only reduced stars need WFC
+    // reconstruction, whose source-only input must remain undistributed.
     const bool can_sym =
-        can_try_sym &&
-        (librpa_int::can_restore_symmetry_kstar_meanfield(
-             *symmetry_context_, wfc_layouts, meanfield_df, kfrac_band, atom_nw) ||
-         can_use_headwing_single_member_stars(
-             *symmetry_context_, wfc_layouts, kfrac_band, atom_nw));
+        can_try_sym && librpa_int::can_restore_symmetry_kstar_meanfield(
+                           *symmetry_context_, wfc_layouts, meanfield_df, kfrac_band, atom_nw);
 
     if (debug && use_symmetry && comm_h.is_root())
     {
