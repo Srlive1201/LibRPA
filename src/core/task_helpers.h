@@ -2,12 +2,12 @@
 
 #include <vector>
 
-#include "../core/atom.h"
-#include "../core/geometry.h"
-#include "../core/pbc.h"
+#include "atom.h"
+#include "geometry.h"
+#include "pbc.h"
 #include "../mpi/base_mpi.h"
 
-namespace librpa_int::api
+namespace librpa_int
 {
 
 //! Collect the union of k-point indices requested by all ranks in an extraction API call.

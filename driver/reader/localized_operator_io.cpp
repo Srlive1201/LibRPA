@@ -1,4 +1,4 @@
-#include "ao_operator_io.h"
+#include "localized_operator_io.h"
 
 #include <algorithm>
 #include <cmath>
@@ -8,7 +8,7 @@
 #include <tuple>
 #include <vector>
 
-namespace driver::qsgw
+namespace librpa::reader
 {
 namespace
 {
@@ -156,4 +156,4 @@ librpa_int::LocalizedMatrix read_headwing_hamiltonian_csr(const std::string& fil
     if (input >> trailing) throw std::runtime_error("Trailing head/wing Hamiltonian CSR data");
     return result;
 }
-}  // namespace driver::qsgw
+}  // namespace librpa::reader

@@ -15,6 +15,47 @@
 namespace librpa
 {
 
+MeanfieldData Handler::get_meanfield_data(bool band_path) const
+{
+    MeanfieldData result;
+    ::librpa_get_meanfield_dimensions(h_, band_path, &result.n_spins, &result.n_kpoints,
+                                       &result.n_states, &result.n_aos, &result.n_spinor);
+    result.fermi_ha = ::librpa_get_meanfield_fermi(h_, band_path);
+    if (result.n_spins == 0 || result.n_kpoints == 0 || result.n_states == 0) return result;
+    const auto size = static_cast<std::size_t>(result.n_spins)*result.n_kpoints*result.n_states;
+    result.energies_ha.resize(size);
+    result.weighted_occupations.resize(size);
+    for (int spin = 0; spin < result.n_spins; ++spin)
+        for (int k = 0; k < result.n_kpoints; ++k)
+        {
+            const auto offset = (static_cast<std::size_t>(spin)*result.n_kpoints+k)*result.n_states;
+            ::librpa_get_meanfield_k(h_, band_path, spin, k, result.energies_ha.data()+offset,
+                                       result.weighted_occupations.data()+offset);
+        }
+    result.fractional_k.resize(3*result.n_kpoints);
+    result.k_weights.resize(result.n_kpoints);
+    ::librpa_get_kgrid(h_, band_path, result.n_kpoints, result.fractional_k.data(),
+                        result.k_weights.data());
+    return result;
+}
+
+OutputKGrid Handler::get_g0w0_output_kgrid(bool use_symmetry) const
+{
+    OutputKGrid result;
+    const int count = ::librpa_get_g0w0_output_kgrid(h_, use_symmetry, 0, nullptr, nullptr);
+    result.fractional_k.resize(3*count);
+    result.source_kpoints.resize(count);
+    if (count) ::librpa_get_g0w0_output_kgrid(h_, use_symmetry, count, result.fractional_k.data(),
+                                               result.source_kpoints.data());
+    return result;
+}
+
+void Handler::prepare_supplied_velocity(const Options& opts, const LibrpaSuppliedVelocityInput& input,
+                                         bool need_wing)
+{
+    ::librpa_prepare_supplied_velocity(h_, &opts, &input, need_wing);
+}
+
 /* Global environment functions */
 const char* get_build_info(void) { return ::librpa_get_build_info(); }
 

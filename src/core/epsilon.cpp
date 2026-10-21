@@ -19,7 +19,7 @@
 #include "../math/lapack_connector.h"
 #include "../math/matrix_m.h"
 #include "../math/scalapack_connector.h"
-#include "../math/utils_matrix_m_mpi.h"
+#include "utils_matrix_m_mpi.h"
 #include "../math/utils_matrix_mpi.h"
 #include "../math/vector3_order.h"
 #include "../utils/base_utility.h"

@@ -20,11 +20,11 @@
 
 #include "../io/fs.h"
 #include "../io/global_io.h"
-#include "../io/output_gw.h"
-#include "../io/output_matrix.h"
+#include "gw_self_energy_output.h"
+#include "matrix_output.h"
 #include "../io/stl_io_helper.h"
 // #include "../math/utils_matrix_m.h"
-#include "../math/utils_matrix_m_mpi.h"
+#include "utils_matrix_m_mpi.h"
 #include "../math/utils_matrix_mpi.h"
 #include "../mpi/global_mpi.h"
 #include "../utils/constants.h"
@@ -947,7 +947,7 @@ void G0W0::write_sigc_rf_output_files() const
                     const auto omega = tfg.get_freq_nodes()[iomega];
                     const auto &sigc_IJ_R =
                         sigc_is_f_IJ_R.at(ispin).at(ispinor_bra).at(ispinor_ket).at(omega);
-                    int write_ok = write_rspace_matrices_binary(sigc_IJ_R, atbasis_wfc, pbc, fn);
+                    int write_ok = write_rspace_matrices_binary(make_rspace_matrix_blocks(sigc_IJ_R, atbasis_wfc, pbc), fn);
                     MPI_Allreduce(MPI_IN_PLACE, &write_ok, 1, MPI_INT, MPI_MIN, comm_h.comm);
                     if (!write_ok)
                         throw LIBRPA_RUNTIME_ERROR("failed to write SigC output file: " + fn);
@@ -2995,7 +2995,7 @@ void G0W0::build_sigc_matrix_KS_band(const std::map<int, std::map<int, std::map<
         const auto stem = make_sigc_ks_imagfreq_band_stem(
             this->output_dir, output_sigc_ks_kf_band_index_++);
         write_self_energy_omega((stem + ".dat").c_str(), *this, iks, n_bands);
-        write_self_energy_omega_kpoints((stem + ".kidx").c_str(), *this, iks);
+        write_self_energy_omega_kpoints((stem + ".kidx").c_str(), comm_h, iks);
     }
 }
 
@@ -3044,7 +3044,7 @@ void G0W0::build_sigc_matrix_KS_band_blacs(
         const auto stem = make_sigc_ks_imagfreq_band_stem(
             this->output_dir, output_band_index);
         write_self_energy_omega((stem + ".dat").c_str(), *this, iks, n_bands);
-        write_self_energy_omega_kpoints((stem + ".kidx").c_str(), *this, iks);
+        write_self_energy_omega_kpoints((stem + ".kidx").c_str(), comm_h, iks);
     }
     if (this->output_sigc_ks_kf || this->output_sigc_mat_kf)
         ++output_sigc_ks_kf_band_index_;

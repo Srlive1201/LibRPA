@@ -6,10 +6,10 @@
 #include <string>
 #include <vector>
 
-#include "../core/utils_atomic_basis_blacs.h"
-#include "../core/meanfield_mpi.h"
+#include "utils_atomic_basis_blacs.h"
+#include "meanfield_mpi.h"
 #include "../math/scalapack_connector.h"
-#include "../math/utils_matrix_m_mpi.h"
+#include "utils_matrix_m_mpi.h"
 #include "../utils/profiler.h"
 #include "../io/stl_io_helper.h"
 

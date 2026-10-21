@@ -10,7 +10,7 @@
 #include <utility>
 #include <vector>
 
-#include "../../src/api/dataset_helper.h"
+#include "../../src/core/dataset_helper.h"
 #include "../../src/api/instance_manager.h"
 #include "../../src/io/fs.h"
 #include "../../src/io/global_io.h"
