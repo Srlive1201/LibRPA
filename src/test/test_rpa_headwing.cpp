@@ -2280,6 +2280,14 @@ RI::Tensor<double> make_single_value_tensor(double value);
 
 void test_ibz_soc_headwing_matches_complete_complex_bz(const BlacsCtxtHandler &blacs_h)
 {
+#ifdef LIBRPA_USE_LIBRI
+    constexpr bool test_wing = true;
+#else
+    // The analytic wing needs LibRI tensor-map communication. Keep the same
+    // nonzero head, unequal-star occupations and complex-gauge oracle active
+    // without that backend; its communication stubs cannot supply a wing.
+    constexpr bool test_wing = false;
+#endif
     const std::vector<double> lattice{1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0};
     PeriodicBoundaryData full_pbc, ibz_pbc;
     full_pbc.set_latvec(lattice);
@@ -2438,11 +2446,14 @@ void test_ibz_soc_headwing_matches_complete_complex_bz(const BlacsCtxtHandler &b
         full.use_soc = true;
         full.init(0.0, empty_vq);
         full.cal_head();
-        full.cal_wing(cs, 0.0, empty_vq);
-        // The Coulomb-basis transform releases the auxiliary tensors.
         std::vector<Matz> full_wing;
-        for (const auto &tensor : full.get_wing_auxiliary()) full_wing.push_back(tensor.copy());
-        full.wing_mu_to_lambda(sqrt_v, sqrt_desc, 2);
+        if (test_wing)
+        {
+            full.cal_wing(cs, 0.0, empty_vq);
+            // The Coulomb-basis transform releases the auxiliary tensors.
+            for (const auto &tensor : full.get_wing_auxiliary()) full_wing.push_back(tensor.copy());
+            full.wing_mu_to_lambda(sqrt_v, sqrt_desc, 2);
+        }
         const auto &full_head = full.get_head_tensors();
 
         // All routes share the same independent complete-grid reference.
@@ -2478,11 +2489,13 @@ void test_ibz_soc_headwing_matches_complete_complex_bz(const BlacsCtxtHandler &b
                 }
             reduced.init(0.0, empty_vq);
             reduced.cal_head();
-            reduced.cal_wing(cs, 0.0, empty_vq);
+            if (test_wing) reduced.cal_wing(cs, 0.0, empty_vq);
             const auto &ibz_head = reduced.get_head_tensors();
             const auto &ibz_wing = reduced.get_wing_auxiliary();
             assert(full_head.size() == frequencies.size() && ibz_head.size() == frequencies.size());
-            assert(full_wing.size() == frequencies.size() && ibz_wing.size() == frequencies.size());
+            if (test_wing)
+                assert(full_wing.size() == frequencies.size() &&
+                       ibz_wing.size() == frequencies.size());
             for (std::size_t frequency = 0; frequency != frequencies.size(); ++frequency)
             {
                 for (int row = 0; row != 3; ++row)
@@ -2499,33 +2512,38 @@ void test_ibz_soc_headwing_matches_complete_complex_bz(const BlacsCtxtHandler &b
                                 std::max(route_error, std::abs(full_head[frequency](row, col) -
                                                                baseline_head[frequency](row, col)));
                     }
-                for (int mu = 0; mu != 2; ++mu)
-                    for (int alpha = 0; alpha != 3; ++alpha)
-                    {
-                        wing_magnitude =
-                            std::max(wing_magnitude, std::abs(full_wing[frequency](mu, alpha)));
-                        route_error =
-                            std::max(route_error, std::abs(full_wing[frequency](mu, alpha) -
-                                                           ibz_wing[frequency](mu, alpha)));
-                        if (change_degenerate_gauge)
-                            route_error = std::max(route_error,
-                                                   std::abs(full_wing[frequency](mu, alpha) -
-                                                            baseline_wing[frequency](mu, alpha)));
-                    }
+                if (test_wing)
+                    for (int mu = 0; mu != 2; ++mu)
+                        for (int alpha = 0; alpha != 3; ++alpha)
+                        {
+                            wing_magnitude =
+                                std::max(wing_magnitude, std::abs(full_wing[frequency](mu, alpha)));
+                            route_error =
+                                std::max(route_error, std::abs(full_wing[frequency](mu, alpha) -
+                                                               ibz_wing[frequency](mu, alpha)));
+                            if (change_degenerate_gauge)
+                                route_error = std::max(
+                                    route_error, std::abs(full_wing[frequency](mu, alpha) -
+                                                          baseline_wing[frequency](mu, alpha)));
+                        }
             }
-            reduced.wing_mu_to_lambda(sqrt_v, sqrt_desc, 2);
-            for (std::size_t frequency = 0; frequency != frequencies.size(); ++frequency)
+            if (test_wing)
             {
-                const auto x = full.get_rpa_chi0v_wing(frequency);
-                const auto y = reduced.get_rpa_chi0v_wing(frequency);
-                assert(x.nr() == y.nr() && x.nc() == y.nc());
-                for (int row = 0; row != x.nr(); ++row)
-                    for (int col = 0; col != x.nc(); ++col)
-                    {
-                        route_error = std::max(route_error, std::abs(x(row, col) - y(row, col)));
-                        regular_wing_magnitude =
-                            std::max(regular_wing_magnitude, std::abs(x(row, col)));
-                    }
+                reduced.wing_mu_to_lambda(sqrt_v, sqrt_desc, 2);
+                for (std::size_t frequency = 0; frequency != frequencies.size(); ++frequency)
+                {
+                    const auto x = full.get_rpa_chi0v_wing(frequency);
+                    const auto y = reduced.get_rpa_chi0v_wing(frequency);
+                    assert(x.nr() == y.nr() && x.nc() == y.nc());
+                    for (int row = 0; row != x.nr(); ++row)
+                        for (int col = 0; col != x.nc(); ++col)
+                        {
+                            route_error =
+                                std::max(route_error, std::abs(x(row, col) - y(row, col)));
+                            regular_wing_magnitude =
+                                std::max(regular_wing_magnitude, std::abs(x(row, col)));
+                        }
+                }
             }
             maximum_error = std::max(maximum_error, route_error);
             assert(route_error < (route == InputRoute::FullCache ? 1e-12 : 2e-11));
@@ -2534,15 +2552,23 @@ void test_ibz_soc_headwing_matches_complete_complex_bz(const BlacsCtxtHandler &b
             for (std::size_t frequency = 0; frequency != frequencies.size(); ++frequency)
             {
                 baseline_head.push_back(full_head[frequency].copy());
-                baseline_wing.push_back(full_wing[frequency].copy());
+                if (test_wing) baseline_wing.push_back(full_wing[frequency].copy());
             }
     }
     MPI_Allreduce(MPI_IN_PLACE, &maximum_error, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
     MPI_Allreduce(MPI_IN_PLACE, &regular_wing_magnitude, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
     if (librpa_int::global::mpi_comm_global_h.is_root())
-        std::cout << "SOC full-cache/source-IBZ/weighted head/wing and degenerate-gauge error: "
-                  << maximum_error << "; nonzero wing: " << wing_magnitude << std::endl;
-    assert(head_magnitude > 1e-6 && wing_magnitude > 1e-4 && regular_wing_magnitude > 1e-6);
+    {
+        std::cout << "SOC full-cache/source-IBZ/weighted " << (test_wing ? "head/wing" : "head")
+                  << " and degenerate-gauge error: " << maximum_error
+                  << "; nonzero head: " << head_magnitude;
+        if (test_wing)
+            std::cout << "; nonzero wing: " << wing_magnitude
+                      << "; nonzero regular wing: " << regular_wing_magnitude;
+        std::cout << std::endl;
+    }
+    assert(head_magnitude > 1e-6);
+    if (test_wing) assert(wing_magnitude > 1e-4 && regular_wing_magnitude > 1e-6);
     assert(maximum_error < 2e-11);
 }
 

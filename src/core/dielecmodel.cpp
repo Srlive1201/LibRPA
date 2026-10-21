@@ -2103,6 +2103,11 @@ SternheimerRpaHeadwingInput diele_func::get_sternheimer_rpa_headwing_input(
 void diele_func::cal_wing(const Cs_LRI &Cs_data, double coulomb_eigen_threshold,
                           const atpair_k_cplx_mat_t &Vq)
 {
+#ifndef LIBRPA_USE_LIBRI
+    throw LIBRPA_RUNTIME_ERROR(
+        "Analytic optical wing requires LibRI tensor communication; build with "
+        "LIBRPA_USE_LIBRI=ON");
+#endif
     if (!excluded_band_pairs_.empty() && (use_symmetry || use_2d_dielectric))
         throw LIBRPA_INVALID_ARGUMENT(
             "constrained optical wing requires full BZ and 3D dielectric");
