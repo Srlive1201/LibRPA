@@ -186,8 +186,7 @@ CrpaTaskResult compute_crpa_task(Dataset& dataset, const LibrpaOptions& options,
     std::unique_ptr<diele_func> full_headwing, constrained_headwing;
     if (opts.replace_w_head == LIBRPA_SWITCH_ON)
     {
-        // This first magnetic route reduces q-space screening only. Optical sums
-        // retain every original full-BZ state and velocity for both response models.
+        // Both optical sums retain every original full-BZ state and velocity.
         auto optical_options = opts;
         optical_options.use_symmetry_rpa = optical_options.use_symmetry_gw = LIBRPA_SWITCH_OFF;
         full_headwing = make_ds_headwing(*ds, optical_options, true);

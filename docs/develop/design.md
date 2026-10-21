@@ -14,15 +14,38 @@ LibRPA is designed to provide efficient and scalable implementations of various 
 
 ![RPA interface to ABACUS](../assets/abacus_interface.drawio.jpg)
 
+## Numerical tasks and the driver
+
+G0W0, QSGW and cRPA are library tasks. Their numerical workflows live in
+`src/core/g0w0_task`, `src/core/qsgw/task` and `src/core/crpa_task`.
+The core `Dataset` owns the mean fields, response/screening state and parallel
+layouts; the API registry resolves public handlers to those states. Numerical
+tasks assemble lower-level math, MPI and I/O services. Those lower modules do
+not include core physics headers. Atomic-basis adapters and physics-specific
+output assembly live in core; generic serializers accept value buffers.
+
+`driver/tasks` parses host input, invokes the public C/C++ APIs and writes
+requested output. Its QSGW entry point submits numerical Vxc and native H/S/r
+blocks to an opaque public task. The library owns iteration, fixed/live frames,
+convergence, state invalidation and checkpoints. A rank-zero output callback
+receives borrowed text or localized-operator views for presentation; it must
+not mutate or recursively call the task/handler. The handler must remain alive until task deletion. After preparation keep
+the SCF eigenframe/grid fixed, finish band/Coulomb/velocity input before running,
+and do not mutate or reenter the handler during a run. Ordinary input filenames never enter
+the numerical task. The task may read its own library-generated checkpoint.
+
+The optional cRPA companion runs in core at the resident-response and completed
+state boundaries. It owns projector transport and checkpoint companions. Its
+result callback is for output only; the driver does not assemble a numerical
+update from internal objects. The independent G0W0 and QSGW tasks do not depend
+on a particular companion implementation.
+
 ## QSGW iteration state and checkpoints
 
-The experimental iteration driver is `driver/tasks/qsgw.cpp`. Numerical
-operations belong to `src/core/qsgw`. Checkpoint state, serialization and input
-comparison remain private to `driver/tasks/qsgw.cpp`, within the early-task
-prototype exception for numerical-state access. For filenames,
-runtime switches and continuation examples, see the
-[QSGW user guide](../user_guide/qsgw.md#checkpoint-continuation). The
-source-only note `theory/qsgw/staticization.md` describes the self-energy map.
+Checkpoint state, serialization and input comparison live in
+`src/core/qsgw/checkpoint`. For filenames, switches and continuation examples,
+see the [QSGW user guide](../user_guide/qsgw.md#checkpoint-continuation).
+The source-only note `theory/qsgw/staticization.md` describes the self-energy map.
 
 ### Reference state and saved payload
 
@@ -71,7 +94,7 @@ The publication points have different meanings:
 Checkpoint file operations are root-only. On restore, reference checks,
 payload reads and trailing-data checks finish before the temporary restored
 state replaces the live state. `collective_root_stage` communicates failure
-before any dependent state broadcast. On success, the driver broadcasts the
+before any dependent state broadcast. On success, the numerical task broadcasts the
 completed iteration number, live mean field and Hamiltonian, including the
 band channel when present.
 

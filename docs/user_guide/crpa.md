@@ -326,9 +326,24 @@ state and one-body model. `librpa_crpa_project_orbitals` and
 isometries to a fixed local model. Changing the excluded response requires
 new screening. `librpa_crpa_tensor_to_fermion` converts density U_ab,cd to
 V_ijkl=U_ik,jl for a (1/2) c_i-dagger c_j-dagger c_l c_k Hamiltonian; it does
-not impose a Kanamori or Slater approximation. The continuation API
+not impose a Kanamori or Slater approximation. `librpa_crpa_tensor_averages`
+returns the complex ordered-column means U_mm,mm, U_mm,nn and U_mn,nm;
+the two off-diagonal means are zero for a one-orbital frame. The continuation API
 `librpa_continue_crpa` returns an owned result for arbitrary upper-half-plane
 queries, including zero. These numerical operations are noncollective.
+
+For an iterative library calculation, create and prepare a public QSGW task
+before supplying the full-grid cRPA overlap. Initialize
+`LibrpaQsgwCrpaControls` with `librpa_init_qsgw_crpa_controls`, then attach it
+with `librpa_set_qsgw_crpa`; the task supplies its owning numerical state internally.
+The task copies the numerical input and controls. Core cRPA code evaluates
+the resident entering-state response, transports the parent after every
+completed update, restores its checkpoint companion, and builds the final
+response-only state. Its output sink runs on every rank and receives borrowed
+cRPA and optional orbital-analysis views. The sink may query these views and
+write output, but must not delete them or recursively invoke the handler/task.
+Keep the sink's user data alive until the task returns. Ordinary input reading
+and DAT/NPZ output remain in the driver.
 
 `utilities/export_crpa_dmft.py` performs only unit/layout conversion into a
 TRIQS `HDFArchive` (requires TRIQS's Python `h5` module):
@@ -383,7 +398,9 @@ material mesh or basis convergence.
 Library callers use `librpa_crpa.h`: initialize `LibrpaCrpaInput`, supply S(k)
 and the window/species data, call `librpa_compute_crpa_window` collectively,
 then inspect the owned result and release it with `librpa_delete_crpa_result`.
-The API accepts no filenames and writes no files.
+The standalone computation accepts numerical data and returns an owned snapshot.
+The separate tracking-checkpoint function writes library state; the iterative
+companion restores and saves its checkpoint at the QSGW completed-state boundary.
 
 The separate `librpa_orbital.h` C interface computes an owned orbital-analysis
 result through `librpa_analyze_orbitals`, exposes spatial AO/group weights and
