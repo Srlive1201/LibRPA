@@ -2,6 +2,15 @@
 
 This folder contains regression test cases used to verify LibRPA features.
 
+The LibRI CI also runs `verify_qsgw_restart.py --case h2o-band` and
+`verify_qsgw_headwing.py --case aims-rotate` with four MPI ranks. These reuse
+the bundled datasets to compare three continuous updates with a one-update
+checkpoint followed by two resumed updates. They check fixed-basis matrices,
+spectra, entering-state QP roots and live optical feedback. The QP comparison
+also checks the entering spectrum, the QP equation and the numbered grid/path
+energy tables. The native `current_hr` companion still requires an explicitly
+supplied native S/r dataset; it is not covered by the aims-rotate CI case.
+
 For each test case `CASE`, the input files are located under `testcases/${CASE}`,
 while the reference results are stored under `refs/${CASE}`.
 

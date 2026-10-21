@@ -8,6 +8,7 @@ mixers split three updates after one.
 """
 
 import argparse
+import csv
 import json
 import os
 from pathlib import Path
@@ -16,6 +17,61 @@ import subprocess
 import tarfile
 
 import numpy as np
+
+
+def quasiparticles(directory, first_update, last_update):
+    """Check entering-state energies and the QP equation, then return its roots."""
+    with (directory / "qsgw_qp.csv").open() as source:
+        rows = [row for row in csv.DictReader(source)
+                if first_update <= int(row["gw_update"]) <= last_update]
+    assert rows, (directory, first_update, last_update)
+    eigenvalues = np.atleast_2d(np.loadtxt(directory / "qsgw_eigenvalues.dat"))
+    energies = {tuple(int(row[i]) for i in (0, 1, 2, 3, 7)): row[8]
+                for row in eigenvalues}
+    roots = {}
+    for row in rows:
+        key = (int(row["gw_update"]), row["channel"], int(row["spin"]),
+               int(row["kpoint"]), int(row["band"]))
+        assert key not in roots, key
+        values = np.array([float(row[name]) for name in (
+            "occupation", "e0_eV", "vstatic_eV", "sigma_x_eV",
+            "re_sigma_c_effective_eV", "im_sigma_c_eV", "eqp_eV")])
+        assert np.all(np.isfinite(values)), key
+        state = int(row["state_index"])
+        eigenkey = (state, 0 if row["channel"] == "grid" else 1,
+                    key[2] - 1, key[3] - 1, key[4] - 1)
+        np.testing.assert_allclose(values[1], energies[eigenkey], rtol=0, atol=1e-9)
+        np.testing.assert_allclose(values[6], values[1] - values[2] + values[3] + values[4],
+                                   rtol=0, atol=1e-9)
+        roots[key] = (int(row["solver_info"]), values)
+
+    # The ordinary G0W0 writers must describe the same physical roots. Their
+    # tolerances follow the printed precision, rather than the CSV precision.
+    controls = (directory.parent / "librpa.in").read_text()
+    aims_units = re.search(r"(?m)^\s*constants_choice\s*=\s*aims\s*$", controls)
+    ha2ev = 27.2113845 if aims_units else 27.211386245988
+    for update in range(first_update, last_update + 1):
+        grid = sorted((key, value[1]) for key, value in roots.items()
+                      if key[0] == update and key[1] == "grid")
+        grid.sort(key=lambda item: (item[0][3], item[0][2], item[0][4]))
+        table = []
+        for line in (directory / f"energy_qp_{update}").read_text().splitlines():
+            fields = line.split()
+            if len(fields) == 4 and fields[0].isdigit():
+                table.append([float(field) for field in fields])
+        expected = np.array([[key[4], value[0], value[1] / ha2ev, value[6] / ha2ev]
+                             for key, value in grid])
+        table = np.array(table)
+        np.testing.assert_allclose(table[:, :2], expected[:, :2], rtol=0, atol=5e-5)
+        np.testing.assert_allclose(table[:, 2:], expected[:, 2:], rtol=0, atol=1e-8)
+        for spin in sorted({key[2] for key in roots if key[0] == update and key[1] == "band"}):
+            band = sorted((key, value[1]) for key, value in roots.items()
+                          if key[:3] == (update, "band", spin))
+            table = np.atleast_2d(np.loadtxt(directory / f"GW_band_spin_{spin}_{update}.dat"))
+            nbands = len({key[4] for key, _ in band})
+            expected = np.array([[value[0], value[6]] for _, value in band]).reshape(-1, 2 * nbands)
+            np.testing.assert_allclose(table[:, 4:], expected, rtol=0, atol=5.1e-6)
+    return roots
 
 
 def stage_input(template, dataset, run_dir, overrides):
@@ -98,6 +154,18 @@ def compare(reference, restarted, first_iteration, last_iteration,
     metrics["maximum_matrix_difference_au"] = delta
     metrics["matrix_rows"] = len(keys)
     if not exact_boundary:
+        qa = quasiparticles(reference, first_iteration, last_iteration)
+        qb = quasiparticles(restarted, first_iteration, last_iteration)
+        assert qa.keys() == qb.keys()
+        qp_delta = 0.0
+        for key in qa:
+            assert qa[key][0] == qb[key][0], key
+            np.testing.assert_allclose(qa[key][1][0], qb[key][1][0], rtol=0, atol=1e-12)
+            delta = float(np.max(abs(qa[key][1][1:] - qb[key][1][1:])))
+            assert delta <= 1e-7, (key, delta)
+            qp_delta = max(qp_delta, delta)
+        metrics["maximum_qp_difference_eV"] = qp_delta
+        metrics["qp_rows"] = len(qa)
         for filename in reference.glob(f"*band_spin_*_{last_iteration}.dat"):
             x = np.atleast_2d(np.loadtxt(filename))
             y = np.atleast_2d(np.loadtxt(restarted / filename.name))
