@@ -673,6 +673,10 @@ void librpa_build_g0w0_sigma(LibrpaHandler* h, const LibrpaOptions *p_opts)
 
     auto pds = librpa_int::api::get_dataset_instance(h);
     const auto &opts = *p_opts;
+    if (opts.option_dielect_func == 6)
+        throw LIBRPA_RUNTIME_ERROR(
+            "option_dielect_func = 6 is a standalone G0W0 driver preset; "
+            "API callers must supply velocity and use option_dielect_func = 3");
     const bool debug = global::should_output(LIBRPA_VERBOSE_DEBUG);
     if (opts.replace_w_head == LIBRPA_SWITCH_ON && opts.option_dielect_func == 53 &&
         (opts.use_2d_dielectric == LIBRPA_SWITCH_ON ||
@@ -815,6 +819,19 @@ void librpa_build_g0w0_sigma(LibrpaHandler* h, const LibrpaOptions *p_opts)
         {
             if (pds->epsmacs_imagfreq.size() != chi0.tfg.get_freq_nodes().size())
                 throw LIBRPA_RUNTIME_ERROR("analytic head/wing dielectric data must match chi0 frequency grid");
+            if (pds->p_headwing)
+            {
+                const auto &nodes = pds->p_headwing->get_frequency_nodes();
+                const auto &body_nodes = chi0.tfg.get_freq_nodes();
+                if (nodes.size() != body_nodes.size())
+                    throw LIBRPA_RUNTIME_ERROR(
+                        "analytic head/wing and body frequency nodes differ");
+                for (std::size_t i = 0; i < nodes.size(); ++i)
+                    if (std::abs(nodes[i] - body_nodes[i]) >
+                        1e-12 * std::max(1.0, std::abs(body_nodes[i])))
+                        throw LIBRPA_RUNTIME_ERROR(
+                            "analytic head/wing and body frequency nodes differ");
+            }
             epsmac_LF_imagfreq_re = pds->epsmacs_imagfreq;
         }
         else

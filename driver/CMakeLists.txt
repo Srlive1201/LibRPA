@@ -29,6 +29,7 @@ list(APPEND exe_sources
   tasks/print_minimax.cpp
   tasks/qsgw.cpp
   qsgw/vxc_io.cpp
+  qsgw/ao_operator_io.cpp
   qsgw/band_output.cpp
   qsgw/iteration_trace.cpp
   # tasks/test.cpp

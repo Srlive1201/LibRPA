@@ -12,68 +12,75 @@
 namespace driver
 {
 
-DriverParams::DriverParams():
-    task("unset"),
-    constants_choice("internal"),
-    input_preset("fhi-aims"),
-    input_dir("./"),
-    output_level(LIBRPA_VERBOSE_INFO),
-    use_spinor_wfc(false),
-    prefix_lri_coeff("Cs_data"),
-    prefix_lri_coeff_shrink("Cs_shrinked_data"),
-    prefix_shrink_sinvS("shrink_sinvS_"),
-    prefix_coul_full("coulomb_mat"),
-    prefix_sternheimer_chi0("v1_sternheimer_chi0_iq_"),
-    fn_sternheimer_qpoints(""),
-    fn_sternheimer_partial_manifest(""),
-    fn_sternheimer_symmetry_routes(""),
-    fn_sternheimer_qstar_routes(""),
-    prefix_sternheimer_reconstructed(""),
-    prefix_sternheimer_kresolved(""),
-    prefix_sternheimer_symmetry_diagnostic(""),
-    sternheimer_iq(1),
-    sternheimer_qweight(1.0),
-    use_rpa_gamma(true),
-    sternheimer_matrix_only(false),
-    prefix_coul_cut("coulomb_cut"),
-    prefix_eigvecs_scf("KS_eigenvector"),
-    fn_stru("stru_out"),
-    fn_bz_sampling("bz_sampling_out"),
-    fn_basis("basis_out"),
-    fn_basis_wfc("basis_wfc_out"),
-    fn_basis_aux("basis_aux_out"),
-    fn_basis_aux_shrink("basis_aux_shrink_out"),
-    fn_eigocc_scf("band_out"),
-    fn_dielfunc("dielecfunc_out"),
-    fn_vxc_scf("vxc_out"),
-    prefix_velocity("mommat_ks_kpt_"),
-    fn_band_kpath_info("band_kpath_info"),
-    version_coul_reader(-1),
-    version_lri_reader(-1),
-    cs_threshold(1e-6),
-    output_energy_qp(false),
-    i_state_low(0),
-    i_state_high(default_i_state_high),
-    output_hamgnn(false),
-    use_pyatb(false),
-    output_gw_spec_func(false),
-    sf_omega_start(0.0),
-    sf_omega_end(1.0),
-    sf_omega_step(0.1),
-    sf_state_start(-1),
-    sf_state_end(-1),
-    prefix_vxc_scf(""),
-    prefix_vxc_band(""),
-    qsgw_vxc_basis("state"),
-    qsgw_mixer("none"),
-    qsgw_mixing_beta(0.2),
-    qsgw_min_iter(1),
-    qsgw_max_iter(10),
-    qsgw_band0_unoccupied_keep(10),
-    qsgw_band0_cut_mode(0),
-    qsgw_band0_cut_shift_ha(20.0),
-    qsgw_write_iteration_matrices(false),
-    qsgw_convergence_tolerance_ev(1.0e-4)
+DriverParams::DriverParams()
+    : task("unset"),
+      constants_choice("internal"),
+      input_preset("fhi-aims"),
+      input_dir("./"),
+      output_level(LIBRPA_VERBOSE_INFO),
+      use_spinor_wfc(false),
+      prefix_lri_coeff("Cs_data"),
+      prefix_lri_coeff_shrink("Cs_shrinked_data"),
+      prefix_shrink_sinvS("shrink_sinvS_"),
+      prefix_coul_full("coulomb_mat"),
+      prefix_sternheimer_chi0("v1_sternheimer_chi0_iq_"),
+      fn_sternheimer_qpoints(""),
+      fn_sternheimer_partial_manifest(""),
+      fn_sternheimer_symmetry_routes(""),
+      fn_sternheimer_qstar_routes(""),
+      prefix_sternheimer_reconstructed(""),
+      prefix_sternheimer_kresolved(""),
+      prefix_sternheimer_symmetry_diagnostic(""),
+      sternheimer_iq(1),
+      sternheimer_qweight(1.0),
+      use_rpa_gamma(true),
+      sternheimer_matrix_only(false),
+      prefix_coul_cut("coulomb_cut"),
+      prefix_eigvecs_scf("KS_eigenvector"),
+      fn_stru("stru_out"),
+      fn_bz_sampling("bz_sampling_out"),
+      fn_basis("basis_out"),
+      fn_basis_wfc("basis_wfc_out"),
+      fn_basis_aux("basis_aux_out"),
+      fn_basis_aux_shrink("basis_aux_shrink_out"),
+      fn_eigocc_scf("band_out"),
+      fn_dielfunc("dielecfunc_out"),
+      fn_vxc_scf("vxc_out"),
+      prefix_velocity("mommat_ks_kpt_"),
+      g0w0_headwing_velocity("file"),
+      g0w0_fn_hr(""),
+      g0w0_fn_hr_spin1(""),
+      g0w0_fn_sr(""),
+      g0w0_fn_rr(""),
+      g0w0_hr_unit("Ry"),
+      g0w0_rr_unit("Bohr"),
+      fn_band_kpath_info("band_kpath_info"),
+      version_coul_reader(-1),
+      version_lri_reader(-1),
+      cs_threshold(1e-6),
+      output_energy_qp(false),
+      i_state_low(0),
+      i_state_high(default_i_state_high),
+      output_hamgnn(false),
+      use_pyatb(false),
+      output_gw_spec_func(false),
+      sf_omega_start(0.0),
+      sf_omega_end(1.0),
+      sf_omega_step(0.1),
+      sf_state_start(-1),
+      sf_state_end(-1),
+      prefix_vxc_scf(""),
+      prefix_vxc_band(""),
+      qsgw_vxc_basis("state"),
+      qsgw_mixer("none"),
+      qsgw_mixing_beta(0.2),
+      qsgw_min_iter(1),
+      qsgw_max_iter(10),
+      qsgw_band0_unoccupied_keep(10),
+      qsgw_band0_cut_mode(0),
+      qsgw_band0_cut_shift_ha(20.0),
+      qsgw_write_iteration_matrices(false),
+      qsgw_convergence_tolerance_ev(1.0e-4)
 {
 }
 
@@ -192,6 +199,24 @@ std::string DriverParams::format()
     std::string normalized_task = task;
     std::transform(normalized_task.begin(), normalized_task.end(),
                    normalized_task.begin(), [](unsigned char c) { return std::tolower(c); });
+    if (normalized_task == "g0w0" || normalized_task == "g0w0_band")
+    {
+        if (requested_option_dielect_func == 6)
+        {
+            ss << "option_dielect_func_requested = 6" << std::endl;
+            ss << "option_dielect_func_effective = 3" << std::endl;
+        }
+        ss << "g0w0_headwing_velocity = " << g0w0_headwing_velocity << std::endl;
+        if (g0w0_headwing_velocity == "native")
+        {
+            ss << "g0w0_fn_hr = " << g0w0_fn_hr << std::endl;
+            ss << "g0w0_fn_hr_spin1 = " << g0w0_fn_hr_spin1 << std::endl;
+            ss << "g0w0_fn_sr = " << g0w0_fn_sr << std::endl;
+            ss << "g0w0_fn_rr = " << g0w0_fn_rr << std::endl;
+            ss << "g0w0_hr_unit = " << g0w0_hr_unit << std::endl;
+            ss << "g0w0_rr_unit = " << g0w0_rr_unit << std::endl;
+        }
+    }
     if (normalized_task == "qsgw" || normalized_task == "qsgw_band")
     {
         const bool aims_input = constants_choice == "aims";
@@ -259,6 +284,7 @@ std::vector<std::pair<size_t, size_t>> local_atpair;
 librpa::Handler h;
 
 librpa::Options opts;
+int requested_option_dielect_func = 0;
 
 #define normal_pair(name) {#name, opts.name}
 #define bool_pair(name) {#name, get_bool(opts.name)}
