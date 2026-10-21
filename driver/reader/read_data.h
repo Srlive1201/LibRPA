@@ -15,6 +15,8 @@ void read_scf_occ_eigenvalues(const string &file_path, MeanField &mf, bool use_s
                               const std::vector<int> &source_ik_for_target, int source_n_kpoints);
 void read_velocity(ReaderContext &ctx, const string &file_path, const MeanField &mf,
                    velocity_matrix_t &velocity);
+void read_velocity(ReaderContext &ctx, const string &file_path, int n_spins, int n_kpoints,
+                   int n_states, velocity_matrix_t &velocity);
 void read_velocity(ReaderContext &ctx, const string &file_path, const MeanField &mf,
                    velocity_matrix_t &velocity, const std::vector<int> &source_to_target_ik,
                    int source_n_kpoints);
