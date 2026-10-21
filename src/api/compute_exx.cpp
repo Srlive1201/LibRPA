@@ -2,21 +2,21 @@
 #include "librpa_compute.h"
 
 // Internal headers
+#include <algorithm>
+#include <map>
+#include <string>
+#include <vector>
+
 #include "../core/coulmat.h"
+#include "../core/dataset_helper.h"
+#include "../core/task_helpers.h"
 #include "../io/fs.h"
 #include "../io/global_io.h"
 #include "../io/stl_io_helper.h"
 #include "../utils/error.h"
 #include "../utils/profiler.h"
 #include "../utils/utils_mem.h"
-#include "../core/task_helpers.h"
-#include "../core/dataset_helper.h"
 #include "instance_manager.h"
-
-#include <algorithm>
-#include <map>
-#include <string>
-#include <vector>
 
 namespace
 {
@@ -270,8 +270,8 @@ void librpa_get_exx_pot_band_k(LibrpaHandler *h, const LibrpaOptions *p_opts, co
             pds->p_g0w0->reset_kspace();
         }
         pexx->reset_kspace();
-        const auto bvk_remap = librpa_int::build_band_bvk_remap(
-            pds->atoms, pds->pbc, opts.option_bvk_remap);
+        const auto bvk_remap =
+            librpa_int::build_band_bvk_remap(pds->atoms, pds->pbc, opts.option_bvk_remap);
         if (opts.use_kpara_scf_eigvec == LIBRPA_SWITCH_ON)
         {
             pds->redistribute_band_eigvecs_kpara_2d();

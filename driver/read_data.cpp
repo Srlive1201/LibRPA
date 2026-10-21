@@ -1,13 +1,8 @@
 #include "read_data.h"
-#include <librpa_enums.h>
-#include <librpa_optical.h>
-
-#include "reader/reader_structure.h"
-#include "reader/reader_basis.h"
-#include "reader/read_data.h"
-#include "reader_2d_coulomb_head.h"
 
 #include <fcntl.h>
+#include <librpa_enums.h>
+#include <librpa_optical.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -24,6 +19,7 @@
 #include <iomanip>
 #include <ios>
 #include <iostream>
+#include <librpa.hpp>
 #include <limits>
 #include <map>
 #include <memory>
@@ -34,21 +30,23 @@
 #include <utility>
 #include <vector>
 
-#include <librpa.hpp>
-
-#include "driver.h"
-#include "../src/mpi/global_mpi.h"
-#include "../src/math/matrix.h"
-#include "../src/utils/constants.h"
 #include "../src/api/instance_manager.h"
 #include "../src/core/meanfield_mpi.h"
 #include "../src/io/aux_basis_summary.h"
 #include "../src/io/fs.h"
 #include "../src/io/global_io.h"
 #include "../src/io/stl_io_helper.h"
+#include "../src/math/matrix.h"
+#include "../src/mpi/global_mpi.h"
+#include "../src/utils/constants.h"
 #include "../src/utils/error.h"
 #include "../src/utils/profiler.h"
 #include "../src/utils/utils_mem.h"
+#include "driver.h"
+#include "reader/read_data.h"
+#include "reader/reader_basis.h"
+#include "reader/reader_structure.h"
+#include "reader_2d_coulomb_head.h"
 
 using std::ifstream;
 using std::string;
@@ -1580,6 +1578,13 @@ void read_velocity(const string &file_path, const MeanField &mf, velocity_matrix
 {
     auto ctx = driver_reader_context();
     return librpa::reader::read_velocity(ctx, file_path, mf, velocity);
+}
+
+void read_velocity(const string &file_path, int n_spins, int n_kpoints, int n_states,
+                   velocity_matrix_t &velocity)
+{
+    auto ctx = driver_reader_context();
+    return librpa::reader::read_velocity(ctx, file_path, n_spins, n_kpoints, n_states, velocity);
 }
 
 void read_velocity(const string &file_path, const MeanField &mf, velocity_matrix_t &velocity,

@@ -6,12 +6,13 @@
 #else
 #include "../utils/libri_stub.h"
 #endif
-namespace librpa_int {
+namespace librpa_int
+{
 template <typename Tdst, typename Tsrc>
 void collect_block_from_IJ_storage(matrix_m<Tdst> &mat_lo, const ArrayDesc &ad,
-                                   const AtomicBasis &atbasis_row,
-                                   const AtomicBasis &atbasis_col, const int &I,
-                                   const int &J, Tdst alpha, const Tsrc *pvIJ, MAJOR major_pv)
+                                   const AtomicBasis &atbasis_row, const AtomicBasis &atbasis_col,
+                                   const int &I, const int &J, Tdst alpha, const Tsrc *pvIJ,
+                                   MAJOR major_pv)
 {
     // assert(mat_lo.nr() == ad.m_loc() && mat_lo.nc() == ad.n_loc());
     assert(as_size(ad.m()) == atbasis_row.nb_total && as_size(ad.n()) == atbasis_col.nb_total);
@@ -31,7 +32,8 @@ void collect_block_from_IJ_storage(matrix_m<Tdst> &mat_lo, const ArrayDesc &ad,
             int jlo = ad.indx_g2l_c(col_start_id + jJ);
             // librpa_int::global::lib_printf("col jgo %d jlo %d\n", col_start_id + jJ, jlo);
             if (jlo < 0) continue;
-            // cout << "pickerID " << picker(row_nb, iI, col_nb, jJ) << " " << pvIJ[picker(row_nb, iI, col_nb, jJ)] << " matloc befor " << mat_lo(ilo, jlo);
+            // cout << "pickerID " << picker(row_nb, iI, col_nb, jJ) << " " << pvIJ[picker(row_nb,
+            // iI, col_nb, jJ)] << " matloc befor " << mat_lo(ilo, jlo);
             mat_lo(ilo, jlo) += alpha * pvIJ[picker(row_nb, iI, col_nb, jJ)];
             // cout << " after " << mat_lo(ilo, jlo) << endl;
         }
@@ -54,7 +56,7 @@ void collect_block_from_IJ_storage_tensor(matrix_m<Tdst> &mat_lo, const ArrayDes
     omp_lock_t mat_lock;
     omp_init_lock(&mat_lock);
 
-    #pragma omp parallel for
+#pragma omp parallel for
     for (int ilo = 0; ilo != ad.m_loc(); ilo++)
     {
         int I_loc, J_loc, i_ab, j_ab;
@@ -65,8 +67,9 @@ void collect_block_from_IJ_storage_tensor(matrix_m<Tdst> &mat_lo, const ArrayDes
         {
             int j_gl = ad.indx_l2g_c(jlo);
             atbasis_col.get_local_index(j_gl, J_loc, j_ab);
-            //Tdst temp;
-            // librpa_int::global::lib_printf("i_gl I_loc i_ab %d %d %d j_gl J_loc j_ab %d %d %d\n", i_gl, I_loc, i_ab, j_gl, J_loc, j_ab);
+            // Tdst temp;
+            //  librpa_int::global::lib_printf("i_gl I_loc i_ab %d %d %d j_gl J_loc j_ab %d %d
+            //  %d\n", i_gl, I_loc, i_ab, j_gl, J_loc, j_ab);
             tmp_loc_row[jlo] = TMAP.at(I_loc).at({J_loc, cell})(i_ab, j_ab);
         }
         Tdst *row_ptr = tmp_loc.ptr() + ilo * ad.n_loc();
@@ -74,7 +77,7 @@ void collect_block_from_IJ_storage_tensor(matrix_m<Tdst> &mat_lo, const ArrayDes
         memcpy(row_ptr, &tmp_loc_row[0], cp_size);
         omp_unset_lock(&mat_lock);
     }
-    #pragma omp barrier
+#pragma omp barrier
     omp_destroy_lock(&mat_lock);
     if (mat_lo.is_col_major())
     {
@@ -87,24 +90,22 @@ void collect_block_from_IJ_storage_tensor(matrix_m<Tdst> &mat_lo, const ArrayDes
 // TODO: merge it with collect_block_from_IJ_storage_tensor_transform
 template <typename Tdst, typename Tsrc, typename TA, typename TC>
 void collect_block_from_IJ_storage_matrix_transform(
-    matrix_m<Tdst> &mat_lo,
-    const ArrayDesc &ad,
-    const AtomicBasis &atbasis_row,
+    matrix_m<Tdst> &mat_lo, const ArrayDesc &ad, const AtomicBasis &atbasis_row,
     const AtomicBasis &atbasis_col,
     const std::function<Tdst(const TA, const TA, const TC &)> &transform,
     const std::map<TA, std::map<TA, std::map<TC, matrix_m<Tsrc>>>> &TMAP)
 {
     // assert(mat_lo.nr() == ad.m_loc() && mat_lo.nc() == ad.n_loc());
-    assert(as_size(ad.m()) == atbasis_row.nb_total && as_size(ad.n()) == atbasis_col.nb_total );
+    assert(as_size(ad.m()) == atbasis_row.nb_total && as_size(ad.n()) == atbasis_col.nb_total);
     if (TMAP.size() == 0) return;
 
-    matrix_m<Tdst> tmp_loc(mat_lo.nr(),mat_lo.nc(), MAJOR::ROW);
-    size_t cp_size= ad.n_loc()*sizeof(Tdst);
+    matrix_m<Tdst> tmp_loc(mat_lo.nr(), mat_lo.nc(), MAJOR::ROW);
+    size_t cp_size = ad.n_loc() * sizeof(Tdst);
 
     omp_lock_t mat_lock;
     omp_init_lock(&mat_lock);
 
-    #pragma omp parallel for
+#pragma omp parallel for
     for (int ilo = 0; ilo != ad.m_loc(); ilo++)
     {
         int I_loc, J_loc, i_ab, j_ab;
@@ -122,7 +123,7 @@ void collect_block_from_IJ_storage_matrix_transform(
                 auto it_J = JMAP.find(J_loc);
                 if (it_J != JMAP.cend())
                 {
-                    for (const auto &cell_mat: it_J->second)
+                    for (const auto &cell_mat : it_J->second)
                     {
                         const auto &cell = cell_mat.first;
                         const auto &mat = cell_mat.second;
@@ -131,14 +132,14 @@ void collect_block_from_IJ_storage_matrix_transform(
                 }
             }
         }
-        Tdst *row_ptr=tmp_loc.ptr() + ilo* ad.n_loc();
+        Tdst *row_ptr = tmp_loc.ptr() + ilo * ad.n_loc();
         omp_set_lock(&mat_lock);
-        memcpy(row_ptr,&tmp_loc_row[0],cp_size);
+        memcpy(row_ptr, &tmp_loc_row[0], cp_size);
         omp_unset_lock(&mat_lock);
     }
-    #pragma omp barrier
+#pragma omp barrier
     omp_destroy_lock(&mat_lock);
-    if(mat_lo.is_col_major())
+    if (mat_lo.is_col_major())
     {
         tmp_loc.swap_to_col_major();
     }
@@ -161,7 +162,7 @@ void collect_block_from_IJ_storage_tensor_transform(
     omp_lock_t mat_lock;
     omp_init_lock(&mat_lock);
 
-    #pragma omp parallel for
+#pragma omp parallel for
     for (int ilo = 0; ilo != ad.m_loc(); ilo++)
     {
         int I_loc, J_loc, i_ab, j_ab;
@@ -174,7 +175,7 @@ void collect_block_from_IJ_storage_tensor_transform(
             atbasis_col.get_local_index(j_gl, J_loc, j_ab);
             if (TMAP.count(I_loc) > 0)
             {
-                for (const auto &acell_mat: TMAP.at(I_loc))
+                for (const auto &acell_mat : TMAP.at(I_loc))
                 {
                     const auto &acell = acell_mat.first;
                     const auto &mat = acell_mat.second;
@@ -191,7 +192,7 @@ void collect_block_from_IJ_storage_tensor_transform(
         memcpy(row_ptr, &tmp_loc_row[0], cp_size);
         omp_unset_lock(&mat_lock);
     }
-    #pragma omp barrier
+#pragma omp barrier
     omp_destroy_lock(&mat_lock);
     if (mat_lo.is_col_major())
     {
@@ -285,18 +286,21 @@ void collect_block_from_IJ_storage_syhe(matrix_m<Tdst> &mat_lo, const ArrayDesc 
             atbasis.get_local_index(i_gl, I_loc, i_ab);
             atbasis.get_local_index(j_gl, J_loc, j_ab);
             Tdst temp;
-            // librpa_int::global::lib_printf("i_gl I_loc i_ab %d %d %d j_gl J_loc j_ab %d %d %d\n", i_gl, I_loc, i_ab, j_gl, J_loc, j_ab);
+            // librpa_int::global::lib_printf("i_gl I_loc i_ab %d %d %d j_gl J_loc j_ab %d %d %d\n",
+            // i_gl, I_loc, i_ab, j_gl, J_loc, j_ab);
             if ((I_loc == I) && (J_loc == J))
             {
                 // in the same block
                 temp = pvIJ[picker(I_nb, i_ab, J_nb, j_ab)];
-                // cout << "same block pickerID " << picker(I_nb, i_ab, J_nb, j_ab) << " " << temp << " matloc befor " << mat_lo(ilo, jlo);
+                // cout << "same block pickerID " << picker(I_nb, i_ab, J_nb, j_ab) << " " << temp
+                // << " matloc befor " << mat_lo(ilo, jlo);
             }
             else if ((I_loc == J) && (J_loc == I))
             {
                 // in the opposite block
                 temp = filter(pvIJ[picker(I_nb, j_ab, J_nb, i_ab)]);
-                // cout << "opposite block pickerID " << picker(I_nb, j_ab, J_nb, i_ab) << " " << temp << " matloc befor " << mat_lo(ilo, jlo);
+                // cout << "opposite block pickerID " << picker(I_nb, j_ab, J_nb, i_ab) << " " <<
+                // temp << " matloc befor " << mat_lo(ilo, jlo);
             }
             else
                 continue;
@@ -317,20 +321,20 @@ void collect_block_from_ALL_IJ_Tensor(matrix_m<Tdst> &mat_lo, const ArrayDesc &a
     matrix_m<Tdst> tmp_loc(mat_lo.nr(), mat_lo.nc(), MAJOR::ROW);
     size_t cp_size = ad.n_loc() * sizeof(Tdst);
 
-// #ifdef LIBRPA_DEBUG
-//     librpa_int::global::ofs_myid << "cp_size: " << cp_size << std::endl;
-//     librpa_int::global::ofs_myid << "Available TMAP keys: ";
-//     print_keys(librpa_int::global::ofs_myid, TMAP);
-//     librpa_int::global::ofs_myid << std::endl;
-//     librpa_int::global::ofs_myid << "mat_lo dims: " << mat_lo.nr() << " " << mat_lo.nc() <<
-//     std::endl; librpa_int::global::ofs_myid << "ad_loc dims: " << ad.m_loc() << " " <<
-//     ad.n_loc() << std::endl;
-// #endif
+    // #ifdef LIBRPA_DEBUG
+    //     librpa_int::global::ofs_myid << "cp_size: " << cp_size << std::endl;
+    //     librpa_int::global::ofs_myid << "Available TMAP keys: ";
+    //     print_keys(librpa_int::global::ofs_myid, TMAP);
+    //     librpa_int::global::ofs_myid << std::endl;
+    //     librpa_int::global::ofs_myid << "mat_lo dims: " << mat_lo.nr() << " " << mat_lo.nc() <<
+    //     std::endl; librpa_int::global::ofs_myid << "ad_loc dims: " << ad.m_loc() << " " <<
+    //     ad.n_loc() << std::endl;
+    // #endif
 
     omp_lock_t mat_lock;
     omp_init_lock(&mat_lock);
 
-    #pragma omp parallel for
+#pragma omp parallel for
     for (int ilo = 0; ilo != ad.m_loc(); ilo++)
     {
         int I_loc, J_loc, i_ab, j_ab;
@@ -339,15 +343,15 @@ void collect_block_from_ALL_IJ_Tensor(matrix_m<Tdst> &mat_lo, const ArrayDesc &a
         std::vector<Tdst> tmp_loc_row(ad.n_loc());
         for (int jlo = 0; jlo != ad.n_loc(); jlo++)
         {
-
             int j_gl = ad.indx_l2g_c(jlo);
 
             atbasis.get_local_index(j_gl, J_loc, j_ab);
-            //Tdst temp;
-            // librpa_int::global::lib_printf("i_gl I_loc i_ab %d %d %d j_gl J_loc j_ab %d %d %d\n", i_gl, I_loc, i_ab, j_gl, J_loc, j_ab);
-            if(I_loc<=J_loc)
+            // Tdst temp;
+            //  librpa_int::global::lib_printf("i_gl I_loc i_ab %d %d %d j_gl J_loc j_ab %d %d
+            //  %d\n", i_gl, I_loc, i_ab, j_gl, J_loc, j_ab);
+            if (I_loc <= J_loc)
             {
-                tmp_loc_row[jlo]= TMAP.at(I_loc).at({J_loc, cell})(i_ab,j_ab);
+                tmp_loc_row[jlo] = TMAP.at(I_loc).at({J_loc, cell})(i_ab, j_ab);
             }
             else
             {
@@ -362,20 +366,19 @@ void collect_block_from_ALL_IJ_Tensor(matrix_m<Tdst> &mat_lo, const ArrayDesc &a
         memcpy(row_ptr, &tmp_loc_row[0], cp_size);
         omp_unset_lock(&mat_lock);
     }
-    #pragma omp barrier
+#pragma omp barrier
     omp_destroy_lock(&mat_lock);
     if (mat_lo.is_col_major())
     {
         tmp_loc.swap_to_col_major();
     }
-    mat_lo=tmp_loc;
+    mat_lo = tmp_loc;
 }
 
 template <typename Tdst, typename TA, typename TC, typename TAC = std::pair<TA, TC>>
 void collect_block_from_ALL_IJ_Tensor_sparse_zero_missing(
     matrix_m<Tdst> &mat_lo, const ArrayDesc &ad, const AtomicBasis &atbasis, const TC &cell,
-    bool conjugate, Tdst alpha,
-    const std::map<TA, std::map<TAC, RI::Tensor<Tdst>>> &TMAP,
+    bool conjugate, Tdst alpha, const std::map<TA, std::map<TAC, RI::Tensor<Tdst>>> &TMAP,
     MAJOR major_pv)
 {
     (void)major_pv;
@@ -386,7 +389,7 @@ void collect_block_from_ALL_IJ_Tensor_sparse_zero_missing(
     omp_lock_t mat_lock;
     omp_init_lock(&mat_lock);
 
-    #pragma omp parallel for
+#pragma omp parallel for
     for (int ilo = 0; ilo != ad.m_loc(); ilo++)
     {
         int I_loc, J_loc, i_ab, j_ab;
@@ -421,7 +424,7 @@ void collect_block_from_ALL_IJ_Tensor_sparse_zero_missing(
         memcpy(row_ptr, &tmp_loc_row[0], cp_size);
         omp_unset_lock(&mat_lock);
     }
-    #pragma omp barrier
+#pragma omp barrier
     omp_destroy_lock(&mat_lock);
     if (mat_lo.is_col_major())
     {
@@ -442,7 +445,7 @@ void collect_block_from_ordered_IJ_Tensor_sparse_zero_missing(
     omp_lock_t mat_lock;
     omp_init_lock(&mat_lock);
 
-    #pragma omp parallel for
+#pragma omp parallel for
     for (int ilo = 0; ilo != ad.m_loc(); ilo++)
     {
         int I_loc, J_loc, i_ab, j_ab;
@@ -467,7 +470,7 @@ void collect_block_from_ordered_IJ_Tensor_sparse_zero_missing(
         memcpy(row_ptr, &tmp_loc_row[0], cp_size);
         omp_unset_lock(&mat_lock);
     }
-    #pragma omp barrier
+#pragma omp barrier
     omp_destroy_lock(&mat_lock);
     if (mat_lo.is_col_major())
     {
@@ -476,14 +479,11 @@ void collect_block_from_ordered_IJ_Tensor_sparse_zero_missing(
     mat_lo = tmp_loc;
 }
 
-
 //! collect a IJ-pair storage from a 2D block local matrix
 template <typename T>
 void map_block_to_IJ_storage(std::map<int, std::map<int, matrix_m<T>>> &IJmap,
-                             const AtomicBasis &atbasis_row,
-                             const AtomicBasis &atbasis_col,
-                             const matrix_m<T> &mat_lo,
-                             const ArrayDesc &desc, MAJOR major_map)
+                             const AtomicBasis &atbasis_row, const AtomicBasis &atbasis_col,
+                             const matrix_m<T> &mat_lo, const ArrayDesc &desc, MAJOR major_map)
 {
     assert(as_size(desc.m()) == atbasis_row.nb_total && as_size(desc.n()) == atbasis_col.nb_total);
     int I, J, iI, jJ;
@@ -503,7 +503,6 @@ void map_block_to_IJ_storage(std::map<int, std::map<int, matrix_m<T>>> &IJmap,
     }
 }
 
-
 template <typename T>
 void map_block_to_IJ_storage_new(std::map<int, std::map<int, matrix_m<T>>> &IJmap,
                                  const AtomicBasis &atbasis,
@@ -512,15 +511,15 @@ void map_block_to_IJ_storage_new(std::map<int, std::map<int, matrix_m<T>>> &IJma
                                  const matrix_m<T> &mat_lo, const ArrayDesc &desc, MAJOR major_map)
 {
     // map<int, map<int, matrix_m<T>>> IJmap_local;
-    int max_threads = omp_get_max_threads(); // Get the total number of available threads
+    int max_threads = omp_get_max_threads();  // Get the total number of available threads
 
     std::vector<int> Is;
     std::vector<int> Js;
-    for (const auto &I_is: map_lor_I_is)
+    for (const auto &I_is : map_lor_I_is)
     {
         Is.push_back(I_is.first);
     }
-    for (const auto &J_js: map_loc_J_js)
+    for (const auto &J_js : map_loc_J_js)
     {
         Js.push_back(J_js.first);
     }
@@ -559,16 +558,17 @@ void map_block_to_IJ_storage_new(std::map<int, std::map<int, matrix_m<T>>> &IJma
 
     // Compute starting and ending j indices
     std::vector<std::array<int, 4>> blocks;
-    for (const auto &I: Is)
+    for (const auto &I : Is)
     {
-        for (const auto &J: Js)
+        for (const auto &J : Js)
         {
             const int n_j_loc = map_loc_J_js.at(J).size();
             const auto step = n_j_loc / subdiv;
             const auto resi = n_j_loc % subdiv;
             for (int j_subdiv = 0; j_subdiv < subdiv; j_subdiv++)
             {
-                int st = j_subdiv * step + j_subdiv * int(j_subdiv < resi) + resi * int(j_subdiv >= resi);
+                int st = j_subdiv * step + j_subdiv * int(j_subdiv < resi) +
+                         resi * int(j_subdiv >= resi);
                 int ed = std::min(n_j_loc, st + step + int(j_subdiv < resi));
                 blocks.push_back({I, J, st, ed});
             }
@@ -608,12 +608,10 @@ void map_block_to_IJ_storage_new(std::map<int, std::map<int, matrix_m<T>>> &IJma
 }
 
 template <typename T>
-void fill_local_mat_from_ap_dist_scheduler(matrix_m<T> &m_loc,
-                                           const ap_p_map<matrix_m<T>> &data,
+void fill_local_mat_from_ap_dist_scheduler(matrix_m<T> &m_loc, const ap_p_map<matrix_m<T>> &data,
                                            const IndexScheduler &sched,
                                            const AtomicBasis &atbasis_r,
-                                           const AtomicBasis &atbasis_c,
-                                           const ArrayDesc &ad)
+                                           const AtomicBasis &atbasis_c, const ArrayDesc &ad)
 {
     global::profiler.start(__FUNCTION__, LIBRPA_VERBOSE_DEBUG);
     assert(sched.initialized());
@@ -622,7 +620,8 @@ void fill_local_mat_from_ap_dist_scheduler(matrix_m<T> &m_loc,
     const auto row_major = major_data == MAJOR::ROW ? true : false;
     if (sched.row_major() != row_major)
     {
-        throw LIBRPA_RUNTIME_ERROR("IndexScheduler storage order does not match the BLACS local matrix");
+        throw LIBRPA_RUNTIME_ERROR(
+            "IndexScheduler storage order does not match the BLACS local matrix");
     }
 
     // Resolve data type for communication
@@ -635,7 +634,7 @@ void fill_local_mat_from_ap_dist_scheduler(matrix_m<T> &m_loc,
     // global::profiler.start("assign_self_ap2blacs");
     if (row_major)
     {
-        #pragma omp parallel for collapse(2) schedule(static)
+#pragma omp parallel for collapse(2) schedule(static)
         for (int ir = 0; ir < nr; ir++)
         {
             for (int ic = 0; ic < nc; ic++)
@@ -651,7 +650,7 @@ void fill_local_mat_from_ap_dist_scheduler(matrix_m<T> &m_loc,
     }
     else
     {
-        #pragma omp parallel for collapse(2) schedule(static)
+#pragma omp parallel for collapse(2) schedule(static)
         for (int ic = 0; ic < nc; ic++)
         {
             for (int ir = 0; ir < nr; ir++)
@@ -671,7 +670,7 @@ void fill_local_mat_from_ap_dist_scheduler(matrix_m<T> &m_loc,
     // global::profiler.start("prep_send_ap2blacs");
     // global::ofs_myid << "prep_send_ap2blacs total_count_ap " << sched.total_count_ap << endl;
     std::vector<T> sendbuff(sched.total_count_ap);
-    #pragma omp parallel for
+#pragma omp parallel for
     for (MPI_Count i = 0; i < sched.total_count_ap; i++)
     {
         const auto &atpair = sched.atpairs[sched.ids_ap_ipair[i]];
@@ -712,12 +711,12 @@ void fill_local_mat_from_ap_dist_scheduler(matrix_m<T> &m_loc,
 
     // Wait for all non-blocking communication to finish
     if (!reqs.empty()) MPI_Waitall((int)reqs.size(), reqs.data(), MPI_STATUSES_IGNORE);
-    // global::profiler.stop("comm_ap2blacs");
+// global::profiler.stop("comm_ap2blacs");
 
-    // Map the received data to the correct location in the BLACS sub-block
-    // global::profiler.start("assign_ap2blacs");
-    // global::ofs_myid << "assign_ap2blacs total_count_blacs " << sched.total_count_blacs << endl;
-    #pragma omp parallel for
+// Map the received data to the correct location in the BLACS sub-block
+// global::profiler.start("assign_ap2blacs");
+// global::ofs_myid << "assign_ap2blacs total_count_blacs " << sched.total_count_blacs << endl;
+#pragma omp parallel for
     for (MPI_Count i = 0; i < sched.total_count_blacs; i++)
     {
         const auto &locid = sched.ids_blacs_locid[i];
@@ -740,12 +739,10 @@ void fill_local_mat_from_ap_dist_scheduler(matrix_m<T> &m_loc,
  * @param  [in]     ad                    Array descriptor for BLACS distribution
  */
 template <typename T>
-void fill_local_mat_from_ap_dist(matrix_m<T> &m_loc,
-                                 const ap_p_map<matrix_m<T>> &data,
-                                 const std::unordered_map<int, std::vector<atpair_t>> &map_proc_IJs_avail,
-                                 const AtomicBasis &atbasis_r,
-                                 const AtomicBasis &atbasis_c,
-                                 const ArrayDesc &ad)
+void fill_local_mat_from_ap_dist(
+    matrix_m<T> &m_loc, const ap_p_map<matrix_m<T>> &data,
+    const std::unordered_map<int, std::vector<atpair_t>> &map_proc_IJs_avail,
+    const AtomicBasis &atbasis_r, const AtomicBasis &atbasis_c, const ArrayDesc &ad)
 {
     assert(ad.initialized());
     const auto major_data = m_loc.major();
@@ -756,7 +753,7 @@ void fill_local_mat_from_ap_dist(matrix_m<T> &m_loc,
 
     IndexScheduler sched;
     std::unordered_map<int, std::set<atpair_t>> map_proc_set_IJs;
-    for (const auto &proc_IJs: map_proc_IJs_avail)
+    for (const auto &proc_IJs : map_proc_IJs_avail)
     {
         const auto &IJs = proc_IJs.second;
         map_proc_set_IJs[proc_IJs.first] = std::set<atpair_t>{IJs.cbegin(), IJs.cend()};
@@ -781,34 +778,36 @@ void fill_local_mat_from_ap_dist(matrix_m<T> &m_loc,
  * @retval    matrix_m. The major is the same as the input, major_data
  */
 template <typename T>
-matrix_m<T> get_local_mat_from_ap_dist(const std::unordered_map<atpair_t, matrix_m<T>, atpair_hash> &data,
-                                       const std::unordered_map<int, std::vector<atpair_t>> &map_proc_IJs_avail,
-                                       const AtomicBasis &atbasis_r,
-                                       const AtomicBasis &atbasis_c,
-                                       const ArrayDesc &ad, MAJOR major_data)
+matrix_m<T> get_local_mat_from_ap_dist(
+    const std::unordered_map<atpair_t, matrix_m<T>, atpair_hash> &data,
+    const std::unordered_map<int, std::vector<atpair_t>> &map_proc_IJs_avail,
+    const AtomicBasis &atbasis_r, const AtomicBasis &atbasis_c, const ArrayDesc &ad,
+    MAJOR major_data)
 {
     assert(ad.initialized());
 
     // Initialize return matrix
     auto m_loc = init_local_mat<T>(ad, major_data);
-    // cout << global::myid_global << " " << m_loc.size() << " " << ad.m_loc() << " " << ad.n_loc()<< endl;
+    // cout << global::myid_global << " " << m_loc.size() << " " << ad.m_loc() << " " <<
+    // ad.n_loc()<< endl;
     fill_local_mat_from_ap_dist(m_loc, data, map_proc_IJs_avail, atbasis_r, atbasis_c, ad);
     return m_loc;
 }
 
-template <typename T> matrix_m<T>
-get_local_mat_from_ap_dist_scheduler(const std::unordered_map<atpair_t, matrix_m<T>, atpair_hash> &data, // FIXME: do not know why cannot use ap_p_map<matrix_m<T>> here
-                                     const IndexScheduler &sched,
-                                     const AtomicBasis &atbasis_r,
-                                     const AtomicBasis &atbasis_c,
-                                     const ArrayDesc &ad, MAJOR major_data)
+template <typename T>
+matrix_m<T> get_local_mat_from_ap_dist_scheduler(
+    const std::unordered_map<atpair_t, matrix_m<T>, atpair_hash>
+        &data,  // FIXME: do not know why cannot use ap_p_map<matrix_m<T>> here
+    const IndexScheduler &sched, const AtomicBasis &atbasis_r, const AtomicBasis &atbasis_c,
+    const ArrayDesc &ad, MAJOR major_data)
 {
     assert(sched.initialized());
     assert(ad.initialized());
 
     // Initialize return matrix
     auto m_loc = init_local_mat<T>(ad, major_data);
-    // cout << global::myid_global << " " << m_loc.size() << " " << ad.m_loc() << " " << ad.n_loc()<< endl;
+    // cout << global::myid_global << " " << m_loc.size() << " " << ad.m_loc() << " " <<
+    // ad.n_loc()<< endl;
     fill_local_mat_from_ap_dist_scheduler(m_loc, data, sched, atbasis_r, atbasis_c, ad);
     return m_loc;
 }
@@ -821,22 +820,21 @@ get_local_mat_from_ap_dist_scheduler(const std::unordered_map<atpair_t, matrix_m
  * @param  [in,out] m_loc.                The BLACS local matrix to be filled.
  * @param  [in]     data                  Global matrix data distributed in atom-pair mapping,
  *                                        either upper or lower half depending on uplo.
- * @param  [in]     uplo                  whether the matrix data are available in upper ('U', 'u') or lower ('L', 'l') half.
+ * @param  [in]     uplo                  whether the matrix data are available in upper ('U', 'u')
+ * or lower ('L', 'l') half.
  * @param  [in]     map_proc_IJs_avail    Distribution of atom-pair blocks on all processes.
  *                                        The keys of the map are process ranks within
  *                                        the context of the array descriptor.
  * @param  [in]     atbasis               AtomicBasis object for row and column
  * @param  [in]     ad                    Array descriptor for BLACS distribution
- * @param  [in]     apply_conjugate       Flag to apply conjugate when necessary, useful when the global matrix
- *                                        is a complex Hermitian matrix.
+ * @param  [in]     apply_conjugate       Flag to apply conjugate when necessary, useful when the
+ * global matrix is a complex Hermitian matrix.
  */
 template <typename T>
-void fill_local_mat_from_ap_dist_sy(matrix_m<T> &m_loc,
-                                    const std::unordered_map<atpair_t, matrix_m<T>, atpair_hash> data,
-                                    const char &uplo,
-                                    const std::unordered_map<int, std::vector<atpair_t>> &map_proc_IJs_avail,
-                                    const AtomicBasis &atbasis,
-                                    const ArrayDesc &ad, bool apply_conjugate)
+void fill_local_mat_from_ap_dist_sy(
+    matrix_m<T> &m_loc, const std::unordered_map<atpair_t, matrix_m<T>, atpair_hash> data,
+    const char &uplo, const std::unordered_map<int, std::vector<atpair_t>> &map_proc_IJs_avail,
+    const AtomicBasis &atbasis, const ArrayDesc &ad, bool apply_conjugate)
 {
     assert(ad.initialized());
     const auto major_data = m_loc.major();
@@ -873,7 +871,8 @@ void fill_local_mat_from_ap_dist_sy(matrix_m<T> &m_loc,
                 else if (data.count(atpair_T))
                 {
                     const auto &mat = data.at(atpair_T);
-                    m_loc(ir, ic) = is_complex<T>() && apply_conjugate? get_conj(mat(i, j)) : mat(i, j);
+                    m_loc(ir, ic) =
+                        is_complex<T>() && apply_conjugate ? get_conj(mat(i, j)) : mat(i, j);
                 }
             }
         }
@@ -912,7 +911,7 @@ void fill_local_mat_from_ap_dist_sy(matrix_m<T> &m_loc,
         {
             const auto &ids_send = pid_ids_send.at(pid);
             MPI_Count sendcount_pid = 0;
-            for (const auto &pair_ids: ids_send)
+            for (const auto &pair_ids : ids_send)
             {
                 sendcount_pid += pair_ids.second.size();
             }
@@ -929,7 +928,7 @@ void fill_local_mat_from_ap_dist_sy(matrix_m<T> &m_loc,
         {
             const auto &ids_send = pid_ids_send.at(pid);
             MPI_Count disp = pid_send_disp_count.at(pid).first;
-            for (const auto &pair_ids: ids_send)
+            for (const auto &pair_ids : ids_send)
             {
                 const auto &atpair = pair_ids.first;
                 const auto &atmat = data.at(atpair);
@@ -937,7 +936,7 @@ void fill_local_mat_from_ap_dist_sy(matrix_m<T> &m_loc,
                 for (size_t i = 0; i < ids.size(); i++)
                 {
                     const auto &id = ids[i];
-                    sendbuff[disp+i] = atmat.ptr()[id];
+                    sendbuff[disp + i] = atmat.ptr()[id];
                 }
                 disp += ids.size();
             }
@@ -949,7 +948,7 @@ void fill_local_mat_from_ap_dist_sy(matrix_m<T> &m_loc,
     MPI_Request req;
 
     // First non-blocking receive
-    for (const auto &pid_disp_count: pid_recv_disp_count)
+    for (const auto &pid_disp_count : pid_recv_disp_count)
     {
         const auto &pid = pid_disp_count.first;
         const auto &disp_count = pid_disp_count.second;
@@ -960,7 +959,7 @@ void fill_local_mat_from_ap_dist_sy(matrix_m<T> &m_loc,
         reqs.push_back(req);
     }
     // Then non-blocking send
-    for (const auto &pid_disp_count: pid_send_disp_count)
+    for (const auto &pid_disp_count : pid_send_disp_count)
     {
         const auto &pid = pid_disp_count.first;
         const auto &disp_count = pid_disp_count.second;
@@ -975,7 +974,7 @@ void fill_local_mat_from_ap_dist_sy(matrix_m<T> &m_loc,
     if (!reqs.empty()) MPI_Waitall((int)reqs.size(), reqs.data(), MPI_STATUSES_IGNORE);
 
     // Map the received data to the correct location in the BLACS sub-block
-    for (const auto &pid_disp_count: pid_recv_disp_count)
+    for (const auto &pid_disp_count : pid_recv_disp_count)
     {
         const auto &pid = pid_disp_count.first;
         const auto &ids = pid_ids_lconj_recv.at(pid).first;
@@ -987,14 +986,15 @@ void fill_local_mat_from_ap_dist_sy(matrix_m<T> &m_loc,
         {
             for (auto i = 0; i < count; i++)
             {
-                m_loc.ptr()[ids[i]] = conjs[i] == 'c' ? get_conj(recvbuff[disp+i]) : recvbuff[disp+i];
+                m_loc.ptr()[ids[i]] =
+                    conjs[i] == 'c' ? get_conj(recvbuff[disp + i]) : recvbuff[disp + i];
             }
         }
         else
         {
             for (auto i = 0; i < count; i++)
             {
-                m_loc.ptr()[ids[i]] = recvbuff[disp+i];
+                m_loc.ptr()[ids[i]] = recvbuff[disp + i];
             }
         }
     }
@@ -1007,40 +1007,39 @@ void fill_local_mat_from_ap_dist_sy(matrix_m<T> &m_loc,
  *
  * @param  [in]  data                  Global matrix data distributed in atom-pair mapping,
  *                                     either upper or lower half depending on uplo.
- * @param  [in]  uplo                  whether the matrix data are available in upper ('U', 'u') or lower ('L', 'l') half.
+ * @param  [in]  uplo                  whether the matrix data are available in upper ('U', 'u') or
+ * lower ('L', 'l') half.
  * @param  [in]  map_proc_IJs_avail    Distribution of atom-pair blocks on all processes.
  *                                     The keys of the map are process ranks within
  *                                     the context of the array descriptor.
  * @param  [in]  atbasis               AtomicBasis object for row and column
  * @param  [in]  ad                    Array descriptor for BLACS distribution
  * @param  [in]  major_data            Major of the input atom-pair matrices
- * @param  [in]  apply_conjugate       Flag to apply conjugate when necessary, useful when the global matrix
- *                                     is a complex Hermitian matrix.
+ * @param  [in]  apply_conjugate       Flag to apply conjugate when necessary, useful when the
+ * global matrix is a complex Hermitian matrix.
  *
  * @retval    matrix_m. The major is the same as the input, major_data
  */
 template <typename T>
-matrix_m<T> get_local_mat_from_ap_dist_sy(const std::unordered_map<atpair_t, matrix_m<T>, atpair_hash> data,
-                                          const char &uplo,
-                                          const std::unordered_map<int, std::vector<atpair_t>> &map_proc_IJs_avail,
-                                          const AtomicBasis &atbasis,
-                                          const ArrayDesc &ad, bool apply_conjugate, MAJOR major_data)
+matrix_m<T> get_local_mat_from_ap_dist_sy(
+    const std::unordered_map<atpair_t, matrix_m<T>, atpair_hash> data, const char &uplo,
+    const std::unordered_map<int, std::vector<atpair_t>> &map_proc_IJs_avail,
+    const AtomicBasis &atbasis, const ArrayDesc &ad, bool apply_conjugate, MAJOR major_data)
 {
     assert(ad.initialized());
 
     // Initialize return matrix
     auto m_loc = init_local_mat<T>(ad, major_data);
-    fill_local_mat_from_ap_dist_sy<T>(m_loc, data, uplo, map_proc_IJs_avail, atbasis, ad, apply_conjugate);
+    fill_local_mat_from_ap_dist_sy<T>(m_loc, data, uplo, map_proc_IJs_avail, atbasis, ad,
+                                      apply_conjugate);
     return m_loc;
 }
 
 template <typename T>
-void fill_ap_map_from_blacs_dist_scheduler(ap_p_map<matrix_m<T>> &data,
-                                           const matrix_m<T> &m_loc,
+void fill_ap_map_from_blacs_dist_scheduler(ap_p_map<matrix_m<T>> &data, const matrix_m<T> &m_loc,
                                            const IndexScheduler &sched,
                                            const AtomicBasis &atbasis_r,
-                                           const AtomicBasis &atbasis_c,
-                                           const ArrayDesc &ad)
+                                           const AtomicBasis &atbasis_c, const ArrayDesc &ad)
 {
     global::profiler.start(__FUNCTION__, LIBRPA_VERBOSE_DEBUG);
 
@@ -1057,17 +1056,19 @@ void fill_ap_map_from_blacs_dist_scheduler(ap_p_map<matrix_m<T>> &data,
     const auto &row_major = major_data == MAJOR::ROW ? true : false;
     if (sched.row_major() != row_major)
     {
-        throw LIBRPA_RUNTIME_ERROR("IndexScheduler storage order does not match the BLACS local matrix");
+        throw LIBRPA_RUNTIME_ERROR(
+            "IndexScheduler storage order does not match the BLACS local matrix");
     }
 
     // global::profiler.start("assign_self_blacs2ap");
     // Fill in data that is already available before communication
     // atom pairs required by this process
-    const auto IJs = std::unordered_set<atpair_t, atpair_hash>(sched.atpairs.cbegin(), sched.atpairs.cend());
+    const auto IJs =
+        std::unordered_set<atpair_t, atpair_hash>(sched.atpairs.cbegin(), sched.atpairs.cend());
     const auto nr = m_loc.nr();
     const auto nc = m_loc.nc();
     // Allocate necessary blocks first
-    for (const auto &atpair: sched.atpairs)
+    for (const auto &atpair : sched.atpairs)
     {
         const auto I = atpair.first;
         const auto J = atpair.second;
@@ -1077,7 +1078,7 @@ void fill_ap_map_from_blacs_dist_scheduler(ap_p_map<matrix_m<T>> &data,
     }
     if (row_major)
     {
-        #pragma omp parallel for collapse(2) schedule(static)
+#pragma omp parallel for collapse(2) schedule(static)
         for (int ir = 0; ir < nr; ir++)
         {
             for (int ic = 0; ic < nc; ic++)
@@ -1086,15 +1087,15 @@ void fill_ap_map_from_blacs_dist_scheduler(ap_p_map<matrix_m<T>> &data,
                 atbasis_r.get_local_index(ad.indx_l2g_r(ir), I, i);
                 atbasis_c.get_local_index(ad.indx_l2g_c(ic), J, j);
                 const atpair_t atpair{static_cast<atom_t>(I), static_cast<atom_t>(J)};
-                if (IJs.find(atpair) == IJs.cend()) continue; // not required
+                if (IJs.find(atpair) == IJs.cend()) continue;  // not required
                 const auto &nJ = atbasis_c.get_atom_nb(J);
-                data.at(atpair).ptr()[i*nJ+j] = m_loc.ptr()[ir*nc+ic];
+                data.at(atpair).ptr()[i * nJ + j] = m_loc.ptr()[ir * nc + ic];
             }
         }
     }
     else
     {
-        #pragma omp parallel for collapse(2) schedule(static)
+#pragma omp parallel for collapse(2) schedule(static)
         for (int ic = 0; ic < nc; ic++)
         {
             for (int ir = 0; ir < nr; ir++)
@@ -1103,9 +1104,9 @@ void fill_ap_map_from_blacs_dist_scheduler(ap_p_map<matrix_m<T>> &data,
                 atbasis_c.get_local_index(ad.indx_l2g_c(ic), J, j);
                 atbasis_r.get_local_index(ad.indx_l2g_r(ir), I, i);
                 const atpair_t atpair{static_cast<atom_t>(I), static_cast<atom_t>(J)};
-                if (IJs.find(atpair) == IJs.cend()) continue; // not required
+                if (IJs.find(atpair) == IJs.cend()) continue;  // not required
                 const auto nI = atbasis_r.get_atom_nb(I);
-                data.at(atpair).ptr()[j*nI+i] = m_loc.ptr()[ic*nr+ir];
+                data.at(atpair).ptr()[j * nI + i] = m_loc.ptr()[ic * nr + ir];
             }
         }
     }
@@ -1115,7 +1116,7 @@ void fill_ap_map_from_blacs_dist_scheduler(ap_p_map<matrix_m<T>> &data,
     // prepare send buffer (from BLACS block)
     // global::profiler.start("prep_send_blacs2ap");
     std::vector<T> sendbuff(sched.total_count_blacs);
-    #pragma omp parallel for
+#pragma omp parallel for
     for (MPI_Count i = 0; i < sched.total_count_blacs; i++)
     {
         const auto &id = sched.ids_blacs_locid[i];
@@ -1156,18 +1157,19 @@ void fill_ap_map_from_blacs_dist_scheduler(ap_p_map<matrix_m<T>> &data,
 
     // Wait for all non-blocking communication to finish
     if (!reqs.empty()) MPI_Waitall((int)reqs.size(), reqs.data(), MPI_STATUSES_IGNORE);
-    // global::profiler.stop("comm_blacs2ap");
+// global::profiler.stop("comm_blacs2ap");
 
-    // Map the received data to the correct location in the atom-pair mapping
-    // global::profiler.start("assign_blacs2ap");
-    // Allocate the required atom-pair block first
-    // global::ofs_myid << "sched.total_count_ap " << sched.total_count_ap << std::endl;
-    #pragma omp parallel for
+// Map the received data to the correct location in the atom-pair mapping
+// global::profiler.start("assign_blacs2ap");
+// Allocate the required atom-pair block first
+// global::ofs_myid << "sched.total_count_ap " << sched.total_count_ap << std::endl;
+#pragma omp parallel for
     for (MPI_Count i = 0; i < sched.total_count_ap; i++)
     {
         const auto &atpair = sched.atpairs[sched.ids_ap_ipair[i]];
         const auto &locid = sched.ids_ap_locid[i];
-        // global::ofs_myid << "pair " << atpair.first << " " << atpair.second << " locid " << locid << " at? " << std::boolalpha << data.count(atpair) << std::endl;
+        // global::ofs_myid << "pair " << atpair.first << " " << atpair.second << " locid " << locid
+        // << " at? " << std::boolalpha << data.count(atpair) << std::endl;
         data.at(atpair).ptr()[locid] = recvbuff[i];
     }
     // global::profiler.stop("assign_blacs2ap");
@@ -1177,7 +1179,8 @@ void fill_ap_map_from_blacs_dist_scheduler(ap_p_map<matrix_m<T>> &data,
 /*!
  * @brief Fill atom-pair mapping data by redistributing the BLACS local matrix on each process.
  *
- * @param  [in,out] data                  Matrix data distributed in atom-pair mapping to be completed
+ * @param  [in,out] data                  Matrix data distributed in atom-pair mapping to be
+ * completed
  * @param  [in]     m_loc                 The BLACS local matrix owned by each process
  * @param  [in]     map_proc_IJs_require  Atom-pair blocks required by each processes.
  * @param  [in]     atbasis_r             AtomicBasis object for row
@@ -1185,19 +1188,17 @@ void fill_ap_map_from_blacs_dist_scheduler(ap_p_map<matrix_m<T>> &data,
  * @param  [in]     ad                    Array descriptor for BLACS distribution
  */
 template <typename T>
-void fill_ap_map_from_blacs_dist(ap_p_map<matrix_m<T>> &data,
-                                 const matrix_m<T> &m_loc,
-                                 const std::unordered_map<int, std::vector<atpair_t>> &map_proc_IJs_require,
-                                 const AtomicBasis &atbasis_r,
-                                 const AtomicBasis &atbasis_c,
-                                 const ArrayDesc &ad)
+void fill_ap_map_from_blacs_dist(
+    ap_p_map<matrix_m<T>> &data, const matrix_m<T> &m_loc,
+    const std::unordered_map<int, std::vector<atpair_t>> &map_proc_IJs_require,
+    const AtomicBasis &atbasis_r, const AtomicBasis &atbasis_c, const ArrayDesc &ad)
 {
     assert(ad.initialized());
     const auto row_major = m_loc.major() == MAJOR::ROW ? true : false;
 
     IndexScheduler sched;
     std::unordered_map<int, std::set<atpair_t>> map_proc_set_IJs;
-    for (const auto &proc_IJs: map_proc_IJs_require)
+    for (const auto &proc_IJs : map_proc_IJs_require)
     {
         const auto &IJs = proc_IJs.second;
         map_proc_set_IJs[proc_IJs.first] = std::set<atpair_t>{IJs.cbegin(), IJs.cend()};
@@ -1218,13 +1219,12 @@ void fill_ap_map_from_blacs_dist(ap_p_map<matrix_m<T>> &data,
  *
  * @retval atom-pair mapping matrix data. The major is the same as the input m_loc, major_data
  */
-template <typename T> ap_p_map<matrix_m<T>>
-get_ap_map_from_blacs_dist(const matrix_m<T> &m_loc,
-                           const std::unordered_map<int, std::vector<atpair_t>> &map_proc_IJs_require,
-                           const AtomicBasis &atbasis_r,
-                           const AtomicBasis &atbasis_c,
-                           const ArrayDesc &ad,
-                           MAJOR major_data = MAJOR::AUTO)
+template <typename T>
+ap_p_map<matrix_m<T>> get_ap_map_from_blacs_dist(
+    const matrix_m<T> &m_loc,
+    const std::unordered_map<int, std::vector<atpair_t>> &map_proc_IJs_require,
+    const AtomicBasis &atbasis_r, const AtomicBasis &atbasis_c, const ArrayDesc &ad,
+    MAJOR major_data = MAJOR::AUTO)
 {
     assert(ad.initialized());
 
@@ -1242,13 +1242,10 @@ get_ap_map_from_blacs_dist(const matrix_m<T> &m_loc,
     return data;
 }
 
-template <typename T> ap_p_map<matrix_m<T>>
-get_ap_map_from_blacs_dist_scheduler(const matrix_m<T> &m_loc,
-                                     const IndexScheduler &sched,
-                                     const AtomicBasis &atbasis_r,
-                                     const AtomicBasis &atbasis_c,
-                                     const ArrayDesc &ad,
-                                     MAJOR major_data = MAJOR::AUTO)
+template <typename T>
+ap_p_map<matrix_m<T>> get_ap_map_from_blacs_dist_scheduler(
+    const matrix_m<T> &m_loc, const IndexScheduler &sched, const AtomicBasis &atbasis_r,
+    const AtomicBasis &atbasis_c, const ArrayDesc &ad, MAJOR major_data = MAJOR::AUTO)
 {
     assert(sched.initialized());
     assert(ad.initialized());
@@ -1267,6 +1264,4 @@ get_ap_map_from_blacs_dist_scheduler(const matrix_m<T> &m_loc,
     return data;
 }
 
-
-
-}
+}  // namespace librpa_int

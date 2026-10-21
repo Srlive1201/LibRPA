@@ -142,8 +142,8 @@ void set_lri_coeff_impl(LibrpaHandler* h, LibrpaParallelRouting routing, int I, 
 
 } // namespace
 
-void librpa_get_meanfield_dimensions(const LibrpaHandler* h, int band_path, int* nspins,
-                                     int* nkpts, int* nstates, int* naos, int* nspinor)
+void librpa_get_meanfield_dimensions(const LibrpaHandler* h, int band_path, int* nspins, int* nkpts,
+                                     int* nstates, int* naos, int* nspinor)
 {
     const auto dataset = librpa_int::api::get_dataset_instance(h);
     const auto& mf = band_path ? dataset->mf_band : dataset->mf;
@@ -177,22 +177,21 @@ void librpa_get_meanfield_k(const LibrpaHandler* h, int band_path, int spin, int
     }
 }
 
-void librpa_get_kgrid(const LibrpaHandler* h, int band_path, int nkpts,
-                       double* fractional_k, double* weights)
+void librpa_get_kgrid(const LibrpaHandler* h, int band_path, int nkpts, double* fractional_k,
+                      double* weights)
 {
     const auto dataset = librpa_int::api::get_dataset_instance(h);
     const auto& points = band_path ? dataset->kfrac_band_list : dataset->pbc.kfrac_list;
-    if (nkpts <= 0 || points.size() != static_cast<std::size_t>(nkpts) ||
-        !fractional_k || !weights)
+    if (nkpts <= 0 || points.size() != static_cast<std::size_t>(nkpts) || !fractional_k || !weights)
         throw LIBRPA_INVALID_ARGUMENT("invalid k-grid query");
     for (int k = 0; k < nkpts; ++k)
     {
         const auto& point = points[k];
-        fractional_k[3*k] = point.x;
-        fractional_k[3*k+1] = point.y;
-        fractional_k[3*k+2] = point.z;
-        weights[k] = band_path || dataset->pbc.weight_k.empty()
-                         ? 1.0 / nkpts : dataset->pbc.weight_k.at(k);
+        fractional_k[3 * k] = point.x;
+        fractional_k[3 * k + 1] = point.y;
+        fractional_k[3 * k + 2] = point.z;
+        weights[k] =
+            band_path || dataset->pbc.weight_k.empty() ? 1.0 / nkpts : dataset->pbc.weight_k.at(k);
     }
 }
 
@@ -202,8 +201,8 @@ int librpa_get_g0w0_output_kgrid(const LibrpaHandler* h, int use_symmetry, int c
     const auto dataset = librpa_int::api::get_dataset_instance(h);
     const auto& members = dataset->symmetry_context.full_kpoint_members;
     const auto& points = dataset->pbc.kfrac_list;
-    const bool expand = use_symmetry && dataset->symmetry_context.available &&
-                        members.size() > points.size();
+    const bool expand =
+        use_symmetry && dataset->symmetry_context.available && members.size() > points.size();
     const int count = static_cast<int>(expand ? members.size() : points.size());
     if (capacity == 0) return count;
     if (capacity < count || !fractional_k || !source_kpoints)
@@ -211,9 +210,9 @@ int librpa_get_g0w0_output_kgrid(const LibrpaHandler* h, int use_symmetry, int c
     for (int k = 0; k < count; ++k)
     {
         const auto& point = expand ? members[k].k_bz : points[k];
-        fractional_k[3*k] = point.x;
-        fractional_k[3*k+1] = point.y;
-        fractional_k[3*k+2] = point.z;
+        fractional_k[3 * k] = point.x;
+        fractional_k[3 * k + 1] = point.y;
+        fractional_k[3 * k + 2] = point.z;
         source_kpoints[k] = expand ? members[k].ik_ibz : k;
     }
     return count;

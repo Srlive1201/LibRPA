@@ -8,6 +8,7 @@
 #include <iomanip>
 #include <limits>
 #include <sstream>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -19,8 +20,8 @@
 #include "../../src/utils/constants.h"
 #include "../../src/utils/profiler.h"
 #include "../driver.h"
-#include "../reader/localized_operator_io.h"
 #include "../read_data.h"
+#include "../reader/localized_operator_io.h"
 #include "../reader_2d_coulomb_head.h"
 #include "../task.h"
 #include "task_helper.h"
@@ -213,17 +214,11 @@ static void write_binary_doubles(std::ofstream &ofs, const std::vector<double> &
 }
 
 static void write_spectral_function_binary(
-    const std::string &output_dir,
-    const std::string &filename,
-    const std::vector<double> &omegas_ha,
-    const librpa::G0W0SpectralFunctionResult &sf,
-    const librpa_int::MeanField &mf,
-    const std::vector<double> &vxc,
-    const std::vector<double> &vexx,
-    const std::vector<int> &iks,
-    const int n_spins,
-    const int i_state_low,
-    const int i_state_high)
+    const std::string &output_dir, const std::string &filename,
+    const std::vector<double> &omegas_ha, const librpa::G0W0SpectralFunctionResult &sf,
+    const librpa::MeanfieldData &mf, const std::vector<double> &vxc,
+    const std::vector<double> &vexx, const std::vector<int> &iks, const int n_spins,
+    const int i_state_low, const int i_state_high)
 {
     librpa_int::create_directories(output_dir.c_str(), 0);
     const auto path = librpa_int::join_path(output_dir, filename);
@@ -241,7 +236,7 @@ static void write_spectral_function_binary(
     write_binary_value(ofs, static_cast<std::int32_t>(n_kpoints_local));
     write_binary_value(ofs, static_cast<std::int32_t>(i_state_low));
     write_binary_value(ofs, static_cast<std::int32_t>(i_state_high));
-    const double efermi_ev = mf.get_efermi() * librpa_int::HA2EV;
+    const double efermi_ev = mf.fermi_ha * librpa_int::HA2EV;
     write_binary_value(ofs, efermi_ev);
     write_binary_value(ofs, static_cast<std::int32_t>(n_omegas));
 
@@ -256,7 +251,8 @@ static void write_spectral_function_binary(
                 const int i_state = i_state_low + i;
                 const int state_idx = (isp * n_kpoints_local + ik_local) * n_states + i;
                 values[state_idx] =
-                    mf.get_eigenvals()[isp](ik, i_state) * librpa_int::HA2EV;
+                    mf.energies_ha.at(meanfield_output_index(mf, isp, ik, i_state)) *
+                    librpa_int::HA2EV;
             }
         }
     }
@@ -519,18 +515,11 @@ static void write_mpi_spectral_section(MPI_File file,
 }
 
 static void write_spectral_function_binary_kdistributed(
-    const std::string &output_dir,
-    const std::string &filename,
-    const std::vector<double> &omegas_ha,
-    const librpa::G0W0SpectralFunctionResult &sf,
-    const librpa_int::MeanField &mf,
-    const std::vector<double> &vxc,
-    const std::vector<double> &vexx,
-    const std::vector<int> &iks,
-    const int n_spins,
-    const int n_kpoints_global,
-    const int i_state_low,
-    const int i_state_high)
+    const std::string &output_dir, const std::string &filename,
+    const std::vector<double> &omegas_ha, const librpa::G0W0SpectralFunctionResult &sf,
+    const librpa::MeanfieldData &mf, const std::vector<double> &vxc,
+    const std::vector<double> &vexx, const std::vector<int> &iks, const int n_spins,
+    const int n_kpoints_global, const int i_state_low, const int i_state_high)
 {
     const int n_states = i_state_high - i_state_low;
     if (omegas_ha.size() > static_cast<std::size_t>(std::numeric_limits<int>::max()))
@@ -611,7 +600,7 @@ static void write_spectral_function_binary_kdistributed(
                              static_cast<std::int32_t>(i_state_low), "i_state_low");
         mpi_file_write_value(file, header_offset,
                              static_cast<std::int32_t>(i_state_high), "i_state_high");
-        const double efermi_ev = mf.get_efermi() * librpa_int::HA2EV;
+        const double efermi_ev = mf.fermi_ha * librpa_int::HA2EV;
         mpi_file_write_value(file, header_offset, efermi_ev, "efermi");
         mpi_file_write_value(file, header_offset,
                              static_cast<std::int32_t>(n_omegas), "n_omegas");
@@ -628,7 +617,8 @@ static void write_spectral_function_binary_kdistributed(
         [&](const std::size_t, const int isp, const int ik, const int ist)
         {
             const int i_state = i_state_low + ist;
-            return mf.get_eigenvals()[isp](ik, i_state) * librpa_int::HA2EV;
+            return mf.energies_ha.at(meanfield_output_index(mf, isp, ik, i_state)) *
+                   librpa_int::HA2EV;
         },
         "eigenvalue section");
     write_mpi_state_section(
@@ -748,7 +738,7 @@ void driver::task_g0w0()
     h.build_g0w0_sigma(opts);
 
     const auto scf_output = h.get_meanfield_data();
-    const auto mf = meanfield_for_output(scf_output);
+    const auto &mf = scf_output;
     const std::string band_kpath_file =
         driver_params.input_dir + driver_params.fn_band_kpath_info;
     const bool has_band_kpath = librpa_int::path_exists(band_kpath_file.c_str());
@@ -802,16 +792,14 @@ void driver::task_g0w0()
             if (driver::get_bool(opts.use_kpara_scf_eigvec))
             {
                 write_spectral_function_binary_kdistributed(
-                    opts.output_dir, "spectral_function_kgrid.dat", omegas_sf, sf,
-                    mf, vxc_sf, vexx_sf, iks_eigvec_this, n_spins,
-                    n_kpoints, sf_state_low, sf_state_high);
+                    opts.output_dir, "spectral_function_kgrid.dat", omegas_sf, sf, mf, vxc_sf,
+                    vexx_sf, iks_eigvec_this, n_spins, n_kpoints, sf_state_low, sf_state_high);
             }
             else if (myid_global == 0)
             {
-                write_spectral_function_binary(
-                    opts.output_dir, "spectral_function_kgrid.dat", omegas_sf, sf,
-                    mf, vxc_sf, vexx_sf, iks_eigvec_this, n_spins,
-                    sf_state_low, sf_state_high);
+                write_spectral_function_binary(opts.output_dir, "spectral_function_kgrid.dat",
+                                               omegas_sf, sf, mf, vxc_sf, vexx_sf, iks_eigvec_this,
+                                               n_spins, sf_state_low, sf_state_high);
             }
         }
 
@@ -857,11 +845,12 @@ void driver::task_g0w0()
     const std::string banner(124, '-');
     std::vector<Vector3_Order<double>> kfrac_list;
     for (int k = 0; k < scf_output.n_kpoints; ++k)
-        kfrac_list.emplace_back(scf_output.fractional_k[3*k], scf_output.fractional_k[3*k+1],
-                                scf_output.fractional_k[3*k+2]);
+        kfrac_list.emplace_back(scf_output.fractional_k[3 * k], scf_output.fractional_k[3 * k + 1],
+                                scf_output.fractional_k[3 * k + 2]);
     const auto &kpoint_weights = scf_output.k_weights;
     const auto output_grid = h.get_g0w0_output_kgrid(driver::get_bool(opts.use_symmetry_gw));
-    const bool output_full_kgrid_from_symmetry = output_grid.source_kpoints.size() > kfrac_list.size();
+    const bool output_full_kgrid_from_symmetry =
+        output_grid.source_kpoints.size() > kfrac_list.size();
     const int n_kpoints_output = as_int(output_grid.source_kpoints.size());
     if (flag_read_vxc == 0)
     {
@@ -892,13 +881,14 @@ void driver::task_g0w0()
                 for (int i_kpoint = 0; i_kpoint < n_kpoints_output; i_kpoint++)
                 {
                     const int i_kpoint_ibz = output_full_kgrid_from_symmetry
-                        ? output_grid.source_kpoints.at(as_size(i_kpoint))
-                        : i_kpoint;
-                    const auto &k = output_full_kgrid_from_symmetry
-                        ? Vector3_Order<double>(output_grid.fractional_k[3*i_kpoint],
-                                                output_grid.fractional_k[3*i_kpoint+1],
-                                                output_grid.fractional_k[3*i_kpoint+2])
-                        : kfrac_list[i_kpoint_ibz];
+                                                 ? output_grid.source_kpoints.at(as_size(i_kpoint))
+                                                 : i_kpoint;
+                    const auto &k =
+                        output_full_kgrid_from_symmetry
+                            ? Vector3_Order<double>(output_grid.fractional_k[3 * i_kpoint],
+                                                    output_grid.fractional_k[3 * i_kpoint + 1],
+                                                    output_grid.fractional_k[3 * i_kpoint + 2])
+                            : kfrac_list[i_kpoint_ibz];
                     lib_printf(result_output_level,
                                "spin %2d, k-point %4d: (%.5f, %.5f, %.5f) \n",
                                i_spin+1, i_kpoint+1, k.x, k.y, k.z);
@@ -912,10 +902,16 @@ void driver::task_g0w0()
                     for (int i = 0; i < n_states_calc; i++)
                     {
                         const int i_state = i + i_state_low;
-                        const auto occ_state = occupation_number_from_kpoint_weight(
-                            mf.get_weight()[i_spin](i_kpoint_ibz, i_state),
-                            kpoint_weights.at(as_size(i_kpoint_ibz)));
-                        const auto &eks_state = mf.get_eigenvals()[i_spin](i_kpoint_ibz, i_state) * HA2EV;
+                        const double output_weight = kpoint_weights.at(as_size(i_kpoint_ibz));
+                        if (!std::isfinite(output_weight) || output_weight <= 0.0)
+                            throw std::invalid_argument(
+                                "k-point weight must be finite and positive");
+                        const auto occ_state = mf.weighted_occupations.at(meanfield_output_index(
+                                                   mf, i_spin, i_kpoint_ibz, i_state)) /
+                                               output_weight;
+                        const auto &eks_state = mf.energies_ha.at(meanfield_output_index(
+                                                    mf, i_spin, i_kpoint_ibz, i_state)) *
+                                                HA2EV;
                         const auto &vxc_state = vxc[i_spin](i_kpoint_ibz, i_state) * HA2EV;
                         const auto &exx_state = vexx_all[start_k+i] * HA2EV;
                         const auto &resigc = sigc_all[start_k+i].real() * HA2EV;
@@ -936,21 +932,26 @@ void driver::task_g0w0()
                 kfrac_energy_qp.reserve(output_grid.source_kpoints.size());
                 output_to_input_kpoint = output_grid.source_kpoints;
                 for (int k = 0; k < n_kpoints_output; ++k)
-                    kfrac_energy_qp.emplace_back(output_grid.fractional_k[3*k],
-                                                  output_grid.fractional_k[3*k+1],
-                                                  output_grid.fractional_k[3*k+2]);
+                    kfrac_energy_qp.emplace_back(output_grid.fractional_k[3 * k],
+                                                 output_grid.fractional_k[3 * k + 1],
+                                                 output_grid.fractional_k[3 * k + 2]);
             }
             lib_printf(result_output_level, "Band analysis on the k-grid\n");
-            print_band_analysis(
-                mf, output_full_kgrid_from_symmetry ? kfrac_energy_qp : kfrac_list,
-                output_to_input_kpoint, vxc, vexx_all, sigc_all, i_state_low, n_states_calc);
+            const GwOutputView output(
+                mf, false, output_full_kgrid_from_symmetry ? kfrac_energy_qp : kfrac_list,
+                output_to_input_kpoint, vxc, vexx_all, sigc_all, i_state_low, i_state_high,
+                kpoint_weights);
+            h.print_gw_band_analysis(output.input);
 
             if (driver_params.output_energy_qp)
             {
-                write_energy_qp(
-                    mf, output_full_kgrid_from_symmetry ? kfrac_energy_qp : kfrac_list,
-                    output_to_input_kpoint, vxc, vexx_all, sigc_all, n_kpoints, i_state_low,
-                    n_states_calc, kpoint_weights);
+                std::ofstream energy_qp("energy_qp");
+                if (!energy_qp)
+                    throw LIBRPA_RUNTIME_ERROR(
+                        "Cannot open quasiparticle energy output: energy_qp");
+                energy_qp << h.format_gw_energy_table(output.input);
+                if (!energy_qp)
+                    throw LIBRPA_RUNTIME_ERROR("Cannot write quasiparticle energy output");
             }
         }
     }
@@ -997,7 +998,7 @@ void driver::task_g0w0()
     mpi_comm_global_h.barrier();
     profiler.start("g0w0_load_band_mf", "Read eigen solutions at band kpoints");
     read_band_meanfield_data(driver_params.input_dir);
-    const auto mf_band = meanfield_for_output(h.get_meanfield_data(true));
+    const auto mf_band = h.get_meanfield_data(true);
     const int nkpts_band_this = iks_band_eigvec_this.size();
     ofs_myid << "Number of band k-points on this process: " << nkpts_band_this << endl;
     ofs_myid << "iks_band_eigvec_this: " << iks_band_eigvec_this << endl;
@@ -1059,16 +1060,14 @@ void driver::task_g0w0()
             if (driver::get_bool(opts.use_kpara_scf_eigvec))
             {
                 write_spectral_function_binary_kdistributed(
-                    opts.output_dir, "spectral_function_band.dat", omegas_sf, sf,
-                    mf_band, vxc_sf, vexx_sf, iks_this, n_spins,
-                    n_kpoints_band, sf_state_low, sf_state_high);
+                    opts.output_dir, "spectral_function_band.dat", omegas_sf, sf, mf_band, vxc_sf,
+                    vexx_sf, iks_this, n_spins, n_kpoints_band, sf_state_low, sf_state_high);
             }
             else if (myid_global == 0)
             {
-                write_spectral_function_binary(
-                    opts.output_dir, "spectral_function_band.dat", omegas_sf, sf,
-                    mf_band, vxc_sf, vexx_sf, iks_this, n_spins,
-                    sf_state_low, sf_state_high);
+                write_spectral_function_binary(opts.output_dir, "spectral_function_band.dat",
+                                               omegas_sf, sf, mf_band, vxc_sf, vexx_sf, iks_this,
+                                               n_spins, sf_state_low, sf_state_high);
             }
         }
 
@@ -1160,34 +1159,39 @@ void driver::task_g0w0()
                     const int start_k = (i_spin * n_kpts + i_kpoint) * n_states_band_calc;
 
                     ofs_ks << setw(5) << i_kpoint + 1 << setw(15) << setprecision(7) << k.x << setw(15) << setprecision(7) << k.y << std::setw(15) << std::setprecision(7) << k.z;
-                    ofs_gw << setw(5) << i_kpoint + 1 << setw(15) << setprecision(7) << k.x << setw(15) << setprecision(7) << k.y << std::setw(15) << std::setprecision(7) << k.z;
                     ofs_hf << setw(5) << i_kpoint + 1 << setw(15) << setprecision(7) << k.x << setw(15) << setprecision(7) << k.y << std::setw(15) << std::setprecision(7) << k.z;
                     for (int i = 0; i < n_states_band_calc; i++)
                     {
                         const int i_state = i + i_state_low_band;
-                        const auto occ_state = mf_band.get_weight()[i_spin](i_kpoint, i_state) * mf_band.get_n_kpoints();
-                        const auto eks_state = mf_band.get_eigenvals()[i_spin](i_kpoint, i_state) * HA2EV;
+                        const auto occ_state =
+                            mf_band.weighted_occupations.at(
+                                meanfield_output_index(mf_band, i_spin, i_kpoint, i_state)) *
+                            mf_band.n_kpoints;
+                        const auto eks_state = mf_band.energies_ha.at(meanfield_output_index(
+                                                   mf_band, i_spin, i_kpoint, i_state)) *
+                                               HA2EV;
                         const auto vxc_state = vxc_band_all[i_spin](i_kpoint, i_state) * HA2EV;
                         const auto exx_state = vexx_band_all[start_k+i] * HA2EV;
-                        const auto resigc = sigc_band_all[start_k+i].real() * HA2EV;
                         // const auto &imsigc = sigc_band_all[start_k+i].imag() * HA2EV;
-                        const auto eqp = eks_state - vxc_state + exx_state + resigc;
                         ofs_ks << setw(15) << std::setprecision(5) << occ_state << setw(15) << setprecision(5) << eks_state;
-                        ofs_gw << setw(15) << std::setprecision(5) << occ_state << setw(15) << setprecision(5) << eqp;
                         ofs_hf << setw(15) << std::setprecision(5) << occ_state << setw(15) << setprecision(5) << eks_state - vxc_state + exx_state;
                     }
-                    ofs_gw << "\n";
                     ofs_hf << "\n";
                     ofs_ks << "\n";
                 }
+                const GwOutputView output(mf_band, true, kfrac_band, {}, vxc_band_all,
+                                          vexx_band_all, sigc_band_all, i_state_low_band,
+                                          i_state_high_band);
+                ofs_gw << h.format_gw_band_spin_table(output.input, i_spin);
             }
         }
     }
     if (myid_global == 0)
     {
         lib_printf(LIBRPA_VERBOSE_CRITICAL, "Band analysis along the k-path\n");
-        print_band_analysis(mf_band, kfrac_band, {}, vxc_band_all, vexx_band_all,
-                            sigc_band_all, i_state_low_band, n_states_band_calc);
+        const GwOutputView output(mf_band, true, kfrac_band, {}, vxc_band_all, vexx_band_all,
+                                  sigc_band_all, i_state_low_band, i_state_high_band);
+        h.print_gw_band_analysis(output.input);
     }
     profiler.stop("output_g0w0_band");
 
@@ -1199,15 +1203,15 @@ void driver::task_g0w0()
     //     const auto n_kpt = mf.get_n_kpoints();
     //     map<int, map<int, map<int, double>>> e_qp_all;
     //     map<int, map<int, map<int, cplxdb>>> sigc_all;
-    //     const auto efermi = mf.get_efermi();
+    //     const auto efermi = mf.fermi_ha;
     //
     //     // Spectral function IO handler
     //     std::ofstream wf_sf;
     //     std::vector<cplxdb> omegas;
     //     // FIXME: should check negative n_omegas_sf beforehand for safety and clarity
-    //     int n_omegas_sf = (driver_params.sf_omega_end - driver_params.sf_omega_start) / driver_params.sf_omega_step + 1;
-    //     const double gf_shift_ha = opts.sf_gf_omega_shift;
-    //     const double sigc_shift_ha = opts.sf_sigc_omega_shift;
+    //     int n_omegas_sf = (driver_params.sf_omega_end - driver_params.sf_omega_start) /
+    //     driver_params.sf_omega_step + 1; const double gf_shift_ha = opts.sf_gf_omega_shift; const
+    //     double sigc_shift_ha = opts.sf_sigc_omega_shift;
     //
     //     if (driver_params.output_gw_spec_func && n_omegas_sf > 0)
     //     {
@@ -1261,7 +1265,8 @@ void driver::task_g0w0()
     //                 {
     //                     sigc_state.push_back(sigc_sk.at(freq)(i_state, i_state));
     //                 }
-    //                 librpa_int::AnalyContPade pade(Params::n_params_anacon, imagfreqs, sigc_state);
+    //                 librpa_int::AnalyContPade pade(Params::n_params_anacon, imagfreqs,
+    //                 sigc_state);
     //
     //                 if (driver_params.output_gw_spec_func && n_omegas_sf > 0)
     //                 {
@@ -1291,8 +1296,10 @@ void driver::task_g0w0()
     //                 {
     //                     printf("Warning! QPE solver failed for spin %d, kpoint %d, state %d\n",
     //                             i_spin+1, i_kpoint+1, i_state+1);
-    //                     e_qp_all[i_spin][i_kpoint][i_state] = std::numeric_limits<double>::quiet_NaN();
-    //                     sigc_all[i_spin][i_kpoint][i_state] = std::numeric_limits<cplxdb>::quiet_NaN();
+    //                     e_qp_all[i_spin][i_kpoint][i_state] =
+    //                     std::numeric_limits<double>::quiet_NaN();
+    //                     sigc_all[i_spin][i_kpoint][i_state] =
+    //                     std::numeric_limits<cplxdb>::quiet_NaN();
     //                 }
     //             }
     //         }
@@ -1331,21 +1338,28 @@ void driver::task_g0w0()
     //         for (int i_kpoint = 0; i_kpoint < mf.get_n_kpoints(); i_kpoint++)
     //         {
     //             const auto &k = kfrac_band[i_kpoint];
-    //             ofs_ks << std::setw(5) << i_kpoint + 1 << std::setw(15) << std::setprecision(7) << k.x << std::setw(15) << std::setprecision(7) << k.y << std::setw(15) << std::setprecision(7) << k.z;
-    //             ofs_gw << std::setw(5) << i_kpoint + 1 << std::setw(15) << std::setprecision(7) << k.x << std::setw(15) << std::setprecision(7) << k.y << std::setw(15) << std::setprecision(7) << k.z;
-    //             ofs_hf << std::setw(5) << i_kpoint + 1 << std::setw(15) << std::setprecision(7) << k.x << std::setw(15) << std::setprecision(7) << k.y << std::setw(15) << std::setprecision(7) << k.z;
-    //             for (int i_state = 0; i_state < meanfield.get_n_bands(); i_state++)
+    //             ofs_ks << std::setw(5) << i_kpoint + 1 << std::setw(15) << std::setprecision(7)
+    //             << k.x << std::setw(15) << std::setprecision(7) << k.y << std::setw(15) <<
+    //             std::setprecision(7) << k.z; ofs_gw << std::setw(5) << i_kpoint + 1 <<
+    //             std::setw(15) << std::setprecision(7) << k.x << std::setw(15) <<
+    //             std::setprecision(7) << k.y << std::setw(15) << std::setprecision(7) << k.z;
+    //             ofs_hf << std::setw(5) << i_kpoint + 1 << std::setw(15) << std::setprecision(7)
+    //             << k.x << std::setw(15) << std::setprecision(7) << k.y << std::setw(15) <<
+    //             std::setprecision(7) << k.z; for (int i_state = 0; i_state <
+    //             meanfield.get_n_bands(); i_state++)
     //             {
     //                 const auto &occ_state = mf.get_weight()[i_spin](i_kpoint, i_state);
-    //                 const auto &eks_state = mf.get_eigenvals()[i_spin](i_kpoint, i_state) * HA2EV;
-    //                 const auto &exx_state = exx.Eexx[i_spin][i_kpoint][i_state] * HA2EV;
+    //                 const auto &eks_state = mf.get_eigenvals()[i_spin](i_kpoint, i_state) *
+    //                 HA2EV; const auto &exx_state = exx.Eexx[i_spin][i_kpoint][i_state] * HA2EV;
     //                 const auto &vxc_state = vxc_band[i_spin](i_kpoint, i_state) * HA2EV;
     //                 // const auto &resigc = sigc_all[i_spin][i_kpoint][i_state].real() * HA2EV;
     //                 // const auto &imsigc = sigc_all[i_spin][i_kpoint][i_state].imag() * HA2EV;
     //                 const auto &eqp = e_qp_all[i_spin][i_kpoint][i_state] * HA2EV;
-    //                 ofs_ks << std::setw(15) << std::setprecision(5) << occ_state << std::setw(15) << std::setprecision(5) << eks_state;
-    //                 ofs_gw << std::setw(15) << std::setprecision(5) << occ_state << std::setw(15) << std::setprecision(5) << eqp;
-    //                 ofs_hf << std::setw(15) << std::setprecision(5) << occ_state << std::setw(15) << std::setprecision(5) << eks_state - vxc_state + exx_state;
+    //                 ofs_ks << std::setw(15) << std::setprecision(5) << occ_state << std::setw(15)
+    //                 << std::setprecision(5) << eks_state; ofs_gw << std::setw(15) <<
+    //                 std::setprecision(5) << occ_state << std::setw(15) << std::setprecision(5) <<
+    //                 eqp; ofs_hf << std::setw(15) << std::setprecision(5) << occ_state <<
+    //                 std::setw(15) << std::setprecision(5) << eks_state - vxc_state + exx_state;
     //             }
     //             ofs_gw << "\n";
     //             ofs_hf << "\n";
@@ -1354,7 +1368,6 @@ void driver::task_g0w0()
     //     }
     // }
     // profiler.stop("g0w0_solve_qpe");
-
 
     profiler.stop("g0w0");
 }
