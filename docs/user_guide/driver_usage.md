@@ -123,7 +123,7 @@ key from input files.
 With band inputs, the existing band-cut options remain active and each
 iteration writes `KS_band_spin_S_N.dat`, `EXX_band_spin_S_N.dat`, and
 `QSGW_band_spin_S_N.dat` for plotting. Native per-update QP diagnostics are
-written when `qsgw_output_qp = true`; see [QSGW](qsgw.md#native-gw-quasiparticle-output). The driver writes energy data rather
+written when `qsgw_output_qp = true`; see [QSGW](qsgw.md#quasiparticle-roots-during-iteration). The driver writes energy data rather
 than PNG figures. Continue a checkpoint with the same band-channel presence
 and original band inputs. See [QSGW](qsgw.md) for the full Vxc input, option-6
 head/wing feedback, output and restart requirements.

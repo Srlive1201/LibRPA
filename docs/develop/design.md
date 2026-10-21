@@ -21,7 +21,7 @@ operations belong to `src/core/qsgw`; checkpoint serialization and its input
 comparison belong to `driver/qsgw/checkpoint.cpp` and `.h`. For filenames,
 runtime switches and continuation examples, see the
 [QSGW user guide](../user_guide/qsgw.md#checkpoint-continuation). The
-[staticization notes](qsgw_staticization.md) describe the self-energy map.
+source-only note `theory/qsgw/staticization.md` describes the self-energy map.
 
 ### Reference state and saved payload
 
