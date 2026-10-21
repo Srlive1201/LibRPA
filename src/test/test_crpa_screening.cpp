@@ -1,6 +1,9 @@
+#include <omp.h>
+
 #include <algorithm>
 #include <cmath>
 #include <complex>
+#include <iomanip>
 #include <iostream>
 #include <memory>
 #include <stdexcept>
@@ -24,7 +27,8 @@ void close(Complex actual, Complex expected, double tolerance)
     if (!std::isfinite(actual.real()) || !std::isfinite(actual.imag()) ||
         std::abs(actual - expected) > tolerance)
     {
-        std::cerr << "screening actual=" << actual << " expected=" << expected << '\n';
+        std::cerr << std::setprecision(17) << "screening actual=" << actual
+                  << " expected=" << expected << ", tolerance=" << tolerance << '\n';
         throw std::runtime_error("cRPA screening numerical mismatch");
     }
 }
@@ -178,6 +182,11 @@ void test_native_screening_pipeline(bool negative_mode, bool spin_polarized = fa
             throw std::runtime_error("native cRPA pipeline returned incomplete tensors");
         const double density_vertex[] = {0.55, 2 * (0.15 * std::pow(std::cos(down_angle), 2) +
                                                     0.4 * std::pow(std::sin(down_angle), 2))};
+        // Match the reductions for the tight shared-response comparison.
+        // Keep result above threaded for the independent analytic U/W checks.
+        const int requested_threads = omp_get_max_threads();
+        omp_set_num_threads(1);
+        const auto repeated = compute_crpa_onsite(context, selection, frames);
         const auto full = build_crpa_total_response(context);
         auto resident_full = full;
         chi.swap_chi0_q(resident_full);
@@ -190,6 +199,7 @@ void test_native_screening_pipeline(bool negative_mode, bool spin_polarized = fa
                       << " retained Coulomb pipeline" << std::endl;
         const auto shared =
             evaluate_crpa_onsite_from_response(context, selection, frames, chi.get_chi0_q());
+        omp_set_num_threads(requested_threads);
         if (ds.comm_h.is_root()) std::cout << "Shared-P0 U-only end\n";
         if (shared.tensors.size() != result.tensors.size() ||
             shared.frequencies != result.frequencies || chi.get_band_selection() != incoming)
@@ -231,8 +241,9 @@ void test_native_screening_pipeline(bool negative_mode, bool spin_polarized = fa
                 close(tensor.w[iw](0, 0), screened, 2e-5);
                 close(tensor.u[iw](0, 0), all_bands ? bare : screened, 2e-5);
                 close(borrowed.u[iw](0, 0), all_bands ? bare : screened, 2e-5);
-                close(borrowed.u[iw](0, 0), tensor.u[iw](0, 0), 1e-12);
-                maximum = std::max(maximum, std::abs(borrowed.u[iw](0, 0) - tensor.u[iw](0, 0)));
+                const auto paired = repeated.tensors.at(i).u.at(iw)(0, 0);
+                close(borrowed.u[iw](0, 0), paired, 1e-12);
+                maximum = std::max(maximum, std::abs(borrowed.u[iw](0, 0) - paired));
             }
         }
         for (int spin = 0; spin < nspins; ++spin)
