@@ -399,16 +399,26 @@ matrix from distributed ranks. The C++ Handler wrappers preserve the same
 collective and ownership rules. These optical convenience functions currently
 have C and C++ interfaces; no high-level Fortran wrapper is advertised.
 
-## QSGW numerical task
+## QSGW task API
 
-`librpa_qsgw.h` exposes a QSGW task on an existing handler. Initialize
-`LibrpaQsgwControls`, create and prepare the task, then supply numeric Vxc matrices
-and optional native H/S/r operators with `librpa_set_qsgw_input`. Root-owned input
-is decoded collectively; paths and file parsing remain in the caller. Install an
-output sink before `librpa_run_qsgw_task`, then delete the task. C++ callers can
-use the owning `Handler::create_qsgw_task` wrapper. The task retains its input
-dataset until deletion.
+The experimental C API in `librpa_qsgw.h` creates an opaque task with
+`librpa_create_qsgw_task`; `Handler::create_qsgw_task` provides C++ ownership.
+Initialize its controls with `librpa_init_qsgw_controls`, prepare its numerical
+state, supply Vxc/native-operator buffers with `librpa_set_qsgw_input`, then run
+`librpa_run_qsgw_task`. The same loaded grid/path and EXX/GW options apply.
+Vxc and native operators are supplied on root and copied by the setter. All
+collective task calls involve the handler communicator. Keep the handler alive
+until task deletion. After preparation preserve the SCF eigenframe/grid; finish
+band/Coulomb/velocity input before running. Do not modify or reenter the handler
+during a run or its output callbacks.
 
-`librpa_get_meanfield_dimensions` is a noncollective query for preparing the
-SCF-grid or band-path matrix buffers. QSGW controls, checkpoint behavior, units
-and current numerical limits are described in [QSGW](qsgw.md).
+An optional rank-zero output sink receives borrowed text and localized operator
+views valid only during the callback; it may present or save those results.
+Numerical iteration, projection, state updates and checkpoint restore/save occur
+inside the library. Supply ordinary producer data numerically, using the existing
+input APIs. The task reads only its own checkpoints. This task interface does
+not yet have a Fortran wrapper.
+
+`librpa_get_meanfield_dimensions` is a noncollective, read-only query for
+preparing SCF-grid or band-path matrix buffers. QSGW controls, checkpoint
+behavior, units and current numerical limits are described in [QSGW](qsgw.md).
