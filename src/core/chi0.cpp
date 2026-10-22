@@ -2347,7 +2347,7 @@ void Chi0::build_chi0_q_space_time_LibRI_routing(const Cs_LRI &Cs,
                         global::profiler.stop("chi0_gf_neg_entry_wait");
                         build_gf_Rt_libri_kblacs_para(
                             this->mf, kblacs_ctxt, desc_wfc, desc_gf, sched_gf, this->atbasis_wfc,
-                            isp, is2, is1, this->pbc, this->symmetry_context,
+                            isp, is1, is2, this->pbc, this->symmetry_context,
                             this->use_symmetry_context, this->pbc.kfrac_list, Rs_gf, -tau,
                             gf_ne_libri, this->band_mask);
                     }
@@ -2359,13 +2359,19 @@ void Chi0::build_chi0_q_space_time_LibRI_routing(const Cs_LRI &Cs,
                                                  this->use_symmetry_context,
                                                  this->pbc.kfrac_list, this->IJRs_gf_local, tau,
                                                  gf_po_libri);
-                        build_gf_Rt_libri_serial(this->mf, this->band_mask,
-                                                 this->atbasis_wfc, isp, is2, is1,
-                                                 this->pbc, this->symmetry_context,
-                                                 this->use_symmetry_context,
-                                                 this->pbc.kfrac_list, this->IJRs_gf_local, -tau,
-                                                 gf_ne_libri);
+                        build_gf_Rt_libri_serial(this->mf, this->band_mask, this->atbasis_wfc, isp,
+                                                 is1, is2, this->pbc, this->symmetry_context,
+                                                 this->use_symmetry_context, this->pbc.kfrac_list,
+                                                 this->IJRs_gf_local, -tau, gf_ne_libri);
                     }
+                    // LibRI contracts both Gs in the same AO/translation ordering.
+                    // The bubble needs G_{s2,s1}(J,I,-R,-tau), which is the
+                    // adjoint of G_{s1,s2}(I,J,R,-tau). Supply its elementwise
+                    // conjugate here; swapping spin indices alone is insufficient.
+                    if constexpr (std::is_same<Tdata, std::complex<double>>::value)
+                        for (auto &[I, blocks] : gf_ne_libri)
+                            for (auto &[JR, tensor] : blocks)
+                                for (auto &value : *tensor.data) value = std::conj(value);
                     global::profiler.start("chi0_set_Gs");
                     rpa.set_Gs_pos(gf_po_libri, libri_threshold_G);
                     rpa.set_Gs_neg(gf_ne_libri, libri_threshold_G);

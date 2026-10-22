@@ -2454,6 +2454,8 @@ std::pair<ArrayDesc, matrix_m<complex<double>>> diele_func::transform_Cs2mnk(
         {
             for (int is2 = 0; is2 != n_soc; is2++)
             {
+                // The RI charge operator is diagonal in spinor space.
+                if (is1 != is2) continue;
                 const auto *wfc_isp1_k = meanfield_df.find_wfc(ispin, is1, ik);
                 const auto *wfc_isp2_k = meanfield_df.find_wfc(ispin, is2, ik);
                 const int bad_wfc_local =
@@ -2637,6 +2639,8 @@ std::pair<ArrayDesc, matrix_m<complex<double>>> diele_func::rotate_Cs_nao2mnk_kb
         {
             for (int is2 = 0; is2 != n_soc; is2++)
             {
+                // The RI charge operator is diagonal in spinor space.
+                if (is1 != is2) continue;
                 const ComplexMatrix *wfc_isp1_k = get_wfc(ispin, is1);
                 const ComplexMatrix *wfc_isp2_k = get_wfc(ispin, is2);
 
