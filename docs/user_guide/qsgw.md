@@ -54,7 +54,7 @@ With a band path, each GW build additionally writes
 `output_dir/GW_band_spin_S_N.dat`, where `S` is the one-based spin channel
 and `N` is the update number. The native table contains point index,
 fractional coordinates, and occupation/energy pairs for the selected band
-window; energies are in eV. It uses the same writer as ordinary G0W0:
+window; energies are in eV. Its QSGW-owned formatter preserves the ordinary G0W0 layout:
 no header, point index width 5, fractional coordinates with seven decimal
 places, and occupation/energy pairs with five decimal places (width 15).
 Thus `GW_band_spin_1_1.dat` contains the initial
@@ -68,7 +68,7 @@ range and solver statuses remain available in the CSV rather than a custom
 band-file header.
 
 Every enabled QP update also writes `output_dir/energy_qp_N` on the SCF
-grid through the ordinary G0W0 `energy_qp` writer. Its header, k-point and
+grid in the ordinary G0W0 `energy_qp` layout. Its header, k-point and
 spin blocks, band numbering and occupation convention match G0W0, with
 columns `state`, `occ_num`, `e_gs(Ha)`, and `e_qp(Ha)`. The energies use
 scientific notation with ten decimal places. Here `e_gs` is the entering

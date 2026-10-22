@@ -37,10 +37,10 @@ extern "C"
     void Cdgsum2d(int ictxt, const char *scope, const char *top, int m, int n, double *a, int lda,
                   int rdest, int cdest);
 
-    ////////////////////
-    /* PBLAS bindings */
-    ////////////////////
-    // tools
+////////////////////
+/* PBLAS bindings */
+////////////////////
+// tools
     void descinit_(int *desc,
                    const int *m, const int *n, const int *mb, const int *nb,
                    const int *irsrc, const int *icsrc, const int *ictxt, const int *lld,

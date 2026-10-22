@@ -1,8 +1,13 @@
 #include "read_data.h"
+#include <librpa_enums.h>
+
+#include "reader/reader_structure.h"
+#include "reader/reader_basis.h"
+#include "reader/read_data.h"
+#include "reader_2d_coulomb_head.h"
+#include "../src/api/dataset_helper.h"
 
 #include <fcntl.h>
-#include <librpa_enums.h>
-#include <librpa_optical.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -19,10 +24,8 @@
 #include <iomanip>
 #include <ios>
 #include <iostream>
-#include <librpa.hpp>
 #include <limits>
 #include <map>
-#include <memory>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -30,23 +33,21 @@
 #include <utility>
 #include <vector>
 
+#include <librpa.hpp>
+
+#include "driver.h"
+#include "../src/mpi/global_mpi.h"
+#include "../src/math/matrix.h"
+#include "../src/utils/constants.h"
 #include "../src/api/instance_manager.h"
 #include "../src/core/meanfield_mpi.h"
 #include "../src/io/aux_basis_summary.h"
 #include "../src/io/fs.h"
 #include "../src/io/global_io.h"
 #include "../src/io/stl_io_helper.h"
-#include "../src/math/matrix.h"
-#include "../src/mpi/global_mpi.h"
-#include "../src/utils/constants.h"
 #include "../src/utils/error.h"
 #include "../src/utils/profiler.h"
 #include "../src/utils/utils_mem.h"
-#include "driver.h"
-#include "reader/read_data.h"
-#include "reader/reader_basis.h"
-#include "reader/reader_structure.h"
-#include "reader_2d_coulomb_head.h"
 
 using std::ifstream;
 using std::string;
@@ -464,95 +465,84 @@ static std::vector<Vector3_Order<double>> read_headwing_k_path_info(const string
     return kfrac_list;
 }
 
-namespace
-{
-
-struct OpticalMeanFieldStorage
-{
-    LibrpaOpticalMeanFieldInput view{};
-    std::vector<double> eigenvalues, occupations;
-    std::vector<std::vector<double>> coefficients;
-    std::vector<LibrpaOpticalWavefunctionBlock> blocks;
-
-    explicit OpticalMeanFieldStorage(const MeanField &mf, const bool include_spectrum = true)
-    {
-        view.n_spins = mf.get_n_spins();
-        view.n_kpoints = mf.get_n_kpoints();
-        view.n_states = mf.get_n_states();
-        view.n_aos = mf.get_n_aos();
-        view.n_spinor = mf.get_n_spinor();
-        view.fermi_energy_ha = mf.get_efermi();
-        if (include_spectrum)
-            for (int spin = 0; spin != view.n_spins; ++spin)
-                for (int ik = 0; ik != view.n_kpoints; ++ik)
-                    for (int band = 0; band != view.n_states; ++band)
-                    {
-                        eigenvalues.push_back(mf.get_eigenvals()[spin](ik, band));
-                        occupations.push_back(mf.get_weight()[spin](ik, band));
-                    }
-        for (const auto &[spin, components] : mf.get_eigenvectors())
-            for (const auto &[component, kpoints] : components)
-                for (const auto &[ik, matrix] : kpoints)
-                {
-                    auto &values = coefficients.emplace_back();
-                    values.reserve(2 * matrix.size);
-                    for (int index = 0; index != matrix.size; ++index)
-                    {
-                        values.push_back(matrix.c[index].real());
-                        values.push_back(matrix.c[index].imag());
-                    }
-                    blocks.push_back({spin, component, ik, matrix.nr, matrix.nc, values.data()});
-                }
-        view.eigenvalues_ha = include_spectrum ? eigenvalues.data() : nullptr;
-        view.occupation_weights = include_spectrum ? occupations.data() : nullptr;
-        view.n_wavefunction_blocks = static_cast<int>(blocks.size());
-        view.wavefunction_blocks = blocks.data();
-    }
-};
-
-std::vector<double> pack_optical_velocity(const velocity_matrix_t &velocity)
-{
-    std::vector<double> values;
-    for (const auto &spin : velocity)
-        for (const auto &kpoint : spin)
-            for (const auto &axis : kpoint)
-                for (int row = 0; row != axis.nr; ++row)
-                    for (int column = 0; column != axis.nc; ++column)
-                    {
-                        values.push_back(axis(row, column).real());
-                        values.push_back(axis(row, column).imag());
-                    }
-    return values;
-}
-
-}  // namespace
-
 void read_headwing_input(const string &dir_path, bool need_wing,
                          const std::vector<double> *frequencies_override)
 {
     using namespace librpa_int;
     using namespace librpa_int::global;
 
-    // Existing readers use the handler's descriptors only to select input rows.
-    // All parsed numerical data below are owned by this input operation.
-    const auto pds = librpa_int::api::get_dataset_instance(driver::h.get_c_handler());
-    const auto &active_kfrac_list = pds->pbc.kfrac_list;
-    const int scf_nk = pds->mf.get_n_kpoints();
-    if (static_cast<int>(active_kfrac_list.size()) != scf_nk)
+    auto pds = librpa_int::api::get_dataset_instance(driver::h.get_c_handler());
+    auto &mf = pds->mf;
+    auto &velocity_matrix = pds->velocity_matrix;
+    velocity_matrix.clear();
+    const int scf_nk = mf.get_n_kpoints();
+    if (static_cast<int>(pds->pbc.kfrac_list.size()) != scf_nk)
+    {
         throw std::runtime_error("SCF k-point list is inconsistent with meanfield");
+    }
+    struct MfRestore
+    {
+        MeanField &mf;
+        MeanField original;
+        bool active = false;
+
+        explicit MfRestore(MeanField &mf_in) : mf(mf_in) {}
+        void capture()
+        {
+            original = mf;
+            active = true;
+        }
+        ~MfRestore()
+        {
+            if (active)
+            {
+                mf = std::move(original);
+            }
+        }
+    } restore_mf(mf);
+
     const bool use_spinor_wfc = driver::driver_params.use_spinor_wfc;
-    const bool wants_headwing_symmetry = driver::get_bool(driver::opts.use_symmetry_rpa) ||
-                                         driver::get_bool(driver::opts.use_symmetry_gw);
+    const bool wants_headwing_symmetry =
+        driver::get_bool(driver::opts.use_symmetry_rpa) ||
+        driver::get_bool(driver::opts.use_symmetry_gw);
     const bool use_kpara_eigvec = driver::get_bool(driver::opts.use_kpara_scf_eigvec);
     const string pyatb_dir = path_as_directory(dir_path) + "pyatb_librpa_df/";
     const string pyatb_velocity = pyatb_dir + "velocity_matrix";
     auto pyatb_ctx = driver_reader_context();
     pyatb_ctx.params.prefix_eigvecs_scf = "KS_eigenvector";
-    MeanField mf, direct_full_bz_wfc;
-    velocity_matrix_t velocity_matrix, direct_full_bz_velocity;
+
+    const auto &active_kfrac_list = pds->pbc.kfrac_list;
     std::vector<Vector3_Order<double>> kfrac_pyatb;
-    int n_basis = 0, n_states = 0, n_spin = 0;
-    bool coefficients_are_kblacs_2d = false;
+    velocity_matrix_t direct_full_bz_velocity;
+    MeanField direct_full_bz_wfc;
+    std::vector<std::vector<int>> direct_full_bz_velocity_member_source_ik;
+    int n_basis = 0;
+    int n_states = 0;
+    int n_spin = 0;
+
+    std::vector<double> freqs;
+    if (frequencies_override != nullptr)
+    {
+        freqs = *frequencies_override;
+    }
+    else
+    {
+        std::vector<double> freq_weights;
+        driver::h.get_imaginary_frequency_grids(driver::opts, pds->omegas_imagfreq,
+                                                 freq_weights);
+        freqs = pds->tfg.get_freq_nodes();
+    }
+    if (freqs.empty())
+    {
+        throw std::runtime_error("Head/wing frequency grid is empty");
+    }
+    if (frequencies_override != nullptr)
+    {
+        librpa_int::global::lib_printf_root(
+            "Head/wing uses the external Sternheimer response frequency grid: "
+            "nfreq=%zu first=%.12e last=%.12e Ha\n",
+            freqs.size(), freqs.front(), freqs.back());
+    }
 
     if (path_exists(pyatb_velocity.c_str()))
     {
@@ -563,8 +553,8 @@ void read_headwing_input(const string &dir_path, bool need_wing,
         {
             std::cout << "Reading head/wing input from " << pyatb_dir << std::endl;
         }
-        kfrac_pyatb =
-            read_headwing_k_path_info(pyatb_dir + "k_path_info", n_basis, n_states, n_spin);
+        kfrac_pyatb = read_headwing_k_path_info(pyatb_dir + "k_path_info", n_basis, n_states,
+                                                 n_spin);
         if (use_spinor_wfc)
         {
             if (n_basis % 2 != 0)
@@ -572,7 +562,8 @@ void read_headwing_input(const string &dir_path, bool need_wing,
             n_basis /= 2;
         }
         const auto target_to_source_ik =
-            map_kpoints_by_coordinates(active_kfrac_list, kfrac_pyatb, kSymmetryKpointMatchTol);
+            map_kpoints_by_coordinates(active_kfrac_list, kfrac_pyatb,
+                                       kSymmetryKpointMatchTol);
         std::vector<int> source_to_target_ik(kfrac_pyatb.size(), -1);
         for (int ik_target = 0; ik_target != static_cast<int>(target_to_source_ik.size());
              ++ik_target)
@@ -580,12 +571,14 @@ void read_headwing_input(const string &dir_path, bool need_wing,
             source_to_target_ik.at(target_to_source_ik[ik_target]) = ik_target;
         }
 
-        read_scf_occ_eigenvalues(pyatb_dir + "band_out", mf, use_spinor_wfc, target_to_source_ik,
-                                 static_cast<int>(kfrac_pyatb.size()));
+        restore_mf.capture();
+        read_scf_occ_eigenvalues(pyatb_dir + "band_out", mf, use_spinor_wfc,
+                                  target_to_source_ik, static_cast<int>(kfrac_pyatb.size()));
         const bool direct_headwing_kblacs_2d =
             use_kpara_eigvec && driver::opts.parallel_routing == LIBRPA_ROUTING_LIBRI;
         std::vector<int> iks_headwing_eigvec_this;
-        if (use_kpara_eigvec && !direct_headwing_kblacs_2d && pds->scfk_blacs_ctxt.is_initialized())
+        if (use_kpara_eigvec && !direct_headwing_kblacs_2d &&
+            pds->scfk_blacs_ctxt.is_initialized())
         {
             if (pds->scfk_blacs_ctxt.n_kpoints() != mf.get_n_kpoints())
                 throw std::runtime_error(
@@ -597,22 +590,26 @@ void read_headwing_input(const string &dir_path, bool need_wing,
             }
         }
         const std::vector<int> *source_iks_headwing_eigvec_selected =
-            use_kpara_eigvec && pds->scfk_blacs_ctxt.is_initialized() ? &iks_headwing_eigvec_this
-                                                                      : nullptr;
+            use_kpara_eigvec && pds->scfk_blacs_ctxt.is_initialized()
+                ? &iks_headwing_eigvec_this
+                : nullptr;
         const int ret_eigenvec =
             direct_headwing_kblacs_2d
                 ? librpa::reader::read_eigenvector_kblacs_2d(
-                      pyatb_ctx, pyatb_dir, mf, use_spinor_wfc, pds->scfk_blacs_ctxt,
-                      pds->desc_wfc_kb, &source_to_target_ik, LegacyTextWfcOrder::SpinBasisBand)
+                      pyatb_ctx, pyatb_dir, mf, use_spinor_wfc,
+                      pds->scfk_blacs_ctxt, pds->desc_wfc_kb,
+                      &source_to_target_ik, LegacyTextWfcOrder::SpinBasisBand)
                 : librpa::reader::read_eigenvector(
-                      pyatb_ctx, pyatb_dir, mf, use_spinor_wfc, source_to_target_ik,
-                      source_iks_headwing_eigvec_selected, LegacyTextWfcOrder::SpinBasisBand);
+                      pyatb_ctx, pyatb_dir, mf, use_spinor_wfc,
+                      source_to_target_ik, source_iks_headwing_eigvec_selected,
+                      LegacyTextWfcOrder::SpinBasisBand);
         if (ret_eigenvec != 0)
         {
             throw std::runtime_error("Failed to read pyatb head/wing eigenvectors from " +
                                      pyatb_dir);
         }
-        if (direct_headwing_kblacs_2d) coefficients_are_kblacs_2d = true;
+        if (direct_headwing_kblacs_2d)
+            pds->mark_eigvecs_kpara_2d_ready();
         read_velocity(pyatb_velocity, mf, velocity_matrix, source_to_target_ik,
                       static_cast<int>(kfrac_pyatb.size()));
         if (n_basis != mf.get_n_aos() || n_states != mf.get_n_states() ||
@@ -626,95 +623,171 @@ void read_headwing_input(const string &dir_path, bool need_wing,
     {
         // ABACUS/FHI-aims package outputs use the SCF k grid for head/wing.
         // Only the velocity/momentum matrix is head/wing-specific here.
-        const auto &scf_mf = pds->mf;
-        n_basis = scf_mf.get_n_aos();
-        n_states = scf_mf.get_n_states();
-        n_spin = scf_mf.get_n_spins();
+        n_basis = mf.get_n_aos();
+        n_states = mf.get_n_states();
+        n_spin = mf.get_n_spins();
 
         const string input_path = path_as_directory(dir_path);
         if (driver::driver_params.input_preset == "abacus" ||
             driver::driver_params.input_preset == "abacus-legacy")
         {
-            read_velocity_abacus(scf_mf, input_path, driver::driver_params.prefix_velocity,
-                                 velocity_matrix);
+            read_velocity_abacus(mf, input_path, driver::driver_params.prefix_velocity,
+                                velocity_matrix);
         }
         else if (driver::driver_params.input_preset == "fhi-aims")
         {
-            read_velocity_aims(scf_mf, input_path, driver::driver_params.prefix_velocity,
+            read_velocity_aims(mf, input_path, driver::driver_params.prefix_velocity,
                                velocity_matrix);
         }
         else
         {
-            throw std::runtime_error("Unsupported head/wing input preset: " +
-                                     driver::driver_params.input_preset);
+            throw std::runtime_error(
+                "Unsupported head/wing input preset: " + driver::driver_params.input_preset);
         }
     }
 
-    // Read an optional complete source table; the numerical API decides the
-    // magnetic k-star mapping and owns the paired cache.
-    if (path_exists(pyatb_velocity.c_str()) &&
-        (wants_headwing_symmetry ||
-         (pds->symmetry_context.available && !pds->symmetry_context.kstars.empty())))
+    if (wants_headwing_symmetry &&
+        (!pds->symmetry_context.available || pds->symmetry_context.kstars.empty() ||
+         pds->symmetry_context.rsh_rotations.empty()))
     {
-        direct_full_bz_wfc = MeanField(mf.get_n_spins(), static_cast<int>(kfrac_pyatb.size()),
-                                       mf.get_n_states(), mf.get_n_aos(), mf.get_n_spinor());
-        std::vector<int> identity(kfrac_pyatb.size());
-        for (int ik = 0; ik != static_cast<int>(identity.size()); ++ik) identity[ik] = ik;
-        const int status = librpa::reader::read_eigenvector(
-            pyatb_ctx, pyatb_dir, direct_full_bz_wfc, use_spinor_wfc, identity, nullptr,
-            LegacyTextWfcOrder::SpinBasisBand);
-        if (status != 0)
-            throw std::runtime_error("Failed to read full-BZ optical eigenvectors from " +
-                                     pyatb_dir);
-        read_velocity(pyatb_velocity, direct_full_bz_wfc, direct_full_bz_velocity);
+        librpa_int::initialize_symmetry_context(*pds, true);
     }
-
-    std::unique_ptr<OpticalMeanFieldStorage> optical_frame;
-    if (mf.initialized()) optical_frame = std::make_unique<OpticalMeanFieldStorage>(mf);
-    const auto velocity = pack_optical_velocity(velocity_matrix);
-    LibrpaSuppliedVelocityInput input{};
-    input.n_spins = n_spin;
-    input.n_kpoints = scf_nk;
-    input.n_states = n_states;
-    input.velocity_ri = velocity.data();
-    input.meanfield = optical_frame ? &optical_frame->view : nullptr;
-    input.coefficients_are_kblacs_2d = coefficients_are_kblacs_2d;
-    if (frequencies_override)
+    if (path_exists(pyatb_velocity.c_str()) && pds->symmetry_context.available &&
+        !pds->symmetry_context.kstars.empty())
     {
-        if (frequencies_override->empty())
-            throw std::runtime_error("Head/wing frequency grid is empty");
-        input.n_frequencies = static_cast<int>(frequencies_override->size());
-        input.frequencies_ha = frequencies_override->data();
-        lib_printf_root(
-            "Head/wing uses the external response frequency grid: nfreq=%zu "
-            "first=%.12e last=%.12e Ha\n",
-            frequencies_override->size(), frequencies_override->front(),
-            frequencies_override->back());
-    }
-    if (driver::get_bool(driver::opts.use_2d_dielectric))
-    {
-        const auto metadata =
-            read_strict_2d_coulomb_head_metadata(join_path(dir_path, "librpa_2d_coulomb_head.txt"));
-        input.inplane_area_bohr2 = metadata.inplane_area_bohr2;
-        input.auxiliary_monopole_norm_squared = metadata.auxiliary_monopole_norm_squared;
-    }
-    std::vector<double> full_velocity, full_kfrac;
-    std::unique_ptr<OpticalMeanFieldStorage> full_frame;
-    if (direct_full_bz_wfc.initialized())
-    {
-        full_frame = std::make_unique<OpticalMeanFieldStorage>(direct_full_bz_wfc, false);
-        full_velocity = pack_optical_velocity(direct_full_bz_velocity);
-        for (const auto &kpoint : kfrac_pyatb)
+        direct_full_bz_velocity_member_source_ik =
+            map_symmetry_kstar_members_to_source_kpoints(
+                pds->symmetry_context, active_kfrac_list, kfrac_pyatb,
+                kSymmetryKpointMatchTol);
+        MeanField full_bz_headwing_mf(
+            mf.get_n_spins(), static_cast<int>(kfrac_pyatb.size()), mf.get_n_states(),
+            mf.get_n_aos(), mf.get_n_spinor());
+        std::vector<int> full_bz_identity_map(kfrac_pyatb.size());
+        for (int ik = 0; ik != static_cast<int>(full_bz_identity_map.size()); ++ik)
+            full_bz_identity_map[ik] = ik;
+        const int ret_full_wfc = librpa::reader::read_eigenvector(
+            pyatb_ctx, pyatb_dir, full_bz_headwing_mf, use_spinor_wfc,
+            full_bz_identity_map, nullptr, LegacyTextWfcOrder::SpinBasisBand);
+        if (ret_full_wfc != 0)
         {
-            full_kfrac.push_back(kpoint.x);
-            full_kfrac.push_back(kpoint.y);
-            full_kfrac.push_back(kpoint.z);
+            throw std::runtime_error(
+                "Failed to read full-BZ PyATB head/wing eigenvectors from " + pyatb_dir);
         }
-        input.full_source_meanfield = &full_frame->view;
-        input.full_source_velocity_ri = full_velocity.data();
-        input.full_source_kfrac = full_kfrac.data();
+        read_velocity(pyatb_velocity, full_bz_headwing_mf, direct_full_bz_velocity);
+        direct_full_bz_wfc = std::move(full_bz_headwing_mf);
+        librpa_int::global::lib_printf_root(
+            "Head/wing symmetry: use direct full-BZ PyATB WFC and velocity for %zu k-star members.\n",
+            pds->symmetry_context.count_kstar_members());
     }
-    driver::h.prepare_supplied_velocity(driver::opts, input, need_wing);
+    const auto &headwing_basis_aux =
+        driver::get_bool(driver::opts.use_shrink_abfs) ? pds->basis_aux_shrink : pds->basis_aux;
+    if (!headwing_basis_aux.initialized())
+        throw std::runtime_error("Head/wing auxiliary basis is not initialized");
+
+    const bool use_headwing_symmetry = wants_headwing_symmetry;
+    if (use_headwing_symmetry)
+    {
+        reject_spinor_symmetry_speedup(*pds, "analytic head/wing");
+        initialize_symmetry_context(*pds, true);
+        require_symmetry_shell_layouts(*pds, "analytic head/wing");
+    }
+    pds->p_headwing = std::make_unique<diele_func>(
+        mf, velocity_matrix, pds->pbc.kfrac_list, pds->basis_wfc, headwing_basis_aux, freqs,
+        n_basis, n_states, n_spin, headwing_basis_aux.nb_total, pds->pbc, pds->comm_h,
+        pds->blacs_h, use_kpara_eigvec, &pds->scfk_blacs_ctxt,
+        &(pds->eigvecs_kpara_2d_ready() ? pds->desc_wfc_kb : pds->desc_wfc_kb_full));
+    const bool use_strict_2d = driver::get_bool(driver::opts.use_2d_dielectric);
+    if (use_strict_2d)
+    {
+        const auto metadata = read_strict_2d_coulomb_head_metadata(
+            librpa_int::join_path(dir_path, "librpa_2d_coulomb_head.txt"));
+        const auto normalization = librpa_int::strict_2d_coulomb_head_normalization(
+            pds->pbc, metadata.auxiliary_monopole_norm_squared);
+        const double area_scale = std::max(normalization.inplane_area_bohr2,
+                                           metadata.inplane_area_bohr2);
+        if (std::abs(normalization.inplane_area_bohr2 - metadata.inplane_area_bohr2) >
+            1.0e-10 * area_scale)
+            throw std::runtime_error(
+                "Strict 2D Coulomb metadata area is inconsistent with the input lattice");
+
+        librpa_int::global::lib_printf_root(
+            "Strict 2D Coulomb normalization computed from reader-v1 metadata: "
+            "area=%20.12e Bohr^2, multipole_norm_squared=%20.12e, "
+            "A_lambda=%20.12e, PW_to_auxiliary_scale=%20.12e\n",
+            normalization.inplane_area_bohr2,
+            normalization.auxiliary_monopole_norm_squared,
+            normalization.auxiliary_head_coefficient,
+            normalization.pw_to_auxiliary_scale);
+        pds->p_headwing->configure_strict_2d_coulomb_head(
+            true, metadata.auxiliary_monopole_norm_squared);
+    }
+    else
+    {
+        pds->p_headwing->configure_strict_2d_coulomb_head(false);
+    }
+    pds->p_headwing->use_soc = mf.get_n_spinor() > 1;
+    pds->p_headwing->debug = librpa_int::global::should_output(LIBRPA_VERBOSE_DEBUG);
+    // Symmetry-aware head/wing uses the same active k-list as the main LibRPA
+    // path: full BZ without symmetry, IBZ with input k-star metadata.
+    if (use_headwing_symmetry && pds->symmetry_context.available &&
+        !pds->symmetry_context.kstars.empty())
+    {
+        pds->p_headwing->set_symmetry_context(pds->symmetry_context);
+        pds->p_headwing->use_symmetry = true;
+        for (atom_t atom = 0; atom != static_cast<atom_t>(pds->basis_wfc.n_atoms); ++atom)
+            pds->p_headwing->atom_nw[atom] = pds->basis_wfc.get_atom_nb(atom);
+        pds->p_headwing->coord_frac = pds->symmetry_context.input_coord_frac;
+    }
+    if (!direct_full_bz_velocity.empty())
+    {
+        pds->p_headwing->set_direct_full_bz_headwing_inputs(
+            std::move(direct_full_bz_velocity),
+            std::move(direct_full_bz_wfc),
+            std::move(direct_full_bz_velocity_member_source_ik));
+    }
+    if (restore_mf.active)
+    {
+        const int n_spinor = mf.get_n_spinor();
+        auto &hw_mf = pds->p_headwing->get_meanfield_df();
+        for (int ispin = 0; ispin != n_spin; ++ispin)
+        {
+            for (int ispinor = 0; ispinor != n_spinor; ++ispinor)
+            {
+                std::vector<int> missing_k;
+                for (int ik = 0; ik != mf.get_n_kpoints(); ++ik)
+                {
+                    const auto *C = hw_mf.find_wfc(ispin, ispinor, ik);
+                    const int have_local = (C != nullptr && C->nr > 0) ? 1 : 0;
+                    int have_any = 0;
+                    MPI_Allreduce(&have_local, &have_any, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
+                    if (have_any == 0) missing_k.push_back(ik);
+                }
+                if (!missing_k.empty())
+                {
+                    std::ostringstream oss;
+                    oss << "PyATB head/wing input is missing eigenvectors for "
+                        << missing_k.size() << " k-points in spin " << ispin << " spinor "
+                        << ispinor << ". Check k_path_info and KS_eigenvector_* coverage.";
+                    throw std::runtime_error(oss.str());
+                }
+            }
+        }
+        if (mpi_comm_global_h.is_root())
+            std::cout << "Using PyATB head/wing input on the active LibRPA k-list with "
+                      << mf.get_n_kpoints() << " k-points" << std::endl;
+    }
+    pds->p_headwing->init(driver::opts.sqrt_coulomb_threshold, pds->vq);
+    pds->p_headwing->cal_head();
+    pds->epsmacs_imagfreq = pds->p_headwing->get_head_vec();
+    pds->omegas_imagfreq = freqs;
+    pds->p_headwing->test_head();
+    if (need_wing)
+    {
+        const auto &headwing_cs =
+            driver::get_bool(driver::opts.use_shrink_abfs) ? pds->cs_data_shrink : pds->cs_data;
+        pds->p_headwing->cal_wing(headwing_cs, driver::opts.sqrt_coulomb_threshold, pds->vq);
+        pds->p_headwing->test_wing();
+    }
 }
 
 void read_dielec_func(const string &file_path, std::vector<double> &omegas,
@@ -1578,13 +1651,6 @@ void read_velocity(const string &file_path, const MeanField &mf, velocity_matrix
 {
     auto ctx = driver_reader_context();
     return librpa::reader::read_velocity(ctx, file_path, mf, velocity);
-}
-
-void read_velocity(const string &file_path, int n_spins, int n_kpoints, int n_states,
-                   velocity_matrix_t &velocity)
-{
-    auto ctx = driver_reader_context();
-    return librpa::reader::read_velocity(ctx, file_path, n_spins, n_kpoints, n_states, velocity);
 }
 
 void read_velocity(const string &file_path, const MeanField &mf, velocity_matrix_t &velocity,

@@ -7,13 +7,13 @@
 #include "../io/fs.h"
 #include "../io/global_io.h"
 // #include "../io/stl_io_helper.h"
-#include <string>
-
-#include "../core/dataset_helper.h"
 #include "../math/complexmatrix.h"
 #include "../utils/profiler.h"
 #include "../utils/utils_mem.h"
+#include "dataset_helper.h"
 #include "instance_manager.h"
+
+#include <string>
 
 void librpa_get_imaginary_frequency_grids(LibrpaHandler *h, const LibrpaOptions *p_opts,
                                           double *omegas, double *weights)

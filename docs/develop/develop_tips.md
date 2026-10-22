@@ -64,15 +64,15 @@ overhead while keeping essential results and the timing report visible.
 |-- docs              : Sphinx/MyST user and developer documentation
 |-- driver            : Command-line driver, input parsing, and data readers
 |   |-- reader        : Shared input readers and the experimental LibBSE file interface
-|   `-- tasks         : Command-line task entry points
+|   `-- tasks         : Driver task implementations
 |-- examples
 |   `-- build         : Example build scripts for common platforms
 |-- include           : Public C and C++ API headers
 |-- regression_tests  : Regression suite definitions, test cases, and references
 |-- src               : Source code for the library target
-|   |-- api           : Public API implementation, handler registry and data conversion
+|   |-- api           : Public API implementation and handler/dataset glue
 |   |-- core          : Physics objects and algorithms: basis, RPA, EXX, GW, symmetry
-|   |   `-- qsgw      : Fixed-basis QSGW task, checkpoints and numerical operations
+|   |   `-- qsgw      : Fixed-basis QSGW numerical operations
 |   |-- elpa          : ELPA eigensolver integration
 |   |-- gpu           : Optional CUDA/HIP device and linear-algebra adapters
 |   |-- interface     : Thin interfaces to external codes, e.g. BLAS, LAPACK, and ScaLAPACK 
@@ -86,7 +86,7 @@ overhead while keeping essential results and the timing report visible.
 ```
 
 The public API path is `include/librpa*.h(pp)`, implemented under `src/api`.
-The driver path is `driver/main.cpp` with task entry points under `driver/tasks`
+The driver path is `driver/main.cpp` with tasks implemented under `driver/tasks`
 and input preparation in `driver/read_data.cpp`. Shared input readers live in
 `driver/reader` and receive their handler, options, and parsing state explicitly.
 The `librpa_file_reader` target contains only these readers and links to `rpa_lib`;

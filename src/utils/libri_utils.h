@@ -5,6 +5,7 @@
 #include <array>
 #include <map>
 #include <vector>
+#include "../core/atom.h"
 #include "../math/vector3_order.h"
 #include "../math/complexmatrix.h"
 #ifdef LIBRPA_USE_LIBRI

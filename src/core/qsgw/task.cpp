@@ -12,6 +12,7 @@
 #include "../../io/fs.h"
 #include "../../io/global_io.h"
 #include "../../math/utils_matrix_mpi.h"
+#include "../../math/utils_matrix_m_mpi.h"
 #include "../../mpi/collective_stage.h"
 #include "../../utils/constants.h"
 #include "../../utils/profiler.h"

@@ -1,26 +1,28 @@
 #pragma once
 
-#include <complex>
 #include <vector>
 
-#include "../../src/math/matrix.h"
-#include "../../src/math/vector3_order.h"
+#include "../../src/core/meanfield.h"
 #include "../../src/utils/base_utility.h"
-#include "librpa.hpp"
 
-//! Borrowed public output view with owning storage for layout conversions only.
-struct GwOutputView
-{
-    std::vector<double> fractional_k, vxc;
-    LibrpaGwOutputInput input{};
+void print_band_analysis(const librpa_int::MeanField &mf,
+                         const std::vector<librpa_int::Vector3_Order<double>> &kfrac_output,
+                         const std::vector<int> &output_to_input_kpoint,
+                         const std::vector<librpa_int::matrix> &vxc,
+                         const std::vector<double> &vexx,
+                         const std::vector<librpa_int::cplxdb> &sigc,
+                         int i_state_low,
+                         int n_states_calc);
 
-    GwOutputView(const librpa::MeanfieldData &snapshot, bool band_path,
-                 const std::vector<librpa_int::Vector3_Order<double>> &kfrac,
-                 const std::vector<int> &mapping, const std::vector<librpa_int::matrix> &vxc,
-                 const std::vector<double> &vexx, const std::vector<std::complex<double>> &sigc,
-                 int state_low, int state_high, const std::vector<double> &weights = {});
-};
+double occupation_number_from_kpoint_weight(double weighted_occupation, double kpoint_weight);
 
-//! Flat index in a public owning spectrum/occupation snapshot.
-std::size_t meanfield_output_index(const librpa::MeanfieldData &snapshot, int spin, int k,
-                                   int state);
+void write_energy_qp(const librpa_int::MeanField &mf,
+                     const std::vector<librpa_int::Vector3_Order<double>> &kfrac_output,
+                     const std::vector<int> &output_to_input_kpoint,
+                     const std::vector<librpa_int::matrix> &vxc,
+                     const std::vector<double> &vexx,
+                     const std::vector<librpa_int::cplxdb> &sigc,
+                     int n_kpoints_data,
+                     int i_state_low,
+                     int n_states_calc,
+                     const std::vector<double> &kpoint_weights);
