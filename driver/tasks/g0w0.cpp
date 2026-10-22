@@ -116,7 +116,9 @@ void driver::prepare_crpa_optical_velocity()
         prepare_g0w0_native_velocity(false);
         return;
     }
-    const auto meanfield = h.get_meanfield_data();
+    int n_spins, n_kpoints, n_states, n_aos, n_spinor;
+    librpa_get_meanfield_dimensions(h.get_c_handler(), 0, &n_spins, &n_kpoints, &n_states,
+                                     &n_aos, &n_spinor);
     const auto &name = driver_params.prefix_velocity;
     const auto path = librpa_int::is_absolute_path(name)
                           ? name
@@ -126,7 +128,7 @@ void driver::prepare_crpa_optical_velocity()
         [&]
         {
             std::vector<std::vector<std::vector<librpa_int::ComplexMatrix>>> velocity;
-            read_velocity(path, meanfield.n_spins, meanfield.n_kpoints, meanfield.n_states,
+            read_velocity(path, n_spins, n_kpoints, n_states,
                           velocity);
             std::vector<std::complex<double>> packed;
             for (const auto &spin : velocity)
@@ -135,7 +137,7 @@ void driver::prepare_crpa_optical_velocity()
                         for (int row = 0; row < axis.nr; ++row)
                             for (int column = 0; column < axis.nc; ++column)
                                 packed.push_back(axis(row, column));
-            h.set_velocity_matrix_packed(meanfield.n_spins, meanfield.n_kpoints, meanfield.n_states,
+            h.set_velocity_matrix_packed(n_spins, n_kpoints, n_states,
                                          packed.data());
         });
 }

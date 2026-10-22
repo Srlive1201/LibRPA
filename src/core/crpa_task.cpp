@@ -7,7 +7,6 @@
 #include <memory>
 
 #include "../utils/error.h"
-#include "dataset_helper.h"
 
 namespace librpa_int
 {
@@ -23,7 +22,7 @@ void collective_error(const MpiCommHandler& comm, const std::string& error)
                                    (error.empty() ? "another MPI rank failed validation" : error));
 }
 
-CrpaContext crpa_context(Dataset& ds, const LibrpaOptions& opts)
+CrpaContext crpa_context(CrpaTaskContext& ds, const LibrpaOptions& opts)
 {
     const bool shrink = opts.use_shrink_abfs == LIBRPA_SWITCH_ON;
     // cRPA always screens and projects with full v. The independent GW
@@ -35,18 +34,13 @@ CrpaContext crpa_context(Dataset& ds, const LibrpaOptions& opts)
             shrink,       opts.sqrt_coulomb_threshold};
 }
 
-void initialize_crpa_response(Dataset& ds, const LibrpaOptions& opts)
+void initialize_crpa_response(CrpaTaskContext& ds, const LibrpaOptions& opts)
 {
-    using namespace librpa_int;
-    initialize_ds_global_ddla(ds, opts);
-    initialize_ds_tfgrids(ds, opts);
-    initialize_ds_atpairs_local(ds, LIBRPA_ROUTING_LIBRI);
-    ds.redistribute_coulomb_blacs2ap();
-    initialize_ds_chi0(ds, opts);
+    ds.initialize_response(opts);
 }
 
 CrpaTaskResult own_crpa_task_result(CrpaResult values, CrpaPreparedModel& model,
-                                    const Dataset& dataset)
+                                    const CrpaTaskContext& dataset)
 {
     CrpaTaskResult result;
     std::string error;
@@ -87,7 +81,7 @@ CrpaTaskResult own_crpa_task_result(CrpaResult values, CrpaPreparedModel& model,
 }
 }  // namespace
 
-CrpaPreparedModel prepare_crpa_task_model(Dataset& dataset, const LibrpaOptions& options,
+CrpaPreparedModel prepare_crpa_task_model(CrpaTaskContext& dataset, const LibrpaOptions& options,
                                           const CrpaTaskInput& input, CrpaTaskMode mode)
 {
     if (options.use_symmetry_rpa == LIBRPA_SWITCH_ON ||
@@ -148,12 +142,12 @@ CrpaPreparedModel prepare_crpa_task_model(Dataset& dataset, const LibrpaOptions&
     return model;
 }
 
-CrpaTaskResult snapshot_crpa_task_model(Dataset& dataset, CrpaPreparedModel& model)
+CrpaTaskResult snapshot_crpa_task_model(CrpaTaskContext& dataset, CrpaPreparedModel& model)
 {
     return own_crpa_task_result({}, model, dataset);
 }
 
-CrpaTaskResult evaluate_crpa_task_from_response(Dataset& ds, const LibrpaOptions& opts,
+CrpaTaskResult evaluate_crpa_task_from_response(CrpaTaskContext& ds, const LibrpaOptions& opts,
                                                 CrpaPreparedModel& model,
                                                 const Chi0QMap& full_response)
 {
@@ -163,7 +157,7 @@ CrpaTaskResult evaluate_crpa_task_from_response(Dataset& ds, const LibrpaOptions
     {
         auto optical_options = opts;
         optical_options.use_symmetry_rpa = optical_options.use_symmetry_gw = LIBRPA_SWITCH_OFF;
-        constrained_headwing = make_ds_headwing(ds, optical_options, true, &model.selection);
+        constrained_headwing = ds.make_headwing(optical_options, true, &model.selection);
         constrained_headwing->normalize_gamma_cell_weights = true;
         context.constrained_headwing = constrained_headwing.get();
     }
@@ -174,7 +168,7 @@ CrpaTaskResult evaluate_crpa_task_from_response(Dataset& ds, const LibrpaOptions
         ds);
 }
 
-CrpaTaskResult compute_crpa_task(Dataset& dataset, const LibrpaOptions& options,
+CrpaTaskResult compute_crpa_task(CrpaTaskContext& dataset, const LibrpaOptions& options,
                                  const CrpaTaskInput& input)
 {
     auto* ds = &dataset;
@@ -188,8 +182,8 @@ CrpaTaskResult compute_crpa_task(Dataset& dataset, const LibrpaOptions& options,
         // Both optical sums retain every original full-BZ state and velocity.
         auto optical_options = opts;
         optical_options.use_symmetry_rpa = optical_options.use_symmetry_gw = LIBRPA_SWITCH_OFF;
-        full_headwing = make_ds_headwing(*ds, optical_options, true);
-        constrained_headwing = make_ds_headwing(*ds, optical_options, true, &model.selection);
+        full_headwing = ds->make_headwing(optical_options, true, nullptr);
+        constrained_headwing = ds->make_headwing(optical_options, true, &model.selection);
         full_headwing->normalize_gamma_cell_weights = true;
         constrained_headwing->normalize_gamma_cell_weights = true;
         context.full_headwing = full_headwing.get();
@@ -201,7 +195,7 @@ CrpaTaskResult compute_crpa_task(Dataset& dataset, const LibrpaOptions& options,
                                 *ds);
 }
 
-CrpaTaskResult compute_crpa_u_task(Dataset& dataset, const LibrpaOptions& options,
+CrpaTaskResult compute_crpa_u_task(CrpaTaskContext& dataset, const LibrpaOptions& options,
                                    const CrpaTaskInput& input)
 {
     auto model = prepare_crpa_task_model(dataset, options, input, CrpaTaskMode::ResponseOnly);
@@ -211,7 +205,7 @@ CrpaTaskResult compute_crpa_u_task(Dataset& dataset, const LibrpaOptions& option
     return evaluate_crpa_task_from_response(dataset, options, model, full_response);
 }
 
-CrpaTaskResult prepare_crpa_task(Dataset& dataset, const LibrpaOptions& options,
+CrpaTaskResult prepare_crpa_task(CrpaTaskContext& dataset, const LibrpaOptions& options,
                                  const CrpaTaskInput& input)
 {
     auto model = prepare_crpa_task_model(dataset, options, input, CrpaTaskMode::ResponseOnly);
