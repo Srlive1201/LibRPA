@@ -283,8 +283,6 @@
     </testcase>
 
     <testcase name="BN SOC (abacus input)" directory="g0w0_band_abacus_BN_soc_libri">
-      <labels refhash="a56500a434d0f57e06eb8cfed2dacd3f66833f78"
-      />
       <build require_libri="true"
       />
       <run ntasks_disable="none"
@@ -292,14 +290,14 @@
            ntasks_enable="none"
            nthreads_enable="none"
       />
-      <!-- A relative large thres is used here, since the original ref is not updated. -->
-      <!-- This could be due to an old bug in QPE solver. -->
-      <!-- Nevertheless, the difference is generally below 1 meV. -->
-      <!-- 5 meV happens for high empty states. -->
       <validate name="Quasi-particle energies on k-grid"
                 regex="State\s+occ\s+e_mf\s+v_xc\s+v_exx\s+ReSigc\s+ImSigc\s+e_qp"
                 headers="2"
                 rows="52"
+                comparison="cmp_table.abs_diff(1e-4)"
+      />
+      <validate name="QP band structure"
+                file="librpa/GW_band_spin_*.dat"
                 comparison="cmp_table.abs_diff(1e-4)"
       />
       <!-- <validate name="GW bandgap" -->
@@ -316,8 +314,7 @@
       <!-- /> -->
     </testcase>
 
-    <!-- Retain the historical directory name; this fixture contains AlAs with SOC. -->
-    <testcase name="AlAs headwing shrink SOC (abacus input)" directory="g0w0_band_abacus_BN_headwing_shrink_soc_libri">
+    <testcase name="AlAs headwing shrink SOC (abacus input)" directory="g0w0_band_abacus_AlAs_headwing_shrink_soc_libri">
       <build require_libri="true"
       />
       <run ntasks_disable="none"
