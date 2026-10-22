@@ -15,6 +15,11 @@
 namespace librpa
 {
 
+QsgwTask Handler::create_qsgw_task(const Options& opts, const LibrpaQsgwControls& controls) const
+{
+    return QsgwTask(::librpa_create_qsgw_task(h_, &opts, &controls), ::librpa_delete_qsgw_task);
+}
+
 CrpaContinuedResult continue_crpa(const LibrpaCrpaResult* result,
                                   const std::vector<std::complex<double>>& queries,
                                   int n_parameters, double tolerance_ha)
@@ -36,79 +41,21 @@ OrbitalResult Handler::analyze_orbitals(int nk, int nao, const std::vector<doubl
         ::librpa_delete_orbital_result);
 }
 
-MeanfieldData Handler::get_meanfield_data(bool band_path) const
+CrpaResult Handler::build_g0w0_sigma_crpa(const Options& opts, const LibrpaCrpaInput& input)
 {
-    MeanfieldData result;
-    ::librpa_get_meanfield_dimensions(h_, band_path, &result.n_spins, &result.n_kpoints,
-                                      &result.n_states, &result.n_aos, &result.n_spinor);
-    result.fermi_ha = ::librpa_get_meanfield_fermi(h_, band_path);
-    if (result.n_spins == 0 || result.n_kpoints == 0 || result.n_states == 0) return result;
-    const auto size = static_cast<std::size_t>(result.n_spins) * result.n_kpoints * result.n_states;
-    result.energies_ha.resize(size);
-    result.weighted_occupations.resize(size);
-    for (int spin = 0; spin < result.n_spins; ++spin)
-        for (int k = 0; k < result.n_kpoints; ++k)
-        {
-            const auto offset =
-                (static_cast<std::size_t>(spin) * result.n_kpoints + k) * result.n_states;
-            ::librpa_get_meanfield_k(h_, band_path, spin, k, result.energies_ha.data() + offset,
-                                     result.weighted_occupations.data() + offset);
-        }
-    result.fractional_k.resize(3 * result.n_kpoints);
-    result.k_weights.resize(result.n_kpoints);
-    ::librpa_get_kgrid(h_, band_path, result.n_kpoints, result.fractional_k.data(),
-                       result.k_weights.data());
-    return result;
+    return CrpaResult(::librpa_build_g0w0_sigma_crpa(h_, &opts, &input),
+                      ::librpa_delete_crpa_result);
 }
 
-OutputKGrid Handler::get_g0w0_output_kgrid(bool use_symmetry) const
+CrpaResult Handler::compute_crpa_u_window(const Options& opts, const LibrpaCrpaInput& input) const
 {
-    OutputKGrid result;
-    const int count = ::librpa_get_g0w0_output_kgrid(h_, use_symmetry, 0, nullptr, nullptr);
-    result.fractional_k.resize(3 * count);
-    result.source_kpoints.resize(count);
-    if (count)
-        ::librpa_get_g0w0_output_kgrid(h_, use_symmetry, count, result.fractional_k.data(),
-                                       result.source_kpoints.data());
-    return result;
+    return CrpaResult(::librpa_compute_crpa_u_window(h_, &opts, &input),
+                      ::librpa_delete_crpa_result);
 }
 
-void Handler::print_gw_band_analysis(const LibrpaGwOutputInput& input) const
+CrpaResult Handler::prepare_crpa_model(const Options& opts, const LibrpaCrpaInput& input) const
 {
-    ::librpa_print_gw_band_analysis(h_, &input);
-}
-
-namespace
-{
-int store_gw_text(void* userdata, const char* text, std::size_t length)
-{
-    static_cast<std::string*>(userdata)->assign(text, length);
-    return 0;
-}
-}  // namespace
-
-std::string Handler::format_gw_energy_table(const LibrpaGwOutputInput& input) const
-{
-    std::string output;
-    ::librpa_write_gw_energy_table(h_, &input, store_gw_text, &output);
-    return output;
-}
-
-std::string Handler::format_gw_band_spin_table(const LibrpaGwOutputInput& input, int spin) const
-{
-    std::string output;
-    ::librpa_write_gw_band_spin_table(h_, &input, spin, store_gw_text, &output);
-    return output;
-}
-
-void Handler::prepare_supplied_velocity(const Options& opts,
-                                        const LibrpaSuppliedVelocityInput& input, bool need_wing)
-{
-    ::librpa_prepare_supplied_velocity(h_, &opts, &input, need_wing);
-}
-QsgwTask Handler::create_qsgw_task(const Options& opts, const LibrpaQsgwControls& controls) const
-{
-    return QsgwTask(::librpa_create_qsgw_task(h_, &opts, &controls), ::librpa_delete_qsgw_task);
+    return CrpaResult(::librpa_prepare_crpa_model(h_, &opts, &input), librpa_delete_crpa_result);
 }
 
 /* Global environment functions */
@@ -571,23 +518,6 @@ std::vector<double> Handler::get_exx_pot_band_k(const Options& opts, const int n
 void Handler::build_g0w0_sigma(const Options &opts)
 {
     ::librpa_build_g0w0_sigma(this->h_, &opts);
-}
-
-CrpaResult Handler::build_g0w0_sigma_crpa(const Options& opts, const LibrpaCrpaInput& input)
-{
-    return CrpaResult(::librpa_build_g0w0_sigma_crpa(h_, &opts, &input),
-                      ::librpa_delete_crpa_result);
-}
-
-CrpaResult Handler::compute_crpa_u_window(const Options& opts, const LibrpaCrpaInput& input) const
-{
-    return CrpaResult(::librpa_compute_crpa_u_window(h_, &opts, &input),
-                      ::librpa_delete_crpa_result);
-}
-
-CrpaResult Handler::prepare_crpa_model(const Options& opts, const LibrpaCrpaInput& input) const
-{
-    return CrpaResult(::librpa_prepare_crpa_model(h_, &opts, &input), librpa_delete_crpa_result);
 }
 
 std::vector<std::complex<double>> Handler::get_g0w0_sigc_kgrid(

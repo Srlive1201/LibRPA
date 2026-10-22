@@ -17,6 +17,7 @@
 #include "../math/scalapack_connector.h"
 #include "../math/utils_matrix_m_mpi.h"
 #include "../utils/profiler.h"
+#include "../core/utils_atomic_basis_blacs.h"
 #include <vector>
 
 namespace librpa_int

@@ -14,7 +14,7 @@
 
 #include "../core/chi0.h"
 #include "../core/coulmat.h"
-#include "../core/dataset.h"
+#include "../api/dataset.h"
 #include "../core/dielecmodel.h"
 #include "../core/epsilon.h"
 #include "../core/meanfield_mpi.h"

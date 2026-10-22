@@ -12,8 +12,8 @@
 #include "librpa.hpp"
 
 // Internal data types exposed by this C++ interface
+#include "../src/api/dataset.h"
 #include "../src/core/coulmat.h"
-#include "../src/core/dataset.h"
 #include "../src/math/lapack_connector.h"
 #include "../src/math/scalapack_connector.h"
 

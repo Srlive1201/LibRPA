@@ -11,7 +11,7 @@
 #include <valarray>
 
 #include "../core/chi0.h"
-#include "../core/dataset.h"
+#include "../api/dataset.h"
 #include "../io/global_io.h"
 #include "../mpi/global_mpi.h"
 

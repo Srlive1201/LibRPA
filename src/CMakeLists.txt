@@ -80,20 +80,20 @@ list(APPEND lib_sources
         api/compute_exx.cpp
         api/compute_crpa.cpp
         api/compute_orbital.cpp
-        api/compute_optical.cpp
-        core/optical_task.cpp
-        core/task_helpers.cpp
+        api/compute_helper.cpp
         api/compute_g0w0.cpp
         api/compute_qsgw.cpp
-        core/g0w0_task.cpp
-        core/gw_output.cpp
         core/qsgw/task.cpp
         core/qsgw/checkpoint.cpp
         core/qsgw/iteration_trace.cpp
         core/qsgw/band_output.cpp
+        core/qsgw/band_remap.cpp
+        core/qsgw/qp_diagnostics.cpp
+        api/compute_optical.cpp
+        core/optical_task.cpp
         api/compute_rpa.cpp
-        core/dataset.cpp
-        core/dataset_helper.cpp
+        api/dataset.cpp
+        api/dataset_helper.cpp
         api/global.cpp
         api/handler.cpp
         api/input.cpp
