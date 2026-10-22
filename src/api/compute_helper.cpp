@@ -1,4 +1,4 @@
-#include "task_helpers.h"
+#include "compute_helper.h"
 
 #include <librpa_enums.h>
 
@@ -10,7 +10,7 @@
 #include "../io/stl_io_helper.h"
 #include "../utils/error.h"
 
-namespace librpa_int
+namespace librpa_int::api
 {
 
 // Build a deduplicated list of requested k-points across ranks. This lets
@@ -46,7 +46,7 @@ std::vector<int> collect_requested_iks(const MpiCommHandler &comm_h, const int n
     comm_h.allreduce(&bad_ik_value_local, &bad_ik_value, 1, MPI_MAX);
     if (bad_ik)
         throw LIBRPA_RUNTIME_ERROR("requested k-point index out of range: " +
-                                   std::to_string(bad_ik_value));
+                                  std::to_string(bad_ik_value));
 
     comm_h.allreduce(MPI_IN_PLACE, iks_all.data(), static_cast<int>(iks_all.size()), MPI_MAX);
 
@@ -61,17 +61,16 @@ std::vector<int> collect_requested_iks(const MpiCommHandler &comm_h, const int n
     return {unique_iks.cbegin(), unique_iks.cend()};
 }
 
-AtomPairBvKRemap<atom_t> build_band_bvk_remap(const Atoms &atoms, const PeriodicBoundaryData &pbc,
+AtomPairBvKRemap<atom_t> build_band_bvk_remap(const Atoms &atoms,
+                                              const PeriodicBoundaryData &pbc,
                                               const int remap_convention)
 {
     using global::ofs_myid;
 
     if (remap_convention != 0 && remap_convention != 1)
-        throw LIBRPA_RUNTIME_ERROR("Invalid BvK remap convention: " +
-                                   std::to_string(remap_convention));
+        throw LIBRPA_RUNTIME_ERROR("Invalid BvK remap convention: " + std::to_string(remap_convention));
 
-    const bool is_ready =
-        pbc.is_latt_set() && atoms.is_set() && atoms.is_frac_set() && !pbc.Rlist.empty();
+    const bool is_ready = pbc.is_latt_set() && atoms.is_set() && atoms.is_frac_set() && !pbc.Rlist.empty();
     AtomPairBvKRemap<atom_t> remap;
     if (is_ready)
     {
@@ -87,9 +86,9 @@ AtomPairBvKRemap<atom_t> build_band_bvk_remap(const Atoms &atoms, const Periodic
     ofs_myid << "| period            : " << pbc.period << "\n";
     ofs_myid << "| Rlist size        : " << pbc.Rlist.size() << "\n";
     ofs_myid << "| atom-pair entries : " << remap.size() << "\n";
-    for (const auto &[atom_pair, R_map] : remap.data())
+    for (const auto &[atom_pair, R_map]: remap.data())
     {
-        for (const auto &[R, R_bvks] : R_map)
+        for (const auto &[R, R_bvks]: R_map)
         {
             // Only print 1-to-1 remapping with debug
             if (R_bvks.size() < 2 && !global::should_output(LIBRPA_VERBOSE_DEBUG)) continue;
@@ -100,4 +99,4 @@ AtomPairBvKRemap<atom_t> build_band_bvk_remap(const Atoms &atoms, const Periodic
     return remap;
 }
 
-}  // namespace librpa_int
+}

@@ -43,4 +43,4 @@ void initialize_symmetry_context(Dataset &ds, bool build_shell_rotations);
 void require_symmetry_shell_layouts(const Dataset &ds, const char *calculation);
 void reject_spinor_symmetry_speedup(const Dataset &ds, const char *calculation);
 
-}  // namespace librpa_int
+}

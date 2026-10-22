@@ -13,8 +13,9 @@
 #include <utility>
 #include <vector>
 
+#include "../../src/api/compute_helper.h"
+#include "../../src/api/dataset_helper.h"
 #include "../../src/api/instance_manager.h"
-#include "../../src/core/dataset_helper.h"
 #include "../../src/core/qsgw/convergence.h"
 #include "../../src/core/qsgw/correlation_potential.h"
 #include "../../src/core/qsgw/distributed_matrix.h"
@@ -24,7 +25,6 @@
 #include "../../src/core/qsgw/hamiltonian_mixing.h"
 #include "../../src/core/qsgw/occupation.h"
 #include "../../src/core/qsgw/projection_target.h"
-#include "../../src/core/task_helpers.h"
 #include "../../src/io/fs.h"
 #include "../../src/io/global_io.h"
 #include "../../src/math/utils_matrix_mpi.h"
@@ -563,8 +563,9 @@ void run_qsgw(const bool compute_band)
         {
             dataset->p_exx->reset_kspace();
             dataset->p_g0w0->reset_kspace();
-            const auto bvk_remap = librpa_int::build_band_bvk_remap(dataset->atoms, dataset->pbc,
-                                                                    opts.option_bvk_remap);
+            const auto bvk_remap =
+                librpa_int::api::build_band_bvk_remap(
+                    dataset->atoms, dataset->pbc, opts.option_bvk_remap);
             {
                 ScopedSigmaMatrixRetention retain_sigma_matrices(
                     dataset->p_g0w0->output_sigc_ks_mat_kf);

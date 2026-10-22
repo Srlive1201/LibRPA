@@ -4,23 +4,23 @@
 #include <memory>
 #include <unordered_map>
 
+#include "../core/atom.h"
+#include "../core/atomic_basis.h"
+#include "../core/chi0.h"
+#include "../core/dielecmodel.h"
+#include "../core/exx.h"
+#include "../core/geometry.h"
+#include "../core/gw.h"
+#include "../core/symmetry_context.h"
+#include "../core/meanfield.h"
+#include "../core/pbc.h"
+#include "../core/ri.h"
+#include "../core/timefreq.h"
 #include "../math/matrix_m.h"
 #include "../math/symmetry.h"
 #include "../mpi/base_blacs.h"
 #include "../mpi/base_mpi.h"
 #include "../mpi/kpoint_blacs_parallel_context.h"
-#include "atom.h"
-#include "atomic_basis.h"
-#include "chi0.h"
-#include "dielecmodel.h"
-#include "exx.h"
-#include "geometry.h"
-#include "gw.h"
-#include "meanfield.h"
-#include "pbc.h"
-#include "ri.h"
-#include "symmetry_context.h"
-#include "timefreq.h"
 
 namespace librpa_int
 {
@@ -37,7 +37,6 @@ private:
     bool eigvecs_kpara_redistributed_;
     bool eigvecs_kpara_2d_redistributed_;
     bool band_eigvecs_kpara_2d_redistributed_;
-
 public:
     /* Member variables */
     // Environment control
@@ -173,9 +172,15 @@ public:
         eigvecs_kpara_redistributed_ = true;
         eigvecs_kpara_2d_redistributed_ = true;
     }
-    void mark_band_eigvecs_kpara_2d_ready() { band_eigvecs_kpara_2d_redistributed_ = true; }
+    void mark_band_eigvecs_kpara_2d_ready()
+    {
+        band_eigvecs_kpara_2d_redistributed_ = true;
+    }
     bool eigvecs_kpara_2d_ready() const { return eigvecs_kpara_2d_redistributed_; }
-    bool band_eigvecs_kpara_2d_ready() const { return band_eigvecs_kpara_2d_redistributed_; }
+    bool band_eigvecs_kpara_2d_ready() const
+    {
+        return band_eigvecs_kpara_2d_redistributed_;
+    }
     void reset_band_eigvecs_kpara_state();
 
     void invalidate_compute_objects();
@@ -187,4 +192,4 @@ public:
 
 typedef std::shared_ptr<Dataset> dataset_ptr_t;
 
-}  // namespace librpa_int
+}

@@ -78,15 +78,13 @@ list(APPEND lib_sources
         ${CMAKE_CURRENT_BINARY_DIR}/envs_cmake.cpp
 
         api/compute_exx.cpp
-        core/task_helpers.cpp
+        api/compute_helper.cpp
         api/compute_g0w0.cpp
-        core/g0w0_task.cpp
-        core/gw_output.cpp
         api/compute_optical.cpp
         core/optical_task.cpp
         api/compute_rpa.cpp
-        core/dataset.cpp
-        core/dataset_helper.cpp
+        api/dataset.cpp
+        api/dataset_helper.cpp
         api/global.cpp
         api/handler.cpp
         api/input.cpp

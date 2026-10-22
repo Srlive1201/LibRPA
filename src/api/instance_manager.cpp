@@ -2,8 +2,7 @@
 
 #include <cstddef>
 #include <memory>
-
-#include "../core/dataset.h"
+#include "dataset.h"
 #include "librpa.hpp"
 
 namespace librpa_int
