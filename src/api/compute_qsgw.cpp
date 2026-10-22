@@ -6,6 +6,8 @@
 
 #include "../mpi/collective_stage.h"
 #include "instance_manager.h"
+#include "dataset_helper.h"
+#include "gw_response_helper.h"
 #include "librpa_qsgw.h"
 #include "qsgw_helper.h"
 
@@ -143,7 +145,37 @@ LibrpaQsgwTask* librpa_create_qsgw_task(LibrpaHandler* handler, const LibrpaOpti
         });
     auto result = std::make_unique<LibrpaQsgwTask>();
     result->dataset = ds;
-    result->task = std::make_unique<Task>(ds, *options, std::move(input));
+    auto context = std::make_shared<TaskContext>(TaskContext{
+        ds->atoms, ds->basis_wfc, ds->blacs_h, ds->comm_h, ds->is_band_calc_done, ds->kfrac_band_list,
+        ds->mf, ds->mf_band, ds->p_exx, ds->p_g0w0, ds->p_headwing, ds->pbc,
+        ds->symmetry_context, ds->tfg, ds->velocity_matrix,
+        [ds] { ds->invalidate_compute_objects(); },
+        [ds](int spins, int kpoints, int bands, int aos, int spinor)
+        {
+            ds->mf.set(spins, kpoints, bands, aos, spinor, 0, bands, 0, aos);
+            ds->comm_h.barrier();
+            KPointBlacsProcessShape shape;
+            shape.favor_square_blacs_grid = true;
+            auto& context = ds->scfk_blacs_ctxt;
+            context.init(shape, ds->comm_h.comm, kpoints);
+            ds->comm_h.barrier();
+            const int ao_block = get_capped_blacs_block_size(aos, wfc_gemm_block_size_opt,
+                                                             context.blacs_h);
+            const int band_block = get_capped_blacs_block_size(bands, wfc_gemm_block_size_opt,
+                                                               context.blacs_h);
+            ds->desc_wfc_kb = context.create_array_desc(aos, bands, ao_block, band_block);
+            ds->desc_wfc_kb_full = context.create_array_desc(aos, bands, aos, bands);
+        },
+        [ds](const LibrpaOptions& opts) { initialize_ds_tfgrids(*ds, opts); },
+        [ds](const LibrpaOptions& opts, bool wing) { initialize_ds_headwing(*ds, opts, wing); },
+        [ds](bool rotations)
+        {
+            reject_spinor_symmetry_speedup(*ds, "QSGW state");
+            initialize_symmetry_context(*ds, rotations);
+        },
+        [ds](const LibrpaOptions& opts, const ResponseObserver& response)
+        { api::build_gw_sigma_for_task(*ds, opts, response); }});
+    result->task = std::make_unique<Task>(std::move(context), *options, std::move(input));
     return result.release();
 }
 void librpa_prepare_qsgw_task(LibrpaQsgwTask* task)

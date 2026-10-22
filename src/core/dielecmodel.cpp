@@ -20,6 +20,7 @@
 #include "../math/lebedev_laikov.h"
 #include "../math/matrix_m.h"
 #include "../math/utils_matrix_mpi.h"
+#include "../math/utils_matrix_m_mpi.h"
 #include "../math/vec.h"
 #include "../mpi/base_blacs.h"
 #include "../utils/constants.h"
@@ -31,7 +32,6 @@
 #include "meanfield_mpi.h"
 #include "pbc.h"
 #include "ri.h"
-#include "utils_matrix_m_mpi.h"
 #ifdef LIBRPA_USE_LIBRI
 #include <RI/comm/mix/Communicate_Tensors_Map_Judge.h>
 #include <RI/global/Tensor.h>

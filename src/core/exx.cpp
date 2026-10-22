@@ -1,8 +1,7 @@
 #include "exx.h"
 
-#include <omp.h>
-
 #include <algorithm>
+#include <omp.h>
 #include <cmath>
 #include <cstddef>
 #include <cstdio>
@@ -13,11 +12,12 @@
 #include <utility>
 #include <vector>
 
-#include "../gpu/la_connector.h"
 #include "../io/fs.h"
 #include "../io/global_io.h"
+#include "../io/output_matrix.h"
 #include "../io/stl_io_helper.h"
 #include "../math/lapack_connector.h"
+#include "../math/utils_matrix_m_mpi.h"
 #include "../math/utils_matrix_mpi.h"
 #include "../math/vector3_order.h"
 #include "../mpi/global_mpi.h"
@@ -25,14 +25,13 @@
 #include "../utils/constants.h"
 #include "../utils/libri_utils.h"
 #include "../utils/profiler.h"
+#include "symmetry_context.h"
 #include "../utils/utils_mem.h"
 #include "atomic_basis.h"
+#include "meanfield_mpi.h"
 #include "geometry.h"
 #include "librpa_enums.h"
-#include "matrix_output.h"
-#include "meanfield_mpi.h"
-#include "symmetry_context.h"
-#include "utils_matrix_m_mpi.h"
+#include "../gpu/la_connector.h"
 #if defined(LIBRPA_USE_CUDA) || defined(LIBRPA_USE_HIP)
 #include <ddla/ddla_connector.h>
 using namespace ddla;
@@ -639,8 +638,7 @@ void Exx::write_rspace_matrices_binary() const
                                     {{as_atom(atom), as_atom(JR.first)},
                                      {{{R[0], R[1], R[2]}, block * (-1.0)}}}};
                                 if (!librpa_int::write_rspace_matrices_binary(
-                                        make_rspace_matrix_blocks(output_blocks, atbasis_wfc, pbc),
-                                        fn.str()))
+                                        output_blocks, atbasis_wfc, pbc, fn.str()))
                                     write_ok = 0;
                             }
                         MPI_Allreduce(MPI_IN_PLACE, &write_ok, 1, MPI_INT, MPI_MIN, comm_h.comm);

@@ -22,21 +22,23 @@ using CrpaQsgwOutputSink = std::function<void(const CrpaTaskResult&, const Orbit
 class CrpaQsgwExtension final : public qsgw::TaskExtension
 {
 public:
-    CrpaQsgwExtension(CrpaTaskInput input, CrpaQsgwControls controls, CrpaQsgwOutputSink sink);
-    void initialize(Dataset&, const LibrpaOptions&, int completed_iteration) override;
+    CrpaQsgwExtension(std::shared_ptr<CrpaTaskContext> context, CrpaTaskInput input,
+                      CrpaQsgwControls controls, CrpaQsgwOutputSink sink);
+    void initialize(qsgw::TaskContext&, const LibrpaOptions&, int completed_iteration) override;
     bool wants_response(int entering_state) const override;
-    void evaluate_response(Dataset&, const LibrpaOptions&, const Chi0QMap&, int entering_state,
-                           int gw_update) override;
-    void state_updated(Dataset&, int completed_iteration) override;
-    void read_checkpoint(Dataset&, const std::string& filename, int iteration) override;
-    void write_checkpoint(const Dataset&, const std::string& filename,
+    void evaluate_response(qsgw::TaskContext&, const LibrpaOptions&, const Chi0QMap&,
+                           int entering_state, int gw_update) override;
+    void state_updated(qsgw::TaskContext&, int completed_iteration) override;
+    void read_checkpoint(qsgw::TaskContext&, const std::string& filename, int iteration) override;
+    void write_checkpoint(const qsgw::TaskContext&, const std::string& filename,
                           int iteration) const override;
-    void evaluate_final(Dataset&, const LibrpaOptions&, int completed_iteration) override;
+    void evaluate_final(qsgw::TaskContext&, const LibrpaOptions&, int completed_iteration) override;
 
 private:
     void update_tracking(const CrpaTaskResult&);
-    void emit(Dataset&, CrpaTaskResult result, int state, int gw_update, bool final);
+    void emit(CrpaTaskContext&, CrpaTaskResult result, int state, int gw_update, bool final);
 
+    std::shared_ptr<CrpaTaskContext> context_;
     CrpaTaskInput input_;
     CrpaQsgwControls controls_;
     CrpaQsgwOutputSink sink_;

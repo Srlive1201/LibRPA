@@ -10,6 +10,7 @@
 #include "../utils/profiler.h"
 #include "epsilon.h"
 #include "pair_density_vertex.h"
+#include "../math/utils_matrix_m_mpi.h"
 
 namespace librpa_int
 {

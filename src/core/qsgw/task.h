@@ -4,7 +4,7 @@
 #include <optional>
 #include <string>
 
-#include "../dataset.h"
+#include "task_context.h"
 #include "../meanfield_mpi.h"
 #include "headwing_velocity.h"
 #include "librpa_options.h"
@@ -60,8 +60,8 @@ struct TaskInput
 class Task
 {
 public:
-    Task(std::shared_ptr<Dataset> dataset, const LibrpaOptions&, TaskControls);
-    // Expand source eigenframes before host input is read on the full grid.
+    Task(std::shared_ptr<TaskContext> dataset, const LibrpaOptions&, TaskControls);
+    // Validate controls before ordinary numerical input is installed.
     void prepare();
     void set_input(TaskInput input);
     void set_output(std::function<void(const TaskOutput&)> sink);
@@ -72,7 +72,7 @@ private:
     void output_text(OutputKind, const std::string&, int iteration = 0, int spin = 0,
                      bool append = false) const;
     void output_hamiltonian(OutputKind, const LocalizedMatrix&, int iteration, int spin) const;
-    std::shared_ptr<Dataset> dataset_;
+    std::shared_ptr<TaskContext> dataset_;
     LibrpaOptions options_;
     TaskControls controls_;
     TaskInput input_;

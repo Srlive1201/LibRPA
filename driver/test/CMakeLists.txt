@@ -105,7 +105,8 @@ target_compile_options(test_rpa_qsum PRIVATE -UNDEBUG)
 add_test(NAME test_rpa_qsum COMMAND $<TARGET_FILE:test_rpa_qsum>)
 
 add_executable(test_gw_occupation_output
-  test_gw_occupation_output.cpp)
+  test_gw_occupation_output.cpp
+  ../tasks/task_helper.cpp)
 target_link_libraries(test_gw_occupation_output PRIVATE rpa_lib)
 if(BUILD_SHARED_LIBS)
   target_link_libraries(test_gw_occupation_output PRIVATE ${math_libs} ${parallel_libs})

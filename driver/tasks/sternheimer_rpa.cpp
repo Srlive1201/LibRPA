@@ -10,8 +10,8 @@
 #include <utility>
 #include <vector>
 
+#include "../../src/api/dataset_helper.h"
 #include "../../src/api/instance_manager.h"
-#include "../../src/core/dataset_helper.h"
 #include "../../src/io/fs.h"
 #include "../../src/io/global_io.h"
 #include "../../src/mpi/global_mpi.h"
@@ -20,8 +20,8 @@
 #include "../reader_sternheimer.h"
 #include "../reader_sternheimer_partial.h"
 #include "../reader_sternheimer_qpoints.h"
-#include "../root_output.h"
 #include "../rpa_qsum.h"
+#include "../root_output.h"
 #include "../sternheimer_partial_reconstruction.h"
 #include "../task.h"
 

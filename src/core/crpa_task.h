@@ -1,7 +1,7 @@
 #pragma once
 
 #include "crpa_model.h"
-#include "dataset.h"
+#include "crpa_task_context.h"
 #include "librpa_options.h"
 
 namespace librpa_int
@@ -50,17 +50,18 @@ CrpaTrackingState read_crpa_tracking_checkpoint(const std::string& filename, int
                                                 const std::string& definition,
                                                 const MeanField& meanfield);
 
-CrpaPreparedModel prepare_crpa_task_model(Dataset& dataset, const LibrpaOptions& options,
+CrpaPreparedModel prepare_crpa_task_model(CrpaTaskContext& dataset, const LibrpaOptions& options,
                                           const CrpaTaskInput& input,
                                           CrpaTaskMode mode = CrpaTaskMode::Standalone);
-CrpaTaskResult snapshot_crpa_task_model(Dataset& dataset, CrpaPreparedModel& model);
-CrpaTaskResult evaluate_crpa_task_from_response(Dataset& dataset, const LibrpaOptions& options,
+CrpaTaskResult snapshot_crpa_task_model(CrpaTaskContext& dataset, CrpaPreparedModel& model);
+CrpaTaskResult evaluate_crpa_task_from_response(CrpaTaskContext& dataset,
+                                                const LibrpaOptions& options,
                                                 CrpaPreparedModel& model,
                                                 const Chi0QMap& full_response);
-CrpaTaskResult compute_crpa_task(Dataset& dataset, const LibrpaOptions& options,
+CrpaTaskResult compute_crpa_task(CrpaTaskContext& dataset, const LibrpaOptions& options,
                                  const CrpaTaskInput& input);
-CrpaTaskResult compute_crpa_u_task(Dataset& dataset, const LibrpaOptions& options,
+CrpaTaskResult compute_crpa_u_task(CrpaTaskContext& dataset, const LibrpaOptions& options,
                                    const CrpaTaskInput& input);
-CrpaTaskResult prepare_crpa_task(Dataset& dataset, const LibrpaOptions& options,
+CrpaTaskResult prepare_crpa_task(CrpaTaskContext& dataset, const LibrpaOptions& options,
                                  const CrpaTaskInput& input);
 }  // namespace librpa_int

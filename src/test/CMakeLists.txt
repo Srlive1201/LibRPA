@@ -97,6 +97,7 @@ if(LIBRPA_USE_LIBRI)
   add_test(NAME test_magnetic_gw_model_mpi COMMAND mpirun -np 4 $<TARGET_FILE:test_magnetic_gw_model>)
 endif()
 
+target_sources(test_task_helper PRIVATE ../../driver/tasks/task_helper.cpp)
 # add 4-process tests
 foreach(target
   test_atomic_basis_blacs
@@ -160,7 +161,7 @@ target_compile_definitions(test_si_density_symmetry PRIVATE
 config_test(test_matrix_power_scalar 1)
 add_test(NAME test_matrix_power_scalar_mpi COMMAND mpirun -np 4 $<TARGET_FILE:test_matrix_power_scalar>)
 
-# Existing numerical QSGW controls, including fixed-reference state updates.
+# QSGW controls exercise fixed-reference state updates and their MPI ownership.
 foreach(target
     test_qsgw_fixed_basis
     test_qsgw_effective_hamiltonian

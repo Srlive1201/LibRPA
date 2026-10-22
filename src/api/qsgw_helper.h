@@ -1,4 +1,5 @@
 #pragma once
+#include "dataset.h"
 #include "../core/qsgw/task.h"
 #include "librpa_qsgw.h"
 namespace librpa_int::api

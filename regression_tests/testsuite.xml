@@ -203,18 +203,14 @@
 
     <!-- Same BN dataset and Gamma option-3 head/wing setup as the case above,
          but with sqrt_coulomb_threshold = 1.0, which filters 10 of the 34
-         Coulomb eigenchannels (n_singular = 10, n_nonsingular = 24). This is
-         the only case in the suite that exercises the filtered-Coulomb-subspace
-         branch of rewrite_eps_abf_space; every other head/wing case pins
-         sqrt_coulomb_threshold = 0 and so only ever reaches the complete-basis
-         fast path. The reference was generated with the pre-ABF commit
-         e8b51b15 (see refhash), which computes head/wing in the reduced Coulomb
-         representation, so this case also cross-validates the ABF rewrite
-         against that older, independent algorithm. Verified np-invariant at
-         np = 1, 2 and 4. -->
+         Coulomb eigenchannels (n_singular = 10, n_nonsingular = 24).
+         The reference includes the Gamma correlation-screening correction:
+         subtract the retained Coulomb projector rather than the full identity.
+         Independent full/filtered dense-response controls in test_epsilon
+         distinguish that correction without relying on this refreshed output.
+         This six-frequency case checks implementation reproducibility, not a
+         converged BN spectrum. -->
     <testcase name="BN headwing filtered Coulomb subspace (abacus input)" directory="g0w0_band_abacus_BN_headwing_nsingular_libri">
-      <labels refhash="e8b51b15f62c65fb79f9713c7568f0e70223c272"
-      />
       <build require_libri="true"
       />
       <run ntasks_disable="none"

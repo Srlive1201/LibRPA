@@ -14,31 +14,22 @@ LibRPA is designed to provide efficient and scalable implementations of various 
 
 ![RPA interface to ABACUS](../assets/abacus_interface.drawio.jpg)
 
-## Numerical tasks and the driver
+## QSGW task boundary
 
-G0W0, QSGW and cRPA are library tasks. Their numerical workflows live in
-`src/core/g0w0_task`, `src/core/qsgw/task` and `src/core/crpa_task`.
-The core `Dataset` owns the mean fields, response/screening state and parallel
-layouts; the API registry resolves public handlers to those states. Numerical
-tasks assemble lower-level math, MPI and I/O services. Those lower modules do
-not include core physics headers. Atomic-basis adapters and physics-specific
-output assembly live in core; generic serializers accept value buffers.
+The new QSGW iteration, restart state, live optical updates and diagnostic results
+are implemented in `src/core/qsgw/`. The public functions in `librpa_qsgw.h`
+marshal numerical inputs and output callbacks; the driver reads host files and
+writes the returned output events.
 
-`driver/tasks` parses host input, invokes the public C/C++ APIs and writes
-requested output. Its QSGW entry point submits numerical Vxc and native H/S/r
-blocks to an opaque public task. The library owns iteration, fixed/live frames,
-convergence, state invalidation and checkpoints. A rank-zero output callback
-receives borrowed text or localized-operator views for presentation; it must
-not mutate or recursively call the task/handler. The handler must remain alive until task deletion. After preparation keep
-the SCF eigenframe/grid fixed, finish band/Coulomb/velocity input before running,
-and do not mutate or reenter the handler during a run. Ordinary input filenames never enter
-the numerical task. The task may read its own library-generated checkpoint.
-
-The optional cRPA companion runs in core at the resident-response and completed
-state boundaries. It owns projector transport and checkpoint companions. Its
-result callback is for output only; the driver does not assemble a numerical
-update from internal objects. The independent G0W0 and QSGW tasks do not depend
-on a particular companion implementation.
+The existing `src/api/Dataset` ownership and G0W0 workflow remain in place.
+QSGW borrows only the numerical objects it uses through its own `TaskContext`;
+the API task retains the original dataset for the borrowed references' lifetime.
+Initialization and the existing G0W0 Sigma build are supplied by API adapters.
+The optional response observer runs at the resident full-response boundary so a
+companion task can consume that response before screening releases it. Core QSGW
+code includes no API or driver header. Its entering-state QP diagnostic and table
+formatters belong to QSGW and preserve the existing continuation options and
+output conventions.
 
 ## QSGW iteration state and checkpoints
 
@@ -138,3 +129,13 @@ and a Python version with `tarfile` extraction filters, such as Python 3.12+.
 For changes to native reconstruction, retain the finite-metric, native-tail
 and SOC numerical controls in `test_rpa_headwing`. These checks establish
 implementation consistency; they do not establish material convergence.
+
+## cRPA task boundary
+
+The cRPA numerical workflow and its optional QSGW companion live in
+`src/core/crpa_task` and `src/core/crpa_qsgw_extension`. They borrow the loaded
+mean fields and screening data through `CrpaTaskContext`; the API retains the
+original Dataset ownership and supplies its existing initialization operations.
+The companion consumes the resident response and owns parent-frame transport
+and checkpoint companions. Its result callback is for output only. The driver
+reads host files and presents public result snapshots.

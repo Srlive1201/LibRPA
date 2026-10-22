@@ -12,6 +12,8 @@
 #include "../mpi/collective_stage.h"
 #include "../utils/error.h"
 #include "crpa_helper.h"
+#include "dataset_helper.h"
+#include "gw_response_helper.h"
 #include "instance_manager.h"
 #include "librpa_crpa.h"
 #include "orbital_helper.h"
@@ -41,7 +43,97 @@ void collective_error(const librpa_int::MpiCommHandler& comm, const std::string&
         throw LIBRPA_RUNTIME_ERROR("cRPA input: " +
                                    (error.empty() ? "another MPI rank failed validation" : error));
 }
+std::unique_ptr<librpa_int::diele_func> make_crpa_headwing(
+    librpa_int::Dataset& ds, const LibrpaOptions& opts, bool need_wing,
+    const librpa_int::HeadwingBandSelection* excluded)
+{
+    using namespace librpa_int;
+    if (ds.velocity_matrix.empty())
+    {
+        throw LIBRPA_RUNTIME_ERROR("analytic head/wing requested but velocity matrix is not set");
+    }
+
+    MeanField& mf = ds.mf;
+    if (!mf.initialized())
+        throw LIBRPA_RUNTIME_ERROR("analytic head/wing meanfield is not initialized");
+
+    if (static_cast<int>(ds.pbc.kfrac_list.size()) != mf.get_n_kpoints())
+        throw LIBRPA_RUNTIME_ERROR(
+            "analytic head/wing k-point list is inconsistent with meanfield");
+
+    const auto& headwing_basis_aux =
+        opts.use_shrink_abfs == LIBRPA_SWITCH_ON ? ds.basis_aux_shrink : ds.basis_aux;
+    if (!headwing_basis_aux.initialized())
+        throw LIBRPA_RUNTIME_ERROR("analytic head/wing auxiliary basis is not initialized");
+
+    const bool use_headwing_symmetry =
+        opts.use_symmetry_rpa == LIBRPA_SWITCH_ON || opts.use_symmetry_gw == LIBRPA_SWITCH_ON;
+    if (excluded && (use_headwing_symmetry || opts.use_kpara_scf_eigvec == LIBRPA_SWITCH_ON ||
+                     opts.use_2d_dielectric == LIBRPA_SWITCH_ON))
+        throw LIBRPA_INVALID_ARGUMENT(
+            "constrained optical input requires replicated full BZ and 3D");
+    if (use_headwing_symmetry)
+    {
+        initialize_symmetry_context(ds, true);
+        require_symmetry_shell_layouts(ds, "analytic head/wing");
+    }
+
+    const auto& freqs = ds.tfg.get_freq_nodes();
+    const bool use_kpara_eigvec = opts.use_kpara_scf_eigvec == LIBRPA_SWITCH_ON;
+    const ArrayDesc& desc_scf_wfc =
+        ds.eigvecs_kpara_2d_ready() ? ds.desc_wfc_kb : ds.desc_wfc_kb_full;
+    auto optical = std::make_unique<diele_func>(
+        mf, ds.velocity_matrix, ds.pbc.kfrac_list, ds.basis_wfc, headwing_basis_aux, freqs,
+        mf.get_n_aos(), mf.get_n_states(), mf.get_n_spins(), headwing_basis_aux.nb_total, ds.pbc,
+        ds.comm_h, ds.blacs_h, use_kpara_eigvec, &ds.scfk_blacs_ctxt, &desc_scf_wfc);
+    optical->use_2d_dielectric = opts.use_2d_dielectric == LIBRPA_SWITCH_ON;
+    optical->use_soc = mf.get_n_spinor() > 1;
+    optical->debug = global::should_output(LIBRPA_VERBOSE_DEBUG);
+    if (use_headwing_symmetry && ds.symmetry_context.available &&
+        !ds.symmetry_context.kstars.empty())
+    {
+        optical->set_symmetry_context(ds.symmetry_context);
+        optical->use_symmetry = true;
+        optical->atom_nw = ds.basis_wfc.get_atom_nb_map();
+        optical->coord_frac = ds.symmetry_context.input_coord_frac;
+    }
+    optical->normalize_ibz_star_weighted_occupations();
+    if (excluded) optical->set_excluded_band_pairs(*excluded);
+    optical->init(opts.sqrt_coulomb_threshold, ds.vq);
+    optical->cal_head();
+    optical->test_head();
+
+    if (need_wing)
+    {
+        const auto& headwing_cs =
+            opts.use_shrink_abfs == LIBRPA_SWITCH_ON ? ds.cs_data_shrink : ds.cs_data;
+        optical->cal_wing(headwing_cs, opts.sqrt_coulomb_threshold, ds.vq);
+        optical->test_wing();
+    }
+
+    return optical;
+}
+
 }  // namespace
+
+std::shared_ptr<librpa_int::CrpaTaskContext> librpa_int::api::make_crpa_task_context(
+    const dataset_ptr_t& ds)
+{
+    return std::make_shared<CrpaTaskContext>(CrpaTaskContext{
+        ds->mf, ds->pbc, ds->atoms, ds->basis_wfc, ds->basis_aux, ds->basis_aux_shrink,
+        ds->basis_convention, ds->comm_h, ds->blacs_h, ds->desc_abf, ds->desc_abf_shrink,
+        ds->atpairs_local, ds->cs_data, ds->sinvS, ds->vq, ds->p_chi0,
+        [ds](const LibrpaOptions& opts)
+        {
+            initialize_ds_global_ddla(*ds, opts);
+            initialize_ds_tfgrids(*ds, opts);
+            initialize_ds_atpairs_local(*ds, LIBRPA_ROUTING_LIBRI);
+            ds->redistribute_coulomb_blacs2ap();
+            initialize_ds_chi0_qstar(*ds, opts);
+        },
+        [ds](const LibrpaOptions& opts, bool wing, const HeadwingBandSelection* excluded)
+        { return make_crpa_headwing(*ds, opts, wing, excluded); }});
+}
 
 void librpa_init_crpa_input(LibrpaCrpaInput* input)
 {
@@ -191,7 +283,8 @@ void librpa_set_qsgw_crpa(LibrpaQsgwTask* task, const LibrpaCrpaInput* input,
             numerical_controls.tracking_definition =
                 controls->tracking_definition ? controls->tracking_definition : "";
             extension = std::make_shared<CrpaQsgwExtension>(
-                numerical_input, std::move(numerical_controls),
+                api::make_crpa_task_context(dataset), numerical_input,
+                std::move(numerical_controls),
                 [dataset, sink, user_data](const CrpaTaskResult& result,
                                            const OrbitalWeightResult* analysis, int state,
                                            int gw_update, bool final)
@@ -220,7 +313,8 @@ LibrpaCrpaResult* librpa_prepare_crpa_model(const LibrpaHandler* h, const Librpa
     if (!options) throw LIBRPA_INVALID_ARGUMENT("missing cRPA model options");
     auto ds = api::get_dataset_instance(h);
     const auto numerical_input = api::unpack_crpa_input(*ds, input);
-    return api::own_crpa_result(prepare_crpa_task(*ds, *options, numerical_input));
+    return api::own_crpa_result(
+        prepare_crpa_task(*api::make_crpa_task_context(ds), *options, numerical_input));
 }
 
 LibrpaCrpaResult* librpa_compute_crpa_u_window(const LibrpaHandler* h, const LibrpaOptions* options,
@@ -230,7 +324,8 @@ LibrpaCrpaResult* librpa_compute_crpa_u_window(const LibrpaHandler* h, const Lib
     if (!options) throw LIBRPA_INVALID_ARGUMENT("missing cRPA options");
     auto ds = api::get_dataset_instance(h);
     const auto numerical_input = api::unpack_crpa_input(*ds, input);
-    return api::own_crpa_result(compute_crpa_u_task(*ds, *options, numerical_input));
+    return api::own_crpa_result(
+        compute_crpa_u_task(*api::make_crpa_task_context(ds), *options, numerical_input));
 }
 
 LibrpaCrpaResult* librpa_compute_crpa_window(const LibrpaHandler* h, const LibrpaOptions* options,
@@ -240,7 +335,29 @@ LibrpaCrpaResult* librpa_compute_crpa_window(const LibrpaHandler* h, const Librp
     if (!options) throw LIBRPA_INVALID_ARGUMENT("missing cRPA options");
     auto ds = api::get_dataset_instance(h);
     const auto numerical_input = api::unpack_crpa_input(*ds, input);
-    return api::own_crpa_result(compute_crpa_task(*ds, *options, numerical_input));
+    return api::own_crpa_result(
+        compute_crpa_task(*api::make_crpa_task_context(ds), *options, numerical_input));
+}
+
+LibrpaCrpaResult* librpa_build_g0w0_sigma_crpa(LibrpaHandler* h, const LibrpaOptions* options,
+                                               const LibrpaCrpaInput* input)
+{
+    if (!options || !input) throw LIBRPA_INVALID_ARGUMENT("missing shared GW/cRPA input");
+    const auto dataset = librpa_int::api::get_dataset_instance(h);
+    const auto context = librpa_int::api::make_crpa_task_context(dataset);
+    auto model = librpa_int::prepare_crpa_task_model(
+        *context, *options, librpa_int::api::unpack_crpa_input(*dataset, input),
+        librpa_int::CrpaTaskMode::SharedGw);
+    std::unique_ptr<LibrpaCrpaResult, decltype(&librpa_delete_crpa_result)> result(
+        nullptr, librpa_delete_crpa_result);
+    librpa_int::api::build_gw_sigma_for_task(
+        *dataset, *options,
+        [&](const librpa_int::Chi0QMap& response)
+        {
+            result.reset(librpa_int::api::own_crpa_result(
+                librpa_int::evaluate_crpa_task_from_response(*context, *options, model, response)));
+        });
+    return result.release();
 }
 
 void librpa_write_crpa_tracking_checkpoint(const LibrpaCrpaResult* result, const char* filename,

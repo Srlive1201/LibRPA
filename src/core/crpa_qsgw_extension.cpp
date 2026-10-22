@@ -10,17 +10,20 @@
 
 namespace librpa_int
 {
-CrpaQsgwExtension::CrpaQsgwExtension(CrpaTaskInput input, CrpaQsgwControls controls,
-                                     CrpaQsgwOutputSink sink)
-    : input_(std::move(input)), controls_(std::move(controls)), sink_(std::move(sink))
+CrpaQsgwExtension::CrpaQsgwExtension(std::shared_ptr<CrpaTaskContext> context, CrpaTaskInput input,
+                                     CrpaQsgwControls controls, CrpaQsgwOutputSink sink)
+    : context_(std::move(context)),
+      input_(std::move(input)),
+      controls_(std::move(controls)),
+      sink_(std::move(sink))
 {
-    if (controls_.interval <= 0 || !sink_)
+    if (!context_ || controls_.interval <= 0 || !sink_)
         throw LIBRPA_INVALID_ARGUMENT("QSGW cRPA requires a positive interval and output sink");
     if (controls_.track_orbitals && controls_.tracking_definition.empty())
         throw LIBRPA_INVALID_ARGUMENT("QSGW cRPA tracking requires a model definition");
 }
 
-void CrpaQsgwExtension::initialize(Dataset&, const LibrpaOptions& options, int)
+void CrpaQsgwExtension::initialize(qsgw::TaskContext&, const LibrpaOptions& options, int)
 {
     if (options.read_sigc_mat_rf == LIBRPA_SWITCH_ON)
         throw LIBRPA_INVALID_ARGUMENT(
@@ -40,8 +43,8 @@ void CrpaQsgwExtension::update_tracking(const CrpaTaskResult& result)
     input_.window.previous_parent_spin_k = tracking_.parent_phi;
 }
 
-void CrpaQsgwExtension::emit(Dataset& dataset, CrpaTaskResult result, int state, int gw_update,
-                             bool final)
+void CrpaQsgwExtension::emit(CrpaTaskContext& dataset, CrpaTaskResult result, int state,
+                             int gw_update, bool final)
 {
     update_tracking(result);
     std::optional<OrbitalWeightResult> analysis;
@@ -60,17 +63,19 @@ void CrpaQsgwExtension::emit(Dataset& dataset, CrpaTaskResult result, int state,
     sink_(result, analysis ? &*analysis : nullptr, state, gw_update, final);
 }
 
-void CrpaQsgwExtension::evaluate_response(Dataset& dataset, const LibrpaOptions& options,
+void CrpaQsgwExtension::evaluate_response(qsgw::TaskContext&, const LibrpaOptions& options,
                                           const Chi0QMap& response, int entering_state,
                                           int gw_update)
 {
+    auto& dataset = *context_;
     auto model = prepare_crpa_task_model(dataset, options, input_, CrpaTaskMode::SharedGw);
     emit(dataset, evaluate_crpa_task_from_response(dataset, options, model, response),
          entering_state, gw_update, false);
 }
 
-void CrpaQsgwExtension::state_updated(Dataset& dataset, int)
+void CrpaQsgwExtension::state_updated(qsgw::TaskContext&, int)
 {
+    auto& dataset = *context_;
     if (!controls_.track_orbitals) return;
     update_tracking(prepare_crpa_task(dataset, options_, input_));
     const double capture =
@@ -79,9 +84,10 @@ void CrpaQsgwExtension::state_updated(Dataset& dataset, int)
         "cRPA parent transport: minimum retained probability %.16e; no response build\n", capture);
 }
 
-void CrpaQsgwExtension::read_checkpoint(Dataset& dataset, const std::string& filename,
+void CrpaQsgwExtension::read_checkpoint(qsgw::TaskContext&, const std::string& filename,
                                         int iteration)
 {
+    auto& dataset = *context_;
     if (!controls_.track_orbitals) return;
     collective_all_stage(dataset.comm_h, "cRPA parent tracking restart",
                          [&]
@@ -93,18 +99,20 @@ void CrpaQsgwExtension::read_checkpoint(Dataset& dataset, const std::string& fil
                          });
 }
 
-void CrpaQsgwExtension::write_checkpoint(const Dataset& dataset, const std::string& filename,
+void CrpaQsgwExtension::write_checkpoint(const qsgw::TaskContext&, const std::string& filename,
                                          int iteration) const
 {
+    const auto& dataset = *context_;
     if (!controls_.track_orbitals) return;
     // QSGW invokes this on its reporting rank; checkpoint serialization has no collectives.
     write_crpa_tracking_checkpoint(filename + ".crpa", iteration, controls_.tracking_definition,
                                    crpa_tracking_energies(dataset.mf), tracking_);
 }
 
-void CrpaQsgwExtension::evaluate_final(Dataset& dataset, const LibrpaOptions& options,
+void CrpaQsgwExtension::evaluate_final(qsgw::TaskContext&, const LibrpaOptions& options,
                                        int completed_iteration)
 {
+    auto& dataset = *context_;
     emit(dataset, compute_crpa_u_task(dataset, options, input_), completed_iteration,
          completed_iteration, true);
 }
