@@ -15,10 +15,8 @@
 #include "../../mpi/collective_stage.h"
 #include "../../utils/constants.h"
 #include "../../utils/profiler.h"
-#include "../dataset_helper.h"
-#include "../g0w0_task.h"
-#include "../gw_output.h"
-#include "../task_helpers.h"
+#include "qp_diagnostics.h"
+#include "band_remap.h"
 #include "band_output.h"
 #include "checkpoint.h"
 #include "convergence.h"
@@ -42,7 +40,7 @@ bool enabled(T value)
 {
     return value == LIBRPA_SWITCH_ON;
 }
-void configure_coulomb_head(Dataset& ds, const LibrpaOptions& opts, const TaskInput& input)
+void configure_coulomb_head(TaskContext& ds, const LibrpaOptions& opts, const TaskInput& input)
 {
     if (enabled(opts.use_2d_dielectric))
     {
@@ -182,7 +180,7 @@ std::string resolve_input_path(const std::string& base, const std::string& path)
     return librpa_int::is_absolute_path(path) ? path : librpa_int::join_path(base, path);
 }
 
-void prepare_qsgw_symmetry_context(librpa_int::Dataset& dataset, const LibrpaOptions& opts)
+void prepare_qsgw_symmetry_context(TaskContext& dataset, const LibrpaOptions& opts)
 {
     const bool symmetry_reduced_scf_grid =
         dataset.pbc.kfrac_list.size() < dataset.pbc.kfrac_list_full.size();
@@ -191,10 +189,10 @@ void prepare_qsgw_symmetry_context(librpa_int::Dataset& dataset, const LibrpaOpt
     const bool all_symmetry_routes_enabled = enabled(opts.use_symmetry_exx) &&
                                              enabled(opts.use_symmetry_gw) &&
                                              enabled(opts.use_symmetry_rpa);
-    if (all_symmetry_routes_enabled) librpa_int::initialize_symmetry_context(dataset, true);
+    if (all_symmetry_routes_enabled) dataset.initialize_symmetry(true);
 }
 
-void validate_qsgw_reference(const librpa_int::Dataset& dataset, const bool compute_band,
+void validate_qsgw_reference(const TaskContext& dataset, const bool compute_band,
                              const LibrpaOptions& opts)
 {
     using namespace librpa_int::qsgw;
@@ -383,7 +381,7 @@ void write_qsgw_qp_state(std::ostream& output, int state_index, int update,
         }
     std::vector<double> real(potential.size()), imag(potential.size()), eqp(potential.size());
     std::vector<int> info(potential.size());
-    librpa_int::solve_g0w0_qpe_diagonal(live, tfg, options, diagonal, iks, nk, iks.data(), low, n,
+    solve_qsgw_qpe_diagonal(live, tfg, options, diagonal, iks, nk, iks.data(), low, n,
                                         potential.data(), exx.data(), real.data(), imag.data(),
                                         eqp.data(), "QSGW entering-state G0W0", info.data());
     for (int spin = 0; spin < ns; ++spin)
@@ -441,7 +439,7 @@ void write_qsgw_qp_state(std::ostream& output, int state_index, int update,
 }
 
 }  // namespace
-Task::Task(std::shared_ptr<Dataset> ds, const LibrpaOptions& opts, TaskControls controls)
+Task::Task(std::shared_ptr<TaskContext> ds, const LibrpaOptions& opts, TaskControls controls)
     : dataset_(std::move(ds)), options_(opts), controls_(std::move(controls))
 {
 }
@@ -898,17 +896,17 @@ void Task::run()
                                       [&] { write_live_velocity_trace(iteration); });
                 return;
             }
-            initialize_ds_tfgrids(*dataset, opts);
+            dataset->initialize_tfgrids(opts);
             // Legacy option-4 head reused the first k-point occupation row.
             // Preserve it only for the unchanged reference-entries map.
             if (controls_.qsgw_headwing_velocity == "reference")
             {
                 ScopedLegacyHeadOccupations legacy_head_occupations(dataset->mf);
-                initialize_ds_headwing(*dataset, opts, false);
+                dataset->initialize_headwing(opts, false);
             }
             else
             {
-                initialize_ds_headwing(*dataset, opts, update_wing);
+                dataset->initialize_headwing(opts, update_wing);
             }
             // The analytic object is replaced every update. Reapply the fixed producer
             // normalization while retaining its live eigenpairs, velocity and frequencies.
@@ -955,7 +953,7 @@ void Task::run()
         if (extension_ && extension_->wants_response(entering_state))
             response = [&](const Chi0QMap& p0)
             { extension_->evaluate_response(*dataset, opts, p0, entering_state, iteration); };
-        build_g0w0_sigma(*dataset, opts, response);
+        dataset->build_sigma(opts, response);
         if (!dataset->p_exx || !dataset->p_g0w0)
             throw LIBRPA_RUNTIME_ERROR("QSGW failed to build live EXX/Sigma real-space objects");
         if (update_head && !dataset->p_headwing)
@@ -988,7 +986,7 @@ void Task::run()
         {
             dataset->p_exx->reset_kspace();
             dataset->p_g0w0->reset_kspace();
-            const auto bvk_remap = librpa_int::build_band_bvk_remap(dataset->atoms, dataset->pbc,
+            const auto bvk_remap = build_qsgw_band_bvk_remap(dataset->atoms, dataset->pbc,
                                                                     opts.option_bvk_remap);
             {
                 ScopedSigmaMatrixRetention retain_sigma_matrices(
