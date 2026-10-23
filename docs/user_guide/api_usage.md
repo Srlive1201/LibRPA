@@ -372,3 +372,54 @@ call librpa_finalize_global()
 
 call MPI_Finalize(ierr)
 ```
+
+
+## Native optical velocity from in-memory operators
+
+The experimental C/C++ optical API accepts numerical real-space H/S/r blocks
+through `LibrpaNativeVelocityInput` in `librpa_optical.h`. The driver selects
+files and converts units before this call; no filenames or producer presets
+enter the library. Supply H in Hartree, S dimensionless, and position in Bohr.
+The public header specifies Fourier, spinor and matrix-storage conventions.
+
+`librpa_prepare_native_velocity` is collective over the handler communicator.
+Only its rank zero supplies the borrowed operator views; other ranks pass a
+null input pointer. The operators remain valid until the call returns. The
+calculation preserves the loaded SCF energies, occupations and eigenvectors,
+sets the velocity through the existing public setter, and optionally prepares
+analytic head/wing. Pass numerical option 3 or 4, not driver preset 6. For
+option 3 with optical preparation, enable `use_scalapack_gw_wc` so that
+screening consumes the analytic wing. For strict 2D, also supply the area and
+auxiliary monopole normalization decoded from the matching producer export.
+
+`librpa_get_optical_result` provides a noncollective, rank-local owning snapshot
+of the computed velocity, frequency nodes, head and auxiliary wing matrices.
+Retrieve its borrowed arrays with `librpa_get_optical_view`, then release the
+result with `librpa_delete_optical_result`. A snapshot does not gather a global
+matrix from distributed ranks. The C++ Handler wrappers preserve the same
+collective and ownership rules. These optical convenience functions currently
+have C and C++ interfaces; no high-level Fortran wrapper is advertised.
+
+## QSGW task API
+
+The experimental C API in `librpa_qsgw.h` creates an opaque task with
+`librpa_create_qsgw_task`; `Handler::create_qsgw_task` provides C++ ownership.
+Initialize its controls with `librpa_init_qsgw_controls`, prepare its numerical
+state, supply Vxc/native-operator buffers with `librpa_set_qsgw_input`, then run
+`librpa_run_qsgw_task`. The same loaded grid/path and EXX/GW options apply.
+Vxc and native operators are supplied on root and copied by the setter. All
+collective task calls involve the handler communicator. Keep the handler alive
+until task deletion. After preparation preserve the SCF eigenframe/grid; finish
+band/Coulomb/velocity input before running. Do not modify or reenter the handler
+during a run or its output callbacks.
+
+An optional rank-zero output sink receives borrowed text and localized operator
+views valid only during the callback; it may present or save those results.
+Numerical iteration, projection, state updates and checkpoint restore/save occur
+inside the library. Supply ordinary producer data numerically, using the existing
+input APIs. The task reads only its own checkpoints. This task interface does
+not yet have a Fortran wrapper.
+
+`librpa_get_meanfield_dimensions` is a noncollective, read-only query for
+preparing SCF-grid or band-path matrix buffers. QSGW controls, checkpoint
+behavior, units and current numerical limits are described in [QSGW](qsgw.md).

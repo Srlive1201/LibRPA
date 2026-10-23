@@ -1,23 +1,13 @@
 #pragma once
-
-#include "../../src/core/qsgw/matrix_map.h"
-#include "../../src/core/qsgw/vxc_projection.h"
-
+#include <map>
 #include <string>
 
-namespace librpa_int
+#include "../../src/math/matrix_m.h"
+namespace librpa::reader
 {
-namespace qsgw
-{
-
-// Read full Vxc matrices in the same spin/k order as the SCF or band reference.
-// An empty prefix selects the producer's standard SCF/band filename prefix.
-SpinKMatrixMap read_qsgw_vxc(const std::string& input_directory,
-                            const std::string& prefix,
-                            const MeanField& reference,
-                            bool aims_input,
-                            bool band_path,
-                            VxcBasis basis);
-
-} // namespace qsgw
-} // namespace librpa_int
+using VxcMatrices = std::map<int, std::map<int, librpa_int::Matz>>;
+// Parse producer Vxc matrices and convert energies to Hartree. The numerical
+// task projects AO matrices and expands paired IBZ source states.
+VxcMatrices read_qsgw_vxc(const std::string& input_directory, const std::string& prefix, int nspins,
+                          int nkpoints, int nspinor, bool aims_input, bool band_path);
+}  // namespace librpa::reader

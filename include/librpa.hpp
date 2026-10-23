@@ -17,15 +17,20 @@
 #include "librpa_enums.h"
 #include "librpa_options.h"
 #include "librpa_handler.h"
+#include "librpa_optical.h"
+#include "librpa_qsgw.h"
 
 #include <vector>
 #include <complex>
+#include <memory>
 
 /**
  * @brief Main namespace for LibRPA C++ API.
  */
 namespace librpa
 {
+using QsgwTask = std::unique_ptr<LibrpaQsgwTask, decltype(&librpa_delete_qsgw_task)>;
+using OpticalResult = std::unique_ptr<LibrpaOpticalResult, decltype(&librpa_delete_optical_result)>;
 
 /* Enums */
 /**
@@ -230,6 +235,8 @@ public:
      * @note Rely on free() to explicitly release resources.
      */
     ~Handler();
+
+    QsgwTask create_qsgw_task(const Options &opts, const LibrpaQsgwControls &controls) const;
 
     /* Input (set) functions */
 
@@ -572,6 +579,12 @@ public:
      */
     void set_velocity_matrix_packed(int n_spins, int n_kpts, int n_states,
                                     const std::complex<double> *velocity);
+
+    //! Collective original-H/S/r velocity in the loaded SCF frame; input on rank zero.
+    void prepare_native_velocity(const Options &opts, const LibrpaNativeVelocityInput *root_input,
+                                 bool prepare_optical = true);
+    //! Noncollective owning snapshot of this rank's numerical optical results.
+    OpticalResult get_optical_result() const;
 
     /**
      * @brief Set k-points for band-structure calculations.

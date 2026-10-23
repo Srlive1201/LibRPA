@@ -80,5 +80,9 @@ FixedBasisDiagonalizationResult diagonalize_in_reference_basis(
     const MeanField& reference,
     const SpinKMatrixMap& hamiltonian);
 
+// Recover C_live = C_reference U from saved eigenvectors, including the
+// checkpoint's phases/degenerate-block gauge, without diagonalizing again.
+SpinKMatrixMap reference_basis_rotation(const MeanField& live, const MeanField& reference);
+
 } // namespace qsgw
 } // namespace librpa_int

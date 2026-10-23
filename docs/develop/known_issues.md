@@ -2,14 +2,12 @@
 
 ## Caveats
 
-### QSGW driver access to library internals
+### QSGW API coverage
 
-The experimental `qsgw` and `qsgw_band` tasks currently access and modify
-internal dataset objects owned by a `LibrpaHandler` in `driver/tasks/qsgw.cpp`.
-This uses the early-prototype exception to the driver/API separation guideline;
-the iteration workflow is not yet exposed through the public C API.
-Task-specific input and output remain in `driver/qsgw`, with numerical
-operations in `src/core/qsgw`.
+The experimental QSGW iteration is exposed through the C task API and its C++
+ownership wrapper. Numerical state, updates and checkpoints live in core;
+the driver parses producer inputs and presents borrowed outputs. The task
+interface does not yet have a Fortran wrapper. See [API usage](../user_guide/api_usage.md#qsgw-task-api).
 
 ### `nan` in GW output
 

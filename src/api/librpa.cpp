@@ -15,6 +15,11 @@
 namespace librpa
 {
 
+QsgwTask Handler::create_qsgw_task(const Options& opts, const LibrpaQsgwControls& controls) const
+{
+    return QsgwTask(::librpa_create_qsgw_task(h_, &opts, &controls), ::librpa_delete_qsgw_task);
+}
+
 /* Global environment functions */
 const char* get_build_info(void) { return ::librpa_get_build_info(); }
 
@@ -413,6 +418,18 @@ LIBRPA_CPP_H_METHOD_DEF_WRAP_VOID(
 void Handler::reset_band_data()
 {
     ::librpa_reset_band_data(this->h_);
+}
+
+void Handler::prepare_native_velocity(const Options& opts,
+                                      const LibrpaNativeVelocityInput* root_input,
+                                      bool prepare_optical)
+{
+    ::librpa_prepare_native_velocity(h_, &opts, root_input, prepare_optical ? 1 : 0);
+}
+
+OpticalResult Handler::get_optical_result() const
+{
+    return OpticalResult(::librpa_get_optical_result(h_), ::librpa_delete_optical_result);
 }
 
 /* Compute (build/get) functions */

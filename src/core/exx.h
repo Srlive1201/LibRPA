@@ -1,3 +1,5 @@
+#pragma once
+
 /*
  * @file exx.h
  * @brief utilities for computing exact exchange energies, including orbital and total energies.

@@ -620,6 +620,10 @@ void map_block_to_IJ_storage_new(std::map<int, std::map<int, matrix_m<T>>> &IJma
     const int n_Is = as_int(Is.size());
     const int n_Js = as_int(Js.size());
 
+    // Empty BLACS ranks own no entries to map. This routine is rank-local;
+    // returning here preserves the collectives performed by its caller.
+    if (n_pairs_total == 0) return;
+
     // Create necessay atom-pair blocks
 #pragma omp parallel for collapse(2) schedule(dynamic)
     for (int i_I = 0; i_I != n_Is; i_I++)
@@ -750,42 +754,57 @@ matrix_m<std::complex<T>> power_hemat_blacs(matrix_m<std::complex<T>> &A_local,
     auto Z_local_opt = init_local_mat<std::complex<T>>(ad_Z_opt, MAJOR::COL);
     // printf("Z_local_opt size: %d\n", Z_local_opt.size());
 
-    profiler.start("power_hemat_blacs_1", LIBRPA_VERBOSE_DEBUG);
-    int lwork = -1, lrwork = -1, info = 0;
-    std::complex<T> *work;
-    T *rwork;
+    if (n == 1)
     {
-        work  = new std::complex<T>[1];
-        rwork = new T[1];
-        // query the optimal lwork and lrwork
-        T *Wquery = new T[1];
-        // librpa_int::global::lib_printf("power_hemat_blacs descA %s\n", ad_A.info_desc().c_str());
-        ScalapackConnector::pheev_f(jobz, uplo,
-                n, A_local_opt.ptr(), 1, 1, ad_A_opt.desc,
-                Wquery, Z_local_opt.ptr(), 1, 1, ad_A_opt.desc, work, lwork, rwork, lrwork, info);
-        lwork = std::max(int(work[0].real()), 1);
-        lrwork = std::max(int(rwork[0]), 1);
-        delete [] work;
-        delete [] Wquery;
-        delete [] rwork;
+        // The scalar eigensystem is exact. Some PZHEEV implementations return
+        // (1,1) instead of the normalized eigenvector (1,0) in this quick case.
+        W[0] = ad_A_opt.is_src() ? A_local_opt(0, 0).real() : T(0);
+        if constexpr (std::is_same<T, double>::value)
+            Cdgsum2d(ad_A_opt.ictxt(), "A", " ", 1, 1, W, 1, -1, -1);
+        else
+            Csgsum2d(ad_A_opt.ictxt(), "A", " ", 1, 1, W, 1, -1, -1);
+        if (ad_Z_opt.is_src()) Z_local_opt(0, 0) = std::complex<T>(1, 0);
     }
-    profiler.stop("power_hemat_blacs_1");
+    else
+    {
+        profiler.start("power_hemat_blacs_1", LIBRPA_VERBOSE_DEBUG);
+        int lwork = -1, lrwork = -1, info = 0;
+        std::complex<T> *work;
+        T *rwork;
+        {
+            work = new std::complex<T>[1];
+            rwork = new T[1];
+            // query the optimal lwork and lrwork
+            T *Wquery = new T[1];
+            // librpa_int::global::lib_printf("power_hemat_blacs descA %s\n",
+            // ad_A.info_desc().c_str());
+            ScalapackConnector::pheev_f(jobz, uplo, n, A_local_opt.ptr(), 1, 1, ad_A_opt.desc,
+                                        Wquery, Z_local_opt.ptr(), 1, 1, ad_A_opt.desc, work, lwork,
+                                        rwork, lrwork, info);
+            lwork = std::max(int(work[0].real()), 1);
+            lrwork = std::max(int(rwork[0]), 1);
+            delete[] work;
+            delete[] Wquery;
+            delete[] rwork;
+        }
+        profiler.stop("power_hemat_blacs_1");
 
-    profiler.start("power_hemat_blacs_2", LIBRPA_VERBOSE_DEBUG);
-    work = new std::complex<T> [lwork];
-    rwork = new T [lrwork];
-    ScalapackConnector::pheev_f(jobz, uplo,
-            n, A_local_opt.ptr(), 1, 1, ad_A_opt.desc,
-            W, Z_local_opt.ptr(), 1, 1, ad_Z_opt.desc, work, lwork, rwork, lrwork, info);
-    delete [] work;
-    delete [] rwork;
-    profiler.stop("power_hemat_blacs_2");
+        profiler.start("power_hemat_blacs_2", LIBRPA_VERBOSE_DEBUG);
+        work = new std::complex<T>[lwork];
+        rwork = new T[lrwork];
+        ScalapackConnector::pheev_f(jobz, uplo, n, A_local_opt.ptr(), 1, 1, ad_A_opt.desc, W,
+                                    Z_local_opt.ptr(), 1, 1, ad_Z_opt.desc, work, lwork, rwork,
+                                    lrwork, info);
+        delete[] work;
+        delete[] rwork;
+        profiler.stop("power_hemat_blacs_2");
+    }
     // Optimized A no longer used
     profiler.start("power_hemat_blacs_3", LIBRPA_VERBOSE_DEBUG);
     A_local_opt.clear();
     // send back the eigenvector matrix
-    ScalapackConnector::pgemr2d_f(n, n, Z_local_opt.ptr(), 1, 1, ad_Z_opt.desc,
-                                  Z_local.ptr(), 1, 1, ad_Z.desc, ad_Z.ictxt());
+    ScalapackConnector::pgemr2d_f(n, n, Z_local_opt.ptr(), 1, 1, ad_Z_opt.desc, Z_local.ptr(), 1, 1,
+                                  ad_Z.desc, ad_Z.ictxt());
     profiler.stop("power_hemat_blacs_3");
 
     // check the number of non-singular eigenvalues,

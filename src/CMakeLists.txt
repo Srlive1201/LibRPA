@@ -80,6 +80,13 @@ list(APPEND lib_sources
         api/compute_exx.cpp
         api/compute_helper.cpp
         api/compute_g0w0.cpp
+        api/compute_qsgw.cpp
+        core/qsgw/task.cpp
+        core/qsgw/checkpoint.cpp
+        core/qsgw/iteration_trace.cpp
+        core/qsgw/band_output.cpp
+        core/qsgw/band_remap.cpp
+        core/qsgw/qp_diagnostics.cpp
         api/compute_rpa.cpp
         api/dataset.cpp
         api/dataset_helper.cpp
@@ -100,9 +107,11 @@ list(APPEND lib_sources
         core/exx.cpp
         core/geometry.cpp
         core/gw.cpp
+        core/headwing_velocity.cpp
         core/meanfield.cpp
         core/meanfield_mpi.cpp
         core/minimax_gx.cpp
+        core/native_velocity.cpp
         core/pbc.cpp
         core/qpoint_view.cpp
         core/qpe_solver.cpp
@@ -111,6 +120,7 @@ list(APPEND lib_sources
         core/qsgw/distributed_matrix.cpp
         core/qsgw/effective_hamiltonian.cpp
         core/qsgw/fixed_basis.cpp
+        core/qsgw/headwing_velocity.cpp
         core/qsgw/hamiltonian_cut.cpp
         core/qsgw/hamiltonian_mixing.cpp
         core/qsgw/occupation.cpp
@@ -136,6 +146,7 @@ list(APPEND lib_sources
         math/fitting.cpp
         math/interpolate.cpp
         math/lebedev_laikov.cpp
+        math/localized_operator.cpp
         math/mathtools.cpp
         math/matrix.cpp
         math/matrix3.cpp

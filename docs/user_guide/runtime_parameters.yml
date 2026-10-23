@@ -202,16 +202,96 @@ blocks:
       - api.n_bands_sigc
       - api.n_bands_exclude_sigc
 
+  - heading: G0W0 native velocity
+    text: |
+      The standalone `g0w0` driver and its `g0w0_band` alias can construct analytic
+      head/wing velocity from the original DFT H(R), S(R), and r(R). The driver
+      preset `option_dielect_func = 6` selects native velocity and then resolves
+      to the existing numerical option 3. It requires `replace_w_head = true`,
+      `use_scalapack_gw_wc = true`, and `use_pyatb = false`. An omitted velocity
+      selector becomes `native`; explicit `native` is accepted and explicit
+      `file` is rejected. The log records requested option 6 and effective
+      option 3. QSGW also supports option 6 with its `current_hr` velocity
+      convention, described below. Other tasks reject option 6. Direct
+      library/API callers use option 3 with the public velocity setter, not
+      option 6.
+      Existing options 3 and 4 still accept `g0w0_headwing_velocity = native`;
+      their default `file` uses the existing velocity reader.
+      The native path retains the loaded SCF energies,
+      wavefunctions, and occupations and does not solve a second eigenproblem.
+      It requires a complete uniform full-BZ mesh and complete AO-spinor/band
+      frames. One/two collinear spin channels or one two-component SOC channel
+      are supported. SOC requires full complex H and full-dimension S/r of
+      dimension `2 * N_AO`, with `use_spinor_wfc = true`; both spinor components
+      are retained in AO-major/spinor-minor order. Symmetry reduction and
+      k-point-parallel SCF eigenvectors are disabled. See the native head/wing example in
+      [Driver Usage](driver_usage.md#native-g0w0-headwing-velocity).
+    fields:
+      - driver.g0w0_headwing_velocity
+      - driver.g0w0_fn_hr
+      - driver.g0w0_fn_hr_spin1
+      - driver.g0w0_fn_sr
+      - driver.g0w0_fn_rr
+      - driver.g0w0_hr_unit
+      - driver.g0w0_rr_unit
+
   - heading: QSGW
     text: |
-      These experimental driver parameters apply only to `task = qsgw` or
-      `task = qsgw_band`. Same-grid analytic head-only updates are enabled
-      with `replace_w_head = true` and `option_dielect_func = 4`.
-      The aligned velocity remains in the immutable `mf0` basis while live
-      eigenvalues and eigenvectors are updated after each diagonalization.
+      Use `task = qsgw` for molecular and periodic QSGW; this is the only QSGW
+      task name, and older inputs must switch their task value. Presence of
+      `fn_band_kpath_info` (default `band_kpath_info`) enables the existing
+      band channel alongside the SCF grid and requires matching band E/C and
+      full band Vxc inputs. Without that metadata file, only the SCF grid is
+      computed, including for periodic inputs. Geometry does not select the
+      channel. `qsgw_cut_mode = 1` selects the shifted-reference cut on both
+      the SCF grid and optional band path. The retained empty-state count
+      defaults to 10, and the shift defaults to 2 eV (explicit
+      `qsgw_cut_shift_ha` values are in Hartree). HR export is enabled by default.
+      Each band-enabled iteration writes `KS_band_spin_S_N.dat`,
+      `EXX_band_spin_S_N.dat`, and `QSGW_band_spin_S_N.dat` for plotting;
+      figures are not generated automatically. Keep band-channel presence and
+      original path inputs unchanged when restarting a checkpoint.
+      These experimental parameters apply to `task = qsgw`.
+      `option_dielect_func = 6` selects
+      `qsgw_headwing_velocity = current_hr` and resolves to existing numerical
+      option 3: rebuild velocity from the current native-baseline Hamiltonian
+      in the entering E/C frame, then rebuild analytic head/wing using the live
+      E/C/f and the body frequency nodes. Previous head/wing data are cleared
+      before each rebuild. This needs dimensionless `qsgw_fn_sr` and Bohr
+      `qsgw_fn_rr`, plus matching native `hrs1_nao.csr` in Ry (and
+      `hrs2_nao.csr` for two physical collinear channels). The native DFT
+      baseline and complete current correction use the same reconstruction
+      as formal HR export; no velocity file is needed.
+      The preset requires `replace_w_head = true`, `use_scalapack_gw_wc = true`,
+      and `use_pyatb = false`. An omitted selector or explicit `current_hr` is
+      accepted; explicit `reference` or `rotate_reference` is rejected.
+      The log records requested option 6 and effective option 3.
+      Existing option 3 with `current_hr` remains equivalent; option 3/4 with
+      other supported velocity conventions keeps its existing behavior.
+      This is an experimental full, unshifted mesh path with complete square
+      AO-spinor/state frames and replicated wavefunctions. SOC uses one physical
+      channel and two components with full-dimension S/r; SOC EXX/GW/RPA symmetry
+      switches and IBZ input are rejected by this native velocity route.
+      Finite-BvK interpolation retains the off-mesh and convergence limitations
+      described in [QSGW](qsgw.md#analytic-head-and-wing-feedback).
       Independent-grid head/wing and Hartree updates are not supported.
-      Linear mixing is regression-tested for molecular QSGW only; the
-      current solid-state benchmark uses `qsgw_mixer = none`.
+      Mixing is selected after SCF input validation. The single-k route needs
+      global loaded SCF count 1 and full BvK mesh product 1 and permits
+      requested `none` or `linear`. Other meshes force effective `none` with
+      beta 1, even if `linear` was requested; a one-point IBZ from a larger
+      mesh uses this periodic route. The log records requested/effective
+      mixer, SCF count and mesh. The mixer default stays `none`; single-k
+      `linear` uses `qsgw_mixing_beta` (default 0.2), with beta 1 giving direct
+      updates. Band-path presence/count is independent, and grid/path use the
+      same effective beta. This input convention does not detect physical
+      isolation: Gamma-only solids also enter the single-k route and can use
+      `none`. Geometry, Coulomb and head/wing are unchanged. Remove obsolete
+      `qsgw_system_type` from inputs. Existing checkpoint effective-beta checks
+      retain the format: old single-k molecular restarts need the same mixer
+      and beta, without a type setting; periodic-route checkpoints with
+      effective beta below 1 cannot continue, while effective-beta-1 checkpoints
+      remain compatible. Adaptive automatic mixing belongs to a separate
+      branch; this implementation supports only `none` and `linear`.
       Full Vxc matrices are read directly using the producer's spin and
       k-point filenames under `input_dir`. Standard ABACUS `out_mat_xc`
       output is already in the initial KS-state basis, so the default
@@ -225,10 +305,17 @@ blocks:
       - driver.qsgw_mixing_beta
       - driver.qsgw_min_iter
       - driver.qsgw_max_iter
-      - driver.qsgw_band0_unoccupied_keep
-      - driver.qsgw_band0_cut_mode
-      - driver.qsgw_band0_cut_shift_ha
+      - driver.qsgw_unoccupied_keep
+      - driver.qsgw_cut_mode
+      - driver.qsgw_cut_shift_ha
       - driver.qsgw_write_iteration_matrices
+      - driver.qsgw_output_qp
+      - driver.qsgw_export_hamiltonian_for_pyatb
+      - driver.qsgw_headwing_velocity
+      - driver.qsgw_fn_sr
+      - driver.qsgw_fn_rr
+      - driver.qsgw_restart_file
+      - driver.qsgw_checkpoint_file
       - driver.qsgw_convergence_tolerance_ev
 
   - heading: LibRI Filtering

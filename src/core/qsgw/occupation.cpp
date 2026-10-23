@@ -63,7 +63,7 @@ void validate_kpoint_weights(const MeanField& meanfield,
         throw std::invalid_argument("QSGW k-point weight count does not match mean field");
     }
 
-    double weight_sum = 0.0;
+    long double weight_sum = 0.0L;
     for (const double weight: kpoint_weights)
     {
         if (!std::isfinite(weight) || weight < 0.0)
@@ -90,7 +90,7 @@ double physical_electron_count(
     validate_kpoint_weights(meanfield, kpoint_weights, tolerance);
     const double capacity_factor = state_capacity_factor(meanfield);
 
-    double result = 0.0;
+    long double result = 0.0L;
     for (int spin = 0; spin < meanfield.get_n_spins(); ++spin)
     {
         for (int kpoint = 0; kpoint < meanfield.get_n_kpoints(); ++kpoint)
@@ -116,7 +116,7 @@ double physical_electron_count(
     {
         throw std::invalid_argument("QSGW physical electron count is not finite");
     }
-    return result;
+    return static_cast<double>(result);
 }
 
 OccupationResult analyze_qsgw_occupations(
@@ -160,7 +160,7 @@ OccupationResult update_qsgw_occupations(
     const double capacity_factor = state_capacity_factor(reference_meanfield);
     const double reference_electrons = physical_electron_count(
         reference_meanfield, kpoint_weights, settings.electron_tolerance);
-    double total_capacity = 0.0;
+    long double total_capacity = 0.0L;
     std::vector<State> states;
     states.reserve(static_cast<std::size_t>(live_meanfield.get_n_spins()) *
                    live_meanfield.get_n_kpoints() * live_meanfield.get_n_bands());
@@ -224,7 +224,10 @@ OccupationResult update_qsgw_occupations(
     {
         spin_weights.zero_out();
     }
-    double remaining = total_electrons;
+    // On dense meshes the same charge is accumulated in two different orders.
+    // Keep the filling ledger in extended precision, rather than weakening the
+    // absolute charge tolerance to accommodate order-dependent roundoff.
+    long double remaining = total_electrons;
     for (std::size_t begin = 0; begin < states.size();)
     {
         std::size_t end = begin + 1;
@@ -235,14 +238,15 @@ OccupationResult update_qsgw_occupations(
             ++end;
         }
 
-        double group_capacity = 0.0;
+        long double group_capacity = 0.0L;
         for (std::size_t index = begin; index < end; ++index)
         {
             group_capacity += states[index].capacity;
         }
-        const double fraction = group_capacity > 0.0
-                                    ? std::clamp(remaining / group_capacity, 0.0, 1.0)
-                                    : 0.0;
+        const double fraction =
+            group_capacity > 0.0L
+                ? static_cast<double>(std::clamp(remaining / group_capacity, 0.0L, 1.0L))
+                : 0.0;
         for (std::size_t index = begin; index < end; ++index)
         {
             const State& state = states[index];
@@ -262,6 +266,7 @@ OccupationResult update_qsgw_occupations(
     }
 
     OccupationResult result;
+    long double filled_electrons = 0.0L;
     double filling_vbm = -std::numeric_limits<double>::infinity();
     double filling_cbm = std::numeric_limits<double>::infinity();
     double lowest_active_energy = std::numeric_limits<double>::infinity();
@@ -270,7 +275,7 @@ OccupationResult update_qsgw_occupations(
     {
         const double occupation =
             updated_weights[state.spin](state.kpoint, state.band);
-        result.electron_count += occupation;
+        filled_electrons += occupation;
         if (state.capacity <= settings.electron_tolerance)
         {
             continue;
@@ -339,6 +344,7 @@ OccupationResult update_qsgw_occupations(
     }
     result.gap = result.metallic ? 0.0 : manifold_gap;
 
+    result.electron_count = static_cast<double>(filled_electrons);
     if (std::abs(result.electron_count - total_electrons) >
         settings.electron_tolerance)
     {

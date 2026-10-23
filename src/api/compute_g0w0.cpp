@@ -13,6 +13,7 @@
 
 // Headers for API
 #include "compute_helper.h"
+#include "gw_response_helper.h"
 #include "dataset_helper.h"
 #include "instance_manager.h"
 
@@ -668,11 +669,21 @@ void dump_analycont_source_data(std::ostream &os, const librpa_int::AnalyCont &a
 
 void librpa_build_g0w0_sigma(LibrpaHandler* h, const LibrpaOptions *p_opts)
 {
+    auto dataset = librpa_int::api::get_dataset_instance(h);
+    librpa_int::api::build_gw_sigma_for_task(*dataset, *p_opts);
+}
+
+void librpa_int::api::build_gw_sigma_for_task(
+    Dataset& dataset, const LibrpaOptions& opts, const qsgw::ResponseObserver& on_response)
+{
     using namespace librpa_int;
     using librpa_int::global::lib_printf;
 
-    auto pds = librpa_int::api::get_dataset_instance(h);
-    const auto &opts = *p_opts;
+    auto* pds = &dataset;
+    if (opts.option_dielect_func == 6)
+        throw LIBRPA_RUNTIME_ERROR(
+            "option_dielect_func = 6 is a standalone G0W0 driver preset; "
+            "API callers must supply velocity and use option_dielect_func = 3");
     const bool debug = global::should_output(LIBRPA_VERBOSE_DEBUG);
     if (opts.replace_w_head == LIBRPA_SWITCH_ON && opts.option_dielect_func == 53 &&
         (opts.use_2d_dielectric == LIBRPA_SWITCH_ON ||
@@ -711,6 +722,8 @@ void librpa_build_g0w0_sigma(LibrpaHandler* h, const LibrpaOptions *p_opts)
         const int n_atoms = pds->atoms.size();
         routing = decide_auto_routing(n_atoms, opts.nfreq * pds->pbc.get_n_cells_bvk());
     }
+    if (on_response && routing != LIBRPA_ROUTING_LIBRI)
+        throw LIBRPA_INVALID_ARGUMENT("shared GW/cRPA requires LIBRI response routing");
 
     if (opts.use_kpara_scf_eigvec == LIBRPA_SWITCH_ON)
     {
@@ -781,6 +794,7 @@ void librpa_build_g0w0_sigma(LibrpaHandler* h, const LibrpaOptions *p_opts)
                pds->blacs_h);
     profiler.stop("chi0_build");
     pds->comm_h.barrier();
+    if (on_response) on_response(chi0.get_chi0_q());
 
     if (debug)
     { // debug, check chi0
@@ -815,6 +829,19 @@ void librpa_build_g0w0_sigma(LibrpaHandler* h, const LibrpaOptions *p_opts)
         {
             if (pds->epsmacs_imagfreq.size() != chi0.tfg.get_freq_nodes().size())
                 throw LIBRPA_RUNTIME_ERROR("analytic head/wing dielectric data must match chi0 frequency grid");
+            if (pds->p_headwing)
+            {
+                const auto &nodes = pds->p_headwing->get_frequency_nodes();
+                const auto &body_nodes = chi0.tfg.get_freq_nodes();
+                if (nodes.size() != body_nodes.size())
+                    throw LIBRPA_RUNTIME_ERROR(
+                        "analytic head/wing and body frequency nodes differ");
+                for (std::size_t i = 0; i < nodes.size(); ++i)
+                    if (std::abs(nodes[i] - body_nodes[i]) >
+                        1e-12 * std::max(1.0, std::abs(body_nodes[i])))
+                        throw LIBRPA_RUNTIME_ERROR(
+                            "analytic head/wing and body frequency nodes differ");
+            }
             epsmac_LF_imagfreq_re = pds->epsmacs_imagfreq;
         }
         else

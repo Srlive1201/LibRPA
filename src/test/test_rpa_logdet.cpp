@@ -38,6 +38,29 @@ static bool check_logdet(const BlacsCtxtHandler& blacs,
            && real_error < 1e-12 && phase_error < 1e-12;
 }
 
+static bool check_cross_column_pivot(const BlacsCtxtHandler& blacs)
+{
+    // The third pivot swaps rows in process column 1 on the 2x2 MPI grid.
+    // det(M) = 0.5 * det(M[0:3,0:3]) = 2.817 and tr(I-M) = -2.5.
+    constexpr int n = 4;
+    const double m[n][n] = {{2., .3, 0., 0.}, {.5, 3., .2, 0.}, {.4, .6, 1., 0.}, {.7, .9, 4., .5}};
+    ArrayDesc desc(blacs);
+    desc.init(n, n, 2, 2, 0, 0);
+    auto response = init_local_mat<std::complex<double>>(desc, MAJOR::COL);
+    for (int i = 0; i < n; ++i)
+        for (int j = 0; j < n; ++j)
+        {
+            const int row = desc.indx_g2l_r(i), col = desc.indx_g2l_c(j);
+            if (row >= 0 && col >= 0) response(row, col) = (i == j ? 1. : 0.) - m[i][j];
+        }
+    const auto actual = compute_rpa_response_trace_logdet_blacs_2d(response, desc);
+    const std::complex<double> expected{std::log(2.817) - 2.5, 0.};
+    if (blacs.myid == 0)
+        std::cout << "cross_column_pivot actual=" << actual << " expected=" << expected
+                  << std::endl;
+    return std::isfinite(std::abs(actual)) && std::abs(actual - expected) < 1e-10;
+}
+
 int main(int argc, char** argv)
 {
     MPI_Init(&argc, &argv);
@@ -46,6 +69,7 @@ int main(int argc, char** argv)
         BlacsCtxtHandler blacs(MPI_COMM_WORLD);
         blacs.init();
         blacs.set_square_grid();
+        passed &= check_cross_column_pivot(blacs);
         const auto z = std::polar(1.0, TWO_PI / 6.0);
         const auto t = std::polar(1.0, TWO_PI * 0.4);
         for (const int block_size : {1, 2, 3})

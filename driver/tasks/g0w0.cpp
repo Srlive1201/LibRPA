@@ -1,3 +1,5 @@
+#include <librpa_enums.h>
+
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
@@ -9,19 +11,151 @@
 #include <string>
 #include <vector>
 
-#include <librpa_enums.h>
-
 #include "../../src/api/instance_manager.h"
 #include "../../src/core/symmetry_context.h"
 #include "../../src/io/fs.h"
 #include "../../src/io/global_io.h"
 #include "../../src/io/stl_io_helper.h"
+#include "../../src/mpi/collective_stage.h"
+#include "../../src/mpi/global_mpi.h"
 #include "../../src/utils/constants.h"
 #include "../../src/utils/profiler.h"
 #include "../driver.h"
+#include "../reader/localized_operator_io.h"
 #include "../read_data.h"
+#include "../reader_2d_coulomb_head.h"
 #include "../task.h"
 #include "task_helper.h"
+
+using librpa_int::collective_all_stage;
+
+namespace
+{
+struct LocalizedOperatorView
+{
+    std::vector<LibrpaLocalizedBlock> blocks;
+    LibrpaLocalizedOperator view{};
+
+    explicit LocalizedOperatorView(const librpa_int::LocalizedMatrix &matrix)
+    {
+        for (const auto &[translation, values] : matrix)
+        {
+            if (!view.dimension) view.dimension = values.nr();
+            if (values.nr() != view.dimension || values.nc() != view.dimension)
+                throw LIBRPA_RUNTIME_ERROR("Native operator contains inconsistent block shapes");
+            blocks.push_back({{translation.x, translation.y, translation.z},
+                              reinterpret_cast<const double *>(values.ptr()),
+                              values.is_row_major() ? 1 : 0});
+        }
+        view.n_blocks = blocks.size();
+        view.blocks = blocks.data();
+    }
+};
+}  // namespace
+
+static void prepare_g0w0_native_velocity(bool prepare_optical = true)
+{
+    using namespace librpa_int;
+    const auto &comm = global::mpi_comm_global_h;
+    const auto &params = driver::driver_params;
+    LocalizedAoOperators operators;
+    std::vector<LocalizedMatrix> hamiltonians;
+    std::vector<LocalizedOperatorView> storage;
+    std::vector<LibrpaLocalizedOperator> h_views;
+    LibrpaNativeVelocityInput input{};
+    auto input_path = [&](const std::string &filename)
+    { return is_absolute_path(filename) ? filename : join_path(params.input_dir, filename); };
+    collective_all_stage(
+        comm, "G0W0 native operator input",
+        [&]
+        {
+            if (!comm.is_root()) return;
+            const double energy_scale = params.g0w0_hr_unit == "Ry"   ? 0.5
+                                        : params.g0w0_hr_unit == "eV" ? 1.0 / HA2EV
+                                                                      : 1.0;
+            const double length_scale = params.g0w0_rr_unit == "Angstrom" ? ANG2BOHR : 1.0;
+            operators = librpa::reader::read_headwing_ao_operators(
+                input_path(params.g0w0_fn_sr), input_path(params.g0w0_fn_rr), length_scale);
+            hamiltonians.push_back(librpa::reader::read_headwing_hamiltonian_csr(
+                input_path(params.g0w0_fn_hr), energy_scale));
+            if (!params.g0w0_fn_hr_spin1.empty())
+                hamiltonians.push_back(librpa::reader::read_headwing_hamiltonian_csr(
+                    input_path(params.g0w0_fn_hr_spin1), energy_scale));
+            storage.reserve(4 + hamiltonians.size());
+            storage.emplace_back(operators.overlap);
+            input.overlap = storage.back().view;
+            for (int axis = 0; axis < 3; ++axis)
+            {
+                storage.emplace_back(operators.position[axis]);
+                input.position[axis] = storage.back().view;
+            }
+            for (const auto &hamiltonian : hamiltonians)
+            {
+                storage.emplace_back(hamiltonian);
+                h_views.push_back(storage.back().view);
+            }
+            input.n_spins = h_views.size();
+            input.hamiltonian = h_views.data();
+            if (prepare_optical && driver::get_bool(driver::opts.use_2d_dielectric))
+            {
+                const auto metadata = read_strict_2d_coulomb_head_metadata(
+                    join_path(params.input_dir, "librpa_2d_coulomb_head.txt"));
+                input.inplane_area_bohr2 = metadata.inplane_area_bohr2;
+                input.auxiliary_monopole_norm_squared = metadata.auxiliary_monopole_norm_squared;
+            }
+        });
+    driver::h.prepare_native_velocity(driver::opts, comm.is_root() ? &input : nullptr,
+                                      prepare_optical);
+}
+
+static void write_g0w0_headwing_diagnostics()
+{
+    using namespace librpa_int;
+    if (!global::should_output(LIBRPA_VERBOSE_DEBUG)) return;
+    const auto &comm = global::mpi_comm_global_h;
+    collective_all_stage(
+        comm, "G0W0 head/wing diagnostics",
+        [&]
+        {
+            if (!comm.is_root()) return;
+            const auto result = driver::h.get_optical_result();
+            const auto view = librpa_get_optical_view(result.get());
+            create_directories(driver::opts.output_dir, 0);
+            std::ofstream velocity(join_path(driver::opts.output_dir, "g0w0_velocity.csv"));
+            std::ofstream optical(join_path(driver::opts.output_dir, "g0w0_headwing.csv"));
+            if (!velocity || !optical)
+                throw LIBRPA_RUNTIME_ERROR("Cannot open G0W0 head/wing diagnostic output");
+            velocity << "spin,k,alpha,row,col,real_HaBohr,imag_HaBohr\n"
+                     << std::scientific << std::setprecision(17);
+            std::size_t index = 0;
+            for (int spin = 0; spin < view.n_spins; ++spin)
+                for (int k = 0; k < view.n_kpoints; ++k)
+                    for (int axis = 0; axis < 3; ++axis)
+                        for (int row = 0; row < view.n_states; ++row)
+                            for (int column = 0; column < view.n_states; ++column, index += 2)
+                                velocity << spin << ',' << k << ',' << axis << ',' << row << ','
+                                         << column << ',' << view.velocity_ri[index] << ','
+                                         << view.velocity_ri[index + 1] << '\n';
+            optical << "quantity,frequency,omega_Ha,row,col,real,imag\n"
+                    << std::scientific << std::setprecision(17);
+            const auto write = [&](const char *name, const double *values, int rows, int columns)
+            {
+                std::size_t entry = 0;
+                for (int frequency = 0; frequency < view.n_frequencies; ++frequency)
+                    for (int row = 0; row < rows; ++row)
+                        for (int column = 0; column < columns; ++column, entry += 2)
+                            optical << name << ',' << frequency << ','
+                                    << view.frequencies_ha[frequency] << ',' << row << ',' << column
+                                    << ',' << values[entry] << ',' << values[entry + 1] << '\n';
+            };
+            write("head", view.head_ri, view.head_rows, view.head_columns);
+            write("wing_auxiliary", view.wing_ri, view.wing_rows, view.wing_columns);
+            velocity.flush();
+            optical.flush();
+            if (!velocity || !optical)
+                throw LIBRPA_RUNTIME_ERROR("Cannot flush G0W0 head/wing diagnostic output");
+        });
+}
 
 static std::vector<double> make_spectral_omegas_ha()
 {
@@ -581,7 +715,11 @@ void driver::task_g0w0()
         (need_wing || opts.option_dielect_func == 4);
     if (compute_headwing)
     {
-        read_headwing_input(driver_params.input_dir, need_wing);
+        if (driver_params.g0w0_headwing_velocity == "native")
+            prepare_g0w0_native_velocity();
+        else
+            read_headwing_input(driver_params.input_dir, need_wing);
+        write_g0w0_headwing_diagnostics();
     }
     else if (driver::get_bool(opts.replace_w_head) && librpa_int::path_exists(file_df.c_str()))
     {

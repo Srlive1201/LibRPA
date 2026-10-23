@@ -793,6 +793,50 @@ VelocityBasisAlignmentResult align_distributed_velocity_to_reference_wfc(
         replicated_basis, reference, velocity, relative_tolerance);
 }
 
+SpinKMatrixMap reference_basis_rotation(const MeanField& live, const MeanField& reference)
+{
+    require_same_meanfield_shape(live, reference);
+    require_valid_wfc(reference, "reference");
+    require_valid_wfc(live, "live");
+    SpinKMatrixMap result;
+    VelocityBasisAlignmentResult diagnostics;
+    for (int spin = 0; spin < reference.get_n_spins(); ++spin)
+        for (int kpoint = 0; kpoint < reference.get_n_kpoints(); ++kpoint)
+        {
+            const Matz reference_rows =
+                collect_reference_wfc_rows(reference, spin, kpoint, MAJOR::ROW);
+            const Matz live_rows = collect_reference_wfc_rows(live, spin, kpoint, MAJOR::ROW);
+            Matz transform;
+            if (reference_rows.nr() == reference_rows.nc())
+            {
+                transform =
+                    live_rows * invert_complete_wfc_basis(reference_rows, 1e-10, diagnostics);
+            }
+            else
+            {
+                // Grid-only QSGW can retain fewer states than AO components.
+                // Recover L = T C with the full-row-rank right inverse
+                // C^+ = C^dagger (C C^dagger)^-1. The AO coefficients need
+                // not be Euclidean-orthonormal; the saved state rotation is.
+                const Matz adjoint = transpose(reference_rows, true);
+                const Matz gram_inverse =
+                    invert_complete_wfc_basis(reference_rows * adjoint, 1e-10, diagnostics);
+                transform = live_rows * adjoint * gram_inverse;
+            }
+            require_finite_matrix(transform, "saved eigenframe rotation");
+            const double reconstruction_error =
+                relative_reconstruction_residual(live_rows, transform, reference_rows);
+            if (!std::isfinite(reconstruction_error) || reconstruction_error > 1e-8)
+                throw std::runtime_error(
+                    "QSGW saved eigenframe differs from the reference subspace");
+            // Wavefunctions have band rows, so this is U^T, not U^dagger.
+            if (maximum_unitarity_residual(transform) > 1e-8)
+                throw std::runtime_error("QSGW saved eigenframe rotation is not unitary");
+            result[spin][kpoint] = transpose(transform, false);
+        }
+    return result;
+}
+
 FixedBasisDiagonalizationResult diagonalize_in_reference_basis(
     MeanField& live,
     const MeanField& reference,

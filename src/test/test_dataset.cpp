@@ -321,6 +321,8 @@ static void test_redistribute_eigvecs_kpara_2d_np4()
     constexpr int n_kpoints = 3;
     constexpr int n_states = 193;
     constexpr int n_aos = 263;
+    // Exactly representable dyadic values keep this copy/layout check
+    // independent of SIMD/FMA rounding in separate fill/verification loops.
     const std::vector<int> initial_owner{3, 0, 1};
 
     Dataset ds(MPI_COMM_WORLD);
@@ -346,7 +348,7 @@ static void test_redistribute_eigvecs_kpara_2d_np4()
             for (int ib = 0; ib != n_states; ++ib)
                 for (int iao = 0; iao != n_aos; ++iao)
                 {
-                    const double value = 100.0 * ispinor + 10.0 * ik + ib + 0.01 * iao;
+                    const double value = 100.0 * ispinor + 10.0 * ik + ib + iao / 1024.0;
                     wfc(ib, iao) = {value, -value};
                 }
         }
@@ -379,7 +381,7 @@ static void test_redistribute_eigvecs_kpara_2d_np4()
                 for (int iloc = 0; iloc != ds.desc_wfc_kb.m_loc(); ++iloc)
                 {
                     const int iao = ds.desc_wfc_kb.indx_l2g_r(iloc);
-                    const double value = 100.0 * ispinor + 10.0 * ik + ib + 0.01 * iao;
+                    const double value = 100.0 * ispinor + 10.0 * ik + ib + iao / 1024.0;
                     assert(fequal((*wfc)(jloc, iloc),
                                   std::complex<double>(value, -value)));
                 }
@@ -397,6 +399,8 @@ static void test_redistribute_eigvecs_1b1p_to_opt_np4()
     constexpr int n_kpoints = 3;
     constexpr int n_states = 193;
     constexpr int n_aos = 263;
+    // Exactly representable dyadic values keep this copy/layout check
+    // independent of SIMD/FMA rounding in separate fill/verification loops.
     KPointBlacsParallelContext kctx({2, 2}, MPI_COMM_WORLD, n_kpoints);
     const auto desc_io = kctx.create_array_desc(n_aos, n_states);
     const int block_ao =
@@ -420,7 +424,7 @@ static void test_redistribute_eigvecs_1b1p_to_opt_np4()
                 for (int iloc = 0; iloc != desc_io.m_loc(); ++iloc)
                 {
                     const int iao = desc_io.indx_l2g_r(iloc);
-                    const double value = 1000.0 * ispinor + 100.0 * ik + ib + 0.001 * iao;
+                    const double value = 1000.0 * ispinor + 100.0 * ik + ib + iao / 1024.0;
                     wfc(jloc, iloc) = {value, -value};
                 }
             }
@@ -448,7 +452,7 @@ static void test_redistribute_eigvecs_1b1p_to_opt_np4()
                 for (int iloc = 0; iloc != desc_opt.m_loc(); ++iloc)
                 {
                     const int iao = desc_opt.indx_l2g_r(iloc);
-                    const double value = 1000.0 * ispinor + 100.0 * ik + ib + 0.001 * iao;
+                    const double value = 1000.0 * ispinor + 100.0 * ik + ib + iao / 1024.0;
                     assert(fequal((*wfc)(jloc, iloc),
                                   std::complex<double>(value, -value)));
                 }
@@ -746,6 +750,8 @@ static void test_redistribute_band_eigvecs_kpara_2d_np4()
     constexpr int n_kpoints = 4;
     constexpr int n_states = 193;
     constexpr int n_aos = 263;
+    // Exactly representable dyadic values keep this copy/layout check
+    // independent of SIMD/FMA rounding in separate fill/verification loops.
 
     Dataset ds(MPI_COMM_WORLD);
     ds.mf_band.set(1, n_kpoints, n_states, n_aos, 1);

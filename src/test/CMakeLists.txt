@@ -4,6 +4,12 @@
 # - https://stackoverflow.com/questions/19278510/cmake-ctest-add-test-command-appends-extra-quotes-to-my-command-parameters
 macro(config_test TARGET NUMPROC)
   add_executable(${TARGET} ${TARGET}.cpp)
+  # Numerical tests must retain their assertions in Release builds.
+  if(MSVC)
+    target_compile_options(${TARGET} PRIVATE /UNDEBUG)
+  else()
+    target_compile_options(${TARGET} PRIVATE -UNDEBUG)
+  endif()
   target_compile_definitions(${TARGET} PRIVATE "LIBRPA_MPI_THREAD_LEVEL=${LIBRPA_MPI_THREAD_LEVEL}")
   target_link_libraries(${TARGET} PRIVATE rpa_lib)
   if(LIBRPA_BUNDLED_ELPA_PROJECT_TARGET)
@@ -63,6 +69,7 @@ foreach(target
     test_pbc
     test_profiler
     test_qpe_solver
+    test_qsgw_correlation_potential
     test_rsh
     test_rpa_headwing
     test_rpa_logdet
@@ -141,3 +148,18 @@ set_tests_properties(test_headwing_descriptor PROPERTIES TIMEOUT 30)
 
 target_compile_definitions(test_si_density_symmetry PRIVATE
   SI_DENSITY_REFERENCE="${CMAKE_CURRENT_SOURCE_DIR}/data/si_k444_density_reference.txt")
+
+config_test(test_matrix_power_scalar 1)
+add_test(NAME test_matrix_power_scalar_mpi COMMAND mpirun -np 4 $<TARGET_FILE:test_matrix_power_scalar>)
+
+# QSGW controls exercise fixed-reference state updates and their MPI ownership.
+foreach(target
+    test_qsgw_fixed_basis
+    test_qsgw_effective_hamiltonian
+    test_qsgw_occupation
+    test_qsgw_convergence
+    test_qsgw_hamiltonian_cut)
+  config_test(${target} 1)
+endforeach()
+config_test(test_qsgw_fixed_basis_mpi 4)
+config_test(test_qsgw_distributed_matrix 4)
