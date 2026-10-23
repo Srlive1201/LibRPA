@@ -25,16 +25,15 @@ list(APPEND exe_sources
   tasks/g0w0.cpp
   tasks/g0w0_band.cpp
   tasks/rpa.cpp
+  tasks/crpa.cpp
+  tasks/crpa_model_output.cpp
   tasks/sternheimer_rpa.cpp
   tasks/print_minimax.cpp
   tasks/qsgw.cpp
   qsgw/vxc_io.cpp
-  qsgw/band_output.cpp
-  qsgw/iteration_trace.cpp
   # tasks/test.cpp
   # task_qsgw.cpp
   # task_qsgwA.cpp
-  # task_qsgw_band.cpp
   # task_hf_band.cpp
   # task_scRPA.cpp
   # task_scRPA_band.cpp

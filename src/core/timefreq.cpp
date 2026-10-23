@@ -3,6 +3,7 @@
 #include <omp.h>
 
 #include <algorithm>
+#include <cmath>
 #include <fstream>
 #include <iostream>
 #include <utility>
@@ -229,6 +230,27 @@ double TFGrids::generate_minimax(double emin, double emax, double regulation)
         default:
             throw LIBRPA_RUNTIME_ERROR(string("minimax grids failed, return code: ") + std::to_string(ierr));
     }
+
+    // GreenX can return success after an underflow in its transform fit.
+    // Reject unusable grids here, before their coefficients enter Chi0 or GW.
+    const auto require_finite = [&](const double *values, std::size_t size, const char *quantity)
+    {
+        for (std::size_t i = 0; i < size; ++i)
+            if (!std::isfinite(values[i]))
+                throw LIBRPA_RUNTIME_ERROR("minimax grid generation produced non-finite " +
+                                           string(quantity) + " (n=" + std::to_string(n_grids) +
+                                           ", emin=" + std::to_string(emin) +
+                                           ", emax=" + std::to_string(emax) + ")");
+    };
+    require_finite(time_nodes.data(), time_nodes.size(), "time nodes");
+    require_finite(time_weights.data(), time_weights.size(), "time weights");
+    require_finite(freq_nodes.data(), freq_nodes.size(), "frequency nodes");
+    require_finite(freq_weights.data(), freq_weights.size(), "frequency weights");
+    require_finite(costrans_t2f.c, costrans_t2f.size, "cosine time-to-frequency transform");
+    require_finite(costrans_f2t.c, costrans_f2t.size, "cosine frequency-to-time transform");
+    require_finite(sintrans_t2f.c, sintrans_t2f.size, "sine time-to-frequency transform");
+    require_finite(max_errors, 3, "transform fit errors");
+    require_finite(&cosft_duality_error, 1, "cosine duality error");
 
     return cosft_duality_error;
 

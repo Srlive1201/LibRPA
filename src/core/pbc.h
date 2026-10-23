@@ -131,7 +131,8 @@ std::vector<Vector3_Order<int>> find_nearest_bvk_cells(const Vector3<double> &co
                                                        const Matrix3 &latvec);
 
 // Remap parsed lattice vectors to their BvK counterparts for each atom pair.
-// remap_convention = 0: choose one nearest BvK cell.
+// remap_convention = 0: choose one nearest BvK cell, averaging inconsistent
+// opposite-pair ties to preserve the adjoint relation.
 // remap_convention = 1: keep all nearest BvK cells sharing the same minimal distance.
 template <typename AtomT, typename AtomPairT = std::pair<AtomT, AtomT>>
 class AtomPairBvKRemap
@@ -174,11 +175,21 @@ public:
                     R_remap_type R_bvks;
                     if (remap_convention == 0)
                     {
-                        R_bvks.push_back(find_nearest_bvk_cell(coord_frac_I, coord_frac_J, R, period, latvec));
+                        const auto R_direct = R % period;
+                        const auto R_opposite = (-R_direct) % period;
+                        R_bvks.push_back(find_nearest_bvk_cell(coord_frac_I, coord_frac_J, R_direct,
+                                                               period, latvec));
+                        const auto R_reverse = -find_nearest_bvk_cell(coord_frac_J, coord_frac_I,
+                                                                      R_opposite, period, latvec);
+                        // Average the legacy phase with its opposite-pair adjoint.
+                        // A self-inverse same-atom cell at an even-grid boundary
+                        // requires both images; no single image can satisfy it.
+                        if (!(R_reverse == R_bvks.front())) R_bvks.push_back(R_reverse);
                     }
                     else
                     {
-                        R_bvks = find_nearest_bvk_cells(coord_frac_I, coord_frac_J, R, period, latvec);
+                        R_bvks =
+                            find_nearest_bvk_cells(coord_frac_I, coord_frac_J, R, period, latvec);
                     }
 
                     if (R_bvks.size() == 1 && R_bvks.front() == R) continue;

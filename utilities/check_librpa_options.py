@@ -142,7 +142,7 @@ def parse_c_doc_field_name(line: str) -> Optional[str]:
     if not text.endswith(";") or "(" in text or ")" in text or text.startswith("static "):
         return None
 
-    declaration = text[:-1].strip()
+    declaration = text[:-1].split("=", 1)[0].strip()
     match = re.match(
         r"(?P<type>(?:std::)?[A-Za-z_][A-Za-z0-9_:<>]*"
         r"(?:\s+[A-Za-z_][A-Za-z0-9_:<>]*)*)\s+"

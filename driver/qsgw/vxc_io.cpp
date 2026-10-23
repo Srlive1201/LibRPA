@@ -12,10 +12,9 @@
 #include "../../src/io/fs.h"
 #include "../../src/io/input_elsi.h"
 
-namespace librpa_int
+namespace librpa::reader
 {
-namespace qsgw
-{
+using namespace librpa_int;
 namespace
 {
 
@@ -259,17 +258,13 @@ Matz read_abacus_vxc_ha(std::istream& input,
 
 } // namespace
 
-SpinKMatrixMap read_qsgw_vxc(const std::string& input_directory,
-                            const std::string& prefix,
-                            const MeanField& reference,
-                            const bool aims_input,
-                            const bool band_path,
-                            const VxcBasis basis)
+VxcMatrices read_qsgw_vxc(const std::string& input_directory, const std::string& prefix,
+                          const int nspins, const int nkpoints, const int nspinor,
+                          const bool aims_input, const bool band_path)
 {
-    if (!aims_input && reference.get_n_spinor() != 1)
-        throw std::invalid_argument("ABACUS QSGW Vxc currently requires n_spinor=1");
-    if (aims_input && basis != VxcBasis::State)
-        throw std::invalid_argument("FHI-aims QSGW Vxc requires the KS-state basis");
+    if (!aims_input && nspinor != 1 && (nspinor != 2 || nspins != 1))
+        throw std::invalid_argument(
+            "ABACUS QSGW Vxc requires scalar channels or one two-component spinor channel");
     const std::string default_prefix = aims_input
         ? (band_path ? "band_vxc_mat" : "xc_matr")
         : (band_path ? "band_vxc" : "vxc");
@@ -277,9 +272,9 @@ SpinKMatrixMap read_qsgw_vxc(const std::string& input_directory,
     const std::string path_prefix = is_absolute_path(file_prefix)
         ? file_prefix : join_path(input_directory, file_prefix);
 
-    SpinKMatrixMap result;
-    for (int spin = 0; spin < reference.get_n_spins(); ++spin)
-        for (int kpoint = 0; kpoint < reference.get_n_kpoints(); ++kpoint)
+    VxcMatrices result;
+    for (int spin = 0; spin < nspins; ++spin)
+        for (int kpoint = 0; kpoint < nkpoints; ++kpoint)
         {
             std::ostringstream filename;
             filename << path_prefix;
@@ -293,16 +288,21 @@ SpinKMatrixMap read_qsgw_vxc(const std::string& input_directory,
             else
             {
                 filename << "k" << kpoint + 1;
-                if (reference.get_n_spins() == 2) filename << "s" << spin + 1;
+                if (nspinor == 2)
+                    filename << "s4";
+                else if (nspins == 2)
+                    filename << "s" << spin + 1;
                 filename << "_nao.txt";
             }
             std::string path = filename.str();
             // ABACUS Gamma-only exports omit the k-point suffix.
-            if (!aims_input && reference.get_n_kpoints() == 1 &&
-                !file_exists(path))
+            if (!aims_input && nkpoints == 1 && !file_exists(path))
             {
                 path = path_prefix;
-                if (reference.get_n_spins() == 2) path += "s" + std::to_string(spin + 1);
+                if (nspinor == 2)
+                    path += "s4";
+                else if (nspins == 2)
+                    path += "s" + std::to_string(spin + 1);
                 path += "_nao.txt";
             }
             require_readable_file(path);
@@ -314,11 +314,9 @@ SpinKMatrixMap read_qsgw_vxc(const std::string& input_directory,
                 std::ifstream input(path);
                 matrix = read_abacus_vxc_ha(input, path);
             }
-            result[spin][kpoint] = prepare_vxc_in_fixed_state_basis(
-                matrix, basis, reference, spin, kpoint);
+            result[spin][kpoint] = std::move(matrix);
         }
     return result;
 }
 
-} // namespace qsgw
-} // namespace librpa_int
+}  // namespace librpa::reader

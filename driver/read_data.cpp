@@ -1647,6 +1647,13 @@ int read_eigenvector_kblacs_2d(const std::string &dir_path, librpa_int::MeanFiel
         ctx, dir_path, mf, use_spinor_wfc, kblacs_ctxt, desc_wfc, source_to_target_ik, text_order);
 }
 
+void read_velocity(const string &file_path, int n_spins, int n_kpoints, int n_states,
+                   velocity_matrix_t &velocity)
+{
+    auto ctx = driver_reader_context();
+    return librpa::reader::read_velocity(ctx, file_path, n_spins, n_kpoints, n_states, velocity);
+}
+
 void read_velocity(const string &file_path, const MeanField &mf, velocity_matrix_t &velocity)
 {
     auto ctx = driver_reader_context();

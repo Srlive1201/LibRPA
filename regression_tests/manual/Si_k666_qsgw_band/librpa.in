@@ -1,6 +1,6 @@
 # Si PBE, full 6x6x6 mesh, 201-point band path; two numerical updates.
 # Fixed-basis, analytic head only, no Hartree/wing update; not a convergence study.
-task = qsgw_band
+task = qsgw
 input_dir = ../dataset
 output_level = info
 constants_choice = internal
@@ -35,8 +35,10 @@ output_energy_qp = false
 qsgw_mixer = none
 qsgw_min_iter = 2
 qsgw_max_iter = 2
-qsgw_band0_unoccupied_keep = 10
-qsgw_band0_cut_mode = 2
-qsgw_band0_cut_shift_ha = 0.0
+qsgw_unoccupied_keep = 10
+qsgw_cut_mode = 1
+qsgw_cut_shift_ha = 0.0
 qsgw_write_iteration_matrices = false
+# This legacy head-only dataset does not require native H/S/r.
+qsgw_export_hamiltonian_for_pyatb = false
 option_bvk_remap = 1

@@ -32,6 +32,10 @@ extern "C"
     int  Cblacs_pnum(int ictxt, int prow, int pcol);
     void Cblacs_pcoord(int ictxt, int pnum, int *prow, int *pcol);
     void Cblacs_barrier(int ictxt, char *scope);
+    void Csgsum2d(int ictxt, const char *scope, const char *top, int m, int n, float *a, int lda,
+                  int rdest, int cdest);
+    void Cdgsum2d(int ictxt, const char *scope, const char *top, int m, int n, double *a, int lda,
+                  int rdest, int cdest);
 
 ////////////////////
 /* PBLAS bindings */

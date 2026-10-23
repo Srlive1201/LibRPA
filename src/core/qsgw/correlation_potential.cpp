@@ -133,94 +133,49 @@ void validate_contract(
     }
 }
 
-cplxdb continue_element(
-    const std::vector<cplxdb>& source_points,
-    const std::vector<cplxdb>& source_data,
-    const cplxdb target,
-    const CorrelationPotentialSettings& settings)
+AnalyContPade fit_element(const std::vector<cplxdb>& source_points,
+                          const std::vector<const Matz*>& source_matrices, const int row,
+                          const int column, const CorrelationPotentialSettings& settings)
 {
-    cplxdb result;
+    std::vector<cplxdb> source_data;
+    source_data.reserve(source_matrices.size());
+    for (const Matz* matrix : source_matrices)
+    {
+        source_data.push_back((*matrix)(row, column));
+    }
+
     if (settings.resample_imagfreqs.empty())
     {
-        result = AnalyContPade(settings.n_params_anacon,
-                              source_points, source_data)
-                     .get(target);
+        return AnalyContPade(settings.n_params_anacon, source_points, source_data);
     }
-    else
+
+    const AnalyContPade source_pade(settings.n_params_anacon_resample, source_points, source_data);
+    std::vector<cplxdb> resampled_data;
+    resampled_data.reserve(settings.resample_imagfreqs.size());
+    for (const cplxdb frequency : settings.resample_imagfreqs)
     {
-        const AnalyContPade source_pade(
-            settings.n_params_anacon_resample,
-            source_points, source_data);
-        std::vector<cplxdb> resampled_data;
-        resampled_data.reserve(settings.resample_imagfreqs.size());
-        for (const cplxdb frequency : settings.resample_imagfreqs)
+        const cplxdb value = source_pade.get(frequency);
+        if (!finite_complex(value))
         {
-            const cplxdb value = source_pade.get(frequency);
-            if (!finite_complex(value))
-            {
-                throw std::runtime_error(
-                    "QSGW first-stage analytic continuation produced non-finite data");
-            }
-            resampled_data.push_back(value);
+            throw std::runtime_error(
+                "QSGW first-stage analytic continuation produced non-finite data");
         }
-        result = AnalyContPade(settings.n_params_anacon,
-                              settings.resample_imagfreqs,
-                              resampled_data)
-                     .get(target);
+        resampled_data.push_back(value);
     }
+    return AnalyContPade(settings.n_params_anacon, settings.resample_imagfreqs, resampled_data);
+}
+
+cplxdb evaluate_element(const AnalyContPade& pade, const double target_energy)
+{
+    const cplxdb result = pade.get(cplxdb(target_energy, 0.0));
     if (!finite_complex(result))
     {
-        throw std::runtime_error(
-            "QSGW analytic continuation produced non-finite data");
+        throw std::runtime_error("QSGW analytic continuation produced non-finite data");
     }
     return result;
 }
 
-Matz evaluate_hermitian_sigma(
-    const std::vector<double>& source_frequencies,
-    const std::map<double, Matz>& sigma,
-    const double target_energy,
-    const CorrelationPotentialSettings& settings)
-{
-    std::vector<cplxdb> source_points;
-    source_points.reserve(source_frequencies.size());
-    for (const double frequency : source_frequencies)
-    {
-        source_points.emplace_back(0.0, frequency);
-    }
-
-    const int dimension = sigma.begin()->second.nr();
-    Matz continued(dimension, dimension, MAJOR::ROW);
-    for (int row = 0; row < dimension; ++row)
-    {
-        for (int column = 0; column < dimension; ++column)
-        {
-            std::vector<cplxdb> source_data;
-            source_data.reserve(source_frequencies.size());
-            for (const double frequency : source_frequencies)
-            {
-                source_data.push_back(sigma.at(frequency)(row, column));
-            }
-            continued(row, column) = continue_element(
-                source_points, source_data, cplxdb(target_energy, 0.0),
-                settings);
-        }
-    }
-
-    Matz hermitian(dimension, dimension, MAJOR::ROW);
-    for (int row = 0; row < dimension; ++row)
-    {
-        for (int column = 0; column < dimension; ++column)
-        {
-            hermitian(row, column) =
-                0.5 * (continued(row, column) +
-                       std::conj(continued(column, row)));
-        }
-    }
-    return hermitian;
-}
-
-} // namespace
+}  // namespace
 
 Matz build_qsgw_correlation_potential(
     const MeanField& meanfield,
@@ -235,45 +190,55 @@ Matz build_qsgw_correlation_potential(
     const int dimension = meanfield.get_n_bands();
     const double fermi_energy = meanfield.get_efermi();
 
-    std::vector<Matz> sigma_at_state_energy;
-    sigma_at_state_energy.reserve(static_cast<std::size_t>(dimension));
-    for (int band = 0; band < dimension; ++band)
+    std::vector<cplxdb> source_points;
+    std::vector<const Matz*> source_matrices;
+    source_points.reserve(source_frequencies.size());
+    source_matrices.reserve(source_frequencies.size());
+    for (const double frequency : source_frequencies)
     {
-        sigma_at_state_energy.push_back(evaluate_hermitian_sigma(
-            source_frequencies, sigma_imaginary_axis,
-            meanfield.get_eigenvals()[spin](kpoint, band) - fermi_energy,
-            settings));
+        source_points.emplace_back(0.0, frequency);
+        source_matrices.push_back(&sigma_imaginary_axis.at(frequency));
     }
 
     Matz result(dimension, dimension, MAJOR::ROW);
-    if (settings.mode == CorrelationPotentialMode::ModeB)
-    {
-        const Matz sigma_at_fermi = evaluate_hermitian_sigma(
-            source_frequencies, sigma_imaginary_axis, 0.0, settings);
-        for (int row = 0; row < dimension; ++row)
-        {
-            for (int column = 0; column < dimension; ++column)
-            {
-                result(row, column) =
-                    row == column
-                        ? sigma_at_state_energy[row](row, row)
-                        : sigma_at_fermi(row, column);
-            }
-        }
-        return result;
-    }
-
     for (int row = 0; row < dimension; ++row)
     {
-        for (int column = 0; column < dimension; ++column)
+        const double row_energy = meanfield.get_eigenvals()[spin](kpoint, row) - fermi_energy;
+        const AnalyContPade diagonal_pade =
+            fit_element(source_points, source_matrices, row, row, settings);
+        const cplxdb diagonal = evaluate_element(diagonal_pade, row_energy);
+        result(row, row) = 0.5 * (diagonal + std::conj(diagonal));
+
+        for (int column = row + 1; column < dimension; ++column)
         {
-            result(row, column) =
-                0.5 * (sigma_at_state_energy[row](row, column) +
-                       sigma_at_state_energy[column](row, column));
+            // Fit both ordered elements: Sigma(i omega) need not be Hermitian.
+            // Reuse each fit only at the energies required by the static potential.
+            const AnalyContPade forward_pade =
+                fit_element(source_points, source_matrices, row, column, settings);
+            const AnalyContPade reverse_pade =
+                fit_element(source_points, source_matrices, column, row, settings);
+            if (settings.mode == CorrelationPotentialMode::ModeB)
+            {
+                result(row, column) = 0.5 * (evaluate_element(forward_pade, 0.0) +
+                                             std::conj(evaluate_element(reverse_pade, 0.0)));
+            }
+            else
+            {
+                const double column_energy =
+                    meanfield.get_eigenvals()[spin](kpoint, column) - fermi_energy;
+                const cplxdb at_row_energy =
+                    0.5 * (evaluate_element(forward_pade, row_energy) +
+                           std::conj(evaluate_element(reverse_pade, row_energy)));
+                const cplxdb at_column_energy =
+                    0.5 * (evaluate_element(forward_pade, column_energy) +
+                           std::conj(evaluate_element(reverse_pade, column_energy)));
+                result(row, column) = 0.5 * (at_row_energy + at_column_energy);
+            }
+            result(column, row) = std::conj(result(row, column));
         }
     }
     return result;
 }
 
-} // namespace qsgw
-} // namespace librpa_int
+}  // namespace qsgw
+}  // namespace librpa_int
