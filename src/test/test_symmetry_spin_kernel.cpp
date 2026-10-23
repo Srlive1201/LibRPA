@@ -271,14 +271,19 @@ void run_kronecker_check(const ComplexMatrix &A, const su2_t &U, const bool anti
         X_ref = J * conj(X_ref) * transpose(J, true);
     }
 
-    const auto op = make_op(U, antiunitary);
     const auto orbit = [&A](std::size_t, const ComplexMatrix &x) {
         return A * x * transpose(A, true);
     };
-    const auto result = transform_spinor_bilinear(
-        op, split4_channel_outer(X, n), orbit, BilinearConvention::SourceToTarget_DXDdag);
-
-    assert_frob_below(frob_diff(merge4_channel_outer(result), X_ref), kTol, label);
+    // The optional numerical U is authoritative for every public source tag.
+    for (const auto source : {SymmetrySpinActionSource::Identity,
+                              SymmetrySpinActionSource::ExplicitSpinSpace,
+                              SymmetrySpinActionSource::DerivedFromSpatialSOC})
+    {
+        const auto op = make_op(U, antiunitary, source);
+        const auto result = transform_spinor_bilinear(
+            op, split4_channel_outer(X, n), orbit, BilinearConvention::SourceToTarget_DXDdag);
+        assert_frob_below(frob_diff(merge4_channel_outer(result), X_ref), kTol, label);
+    }
 }
 
 void test_kronecker_reference_random()

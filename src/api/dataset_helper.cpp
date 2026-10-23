@@ -39,6 +39,10 @@ int max_basis_l(const std::vector<const AtomicBasis*>& bases)
 
 void initialize_symmetry_context(Dataset &ds, const bool build_shell_rotations)
 {
+    // Metadata-only setup is also used while reading full-BZ inputs. Numerical
+    // spinor restoration, however, must never inherit the legacy identity-spin
+    // grey group: its spatial operations do not specify the SOC spin action.
+    if (build_shell_rotations) reject_spinor_symmetry_speedup(ds, "numerical");
     auto &spg_symops = ds.spg_symops;
 
     if (spg_symops.empty())

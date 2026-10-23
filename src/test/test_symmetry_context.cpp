@@ -1776,7 +1776,8 @@ void check_spinor_rspace_restore_driver(
             const std::array<int, 3> full_R{
                 member.full_R.x, member.full_R.y, member.full_R.z};
             const bool fast_path =
-                op.spin_source == SymmetrySpinActionSource::Identity && !op.antiunitary;
+                op.spin_source == SymmetrySpinActionSource::Identity && !op.antiunitary &&
+                op.spin_u == std::array<std::complex<double>, 4>{1.0, 0.0, 0.0, 1.0};
             const auto expected = reference_spinor_block_transform(op, x);
             for (std::size_t channel = 0; channel != 4; ++channel)
             {
@@ -1946,6 +1947,9 @@ void test_rspace_spinor_four_channel_restore_su2_mixing()
     symmetry_rspace_sector_stars_t sector_stars;
     build_symmetry_rspace_sector_stars(ctx, period, Rlist, sector_stars);
 
+    check_spinor_rspace_restore_driver(ctx, sector_stars);
+    // A provided spin matrix remains active with the public Identity source tag.
+    ctx.spin_operations[1].spin_source = SymmetrySpinActionSource::Identity;
     check_spinor_rspace_restore_driver(ctx, sector_stars);
 }
 

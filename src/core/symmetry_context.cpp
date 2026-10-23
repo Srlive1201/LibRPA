@@ -3054,7 +3054,8 @@ std::array<symmetry_rspace_block_map_t, 4> restore_symmetry_spinor_rspace_blocks
                     ctx, wfc_layouts, restore_member.isym, ir_I, ir_J, block);
             };
 
-            if (op.spin_source == SymmetrySpinActionSource::Identity && !op.antiunitary)
+            if (op.spin_source == SymmetrySpinActionSource::Identity && !op.antiunitary &&
+                op.spin_u == SymmetrySpinOperation{}.spin_u)
             {
                 // Fast path: channels evolve independently and absent channels
                 // stay absent, identical to the legacy per-channel restore.

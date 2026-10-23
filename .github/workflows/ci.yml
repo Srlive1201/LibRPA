@@ -107,7 +107,7 @@ jobs:
           cd regression_tests
           python verify_crpa_workflows.py --binary ../build_libri/chi0_main.exe \
             --work-dir workspace_crpa_workflows 2>&1 | tee test_crpa_workflows.log
-          python verify_magnetic_crpa_workflows.py --binary ../build_libri/chi0_main.exe \
+          python verification/verify_magnetic_crpa_workflows.py --binary ../build_libri/chi0_main.exe \
             --work-dir workspace_magnetic_crpa_workflows 2>&1 | tee test_magnetic_crpa_workflows.log
       - name: Build Fortran binding (with LibRI), static library, and binding test
         run: |

@@ -181,7 +181,7 @@ convergence.
 
 ### Magnetic coupled cRPA control
 
-The magnetic stage also provides `verify_magnetic_crpa_workflows.py` with the
+The magnetic stage also provides `verification/verify_magnetic_crpa_workflows.py` with the
 same `--binary`, `--work-dir` and optional repeatable `--ranks` arguments. It
 reuses the full-BZ and paired-IBZ SOC archives, enables all three symmetry
 routes, and compares two current-HR updates with weighted/tracked cRPA at

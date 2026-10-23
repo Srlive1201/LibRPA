@@ -28,6 +28,8 @@ SymmetryExpandedMeanField expand_symmetry_meanfield(const MeanField &source,
 // Verify E, occupations and diagonal endpoint weights through magnetic sewing.
 // Degenerate permutations/mixing are allowed only when they preserve the weights.
 // Includes all active operations, including little-group stabilizers.
+// Retained rectangular frames must span a symmetry-invariant subspace. With no
+// endpoint weights, an IBZ state is temporarily expanded only for validation.
 void validate_symmetry_band_weights(
     const MeanField &mf, const AtomicBasis &basis, const PeriodicBoundaryData &pbc,
     const SymmetryContext &symmetry,

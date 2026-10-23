@@ -41,11 +41,11 @@ SymmetryExpandedMeanField expand_symmetry_meanfield(const MeanField &source,
     const int spins = source.get_n_spins(), components = source.get_n_spinor();
     const auto layouts = basis.build_species_basis_layouts(context.atom_to_type);
     const auto atom_nw = basis.get_atom_nb_map();
-    if (bands != naos * components || loaded != pbc.kfrac_list.size() ||
+    if (bands <= 0 || bands > naos * components || loaded != pbc.kfrac_list.size() ||
         nk != pbc.kfrac_list_full.size() || pbc.weight_k.size() != loaded ||
         !can_restore_symmetry_kstar_meanfield(context, layouts, source, pbc.kfrac_list, atom_nw))
         throw LIBRPA_RUNTIME_ERROR(
-            "IBZ meanfield expansion requires complete square source frames and k stars");
+            "IBZ meanfield expansion requires complete source coefficients and k stars");
     validate_spin_operations_for_storage(context, spins, components);
     SymmetryExpandedMeanField result{MeanField(spins, nk, bands, naos, components),
                                      std::vector<int>(nk, -1), std::vector<bool>(nk)};
@@ -70,6 +70,12 @@ SymmetryExpandedMeanField expand_symmetry_meanfield(const MeanField &source,
             result.antiunitary[target] = member.time_reversal;
             for (int spin = 0; spin < spins; ++spin)
             {
+                for (int component = 0; component < components; ++component)
+                {
+                    const auto *c = source.find_wfc(spin, component, ik);
+                    if (!c || c->nr != bands || c->nc != naos)
+                        throw LIBRPA_RUNTIME_ERROR("IBZ expansion requires complete KS coefficients");
+                }
                 if (components == 2)
                 {
                     const std::array<ComplexMatrix, 2> input{*source.find_wfc(spin, 0, ik),
@@ -110,10 +116,23 @@ void validate_symmetry_band_weights(const MeanField &mf, const AtomicBasis &basi
 {
     const int bands = mf.get_n_bands(), naos = mf.get_n_aos();
     const int components = mf.get_n_spinor();
-    if (bands != naos * components || mf.get_n_kpoints() != pbc.get_n_cells_bvk() ||
+    if (weights.empty() && mf.get_n_kpoints() < pbc.get_n_cells_bvk())
+    {
+        // Validate all operation routes and little-group constraints without
+        // changing the live IBZ state, fixed reference, or public output grid.
+        const auto expanded = expand_symmetry_meanfield(mf, basis, pbc, symmetry);
+        auto full_pbc = pbc;
+        full_pbc.klist = pbc.klist_full;
+        full_pbc.kfrac_list = pbc.kfrac_list_full;
+        full_pbc.weight_k.assign(pbc.get_n_cells_bvk(), 1.0 / pbc.get_n_cells_bvk());
+        validate_symmetry_band_weights(expanded.meanfield, basis, full_pbc, symmetry);
+        return;
+    }
+    const int dimension = naos * components;
+    if (bands <= 0 || bands > dimension || mf.get_n_kpoints() != pbc.get_n_cells_bvk() ||
         !basis.has_l_shells() || !symmetry.available)
         throw LIBRPA_RUNTIME_ERROR(
-            "magnetic endpoint weights require complete replicated full-grid AO/band frames");
+            "magnetic endpoint weights require replicated full-grid KS coefficients");
     for (int spin = 0; spin < mf.get_n_spins(); ++spin)
         for (int k = 0; k < mf.get_n_kpoints(); ++k)
         {
@@ -149,7 +168,7 @@ void validate_symmetry_band_weights(const MeanField &mf, const AtomicBasis &basi
     constexpr double tolerance = 2e-7;
     const auto packed = [&](int spin, int k)
     {
-        ComplexMatrix result(bands, bands);
+        ComplexMatrix result(dimension, bands);
         for (int component = 0; component < components; ++component)
         {
             const auto *c = mf.find_wfc(spin, component, k);
@@ -168,6 +187,10 @@ void validate_symmetry_band_weights(const MeanField &mf, const AtomicBasis &basi
         for (int spin = 0; spin < mf.get_n_spins(); ++spin)
         {
             auto c = packed(spin, target);
+            const auto adjoint = transpose(c, true);
+            const bool rectangular = bands != dimension;
+            if (rectangular) c = adjoint * c;
+            const auto gram = c;
             std::vector<int> pivot(bands);
             std::vector<std::complex<double>> work(bands);
             int info = 0;
@@ -176,6 +199,30 @@ void validate_symmetry_band_weights(const MeanField &mf, const AtomicBasis &basi
                 LapackConnector::getri(bands, c.c, bands, pivot.data(), work.data(), bands, info);
             if (info)
                 throw LIBRPA_RUNTIME_ERROR("magnetic endpoint weights found a singular KS frame");
+            if (rectangular)
+            {
+                const auto infinity_norm = [](const ComplexMatrix &matrix)
+                {
+                    double result = 0;
+                    for (int row = 0; row < matrix.nr; ++row)
+                    {
+                        double sum = 0;
+                        for (int col = 0; col < matrix.nc; ++col)
+                            sum += std::abs(matrix(row, col));
+                        if (!std::isfinite(sum))
+                            return std::numeric_limits<double>::infinity();
+                        result = std::max(result, sum);
+                    }
+                    return result;
+                };
+                const double condition = infinity_norm(gram) * infinity_norm(c);
+                if (!std::isfinite(condition) ||
+                    condition * std::numeric_limits<double>::epsilon() > tolerance)
+                    throw LIBRPA_RUNTIME_ERROR("magnetic covariance found an ill-conditioned KS frame");
+                // A left inverse recovers the sewing only inside the retained
+                // span. The reconstruction check below must also pass.
+                c = c * adjoint;
+            }
             inverse.push_back(std::move(c));
         }
         for (std::size_t operation = 0; operation < context.spin_operations.size(); ++operation)
@@ -195,7 +242,7 @@ void validate_symmetry_band_weights(const MeanField &mf, const AtomicBasis &basi
             member.action_id = operation;
             for (int spin = 0; spin < mf.get_n_spins(); ++spin)
             {
-                ComplexMatrix generated(bands, bands);
+                ComplexMatrix generated(dimension, bands);
                 if (components == 2)
                 {
                     const std::array<ComplexMatrix, 2> source_c{*mf.find_wfc(spin, 0, source),
@@ -218,6 +265,21 @@ void validate_symmetry_band_weights(const MeanField &mf, const AtomicBasis &basi
                 const auto sewing = inverse[spin] * generated;
                 const auto metric = transpose(sewing, true) * sewing;
                 double residual = 0;
+                if (bands != dimension)
+                {
+                    const auto reconstructed = packed(spin, target) * sewing;
+                    double error = 0, scale = 0;
+                    for (int i = 0; i < generated.size; ++i)
+                    {
+                        const double difference = std::abs(reconstructed.c[i] - generated.c[i]);
+                        if (!std::isfinite(difference))
+                            throw LIBRPA_RUNTIME_ERROR("magnetic covariance found non-finite sewing");
+                        error = std::max(error, difference);
+                        scale = std::max(scale, std::abs(generated.c[i]));
+                    }
+                    residual = scale > 0 ? error / scale
+                                         : std::numeric_limits<double>::infinity();
+                }
                 for (int row = 0; row < bands; ++row)
                     for (int col = 0; col < bands; ++col)
                     {

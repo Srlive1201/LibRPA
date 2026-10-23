@@ -131,7 +131,7 @@ def main():
     args = parser.parse_args()
     root = args.work_dir.resolve()
     root.mkdir(parents=True, exist_ok=False)
-    fixtures = Path(__file__).resolve().parent / "testcases"
+    fixtures = Path(__file__).resolve().parents[1] / "testcases"
     controls = {
         "task": "qsgw", "qsgw_min_iter": "2", "qsgw_max_iter": "2",
         "qsgw_cut_mode": "0", "qsgw_headwing_velocity": "current_hr",

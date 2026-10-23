@@ -14,6 +14,7 @@
 #include "../api/dataset.h"
 #include "../api/dataset_helper.h"
 #include "../core/dielecmodel.h"
+#include "../core/meanfield_mpi.h"
 #include "../core/orbital_weights.h"
 #include "../core/symmetry_spin_kernel.h"
 #include "../io/global_io.h"
@@ -958,6 +959,47 @@ void test_magnetic_qstar_screening()
     for (const auto& star : ctx.kstars)
         for (const auto& member : star.members) has_antiunitary |= member.time_reversal;
     if (!has_antiunitary) throw std::runtime_error("antiunitary cRPA member was not exercised");
+
+    // Two complete Kramers pairs form a closed retained subspace even though
+    // the AO-spinor coefficient frame is rectangular (six rows, four states).
+    MeanField retained(1, 4, 4, 3, 2);
+    for (int k = 0; k < 4; ++k)
+    {
+        for (int component = 0; component < 2; ++component)
+        {
+            ComplexMatrix c(4, 3);
+            for (int band = 0; band < 4; ++band)
+                for (int ao = 0; ao < 3; ++ao)
+                    c(band, ao) = (*f.ds.mf.find_wfc(0, component, k))(band, ao);
+            retained.get_eigenvectors()[0][component][k] = std::move(c);
+        }
+        for (int band = 0; band < 4; ++band)
+        {
+            retained.get_eigenvals()[0](k, band) = f.ds.mf.get_eigenvals()[0](k, band);
+            retained.get_weight()[0](k, band) = f.ds.mf.get_weight()[0](k, band);
+        }
+    }
+    validate_symmetry_band_weights(retained, f.ds.basis_wfc, f.ds.pbc, ctx);
+    auto reduced_pbc = f.ds.pbc;
+    reduced_pbc.klist.resize(3);
+    reduced_pbc.kfrac_list.resize(3);
+    reduced_pbc.weight_k = {0.25, 0.5, 0.25};
+    MeanField retained_ibz(1, 3, 4, 3, 2);
+    for (int k = 0; k < 3; ++k)
+    {
+        for (int component = 0; component < 2; ++component)
+            retained_ibz.get_eigenvectors()[0][component][k] =
+                *retained.find_wfc(0, component, k);
+        for (int band = 0; band < 4; ++band)
+        {
+            retained_ibz.get_eigenvals()[0](k, band) = retained.get_eigenvals()[0](k, band);
+            retained_ibz.get_weight()[0](k, band) =
+                retained.get_weight()[0](k, band) * 4 * reduced_pbc.weight_k[k];
+        }
+    }
+    validate_symmetry_band_weights(retained_ibz, f.ds.basis_wfc, reduced_pbc, ctx);
+    if (retained_ibz.get_n_kpoints() != 3 || reduced_pbc.kfrac_list.size() != 3)
+        throw std::runtime_error("covariance validation changed the live IBZ grid");
 
     // A deliberately star-dependent KS selector must fail on every MPI rank,
     // without silently replacing the original transition model.
