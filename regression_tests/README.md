@@ -156,7 +156,7 @@ After a LibRI build, run the standalone/shared-G0W0 and tracked current-HR QSGW
 companion from this directory with NumPy and the matching MPI runtime:
 
 ```bash
-python3 verify_crpa_workflows.py --binary /path/to/build/chi0_main.exe \
+python3 verification/verify_crpa_workflows.py --binary /path/to/build/chi0_main.exe \
   --work-dir /path/to/new-crpa-workspace
 ```
 

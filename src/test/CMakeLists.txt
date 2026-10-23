@@ -165,8 +165,8 @@ config_test(test_qsgw_fixed_basis_mpi 4)
 config_test(test_qsgw_distributed_matrix 4)
 
 if(LIBRPA_USE_LIBRI)
+  config_test(test_crpa_window_input 1)
   foreach(target
-      test_crpa_window_input
       test_crpa_band_response
       test_crpa_soc
       test_pair_density_vertex

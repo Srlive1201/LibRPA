@@ -2,7 +2,8 @@
 
 These notes explain the theory and numerical methods used by LibRPA. They are
 read directly from the source tree and are outside the code and documentation
-builds. User and developer guides remain in `docs/`.
+builds through the Sphinx `theory/**` exclusion. User and developer guides
+remain in the built documentation sections.
 
 ## Shared numerical methods
 

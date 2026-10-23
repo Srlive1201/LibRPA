@@ -22,6 +22,7 @@
 #include "librpa_optical.h"
 #include "librpa_qsgw.h"
 
+#include <array>
 #include <vector>
 #include <complex>
 #include <memory>
@@ -44,6 +45,10 @@ CrpaContinuedResult continue_crpa(const LibrpaCrpaResult *result,
                                   const std::vector<std::complex<double>> &queries,
                                   int n_parameters = -1,
                                   double tolerance_ha = 0.0003674932217565499);
+
+/** Mean direct, inter-orbital direct and exchange tensor elements, in Hartree. */
+std::array<std::complex<double>, 3> crpa_tensor_averages(
+    int n_orbitals, const std::vector<std::complex<double>> &tensor);
 
 /* Enums */
 /**

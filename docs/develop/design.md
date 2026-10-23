@@ -36,7 +36,7 @@ output conventions.
 Checkpoint state, serialization and input comparison live in
 `src/core/qsgw/checkpoint`. For filenames, switches and continuation examples,
 see the [QSGW user guide](../user_guide/qsgw.md#checkpoint-continuation).
-The source-only note `theory/qsgw/staticization.md` describes the self-energy map.
+The source-only note `docs/theory/qsgw/staticization.md` describes the self-energy map.
 
 ### Reference state and saved payload
 

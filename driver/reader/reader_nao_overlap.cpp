@@ -9,7 +9,7 @@
 #include <stdexcept>
 #include <utility>
 
-namespace librpa_driver
+namespace librpa::reader
 {
 
 librpa_int::ComplexMatrix spatial_nao_overlap(const librpa_int::ComplexMatrix& overlap, int n_aos,
@@ -400,17 +400,4 @@ std::vector<librpa_int::ComplexMatrix> fourier_nao_overlap(
     return result;
 }
 
-double max_nao_overlap_hermiticity_residual(const std::vector<librpa_int::ComplexMatrix>& overlap_k)
-{
-    double residual = 0.0;
-    for (const auto& sk : overlap_k)
-    {
-        if (sk.nr != sk.nc) throw std::invalid_argument("NAO overlap S(k) must be square");
-        for (int i = 0; i < sk.nr; ++i)
-            for (int j = 0; j < sk.nc; ++j)
-                residual = std::max(residual, std::abs(sk(i, j) - std::conj(sk(j, i))));
-    }
-    return residual;
-}
-
-}  // namespace librpa_driver
+}  // namespace librpa::reader

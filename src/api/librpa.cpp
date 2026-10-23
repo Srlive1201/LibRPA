@@ -58,6 +58,19 @@ CrpaResult Handler::prepare_crpa_model(const Options& opts, const LibrpaCrpaInpu
     return CrpaResult(::librpa_prepare_crpa_model(h_, &opts, &input), librpa_delete_crpa_result);
 }
 
+std::array<std::complex<double>, 3> crpa_tensor_averages(
+    int n_orbitals, const std::vector<std::complex<double>>& tensor)
+{
+    if (n_orbitals <= 0 || tensor.size() != static_cast<std::size_t>(n_orbitals) * n_orbitals *
+                                                n_orbitals * n_orbitals)
+        throw LIBRPA_INVALID_ARGUMENT("incomplete cRPA tensor for orbital averages");
+    std::array<std::complex<double>, 3> result;
+    ::librpa_crpa_tensor_averages(n_orbitals, reinterpret_cast<const double*>(tensor.data()),
+                                  reinterpret_cast<double*>(result.data()));
+    return result;
+}
+
+
 /* Global environment functions */
 const char* get_build_info(void) { return ::librpa_get_build_info(); }
 
