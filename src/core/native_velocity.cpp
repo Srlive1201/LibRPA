@@ -1,4 +1,4 @@
-#include "optical_task.h"
+#include "native_velocity.h"
 
 #include <algorithm>
 #include <array>
@@ -11,17 +11,17 @@
 #include "../mpi/collective_stage.h"
 #include "../utils/constants.h"
 #include "../utils/error.h"
-#include "qsgw/headwing_velocity.h"
+#include "headwing_velocity.h"
 
 namespace
 {
 using namespace librpa_int;
 
-qsgw::LocalizedMatrix decode_operator(const LibrpaLocalizedOperator &input, int dimension)
+LocalizedMatrix decode_operator(const LibrpaLocalizedOperator &input, int dimension)
 {
     if (dimension <= 0 || input.dimension != dimension || input.n_blocks <= 0 || !input.blocks)
         throw LIBRPA_INVALID_ARGUMENT("Native operator dimensions or blocks are incomplete");
-    qsgw::LocalizedMatrix result;
+    LocalizedMatrix result;
     for (int block = 0; block < input.n_blocks; ++block)
     {
         const auto &source = input.blocks[block];
@@ -44,7 +44,6 @@ librpa_int::NativeVelocityResult librpa_int::build_native_velocity(
     const MeanField &mf, const PeriodicBoundaryData &pbc, const MpiCommHandler &comm,
     const LibrpaNativeVelocityInput *root_input)
 {
-    using namespace librpa_int::qsgw;
     const int n = mf.get_n_states(), nk = mf.get_n_kpoints(), ns = mf.get_n_spins();
     const int nao = mf.get_n_aos(), nspinor = mf.get_n_spinor();
     const std::size_t count = static_cast<std::size_t>(ns) * nk * 3 * n * n;

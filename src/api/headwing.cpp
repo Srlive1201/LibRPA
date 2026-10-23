@@ -6,7 +6,7 @@
 #include <vector>
 
 #include "../core/epsilon.h"
-#include "../core/optical_task.h"
+#include "../core/native_velocity.h"
 #include "../mpi/collective_stage.h"
 #include "../utils/constants.h"
 #include "dataset_helper.h"

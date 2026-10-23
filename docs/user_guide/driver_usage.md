@@ -133,7 +133,8 @@ option 3 and either supply velocity through the public setter or construct it wi
 resolved only by the standalone G0W0 driver.
 
 The previous explicit selection remains supported with the same H/S/r inputs
-and other settings:
+and other settings. Native option 3 also requires `use_scalapack_gw_wc = true`
+to consume the analytic wings:
 
 ```ini
 option_dielect_func = 3

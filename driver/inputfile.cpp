@@ -205,6 +205,11 @@ static void validate_input_parameters()
                 throw std::runtime_error(
                     "G0W0 native velocity requires replace_w_head and option_dielect_func = 3 or "
                     "4");
+            if (driver::opts.option_dielect_func == 3 &&
+                driver::opts.use_scalapack_gw_wc != LIBRPA_SWITCH_ON)
+                throw std::runtime_error(
+                    "G0W0 native velocity with option_dielect_func = 3 requires "
+                    "use_scalapack_gw_wc = true to consume analytic wings");
             if (params.g0w0_fn_hr.empty() || params.g0w0_fn_sr.empty() || params.g0w0_fn_rr.empty())
                 throw std::runtime_error(
                     "G0W0 native velocity requires g0w0_fn_hr, g0w0_fn_sr, and g0w0_fn_rr");

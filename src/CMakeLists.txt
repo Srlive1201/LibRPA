@@ -80,13 +80,12 @@ list(APPEND lib_sources
         api/compute_exx.cpp
         api/compute_helper.cpp
         api/compute_g0w0.cpp
-        api/compute_optical.cpp
-        core/optical_task.cpp
         api/compute_rpa.cpp
         api/dataset.cpp
         api/dataset_helper.cpp
         api/global.cpp
         api/handler.cpp
+        api/headwing.cpp
         api/input.cpp
         api/instance_manager.cpp
         api/librpa.cpp
@@ -102,9 +101,11 @@ list(APPEND lib_sources
         core/exx.cpp
         core/geometry.cpp
         core/gw.cpp
+        core/headwing_velocity.cpp
         core/meanfield.cpp
         core/meanfield_mpi.cpp
         core/minimax_gx.cpp
+        core/native_velocity.cpp
         core/pbc.cpp
         core/qpoint_view.cpp
         core/qpe_solver.cpp
@@ -113,7 +114,6 @@ list(APPEND lib_sources
         core/qsgw/distributed_matrix.cpp
         core/qsgw/effective_hamiltonian.cpp
         core/qsgw/fixed_basis.cpp
-        core/qsgw/headwing_velocity.cpp
         core/qsgw/hamiltonian_cut.cpp
         core/qsgw/hamiltonian_mixing.cpp
         core/qsgw/occupation.cpp
