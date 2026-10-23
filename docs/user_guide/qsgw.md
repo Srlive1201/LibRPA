@@ -282,8 +282,11 @@ mesh. This repairs mesh precision; the unique off-mesh range of discarded
 terms cannot be recovered from mesh samples. It does not establish off-mesh
 accuracy or replace material convergence tests.
 
-The reusable internal C++ interface in `src/core/qsgw/headwing_velocity.h`
-accepts localized matrices rather than filenames.
+The shared internal C++ kernel in `src/core/headwing_velocity.h` accepts
+localized matrices rather than filenames. Its Fourier and upper-triangle
+operations are shared through `src/math/localized_operator.h`. QSGW reconstruction
+and live refresh remain in `src/core/qsgw/headwing_velocity.h`.
+For model controls, its QSGW-specific
 `solve_localized_velocity(H, operators, k_fractional, lattice_bohr)` performs
 one generalized eigensolve and returns all `eigenvalues_ha`, AO-row/band-column
 `ket_coefficients`, and three `velocity_ha_bohr` matrices in that same frame.

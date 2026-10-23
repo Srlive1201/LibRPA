@@ -87,13 +87,12 @@ list(APPEND lib_sources
         core/qsgw/band_output.cpp
         core/qsgw/band_remap.cpp
         core/qsgw/qp_diagnostics.cpp
-        api/compute_optical.cpp
-        core/optical_task.cpp
         api/compute_rpa.cpp
         api/dataset.cpp
         api/dataset_helper.cpp
         api/global.cpp
         api/handler.cpp
+        api/headwing.cpp
         api/input.cpp
         api/instance_manager.cpp
         api/librpa.cpp
@@ -109,9 +108,11 @@ list(APPEND lib_sources
         core/exx.cpp
         core/geometry.cpp
         core/gw.cpp
+        core/headwing_velocity.cpp
         core/meanfield.cpp
         core/meanfield_mpi.cpp
         core/minimax_gx.cpp
+        core/native_velocity.cpp
         core/pbc.cpp
         core/qpoint_view.cpp
         core/qpe_solver.cpp
@@ -146,6 +147,7 @@ list(APPEND lib_sources
         math/fitting.cpp
         math/interpolate.cpp
         math/lebedev_laikov.cpp
+        math/localized_operator.cpp
         math/mathtools.cpp
         math/matrix.cpp
         math/matrix3.cpp
