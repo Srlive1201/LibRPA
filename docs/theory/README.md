@@ -1,0 +1,10 @@
+# Theory notes
+
+These notes explain the theory and numerical methods used by LibRPA. They are
+read directly from the source tree and are outside the code and documentation
+builds through the Sphinx `theory/**` exclusion. User and developer guides
+remain in the built documentation sections.
+
+## Shared numerical methods
+
+- [Padé continuation and numerical breakdown](numerical_methods/pade.md)

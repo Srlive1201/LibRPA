@@ -231,6 +231,63 @@ struct DriverParams
     //! `mommat_ks_kpt_`
     std::string prefix_velocity;
 
+    //! G0W0 analytic head/wing velocity source: file (existing reader) or native.
+    //! Native uses the original DFT H(R)/S(R)/r(R) and the loaded SCF E/C frame.
+    //! @par Default
+    //! file
+    //! @par Status
+    //! Experimental
+    //! @since Unreleased
+    std::string g0w0_headwing_velocity;
+
+    //! Original DFT H(R) CSR for spin 0, relative to input_dir or absolute.
+    //! @par Default
+    //! empty
+    //! @par Status
+    //! Experimental
+    //! @since Unreleased
+    std::string g0w0_fn_hr;
+
+    //! Original DFT H(R) CSR for spin 1 in a collinear two-spin calculation.
+    //! @par Default
+    //! empty
+    //! @par Status
+    //! Experimental
+    //! @since Unreleased
+    std::string g0w0_fn_hr_spin1;
+
+    //! Dimensionless S(R) CSR with its original full real-space support.
+    //! @par Default
+    //! empty
+    //! @par Status
+    //! Experimental
+    //! @since Unreleased
+    std::string g0w0_fn_sr;
+
+    //! Three-component r(R) CSR with its original full real-space support.
+    //! @par Default
+    //! empty
+    //! @par Status
+    //! Experimental
+    //! @since Unreleased
+    std::string g0w0_fn_rr;
+
+    //! H(R) input energy unit: Ha, Ry, or eV, converted once into Hartree.
+    //! @par Default
+    //! Ry
+    //! @par Status
+    //! Experimental
+    //! @since Unreleased
+    std::string g0w0_hr_unit;
+
+    //! r(R) input length unit: Bohr or Angstrom, converted once into Bohr.
+    //! @par Default
+    //! Bohr
+    //! @par Status
+    //! Experimental
+    //! @since Unreleased
+    std::string g0w0_rr_unit;
+
     //! Band-path k-point metadata filename.
     //! @par Default
     //! `band_kpath_info`
@@ -490,6 +547,10 @@ extern librpa::Handler h;
 
 // Working runtime options
 extern librpa::Options opts;
+
+// Original dielectric-method request for driver diagnostics, before preset
+// resolution. This is not an input keyword or a numerical API option.
+extern int requested_option_dielect_func;
 
 // TODO: consider move to public API
 std::string format_runtime_options(const librpa::Options &opts) noexcept;

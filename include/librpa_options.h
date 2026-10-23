@@ -472,6 +472,12 @@ typedef struct
      *   Requires auxiliary l-shell metadata and the ScaLAPACK Wc path.
      *   Supported for three-dimensional G0W0 and G0W0 band calculations only.
      *
+     * Standalone G0W0 drivers also accept preset 6: compute velocity from
+     * original H/S/r, then use numerical option 3 for analytic head and wing.
+     * This requires replace_w_head and use_scalapack_gw_wc, and use_pyatb=false.
+     * API callers supply velocity or numerical H/S/r blocks and select 3/4;
+     * they must not pass driver preset 6 into a numerical options struct.
+     *
      * @par Default
      * 0
      */

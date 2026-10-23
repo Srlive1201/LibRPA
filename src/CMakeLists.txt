@@ -100,9 +100,11 @@ list(APPEND lib_sources
         core/exx.cpp
         core/geometry.cpp
         core/gw.cpp
+        core/headwing_velocity.cpp
         core/meanfield.cpp
         core/meanfield_mpi.cpp
         core/minimax_gx.cpp
+        core/native_velocity.cpp
         core/pbc.cpp
         core/qpoint_view.cpp
         core/qpe_solver.cpp
