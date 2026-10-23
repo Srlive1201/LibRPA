@@ -20,6 +20,9 @@ extern "C"
     typedef struct
     {
         int min_iterations, max_iterations, unoccupied_keep, cut_mode;
+        /** Convergence requires min_iterations and a maximum eigenvalue step below
+         * convergence_tolerance_ev; the reported Hamiltonian residual is not part
+         * of the stopping gate. */
         double mixing_beta, cut_shift_ha, convergence_tolerance_ev;
         const char *mixer, *velocity_mode, *restart_file, *checkpoint_file;
         int output_matrices, output_qp, export_hamiltonian;

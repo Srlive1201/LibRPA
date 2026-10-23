@@ -124,7 +124,7 @@ def main():
         parser.error("native-current requires --dataset with full-grid native S/r inputs")
     root = args.work_dir.resolve()
     root.mkdir(parents=True, exist_ok=False)
-    source = Path(__file__).resolve().parent
+    source = Path(__file__).resolve().parents[1]
     if args.case == "aims-rotate":
         fixture = source / "testcases/qsgw_aims_Si_k333_headonly_libri"
         with tarfile.open(fixture / "dataset.tar.gz") as archive:
