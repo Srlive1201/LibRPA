@@ -12,6 +12,8 @@
 #include <string>
 #include <valarray>
 
+#include "librpa.h"
+#include "../api/instance_manager.h"
 #include "../core/chi0.h"
 #include "../core/coulmat.h"
 #include "../api/dataset.h"
@@ -4122,6 +4124,144 @@ void test_gamma_only_dense_wq_fourier_weight_scales_as_inverse_bvk_cells()
     }
 }
 
+#ifdef LIBRPA_USE_LIBRI
+void test_native_optical_uses_handler_communicator()
+{
+    const int world_rank = librpa_int::get_mpi_rank(MPI_COMM_WORLD);
+    const int color = world_rank % 2;
+    MPI_Comm subgroup;
+    MPI_Comm_split(MPI_COMM_WORLD, color, world_rank, &subgroup);
+    double error = 0.0;
+    {
+        librpa::Handler handler(subgroup);
+        const auto ds = librpa_int::api::get_dataset_instance(handler);
+        ds->mf = MeanField(1, 1, 2, 2);
+        ds->mf.get_eigenvals()[0](0, 0) = -0.5;
+        ds->mf.get_eigenvals()[0](0, 1) = 0.5;
+        ds->mf.get_weight()[0](0, 0) = 2.0;
+        ds->mf.get_weight()[0](0, 1) = 0.0;
+        auto &wfc = ds->mf.get_eigenvectors()[0][0][0];
+        wfc.create(2, 2);
+        wfc(0, 0) = wfc(1, 1) = 1.0;
+        ds->basis_wfc = AtomicBasis({2});
+        ds->basis_aux = AtomicBasis({1});
+        ds->pbc.set_latvec({1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0});
+        ds->pbc.set_kgrids_kvec(1, 1, 1, {0.0, 0.0, 0.0});
+
+        // Distinct subgroup dipoles and charge vertices must not cross-sum.
+        // The two-level model has C=S=I, gap=1 Ha and v_01=-i*r_01.
+        const double scale = color + 1.0;
+        const std::array<std::complex<double>, 3> dipole{
+            scale * std::complex<double>{0.2, 0.1},
+            scale * std::complex<double>{0.3, -0.15},
+            scale * std::complex<double>{-0.4, 0.05}};
+        const std::array<double, 8> h_values{-0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0};
+        const std::array<double, 8> s_values{1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0};
+        std::array<std::array<double, 8>, 3> r_values{};
+        LibrpaLocalizedBlock h_block{{0, 0, 0}, h_values.data(), 1};
+        LibrpaLocalizedBlock s_block{{0, 0, 0}, s_values.data(), 1};
+        std::array<LibrpaLocalizedBlock, 3> r_blocks{};
+        LibrpaLocalizedOperator h_operator{2, 1, &h_block};
+        LibrpaNativeVelocityInput input{};
+        input.n_spins = 1;
+        input.hamiltonian = &h_operator;
+        input.overlap = {2, 1, &s_block};
+        for (int axis = 0; axis != 3; ++axis)
+        {
+            r_values[axis][2] = dipole[axis].real();
+            r_values[axis][3] = dipole[axis].imag();
+            r_blocks[axis] = {{0, 0, 0}, r_values[axis].data(), 1};
+            input.position[axis] = {2, 1, &r_blocks[axis]};
+        }
+        ds->cs_data.use_libri = true;
+        if (ds->comm_h.is_root())
+        {
+            auto tensor = std::make_shared<std::valarray<double>>(4);
+            (*tensor)[1] = 0.125 * scale;
+            (*tensor)[2] = 0.25 * scale;
+            ds->cs_data.data_libri[0][{0, {0, 0, 0}}] =
+                RI::Tensor<double>({1UL, 2UL, 2UL}, tensor);
+        }
+        librpa::Options opts;
+        opts.option_dielect_func = 3;
+        opts.replace_w_head = LIBRPA_SWITCH_ON;
+        opts.use_scalapack_gw_wc = LIBRPA_SWITCH_ON;
+        opts.tfgrids_type = LIBRPA_TFGRID_EVEN_SPACED_TF;
+        opts.nfreq = 2;
+        opts.tfgrids_freq_min = 0.5;
+        opts.tfgrids_freq_interval = 0.75;
+        handler.prepare_native_velocity(opts, ds->comm_h.is_root() ? &input : nullptr);
+
+        const auto check = [&](const std::complex<double> actual,
+                               const std::complex<double> expected)
+        {
+            const double difference = std::abs(actual - expected);
+            error = !std::isfinite(difference) ? std::numeric_limits<double>::infinity()
+                                               : std::max(error, difference);
+        };
+        const auto check_wing = [&]
+        {
+            const auto &frequencies = ds->p_headwing->get_frequency_nodes();
+            const auto &wings = ds->p_headwing->get_wing_auxiliary();
+            for (std::size_t iw = 0; iw != frequencies.size(); ++iw)
+                for (int axis = 0; axis != 3; ++axis)
+                {
+                    const auto v01 = std::complex<double>{0.0, -1.0} * dipole[axis];
+                    const auto expected = -4.0 * std::sqrt(4.0 * librpa_int::PI) *
+                                          (0.375 * scale) * v01 /
+                                          (1.0 + frequencies[iw] * frequencies[iw]);
+                    check(wings[iw](0, axis), expected);
+                }
+        };
+        check_wing();
+        const auto &frequencies = ds->p_headwing->get_frequency_nodes();
+        const auto &heads = ds->p_headwing->get_head_tensors();
+        for (int axis = 0; axis != 3; ++axis)
+        {
+            const auto v01 = std::complex<double>{0.0, -1.0} * dipole[axis];
+            check(ds->velocity_matrix[0][0][axis](0, 1), v01);
+            check(ds->velocity_matrix[0][0][axis](1, 0), std::conj(v01));
+            for (std::size_t iw = 0; iw != frequencies.size(); ++iw)
+                for (int beta = 0; beta != 3; ++beta)
+                {
+                    const auto expected = (axis == beta ? 1.0 : 0.0) +
+                                          16.0 * librpa_int::PI * std::conj(dipole[axis]) *
+                                              dipole[beta] /
+                                              (1.0 + frequencies[iw] * frequencies[iw]);
+                    check(heads[iw](axis, beta), expected);
+                }
+        }
+
+        // Exercise the other wing reduction with the same analytic reference.
+        SymmetryContext context;
+        context.set_available();
+        context.atom_to_type = {{0, 0}};
+        ds->basis_wfc.set_l_shells({{0, 0}});
+        librpa_int::SymmetryKStar star;
+        star.k_ibz = {0.0, 0.0, 0.0};
+        star.members.resize(1);
+        star.members[0].k_bz = star.k_ibz;
+        star.members[0].atom_rotations.resize(1);
+        star.members[0].atom_rotations[0].atom_from = 0;
+        star.members[0].atom_rotations[0].atom_to = 0;
+        context.kstars = {star};
+        ds->p_headwing->set_symmetry_context(context);
+        ds->p_headwing->use_symmetry = true;
+        ds->p_headwing->atom_nw = {{0, 2}};
+        ds->p_headwing->set_direct_full_bz_headwing_inputs(ds->velocity_matrix, ds->mf, {{0}});
+        ds->p_headwing->cal_wing(ds->cs_data, 0.0, ds->vq);
+        check_wing();
+        if (ds->comm_h.is_root())
+            std::cout << "Native optical subgroup " << color << " max error " << error << '\n';
+    }
+    MPI_Comm_free(&subgroup);
+    double maximum = 0.0;
+    MPI_Allreduce(&error, &maximum, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+    require_condition(std::isfinite(maximum) && maximum < 1e-12,
+                      "Native head/wing mixed independent handler communicators");
+}
+#endif
+
 int main(int argc, char *argv[])
 {
     int provided = 0;
@@ -4136,6 +4276,9 @@ int main(int argc, char *argv[])
 
         test_qsgw_native_baseline_preserves_aliased_tail();
         test_qsgw_reconstruction_with_finite_reference_metric();
+#ifdef LIBRPA_USE_LIBRI
+        test_native_optical_uses_handler_communicator();
+#endif
         test_headwing_body_inverse_uses_identity_solve(blacs_h);
         test_replace_rpa_response_headwing_replaces_only_singular_channels(blacs_h);
         test_gamma_head_rank_one_matches_coulomb_basis_overwrite(blacs_h);
