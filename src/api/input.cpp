@@ -1,6 +1,7 @@
 // API headers
 #include "librpa_enums.h"
 #include "librpa_input.h"
+#include "librpa_optical.h"
 
 // Standard headers
 #include <algorithm>
@@ -17,6 +18,10 @@
 #include <vector>
 
 // Internal headers
+#include "../core/epsilon.h"
+#include "../core/native_velocity.h"
+#include "../mpi/collective_stage.h"
+#include "dataset_helper.h"
 #include "../core/meanfield_mpi.h"
 #include "../io/global_io.h"
 #include "../io/stl_io_helper.h"
@@ -1396,6 +1401,88 @@ void librpa_set_velocity_matrix_packed(LibrpaHandler* h, int n_spins, int n_kpts
     pds->p_headwing.reset();
 
     profiler.stop(tname);
+}
+
+void librpa_prepare_native_velocity(LibrpaHandler *h, const LibrpaOptions *p_opts,
+                                    const LibrpaNativeVelocityInput *root_input,
+                                    int prepare_optical)
+{
+    using namespace librpa_int;
+    const auto ds = api::get_dataset_instance(h);
+    const auto &comm = ds->comm_h;
+    collective_all_stage(
+        comm, "Native velocity options",
+        [&]
+        {
+            if (!p_opts)
+                throw LIBRPA_INVALID_ARGUMENT("Native velocity requires numerical options");
+            if (p_opts->option_dielect_func != 3 && p_opts->option_dielect_func != 4)
+                throw LIBRPA_INVALID_ARGUMENT(
+                    "Native velocity API options must use numerical values 3/4");
+            if (prepare_optical && p_opts->replace_w_head != LIBRPA_SWITCH_ON)
+                throw LIBRPA_INVALID_ARGUMENT(
+                    "Native optical preparation requires replace_w_head enabled");
+        });
+    const auto &opts = *p_opts;
+    const SymmetryContext *symmetry = nullptr;
+    collective_all_stage(
+        comm, "Native magnetic velocity frame",
+        [&]
+        {
+            if (ds->mf.get_n_kpoints() == ds->pbc.get_n_cells_bvk()) return;
+            const bool use_symmetry = opts.use_symmetry_rpa == LIBRPA_SWITCH_ON ||
+                                      opts.use_symmetry_gw == LIBRPA_SWITCH_ON;
+            if (ds->mf.get_n_spinor() != 2 || !use_symmetry ||
+                opts.use_kpara_scf_eigvec == LIBRPA_SWITCH_ON)
+                throw LIBRPA_RUNTIME_ERROR(
+                    "IBZ native velocity requires SOC magnetic symmetry and undistributed "
+                    "AO/band WFC blocks");
+            initialize_symmetry_context(*ds, true);
+            require_symmetry_shell_layouts(*ds, "native SOC head/wing");
+            symmetry = &ds->symmetry_context;
+        });
+    auto result = build_native_velocity(ds->mf, ds->pbc, comm, root_input, symmetry);
+    collective_all_stage(comm, "G0W0 native velocity setter",
+                         [&]
+                         {
+                             librpa_set_velocity_matrix_packed(
+                                 h, ds->mf.get_n_spins(), ds->mf.get_n_kpoints(),
+                                 ds->mf.get_n_states(),
+                                 reinterpret_cast<const double *>(result.velocity.data()));
+                         });
+    if (comm.is_root())
+        global::lib_printf(
+            "G0W0 native velocity: metric %.8e frame_Ha %.8e hermiticity_Ha %.8e "
+            "diagonal_imag_HaBohr %.8e; SCF E/C/occupations retained\n",
+            result.residuals[0], result.residuals[1], result.residuals[2], result.residuals[3]);
+    auto &coulomb_normalization = result.coulomb_normalization;
+
+    if (!prepare_optical) return;
+
+    // Preserve the numerical grid/head/wing lifecycle behind the public API.
+    initialize_ds_global_ddla(*ds, opts);
+    initialize_ds_tfgrids(*ds, opts);
+    initialize_ds_headwing(*ds, opts, opts.option_dielect_func == 3);
+    comm.bcast(coulomb_normalization.data(), 2, 0);
+    collective_all_stage(
+        comm, "Native head/wing Coulomb normalization",
+        [&]
+        {
+            if (opts.use_2d_dielectric == LIBRPA_SWITCH_ON)
+            {
+                const auto normalization =
+                    strict_2d_coulomb_head_normalization(ds->pbc, coulomb_normalization[1]);
+                const double area = coulomb_normalization[0];
+                if (!std::isfinite(area) || area <= 0.0 ||
+                    std::abs(normalization.inplane_area_bohr2 - area) >
+                        1.0e-10 * std::max(normalization.inplane_area_bohr2, area))
+                    throw LIBRPA_INVALID_ARGUMENT(
+                        "Coulomb normalization area disagrees with the lattice");
+                ds->p_headwing->configure_strict_2d_coulomb_head(true, coulomb_normalization[1]);
+            }
+            else
+                ds->p_headwing->configure_strict_2d_coulomb_head(false);
+        });
 }
 
 void librpa_set_band_kvec(LibrpaHandler* h, int n_kpts_band, const double* kfrac_list_band)
