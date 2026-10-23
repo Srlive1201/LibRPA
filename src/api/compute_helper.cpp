@@ -1,12 +1,16 @@
 #include "compute_helper.h"
 
 #include <librpa_enums.h>
+#include "librpa_optical.h"
 
 #include <algorithm>
+#include <memory>
 #include <set>
 #include <string>
 
+#include "../core/dielecmodel.h"
 #include "../io/global_io.h"
+#include "instance_manager.h"
 #include "../io/stl_io_helper.h"
 #include "../utils/error.h"
 
@@ -100,3 +104,74 @@ AtomPairBvKRemap<atom_t> build_band_bvk_remap(const Atoms &atoms,
 }
 
 }
+
+namespace
+{
+using namespace librpa_int;
+
+void append_matrix(std::vector<double> &values, const Matz &matrix)
+{
+    for (int row = 0; row < matrix.nr(); ++row)
+        for (int column = 0; column < matrix.nc(); ++column)
+        {
+            const auto value = matrix(row, column);
+            values.push_back(value.real());
+            values.push_back(value.imag());
+        }
+}
+}  // namespace
+
+struct LibrpaOpticalResult
+{
+    LibrpaOpticalView view{};
+    std::vector<double> velocity, frequencies, head, wing;
+};
+
+LibrpaOpticalResult *librpa_get_optical_result(const LibrpaHandler *h)
+{
+    const auto ds = librpa_int::api::get_dataset_instance(h);
+    if (!ds->p_headwing) throw LIBRPA_RUNTIME_ERROR("Analytic head/wing is not initialized");
+    auto result = std::make_unique<LibrpaOpticalResult>();
+    auto &view = result->view;
+    view.n_spins = ds->mf.get_n_spins();
+    view.n_kpoints = ds->mf.get_n_kpoints();
+    view.n_states = ds->mf.get_n_states();
+    for (const auto &spin : ds->velocity_matrix)
+        for (const auto &k : spin)
+            for (const auto &axis : k)
+                for (int row = 0; row < axis.nr; ++row)
+                    for (int column = 0; column < axis.nc; ++column)
+                    {
+                        result->velocity.push_back(axis(row, column).real());
+                        result->velocity.push_back(axis(row, column).imag());
+                    }
+    result->frequencies = ds->p_headwing->get_frequency_nodes();
+    view.n_frequencies = result->frequencies.size();
+    const auto &heads = ds->p_headwing->get_head_tensors();
+    const auto &wings = ds->p_headwing->get_wing_auxiliary();
+    if (!heads.empty())
+    {
+        view.head_rows = heads.front().nr();
+        view.head_columns = heads.front().nc();
+        for (const auto &matrix : heads) append_matrix(result->head, matrix);
+    }
+    if (!wings.empty())
+    {
+        view.wing_rows = wings.front().nr();
+        view.wing_columns = wings.front().nc();
+        for (const auto &matrix : wings) append_matrix(result->wing, matrix);
+    }
+    view.velocity_ri = result->velocity.data();
+    view.frequencies_ha = result->frequencies.data();
+    view.head_ri = result->head.data();
+    view.wing_ri = result->wing.data();
+    return result.release();
+}
+
+LibrpaOpticalView librpa_get_optical_view(const LibrpaOpticalResult *result)
+{
+    if (!result) throw LIBRPA_INVALID_ARGUMENT("Optical result must not be null");
+    return result->view;
+}
+
+void librpa_delete_optical_result(LibrpaOpticalResult *result) { delete result; }

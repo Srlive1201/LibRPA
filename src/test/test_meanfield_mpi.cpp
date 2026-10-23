@@ -968,6 +968,89 @@ static void test_gf_kblacs_reduced_kstar_spinor_matches_serial_restore()
         }
 }
 
+static void test_dmat_kblacs_reduced_kstar_spinor_matches_serial_restore()
+{
+    if (size_global < 2) return;
+
+    const auto ctx = build_gamma_tr_spinor_kstar_context();
+    const std::vector<SpeciesBasisLayout> wfc_layouts{{"X", {0}}};
+    const std::vector<Vector3_Order<double>> kfrac_list{{0.0, 0.0, 0.0}};
+    const std::vector<Vector3_Order<int>> Rs{{0, 0, 0}, {1, 0, 0}};
+    const std::map<atom_t, size_t> atom_nw{{0, 1}};
+    AtomicBasis atbasis_wfc({1});
+    atbasis_wfc.set_l_shells({{0}});
+    PeriodicBoundaryData pbc;
+
+    MeanField mf_ref(1, 1, 2, 1, 2);
+    mf_ref.get_efermi() = 0.0;
+    mf_ref.get_eigenvals()[0](0, 0) = -1.0;
+    mf_ref.get_eigenvals()[0](0, 1) = 1.0;
+    mf_ref.get_weight()[0](0, 0) = 1.0;
+    mf_ref.get_weight()[0](0, 1) = 0.0;
+    for (int ispinor = 0; ispinor != 2; ++ispinor)
+    {
+        mf_ref.get_eigenvectors()[0][ispinor][0].create(2, 1);
+    }
+    mf_ref.get_eigenvectors()[0][0][0](0, 0) = {0.6, 0.1};
+    mf_ref.get_eigenvectors()[0][0][0](1, 0) = {-0.2, 0.7};
+    mf_ref.get_eigenvectors()[0][1][0](0, 0) = {0.5, -0.3};
+    mf_ref.get_eigenvectors()[0][1][0](1, 0) = {0.1, 0.4};
+
+    std::map<Vector3_Order<int>, SpinorBlocks4<ComplexMatrix>> expected;
+    for (const auto &R : Rs)
+    {
+        expected.emplace(R, get_symmetry_restored_dmat_cplx_R_spinor(ctx, wfc_layouts, mf_ref, 0,
+                                                                     kfrac_list, R, atom_nw));
+    }
+
+    KPointBlacsProcessShape shape(1, size_global, false);
+    KPointBlacsParallelContext context(shape, mpi_comm_global_h.comm, 1);
+    const auto desc_wfc = context.create_array_desc(1, 2, 1, 2);
+    const auto desc_dm = context.create_array_desc(1, 1);
+
+    MeanField mf(1, 1, 2, 1, 2);
+    mf.get_efermi() = 0.0;
+    mf.get_eigenvals()[0](0, 0) = -1.0;
+    mf.get_eigenvals()[0](0, 1) = 1.0;
+    mf.get_weight()[0](0, 0) = 1.0;
+    mf.get_weight()[0](0, 1) = 0.0;
+    if (context.kpoint_blacs_root_global_rank(0) == myid_global)
+    {
+        mf.get_eigenvectors()[0][0][0] = mf_ref.get_eigenvectors()[0][0][0];
+        mf.get_eigenvectors()[0][1][0] = mf_ref.get_eigenvectors()[0][1][0];
+    }
+
+    const auto actual = get_symmetry_restored_dmat_cplx_Rs_kblacs_para_spinor(
+        0, mf, kfrac_list, Rs, context, desc_wfc, desc_dm, ctx, pbc, atbasis_wfc);
+
+    for (const auto &R : Rs)
+    {
+        const auto &exp_blocks = expected.at(R);
+        const auto &act_blocks = actual.at(R);
+        const ComplexMatrix *exp_channel[4] = {&exp_blocks.b00, &exp_blocks.b01, &exp_blocks.b10,
+                                               &exp_blocks.b11};
+        const Matz *act_channel[4] = {&act_blocks.b00, &act_blocks.b01, &act_blocks.b10,
+                                      &act_blocks.b11};
+        for (int s = 0; s != 4; ++s)
+        {
+            for (int jloc = 0; jloc != desc_dm.n_loc(); ++jloc)
+            {
+                const int jglob = desc_dm.indx_l2g_c(jloc);
+                for (int iloc = 0; iloc != desc_dm.m_loc(); ++iloc)
+                {
+                    const int iglob = desc_dm.indx_l2g_r(iloc);
+                    if (!fequal((*act_channel[s])(iloc, jloc), (*exp_channel[s])(iglob, jglob),
+                                cplxdb{1e-12, 0.0}))
+                    {
+                        throw std::runtime_error(
+                            "kBLACS spinor density matrix did not match serial restore");
+                    }
+                }
+            }
+        }
+    }
+}
+
 int main (int argc, char *argv[])
 {
     int provided;
@@ -1003,6 +1086,7 @@ int main (int argc, char *argv[])
     test_dmat_gf_kblacs_reduced_kstar_matches_full_bz_fourier(true);
     test_dmat_gf_kblacs_reduced_kstar_matches_full_bz_fourier(false, true);
     test_gf_kblacs_reduced_kstar_spinor_matches_serial_restore();
+    test_dmat_kblacs_reduced_kstar_spinor_matches_serial_restore();
 
 #if defined(LIBRPA_USE_CUDA) || defined(LIBRPA_USE_HIP)
     world_blacs_h.exit();

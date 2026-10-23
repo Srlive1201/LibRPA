@@ -28,3 +28,6 @@ qsgw_min_iter = 2
 qsgw_max_iter = 2
 qsgw_convergence_tolerance_ev = 1e-4
 qsgw_write_iteration_matrices = false
+
+# This retained fixture has no native H/S/r export.
+qsgw_export_hamiltonian_for_pyatb = false

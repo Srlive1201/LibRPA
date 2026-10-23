@@ -1,5 +1,5 @@
 # Driver parameters
-task = qsgw_band
+task = qsgw
 input_dir = ../dataset
 constants_choice = aims
 
@@ -29,6 +29,9 @@ qsgw_convergence_tolerance_ev = 1e-4
 qsgw_write_iteration_matrices = false
 
 # Retain five occupied and ten empty states on grid and path.
-qsgw_band0_unoccupied_keep = 10
-qsgw_band0_cut_mode = 2
-qsgw_band0_cut_shift_ha = 0
+qsgw_unoccupied_keep = 10
+qsgw_cut_mode = 1
+qsgw_cut_shift_ha = 0
+
+# This retained fixture has no native H/S/r export.
+qsgw_export_hamiltonian_for_pyatb = false

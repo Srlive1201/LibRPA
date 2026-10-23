@@ -321,6 +321,8 @@ static void test_redistribute_eigvecs_kpara_2d_np4()
     constexpr int n_kpoints = 3;
     constexpr int n_states = 193;
     constexpr int n_aos = 263;
+    // Exactly representable dyadic values keep this copy/layout check
+    // independent of SIMD/FMA rounding in separate fill/verification loops.
     const std::vector<int> initial_owner{3, 0, 1};
 
     Dataset ds(MPI_COMM_WORLD);
@@ -346,7 +348,7 @@ static void test_redistribute_eigvecs_kpara_2d_np4()
             for (int ib = 0; ib != n_states; ++ib)
                 for (int iao = 0; iao != n_aos; ++iao)
                 {
-                    const double value = 100.0 * ispinor + 10.0 * ik + ib + 0.01 * iao;
+                    const double value = 100.0 * ispinor + 10.0 * ik + ib + iao / 1024.0;
                     wfc(ib, iao) = {value, -value};
                 }
         }
@@ -379,7 +381,7 @@ static void test_redistribute_eigvecs_kpara_2d_np4()
                 for (int iloc = 0; iloc != ds.desc_wfc_kb.m_loc(); ++iloc)
                 {
                     const int iao = ds.desc_wfc_kb.indx_l2g_r(iloc);
-                    const double value = 100.0 * ispinor + 10.0 * ik + ib + 0.01 * iao;
+                    const double value = 100.0 * ispinor + 10.0 * ik + ib + iao / 1024.0;
                     assert(fequal((*wfc)(jloc, iloc),
                                   std::complex<double>(value, -value)));
                 }
@@ -397,6 +399,8 @@ static void test_redistribute_eigvecs_1b1p_to_opt_np4()
     constexpr int n_kpoints = 3;
     constexpr int n_states = 193;
     constexpr int n_aos = 263;
+    // Exactly representable dyadic values keep this copy/layout check
+    // independent of SIMD/FMA rounding in separate fill/verification loops.
     KPointBlacsParallelContext kctx({2, 2}, MPI_COMM_WORLD, n_kpoints);
     const auto desc_io = kctx.create_array_desc(n_aos, n_states);
     const int block_ao =
@@ -420,7 +424,7 @@ static void test_redistribute_eigvecs_1b1p_to_opt_np4()
                 for (int iloc = 0; iloc != desc_io.m_loc(); ++iloc)
                 {
                     const int iao = desc_io.indx_l2g_r(iloc);
-                    const double value = 1000.0 * ispinor + 100.0 * ik + ib + 0.001 * iao;
+                    const double value = 1000.0 * ispinor + 100.0 * ik + ib + iao / 1024.0;
                     wfc(jloc, iloc) = {value, -value};
                 }
             }
@@ -448,7 +452,7 @@ static void test_redistribute_eigvecs_1b1p_to_opt_np4()
                 for (int iloc = 0; iloc != desc_opt.m_loc(); ++iloc)
                 {
                     const int iao = desc_opt.indx_l2g_r(iloc);
-                    const double value = 1000.0 * ispinor + 100.0 * ik + ib + 0.001 * iao;
+                    const double value = 1000.0 * ispinor + 100.0 * ik + ib + iao / 1024.0;
                     assert(fequal((*wfc)(jloc, iloc),
                                   std::complex<double>(value, -value)));
                 }
@@ -461,9 +465,21 @@ static void setup_spinor_dataset(librpa_int::Dataset &ds)
 {
     using namespace librpa_int;
 
-    ds.mf.set(1, 1, 1, 1, 2);
+    ds.mf.set(1, 1, 2, 1, 2);
     ds.pbc.set_latvec({1, 0, 0, 0, 1, 0, 0, 0, 1});
     ds.pbc.set_kgrids_kvec(1, 1, 1, {0.0, 0.0, 0.0});
+    ds.atoms.types = {{0, 0}};
+    ds.atoms.coords_frac = {{0, {0.0, 0.0, 0.0}}};
+    ds.basis_wfc.set({1});
+    ds.basis_aux.set({1});
+    ds.basis_wfc.set_l_shells({{0}});
+    ds.basis_aux.set_l_shells({{0}});
+    ds.basis_convention = {-1, 0, LIBRPA_ANGULAR_ORDER_NATURAL,
+                           LIBRPA_RSH_COEFF_1_M, LIBRPA_RSH_COEFF_1_M};
+    ds.spg_symops = {SpaceGroupSymOp::IDENTITY,
+                    {Matrix3(1, 0, 0, 0, -1, 0, 0, 0, -1), {0, 0, 0}}};
+    ds.scfk_blacs_ctxt.init(KPointBlacsProcessShape(1, ds.comm_h.nprocs, true), MPI_COMM_WORLD, 1);
+    ds.desc_wfc_kb_full = ds.scfk_blacs_ctxt.create_array_desc(1, 2, 1, 2);
 }
 
 static void test_spinor_symmetry_speedup_rejected()
@@ -482,9 +498,9 @@ static void test_spinor_symmetry_speedup_rejected()
         {
             init(ds, opts);
         }
-        catch (const std::runtime_error&)
+        catch (const std::runtime_error& error)
         {
-            threw = true;
+            threw = std::string(error.what()).find("explicit spin-space") != std::string::npos;
         }
         ds.free();
         return threw;
@@ -541,12 +557,20 @@ static void test_set_symmetry_spin_operations_api()
     // reconstructs U_s = U[det(Q) Q] from the Cartesian axial rotation.
     {
         LibrpaHandler* h = librpa_create_handler(MPI_COMM_WORLD);
-        librpa_set_symmetry_spin_operations(h, 2, 1, rotmats_ei, nullptr,
-                                            nullptr, nullptr, 2, 0);
         const auto pds = librpa_int::api::get_dataset_instance(h);
+        setup_spinor_dataset(*pds);
+        const int rotmats_c2x[18] = {1, 0, 0, 0, 1, 0, 0, 0, 1,
+                                     1, 0, 0, 0, -1, 0, 0, 0, -1};
+        librpa_set_symmetry_spin_operations(h, 2, 1, rotmats_c2x, nullptr,
+                                            nullptr, nullptr, 2, 0);
         assert(pds->spg_spin_ops.size() == 2);
         assert(pds->spg_spin_ops[1].spin_source
                == librpa_int::SymmetrySpinActionSource::DerivedFromSpatialSOC);
+        initialize_symmetry_context(*pds, true);
+        const auto& spin = pds->symmetry_context.spin_operations.at(1).spin_u;
+        assert(std::abs(spin[0]) < 1e-12 && std::abs(spin[3]) < 1e-12);
+        assert(std::abs(std::abs(spin[1]) - 1.0) < 1e-12);
+        assert(std::abs(std::abs(spin[2]) - 1.0) < 1e-12);
         librpa_destroy_handler(h);
     }
 
@@ -746,6 +770,8 @@ static void test_redistribute_band_eigvecs_kpara_2d_np4()
     constexpr int n_kpoints = 4;
     constexpr int n_states = 193;
     constexpr int n_aos = 263;
+    // Exactly representable dyadic values keep this copy/layout check
+    // independent of SIMD/FMA rounding in separate fill/verification loops.
 
     Dataset ds(MPI_COMM_WORLD);
     ds.mf_band.set(1, n_kpoints, n_states, n_aos, 1);

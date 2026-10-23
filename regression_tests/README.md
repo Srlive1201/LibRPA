@@ -2,6 +2,21 @@
 
 This folder contains regression test cases used to verify LibRPA features.
 
+The LibRI CI also runs `verification/verify_qsgw_restart.py --case h2o-band` and
+`verification/verify_qsgw_headwing.py --case aims-rotate` with four MPI ranks. These reuse
+the bundled datasets to compare three continuous updates with a one-update
+checkpoint followed by two resumed updates. They check fixed-basis matrices,
+spectra, entering-state QP roots and live optical feedback. The QP comparison
+also checks the entering spectrum, the QP equation and the numbered grid/path
+energy tables. The native `current_hr` companion still requires an explicitly
+supplied native S/r dataset; it is not covered by the aims-rotate CI case.
+The live head/wing companion also repeats continuation from the identical
+checkpoint. It saves that comparison before checking the independent continuous
+trajectory, retaining the strict gates when either comparison fails.
+CI fixes the Intel MPI/oneMKL execution branches with `I_MPI_CBWR=2` and
+`MKL_CBWR=COMPATIBLE` for these trajectory comparisons; numerical gates and
+physical input settings are unchanged.
+
 For each test case `CASE`, the input files are located under `testcases/${CASE}`,
 while the reference results are stored under `refs/${CASE}`.
 
@@ -134,6 +149,49 @@ python3 run_regression.py analyze \
   --nthreads 1 \
   -o regression.log
 ```
+
+### Coupled cRPA numerical control
+
+After a LibRI build, run the standalone/shared-G0W0 and tracked current-HR QSGW
+companion from this directory with NumPy and the matching MPI runtime:
+
+```bash
+python3 verification/verify_crpa_workflows.py --binary /path/to/build/chi0_main.exe \
+  --work-dir /path/to/new-crpa-workspace
+```
+
+It reuses the committed four-state full-BZ SOC dataset and runs one/four MPI
+ranks by default (`--ranks 1` selects one layout). The comparison checks
+fractional endpoint probabilities independently from C/S/Phi, U distinct from
+bare V and full W, standalone/shared U equality, two current-HR updates and
+one-plus-one continuation, and unchanged GW trajectories when cRPA is enabled.
+Orbital analysis is enabled for standalone/shared calculations and every
+entering/final QSGW state. NumPy independently reconstructs live Mulliken and
+Lowdin charge weights from exported C/S, and the complete Gaussian PDOS from
+all poles and k weights; continuation and rank comparisons include these
+quantities and require the PDOS to change with the electronic state. The
+fixture has two radial s functions on one atom, so its grouped weights measure
+total charge. These checks cover current-state output and borrowed numerical
+views; they do not establish material orbital transport.
+The full B space keeps the physical AO target fixed while its current-KS
+probabilities change; band-reordering transport has separate component coverage.
+CI invokes this companion after the LibRI regressions. Its JSON report contains
+numerical differences; these finite-model checks do not establish material
+convergence.
+
+### Magnetic coupled cRPA control
+
+The magnetic stage also provides `verification/verify_magnetic_crpa_workflows.py` with the
+same `--binary`, `--work-dir` and optional repeatable `--ranks` arguments. It
+reuses the full-BZ and paired-IBZ SOC archives, enables all three symmetry
+routes, and compares two current-HR updates with weighted/tracked cRPA at
+one/four ranks. QP roots and local tensors are compared directly; velocity,
+self-energy and Hamiltonian matrices are aligned through the independently
+exported complete eigenframes before comparison. Matrix errors retain each
+component's native units; head, wing, velocity and energy matrices do not share
+one unit. No separate dataset archive
+or material-convergence claim is added. CI runs this after the full-grid
+cRPA companion.
 
 ### Register an automatic test entry
 

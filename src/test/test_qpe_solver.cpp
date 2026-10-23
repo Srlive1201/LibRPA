@@ -1,3 +1,7 @@
+#ifdef NDEBUG
+#undef NDEBUG
+#endif
+
 #include "../core/qpe_solver.h"
 
 #include <cassert>
@@ -245,6 +249,21 @@ void test_adaptive_damp_recovers_from_min_damp_stall()
     assert(std::abs(e_qp - e_qp_ref) < 1.0e-3);
 }
 
+void test_perturbative_zero_self_energy()
+{
+    const std::vector<cplxdb> xs = {{0.0, 1.0}, {0.0, 2.0}, {0.0, 4.0}, {0.0, 8.0}};
+    const AnalyContPade pade(xs.size(), xs, std::vector<cplxdb>(xs.size(), 0.0));
+    double energy, weight;
+    cplxdb sigma, derivative;
+    const int info =
+        qpe_solver_pade_perturbative(pade, 0.5, 0.2, 0.1, 0.3, energy, sigma, derivative, weight);
+    assert(info == 0);
+    assert(std::abs(energy - 0.7) < 1.0e-14);
+    assert(weight == 1.0);
+    assert(sigma == cplxdb(0.0, 0.0));
+    assert(derivative == cplxdb(0.0, 0.0));
+}
+
 int main(int argc, char *argv[])
 {
     check_single_pole_self_energy(false);
@@ -254,4 +273,5 @@ int main(int argc, char *argv[])
     test_perturbative_qp_weight();
     test_adaptive_damp_residual_mixing_branch_hop_case();
     test_adaptive_damp_recovers_from_min_damp_stall();
+    test_perturbative_zero_self_energy();
 }

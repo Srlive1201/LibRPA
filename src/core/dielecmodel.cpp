@@ -5,9 +5,11 @@
 #include <cassert>
 #include <cmath>
 #include <cstddef>
+#include <exception>
 #include <limits>
 #include <map>
 #include <memory>
+#include <numeric>
 #include <set>
 #include <sstream>
 #include <utility>
@@ -17,6 +19,7 @@
 #include "../math/interpolate.h"
 #include "../math/lebedev_laikov.h"
 #include "../math/matrix_m.h"
+#include "../math/utils_matrix_mpi.h"
 #include "../math/utils_matrix_m_mpi.h"
 #include "../math/vec.h"
 #include "../mpi/base_blacs.h"
@@ -563,6 +566,53 @@ ComplexMatrix rotate_headwing_wfc_to_kstar_member(
         return conj(wfc_ibz) * rotation;
     }
     return wfc_ibz * rotation;
+}
+
+std::array<ComplexMatrix, 2> rotate_headwing_spinor_wfc_to_kstar_member(
+    const SymmetryContext &ctx, const SymmetryKStarMember &member,
+    const std::vector<SpeciesBasisLayout> &wfc_layouts, const std::map<atom_t, size_t> &atom_nw,
+    const Vector3_Order<double> &k_ibz, const std::array<ComplexMatrix, 2> &wfc_ibz,
+    const Vector3_Order<double> *k_bz_target)
+{
+    // Factor the same ket action used by transform_spinor_bilinear. The
+    // member records full -> representative, so its resolved spin action
+    // already has the inverse direction required here. Keep reciprocal
+    // re-gauging outside Theta, as in the four-block Green-function restore.
+    const auto op = resolve_symmetry_kstar_member_spin_operation(ctx, member);
+    const auto orbital = build_symmetry_kspace_operator_transform_matrix(
+        ctx, wfc_layouts, member, atom_nw, k_ibz, false, nullptr);
+    const int n_bands = wfc_ibz[0].nr;
+    if (n_bands <= 0 || wfc_ibz[0].nc != orbital.nr || orbital.nr != orbital.nc ||
+        wfc_ibz[1].nr != n_bands || wfc_ibz[1].nc != orbital.nr)
+        throw LIBRPA_RUNTIME_ERROR("head/wing SOC WFC rotation dimension mismatch");
+
+    const auto orbital_transpose = transpose(orbital, false);
+    const std::array<ComplexMatrix, 2> spatial{wfc_ibz[0] * orbital_transpose,
+                                               wfc_ibz[1] * orbital_transpose};
+    const auto &u = op.spin_u;
+    std::array<ComplexMatrix, 2> mixed{u[0] * spatial[0] + u[1] * spatial[1],
+                                       u[2] * spatial[0] + u[3] * spatial[1]};
+    std::array<ComplexMatrix, 2> result;
+    if (op.antiunitary)
+    {
+        result[0] = conj(mixed[1]);
+        result[1] = std::complex<double>{-1.0, 0.0} * conj(mixed[0]);
+    }
+    else
+        result = std::move(mixed);
+
+    const auto phases =
+        build_symmetry_kstar_member_target_gauge_phases(ctx, member, atom_nw.size(), k_bz_target);
+    int offset = 0;
+    for (const auto &[atom, n_ao] : atom_nw)
+    {
+        for (int band = 0; band != n_bands; ++band)
+            for (std::size_t ao = 0; ao != n_ao; ++ao)
+                for (auto &component : result)
+                    component(band, offset + static_cast<int>(ao)) *= phases.at(atom);
+        offset += static_cast<int>(n_ao);
+    }
+    return result;
 }
 
 static bool can_use_headwing_single_member_stars(
@@ -1404,10 +1454,59 @@ double diele_func::get_strict_2d_pw_to_auxiliary_scale() const
     return strict_2d_pw_to_auxiliary_scale_;
 }
 
+void diele_func::normalize_ibz_star_weighted_occupations()
+{
+    const auto n_ibz = meanfield_df.get_n_kpoints();
+    if (!use_soc || n_ibz == pbc_.get_n_cells_bvk()) return;
+    if (!use_symmetry || symmetry_context_ == nullptr || n_ibz <= 0 ||
+        symmetry_context_->count_kstar_members() !=
+            static_cast<std::size_t>(pbc_.get_n_cells_bvk()))
+        throw LIBRPA_RUNTIME_ERROR(
+            "IBZ head/wing occupation conversion requires complete magnetic k-stars");
+    for (int ik = 0; ik != n_ibz; ++ik)
+    {
+        const auto &star =
+            find_symmetry_kstar_for_ibz_kpoint(*symmetry_context_, kfrac_band.at(ik));
+        if (star.members.empty())
+            throw LIBRPA_RUNTIME_ERROR("IBZ head/wing occupation conversion found an empty star");
+        const double scale = static_cast<double>(pbc_.get_n_cells_bvk()) /
+                             (static_cast<double>(n_ibz) * star.members.size());
+        for (auto &weights : meanfield_df.get_weight())
+            for (int band = 0; band != meanfield_df.get_n_states(); ++band)
+            {
+                const double occupation = weights(ik, band) * scale * n_ibz;
+                if (!std::isfinite(occupation) || occupation < -1e-8 || occupation > 1.0 + 1e-8)
+                    throw LIBRPA_RUNTIME_ERROR(
+                        "IBZ SOC main occupations must carry geometric k-star weights "
+                        "before head/wing normalization");
+                weights(ik, band) *= scale;
+            }
+    }
+}
+
 void diele_func::init(double coulomb_eigen_threshold, const librpa_int::atpair_k_cplx_mat_t &Vq)
 {
     this->n_abf = atomic_basis_abf_.nb_total;
     this->nk = this->kfrac_band.size();
+    if (use_soc && nk < pbc_.get_n_cells_bvk())
+    {
+        if (!use_symmetry || symmetry_context_ == nullptr || !symmetry_context_->available ||
+            symmetry_context_->spin_operations.empty() ||
+            symmetry_context_->count_kstar_members() !=
+                static_cast<std::size_t>(pbc_.get_n_cells_bvk()) ||
+            !atomic_basis_wfc_.has_l_shells())
+            throw LIBRPA_RUNTIME_ERROR(
+                "IBZ SOC head/wing requires complete magnetic k-stars and AO shell metadata");
+        const auto layouts =
+            atomic_basis_wfc_.build_species_basis_layouts(symmetry_context_->atom_to_type);
+        if (!can_restore_symmetry_kstar_meanfield(*symmetry_context_, layouts, meanfield_df,
+                                                  kfrac_band, atom_nw))
+            throw LIBRPA_RUNTIME_ERROR("IBZ SOC head/wing cannot restore the supplied eigenframe");
+        if (!has_direct_full_bz_headwing_inputs() && use_kpara_eigvec_)
+            throw LIBRPA_RUNTIME_ERROR(
+                "IBZ-only SOC head/wing requires undistributed AO/band wave-function blocks; "
+                "disable use_kpara_scf_eigvec or supply paired full-BZ inputs");
+    }
     if (static_cast<int>(velocity_.size()) != n_spin)
         throw LIBRPA_RUNTIME_ERROR(
             "head/wing velocity spin dimension is inconsistent with meanfield");
@@ -1528,11 +1627,42 @@ void diele_func::init_wing(double coulomb_eigen_threshold, const atpair_k_cplx_m
         std::cout << "* Success: initalize and calculate lebdev points and q_gamma." << std::endl;
 }
 
+void diele_func::set_excluded_band_pairs(const HeadwingBandSelection &selection)
+{
+    if (!head.empty() || !wing_mu.empty() || use_kpara_eigvec_ || use_symmetry)
+        throw LIBRPA_INVALID_ARGUMENT(
+            "constrained optical selection must precede initialization and requires replicated "
+            "full BZ");
+    if (selection.size() != static_cast<std::size_t>(n_spin))
+        throw LIBRPA_INVALID_ARGUMENT("constrained optical spin count differs from meanfield");
+    for (const auto &spin : selection)
+    {
+        if (spin.size() != kfrac_band.size())
+            throw LIBRPA_INVALID_ARGUMENT("constrained optical k count differs from meanfield");
+        for (const auto &mask : spin)
+            if (mask.size() != static_cast<std::size_t>(n_states) ||
+                std::any_of(mask.begin(), mask.end(),
+                            [](double p) { return !std::isfinite(p) || p < 0 || p > 1; }))
+                throw LIBRPA_INVALID_ARGUMENT("invalid constrained optical endpoint mask");
+    }
+    excluded_band_pairs_ = selection;
+}
+
+double diele_func::retained_band_pair_weight(int spin, int k, int n, int m) const
+{
+    return excluded_band_pairs_.empty()
+               ? 1.0
+               : 1.0 - excluded_band_pairs_[spin][k][n] * excluded_band_pairs_[spin][k][m];
+}
+
 // intraband term is not considered
 void diele_func::cal_head()
 {
     using global::profiler;
 
+    if (!excluded_band_pairs_.empty() && (use_symmetry || use_2d_dielectric))
+        throw LIBRPA_INVALID_ARGUMENT(
+            "constrained optical head requires full BZ and 3D dielectric");
     profiler.start("cal_head");
 
     const bool can_try_sym =
@@ -1623,6 +1753,8 @@ void diele_func::cal_head_full_bz()
                 {
                     if (iocc < iunocc)
                     {
+                        const double retained = retained_band_pair_weight(ispin, ik, iocc, iunocc);
+                        if (retained == 0.0) continue;
                         double egap =
                             (eigenvalues(ik, iocc) - eigenvalues(ik, iunocc));  // * HA2EV;
                         // NOTE: wg is matrix(n_kpoints, n_states); index with (ik, ib) not flat
@@ -1640,7 +1772,8 @@ void diele_func::cal_head_full_bz()
                                     for (size_t iomega = 0; iomega != this->omega.size(); iomega++)
                                     {
                                         double omega_ev = this->omega[iomega];  // * HA2EV;
-                                        tmp = 2.0 * factor * velocity[ik][alpha](iunocc, iocc) *
+                                        tmp = 2.0 * factor * retained *
+                                              velocity[ik][alpha](iunocc, iocc) *
                                               velocity[ik][beta](iocc, iunocc) /
                                               (egap * egap + omega_ev * omega_ev) / egap;
                                         this->head.at(iomega)(alpha, beta) -= tmp;
@@ -1970,17 +2103,25 @@ SternheimerRpaHeadwingInput diele_func::get_sternheimer_rpa_headwing_input(
 void diele_func::cal_wing(const Cs_LRI &Cs_data, double coulomb_eigen_threshold,
                           const atpair_k_cplx_mat_t &Vq)
 {
+#ifndef LIBRPA_USE_LIBRI
+    throw LIBRPA_RUNTIME_ERROR(
+        "Analytic optical wing requires LibRI tensor communication; build with "
+        "LIBRPA_USE_LIBRI=ON");
+#endif
+    if (!excluded_band_pairs_.empty() && (use_symmetry || use_2d_dielectric))
+        throw LIBRPA_INVALID_ARGUMENT(
+            "constrained optical wing requires full BZ and 3D dielectric");
     const bool can_try_sym =
         use_symmetry && symmetry_context_ != nullptr && atomic_basis_wfc_.has_l_shells();
     const auto wfc_layouts =
         can_try_sym ? atomic_basis_wfc_.build_species_basis_layouts(symmetry_context_->atom_to_type)
                     : std::vector<SpeciesBasisLayout>{};
+    // Single-member stars already cover the complete BZ. Keep their native
+    // k-BLACS WFC blocks on the full-BZ route; only reduced stars need WFC
+    // reconstruction, whose source-only input must remain undistributed.
     const bool can_sym =
-        can_try_sym &&
-        (librpa_int::can_restore_symmetry_kstar_meanfield(
-             *symmetry_context_, wfc_layouts, meanfield_df, kfrac_band, atom_nw) ||
-         can_use_headwing_single_member_stars(
-             *symmetry_context_, wfc_layouts, kfrac_band, atom_nw));
+        can_try_sym && librpa_int::can_restore_symmetry_kstar_meanfield(
+                           *symmetry_context_, wfc_layouts, meanfield_df, kfrac_band, atom_nw);
 
     if (debug && use_symmetry && comm_h.is_root())
     {
@@ -2087,6 +2228,8 @@ void diele_func::cal_wing_full_bz(const Cs_LRI &Cs_data, double coulomb_eigen_th
 
                     for (int iunocc = iocc + 1; iunocc != n_states; iunocc++)
                     {
+                        const double retained = retained_band_pair_weight(isp, ik, iocc, iunocc);
+                        if (retained == 0.0) continue;
                         const int loc_n = desc_nband_nband.indx_g2l_c(iunocc);
                         if (loc_n < 0) continue;
 
@@ -2107,6 +2250,8 @@ void diele_func::cal_wing_full_bz(const Cs_LRI &Cs_data, double coulomb_eigen_th
                                       (1.0 - wg(ik, iocc) / 2 * n_spin * nk);
                         }
                         if (factor1 <= 1.e-8 && factor2 <= 1.e-8) continue;
+                        factor1 *= retained;
+                        factor2 *= retained;
 
                         const auto c_mn = C_mnk(loc_m, loc_n);
                         const std::array<std::complex<double>, 3> velocity_unocc_occ{
@@ -2140,7 +2285,7 @@ void diele_func::cal_wing_full_bz(const Cs_LRI &Cs_data, double coulomb_eigen_th
 
     profiler.start("Comm_wing");
     MPI_Allreduce(MPI_IN_PLACE, local_wing_mu.data(), static_cast<int>(local_wing_mu.size()),
-                  MPI_CXX_DOUBLE_COMPLEX, MPI_SUM, MPI_COMM_WORLD);
+                  MPI_CXX_DOUBLE_COMPLEX, MPI_SUM, comm_h.comm);
     profiler.stop("Comm_wing");
     double dielectric_unit = cal_factor("wing");
 
@@ -2221,17 +2366,40 @@ void diele_func::cal_wing_symmetric(const Cs_LRI &Cs_data, double coulomb_eigen_
     const double bz_weight_scale_wing =
         static_cast<double>(n_kpoints_ibz) / static_cast<double>(n_kpoints_bz);
     const bool source_rank = wing_blacs_h.myprow == 0 && wing_blacs_h.mypcol == 0;
-    if (!has_direct_full_bz_headwing_inputs())
-    {
+    const bool use_direct_inputs = has_direct_full_bz_headwing_inputs();
+    if (!use_direct_inputs && use_kblacs)
         throw LIBRPA_RUNTIME_ERROR(
-            "symmetry head/wing requires full-BZ PyATB velocity_matrix and KS eigenvectors");
-    }
+            "IBZ-only head/wing reconstruction requires undistributed AO/band WFC blocks");
+    const auto wfc_layouts = atomic_basis_wfc_.build_species_basis_layouts(ctx.atom_to_type);
 
     for (const int ik_ibz : kpoints_local)
     {
         const auto &k_ibz = kfrac_band[ik_ibz];
         const auto &star = librpa_int::find_symmetry_kstar_for_ibz_kpoint(ctx, k_ibz);
         if (star.members.empty()) throw std::runtime_error("cal_wing_symmetric: empty k-star");
+
+        // Replicate only the current representative's paired components. The
+        // caller may own whole WFC blocks on different MPI ranks; no full-BZ
+        // coefficient cache is constructed by this route.
+        std::vector<std::vector<ComplexMatrix>> source_wfc(n_spin);
+        if (!use_direct_inputs)
+            for (int ispin = 0; ispin != n_spin; ++ispin)
+            {
+                source_wfc[ispin].resize(n_spinor);
+                for (int component = 0; component != n_spinor; ++component)
+                {
+                    const auto *local = meanfield_df.find_wfc(ispin, component, ik_ibz);
+                    const bool complete =
+                        local != nullptr && local->nr == n_states && local->nc == n_basis;
+                    const int owner = find_mpi_owner_rank(complete, comm_h.comm);
+                    if (owner < 0)
+                        throw LIBRPA_RUNTIME_ERROR(
+                            "IBZ head/wing is missing a complete source WFC component");
+                    auto &source = source_wfc[ispin][component];
+                    if (comm_h.myid == owner) source = *local;
+                    broadcast_ComplexMatrix(source, owner, comm_h.comm);
+                }
+            }
 
         for (std::size_t imember = 0; imember != star.members.size(); ++imember)
         {
@@ -2245,9 +2413,16 @@ void diele_func::cal_wing_symmetric(const Cs_LRI &Cs_data, double coulomb_eigen_
             std::vector<std::array<ComplexMatrix, 3>> velocity_bz(n_spin);
             for (int ispin = 0; ispin != n_spin; ++ispin)
             {
-                velocity_bz[ispin] = direct_full_bz_velocity_for_kstar_member(
-                    direct_full_bz_velocity_, direct_full_bz_velocity_member_source_ik_, ispin,
-                    ik_ibz, imember);
+                velocity_bz[ispin] =
+                    use_direct_inputs
+                        ? direct_full_bz_velocity_for_kstar_member(
+                              direct_full_bz_velocity_, direct_full_bz_velocity_member_source_ik_,
+                              ispin, ik_ibz, imember)
+                        : rotate_headwing_velocity_to_kstar_member(
+                              ctx, member,
+                              {velocity_[ispin][ik_ibz][0], velocity_[ispin][ik_ibz][1],
+                               velocity_[ispin][ik_ibz][2]},
+                              n_states, member.time_reversal);
             }
 
             std::vector<std::vector<ComplexMatrix>> wfc_bz_storage(n_spin);
@@ -2256,9 +2431,48 @@ void diele_func::cal_wing_symmetric(const Cs_LRI &Cs_data, double coulomb_eigen_
             {
                 wfc_bz_storage[ispin].resize(n_spinor);
                 wfc_bz_ptrs[ispin].resize(n_spinor, nullptr);
+                if (!use_direct_inputs)
+                {
+                    std::exception_ptr restore_error;
+                    try
+                    {
+                        if (source_rank)
+                        {
+                            if (n_spinor == 2)
+                            {
+                                const auto restored = rotate_headwing_spinor_wfc_to_kstar_member(
+                                    ctx, member, wfc_layouts, atom_nw, k_ibz,
+                                    {source_wfc[ispin][0], source_wfc[ispin][1]}, &k_bz);
+                                for (int component = 0; component != 2; ++component)
+                                    wfc_bz_storage[ispin][component] = restored[component];
+                            }
+                            else
+                                wfc_bz_storage[ispin][0] = rotate_headwing_wfc_to_kstar_member(
+                                    ctx, member, wfc_layouts, atom_nw, k_ibz, source_wfc[ispin][0],
+                                    &k_bz);
+                            for (int component = 0; component != n_spinor; ++component)
+                                wfc_bz_ptrs[ispin][component] = &wfc_bz_storage[ispin][component];
+                        }
+                    }
+                    catch (...)
+                    {
+                        restore_error = std::current_exception();
+                    }
+                    // All ranks must reject a failed root reconstruction before
+                    // entering the distributed RI charge-vertex transform.
+                    const int failed = restore_error ? 1 : 0;
+                    int any_failed = 0;
+                    comm_h.allreduce(&failed, &any_failed, 1, MPI_MAX);
+                    if (any_failed)
+                    {
+                        if (restore_error) std::rethrow_exception(restore_error);
+                        throw LIBRPA_RUNTIME_ERROR(
+                            "IBZ head/wing WFC reconstruction failed on another MPI rank");
+                    }
+                }
                 for (int ispinor = 0; ispinor != n_spinor; ++ispinor)
                 {
-                    if (!use_kblacs && !source_rank) continue;
+                    if (!use_direct_inputs || (!use_kblacs && !source_rank)) continue;
                     const auto &wfc_full = direct_full_bz_wfc_for_kstar_member(
                         direct_full_bz_wfc_, direct_full_bz_velocity_member_source_ik_,
                         ispin, ispinor, ik_ibz, imember);
@@ -2353,7 +2567,7 @@ void diele_func::cal_wing_symmetric(const Cs_LRI &Cs_data, double coulomb_eigen_
 
     profiler.start("Comm_wing");
     MPI_Allreduce(MPI_IN_PLACE, local_wing_mu.data(), static_cast<int>(local_wing_mu.size()),
-                  MPI_CXX_DOUBLE_COMPLEX, MPI_SUM, MPI_COMM_WORLD);
+                  MPI_CXX_DOUBLE_COMPLEX, MPI_SUM, comm_h.comm);
     profiler.stop("Comm_wing");
     double dielectric_unit = cal_factor("wing");
 
@@ -4527,6 +4741,13 @@ void diele_func::rewrite_eps_abf_space(matrix_m<std::complex<double>> &eps_block
         rho[ileb] = use_2d_dielectric
                         ? qw_leb[ileb] * std::pow(q_gamma[ileb], 2) / (2.0 * vol_gamma)
                         : qw_leb[ileb] * std::pow(q_gamma[ileb], 3) / (3.0 * vol_gamma);
+    }
+    if (normalize_gamma_cell_weights)
+    {
+        const double weight = std::accumulate(rho.begin(), rho.end(), 0.0);
+        if (!std::isfinite(weight) || weight <= 0.0)
+            throw LIBRPA_RUNTIME_ERROR("invalid optical Gamma-cell quadrature weight");
+        for (auto &value : rho) value /= weight;
     }
     librpa_int::rewrite_eps_abf_space(eps_block, sqrtv_block, coul_eigen_block,
                                       head_direction, desc_head_direction, head.at(ifreq),

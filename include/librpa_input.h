@@ -519,6 +519,12 @@ void librpa_set_wfc_band_spinor_packed(LibrpaHandler* h, int ik_band, int nstate
  */
 void librpa_reset_band_data(LibrpaHandler* h);
 
+/** Query the numerical dimensions needed to prepare a QSGW task's host input.
+ * band_path selects band input when nonzero. This call is noncollective.
+ */
+void librpa_get_meanfield_dimensions(const LibrpaHandler* h, int band_path, int* nspins,
+                                     int* nkpts, int* nstates, int* naos, int* nspinor);
+
 #ifdef __cplusplus
 }
 #endif

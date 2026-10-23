@@ -15,6 +15,62 @@
 namespace librpa
 {
 
+QsgwTask Handler::create_qsgw_task(const Options& opts, const LibrpaQsgwControls& controls) const
+{
+    return QsgwTask(::librpa_create_qsgw_task(h_, &opts, &controls), ::librpa_delete_qsgw_task);
+}
+
+CrpaContinuedResult continue_crpa(const LibrpaCrpaResult* result,
+                                  const std::vector<std::complex<double>>& queries,
+                                  int n_parameters, double tolerance_ha)
+{
+    return CrpaContinuedResult(
+        ::librpa_continue_crpa(result, queries.size(),
+                               reinterpret_cast<const double*>(queries.data()), n_parameters,
+                               tolerance_ha),
+        ::librpa_delete_crpa_continued_result);
+}
+
+OrbitalResult Handler::analyze_orbitals(int nk, int nao, const std::vector<double>& overlap,
+                                        double tolerance) const
+{
+    const bool valid_size =
+        nk > 0 && nao > 0 && overlap.size() == 2 * static_cast<std::size_t>(nk) * nao * nao;
+    return OrbitalResult(
+        ::librpa_analyze_orbitals(h_, nk, nao, valid_size ? overlap.data() : nullptr, tolerance),
+        ::librpa_delete_orbital_result);
+}
+
+CrpaResult Handler::build_g0w0_sigma_crpa(const Options& opts, const LibrpaCrpaInput& input)
+{
+    return CrpaResult(::librpa_build_g0w0_sigma_crpa(h_, &opts, &input),
+                      ::librpa_delete_crpa_result);
+}
+
+CrpaResult Handler::compute_crpa_u_window(const Options& opts, const LibrpaCrpaInput& input) const
+{
+    return CrpaResult(::librpa_compute_crpa_u_window(h_, &opts, &input),
+                      ::librpa_delete_crpa_result);
+}
+
+CrpaResult Handler::prepare_crpa_model(const Options& opts, const LibrpaCrpaInput& input) const
+{
+    return CrpaResult(::librpa_prepare_crpa_model(h_, &opts, &input), librpa_delete_crpa_result);
+}
+
+std::array<std::complex<double>, 3> crpa_tensor_averages(
+    int n_orbitals, const std::vector<std::complex<double>>& tensor)
+{
+    if (n_orbitals <= 0 || tensor.size() != static_cast<std::size_t>(n_orbitals) * n_orbitals *
+                                                n_orbitals * n_orbitals)
+        throw LIBRPA_INVALID_ARGUMENT("incomplete cRPA tensor for orbital averages");
+    std::array<std::complex<double>, 3> result;
+    ::librpa_crpa_tensor_averages(n_orbitals, reinterpret_cast<const double*>(tensor.data()),
+                                  reinterpret_cast<double*>(result.data()));
+    return result;
+}
+
+
 /* Global environment functions */
 const char* get_build_info(void) { return ::librpa_get_build_info(); }
 
@@ -413,6 +469,18 @@ LIBRPA_CPP_H_METHOD_DEF_WRAP_VOID(
 void Handler::reset_band_data()
 {
     ::librpa_reset_band_data(this->h_);
+}
+
+void Handler::prepare_native_velocity(const Options& opts,
+                                      const LibrpaNativeVelocityInput* root_input,
+                                      bool prepare_optical)
+{
+    ::librpa_prepare_native_velocity(h_, &opts, root_input, prepare_optical ? 1 : 0);
+}
+
+OpticalResult Handler::get_optical_result() const
+{
+    return OpticalResult(::librpa_get_optical_result(h_), ::librpa_delete_optical_result);
 }
 
 /* Compute (build/get) functions */

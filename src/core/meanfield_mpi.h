@@ -11,6 +11,30 @@
 namespace librpa_int
 {
 
+struct SymmetryExpandedMeanField
+{
+    MeanField meanfield;
+    std::vector<int> source_k;
+    std::vector<bool> antiunitary;
+};
+
+// Expand paired source-gauge IBZ states without a new eigensolve. Returned
+// band-space operators copy their source block, conjugating antiunitary routes.
+SymmetryExpandedMeanField expand_symmetry_meanfield(const MeanField &source,
+                                                    const AtomicBasis &basis,
+                                                    const PeriodicBoundaryData &pbc,
+                                                    const SymmetryContext &context);
+
+// Verify E, occupations and diagonal endpoint weights through magnetic sewing.
+// Degenerate permutations/mixing are allowed only when they preserve the weights.
+// Includes all active operations, including little-group stabilizers.
+// Retained rectangular frames must span a symmetry-invariant subspace. With no
+// endpoint weights, an IBZ state is temporarily expanded only for validation.
+void validate_symmetry_band_weights(
+    const MeanField &mf, const AtomicBasis &basis, const PeriodicBoundaryData &pbc,
+    const SymmetryContext &symmetry,
+    const std::vector<std::vector<std::vector<double>>> &weights = {});
+
 //! Shared block-size cap for permanent k-BLACS WFC layouts and their GEMM workspaces.
 constexpr int wfc_gemm_block_size_opt = 128;
 
@@ -74,6 +98,29 @@ std::map<Vector3_Order<int>, Matz> get_symmetry_restored_dmat_cplx_Rs_kblacs_par
     const KPointBlacsParallelContext &kblacs_ctxt, const ArrayDesc &desc_wfc, const ArrayDesc &desc_dm,
     const SymmetryContext &symmetry_context, const PeriodicBoundaryData &pbc,
     const AtomicBasis &atbasis_wfc);
+
+/*!
+ * @brief Four-channel spinor variant of
+ * get_symmetry_restored_dmat_cplx_Rs_kblacs_para.
+ *
+ * Requires mf.get_n_spinor() == 2 and a restorable k-star context (the caller
+ * checks can_restore_symmetry_kstar_meanfield; this function throws otherwise).
+ * Each local k-point builds the four (bra, ket) source blocks with the same
+ * pgemm pattern as the scalar path (missing wfc channels are zero-filled with
+ * a stand-in block so the collective stays intact); each star member gathers
+ * and spatially rotates the four block sets (time reversal suppressed, gauge
+ * phases excluded), then applies the SU(2) mixing and the Theta remap through
+ * transform_spinor_bilinear per atom pair. The target-kpoint gauge phases are
+ * applied after the kernel as plain unitary re-gauging factors. The four
+ * channels are packed into one communication buffer, so the reduce rounds are
+ * unchanged from the scalar path.
+ */
+std::map<Vector3_Order<int>, SpinorBlocks4<Matz>>
+get_symmetry_restored_dmat_cplx_Rs_kblacs_para_spinor(
+    int ispin, const MeanField &mf, const std::vector<Vector3_Order<double>> &kfrac_list,
+    const std::vector<Vector3_Order<int>> &Rs, const KPointBlacsParallelContext &kblacs_ctxt,
+    const ArrayDesc &desc_wfc, const ArrayDesc &desc_dm, const SymmetryContext &symmetry_context,
+    const PeriodicBoundaryData &pbc, const AtomicBasis &atbasis_wfc);
 
 // Similar to above, but for Green's function. Note that imagtimes must be the same across kblacs_ctxt.
 std::map<double, std::map<Vector3_Order<int>, Matz>> get_gf_cplx_imagtimes_Rs_kblacs_para(

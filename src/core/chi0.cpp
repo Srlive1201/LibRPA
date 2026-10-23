@@ -447,8 +447,8 @@ static Chi0ExactCollectRequest make_padding_chi0_exact_collect_request(
 bool rspace_symmetry_has_complete_band_space(const MeanField &mf, const int n_bands)
 {
     const int n_bands_used = n_bands < 0 ? mf.get_n_bands() : n_bands;
-    return n_bands_used == mf.get_n_aos()
-        && n_bands_used <= mf.get_n_bands();
+    const int n_basis_states = mf.get_n_aos() * mf.get_n_spinor();
+    return n_bands_used == n_basis_states && n_bands_used <= mf.get_n_bands();
 }
 
 #ifdef LIBRPA_USE_LIBRI
@@ -824,14 +824,173 @@ Chi0::Chi0(const MeanField &mf_in, const AtomicBasis &atbasis_wfc_in,
     nbands_G = -1;
 }
 
-void Chi0::build(LibrpaParallelRouting routing,
-                 const Cs_LRI &Cs,
-                 const std::vector<atpair_t> &atpairs_ABF,
-                 const AtomicBasis &abf_Cs,
+namespace
+{
+void check_chi0_collective_error(const MpiCommHandler &comm, const std::string &error)
+{
+    const int failed = !error.empty();
+    int any_failed = 0;
+    comm.allreduce(&failed, &any_failed, 1, MPI_MAX);
+    if (any_failed)
+        throw LIBRPA_RUNTIME_ERROR(
+            (error.empty() ? "Chi0: another rank rejected the response operation" : error));
+}
+}  // namespace
+
+void Chi0::set_band_selection(const BandSelection &selection)
+{
+    const int shape[] = {mf.get_n_spins(), mf.get_n_kpoints(), mf.get_n_bands(),
+                         !selection.empty()};
+    int minimum[4], maximum[4];
+    comm_h.allreduce(shape, minimum, 4, MPI_MIN);
+    comm_h.allreduce(shape, maximum, 4, MPI_MAX);
+    std::string error;
+    BandSelection candidate;
+    std::vector<double> flat, reference;
+    try
+    {
+        for (int i = 0; i < 4; ++i)
+            if (minimum[i] != maximum[i])
+                throw LIBRPA_RUNTIME_ERROR(
+                    "Chi0 band selection dimensions or enablement differ between ranks");
+        if (!selection.empty())
+        {
+            if (shape[0] < 1 || shape[1] < 1 || shape[2] < 1 ||
+                selection.size() != static_cast<std::size_t>(shape[0]))
+                throw LIBRPA_RUNTIME_ERROR(
+                    "Chi0 band selection requires the full spin/k/band dimensions");
+            for (const auto &spin : selection)
+            {
+                if (spin.size() != static_cast<std::size_t>(shape[1]))
+                    throw LIBRPA_RUNTIME_ERROR("Chi0 band selection has the wrong k-point count");
+                for (const auto &bands : spin)
+                {
+                    if (bands.size() != static_cast<std::size_t>(shape[2]))
+                        throw LIBRPA_RUNTIME_ERROR("Chi0 band selection has the wrong band count");
+                    for (const auto selected : bands)
+                    {
+                        if (!std::isfinite(selected) || selected < 0 || selected > 1)
+                            throw LIBRPA_RUNTIME_ERROR(
+                                "Chi0 endpoint weights must be finite and between zero and one");
+                        flat.push_back(selected);
+                    }
+                }
+            }
+        }
+        candidate = selection;
+        reference = flat;
+    }
+    catch (const std::exception &e)
+    {
+        error = e.what();
+    }
+    check_chi0_collective_error(comm_h, error);
+    for (std::size_t offset = 0; offset < reference.size();)
+    {
+        const int count =
+            static_cast<int>(std::min<std::size_t>(reference.size() - offset, 1048576));
+        MPI_Bcast(reference.data() + offset, count, MPI_DOUBLE, 0, comm_h.comm);
+        offset += count;
+    }
+    check_chi0_collective_error(
+        comm_h, reference == flat ? "" : "Chi0 band selections differ between ranks");
+    if (!candidate.empty() && use_symmetry_context && qstar_only_symmetry)
+    {
+        try
+        {
+            validate_symmetry_band_weights(mf, atbasis_wfc, pbc, symmetry_context, candidate);
+        }
+        catch (const std::exception &failure)
+        {
+            error = failure.what();
+        }
+        check_chi0_collective_error(comm_h, error);
+    }
+    band_selection_.swap(candidate);
+}
+
+Chi0QMap Chi0::take_chi0_q() noexcept
+{
+    Chi0QMap result;
+    result.swap(chi0_q);
+    return result;
+}
+
+void Chi0::swap_chi0_q(Chi0QMap &other) noexcept { chi0_q.swap(other); }
+
+void Chi0::replace_chi0_q_by_difference(const Chi0QMap &full)
+{
+    Chi0QMap difference;
+    std::string error;
+    try
+    {
+        const auto accumulate = [&](const Chi0QMap &response, double sign)
+        {
+            for (const auto &[omega, qs] : response)
+                for (const auto &[q, atoms] : qs)
+                    for (const auto &[i, js] : atoms)
+                        for (const auto &[j, block] : js)
+                        {
+                            const auto &frequencies = tfg.get_freq_nodes();
+                            if (!std::isfinite(omega) ||
+                                std::find(frequencies.begin(), frequencies.end(), omega) ==
+                                    frequencies.end() ||
+                                qpoint_view_.weights.count(q) == 0 || i < 0 || j < 0 || i > j ||
+                                i >= atbasis_abf.n_atoms || j >= atbasis_abf.n_atoms ||
+                                block.nr != static_cast<int>(atbasis_abf[i]) ||
+                                block.nc != static_cast<int>(atbasis_abf[j]) ||
+                                block.size != block.nr * block.nc || (block.size && !block.c))
+                                throw LIBRPA_RUNTIME_ERROR(
+                                    "Chi0 response difference has incompatible frequency/q/basis "
+                                    "blocks");
+                            auto &target = difference[omega][q][i][j];
+                            if (!target.c) target.create(block.nr, block.nc);
+                            for (int k = 0; k < block.size; ++k)
+                            {
+                                if (!std::isfinite(block.c[k].real()) ||
+                                    !std::isfinite(block.c[k].imag()))
+                                    throw LIBRPA_RUNTIME_ERROR(
+                                        "Chi0 response difference contains a non-finite matrix");
+                                target.c[k] += sign * block.c[k];
+                                if (!std::isfinite(target.c[k].real()) ||
+                                    !std::isfinite(target.c[k].imag()))
+                                    throw LIBRPA_RUNTIME_ERROR(
+                                        "Chi0 response difference overflowed");
+                            }
+                        }
+        };
+        accumulate(full, 1.0);
+        accumulate(chi0_q, -1.0);
+    }
+    catch (const std::exception &e)
+    {
+        error = e.what();
+    }
+    check_chi0_collective_error(comm_h, error);
+    chi0_q.swap(difference);
+}
+
+void Chi0::build(LibrpaParallelRouting routing, const Cs_LRI &Cs,
+                 const std::vector<atpair_t> &atpairs_ABF, const AtomicBasis &abf_Cs,
                  std::map<Vector3_Order<double>, ComplexMatrix> &sinvS,
                  const BlacsCtxtHandler &blacs_ctxt_h)
 {
     using librpa_int::global::lib_printf;
+
+    // Selected responses use the same replicated scalar/spinor LIBRI kernel as P0.
+    // Other routes must not silently ignore an attached selection.
+    if (!band_selection_.empty())
+    {
+        const bool supported =
+            routing == LIBRPA_ROUTING_LIBRI && !is_mf_eigvec_k_distributed_ &&
+            (!use_symmetry_context || qstar_only_symmetry) &&
+            (mf.get_n_spinor() == 1 || (mf.get_n_spinor() == 2 && mf.get_n_spins() == 1)) &&
+            tfg.has_time_grids();
+        check_chi0_collective_error(
+            comm_h, supported ? ""
+                              : "Chi0 selected bands require scalar/spinor full-grid LIBRI with "
+                                "replicated eigenvectors and time grids");
+    }
 
     if (nbands_G > mf.get_n_bands())
         throw LIBRPA_RUNTIME_ERROR("n_bands_chi0 exceeds the number of input bands");
@@ -847,6 +1006,7 @@ void Chi0::build(LibrpaParallelRouting routing,
     gf_save = gf_discard = 0;
     // reset chi0_q in case the method was called before
     chi0_q.clear();
+    Rlist_gf.clear();
 
     bool use_space_time = false;
 
@@ -1077,14 +1237,10 @@ void Chi0::build_chi0_q_space_time(const LibrpaParallelRouting routing,
 template <typename Tdata>
 static void build_gf_Rt_libri_serial(
     const MeanField &mf, const std::vector<bool> &band_mask,
-    const AtomicBasis &atbasis_wfc,
-    int ispin, int isoc1, int isoc2,
-    const PeriodicBoundaryData &pbc,
-    const SymmetryContext &symmetry_context,
-    const bool use_symmetry_context,
-    const vector<Vector3_Order<double>> &kfrac_list,
-    const std::vector<std::pair<atpair_t, Vector3_Order<int>>> IJRs,
-    double tau,
+    const Chi0::BandSelection &band_selection, const AtomicBasis &atbasis_wfc, int ispin, int isoc1,
+    int isoc2, const PeriodicBoundaryData &pbc, const SymmetryContext &symmetry_context,
+    const bool use_symmetry_context, const vector<Vector3_Order<double>> &kfrac_list,
+    const std::vector<std::pair<atpair_t, Vector3_Order<int>>> IJRs, double tau,
     std::map<int, std::map<std::pair<int, std::array<int, 3>>, RI::Tensor<Tdata>>> &gf_libri)
 {
     global::profiler.start("build_gf_Rt_libri_serial");
@@ -1257,7 +1413,8 @@ static void build_gf_Rt_libri_serial(
             auto scaled_wfc_conj = conj(ev2);
             for (int ib = 0; ib != nbands; ib++)
             {
-                const auto scale_ib = !band_mask.empty() && !band_mask[ib] ? 0.0 : scale(ik, ib);
+                double scale_ib = !band_mask.empty() && !band_mask[ib] ? 0.0 : scale(ik, ib);
+                if (!band_selection.empty()) scale_ib *= band_selection[ispin][ik][ib];
                 LapackConnector::scal(naos, scale_ib, scaled_wfc_conj.c + naos * ib, 1);
             }
             auto mat = (kphase * transpose(ev1, false) * scaled_wfc_conj);
@@ -2041,9 +2198,14 @@ void Chi0::build_chi0_q_space_time_LibRI_routing(const Cs_LRI &Cs,
         this->n_bands_exclude == 0
         && rspace_symmetry_has_complete_band_space(this->mf, this->nbands_G);
     const bool use_chi0_rspace_symmetry =
-        chi0_rspace_symmetry_available && chi0_band_space_complete;
-    if (chi0_rspace_symmetry_available && !chi0_band_space_complete
-        && comm_h.is_root())
+        chi0_rspace_symmetry_available && chi0_band_space_complete && !qstar_only_symmetry;
+    if (qstar_only_symmetry && this->use_symmetry_context && comm_h.is_root())
+    {
+        global::lib_printf_root(
+            "cRPA q-star screening retains full original k-grid Green functions and full "
+            "real-space contractions\n");
+    }
+    else if (chi0_rspace_symmetry_available && !chi0_band_space_complete && comm_h.is_root())
     {
         const int n_bands_used =
             std::max(0, (this->nbands_G < 0 ? this->mf.get_n_bands() : this->nbands_G)
@@ -2052,7 +2214,7 @@ void Chi0::build_chi0_q_space_time_LibRI_routing(const Cs_LRI &Cs,
             "chi0 real-space irreducible-sector contraction disabled: "
             "%d response bands do not span the complete %d-state AO space; "
             "k-star and q-star symmetry remain active\n",
-            n_bands_used, this->mf.get_n_aos());
+            n_bands_used, this->mf.get_n_aos() * this->mf.get_n_spinor());
     }
     const bool use_q_uhap_split =
         global::dev_opts.use_chi0_q_uhap_split && !use_shrink_chi &&
@@ -2353,16 +2515,16 @@ void Chi0::build_chi0_q_space_time_LibRI_routing(const Cs_LRI &Cs,
                     }
                     else
                     {
-                        build_gf_Rt_libri_serial(this->mf, this->band_mask,
-                                                 this->atbasis_wfc, isp, is1, is2,
-                                                 this->pbc, this->symmetry_context,
-                                                 this->use_symmetry_context,
-                                                 this->pbc.kfrac_list, this->IJRs_gf_local, tau,
-                                                 gf_po_libri);
-                        build_gf_Rt_libri_serial(this->mf, this->band_mask, this->atbasis_wfc, isp,
-                                                 is1, is2, this->pbc, this->symmetry_context,
-                                                 this->use_symmetry_context, this->pbc.kfrac_list,
-                                                 this->IJRs_gf_local, -tau, gf_ne_libri);
+                        build_gf_Rt_libri_serial(
+                            this->mf, this->band_mask, this->band_selection_, this->atbasis_wfc,
+                            isp, is1, is2, this->pbc, this->symmetry_context,
+                            this->use_symmetry_context && !this->qstar_only_symmetry,
+                            this->pbc.kfrac_list, this->IJRs_gf_local, tau, gf_po_libri);
+                        build_gf_Rt_libri_serial(
+                            this->mf, this->band_mask, this->band_selection_, this->atbasis_wfc,
+                            isp, is1, is2, this->pbc, this->symmetry_context,
+                            this->use_symmetry_context && !this->qstar_only_symmetry,
+                            this->pbc.kfrac_list, this->IJRs_gf_local, -tau, gf_ne_libri);
                     }
                     // LibRI contracts both Gs in the same AO/translation ordering.
                     // The bubble needs G_{s2,s1}(J,I,-R,-tau), which is the

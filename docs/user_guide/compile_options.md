@@ -46,6 +46,8 @@ for RI tensor contractions.
 
 The *GW* and EXX functionalities require LibRPA to be compiled with LibRI, i.e. `-DLIBRPA_USE_LIBRI=ON`.
 By contrast, the RPA correlation energy can also be computed without this option.
+The analytic optical wing also requires LibRI tensor communication; the analytic
+head and RPA calculations without an analytic wing remain available without LibRI.
 
 (librpa-use-libri-gpu)=
 ## `LIBRPA_USE_LIBRI_GPU`

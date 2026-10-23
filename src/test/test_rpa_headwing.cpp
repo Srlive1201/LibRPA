@@ -12,13 +12,16 @@
 #include <string>
 #include <valarray>
 
-#include "../api/dataset.h"
+#include "librpa.h"
+#include "../api/instance_manager.h"
 #include "../core/chi0.h"
 #include "../core/coulmat.h"
+#include "../api/dataset.h"
 #include "../core/dielecmodel.h"
 #include "../core/epsilon.h"
 #include "../core/meanfield_mpi.h"
 #include "../core/qpoint_view.h"
+#include "../core/qsgw/headwing_velocity.h"
 #include "../gpu/la_connector.h"
 #include "../io/global_io.h"
 #include "../math/utils_matrix_m_mpi.h"
@@ -67,6 +70,218 @@ void test_rspace_symmetry_requires_complete_band_space()
     MeanField complete(1, 1, 3, 3);
     assert(librpa_int::rspace_symmetry_has_complete_band_space(complete, -1));
     assert(!librpa_int::rspace_symmetry_has_complete_band_space(complete, 2));
+
+    // Six entangled spinors form a complete gapped three-AO spinor model.
+    // Its resolution of identity, rather than the spatial AO count, fixes
+    // which band selection can safely enter real-space restoration.
+    MeanField spinor_complete(1, 1, 6, 3, 2);
+    auto &wfc = spinor_complete.get_eigenvectors();
+    for (int spinor = 0; spinor != 2; ++spinor)
+    {
+        wfc[0][spinor][0].create(6, 3);
+        for (int band = 0; band != 6; ++band)
+        {
+            spinor_complete.get_eigenvals()[0](0, band) = band < 3 ? -0.5 : 0.5;
+            for (int ao = 0; ao != 3; ++ao)
+            {
+                const double phase = librpa_int::TWO_PI * band * (3 * spinor + ao) / 6.0;
+                wfc[0][spinor][0](band, ao) = std::polar(1.0 / std::sqrt(6.0), phase);
+            }
+        }
+    }
+    for (int row = 0; row != 6; ++row)
+    {
+        for (int col = 0; col != 6; ++col)
+        {
+            std::complex<double> projector = 0.0;
+            for (int band = 0; band != 6; ++band)
+                projector += wfc[0][row / 3][0](band, row % 3) *
+                             std::conj(wfc[0][col / 3][0](band, col % 3));
+            assert(std::abs(projector - (row == col ? 1.0 : 0.0)) < 1e-12);
+        }
+    }
+    assert(librpa_int::rspace_symmetry_has_complete_band_space(spinor_complete, -1));
+    assert(!librpa_int::rspace_symmetry_has_complete_band_space(spinor_complete, 3));
+}
+
+void test_qsgw_reconstruction_with_finite_reference_metric()
+{
+    using namespace librpa_int::qsgw;
+    const Matrix3 lattice(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0);
+    const Vector3_Order<int> origin(0, 0, 0);
+    const std::vector<Vector3_Order<double>> kpoints{{0.0, 0.0, 0.0}};
+    MeanField reference(1, 1, 2, 2);
+    auto &wfc = reference.get_eigenvectors()[0][0][0];
+    wfc.create(2, 2);
+    wfc.zero_out();
+    wfc(0, 0) = 1.0 + 1e-7;
+    wfc(1, 1) = (1.0 - 1e-7) / std::sqrt(1e-3);
+    Matz coefficients(2, 2, MAJOR::ROW);
+    coefficients.zero_out();
+    coefficients(0, 0) = wfc(0, 0);
+    coefficients(1, 1) = wfc(1, 1);
+    HeadwingAoOperators operators;
+    operators.dimension = 2;
+    operators.overlap.emplace(
+        origin, Matz({{{1.0, 0.0}, {0.0, 0.0}}, {{0.0, 0.0}, {1e-3, 0.0}}}, MAJOR::ROW));
+    const Matz h({{{-0.5, 0.0}, {0.012, 0.008}}, {{0.012, -0.008}, {20.0, 0.0}}}, MAJOR::ROW);
+    SpinKMatrixMap target;
+    target[0][0] = h.copy();
+    const auto result = reconstruct_qsgw_hamiltonian(reference, target, operators, kpoints,
+                                                     Vector3_Order<int>(1, 1, 1), lattice);
+    assert(result.reference_metric_residual > 1e-7);
+    assert(result.reference_metric_residual < 1e-6);
+    const Matz projected =
+        transpose(coefficients, true) * result.hamiltonian[0].at(origin) * coefficients;
+    double error = 0.0;
+    for (int i = 0; i < 2; ++i)
+        for (int j = 0; j < 2; ++j) error = std::max(error, std::abs(projected(i, j) - h(i, j)));
+    assert(error < 1e-12);
+    // The former S C embedding amplifies this accepted metric defect beyond
+    // the unchanged 1e-4 eV frame gate, especially in the high-energy band.
+    const Matz su = operators.overlap.at(origin) * coefficients;
+    const Matz old_projected =
+        transpose(coefficients, true) * su * h * transpose(su, true) * coefficients;
+    assert(std::abs(old_projected(1, 1) - h(1, 1)) > 1e-4 / librpa_int::HA2EV);
+    assert(target[0][0](1, 1) == h(1, 1));
+}
+
+void test_qsgw_native_baseline_preserves_aliased_tail()
+{
+    using namespace librpa_int::qsgw;
+    const Matrix3 lattice(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0);
+    const std::vector<Vector3_Order<double>> kpoints{
+        {0.0, 0.0, 0.0}, {0.25, 0.0, 0.0}, {0.5, 0.0, 0.0}, {0.75, 0.0, 0.0}};
+    const Vector3_Order<double> probe(0.13, 0.0, 0.0);
+    const auto sampled = [](const LocalizedMatrix &model, const Vector3_Order<double> &k)
+    {
+        Matz result(2, 2, MAJOR::ROW);
+        result.zero_out();
+        for (const auto &[r, block] : model)
+        {
+            const auto weight =
+                std::polar(1.0, librpa_int::TWO_PI * (k.x * r.x + k.y * r.y + k.z * r.z));
+            for (int i = 0; i < 2; ++i)
+                for (int j = 0; j < 2; ++j) result(i, j) += weight * block(i, j);
+        }
+        return result;
+    };
+    // Test both distinct collinear channels and complete AO-major spinors.
+    for (const int spinors : {1, 2})
+    {
+        const int spins = spinors == 1 ? 2 : 1;
+        MeanField reference(spins, 4, 2, 2 / spinors, spinors);
+        HeadwingAoOperators operators;
+        operators.dimension = 2;
+        operators.overlap.emplace(
+            Vector3_Order<int>(0, 0, 0),
+            Matz({{{1.2, 0.0}, {0.07, 0.02}}, {{0.07, -0.02}, {0.9, 0.0}}}, MAJOR::ROW));
+        if (spinors == 2)
+        {
+            auto &overlap = operators.overlap.at(Vector3_Order<int>(0, 0, 0));
+            overlap(0, 1) = overlap(1, 0) = 0.0;
+            overlap(1, 1) = overlap(0, 0);
+        }
+        std::vector<LocalizedMatrix> native(spins), current(spins);
+        SpinKMatrixMap target;
+        for (int spin = 0; spin < spins; ++spin)
+        {
+            native[spin].emplace(Vector3_Order<int>(0, 0, 0),
+                                 Matz({{{-0.7 + 0.1 * spin, 0.0}, {0.0, 0.0}},
+                                       {{0.0, 0.0}, {0.9 + 0.1 * spin, 0.0}}},
+                                      MAJOR::ROW));
+            // R=3 aliases to R=-1 on the four-point mesh. Whole-H IFT loses
+            // its actual range, while native-baseline reconstruction keeps it.
+            Matz tail({{{0.04, 0.015}, {0.018, 0.024}}, {{-0.01, 0.03}, {-0.03, 0.01}}},
+                      MAJOR::COL);
+            for (std::size_t i = 0; i < tail.size(); ++i) tail.ptr()[i] *= 1.0 + 0.2 * spin;
+            native[spin].emplace(Vector3_Order<int>(3, 0, 0), tail);
+            native[spin].emplace(Vector3_Order<int>(-3, 0, 0), transpose(tail, true));
+            for (const auto &[r, block] : native[spin]) current[spin].emplace(r, block.copy());
+            const Matz onsite({{{0.05, 0.0}, {0.012, 0.008}}, {{0.012, -0.008}, {-0.02, 0.0}}},
+                              MAJOR::ROW);
+            current[spin].at(Vector3_Order<int>(0, 0, 0)) += onsite;
+            Matz correction({{{0.01, 0.0}, {0.0, 0.005}}, {{0.0, 0.0}, {-0.006, 0.0}}}, MAJOR::ROW);
+            current[spin].emplace(Vector3_Order<int>(1, 0, 0), correction);
+            current[spin].emplace(Vector3_Order<int>(-1, 0, 0), transpose(correction, true));
+            for (int ik = 0; ik < 4; ++ik)
+            {
+                const auto solution =
+                    solve_localized_velocity(native[spin], operators, kpoints[ik], lattice);
+                const auto &coefficients = solution.ket_coefficients;
+                for (int band = 0; band < 2; ++band)
+                    reference.get_eigenvals()[spin](ik, band) = solution.eigenvalues_ha[band];
+                for (int component = 0; component < spinors; ++component)
+                {
+                    auto &wfc = reference.get_eigenvectors()[spin][component][ik];
+                    wfc.create(2, 2 / spinors);
+                    for (int band = 0; band < 2; ++band)
+                        for (int ao = 0; ao < 2 / spinors; ++ao)
+                            wfc(band, ao) = coefficients(ao * spinors + component, band);
+                }
+                target[spin][ik] = transpose(coefficients, true) *
+                                   sampled(current[spin], kpoints[ik]) * coefficients;
+            }
+        }
+        const auto whole = reconstruct_qsgw_hamiltonian(reference, target, operators, kpoints,
+                                                        Vector3_Order<int>(4, 1, 1), lattice);
+        operators.native_dft_hamiltonian = native;
+        auto preserved = reconstruct_qsgw_hamiltonian(reference, target, operators, kpoints,
+                                                      Vector3_Order<int>(4, 1, 1), lattice);
+        double off_grid_error = 0.0, whole_error = 0.0, derivative_error = 0.0;
+        for (int spin = 0; spin < spins; ++spin)
+        {
+            const auto expected =
+                solve_localized_velocity(current[spin], operators, probe, lattice);
+            const auto actual =
+                solve_localized_velocity(preserved.hamiltonian[spin], operators, probe, lattice);
+            const auto aliased =
+                solve_localized_velocity(whole.hamiltonian[spin], operators, probe, lattice);
+            for (int band = 0; band < 2; ++band)
+            {
+                off_grid_error = std::max(off_grid_error, std::abs(actual.eigenvalues_ha[band] -
+                                                                   expected.eigenvalues_ha[band]));
+                whole_error = std::max(whole_error, std::abs(aliased.eigenvalues_ha[band] -
+                                                             expected.eigenvalues_ha[band]));
+            }
+            // Evaluate derivatives in the same complete frame to avoid phase
+            // ambiguity in off-diagonal velocity comparisons.
+            const auto projected = compute_localized_velocity_in_frame(
+                preserved.hamiltonian[spin], operators, probe, lattice, expected.eigenvalues_ha,
+                expected.ket_coefficients);
+            for (int a = 0; a < 3; ++a)
+                for (int i = 0; i < 2; ++i)
+                    for (int j = 0; j < 2; ++j)
+                        derivative_error = std::max(derivative_error,
+                                                    std::abs(projected.velocity_ha_bohr[a](i, j) -
+                                                             expected.velocity_ha_bohr[a](i, j)));
+            for (int ik = 0; ik < 4; ++ik)
+            {
+                const Matz grid_difference = sampled(preserved.hamiltonian[spin], kpoints[ik]) -
+                                             sampled(current[spin], kpoints[ik]);
+                for (std::size_t entry = 0; entry < grid_difference.size(); ++entry)
+                    if (std::abs(grid_difference.ptr()[entry]) >= 1e-12) std::abort();
+            }
+            // The output must not share mutable storage with the baseline.
+            const auto original_tail = native[spin].at(Vector3_Order<int>(3, 0, 0))(0, 0);
+            preserved.hamiltonian[spin].at(Vector3_Order<int>(3, 0, 0))(0, 0) += 0.125;
+            if (operators.native_dft_hamiltonian[spin].at(Vector3_Order<int>(3, 0, 0))(0, 0) !=
+                original_tail)
+                std::abort();
+            for (const auto &[r, block] : native[spin])
+                for (int i = 0; i < 2; ++i)
+                    for (int j = 0; j < 2; ++j)
+                        if (operators.native_dft_hamiltonian[spin].at(r)(i, j) != block(i, j))
+                            std::abort();
+        }
+        if (!std::isfinite(off_grid_error) || !std::isfinite(derivative_error) ||
+            off_grid_error >= 1e-12 || derivative_error >= 1e-12 || whole_error <= 1e-3)
+            std::abort();
+        if (librpa_int::global::mpi_comm_global_h.is_root())
+            std::cout << "QSGW native-baseline spinors=" << spinors
+                      << " path_E_Ha=" << off_grid_error << " velocity_HaBohr=" << derivative_error
+                      << " whole_H_alias_E_Ha=" << whole_error << std::endl;
+    }
 }
 
 void assert_complex_close(const std::complex<double> &actual, const std::complex<double> &expected,
@@ -1887,6 +2102,555 @@ void test_headwing_velocity_restore_uses_inverse_spatial_route()
     assert_complex_close(velocity_bz_tr[0](0, 0), std::conj(velocity_ibz[1](0, 0)), 1e-12);
     assert_complex_close(velocity_bz_tr[1](0, 0), -std::conj(velocity_ibz[0](0, 0)), 1e-12);
     assert_complex_close(velocity_bz_tr[2](0, 0), -std::conj(velocity_ibz[2](0, 0)), 1e-12);
+}
+
+// Complete nonorthogonal SOC frames. The reference below acts directly on
+// AO-major ket columns; it does not call a production symmetry transform.
+std::pair<ComplexMatrix, ComplexMatrix> make_ibz_soc_metric_frame(const double phase)
+{
+    ComplexMatrix metric(4, 4), frame(4, 4);
+    const double a = 1.2, d = 0.9;
+    const std::complex<double> b{0.17, 0.11};
+    for (int spinor = 0; spinor != 2; ++spinor)
+    {
+        metric(spinor, spinor) = a * a;
+        metric(spinor, 2 + spinor) = a * b;
+        metric(2 + spinor, spinor) = a * std::conj(b);
+        metric(2 + spinor, 2 + spinor) = std::norm(b) + d * d;
+        for (int band = 0; band != 4; ++band)
+        {
+            const auto q0 = std::polar(
+                0.5, librpa_int::TWO_PI * spinor * band / 4.0 + phase * spinor + 0.13 * band);
+            const auto q1 = std::polar(0.5, librpa_int::TWO_PI * (2 + spinor) * band / 4.0 +
+                                                phase * (2 + spinor) + 0.13 * band);
+            frame(spinor, band) = (q0 - b * q1 / d) / a;
+            frame(2 + spinor, band) = q1 / d;
+        }
+    }
+    return {metric, frame};
+}
+
+ComplexMatrix ibz_soc_degenerate_gauge()
+{
+    ComplexMatrix gauge(4, 4);
+    for (int pair = 0; pair != 2; ++pair)
+    {
+        const double c = std::cos(0.43 + 0.21 * pair);
+        const auto s = std::polar(std::sin(0.43 + 0.21 * pair), 0.37 + 0.19 * pair);
+        gauge(2 * pair, 2 * pair) = c;
+        gauge(2 * pair, 2 * pair + 1) = s;
+        gauge(2 * pair + 1, 2 * pair) = -std::conj(s);
+        gauge(2 * pair + 1, 2 * pair + 1) = c;
+    }
+    return gauge;
+}
+
+std::array<ComplexMatrix, 2> ibz_soc_frame_to_wfc(const ComplexMatrix &frame)
+{
+    std::array<ComplexMatrix, 2> result{ComplexMatrix(4, 2), ComplexMatrix(4, 2)};
+    for (int ao = 0; ao != 2; ++ao)
+        for (int spinor = 0; spinor != 2; ++spinor)
+            for (int band = 0; band != 4; ++band)
+                result[spinor](band, ao) = frame(2 * ao + spinor, band);
+    return result;
+}
+
+std::array<ComplexMatrix, 3> ibz_soc_band_velocity(const double shift)
+{
+    std::array<ComplexMatrix, 3> result;
+    for (int alpha = 0; alpha != 3; ++alpha)
+    {
+        result[alpha].create(4, 4);
+        for (int row = 0; row != 4; ++row)
+        {
+            result[alpha](row, row) = 0.02 * (1 + row + alpha);
+            for (int col = row + 1; col != 4; ++col)
+            {
+                const auto value = std::polar(0.08 * (1 + alpha + row) + shift,
+                                              0.27 * row - 0.39 * col + 0.21 * alpha);
+                result[alpha](row, col) = value;
+                result[alpha](col, row) = std::conj(value);
+            }
+        }
+    }
+    return result;
+}
+
+void test_ibz_soc_wfc_velocity_matches_nonorthogonal_ao_oracle()
+{
+    SymmetryContext ctx;
+    ctx.set_available();
+    ctx.lattice_vectors.Identity();
+    ctx.atom_to_type = {{0, 0}, {1, 0}};
+    ctx.input_coord_frac = {{0, {0.13, 0.2, 0.0}}, {1, {0.37, 0.4, 0.0}}};
+    ctx.basis_convention.bloch_phase = 1;
+    ctx.basis_convention.bloch_ratom = 1;
+    SymmetryOperation operation;
+    // Cubic C3 about (1,1,1), stored in the full -> representative direction.
+    operation.rotation = Matrix3(0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0);
+    operation.use_row_convention = false;
+    ctx.rspace_operations = {operation};
+    const std::vector<SpeciesBasisLayout> layouts{SpeciesBasisLayout("X", {0})};
+    const std::map<atom_t, size_t> atom_nw{{0, 1}, {1, 1}};
+    const auto p0 = std::polar(1.0, 0.31), p1 = std::polar(1.0, -0.52);
+    // The SOC-locked inverse lift exp(+i pi sigma.(1,1,1)/3/sqrt(3)).
+    const std::array<std::complex<double>, 4> u{
+        std::complex<double>{0.5, 0.5}, std::complex<double>{0.5, 0.5},
+        std::complex<double>{-0.5, 0.5}, std::complex<double>{0.5, -0.5}};
+    const std::array<std::complex<double>, 4> inverse{std::conj(u[0]), std::conj(u[2]),
+                                                      std::conj(u[1]), std::conj(u[3])};
+    const Vector3_Order<double> representative{0.0, 0.0, 0.0}, target{1.0, 0.0, 0.0};
+    const auto source = make_ibz_soc_metric_frame(0.29);
+    const auto &frame = source.second;
+    double maximum_error = 0.0, wrong_spin_witness = 0.0;
+    for (const bool antiunitary : {false, true})
+    {
+        ctx.spin_operations = {
+            {0, inverse, antiunitary, librpa_int::SymmetrySpinActionSource::DerivedFromSpatialSOC}};
+        ctx.kspace_actions = {{0, {0}}};
+        auto member = make_headwing_wfc_atom_swap_member(p0, p1);
+        member.action_id = 0;
+        member.time_reversal = antiunitary;
+        member.k_bz = representative;
+        // Dense source-to-target coefficient action, independently assembled.
+        ComplexMatrix action(4, 4);
+        for (int ao = 0; ao != 2; ++ao)
+            for (int spinor = 0; spinor != 2; ++spinor)
+                for (int source_spinor = 0; source_spinor != 2; ++source_spinor)
+                {
+                    auto value = (ao == 0 ? p0 : p1) * u[2 * spinor + source_spinor];
+                    int target_spinor = spinor;
+                    if (antiunitary)
+                    {
+                        value = std::conj(value);
+                        target_spinor = 1 - spinor;
+                        if (target_spinor == 1) value *= -1.0;
+                    }
+                    value *= std::polar(1.0, -librpa_int::TWO_PI * (ao == 0 ? 0.13 : 0.37));
+                    action(2 * ao + target_spinor, 2 * (1 - ao) + source_spinor) = value;
+                }
+        const auto metric_target =
+            action * (antiunitary ? conj(source.first) : source.first) * transpose(action, true);
+        const auto expected = action * (antiunitary ? conj(frame) : frame);
+        const auto source_wfc = ibz_soc_frame_to_wfc(frame);
+        const auto actual = librpa_int::rotate_headwing_spinor_wfc_to_kstar_member(
+            ctx, member, layouts, atom_nw, representative, source_wfc, &target);
+        for (int band = 0; band != 4; ++band)
+            for (int ao = 0; ao != 2; ++ao)
+                for (int spinor = 0; spinor != 2; ++spinor)
+                    maximum_error = std::max(
+                        maximum_error,
+                        std::abs(actual[spinor](band, ao) - expected(2 * ao + spinor, band)));
+        const auto metric = transpose(expected, true) * metric_target * expected;
+        for (int row = 0; row != 4; ++row)
+            for (int col = 0; col != 4; ++col)
+            {
+                maximum_error =
+                    std::max(maximum_error, std::abs(metric(row, col) - (row == col ? 1.0 : 0.0)));
+                wrong_spin_witness =
+                    std::max(wrong_spin_witness, std::abs(expected(row, col) - frame(row, col)));
+            }
+
+        const auto velocity = ibz_soc_band_velocity(0.01);
+        const auto restored_velocity = librpa_int::rotate_headwing_velocity_to_kstar_member(
+            ctx, member, velocity, 4, antiunitary);
+        const std::array<int, 3> input_axis{1, 2, 0};
+        for (int alpha = 0; alpha != 3; ++alpha)
+        {
+            const auto source_operator = source.first * frame * velocity[input_axis[alpha]] *
+                                         transpose(frame, true) * source.first;
+            auto target_operator = action *
+                                   (antiunitary ? conj(source_operator) : source_operator) *
+                                   transpose(action, true);
+            target_operator *= antiunitary ? -1.0 : 1.0;
+            const auto projected = transpose(expected, true) * target_operator * expected;
+            for (int row = 0; row != 4; ++row)
+                for (int col = 0; col != 4; ++col)
+                    maximum_error = std::max(
+                        maximum_error,
+                        std::abs(projected(row, col) - restored_velocity[alpha](row, col)));
+        }
+    }
+    if (librpa_int::global::mpi_comm_global_h.is_root())
+        std::cout << "IBZ SOC complex WFC/velocity/metric oracle error: " << maximum_error
+                  << "; nontrivial spin/gauge witness: " << wrong_spin_witness << std::endl;
+    assert(maximum_error < 2e-12);
+    assert(wrong_spin_witness > 0.1);
+}
+
+RI::Tensor<double> make_single_value_tensor(double value);
+
+void test_ibz_soc_headwing_matches_complete_complex_bz(const BlacsCtxtHandler &blacs_h)
+{
+#ifdef LIBRPA_USE_LIBRI
+    constexpr bool test_wing = true;
+#else
+    // The analytic wing needs LibRI tensor-map communication. Keep the same
+    // nonzero head, unequal-star occupations and complex-gauge oracle active
+    // without that backend; its communication stubs cannot supply a wing.
+    constexpr bool test_wing = false;
+#endif
+    const std::vector<double> lattice{1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0};
+    PeriodicBoundaryData full_pbc, ibz_pbc;
+    full_pbc.set_latvec(lattice);
+    full_pbc.set_kgrids_kvec(1, 3, 1,
+                             {0.0, 0.0, 0.0, 0.0, librpa_int::TWO_PI / 3.0, 0.0, 0.0,
+                              2.0 * librpa_int::TWO_PI / 3.0, 0.0});
+    ibz_pbc.set_latvec(lattice);
+    ibz_pbc.set_irreducible_kgrids_kvec(
+        1, 3, 1, {0.0, 0.0, 0.0, 0.0, librpa_int::TWO_PI / 3.0, 0.0},
+        {{{0.0, 0.0, 0.0}}, {{0.0, 1.0 / 3.0, 0.0}, {0.0, 2.0 / 3.0, 0.0}}});
+    SymmetryContext ctx;
+    ctx.set_available();
+    ctx.lattice_vectors.Identity();
+    ctx.atom_to_type = {{0, 0}, {1, 0}};
+    ctx.input_coord_frac = {{0, {0.0, 0.0, 0.0}}, {1, {0.0, 0.25, 0.0}}};
+    ctx.basis_convention.bloch_phase = 1;
+    ctx.basis_convention.bloch_ratom = 1;
+    SymmetryOperation identity;
+    identity.rotation.Identity();
+    ctx.rspace_operations = {identity};
+    const std::array<std::complex<double>, 4> spin_identity{1.0, 0.0, 0.0, 1.0};
+    ctx.spin_operations = {
+        {0, spin_identity, false, librpa_int::SymmetrySpinActionSource::DerivedFromSpatialSOC},
+        {0, spin_identity, true, librpa_int::SymmetrySpinActionSource::DerivedFromSpatialSOC}};
+    ctx.kspace_actions = {{0, {0}}, {1, {1}}};
+    const auto make_member = [](const Vector3_Order<double> &k, const bool anti)
+    {
+        SymmetryKStarMember member;
+        member.spatial_isym = 0;
+        member.action_id = anti ? 1 : 0;
+        member.time_reversal = anti;
+        member.k_bz = k;
+        for (int iatom = 0; iatom != 2; ++iatom)
+        {
+            SymmetryKAtomRotation atom;
+            atom.atom_from = atom.atom_to = iatom;
+            atom.atom_type = 0;
+            atom.lmax = 0;
+            atom.bloch_rsh_rotations[0] = ComplexMatrix(1, 1);
+            atom.bloch_rsh_rotations[0](0, 0) = 1.0;
+            member.atom_rotations.push_back(atom);
+        }
+        return member;
+    };
+    librpa_int::SymmetryKStar gamma, pair;
+    gamma.star_index = 0;
+    gamma.k_ibz = {0.0, 0.0, 0.0};
+    gamma.members = {make_member(gamma.k_ibz, false)};
+    pair.star_index = 1;
+    pair.k_ibz = {0.0, 1.0 / 3.0, 0.0};
+    pair.members = {make_member(pair.k_ibz, false), make_member({0.0, -1.0 / 3.0, 0.0}, true)};
+    ctx.kstars = {gamma, pair};
+    ctx.kstar_grid_mapping = {{0, 0, {{0.0, 0.0, 0.0}}},
+                              {1, 1, {{0.0, 1.0 / 3.0, 0.0}, {0.0, 2.0 / 3.0, 0.0}}}};
+
+    AtomicBasis basis_wfc(std::vector<size_t>{1, 1});
+    AtomicBasis basis_abf(std::vector<size_t>{1, 1});
+    basis_wfc.set_l_shells({{0}, {0}});
+    basis_abf.set_l_shells({{0}, {0}});
+    librpa_int::Cs_LRI cs;
+    cs.use_libri = true;
+    if (librpa_int::global::mpi_comm_global_h.is_root())
+    {
+        cs.data_libri[0][{0, {0, 0, 0}}] = make_single_value_tensor(0.8);
+        cs.data_libri[0][{1, {0, 0, 0}}] = make_single_value_tensor(0.19);
+        cs.data_libri[0][{1, {0, 1, 0}}] = make_single_value_tensor(-0.11);
+        cs.data_libri[1][{0, {0, 0, 0}}] = make_single_value_tensor(-0.27);
+        cs.data_libri[1][{1, {0, 0, 0}}] = make_single_value_tensor(0.63);
+    }
+    const std::vector<double> frequencies{0.17, 0.61, 1.3};
+    const atpair_k_cplx_mat_t empty_vq;
+    enum class InputRoute
+    {
+        SourceOnly,
+        StarWeighted,
+        FullCache
+    };
+    ArrayDesc sqrt_desc(blacs_h);
+    sqrt_desc.init_1b1p(2, 2, 0, 0);
+    auto sqrt_v = init_local_mat<std::complex<double>>(sqrt_desc, MAJOR::COL);
+    fill_distributed_matrix(sqrt_v, sqrt_desc, {{1.0, 0.0}, {0.0, std::sqrt(0.5)}});
+    const auto gauge = ibz_soc_degenerate_gauge();
+    std::vector<Matz> baseline_head, baseline_wing;
+    double maximum_error = 0.0, head_magnitude = 0.0, wing_magnitude = 0.0;
+    double regular_wing_magnitude = 0.0;
+    for (const bool change_degenerate_gauge : {false, true})
+    {
+        MeanField full_mf(1, 3, 4, 2, 2), ibz_mf(1, 2, 4, 2, 2);
+        librpa_int::velocity_matrix_t full_velocity, ibz_velocity;
+        librpa_int::initialize_velocity_matrix(full_velocity, 1, 3, 4);
+        librpa_int::initialize_velocity_matrix(ibz_velocity, 1, 2, 4);
+        for (int source_ik = 0; source_ik != 2; ++source_ik)
+        {
+            const auto source = make_ibz_soc_metric_frame(0.29 + 0.17 * source_ik);
+            const auto frame = change_degenerate_gauge ? source.second * gauge : source.second;
+            auto velocity = ibz_soc_band_velocity(0.01 + 0.015 * source_ik);
+            if (change_degenerate_gauge)
+                for (auto &component : velocity)
+                    component = transpose(gauge, true) * component * gauge;
+            for (int alpha = 0; alpha != 3; ++alpha)
+            {
+                ibz_velocity[0][source_ik][alpha] = velocity[alpha];
+                full_velocity[0][source_ik][alpha] = velocity[alpha];
+            }
+            const auto wfc = ibz_soc_frame_to_wfc(frame);
+            for (int spinor = 0; spinor != 2; ++spinor)
+            {
+                // Different whole components live on different ranks. The
+                // reconstruction must gather the paired source frame first.
+                const int owner = (source_ik + spinor) % librpa_int::get_mpi_size(MPI_COMM_WORLD);
+                if (librpa_int::global::mpi_comm_global_h.myid == owner)
+                    ibz_mf.get_eigenvectors()[0][spinor][source_ik] = wfc[spinor];
+                full_mf.get_eigenvectors()[0][spinor][source_ik] = wfc[spinor];
+            }
+            for (int band = 0; band != 4; ++band)
+            {
+                const double energy = band < 2 ? -0.7 - 0.03 * source_ik : 0.9 + 0.05 * source_ik;
+                const double occupation = band < 2 ? 1.0 : 0.0;
+                ibz_mf.get_eigenvals()[0](source_ik, band) = energy;
+                ibz_mf.get_weight()[0](source_ik, band) = occupation / 2.0;
+                full_mf.get_eigenvals()[0](source_ik, band) = energy;
+                full_mf.get_weight()[0](source_ik, band) = occupation / 3.0;
+                if (source_ik != 1) continue;
+                full_mf.get_eigenvals()[0](2, band) = energy;
+                full_mf.get_weight()[0](2, band) = occupation / 3.0;
+            }
+            if (source_ik != 1) continue;
+            // Independent target frame: Theta followed by reciprocal-basis
+            // re-gauging from -1/3 to 2/3. No production helper generates it.
+            for (int spinor = 0; spinor != 2; ++spinor)
+            {
+                auto &target = full_mf.get_eigenvectors()[0][spinor][2];
+                target.create(4, 2);
+                for (int ao = 0; ao != 2; ++ao)
+                    for (int band = 0; band != 4; ++band)
+                        target(band, ao) =
+                            (spinor == 0 ? 1.0 : -1.0) *
+                            std::polar(1.0, -librpa_int::TWO_PI * (ao == 0 ? 0.0 : 0.25)) *
+                            std::conj(frame(2 * ao + 1 - spinor, band));
+            }
+            for (int alpha = 0; alpha != 3; ++alpha)
+                full_velocity[0][2][alpha] =
+                    std::complex<double>{-1.0, 0.0} * conj(velocity[alpha]);
+        }
+        // The main SCF mean field retains geometric star weights times f;
+        // the separate head/wing eigenframe uses f/N_IBZ. Exercise this
+        // boundary with unequal star sizes while preserving both inputs.
+        MeanField star_weighted_mf = ibz_mf;
+        for (int source_ik = 0; source_ik != 2; ++source_ik)
+            for (int band = 0; band != 4; ++band)
+                star_weighted_mf.get_weight()[0](source_ik, band) =
+                    band < 2 ? static_cast<double>(source_ik + 1) / 3.0 : 0.0;
+        diele_func full(full_mf, full_velocity, full_pbc.kfrac_list, basis_wfc, basis_abf,
+                        frequencies, 2, 4, 1, 2, full_pbc, librpa_int::global::mpi_comm_global_h,
+                        blacs_h);
+        full.use_soc = true;
+        full.init(0.0, empty_vq);
+        full.cal_head();
+        std::vector<Matz> full_wing;
+        if (test_wing)
+        {
+            full.cal_wing(cs, 0.0, empty_vq);
+            // The Coulomb-basis transform releases the auxiliary tensors.
+            for (const auto &tensor : full.get_wing_auxiliary()) full_wing.push_back(tensor.copy());
+            full.wing_mu_to_lambda(sqrt_v, sqrt_desc, 2);
+        }
+        const auto &full_head = full.get_head_tensors();
+
+        // All routes share the same independent complete-grid reference.
+        // FullCache retains the older consumer path alongside source-only IBZ.
+        for (const auto route :
+             {InputRoute::SourceOnly, InputRoute::StarWeighted, InputRoute::FullCache})
+        {
+            double route_error = 0.0;
+            diele_func reduced(route == InputRoute::StarWeighted ? star_weighted_mf : ibz_mf,
+                               ibz_velocity, ibz_pbc.kfrac_list, basis_wfc, basis_abf, frequencies,
+                               2, 4, 1, 2, ibz_pbc, librpa_int::global::mpi_comm_global_h, blacs_h);
+            reduced.use_soc = reduced.use_symmetry = true;
+            reduced.set_symmetry_context(ctx);
+            reduced.atom_nw = basis_wfc.get_atom_nb_map();
+            reduced.coord_frac = ctx.input_coord_frac;
+            if (route == InputRoute::StarWeighted)
+                reduced.normalize_ibz_star_weighted_occupations();
+            if (route == InputRoute::FullCache)
+                reduced.set_direct_full_bz_headwing_inputs(full_velocity, full_mf, {{0}, {1, 2}});
+            assert(reduced.has_direct_full_bz_headwing_inputs() ==
+                   (route == InputRoute::FullCache));
+            for (int source_ik = 0; source_ik != 2; ++source_ik)
+                for (int band = 0; band != 4; ++band)
+                {
+                    assert_complex_close(ibz_mf.get_weight()[0](source_ik, band),
+                                         band < 2 ? 0.5 : 0.0, 1e-15);
+                    assert_complex_close(star_weighted_mf.get_weight()[0](source_ik, band),
+                                         band < 2 ? static_cast<double>(source_ik + 1) / 3.0 : 0.0,
+                                         1e-15);
+                    assert_complex_close(
+                        reduced.get_meanfield_df().get_weight()[0](source_ik, band),
+                        band < 2 ? 0.5 : 0.0, 1e-15);
+                }
+            reduced.init(0.0, empty_vq);
+            reduced.cal_head();
+            if (test_wing) reduced.cal_wing(cs, 0.0, empty_vq);
+            const auto &ibz_head = reduced.get_head_tensors();
+            const auto &ibz_wing = reduced.get_wing_auxiliary();
+            assert(full_head.size() == frequencies.size() && ibz_head.size() == frequencies.size());
+            if (test_wing)
+                assert(full_wing.size() == frequencies.size() &&
+                       ibz_wing.size() == frequencies.size());
+            for (std::size_t frequency = 0; frequency != frequencies.size(); ++frequency)
+            {
+                for (int row = 0; row != 3; ++row)
+                    for (int col = 0; col != 3; ++col)
+                    {
+                        head_magnitude = std::max(
+                            head_magnitude,
+                            std::abs(full_head[frequency](row, col) - (row == col ? 1.0 : 0.0)));
+                        route_error =
+                            std::max(route_error, std::abs(full_head[frequency](row, col) -
+                                                           ibz_head[frequency](row, col)));
+                        if (change_degenerate_gauge)
+                            route_error =
+                                std::max(route_error, std::abs(full_head[frequency](row, col) -
+                                                               baseline_head[frequency](row, col)));
+                    }
+                if (test_wing)
+                    for (int mu = 0; mu != 2; ++mu)
+                        for (int alpha = 0; alpha != 3; ++alpha)
+                        {
+                            wing_magnitude =
+                                std::max(wing_magnitude, std::abs(full_wing[frequency](mu, alpha)));
+                            route_error =
+                                std::max(route_error, std::abs(full_wing[frequency](mu, alpha) -
+                                                               ibz_wing[frequency](mu, alpha)));
+                            if (change_degenerate_gauge)
+                                route_error = std::max(
+                                    route_error, std::abs(full_wing[frequency](mu, alpha) -
+                                                          baseline_wing[frequency](mu, alpha)));
+                        }
+            }
+            if (test_wing)
+            {
+                reduced.wing_mu_to_lambda(sqrt_v, sqrt_desc, 2);
+                for (std::size_t frequency = 0; frequency != frequencies.size(); ++frequency)
+                {
+                    const auto x = full.get_rpa_chi0v_wing(frequency);
+                    const auto y = reduced.get_rpa_chi0v_wing(frequency);
+                    assert(x.nr() == y.nr() && x.nc() == y.nc());
+                    for (int row = 0; row != x.nr(); ++row)
+                        for (int col = 0; col != x.nc(); ++col)
+                        {
+                            route_error =
+                                std::max(route_error, std::abs(x(row, col) - y(row, col)));
+                            regular_wing_magnitude =
+                                std::max(regular_wing_magnitude, std::abs(x(row, col)));
+                        }
+                }
+            }
+            maximum_error = std::max(maximum_error, route_error);
+            assert(route_error < (route == InputRoute::FullCache ? 1e-12 : 2e-11));
+        }
+        if (test_wing)
+        {
+            // A complete BZ with single-member stars needs no reconstruction.
+            // Feed genuinely distributed complex AO/band blocks without a
+            // separate full-BZ cache, as in the collinear shrink-wing driver.
+            SymmetryContext full_ctx = ctx;
+            full_ctx.kstars.clear();
+            full_ctx.kstar_grid_mapping.clear();
+            for (int ik = 0; ik != 3; ++ik)
+            {
+                librpa_int::SymmetryKStar star;
+                star.star_index = ik;
+                star.k_ibz = full_pbc.kfrac_list[ik];
+                star.members = {make_member(star.k_ibz, false)};
+                full_ctx.kstars.push_back(star);
+                full_ctx.kstar_grid_mapping.push_back({ik, ik, {star.k_ibz}});
+            }
+            KPointBlacsParallelContext kctx(
+                KPointBlacsProcessShape(1, librpa_int::get_mpi_size(MPI_COMM_WORLD), true),
+                MPI_COMM_WORLD, 3);
+            const auto desc_wfc = kctx.create_array_desc(2, 4, 1, 1);
+            MeanField distributed_mf = full_mf;
+            for (int ik = 0; ik != 3; ++ik)
+                for (int spinor = 0; spinor != 2; ++spinor)
+                {
+                    const auto &source = full_mf.get_eigenvectors()[0][spinor][ik];
+                    ComplexMatrix local(desc_wfc.n_loc(), desc_wfc.m_loc(), false);
+                    for (int band = 0; band != desc_wfc.n_loc(); ++band)
+                        for (int ao = 0; ao != desc_wfc.m_loc(); ++ao)
+                            local(band, ao) =
+                                source(desc_wfc.indx_l2g_c(band), desc_wfc.indx_l2g_r(ao));
+                    distributed_mf.get_eigenvectors()[0][spinor][ik] = std::move(local);
+                }
+            diele_func distributed(distributed_mf, full_velocity, full_pbc.kfrac_list, basis_wfc,
+                                   basis_abf, frequencies, 2, 4, 1, 2, full_pbc,
+                                   librpa_int::global::mpi_comm_global_h, blacs_h, true, &kctx,
+                                   &desc_wfc);
+            distributed.use_soc = distributed.use_symmetry = true;
+            distributed.set_symmetry_context(full_ctx);
+            distributed.atom_nw = basis_wfc.get_atom_nb_map();
+            distributed.coord_frac = full_ctx.input_coord_frac;
+            assert(!distributed.has_direct_full_bz_headwing_inputs());
+            distributed.init(0.0, empty_vq);
+            distributed.cal_head();
+            distributed.cal_wing(cs, 0.0, empty_vq);
+            double distributed_error = 0.0;
+            for (std::size_t frequency = 0; frequency != frequencies.size(); ++frequency)
+            {
+                const auto &head = distributed.get_head_tensors()[frequency];
+                const auto &wing = distributed.get_wing_auxiliary()[frequency];
+                for (int alpha = 0; alpha != 3; ++alpha)
+                {
+                    for (int beta = 0; beta != 3; ++beta)
+                        distributed_error = std::max(
+                            distributed_error,
+                            std::abs(head(alpha, beta) - full_head[frequency](alpha, beta)));
+                    for (int mu = 0; mu != 2; ++mu)
+                        distributed_error =
+                            std::max(distributed_error,
+                                     std::abs(wing(mu, alpha) - full_wing[frequency](mu, alpha)));
+                }
+            }
+            distributed.wing_mu_to_lambda(sqrt_v, sqrt_desc, 2);
+            for (std::size_t frequency = 0; frequency != frequencies.size(); ++frequency)
+            {
+                const auto expected = full.get_rpa_chi0v_wing(frequency);
+                const auto actual = distributed.get_rpa_chi0v_wing(frequency);
+                for (int row = 0; row != expected.nr(); ++row)
+                    for (int col = 0; col != expected.nc(); ++col)
+                        distributed_error = std::max(
+                            distributed_error, std::abs(actual(row, col) - expected(row, col)));
+            }
+            MPI_Allreduce(MPI_IN_PLACE, &distributed_error, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+            if (librpa_int::global::mpi_comm_global_h.is_root())
+                std::cout << "SOC full-BZ k-BLACS single-member symmetry error: "
+                          << distributed_error << std::endl;
+            assert(distributed_error < 2e-11);
+            maximum_error = std::max(maximum_error, distributed_error);
+        }
+        if (!change_degenerate_gauge)
+            for (std::size_t frequency = 0; frequency != frequencies.size(); ++frequency)
+            {
+                baseline_head.push_back(full_head[frequency].copy());
+                if (test_wing) baseline_wing.push_back(full_wing[frequency].copy());
+            }
+    }
+    MPI_Allreduce(MPI_IN_PLACE, &maximum_error, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+    MPI_Allreduce(MPI_IN_PLACE, &regular_wing_magnitude, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+    if (librpa_int::global::mpi_comm_global_h.is_root())
+    {
+        std::cout << "SOC full-cache/source-IBZ/weighted " << (test_wing ? "head/wing" : "head")
+                  << " and degenerate-gauge error: " << maximum_error
+                  << "; nonzero head: " << head_magnitude;
+        if (test_wing)
+            std::cout << "; nonzero wing: " << wing_magnitude
+                      << "; nonzero regular wing: " << regular_wing_magnitude;
+        std::cout << std::endl;
+    }
+    assert(head_magnitude > 1e-6);
+    if (test_wing) assert(wing_magnitude > 1e-4 && regular_wing_magnitude > 1e-6);
+    assert(maximum_error < 2e-11);
 }
 
 void test_headwing_direct_full_bz_velocity_selects_kstar_member()
@@ -3941,6 +4705,144 @@ void test_gamma_only_dense_wq_fourier_weight_scales_as_inverse_bvk_cells()
     }
 }
 
+#ifdef LIBRPA_USE_LIBRI
+void test_native_optical_uses_handler_communicator()
+{
+    const int world_rank = librpa_int::get_mpi_rank(MPI_COMM_WORLD);
+    const int color = world_rank % 2;
+    MPI_Comm subgroup;
+    MPI_Comm_split(MPI_COMM_WORLD, color, world_rank, &subgroup);
+    double error = 0.0;
+    {
+        librpa::Handler handler(subgroup);
+        const auto ds = librpa_int::api::get_dataset_instance(handler);
+        ds->mf = MeanField(1, 1, 2, 2);
+        ds->mf.get_eigenvals()[0](0, 0) = -0.5;
+        ds->mf.get_eigenvals()[0](0, 1) = 0.5;
+        ds->mf.get_weight()[0](0, 0) = 2.0;
+        ds->mf.get_weight()[0](0, 1) = 0.0;
+        auto &wfc = ds->mf.get_eigenvectors()[0][0][0];
+        wfc.create(2, 2);
+        wfc(0, 0) = wfc(1, 1) = 1.0;
+        ds->basis_wfc = AtomicBasis({2});
+        ds->basis_aux = AtomicBasis({1});
+        ds->pbc.set_latvec({1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0});
+        ds->pbc.set_kgrids_kvec(1, 1, 1, {0.0, 0.0, 0.0});
+
+        // Distinct subgroup dipoles and charge vertices must not cross-sum.
+        // The two-level model has C=S=I, gap=1 Ha and v_01=-i*r_01.
+        const double scale = color + 1.0;
+        const std::array<std::complex<double>, 3> dipole{
+            scale * std::complex<double>{0.2, 0.1},
+            scale * std::complex<double>{0.3, -0.15},
+            scale * std::complex<double>{-0.4, 0.05}};
+        const std::array<double, 8> h_values{-0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0};
+        const std::array<double, 8> s_values{1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0};
+        std::array<std::array<double, 8>, 3> r_values{};
+        LibrpaLocalizedBlock h_block{{0, 0, 0}, h_values.data(), 1};
+        LibrpaLocalizedBlock s_block{{0, 0, 0}, s_values.data(), 1};
+        std::array<LibrpaLocalizedBlock, 3> r_blocks{};
+        LibrpaLocalizedOperator h_operator{2, 1, &h_block};
+        LibrpaNativeVelocityInput input{};
+        input.n_spins = 1;
+        input.hamiltonian = &h_operator;
+        input.overlap = {2, 1, &s_block};
+        for (int axis = 0; axis != 3; ++axis)
+        {
+            r_values[axis][2] = dipole[axis].real();
+            r_values[axis][3] = dipole[axis].imag();
+            r_blocks[axis] = {{0, 0, 0}, r_values[axis].data(), 1};
+            input.position[axis] = {2, 1, &r_blocks[axis]};
+        }
+        ds->cs_data.use_libri = true;
+        if (ds->comm_h.is_root())
+        {
+            auto tensor = std::make_shared<std::valarray<double>>(4);
+            (*tensor)[1] = 0.125 * scale;
+            (*tensor)[2] = 0.25 * scale;
+            ds->cs_data.data_libri[0][{0, {0, 0, 0}}] =
+                RI::Tensor<double>({1UL, 2UL, 2UL}, tensor);
+        }
+        librpa::Options opts;
+        opts.option_dielect_func = 3;
+        opts.replace_w_head = LIBRPA_SWITCH_ON;
+        opts.use_scalapack_gw_wc = LIBRPA_SWITCH_ON;
+        opts.tfgrids_type = LIBRPA_TFGRID_EVEN_SPACED_TF;
+        opts.nfreq = 2;
+        opts.tfgrids_freq_min = 0.5;
+        opts.tfgrids_freq_interval = 0.75;
+        handler.prepare_native_velocity(opts, ds->comm_h.is_root() ? &input : nullptr);
+
+        const auto check = [&](const std::complex<double> actual,
+                               const std::complex<double> expected)
+        {
+            const double difference = std::abs(actual - expected);
+            error = !std::isfinite(difference) ? std::numeric_limits<double>::infinity()
+                                               : std::max(error, difference);
+        };
+        const auto check_wing = [&]
+        {
+            const auto &frequencies = ds->p_headwing->get_frequency_nodes();
+            const auto &wings = ds->p_headwing->get_wing_auxiliary();
+            for (std::size_t iw = 0; iw != frequencies.size(); ++iw)
+                for (int axis = 0; axis != 3; ++axis)
+                {
+                    const auto v01 = std::complex<double>{0.0, -1.0} * dipole[axis];
+                    const auto expected = -4.0 * std::sqrt(4.0 * librpa_int::PI) *
+                                          (0.375 * scale) * v01 /
+                                          (1.0 + frequencies[iw] * frequencies[iw]);
+                    check(wings[iw](0, axis), expected);
+                }
+        };
+        check_wing();
+        const auto &frequencies = ds->p_headwing->get_frequency_nodes();
+        const auto &heads = ds->p_headwing->get_head_tensors();
+        for (int axis = 0; axis != 3; ++axis)
+        {
+            const auto v01 = std::complex<double>{0.0, -1.0} * dipole[axis];
+            check(ds->velocity_matrix[0][0][axis](0, 1), v01);
+            check(ds->velocity_matrix[0][0][axis](1, 0), std::conj(v01));
+            for (std::size_t iw = 0; iw != frequencies.size(); ++iw)
+                for (int beta = 0; beta != 3; ++beta)
+                {
+                    const auto expected = (axis == beta ? 1.0 : 0.0) +
+                                          16.0 * librpa_int::PI * std::conj(dipole[axis]) *
+                                              dipole[beta] /
+                                              (1.0 + frequencies[iw] * frequencies[iw]);
+                    check(heads[iw](axis, beta), expected);
+                }
+        }
+
+        // Exercise the other wing reduction with the same analytic reference.
+        SymmetryContext context;
+        context.set_available();
+        context.atom_to_type = {{0, 0}};
+        ds->basis_wfc.set_l_shells({{0, 0}});
+        librpa_int::SymmetryKStar star;
+        star.k_ibz = {0.0, 0.0, 0.0};
+        star.members.resize(1);
+        star.members[0].k_bz = star.k_ibz;
+        star.members[0].atom_rotations.resize(1);
+        star.members[0].atom_rotations[0].atom_from = 0;
+        star.members[0].atom_rotations[0].atom_to = 0;
+        context.kstars = {star};
+        ds->p_headwing->set_symmetry_context(context);
+        ds->p_headwing->use_symmetry = true;
+        ds->p_headwing->atom_nw = {{0, 2}};
+        ds->p_headwing->set_direct_full_bz_headwing_inputs(ds->velocity_matrix, ds->mf, {{0}});
+        ds->p_headwing->cal_wing(ds->cs_data, 0.0, ds->vq);
+        check_wing();
+        if (ds->comm_h.is_root())
+            std::cout << "Native optical subgroup " << color << " max error " << error << '\n';
+    }
+    MPI_Comm_free(&subgroup);
+    double maximum = 0.0;
+    MPI_Allreduce(&error, &maximum, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+    require_condition(std::isfinite(maximum) && maximum < 1e-12,
+                      "Native head/wing mixed independent handler communicators");
+}
+#endif
+
 int main(int argc, char *argv[])
 {
     int provided = 0;
@@ -3953,11 +4855,16 @@ int main(int argc, char *argv[])
         blacs_h.init();
         blacs_h.set_square_grid();
 
+#ifdef LIBRPA_USE_LIBRI
+        test_native_optical_uses_handler_communicator();
+#endif
         test_headwing_body_inverse_uses_identity_solve(blacs_h);
         test_replace_rpa_response_headwing_replaces_only_singular_channels(blacs_h);
         test_gamma_head_rank_one_matches_coulomb_basis_overwrite(blacs_h);
         test_gamma_head_rank_one_handles_empty_local_blocks(blacs_h);
         test_rspace_symmetry_requires_complete_band_space();
+        test_qsgw_reconstruction_with_finite_reference_metric();
+        test_qsgw_native_baseline_preserves_aliased_tail();
         test_kpoint_coordinate_mapping_selects_active_klist_from_full_source();
         test_kstar_velocity_mapping_preserves_member_order_and_periodic_gauge();
         test_replace_rpa_response_head_only_keeps_numeric_wings(blacs_h);
@@ -3997,6 +4904,8 @@ int main(int argc, char *argv[])
         test_headwing_wfc_restore_applies_atom_permutation();
         test_headwing_wfc_restore_applies_time_reversal();
         test_headwing_velocity_restore_uses_inverse_spatial_route();
+        test_ibz_soc_wfc_velocity_matches_nonorthogonal_ao_oracle();
+        test_ibz_soc_headwing_matches_complete_complex_bz(blacs_h);
         test_headwing_direct_full_bz_velocity_selects_kstar_member();
         test_headwing_direct_full_bz_wfc_selects_same_kstar_member();
         test_headwing_direct_full_bz_wfc_local_block(blacs_h);

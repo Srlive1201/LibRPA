@@ -40,6 +40,10 @@ struct CorrEnergy
     std::map<Vector3_Order<double>, cplxdb> qcontrib;
 };
 
+ComplexMatrix build_dense_symmetry_hermitian_matrix_from_local_blocks(
+    const symmetry_atom_block_matrix_map_t &local_blocks, const std::map<atom_t, size_t> &atom_nabf,
+    bool hermitize_diagonal_atom_blocks);
+
 CorrEnergy compute_RPA_correlation(LibrpaParallelRouting routing, const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat);
 
 CorrEnergy compute_RPA_correlation_blacs(const Chi0 &chi0, const atpair_k_cplx_mat_t &coulmat,
@@ -85,6 +89,13 @@ void unfold_Wc_freq_q_blacs(
     const BlacsCtxtHandler &blacs_h,
     const librpa_int::ArrayDesc &desc_small,
     const librpa_int::ArrayDesc &desc_full);
+
+// Restore symmetry-reduced W(q) before the compressed atom-pair route consumes
+// an explicitly full input q grid. The dense route uses the same rotation.
+std::map<Vector3_Order<double>, Matz> restore_symmetry_dense_wq_map(
+    const std::map<Vector3_Order<double>, Matz> &Wq_rep_map, const PeriodicBoundaryData &pbc,
+    const SymmetryQPointView &qpoint_view, const SymmetryContext &symmetry_context,
+    const AtomicBasis &atbasis_Wc, const ArrayDesc &ad_Wc);
 
 //! Fourier transform screened Coulomb in q-space to R-space, but still in frequency domain
 std::map<double, std::map<Vector3_Order<int>, Matz>> FT_Wc_freq_q(

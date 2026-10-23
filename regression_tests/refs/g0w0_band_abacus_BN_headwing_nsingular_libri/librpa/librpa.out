@@ -1,36 +1,41 @@
-Initialized LibRPA global environment at [2026-08-26 23:29:07.169]
-Total number of tasks    :     4
+Initialized LibRPA global environment at [2026-10-21 04:01:15.245]
+Total number of tasks    :     1
 Total number of nodes    :     1
 Maximal number of threads:   1
+MPI thread support level : MPI_THREAD_FUNNELED
 MPI tasks information:
-| Proc    0 of Size    4: h01r4n05
-| Proc    1 of Size    4: h01r4n05
-| Proc    2 of Size    4: h01r4n05
-| Proc    3 of Size    4: h01r4n05
+| Proc    0 of Size    1: jiabohan
 | Global ID of master process of node     0 :     0
 
 LibRPA CMake build info:
-| Build type               : RelWithDebInfo
-| Source code directory    : /public/home/hbchen/app/github/librpa_src_e8b51b15_hwref/src
-| Source code Git reference: GITDIR-NOTFOUND
-| Source code Git hash     : GITDIR-NOTFOUND
-| C++ compiler             : /public/software/compiler/devtoolset-9/root/usr/bin/g++
-| C++ compiler flags       : -g -O2 -fopenmp  -fopenmp
-| Fortran compiler         : /public/software/compiler/devtoolset-9/root/usr/bin/gfortran
-| Fortran compiler flags   : -fPIC -g -O2 -Wno-argument-mismatch -ffree-line-length-none
-| GreenX commit hash       : c90d131
+| Build type               : Release
+| Build time               : Oct 21 2026 03:50:56
+| Source code directory    : /home/bhjia/physics/topics/gw/workspace/development/LibRPA-pr-g0w0-20261021/src
+| C++ compiler             : /opt/intel/oneapi/mpi/2021.18/bin/mpiicpx
+| C++ compiler flags       :   -fiopenmp
+| Fortran compiler         : /opt/intel/oneapi/mpi/2021.18/bin/mpiifx
+| Fortran compiler flags   :
 | Use LibRI                : ON
-| LibRI include directory  : /public/home/hbchen/app/github/librpa_src_e8b51b15_hwref/thirdparty/LibRI/include
-| LibComm include directory: /public/home/hbchen/app/github/librpa_src_e8b51b15_hwref/thirdparty/LibComm/include
+| LibRI include directory  : /home/bhjia/physics/topics/gw/workspace/development/LibRPA-pr-g0w0-20261021/thirdparty/LibRI/include
+| LibComm include directory: /home/bhjia/physics/topics/gw/workspace/development/LibRPA-pr-g0w0-20261021/thirdparty/LibComm/include
 
 ===== Begin driver parameters  =====
 task = g0w0
 constants_choice = internal
+input_preset = fhi-aims
 input_dir = ../dataset/
 prefix_lri_coeff = Cs_data
 prefix_lri_coeff_shrink = Cs_shrinked_data
 prefix_shrink_sinvS = shrink_sinvS_
 prefix_coul_full = coulomb_mat
+prefix_sternheimer_chi0 = v1_sternheimer_chi0_iq_
+fn_sternheimer_qpoints =
+fn_sternheimer_partial_manifest =
+fn_sternheimer_symmetry_routes =
+fn_sternheimer_qstar_routes =
+prefix_sternheimer_reconstructed =
+prefix_sternheimer_kresolved =
+prefix_sternheimer_symmetry_diagnostic =
 prefix_coul_cut = coulomb_cut
 prefix_eigvecs_scf = KS_eigenvector
 fn_stru = stru_out
@@ -42,18 +47,24 @@ fn_basis_aux_shrink = basis_aux_shrink_out
 fn_eigocc_scf = band_out
 fn_dielfunc = dielecfunc_out
 fn_vxc_scf = vxc_out
+prefix_velocity = mommat_ks_kpt_
 fn_band_kpath_info = band_kpath_info
 output_level = debug
 use_spinor_wfc = false
+use_rpa_gamma = true
+sternheimer_matrix_only = false
 output_energy_qp = false
 output_gw_spec_func = false
 output_hamgnn = false
 use_pyatb = false
 version_coul_reader = -1
 version_lri_reader = -1
+sternheimer_iq = 1
+sternheimer_qweight = 1
 cs_R_threshold = 1e-06
 i_state_low = 0
 i_state_high = 999999
+g0w0_headwing_velocity = file
 ===== End driver parameters    =====
 
 ===== Begin control parameters =====
@@ -66,6 +77,8 @@ rpa_headwing_mode = qavg
 nfreq = 6
 n_bands_chi0 = -1
 n_bands_sigc = -1
+n_bands_exclude_chi0 = 0
+n_bands_exclude_sigc = 0
 n_params_anacon = -1
 n_params_anacon_resample = -1
 anacon_nfreq = -1
@@ -78,6 +91,8 @@ libri_chi0_collect_s0_chunk = 0
 istate_ref_hedin_shift = -1
 ifreq_output_wc_start = 0
 ifreq_output_wc_end = -1
+istate_output_mat_start = 0
+istate_output_mat_end = -1
 libri_chi0_collect_max_bytes = 0
 gf_R_threshold = 0
 vq_threshold = 0
@@ -117,6 +132,9 @@ use_kpara_scf_eigvec = true
 read_sigc_mat_rf = false
 output_gw_sigc_ks_kf = false
 output_gw_sigc_ks_mat_kf = false
+output_exx_ks_mat_k = false
+output_exx_mat_k = false
+output_exx_mat_r = false
 output_gw_sigc_mat_kf = false
 output_gw_sigc_mat_rf = false
 output_gw_sigc_mat_rt = false
@@ -136,7 +154,7 @@ Mean-field dimensions set:
 | number of spin components : 1
 Internal two-level (SCF k-points/matrix block) parallelization for eigenvectors set:
 | processes per k-point      : 1
-| processes per matrix block : 4
+| processes per matrix block : 1
 Mean-field eigenvalues and occupation numbers set:
 | Minimal transition energy (Ha):       0.1590135067
 | Maximal transition energy (Ha):       7.6959074195
@@ -201,26 +219,14 @@ Finished Cs parsing
 Coulomb reader (coulomb_mat): legacy
 Begin READ_Vq_Row
 ASCII format V files detected
-Begin READ_Vq_Row
-Begin READ_Vq_Row
-Begin READ_Vq_Row
-| Process     0: coulomb_mat read. Wall/CPU time [min]:       0.0002       0.0000
-| Process     1: coulomb_mat read. Wall/CPU time [min]:       0.0002       0.0000
-| Process     2: coulomb_mat read. Wall/CPU time [min]:       0.0003       0.0002
-| Process     3: coulomb_mat read. Wall/CPU time [min]:       0.0003       0.0003
-| Process     0: Cs with              8 non-zero keys from local atpair size       1. Data memory:       0.18 MB. Wall/CPU time [min]:       0.0014       0.0013
-| Process     1: Cs with              8 non-zero keys from local atpair size       0. Data memory:       0.18 MB. Wall/CPU time [min]:       0.0015       0.0015
-| Process     2: Cs with              8 non-zero keys from local atpair size       1. Data memory:       0.18 MB. Wall/CPU time [min]:       0.0014       0.0013
-| Process     3: Cs with              8 non-zero keys from local atpair size       1. Data memory:       0.18 MB. Wall/CPU time [min]:       0.0014       0.0013
+| Process     0: coulomb_mat read. Wall/CPU time [min]:       0.0000       0.0000
+| Process     0: Cs with             32 non-zero keys from local atpair size       3. Data memory:       0.74 MB. Wall/CPU time [min]:       0.0004       0.0004
 Actual parallel routing used: libri
 Initialization finished, Wall/CPU time [min]:       0.0000       0.0000
-Free memory on node     0 [GB]:   90.621
+Free memory on node     0 [GB]:    5.139
 Common data parsed, task g0w0 will begin
 g0w0: One-shot GW for quasi-paricle energies
 Coulomb reader (coulomb_cut): legacy
-Begin READ_Vq_Row
-Begin READ_Vq_Row
-Begin READ_Vq_Row
 Begin READ_Vq_Row
 ASCII format V files detected
 Reading head/wing input from ../dataset/pyatb_librpa_df/
@@ -228,89 +234,89 @@ KS eigenvector reader: legacy text streaming, direct k-BLACS 2D input
 * Success: read velocity from pyatb_librpa_df(ABACUS).
 Using PyATB head/wing input on the active LibRPA k-list with 8 k-points
 Head k matrix (iomega=0): route=full_bz ik=0 k=( 0.000000000000, 0.000000000000, 0.000000000000)
-( 8.26501089e+00, 0.00000000e+00) ( 1.52969357e-09, 0.00000000e+00) ( 1.52994725e-09, 0.00000000e+00)
-( 1.52969357e-09, 0.00000000e+00) ( 8.26501089e+00, 0.00000000e+00) ( 1.52990248e-09, 0.00000000e+00)
-( 1.52994725e-09, 0.00000000e+00) ( 1.52990248e-09, 0.00000000e+00) ( 8.26501089e+00, 0.00000000e+00)
+( 8.26501089e+00, 0.00000000e+00) ( 1.52969338e-09, 0.00000000e+00) ( 1.52994722e-09, 0.00000000e+00)
+( 1.52969338e-09, 0.00000000e+00) ( 8.26501089e+00, 0.00000000e+00) ( 1.52990226e-09, 0.00000000e+00)
+( 1.52994722e-09, 0.00000000e+00) ( 1.52990226e-09, 0.00000000e+00) ( 8.26501089e+00, 0.00000000e+00)
 Head k matrix (iomega=0): route=full_bz ik=1 k=( 0.500000000000, 0.000000000000, 0.000000000000)
-( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00)
-( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00)
-( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00)
+( 2.28796927e+00, 0.00000000e+00) (-1.06493114e+00,-2.16623808e-23) ( 1.06493269e+00, 1.54810046e-22)
+(-1.06493114e+00, 2.16623808e-23) ( 2.28796927e+00, 0.00000000e+00) ( 1.06493269e+00, 2.99284209e-22)
+( 1.06493269e+00,-1.54810046e-22) ( 1.06493269e+00,-2.99284209e-22) ( 2.28796616e+00, 0.00000000e+00)
 Head k matrix (iomega=0): route=full_bz ik=2 k=( 0.000000000000, 0.500000000000, 0.000000000000)
-( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00)
-( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00)
-( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00)
+( 2.28796927e+00, 0.00000000e+00) ( 1.06493269e+00, 1.97161837e-22) (-1.06493114e+00, 2.06893928e-23)
+( 1.06493269e+00,-1.97161837e-22) ( 2.28796616e+00, 0.00000000e+00) ( 1.06493269e+00,-5.17146764e-23)
+(-1.06493114e+00,-2.06893928e-23) ( 1.06493269e+00, 5.17146764e-23) ( 2.28796927e+00, 0.00000000e+00)
 Head k matrix (iomega=0): route=full_bz ik=3 k=( 0.500000000000, 0.500000000000, 0.000000000000)
-( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00)
-( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00)
-( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00)
+( 3.50037778e-01, 0.00000000e+00) ( 3.26652418e-10, 6.41216119e-16) ( 3.26657792e-10,-1.04906716e-15)
+( 3.26652418e-10,-6.41216119e-16) ( 3.86427471e+00, 0.00000000e+00) ( 3.26665556e-10,-1.42961298e-15)
+( 3.26657792e-10, 1.04906716e-15) ( 3.26665556e-10, 1.42961298e-15) ( 3.86427471e+00, 0.00000000e+00)
 Head k matrix (iomega=0): route=full_bz ik=4 k=( 0.000000000000, 0.000000000000, 0.500000000000)
 ( 2.28796616e+00, 0.00000000e+00) ( 1.06493269e+00,-1.53837054e-22) ( 1.06493269e+00,-1.96188832e-22)
 ( 1.06493269e+00, 1.53837054e-22) ( 2.28796927e+00, 0.00000000e+00) (-1.06493114e+00,-1.23784763e-22)
 ( 1.06493269e+00, 1.96188832e-22) (-1.06493114e+00, 1.23784763e-22) ( 2.28796927e+00, 0.00000000e+00)
 Head k matrix (iomega=0): route=full_bz ik=5 k=( 0.500000000000, 0.000000000000, 0.500000000000)
-( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00)
-( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00)
-( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00)
+( 3.86427471e+00, 0.00000000e+00) ( 3.26661341e-10,-2.20625270e-16) ( 3.26621318e-10, 4.30484643e-18)
+( 3.26661341e-10, 2.20625270e-16) ( 3.50037778e-01, 0.00000000e+00) ( 3.26654176e-10, 2.03555730e-16)
+( 3.26621318e-10,-4.30484643e-18) ( 3.26654176e-10,-2.03555730e-16) ( 3.86427471e+00, 0.00000000e+00)
 Head k matrix (iomega=0): route=full_bz ik=6 k=( 0.000000000000, 0.500000000000, 0.500000000000)
-( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00)
-( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00)
-( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00)
+( 3.86427471e+00, 0.00000000e+00) ( 3.26673381e-10,-2.46201333e-16) ( 3.26653467e-10,-3.49191445e-16)
+( 3.26673381e-10, 2.46201333e-16) ( 3.86427471e+00, 0.00000000e+00) ( 3.26651682e-10,-8.41970932e-17)
+( 3.26653467e-10, 3.49191445e-16) ( 3.26651682e-10, 8.41970932e-17) ( 3.50037778e-01, 0.00000000e+00)
 Head k matrix (iomega=0): route=full_bz ik=7 k=( 0.500000000000, 0.500000000000, 0.500000000000)
-( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00)
-( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00)
-( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00)
-Freqency node & Head of dielectric function(Re, Im): 
+( 2.28796616e+00, 0.00000000e+00) (-1.06493425e+00, 2.16623925e-23) (-1.06493425e+00,-2.06893907e-23)
+(-1.06493425e+00,-2.16623925e-23) ( 2.28796616e+00, 0.00000000e+00) (-1.06493425e+00, 1.23784765e-22)
+(-1.06493425e+00, 2.06893907e-23) (-1.06493425e+00,-1.23784765e-22) ( 2.28796616e+00, 0.00000000e+00)
+Freqency node & Head of dielectric function(Re, Im):
  0      0.05646138      9.03304999      0.00000000
  1      0.20424536      7.41080266      0.00000000
  2      0.49071025      4.29058030      0.00000000
  3      1.16414433      1.96946996      0.00000000
  4      2.95876612      1.18874978      0.00000000
  5      8.93964662      1.02268018      0.00000000
-The first freqency head tensor: 
+The first freqency head tensor:
 (  9.0330,   0.0000)  (  0.0000,   0.0000)  (  0.0000,  -0.0000)
 (  0.0000,  -0.0000)  (  9.0330,   0.0000)  (  0.0000,  -0.0000)
 (  0.0000,   0.0000)  (  0.0000,   0.0000)  (  9.0330,   0.0000)
-Head tensor diagnostics (iomega=0): trace_over_3=(     9.03304999,     0.00000000) max_abs_diag_delta= 3.11544568e-10 max_abs_offdiag= 1.46532035e-09 max_abs_imag= 4.39100586e-16
+Head tensor diagnostics (iomega=0): trace_over_3=(     9.03304999,     0.00000000) max_abs_diag_delta= 3.11542792e-10 max_abs_offdiag= 1.46532077e-09 max_abs_imag= 4.39205709e-16
 * Success: initalize and calculate lebdev points and q_gamma.
 Wing_mu k Gram (iomega=0): route=full_bz ik=0 k=( 0.000000000000, 0.000000000000, 0.000000000000)
-( 4.11089589e-02, 0.00000000e+00) ( 5.08401605e-11, 0.00000000e+00) ( 5.08448019e-11, 0.00000000e+00)
-( 5.08401605e-11, 0.00000000e+00) ( 4.11089589e-02, 0.00000000e+00) ( 5.08414785e-11, 0.00000000e+00)
-( 5.08448019e-11, 0.00000000e+00) ( 5.08414785e-11, 0.00000000e+00) ( 4.11089589e-02, 0.00000000e+00)
+( 4.11089589e-02, 0.00000000e+00) ( 5.08401594e-11, 0.00000000e+00) ( 5.08448001e-11, 0.00000000e+00)
+( 5.08401594e-11, 0.00000000e+00) ( 4.11089589e-02, 0.00000000e+00) ( 5.08414787e-11, 0.00000000e+00)
+( 5.08448001e-11, 0.00000000e+00) ( 5.08414787e-11, 0.00000000e+00) ( 4.11089589e-02, 0.00000000e+00)
 Wing_mu k Gram (iomega=0): route=full_bz ik=1 k=( 0.500000000000, 0.000000000000, 0.000000000000)
-( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00)
-( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00)
-( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00)
+( 9.97241378e-03, 0.00000000e+00) (-4.75029723e-03,-4.44114329e-26) ( 4.75034945e-03, 7.47138628e-24)
+(-4.75029723e-03, 4.44114329e-26) ( 9.97241378e-03, 0.00000000e+00) ( 4.75034945e-03, 8.19088300e-24)
+( 4.75034945e-03,-7.47138628e-24) ( 4.75034945e-03,-8.19088300e-24) ( 9.97230940e-03, 0.00000000e+00)
 Wing_mu k Gram (iomega=0): route=full_bz ik=2 k=( 0.000000000000, 0.500000000000, 0.000000000000)
-( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00)
-( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00)
-( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00)
+( 9.97241378e-03, 0.00000000e+00) ( 4.75034945e-03, 7.55565638e-24) (-4.75029723e-03, 3.98585385e-26)
+( 4.75034945e-03,-7.55565638e-24) ( 9.97230940e-03, 0.00000000e+00) ( 4.75034945e-03,-6.83160662e-24)
+(-4.75029723e-03,-3.98585385e-26) ( 4.75034945e-03, 6.83160662e-24) ( 9.97241378e-03, 0.00000000e+00)
 Wing_mu k Gram (iomega=0): route=full_bz ik=3 k=( 0.500000000000, 0.500000000000, 0.000000000000)
-( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00)
-( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00)
-( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00)
+( 1.15150477e-03, 0.00000000e+00) ( 5.50905030e-12, 1.78257337e-18) ( 5.50894196e-12,-3.22402464e-18)
+( 5.50905030e-12,-1.78257337e-18) ( 1.16170587e-02, 0.00000000e+00) ( 5.50889076e-12,-4.86520923e-18)
+( 5.50894196e-12, 3.22402464e-18) ( 5.50889076e-12, 4.86520923e-18) ( 1.16170587e-02, 0.00000000e+00)
 Wing_mu k Gram (iomega=0): route=full_bz ik=4 k=( 0.000000000000, 0.000000000000, 0.500000000000)
-( 9.97230940e-03, 0.00000000e+00) ( 4.75034945e-03,-1.00585935e-23) ( 4.75034945e-03,-1.01430098e-23)
-( 4.75034945e-03, 1.00585935e-23) ( 9.97241378e-03, 0.00000000e+00) (-4.75029723e-03,-6.79491790e-25)
-( 4.75034945e-03, 1.01430098e-23) (-4.75029723e-03, 6.79491790e-25) ( 9.97241378e-03, 0.00000000e+00)
+( 9.97230940e-03, 0.00000000e+00) ( 4.75034945e-03,-7.46683326e-24) ( 4.75034945e-03,-7.55110338e-24)
+( 4.75034945e-03, 7.46683326e-24) ( 9.97241378e-03, 0.00000000e+00) (-4.75029723e-03,-6.79638192e-25)
+( 4.75034945e-03, 7.55110338e-24) (-4.75029723e-03, 6.79638192e-25) ( 9.97241378e-03, 0.00000000e+00)
 Wing_mu k Gram (iomega=0): route=full_bz ik=5 k=( 0.500000000000, 0.000000000000, 0.500000000000)
-( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00)
-( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00)
-( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00)
+( 1.16170587e-02, 0.00000000e+00) ( 5.50901672e-12,-7.70393731e-19) ( 5.50818532e-12, 1.24396586e-19)
+( 5.50901672e-12, 7.70393731e-19) ( 1.15150477e-03, 0.00000000e+00) ( 5.50900637e-12, 6.70421794e-19)
+( 5.50818532e-12,-1.24396586e-19) ( 5.50900637e-12,-6.70421794e-19) ( 1.16170587e-02, 0.00000000e+00)
 Wing_mu k Gram (iomega=0): route=full_bz ik=6 k=( 0.000000000000, 0.500000000000, 0.500000000000)
-( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00)
-( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00)
-( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00)
+( 1.16170587e-02, 0.00000000e+00) ( 5.50868764e-12,-1.32927016e-18) ( 5.50897102e-12,-1.15014681e-18)
+( 5.50868764e-12, 1.32927016e-18) ( 1.16170587e-02, 0.00000000e+00) ( 5.50900074e-12,-2.47634910e-19)
+( 5.50897102e-12, 1.15014681e-18) ( 5.50900074e-12, 2.47634910e-19) ( 1.15150477e-03, 0.00000000e+00)
 Wing_mu k Gram (iomega=0): route=full_bz ik=7 k=( 0.500000000000, 0.500000000000, 0.500000000000)
-( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00)
-( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00)
-( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00) ( 0.00000000e+00, 0.00000000e+00)
+( 9.97230940e-03, 0.00000000e+00) (-4.75040161e-03, 4.44115405e-26) (-4.75040161e-03,-3.97567575e-26)
+(-4.75040161e-03,-4.44115405e-26) ( 9.97230940e-03, 0.00000000e+00) (-4.75040161e-03, 6.79739958e-25)
+(-4.75040161e-03, 3.97567575e-26) (-4.75040161e-03,-6.79739958e-25) ( 9.97230940e-03, 0.00000000e+00)
 * Success: calculate wing term.
-Wing_mu diagnostics (iomega=0): max_abs_real= 1.81982977e-16 max_abs_imag= 7.05445992e-01 max_abs_value= 7.05445992e-01 real_over_abs= 2.57968688e-16
+Wing_mu diagnostics (iomega=0): max_abs_real= 1.23633081e-16 max_abs_imag= 7.05445992e-01 max_abs_value= 7.05445992e-01 real_over_abs= 1.75255204e-16
 Wing_mu Gram (iomega=0, rows alpha, columns beta):
-( 1.16478950e+00, 0.00000000e+00) ( 2.00443837e-09, 1.71142158e-17) ( 2.00448801e-09,-4.94516302e-17)
-( 2.00443837e-09,-1.71142158e-17) ( 1.16478950e+00, 0.00000000e+00) ( 2.00446880e-09,-5.28080945e-17)
-( 2.00448801e-09, 4.94516302e-17) ( 2.00446880e-09, 5.28080945e-17) ( 1.16478950e+00, 0.00000000e+00)
-Index of abfs & wing(iomega=0, z) of dielectric function(Re, Im): 
+( 1.16478950e+00, 0.00000000e+00) ( 2.00443838e-09, 1.71379766e-17) ( 2.00448798e-09,-4.94542413e-17)
+( 2.00443838e-09,-1.71379766e-17) ( 1.16478950e+00, 0.00000000e+00) ( 2.00446874e-09,-5.28874789e-17)
+( 2.00448798e-09, 4.94542413e-17) ( 2.00446874e-09, 5.28874789e-17) ( 1.16478950e+00, 0.00000000e+00)
+Index of abfs & wing(iomega=0, z) of dielectric function(Re, Im):
  0     -0.00000000     -0.00001807
  1     -0.00000000     -0.00001780
  2     -0.00000000      0.34985092
@@ -333,7 +339,7 @@ Index of abfs & wing(iomega=0, z) of dielectric function(Re, Im):
 19     -0.00000000      0.33876476
 20     -0.00000000     -0.00000000
 21     -0.00000000     -0.00000000
-22      0.00000000      0.00000000
+22     -0.00000000      0.00000000
 23     -0.00000000      0.00000000
 24     -0.00000000      0.00000000
 25     -0.00000000      0.00000000
@@ -342,27 +348,27 @@ Index of abfs & wing(iomega=0, z) of dielectric function(Re, Im):
 28     -0.00000000      0.00000000
 29     -0.00000000      0.00000000
 30     -0.00000000      0.00000000
-31      0.00000000     -0.00000238
+31     -0.00000000     -0.00000238
 32      0.00000000     -0.00000000
 33     -0.00000000     -0.00000000
 * Success: Read DFT xc potential, solve quasi-particle equation
 Grid type: Minimax time-frequency grids
 Grid size: 6
-Frequency node & weight: 
+Frequency node & weight:
  0      0.0564613753263648      0.1182358054885935
  1      0.2042453565294935      0.1931145879019547
  2      0.4907102466097558      0.4168339087650921
  3      1.1641443267048972      1.0351901900076457
  4      2.9587661191764645      2.9232742406133991
  5      8.9396466198825877     11.7321658290659965
-Time node & weight: 
+Time node & weight:
  0      0.0447043587626410      0.1179935122723900
  1      0.2679833555907969      0.3543460626848747
  2      0.8441066187784056      0.8683926365578086
  3      2.2178015125836388      2.0322904304188647
  4      5.3643239093140656      4.5968895594881598
  5     12.5646191661277022     10.8766231604320378
-t->f transform: 
+t->f transform:
 
  Cosine transform matrix (row: freq, col: time)
 nr = 6, nc = 6
@@ -381,7 +387,7 @@ nr = 6, nc = 6
  5.83566e-02 3.26218e-02 1.96334e+00 5.96923e-01 -1.71193e+00 1.48393e+00
  -2.13515e-02 7.32279e-01 3.14234e-01 -6.16824e-01 4.92303e-01 -4.52546e-01
  1.55845e-01 1.78040e-01 -1.83793e-01 1.31794e-01 -1.11712e-01 1.10404e-01
-f->t transform: 
+f->t transform:
 
  Cosine transform matrix (row: time, col: freq)
 nr = 6, nc = 6
@@ -393,34 +399,25 @@ nr = 6, nc = 6
  2.71120e-02 -3.88606e-02 1.51349e-02 -5.15529e-03 3.36846e-03 -3.52702e-03
 
 Total count of GFs IJR: 32
-| Number of GFs IJR on Proc    0: 8
+| Number of GFs IJR on Proc    0: 32
 Use LibRI for chi0
-| Number of GFs IJR on Proc    3: 8
-| Number of GFs IJR on Proc    1: 8
-| Number of GFs IJR on Proc    2: 8
 Green's Function sums over all states.
-chi0s for time point 0.044704, spin 0. CPU time: 0.050000 (tensor), 0.000000 (trans). Wall time 0.046629
+chi0s for time point 0.044704, spin 0. CPU time: 0.022159 (tensor), 0.000080 (trans). Wall time 0.022595
 Green's Function sums over all states.
-chi0s for time point 0.267983, spin 0. CPU time: 0.040000 (tensor), 0.010000 (trans). Wall time 0.045031
+chi0s for time point 0.267983, spin 0. CPU time: 0.020817 (tensor), 0.000068 (trans). Wall time 0.020885
 Green's Function sums over all states.
-chi0s for time point 0.844107, spin 0. CPU time: 0.040000 (tensor), 0.000000 (trans). Wall time 0.044725
+chi0s for time point 0.844107, spin 0. CPU time: 0.022710 (tensor), 0.000069 (trans). Wall time 0.022780
 Green's Function sums over all states.
-chi0s for time point 2.217802, spin 0. CPU time: 0.040000 (tensor), 0.000000 (trans). Wall time 0.045921
+chi0s for time point 2.217802, spin 0. CPU time: 0.020075 (tensor), 0.000065 (trans). Wall time 0.020170
 Green's Function sums over all states.
-chi0s for time point 5.364324, spin 0. CPU time: 0.050000 (tensor), 0.000000 (trans). Wall time 0.048031
+chi0s for time point 5.364324, spin 0. CPU time: 0.019945 (tensor), 0.000071 (trans). Wall time 0.020044
 Green's Function sums over all states.
-chi0s for time point 12.564619, spin 0. CPU time: 0.050000 (tensor), 0.000000 (trans). Wall time 0.046896
+chi0s for time point 12.564619, spin 0. CPU time: 0.020616 (tensor), 0.000082 (trans). Wall time 0.020750
 
 Computing EXX orbital energy using LibRI
-Task    2: V setup for EXX
-Task    3: V setup for EXX
-Task    1: V setup for EXX
 Task    0: V setup for EXX
-Task    3: DM setup for EXX
-Task    2: DM setup for EXX
 Task    0: DM setup for EXX
-Task    1: DM setup for EXX
-Task    0: cal_Hs elapsed time: 0.056506
+Task    0: cal_Hs elapsed time: 0.030585
 Dielectric function parsed as head correction:
 1 0.056461 9.033050
 2 0.204245 7.410803
@@ -428,608 +425,583 @@ Dielectric function parsed as head correction:
 4 1.164144 1.969470
 5 2.958766 1.188750
 6 8.939647 1.022680
-Task    2: cal_Hs elapsed time: 0.056624
-Task    3: cal_Hs elapsed time: 0.056720
 Calculating Wc using ScaLAPACK
-Time for Wc initialization (seconds, Wall/CPU): 0.000305 0.000000
+Time for Wc initialization (seconds, Wall/CPU): 0.000108 0.000108
 Computing Wc(q), 1 / 8, q=(0.000000, 0.000000, 0.000000)
-Task    1: cal_Hs elapsed time: 0.056340
-Time to prepare sqrt root of Coulomb for Wc(q) (seconds, Wall/CPU): 0.026279 0.020000
-Wing_lambda diagnostics (iomega=0): max_abs_real= 2.59254450e-16 max_abs_imag= 7.27430491e-01 max_abs_value= 7.27430491e-01 real_over_abs= 3.56397557e-16
-Wing_lambda Gram (iomega=0, rows alpha, columns beta):
-( 1.65282684e+00, 0.00000000e+00) ( 1.36288177e-09, 5.10183182e-17) ( 1.36294316e-09,-6.93358919e-17)
-( 1.36288177e-09,-5.10183182e-17) ( 1.65282684e+00, 0.00000000e+00) ( 1.36290890e-09,-6.88248001e-17)
-( 1.36294316e-09, 6.93358919e-17) ( 1.36290890e-09, 6.88248001e-17) ( 1.65282684e+00, 0.00000000e+00)
-First wing_lambda rows at iomega=0 (lambda, x_re, x_im, y_re, y_im, z_re, z_im):
-   0  2.37642056e-16 -5.43431105e-01 -3.22433738e-17  8.95781749e-05 -9.65029273e-17  1.14708969e-02
-   1  1.35108268e-16  8.96770418e-05 -2.37104811e-16  5.43552157e-01  1.03146925e-16  3.73848104e-06
-   2  7.32650260e-17  1.14708961e-02  1.02992919e-16 -5.63015509e-06 -2.59254450e-16  5.43431112e-01
-   3 -1.44429807e-17  3.05704523e-05  3.58916300e-18  3.05704523e-05  6.11441674e-17  3.05704523e-05
-   4  1.09576317e-16  3.31484609e-01 -6.35146701e-18 -3.00578171e-05 -1.47186301e-16 -1.44543853e-01
-   5 -5.85366734e-17  2.95696566e-05  1.28535584e-16  3.61628222e-01 -7.37341726e-17 -7.38785418e-06
-   6 -2.33330954e-17  1.44543853e-01 -7.05331395e-17 -5.04704005e-06  1.57998090e-16  3.31484610e-01
-   7 -2.19558171e-17  1.59120381e-05 -9.05809172e-18  1.59120381e-05  5.39392618e-17  1.59120381e-05
-Time to prepare sqrt root of Coulomb for Epsilon(q) (seconds, Wall/CPU): 0.015044 0.020000
-inv_body(0,0)=(0.342557,-0)
-Number of angular grids for average inverse dielectric matrix: 5810
-vol_gamma_numeric/vol_gamma: 0.00156745, 0.00156707
-Angular quadrature accuracy for volume: 1.00025 (should be close to 1)
-* Success: calculate average inverse dielectric matrix no.1.
-Time for Wc(i_q=1, i_omega=1) (seconds, Wall/CPU): 0.064317 0.050000
-inv_body(0,0)=(0.347093,-0)
-* Success: calculate average inverse dielectric matrix no.2.
-Time for Wc(i_q=1, i_omega=2) (seconds, Wall/CPU): 0.053218 0.060000
-inv_body(0,0)=(0.365134,-0)
-* Success: calculate average inverse dielectric matrix no.3.
-Time for Wc(i_q=1, i_omega=3) (seconds, Wall/CPU): 0.050743 0.040000
-inv_body(0,0)=(0.415979,-0)
-* Success: calculate average inverse dielectric matrix no.4.
-Time for Wc(i_q=1, i_omega=4) (seconds, Wall/CPU): 0.050067 0.050000
-inv_body(0,0)=(0.536271,-0)
-* Success: calculate average inverse dielectric matrix no.5.
-Time for Wc(i_q=1, i_omega=5) (seconds, Wall/CPU): 0.047935 0.040000
-inv_body(0,0)=(0.805025,-0)
-* Success: calculate average inverse dielectric matrix no.6.
-Time for Wc(i_q=1, i_omega=6) (seconds, Wall/CPU): 0.045477 0.050000
+Time to prepare sqrt root of Coulomb for Wc(q) (seconds, Wall/CPU): 0.002565 0.001965
+Gamma option-3 ABF-space head/wing Wc: using retained Coulomb subspace n_nonsingular=24 of n_abf=34 (n_filtered=10, sqrt_coulomb_threshold=1)
+Time to prepare sqrt root of Coulomb for Epsilon(q) (seconds, Wall/CPU): 0.001175 0.001051
+Time for Wc(i_q=1, i_omega=1) (seconds, Wall/CPU): 0.003105 0.002982
+Time for Wc(i_q=1, i_omega=2) (seconds, Wall/CPU): 0.002879 0.002720
+Time for Wc(i_q=1, i_omega=3) (seconds, Wall/CPU): 0.002744 0.002582
+Time for Wc(i_q=1, i_omega=4) (seconds, Wall/CPU): 0.003012 0.002829
+Time for Wc(i_q=1, i_omega=5) (seconds, Wall/CPU): 0.002427 0.002247
+Time for Wc(i_q=1, i_omega=6) (seconds, Wall/CPU): 0.002178 0.001979
 Computing Wc(q), 2 / 8, q=(0.500000, 0.000000, 0.000000)
-Time to prepare sqrt root of Coulomb for Wc(q) (seconds, Wall/CPU): 0.012742 0.010000
-Time to prepare sqrt root of Coulomb for Epsilon(q) (seconds, Wall/CPU): 0.007664 0.010000
-Time for Wc(i_q=2, i_omega=1) (seconds, Wall/CPU): 0.040973 0.040000
-Time for Wc(i_q=2, i_omega=2) (seconds, Wall/CPU): 0.040122 0.040000
-Time for Wc(i_q=2, i_omega=3) (seconds, Wall/CPU): 0.040332 0.040000
-Time for Wc(i_q=2, i_omega=4) (seconds, Wall/CPU): 0.040147 0.040000
-Time for Wc(i_q=2, i_omega=5) (seconds, Wall/CPU): 0.039966 0.030000
-Time for Wc(i_q=2, i_omega=6) (seconds, Wall/CPU): 0.039873 0.040000
+Time to prepare sqrt root of Coulomb for Wc(q) (seconds, Wall/CPU): 0.000971 0.000850
+Time to prepare sqrt root of Coulomb for Epsilon(q) (seconds, Wall/CPU): 0.000756 0.000586
+Time for Wc(i_q=2, i_omega=1) (seconds, Wall/CPU): 0.003943 0.003827
+Time for Wc(i_q=2, i_omega=2) (seconds, Wall/CPU): 0.004643 0.004518
+Time for Wc(i_q=2, i_omega=3) (seconds, Wall/CPU): 0.004555 0.004431
+Time for Wc(i_q=2, i_omega=4) (seconds, Wall/CPU): 0.004606 0.004360
+Time for Wc(i_q=2, i_omega=5) (seconds, Wall/CPU): 0.005071 0.004914
+Time for Wc(i_q=2, i_omega=6) (seconds, Wall/CPU): 0.004982 0.004756
 Computing Wc(q), 3 / 8, q=(0.000000, 0.500000, 0.000000)
-Time to prepare sqrt root of Coulomb for Wc(q) (seconds, Wall/CPU): 0.010139 0.010000
-Time to prepare sqrt root of Coulomb for Epsilon(q) (seconds, Wall/CPU): 0.009213 0.020000
-Time for Wc(i_q=3, i_omega=1) (seconds, Wall/CPU): 0.040307 0.040000
-Time for Wc(i_q=3, i_omega=2) (seconds, Wall/CPU): 0.040508 0.030000
-Time for Wc(i_q=3, i_omega=3) (seconds, Wall/CPU): 0.040173 0.040000
-Time for Wc(i_q=3, i_omega=4) (seconds, Wall/CPU): 0.039435 0.040000
-Time for Wc(i_q=3, i_omega=5) (seconds, Wall/CPU): 0.040636 0.040000
-Time for Wc(i_q=3, i_omega=6) (seconds, Wall/CPU): 0.041278 0.040000
+Time to prepare sqrt root of Coulomb for Wc(q) (seconds, Wall/CPU): 0.000976 0.000821
+Time to prepare sqrt root of Coulomb for Epsilon(q) (seconds, Wall/CPU): 0.000832 0.000682
+Time for Wc(i_q=3, i_omega=1) (seconds, Wall/CPU): 0.004862 0.004731
+Time for Wc(i_q=3, i_omega=2) (seconds, Wall/CPU): 0.005646 0.005527
+Time for Wc(i_q=3, i_omega=3) (seconds, Wall/CPU): 0.004512 0.004297
+Time for Wc(i_q=3, i_omega=4) (seconds, Wall/CPU): 0.004543 0.004332
+Time for Wc(i_q=3, i_omega=5) (seconds, Wall/CPU): 0.005606 0.005470
+Time for Wc(i_q=3, i_omega=6) (seconds, Wall/CPU): 0.004088 0.003962
 Computing Wc(q), 4 / 8, q=(0.500000, 0.500000, 0.000000)
-Time to prepare sqrt root of Coulomb for Wc(q) (seconds, Wall/CPU): 0.009954 0.000000
-Time to prepare sqrt root of Coulomb for Epsilon(q) (seconds, Wall/CPU): 0.008566 0.020000
-Time for Wc(i_q=4, i_omega=1) (seconds, Wall/CPU): 0.024410 0.020000
-Time for Wc(i_q=4, i_omega=2) (seconds, Wall/CPU): 0.024196 0.020000
-Time for Wc(i_q=4, i_omega=3) (seconds, Wall/CPU): 0.023543 0.030000
-Time for Wc(i_q=4, i_omega=4) (seconds, Wall/CPU): 0.021493 0.010000
-Time for Wc(i_q=4, i_omega=5) (seconds, Wall/CPU): 0.021812 0.020000
-Time for Wc(i_q=4, i_omega=6) (seconds, Wall/CPU): 0.018913 0.010000
+Time to prepare sqrt root of Coulomb for Wc(q) (seconds, Wall/CPU): 0.000798 0.000665
+Time to prepare sqrt root of Coulomb for Epsilon(q) (seconds, Wall/CPU): 0.000753 0.000650
+Time for Wc(i_q=4, i_omega=1) (seconds, Wall/CPU): 0.002981 0.002821
+Time for Wc(i_q=4, i_omega=2) (seconds, Wall/CPU): 0.002358 0.002151
+Time for Wc(i_q=4, i_omega=3) (seconds, Wall/CPU): 0.002039 0.001937
+Time for Wc(i_q=4, i_omega=4) (seconds, Wall/CPU): 0.002101 0.001988
+Time for Wc(i_q=4, i_omega=5) (seconds, Wall/CPU): 0.001949 0.001833
+Time for Wc(i_q=4, i_omega=6) (seconds, Wall/CPU): 0.001655 0.001544
 Computing Wc(q), 5 / 8, q=(0.000000, 0.000000, 0.500000)
-Time to prepare sqrt root of Coulomb for Wc(q) (seconds, Wall/CPU): 0.009894 0.000000
-Time to prepare sqrt root of Coulomb for Epsilon(q) (seconds, Wall/CPU): 0.008443 0.000000
-Time for Wc(i_q=5, i_omega=1) (seconds, Wall/CPU): 0.039965 0.040000
-Time for Wc(i_q=5, i_omega=2) (seconds, Wall/CPU): 0.039838 0.040000
-Time for Wc(i_q=5, i_omega=3) (seconds, Wall/CPU): 0.039454 0.040000
-Time for Wc(i_q=5, i_omega=4) (seconds, Wall/CPU): 0.039704 0.040000
-Time for Wc(i_q=5, i_omega=5) (seconds, Wall/CPU): 0.039793 0.040000
-Time for Wc(i_q=5, i_omega=6) (seconds, Wall/CPU): 0.039257 0.040000
+Time to prepare sqrt root of Coulomb for Wc(q) (seconds, Wall/CPU): 0.000770 0.000655
+Time to prepare sqrt root of Coulomb for Epsilon(q) (seconds, Wall/CPU): 0.000568 0.000473
+Time for Wc(i_q=5, i_omega=1) (seconds, Wall/CPU): 0.004073 0.003933
+Time for Wc(i_q=5, i_omega=2) (seconds, Wall/CPU): 0.004356 0.004181
+Time for Wc(i_q=5, i_omega=3) (seconds, Wall/CPU): 0.004242 0.004108
+Time for Wc(i_q=5, i_omega=4) (seconds, Wall/CPU): 0.003953 0.003826
+Time for Wc(i_q=5, i_omega=5) (seconds, Wall/CPU): 0.003948 0.003813
+Time for Wc(i_q=5, i_omega=6) (seconds, Wall/CPU): 0.004015 0.003896
 Computing Wc(q), 6 / 8, q=(0.500000, 0.000000, 0.500000)
-Time to prepare sqrt root of Coulomb for Wc(q) (seconds, Wall/CPU): 0.010172 0.000000
-Time to prepare sqrt root of Coulomb for Epsilon(q) (seconds, Wall/CPU): 0.011022 0.020000
-Time for Wc(i_q=6, i_omega=1) (seconds, Wall/CPU): 0.023665 0.020000
-Time for Wc(i_q=6, i_omega=2) (seconds, Wall/CPU): 0.023866 0.020000
-Time for Wc(i_q=6, i_omega=3) (seconds, Wall/CPU): 0.023854 0.030000
-Time for Wc(i_q=6, i_omega=4) (seconds, Wall/CPU): 0.023155 0.010000
-Time for Wc(i_q=6, i_omega=5) (seconds, Wall/CPU): 0.022083 0.030000
-Time for Wc(i_q=6, i_omega=6) (seconds, Wall/CPU): 0.019833 0.020000
+Time to prepare sqrt root of Coulomb for Wc(q) (seconds, Wall/CPU): 0.001416 0.001249
+Time to prepare sqrt root of Coulomb for Epsilon(q) (seconds, Wall/CPU): 0.000959 0.000818
+Time for Wc(i_q=6, i_omega=1) (seconds, Wall/CPU): 0.004361 0.004178
+Time for Wc(i_q=6, i_omega=2) (seconds, Wall/CPU): 0.002317 0.002199
+Time for Wc(i_q=6, i_omega=3) (seconds, Wall/CPU): 0.002194 0.002086
+Time for Wc(i_q=6, i_omega=4) (seconds, Wall/CPU): 0.003060 0.002906
+Time for Wc(i_q=6, i_omega=5) (seconds, Wall/CPU): 0.002246 0.002098
+Time for Wc(i_q=6, i_omega=6) (seconds, Wall/CPU): 0.001609 0.001483
 Computing Wc(q), 7 / 8, q=(0.000000, 0.500000, 0.500000)
-Time to prepare sqrt root of Coulomb for Wc(q) (seconds, Wall/CPU): 0.009535 0.010000
-Time to prepare sqrt root of Coulomb for Epsilon(q) (seconds, Wall/CPU): 0.008805 0.000000
-Time for Wc(i_q=7, i_omega=1) (seconds, Wall/CPU): 0.024708 0.030000
-Time for Wc(i_q=7, i_omega=2) (seconds, Wall/CPU): 0.020691 0.020000
-Time for Wc(i_q=7, i_omega=3) (seconds, Wall/CPU): 0.022791 0.020000
-Time for Wc(i_q=7, i_omega=4) (seconds, Wall/CPU): 0.020649 0.020000
-Time for Wc(i_q=7, i_omega=5) (seconds, Wall/CPU): 0.019987 0.020000
-Time for Wc(i_q=7, i_omega=6) (seconds, Wall/CPU): 0.017788 0.020000
+Time to prepare sqrt root of Coulomb for Wc(q) (seconds, Wall/CPU): 0.001259 0.001143
+Time to prepare sqrt root of Coulomb for Epsilon(q) (seconds, Wall/CPU): 0.000776 0.000674
+Time for Wc(i_q=7, i_omega=1) (seconds, Wall/CPU): 0.002023 0.001918
+Time for Wc(i_q=7, i_omega=2) (seconds, Wall/CPU): 0.002176 0.002027
+Time for Wc(i_q=7, i_omega=3) (seconds, Wall/CPU): 0.002024 0.001911
+Time for Wc(i_q=7, i_omega=4) (seconds, Wall/CPU): 0.001817 0.001667
+Time for Wc(i_q=7, i_omega=5) (seconds, Wall/CPU): 0.001533 0.001426
+Time for Wc(i_q=7, i_omega=6) (seconds, Wall/CPU): 0.002293 0.002183
 Computing Wc(q), 8 / 8, q=(0.500000, 0.500000, 0.500000)
-Time to prepare sqrt root of Coulomb for Wc(q) (seconds, Wall/CPU): 0.009997 0.000000
-Time to prepare sqrt root of Coulomb for Epsilon(q) (seconds, Wall/CPU): 0.012015 0.020000
-Time for Wc(i_q=8, i_omega=1) (seconds, Wall/CPU): 0.041398 0.040000
-Time for Wc(i_q=8, i_omega=2) (seconds, Wall/CPU): 0.040555 0.040000
-Time for Wc(i_q=8, i_omega=3) (seconds, Wall/CPU): 0.040986 0.040000
-Time for Wc(i_q=8, i_omega=4) (seconds, Wall/CPU): 0.040274 0.040000
-Time for Wc(i_q=8, i_omega=5) (seconds, Wall/CPU): 0.039978 0.040000
-Time for Wc(i_q=8, i_omega=6) (seconds, Wall/CPU): 0.039616 0.030000
-Time for Wc computation (seconds, Wall/CPU): 1.878099 1.780000
+Time to prepare sqrt root of Coulomb for Wc(q) (seconds, Wall/CPU): 0.000743 0.000628
+Time to prepare sqrt root of Coulomb for Epsilon(q) (seconds, Wall/CPU): 0.000756 0.000617
+Time for Wc(i_q=8, i_omega=1) (seconds, Wall/CPU): 0.003827 0.003677
+Time for Wc(i_q=8, i_omega=2) (seconds, Wall/CPU): 0.004049 0.003877
+Time for Wc(i_q=8, i_omega=3) (seconds, Wall/CPU): 0.004041 0.003805
+Time for Wc(i_q=8, i_omega=4) (seconds, Wall/CPU): 0.004166 0.004024
+Time for Wc(i_q=8, i_omega=5) (seconds, Wall/CPU): 0.003998 0.003877
+Time for Wc(i_q=8, i_omega=6) (seconds, Wall/CPU): 0.004715 0.004597
+Time for Wc computation (seconds, Wall/CPU): 0.182407 0.172762
 Calculating correlation self-energy by space-time method
 Using real tensor
 Converting Wc(q,w) -> W(R,t)
 Converting Wc q,w -> R,t
 Done converting Wc(q,w) -> Wc(R,w)
 Done converting Wc q,w -> R,t
-Time for Fourier transform of Wc in GW (seconds, Wall/CPU): 0.030130 0.030000
-Time for LibRI G0W0 setup (seconds, Wall/CPU): 0.006162 0.000000
-Time for Green's function, i_spin 1 i_tau 1 (seconds, Wall/CPU): 0.008766 0.010000
-Task    3. libRI G0W0, spin 0, time grid     0.044704. Wc size 8, GF size 8. Wall time 0.047384
-Task    2. libRI G0W0, spin 0, time grid     0.044704. Wc size 8, GF size 8. Wall time 0.047601
-Task    0. libRI G0W0, spin 0, time grid     0.044704. Wc size 8, GF size 8. Wall time 0.047690
-Task    1. libRI G0W0, spin 0, time grid     0.044704. Wc size 8, GF size 8. Wall time 0.051845
-Task    2. libRI G0W0, spin 0, time grid    -0.044704. Wc size 8, GF size 8. Wall time 0.051377
-Task    3. libRI G0W0, spin 0, time grid    -0.044704. Wc size 8, GF size 8. Wall time 0.051659
-Task    0. libRI G0W0, spin 0, time grid    -0.044704. Wc size 8, GF size 8. Wall time 0.051609
-Task    1. libRI G0W0, spin 0, time grid    -0.044704. Wc size 8, GF size 8. Wall time 0.049739
-Time for Green's function, i_spin 1 i_tau 2 (seconds, Wall/CPU): 0.006715 0.000000
-Task    0. libRI G0W0, spin 0, time grid     0.267983. Wc size 8, GF size 8. Wall time 0.047727
-Task    3. libRI G0W0, spin 0, time grid     0.267983. Wc size 8, GF size 8. Wall time 0.047867
-Task    2. libRI G0W0, spin 0, time grid     0.267983. Wc size 8, GF size 8. Wall time 0.048162
-Task    1. libRI G0W0, spin 0, time grid     0.267983. Wc size 8, GF size 8. Wall time 0.053062
-Task    2. libRI G0W0, spin 0, time grid    -0.267983. Wc size 8, GF size 8. Wall time 0.052813
-Task    3. libRI G0W0, spin 0, time grid    -0.267983. Wc size 8, GF size 8. Wall time 0.053209
-Task    0. libRI G0W0, spin 0, time grid    -0.267983. Wc size 8, GF size 8. Wall time 0.053526
-Task    1. libRI G0W0, spin 0, time grid    -0.267983. Wc size 8, GF size 8. Wall time 0.052542
-Time for Green's function, i_spin 1 i_tau 3 (seconds, Wall/CPU): 0.006361 0.000000
-Task    3. libRI G0W0, spin 0, time grid     0.844107. Wc size 8, GF size 8. Wall time 0.046140
-Task    2. libRI G0W0, spin 0, time grid     0.844107. Wc size 8, GF size 8. Wall time 0.046472
-Task    0. libRI G0W0, spin 0, time grid     0.844107. Wc size 8, GF size 8. Wall time 0.047648
-Task    1. libRI G0W0, spin 0, time grid     0.844107. Wc size 8, GF size 8. Wall time 0.049543
-Task    3. libRI G0W0, spin 0, time grid    -0.844107. Wc size 8, GF size 8. Wall time 0.049776
-Task    2. libRI G0W0, spin 0, time grid    -0.844107. Wc size 8, GF size 8. Wall time 0.049810
-Task    0. libRI G0W0, spin 0, time grid    -0.844107. Wc size 8, GF size 8. Wall time 0.048736
-Task    1. libRI G0W0, spin 0, time grid    -0.844107. Wc size 8, GF size 8. Wall time 0.049246
-Time for Green's function, i_spin 1 i_tau 4 (seconds, Wall/CPU): 0.007444 0.020000
-Task    3. libRI G0W0, spin 0, time grid     2.217802. Wc size 8, GF size 8. Wall time 0.046937
-Task    2. libRI G0W0, spin 0, time grid     2.217802. Wc size 8, GF size 8. Wall time 0.047326
-Task    0. libRI G0W0, spin 0, time grid     2.217802. Wc size 8, GF size 8. Wall time 0.047553
-Task    1. libRI G0W0, spin 0, time grid     2.217802. Wc size 8, GF size 8. Wall time 0.052894
-Task    3. libRI G0W0, spin 0, time grid    -2.217802. Wc size 8, GF size 8. Wall time 0.053044
-Task    2. libRI G0W0, spin 0, time grid    -2.217802. Wc size 8, GF size 8. Wall time 0.053002
-Task    0. libRI G0W0, spin 0, time grid    -2.217802. Wc size 8, GF size 8. Wall time 0.052924
-Task    1. libRI G0W0, spin 0, time grid    -2.217802. Wc size 8, GF size 8. Wall time 0.051402
-Time for Green's function, i_spin 1 i_tau 5 (seconds, Wall/CPU): 0.006690 0.020000
-Task    3. libRI G0W0, spin 0, time grid     5.364324. Wc size 8, GF size 8. Wall time 0.046514
-Task    2. libRI G0W0, spin 0, time grid     5.364324. Wc size 8, GF size 8. Wall time 0.046727
-Task    0. libRI G0W0, spin 0, time grid     5.364324. Wc size 8, GF size 8. Wall time 0.046848
-Task    1. libRI G0W0, spin 0, time grid     5.364324. Wc size 8, GF size 8. Wall time 0.051299
-Task    3. libRI G0W0, spin 0, time grid    -5.364324. Wc size 8, GF size 8. Wall time 0.051847
-Task    2. libRI G0W0, spin 0, time grid    -5.364324. Wc size 8, GF size 8. Wall time 0.051998
-Task    0. libRI G0W0, spin 0, time grid    -5.364324. Wc size 8, GF size 8. Wall time 0.052048
-Task    1. libRI G0W0, spin 0, time grid    -5.364324. Wc size 8, GF size 8. Wall time 0.051147
-Time for Green's function, i_spin 1 i_tau 6 (seconds, Wall/CPU): 0.007796 0.000000
-Task    2. libRI G0W0, spin 0, time grid    12.564619. Wc size 8, GF size 8. Wall time 0.047098
-Task    3. libRI G0W0, spin 0, time grid    12.564619. Wc size 8, GF size 8. Wall time 0.047194
-Task    0. libRI G0W0, spin 0, time grid    12.564619. Wc size 8, GF size 8. Wall time 0.047497
-Task    1. libRI G0W0, spin 0, time grid    12.564619. Wc size 8, GF size 8. Wall time 0.051740
-Task    3. libRI G0W0, spin 0, time grid   -12.564619. Wc size 8, GF size 8. Wall time 0.051084
-Task    2. libRI G0W0, spin 0, time grid   -12.564619. Wc size 8, GF size 8. Wall time 0.051388
-Task    0. libRI G0W0, spin 0, time grid   -12.564619. Wc size 8, GF size 8. Wall time 0.051248
-Task    1. libRI G0W0, spin 0, time grid   -12.564619. Wc size 8, GF size 8. Wall time 0.050297
+Time for Fourier transform of Wc in GW (seconds, Wall/CPU): 0.004408 0.004408
+Time for LibRI G0W0 setup (seconds, Wall/CPU): 0.000252 0.000253
+Time for Green's function, i_spin 1 i_tau 1 (seconds, Wall/CPU): 0.002992 0.002991
+Task    0. libRI G0W0, spin 0, time grid     0.044704. Wc size 32, GF size 32. Wall time 0.027583
+Task    0. libRI G0W0, spin 0, time grid    -0.044704. Wc size 32, GF size 32. Wall time 0.028115
+Time for Green's function, i_spin 1 i_tau 2 (seconds, Wall/CPU): 0.002951 0.002952
+Task    0. libRI G0W0, spin 0, time grid     0.267983. Wc size 32, GF size 32. Wall time 0.028764
+Task    0. libRI G0W0, spin 0, time grid    -0.267983. Wc size 32, GF size 32. Wall time 0.026895
+Time for Green's function, i_spin 1 i_tau 3 (seconds, Wall/CPU): 0.002881 0.002881
+Task    0. libRI G0W0, spin 0, time grid     0.844107. Wc size 32, GF size 32. Wall time 0.026231
+Task    0. libRI G0W0, spin 0, time grid    -0.844107. Wc size 32, GF size 32. Wall time 0.026454
+Time for Green's function, i_spin 1 i_tau 4 (seconds, Wall/CPU): 0.003001 0.003001
+Task    0. libRI G0W0, spin 0, time grid     2.217802. Wc size 32, GF size 32. Wall time 0.026042
+Task    0. libRI G0W0, spin 0, time grid    -2.217802. Wc size 32, GF size 32. Wall time 0.026192
+Time for Green's function, i_spin 1 i_tau 5 (seconds, Wall/CPU): 0.002769 0.002769
+Task    0. libRI G0W0, spin 0, time grid     5.364324. Wc size 32, GF size 32. Wall time 0.026795
+Task    0. libRI G0W0, spin 0, time grid    -5.364324. Wc size 32, GF size 32. Wall time 0.025449
+Time for Green's function, i_spin 1 i_tau 6 (seconds, Wall/CPU): 0.002960 0.002961
+Task    0. libRI G0W0, spin 0, time grid    12.564619. Wc size 32, GF size 32. Wall time 0.027089
+Task    0. libRI G0W0, spin 0, time grid   -12.564619. Wc size 32, GF size 32. Wall time 0.025630
 Printing quasi-particle energy [unit: eV]
 
-spin  1, k-point    1: (0.00000, 0.00000, 0.00000) 
+spin  1, k-point    1: (0.00000, 0.00000, 0.00000)
 ----------------------------------------------------------------------------------------------------------------------------
 State              occ             e_mf             v_xc            v_exx           ReSigc           ImSigc             e_qp
 ----------------------------------------------------------------------------------------------------------------------------
-    1          2.00000         -8.72322        -15.48598        -25.84203        -43.97145         -1.85145        -63.05072
-    2          2.00000         11.68273        -18.54882        -22.58367         -8.94147         -3.38130         -1.29359
-    3          2.00000         11.68273        -18.54882        -22.58367         -8.94147         -3.38130         -1.29359
-    4          2.00000         11.68273        -18.54882        -22.58367         -8.94147         -3.38130         -1.29359
-    5          0.00000         20.11637        -13.78369         -8.35124        -70.05713         -1.22930        -44.50830
-    6          0.00000         20.11637        -13.78369         -8.35124        -70.05713         -1.22930        -44.50830
-    7          0.00000         20.11637        -13.78369         -8.35124        -70.05713         -1.22930        -44.50830
-    8          0.00000         22.29696        -16.10234        -14.21901        -74.02052          0.84680        -49.84024
-    9          0.00000         43.86715        -14.08063         -4.93559         -3.64914         -0.23853         49.36305
-   10          0.00000         43.86715        -14.08063         -4.93559         -3.64914         -0.23853         49.36305
-   11          0.00000         55.46696        -14.58613         -4.73380       -123.86354          0.21949        -58.54425
-   12          0.00000         55.46696        -14.58613         -4.73380       -123.86354          0.21949        -58.54425
-   13          0.00000         55.46696        -14.58613         -4.73380       -123.86354          0.21949        -58.54425
-   14          0.00000         61.46721        -14.76902        -11.75408       -385.64230         -6.78941       -321.16015
-   15          0.00000         61.46721        -14.76902        -11.75408       -385.64230         -6.78941       -321.16015
-   16          0.00000         61.46721        -14.76902        -11.75408       -385.64230         -6.78941       -321.16015
-   17          0.00000         65.61832        -11.91724        -50.98237       -776.07880        -78.98919       -749.52561
-   18          0.00000        101.02207        -15.56564        -12.86031       -376.39710        -14.13179       -272.66969
-   19          0.00000        101.02207        -15.56564        -12.86031       -376.39710        -14.13179       -272.66969
-   20          0.00000        101.02207        -15.56564        -12.86031       -376.39710        -14.13179       -272.66969
-   21          0.00000        101.47314        -17.61700         -6.41259        -17.43831          3.82452         95.23924
-   22          0.00000        101.47314        -17.61700         -6.41259        -17.43831          3.82452         95.23924
-   23          0.00000        126.62883        -18.12613        -36.72494       -688.47271        -16.64515       -580.44269
-   24          0.00000        126.62883        -18.12613        -36.72494       -688.47271        -16.64515       -580.44269
-   25          0.00000        126.62883        -18.12613        -36.72494       -688.47271        -16.64515       -580.44269
-   26          0.00000        142.37194        -11.88331        -74.48775       -692.53170        -54.57793       -612.76421
+    1          2.00000         -8.72322        -15.48598        -25.84203        -43.22761         -1.96612        -62.30688
+    2          2.00000         11.68273        -18.54882        -22.58367         -8.88136         -3.89113         -1.23348
+    3          2.00000         11.68273        -18.54882        -22.58367         -8.88136         -3.89113         -1.23348
+    4          2.00000         11.68273        -18.54882        -22.58367         -8.88136         -3.89113         -1.23348
+    5          0.00000         20.11637        -13.78369         -8.35124        -69.92763         -1.24100        -44.37881
+    6          0.00000         20.11637        -13.78369         -8.35124        -69.92763         -1.24100        -44.37881
+    7          0.00000         20.11637        -13.78369         -8.35124        -69.92763         -1.24100        -44.37881
+    8          0.00000         22.29696        -16.10234        -14.21901        -72.70298          0.68094        -48.52269
+    9          0.00000         43.86715        -14.08063         -4.93559         -3.30625         -0.69849         49.70594
+   10          0.00000         43.86715        -14.08063         -4.93559         -3.30625         -0.69849         49.70594
+   11          0.00000         55.46696        -14.58613         -4.73380       -123.66132          0.20670        -58.34202
+   12          0.00000         55.46696        -14.58613         -4.73380       -123.66132          0.20670        -58.34202
+   13          0.00000         55.46696        -14.58613         -4.73380       -123.66132          0.20670        -58.34202
+   14          0.00000         61.46721        -14.76902        -11.75408       -384.98628         -6.67800       -320.50413
+   15          0.00000         61.46721        -14.76902        -11.75408       -384.98628         -6.67800       -320.50413
+   16          0.00000         61.46721        -14.76902        -11.75408       -384.98628         -6.67800       -320.50413
+   17          0.00000         65.61832        -11.91724        -50.98237       -773.85134        -78.00529       -747.29816
+   18          0.00000        101.02207        -15.56564        -12.86031       -374.88657        -13.83337       -271.15917
+   19          0.00000        101.02207        -15.56564        -12.86031       -374.88657        -13.83337       -271.15917
+   20          0.00000        101.02207        -15.56564        -12.86031       -374.88657        -13.83337       -271.15917
+   21          0.00000        101.47314        -17.61700         -6.41259        -17.49265          2.91779         95.18489
+   22          0.00000        101.47314        -17.61700         -6.41259        -17.49265          2.91779         95.18489
+   23          0.00000        126.62883        -18.12613        -36.72494       -687.40419        -16.21595       -579.37418
+   24          0.00000        126.62883        -18.12613        -36.72494       -687.40419        -16.21595       -579.37418
+   25          0.00000        126.62883        -18.12613        -36.72494       -687.40419        -16.21595       -579.37418
+   26          0.00000        142.37194        -11.88331        -74.48775       -689.83628        -53.29798       -610.06878
 
-spin  1, k-point    2: (0.50000, 0.00000, 0.00000) 
+spin  1, k-point    2: (0.50000, 0.00000, 0.00000)
 ----------------------------------------------------------------------------------------------------------------------------
 State              occ             e_mf             v_xc            v_exx           ReSigc           ImSigc             e_qp
 ----------------------------------------------------------------------------------------------------------------------------
-    1          2.00000         -4.40704        -16.94547        -25.72005         -6.16957         -3.93040        -19.35119
-    2          2.00000          0.69750        -14.46410        -20.66056        -19.46285         -2.10501        -24.96181
-    3          2.00000          9.64017        -17.60164        -22.01377         -6.56369         -3.19370         -1.33564
-    4          2.00000          9.64017        -17.60164        -22.01377         -6.56369         -3.19370         -1.33564
-    5          0.00000         21.74614        -14.82108        -13.29803        -93.97388          0.36636        -70.70469
-    6          0.00000         22.32348        -14.19734         -8.03914        -41.00931          0.36632        -12.52763
-    7          0.00000         22.32348        -14.19734         -8.03914        -41.00931          0.36632        -12.52763
-    8          0.00000         28.11374        -17.34624        -13.25451        -96.95454          0.43442        -64.74908
-    9          0.00000         38.33288        -13.05715         -2.74706        -64.55638          3.08440        -15.91341
-   10          0.00000         44.55129        -14.76916         -4.30071        -32.07272          3.01617         22.94701
-   11          0.00000         44.55129        -14.76916         -4.30071        -32.07272          3.01617         22.94701
-   12          0.00000         52.45018        -14.26098         -5.36690        -26.66942          3.65293         34.67485
-   13          0.00000         52.45018        -14.26098         -5.36690        -26.66942          3.65293         34.67485
-   14          0.00000         56.22298        -13.91560         -5.83319       -177.02893          1.66805       -112.72355
-   15          0.00000         74.51386        -15.92886         -4.25836       -156.99521          4.02385        -70.81086
-   16          0.00000         74.51386        -15.92886         -4.25836       -156.99521          4.02385        -70.81086
-   17          0.00000         80.59202        -16.75438        -13.50238       -364.11631        -14.53838       -280.27230
-   18          0.00000         81.89317        -15.75747        -10.52557       -276.27817         -5.28608       -189.15310
-   19          0.00000         81.89317        -15.75747        -10.52557       -276.27817         -5.28608       -189.15310
-   20          0.00000        100.23692        -17.20195         -7.42517       -109.61903          6.01176          0.39467
-   21          0.00000        100.23692        -17.20195         -7.42517       -109.61903          6.01176          0.39467
-   22          0.00000        105.81676        -17.93116        -89.03565       -924.93546        -86.32145       -890.22319
-   23          0.00000        130.76773        -16.90806        -32.52742       -604.42411        -36.10509       -489.27574
-   24          0.00000        130.76773        -16.90806        -32.52742       -604.42411        -36.10509       -489.27574
-   25          0.00000        135.71635        -13.55913        -83.54722      -1225.80389       -143.64304      -1160.07563
-   26          0.00000        198.47810        -11.59054        -57.63003       -828.76907        -80.28601       -676.33046
+    1          2.00000         -4.40704        -16.94547        -25.72005         -5.73842         -4.49809        -18.92004
+    2          2.00000          0.69750        -14.46410        -20.66056        -18.79741         -2.32866        -24.29637
+    3          2.00000          9.64017        -17.60164        -22.01377         -6.75907         -3.91465         -1.53103
+    4          2.00000          9.64017        -17.60164        -22.01377         -6.75907         -3.91465         -1.53103
+    5          0.00000         21.74614        -14.82108        -13.29803        -89.53792         -0.04492        -66.26873
+    6          0.00000         22.32348        -14.19734         -8.03914        -40.68395          0.31088        -12.20228
+    7          0.00000         22.32348        -14.19734         -8.03914        -40.68395          0.31088        -12.20228
+    8          0.00000         28.11374        -17.34624        -13.25451        -96.02201          0.35664        -63.81654
+    9          0.00000         38.33288        -13.05715         -2.74706        -61.87222          2.66962        -13.22925
+   10          0.00000         44.55129        -14.76916         -4.30071        -31.71639          2.93296         23.30334
+   11          0.00000         44.55129        -14.76916         -4.30071        -31.71640          2.93296         23.30334
+   12          0.00000         52.45018        -14.26098         -5.36690        -26.24968          3.48502         35.09459
+   13          0.00000         52.45018        -14.26098         -5.36690        -26.24968          3.48502         35.09459
+   14          0.00000         56.22298        -13.91560         -5.83319       -173.47409          1.63330       -109.16870
+   15          0.00000         74.51386        -15.92886         -4.25836       -156.02808          3.95681        -69.84373
+   16          0.00000         74.51386        -15.92886         -4.25836       -156.02808          3.95681        -69.84373
+   17          0.00000         80.59202        -16.75438        -13.50238       -360.32208        -13.81829       -276.47806
+   18          0.00000         81.89317        -15.75747        -10.52557       -274.70899         -5.10555       -187.58392
+   19          0.00000         81.89317        -15.75747        -10.52557       -274.70899         -5.10555       -187.58392
+   20          0.00000        100.23692        -17.20195         -7.42517       -108.92253          5.86829          1.09117
+   21          0.00000        100.23692        -17.20195         -7.42517       -108.92253          5.86829          1.09117
+   22          0.00000        105.81676        -17.93116        -89.03565       -916.57274        -82.84748       -881.86047
+   23          0.00000        130.76773        -16.90806        -32.52742       -600.70378        -34.82230       -485.55541
+   24          0.00000        130.76773        -16.90806        -32.52742       -600.70378        -34.82230       -485.55541
+   25          0.00000        135.71635        -13.55913        -83.54722      -1198.21322       -131.62838      -1132.48496
+   26          0.00000        198.47810        -11.59054        -57.63003       -797.80420        -69.22514       -645.36558
 
-spin  1, k-point    3: (0.00000, 0.50000, 0.00000) 
+spin  1, k-point    3: (0.00000, 0.50000, 0.00000)
 ----------------------------------------------------------------------------------------------------------------------------
 State              occ             e_mf             v_xc            v_exx           ReSigc           ImSigc             e_qp
 ----------------------------------------------------------------------------------------------------------------------------
-    1          2.00000         -4.40704        -16.94547        -25.72005         -6.16957         -3.93040        -19.35119
-    2          2.00000          0.69750        -14.46410        -20.66056        -19.46285         -2.10501        -24.96181
-    3          2.00000          9.64017        -17.60164        -22.01377         -6.56369         -3.19370         -1.33564
-    4          2.00000          9.64017        -17.60164        -22.01377         -6.56369         -3.19370         -1.33564
-    5          0.00000         21.74614        -14.82108        -13.29803        -93.97388          0.36636        -70.70469
-    6          0.00000         22.32348        -14.19734         -8.03914        -41.00931          0.36632        -12.52763
-    7          0.00000         22.32348        -14.19734         -8.03914        -41.00931          0.36632        -12.52763
-    8          0.00000         28.11374        -17.34624        -13.25451        -96.95454          0.43442        -64.74908
-    9          0.00000         38.33288        -13.05715         -2.74706        -64.55638          3.08440        -15.91341
-   10          0.00000         44.55129        -14.76916         -4.30071        -32.07272          3.01617         22.94701
-   11          0.00000         44.55129        -14.76916         -4.30071        -32.07272          3.01617         22.94701
-   12          0.00000         52.45018        -14.26098         -5.36690        -26.66942          3.65293         34.67485
-   13          0.00000         52.45018        -14.26098         -5.36690        -26.66942          3.65293         34.67485
-   14          0.00000         56.22298        -13.91560         -5.83319       -177.02893          1.66805       -112.72355
-   15          0.00000         74.51386        -15.92886         -4.25836       -156.99521          4.02385        -70.81086
-   16          0.00000         74.51386        -15.92886         -4.25836       -156.99521          4.02385        -70.81086
-   17          0.00000         80.59202        -16.75438        -13.50238       -364.11631        -14.53838       -280.27230
-   18          0.00000         81.89317        -15.75747        -10.52557       -276.27817         -5.28608       -189.15310
-   19          0.00000         81.89317        -15.75747        -10.52557       -276.27817         -5.28608       -189.15310
-   20          0.00000        100.23692        -17.20195         -7.42517       -109.61903          6.01176          0.39467
-   21          0.00000        100.23692        -17.20195         -7.42517       -109.61903          6.01176          0.39467
-   22          0.00000        105.81676        -17.93116        -89.03565       -924.93546        -86.32145       -890.22319
-   23          0.00000        130.76773        -16.90806        -32.52742       -604.42411        -36.10509       -489.27574
-   24          0.00000        130.76773        -16.90806        -32.52742       -604.42411        -36.10509       -489.27574
-   25          0.00000        135.71635        -13.55913        -83.54722      -1225.80389       -143.64304      -1160.07563
-   26          0.00000        198.47810        -11.59054        -57.63003       -828.76907        -80.28601       -676.33046
+    1          2.00000         -4.40704        -16.94547        -25.72005         -5.73842         -4.49809        -18.92004
+    2          2.00000          0.69750        -14.46410        -20.66056        -18.79741         -2.32866        -24.29637
+    3          2.00000          9.64017        -17.60164        -22.01377         -6.75907         -3.91465         -1.53103
+    4          2.00000          9.64017        -17.60164        -22.01377         -6.75907         -3.91465         -1.53103
+    5          0.00000         21.74614        -14.82108        -13.29803        -89.53792         -0.04492        -66.26873
+    6          0.00000         22.32348        -14.19734         -8.03914        -40.68395          0.31088        -12.20228
+    7          0.00000         22.32348        -14.19734         -8.03914        -40.68395          0.31088        -12.20228
+    8          0.00000         28.11374        -17.34624        -13.25451        -96.02201          0.35664        -63.81654
+    9          0.00000         38.33288        -13.05715         -2.74706        -61.87222          2.66962        -13.22925
+   10          0.00000         44.55129        -14.76916         -4.30071        -31.71639          2.93296         23.30334
+   11          0.00000         44.55129        -14.76916         -4.30071        -31.71640          2.93296         23.30334
+   12          0.00000         52.45018        -14.26098         -5.36690        -26.24968          3.48502         35.09459
+   13          0.00000         52.45018        -14.26098         -5.36690        -26.24968          3.48502         35.09459
+   14          0.00000         56.22298        -13.91560         -5.83319       -173.47409          1.63330       -109.16870
+   15          0.00000         74.51386        -15.92886         -4.25836       -156.02808          3.95681        -69.84373
+   16          0.00000         74.51386        -15.92886         -4.25836       -156.02808          3.95681        -69.84373
+   17          0.00000         80.59202        -16.75438        -13.50238       -360.32208        -13.81829       -276.47806
+   18          0.00000         81.89317        -15.75747        -10.52557       -274.70899         -5.10555       -187.58392
+   19          0.00000         81.89317        -15.75747        -10.52557       -274.70899         -5.10555       -187.58392
+   20          0.00000        100.23692        -17.20195         -7.42517       -108.92253          5.86829          1.09117
+   21          0.00000        100.23692        -17.20195         -7.42517       -108.92253          5.86829          1.09117
+   22          0.00000        105.81676        -17.93116        -89.03565       -916.57274        -82.84748       -881.86047
+   23          0.00000        130.76773        -16.90806        -32.52742       -600.70378        -34.82230       -485.55541
+   24          0.00000        130.76773        -16.90806        -32.52742       -600.70378        -34.82230       -485.55541
+   25          0.00000        135.71635        -13.55913        -83.54722      -1198.21322       -131.62838      -1132.48496
+   26          0.00000        198.47810        -11.59054        -57.63003       -797.80420        -69.22514       -645.36558
 
-spin  1, k-point    4: (0.50000, 0.50000, 0.00000) 
+spin  1, k-point    4: (0.50000, 0.50000, 0.00000)
 ----------------------------------------------------------------------------------------------------------------------------
 State              occ             e_mf             v_xc            v_exx           ReSigc           ImSigc             e_qp
 ----------------------------------------------------------------------------------------------------------------------------
-    1          2.00000         -3.00970        -17.36696        -25.63718         -3.20585         -5.91019        -14.48577
-    2          2.00000          2.51737        -15.27115        -21.34520        -11.24757         -2.48927        -14.80425
-    3          2.00000          6.58721        -16.42596        -21.22646         -6.38417         -2.84295         -4.59746
-    4          2.00000          6.58721        -16.42596        -21.22646         -6.38417         -2.84295         -4.59746
-    5          0.00000         16.00971        -12.56799         -7.00800        -45.75883          1.24994        -24.18913
-    6          0.00000         21.42099        -13.41390        -12.50740       -109.64708          0.04054        -87.31959
-    7          0.00000         29.44790        -16.64384         -9.53438        -38.06294          0.60608         -1.50557
-    8          0.00000         29.44790        -16.64384         -9.53438        -38.06294          0.60608         -1.50557
-    9          0.00000         35.13456        -17.54581         -7.44548        -16.16487          1.86288         29.07002
-   10          0.00000         40.21105        -13.60124         -3.08164        -23.10041          2.93024         27.63024
-   11          0.00000         50.78247        -13.72693         -5.69516        -64.56453          2.64456         -5.75029
-   12          0.00000         50.78247        -13.72693         -5.69516        -64.56453          2.64456         -5.75029
-   13          0.00000         57.58260        -13.17883         -4.24410         -7.55030          0.66584         58.96703
-   14          0.00000         68.39286        -17.66791         -6.15808         -5.33578          0.07900         74.56691
-   15          0.00000         68.79844        -15.02271         -4.65199       -137.02649          3.78247        -57.85733
-   16          0.00000         68.79844        -15.02271         -4.65199       -137.02649          3.78247        -57.85733
-   17          0.00000         69.74807        -14.72471         -9.16400       -239.79431         -2.57464       -164.48553
-   18          0.00000         84.80493        -16.68802         -9.12750       -206.84454          0.08918       -114.47910
-   19          0.00000         84.80493        -16.68802         -9.12750       -206.84454          0.08918       -114.47910
-   20          0.00000         91.31584        -17.95331         -5.83530        -17.12380          4.00477         86.31006
-   21          0.00000         96.64723        -15.45803        -56.70116       -618.24668        -50.97925       -562.84257
-   22          0.00000        101.89450        -18.56952        -16.95350       -243.95561         -2.03008       -140.44508
-   23          0.00000        127.69027        -16.53770        -48.77881       -705.03110        -51.38218       -609.58194
-   24          0.00000        127.69027        -16.53770        -48.77881       -705.03111        -51.38218       -609.58195
-   25          0.00000        145.72705        -13.94840       -101.84943      -1248.60675       -162.05550      -1190.78072
-   26          0.00000        200.69309        -10.52157        -17.99007       -447.07250        -15.85809       -253.84791
+    1          2.00000         -3.00970        -17.36696        -25.63718         -2.19556         -7.29273        -13.47549
+    2          2.00000          2.51737        -15.27115        -21.34520        -10.92308         -2.72592        -14.47975
+    3          2.00000          6.58721        -16.42596        -21.22646         -6.34738         -3.57125         -4.56067
+    4          2.00000          6.58721        -16.42596        -21.22646         -6.34738         -3.57125         -4.56067
+    5          0.00000         16.00971        -12.56799         -7.00800        -43.45625          0.89307        -21.88655
+    6          0.00000         21.42099        -13.41390        -12.50740       -108.42180         -0.03295        -86.09432
+    7          0.00000         29.44790        -16.64384         -9.53438        -37.80097          0.54768         -1.24360
+    8          0.00000         29.44790        -16.64384         -9.53438        -37.80097          0.54768         -1.24360
+    9          0.00000         35.13456        -17.54581         -7.44548        -15.85355          1.70822         29.38134
+   10          0.00000         40.21105        -13.60124         -3.08164        -21.96430          2.66742         28.76634
+   11          0.00000         50.78247        -13.72693         -5.69516        -64.29005          2.59808         -5.47582
+   12          0.00000         50.78247        -13.72693         -5.69516        -64.29005          2.59808         -5.47582
+   13          0.00000         57.58260        -13.17883         -4.24410         -7.45113          0.55855         59.06620
+   14          0.00000         68.39286        -17.66791         -6.15808         -5.29101         -0.82253         74.61168
+   15          0.00000         68.79844        -15.02271         -4.65199       -136.58570          3.74331        -57.41654
+   16          0.00000         68.79844        -15.02271         -4.65199       -136.58570          3.74331        -57.41654
+   17          0.00000         69.74807        -14.72471         -9.16400       -232.07284         -2.13459       -156.76406
+   18          0.00000         84.80493        -16.68802         -9.12750       -205.55678          0.11389       -113.19134
+   19          0.00000         84.80493        -16.68802         -9.12750       -205.55678          0.11389       -113.19134
+   20          0.00000         91.31584        -17.95331         -5.83530        -16.78802          3.17238         86.64584
+   21          0.00000         96.64723        -15.45803        -56.70116       -612.69519        -49.06504       -557.29108
+   22          0.00000        101.89450        -18.56952        -16.95350       -242.52111         -1.92746       -139.01058
+   23          0.00000        127.69027        -16.53770        -48.77881       -700.43379        -49.68839       -604.98463
+   24          0.00000        127.69027        -16.53770        -48.77881       -700.43379        -49.68839       -604.98463
+   25          0.00000        145.72705        -13.94840       -101.84943      -1220.45478       -149.71966      -1162.62875
+   26          0.00000        200.69309        -10.52157        -17.99007       -444.40177        -15.34897       -251.17718
 
-spin  1, k-point    5: (0.00000, 0.00000, 0.50000) 
+spin  1, k-point    5: (0.00000, 0.00000, 0.50000)
 ----------------------------------------------------------------------------------------------------------------------------
 State              occ             e_mf             v_xc            v_exx           ReSigc           ImSigc             e_qp
 ----------------------------------------------------------------------------------------------------------------------------
-    1          2.00000         -4.40704        -16.94547        -25.72005         -6.16957         -3.93040        -19.35119
-    2          2.00000          0.69750        -14.46410        -20.66056        -19.46285         -2.10501        -24.96181
-    3          2.00000          9.64017        -17.60164        -22.01377         -6.56369         -3.19370         -1.33564
-    4          2.00000          9.64017        -17.60164        -22.01377         -6.56369         -3.19370         -1.33564
-    5          0.00000         21.74614        -14.82108        -13.29803        -93.97388          0.36636        -70.70469
-    6          0.00000         22.32348        -14.19734         -8.03914        -41.00931          0.36632        -12.52763
-    7          0.00000         22.32348        -14.19734         -8.03914        -41.00931          0.36632        -12.52763
-    8          0.00000         28.11374        -17.34624        -13.25451        -96.95454          0.43442        -64.74908
-    9          0.00000         38.33288        -13.05715         -2.74706        -64.55638          3.08440        -15.91341
-   10          0.00000         44.55129        -14.76916         -4.30071        -32.07272          3.01617         22.94701
-   11          0.00000         44.55129        -14.76916         -4.30071        -32.07272          3.01617         22.94701
-   12          0.00000         52.45018        -14.26098         -5.36690        -26.66942          3.65293         34.67485
-   13          0.00000         52.45018        -14.26098         -5.36690        -26.66942          3.65293         34.67485
-   14          0.00000         56.22298        -13.91560         -5.83319       -177.02893          1.66805       -112.72355
-   15          0.00000         74.51386        -15.92886         -4.25836       -156.99521          4.02385        -70.81086
-   16          0.00000         74.51386        -15.92886         -4.25836       -156.99521          4.02385        -70.81086
-   17          0.00000         80.59202        -16.75438        -13.50238       -364.11631        -14.53838       -280.27230
-   18          0.00000         81.89317        -15.75747        -10.52557       -276.27817         -5.28608       -189.15310
-   19          0.00000         81.89317        -15.75747        -10.52557       -276.27817         -5.28608       -189.15310
-   20          0.00000        100.23692        -17.20195         -7.42517       -109.61903          6.01176          0.39467
-   21          0.00000        100.23692        -17.20195         -7.42517       -109.61903          6.01176          0.39467
-   22          0.00000        105.81676        -17.93116        -89.03565       -924.93546        -86.32145       -890.22319
-   23          0.00000        130.76773        -16.90806        -32.52742       -604.42411        -36.10509       -489.27574
-   24          0.00000        130.76773        -16.90806        -32.52742       -604.42411        -36.10509       -489.27574
-   25          0.00000        135.71635        -13.55913        -83.54722      -1225.80389       -143.64304      -1160.07563
-   26          0.00000        198.47810        -11.59054        -57.63003       -828.76907        -80.28601       -676.33046
+    1          2.00000         -4.40704        -16.94547        -25.72005         -5.73842         -4.49809        -18.92004
+    2          2.00000          0.69750        -14.46410        -20.66056        -18.79741         -2.32866        -24.29637
+    3          2.00000          9.64017        -17.60164        -22.01377         -6.75907         -3.91465         -1.53103
+    4          2.00000          9.64017        -17.60164        -22.01377         -6.75907         -3.91465         -1.53103
+    5          0.00000         21.74614        -14.82108        -13.29803        -89.53792         -0.04492        -66.26873
+    6          0.00000         22.32348        -14.19734         -8.03914        -40.68395          0.31088        -12.20228
+    7          0.00000         22.32348        -14.19734         -8.03914        -40.68395          0.31088        -12.20228
+    8          0.00000         28.11374        -17.34624        -13.25451        -96.02201          0.35664        -63.81654
+    9          0.00000         38.33288        -13.05715         -2.74706        -61.87222          2.66962        -13.22925
+   10          0.00000         44.55129        -14.76916         -4.30071        -31.71640          2.93296         23.30334
+   11          0.00000         44.55129        -14.76916         -4.30071        -31.71639          2.93296         23.30334
+   12          0.00000         52.45018        -14.26098         -5.36690        -26.24968          3.48502         35.09459
+   13          0.00000         52.45018        -14.26098         -5.36690        -26.24968          3.48502         35.09459
+   14          0.00000         56.22298        -13.91560         -5.83319       -173.47409          1.63330       -109.16870
+   15          0.00000         74.51386        -15.92886         -4.25836       -156.02808          3.95681        -69.84373
+   16          0.00000         74.51386        -15.92886         -4.25836       -156.02808          3.95681        -69.84373
+   17          0.00000         80.59202        -16.75438        -13.50238       -360.32208        -13.81829       -276.47806
+   18          0.00000         81.89317        -15.75747        -10.52557       -274.70899         -5.10555       -187.58392
+   19          0.00000         81.89317        -15.75747        -10.52557       -274.70899         -5.10555       -187.58392
+   20          0.00000        100.23692        -17.20195         -7.42517       -108.92253          5.86829          1.09117
+   21          0.00000        100.23692        -17.20195         -7.42517       -108.92253          5.86829          1.09117
+   22          0.00000        105.81676        -17.93116        -89.03565       -916.57274        -82.84748       -881.86047
+   23          0.00000        130.76773        -16.90806        -32.52742       -600.70378        -34.82230       -485.55541
+   24          0.00000        130.76773        -16.90806        -32.52742       -600.70378        -34.82230       -485.55541
+   25          0.00000        135.71635        -13.55913        -83.54722      -1198.21322       -131.62838      -1132.48496
+   26          0.00000        198.47810        -11.59054        -57.63003       -797.80420        -69.22514       -645.36558
 
-spin  1, k-point    6: (0.50000, 0.00000, 0.50000) 
+spin  1, k-point    6: (0.50000, 0.00000, 0.50000)
 ----------------------------------------------------------------------------------------------------------------------------
 State              occ             e_mf             v_xc            v_exx           ReSigc           ImSigc             e_qp
 ----------------------------------------------------------------------------------------------------------------------------
-    1          2.00000         -3.00970        -17.36696        -25.63718         -3.20585         -5.91019        -14.48577
-    2          2.00000          2.51737        -15.27115        -21.34520        -11.24757         -2.48927        -14.80425
-    3          2.00000          6.58721        -16.42596        -21.22646         -6.38417         -2.84295         -4.59746
-    4          2.00000          6.58721        -16.42596        -21.22646         -6.38417         -2.84295         -4.59746
-    5          0.00000         16.00971        -12.56799         -7.00800        -45.75883          1.24994        -24.18913
-    6          0.00000         21.42099        -13.41390        -12.50740       -109.64708          0.04054        -87.31959
-    7          0.00000         29.44790        -16.64384         -9.53438        -38.06294          0.60608         -1.50557
-    8          0.00000         29.44790        -16.64384         -9.53438        -38.06294          0.60608         -1.50557
-    9          0.00000         35.13456        -17.54581         -7.44548        -16.16487          1.86288         29.07002
-   10          0.00000         40.21105        -13.60124         -3.08164        -23.10041          2.93024         27.63024
-   11          0.00000         50.78247        -13.72693         -5.69516        -64.56453          2.64456         -5.75029
-   12          0.00000         50.78247        -13.72693         -5.69516        -64.56453          2.64456         -5.75029
-   13          0.00000         57.58260        -13.17883         -4.24410         -7.55030          0.66584         58.96703
-   14          0.00000         68.39286        -17.66791         -6.15808         -5.33578          0.07900         74.56691
-   15          0.00000         68.79844        -15.02271         -4.65199       -137.02649          3.78247        -57.85733
-   16          0.00000         68.79844        -15.02271         -4.65199       -137.02649          3.78247        -57.85733
-   17          0.00000         69.74807        -14.72471         -9.16400       -239.79431         -2.57464       -164.48553
-   18          0.00000         84.80493        -16.68802         -9.12750       -206.84454          0.08918       -114.47910
-   19          0.00000         84.80493        -16.68802         -9.12750       -206.84454          0.08918       -114.47910
-   20          0.00000         91.31584        -17.95331         -5.83530        -17.12380          4.00477         86.31006
-   21          0.00000         96.64723        -15.45803        -56.70116       -618.24668        -50.97925       -562.84257
-   22          0.00000        101.89450        -18.56952        -16.95350       -243.95561         -2.03008       -140.44508
-   23          0.00000        127.69027        -16.53770        -48.77881       -705.03111        -51.38218       -609.58195
-   24          0.00000        127.69027        -16.53770        -48.77881       -705.03110        -51.38218       -609.58194
-   25          0.00000        145.72705        -13.94840       -101.84943      -1248.60675       -162.05550      -1190.78072
-   26          0.00000        200.69309        -10.52157        -17.99007       -447.07250        -15.85809       -253.84791
+    1          2.00000         -3.00970        -17.36696        -25.63718         -2.19556         -7.29273        -13.47549
+    2          2.00000          2.51737        -15.27115        -21.34520        -10.92308         -2.72592        -14.47975
+    3          2.00000          6.58721        -16.42596        -21.22646         -6.34738         -3.57125         -4.56067
+    4          2.00000          6.58721        -16.42596        -21.22646         -6.34738         -3.57125         -4.56067
+    5          0.00000         16.00971        -12.56799         -7.00800        -43.45625          0.89307        -21.88655
+    6          0.00000         21.42099        -13.41390        -12.50740       -108.42180         -0.03295        -86.09432
+    7          0.00000         29.44790        -16.64384         -9.53438        -37.80097          0.54768         -1.24360
+    8          0.00000         29.44790        -16.64384         -9.53438        -37.80097          0.54768         -1.24360
+    9          0.00000         35.13456        -17.54581         -7.44548        -15.85355          1.70822         29.38134
+   10          0.00000         40.21105        -13.60124         -3.08164        -21.96430          2.66742         28.76634
+   11          0.00000         50.78247        -13.72693         -5.69516        -64.29005          2.59808         -5.47582
+   12          0.00000         50.78247        -13.72693         -5.69516        -64.29005          2.59808         -5.47582
+   13          0.00000         57.58260        -13.17883         -4.24410         -7.45113          0.55855         59.06620
+   14          0.00000         68.39286        -17.66791         -6.15808         -5.29101         -0.82253         74.61168
+   15          0.00000         68.79844        -15.02271         -4.65199       -136.58570          3.74331        -57.41654
+   16          0.00000         68.79844        -15.02271         -4.65199       -136.58570          3.74331        -57.41654
+   17          0.00000         69.74807        -14.72471         -9.16400       -232.07284         -2.13459       -156.76406
+   18          0.00000         84.80493        -16.68802         -9.12750       -205.55678          0.11389       -113.19134
+   19          0.00000         84.80493        -16.68802         -9.12750       -205.55678          0.11389       -113.19134
+   20          0.00000         91.31584        -17.95331         -5.83530        -16.78802          3.17238         86.64584
+   21          0.00000         96.64723        -15.45803        -56.70116       -612.69519        -49.06504       -557.29108
+   22          0.00000        101.89450        -18.56952        -16.95350       -242.52111         -1.92746       -139.01058
+   23          0.00000        127.69027        -16.53770        -48.77881       -700.43379        -49.68839       -604.98463
+   24          0.00000        127.69027        -16.53770        -48.77881       -700.43379        -49.68839       -604.98463
+   25          0.00000        145.72705        -13.94840       -101.84943      -1220.45478       -149.71966      -1162.62875
+   26          0.00000        200.69309        -10.52157        -17.99007       -444.40177        -15.34897       -251.17718
 
-spin  1, k-point    7: (0.00000, 0.50000, 0.50000) 
+spin  1, k-point    7: (0.00000, 0.50000, 0.50000)
 ----------------------------------------------------------------------------------------------------------------------------
 State              occ             e_mf             v_xc            v_exx           ReSigc           ImSigc             e_qp
 ----------------------------------------------------------------------------------------------------------------------------
-    1          2.00000         -3.00970        -17.36696        -25.63718         -3.20585         -5.91019        -14.48577
-    2          2.00000          2.51737        -15.27115        -21.34520        -11.24757         -2.48927        -14.80425
-    3          2.00000          6.58721        -16.42596        -21.22646         -6.38417         -2.84295         -4.59746
-    4          2.00000          6.58721        -16.42596        -21.22646         -6.38417         -2.84295         -4.59746
-    5          0.00000         16.00971        -12.56799         -7.00800        -45.75883          1.24994        -24.18913
-    6          0.00000         21.42099        -13.41390        -12.50740       -109.64708          0.04054        -87.31959
-    7          0.00000         29.44790        -16.64384         -9.53438        -38.06294          0.60608         -1.50557
-    8          0.00000         29.44790        -16.64384         -9.53438        -38.06294          0.60608         -1.50557
-    9          0.00000         35.13456        -17.54581         -7.44548        -16.16487          1.86288         29.07002
-   10          0.00000         40.21105        -13.60124         -3.08164        -23.10041          2.93024         27.63024
-   11          0.00000         50.78247        -13.72693         -5.69516        -64.56453          2.64456         -5.75029
-   12          0.00000         50.78247        -13.72693         -5.69516        -64.56453          2.64456         -5.75029
-   13          0.00000         57.58260        -13.17883         -4.24410         -7.55030          0.66584         58.96703
-   14          0.00000         68.39286        -17.66791         -6.15808         -5.33578          0.07900         74.56691
-   15          0.00000         68.79844        -15.02271         -4.65199       -137.02649          3.78247        -57.85733
-   16          0.00000         68.79844        -15.02271         -4.65199       -137.02649          3.78247        -57.85733
-   17          0.00000         69.74807        -14.72471         -9.16400       -239.79431         -2.57464       -164.48553
-   18          0.00000         84.80493        -16.68802         -9.12750       -206.84454          0.08918       -114.47910
-   19          0.00000         84.80493        -16.68802         -9.12750       -206.84454          0.08918       -114.47910
-   20          0.00000         91.31584        -17.95331         -5.83530        -17.12380          4.00477         86.31006
-   21          0.00000         96.64723        -15.45803        -56.70116       -618.24668        -50.97925       -562.84257
-   22          0.00000        101.89450        -18.56952        -16.95350       -243.95561         -2.03008       -140.44508
-   23          0.00000        127.69027        -16.53770        -48.77881       -705.03110        -51.38218       -609.58194
-   24          0.00000        127.69027        -16.53770        -48.77881       -705.03111        -51.38218       -609.58195
-   25          0.00000        145.72705        -13.94840       -101.84943      -1248.60675       -162.05550      -1190.78072
-   26          0.00000        200.69309        -10.52157        -17.99007       -447.07250        -15.85809       -253.84791
+    1          2.00000         -3.00970        -17.36696        -25.63718         -2.19556         -7.29273        -13.47549
+    2          2.00000          2.51737        -15.27115        -21.34520        -10.92308         -2.72592        -14.47975
+    3          2.00000          6.58721        -16.42596        -21.22646         -6.34738         -3.57125         -4.56067
+    4          2.00000          6.58721        -16.42596        -21.22646         -6.34738         -3.57125         -4.56067
+    5          0.00000         16.00971        -12.56799         -7.00800        -43.45625          0.89307        -21.88655
+    6          0.00000         21.42099        -13.41390        -12.50740       -108.42180         -0.03295        -86.09432
+    7          0.00000         29.44790        -16.64384         -9.53438        -37.80097          0.54768         -1.24360
+    8          0.00000         29.44790        -16.64384         -9.53438        -37.80097          0.54768         -1.24360
+    9          0.00000         35.13456        -17.54581         -7.44548        -15.85355          1.70822         29.38134
+   10          0.00000         40.21105        -13.60124         -3.08164        -21.96430          2.66742         28.76634
+   11          0.00000         50.78247        -13.72693         -5.69516        -64.29005          2.59808         -5.47582
+   12          0.00000         50.78247        -13.72693         -5.69516        -64.29005          2.59808         -5.47582
+   13          0.00000         57.58260        -13.17883         -4.24410         -7.45113          0.55855         59.06620
+   14          0.00000         68.39286        -17.66791         -6.15808         -5.29101         -0.82253         74.61168
+   15          0.00000         68.79844        -15.02271         -4.65199       -136.58570          3.74331        -57.41654
+   16          0.00000         68.79844        -15.02271         -4.65199       -136.58570          3.74331        -57.41654
+   17          0.00000         69.74807        -14.72471         -9.16400       -232.07284         -2.13459       -156.76406
+   18          0.00000         84.80493        -16.68802         -9.12750       -205.55678          0.11389       -113.19134
+   19          0.00000         84.80493        -16.68802         -9.12750       -205.55678          0.11389       -113.19134
+   20          0.00000         91.31584        -17.95331         -5.83530        -16.78802          3.17238         86.64584
+   21          0.00000         96.64723        -15.45803        -56.70116       -612.69519        -49.06504       -557.29108
+   22          0.00000        101.89450        -18.56952        -16.95350       -242.52111         -1.92746       -139.01058
+   23          0.00000        127.69027        -16.53770        -48.77881       -700.43379        -49.68839       -604.98463
+   24          0.00000        127.69027        -16.53770        -48.77881       -700.43379        -49.68839       -604.98463
+   25          0.00000        145.72705        -13.94840       -101.84943      -1220.45478       -149.71966      -1162.62875
+   26          0.00000        200.69309        -10.52157        -17.99007       -444.40177        -15.34897       -251.17718
 
-spin  1, k-point    8: (0.50000, 0.50000, 0.50000) 
+spin  1, k-point    8: (0.50000, 0.50000, 0.50000)
 ----------------------------------------------------------------------------------------------------------------------------
 State              occ             e_mf             v_xc            v_exx           ReSigc           ImSigc             e_qp
 ----------------------------------------------------------------------------------------------------------------------------
-    1          2.00000         -4.40704        -16.94547        -25.72005         -6.16957         -3.93040        -19.35119
-    2          2.00000          0.69750        -14.46410        -20.66056        -19.46285         -2.10501        -24.96181
-    3          2.00000          9.64017        -17.60164        -22.01377         -6.56369         -3.19370         -1.33564
-    4          2.00000          9.64017        -17.60164        -22.01377         -6.56369         -3.19370         -1.33564
-    5          0.00000         21.74614        -14.82108        -13.29803        -93.97388          0.36636        -70.70468
-    6          0.00000         22.32348        -14.19734         -8.03914        -41.00931          0.36632        -12.52763
-    7          0.00000         22.32348        -14.19734         -8.03914        -41.00931          0.36632        -12.52763
-    8          0.00000         28.11374        -17.34624        -13.25451        -96.95454          0.43442        -64.74908
-    9          0.00000         38.33288        -13.05715         -2.74706        -64.55638          3.08440        -15.91341
-   10          0.00000         44.55129        -14.76916         -4.30071        -32.07272          3.01617         22.94701
-   11          0.00000         44.55129        -14.76916         -4.30071        -32.07272          3.01617         22.94701
-   12          0.00000         52.45018        -14.26098         -5.36690        -26.66942          3.65293         34.67485
-   13          0.00000         52.45018        -14.26098         -5.36690        -26.66942          3.65293         34.67485
-   14          0.00000         56.22298        -13.91560         -5.83319       -177.02893          1.66805       -112.72355
-   15          0.00000         74.51386        -15.92886         -4.25836       -156.99521          4.02385        -70.81086
-   16          0.00000         74.51386        -15.92886         -4.25836       -156.99521          4.02385        -70.81086
-   17          0.00000         80.59202        -16.75438        -13.50238       -364.11631        -14.53838       -280.27230
-   18          0.00000         81.89317        -15.75747        -10.52557       -276.27817         -5.28608       -189.15310
-   19          0.00000         81.89317        -15.75747        -10.52557       -276.27817         -5.28608       -189.15310
-   20          0.00000        100.23692        -17.20195         -7.42517       -109.61903          6.01176          0.39467
-   21          0.00000        100.23692        -17.20195         -7.42517       -109.61903          6.01176          0.39467
-   22          0.00000        105.81676        -17.93116        -89.03565       -924.93545        -86.32145       -890.22318
-   23          0.00000        130.76773        -16.90806        -32.52742       -604.42411        -36.10509       -489.27574
-   24          0.00000        130.76773        -16.90806        -32.52742       -604.42411        -36.10509       -489.27574
-   25          0.00000        135.71635        -13.55913        -83.54722      -1225.80389       -143.64304      -1160.07563
-   26          0.00000        198.47810        -11.59054        -57.63003       -828.76906        -80.28601       -676.33045
+    1          2.00000         -4.40704        -16.94547        -25.72005         -5.73842         -4.49809        -18.92004
+    2          2.00000          0.69750        -14.46410        -20.66056        -18.79741         -2.32866        -24.29637
+    3          2.00000          9.64017        -17.60164        -22.01377         -6.75907         -3.91465         -1.53103
+    4          2.00000          9.64017        -17.60164        -22.01377         -6.75907         -3.91465         -1.53103
+    5          0.00000         21.74614        -14.82108        -13.29803        -89.53792         -0.04492        -66.26873
+    6          0.00000         22.32348        -14.19734         -8.03914        -40.68395          0.31088        -12.20228
+    7          0.00000         22.32348        -14.19734         -8.03914        -40.68395          0.31088        -12.20228
+    8          0.00000         28.11374        -17.34624        -13.25451        -96.02201          0.35664        -63.81654
+    9          0.00000         38.33288        -13.05715         -2.74706        -61.87222          2.66962        -13.22925
+   10          0.00000         44.55129        -14.76916         -4.30071        -31.71640          2.93296         23.30334
+   11          0.00000         44.55129        -14.76916         -4.30071        -31.71640          2.93296         23.30334
+   12          0.00000         52.45018        -14.26098         -5.36690        -26.24968          3.48502         35.09459
+   13          0.00000         52.45018        -14.26098         -5.36690        -26.24968          3.48502         35.09459
+   14          0.00000         56.22298        -13.91560         -5.83319       -173.47409          1.63330       -109.16870
+   15          0.00000         74.51386        -15.92886         -4.25836       -156.02808          3.95681        -69.84373
+   16          0.00000         74.51386        -15.92886         -4.25836       -156.02808          3.95681        -69.84373
+   17          0.00000         80.59202        -16.75438        -13.50238       -360.32207        -13.81829       -276.47806
+   18          0.00000         81.89317        -15.75747        -10.52557       -274.70899         -5.10555       -187.58392
+   19          0.00000         81.89317        -15.75747        -10.52557       -274.70899         -5.10555       -187.58392
+   20          0.00000        100.23692        -17.20195         -7.42517       -108.92253          5.86829          1.09117
+   21          0.00000        100.23692        -17.20195         -7.42517       -108.92253          5.86829          1.09117
+   22          0.00000        105.81676        -17.93116        -89.03565       -916.57274        -82.84749       -881.86047
+   23          0.00000        130.76773        -16.90806        -32.52742       -600.70378        -34.82230       -485.55541
+   24          0.00000        130.76773        -16.90806        -32.52742       -600.70378        -34.82230       -485.55541
+   25          0.00000        135.71635        -13.55913        -83.54722      -1198.21322       -131.62838      -1132.48496
+   26          0.00000        198.47810        -11.59054        -57.63003       -797.80419        -69.22514       -645.36558
 
+Band analysis on the k-grid
+Band analysis, spin  1
+Band analysis unavailable: occupied-band count varies across k-points.
 Band k-path file band_kpath_info is not found under ../dataset/, skip band calculation
-Finalizing LibRPA global environment at [2026-08-26 23:29:10.701]
-Entry                                             #calls       CPU time (s)       Wall time (s)     
+Finalizing LibRPA global environment at [2026-10-21 04:01:16.109]
+Entry                                             #calls       CPU time (s)       Wall time (s)
 ----------------------------------------------------------------------------------------------------
-Total for driver                                  1            3.2300             3.5218            
- Driver Read Input Parameters                     1             0.0100             0.0038           
- Driver Read Task-Common Input Data               1             0.1300             0.1648           
-  DFT SCF eigenvalues/occupations                 1              0.0000             0.0034          
-   api_set_scf_dimension                          1               0.0000             0.0010         
-   api_set_wg_ekb_efermi                          1               0.0000             0.0004         
-  Structure                                       1              0.0000             0.0018          
-   api_set_latvec_and_G                           1               0.0000             0.0006         
-   api_set_atoms                                  1               0.0000             0.0004         
-  BZ sampling                                     1              0.0000             0.0033          
-   api_set_kgrids_kvec                            1               0.0000             0.0019         
-   api_set_kq_mapping                             1               0.0000             0.0005         
-  Basis (wave-function and auxiliary)             1              0.0300             0.0296          
-   api_set_ao_basis_wfc                           1               0.0000             0.0004         
-   api_set_ao_basis_aux                           1               0.0100             0.0005         
-  SCF eigenvectors                                1              0.0000             0.0118          
-   driver_read_eigenvector_kblacs_2d              1               0.0000             0.0114         
-    redistribute_meanfield_eigvecs_kblacs_opt     1                0.0000             0.0008        
-  driver_read_ri                                  1              0.0900             0.1126          
-   driver_read_Cs                                 1               0.0800             0.0869         
-    handle_Cs_file_dry                            1                0.0400             0.0438        
-    handle_Cs_file                                1                0.0400             0.0387        
-     api_set_lri_coeff                            8                 0.0000             0.0025       
-   driver_read_Vq                                 1               0.0000             0.0145         
-    handle_Vq_row_file                            1                0.0000             0.0072        
-    set_aux_coulomb_k_atom_pair_out               1                0.0000             0.0038        
-     api_set_aux_bare_coulomb_k_atom_pair         8                 0.0000             0.0019       
- G0W0 quasi-particle calculation                  1             3.0900             3.3466           
-  Load truncated Coulomb                          1              0.0100             0.0117          
-   handle_Vq_row_file                             1               0.0100             0.0056         
-   set_aux_coulomb_k_atom_pair_out                1               0.0000             0.0034         
-    api_set_aux_cut_coulomb_k_atom_pair           8                0.0000             0.0015        
-  api_get_imaginary_freq_grids                    1              0.0200             0.0297          
-   initialize_ds_tfgrids                          1               0.0200             0.0289         
-  redistribute_meanfield_eigvecs_kblacs_opt       1              0.0000             0.0007          
-  cal_head                                        1              0.0000             0.0059          
-  cal_wing_mu                                     1              0.0300             0.0337          
-   headwing_transform_Cs2mnk_kblacs_para          1               0.0300             0.0248         
-    headwing_Cs_fourier_world                     1                0.0000             0.0021        
-    headwing_Cs_ijk_redist                        1                0.0200             0.0139        
-   Comm_wing                                      1               0.0000             0.0059         
-  Load DFT xc potential                           1              0.0000             0.0007          
-  api_build_g0w0_sigma                            1              2.9500             3.1755          
-   initialize_ds_tfgrids                          1               0.0200             0.0247         
-   initialize_ds_atpairs_local                    1               0.0100             0.0032         
-   redistribute_coulomb_blacs2ap                  1               0.0000             0.0008         
-   initialize_ds_headwing                         1               0.0000             0.0002         
-   initialize_ds_chi0                             1               0.0000             0.0002         
-   Build response function chi0                   1               0.2900             0.3003         
-    Loop over LibRI                               1                0.2900             0.2986        
-     chi0_libri_routing_set_parallel              1                 0.0000             0.0039       
-     Set Cs                                       1                 0.0100             0.0068       
-     chi0_libri_routing_prepare_gf_index          1                 0.0000             0.0033       
-      index_scheduler_init_pairs_unordered_map    1                  0.0000             0.0003      
-      index_scheduler_ids_rc                      1                  0.0000             0.0001      
-      index_scheduler_compute_map                 1                  0.0000             0.0001      
-      index_scheduler_flatten                     1                  0.0000             0.0001      
-     build_gf_Rt_libri_kblacs_para                12                0.0500             0.0501       
-      get_gf_cplx_imagtimes_Rs_kblacs_para        12                 0.0400             0.0356      
-       pgemm_wfc_scaled_wfc_h                     24                  0.0100             0.0153     
-        pgemm                                     24                   0.0000             0.0049    
-      fill_ap_map_from_blacs_dist_scheduler       24                 0.0000             0.0048      
-     chi0_set_Gs                                  6                 0.0300             0.0232       
-     Call cal_chi0s                               6                 0.1600             0.1625       
-     chi0_libri_routing_free_gf                   6                 0.0000             0.0012       
-     Collect R blocks                             6                 0.0300             0.0300       
-     Cosine transform to R-space                  6                 0.0000             0.0013       
-     Delayed Fourier transform                    1                 0.0000             0.0031       
-   Build exchange self-energy                     1               0.0800             0.0869         
-    initialize_ds_exx                             1                0.0000             0.0003        
-    Fourier transform truncated Coulomb           1                0.0000             0.0012        
-    g0w0_exx_real_work                            1                0.0800             0.0832        
-     Prepare C libRI object                       1                 0.0000             0.0073       
-     Prepare V libRI object                       1                 0.0100             0.0033       
-      build_real_space_exx_2_1                    1                  0.0000             0.0003      
-      build_real_space_exx_2_2                    1                  0.0100             0.0025      
-     build_real_space_exx_prepare_index           1                 0.0000             0.0020       
-      index_scheduler_init_pairs_unordered_map    1                  0.0000             0.0002      
-      index_scheduler_ids_rc                      1                  0.0000             0.0002      
-      index_scheduler_compute_map                 1                  0.0000             0.0002      
-      index_scheduler_flatten                     1                  0.0000             0.0002      
-     Prepare DM libRI object                      1                 0.0000             0.0094       
-      exx_build_dmat_libri_kblacs_para            1                  0.0000             0.0039      
-       get_dmat_cplx_Rs_kblacs_para               1                   0.0000             0.0028     
-        pgemm_wfc_scaled_wfc_h                    2                    0.0000             0.0012    
-         pgemm                                    2                     0.0000             0.0004   
-       fill_ap_map_from_blacs_dist_scheduler      2                   0.0000             0.0004     
-      build_real_space_exx_libri_set_Ds           1                  0.0000             0.0048      
-     Call libRI Hexx calculation                  1                 0.0600             0.0565       
-     build_real_space_exx_5                       1                 0.0000             0.0006       
-   Build screened interaction                     1               1.7800             1.8797         
-    compute_Wc_freq_q_blacs_init                  1                0.0000             0.0003        
-    compute_Wc_freq_q_work                        1                1.7800             1.8781        
-     Prepare sqrt of truncated Coulomb            8                 0.0500             0.0987       
-      Setup libRI object                          8                  0.0000             0.0016      
-      libRI Communicate                           8                  0.0100             0.0129      
-      Collect 2D-block from IJ                    8                  0.0000             0.0128      
-      Perform square root                         8                  0.0300             0.0638      
-       power_hemat_blacs_real                     1                   0.0100             0.0144     
-        power_hemat_blacs_1                       1                    0.0000             0.0011    
-        power_hemat_blacs_2                       1                    0.0000             0.0068    
-        power_hemat_blacs_3                       1                    0.0000             0.0008    
-        power_hemat_blacs_4                       1                    0.0000             0.0008    
-       power_hemat_blacs                          7                   0.0200             0.0465     
-        power_hemat_blacs_1                       7                    0.0000             0.0044    
-        power_hemat_blacs_2                       7                    0.0100             0.0174    
-        power_hemat_blacs_3                       7                    0.0100             0.0046    
-        power_hemat_blacs_4                       7                    0.0000             0.0013    
-        power_hemat_blacs_5                       7                    0.0000             0.0046    
-     Prepare sqrt of bare Coulomb                 8                 0.1100             0.0808       
-      power_hemat_blacs_real                      1                  0.0100             0.0055      
-       power_hemat_blacs_1                        1                   0.0000             0.0004     
-       power_hemat_blacs_2                        1                   0.0100             0.0021     
-       power_hemat_blacs_3                        1                   0.0000             0.0001     
-       power_hemat_blacs_4                        1                   0.0000             0.0009     
-      cal_wing                                    1                  0.0000             0.0029      
-      power_hemat_blacs                           7                  0.0700             0.0481      
-       power_hemat_blacs_1                        7                   0.0300             0.0051     
-       power_hemat_blacs_2                        7                   0.0000             0.0163     
-       power_hemat_blacs_3                        7                   0.0000             0.0048     
-       power_hemat_blacs_4                        7                   0.0000             0.0014     
-       power_hemat_blacs_5                        7                   0.0000             0.0045     
-     epsilon_wc_work_q_omega                      48                1.5900             1.6738       
-      Prepare Chi0 2D block                       48                 0.6000             0.7407      
-       epsilon_prepare_chi0_2d_comm_map2          48                  0.0600             0.0812     
-       epsilon_prepare_chi0_2d_collect_block      48                  0.0200             0.0343     
-      Compute dielectric matrix                   48                 0.2100             0.2571      
-       epsilon_compute_eps_pgemm_1                48                  0.1500             0.1812     
-        get_inverse_body_of_chi0                  6                    0.0100             0.0184    
-         headwing_body_inverse_trf_trs            6                     0.0000             0.0067   
-        cal_inverse_dielectric_matrix             6                    0.1200             0.1304    
-         cal_L                                    6                     0.0100             0.0049   
-         precompute_q_data                        6                     0.0100             0.0055   
-         cal_inverse_dielectric_matrix_ij         6                     0.0900             0.1127   
-        assign_chi0                               6                    0.0000             0.0028    
-       epsilon_compute_eps_pgemm_2                48                  0.0200             0.0295     
-      epsilon_to_wc                               48                 0.1500             0.1087      
-       Multiply truncated Coulomb                 6                   0.0000             0.0028     
-       epsilon_solver_coulwc                      42                  0.0500             0.0346     
-       Multiply truncated Coulomb                 42                  0.0200             0.0242     
-   initialize_ds_g0w0                             1               0.0000             0.0007         
-   Build real-space correlation self-energy       1               0.7100             0.7218         
-    Transform Wc (q,w) -> (R,t)                   1                0.0300             0.0301        
-     Perform transformation                       1                 0.0000             0.0048       
-     Compute balance atom-pairs distribution      1                 0.0000             0.0009       
-     index_scheduler_init_pairs_unordered_map     1                 0.0000             0.0002       
-     index_scheduler_ids_rc                       1                 0.0000             0.0002       
-     index_scheduler_compute_map                  1                 0.0000             0.0002       
-     index_scheduler_flatten                      1                 0.0000             0.0002       
-     Prepare LibRI Wc object                      6                 0.0100             0.0201       
-      fill_ap_map_from_blacs_dist_scheduler       48                 0.0000             0.0093      
-    Setup LibRI G0W0 object and C data            1                0.0000             0.0062        
-    g0w0_build_spacetime_prepare_gf_index         1                0.0100             0.0031        
-     index_scheduler_init_pairs_unordered_map     1                 0.0000             0.0001       
-     index_scheduler_ids_rc                       1                 0.0000             0.0001       
-     index_scheduler_compute_map                  1                 0.0000             0.0001       
-     index_scheduler_flatten                      1                 0.0000             0.0004       
-    Setup LibRI Wc                                6                0.0500             0.0292        
-    Compute G(R,t) and G(R,-t)                    6                0.0500             0.0438        
-     g0w0_build_gf_libri_kblacs_para              6                 0.0500             0.0416       
-      get_gf_cplx_imagtimes_Rs_kblacs_para        6                  0.0400             0.0299      
-       pgemm_wfc_scaled_wfc_h                     24                  0.0200             0.0147     
-        pgemm                                     24                   0.0000             0.0047    
-      fill_ap_map_from_blacs_dist_scheduler       24                 0.0000             0.0047      
-    Call libRI cal_Sigc                           12               0.5100             0.5325        
-    g0w0_build_spacetime_5_clean                  12               0.0000             0.0042        
-    Transform Sigc (R,t) -> (R,w)                 6                0.0000             0.0034        
-    g0w0_build_spacetime_free_Ws                  6                0.0000             0.0017        
-  api_get_exx_pot_kgrid                           1              0.0100             0.0090          
-   exx_build_KS_rotate_kpara_klocal_blacs         1               0.0100             0.0069         
-    exx_build_KS_fourier_world                    1                0.0000             0.0017        
-    exx_build_KS_ijk_redist                       1                0.0100             0.0032        
-    Hexx IJ/K -> 2D block                         2                0.0000             0.0004        
-    Rotate Hexx ij -> KS                          2                0.0000             0.0006        
-  api_get_g0w0_sigc_kgrid                         1              0.0400             0.0350          
-   Correlation self-energy in K-S space           1               0.0300             0.0309         
-    g0w0_build_sigc_KS                            1                0.0300             0.0295        
-     g0w0_build_sigc_KS_rotate_kpara_klocal_blacs 1                 0.0300             0.0291       
-      g0w0_build_sigc_KS_fourier_world            6                  0.0000             0.0055      
-      g0w0_build_sigc_KS_ijk_redist               6                  0.0200             0.0193      
-   Solve quasi-particle equation                  1               0.0000             0.0011         
+Total for driver                                  1            0.8104             0.8634
+ Driver Read Input Parameters                     1             0.0003             0.0003
+ Driver Read Task-Common Input Data               1             0.0360             0.0373
+  DFT SCF eigenvalues/occupations                 1              0.0004             0.0004
+   api_set_scf_dimension                          1               0.0002             0.0002
+   api_set_wg_ekb_efermi                          1               0.0000             0.0000
+  Structure                                       1              0.0002             0.0002
+   api_set_latvec_and_G                           1               0.0001             0.0001
+   api_set_atoms                                  1               0.0000             0.0000
+  BZ sampling                                     1              0.0004             0.0010
+   api_set_kgrids_kvec                            1               0.0002             0.0009
+   api_set_kq_mapping                             1               0.0000             0.0000
+  Basis (wave-function and auxiliary)             1              0.0046             0.0049
+   api_set_ao_basis_wfc                           1               0.0001             0.0001
+   api_set_ao_basis_aux                           1               0.0000             0.0000
+  SCF eigenvectors                                1              0.0019             0.0022
+   driver_read_eigenvector_kblacs_2d              1               0.0019             0.0022
+    redistribute_meanfield_eigvecs_kblacs_opt     1                0.0002             0.0002
+  driver_read_ri                                  1              0.0284             0.0284
+   driver_read_Cs                                 1               0.0261             0.0261
+    handle_Cs_file_dry                            1                0.0130             0.0130
+    handle_Cs_file                                1                0.0130             0.0130
+     api_set_lri_coeff                            32                0.0009             0.0009
+   driver_read_Vq                                 1               0.0022             0.0022
+    handle_Vq_row_file                            1                0.0015             0.0015
+    set_aux_coulomb_k_atom_pair_out               1                0.0005             0.0005
+     api_set_aux_bare_coulomb_k_atom_pair         24                0.0003             0.0003
+ G0W0 quasi-particle calculation                  1             0.7695             0.8083
+  Load truncated Coulomb                          1              0.0021             0.0021
+   handle_Vq_row_file                             1               0.0016             0.0016
+   set_aux_coulomb_k_atom_pair_out                1               0.0005             0.0005
+    api_set_aux_cut_coulomb_k_atom_pair           24               0.0002             0.0002
+  api_get_imaginary_freq_grids                    1              0.0100             0.0269
+   initialize_ds_tfgrids                          1               0.0100             0.0268
+  redistribute_meanfield_eigvecs_kblacs_opt       1              0.0001             0.0001
+  cal_head                                        1              0.0008             0.0011
+  cal_wing_mu                                     1              0.0123             0.0174
+   headwing_transform_Cs2mnk_kblacs_para          1               0.0114             0.0164
+    headwing_Cs_fourier_world                     1                0.0011             0.0011
+    headwing_Cs_ijk_redist                        1                0.0027             0.0077
+   Comm_wing                                      1               0.0000             0.0000
+  Load DFT xc potential                           1              0.0002             0.0002
+  api_build_g0w0_sigma                            1              0.7127             0.7258
+   initialize_ds_tfgrids                          1               0.0056             0.0056
+   initialize_ds_atpairs_local                    1               0.0000             0.0000
+   redistribute_coulomb_blacs2ap                  1               0.0000             0.0000
+   initialize_ds_headwing                         1               0.0000             0.0000
+   initialize_ds_chi0                             1               0.0000             0.0000
+   Build response function chi0                   1               0.1293             0.1300
+    Loop over LibRI                               1                0.1291             0.1298
+     chi0_libri_routing_set_parallel              1                 0.0001             0.0001
+     Set Cs                                       1                 0.0003             0.0006
+     chi0_libri_routing_prepare_gf_index          1                 0.0001             0.0001
+      index_scheduler_init_pairs_unordered_map    1                  0.0000             0.0000
+      index_scheduler_ids_rc                      1                  0.0000             0.0000
+      index_scheduler_compute_map                 1                  0.0000             0.0000
+      index_scheduler_flatten                     1                  0.0000             0.0000
+     chi0_gf_pos_entry_wait                       6                 0.0001             0.0001
+     build_gf_Rt_libri_kblacs_para                12                0.0206             0.0210
+      get_gf_cplx_imagtimes_Rs_kblacs_para        12                 0.0168             0.0168
+       gf_check_same_imagtimes                    12                  0.0002             0.0002
+       gf_collect_Rs                              12                  0.0001             0.0001
+       gf_check_kpoint_distribution               12                  0.0001             0.0001
+       gf_workspace_init                          12                  0.0004             0.0004
+       gf_scale_wfc                               96                  0.0011             0.0011
+       pgemm_wfc_scaled_wfc_h                     96                  0.0100             0.0100
+        pgemm_entry_wait                          96                   0.0008             0.0008
+        pgemm                                     96                   0.0019             0.0019
+        pgemm_exit_wait                           96                   0.0008             0.0008
+        pgemr2d                                   96                   0.0011             0.0012
+        pgemr2d_exit_wait                         96                   0.0008             0.0008
+       gf_pack_kmat                               96                  0.0009             0.0009
+       gf_k_to_R_local                            12                  0.0005             0.0005
+       gf_k_to_R_reduce                           12                  0.0001             0.0001
+       gf_store_R                                 12                  0.0002             0.0002
+      fill_ap_map_from_blacs_dist_scheduler       96                 0.0016             0.0016
+     chi0_gf_neg_entry_wait                       6                 0.0000             0.0000
+     chi0_set_Gs                                  6                 0.0003             0.0003
+     chi0_cal_entry_wait                          6                 0.0000             0.0000
+     Call cal_chi0s                               6                 0.1042             0.1043
+     chi0_libri_routing_free_gf                   6                 0.0001             0.0001
+     chi0_collect_entry_wait                      6                 0.0001             0.0001
+     Collect R blocks                             6                 0.0002             0.0002
+     Cosine transform to R-space                  6                 0.0003             0.0003
+     chi0_tau_malloc_trim                         6                 0.0007             0.0007
+     Delayed Fourier transform                    1                 0.0006             0.0006
+   Build exchange self-energy                     1               0.0334             0.0338
+    initialize_ds_exx                             1                0.0000             0.0000
+    Fourier transform truncated Coulomb           1                0.0003             0.0003
+    g0w0_exx_real_work                            1                0.0330             0.0334
+     Prepare C libRI object                       1                 0.0001             0.0001
+     Prepare V libRI object                       1                 0.0001             0.0001
+      build_real_space_exx_2_1                    1                  0.0000             0.0000
+      build_real_space_exx_2_2                    1                  0.0000             0.0000
+     build_real_space_exx_prepare_index           1                 0.0001             0.0001
+      index_scheduler_init_pairs_unordered_map    1                  0.0000             0.0000
+      index_scheduler_ids_rc                      1                  0.0000             0.0000
+      index_scheduler_compute_map                 1                  0.0000             0.0000
+      index_scheduler_flatten                     1                  0.0000             0.0000
+     Prepare DM libRI object                      1                 0.0017             0.0019
+      exx_build_dmat_libri_kblacs_para            1                  0.0014             0.0014
+       get_dmat_cplx_Rs_kblacs_para               1                   0.0010             0.0010
+        pgemm_wfc_scaled_wfc_h                    8                    0.0007             0.0007
+         pgemm_entry_wait                         8                     0.0001             0.0001
+         pgemm                                    8                     0.0001             0.0001
+         pgemm_exit_wait                          8                     0.0001             0.0001
+         pgemr2d                                  8                     0.0001             0.0001
+         pgemr2d_exit_wait                        8                     0.0001             0.0001
+       fill_ap_map_from_blacs_dist_scheduler      8                   0.0001             0.0001
+      build_real_space_exx_libri_set_Ds           1                  0.0003             0.0005
+     Call libRI Hexx calculation                  1                 0.0304             0.0306
+     build_real_space_exx_5                       1                 0.0002             0.0002
+   Build screened interaction                     1               0.1730             0.1845
+    compute_Wc_freq_q_blacs_init                  1                0.0001             0.0001
+    compute_Wc_freq_q_work                        1                0.1728             0.1824
+     Prepare sqrt of truncated Coulomb            8                 0.0080             0.0095
+      Setup libRI object                          8                  0.0001             0.0001
+      libRI Communicate                           8                  0.0016             0.0027
+      Collect 2D-block from IJ                    8                  0.0006             0.0010
+      Perform square root                         8                  0.0052             0.0052
+       power_hemat_blacs_real                     1                   0.0013             0.0013
+        power_hemat_blacs_1                       1                    0.0002             0.0002
+        power_hemat_blacs_2                       1                    0.0007             0.0007
+        power_hemat_blacs_3                       1                    0.0000             0.0000
+        power_hemat_blacs_4                       1                    0.0002             0.0002
+       power_hemat_blacs                          7                   0.0036             0.0036
+        power_hemat_blacs_1                       7                    0.0005             0.0005
+        power_hemat_blacs_2                       7                    0.0021             0.0021
+        power_hemat_blacs_3                       7                    0.0001             0.0001
+        power_hemat_blacs_4                       7                    0.0001             0.0001
+        power_hemat_blacs_5                       7                    0.0003             0.0003
+     Prepare sqrt of bare Coulomb                 8                 0.0056             0.0066
+      power_hemat_blacs_real                      1                  0.0006             0.0006
+       power_hemat_blacs_1                        1                   0.0001             0.0001
+       power_hemat_blacs_2                        1                   0.0003             0.0003
+       power_hemat_blacs_3                        1                   0.0000             0.0000
+       power_hemat_blacs_4                        1                   0.0001             0.0001
+      power_hemat_blacs                           7                  0.0028             0.0028
+       power_hemat_blacs_1                        7                   0.0004             0.0004
+       power_hemat_blacs_2                        7                   0.0016             0.0016
+       power_hemat_blacs_3                        7                   0.0001             0.0001
+       power_hemat_blacs_4                        7                   0.0001             0.0001
+       power_hemat_blacs_5                        7                   0.0002             0.0002
+     epsilon_wc_work_q_omega                      48                0.1564             0.1635
+      Prepare Chi0 2D block                       48                 0.0817             0.0888
+       epsilon_prepare_chi0_2d_comm_map2          48                  0.0090             0.0160
+       epsilon_prepare_chi0_2d_collect_block      48                  0.0024             0.0024
+      Compute dielectric matrix                   48                 0.0066             0.0066
+       epsilon_compute_eps_pgemm_1                48                  0.0018             0.0018
+       epsilon_compute_eps_pgemm_2                48                  0.0009             0.0009
+       epsilon_headwing_abf_build_M               6                   0.0003             0.0003
+       epsilon_headwing_abf_inverse               6                   0.0010             0.0010
+        headwing_body_inverse_trf_trs             6                    0.0008             0.0008
+       epsilon_headwing_abf_wing                  6                   0.0001             0.0001
+       epsilon_headwing_abf_angular               6                   0.0004             0.0004
+       epsilon_headwing_abf_assemble              6                   0.0001             0.0001
+      epsilon_to_wc                               48                 0.0081             0.0081
+       Multiply truncated Coulomb                 6                   0.0002             0.0002
+       epsilon_solver_coulwc                      42                  0.0059             0.0059
+       Multiply truncated Coulomb                 42                  0.0007             0.0007
+   initialize_ds_g0w0                             1               0.0000             0.0000
+   Build real-space correlation self-energy       1               0.3467             0.3472
+    Transform Wc (q,w) -> (R,t)                   1                0.0044             0.0044
+     Perform transformation                       1                 0.0018             0.0018
+     Compute balance atom-pairs distribution      1                 0.0000             0.0000
+     index_scheduler_init_pairs_unordered_map     1                 0.0000             0.0000
+     index_scheduler_ids_rc                       1                 0.0000             0.0000
+     index_scheduler_compute_map                  1                 0.0000             0.0000
+     index_scheduler_flatten                      1                 0.0000             0.0000
+     Prepare LibRI Wc object                      6                 0.0024             0.0024
+      fill_ap_map_from_blacs_dist_scheduler       48                 0.0009             0.0009
+    Setup LibRI G0W0 object and C data            1                0.0003             0.0003
+    g0w0_build_spacetime_prepare_gf_index         1                0.0001             0.0001
+     index_scheduler_init_pairs_unordered_map     1                 0.0000             0.0000
+     index_scheduler_ids_rc                       1                 0.0000             0.0000
+     index_scheduler_compute_map                  1                 0.0000             0.0000
+     index_scheduler_flatten                      1                 0.0000             0.0000
+    g0w0_setup_wc_entry_wait                      6                0.0001             0.0001
+    Setup LibRI Wc                                6                0.0005             0.0005
+     g0w0_setup_wc_set_Ws                         6                 0.0003             0.0003
+     g0w0_setup_wc_malloc_trim                    6                 0.0001             0.0001
+    g0w0_gf_entry_wait                            6                0.0001             0.0001
+    Compute G(R,t) and G(R,-t)                    6                0.0176             0.0176
+     g0w0_build_gf_libri_kblacs_para              6                 0.0174             0.0174
+      get_gf_cplx_imagtimes_Rs_kblacs_para        6                  0.0141             0.0141
+       gf_check_same_imagtimes                    6                   0.0001             0.0001
+       gf_collect_Rs                              6                   0.0001             0.0001
+       gf_check_kpoint_distribution               6                   0.0000             0.0000
+       gf_workspace_init                          6                   0.0003             0.0003
+       gf_scale_wfc                               96                  0.0009             0.0009
+       pgemm_wfc_scaled_wfc_h                     96                  0.0085             0.0085
+        pgemm_entry_wait                          96                   0.0007             0.0007
+        pgemm                                     96                   0.0014             0.0014
+        pgemm_exit_wait                           96                   0.0006             0.0007
+        pgemr2d                                   96                   0.0010             0.0010
+        pgemr2d_exit_wait                         96                   0.0007             0.0007
+       gf_pack_kmat                               96                  0.0008             0.0008
+       gf_k_to_R_local                            12                  0.0005             0.0005
+       gf_k_to_R_reduce                           12                  0.0001             0.0001
+       gf_store_R                                 12                  0.0002             0.0002
+      fill_ap_map_from_blacs_dist_scheduler       96                 0.0014             0.0014
+    g0w0_set_Gs                                   12               0.0004             0.0004
+    g0w0_cal_sigc_entry_wait                      12               0.0001             0.0001
+    Call libRI cal_Sigc                           12               0.3188             0.3189
+    g0w0_build_spacetime_5_clean                  12               0.0012             0.0012
+    Transform Sigc (R,t) -> (R,w)                 6                0.0010             0.0010
+    g0w0_build_spacetime_free_Ws                  6                0.0001             0.0001
+  api_get_exx_pot_kgrid                           1              0.0020             0.0023
+   exx_build_KS_rotate_kpara_klocal_blacs         1               0.0019             0.0023
+    exx_build_KS_fourier_world                    1                0.0007             0.0007
+    exx_build_KS_ijk_redist                       1                0.0003             0.0007
+    Hexx IJ/K -> 2D block                         8                0.0002             0.0002
+    Rotate Hexx ij -> KS                          8                0.0005             0.0005
+  api_get_g0w0_sigc_kgrid                         1              0.0075             0.0099
+   Correlation self-energy in K-S space           1               0.0056             0.0079
+    g0w0_build_sigc_KS                            1                0.0055             0.0079
+     g0w0_build_sigc_KS_rotate_kpara_klocal_blacs 1                 0.0054             0.0078
+      g0w0_build_sigc_KS_fourier_world            6                  0.0008             0.0012
+      g0w0_build_sigc_KS_ijk_redist               6                  0.0014             0.0034
+   Solve quasi-particle equation                  1               0.0019             0.0019
 libRPA finished successfully

@@ -24,6 +24,10 @@
 
 // Computation APIs
 #include "librpa_compute.h"
+#include "librpa_crpa.h"
+#include "librpa_orbital.h"
+#include "librpa_qsgw.h"
+#include "librpa_optical.h"
 
 // C++ APIs: wrappers to the stable C APIs
 #ifdef __cplusplus

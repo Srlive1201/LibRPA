@@ -68,8 +68,8 @@ enum class BilinearConvention
  * Steps: (1) per-block spatial rotation G^{cd} = orbit(spatial_id, X^{cd});
  * (2) SU(2) mixing Y^{ab} = sum_cd U_ac conj(U_bd) G^{cd}; (3) when
  * antiunitary, the Theta remap {conj(Y11), -conj(Y10), -conj(Y01), conj(Y00)}.
- * Fast path: Identity spin source with eta = 0 skips steps 2-3 and returns the
- * step-1 result unchanged, preserving the old scalar-kernel cost.
+ * Fast path: Identity spin source with U = I and eta = 0 skips steps 2-3 and
+ * returns the step-1 result unchanged, preserving the old scalar-kernel cost.
  */
 template <class Matrix, class OrbitalRotate>
 SpinorBlocks4<Matrix> transform_spinor_bilinear(
@@ -85,8 +85,10 @@ SpinorBlocks4<Matrix> transform_spinor_bilinear(
     SpinorBlocks4<Matrix> g{orbit(op.spatial_id, in.b00), orbit(op.spatial_id, in.b01),
                             orbit(op.spatial_id, in.b10), orbit(op.spatial_id, in.b11)};
 
-    // fast path: trivial spin action keeps the scalar result untouched
-    if (op.spin_source == SymmetrySpinActionSource::Identity && !op.antiunitary)
+    // A supplied matrix is authoritative even with the Identity source tag.
+    // Only an actually trivial spin action can skip the four-block mixing.
+    if (op.spin_source == SymmetrySpinActionSource::Identity && !op.antiunitary &&
+        op.spin_u == SymmetrySpinOperation{}.spin_u)
     {
         return g;
     }

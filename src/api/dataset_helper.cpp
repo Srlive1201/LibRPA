@@ -39,6 +39,10 @@ int max_basis_l(const std::vector<const AtomicBasis*>& bases)
 
 void initialize_symmetry_context(Dataset &ds, const bool build_shell_rotations)
 {
+    // Metadata-only setup is also used while reading full-BZ inputs. Numerical
+    // spinor restoration, however, must never inherit the legacy identity-spin
+    // grey group: its spatial operations do not specify the SOC spin action.
+    if (build_shell_rotations) reject_spinor_symmetry_speedup(ds, "numerical");
     auto &spg_symops = ds.spg_symops;
 
     if (spg_symops.empty())
@@ -262,10 +266,6 @@ void initialize_ds_exx(Dataset &ds, const LibrpaOptions &opts)
     const bool use_symmetry = resolve_use_symmetry_exx(opts, ds.pbc);
     if (use_symmetry)
     {
-        reject_spinor_symmetry_speedup(ds, "EXX");
-    }
-    if (use_symmetry)
-    {
         initialize_symmetry_context(ds, true);
         require_symmetry_shell_layouts(ds, "EXX");
     }
@@ -286,36 +286,45 @@ void initialize_ds_exx(Dataset &ds, const LibrpaOptions &opts)
     global::profiler.stop("initialize_ds_exx");
 }
 
-void initialize_ds_chi0(Dataset &ds, const LibrpaOptions &opts)
+static void initialize_ds_chi0_impl(Dataset &ds, const LibrpaOptions &opts, bool qstar_only)
 {
     global::profiler.start("initialize_ds_chi0");
     if (opts.n_bands_exclude_chi0 < 0 || opts.n_bands_exclude_chi0 > ds.mf.get_n_bands())
-        throw LIBRPA_RUNTIME_ERROR("n_bands_exclude_chi0 must be between 0 and the number of input bands");
+        throw LIBRPA_RUNTIME_ERROR(
+            "n_bands_exclude_chi0 must be between 0 and the number of input bands");
     const bool use_symmetry = opts.use_symmetry_rpa == LIBRPA_SWITCH_ON;
-    if (use_symmetry)
-    {
-        reject_spinor_symmetry_speedup(ds, "RPA/chi0");
-    }
+    if (qstar_only && (ds.mf.get_n_kpoints() != ds.pbc.get_n_cells_bvk() ||
+                       opts.use_kpara_scf_eigvec == LIBRPA_SWITCH_ON))
+        throw LIBRPA_INVALID_ARGUMENT(
+            "q-star-only response requires replicated full-grid KS states");
+    if (qstar_only && use_symmetry && ds.mf.get_n_spinor() == 2 && !ds.spg_spin_ops_explicit)
+        throw LIBRPA_INVALID_ARGUMENT(
+            "SOC cRPA symmetry requires an explicit magnetic operation table and grey-group "
+            "declaration");
     if (use_symmetry)
     {
         initialize_symmetry_context(ds, true);
         require_symmetry_shell_layouts(ds, "RPA/chi0");
     }
+    if (use_symmetry && opts.use_shrink_abfs == LIBRPA_SWITCH_ON)
+    {
+        const auto view = build_symmetry_qpoint_view(ds.symmetry_context, ds.pbc, true);
+        if (view.restore_mode == SymmetryQPointRestoreMode::FULL_CRYSTAL)
+            ds.sinvS = restore_symmetry_rectangular_q_map(
+                ds.sinvS, ds.pbc, view, ds.symmetry_context, ds.basis_aux_shrink, ds.basis_aux);
+    }
     const bool is_eigvec_k_distributed = opts.use_kpara_scf_eigvec == LIBRPA_SWITCH_ON;
     const ArrayDesc &desc_scf_wfc =
         ds.eigvecs_kpara_2d_ready() ? ds.desc_wfc_kb : ds.desc_wfc_kb_full;
     if (opts.use_shrink_abfs == LIBRPA_SWITCH_ON)
-        ds.p_chi0 = std::make_unique<librpa_int::Chi0>(ds.mf, ds.basis_wfc, ds.basis_aux_shrink, ds.pbc,
-                                                       ds.symmetry_context,
-                                                       ds.tfg, ds.scfk_blacs_ctxt, desc_scf_wfc,
-                                                       is_eigvec_k_distributed,
-                                                       use_symmetry);
+        ds.p_chi0 = std::make_unique<librpa_int::Chi0>(
+            ds.mf, ds.basis_wfc, ds.basis_aux_shrink, ds.pbc, ds.symmetry_context, ds.tfg,
+            ds.scfk_blacs_ctxt, desc_scf_wfc, is_eigvec_k_distributed, use_symmetry);
     else
-        ds.p_chi0 = std::make_unique<librpa_int::Chi0>(ds.mf, ds.basis_wfc, ds.basis_aux, ds.pbc,
-                                                       ds.symmetry_context,
-                                                       ds.tfg, ds.scfk_blacs_ctxt, desc_scf_wfc,
-                                                       is_eigvec_k_distributed,
-                                                       use_symmetry);
+        ds.p_chi0 = std::make_unique<librpa_int::Chi0>(
+            ds.mf, ds.basis_wfc, ds.basis_aux, ds.pbc, ds.symmetry_context, ds.tfg,
+            ds.scfk_blacs_ctxt, desc_scf_wfc, is_eigvec_k_distributed, use_symmetry);
+    ds.p_chi0->qstar_only_symmetry = qstar_only;
     ds.p_chi0->gf_threshold = opts.gf_threshold;
     ds.p_chi0->libri_collect_s0_chunk = opts.libri_chi0_collect_s0_chunk;
     ds.p_chi0->libri_collect_max_bytes = opts.libri_chi0_collect_max_bytes;
@@ -326,16 +335,22 @@ void initialize_ds_chi0(Dataset &ds, const LibrpaOptions &opts)
     global::profiler.stop("initialize_ds_chi0");
 }
 
+void initialize_ds_chi0(Dataset &ds, const LibrpaOptions &opts)
+{
+    initialize_ds_chi0_impl(ds, opts, false);
+}
+
+void initialize_ds_chi0_qstar(Dataset &ds, const LibrpaOptions &opts)
+{
+    initialize_ds_chi0_impl(ds, opts, true);
+}
+
 void initialize_ds_g0w0(Dataset &ds, const LibrpaOptions &opts)
 {
     global::profiler.start("initialize_ds_g0w0");
     if (opts.n_bands_exclude_sigc < 0 || opts.n_bands_exclude_sigc > ds.mf.get_n_bands())
         throw LIBRPA_RUNTIME_ERROR("n_bands_exclude_sigc must be between 0 and the number of input bands");
     const bool use_symmetry = opts.use_symmetry_gw == LIBRPA_SWITCH_ON;
-    if (use_symmetry)
-    {
-        reject_spinor_symmetry_speedup(ds, "GW");
-    }
     if (use_symmetry)
     {
         initialize_symmetry_context(ds, true);
@@ -345,12 +360,10 @@ void initialize_ds_g0w0(Dataset &ds, const LibrpaOptions &opts)
     const ArrayDesc &desc_scf_wfc =
         ds.eigvecs_kpara_2d_ready() ? ds.desc_wfc_kb : ds.desc_wfc_kb_full;
     // global::ofs_myid << "is_eigvec_k_distributed " << is_eigvec_k_distributed << std::endl;
-    ds.p_g0w0 = std::make_unique<librpa_int::G0W0>(ds.mf, ds.basis_wfc, ds.pbc,
-                                                   ds.symmetry_context, ds.tfg,
-                                                   ds.scfk_blacs_ctxt, ds.bandk_blacs_ctxt,
-                                                   desc_scf_wfc, ds.desc_band_wfc_kb,
-                                                   is_eigvec_k_distributed,
-                                                   use_symmetry);
+    ds.p_g0w0 = std::make_unique<librpa_int::G0W0>(
+        ds.mf, ds.basis_wfc, ds.pbc, ds.symmetry_context, ds.tfg, ds.scfk_blacs_ctxt,
+        ds.bandk_blacs_ctxt, desc_scf_wfc, ds.desc_band_wfc_kb, is_eigvec_k_distributed,
+        use_symmetry, ds.p_chi0 ? &ds.p_chi0->qpoint_view() : nullptr);
     ds.p_g0w0->nbands_G = opts.n_bands_sigc;
     ds.p_g0w0->n_bands_exclude = opts.n_bands_exclude_sigc;
     ds.p_g0w0->libri_threshold_C = opts.libri_g0w0_threshold_C;
@@ -421,7 +434,6 @@ void initialize_ds_headwing(Dataset &ds, const LibrpaOptions &opts, const bool n
                                        opts.use_symmetry_gw == LIBRPA_SWITCH_ON;
     if (use_headwing_symmetry)
     {
-        reject_spinor_symmetry_speedup(ds, "analytic head/wing");
         initialize_symmetry_context(ds, true);
         require_symmetry_shell_layouts(ds, "analytic head/wing");
     }
@@ -446,6 +458,7 @@ void initialize_ds_headwing(Dataset &ds, const LibrpaOptions &opts, const bool n
         ds.p_headwing->atom_nw = ds.basis_wfc.get_atom_nb_map();
         ds.p_headwing->coord_frac = ds.symmetry_context.input_coord_frac;
     }
+    ds.p_headwing->normalize_ibz_star_weighted_occupations();
     ds.p_headwing->init(opts.sqrt_coulomb_threshold, ds.vq);
     ds.p_headwing->cal_head();
     ds.epsmacs_imagfreq = ds.p_headwing->get_head_vec();

@@ -652,8 +652,8 @@ void read_headwing_input(const string &dir_path, bool need_wing,
     {
         librpa_int::initialize_symmetry_context(*pds, true);
     }
-    if (path_exists(pyatb_velocity.c_str()) && pds->symmetry_context.available &&
-        !pds->symmetry_context.kstars.empty())
+    if (path_exists(pyatb_velocity.c_str()) && wants_headwing_symmetry &&
+        scf_nk != pds->pbc.get_n_cells_bvk() && kfrac_pyatb.size() != active_kfrac_list.size())
     {
         direct_full_bz_velocity_member_source_ik =
             map_symmetry_kstar_members_to_source_kpoints(
@@ -687,7 +687,6 @@ void read_headwing_input(const string &dir_path, bool need_wing,
     const bool use_headwing_symmetry = wants_headwing_symmetry;
     if (use_headwing_symmetry)
     {
-        reject_spinor_symmetry_speedup(*pds, "analytic head/wing");
         initialize_symmetry_context(*pds, true);
         require_symmetry_shell_layouts(*pds, "analytic head/wing");
     }
@@ -776,6 +775,7 @@ void read_headwing_input(const string &dir_path, bool need_wing,
             std::cout << "Using PyATB head/wing input on the active LibRPA k-list with "
                       << mf.get_n_kpoints() << " k-points" << std::endl;
     }
+    if (!restore_mf.active) pds->p_headwing->normalize_ibz_star_weighted_occupations();
     pds->p_headwing->init(driver::opts.sqrt_coulomb_threshold, pds->vq);
     pds->p_headwing->cal_head();
     pds->epsmacs_imagfreq = pds->p_headwing->get_head_vec();
@@ -1645,6 +1645,13 @@ int read_eigenvector_kblacs_2d(const std::string &dir_path, librpa_int::MeanFiel
     auto ctx = driver_reader_context();
     return librpa::reader::read_eigenvector_kblacs_2d(
         ctx, dir_path, mf, use_spinor_wfc, kblacs_ctxt, desc_wfc, source_to_target_ik, text_order);
+}
+
+void read_velocity(const string &file_path, int n_spins, int n_kpoints, int n_states,
+                   velocity_matrix_t &velocity)
+{
+    auto ctx = driver_reader_context();
+    return librpa::reader::read_velocity(ctx, file_path, n_spins, n_kpoints, n_states, velocity);
 }
 
 void read_velocity(const string &file_path, const MeanField &mf, velocity_matrix_t &velocity)

@@ -1,14 +1,18 @@
 #include <algorithm>
+#include <array>
 #include <cassert>
 #include <cmath>
 #include <complex>
 #include <iostream>
+#include <limits>
 #include <map>
+#include <memory>
 #include <vector>
 
 #include "../core/epsilon.h"
 #include "../core/qpoint_view.h"
 #include "../io/global_io.h"
+#include "../math/lebedev_laikov.h"
 #include "../math/utils_matrix_m_mpi.h"
 #include "../mpi/base_blacs.h"
 #include "../mpi/base_mpi.h"
@@ -147,6 +151,31 @@ void test_head_only_trace_logdet_can_use_reduced_response(const BlacsCtxtHandler
         librpa_int::compute_rpa_response_trace_logdet_blacs_2d(full_response, desc_full);
 
     assert_complex_close(full_actual, actual, 1e-12);
+}
+
+void test_trace_logdet_accounts_for_complex_row_pivot(const BlacsCtxtHandler &blacs_h)
+{
+    ArrayDesc desc(blacs_h);
+    desc.init_square_blk(2, 2, 0, 0);
+
+    // response = I - A, where A = [[1, 2i], [-2i, 5]] is positive definite
+    // with det(A) = 1. PZGETRF must pivot the first row because |-2i| > |1|.
+    const std::complex<double> response_dense[2][2] = {{{0.0, 0.0}, {0.0, -2.0}},
+                                                       {{0.0, 2.0}, {-4.0, 0.0}}};
+    auto response = init_local_mat<std::complex<double>>(desc, MAJOR::COL);
+    for (int i = 0; i != 2; ++i)
+    {
+        const int ilo = desc.indx_g2l_r(i);
+        if (ilo < 0) continue;
+        for (int j = 0; j != 2; ++j)
+        {
+            const int jlo = desc.indx_g2l_c(j);
+            if (jlo >= 0) response(ilo, jlo) = response_dense[i][j];
+        }
+    }
+
+    const auto actual = librpa_int::compute_rpa_response_trace_logdet_blacs_2d(response, desc);
+    assert_complex_close(actual, {-4.0, 0.0}, 1e-12);
 }
 
 void add_scalar_wq_block(
@@ -655,6 +684,220 @@ void test_dense_wc_real_ct_projects_large_imaginary_residual()
            1e-12);
 }
 
+#ifdef LIBRPA_USE_LIBRI
+
+Matz serial_inverse(const Matz &input)
+{
+    const int n = input.nr();
+    auto factor = input.copy();
+    Matz inverse(n, n, MAJOR::COL);
+    for (int i = 0; i != n; ++i) inverse(i, i) = 1.0;
+    for (int k = 0; k != n; ++k)
+    {
+        int pivot = k;
+        for (int i = k + 1; i != n; ++i)
+            if (std::abs(factor(i, k)) > std::abs(factor(pivot, k))) pivot = i;
+        assert(std::abs(factor(pivot, k)) > 1e-12);
+        for (int j = 0; j != n; ++j)
+        {
+            std::swap(factor(k, j), factor(pivot, j));
+            std::swap(inverse(k, j), inverse(pivot, j));
+        }
+        const auto diagonal = factor(k, k);
+        for (int j = 0; j != n; ++j)
+        {
+            factor(k, j) /= diagonal;
+            inverse(k, j) /= diagonal;
+        }
+        for (int i = 0; i != n; ++i)
+        {
+            if (i == k) continue;
+            const auto multiplier = factor(i, k);
+            for (int j = 0; j != n; ++j)
+            {
+                factor(i, j) -= multiplier * factor(k, j);
+                inverse(i, j) -= multiplier * inverse(k, j);
+            }
+        }
+    }
+    return inverse;
+}
+
+double rectangular_gamma_volume_ratio()
+{
+    // The fixture's 2x1x1 mesh in a unit reciprocal cube has Gamma box
+    // half-widths (1/4, 1/2, 1/2) and volume 1/2. Finite angular quadrature
+    // does not give exactly 1 even at zero response; retain that independent
+    // head residual rather than changing the production quadrature.
+    const auto grid = lebedev_laikov::grid(5810);
+    double volume = 0.0;
+    for (std::size_t i = 0; i != grid.weights.size(); ++i)
+    {
+        const double inverse_radius = std::max(
+            {4.0 * std::abs(grid.x[i]), 2.0 * std::abs(grid.y[i]), 2.0 * std::abs(grid.z[i])});
+        volume +=
+            4.0 * PI * grid.weights[i] / (3.0 * inverse_radius * inverse_radius * inverse_radius);
+    }
+    return volume / 0.5;
+}
+
+void verify_gamma_wc_retained_identity(const BlacsCtxtHandler &blacs_h, const bool rank_deficient,
+                                       const bool zero_response, const int dielectric_option,
+                                       const bool use_cholesky, const int block_size = 1)
+{
+    constexpr int n = 4;
+    const int retained = rank_deficient ? n - 1 : n;
+    const std::array<double, n> eigenvalues{4.0, 2.0, 1.0, rank_deficient ? -0.2 : 0.5};
+    const Matz eigenvectors({{{0.5, 0.0}, {0.5, 0.0}, {0.5, 0.0}, {0.5, 0.0}},
+                             {{0.5, 0.0}, {-0.5, 0.0}, {0.5, 0.0}, {-0.5, 0.0}},
+                             {{0.5, 0.0}, {0.5, 0.0}, {-0.5, 0.0}, {-0.5, 0.0}},
+                             {{0.5, 0.0}, {-0.5, 0.0}, {-0.5, 0.0}, {0.5, 0.0}}},
+                            MAJOR::COL);
+    Matz diagonal(n, n, MAJOR::COL), sqrt_diagonal(n, n, MAJOR::COL);
+    Matz cut_root_channels(n, n, MAJOR::COL), response_channels(n, n, MAJOR::COL);
+    const double cut_diagonal[n]{1.2, 1.1, 1.4, 0.9};
+    for (int i = 0; i != n; ++i)
+    {
+        diagonal(i, i) = eigenvalues[i];
+        sqrt_diagonal(i, i) = std::sqrt(std::max(0.0, eigenvalues[i]));
+        cut_root_channels(i, i) = cut_diagonal[i];
+    }
+    // The positive cut root couples retained and discarded bare-Coulomb
+    // channels. Projecting the cut interaction too would fail this control.
+    cut_root_channels(1, 3) = cut_root_channels(3, 1) = 0.21;
+    cut_root_channels(2, 3) = cut_root_channels(3, 2) = -0.13;
+    if (!zero_response)
+    {
+        response_channels(1, 1) = -0.07;
+        response_channels(2, 2) = -0.09;
+        response_channels(3, 3) = -0.11;
+        response_channels(1, 2) = {0.012, 0.009};
+        response_channels(2, 1) = {0.012, -0.009};
+        response_channels(2, 3) = {0.006, -0.005};
+        response_channels(3, 2) = {0.006, 0.005};
+    }
+    const auto adjoint = transpose(eigenvectors, true);
+    const auto bare = eigenvectors * diagonal * adjoint;
+    const auto cut_root = eigenvectors * cut_root_channels * adjoint;
+    const auto cut = cut_root * cut_root;
+    const auto response = eigenvectors * response_channels * adjoint;
+    auto dielectric_channels = sqrt_diagonal * response_channels * sqrt_diagonal;
+    dielectric_channels *= -1.0;
+    for (int i = 0; i != n; ++i) dielectric_channels(i, i) += 1.0;
+    const auto inverse = serial_inverse(dielectric_channels);
+
+    PeriodicBoundaryData pbc;
+    pbc.set_latvec({1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0});
+    pbc.set_kgrids_kvec(2, 1, 1, {0.0, 0.0, 0.0, PI, 0.0, 0.0});
+    AtomicBasis wfc_basis({2}), aux_basis({n});
+    MeanField mf(1, 2, 2, 2);
+    for (int ik = 0; ik != 2; ++ik)
+    {
+        mf.get_eigenvals()[0](ik, 0) = -1.0;
+        mf.get_eigenvals()[0](ik, 1) = 1.0;
+    }
+    TFGrids grids(1);
+    grids.generate_evenspaced_tf(0.1, 0.1, 0.25, 0.1);
+    KPointBlacsParallelContext kctx(KPointBlacsProcessShape(1, blacs_h.nprocs), MPI_COMM_WORLD, 2);
+    ArrayDesc desc_wfc(blacs_h), desc_aux(blacs_h);
+    desc_wfc.init(2, 2, 1, 1, 0, 0);
+    desc_aux.init(n, n, block_size, block_size, 0, 0);
+    const SymmetryContext context;
+    Chi0 chi0(mf, wfc_basis, aux_basis, pbc, context, grids, kctx, desc_wfc, false, false);
+    atpair_k_cplx_mat_t bare_blocks, cut_blocks;
+    using ResponseMap =
+        std::map<double, std::map<Vector3_Order<double>, atom_mapping<ComplexMatrix>::pair_t_old>>;
+    // Inject fixed numerical response data in this non-const fixture so the
+    // complete production Wc path is exercised without coupling this test to
+    // Green-function contraction or a new production input API.
+    auto &response_blocks = const_cast<ResponseMap &>(chi0.get_chi0_q());
+    if (blacs_h.myid == 0)
+    {
+        for (const auto &q : pbc.klist)
+        {
+            auto &v = bare_blocks[0][0][q];
+            auto &vc = cut_blocks[0][0][q];
+            v = std::make_shared<ComplexMatrix>(n, n);
+            vc = std::make_shared<ComplexMatrix>(n, n);
+            auto &chi = response_blocks[grids.get_freq_nodes().front()][q][0][0];
+            chi.create(n, n);
+            for (int i = 0; i != n; ++i)
+                for (int j = 0; j != n; ++j)
+                {
+                    (*v)(i, j) = bare(i, j);
+                    (*vc)(i, j) = cut(i, j);
+                    chi(i, j) = response(i, j);
+                }
+        }
+    }
+    velocity_matrix_t velocity;
+    initialize_velocity_matrix(velocity, 1, 2, 2);
+    diele_func headwing(mf, velocity, pbc.kfrac_list, wfc_basis, aux_basis, grids.get_freq_nodes(),
+                        2, 2, 1, n, pbc, global::mpi_comm_global_h, blacs_h);
+    headwing.init(0.0, bare_blocks);
+    headwing.cal_head();
+    headwing.init_wing(0.0, bare_blocks);
+    headwing.set_0_wing();
+    const auto actual =
+        compute_Wc_freq_q_blacs(chi0, bare_blocks, cut_blocks, 0.0, true, dielectric_option,
+                                std::vector<std::complex<double>>{1.0}, &headwing, blacs_h,
+                                desc_aux, false, ".", use_cholesky, false, false);
+
+    for (std::size_t iq = 0; iq != pbc.klist.size(); ++iq)
+    {
+        auto expected_channels = inverse.copy();
+        if (iq == 0 && dielectric_option == 3)
+        {
+            expected_channels(0, 0) = rectangular_gamma_volume_ratio();
+            for (int i = 0; i != n; ++i)
+                for (int j = 0; j != n; ++j)
+                    if (i >= retained || j >= retained) expected_channels(i, j) = 0.0;
+            for (int i = 0; i != retained; ++i) expected_channels(i, i) -= 1.0;
+        }
+        else
+            for (int i = 0; i != n; ++i) expected_channels(i, i) -= 1.0;
+        const auto expected = cut_root * eigenvectors * expected_channels * adjoint * cut_root;
+        const auto &result = actual.at(grids.get_freq_nodes().front()).at(pbc.klist[iq]);
+        double local_error = 0.0;
+        for (int i = 0; i != desc_aux.m_loc(); ++i)
+            for (int j = 0; j != desc_aux.n_loc(); ++j)
+            {
+                const auto actual_value = result(i, j);
+                const auto expected_value = expected(desc_aux.indx_l2g_r(i),
+                                                     desc_aux.indx_l2g_c(j));
+                const double error = std::abs(actual_value - expected_value);
+                // Reduce a failure on any rank before asserting, including non-finite data.
+                if (!std::isfinite(actual_value.real()) || !std::isfinite(actual_value.imag()) ||
+                    !std::isfinite(expected_value.real()) ||
+                    !std::isfinite(expected_value.imag()) || !std::isfinite(error))
+                    local_error = std::numeric_limits<double>::infinity();
+                else
+                    local_error = std::max(local_error, error);
+            }
+        double max_error = 0.0;
+        MPI_Allreduce(&local_error, &max_error, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+        if (blacs_h.myid == 0)
+            std::cout << "Gamma Wc dense control: rank=" << retained
+                      << " zero_response=" << zero_response << " option=" << dielectric_option
+                      << " cholesky=" << use_cholesky << " block_size=" << block_size
+                      << " iq=" << iq << " max_error=" << max_error << std::endl;
+        assert(max_error < 1e-10);
+    }
+}
+
+void test_gamma_wc_retained_identity(const BlacsCtxtHandler &blacs_h)
+{
+    for (const bool rank_deficient : {true, false})
+        for (const bool zero_response : {true, false})
+            verify_gamma_wc_retained_identity(blacs_h, rank_deficient, zero_response, 3, false);
+    verify_gamma_wc_retained_identity(blacs_h, true, false, 3, true);
+    verify_gamma_wc_retained_identity(blacs_h, true, false, 1, false);
+    // The filtered eigenvector starts inside a block, rather than at its edge.
+    verify_gamma_wc_retained_identity(blacs_h, true, false, 3, false, 2);
+}
+
+#endif
+
 }  // namespace
 
 int main(int argc, char *argv[])
@@ -671,12 +914,16 @@ int main(int argc, char *argv[])
 
         test_gamma_s_head_vector(blacs_h);
         test_head_only_trace_logdet_can_use_reduced_response(blacs_h);
+        test_trace_logdet_accounts_for_complex_row_pivot(blacs_h);
         test_wq_to_wr_symmetry_reduced_q_matches_full_bz();
         test_wq_to_wr_antiunitary_member_conjugates();
         test_wq_to_wr_symmetry_collective_handles_empty_local_rank();
         test_dense_wq_to_wr_symmetry_reduced_q_matches_full_bz(blacs_h);
         test_dense_wc_real_ct_matches_legacy_real_part();
         test_dense_wc_real_ct_projects_large_imaginary_residual();
+#ifdef LIBRPA_USE_LIBRI
+        test_gamma_wc_retained_identity(blacs_h);
+#endif
     }
 
     librpa_int::global::finalize_global_io();

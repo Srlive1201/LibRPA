@@ -20,7 +20,7 @@ namespace librpa_int {
  *        will always have keys of ordered atom pairs,
  *        i.e. there always exists map[I][J] and map[J][I] for I not equal to J
  * @param result_is_replicated optional ownership receipt: true only when every
- *        rank receives the same irreducible-sector map. Such maps must be
+ *        rank receives the same full-sector map. Such maps must be
  *        uniquely partitioned before an additive downstream communication.
  * @return  atpair_R_mat_t
  */

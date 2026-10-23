@@ -120,9 +120,12 @@ bool preserves_lattice_metric(const Matrix3& rotation,
                               const Matrix3& lattice_vectors,
                               const double tol)
 {
-    const Matrix3 metric = lattice_vectors * lattice_vectors.Transpose();
-    const Matrix3 rotated_metric = rotation * metric * rotation.Transpose();
-    return is_same_matrix(rotated_metric, metric, tol);
+    // Test the metric in an orthonormal frame. An absolute comparison of
+    // R G R^T and G has units of length squared: merely changing the lattice
+    // unit or rounding a large cell can make a valid fractional operation
+    // fail, causing callers to reinterpret it as a Cartesian rotation.
+    const Matrix3 cartesian = row_fractional_rotation_to_cartesian(rotation, lattice_vectors);
+    return is_same_matrix(cartesian.Transpose() * cartesian, Matrix3::IDENTITY, tol);
 }
 
 static Vector3_Order<int> rotate_rspace_vector(

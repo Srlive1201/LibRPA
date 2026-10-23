@@ -4,13 +4,6 @@
  */
 #include "symmetry_context.h"
 
-#include "symmetry_spin_kernel.h"
-
-#include "../math/rsh.h"
-#include "../utils/constants.h"
-#include "../utils/error.h"
-#include "../io/stl_io_helper.h"
-
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -21,6 +14,13 @@
 #include <tuple>
 #include <utility>
 #include <vector>
+
+#include "../io/stl_io_helper.h"
+#include "../math/rsh.h"
+#include "../utils/constants.h"
+#include "../utils/error.h"
+#include "qpoint_view.h"
+#include "symmetry_spin_kernel.h"
 
 namespace librpa_int
 {
@@ -723,7 +723,8 @@ void SymmetryContext::set_symmetry_spin_operations(
             throw LIBRPA_INVALID_ARGUMENT(
                 "grey-group expansion expects a unitary-only spin operation table");
         }
-        if (op.spin_source == SymmetrySpinActionSource::DerivedFromSpatialSOC)
+        if (op.spin_source == SymmetrySpinActionSource::DerivedFromSpatialSOC &&
+            !op.spin_u_provided)
         {
             // U_s = U[det(Q) Q], reconstructed from the Cartesian axial part
             // of the spatial rotation (SOC magnetic group contract).
@@ -822,14 +823,15 @@ bool symmetry_spin_u_equal(const std::array<std::complex<double>, 4>& u1,
                            const std::array<std::complex<double>, 4>& u2,
                            const double tol)
 {
+    bool same_sign = true;
+    bool opposite_sign = true;
     for (std::size_t i = 0; i != 4; ++i)
     {
-        if (std::min(std::abs(u1[i] - u2[i]), std::abs(u1[i] + u2[i])) >= tol)
-        {
-            return false;
-        }
+        same_sign = same_sign && std::abs(u1[i] - u2[i]) < tol;
+        opposite_sign = opposite_sign && std::abs(u1[i] + u2[i]) < tol;
     }
-    return true;
+    // The SU(2) double-cover sign applies to the whole matrix.
+    return same_sign || opposite_sign;
 }
 
 void validate_symmetry_spin_operations(
@@ -2441,9 +2443,8 @@ std::vector<std::complex<double>> build_symmetry_kstar_member_target_gauge_phase
     return phases;
 }
 
-const SymmetrySpinOperation& resolve_symmetry_kstar_member_spin_operation(
-    const SymmetryContext& ctx,
-    const SymmetryKStarMember& member)
+SymmetrySpinOperation resolve_symmetry_kstar_member_spin_operation(
+    const SymmetryContext& ctx, const SymmetryKStarMember& member)
 {
     if (member.action_id >= ctx.kspace_actions.size())
     {
@@ -2463,7 +2464,116 @@ const SymmetrySpinOperation& resolve_symmetry_kstar_member_spin_operation(
         throw LIBRPA_RUNTIME_ERROR(
             "spinor k-star restore found an inconsistent member action link");
     }
-    return op;
+    // K-star members, like real-space sector members, store the operation
+    // taking the full member back to the representative. The AO transform
+    // restores in the opposite direction. Match it with U_s^dagger before
+    // the kernel's antiunitary Theta remap.
+    SymmetrySpinOperation restore_op = op;
+    const auto u = op.spin_u;
+    restore_op.spin_u = {std::conj(u[0]), std::conj(u[2]), std::conj(u[1]), std::conj(u[3])};
+    return restore_op;
+}
+
+std::map<Vector3_Order<double>, ComplexMatrix> restore_symmetry_rectangular_q_map(
+    const std::map<Vector3_Order<double>, ComplexMatrix>& input, const PeriodicBoundaryData& pbc,
+    const SymmetryQPointView& view, const SymmetryContext& context, const AtomicBasis& left,
+    const AtomicBasis& right)
+{
+    const auto left_layouts = left.build_species_basis_layouts(context.atom_to_type);
+    const auto right_layouts = right.build_species_basis_layouts(context.atom_to_type);
+    const auto left_counts = left.get_atom_nb_map(), right_counts = right.get_atom_nb_map();
+    const auto match = [&](const auto& matrices, const Vector3_Order<double>& fractional)
+    {
+        for (auto it = matrices.begin(); it != matrices.end(); ++it)
+            if (same_fractional_kpoint(Vector3_Order<double>{pbc.latvec * it->first}, fractional,
+                                       1e-8))
+                return it;
+        return matrices.end();
+    };
+    const auto transformations = [&](const auto& member, const auto& source, const auto& target)
+    {
+        return std::pair{
+            build_symmetry_kspace_operator_transform_matrix(
+                context, left_layouts, member, left_counts, source, member.time_reversal, &target),
+            build_symmetry_kspace_operator_transform_matrix(context, right_layouts, member,
+                                                            right_counts, source,
+                                                            member.time_reversal, &target)};
+    };
+    std::map<Vector3_Order<double>, ComplexMatrix> result;
+    for (const auto& q : view.representatives)
+    {
+        const Vector3_Order<double> fractional{pbc.latvec * q};
+        const auto source = match(input, fractional);
+        if (source == input.end() || source->second.nr != left.nb_total ||
+            source->second.nc != right.nb_total)
+            throw LIBRPA_RUNTIME_ERROR(
+                "rectangular q restore is missing a representative or basis dimensions");
+        const auto& star =
+            find_symmetry_kstar_for_kpoint(context.kstars, fractional, "rectangular q restore");
+        const SymmetryKStarMember* source_member = nullptr;
+        for (const auto& member : star.members)
+            if (same_fractional_kpoint(member.k_bz, fractional, 1e-8)) source_member = &member;
+        if (!source_member)
+            throw LIBRPA_RUNTIME_ERROR("rectangular q restore misses its source member");
+        const Vector3_Order<double> source_fractional{pbc.latvec * source->first};
+        const auto [a_source, b_source] =
+            transformations(*source_member, star.k_ibz, source_fractional);
+        const auto canonical =
+            transpose(a_source, true) *
+            (source_member->time_reversal ? conj(source->second) : source->second) * b_source;
+        for (const auto& target : view.members.at(q))
+        {
+            const Vector3_Order<double> target_fractional{pbc.latvec * target};
+            const SymmetryKStarMember* target_member = nullptr;
+            for (const auto& member : star.members)
+                if (same_fractional_kpoint(member.k_bz, target_fractional, 1e-8))
+                    target_member = &member;
+            if (!target_member)
+                throw LIBRPA_RUNTIME_ERROR("rectangular q restore misses a target member");
+            // Use the existing full-grid keys, including their reciprocal gauge.
+            auto key = std::find_if(pbc.klist_full.begin(), pbc.klist_full.end(),
+                                    [&](const auto& k)
+                                    {
+                                        return same_fractional_kpoint(
+                                            Vector3_Order<double>{pbc.latvec * k},
+                                            target_fractional, 1e-8);
+                                    });
+            if (key == pbc.klist_full.end())
+                throw LIBRPA_RUNTIME_ERROR(
+                    "rectangular q restore targets an unavailable full-grid point");
+            const Vector3_Order<double> actual_target_fractional{pbc.latvec * *key};
+            const auto [a, b] =
+                transformations(*target_member, star.k_ibz, actual_target_fractional);
+            auto restored = a * canonical * transpose(b, true);
+            if (target_member->time_reversal) restored = conj(restored);
+            const auto original = match(input, target_fractional);
+            if (original != input.end())
+            {
+                double residual = 0, scale = 1;
+                if (original->second.nr != restored.nr || original->second.nc != restored.nc)
+                    throw LIBRPA_RUNTIME_ERROR(
+                        "rectangular q restore has inconsistent input dimensions");
+                for (int i = 0; i < restored.size; ++i)
+                {
+                    residual = std::max(residual, std::abs(restored.c[i] - original->second.c[i]));
+                    scale = std::max(scale, std::abs(original->second.c[i]));
+                }
+                if (!std::isfinite(residual) || residual > 2e-7 * scale)
+                    throw LIBRPA_RUNTIME_ERROR(
+                        "auxiliary compression violates the supplied q-star symmetry");
+                restored = original->second;
+            }
+            for (int i = 0; i < restored.size; ++i)
+                if (!std::isfinite(restored.c[i].real()) || !std::isfinite(restored.c[i].imag()))
+                    throw LIBRPA_RUNTIME_ERROR(
+                        "rectangular q restore contains non-finite coefficients");
+            if (!result.emplace(*key, std::move(restored)).second)
+                throw LIBRPA_RUNTIME_ERROR("rectangular q restore has a duplicate target");
+        }
+    }
+    if (result.size() != pbc.get_n_cells_bvk())
+        throw LIBRPA_RUNTIME_ERROR("rectangular q restore does not cover the full grid");
+    return result;
 }
 
 ComplexMatrix rotate_symmetry_kspace_matrix(const SymmetryContext& ctx,
@@ -2585,13 +2695,24 @@ symmetry_irreducible_sector_t build_symmetry_rspace_irreducible_sector(
         generic_atom_to_type[static_cast<int>(atom)] = type;
     }
 
+    // The pool can include spatial operations outside the selected magnetic
+    // subgroup. Use the same active geometric actions as the restore table;
+    // pure-spin duplicates must not change the irreducible sector.
+    SpaceGroupSymOps active_spatial_operations;
+    if (ctx.spin_operations.empty())
+    {
+        active_spatial_operations = ctx.rspace_operations;
+    }
+    else
+    {
+        std::set<std::size_t> used_spatial_ids;
+        for (const auto& op : ctx.spin_operations)
+            if (used_spatial_ids.insert(op.spatial_id).second)
+                active_spatial_operations.push_back(ctx.rspace_operations.at(op.spatial_id));
+    }
     const auto generic_sector = build_space_group_rspace_irreducible_sector(
-        ctx.rspace_operations,
-        generic_coord_frac,
-        generic_atom_to_type,
-        Rlist,
-        ctx.lattice_available ? &ctx.lattice_vectors : nullptr,
-        kSymmetryRSpaceAtomMapTol,
+        active_spatial_operations, generic_coord_frac, generic_atom_to_type, Rlist,
+        ctx.lattice_available ? &ctx.lattice_vectors : nullptr, kSymmetryRSpaceAtomMapTol,
         kSymmetryCoordTol);
 
     symmetry_irreducible_sector_t irreducible_sector;
@@ -2661,8 +2782,10 @@ void build_symmetry_rspace_sector_stars(const SymmetryContext& ctx,
             bool saw_duplicate_member = false;
             // Iterate the full (g, U_s, eta) operation table when available so
             // that antiunitary-only reachability (e.g. Theta{E|t} in an AFM
-            // magnetic group) generates restore members that record their
-            // operation; the `covered` dedup keeps the first table entry
+            // magnetic group) is retained. The spatial inverse g^-1 below maps
+            // the irreducible source to the full target, while operation_id
+            // records g as reverse-route metadata; the spin resolver therefore
+            // uses U_s^dagger. The `covered` dedup keeps the first table entry
             // reaching each full sector, which is the unitary copy for the
             // grey-group expansion (unitary copies come first there).
             const std::size_t n_iteration = ctx.spin_operations.empty()
@@ -2825,30 +2948,31 @@ bool symmetry_rspace_restore_member_is_antiunitary(
     return ctx.spin_operations[member.operation_id].antiunitary;
 }
 
-const SymmetrySpinOperation& resolve_symmetry_rspace_restore_member_spin_operation(
-    const SymmetryContext& ctx,
-    const SymmetryRSpaceRestoreMember& member)
+SymmetrySpinOperation resolve_symmetry_rspace_restore_member_spin_operation(
+    const SymmetryContext& ctx, const SymmetryRSpaceRestoreMember& member)
 {
     if (member.operation_id == SymmetryRSpaceRestoreMember::kOperationIdNone)
     {
-        // Shared identity operation for members built without spin metadata;
-        // the caller supplies the orbital rotation per member, so the default
-        // spatial_id is never consumed on the fast path.
-        static const SymmetrySpinOperation identity_operation{};
-        return identity_operation;
+        // The caller supplies the orbital rotation per member, so the default
+        // spatial_id is never consumed on the legacy identity fast path.
+        return {};
     }
     if (member.operation_id >= ctx.spin_operations.size())
     {
         throw LIBRPA_RUNTIME_ERROR(
             "spinor real-space restore found a member operation_id without a spin operation");
     }
-    const auto& op = ctx.spin_operations[member.operation_id];
-    if (static_cast<int>(op.spatial_id) != member.isym)
+    SymmetrySpinOperation restore_op = ctx.spin_operations[member.operation_id];
+    if (static_cast<int>(restore_op.spatial_id) != member.isym)
     {
         throw LIBRPA_RUNTIME_ERROR(
             "spinor real-space restore found an inconsistent member operation link");
     }
-    return op;
+    const auto u = restore_op.spin_u;
+    // Sector stars apply the inverse spatial route ir -> full. Use the same
+    // inverse spin action, U_s^dagger, before any antiunitary Theta remap.
+    restore_op.spin_u = {std::conj(u[0]), std::conj(u[2]), std::conj(u[1]), std::conj(u[3])};
+    return restore_op;
 }
 
 std::array<symmetry_rspace_block_map_t, 4> restore_symmetry_spinor_rspace_blocks(
@@ -2930,7 +3054,8 @@ std::array<symmetry_rspace_block_map_t, 4> restore_symmetry_spinor_rspace_blocks
                     ctx, wfc_layouts, restore_member.isym, ir_I, ir_J, block);
             };
 
-            if (op.spin_source == SymmetrySpinActionSource::Identity && !op.antiunitary)
+            if (op.spin_source == SymmetrySpinActionSource::Identity && !op.antiunitary &&
+                op.spin_u == SymmetrySpinOperation{}.spin_u)
             {
                 // Fast path: channels evolve independently and absent channels
                 // stay absent, identical to the legacy per-channel restore.
