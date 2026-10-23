@@ -94,7 +94,6 @@ list(APPEND lib_sources
         api/dataset_helper.cpp
         api/global.cpp
         api/handler.cpp
-        api/headwing.cpp
         api/input.cpp
         api/instance_manager.cpp
         api/librpa.cpp
