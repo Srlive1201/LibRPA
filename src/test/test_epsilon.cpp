@@ -4,6 +4,7 @@
 #include <cmath>
 #include <complex>
 #include <iostream>
+#include <limits>
 #include <map>
 #include <memory>
 #include <vector>
@@ -860,9 +861,19 @@ void verify_gamma_wc_retained_identity(const BlacsCtxtHandler &blacs_h, const bo
         double local_error = 0.0;
         for (int i = 0; i != desc_aux.m_loc(); ++i)
             for (int j = 0; j != desc_aux.n_loc(); ++j)
-                local_error = std::max(local_error,
-                                       std::abs(result(i, j) - expected(desc_aux.indx_l2g_r(i),
-                                                                        desc_aux.indx_l2g_c(j))));
+            {
+                const auto actual_value = result(i, j);
+                const auto expected_value = expected(desc_aux.indx_l2g_r(i),
+                                                     desc_aux.indx_l2g_c(j));
+                const double error = std::abs(actual_value - expected_value);
+                // Reduce a failure on any rank before asserting, including non-finite data.
+                if (!std::isfinite(actual_value.real()) || !std::isfinite(actual_value.imag()) ||
+                    !std::isfinite(expected_value.real()) ||
+                    !std::isfinite(expected_value.imag()) || !std::isfinite(error))
+                    local_error = std::numeric_limits<double>::infinity();
+                else
+                    local_error = std::max(local_error, error);
+            }
         double max_error = 0.0;
         MPI_Allreduce(&local_error, &max_error, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
         if (blacs_h.myid == 0)

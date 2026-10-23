@@ -347,6 +347,10 @@
     <testcase name="SOC full-BZ native head/wing" directory="g0w0_soc_full_native_headwing_libri">
       <labels/>
       <build require_libri="true"/>
+      <validate name="Complete complex Cartesian velocity (Ha Bohr)"
+                file="librpa/librpa.d/g0w0_velocity.csv"
+                regex="^([0-9]+),([0-9]+),([0-9]+),([0-9]+),([0-9]+),([^,]+),([^,]+)$"
+                comparison="cmp_table.abs_diff(1e-10)"/>
       <validate name="Complete complex Cartesian head"
                 file="librpa/librpa.d/g0w0_headwing.csv"
                 regex="^head,([^,]+),([^,]+),([^,]+),([^,]+),([^,]+),([^,]+)$"
