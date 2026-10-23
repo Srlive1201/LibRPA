@@ -84,22 +84,6 @@ void test_mode_zero_is_an_exact_uncut_copy()
     }
 }
 
-void test_cut_modes_require_a_finite_live_spectrum()
-{
-    MeanField live = make_live_meanfield();
-    SpinKMatrixMap raw;
-    SpinKMatrixMap reference;
-    raw[0][0] = make_matrix(5, 10.0);
-    reference[0][0] = make_matrix(5, -3.0);
-
-    HamiltonianCutOptions options;
-    options.mode = HamiltonianCutMode::ShiftedReferenceDiagonal;
-    live.get_efermi() = std::numeric_limits<double>::quiet_NaN();
-
-    live = make_live_meanfield();
-    live.get_eigenvals()[0](0, 2) = std::numeric_limits<double>::quiet_NaN();
-}
-
 void test_default_cut_retains_ten_empty_states()
 {
     MeanField live(1, 1, 14, 1, 1);
@@ -168,7 +152,6 @@ void test_keep_covering_all_bands_is_uncut()
 int main()
 {
     test_mode_zero_is_an_exact_uncut_copy();
-    test_cut_modes_require_a_finite_live_spectrum();
     test_default_cut_retains_ten_empty_states();
     test_mode_one_adds_hartree_shift_to_reference_diagonal();
     test_keep_covering_all_bands_is_uncut();

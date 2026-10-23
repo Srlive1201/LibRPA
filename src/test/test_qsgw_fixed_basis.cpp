@@ -374,12 +374,76 @@ void test_velocity_basis_unitary_is_aligned_to_fixed_reference()
     assert_velocity_equal(rounded_velocity, reference_velocity);
 }
 
+void test_rectangular_reference_frame_preserves_saved_rotation()
+{
+    for (const int spinors : {1, 2})
+    {
+        const int aos = 3;
+        const int components = aos * spinors;
+        MeanField reference(1, 1, 2, aos, spinors);
+        // Full row rank without assuming orthonormal AO coordinates.
+        Matz rows(2, components, librpa_int::MAJOR::ROW);
+        rows(0, 0) = 1.2;
+        rows(0, 1) = cplxdb(0.2, 0.3);
+        rows(1, 0) = cplxdb(-0.1, 0.4);
+        rows(1, 1) = 0.9;
+        rows(1, components - 1) = cplxdb(0.3, -0.2);
+        for (int spinor = 0; spinor < spinors; ++spinor)
+        {
+            ComplexMatrix block(2, aos);
+            for (int band = 0; band < 2; ++band)
+                for (int ao = 0; ao < aos; ++ao)
+                    block(band, ao) = rows(band, ao * spinors + spinor);
+            reference.get_eigenvectors()[0][spinor][0] = block;
+        }
+        const MeanField before = reference;
+        const auto initial = librpa_int::qsgw::reference_basis_rotation(reference, reference);
+        for (int i = 0; i < 2; ++i)
+            for (int j = 0; j < 2; ++j) assert_close(initial.at(0).at(0)(i, j), i == j ? 1.0 : 0.0);
+
+        SpinKMatrixMap hamiltonian;
+        Matz h(2, 2, librpa_int::MAJOR::ROW);
+        h(0, 0) = -0.5;
+        h(1, 1) = 0.7;
+        h(0, 1) = cplxdb(0.2, -0.3);
+        h(1, 0) = std::conj(h(0, 1));
+        hamiltonian[0][0] = h;
+        MeanField live = reference;
+        const auto diagonalization = diagonalize_in_reference_basis(live, reference, hamiltonian);
+        const cplxdb phases[2] = {std::polar(1.0, 0.37), std::polar(1.0, -0.61)};
+        for (int spinor = 0; spinor < spinors; ++spinor)
+        {
+            auto& block = live.get_eigenvectors()[0][spinor][0];
+            for (int band = 0; band < 2; ++band)
+                for (int ao = 0; ao < aos; ++ao) block(band, ao) *= phases[band];
+        }
+        const auto saved = live;
+        const auto rotation = librpa_int::qsgw::reference_basis_rotation(live, reference);
+        const auto& u = rotation.at(0).at(0);
+        for (int i = 0; i < 2; ++i)
+            for (int j = 0; j < 2; ++j)
+                assert_close(u(i, j), diagonalization.unitary.at(0).at(0)(i, j) * phases[j]);
+        const auto reconstructed = transpose(u, false) * rows;
+        const auto actual = collect_wfc_rows(live);
+        for (int i = 0; i < 2; ++i)
+            for (int j = 0; j < components; ++j) assert_close(reconstructed(i, j), actual(i, j));
+        const auto diagonal = transpose(u, true) * h * u;
+        assert_close(diagonal(0, 1), 0.0);
+        assert_close(diagonal(1, 0), 0.0);
+        assert_close(diagonal(0, 0), live.get_eigenvals()[0](0, 0));
+        assert_close(diagonal(1, 1), live.get_eigenvals()[0](0, 1));
+        assert_meanfield_equal(reference, before);
+        assert_meanfield_equal(live, saved);
+    }
+}
+
 }  // namespace
 
 int main()
 {
     test_scoped_reference_eigenvectors_restores_live_state();
     test_fixed_reference_updates_live_wfc_from_mf0_each_iteration();
+    test_rectangular_reference_frame_preserves_saved_rotation();
     test_velocity_basis_unitary_is_aligned_to_fixed_reference();
     std::cout << "test_qsgw_fixed_basis: all tests passed\n";
     return 0;

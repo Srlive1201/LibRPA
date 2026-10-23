@@ -49,6 +49,7 @@ extern "C"
     /** Collective velocity computation and setter; optional analytic head/wing
      * preparation reuses the ordinary numerical API. Options use API values 3/4,
      * never driver preset 6. Optical preparation requires replace_w_head enabled.
+     * Option 3 also requires use_scalapack_gw_wc to consume the analytic wing.
      * Input is borrowed only for this call.
      */
     void librpa_prepare_native_velocity(LibrpaHandler *h, const LibrpaOptions *options,

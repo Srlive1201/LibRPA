@@ -117,11 +117,11 @@ Do not reinterpret a prior payload or silently change its physical map when
 extending the format. Update both reader and writer, select an explicit
 compatible version or reject the old convention, and document the boundary.
 
-Use `regression_tests/verify_qsgw_restart.py` for continuous versus split-run
+Use `regression_tests/verification/verify_qsgw_restart.py` for continuous versus split-run
 numerical comparisons. The restored boundary must agree exactly; subsequent
 fixed-reference operators and eigenvalues use the existing numerical gates.
 Later eigenvector phases or degenerate frames can differ between independent
-runs. `regression_tests/verify_qsgw_headwing.py` therefore aligns the entering
+runs. `regression_tests/verification/verify_qsgw_headwing.py` therefore aligns the entering
 eigenframes before comparing velocity and also compares head/wing feedback
 and frequency nodes. Both scripts require NumPy, the matching MPI runtime
 and a Python version with `tarfile` extraction filters, such as Python 3.12+.
