@@ -355,7 +355,9 @@ python3 utilities/export_crpa_dmft.py output/crpa/state_0000/crpa_model.npz nio.
 
 It preserves all output sites as separate impurity shells and both AFM spin
 blocks, writes the band-basis Hamiltonian and complex projectors, and retains
-full native interaction tensors with their conventions. It does not choose
+full native interaction tensors with their conventions. The interaction group
+also stores the original positive imaginary-frequency nodes as `nu`, converted
+to eV with the same factor as U; `frequency_unit` is `eV`. It does not choose
 a double-counting functional, impose AFM equivalence, or initialize an impurity
 solver. Mixed-angular-momentum `sp` sites require a custom DMFT shell definition.
 

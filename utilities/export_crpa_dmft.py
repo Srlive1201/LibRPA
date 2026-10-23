@@ -55,6 +55,7 @@ def triqs_data(model):
     # Full native tensors and their separate spin-frame conventions stay explicit.
     interaction = {k:v*scale if k.startswith(('v_','U_','continued_U_','continued_spread_')) else v
                    for k,v in model.items() if k.startswith(('v_','U_','continued_'))}
+    interaction['nu'] = model['nu']*scale
     if 'continued_z' in interaction:
         interaction['continued_z'] = model['continued_z']*scale
     interaction['metadata_json'] = model['metadata_json']
@@ -62,6 +63,7 @@ def triqs_data(model):
     if 'A_weights' in model:
         interaction['A_weights'] = model['A_weights']
     interaction['energy_unit'] = 'eV'
+    interaction['frequency_unit'] = 'eV'
     return result, interaction
 
 

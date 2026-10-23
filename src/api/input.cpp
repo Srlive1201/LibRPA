@@ -1422,6 +1422,11 @@ void librpa_prepare_native_velocity(LibrpaHandler *h, const LibrpaOptions *p_opt
             if (prepare_optical && p_opts->replace_w_head != LIBRPA_SWITCH_ON)
                 throw LIBRPA_INVALID_ARGUMENT(
                     "Native optical preparation requires replace_w_head enabled");
+            if (prepare_optical && p_opts->option_dielect_func == 3 &&
+                p_opts->use_scalapack_gw_wc != LIBRPA_SWITCH_ON)
+                throw LIBRPA_INVALID_ARGUMENT(
+                    "Native head/wing preparation with option_dielect_func = 3 requires "
+                    "use_scalapack_gw_wc enabled to consume analytic wings");
         });
     const auto &opts = *p_opts;
     const SymmetryContext *symmetry = nullptr;

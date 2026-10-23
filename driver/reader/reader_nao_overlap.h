@@ -5,10 +5,10 @@
 #include <string>
 #include <vector>
 
-#include "../src/math/complexmatrix.h"
-#include "../src/math/vector3_order.h"
+#include "../../src/math/complexmatrix.h"
+#include "../../src/math/vector3_order.h"
 
-namespace librpa_driver
+namespace librpa::reader
 {
 
 struct NaoOverlapRealSpace
@@ -34,8 +34,4 @@ std::vector<librpa_int::ComplexMatrix> fourier_nao_overlap(
 librpa_int::ComplexMatrix spatial_nao_overlap(const librpa_int::ComplexMatrix& overlap, int n_aos,
                                               int n_spinor);
 
-//! Maximum absolute element of S(k)-S(k)^dagger over all supplied k points.
-double max_nao_overlap_hermiticity_residual(
-    const std::vector<librpa_int::ComplexMatrix>& overlap_k);
-
-}  // namespace librpa_driver
+}  // namespace librpa::reader

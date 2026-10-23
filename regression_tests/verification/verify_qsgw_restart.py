@@ -185,7 +185,7 @@ def main():
     binary = args.binary.resolve()
     root = args.work_dir.resolve()
     root.mkdir(parents=True, exist_ok=False)
-    testcases = Path(__file__).resolve().parent / "testcases"
+    testcases = Path(__file__).resolve().parents[1] / "testcases"
     cases = {
         "si-none": ("qsgw_aims_Si_k333_headonly_libri", {}),
         "h2o-band": ("qsgw_band_aims_mole_H2O_libri",

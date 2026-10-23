@@ -3,6 +3,12 @@
 Use `task = qsgw` for both molecular and periodic calculations. The library task
 constructs self-energies in the immutable initial KS basis and updates the
 eigenvalues and wavefunctions each iteration.
+Its selected Mode B staticization evaluates the fixed-reference diagonal
+entries at the current state energies and the off-diagonal entries at the
+current Fermi energy; see the source-only note `docs/theory/qsgw/staticization.md`.
+This fixed-reference prescription is retained throughout iteration and restart.
+It is distinct from applying Mode B in the current eigenbasis and rotating the
+result back, even with exact analytic continuation.
 The effective Hamiltonian replaces the initial DFT exchange-correlation
 potential with exchange and a Hermitian correlation potential. Hartree updates
 are not implemented. Same-grid analytic head and wing updates are supported
@@ -66,6 +72,12 @@ retained, with their solver status available in the CSV. Restarted runs
 continue the update numbering. State indices, the selected one-based band
 range and solver statuses remain available in the CSV rather than a custom
 band-file header.
+
+Band-path occupation columns in the QP CSV and all band tables retain the
+original producer occupations. The path energies and Fermi level are updated,
+but path occupation weights are not refilled. These columns therefore do not
+identify the occupied subspace after a path state crosses the current Fermi
+level. SCF-grid occupations are updated each iteration and determine screening.
 
 Every enabled QP update also writes `output_dir/energy_qp_N` on the SCF
 grid in the ordinary G0W0 `energy_qp` layout. Its header, k-point and
@@ -192,7 +204,10 @@ requires `replace_w_head = true`, `use_scalapack_gw_wc = true`, and
 The native mode remains experimental.
 
 Existing option 3 provides both analytic head and wing, and option 4 provides
-head only, with `replace_w_head = true`. These options retain their explicit
+head only, with `replace_w_head = true`. Option 3 requires
+`use_scalapack_gw_wc = true`: the LAPACK Wc route does not consume analytic
+wings and is rejected. Option 4 retains its head-only routes.
+These options retain their explicit
 `qsgw_headwing_velocity` selection:
 
 | Value | Velocity used by each entering update |
@@ -406,7 +421,9 @@ mixing, so excluded states obey the cut exactly.
 (eV), Hamiltonian residual L2 and maximum norms (Ha), Fermi energy and gap (eV),
 electron count, mixing fraction and convergence flag. Residuals are measured
 before mixing on the SCF grid; the maximum is the largest complex-entry
-magnitude. Stopping uses the largest eigenvalue change after `qsgw_min_iter`.
+magnitude. The convergence flag and stopping gate use only the largest eigenvalue
+change and `qsgw_min_iter`; the Hamiltonian residual is reported separately and
+does not enter this gate.
 `qsgw_eigenvalues.dat` contains every grid eigenvalue and, when enabled, every
 path eigenvalue at initialization and after each update. With band inputs,
 each completed iteration also writes `KS_band_spin_S_N.dat`,
@@ -638,7 +655,7 @@ frequencies and the same Gamma reference on grid and path. Tests compare actual
 iteration energies, Hamiltonian residuals, electron count and eigenvalue
 trajectories with the existing numeric table comparator used by G0W0.
 
-`regression_tests/verify_qsgw_restart.py` compares uninterrupted trajectories
+`regression_tests/verification/verify_qsgw_restart.py` compares uninterrupted trajectories
 with independently started continuation processes for Si without mixing and
 molecular H2O with a band path and Hamiltonian cut. Earlier controls also
 covered Si with linear mixing; those results remain historical, and that case
@@ -653,7 +670,7 @@ A manual Si k666 band case is under
 `regression_tests/manual/Si_k666_qsgw_band`. These cases check numerical workflows;
 they do not establish convergence of material predictions.
 
-`regression_tests/verify_qsgw_headwing.py` compares three uninterrupted updates
+`regression_tests/verification/verify_qsgw_headwing.py` compares three uninterrupted updates
 with a one-plus-two restart, including saved velocities, head tensors, wings,
 self-energies, effective Hamiltonians and restored boundary states. It also
 checks the actual analytic/body frequency nodes. Select `--case aims-rotate`

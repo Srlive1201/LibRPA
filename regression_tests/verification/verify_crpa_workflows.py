@@ -217,7 +217,7 @@ def main():
     args = parser.parse_args()
     root = args.work_dir.resolve()
     root.mkdir(parents=True, exist_ok=False)
-    fixture = Path(__file__).resolve().parent / "testcases/g0w0_soc_full_native_headwing_libri"
+    fixture = Path(__file__).resolve().parents[1] / "testcases/g0w0_soc_full_native_headwing_libri"
     with tarfile.open(fixture / "dataset.tar.gz") as archive:
         archive.extractall(root, filter="data")
     dataset = root / "dataset"

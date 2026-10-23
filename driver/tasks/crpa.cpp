@@ -16,7 +16,7 @@
 #include "../../src/utils/constants.h"
 #include "../driver.h"
 #include "../read_data.h"
-#include "../reader_nao_overlap.h"
+#include "../reader/reader_nao_overlap.h"
 #include "../task.h"
 #include "crpa_model_output.h"
 #include "librpa_crpa.h"
@@ -295,17 +295,17 @@ CrpaDriverInput read_crpa_driver_input()
             librpa_int::is_absolute_path(driver_params.crpa_overlap_file)
                 ? driver_params.crpa_overlap_file
                 : librpa_int::join_path(driver_params.input_dir, driver_params.crpa_overlap_file);
-        const auto overlap = librpa_driver::read_abacus_nao_overlap_csr(filename);
+        const auto overlap = librpa::reader::read_abacus_nao_overlap_csr(filename);
         std::vector<double> kfrac(3 * result.n_kpoints);
         librpa_get_crpa_kgrid(h.get_c_handler(), result.n_kpoints, kfrac.data());
         std::vector<librpa_int::Vector3_Order<double>> kpoints;
         for (int k = 0; k < result.n_kpoints; ++k)
             kpoints.push_back({kfrac[3 * k], kfrac[3 * k + 1], kfrac[3 * k + 2]});
-        const auto overlap_k = librpa_driver::fourier_nao_overlap(overlap, kpoints);
+        const auto overlap_k = librpa::reader::fourier_nao_overlap(overlap, kpoints);
         for (const auto& matrix : overlap_k)
         {
             const auto spatial =
-                librpa_driver::spatial_nao_overlap(matrix, result.n_aos, result.n_spinor);
+                librpa::reader::spatial_nao_overlap(matrix, result.n_aos, result.n_spinor);
             for (int i = 0; i < spatial.size; ++i)
             {
                 overlap_packed.push_back(spatial.c[i].real());

@@ -2285,7 +2285,7 @@ void diele_func::cal_wing_full_bz(const Cs_LRI &Cs_data, double coulomb_eigen_th
 
     profiler.start("Comm_wing");
     MPI_Allreduce(MPI_IN_PLACE, local_wing_mu.data(), static_cast<int>(local_wing_mu.size()),
-                  MPI_CXX_DOUBLE_COMPLEX, MPI_SUM, MPI_COMM_WORLD);
+                  MPI_CXX_DOUBLE_COMPLEX, MPI_SUM, comm_h.comm);
     profiler.stop("Comm_wing");
     double dielectric_unit = cal_factor("wing");
 
@@ -2567,7 +2567,7 @@ void diele_func::cal_wing_symmetric(const Cs_LRI &Cs_data, double coulomb_eigen_
 
     profiler.start("Comm_wing");
     MPI_Allreduce(MPI_IN_PLACE, local_wing_mu.data(), static_cast<int>(local_wing_mu.size()),
-                  MPI_CXX_DOUBLE_COMPLEX, MPI_SUM, MPI_COMM_WORLD);
+                  MPI_CXX_DOUBLE_COMPLEX, MPI_SUM, comm_h.comm);
     profiler.stop("Comm_wing");
     double dielectric_unit = cal_factor("wing");
 

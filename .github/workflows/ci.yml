@@ -96,16 +96,16 @@ jobs:
           export I_MPI_CBWR=2 MKL_CBWR=COMPATIBLE
           export OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1
           cd regression_tests
-          python verify_qsgw_restart.py --binary ../build_libri/chi0_main.exe \
+          python verification/verify_qsgw_restart.py --binary ../build_libri/chi0_main.exe \
             --work-dir workspace_qsgw_restart --ranks 4 --case h2o-band
-          python verify_qsgw_headwing.py --binary ../build_libri/chi0_main.exe \
+          python verification/verify_qsgw_headwing.py --binary ../build_libri/chi0_main.exe \
             --work-dir workspace_qsgw_headwing --ranks 4 --case aims-rotate
       - name: cRPA standalone, shared-GW and tracked current-HR trajectories
         run: |
           set -o pipefail
           source /opt/intel/oneapi/setvars.sh
           cd regression_tests
-          python verify_crpa_workflows.py --binary ../build_libri/chi0_main.exe \
+          python verification/verify_crpa_workflows.py --binary ../build_libri/chi0_main.exe \
             --work-dir workspace_crpa_workflows 2>&1 | tee test_crpa_workflows.log
           python verification/verify_magnetic_crpa_workflows.py --binary ../build_libri/chi0_main.exe \
             --work-dir workspace_magnetic_crpa_workflows 2>&1 | tee test_magnetic_crpa_workflows.log
